@@ -1,0 +1,192 @@
+[
+    {
+        "media": {
+            "url": "file::///home/music/collection/test.mp3",
+            "type": "audio/mpeg",
+            "imported": "2018-03-22T17:10:55.488760124Z"
+        },
+        "audio": {
+            "duration": {
+                "millis": 202821
+            },
+            "channels": {
+                "count": 2
+            },
+            "samplerate": {
+                "hz": 44100
+            },
+            "bitrate": {
+                "bps": 320000
+            }
+        },
+        "titles": {
+            "title": "Give Me All Your Luvin'"
+        },
+        "actors": [
+            {
+                "role": "artist",
+                "name": "Madonna"
+            },
+            {
+                "role": "producer",
+                "name": "Martin Solveig"
+            },
+            {
+                "role": "artist",
+                "prefix": " ft. ",
+                "name": "Nicki Minaj"
+            },
+            {
+                "role": "artist",
+                "prefix": " & ",
+                "name": "M.I.A."
+            },
+            {
+                "role": "composer",
+                "name": "Madonna"
+            },
+            {
+                "role": "composer",
+                "prefix": ", ",
+                "name": "Nicki Minaj"
+            },
+            {
+                "role": "composer",
+                "prefix": ", ",
+                "name": "Martin Solveig"
+            },
+            {
+                "role": "composer",
+                "prefix": " & ",
+                "name": "Julien Jabre"
+            }
+        ],
+        "album": {
+            "actors": [
+                {
+                    "role": "artist",
+                    "name": "Madonna"
+                }
+            ],
+            "titles": {
+                "title": "MDNA (Deluxe Version)"
+            },
+            "compilation": false
+        },
+        "release": {
+            "released": "2012-03-23T00:00:00.000Z",
+            "label": "Interscope Records",
+            "copyright": "℗ 2012 Boy Toy, Inc. Exclusively licensed to Live Nation Worldwide, Inc. Exclusively licensed to Interscope Records"
+        },
+        "trackNumbers": {
+            "current": 5,
+            "total": 18
+        },
+        "discNumbers": {
+            "current": 1,
+            "total": 1
+        },
+        "music": {
+            "loudness": {
+                "ebur128lufs": {
+                    "db": -9.55269
+                }
+            },
+            "tempo": {
+                "bpm": 145.0
+            },
+            "timeSignature": {
+                "numerator": 4,
+                "denominator": 4
+            },
+            "keySignature": {
+                "code": 11
+            },
+            "classifications": [
+                {
+                    "classifier": "energy",
+                    "confidence": 0.92
+                },
+                {
+                    "classifier": "positivity",
+                    "confidence": 0.85
+                },
+                {
+                    "classifier": "danceability",
+                    "confidence": 0.78
+                },
+                {
+                    "classifier": "popularity",
+                    "confidence": 0.75
+                }
+            ]
+        },
+        "tags": [
+            {
+                "facet": "genre",
+                "term": "Pop",
+                "confidence": 0.9
+            },
+            {
+                "facet": "genre",
+                "term": "Electronic",
+                "confidence": 0.3
+            },
+            {
+                "facet": "decade",
+                "term": "2010s",
+                "confidence": 1.0
+            },
+            {
+                "facet": "genre",
+                "term": "Dance",
+                "confidence": 0.7
+            },
+            {
+                "facet": "genre",
+                "term": "Hip Hop/Rap",
+                "confidence": 0.2
+            },
+            {
+                "facet": "lang",
+                "term": "eng",
+                "confidence": 1.0
+            },
+            {
+                "term": "Wedding",
+                "confidence": 0.8
+            },
+            {
+                "facet": "decade",
+                "term": "1980s",
+                "confidence": 0.1
+            },
+            {
+                "term": "Party",
+                "confidence": 0.95
+            },
+            {
+                "term": "Floorfiller",
+                "confidence": 0.7
+            }
+        ],
+        "ratings": [
+            {
+                "rating": 0.8
+            },
+            {
+                "owner": "mrdj@aoide.org",
+                "rating": 0.7
+            }
+        ],
+        "comments": [
+            {
+                "owner": "mrdj@aoide.org",
+                "comment": "Personal notes about this track"
+            },
+            {
+                "comment": "Anonymous notes about this track"
+            }
+        ]
+    }
+]

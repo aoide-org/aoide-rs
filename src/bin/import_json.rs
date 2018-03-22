@@ -4,11 +4,16 @@ extern crate env_logger;
 
 #[macro_use] extern crate log;
 
+extern crate serde_json;
+
 use env_logger::Builder as LoggerBuilder;
 
 use log::LevelFilter as LogLevelFilter;
 
 use std::env;
+use std::path::Path;
+use std::fs::File;
+use std::io;
 
 pub fn init_env_logger_verbosity(verbosity: u8) {
     let mut logger_builder = LoggerBuilder::new();
@@ -33,14 +38,26 @@ pub fn init_env_logger_verbosity(verbosity: u8) {
 }
 
 pub fn main() {
-    let args: Vec<String> = ::std::env::args().collect();
-    if args.len() != 1 {
-        println!("usage: {}", args[0]);
+    let args: Vec<String> = env::args().collect();
+    if args.len() != 2 {
+        println!("usage: {} <JSON_FILE>", args[0]);
         return;
     }
 
     // TODO: Parse verbosity from args
     init_env_logger_verbosity(2);
 
-    info!("TODO");
+    let path = Path::new(&args[1]);
+    try_main(path).unwrap();
+}
+
+pub fn try_main(path: &Path) -> io::Result<()> {
+    info!("Opening file {:?}", path.as_os_str());
+    let file = File::open(path)?;
+
+    info!("Reading track metadata from JSON");
+    let buf_reader = io::BufReader::new(file);
+    let tracks: Vec<aoide::domain::track::TrackMetadata> = serde_json::from_reader(buf_reader).unwrap();
+    info!("Deserialized tracks: {:?}", tracks);
+    Ok(())
 }
