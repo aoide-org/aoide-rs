@@ -1,0 +1,16 @@
+[package]
+name = "aoide"
+version = "0.0.1"
+authors = [ "Uwe Klotz <uwe.klotz@gmail>" ]
+description = "Backend services for curating and enjoying your music"
+publish = false
+
+[dependencies]
+chrono = { version = "*", features = ["serde"] }
+diesel = { version = "*", features = ["chrono", "sqlite"] }
+env_logger = "*"
+log = "*"
+mime_guess = "*"
+serde = "*"
+serde_derive = "*"
+serde_json = "*"
