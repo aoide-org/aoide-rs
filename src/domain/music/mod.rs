@@ -47,8 +47,6 @@ pub struct Actor {
 }
 
 impl Actor {
-  const STRING_SEPARATOR: &'static str = " ";
-
   pub fn artist<S: Into<String>>(name: S) -> Self {
     Self {
       role: ActorRole::Artist,
