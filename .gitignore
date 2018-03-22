@@ -1,0 +1,11 @@
+# Build directory
+/target/
+
+# Backup files
+**/*~
+
+# Cargo temporary files
+/Cargo.lock
+
+# SQLite database files
+**/*.sqlite
