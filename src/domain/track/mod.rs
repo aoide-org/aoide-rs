@@ -59,8 +59,8 @@ impl Titles {
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AlbumMetadata {
-  #[serde(skip_serializing_if = "Titles::is_empty")] titles: Titles,
-  #[serde(skip_serializing_if = "Vec::is_empty")] actors: Vec<Actor>,
+  #[serde(skip_serializing_if = "Titles::is_empty", default="Titles::default")] titles: Titles,
+  #[serde(skip_serializing_if = "Vec::is_empty", default="Vec::default")] actors: Vec<Actor>,
   #[serde(skip_serializing_if = "Option::is_none")] grouping: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")] compilation: Option<bool>,
 }
@@ -137,7 +137,7 @@ pub struct MusicMetadata {
   #[serde(skip_serializing_if = "Option::is_none")] tempo: Option<Tempo>,
   #[serde(skip_serializing_if = "Option::is_none")] time_signature: Option<TimeSignature>,
   #[serde(skip_serializing_if = "Option::is_none")] key_signature: Option<KeySignature>,
-  #[serde(skip_serializing_if = "Vec::is_empty")] pub classifications: Vec<Classification>, // no duplicate classifiers allowed
+  #[serde(skip_serializing_if = "Vec::is_empty", default = "Vec::default")] pub classifications: Vec<Classification>, // no duplicate classifiers allowed
 }
 
 impl MusicMetadata {
@@ -174,25 +174,25 @@ pub struct TrackMetadata {
 
   pub audio: AudioMetadata,
 
-  #[serde(skip_serializing_if = "Titles::is_empty")] pub titles: Titles,
+  #[serde(skip_serializing_if = "Titles::is_empty", default="Titles::default")] pub titles: Titles,
 
-  #[serde(skip_serializing_if = "Vec::is_empty")] pub actors: Vec<Actor>,
+  #[serde(skip_serializing_if = "Vec::is_empty", default = "Vec::default")] pub actors: Vec<Actor>,
 
-  #[serde(skip_serializing_if = "AlbumMetadata::is_empty")] pub album: AlbumMetadata,
+  #[serde(skip_serializing_if = "AlbumMetadata::is_empty", default = "AlbumMetadata::default")] pub album: AlbumMetadata,
 
-  #[serde(skip_serializing_if = "ReleaseMetadata::is_empty")] pub release: ReleaseMetadata,
+  #[serde(skip_serializing_if = "ReleaseMetadata::is_empty", default = "ReleaseMetadata::default")] pub release: ReleaseMetadata,
 
   #[serde(skip_serializing_if = "Option::is_none")] pub track_numbers: Option<TrackNumbers>,
 
   #[serde(skip_serializing_if = "Option::is_none")] pub disc_numbers: Option<DiscNumbers>,
 
-  #[serde(skip_serializing_if = "MusicMetadata::is_empty")] pub music: MusicMetadata,
+  #[serde(skip_serializing_if = "MusicMetadata::is_empty", default = "MusicMetadata::default")] pub music: MusicMetadata,
 
-  #[serde(skip_serializing_if = "Vec::is_empty")] pub tags: Vec<Tag>, // no duplicate terms per facet allowed
+  #[serde(skip_serializing_if = "Vec::is_empty", default = "Vec::default")] pub tags: Vec<Tag>, // no duplicate terms per facet allowed
 
-  #[serde(skip_serializing_if = "Vec::is_empty")] pub ratings: Vec<Rating>, // no duplicate owners allowed
+  #[serde(skip_serializing_if = "Vec::is_empty", default = "Vec::default")] pub ratings: Vec<Rating>, // no duplicate owners allowed
 
-  #[serde(skip_serializing_if = "Vec::is_empty")] pub comments: Vec<Comment>, // no duplicate owners allowed
+  #[serde(skip_serializing_if = "Vec::is_empty", default = "Vec::default")] pub comments: Vec<Comment>, // no duplicate owners allowed
 }
 
 impl TrackMetadata {
