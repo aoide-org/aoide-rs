@@ -39,7 +39,10 @@ impl Default for ActorRole {
 #[serde(rename_all = "camelCase")]
 pub struct Actor {
   role: ActorRole,
-  prefix: String,
+  // The prefix contains all necessary separators between the
+  // preceding and this actor's name, i.e. there is no implicit
+  // spacing!
+  #[serde(skip_serializing_if = "String::is_empty", default = "String::default")] prefix: String,
   name: String,
 }
 
@@ -47,49 +50,45 @@ impl Actor {
   const STRING_SEPARATOR: &'static str = " ";
 
   pub fn artist<S: Into<String>>(name: S) -> Self {
-    Self { role: ActorRole::Artist, prefix: String::default(), name: name.into() }
+    Self {
+      role: ActorRole::Artist,
+      prefix: String::default(),
+      name: name.into(),
+    }
   }
 
   pub fn prefixed_artist<S1: Into<String>, S2: Into<String>>(prefix: S1, name: S2) -> Self {
-    Self { role: ActorRole::Artist, prefix: prefix.into(), name: name.into() }
+    Self {
+      role: ActorRole::Artist,
+      prefix: prefix.into(),
+      name: name.into(),
+    }
+  }
+
+  pub fn is_valid(&self) -> bool {
+    !self.name.is_empty()
   }
 
   fn string_len(&self) -> usize {
-    if self.prefix.is_empty() {
-      self.name.len()
-    } else {
-      if self.name.is_empty() {
-        self.prefix.len()
-      } else {
-        self.prefix.len() + Self::STRING_SEPARATOR.len() + self.name.len()
-      }
-    }
+    self.prefix.len() + self.name.len()
   }
 
   fn append_to_string(&self, builder: &mut String) {
-    if self.prefix.is_empty() {
-      if !self.name.is_empty() {
-        if !builder.is_empty() {
-          builder.push_str(Self::STRING_SEPARATOR);
-        }
-        builder.push_str(&self.name);
-      }
-    } else {
-      if !builder.is_empty() {
-        builder.push_str(Self::STRING_SEPARATOR);
-      }
-      builder.push_str(&self.prefix);
-      if !self.name.is_empty() {
-        builder.push_str(Self::STRING_SEPARATOR);
-        builder.push_str(&self.name);
-      }
-    }
+    builder.push_str(&self.prefix);
+    builder.push_str(&self.name);
   }
 
   pub fn actors_to_string(actors: &[Self], role_opt: Option<ActorRole>) -> String {
-    let capacity = actors.iter().filter(|a| role_opt.is_none() || (Some(a.role) == role_opt)).map(|a| a.string_len() + Self::STRING_SEPARATOR.len()).sum();
+    let capacity = actors
+      .iter()
+      .filter(|a| role_opt.is_none() || (Some(a.role) == role_opt))
+      .map(|a| a.string_len())
+      .sum();
     let mut builder = String::with_capacity(capacity);
-    actors.iter().filter(|a| role_opt.is_none() || (Some(a.role) == role_opt)).for_each(|a| a.append_to_string(&mut builder));
+    actors
+      .iter()
+      .filter(|a| role_opt.is_none() || (Some(a.role) == role_opt))
+      .for_each(|a| a.append_to_string(&mut builder));
     builder
   }
 }
@@ -412,11 +411,17 @@ mod tests {
   fn actor_artists_to_string() {
     let actors = vec![
       Actor::artist("Madonna"),
-      Actor { role: ActorRole::Producer, prefix: String::default(), name: "Martin Solveig".to_string() },
-      Actor::prefixed_artist("feat.", "M.I.A."),
-      Actor::prefixed_artist("and", "Nicki Minaj"),
+      Actor {
+        role: ActorRole::Producer,
+        prefix: String::default(),
+        name: "Martin Solveig".to_string(),
+      },
+      Actor::prefixed_artist(" feat. ", "M.I.A."),
+      Actor::prefixed_artist(" and ", "Nicki Minaj"),
     ];
-    assert_eq!("Madonna feat. M.I.A. and Nicki Minaj", Actor::actors_to_string(&actors, Some(ActorRole::Artist)));
+    assert_eq!(
+      "Madonna feat. M.I.A. and Nicki Minaj",
+      Actor::actors_to_string(&actors, Some(ActorRole::Artist))
   }
 
   #[test]
