@@ -66,7 +66,7 @@ CREATE TABLE track_overview (
 CREATE TABLE track_fulltext (
     id                     INTEGER PRIMARY KEY,
     track_id               INTEGER,
-    fulltext               TEXT NOT NULL,
+    fulltext               CLOB NOT NULL,
     FOREIGN KEY(track_id) REFERENCES track_vault(id),
     UNIQUE (track_id)
 );
@@ -85,7 +85,7 @@ CREATE TABLE track_comments (
     id                     INTEGER PRIMARY KEY,
     track_id               INTEGER,
     owner                  TEXT,
-    comment                TEXT NOT NULL,
+    comment                CLOB NOT NULL,
     FOREIGN KEY(track_id) REFERENCES track_vault(id),
     UNIQUE (track_id, owner)
 );
