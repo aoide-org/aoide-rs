@@ -8,6 +8,7 @@ use std::fmt;
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum ActorRole {
   Artist,
   Arranger,
