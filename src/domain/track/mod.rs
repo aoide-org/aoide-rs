@@ -16,8 +16,8 @@ use std::fmt;
 pub struct MediaMetadata {
   url: String,
   #[serde(rename = "type")] media_type: String,
-  #[serde(skip_serializing_if = "Option::is_none")] sync_imported: Option<DateTime<Utc>>,
-  #[serde(skip_serializing_if = "Option::is_none")] sync_exported: Option<DateTime<Utc>>,
+  #[serde(skip_serializing_if = "Option::is_none")] imported: Option<DateTime<Utc>>,
+  #[serde(skip_serializing_if = "Option::is_none")] exported: Option<DateTime<Utc>>,
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -229,7 +229,7 @@ mod tests {
     let media = MediaMetadata {
       url: url.to_string(),
       media_type: mime_guess::guess_mime_type(url).to_string(),
-      sync_imported: Some(Utc::now()),
+      imported: Some(Utc::now()),
       ..Default::default()
     };
     let classifications = vec![

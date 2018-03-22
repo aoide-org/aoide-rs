@@ -4,8 +4,8 @@ CREATE TABLE track_vault (
     updated                DATETIME, -- implicit time zone UTC
     media_url              TEXT NOT NULL,
     media_type             TEXT NOT NULL, -- RFC 6838
-    media_sync_imported    DATETIME, -- most recent metadata import
-    media_sync_exported    DATETIME, -- most recent metadata export
+    media_imported         DATETIME, -- most recent metadata import
+    media_exported         DATETIME, -- most recent metadata export
     audio_duration         INTEGER NOT NULL, -- milliseconds
     audio_channels         INTEGER NOT NULL, -- number of channels
     audio_samplerate       INTEGER NOT NULL, -- Hz
