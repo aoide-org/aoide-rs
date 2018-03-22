@@ -155,10 +155,11 @@ pub struct TrackTag;
 
 impl TrackTag {
   // Predefined facets
-  pub const FACET_LANG: &'static str = "lang"; // language
-  pub const FACET_GENRE: &'static str = "genre";
+  pub const FACET_LANG: &'static str = "lang"; // ISO 639-2 language codes: "eng", "fre"/"fra", "ita", "spa", "ger"/"deu", ...
+  pub const FACET_GENRE: &'static str = "genre"; // e.g. "Pop", "Dance", "Electronic", "R&B/Soul", "Hip Hop/Rap", ...
   pub const FACET_STYLE: &'static str = "style";
   pub const FACET_MOOD: &'static str = "mood";
+  pub const FACET_DECADE: &'static str = "decade"; // e.g. "1980s", "2000s", ...
 }
 
 ///////////////////////////////////////////////////////////////////////
