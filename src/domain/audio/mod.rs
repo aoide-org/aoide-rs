@@ -17,7 +17,37 @@ pub mod sample;
 pub mod signal;
 
 use std::u16;
+use std::u64;
 use std::fmt;
+
+///////////////////////////////////////////////////////////////////////
+/// Duration
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub struct Duration {
+    pub millis: u64,
+}
+
+impl Duration {
+    pub const UNIT_OF_MEASURE: &'static str = "ms";
+
+    pub const MIN: Duration = Duration { millis: u64::MIN };
+
+    pub fn millis(millis: u64) -> Self {
+        Self { millis }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        *self == Self::MIN
+    }
+}
+
+impl fmt::Display for Duration {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} {}", self.millis, Duration::UNIT_OF_MEASURE)
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////
 /// Channels
@@ -82,30 +112,6 @@ impl Channels {
                 Some(layout) => layout.channel_count() == self.count,
             }
         }
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-/// Duration
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub struct Duration {
-    pub millis: u64,
-}
-
-impl Duration {
-    pub const UNIT_OF_MEASURE: &'static str = "ms";
-
-    pub fn millis(millis: u64) -> Self {
-        Self { millis }
-    }
-
-}
-
-impl fmt::Display for Duration {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", self.millis, Duration::UNIT_OF_MEASURE)
     }
 }
 
