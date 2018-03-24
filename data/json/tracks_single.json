@@ -61,6 +61,9 @@
                 "name": "Julien Jabre"
             }
         ],
+        "identity": {
+            "mbrainzId": "d878c95a-8a6b-3be6-b6df-7d720a480625"
+        },
         "album": {
             "actors": [
                 {
@@ -70,6 +73,9 @@
             ],
             "titles": {
                 "title": "MDNA (Deluxe Version)"
+            },
+            "identity": {
+                "mbrainzId": "5436c9f0-3bc4-410b-8f2d-b584779d5b2c"
             },
             "compilation": false
         },

@@ -20,7 +20,10 @@ use domain::metadata::*;
 use domain::music::*;
 
 use chrono::{DateTime, Utc};
+
 use std::fmt;
+
+use uuid::Uuid;
 
 ///////////////////////////////////////////////////////////////////////
 /// MediaMetadata
@@ -64,6 +67,41 @@ pub struct Titles {
 impl Titles {
   pub fn is_empty(&self) -> bool {
     self.title.is_none() && self.subtitle.is_none()
+  }
+}
+
+///////////////////////////////////////////////////////////////////////
+/// TrackIdentity
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrackIdentity {
+  #[serde(skip_serializing_if = "Uuid::is_nil", default = "Uuid::nil")] acoust_id: Uuid,
+  #[serde(skip_serializing_if = "Uuid::is_nil", default = "Uuid::nil")] mbrainz_id: Uuid, // MusicBrainz Release Track Id
+  #[serde(skip_serializing_if = "String::is_empty", default = "String::default")] spotify_id: String, // excl. "spotify:track:" prefix
+}
+
+impl TrackIdentity {
+  pub fn is_empty(&self) -> bool {
+    self.acoust_id.is_nil() && self.mbrainz_id.is_nil() && self.spotify_id.is_empty()
+  }
+}
+
+///////////////////////////////////////////////////////////////////////
+/// AlbumIdentity
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AlbumIdentity {
+  #[serde(skip_serializing_if = "Uuid::is_nil", default = "Uuid::nil")] mbrainz_id: Uuid, // MusicBrainz Release Id
+  #[serde(skip_serializing_if = "String::is_empty", default = "String::default")] spotify_id: String, // excl. "spotify:album:" prefix
+}
+
+impl AlbumIdentity {
+  pub fn is_empty(&self) -> bool {
+    self.mbrainz_id.is_nil() && self.spotify_id.is_empty()
   }
 }
 
@@ -192,6 +230,8 @@ pub struct TrackMetadata {
   #[serde(skip_serializing_if = "Titles::is_empty", default="Titles::default")] pub titles: Titles,
 
   #[serde(skip_serializing_if = "Vec::is_empty", default = "Vec::default")] pub actors: Vec<Actor>,
+
+  #[serde(skip_serializing_if = "TrackIdentity::is_empty", default="TrackIdentity::default")] pub identity: TrackIdentity,
 
   #[serde(skip_serializing_if = "AlbumMetadata::is_empty", default = "AlbumMetadata::default")] pub album: AlbumMetadata,
 

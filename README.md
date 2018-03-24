@@ -104,7 +104,9 @@ cargo run --bin import_json data/json/tracks_minimum.json
 
 ## One more thing
 
-Aoide - the muse of voice and song.
+*Aoide* - the muse of voice and song.
+
+Not to forget dancing, but *Terpsichord* was such an awkward long name. It's up to you to bring this to life.
 
 > There are only two hard things in Computer Science: cache invalidation and naming things.
 >
