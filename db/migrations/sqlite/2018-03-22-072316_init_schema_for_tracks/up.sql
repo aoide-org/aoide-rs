@@ -15,12 +15,14 @@
 
 CREATE TABLE track_vault (
     id                     INTEGER PRIMARY KEY,
+    revision               INTEGER NOT NULL, -- for optimistic locking and synchronization
     added                  DATETIME NOT NULL, -- implicit time zone UTC
     updated                DATETIME, -- implicit time zone UTC
-    media_url              TEXT NOT NULL,
     media_type             TEXT NOT NULL, -- RFC 6838
-    media_imported         DATETIME, -- most recent metadata import
-    media_exported         DATETIME, -- most recent metadata export
+    media_locator_type     INTEGER NOT NULL, -- from primary location
+    media_locator          TEXT NOT NULL, -- from primary location
+    media_imported         DATETIME, -- most recent metadata import from primary location
+    media_exported         DATETIME, -- most recent metadata export from primary location
     audio_duration         INTEGER NOT NULL, -- milliseconds
     audio_channels         INTEGER NOT NULL, -- number of channels
     audio_samplerate       INTEGER NOT NULL, -- Hz
@@ -30,14 +32,14 @@ CREATE TABLE track_vault (
     metadata_version_minor INTEGER NOT NULL, -- for metadata migration - backward-compatible changes
     metadata_blob          BLOB NOT NULL, -- serialized track metadata
     metadata_sha256        BLOB NOT NULL, -- serialized track metadata hash
-    UNIQUE (media_url),
+    UNIQUE (media_locator),
     UNIQUE (metadata_sha256)
 );
 
 CREATE TABLE track_overview (
     id                     INTEGER PRIMARY KEY,
-    track_id               INTEGER,
-    track_title            TEXT,
+    track_id               INTEGER NOT NULL,
+    track_title            TEXT NOT NULL,
     track_subtitle         TEXT,
     track_artists          TEXT,
     track_composers        TEXT,
@@ -80,15 +82,26 @@ CREATE TABLE track_overview (
 
 CREATE TABLE track_fulltext (
     id                     INTEGER PRIMARY KEY,
-    track_id               INTEGER,
+    track_id               INTEGER NOT NULL,
     fulltext               CLOB NOT NULL,
     FOREIGN KEY(track_id) REFERENCES track_vault(id),
     UNIQUE (track_id)
 );
 
+CREATE TABLE track_locations (
+    id                     INTEGER PRIMARY KEY,
+    track_id               INTEGER NOT NULL,
+    locator_type           INTEGER NOT NULL, -- TBD: locator enum type mapping (Url, RelativePath, SpotifyId, ...)
+    locator                TEXT NOT NULL,
+    primary_location       TINYINT NOT NULL, -- {0, 1}
+    imported               DATETIME, -- most recent metadata import
+    exported               DATETIME, -- most recent metadata export
+    FOREIGN KEY(track_id) REFERENCES track_vault(id)
+);
+
 CREATE TABLE track_tags (
     id                     INTEGER PRIMARY KEY,
-    track_id               INTEGER,
+    track_id               INTEGER NOT NULL,
     facet                  TEXT,
     term                   TEXT NOT NULL,
     confidence             REAL NOT NULL,
@@ -98,7 +111,7 @@ CREATE TABLE track_tags (
 
 CREATE TABLE track_comments (
     id                     INTEGER PRIMARY KEY,
-    track_id               INTEGER,
+    track_id               INTEGER NOT NULL,
     owner                  TEXT,
     comment                CLOB NOT NULL,
     FOREIGN KEY(track_id) REFERENCES track_vault(id),
@@ -107,7 +120,7 @@ CREATE TABLE track_comments (
 
 CREATE TABLE track_ratings (
     id                     INTEGER PRIMARY KEY,
-    track_id               INTEGER,
+    track_id               INTEGER NOT NULL,
     owner                  TEXT,
     rating                 REAL NOT NULL,
     FOREIGN KEY(track_id) REFERENCES track_vault(id),

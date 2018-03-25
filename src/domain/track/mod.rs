@@ -26,21 +26,57 @@ use std::fmt;
 use uuid::Uuid;
 
 ///////////////////////////////////////////////////////////////////////
+/// LocationType
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MediaLocatorType {
+  Url,          // e.g. absolute file path including scheme: "file:///home/music/subfolder/test.mp3"
+  RelativePath, // e.g. "subfolder/test.mp3" (depending on a shared context like an implicit common root folder)
+  SpotifyId,    // Spotify ID
+}
+
+///////////////////////////////////////////////////////////////////////
+/// MediaLocation
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MediaLocation {
+  #[serde(rename = "type")] locator_type: MediaLocatorType,
+  locator: String,
+  primary: bool,
+  #[serde(skip_serializing_if = "Option::is_none")] imported: Option<DateTime<Utc>>, // most recent metadata import
+  #[serde(skip_serializing_if = "Option::is_none")] exported: Option<DateTime<Utc>>, // most recent metadata export
+}
+
+impl MediaLocation {
+  pub fn is_valid(&self) -> bool {
+    !self.locator.is_empty()
+  }
+}
+
+///////////////////////////////////////////////////////////////////////
 /// MediaMetadata
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MediaMetadata {
-  url: String,
-  #[serde(rename = "type")] media_type: String,
-  #[serde(skip_serializing_if = "Option::is_none")] imported: Option<DateTime<Utc>>,
-  #[serde(skip_serializing_if = "Option::is_none")] exported: Option<DateTime<Utc>>,
+  #[serde(skip_serializing_if = "Option::is_none", rename = "type")] media_type: Option<String>,
+  #[serde(skip_serializing_if = "Vec::is_empty", default = "Vec::default")]
+  pub locations: Vec<MediaLocation>,
 }
 
 impl MediaMetadata {
+  pub fn is_empty(&self) -> bool {
+    self.media_type.is_none() && self.locations.is_empty()
+  }
+
   pub fn is_valid(&self) -> bool {
-    !self.url.is_empty() && !self.media_type.is_empty()
+    // exactly one primary location
+    self.locations.iter().filter(|loc| loc.primary).count() == 1
   }
 }
 
@@ -313,12 +349,16 @@ mod tests {
 
   #[test]
   fn serialize_json() {
-    let url = "file:://test.mp3";
-    let media = MediaMetadata {
-      url: url.to_string(),
-      media_type: mime_guess::guess_mime_type(url).to_string(),
+    let location = MediaLocation {
+      locator_type: MediaLocatorType::RelativePath,
+      locator: "subfolder/test.mp3".to_string(),
+      primary: true,
       imported: Some(Utc::now()),
-      ..Default::default()
+      exported: None,
+    };
+    let media = MediaMetadata {
+      media_type: Some(mime_guess::guess_mime_type(&location.locator).to_string()),
+      locations: vec![location],
     };
     let classifications = vec![
       Classification::new(Classifier::Energy, 0.1),
