@@ -4,7 +4,7 @@
             "contentType": "audio/mpeg",
             "locations": [
                 {
-                    "type": "url",
+                    "locatorType": "url",
                     "locator": "file::///home/music/collection/test.mp3",
                     "primary": true,
                     "metadataImported": "2018-03-22T17:10:55.488760124Z"
