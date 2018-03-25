@@ -47,8 +47,8 @@ pub struct MediaLocation {
   locator_type: MediaLocatorType,
   locator: String,
   primary: bool,
-  #[serde(skip_serializing_if = "Option::is_none")] imported: Option<DateTime<Utc>>, // most recent metadata import
-  #[serde(skip_serializing_if = "Option::is_none")] exported: Option<DateTime<Utc>>, // most recent metadata export
+  #[serde(skip_serializing_if = "Option::is_none")] metadata_imported: Option<DateTime<Utc>>, // most recent metadata import
+  #[serde(skip_serializing_if = "Option::is_none")] metadata_exported: Option<DateTime<Utc>>, // most recent metadata export
 }
 
 impl MediaLocation {
@@ -353,8 +353,8 @@ mod tests {
       locator_type: MediaLocatorType::RelativePath,
       locator: "subfolder/test.mp3".to_string(),
       primary: true,
-      imported: Some(Utc::now()),
-      exported: None,
+      metadata_imported: Some(Utc::now()),
+      metadata_exported: None,
     };
     let media = MediaMetadata {
       content_type: Some(mime_guess::guess_mime_type(&location.locator).to_string()),

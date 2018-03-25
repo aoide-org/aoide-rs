@@ -7,7 +7,7 @@
                     "type": "url",
                     "locator": "file::///home/music/collection/test.mp3",
                     "primary": true,
-                    "imported": "2018-03-22T17:10:55.488760124Z"
+                    "metadataImported": "2018-03-22T17:10:55.488760124Z"
                 }
             ]
         },
