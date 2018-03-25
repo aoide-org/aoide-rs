@@ -18,7 +18,6 @@ CREATE TABLE track_vault (
     revision               INTEGER NOT NULL, -- for optimistic locking and synchronization
     added                  DATETIME NOT NULL, -- implicit time zone UTC
     updated                DATETIME, -- implicit time zone UTC
-    media_type             TEXT NOT NULL, -- RFC 6838
     media_locator_type     INTEGER NOT NULL, -- from primary location, TBD: enum type mapping (Url, RelativePath, SpotifyId, ...)
     media_locator          TEXT NOT NULL, -- from primary location
     media_imported         DATETIME, -- most recent metadata import from primary location
@@ -32,6 +31,7 @@ CREATE TABLE track_vault (
     metadata_version_minor INTEGER NOT NULL, -- for metadata migration - backward-compatible changes
     metadata_blob          BLOB NOT NULL, -- serialized track metadata
     metadata_sha256        BLOB NOT NULL, -- serialized track metadata hash
+    media_content_type      TEXT NOT NULL, -- RFC 6838
     UNIQUE (media_locator),
     UNIQUE (metadata_sha256)
 );

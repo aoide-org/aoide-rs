@@ -44,7 +44,7 @@ pub enum MediaLocatorType {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MediaLocation {
-  #[serde(rename = "type")] locator_type: MediaLocatorType,
+  locator_type: MediaLocatorType,
   locator: String,
   primary: bool,
   #[serde(skip_serializing_if = "Option::is_none")] imported: Option<DateTime<Utc>>, // most recent metadata import
@@ -64,19 +64,19 @@ impl MediaLocation {
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MediaMetadata {
-  #[serde(skip_serializing_if = "Option::is_none", rename = "type")] media_type: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none", rename = "type")] content_type: Option<String>,
   #[serde(skip_serializing_if = "Vec::is_empty", default = "Vec::default")]
   pub locations: Vec<MediaLocation>,
 }
 
 impl MediaMetadata {
   pub fn is_empty(&self) -> bool {
-    self.media_type.is_none() && self.locations.is_empty()
+    self.content_type.is_none() && self.locations.is_empty()
   }
 
   pub fn is_valid(&self) -> bool {
-    // exactly one primary location
-    self.locations.iter().filter(|loc| loc.primary).count() == 1
+    self.content_type.is_some() && !self.locations.is_empty()
+      && (self.locations.iter().filter(|loc| loc.is_valid()).count() == self.locations.len())
   }
 }
 
@@ -357,7 +357,7 @@ mod tests {
       exported: None,
     };
     let media = MediaMetadata {
-      media_type: Some(mime_guess::guess_mime_type(&location.locator).to_string()),
+      content_type: Some(mime_guess::guess_mime_type(&location.locator).to_string()),
       locations: vec![location],
     };
     let classifications = vec![
