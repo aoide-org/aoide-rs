@@ -19,7 +19,7 @@ CREATE TABLE track_vault (
     added                  DATETIME NOT NULL, -- implicit time zone UTC
     updated                DATETIME, -- implicit time zone UTC
     media_type             TEXT NOT NULL, -- RFC 6838
-    media_locator_type     INTEGER NOT NULL, -- from primary location
+    media_locator_type     INTEGER NOT NULL, -- from primary location, TBD: enum type mapping (Url, RelativePath, SpotifyId, ...)
     media_locator          TEXT NOT NULL, -- from primary location
     media_imported         DATETIME, -- most recent metadata import from primary location
     media_exported         DATETIME, -- most recent metadata export from primary location
@@ -86,17 +86,6 @@ CREATE TABLE track_fulltext (
     fulltext               CLOB NOT NULL,
     FOREIGN KEY(track_id) REFERENCES track_vault(id),
     UNIQUE (track_id)
-);
-
-CREATE TABLE track_locations (
-    id                     INTEGER PRIMARY KEY,
-    track_id               INTEGER NOT NULL,
-    locator_type           INTEGER NOT NULL, -- TBD: locator enum type mapping (Url, RelativePath, SpotifyId, ...)
-    locator                TEXT NOT NULL,
-    primary_location       TINYINT NOT NULL, -- {0, 1}
-    imported               DATETIME, -- most recent metadata import
-    exported               DATETIME, -- most recent metadata export
-    FOREIGN KEY(track_id) REFERENCES track_vault(id)
 );
 
 CREATE TABLE track_tags (
