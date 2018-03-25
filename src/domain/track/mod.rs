@@ -44,16 +44,16 @@ pub enum MediaLocatorType {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MediaLocation {
+  library_uid: String,
   locator_type: MediaLocatorType,
   locator: String,
-  primary: bool,
   #[serde(skip_serializing_if = "Option::is_none")] metadata_imported: Option<DateTime<Utc>>, // most recent metadata import
   #[serde(skip_serializing_if = "Option::is_none")] metadata_exported: Option<DateTime<Utc>>, // most recent metadata export
 }
 
 impl MediaLocation {
   pub fn is_valid(&self) -> bool {
-    !self.locator.is_empty()
+    !self.library_uid.is_empty() && !self.locator.is_empty()
   }
 }
 
@@ -350,9 +350,9 @@ mod tests {
   #[test]
   fn serialize_json() {
     let location = MediaLocation {
+      library_uid: "base64encodedsha256hash".to_string(),
       locator_type: MediaLocatorType::RelativePath,
       locator: "subfolder/test.mp3".to_string(),
-      primary: true,
       metadata_imported: Some(Utc::now()),
       metadata_exported: None,
     };
