@@ -26,34 +26,21 @@ use std::fmt;
 use uuid::Uuid;
 
 ///////////////////////////////////////////////////////////////////////
-/// LocationType
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum MediaLocatorType {
-  Url,          // e.g. absolute file path including scheme: "file:///home/music/subfolder/test.mp3"
-  RelativePath, // e.g. "subfolder/test.mp3" (depending on a shared context like an implicit common root folder)
-  SpotifyId,    // Spotify ID
-}
-
-///////////////////////////////////////////////////////////////////////
-/// MediaLocation
+/// MediaResource
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct MediaLocation {
-  library_uid: String,
-  locator_type: MediaLocatorType,
-  locator: String,
+pub struct MediaResource {
+  uri: String,
+  collection_uid: String,
   #[serde(skip_serializing_if = "Option::is_none")] metadata_imported: Option<DateTime<Utc>>, // most recent metadata import
   #[serde(skip_serializing_if = "Option::is_none")] metadata_exported: Option<DateTime<Utc>>, // most recent metadata export
 }
 
-impl MediaLocation {
+impl MediaResource {
   pub fn is_valid(&self) -> bool {
-    !self.library_uid.is_empty() && !self.locator.is_empty()
+    !self.uri.is_empty() && !self.collection_uid.is_empty()
   }
 }
 
@@ -66,17 +53,17 @@ impl MediaLocation {
 pub struct MediaMetadata {
   #[serde(skip_serializing_if = "Option::is_none", rename = "type")] content_type: Option<String>,
   #[serde(skip_serializing_if = "Vec::is_empty", default = "Vec::default")]
-  pub locations: Vec<MediaLocation>,
+  pub resources: Vec<MediaResource>,
 }
 
 impl MediaMetadata {
   pub fn is_empty(&self) -> bool {
-    self.content_type.is_none() && self.locations.is_empty()
+    self.content_type.is_none() && self.resources.is_empty()
   }
 
   pub fn is_valid(&self) -> bool {
-    self.content_type.is_some() && !self.locations.is_empty()
-      && (self.locations.iter().filter(|loc| loc.is_valid()).count() == self.locations.len())
+    self.content_type.is_some() && !self.resources.is_empty()
+      && (self.resources.iter().filter(|loc| loc.is_valid()).count() == self.resources.len())
   }
 }
 
@@ -349,16 +336,15 @@ mod tests {
 
   #[test]
   fn serialize_json() {
-    let location = MediaLocation {
-      library_uid: "base64encodedsha256hash".to_string(),
-      locator_type: MediaLocatorType::RelativePath,
-      locator: "subfolder/test.mp3".to_string(),
+    let resource = MediaResource {
+      uri: "subfolder/test.mp3".to_string(),
+      collection_uid: "globallyuniquecollectionidentifier".to_string(),
       metadata_imported: Some(Utc::now()),
       metadata_exported: None,
     };
     let media = MediaMetadata {
-      content_type: Some(mime_guess::guess_mime_type(&location.locator).to_string()),
-      locations: vec![location],
+      content_type: Some(mime_guess::guess_mime_type(&resource.uri).to_string()),
+      resources: vec![resource],
     };
     let classifications = vec![
       Classification::new(Classifier::Energy, 0.1),

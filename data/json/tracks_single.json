@@ -2,11 +2,10 @@
     {
         "media": {
             "contentType": "audio/mpeg",
-            "locations": [
+            "resources": [
                 {
-                    "libraryUid": "base64encodedsha256hash",
-                    "locatorType": "url",
-                    "locator": "file::///home/music/collection/test.mp3",
+                    "uri": "file::///home/music/collection/test.mp3",
+                    "collectionUid": "globallyuniquecollectionidentifier",
                     "metadataImported": "2018-03-22T17:10:55.488760124Z"
                 }
             ]

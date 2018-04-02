@@ -13,8 +13,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod audio;
-pub mod collection;
-pub mod metadata;
-pub mod music;
-pub mod track;
+pub struct Collection {
+    pub uid: String,
+    pub name: String,
+}
+
+impl Collection {
+    fn generate_uid() -> String {
+        "TODO: Generate uid".to_string()
+    }
+
+    pub fn new<S: Into<String>>(name: S) -> Self {
+        let uid = Self::generate_uid();
+        Self { uid, name: name.into() }
+    }
+}

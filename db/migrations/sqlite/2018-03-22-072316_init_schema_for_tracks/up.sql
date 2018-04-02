@@ -13,27 +13,32 @@
 -- You should have received a copy of the GNU Affero General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-CREATE TABLE track_vault (
+CREATE TABLE this_collection (
+    id                      INTEGER PRIMARY KEY DEFAULT 1, -- only a single row is stored in this table
+    uid                     TEXT NOT NULL,     -- globally unique identifier
+    name                    TEXT NOT NULL,     -- display name
+    UNIQUE (uid)                               -- actually only a single row is stored in this table
+);
+
+CREATE TABLE track_vault (                     -- all tracks in this collection
     id                      INTEGER PRIMARY KEY,
-    revision                INTEGER NOT NULL, -- for optimistic locking and synchronization
+    revision                INTEGER NOT NULL,  -- for optimistic locking and synchronization
     added                   DATETIME NOT NULL, -- implicit time zone UTC
-    updated                 DATETIME, -- implicit time zone UTC
-    media_content_type      TEXT NOT NULL, -- RFC 6838
-    media_locator_type      TEXT NOT NULL, -- from current location
-    media_locator           TEXT NOT NULL, -- from current location
-    media_metadata_imported DATETIME, -- most recent metadata import from current location
-    media_metadata_exported DATETIME, -- most recent metadata export from current location
-    audio_duration          INTEGER NOT NULL, -- milliseconds
-    audio_channels          INTEGER NOT NULL, -- number of channels
-    audio_samplerate        INTEGER NOT NULL, -- Hz
-    audio_bitrate           INTEGER NOT NULL, -- bits per second (bps)
-    metadata_format         INTEGER NOT NULL, -- serialization format: 1 = JSON, 2 = BSON, 3 = CBOR, 4 = Bincode, ...
-    metadata_version_major  INTEGER NOT NULL, -- for metadata migration - breaking changes
-    metadata_version_minor  INTEGER NOT NULL, -- for metadata migration - backward-compatible changes
-    metadata_blob           BLOB NOT NULL, -- serialized track metadata
-    metadata_sha256         BLOB NOT NULL, -- serialized track metadata hash
-    UNIQUE (media_locator),
-    UNIQUE (metadata_sha256)
+    updated                 DATETIME,          -- implicit time zone UTC
+    -- media columns populated from the media resource for this collection
+    media_uri               TEXT NOT NULL,     -- RFC 3986
+    media_content_type      TEXT NOT NULL,     -- RFC 6838
+    media_metadata_imported DATETIME,          -- most recent metadata import
+    media_metadata_exported DATETIME,          -- most recent metadata export
+    audio_duration          INTEGER NOT NULL,  -- milliseconds
+    audio_channels          INTEGER NOT NULL,  -- number of channels
+    audio_samplerate        INTEGER NOT NULL,  -- Hz
+    audio_bitrate           INTEGER NOT NULL,  -- bits per second (bps)
+    metadata_format         INTEGER NOT NULL,  -- serialization format: 1 = JSON, 2 = BSON, 3 = CBOR, 4 = Bincode, ...
+    metadata_version_major  INTEGER NOT NULL,  -- for metadata migration - breaking changes
+    metadata_version_minor  INTEGER NOT NULL,  -- for metadata migration - backward-compatible changes
+    metadata_blob           BLOB NOT NULL,     -- serialized track metadata
+    UNIQUE (media_uri)                         -- each track can only be stored once in a library
 );
 
 CREATE TABLE track_overview (
@@ -86,6 +91,14 @@ CREATE TABLE track_fulltext (
     fulltext                CLOB NOT NULL,
     FOREIGN KEY(track_id) REFERENCES track_vault(id),
     UNIQUE (track_id)
+);
+
+CREATE TABLE track_collections (
+    id                      INTEGER PRIMARY KEY,
+    track_id                INTEGER NOT NULL,
+    collection_uid          TEXT NOT NULL,
+    FOREIGN KEY(track_id) REFERENCES track_vault(id),
+    UNIQUE (track_id, collection_uid) -- each track is contained in any collection at most once
 );
 
 CREATE TABLE track_tags (
