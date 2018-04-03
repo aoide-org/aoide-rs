@@ -77,7 +77,8 @@
                 }
             ],
             "titles": {
-                "title": "MDNA (Deluxe Version)"
+                "title": "MDNA (Deluxe Version)",
+                "subtitle": null
             },
             "identity": {
                 "mbrainzId": "5436c9f0-3bc4-410b-8f2d-b584779d5b2c"
@@ -144,7 +145,7 @@
                 "confidence": 0.3
             },
             {
-                "facet": "decade",
+                "facet": "style",
                 "term": "2010s",
                 "confidence": 1.0
             },
@@ -168,7 +169,7 @@
                 "confidence": 0.8
             },
             {
-                "facet": "decade",
+                "facet": "style",
                 "term": "1980s",
                 "confidence": 0.1
             },

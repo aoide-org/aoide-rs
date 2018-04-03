@@ -251,12 +251,14 @@ impl MusicMetadata {
 pub struct TrackTag;
 
 impl TrackTag {
-  // Predefined facets
+  // Some predefined facets that are commonly used and could serve as a starting point
   pub const FACET_LANG: &'static str = "lang"; // ISO 639-2 language codes: "eng", "fre"/"fra", "ita", "spa", "ger"/"deu", ...
-  pub const FACET_GENRE: &'static str = "genre"; // e.g. "Pop", "Dance", "Electronic", "R&B/Soul", "Hip Hop/Rap", ...
-  pub const FACET_STYLE: &'static str = "style";
-  pub const FACET_MOOD: &'static str = "mood";
-  pub const FACET_DECADE: &'static str = "decade"; // e.g. "1980s", "2000s", ...
+  pub const FACET_GENRE: &'static str = "genre"; // "Pop", "Dance", "Electronic", "R&B/Soul", "Hip Hop/Rap", ...
+  pub const FACET_STYLE: &'static str = "style"; // "1980s", "2000s", "Evergreen", "Classic", ...
+  pub const FACET_MOOD: &'static str = "mood"; // "Happy", "Sexy", "Sad", "Melancholic", "Uplifting", ...
+  pub const FACET_VENUE: &'static str = "venue"; // "Bar", "Lounge", "Beach", "Party", "Club", ...
+  pub const FACET_CROWD: &'static str = "crowd"; // "Wedding", "Birthday", "Festival", ...
+  pub const FACET_SETTIME: &'static str = "settime"; // "Warmup", "Opener", "Filler", "Peak", "Closer", "Afterhours", ... 
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -356,9 +358,10 @@ mod tests {
       ..Default::default()
     };
     let tags = vec![
-      Tag::new_faceted("Decade", "1980s", 0.8),
-      Tag::new_faceted("DECADE", "1990s", 0.3),
-      Tag::new("Floorfiller", 1.0),
+      Tag::new_faceted(TrackTag::FACET_STYLE, "1980s", 0.8),
+      Tag::new_faceted("STYLE", "1990s", 0.3),
+      Tag::new_faceted(TrackTag::FACET_SETTIME, "Filler", 0.6),
+      Tag::new("non-faceted tag", 1.0),
     ];
     let comments = vec![
       Comment::new_anonymous("Some anonymous notes about this track"),
