@@ -23,7 +23,7 @@ use std::fmt;
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(deny_unknown_fields, rename_all = "lowercase")]
 pub enum ActorRole {
   Artist,
   Arranger,
@@ -51,13 +51,13 @@ impl Default for ActorRole {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Actor {
   role: ActorRole,
   // The prefix contains all necessary separators between the
   // preceding and this actor's name, i.e. there is no implicit
   // spacing!
-  #[serde(skip_serializing_if = "String::is_empty", default = "String::default")] prefix: String,
+  #[serde(skip_serializing_if = "String::is_empty", default)] prefix: String,
   name: String,
 }
 
@@ -113,7 +113,7 @@ impl Actor {
 pub type Decibel = f64;
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LUFS {
   pub db: Decibel,
 }
@@ -123,7 +123,7 @@ impl LUFS {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(deny_unknown_fields, rename_all = "lowercase")]
 pub enum Loudness {
   EBUR128LUFS(LUFS),
 }
@@ -143,7 +143,7 @@ impl fmt::Display for Loudness {
 pub type BeatsPerMinute = f64;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Tempo {
   pub bpm: BeatsPerMinute,
 }
@@ -176,7 +176,7 @@ impl fmt::Display for Tempo {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Default, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TimeSignature {
   numerator: u8,   // number of beats in each bar, 0 = default/undefined
   denominator: u8, // symbol length of each beat, 0 = default/undefined
@@ -201,7 +201,7 @@ impl fmt::Display for TimeSignature {
 pub type KeyCode = u8;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "lowercase")]
 pub enum KeyMode {
   Major,
   Minor,
@@ -254,7 +254,7 @@ impl fmt::Display for KeySignature {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct OpenKeySignature {
   key_signature: KeySignature,
 }
@@ -321,7 +321,7 @@ impl fmt::Display for OpenKeySignature {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LancelotKeySignature {
   key_signature: KeySignature,
 }
@@ -388,7 +388,7 @@ impl fmt::Display for LancelotKeySignature {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(deny_unknown_fields, rename_all = "lowercase")]
 pub enum Classifier {
   Acousticness,
   Danceability,
@@ -401,7 +401,7 @@ pub enum Classifier {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Classification {
   pub classifier: Classifier,
   pub confidence: Confidence,

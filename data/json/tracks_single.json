@@ -1,12 +1,14 @@
 [
     {
         "media": {
-            "contentType": "audio/mpeg",
-            "resources": [
+            "collectedResources": [
                 {
-                    "uri": "file::///home/music/collection/test.mp3",
                     "collectionUid": "globallyuniquecollectionidentifier",
-                    "metadataImported": "2018-03-22T17:10:55.488760124Z"
+                    "mediaResource": {
+                        "uri": "file::///home/music/collection/test.mp3",
+                        "contentType": "audio/mpeg",
+                        "metadataImported": "2018-03-22T17:10:55.488760124Z"
+                    }
                 }
             ]
         },
@@ -23,6 +25,9 @@
             "bitrate": {
                 "bps": 320000
             }
+        },
+        "identity": {
+            "mbrainzId": "d878c95a-8a6b-3be6-b6df-7d720a480625"
         },
         "titles": {
             "title": "Give Me All Your Luvin'"
@@ -66,23 +71,20 @@
                 "name": "Julien Jabre"
             }
         ],
-        "identity": {
-            "mbrainzId": "d878c95a-8a6b-3be6-b6df-7d720a480625"
-        },
         "album": {
+            "identity": {
+                "mbrainzId": "5436c9f0-3bc4-410b-8f2d-b584779d5b2c"
+            },
+            "titles": {
+                "title": "MDNA (Deluxe Version)",
+                "subtitle": null
+            },
             "actors": [
                 {
                     "role": "artist",
                     "name": "Madonna"
                 }
             ],
-            "titles": {
-                "title": "MDNA (Deluxe Version)",
-                "subtitle": null
-            },
-            "identity": {
-                "mbrainzId": "5436c9f0-3bc4-410b-8f2d-b584779d5b2c"
-            },
             "compilation": false
         },
         "release": {
@@ -165,6 +167,7 @@
                 "confidence": 1.0
             },
             {
+                "facet": "crowd",
                 "term": "Wedding",
                 "confidence": 0.8
             },
@@ -174,11 +177,13 @@
                 "confidence": 0.1
             },
             {
+                "facet": "crowd",
                 "term": "Party",
                 "confidence": 0.95
             },
             {
-                "term": "Floorfiller",
+                "facet": "settime",
+                "term": "Filler",
                 "confidence": 0.7
             }
         ],

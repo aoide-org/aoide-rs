@@ -23,6 +23,7 @@ use std::ops::Deref;
 pub type ConfidenceValue = f32;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Confidence(pub ConfidenceValue);
 
 impl From<ConfidenceValue> for Confidence {
@@ -65,7 +66,7 @@ impl fmt::Display for Confidence {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Tag {
   #[serde(skip_serializing_if = "Option::is_none")] facet: Option<String>, // lowercase / case-insensitive
   term: String,
@@ -111,7 +112,7 @@ impl Tag {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Rating {
   #[serde(skip_serializing_if = "Option::is_none")] owner: Option<String>,
   rating: Confidence,
@@ -160,7 +161,7 @@ impl Rating {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Comment {
   #[serde(skip_serializing_if = "Option::is_none")] owner: Option<String>,
   comment: String,

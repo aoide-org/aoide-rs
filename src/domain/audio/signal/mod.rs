@@ -28,7 +28,7 @@ pub type BitsPerSample = u8;
 pub type BitsPerSecond = u32;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct BitRate {
     pub bps: BitsPerSecond,
 }
@@ -65,7 +65,7 @@ impl fmt::Display for BitRate {
 pub type LatencyInMilliseconds = f64;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Latency {
     pub ms: LatencyInMilliseconds,
 }
@@ -95,7 +95,7 @@ impl fmt::Display for Latency {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PcmSignal {
     pub channel_layout: ChannelLayout,
     pub sample_layout: SampleLayout,

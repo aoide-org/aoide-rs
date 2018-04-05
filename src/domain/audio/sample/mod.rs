@@ -22,7 +22,7 @@ use std::ops::Deref;
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "lowercase")]
 pub enum SampleLayout {
     // Samples grouped by channel
     // Example for stereo signal with channels L+R: [LLLL|RRRR]
@@ -43,7 +43,7 @@ impl fmt::Display for SampleLayout {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "lowercase")]
 pub enum SampleFormat {
     Float32,
 }
@@ -67,7 +67,7 @@ pub type SampleType = f32;
 pub type SamplePositionType = f64;
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SamplePosition(pub SamplePositionType);
 
 impl Deref for SamplePosition {
@@ -95,7 +95,7 @@ impl SamplePosition {
 pub type SampleLengthType = f64;
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SampleLength(pub SampleLengthType);
 
 impl Deref for SampleLength {
@@ -121,7 +121,7 @@ impl SampleLength {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SampleRange {
     pub pos: SamplePosition,
     pub len: SampleLength,
@@ -152,7 +152,7 @@ impl SampleRange {
 pub type SamplesPerSecond = u32;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SampleRate {
     pub hz: SamplesPerSecond,
 }

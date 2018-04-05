@@ -13,19 +13,25 @@
 -- You should have received a copy of the GNU Affero General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-CREATE TABLE this_collection (
-    id                      INTEGER PRIMARY KEY DEFAULT 1, -- only a single row is stored in this table
+CREATE TABLE collection (
+    id                      INTEGER PRIMARY KEY,
     uid                     TEXT NOT NULL,     -- globally unique identifier
     name                    TEXT NOT NULL,     -- display name
-    UNIQUE (uid)                               -- actually only a single row is stored in this table
+    UNIQUE (uid)
 );
 
-CREATE TABLE track_vault (                     -- all tracks in this collection
+CREATE TABLE this_collection (
+    id                      INTEGER PRIMARY KEY DEFAULT 1, -- only a single row is stored in this table
+    collection_id           INTEGER NOT NULL,
+    FOREIGN KEY(collection_id) REFERENCES collection(id)
+);
+
+CREATE TABLE track (                           -- all tracks in this collection
     id                      INTEGER PRIMARY KEY,
     revision                INTEGER NOT NULL,  -- for optimistic locking and synchronization
-    added                   DATETIME NOT NULL, -- implicit time zone UTC
-    updated                 DATETIME,          -- implicit time zone UTC
-    -- media columns populated from the media resource for this collection
+    added                   DATETIME NOT NULL, -- implicit time zone (UTC)
+    updated                 DATETIME,          -- implicit time zone (UTC)
+    -- media columns populated from the collected resource for this collection
     media_uri               TEXT NOT NULL,     -- RFC 3986
     media_content_type      TEXT NOT NULL,     -- RFC 6838
     media_metadata_imported DATETIME,          -- most recent metadata import
@@ -81,7 +87,7 @@ CREATE TABLE track_overview (
     music_speechiness       REAL, -- [0.0, 1.0]
     ratings_min             REAL, -- [0.0, 1.0]
     ratings_max             REAL, -- [0.0, 1.0]
-    FOREIGN KEY(track_id) REFERENCES track_vault(id),
+    FOREIGN KEY(track_id) REFERENCES track(id),
     UNIQUE (track_id)
 );
 
@@ -89,7 +95,7 @@ CREATE TABLE track_fulltext (
     id                      INTEGER PRIMARY KEY,
     track_id                INTEGER NOT NULL,
     fulltext                CLOB NOT NULL,
-    FOREIGN KEY(track_id) REFERENCES track_vault(id),
+    FOREIGN KEY(track_id) REFERENCES track(id),
     UNIQUE (track_id)
 );
 
@@ -97,7 +103,7 @@ CREATE TABLE track_collections (
     id                      INTEGER PRIMARY KEY,
     track_id                INTEGER NOT NULL,
     collection_uid          TEXT NOT NULL,
-    FOREIGN KEY(track_id) REFERENCES track_vault(id),
+    FOREIGN KEY(track_id) REFERENCES track(id),
     UNIQUE (track_id, collection_uid) -- each track is contained in any collection at most once
 );
 
@@ -107,7 +113,7 @@ CREATE TABLE track_tags (
     facet                   TEXT,
     term                    TEXT NOT NULL,
     confidence              REAL NOT NULL,
-    FOREIGN KEY(track_id) REFERENCES track_vault(id),
+    FOREIGN KEY(track_id) REFERENCES track(id),
     UNIQUE (track_id, facet, term)
 );
 
@@ -116,7 +122,7 @@ CREATE TABLE track_comments (
     track_id                INTEGER NOT NULL,
     owner                   TEXT,
     comment                 CLOB NOT NULL,
-    FOREIGN KEY(track_id) REFERENCES track_vault(id),
+    FOREIGN KEY(track_id) REFERENCES track(id),
     UNIQUE (track_id, owner)
 );
 
@@ -125,6 +131,6 @@ CREATE TABLE track_ratings (
     track_id                INTEGER NOT NULL,
     owner                   TEXT,
     rating                  REAL NOT NULL,
-    FOREIGN KEY(track_id) REFERENCES track_vault(id),
+    FOREIGN KEY(track_id) REFERENCES track(id),
     UNIQUE (track_id, owner)
 );

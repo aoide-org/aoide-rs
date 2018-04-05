@@ -25,6 +25,7 @@ use std::fmt;
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Duration {
     pub millis: u64,
 }
@@ -56,6 +57,7 @@ impl fmt::Display for Duration {
 pub type ChannelCount = u16;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "lowercase")]
 pub enum ChannelLayout {
     Mono,
     DualMono,
@@ -64,6 +66,7 @@ pub enum ChannelLayout {
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Channels {
     pub count: ChannelCount,
     #[serde(skip_serializing_if = "Option::is_none")] pub layout: Option<ChannelLayout>,
