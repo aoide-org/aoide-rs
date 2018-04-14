@@ -26,24 +26,58 @@ use std::fmt;
 use uuid::Uuid;
 
 ///////////////////////////////////////////////////////////////////////
+/// AudioContent
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct AudioContent {
+  pub duration: Duration,
+
+  pub channels: Channels,
+
+  pub samplerate: SampleRate,
+
+  pub bitrate: BitRate,
+
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub encoder: Option<String>,
+
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub encoder_settings: Option<String>,
+}
+
+impl AudioContent {
+  pub fn is_valid(&self) -> bool {
+    !self.duration.is_empty() && self.channels.is_valid() && self.samplerate.is_valid()
+      && self.bitrate.is_valid()
+  }
+}
+
+///////////////////////////////////////////////////////////////////////
 /// MediaResource
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct MediaResource {
-  uri: String,
-  #[serde(skip_serializing_if = "String::is_empty")]
-  content_type: String,
+  pub uri: String,
+
+  #[serde(skip_serializing_if = "String::is_empty", default)]
+  pub content_type: String,
+
+  pub audio_content: AudioContent,
+
   #[serde(skip_serializing_if = "Option::is_none")]
-  metadata_imported: Option<DateTime<Utc>>, // most recent metadata import
+  pub metadata_imported: Option<DateTime<Utc>>, // most recent metadata import
+
   #[serde(skip_serializing_if = "Option::is_none")]
-  metadata_exported: Option<DateTime<Utc>>, // most recent metadata export
+  pub metadata_exported: Option<DateTime<Utc>>, // most recent metadata export
 }
 
 impl MediaResource {
   pub fn is_valid(&self) -> bool {
-    !self.uri.is_empty() && !self.content_type.is_empty()
+    !self.uri.is_empty() && !self.content_type.is_empty() && self.audio_content.is_valid()
   }
 }
 
@@ -51,16 +85,17 @@ impl MediaResource {
 /// CollectedMediaResource
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct CollectedMediaResource {
-  collection_uid: String,
-  media_resource: MediaResource,
+  pub collection_uid: String,
+
+  pub resource: MediaResource,
 }
 
 impl CollectedMediaResource {
   pub fn is_valid(&self) -> bool {
-    !self.collection_uid.is_empty() && self.media_resource.is_valid()
+    !self.collection_uid.is_empty() && self.resource.is_valid()
   }
 }
 
@@ -68,7 +103,7 @@ impl CollectedMediaResource {
 /// MediaMetadata
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct MediaMetadata {
   #[serde(skip_serializing_if = "Vec::is_empty", default)]
@@ -91,38 +126,15 @@ impl MediaMetadata {
 }
 
 ///////////////////////////////////////////////////////////////////////
-/// AudioMetadata
+/// Titles
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct AudioMetadata {
-  duration: Duration,
-  channels: Channels,
-  samplerate: SampleRate,
-  bitrate: BitRate,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  encoder: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  encoder_settings: Option<String>,
-}
-
-impl AudioMetadata {
-  pub fn is_valid(&self) -> bool {
-    !self.duration.is_empty() && self.channels.is_valid() && self.samplerate.is_valid()
-      && self.bitrate.is_valid()
-  }
-}
-
-///////////////////////////////////////////////////////////////////////
-/// Titles
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Titles {
-  title: String, // mandatory, i.e. not empty
-  subtitle: Option<String>,
+  pub title: String, // mandatory, i.e. not empty
+
+  pub subtitle: Option<String>,
 }
 
 impl Titles {
@@ -139,15 +151,17 @@ impl Titles {
 /// TrackIdentity
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackIdentity {
   #[serde(skip_serializing_if = "Uuid::is_nil", default = "Uuid::nil")]
-  acoust_id: Uuid,
+  pub acoust_id: Uuid,
+
   #[serde(skip_serializing_if = "Uuid::is_nil", default = "Uuid::nil")]
-  mbrainz_id: Uuid, // MusicBrainz Release Track Id
+  pub mbrainz_id: Uuid, // MusicBrainz Release Track Id
+
   #[serde(skip_serializing_if = "String::is_empty", default)]
-  spotify_id: String, // excl. "spotify:track:" prefix
+  pub spotify_id: String, // excl. "spotify:track:" prefix
 }
 
 impl TrackIdentity {
@@ -160,13 +174,14 @@ impl TrackIdentity {
 /// AlbumIdentity
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AlbumIdentity {
   #[serde(skip_serializing_if = "Uuid::is_nil", default = "Uuid::nil")]
-  mbrainz_id: Uuid, // MusicBrainz Release Id
+  pub mbrainz_id: Uuid, // MusicBrainz Release Id
+
   #[serde(skip_serializing_if = "String::is_empty", default)]
-  spotify_id: String, // excl. "spotify:album:" prefix
+  pub spotify_id: String, // excl. "spotify:album:" prefix
 }
 
 impl AlbumIdentity {
@@ -179,7 +194,7 @@ impl AlbumIdentity {
 /// AlbumMetadata
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AlbumMetadata {
   #[serde(skip_serializing_if = "AlbumIdentity::is_empty", default)]
@@ -189,13 +204,13 @@ pub struct AlbumMetadata {
   pub titles: Titles,
 
   #[serde(skip_serializing_if = "Vec::is_empty", default)]
-  actors: Vec<Actor>,
+  pub actors: Vec<Actor>,
 
   #[serde(skip_serializing_if = "Option::is_none")]
-  grouping: Option<String>,
+  pub grouping: Option<String>,
 
   #[serde(skip_serializing_if = "Option::is_none")]
-  compilation: Option<bool>,
+  pub compilation: Option<bool>,
 }
 
 impl AlbumMetadata {
@@ -209,20 +224,20 @@ impl AlbumMetadata {
 /// ReleaseMetadata
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ReleaseMetadata {
   #[serde(skip_serializing_if = "Option::is_none")]
-  released: Option<DateTime<Utc>>,
+  pub released: Option<DateTime<Utc>>,
 
   #[serde(skip_serializing_if = "Option::is_none")]
-  label: Option<String>,
+  pub label: Option<String>,
 
   #[serde(skip_serializing_if = "Option::is_none")]
-  copyright: Option<String>,
+  pub copyright: Option<String>,
 
   #[serde(skip_serializing_if = "Option::is_none")]
-  license: Option<String>,
+  pub license: Option<String>,
 }
 
 impl ReleaseMetadata {
@@ -236,16 +251,17 @@ impl ReleaseMetadata {
 /// TrackNumbers
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackNumbers {
-  current: u32,
-  total: u32,
+  pub this: u32,
+
+  pub total: u32,
 }
 
 impl fmt::Display for TrackNumbers {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "{}/{}", self.current, self.total)
+    write!(f, "{}/{}", self.this, self.total)
   }
 }
 
@@ -253,16 +269,17 @@ impl fmt::Display for TrackNumbers {
 /// DiscNumbers
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct DiscNumbers {
-  current: u32,
-  total: u32,
+  pub this: u32,
+
+  pub total: u32,
 }
 
 impl fmt::Display for DiscNumbers {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "{}/{}", self.current, self.total)
+    write!(f, "{}/{}", self.this, self.total)
   }
 }
 
@@ -270,22 +287,22 @@ impl fmt::Display for DiscNumbers {
 /// MusicMetadata
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct MusicMetadata {
   #[serde(skip_serializing_if = "Option::is_none")]
-  loudness: Option<Loudness>,
+  pub loudness: Option<Loudness>,
 
   #[serde(skip_serializing_if = "Option::is_none")]
-  tempo: Option<Tempo>,
+  pub tempo: Option<Tempo>,
 
   #[serde(skip_serializing_if = "Option::is_none")]
-  time_signature: Option<TimeSignature>,
+  pub time_signature: Option<TimeSignature>,
 
   #[serde(skip_serializing_if = "Option::is_none")]
-  key_signature: Option<KeySignature>,
+  pub key_signature: Option<KeySignature>,
 
-  #[serde(skip_serializing_if = "Vec::is_empty")]
+  #[serde(skip_serializing_if = "Vec::is_empty", default)]
   pub classifications: Vec<Classification>, // no duplicate classifiers allowed
 }
 
@@ -321,8 +338,6 @@ impl TrackTag {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackMetadata {
   pub media: MediaMetadata,
-
-  pub audio: AudioMetadata,
 
   #[serde(skip_serializing_if = "TrackIdentity::is_empty", default)]
   pub identity: TrackIdentity,
@@ -360,7 +375,7 @@ pub struct TrackMetadata {
 
 impl TrackMetadata {
   pub fn is_valid(&self) -> bool {
-    self.media.is_valid() && self.audio.is_valid() && self.titles.is_valid()
+    self.media.is_valid() && self.titles.is_valid()
       && (self.album.is_empty() || self.album.titles.is_valid())
   }
 
@@ -395,15 +410,16 @@ mod tests {
   #[test]
   fn serialize_json() {
     let uri = "subfolder/test.mp3";
-    let media_resource = MediaResource {
+    let resource = MediaResource {
       uri: uri.to_string(),
       content_type: mime_guess::guess_mime_type(uri).to_string(),
       metadata_imported: Some(Utc::now()),
       metadata_exported: None,
+      ..Default::default()
     };
     let collected_media_resource = CollectedMediaResource {
       collection_uid: "globallyuniquecollectionidentifier".to_string(),
-      media_resource,
+      resource,
     };
     let media = MediaMetadata {
       collected_resources: vec![collected_media_resource],

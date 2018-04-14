@@ -1,20 +1,6 @@
 [
     {
         "media": {
-        },
-        "audio": {
-            "duration": {
-                "millis": 202821
-            },
-            "channels": {
-                "count": 2
-            },
-            "samplerate": {
-                "hz": 44100
-            },
-            "bitrate": {
-                "bps": 320000
-            }
         }
     }
 ]

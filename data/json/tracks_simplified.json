@@ -1,0 +1,78 @@
+[
+    {
+        "media": {
+            "collectedResources": [
+                {
+                    "collectionUid": "myMXwslBoXkTDQ0olhq1QsiHRWWL4yj1V0IuoK+PYOg=",
+                    "resource": {
+                        "uri": "file::///home/music/collection/test.mp3",
+                        "contentType": "audio/mpeg",
+                        "audioContent": {
+                            "duration": {
+                                "millis": 202821
+                            },
+                            "channels": {
+                                "count": 2
+                            },
+                            "samplerate": {
+                                "hz": 44100
+                            },
+                            "bitrate": {
+                                "bps": 320000
+                            }
+                        },
+                        "metadataImported": "2018-03-22T17:10:55.488760124Z"
+                    }
+                }
+            ]
+        },
+        "identity": {
+            "mbrainzId": "d878c95a-8a6b-3be6-b6df-7d720a480625"
+        },
+        "titles": {
+            "title": "Give Me All Your Luvin'"
+        },
+        "actors": [
+            {
+                "role": "artist",
+                "name": "Madonna ft. Nicki Minaj & M.I.A."
+            },
+            {
+                "role": "producer",
+                "name": "Martin Solveig"
+            },
+            {
+                "role": "composer",
+                "name": "Madonna, Nicki Minaj, Martin Solveig & Julien Jabre"
+            }
+        ],
+        "album": {
+            "identity": {
+                "mbrainzId": "5436c9f0-3bc4-410b-8f2d-b584779d5b2c"
+            },
+            "titles": {
+                "title": "MDNA (Deluxe Version)"
+            },
+            "actors": [
+                {
+                    "role": "artist",
+                    "name": "Madonna"
+                }
+            ],
+            "compilation": false
+        },
+        "release": {
+            "released": "2012-03-23T00:00:00.000Z",
+            "label": "Interscope Records",
+            "copyright": "℗ 2012 Boy Toy, Inc. Exclusively licensed to Live Nation Worldwide, Inc. Exclusively licensed to Interscope Records"
+        },
+        "trackNumbers": {
+            "this": 5,
+            "total": 18
+        },
+        "discNumbers": {
+            "this": 1,
+            "total": 1
+        }
+    }
+]
