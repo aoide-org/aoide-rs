@@ -20,20 +20,24 @@ CREATE TABLE collection (
     UNIQUE (uid)
 );
 
-CREATE TABLE this_collection (
+-- Activates a single collection for the track database. All tracks
+-- become dirty when switching the collection.
+CREATE TABLE active_collection (
     id                      INTEGER PRIMARY KEY DEFAULT 1, -- only a single row is stored in this table
     collection_id           INTEGER NOT NULL,
     FOREIGN KEY(collection_id) REFERENCES collection(id)
 );
 
-CREATE TABLE track (                           -- all tracks in this collection
+CREATE TABLE track (
     id                      INTEGER PRIMARY KEY,
     revision                INTEGER NOT NULL,  -- for optimistic locking and synchronization
     added                   DATETIME NOT NULL, -- implicit time zone (UTC)
     updated                 DATETIME,          -- implicit time zone (UTC)
-    -- media columns populated from the collected resource for this collection
-    media_uri               TEXT NOT NULL,     -- RFC 3986
-    media_content_type      TEXT NOT NULL,     -- RFC 6838
+    collection_id           INTEGER,
+    -- The media columns are populated from the collected resource for the collection.
+    -- All media columns are NULL if the track is not related to an active collection.
+    media_uri               TEXT,              -- RFC 3986
+    media_content_type      TEXT,              -- RFC 6838
     media_metadata_imported DATETIME,          -- most recent metadata import
     media_metadata_exported DATETIME,          -- most recent metadata export
     audio_duration          INTEGER NOT NULL,  -- milliseconds
@@ -45,6 +49,17 @@ CREATE TABLE track (                           -- all tracks in this collection
     metadata_version_minor  INTEGER NOT NULL,  -- for metadata migration - backward-compatible changes
     metadata_blob           BLOB NOT NULL,     -- serialized track metadata
     UNIQUE (media_uri)                         -- each track can only be stored once in a library
+    FOREIGN KEY(collection_id) REFERENCES active_collection(collection_id)
+);
+
+-- Keeps track of required and not yet finished track_* updates
+-- after changes in the main track table. The track database is
+-- consistent if this table is empty.
+CREATE TABLE track_dirty (
+    id                      INTEGER PRIMARY KEY,
+    track_id                INTEGER NOT NULL,
+    FOREIGN KEY(track_id) REFERENCES track(id),
+    UNIQUE (track_id)
 );
 
 CREATE TABLE track_overview (

@@ -14,8 +14,9 @@
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 DROP TABLE collection;
-DROP TABLE this_collection;
+DROP TABLE active_collection;
 DROP TABLE track;
+DROP TABLE track_dirty;
 DROP TABLE track_overview;
 DROP TABLE track_fulltext;
 DROP TABLE track_collections;
