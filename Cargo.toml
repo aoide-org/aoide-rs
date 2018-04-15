@@ -6,12 +6,14 @@ description = "Backend services for curating and enjoying your music"
 publish = false
 
 [dependencies]
+base64 = { version = "*" }
 chrono = { version = "*", features = ["serde"] }
 diesel = { version = "*", features = ["chrono", "sqlite"] }
 env_logger = "*"
 log = "*"
 mime_guess = "*"
+ring = "*"
 serde = "*"
 serde_derive = "*"
 serde_json = "*"
-uuid = { version = "*", features = ["serde"] }
+uuid = { version = "*", features = ["serde", "v1", "v4"] }

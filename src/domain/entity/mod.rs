@@ -13,11 +13,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use base64;
+
+use chrono::{DateTime, Utc};
+
+use ring::*;
+
 use std::fmt;
 
 use std::ops::Deref;
 
-use chrono::{DateTime, Utc};
+use uuid::Uuid;
 
 ///////////////////////////////////////////////////////////////////////
 /// EntityUid
@@ -48,6 +54,20 @@ impl Deref for EntityUid {
 }
 
 impl EntityUid {
+    pub fn generate() -> Self {
+        let mut digest_ctx = digest::Context::new(&digest::SHA256);
+        // TODO: Generate UUID v1 based on MAC address
+        let uuid_v1 = Uuid::nil();
+        digest_ctx.update(uuid_v1.as_bytes());
+        let uuid_v4 = Uuid::new_v4();
+        digest_ctx.update(uuid_v4.as_bytes());
+        let now = Utc::now();
+        // TODO: Avoid temporary string formatting
+        digest_ctx.update(format!("{}", now).as_bytes());
+        let digest = digest_ctx.finish();
+        base64::encode_config(&digest, base64::URL_SAFE_NO_PAD).into()
+    }
+
     pub fn is_valid(&self) -> bool {
         !(*self).is_empty()
     }
@@ -213,6 +233,11 @@ mod tests {
     }
 
     #[test]
+    fn generate_uid() {
+        assert!(EntityUid::generate().is_valid());
+    }
+
+    #[test]
     fn revision_sequence() {
         let initial = EntityRevision::initial();
         assert!(initial.is_valid());
@@ -235,21 +260,21 @@ mod tests {
 
     #[test]
     fn header_without_uid() {
-        let header = EntityHeader::with_uid(String::default());
+        let header = EntityHeader::with_uid(EntityUid::default());
         assert!(!header.is_valid());
         assert!(header.revision().is_initial());
     }
 
     #[test]
     fn header_with_uid() {
-        let header = EntityHeader::with_uid("uid".to_string());
+        let header = EntityHeader::with_uid(EntityUid::generate());
         assert!(header.is_valid());
         assert!(header.revision().is_initial());
     }
 
     #[test]
     fn header_next_revision() {
-        let header = EntityHeader::with_uid("immutable".to_string());
+        let header = EntityHeader::with_uid(EntityUid::generate());
         let initial_revision = header.revision();
         assert!(initial_revision.is_initial());
         let next_revision = header.next_revision().revision();
@@ -258,7 +283,7 @@ mod tests {
 
     #[test]
     fn header_bump_revision() {
-        let mut header = EntityHeader::with_uid("mutable".to_string());
+        let mut header = EntityHeader::with_uid(EntityUid::generate());
         let initial_revision = header.revision();
         assert!(initial_revision.is_initial());
         header.bump_revision();

@@ -25,8 +25,7 @@ pub struct CollectionEntity {
 
 impl CollectionEntity {
     pub fn with_name<S: Into<String>>(name: S) -> Self {
-        // TODO: Generate UID
-        let uid = "lvVzOxqS7mS48EGgnaDYCIZ309nzRM9Op0TTRv5B02Y".to_string();
+        let uid = EntityUid::generate();
         let header = EntityHeader::with_uid(uid);
         Self {
             header,

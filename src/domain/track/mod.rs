@@ -86,7 +86,7 @@ impl MediaResource {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct CollectedMediaResource {
-  pub collection_uid: String,
+  pub collection_uid: EntityUid,
 
   pub resource: MediaResource,
 }
@@ -430,7 +430,7 @@ mod tests {
       ..Default::default()
     };
     let collected_resource = CollectedMediaResource {
-      collection_uid: "globallyuniquecollectionidentifier".to_string(),
+      collection_uid: EntityUid::generate(),
       resource,
     };
     let classifications = vec![
@@ -457,7 +457,7 @@ mod tests {
       comments,
       ..Default::default()
     };
-    let uid = "hJhAUVEOj84pYjv2PYkFOQLuqzcbvNuH1Vw0DGxNG7o".to_string();
+    let uid = EntityUid::generate();
     let header = EntityHeader::with_uid(uid);
     let entity = TrackEntity {
       header: Some(header),
