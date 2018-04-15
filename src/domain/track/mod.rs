@@ -457,7 +457,8 @@ mod tests {
       comments,
       ..Default::default()
     };
-    let header = EntityHeader::with_uid("hJhAUVEOj84pYjv2PYkFOQLuqzcbvNuH1Vw0DGxNG7o");
+    let uid = "hJhAUVEOj84pYjv2PYkFOQLuqzcbvNuH1Vw0DGxNG7o".to_string();
+    let header = EntityHeader::with_uid(uid);
     let entity = TrackEntity {
       header: Some(header),
       metadata,

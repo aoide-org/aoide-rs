@@ -27,6 +27,7 @@ pub enum SampleLayout {
     // Samples grouped by channel
     // Example for stereo signal with channels L+R: [LLLL|RRRR]
     Planar,
+
     // Samples grouped by frame
     // Example for stereo signal with channels L+R: [LR|LR|LR|LR]
     Interleaved,
@@ -162,18 +163,10 @@ impl SampleRate {
 
     pub const MAX: Self = SampleRate { hz: u32::MAX };
 
-    pub const COMPACT_DISC: Self = SampleRate {
-        hz: 44_100,
-    };
-    pub const STUDIO_48KHZ: Self = SampleRate {
-        hz: 48_000,
-    };
-    pub const STUDIO_96KHZ: Self = SampleRate {
-        hz: 96_000,
-    };
-    pub const STUDIO_192KHZ: Self = SampleRate {
-        hz: 192_000,
-    };
+    pub const COMPACT_DISC: Self = SampleRate { hz: 44_100 };
+    pub const STUDIO_48KHZ: Self = SampleRate { hz: 48_000 };
+    pub const STUDIO_96KHZ: Self = SampleRate { hz: 96_000 };
+    pub const STUDIO_192KHZ: Self = SampleRate { hz: 192_000 };
 
     pub fn hz(hz: SamplesPerSecond) -> Self {
         Self { hz }

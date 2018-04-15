@@ -36,12 +36,9 @@ pub struct BitRate {
 impl BitRate {
     pub const UNIT_OF_MEASURE: &'static str = "bps";
 
-    pub const MIN: Self = BitRate {
-        bps: u32::MIN,
-    };
-    pub const MAX: Self = BitRate {
-        bps: u32::MAX,
-    };
+    pub const MIN: Self = BitRate { bps: u32::MIN };
+
+    pub const MAX: Self = BitRate { bps: u32::MAX };
 
     pub fn bps(bps: BitsPerSecond) -> Self {
         Self { bps }
@@ -98,7 +95,9 @@ impl fmt::Display for Latency {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PcmSignal {
     pub channel_layout: ChannelLayout,
+
     pub sample_layout: SampleLayout,
+
     pub sample_rate: SampleRate,
 }
 

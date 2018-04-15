@@ -60,8 +60,11 @@ pub type ChannelCount = u16;
 #[serde(deny_unknown_fields, rename_all = "lowercase")]
 pub enum ChannelLayout {
     Mono,
+
     DualMono,
+
     Stereo,
+    
     // ...to be continued
 }
 
@@ -69,7 +72,9 @@ pub enum ChannelLayout {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Channels {
     pub count: ChannelCount,
-    #[serde(skip_serializing_if = "Option::is_none")] pub layout: Option<ChannelLayout>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub layout: Option<ChannelLayout>,
 }
 
 impl ChannelLayout {
@@ -82,20 +87,30 @@ impl ChannelLayout {
     }
 
     pub fn channels(&self) -> Channels {
-        Channels { count: self.channel_count(), layout: Some(*self) }
+        Channels {
+            count: self.channel_count(),
+            layout: Some(*self),
+        }
     }
 }
 
 impl Channels {
     pub const COUNT_MIN: ChannelCount = 1;
+
     pub const COUNT_MAX: ChannelCount = u16::MAX;
 
     pub fn count(count: ChannelCount) -> Self {
-        Self { count, layout: None }
+        Self {
+            count,
+            layout: None,
+        }
     }
 
     pub fn layout(layout: ChannelLayout) -> Self {
-        Self { count: layout.channel_count(), layout: Some(layout) }
+        Self {
+            count: layout.channel_count(),
+            layout: Some(layout),
+        }
     }
 
     pub fn default_layout(count: ChannelCount) -> Option<ChannelLayout> {
@@ -146,9 +161,18 @@ mod tests {
         assert!(Channels::layout(ChannelLayout::Stereo).is_valid());
         assert!(Channels::count(Channels::COUNT_MIN).is_valid());
         assert!(Channels::count(Channels::COUNT_MAX).is_valid());
-        assert!(!Channels { count: 1, layout: Some(ChannelLayout::DualMono) }.is_valid());
-        assert!(!Channels { count: 2, layout: Some(ChannelLayout::Mono) }.is_valid());
-        assert!(!Channels { count: 3, layout: Some(ChannelLayout::Stereo) }.is_valid());
+        assert!(!Channels {
+            count: 1,
+            layout: Some(ChannelLayout::DualMono),
+        }.is_valid());
+        assert!(!Channels {
+            count: 2,
+            layout: Some(ChannelLayout::Mono),
+        }.is_valid());
+        assert!(!Channels {
+            count: 3,
+            layout: Some(ChannelLayout::Stereo),
+        }.is_valid());
     }
 
     #[test]

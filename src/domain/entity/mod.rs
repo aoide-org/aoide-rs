@@ -15,19 +15,104 @@
 
 use std::fmt;
 
+use std::ops::Deref;
+
 use chrono::{DateTime, Utc};
+
+///////////////////////////////////////////////////////////////////////
+/// EntityUid
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct EntityUid(String);
+
+impl From<String> for EntityUid {
+    fn from(from: String) -> Self {
+        EntityUid(from)
+    }
+}
+
+impl Into<String> for EntityUid {
+    fn into(self) -> String {
+        self.0
+    }
+}
+
+impl Deref for EntityUid {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl EntityUid {
+    pub fn is_valid(&self) -> bool {
+        !(*self).is_empty()
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+/// EntityVersion
+///////////////////////////////////////////////////////////////////////
+
+pub type EntityVersionNumber = u32;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct EntityVersion {
+    major: EntityVersionNumber,
+
+    minor: EntityVersionNumber,
+}
+
+impl EntityVersion {
+    pub fn new(major: EntityVersionNumber, minor: EntityVersionNumber) -> Self {
+        EntityVersion { major, minor }
+    }
+
+    pub fn major(&self) -> EntityVersionNumber {
+        self.major
+    }
+
+    pub fn minor(&self) -> EntityVersionNumber {
+        self.minor
+    }
+
+    pub fn next_major(&self) -> Self {
+        EntityVersion {
+            major: self.major + 1,
+            minor: 0,
+        }
+    }
+
+    pub fn next_minor(&self) -> Self {
+        EntityVersion {
+            major: self.major,
+            minor: self.minor + 1,
+        }
+    }
+}
+
+impl fmt::Display for EntityVersion {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}.{}", self.major, self.minor)
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////
 /// EntityRevision
 ///////////////////////////////////////////////////////////////////////
 
-pub type RevisionNumber = u64;
+pub type EntityRevisionNumber = u64;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityRevision {
-    number: RevisionNumber,
+    number: EntityRevisionNumber,
 
-    revisioned: DateTime<Utc>,
+    datetime: DateTime<Utc>,
 }
 
 impl EntityRevision {
@@ -38,7 +123,7 @@ impl EntityRevision {
     pub fn initial() -> Self {
         EntityRevision {
             number: 1,
-            revisioned: Utc::now(),
+            datetime: Utc::now(),
         }
     }
 
@@ -46,26 +131,26 @@ impl EntityRevision {
         self.number == 1
     }
 
-    pub fn number(&self) -> RevisionNumber {
+    pub fn number(&self) -> EntityRevisionNumber {
         self.number
     }
 
-    pub fn revisioned(&self) -> DateTime<Utc> {
-        self.revisioned
+    pub fn datetime(&self) -> DateTime<Utc> {
+        self.datetime
     }
 
     pub fn next(&self) -> Self {
         assert!(self.is_valid());
         EntityRevision {
             number: self.number + 1,
-            revisioned: Utc::now(),
+            datetime: Utc::now(),
         }
     }
 }
 
 impl fmt::Display for EntityRevision {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}@{}", self.number, self.revisioned)
+        write!(f, "{}@{}", self.number, self.datetime)
     }
 }
 
@@ -73,16 +158,16 @@ impl fmt::Display for EntityRevision {
 /// EntityHeader
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityHeader {
-    uid: String,
+    uid: EntityUid,
 
     revision: EntityRevision,
 }
 
 impl EntityHeader {
-    pub fn with_uid<S: Into<String>>(uid: S) -> Self {
+    pub fn with_uid<I: Into<EntityUid>>(uid: I) -> Self {
         let revision = EntityRevision::initial();
         Self {
             uid: uid.into(),
@@ -91,15 +176,22 @@ impl EntityHeader {
     }
 
     pub fn is_valid(&self) -> bool {
-        !self.uid.is_empty() && self.revision.is_valid()
+        self.uid.is_valid() && self.revision.is_valid()
     }
 
-    pub fn uid<'a>(&'a self) -> &'a str {
+    pub fn uid<'a>(&'a self) -> &'a EntityUid {
         &self.uid
     }
 
     pub fn revision(&self) -> EntityRevision {
         self.revision
+    }
+
+    pub fn next_revision(&self) -> EntityHeader {
+        EntityHeader {
+            uid: self.uid.clone(),
+            revision: self.revision.next(),
+        }
     }
 
     pub fn bump_revision(&mut self) {
@@ -116,6 +208,11 @@ mod tests {
     use super::*;
 
     #[test]
+    fn default_uid() {
+        assert!(!EntityUid::default().is_valid());
+    }
+
+    #[test]
     fn revision_sequence() {
         let initial = EntityRevision::initial();
         assert!(initial.is_valid());
@@ -126,33 +223,42 @@ mod tests {
         assert!(!next.is_initial());
         assert!(initial < next);
         assert!(initial.number() < next.number());
-        assert!(initial.revisioned() <= next.revisioned());
+        assert!(initial.datetime() <= next.datetime());
 
         let nextnext = next.next();
         assert!(nextnext.is_valid());
         assert!(!nextnext.is_initial());
         assert!(next < nextnext);
         assert!(next.number() < nextnext.number());
-        assert!(next.revisioned() <= nextnext.revisioned());
+        assert!(next.datetime() <= nextnext.datetime());
     }
 
     #[test]
     fn header_without_uid() {
-        let header = EntityHeader::with_uid("");
+        let header = EntityHeader::with_uid(String::default());
         assert!(!header.is_valid());
         assert!(header.revision().is_initial());
     }
 
     #[test]
     fn header_with_uid() {
-        let header = EntityHeader::with_uid("a");
+        let header = EntityHeader::with_uid("uid".to_string());
         assert!(header.is_valid());
         assert!(header.revision().is_initial());
     }
 
     #[test]
+    fn header_next_revision() {
+        let header = EntityHeader::with_uid("immutable".to_string());
+        let initial_revision = header.revision();
+        assert!(initial_revision.is_initial());
+        let next_revision = header.next_revision().revision();
+        assert!(initial_revision < next_revision);
+    }
+
+    #[test]
     fn header_bump_revision() {
-        let mut header = EntityHeader::with_uid("b");
+        let mut header = EntityHeader::with_uid("mutable".to_string());
         let initial_revision = header.revision();
         assert!(initial_revision.is_initial());
         header.bump_revision();

@@ -16,8 +16,8 @@
 CREATE TABLE collection_entity (
     id                      INTEGER PRIMARY KEY,
     uid                     TEXT NOT NULL,     -- globally unique identifier
-    revision                INTEGER NOT NULL,
-    revisioned              DATETIME NOT NULL, -- implicit time zone (UTC)
+    revno                   INTEGER NOT NULL,
+    revdt                   DATETIME NOT NULL, -- implicit time zone (UTC)
     name                    TEXT NOT NULL,     -- display name
     UNIQUE (uid)
 );
@@ -33,22 +33,22 @@ CREATE TABLE active_collection (
 CREATE TABLE track_entity (
     id                      INTEGER PRIMARY KEY,
     uid                     TEXT NOT NULL,     -- globally unique identifier
-    revision                INTEGER NOT NULL,
-    revisioned              DATETIME NOT NULL, -- implicit time zone (UTC)
+    revno                   INTEGER NOT NULL,
+    revdt                   DATETIME NOT NULL, -- implicit time zone (UTC)
     collection_id           INTEGER,
-    -- The media/audio columns are populated from the collected resource for the collection.
-    -- All media/audio columns are NULL if the track is not related to an active collection.
+    -- The media/audio columns are set according to the collected resource of the collection.
+    -- All media/audio columns are NULL if the track is not related to a collection.
     media_uri               TEXT,              -- RFC 3986
     media_content_type      TEXT,              -- RFC 6838
-    media_sync_revision     INTEGER,           -- most recent metadata synchronization
-    media_sync_revisioned   DATETIME,          -- most recent metadata synchronization
+    media_sync_revno        INTEGER,           -- most recent metadata synchronization
+    media_sync_revdt        DATETIME,          -- most recent metadata synchronization
     audio_duration          INTEGER,           -- milliseconds
     audio_channels          INTEGER,           -- number of channels
     audio_samplerate        INTEGER,           -- Hz
     audio_bitrate           INTEGER,           -- bits per second (bps)
-    entity_format           INTEGER NOT NULL,  -- serialization format: 1 = JSON, 2 = BSON, 3 = CBOR, 4 = Bincode, ...
-    entity_version_major    INTEGER NOT NULL,  -- for metadata migration - breaking changes
-    entity_version_minor    INTEGER NOT NULL,  -- for metadata migration - backward-compatible changes
+    entity_fmt              INTEGER NOT NULL,  -- serialization format: 1 = JSON, 2 = BSON, 3 = CBOR, 4 = Bincode, ...
+    entity_vermaj           INTEGER NOT NULL,  -- for data migration - breaking changes
+    entity_vermin           INTEGER NOT NULL,  -- for data migration - backward-compatible changes
     entity_blob             BLOB NOT NULL,     -- serialized track entity
     UNIQUE (media_uri)                         -- each track can only be stored once in a library
     FOREIGN KEY(collection_id) REFERENCES active_collection(collection_id)

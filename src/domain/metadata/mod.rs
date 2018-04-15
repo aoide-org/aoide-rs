@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use std::fmt;
+
 use std::ops::Deref;
 
 ///////////////////////////////////////////////////////////////////////
@@ -27,8 +28,14 @@ pub type ConfidenceValue = f32;
 pub struct Confidence(pub ConfidenceValue);
 
 impl From<ConfidenceValue> for Confidence {
-    fn from(count: ConfidenceValue) -> Self {
-        Confidence(count)
+    fn from(from: ConfidenceValue) -> Self {
+        Confidence(from)
+    }
+}
+
+impl Into<ConfidenceValue> for Confidence {
+    fn into(self) -> ConfidenceValue {
+        self.0
     }
 }
 
@@ -40,14 +47,9 @@ impl Deref for Confidence {
     }
 }
 
-impl Into<ConfidenceValue> for Confidence {
-    fn into(self) -> ConfidenceValue {
-        *self
-    }
-}
-
 impl Confidence {
     pub const MIN: Confidence = Confidence(0f32);
+
     pub const MAX: Confidence = Confidence(1f32);
 
     pub fn is_valid(&self) -> bool {
