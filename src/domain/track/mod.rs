@@ -16,6 +16,7 @@
 use domain::audio::*;
 use domain::audio::sample::*;
 use domain::audio::signal::*;
+use domain::entity::*;
 use domain::metadata::*;
 use domain::music::*;
 
@@ -69,10 +70,7 @@ pub struct MediaResource {
   pub audio_content: AudioContent,
 
   #[serde(skip_serializing_if = "Option::is_none")]
-  pub metadata_imported: Option<DateTime<Utc>>, // most recent metadata import
-
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub metadata_exported: Option<DateTime<Utc>>, // most recent metadata export
+  pub synchronized_revision: Option<EntityRevision>, // most recent metadata import/export
 }
 
 impl MediaResource {
@@ -331,13 +329,12 @@ impl TrackTag {
 }
 
 ///////////////////////////////////////////////////////////////////////
-/// Track
+/// TrackMetadata
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackMetadata {
-  pub media: MediaMetadata,
 
   #[serde(skip_serializing_if = "TrackIdentity::is_empty", default)]
   pub identity: TrackIdentity,
@@ -375,7 +372,7 @@ pub struct TrackMetadata {
 
 impl TrackMetadata {
   pub fn is_valid(&self) -> bool {
-    self.media.is_valid() && self.titles.is_valid()
+    self.titles.is_valid()
       && (self.album.is_empty() || self.album.titles.is_valid())
   }
 
@@ -397,13 +394,29 @@ impl TrackMetadata {
 }
 
 ///////////////////////////////////////////////////////////////////////
+/// TrackEntity
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct TrackEntity {
+
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub header: Option<EntityHeader>,
+
+  pub metadata: TrackMetadata,
+
+  #[serde(skip_serializing_if = "Vec::is_empty", default)]
+  pub collected_resources: Vec<CollectedMediaResource>,
+}
+
+///////////////////////////////////////////////////////////////////////
 /// Tests
 ///////////////////////////////////////////////////////////////////////
 
 #[cfg(test)]
 mod tests {
   use super::*;
-  use chrono::Utc;
   use serde_json;
   use mime_guess;
 
@@ -413,16 +426,12 @@ mod tests {
     let resource = MediaResource {
       uri: uri.to_string(),
       content_type: mime_guess::guess_mime_type(uri).to_string(),
-      metadata_imported: Some(Utc::now()),
-      metadata_exported: None,
+      synchronized_revision: Some(EntityRevision::initial()),
       ..Default::default()
     };
-    let collected_media_resource = CollectedMediaResource {
+    let collected_resource = CollectedMediaResource {
       collection_uid: "globallyuniquecollectionidentifier".to_string(),
       resource,
-    };
-    let media = MediaMetadata {
-      collected_resources: vec![collected_media_resource],
     };
     let classifications = vec![
       Classification::new(Classifier::Energy, 0.1),
@@ -442,16 +451,21 @@ mod tests {
     let comments = vec![
       Comment::new_anonymous("Some anonymous notes about this track"),
     ];
-    let track = TrackMetadata {
-      media,
+    let metadata = TrackMetadata {
       music,
       tags,
       comments,
       ..Default::default()
     };
-    let track_json = serde_json::to_string(&track).unwrap();
-    assert_ne!("{}", track_json);
-    println!("Track (JSON): {}", track_json);
+    let header = EntityHeader::with_uid("hJhAUVEOj84pYjv2PYkFOQLuqzcbvNuH1Vw0DGxNG7o");
+    let entity = TrackEntity {
+      header: Some(header),
+      metadata,
+      collected_resources: vec!(collected_resource),
+    };
+    let entity_json = serde_json::to_string(&entity).unwrap();
+    assert_ne!("{}", entity_json);
+    println!("Track Entity (JSON): {}", entity_json);
   }
 
   #[test]

@@ -15,6 +15,7 @@
 
 pub mod audio;
 pub mod collection;
+pub mod entity;
 pub mod metadata;
 pub mod music;
 pub mod track;

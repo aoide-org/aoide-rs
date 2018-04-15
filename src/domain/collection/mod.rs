@@ -13,20 +13,22 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+use domain::entity::*;
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Collection {
-    pub uid: String,
+pub struct CollectionEntity {
+    pub header: EntityHeader,
+
     pub name: String,
 }
 
-impl Collection {
-    fn generate_uid() -> String {
-        "TODO: Generate uid".to_string()
-    }
-
-    pub fn new<S: Into<String>>(name: S) -> Self {
-        let uid = Self::generate_uid();
-        Self { uid, name: name.into() }
+impl CollectionEntity {
+    pub fn with_name<S: Into<String>>(name: S) -> Self {
+        let header = EntityHeader::with_uid("lvVzOxqS7mS48EGgnaDYCIZ309nzRM9Op0TTRv5B02Y");
+        Self {
+            header,
+            name: name.into(),
+        }
     }
 }

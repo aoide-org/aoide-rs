@@ -13,9 +13,11 @@
 -- You should have received a copy of the GNU Affero General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-CREATE TABLE collection (
+CREATE TABLE collection_entity (
     id                      INTEGER PRIMARY KEY,
     uid                     TEXT NOT NULL,     -- globally unique identifier
+    revision                INTEGER NOT NULL,
+    revisioned              DATETIME NOT NULL, -- implicit time zone (UTC)
     name                    TEXT NOT NULL,     -- display name
     UNIQUE (uid)
 );
@@ -28,26 +30,26 @@ CREATE TABLE active_collection (
     FOREIGN KEY(collection_id) REFERENCES collection(id)
 );
 
-CREATE TABLE track (
+CREATE TABLE track_entity (
     id                      INTEGER PRIMARY KEY,
-    revision                INTEGER NOT NULL,  -- for optimistic locking and synchronization
-    added                   DATETIME NOT NULL, -- implicit time zone (UTC)
-    updated                 DATETIME,          -- implicit time zone (UTC)
+    uid                     TEXT NOT NULL,     -- globally unique identifier
+    revision                INTEGER NOT NULL,
+    revisioned              DATETIME NOT NULL, -- implicit time zone (UTC)
     collection_id           INTEGER,
-    -- The media columns are populated from the collected resource for the collection.
-    -- All media columns are NULL if the track is not related to an active collection.
+    -- The media/audio columns are populated from the collected resource for the collection.
+    -- All media/audio columns are NULL if the track is not related to an active collection.
     media_uri               TEXT,              -- RFC 3986
     media_content_type      TEXT,              -- RFC 6838
-    media_metadata_imported DATETIME,          -- most recent metadata import
-    media_metadata_exported DATETIME,          -- most recent metadata export
-    audio_duration          INTEGER NOT NULL,  -- milliseconds
-    audio_channels          INTEGER NOT NULL,  -- number of channels
-    audio_samplerate        INTEGER NOT NULL,  -- Hz
-    audio_bitrate           INTEGER NOT NULL,  -- bits per second (bps)
-    metadata_format         INTEGER NOT NULL,  -- serialization format: 1 = JSON, 2 = BSON, 3 = CBOR, 4 = Bincode, ...
-    metadata_version_major  INTEGER NOT NULL,  -- for metadata migration - breaking changes
-    metadata_version_minor  INTEGER NOT NULL,  -- for metadata migration - backward-compatible changes
-    metadata_blob           BLOB NOT NULL,     -- serialized track metadata
+    media_sync_revision     INTEGER,           -- most recent metadata synchronization
+    media_sync_revisioned   DATETIME,          -- most recent metadata synchronization
+    audio_duration          INTEGER,           -- milliseconds
+    audio_channels          INTEGER,           -- number of channels
+    audio_samplerate        INTEGER,           -- Hz
+    audio_bitrate           INTEGER,           -- bits per second (bps)
+    entity_format           INTEGER NOT NULL,  -- serialization format: 1 = JSON, 2 = BSON, 3 = CBOR, 4 = Bincode, ...
+    entity_version_major    INTEGER NOT NULL,  -- for metadata migration - breaking changes
+    entity_version_minor    INTEGER NOT NULL,  -- for metadata migration - backward-compatible changes
+    entity_blob             BLOB NOT NULL,     -- serialized track entity
     UNIQUE (media_uri)                         -- each track can only be stored once in a library
     FOREIGN KEY(collection_id) REFERENCES active_collection(collection_id)
 );
@@ -55,7 +57,7 @@ CREATE TABLE track (
 -- Keeps track of required and not yet finished track_* updates
 -- after changes in the main track table. The track database is
 -- consistent if this table is empty.
-CREATE TABLE track_dirty (
+CREATE TABLE dirty_tracks (
     id                      INTEGER PRIMARY KEY,
     track_id                INTEGER NOT NULL,
     FOREIGN KEY(track_id) REFERENCES track(id),

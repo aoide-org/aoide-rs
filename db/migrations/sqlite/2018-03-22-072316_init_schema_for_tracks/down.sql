@@ -13,13 +13,15 @@
 -- You should have received a copy of the GNU Affero General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-DROP TABLE collection;
-DROP TABLE active_collection;
-DROP TABLE track;
-DROP TABLE track_dirty;
+DROP TABLE collection_entity;
+
+DROP TABLE track_entity;
 DROP TABLE track_overview;
 DROP TABLE track_fulltext;
 DROP TABLE track_collections;
 DROP TABLE track_tags;
 DROP TABLE track_comments;
 DROP TABLE track_ratings;
+
+DROP TABLE active_collection;
+DROP TABLE dirty_tracks;

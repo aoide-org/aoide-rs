@@ -1,208 +1,218 @@
 [
     {
-        "media": {
-            "collectedResources": [
-                {
-                    "collectionUid": "myMXwslBoXkTDQ0olhq1QsiHRWWL4yj1V0IuoK+PYOg=",
-                    "mediaResource": {
-                        "uri": "file::///home/music/collection/test.mp3",
-                        "contentType": "audio/mpeg",
-                        "audioContent": {
-                            "duration": {
-                                "millis": 202821
-                            },
-                            "channels": {
-                                "count": 2
-                            },
-                            "samplerate": {
-                                "hz": 44100
-                            },
-                            "bitrate": {
-                                "bps": 320000
-                            }
-                        },
-                        "metadataImported": "2018-03-22T17:10:55.488760124Z"
-                    }
-                }
-            ]
-        },
-        "identity": {
-            "mbrainzId": "d878c95a-8a6b-3be6-b6df-7d720a480625"
-        },
-        "titles": {
-            "title": "Give Me All Your Luvin'"
-        },
-        "actors": [
-            {
-                "role": "artist",
-                "name": "Madonna"
-            },
-            {
-                "role": "producer",
-                "name": "Martin Solveig"
-            },
-            {
-                "role": "artist",
-                "prefix": " ft. ",
-                "name": "Nicki Minaj"
-            },
-            {
-                "role": "artist",
-                "prefix": " & ",
-                "name": "M.I.A."
-            },
-            {
-                "role": "composer",
-                "name": "Madonna"
-            },
-            {
-                "role": "composer",
-                "prefix": ", ",
-                "name": "Nicki Minaj"
-            },
-            {
-                "role": "composer",
-                "prefix": ", ",
-                "name": "Martin Solveig"
-            },
-            {
-                "role": "composer",
-                "prefix": " & ",
-                "name": "Julien Jabre"
+        "header": {
+            "uid": "Ejtxuj1yF6AEAIO4Nhxf4aPjmbF20awOGxrVYY7E4kM",
+            "revision": {
+                "number": 28,
+                "revisioned": "2018-04-14T18:10:11.8351783Z"
             }
-        ],
-        "album": {
+        },
+        "metadata": {
             "identity": {
-                "mbrainzId": "5436c9f0-3bc4-410b-8f2d-b584779d5b2c"
+                "mbrainzId": "d878c95a-8a6b-3be6-b6df-7d720a480625"
             },
             "titles": {
-                "title": "MDNA (Deluxe Version)",
-                "subtitle": null
+                "title": "Give Me All Your Luvin'"
             },
             "actors": [
                 {
                     "role": "artist",
                     "name": "Madonna"
+                },
+                {
+                    "role": "producer",
+                    "name": "Martin Solveig"
+                },
+                {
+                    "role": "artist",
+                    "prefix": " ft. ",
+                    "name": "Nicki Minaj"
+                },
+                {
+                    "role": "artist",
+                    "prefix": " & ",
+                    "name": "M.I.A."
+                },
+                {
+                    "role": "composer",
+                    "name": "Madonna"
+                },
+                {
+                    "role": "composer",
+                    "prefix": ", ",
+                    "name": "Nicki Minaj"
+                },
+                {
+                    "role": "composer",
+                    "prefix": ", ",
+                    "name": "Martin Solveig"
+                },
+                {
+                    "role": "composer",
+                    "prefix": " & ",
+                    "name": "Julien Jabre"
                 }
             ],
-            "compilation": false
-        },
-        "release": {
-            "released": "2012-03-23T00:00:00.000Z",
-            "label": "Interscope Records",
-            "copyright": "℗ 2012 Boy Toy, Inc. Exclusively licensed to Live Nation Worldwide, Inc. Exclusively licensed to Interscope Records"
-        },
-        "trackNumbers": {
-            "this": 5,
-            "total": 18
-        },
-        "discNumbers": {
-            "this": 1,
-            "total": 1
-        },
-        "music": {
-            "loudness": {
-                "ebur128lufs": {
-                    "db": -9.55269
+            "album": {
+                "identity": {
+                    "mbrainzId": "5436c9f0-3bc4-410b-8f2d-b584779d5b2c"
+                },
+                "titles": {
+                    "title": "MDNA (Deluxe Version)",
+                    "subtitle": null
+                },
+                "actors": [
+                    {
+                        "role": "artist",
+                        "name": "Madonna"
+                    }
+                ],
+                "compilation": false
+            },
+            "release": {
+                "released": "2012-03-23T00:00:00.000Z",
+                "label": "Interscope Records",
+                "copyright": "℗ 2012 Boy Toy, Inc. Exclusively licensed to Live Nation Worldwide, Inc. Exclusively licensed to Interscope Records"
+            },
+            "trackNumbers": {
+                "this": 5,
+                "total": 18
+            },
+            "discNumbers": {
+                "this": 1,
+                "total": 1
+            },
+            "music": {
+                "loudness": {
+                    "ebur128lufs": {
+                        "db": -9.55269
+                    }
+                },
+                "tempo": {
+                    "bpm": 145.0
+                },
+                "timeSignature": {
+                    "numerator": 4,
+                    "denominator": 4
+                },
+                "keySignature": {
+                    "code": 11
+                },
+                "classifications": [
+                    {
+                        "classifier": "energy",
+                        "confidence": 0.92
+                    },
+                    {
+                        "classifier": "positivity",
+                        "confidence": 0.85
+                    },
+                    {
+                        "classifier": "danceability",
+                        "confidence": 0.78
+                    },
+                    {
+                        "classifier": "popularity",
+                        "confidence": 0.75
+                    }
+                ]
+            },
+            "tags": [
+                {
+                    "facet": "genre",
+                    "term": "Pop",
+                    "confidence": 0.9
+                },
+                {
+                    "facet": "genre",
+                    "term": "Electronic",
+                    "confidence": 0.3
+                },
+                {
+                    "facet": "style",
+                    "term": "2010s",
+                    "confidence": 1.0
+                },
+                {
+                    "facet": "genre",
+                    "term": "Dance",
+                    "confidence": 0.7
+                },
+                {
+                    "facet": "genre",
+                    "term": "Hip Hop/Rap",
+                    "confidence": 0.2
+                },
+                {
+                    "facet": "lang",
+                    "term": "eng",
+                    "confidence": 1.0
+                },
+                {
+                    "facet": "crowd",
+                    "term": "Wedding",
+                    "confidence": 0.8
+                },
+                {
+                    "facet": "style",
+                    "term": "1980s",
+                    "confidence": 0.1
+                },
+                {
+                    "facet": "crowd",
+                    "term": "Party",
+                    "confidence": 0.95
+                },
+                {
+                    "facet": "settime",
+                    "term": "Filler",
+                    "confidence": 0.7
                 }
-            },
-            "tempo": {
-                "bpm": 145.0
-            },
-            "timeSignature": {
-                "numerator": 4,
-                "denominator": 4
-            },
-            "keySignature": {
-                "code": 11
-            },
-            "classifications": [
+            ],
+            "ratings": [
                 {
-                    "classifier": "energy",
-                    "confidence": 0.92
+                    "rating": 0.8
                 },
                 {
-                    "classifier": "positivity",
-                    "confidence": 0.85
+                    "owner": "mrdj@aoide.org",
+                    "rating": 0.7
+                }
+            ],
+            "comments": [
+                {
+                    "owner": "mrdj@aoide.org",
+                    "comment": "Personal notes about this track"
                 },
                 {
-                    "classifier": "danceability",
-                    "confidence": 0.78
-                },
-                {
-                    "classifier": "popularity",
-                    "confidence": 0.75
+                    "comment": "Anonymous notes about this track"
                 }
             ]
         },
-        "tags": [
+        "collectedResources": [
             {
-                "facet": "genre",
-                "term": "Pop",
-                "confidence": 0.9
-            },
-            {
-                "facet": "genre",
-                "term": "Electronic",
-                "confidence": 0.3
-            },
-            {
-                "facet": "style",
-                "term": "2010s",
-                "confidence": 1.0
-            },
-            {
-                "facet": "genre",
-                "term": "Dance",
-                "confidence": 0.7
-            },
-            {
-                "facet": "genre",
-                "term": "Hip Hop/Rap",
-                "confidence": 0.2
-            },
-            {
-                "facet": "lang",
-                "term": "eng",
-                "confidence": 1.0
-            },
-            {
-                "facet": "crowd",
-                "term": "Wedding",
-                "confidence": 0.8
-            },
-            {
-                "facet": "style",
-                "term": "1980s",
-                "confidence": 0.1
-            },
-            {
-                "facet": "crowd",
-                "term": "Party",
-                "confidence": 0.95
-            },
-            {
-                "facet": "settime",
-                "term": "Filler",
-                "confidence": 0.7
-            }
-        ],
-        "ratings": [
-            {
-                "rating": 0.8
-            },
-            {
-                "owner": "mrdj@aoide.org",
-                "rating": 0.7
-            }
-        ],
-        "comments": [
-            {
-                "owner": "mrdj@aoide.org",
-                "comment": "Personal notes about this track"
-            },
-            {
-                "comment": "Anonymous notes about this track"
+                "collectionUid": "myMXwslBoXkTDQ0olhq1QsiHRWWL4yj1V0IuoK+PYOg",
+                "resource": {
+                    "uri": "file::///home/music/collection/test.mp3",
+                    "contentType": "audio/mpeg",
+                    "audioContent": {
+                        "duration": {
+                            "millis": 202821
+                        },
+                        "channels": {
+                            "count": 2
+                        },
+                        "samplerate": {
+                            "hz": 44100
+                        },
+                        "bitrate": {
+                            "bps": 320000
+                        }
+                    },
+                    "synchronizedRevision": {
+                        "number": 23,
+                        "revisioned": "2018-03-22T17:10:55.488760124Z"
+                    }
+                }
             }
         ]
     }
