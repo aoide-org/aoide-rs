@@ -24,18 +24,20 @@ pub struct CollectionRepository;
 
 impl CollectionRepository {
     pub fn create_entity<S: Into<String>>(name: S) -> CollectionEntity {
-        // TODO: Generate UID
-        let uid = "lvVzOxqS7mS48EGgnaDYCIZ309nzRM9Op0TTRv5B02Y".to_string();
-        let header = EntityHeader::with_uid(uid);
-        let entity = CollectionEntity { header, name: name.into() };
+        let entity = CollectionEntity::with_name(name);
         // TODO: Store entity
         entity
     }
 
-    pub fn update_entity(entity: &CollectionEntity) -> EntityRevision {
-        let next_revision = entity.header.revision().next();
+    pub fn update_entity(entity: &mut CollectionEntity) -> EntityRevision {
+        let next_revision = entity.header().revision().next();
         // TODO: Store entity
+        entity.update_revision(next_revision);
         next_revision
+    }
+
+    pub fn remove_entity(_uid: &EntityUid) {
+        // TODO: Delete entity from storage
     }
 }
 
@@ -48,6 +50,22 @@ mod tests {
   use super::*;
 
   #[test]
-  fn store_entity() {
+  fn create_entity() {
+      let entity = CollectionRepository::create_entity("Test Collection");
+      println!("Created entity: {:?}", entity);
+      assert!(entity.is_valid());
+  }
+
+  #[test]
+  fn update_entity() {
+      let mut entity = CollectionRepository::create_entity("Test Collection");
+      println!("Created entity: {:?}", entity);
+      assert!(entity.is_valid());
+      let initial_revision = entity.header().revision();
+      entity.set_name("Renamed Collection");
+      let updated_revision = CollectionRepository::update_entity(&mut entity);
+      println!("Updated entity: {:?}", entity);
+      assert!(initial_revision < updated_revision);
+      assert!(entity.header().revision() == updated_revision);
   }
 }

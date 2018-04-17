@@ -18,9 +18,9 @@ use domain::entity::*;
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct CollectionEntity {
-    pub header: EntityHeader,
+    header: EntityHeader,
 
-    pub name: String,
+    name: String,
 }
 
 impl CollectionEntity {
@@ -32,4 +32,36 @@ impl CollectionEntity {
             name: name.into(),
         }
     }
+
+    pub fn is_valid(&self) -> bool {
+        self.header.is_valid() && !self.name.is_empty()
+    }
+
+    pub fn header<'a>(&'a self) -> &'a EntityHeader {
+        &self.header
+    }
+
+    pub fn name<'a>(&'a self) -> &'a String {
+        &self.name
+    }
+
+    pub fn set_name<S: Into<String>>(&mut self, name: S) {
+        self.name = name.into();
+    }
+
+    pub fn update_revision(&mut self, next_revision: EntityRevision) {
+        self.header.update_revision(next_revision);
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+/// Tests
+///////////////////////////////////////////////////////////////////////
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_works() {}
 }

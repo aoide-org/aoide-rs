@@ -222,16 +222,9 @@ impl EntityHeader {
         self.revision
     }
 
-    pub fn next_revision(&self) -> EntityHeader {
-        Self {
-            uid: self.uid.clone(),
-            revision: self.revision.next(),
-        }
-    }
-
-    pub fn bump_revision(&mut self) {
-        let next_revision = self.revision.next();
-        self.revision = next_revision
+    pub fn update_revision(&mut self, next_revision: EntityRevision) {
+        assert!(self.revision < next_revision);
+        self.revision = next_revision;
     }
 }
 
@@ -289,20 +282,14 @@ mod tests {
     }
 
     #[test]
-    fn header_next_revision() {
-        let header = EntityHeader::with_uid(EntityUidGenerator::generate_uid());
-        let initial_revision = header.revision();
-        assert!(initial_revision.is_initial());
-        let next_revision = header.next_revision().revision();
-        assert!(initial_revision < next_revision);
-    }
-
-    #[test]
-    fn header_bump_revision() {
+    fn header_update_revision() {
         let mut header = EntityHeader::with_uid(EntityUidGenerator::generate_uid());
+        let uid = header.uid().clone();
         let initial_revision = header.revision();
         assert!(initial_revision.is_initial());
-        header.bump_revision();
-        assert!(initial_revision < header.revision());
+        let next_revision = header.revision().next();
+        header.update_revision(next_revision);
+        assert!(*header.uid() == uid);
+        assert!(header.revision() == next_revision);
     }
 }
