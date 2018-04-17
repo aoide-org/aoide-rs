@@ -54,7 +54,26 @@ impl Deref for EntityUid {
 }
 
 impl EntityUid {
-    pub fn generate() -> Self {
+    pub fn is_valid(&self) -> bool {
+        !(*self).is_empty()
+    }
+}
+
+impl fmt::Display for EntityUid {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(f, "{}", *self)
+  }
+}
+
+///////////////////////////////////////////////////////////////////////
+/// EntityUidGenerator
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Default)]
+pub struct EntityUidGenerator;
+
+impl EntityUidGenerator {
+    pub fn generate_uid() -> EntityUid {
         let mut digest_ctx = digest::Context::new(&digest::SHA256);
         // TODO: Generate UUID v1 based on MAC address
         let uuid_v1 = Uuid::nil();
@@ -66,10 +85,6 @@ impl EntityUid {
         digest_ctx.update(format!("{}", now).as_bytes());
         let digest = digest_ctx.finish();
         base64::encode_config(&digest, base64::URL_SAFE_NO_PAD).into()
-    }
-
-    pub fn is_valid(&self) -> bool {
-        !(*self).is_empty()
     }
 }
 
@@ -208,14 +223,15 @@ impl EntityHeader {
     }
 
     pub fn next_revision(&self) -> EntityHeader {
-        EntityHeader {
+        Self {
             uid: self.uid.clone(),
             revision: self.revision.next(),
         }
     }
 
     pub fn bump_revision(&mut self) {
-        self.revision = self.revision.next()
+        let next_revision = self.revision.next();
+        self.revision = next_revision
     }
 }
 
@@ -234,7 +250,7 @@ mod tests {
 
     #[test]
     fn generate_uid() {
-        assert!(EntityUid::generate().is_valid());
+        assert!(EntityUidGenerator::generate_uid().is_valid());
     }
 
     #[test]
@@ -267,14 +283,14 @@ mod tests {
 
     #[test]
     fn header_with_uid() {
-        let header = EntityHeader::with_uid(EntityUid::generate());
+        let header = EntityHeader::with_uid(EntityUidGenerator::generate_uid());
         assert!(header.is_valid());
         assert!(header.revision().is_initial());
     }
 
     #[test]
     fn header_next_revision() {
-        let header = EntityHeader::with_uid(EntityUid::generate());
+        let header = EntityHeader::with_uid(EntityUidGenerator::generate_uid());
         let initial_revision = header.revision();
         assert!(initial_revision.is_initial());
         let next_revision = header.next_revision().revision();
@@ -283,7 +299,7 @@ mod tests {
 
     #[test]
     fn header_bump_revision() {
-        let mut header = EntityHeader::with_uid(EntityUid::generate());
+        let mut header = EntityHeader::with_uid(EntityUidGenerator::generate_uid());
         let initial_revision = header.revision();
         assert!(initial_revision.is_initial());
         header.bump_revision();

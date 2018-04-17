@@ -430,7 +430,7 @@ mod tests {
       ..Default::default()
     };
     let collected_resource = CollectedMediaResource {
-      collection_uid: EntityUid::generate(),
+      collection_uid: EntityUidGenerator::generate_uid(),
       resource,
     };
     let classifications = vec![
@@ -457,7 +457,7 @@ mod tests {
       comments,
       ..Default::default()
     };
-    let uid = EntityUid::generate();
+    let uid = EntityUidGenerator::generate_uid();
     let header = EntityHeader::with_uid(uid);
     let entity = TrackEntity {
       header: Some(header),

@@ -30,16 +30,9 @@ use std::path::Path;
 use std::fs::File;
 use std::io;
 
-pub fn init_env_logger_verbosity(verbosity: u8) {
+fn init_env_logger(log_level_filter: LogLevelFilter) {
     let mut logger_builder = LoggerBuilder::new();
 
-    let log_level_filter = match verbosity {
-        0 => LogLevelFilter::Error,
-        1 => LogLevelFilter::Warn,
-        2 => LogLevelFilter::Info,
-        3 => LogLevelFilter::Debug,
-        _ => LogLevelFilter::Trace,
-    };
     println!("Setting log level filter to {}", log_level_filter);
     logger_builder.filter(None, log_level_filter);
 
@@ -52,6 +45,17 @@ pub fn init_env_logger_verbosity(verbosity: u8) {
     logger_builder.init();
 }
 
+fn init_env_logger_verbosity(verbosity: u8) {
+    let log_level_filter = match verbosity {
+        0 => LogLevelFilter::Error,
+        1 => LogLevelFilter::Warn,
+        2 => LogLevelFilter::Info,
+        3 => LogLevelFilter::Debug,
+        _ => LogLevelFilter::Trace,
+    };
+    init_env_logger(log_level_filter);
+}
+
 pub fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
@@ -60,7 +64,7 @@ pub fn main() {
     }
 
     // TODO: Parse verbosity from args
-    init_env_logger_verbosity(2);
+    init_env_logger_verbosity(3);
 
     let path = Path::new(&args[1]);
     try_main(path).unwrap();
