@@ -14,7 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 mod schema;
-use self::schema::collection;
+use self::schema::collection_entity;
+use self::schema::active_collection;
 
 use chrono::{DateTime, Utc};
 use chrono::naive::NaiveDateTime;
@@ -32,15 +33,15 @@ use domain::collection::*;
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Insertable)]
-#[table_name = "collection"]
-pub struct InsertableCollectionRecord<'a> {
+#[table_name = "collection_entity"]
+pub struct InsertableCollectionEntity<'a> {
     pub uid: &'a str,
     pub revno: i64,
     pub revts: NaiveDateTime,
     pub name: &'a str,
 }
 
-impl<'a> InsertableCollectionRecord<'a> {
+impl<'a> InsertableCollectionEntity<'a> {
     pub fn from_entity(entity: &'a CollectionEntity) -> Self {
         Self {
             uid: entity.header().uid().as_str(),
@@ -52,14 +53,14 @@ impl<'a> InsertableCollectionRecord<'a> {
 }
 
 #[derive(AsChangeset)]
-#[table_name = "collection"]
-pub struct UpdatableCollectionRecord<'a> {
+#[table_name = "collection_entity"]
+pub struct UpdatableCollectionEntity<'a> {
     pub revno: i64,
     pub revts: NaiveDateTime,
     pub name: &'a str,
 }
 
-impl<'a> UpdatableCollectionRecord<'a> {
+impl<'a> UpdatableCollectionEntity<'a> {
     pub fn from_entity_revision(entity: &'a CollectionEntity, revision: EntityRevision) -> Self {
         Self {
             revno: revision.number() as i64,
@@ -70,7 +71,7 @@ impl<'a> UpdatableCollectionRecord<'a> {
 }
 
 #[derive(Queryable)]
-pub struct QueryableCollectionRecord {
+pub struct QueryableCollectionEntity {
     pub id: i64,
     pub uid: String,
     pub revno: i64,
@@ -78,7 +79,7 @@ pub struct QueryableCollectionRecord {
     pub name: String,
 }
 
-impl Into<CollectionEntity> for QueryableCollectionRecord {
+impl Into<CollectionEntity> for QueryableCollectionEntity {
     fn into(self) -> CollectionEntity {
         let uid: EntityUid = self.uid.into();
         let revision = EntityRevision::new(self.revno as u64, DateTime::from_utc(self.revts, Utc));
@@ -102,42 +103,42 @@ impl CollectionRepository {
 
     pub fn find_entity_by_uid(&self, uid: &EntityUid) -> Result<Option<CollectionEntity>, diesel::result::Error> {
         let target =
-            collection::table.filter(collection::uid.eq(uid.as_str()));
-        let record = target
-            .first::<QueryableCollectionRecord>(&self.connection)
+            collection_entity::table.filter(collection_entity::uid.eq(uid.as_str()));
+        let result = target
+            .first::<QueryableCollectionEntity>(&self.connection)
             .optional()?;
-        Ok(record.map(|r| r.into()))
+        Ok(result.map(|r| r.into()))
     }
 
     pub fn find_entities_by_name(&self, name: &str) -> Result<Vec<CollectionEntity>, diesel::result::Error> {
         let target =
-            collection::table.filter(collection::name.eq(name));
-        let records = target
-            .load::<QueryableCollectionRecord>(&self.connection)?;
-        Ok(records.into_iter().map(|r| r.into()).collect())
+            collection_entity::table.filter(collection_entity::name.eq(name));
+        let results = target
+            .load::<QueryableCollectionEntity>(&self.connection)?;
+        Ok(results.into_iter().map(|r| r.into()).collect())
     }
 
     pub fn find_entities_by_name_starting_with(&self, name_prefix: &str) -> Result<Vec<CollectionEntity>, diesel::result::Error> {
         let target =
-            collection::table.filter(collection::name.like(format!("{}%", name_prefix)));
-        let records = target
-            .load::<QueryableCollectionRecord>(&self.connection)?;
-        Ok(records.into_iter().map(|r| r.into()).collect())
+            collection_entity::table.filter(collection_entity::name.like(format!("{}%", name_prefix)));
+        let results = target
+            .load::<QueryableCollectionEntity>(&self.connection)?;
+        Ok(results.into_iter().map(|r| r.into()).collect())
     }
 
     pub fn find_entities_by_name_containing(&self, partial_name: &str) -> Result<Vec<CollectionEntity>, diesel::result::Error> {
         let target =
-            collection::table.filter(collection::name.like(format!("%{}%", partial_name)));
-        let records = target
-            .load::<QueryableCollectionRecord>(&self.connection)?;
-        Ok(records.into_iter().map(|r| r.into()).collect())
+            collection_entity::table.filter(collection_entity::name.like(format!("%{}%", partial_name)));
+        let results = target
+            .load::<QueryableCollectionEntity>(&self.connection)?;
+        Ok(results.into_iter().map(|r| r.into()).collect())
     }
 
     pub fn create_entity<S: Into<String>>(&self, name: S) -> Result<CollectionEntity, diesel::result::Error> {
         let entity = CollectionEntity::with_name(name);
         {
-            let record = InsertableCollectionRecord::from_entity(&entity);
-            let query = diesel::insert_into(collection::table).values(&record);
+            let insertable = InsertableCollectionEntity::from_entity(&entity);
+            let query = diesel::insert_into(collection_entity::table).values(&insertable);
             if log_enabled!(log::Level::Debug) {
                 debug!(
                     "Executing SQLite query: {}",
@@ -155,10 +156,10 @@ impl CollectionRepository {
     pub fn update_entity(&self, entity: &mut CollectionEntity) -> Result<EntityRevision, diesel::result::Error> {
         let next_revision = entity.header().revision().next();
         {
-            let record = UpdatableCollectionRecord::from_entity_revision(&entity, next_revision);
+            let updatable = UpdatableCollectionEntity::from_entity_revision(&entity, next_revision);
             let target =
-                collection::table.filter(collection::uid.eq(entity.header().uid().as_str()));
-            let query = diesel::update(target).set(&record);
+                collection_entity::table.filter(collection_entity::uid.eq(entity.header().uid().as_str()));
+            let query = diesel::update(target).set(&updatable);
             if log_enabled!(log::Level::Debug) {
                 debug!(
                     "Executing SQLite query: {}",
@@ -175,7 +176,7 @@ impl CollectionRepository {
     }
 
     pub fn remove_entity(&self, uid: &EntityUid) -> Result<(), diesel::result::Error> {
-        let target = collection::table.filter(collection::uid.eq(uid.as_str()));
+        let target = collection_entity::table.filter(collection_entity::uid.eq(uid.as_str()));
         let query = diesel::delete(target);
         if log_enabled!(log::Level::Debug) {
             debug!(

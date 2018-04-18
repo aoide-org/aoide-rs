@@ -14,11 +14,18 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 table! {
-    collection (id) {
+    collection_entity (id) {
         id -> BigInt,
         uid -> Text,
         revno -> BigInt,
         revts -> Timestamp,
         name -> Text,
+    }
+}
+
+table! {
+    active_collection (id) {
+        id -> BigInt,
+        collection_id -> BigInt,
     }
 }
