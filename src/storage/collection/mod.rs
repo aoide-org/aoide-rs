@@ -51,7 +51,6 @@ impl<'a> InsertableCollectionRecord<'a> {
     }
 }
 
-
 #[derive(AsChangeset)]
 #[table_name = "collection"]
 pub struct UpdatableCollectionRecord<'a> {
@@ -79,11 +78,12 @@ pub struct QueryableCollectionRecord {
     pub name: String,
 }
 
-impl QueryableCollectionRecord {
-    pub fn into_entity(&self) -> CollectionEntity {
+impl Into<CollectionEntity> for QueryableCollectionRecord {
+    fn into(self) -> CollectionEntity {
+        let uid: EntityUid = self.uid.into();
         let revision = EntityRevision::new(self.revno, DateTime::from_utc(self.revts, Utc));
-        let header = EntityHeader::new(self.uid.clone(), revision);
-        CollectionEntity::new(header, self.name.clone())
+        let header = EntityHeader::new(uid, revision);
+        CollectionEntity::new(header, self.name)
     }
 }
 
