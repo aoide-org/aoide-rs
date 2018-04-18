@@ -24,13 +24,17 @@ pub struct CollectionEntity {
 }
 
 impl CollectionEntity {
-    pub fn with_name<S: Into<String>>(name: S) -> Self {
-        let uid = EntityUidGenerator::generate_uid();
-        let header = EntityHeader::with_uid(uid);
+    pub fn new<S: Into<String>>(header: EntityHeader, name: S) -> Self {
         Self {
             header,
             name: name.into(),
         }
+    }
+
+    pub fn with_name<S: Into<String>>(name: S) -> Self {
+        let uid = EntityUidGenerator::generate_uid();
+        let header = EntityHeader::with_uid(uid);
+        Self::new(header, name)
     }
 
     pub fn is_valid(&self) -> bool {

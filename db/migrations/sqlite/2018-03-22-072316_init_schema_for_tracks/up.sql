@@ -17,7 +17,7 @@ CREATE TABLE collection_entity (
     id                      INTEGER PRIMARY KEY,
     uid                     TEXT NOT NULL,     -- globally unique identifier
     revno                   INTEGER NOT NULL,
-    revdt                   DATETIME NOT NULL, -- implicit time zone (UTC)
+    revts                   DATETIME NOT NULL, -- implicit time zone (UTC)
     name                    TEXT NOT NULL,     -- display name
     UNIQUE (uid)
 );
@@ -34,14 +34,14 @@ CREATE TABLE track_entity (
     id                      INTEGER PRIMARY KEY,
     uid                     TEXT NOT NULL,     -- globally unique identifier
     revno                   INTEGER NOT NULL,
-    revdt                   DATETIME NOT NULL, -- implicit time zone (UTC)
+    revts                   DATETIME NOT NULL, -- implicit time zone (UTC)
     collection_id           INTEGER,
     -- The media/audio columns are set according to the collected resource of the collection.
     -- All media/audio columns are NULL if the track is not related to a collection.
     media_uri               TEXT,              -- RFC 3986
     media_content_type      TEXT,              -- RFC 6838
     media_sync_revno        INTEGER,           -- most recent metadata synchronization
-    media_sync_revdt        DATETIME,          -- most recent metadata synchronization
+    media_sync_revts        DATETIME,          -- most recent metadata synchronization
     audio_duration          INTEGER,           -- milliseconds
     audio_channels          INTEGER,           -- number of channels
     audio_samplerate        INTEGER,           -- Hz

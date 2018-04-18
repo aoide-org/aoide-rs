@@ -13,4 +13,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod collection;
+table! {
+    collection (id) {
+        id -> BigInt,
+        uid -> Text,
+        revno -> BigInt,
+        revts -> Timestamp,
+        name -> Text,
+    }
+}

@@ -57,12 +57,16 @@ impl EntityUid {
     pub fn is_valid(&self) -> bool {
         !(*self).is_empty()
     }
+
+    pub fn as_str<'a>(&'a self) -> &'a str {
+        &self.0
+    }
 }
 
 impl fmt::Display for EntityUid {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "{}", *self)
-  }
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -107,14 +111,6 @@ impl EntityVersion {
         EntityVersion { major, minor }
     }
 
-    pub fn major(&self) -> EntityVersionNumber {
-        self.major
-    }
-
-    pub fn minor(&self) -> EntityVersionNumber {
-        self.minor
-    }
-
     pub fn next_major(&self) -> Self {
         EntityVersion {
             major: self.major + 1,
@@ -127,6 +123,14 @@ impl EntityVersion {
             major: self.major,
             minor: self.minor + 1,
         }
+    }
+
+    pub fn major(&self) -> EntityVersionNumber {
+        self.major
+    }
+
+    pub fn minor(&self) -> EntityVersionNumber {
+        self.minor
     }
 }
 
@@ -142,24 +146,41 @@ impl fmt::Display for EntityVersion {
 
 pub type EntityRevisionNumber = u64;
 
+pub type EntityRevisionTimestamp = DateTime<Utc>;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityRevision {
     number: EntityRevisionNumber,
 
-    datetime: DateTime<Utc>,
+    timestamp: EntityRevisionTimestamp,
 }
 
 impl EntityRevision {
-    pub fn is_valid(&self) -> bool {
-        self.number > 0
+    pub fn new<I1: Into<EntityRevisionNumber>, I2: Into<EntityRevisionTimestamp>>(number: I1, timestamp: I2) -> Self {
+        Self {
+            number: number.into(),
+            timestamp: timestamp.into(),
+        }
     }
 
     pub fn initial() -> Self {
-        EntityRevision {
+        Self {
             number: 1,
-            datetime: Utc::now(),
+            timestamp: Utc::now(),
         }
+    }
+
+    pub fn next(&self) -> Self {
+        assert!(self.is_valid());
+        Self {
+            number: self.number + 1,
+            timestamp: Utc::now(),
+        }
+    }
+
+    pub fn is_valid(&self) -> bool {
+        self.number > 0
     }
 
     pub fn is_initial(&self) -> bool {
@@ -170,22 +191,14 @@ impl EntityRevision {
         self.number
     }
 
-    pub fn datetime(&self) -> DateTime<Utc> {
-        self.datetime
-    }
-
-    pub fn next(&self) -> Self {
-        assert!(self.is_valid());
-        EntityRevision {
-            number: self.number + 1,
-            datetime: Utc::now(),
-        }
+    pub fn timestamp(&self) -> EntityRevisionTimestamp {
+        self.timestamp
     }
 }
 
 impl fmt::Display for EntityRevision {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}@{}", self.number, self.datetime)
+        write!(f, "{}@{}", self.number, self.timestamp)
     }
 }
 
@@ -202,7 +215,14 @@ pub struct EntityHeader {
 }
 
 impl EntityHeader {
-    pub fn with_uid<I: Into<EntityUid>>(uid: I) -> Self {
+    pub fn new<I1: Into<EntityUid>, I2: Into<EntityRevision>>(uid: I1, revision: I2) -> Self {
+        Self {
+            uid: uid.into(),
+            revision: revision.into(),
+        }
+    }
+
+    pub fn with_uid<T: Into<EntityUid>>(uid: T) -> Self {
         let revision = EntityRevision::initial();
         Self {
             uid: uid.into(),
@@ -257,14 +277,14 @@ mod tests {
         assert!(!next.is_initial());
         assert!(initial < next);
         assert!(initial.number() < next.number());
-        assert!(initial.datetime() <= next.datetime());
+        assert!(initial.timestamp() <= next.timestamp());
 
         let nextnext = next.next();
         assert!(nextnext.is_valid());
         assert!(!nextnext.is_initial());
         assert!(next < nextnext);
         assert!(next.number() < nextnext.number());
-        assert!(next.datetime() <= nextnext.datetime());
+        assert!(next.timestamp() <= nextnext.timestamp());
     }
 
     #[test]
