@@ -111,11 +111,9 @@ impl CollectionRepository {
                     diesel::debug_query::<diesel::sqlite::Sqlite, _>(&query)
                 );
             }
-            /*
             query
                 .execute(&self.connection)
                 .expect("Error inserting record for newly created entity");
-            */
         }
         if log_enabled!(log::Level::Debug) {
             debug!("Created collection entity: {:?}", entity.header());
@@ -127,7 +125,8 @@ impl CollectionRepository {
         let next_revision = entity.header().revision().next();
         {
             let record = UpdatableCollectionRecord::from_entity_revision(&entity, next_revision);
-            let target = collection::table.filter(collection::uid.eq(entity.header().uid().as_str()));
+            let target =
+                collection::table.filter(collection::uid.eq(entity.header().uid().as_str()));
             let query = diesel::update(target).set(&record);
             if log_enabled!(log::Level::Debug) {
                 debug!(
@@ -135,11 +134,9 @@ impl CollectionRepository {
                     diesel::debug_query::<diesel::sqlite::Sqlite, _>(&query)
                 );
             }
-            /*
             query
                 .execute(&self.connection)
                 .expect("Error updating record of modified entity");
-            */
         }
         entity.update_revision(next_revision);
         if log_enabled!(log::Level::Debug) {
@@ -157,11 +154,9 @@ impl CollectionRepository {
                 diesel::debug_query::<diesel::sqlite::Sqlite, _>(&query)
             );
         }
-        /*
         query
             .execute(&self.connection)
             .expect("Error deleting record of entity");
-        */
         if log_enabled!(log::Level::Debug) {
             debug!("Removed collection entity: {}", uid);
         }
@@ -188,6 +183,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore] // TODO: Enable when schema for test connection has been initialized
     fn create_entity() {
         let repository = new_repository();
         let entity = repository.create_entity("Test Collection");
@@ -196,6 +192,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore] // TODO: Enable when schema for test connection has been initialized
     fn update_entity() {
         let repository = new_repository();
         let mut entity = repository.create_entity("Test Collection");
@@ -210,6 +207,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore] // TODO: Enable when schema for test connection has been initialized
     fn remove_entity() {
         let repository = new_repository();
         let entity = repository.create_entity("Test Collection");
