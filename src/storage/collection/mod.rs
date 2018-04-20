@@ -27,12 +27,13 @@ use log;
 
 use domain::entity::*;
 use domain::collection::*;
+use usecases::*;
 
 ///////////////////////////////////////////////////////////////////////
 /// CollectionRecord
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Insertable)]
+#[derive(Debug, Insertable)]
 #[table_name = "collection_entity"]
 pub struct InsertableCollectionEntity<'a> {
     pub uid: &'a str,
@@ -52,7 +53,7 @@ impl<'a> InsertableCollectionEntity<'a> {
     }
 }
 
-#[derive(AsChangeset)]
+#[derive(Debug, AsChangeset)]
 #[table_name = "collection_entity"]
 pub struct UpdatableCollectionEntity<'a> {
     pub revno: i64,
@@ -70,7 +71,7 @@ impl<'a> UpdatableCollectionEntity<'a> {
     }
 }
 
-#[derive(Queryable)]
+#[derive(Debug, Queryable)]
 pub struct QueryableCollectionEntity {
     pub id: i64,
     pub uid: String,
@@ -100,41 +101,22 @@ impl CollectionRepository {
     pub fn new(connection: diesel::SqliteConnection) -> Self {
         Self { connection }
     }
+}
 
-    pub fn find_entity_by_uid(&self, uid: &EntityUid) -> Result<Option<CollectionEntity>, diesel::result::Error> {
-        let target =
-            collection_entity::table.filter(collection_entity::uid.eq(uid.as_str()));
-        let result = target
-            .first::<QueryableCollectionEntity>(&self.connection)
-            .optional()?;
-        Ok(result.map(|r| r.into()))
+impl From<diesel::result::Error> for CollectionsError {
+    fn from(from: diesel::result::Error) -> Self {
+        match from {
+            diesel::result::Error::NotFound => CollectionsError::NotFound,
+            _ => {
+                error!("Unexpected database error: {}", from);
+                CollectionsError::Unexpected
+            }
+        }
     }
+}
 
-    pub fn find_entities_by_name(&self, name: &str) -> Result<Vec<CollectionEntity>, diesel::result::Error> {
-        let target =
-            collection_entity::table.filter(collection_entity::name.eq(name));
-        let results = target
-            .load::<QueryableCollectionEntity>(&self.connection)?;
-        Ok(results.into_iter().map(|r| r.into()).collect())
-    }
-
-    pub fn find_entities_by_name_starting_with(&self, name_prefix: &str) -> Result<Vec<CollectionEntity>, diesel::result::Error> {
-        let target =
-            collection_entity::table.filter(collection_entity::name.like(format!("{}%", name_prefix)));
-        let results = target
-            .load::<QueryableCollectionEntity>(&self.connection)?;
-        Ok(results.into_iter().map(|r| r.into()).collect())
-    }
-
-    pub fn find_entities_by_name_containing(&self, partial_name: &str) -> Result<Vec<CollectionEntity>, diesel::result::Error> {
-        let target =
-            collection_entity::table.filter(collection_entity::name.like(format!("%{}%", partial_name)));
-        let results = target
-            .load::<QueryableCollectionEntity>(&self.connection)?;
-        Ok(results.into_iter().map(|r| r.into()).collect())
-    }
-
-    pub fn create_entity<S: Into<String>>(&self, name: S) -> Result<CollectionEntity, diesel::result::Error> {
+impl Collections for CollectionRepository {
+    fn create_entity<S: Into<String>>(&self, name: S) -> CollectionsResult<CollectionEntity> {
         let entity = CollectionEntity::with_name(name);
         {
             let insertable = InsertableCollectionEntity::from_entity(&entity);
@@ -153,7 +135,7 @@ impl CollectionRepository {
         Ok(entity)
     }
 
-    pub fn update_entity(&self, entity: &mut CollectionEntity) -> Result<EntityRevision, diesel::result::Error> {
+    fn update_entity(&self, entity: &mut CollectionEntity) -> CollectionsResult<EntityRevision> {
         let next_revision = entity.header().revision().next();
         {
             let updatable = UpdatableCollectionEntity::from_entity_revision(&entity, next_revision);
@@ -175,7 +157,7 @@ impl CollectionRepository {
         Ok(next_revision)
     }
 
-    pub fn remove_entity(&self, uid: &EntityUid) -> Result<(), diesel::result::Error> {
+    fn remove_entity(&self, uid: &EntityUid) -> CollectionsResult<()> {
         let target = collection_entity::table.filter(collection_entity::uid.eq(uid.as_str()));
         let query = diesel::delete(target);
         if log_enabled!(log::Level::Debug) {
@@ -189,6 +171,63 @@ impl CollectionRepository {
             debug!("Removed collection entity: {}", uid);
         }
         Ok(())
+    }
+
+    fn find_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<CollectionEntity>> {
+        let target =
+            collection_entity::table.filter(collection_entity::uid.eq(uid.as_str()));
+        let result = target
+            .first::<QueryableCollectionEntity>(&self.connection)
+            .optional()?;
+        if log_enabled!(log::Level::Debug) {
+            match &result {
+                &None => {
+                    debug!("Found no collection entity with uid '{}'", uid);
+                }
+                &Some(_) => {
+                    debug!("Found a collection entity with uid '{}'", uid);
+                }
+            }
+        }
+        Ok(result.map(|r| r.into()))
+    }
+
+    fn find_entities_by_name(&self, name: &str) -> CollectionsResult<Vec<CollectionEntity>> {
+        let target =
+            collection_entity::table.filter(collection_entity::name.eq(name));
+        let results = target
+            .load::<QueryableCollectionEntity>(&self.connection)?;
+        if log_enabled!(log::Level::Debug) {
+            debug!("Found {} collection entities by name '{}'", results.len(), name);
+        }
+        Ok(results.into_iter().map(|r| r.into()).collect())
+    }
+
+    fn find_entities_by_name_starting_with(&self, name_prefix: &str) -> CollectionsResult<Vec<CollectionEntity>> {
+        let target =
+            collection_entity::table.filter(collection_entity::name.like(format!("{}%", name_prefix)));
+        let results = target
+            .load::<QueryableCollectionEntity>(&self.connection)?;
+        if log_enabled!(log::Level::Debug) {
+            debug!("Found {} collection entities by name starting with '{}'", results.len(), name_prefix);
+        }
+        Ok(results.into_iter().map(|r| r.into()).collect())
+    }
+
+    fn find_entities_by_name_containing(&self, partial_name: &str) -> CollectionsResult<Vec<CollectionEntity>> {
+        let target =
+            collection_entity::table.filter(collection_entity::name.like(format!("%{}%", partial_name)));
+        let results = target
+            .load::<QueryableCollectionEntity>(&self.connection)?;
+        if log_enabled!(log::Level::Debug) {
+            debug!("Found {} collection entities by name containing '{}'", results.len(), partial_name);
+        }
+        Ok(results.into_iter().map(|r| r.into()).collect())
+    }
+
+    fn activate_collection(&self, _uid: &EntityUid) -> CollectionsResult<()> {
+        error!("TODO: Implement activation of a collection");
+        Err(CollectionsError::Unexpected)
     }
 }
 
