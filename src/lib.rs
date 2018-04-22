@@ -15,11 +15,13 @@
 
 extern crate base64;
 
-#[macro_use] extern crate diesel;
+#[macro_use]
+extern crate diesel;
 
 extern crate chrono;
 
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate log;
 
 extern crate mime_guess;
 
@@ -27,7 +29,8 @@ extern crate ring;
 
 extern crate serde;
 
-#[macro_use] extern crate serde_derive;
+#[macro_use]
+extern crate serde_derive;
 
 extern crate serde_json;
 

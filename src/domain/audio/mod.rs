@@ -64,7 +64,6 @@ pub enum ChannelLayout {
     DualMono,
 
     Stereo,
-    
     // ...to be continued
 }
 

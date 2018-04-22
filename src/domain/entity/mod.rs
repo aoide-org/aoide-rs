@@ -39,9 +39,9 @@ impl From<String> for EntityUid {
     }
 }
 
-impl Into<String> for EntityUid {
-    fn into(self) -> String {
-        self.0
+impl From<EntityUid> for String {
+    fn from(from: EntityUid) -> Self {
+        from.0
     }
 }
 
