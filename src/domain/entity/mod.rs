@@ -144,29 +144,32 @@ impl fmt::Display for EntityVersion {
 /// EntityRevision
 ///////////////////////////////////////////////////////////////////////
 
-pub type EntityRevisionNumber = u64;
+pub type EntityRevisionOrdinal = u64;
 
 pub type EntityRevisionTimestamp = DateTime<Utc>;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityRevision {
-    number: EntityRevisionNumber,
+    ordinal: EntityRevisionOrdinal,
 
     timestamp: EntityRevisionTimestamp,
 }
 
 impl EntityRevision {
-    pub fn new<I1: Into<EntityRevisionNumber>, I2: Into<EntityRevisionTimestamp>>(number: I1, timestamp: I2) -> Self {
+    pub fn new<I1: Into<EntityRevisionOrdinal>, I2: Into<EntityRevisionTimestamp>>(
+        ordinal: I1,
+        timestamp: I2,
+    ) -> Self {
         Self {
-            number: number.into(),
+            ordinal: ordinal.into(),
             timestamp: timestamp.into(),
         }
     }
 
     pub fn initial() -> Self {
         Self {
-            number: 1,
+            ordinal: 1,
             timestamp: Utc::now(),
         }
     }
@@ -174,21 +177,21 @@ impl EntityRevision {
     pub fn next(&self) -> Self {
         assert!(self.is_valid());
         Self {
-            number: self.number + 1,
+            ordinal: self.ordinal + 1,
             timestamp: Utc::now(),
         }
     }
 
     pub fn is_valid(&self) -> bool {
-        self.number > 0
+        self.ordinal > 0
     }
 
     pub fn is_initial(&self) -> bool {
-        self.number == 1
+        self.ordinal == 1
     }
 
-    pub fn number(&self) -> EntityRevisionNumber {
-        self.number
+    pub fn ordinal(&self) -> EntityRevisionOrdinal {
+        self.ordinal
     }
 
     pub fn timestamp(&self) -> EntityRevisionTimestamp {
@@ -198,7 +201,7 @@ impl EntityRevision {
 
 impl fmt::Display for EntityRevision {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}@{}", self.number, self.timestamp)
+        write!(f, "{}@{}", self.ordinal, self.timestamp)
     }
 }
 
@@ -276,14 +279,14 @@ mod tests {
         assert!(next.is_valid());
         assert!(!next.is_initial());
         assert!(initial < next);
-        assert!(initial.number() < next.number());
+        assert!(initial.ordinal() < next.ordinal());
         assert!(initial.timestamp() <= next.timestamp());
 
         let nextnext = next.next();
         assert!(nextnext.is_valid());
         assert!(!nextnext.is_initial());
         assert!(next < nextnext);
-        assert!(next.number() < nextnext.number());
+        assert!(next.ordinal() < nextnext.ordinal());
         assert!(next.timestamp() <= nextnext.timestamp());
     }
 

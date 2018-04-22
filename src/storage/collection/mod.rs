@@ -37,8 +37,8 @@ use usecases::*;
 #[table_name = "collection_entity"]
 pub struct InsertableCollectionEntity<'a> {
     pub uid: &'a str,
-    pub revno: i64,
-    pub revts: NaiveDateTime,
+    pub rev_ordinal: i64,
+    pub rev_timestamp: NaiveDateTime,
     pub name: &'a str,
 }
 
@@ -46,8 +46,8 @@ impl<'a> InsertableCollectionEntity<'a> {
     pub fn from_entity(entity: &'a CollectionEntity) -> Self {
         Self {
             uid: entity.header().uid().as_str(),
-            revno: entity.header().revision().number() as i64,
-            revts: entity.header().revision().timestamp().naive_utc(),
+            rev_ordinal: entity.header().revision().ordinal() as i64,
+            rev_timestamp: entity.header().revision().timestamp().naive_utc(),
             name: &entity.name(),
         }
     }
@@ -56,16 +56,16 @@ impl<'a> InsertableCollectionEntity<'a> {
 #[derive(Debug, AsChangeset)]
 #[table_name = "collection_entity"]
 pub struct UpdatableCollectionEntity<'a> {
-    pub revno: i64,
-    pub revts: NaiveDateTime,
+    pub rev_ordinal: i64,
+    pub rev_timestamp: NaiveDateTime,
     pub name: &'a str,
 }
 
 impl<'a> UpdatableCollectionEntity<'a> {
     pub fn from_entity_revision(entity: &'a CollectionEntity, revision: EntityRevision) -> Self {
         Self {
-            revno: revision.number() as i64,
-            revts: revision.timestamp().naive_utc(),
+            rev_ordinal: revision.ordinal() as i64,
+            rev_timestamp: revision.timestamp().naive_utc(),
             name: &entity.name(),
         }
     }
@@ -75,17 +75,17 @@ impl<'a> UpdatableCollectionEntity<'a> {
 pub struct QueryableCollectionEntity {
     pub id: i64,
     pub uid: String,
-    pub revno: i64,
-    pub revts: NaiveDateTime,
+    pub rev_ordinal: i64,
+    pub rev_timestamp: NaiveDateTime,
     pub name: String,
 }
 
-impl Into<CollectionEntity> for QueryableCollectionEntity {
-    fn into(self) -> CollectionEntity {
-        let uid: EntityUid = self.uid.into();
-        let revision = EntityRevision::new(self.revno as u64, DateTime::from_utc(self.revts, Utc));
+impl From<QueryableCollectionEntity> for CollectionEntity {
+    fn from(from: QueryableCollectionEntity) -> Self {
+        let uid: EntityUid = from.uid.into();
+        let revision = EntityRevision::new(from.rev_ordinal as u64, DateTime::from_utc(from.rev_timestamp, Utc));
         let header = EntityHeader::new(uid, revision);
-        CollectionEntity::new(header, self.name)
+        Self::new(header, from.name)
     }
 }
 
@@ -139,8 +139,8 @@ impl Collections for CollectionRepository {
         let next_revision = entity.header().revision().next();
         {
             let updatable = UpdatableCollectionEntity::from_entity_revision(&entity, next_revision);
-            let target =
-                collection_entity::table.filter(collection_entity::uid.eq(entity.header().uid().as_str()));
+            let target = collection_entity::table
+                .filter(collection_entity::uid.eq(entity.header().uid().as_str()));
             let query = diesel::update(target).set(&updatable);
             if log_enabled!(log::Level::Debug) {
                 debug!(
@@ -174,8 +174,7 @@ impl Collections for CollectionRepository {
     }
 
     fn find_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<CollectionEntity>> {
-        let target =
-            collection_entity::table.filter(collection_entity::uid.eq(uid.as_str()));
+        let target = collection_entity::table.filter(collection_entity::uid.eq(uid.as_str()));
         let result = target
             .first::<QueryableCollectionEntity>(&self.connection)
             .optional()?;
@@ -193,34 +192,48 @@ impl Collections for CollectionRepository {
     }
 
     fn find_entities_by_name(&self, name: &str) -> CollectionsResult<Vec<CollectionEntity>> {
-        let target =
-            collection_entity::table.filter(collection_entity::name.eq(name));
-        let results = target
-            .load::<QueryableCollectionEntity>(&self.connection)?;
+        let target = collection_entity::table.filter(collection_entity::name.eq(name));
+        let results = target.load::<QueryableCollectionEntity>(&self.connection)?;
         if log_enabled!(log::Level::Debug) {
-            debug!("Found {} collection entities by name '{}'", results.len(), name);
+            debug!(
+                "Found {} collection entities by name '{}'",
+                results.len(),
+                name
+            );
         }
         Ok(results.into_iter().map(|r| r.into()).collect())
     }
 
-    fn find_entities_by_name_starting_with(&self, name_prefix: &str) -> CollectionsResult<Vec<CollectionEntity>> {
-        let target =
-            collection_entity::table.filter(collection_entity::name.like(format!("{}%", name_prefix)));
-        let results = target
-            .load::<QueryableCollectionEntity>(&self.connection)?;
+    fn find_entities_by_name_starting_with(
+        &self,
+        name_prefix: &str,
+    ) -> CollectionsResult<Vec<CollectionEntity>> {
+        let target = collection_entity::table
+            .filter(collection_entity::name.like(format!("{}%", name_prefix)));
+        let results = target.load::<QueryableCollectionEntity>(&self.connection)?;
         if log_enabled!(log::Level::Debug) {
-            debug!("Found {} collection entities by name starting with '{}'", results.len(), name_prefix);
+            debug!(
+                "Found {} collection entities by name starting with '{}'",
+                results.len(),
+                name_prefix
+            );
         }
         Ok(results.into_iter().map(|r| r.into()).collect())
     }
 
-    fn find_entities_by_name_containing(&self, partial_name: &str) -> CollectionsResult<Vec<CollectionEntity>> {
-        let target =
-            collection_entity::table.filter(collection_entity::name.like(format!("%{}%", partial_name)));
-        let results = target
-            .load::<QueryableCollectionEntity>(&self.connection)?;
+    fn find_entities_by_name_containing(
+        &self,
+        partial_name: &str,
+    ) -> CollectionsResult<Vec<CollectionEntity>> {
+        let target = collection_entity::table
+            .filter(collection_entity::name.like(format!("%{}%", partial_name)));
+        let results = target.load::<QueryableCollectionEntity>(&self.connection)?;
         if log_enabled!(log::Level::Debug) {
-            debug!("Found {} collection entities by name containing '{}'", results.len(), partial_name);
+            debug!(
+                "Found {} collection entities by name containing '{}'",
+                results.len(),
+                partial_name
+            );
         }
         Ok(results.into_iter().map(|r| r.into()).collect())
     }

@@ -17,8 +17,8 @@ table! {
     collection_entity (id) {
         id -> BigInt,
         uid -> Text,
-        revno -> BigInt,
-        revts -> Timestamp,
+        rev_ordinal -> BigInt,
+        rev_timestamp -> Timestamp,
         name -> Text,
     }
 }
