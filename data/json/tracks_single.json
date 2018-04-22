@@ -4,7 +4,7 @@
             "uid": "Ejtxuj1yF6AEAIO4Nhxf4aPjmbF20awOGxrVYY7E4kM",
             "revision": {
                 "number": 28,
-                "datetime": "2018-04-14T18:10:11.8351783Z"
+                "timestamp": "2018-04-14T18:10:11.8351783Z"
             }
         },
         "metadata": {
@@ -210,7 +210,7 @@
                     },
                     "synchronizedRevision": {
                         "number": 23,
-                        "datetime": "2018-03-22T17:10:55.488760124Z"
+                        "timestamp": "2018-03-22T17:10:55.488760124Z"
                     }
                 }
             }

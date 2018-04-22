@@ -17,7 +17,8 @@ extern crate aoide;
 
 extern crate env_logger;
 
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate log;
 
 extern crate serde_json;
 
@@ -76,7 +77,8 @@ pub fn try_main(path: &Path) -> io::Result<()> {
 
     info!("Reading track metadata from JSON");
     let buf_reader = io::BufReader::new(file);
-    let tracks: Vec<aoide::domain::track::TrackEntity> = serde_json::from_reader(buf_reader).unwrap();
-    info!("Deserialized tracks: {:?}", tracks);
+    let tracks: Vec<aoide::domain::track::TrackEntity> =
+        serde_json::from_reader(buf_reader).unwrap();
+    info!("Deserialized tracks: {:#?}", tracks);
     Ok(())
 }
