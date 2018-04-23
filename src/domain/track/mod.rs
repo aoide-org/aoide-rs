@@ -28,6 +28,26 @@ use std::fmt;
 use uuid::Uuid;
 
 ///////////////////////////////////////////////////////////////////////
+/// AudioEncoder
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct AudioEncoder {
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub name: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub settings: Option<String>,
+}
+
+impl AudioEncoder {
+    pub fn is_valid(&self) -> bool {
+        !self.name.is_empty()
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
 /// AudioContent
 ///////////////////////////////////////////////////////////////////////
 
@@ -43,16 +63,13 @@ pub struct AudioContent {
     pub bitrate: BitRate,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub encoder: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub encoder_settings: Option<String>,
+    pub encoder: Option<AudioEncoder>,
 }
 
 impl AudioContent {
     pub fn is_valid(&self) -> bool {
         !self.duration.is_empty() && self.channels.is_valid() && self.samplerate.is_valid()
-            && self.bitrate.is_valid()
+            && self.bitrate.is_valid() && self.encoder.as_ref().map_or(true, |e| e.is_valid())
     }
 }
 
@@ -110,10 +127,6 @@ pub struct MediaMetadata {
 }
 
 impl MediaMetadata {
-    pub fn is_empty(&self) -> bool {
-        self.collected_resources.is_empty()
-    }
-
     pub fn is_valid(&self) -> bool {
         !self.collected_resources.is_empty()
             && (self.collected_resources
@@ -130,18 +143,16 @@ impl MediaMetadata {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Titles {
-    pub title: String, // mandatory, i.e. not empty
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub title: String,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub subtitle: Option<String>,
 }
 
 impl Titles {
     pub fn is_valid(&self) -> bool {
         !self.title.is_empty()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.title.is_empty() && self.subtitle.is_none()
     }
 }
 
@@ -162,12 +173,6 @@ pub struct TrackIdentity {
     pub spotify_id: String, // excl. "spotify:track:" prefix
 }
 
-impl TrackIdentity {
-    pub fn is_empty(&self) -> bool {
-        self.acoust_id.is_nil() && self.mbrainz_id.is_nil() && self.spotify_id.is_empty()
-    }
-}
-
 ///////////////////////////////////////////////////////////////////////
 /// AlbumIdentity
 ///////////////////////////////////////////////////////////////////////
@@ -182,12 +187,6 @@ pub struct AlbumIdentity {
     pub spotify_id: String, // excl. "spotify:album:" prefix
 }
 
-impl AlbumIdentity {
-    pub fn is_empty(&self) -> bool {
-        self.mbrainz_id.is_nil() && self.spotify_id.is_empty()
-    }
-}
-
 ///////////////////////////////////////////////////////////////////////
 /// AlbumMetadata
 ///////////////////////////////////////////////////////////////////////
@@ -195,10 +194,9 @@ impl AlbumIdentity {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AlbumMetadata {
-    #[serde(skip_serializing_if = "AlbumIdentity::is_empty", default)]
-    pub identity: AlbumIdentity,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub identity: Option<AlbumIdentity>,
 
-    #[serde(skip_serializing_if = "Titles::is_empty", default)]
     pub titles: Titles,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
@@ -209,13 +207,6 @@ pub struct AlbumMetadata {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub compilation: Option<bool>,
-}
-
-impl AlbumMetadata {
-    pub fn is_empty(&self) -> bool {
-        self.titles.is_empty() && self.actors.is_empty() && self.grouping.is_none()
-            && self.compilation.is_none()
-    }
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -236,13 +227,6 @@ pub struct ReleaseMetadata {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub license: Option<String>,
-}
-
-impl ReleaseMetadata {
-    pub fn is_empty(&self) -> bool {
-        self.label.is_none() && self.copyright.is_none() && self.license.is_none()
-            && self.released.is_none()
-    }
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -304,13 +288,6 @@ pub struct MusicMetadata {
     pub classifications: Vec<Classification>, // no duplicate classifiers allowed
 }
 
-impl MusicMetadata {
-    pub fn is_empty(&self) -> bool {
-        self.loudness.is_none() && self.tempo.is_none() && self.time_signature.is_none()
-            && self.key_signature.is_none() && self.classifications.is_empty()
-    }
-}
-
 ///////////////////////////////////////////////////////////////////////
 /// TrackTag
 ///////////////////////////////////////////////////////////////////////
@@ -349,20 +326,19 @@ impl TrackTag {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackMetadata {
-    #[serde(skip_serializing_if = "TrackIdentity::is_empty", default)]
-    pub identity: TrackIdentity,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub identity: Option<TrackIdentity>,
 
-    #[serde(skip_serializing_if = "Titles::is_empty", default)]
     pub titles: Titles,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub actors: Vec<Actor>,
 
-    #[serde(skip_serializing_if = "AlbumMetadata::is_empty", default)]
-    pub album: AlbumMetadata,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub album: Option<AlbumMetadata>,
 
-    #[serde(skip_serializing_if = "ReleaseMetadata::is_empty", default)]
-    pub release: ReleaseMetadata,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release: Option<ReleaseMetadata>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub track_numbers: Option<TrackNumbers>,
@@ -370,8 +346,8 @@ pub struct TrackMetadata {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub disc_numbers: Option<DiscNumbers>,
 
-    #[serde(skip_serializing_if = "MusicMetadata::is_empty", default)]
-    pub music: MusicMetadata,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub music: Option<MusicMetadata>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub tags: Vec<Tag>, // no duplicate terms per facet allowed
@@ -385,7 +361,7 @@ pub struct TrackMetadata {
 
 impl TrackMetadata {
     pub fn is_valid(&self) -> bool {
-        self.titles.is_valid() && (self.album.is_empty() || self.album.titles.is_valid())
+        self.titles.is_valid()
     }
 
     pub fn actors_to_string(&self, role_opt: Option<ActorRole>) -> String {
@@ -415,10 +391,9 @@ pub struct TrackEntity {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub header: Option<EntityHeader>,
 
-    pub metadata: TrackMetadata,
+    pub media: MediaMetadata,
 
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub collected_resources: Vec<CollectedMediaResource>,
+    pub metadata: TrackMetadata,
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -444,6 +419,9 @@ mod tests {
             collection_uid: EntityUidGenerator::generate_uid(),
             resource,
         };
+        let media = MediaMetadata {
+            collected_resources: vec![collected_resource],
+        };
         let classifications = vec![
             Classification::new(Classifier::Energy, 0.1),
             Classification::new(Classifier::Popularity, 0.9),
@@ -463,7 +441,7 @@ mod tests {
             Comment::new_anonymous("Some anonymous notes about this track"),
         ];
         let metadata = TrackMetadata {
-            music,
+            music: Some(music),
             tags,
             comments,
             ..Default::default()
@@ -472,8 +450,8 @@ mod tests {
         let header = EntityHeader::with_uid(uid);
         let entity = TrackEntity {
             header: Some(header),
+            media,
             metadata,
-            collected_resources: vec![collected_resource],
         };
         let entity_json = serde_json::to_string(&entity).unwrap();
         assert_ne!("{}", entity_json);
