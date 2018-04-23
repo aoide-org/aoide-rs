@@ -9,6 +9,7 @@ publish = false
 base64 = { version = "*" }
 chrono = { version = "*", features = ["serde"] }
 diesel = { version = "*", features = ["chrono", "sqlite"] }
+diesel_migrations =  { version = "*", features = ["sqlite"] }
 env_logger = "*"
 log = "*"
 mime_guess = "*"

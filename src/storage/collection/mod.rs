@@ -83,7 +83,10 @@ pub struct QueryableCollectionEntity {
 impl From<QueryableCollectionEntity> for CollectionEntity {
     fn from(from: QueryableCollectionEntity) -> Self {
         let uid: EntityUid = from.uid.into();
-        let revision = EntityRevision::new(from.rev_ordinal as u64, DateTime::from_utc(from.rev_timestamp, Utc));
+        let revision = EntityRevision::new(
+            from.rev_ordinal as u64,
+            DateTime::from_utc(from.rev_timestamp, Utc),
+        );
         let header = EntityHeader::new(uid, revision);
         Self::new(header, from.name)
     }
@@ -252,10 +255,12 @@ impl Collections for CollectionRepository {
 mod tests {
     use super::*;
 
+    embed_migrations!("db/migrations/sqlite");
+
     fn establish_connection() -> SqliteConnection {
-        SqliteConnection::establish(":memory:")
-            .expect("Failed to create in-memory connection for testing")
-        // TODO: Init schema
+        let db_conn = SqliteConnection::establish(":memory:").expect("in-memory database connection");
+        embedded_migrations::run(&db_conn).expect("database schema migration");
+        db_conn
     }
 
     fn new_repository() -> CollectionRepository {
@@ -263,7 +268,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Enable when schema for test connection has been initialized
     fn create_entity() {
         let repository = new_repository();
         let entity = repository.create_entity("Test Collection").unwrap();
@@ -272,7 +276,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Enable when schema for test connection has been initialized
     fn update_entity() {
         let repository = new_repository();
         let mut entity = repository.create_entity("Test Collection").unwrap();
@@ -287,7 +290,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // TODO: Enable when schema for test connection has been initialized
     fn remove_entity() {
         let repository = new_repository();
         let entity = repository.create_entity("Test Collection").unwrap();

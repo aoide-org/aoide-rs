@@ -18,6 +18,9 @@ extern crate base64;
 #[macro_use]
 extern crate diesel;
 
+#[macro_use]
+extern crate diesel_migrations;
+
 extern crate chrono;
 
 #[macro_use]
