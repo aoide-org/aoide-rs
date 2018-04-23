@@ -16,6 +16,7 @@
 use domain::audio::*;
 use domain::audio::sample::*;
 use domain::audio::signal::*;
+use domain::collection::*;
 use domain::entity::*;
 use domain::metadata::*;
 use domain::music::*;
@@ -83,17 +84,17 @@ impl MediaResource {
 /// CollectedMediaResource
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct CollectedMediaResource {
-    pub collection_uid: EntityUid,
+    pub collection_uid: CollectionUid,
 
     pub resource: MediaResource,
 }
 
 impl CollectedMediaResource {
     pub fn is_valid(&self) -> bool {
-        !self.collection_uid.is_empty() && self.resource.is_valid()
+        self.collection_uid.is_valid() && self.resource.is_valid()
     }
 }
 

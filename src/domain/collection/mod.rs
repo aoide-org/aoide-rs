@@ -15,7 +15,7 @@
 
 use domain::entity::*;
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct CollectionEntity {
     header: EntityHeader,
@@ -57,6 +57,8 @@ impl CollectionEntity {
         self.header.update_revision(next_revision);
     }
 }
+
+pub type CollectionUid = EntityUid;
 
 ///////////////////////////////////////////////////////////////////////
 /// Tests
