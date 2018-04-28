@@ -18,6 +18,22 @@ use failure::Error;
 use aoide_core::domain::entity::*;
 use aoide_core::domain::collection::*;
 
+
+pub type PaginationOffset = u64;
+pub type PaginationLimit = u64;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Pagination {
+    pub offset: Option<PaginationOffset>,
+    pub limit: Option<PaginationLimit>,
+}
+
+impl Pagination {
+    pub fn none() -> Self {
+        Pagination { offset: None, limit: None }
+    }
+}
+
 #[derive(Debug, Clone, Copy, Fail, PartialEq, Eq)]
 pub enum CollectionsError {
     #[fail(display = "Collections: Not found")]
@@ -36,6 +52,8 @@ pub trait Collections {
     fn find_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<CollectionEntity>>;
 
     fn remove_entity(&self, uid: &EntityUid) -> CollectionsResult<()>;
+
+    fn all_entities(&self, pagination: &Pagination) -> CollectionsResult<Vec<CollectionEntity>>;
 
     fn find_entities_by_name(&self, name: &str) -> CollectionsResult<Vec<CollectionEntity>>;
 

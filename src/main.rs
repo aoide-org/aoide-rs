@@ -57,7 +57,7 @@ extern crate serde_json;
 use aoide_core::domain::collection::*;
 use aoide_core::domain::entity::*;
 use aoide::storage::collection::*;
-use aoide::usecases::{Collections};
+use aoide::usecases::*;
 
 use diesel::prelude::*;
 
@@ -147,80 +147,95 @@ fn init_env_logger_verbosity(verbosity: u8) {
 }
 
 #[derive(Deserialize, StateData, StaticResponseExtender)]
-struct PathExtractor {
+struct UidPathExtractor {
     uid: String,
 }
 
 fn get_collections_by_uid_handler(mut state: State) -> Box<HandlerFuture> {
-    let path = PathExtractor::take_from(&mut state);
+    let path = UidPathExtractor::take_from(&mut state);
     let uid: EntityUid = path.uid.into();
 
     let connection: PooledSqliteConnection =
         gotham_middleware_diesel::state_data::connection(&state);
     let repository = CollectionRepository::new(&*connection);
     let repository_result = repository.find_entity(&uid);
-        
+
     let handler_future = match repository_result {
-        Ok(Some(collection)) => {
-            match serde_json::to_vec(&collection) {
-                Ok(response_body) => {
-                    let response = create_response(
-                        &state,
-                        StatusCode::Ok,
-                        Some((response_body, mime::APPLICATION_JSON)));
-                    future::ok((state, response))
-                },
-                Err(e) => future::err((state, e.into_handler_error())),
+        Ok(Some(collection)) => match serde_json::to_vec(&collection) {
+            Ok(response_body) => {
+                let response = create_response(
+                    &state,
+                    StatusCode::Ok,
+                    Some((response_body, mime::APPLICATION_JSON)),
+                );
+                future::ok((state, response))
             }
+            Err(e) => future::err((state, e.into_handler_error())),
         },
         Ok(None) => {
-            let response = create_response(
-                &state,
-                StatusCode::NotFound,
-                None);
+            let response = create_response(&state, StatusCode::NotFound, None);
             future::ok((state, response))
-        },
+        }
         Err(e) => future::err((state, failure::Error::from(e).compat().into_handler_error())),
     };
-    
+
     Box::new(handler_future)
 }
 
 fn delete_collections_by_uid_handler(mut state: State) -> Box<HandlerFuture> {
-    let path = PathExtractor::take_from(&mut state);
+    let path = UidPathExtractor::take_from(&mut state);
     let uid: EntityUid = path.uid.into();
 
     let connection: PooledSqliteConnection =
         gotham_middleware_diesel::state_data::connection(&state);
     let repository = CollectionRepository::new(&*connection);
     let repository_result = repository.remove_entity(&uid);
-        
+
     let handler_future = match repository_result {
         Ok(()) => {
-            let response = create_response(
-                &state,
-                StatusCode::Ok,
-                None);
+            let response = create_response(&state, StatusCode::Ok, None);
             future::ok((state, response))
-        },
+        }
         Err(e) => future::err((state, failure::Error::from(e).compat().into_handler_error())),
     };
-    
+
     Box::new(handler_future)
 }
 
-fn get_all_collections_handler(state: State) -> (State, Response) {
-    let response = {
-        let response_string = format!("all");
+#[derive(Debug, Deserialize, StateData, StaticResponseExtender)]
+struct PaginationQueryStringExtractor {
+    offset: Option<PaginationOffset>,
+    limit: Option<PaginationLimit>,
+}
 
-        create_response(
-            &state,
-            StatusCode::Ok,
-            Some((response_string.into_bytes(), mime::TEXT_PLAIN)),
-        )
+fn get_all_collections_handler(mut state: State) -> Box<HandlerFuture> {
+    let query_params = PaginationQueryStringExtractor::take_from(&mut state);
+    let pagination = Pagination {
+        offset: query_params.offset,
+        limit: query_params.limit,
     };
-    
-    (state, response)
+
+    let connection: PooledSqliteConnection =
+        gotham_middleware_diesel::state_data::connection(&state);
+    let repository = CollectionRepository::new(&*connection);
+    let repository_result = repository.all_entities(&pagination);
+
+    let handler_future = match repository_result {
+        Ok(collections) => match serde_json::to_vec(&collections) {
+            Ok(response_body) => {
+                let response = create_response(
+                    &state,
+                    StatusCode::Ok,
+                    Some((response_body, mime::APPLICATION_JSON)),
+                );
+                future::ok((state, response))
+            }
+            Err(e) => future::err((state, e.into_handler_error())),
+        },
+        Err(e) => future::err((state, failure::Error::from(e).compat().into_handler_error())),
+    };
+
+    Box::new(handler_future)
 }
 
 fn post_collections_handler(mut state: State) -> Box<HandlerFuture> {
@@ -234,8 +249,7 @@ fn post_collections_handler(mut state: State) -> Box<HandlerFuture> {
                     Err(e) => {
                         return future::err((
                             state,
-                            e.into_handler_error()
-                                .with_status(StatusCode::BadRequest),
+                            e.into_handler_error().with_status(StatusCode::BadRequest),
                         ))
                     }
                 };
@@ -247,7 +261,12 @@ fn post_collections_handler(mut state: State) -> Box<HandlerFuture> {
 
                 let collection = match repository_result {
                     Ok(collection) => collection,
-                    Err(e) => return future::err((state, failure::Error::from(e).compat().into_handler_error())),
+                    Err(e) => {
+                        return future::err((
+                            state,
+                            failure::Error::from(e).compat().into_handler_error(),
+                        ))
+                    }
                 };
 
                 let response = match serde_json::to_vec(&collection) {
@@ -279,20 +298,19 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
 
     // Build the router
     build_router(default_pipeline_chain, pipeline_set, |route| {
+        route.post("/collections").to(post_collections_handler);
         route
-            .post("/collections")
-            .to(post_collections_handler);
+            .get("/collections")
+            .with_query_string_extractor::<PaginationQueryStringExtractor>()
+            .to(get_all_collections_handler);
         route
             .get("/collections/:uid")
-            .with_path_extractor::<PathExtractor>()
+            .with_path_extractor::<UidPathExtractor>()
             .to(get_collections_by_uid_handler);
         route
             .delete("/collections/:uid")
-            .with_path_extractor::<PathExtractor>()
+            .with_path_extractor::<UidPathExtractor>()
             .to(delete_collections_by_uid_handler);
-        route
-            .get("/collections")
-            .to(get_all_collections_handler);
     })
 }
 

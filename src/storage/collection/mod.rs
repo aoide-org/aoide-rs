@@ -14,6 +14,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 mod schema;
+
+use std::i64;
+
 use self::schema::collection_entity;
 use self::schema::active_collection;
 
@@ -93,7 +96,10 @@ impl From<QueryableCollectionEntity> for CollectionEntity {
             DateTime::from_utc(from.rev_timestamp, Utc),
         );
         let header = EntityHeader::new(uid, revision);
-        let body = CollectionBody { name: from.name, description: from.description };
+        let body = CollectionBody {
+            name: from.name,
+            description: from.description,
+        };
         Self::new(header, body)
     }
 }
@@ -199,13 +205,29 @@ impl<'a> Collections for CollectionRepository<'a> {
         }
         Ok(result.map(|r| r.into()))
     }
+    
+    fn all_entities(&self, pagination: &Pagination) -> CollectionsResult<Vec<CollectionEntity>> {
+        let offset = pagination.offset.map(|offset| offset as i64).unwrap_or(0);
+        let limit = pagination.limit.map(|limit| limit as i64).unwrap_or(i64::MAX);
+        let target = collection_entity::table
+            .offset(offset)
+            .limit(limit);
+        let results = target.load::<QueryableCollectionEntity>(self.connection)?;
+        if log_enabled!(log::Level::Debug) {
+            debug!(
+                "Loaded {} collection entities",
+                results.len(),
+            );
+        }
+        Ok(results.into_iter().map(|r| r.into()).collect())
+    }
 
     fn find_entities_by_name(&self, name: &str) -> CollectionsResult<Vec<CollectionEntity>> {
         let target = collection_entity::table.filter(collection_entity::name.eq(name));
         let results = target.load::<QueryableCollectionEntity>(self.connection)?;
         if log_enabled!(log::Level::Debug) {
             debug!(
-                "Found {} collection entities by name '{}'",
+                "Loaded {} collection entities by name '{}'",
                 results.len(),
                 name
             );
@@ -222,7 +244,7 @@ impl<'a> Collections for CollectionRepository<'a> {
         let results = target.load::<QueryableCollectionEntity>(self.connection)?;
         if log_enabled!(log::Level::Debug) {
             debug!(
-                "Found {} collection entities by name starting with '{}'",
+                "Loaded {} collection entities by name starting with '{}'",
                 results.len(),
                 name_prefix
             );
@@ -239,7 +261,7 @@ impl<'a> Collections for CollectionRepository<'a> {
         let results = target.load::<QueryableCollectionEntity>(self.connection)?;
         if log_enabled!(log::Level::Debug) {
             debug!(
-                "Found {} collection entities by name containing '{}'",
+                "Loaded {} collection entities by name containing '{}'",
                 results.len(),
                 partial_name
             );
@@ -264,7 +286,8 @@ mod tests {
     embed_migrations!("db/migrations/sqlite");
 
     fn establish_connection() -> SqliteConnection {
-        let connection = SqliteConnection::establish(":memory:").expect("in-memory database connection");
+        let connection =
+            SqliteConnection::establish(":memory:").expect("in-memory database connection");
         embedded_migrations::run(&connection).expect("database schema migration");
         connection
     }
@@ -273,7 +296,12 @@ mod tests {
     fn create_entity() {
         let connection = establish_connection();
         let repository = CollectionRepository::new(&connection);
-        let entity = repository.create_entity(CollectionBody { name: "Test Collection".into(), description: Some("Description".into()) }).unwrap();
+        let entity = repository
+            .create_entity(CollectionBody {
+                name: "Test Collection".into(),
+                description: Some("Description".into()),
+            })
+            .unwrap();
         println!("Created entity: {:?}", entity);
         assert!(entity.is_valid());
     }
@@ -282,7 +310,12 @@ mod tests {
     fn update_entity() {
         let connection = establish_connection();
         let repository = CollectionRepository::new(&connection);
-        let mut entity = repository.create_entity(CollectionBody { name: "Test Collection".into(), description: Some("Description".into()) }).unwrap();
+        let mut entity = repository
+            .create_entity(CollectionBody {
+                name: "Test Collection".into(),
+                description: Some("Description".into()),
+            })
+            .unwrap();
         println!("Created entity: {:?}", entity);
         assert!(entity.is_valid());
         let initial_revision = entity.header().revision();
@@ -297,7 +330,12 @@ mod tests {
     fn remove_entity() {
         let connection = establish_connection();
         let repository = CollectionRepository::new(&connection);
-        let entity = repository.create_entity(CollectionBody { name: "Test Collection".into(), description: None }).unwrap();
+        let entity = repository
+            .create_entity(CollectionBody {
+                name: "Test Collection".into(),
+                description: None,
+            })
+            .unwrap();
         println!("Created entity: {:?}", entity);
         assert!(entity.is_valid());
         repository.remove_entity(&entity.header().uid()).unwrap();
