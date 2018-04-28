@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 extern crate aoide;
+extern crate aoide_core;
 
 extern crate env_logger;
 
@@ -77,7 +78,7 @@ pub fn try_main(path: &Path) -> io::Result<()> {
 
     info!("Reading track metadata from JSON");
     let buf_reader = io::BufReader::new(file);
-    let tracks: Vec<aoide::domain::track::TrackEntity> =
+    let tracks: Vec<aoide_core::domain::track::TrackEntity> =
         serde_json::from_reader(buf_reader).unwrap();
     info!("Deserialized tracks: {:#?}", tracks);
     Ok(())

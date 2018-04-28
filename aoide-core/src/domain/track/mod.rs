@@ -13,9 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use domain::audio::*;
-use domain::audio::sample::*;
-use domain::audio::signal::*;
+use audio::*;
+use audio::sample::*;
+use audio::signal::*;
 use domain::collection::*;
 use domain::entity::*;
 use domain::metadata::*;

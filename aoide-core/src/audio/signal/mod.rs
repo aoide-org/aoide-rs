@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use domain::audio::*;
-use domain::audio::sample::*;
+use audio::*;
+use audio::sample::*;
 
 use std::fmt;
 use std::u32;

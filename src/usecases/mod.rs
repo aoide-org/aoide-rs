@@ -16,8 +16,8 @@
 use std::error;
 use std::fmt;
 
-use domain::entity::*;
-use domain::collection::*;
+use aoide_core::domain::entity::*;
+use aoide_core::domain::collection::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CollectionsError {

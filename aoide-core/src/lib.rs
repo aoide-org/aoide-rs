@@ -13,9 +13,33 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+///////////////////////////////////////////////////////////////////////
+/// External Crates
+///////////////////////////////////////////////////////////////////////
+extern crate base64;
+
+extern crate chrono;
+
+#[macro_use]
+extern crate log;
+
+extern crate mime;
+#[cfg(test)]
+extern crate mime_guess;
+
+extern crate ring;
+
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_json;
+
+extern crate uuid;
+
+///////////////////////////////////////////////////////////////////////
+/// Public Modules
+///////////////////////////////////////////////////////////////////////
+
 pub mod audio;
-pub mod collection;
-pub mod entity;
-pub mod metadata;
-pub mod music;
-pub mod track;
+
+pub mod domain;

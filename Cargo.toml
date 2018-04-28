@@ -5,8 +5,18 @@ authors = [ "Uwe Klotz <uwe.klotz@gmail>" ]
 description = "Backend services for curating and enjoying your music"
 publish = false
 
+[workspace]
+members = [
+  "./",
+  "aoide-core",
+]
+
+[patch.crates-io]
+aoide-core = { path = "aoide-core" }
+
 [dependencies]
-base64 = { version = "*" }
+aoide-core = { version = "*", path = "aoide-core" }
+
 chrono = { version = "*", features = ["serde"] }
 diesel = { version = "*", features = ["chrono", "sqlite"] }
 diesel_migrations =  { version = "*", features = ["sqlite"] }
@@ -21,11 +31,11 @@ gotham_middleware_diesel = { git = "https://github.com/gotham-rs/gotham" }
 hyper = "*"
 log = "*"
 mime = "*"
-mime_guess = "*"
 r2d2 = "*"
 r2d2-diesel = "*"
-ring = "*"
 serde = "*"
 serde_derive = "*"
 serde_json = "*"
-uuid = { version = "*", features = ["serde", "v1", "v4"] }
+
+[dev-dependencies]
+

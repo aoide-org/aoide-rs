@@ -25,8 +25,8 @@ use diesel;
 
 use log;
 
-use domain::entity::*;
-use domain::collection::*;
+use aoide_core::domain::entity::*;
+use aoide_core::domain::collection::*;
 use usecases::*;
 
 ///////////////////////////////////////////////////////////////////////

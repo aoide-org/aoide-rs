@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 extern crate aoide;
+extern crate aoide_core;
 
 extern crate futures;
 
@@ -67,7 +68,7 @@ use log::LevelFilter as LogLevelFilter;
 
 use std::env;
 
-use aoide::domain::collection::*;
+use aoide_core::domain::collection::*;
 use aoide::storage::collection::*;
 use aoide::usecases::{Collections};
 
