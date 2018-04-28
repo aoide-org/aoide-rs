@@ -76,6 +76,20 @@ diesel migration --migration-dir db/migrations/sqlite generate <MIGRATION_NAME>
 
 Test your scripts with the migration commands *run* followed by *revert* + *run* or *redo*! Undo the migration with the command *revert*
 
+## Running
+
+Run the service with the following command:
+
+```bash
+cargo run --bin aoide
+```
+
+Starting the service without specifying an SQLite database file will create an in-memory database. To connect to an existing database start the service with the path to the file as an additional argument:
+
+```bash
+cargo run --bin aoide test.sqlite
+```
+
 ## Examples
 
 ### Testing

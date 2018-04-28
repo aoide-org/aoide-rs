@@ -13,6 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+///////////////////////////////////////////////////////////////////////
+/// External Crates
+///////////////////////////////////////////////////////////////////////
 extern crate base64;
 
 #[macro_use]
@@ -22,6 +25,9 @@ extern crate diesel;
 extern crate diesel_migrations;
 
 extern crate chrono;
+
+#[macro_use]
+extern crate failure;
 
 #[macro_use]
 extern crate log;
@@ -38,6 +44,10 @@ extern crate serde_derive;
 extern crate serde_json;
 
 extern crate uuid;
+
+///////////////////////////////////////////////////////////////////////
+/// Public Modules
+///////////////////////////////////////////////////////////////////////
 
 pub mod domain;
 

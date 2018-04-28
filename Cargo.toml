@@ -11,8 +11,19 @@ chrono = { version = "*", features = ["serde"] }
 diesel = { version = "*", features = ["chrono", "sqlite"] }
 diesel_migrations =  { version = "*", features = ["sqlite"] }
 env_logger = "*"
+failure = "*"
+# hyper is currently not compatible with futures v0.2.x, see also main.rs
+futures = "0.1.*"
+#futures = "*"
+gotham = { git = "https://github.com/gotham-rs/gotham" }
+gotham_derive = { git = "https://github.com/gotham-rs/gotham" }
+gotham_middleware_diesel = { git = "https://github.com/gotham-rs/gotham" }
+hyper = "*"
 log = "*"
+mime = "*"
 mime_guess = "*"
+r2d2 = "*"
+r2d2-diesel = "*"
 ring = "*"
 serde = "*"
 serde_derive = "*"
