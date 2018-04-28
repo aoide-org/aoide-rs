@@ -135,32 +135,7 @@ fn init_env_logger_verbosity(verbosity: u8) {
     init_env_logger(log_level_filter);
 }
 
-#[derive(Deserialize, StateData, StaticResponseExtender)]
-struct QueryStringExtractor {
-    name: String,
-}
-
-fn post_collection_handler(mut state: State) -> (State, hyper::Response) {
-    let res = {
-        let query_param = QueryStringExtractor::take_from(&mut state);
-        let collection = CollectionEntity::with_name(query_param.name);
-        info!("Created new collection: {}", collection.header().uid());
-        if log_enabled!(log::Level::Debug) {
-            debug!("Responding with: {:#?}", collection);
-        }
-        create_response(
-            &state,
-            hyper::StatusCode::Created,
-            Some((
-                serde_json::to_vec(&collection).expect("serialized collection"),
-                mime::APPLICATION_JSON,
-            )),
-        )
-    };
-    (state, res)
-}
-
-fn async_post_collection_handler(mut state: State) -> Box<HandlerFuture> {
+fn post_collection_handler(mut state: State) -> Box<HandlerFuture> {
     let f = hyper::Body::take_from(&mut state)
         .concat2()
         .then(move |full_body| match full_body {
@@ -220,7 +195,7 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
         route
             .post("/collections")
             //.with_query_string_extractor::<QueryStringExtractor>()
-            .to(async_post_collection_handler);
+            .to(post_collection_handler);
     })
 }
 
