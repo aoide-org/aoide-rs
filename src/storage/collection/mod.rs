@@ -120,8 +120,8 @@ impl From<diesel::result::Error> for CollectionsError {
 }
 
 impl<'a> Collections for CollectionRepository<'a> {
-    fn create_entity<S: Into<String>>(&self, name: S) -> CollectionsResult<CollectionEntity> {
-        let entity = CollectionEntity::with_name(name);
+    fn create_entity(&self, body: CollectionBody) -> CollectionsResult<CollectionEntity> {
+        let entity = CollectionEntity::with_body(body);
         {
             let insertable = InsertableCollectionEntity::from_entity(&entity);
             let query = diesel::insert_into(collection_entity::table).values(&insertable);
@@ -268,7 +268,7 @@ mod tests {
     fn create_entity() {
         let connection = establish_connection();
         let repository = CollectionRepository::new(&connection);
-        let entity = repository.create_entity("Test Collection").unwrap();
+        let entity = repository.create_entity(CollectionBody { name: "Test Collection".into() }).unwrap();
         println!("Created entity: {:?}", entity);
         assert!(entity.is_valid());
     }
@@ -277,7 +277,7 @@ mod tests {
     fn update_entity() {
         let connection = establish_connection();
         let repository = CollectionRepository::new(&connection);
-        let mut entity = repository.create_entity("Test Collection").unwrap();
+        let mut entity = repository.create_entity(CollectionBody { name: "Test Collection".into() }).unwrap();
         println!("Created entity: {:?}", entity);
         assert!(entity.is_valid());
         let initial_revision = entity.header().revision();
@@ -292,7 +292,7 @@ mod tests {
     fn remove_entity() {
         let connection = establish_connection();
         let repository = CollectionRepository::new(&connection);
-        let entity = repository.create_entity("Test Collection").unwrap();
+        let entity = repository.create_entity(CollectionBody { name: "Test Collection".into() }).unwrap();
         println!("Created entity: {:?}", entity);
         assert!(entity.is_valid());
         repository.remove_entity(&entity.header().uid()).unwrap();

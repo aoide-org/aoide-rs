@@ -29,7 +29,7 @@ pub enum CollectionsError {
 pub type CollectionsResult<T> = Result<T, CollectionsError>;
 
 pub trait Collections {
-    fn create_entity<S: Into<String>>(&self, name: S) -> CollectionsResult<CollectionEntity>;
+    fn create_entity(&self, body: CollectionBody) -> CollectionsResult<CollectionEntity>;
 
     fn update_entity(&self, entity: &mut CollectionEntity) -> CollectionsResult<EntityRevision>;
 

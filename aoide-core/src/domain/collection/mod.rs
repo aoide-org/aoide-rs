@@ -36,17 +36,14 @@ pub struct CollectionEntity {
 }
 
 impl CollectionEntity {
-    pub fn new<B: Into<CollectionBody>>(header: EntityHeader, body: B) -> Self {
-        Self {
-            header,
-            body: body.into(),
-        }
+    pub fn new(header: EntityHeader, body: CollectionBody) -> Self {
+        Self { header, body }
     }
 
-    pub fn with_name<S: Into<String>>(name: S) -> Self {
+    pub fn with_body(body: CollectionBody) -> Self {
         let uid = EntityUidGenerator::generate_uid();
         let header = EntityHeader::with_uid(uid);
-        Self::new(header, CollectionBody { name: name.into() })
+        Self { header, body }
     }
 
     pub fn is_valid(&self) -> bool {

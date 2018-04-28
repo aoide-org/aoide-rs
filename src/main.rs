@@ -158,7 +158,7 @@ fn post_collection_handler(mut state: State) -> Box<HandlerFuture> {
                 info!("Instantiating repository");
                 let repository = CollectionRepository::new(&*connection);
                 info!("Creating entity");
-                let collection = match repository.create_entity(collection_body.name) {
+                let collection = match repository.create_entity(collection_body) {
                     Ok(collection) => collection,
                     Err(e) => return future::err((state, failure::Error::from(e).compat().into_handler_error())),
                 };
