@@ -13,6 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::error;
+use std::fmt;
+
 use domain::entity::*;
 use domain::collection::*;
 
@@ -20,6 +23,22 @@ use domain::collection::*;
 pub enum CollectionsError {
     NotFound,
     Unexpected,
+}
+
+impl fmt::Display for CollectionsError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl error::Error for CollectionsError {
+    fn description(&self) -> &str {
+        "TODO: describe CollectionsError"
+    }
+
+    fn cause(&self) -> Option<&error::Error> {
+        None
+    }
 }
 
 pub type CollectionsResult<T> = Result<T, CollectionsError>;
