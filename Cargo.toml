@@ -21,7 +21,7 @@ chrono = { version = "*", features = ["serde"] }
 diesel = { version = "*", features = ["chrono", "sqlite"] }
 diesel_migrations =  { version = "*", features = ["sqlite"] }
 env_logger = "*"
-failure = "*"
+failure = { version = "*", features = ["std"] }
 # hyper is currently not compatible with futures v0.2.x, see also main.rs
 futures = "0.1.*"
 #futures = "*"

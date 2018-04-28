@@ -16,6 +16,9 @@
 extern crate aoide;
 extern crate aoide_core;
 
+#[macro_use]
+extern crate failure;
+
 extern crate futures;
 
 extern crate gotham;
@@ -182,7 +185,7 @@ fn async_post_collection_handler(mut state: State) -> Box<HandlerFuture> {
                 info!("Creating entity");
                 let collection = match repository.create_entity(collection_body.name) {
                     Ok(collection) => collection,
-                    Err(e) => return future::err((state, e.into_handler_error())),
+                    Err(e) => return future::err((state, failure::Error::from(e).compat().into_handler_error())),
                 };
                 info!("Preparing response");
                 let response = match serde_json::to_vec(&collection) {

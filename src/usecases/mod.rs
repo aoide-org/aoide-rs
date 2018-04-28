@@ -13,32 +13,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::error;
-use std::fmt;
+use failure::Error;
 
 use aoide_core::domain::entity::*;
 use aoide_core::domain::collection::*;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Fail, PartialEq, Eq)]
 pub enum CollectionsError {
+    #[fail(display = "Collections: Not found")]
     NotFound,
+    #[fail(display = "Collections: Unexpected error")]
     Unexpected,
-}
-
-impl fmt::Display for CollectionsError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl error::Error for CollectionsError {
-    fn description(&self) -> &str {
-        "TODO: describe CollectionsError"
-    }
-
-    fn cause(&self) -> Option<&error::Error> {
-        None
-    }
 }
 
 pub type CollectionsResult<T> = Result<T, CollectionsError>;
