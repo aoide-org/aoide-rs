@@ -19,6 +19,7 @@ CREATE TABLE collection_entity (
     rev_ordinal              INTEGER NOT NULL,
     rev_timestamp            DATETIME NOT NULL, -- with implicit time zone (UTC)
     name                     TEXT NOT NULL,     -- display name
+    description              TEXT,
     UNIQUE (uid)
 );
 

@@ -14,7 +14,15 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 extern crate aoide;
+
 extern crate aoide_core;
+
+extern crate diesel;
+
+#[macro_use]
+extern crate diesel_migrations;
+
+extern crate env_logger;
 
 #[macro_use]
 extern crate failure;
@@ -22,33 +30,36 @@ extern crate failure;
 extern crate futures;
 
 extern crate gotham;
+
 #[macro_use]
 extern crate gotham_derive;
-extern crate hyper;
-extern crate mime;
-extern crate serde;
 
-extern crate diesel;
-#[macro_use]
-extern crate diesel_migrations;
 extern crate gotham_middleware_diesel;
-extern crate r2d2;
-extern crate r2d2_diesel;
 
-extern crate env_logger;
+extern crate hyper;
 
 #[macro_use]
 extern crate log;
+
+extern crate mime;
+
+extern crate r2d2;
+
+extern crate r2d2_diesel;
+
+extern crate serde;
 
 #[macro_use]
 extern crate serde_derive;
 
 extern crate serde_json;
 
-use diesel::prelude::*;
+use aoide_core::domain::collection::*;
+use aoide_core::domain::entity::*;
+use aoide::storage::collection::*;
+use aoide::usecases::{Collections};
 
-use r2d2::{Pool, PooledConnection};
-use r2d2_diesel::ConnectionManager;
+use diesel::prelude::*;
 
 use futures::{future, Future, Stream};
 // futures v0.2.1
@@ -62,18 +73,18 @@ use gotham::pipeline::new_pipeline;
 use gotham::pipeline::set::{finalize_pipeline_set, new_pipeline_set};
 use gotham::state::{FromState, State};
 use gotham::handler::{HandlerFuture, IntoHandlerError};
-
 use gotham_middleware_diesel::DieselMiddleware;
+
+use hyper::{Response, StatusCode};
 
 use env_logger::Builder as LoggerBuilder;
 
 use log::LevelFilter as LogLevelFilter;
 
-use std::env;
+use r2d2::{Pool, PooledConnection};
+use r2d2_diesel::ConnectionManager;
 
-use aoide_core::domain::collection::*;
-use aoide::storage::collection::*;
-use aoide::usecases::{Collections};
+use std::env;
 
 embed_migrations!("db/migrations/sqlite");
 
@@ -135,7 +146,7 @@ fn init_env_logger_verbosity(verbosity: u8) {
     init_env_logger(log_level_filter);
 }
 
-fn post_collection_handler(mut state: State) -> Box<HandlerFuture> {
+fn post_collections_handler(mut state: State) -> Box<HandlerFuture> {
     let f = hyper::Body::take_from(&mut state)
         .concat2()
         .then(move |full_body| match full_body {
@@ -148,7 +159,7 @@ fn post_collection_handler(mut state: State) -> Box<HandlerFuture> {
                         return future::err((
                             state,
                             e.into_handler_error()
-                                .with_status(hyper::StatusCode::BadRequest),
+                                .with_status(StatusCode::BadRequest),
                         ))
                     }
                 };
@@ -166,7 +177,7 @@ fn post_collection_handler(mut state: State) -> Box<HandlerFuture> {
                 let response = match serde_json::to_vec(&collection) {
                     Ok(response_body) => create_response(
                         &state,
-                        hyper::StatusCode::Created,
+                        StatusCode::Created,
                         Some((response_body, mime::APPLICATION_JSON)),
                     ),
                     Err(e) => return future::err((state, e.into_handler_error())),
@@ -194,8 +205,7 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
     build_router(default_pipeline_chain, pipeline_set, |route| {
         route
             .post("/collections")
-            //.with_query_string_extractor::<QueryStringExtractor>()
-            .to(post_collection_handler);
+            .to(post_collections_handler);
     })
 }
 

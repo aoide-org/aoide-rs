@@ -16,6 +16,7 @@
 ///////////////////////////////////////////////////////////////////////
 /// External Crates
 ///////////////////////////////////////////////////////////////////////
+//
 extern crate base64;
 
 extern crate chrono;
@@ -24,14 +25,17 @@ extern crate chrono;
 extern crate log;
 
 extern crate mime;
+
 #[cfg(test)]
 extern crate mime_guess;
 
 extern crate ring;
 
 extern crate serde;
+
 #[macro_use]
 extern crate serde_derive;
+
 extern crate serde_json;
 
 extern crate uuid;
@@ -39,7 +43,7 @@ extern crate uuid;
 ///////////////////////////////////////////////////////////////////////
 /// Public Modules
 ///////////////////////////////////////////////////////////////////////
-
+//
 pub mod audio;
 
 pub mod domain;

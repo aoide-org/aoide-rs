@@ -20,6 +20,7 @@ table! {
         rev_ordinal -> BigInt,
         rev_timestamp -> Timestamp,
         name -> Text,
+        description -> Nullable<Text>,
     }
 }
 

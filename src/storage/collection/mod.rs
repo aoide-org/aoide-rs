@@ -40,6 +40,7 @@ pub struct InsertableCollectionEntity<'a> {
     pub rev_ordinal: i64,
     pub rev_timestamp: NaiveDateTime,
     pub name: &'a str,
+    pub description: Option<&'a str>,
 }
 
 impl<'a> InsertableCollectionEntity<'a> {
@@ -49,6 +50,7 @@ impl<'a> InsertableCollectionEntity<'a> {
             rev_ordinal: entity.header().revision().ordinal() as i64,
             rev_timestamp: entity.header().revision().timestamp().naive_utc(),
             name: &entity.body().name,
+            description: entity.body().description.as_ref().map(|s| s.as_str()),
         }
     }
 }
@@ -59,6 +61,7 @@ pub struct UpdatableCollectionEntity<'a> {
     pub rev_ordinal: i64,
     pub rev_timestamp: NaiveDateTime,
     pub name: &'a str,
+    pub description: Option<&'a str>,
 }
 
 impl<'a> UpdatableCollectionEntity<'a> {
@@ -67,6 +70,7 @@ impl<'a> UpdatableCollectionEntity<'a> {
             rev_ordinal: revision.ordinal() as i64,
             rev_timestamp: revision.timestamp().naive_utc(),
             name: &entity.body().name,
+            description: entity.body().description.as_ref().map(|s| s.as_str()),
         }
     }
 }
@@ -78,6 +82,7 @@ pub struct QueryableCollectionEntity {
     pub rev_ordinal: i64,
     pub rev_timestamp: NaiveDateTime,
     pub name: String,
+    pub description: Option<String>,
 }
 
 impl From<QueryableCollectionEntity> for CollectionEntity {
@@ -88,7 +93,7 @@ impl From<QueryableCollectionEntity> for CollectionEntity {
             DateTime::from_utc(from.rev_timestamp, Utc),
         );
         let header = EntityHeader::new(uid, revision);
-        let body = CollectionBody { name: from.name };
+        let body = CollectionBody { name: from.name, description: from.description };
         Self::new(header, body)
     }
 }
@@ -268,7 +273,7 @@ mod tests {
     fn create_entity() {
         let connection = establish_connection();
         let repository = CollectionRepository::new(&connection);
-        let entity = repository.create_entity(CollectionBody { name: "Test Collection".into() }).unwrap();
+        let entity = repository.create_entity(CollectionBody { name: "Test Collection".into(), description: Some("Description".into()) }).unwrap();
         println!("Created entity: {:?}", entity);
         assert!(entity.is_valid());
     }
@@ -277,7 +282,7 @@ mod tests {
     fn update_entity() {
         let connection = establish_connection();
         let repository = CollectionRepository::new(&connection);
-        let mut entity = repository.create_entity(CollectionBody { name: "Test Collection".into() }).unwrap();
+        let mut entity = repository.create_entity(CollectionBody { name: "Test Collection".into(), description: Some("Description".into()) }).unwrap();
         println!("Created entity: {:?}", entity);
         assert!(entity.is_valid());
         let initial_revision = entity.header().revision();
@@ -292,7 +297,7 @@ mod tests {
     fn remove_entity() {
         let connection = establish_connection();
         let repository = CollectionRepository::new(&connection);
-        let entity = repository.create_entity(CollectionBody { name: "Test Collection".into() }).unwrap();
+        let entity = repository.create_entity(CollectionBody { name: "Test Collection".into(), description: None }).unwrap();
         println!("Created entity: {:?}", entity);
         assert!(entity.is_valid());
         repository.remove_entity(&entity.header().uid()).unwrap();
