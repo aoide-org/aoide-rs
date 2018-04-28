@@ -146,6 +146,61 @@ fn init_env_logger_verbosity(verbosity: u8) {
     init_env_logger(log_level_filter);
 }
 
+#[derive(Deserialize, StateData, StaticResponseExtender)]
+struct PathExtractor {
+    uid: String,
+}
+
+fn get_collections_by_uid_handler(mut state: State) -> Box<HandlerFuture> {
+    let f = {
+        let connection: PooledSqliteConnection =
+            gotham_middleware_diesel::state_data::connection(&state);
+        let repository = CollectionRepository::new(&*connection);
+
+        let path = PathExtractor::take_from(&mut state);
+        let uid: EntityUid = path.uid.into();
+
+        match repository.find_entity(&uid) {
+            Ok(Some(collection)) => {
+                match serde_json::to_vec(&collection) {
+                    Ok(response_body) => {
+                        let response = create_response(
+                            &state,
+                            StatusCode::Ok,
+                            Some((response_body, mime::APPLICATION_JSON)));
+                        future::ok((state, response))
+                    },
+                    Err(e) => future::err((state, e.into_handler_error()))
+                }
+            },
+            Ok(None) => {
+                let response = create_response(
+                    &state,
+                    StatusCode::NotFound,
+                    None);
+                future::ok((state, response))
+            },
+            Err(e) => future::err((state, failure::Error::from(e).compat().into_handler_error())),
+        }
+    };
+    
+    Box::new(f)
+}
+
+fn get_all_collections_handler(state: State) -> (State, Response) {
+    let response = {
+        let response_string = format!("all");
+
+        create_response(
+            &state,
+            StatusCode::Ok,
+            Some((response_string.into_bytes(), mime::TEXT_PLAIN)),
+        )
+    };
+    
+    (state, response)
+}
+
 fn post_collections_handler(mut state: State) -> Box<HandlerFuture> {
     let f = hyper::Body::take_from(&mut state)
         .concat2()
@@ -206,6 +261,13 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
         route
             .post("/collections")
             .to(post_collections_handler);
+        route
+            .get("/collections/:uid")
+            .with_path_extractor::<PathExtractor>()
+            .to(get_collections_by_uid_handler);
+        route
+            .get("/collections")
+            .to(get_all_collections_handler);
     })
 }
 
