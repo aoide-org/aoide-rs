@@ -17,40 +17,52 @@ use domain::entity::*;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct CollectionBody {
+    pub name: String,
+}
+
+impl CollectionBody {
+    pub fn is_valid(&self) -> bool {
+        !self.name.is_empty()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct CollectionEntity {
     header: EntityHeader,
 
-    name: String,
+    body: CollectionBody,
 }
 
 impl CollectionEntity {
-    pub fn new<S: Into<String>>(header: EntityHeader, name: S) -> Self {
+    pub fn new<B: Into<CollectionBody>>(header: EntityHeader, body: B) -> Self {
         Self {
             header,
-            name: name.into(),
+            body: body.into(),
         }
     }
 
     pub fn with_name<S: Into<String>>(name: S) -> Self {
         let uid = EntityUidGenerator::generate_uid();
         let header = EntityHeader::with_uid(uid);
-        Self::new(header, name)
+        Self::new(header, CollectionBody { name: name.into() })
     }
 
     pub fn is_valid(&self) -> bool {
-        self.header.is_valid() && !self.name.is_empty()
+        self.header.is_valid() && self.body.is_valid()
     }
 
     pub fn header<'a>(&'a self) -> &'a EntityHeader {
         &self.header
     }
 
-    pub fn name<'a>(&'a self) -> &'a String {
-        &self.name
+    pub fn body<'a>(&'a self) -> &'a CollectionBody {
+        &self.body
     }
 
-    pub fn set_name<S: Into<String>>(&mut self, name: S) {
-        self.name = name.into();
+    pub fn body_mut<'a>(&'a mut self) -> &'a mut CollectionBody {
+        &mut self.body
     }
 
     pub fn update_revision(&mut self, next_revision: EntityRevision) {

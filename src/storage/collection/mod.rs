@@ -48,7 +48,7 @@ impl<'a> InsertableCollectionEntity<'a> {
             uid: entity.header().uid().as_str(),
             rev_ordinal: entity.header().revision().ordinal() as i64,
             rev_timestamp: entity.header().revision().timestamp().naive_utc(),
-            name: &entity.name(),
+            name: &entity.body().name,
         }
     }
 }
@@ -66,7 +66,7 @@ impl<'a> UpdatableCollectionEntity<'a> {
         Self {
             rev_ordinal: revision.ordinal() as i64,
             rev_timestamp: revision.timestamp().naive_utc(),
-            name: &entity.name(),
+            name: &entity.body().name,
         }
     }
 }
@@ -88,7 +88,8 @@ impl From<QueryableCollectionEntity> for CollectionEntity {
             DateTime::from_utc(from.rev_timestamp, Utc),
         );
         let header = EntityHeader::new(uid, revision);
-        Self::new(header, from.name)
+        let body = CollectionBody { name: from.name };
+        Self::new(header, body)
     }
 }
 
@@ -96,12 +97,12 @@ impl From<QueryableCollectionEntity> for CollectionEntity {
 /// CollectionRepository
 ///////////////////////////////////////////////////////////////////////
 
-pub struct CollectionRepository {
-    connection: diesel::SqliteConnection,
+pub struct CollectionRepository<'a> {
+    connection: &'a diesel::SqliteConnection,
 }
 
-impl CollectionRepository {
-    pub fn new(connection: diesel::SqliteConnection) -> Self {
+impl<'a> CollectionRepository<'a> {
+    pub fn new(connection: &'a diesel::SqliteConnection) -> Self {
         Self { connection }
     }
 }
@@ -118,7 +119,7 @@ impl From<diesel::result::Error> for CollectionsError {
     }
 }
 
-impl Collections for CollectionRepository {
+impl<'a> Collections for CollectionRepository<'a> {
     fn create_entity<S: Into<String>>(&self, name: S) -> CollectionsResult<CollectionEntity> {
         let entity = CollectionEntity::with_name(name);
         {
@@ -130,7 +131,7 @@ impl Collections for CollectionRepository {
                     diesel::debug_query::<diesel::sqlite::Sqlite, _>(&query)
                 );
             }
-            query.execute(&self.connection)?;
+            query.execute(self.connection)?;
         }
         if log_enabled!(log::Level::Debug) {
             debug!("Created collection entity: {:?}", entity.header());
@@ -151,7 +152,7 @@ impl Collections for CollectionRepository {
                     diesel::debug_query::<diesel::sqlite::Sqlite, _>(&query)
                 );
             }
-            query.execute(&self.connection)?;
+            query.execute(self.connection)?;
         }
         entity.update_revision(next_revision);
         if log_enabled!(log::Level::Debug) {
@@ -169,7 +170,7 @@ impl Collections for CollectionRepository {
                 diesel::debug_query::<diesel::sqlite::Sqlite, _>(&query)
             );
         }
-        query.execute(&self.connection)?;
+        query.execute(self.connection)?;
         if log_enabled!(log::Level::Debug) {
             debug!("Removed collection entity: {}", uid);
         }
@@ -179,7 +180,7 @@ impl Collections for CollectionRepository {
     fn find_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<CollectionEntity>> {
         let target = collection_entity::table.filter(collection_entity::uid.eq(uid.as_str()));
         let result = target
-            .first::<QueryableCollectionEntity>(&self.connection)
+            .first::<QueryableCollectionEntity>(self.connection)
             .optional()?;
         if log_enabled!(log::Level::Debug) {
             match &result {
@@ -196,7 +197,7 @@ impl Collections for CollectionRepository {
 
     fn find_entities_by_name(&self, name: &str) -> CollectionsResult<Vec<CollectionEntity>> {
         let target = collection_entity::table.filter(collection_entity::name.eq(name));
-        let results = target.load::<QueryableCollectionEntity>(&self.connection)?;
+        let results = target.load::<QueryableCollectionEntity>(self.connection)?;
         if log_enabled!(log::Level::Debug) {
             debug!(
                 "Found {} collection entities by name '{}'",
@@ -213,7 +214,7 @@ impl Collections for CollectionRepository {
     ) -> CollectionsResult<Vec<CollectionEntity>> {
         let target = collection_entity::table
             .filter(collection_entity::name.like(format!("{}%", name_prefix)));
-        let results = target.load::<QueryableCollectionEntity>(&self.connection)?;
+        let results = target.load::<QueryableCollectionEntity>(self.connection)?;
         if log_enabled!(log::Level::Debug) {
             debug!(
                 "Found {} collection entities by name starting with '{}'",
@@ -230,7 +231,7 @@ impl Collections for CollectionRepository {
     ) -> CollectionsResult<Vec<CollectionEntity>> {
         let target = collection_entity::table
             .filter(collection_entity::name.like(format!("%{}%", partial_name)));
-        let results = target.load::<QueryableCollectionEntity>(&self.connection)?;
+        let results = target.load::<QueryableCollectionEntity>(self.connection)?;
         if log_enabled!(log::Level::Debug) {
             debug!(
                 "Found {} collection entities by name containing '{}'",
@@ -258,18 +259,15 @@ mod tests {
     embed_migrations!("db/migrations/sqlite");
 
     fn establish_connection() -> SqliteConnection {
-        let db_conn = SqliteConnection::establish(":memory:").expect("in-memory database connection");
-        embedded_migrations::run(&db_conn).expect("database schema migration");
-        db_conn
-    }
-
-    fn new_repository() -> CollectionRepository {
-        CollectionRepository::new(establish_connection())
+        let connection = SqliteConnection::establish(":memory:").expect("in-memory database connection");
+        embedded_migrations::run(&connection).expect("database schema migration");
+        connection
     }
 
     #[test]
     fn create_entity() {
-        let repository = new_repository();
+        let connection = establish_connection();
+        let repository = CollectionRepository::new(&connection);
         let entity = repository.create_entity("Test Collection").unwrap();
         println!("Created entity: {:?}", entity);
         assert!(entity.is_valid());
@@ -277,12 +275,13 @@ mod tests {
 
     #[test]
     fn update_entity() {
-        let repository = new_repository();
+        let connection = establish_connection();
+        let repository = CollectionRepository::new(&connection);
         let mut entity = repository.create_entity("Test Collection").unwrap();
         println!("Created entity: {:?}", entity);
         assert!(entity.is_valid());
         let initial_revision = entity.header().revision();
-        entity.set_name("Renamed Collection");
+        entity.body_mut().name = "Renamed Collection".into();
         let updated_revision = repository.update_entity(&mut entity).unwrap();
         println!("Updated entity: {:?}", entity);
         assert!(initial_revision < updated_revision);
@@ -291,7 +290,8 @@ mod tests {
 
     #[test]
     fn remove_entity() {
-        let repository = new_repository();
+        let connection = establish_connection();
+        let repository = CollectionRepository::new(&connection);
         let entity = repository.create_entity("Test Collection").unwrap();
         println!("Created entity: {:?}", entity);
         assert!(entity.is_valid());
