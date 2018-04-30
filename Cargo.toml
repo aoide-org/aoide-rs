@@ -22,9 +22,7 @@ diesel = { version = "*", features = ["chrono", "sqlite"] }
 diesel_migrations =  { version = "*", features = ["sqlite"] }
 env_logger = "*"
 failure = { version = "*", features = ["std"] }
-# hyper is currently not compatible with futures v0.2.x, see also main.rs
-futures = "0.1.*"
-#futures = "*"
+futures = "*"
 gotham = { git = "https://github.com/gotham-rs/gotham" }
 gotham_derive = { git = "https://github.com/gotham-rs/gotham" }
 gotham_middleware_diesel = { git = "https://github.com/gotham-rs/gotham" }
