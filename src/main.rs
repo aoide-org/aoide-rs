@@ -137,16 +137,16 @@ struct UidPathExtractor {
     uid: String,
 }
 
-fn get_collections_by_uid_handler(mut state: State) -> Box<HandlerFuture> {
-    let path = UidPathExtractor::take_from(&mut state);
-    let uid: EntityUid = path.uid.into();
-
+fn get_collections_by_uid(state: &State, uid: &EntityUid) -> Result<Option<CollectionEntity>, failure::Error> {
     let connection: PooledSqliteConnection =
         gotham_middleware_diesel::state_data::connection(&state);
     let repository = CollectionRepository::new(&*connection);
-    let repository_result = repository.find_entity(&uid);
+    let result = repository.find_entity(&uid)?;
+    Ok(result)
+}
 
-    let handler_future = match repository_result {
+fn get_collections_by_uid_handler_future(state: State, uid: &EntityUid) -> Box<HandlerFuture> {
+    let handler_future = match get_collections_by_uid(&state, uid) {
         Ok(Some(collection)) => match serde_json::to_vec(&collection) {
             Ok(response_body) => {
                 let response = create_response(
@@ -164,20 +164,26 @@ fn get_collections_by_uid_handler(mut state: State) -> Box<HandlerFuture> {
         }
         Err(e) => future::err((state, failure::Error::from(e).compat().into_handler_error())),
     };
-
     Box::new(handler_future)
 }
 
-fn delete_collections_by_uid_handler(mut state: State) -> Box<HandlerFuture> {
+fn get_collections_path_uid_handler(mut state: State) -> Box<HandlerFuture> {
     let path = UidPathExtractor::take_from(&mut state);
     let uid: EntityUid = path.uid.into();
 
+    get_collections_by_uid_handler_future(state, &uid)
+}
+
+fn delete_collections_by_uid(state: &State, uid: &EntityUid) -> Result<(), failure::Error> {
     let connection: PooledSqliteConnection =
         gotham_middleware_diesel::state_data::connection(&state);
     let repository = CollectionRepository::new(&*connection);
-    let repository_result = repository.remove_entity(&uid);
+    repository.remove_entity(&uid)?;
+    Ok(())
+}
 
-    let handler_future = match repository_result {
+fn delete_collections_by_uid_handler_future(state: State, uid: &EntityUid) -> Box<HandlerFuture> {
+    let handler_future = match delete_collections_by_uid(&state, uid) {
         Ok(()) => {
             let response = create_response(&state, StatusCode::Ok, None);
             future::ok((state, response))
@@ -186,6 +192,13 @@ fn delete_collections_by_uid_handler(mut state: State) -> Box<HandlerFuture> {
     };
 
     Box::new(handler_future)
+}
+
+fn delete_collections_path_uid_handler(mut state: State) -> Box<HandlerFuture> {
+    let path = UidPathExtractor::take_from(&mut state);
+    let uid: EntityUid = path.uid.into();
+
+    delete_collections_by_uid_handler_future(state, &uid)
 }
 
 #[derive(Debug, Deserialize, StateData, StaticResponseExtender)]
@@ -292,11 +305,11 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
         route
             .get("/collections/:uid")
             .with_path_extractor::<UidPathExtractor>()
-            .to(get_collections_by_uid_handler);
+            .to(get_collections_path_uid_handler);
         route
             .delete("/collections/:uid")
             .with_path_extractor::<UidPathExtractor>()
-            .to(delete_collections_by_uid_handler);
+            .to(delete_collections_path_uid_handler);
     })
 }
 
