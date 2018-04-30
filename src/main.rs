@@ -92,28 +92,14 @@ type SqliteConnectionPool = Pool<ConnectionManager<SqliteConnection>>;
 type PooledSqliteConnection = PooledConnection<ConnectionManager<SqliteConnection>>;
 type SqliteDieselMiddleware = DieselMiddleware<SqliteConnection>;
 
-fn create_connection_pool(url: &str) -> Result<SqliteConnectionPool, r2d2::Error> {
+fn create_connection_pool(url: &str) -> Result<SqliteConnectionPool, failure::Error> {
     info!("Creating SQLite connection pool for '{}'", url);
     let manager = ConnectionManager::new(url);
-    SqliteConnectionPool::new(manager)
+    let pool = SqliteConnectionPool::new(manager)?;
+    Ok(pool)
 }
 
-#[derive(Debug)]
-struct MigrationError;
-
-impl From<r2d2::Error> for MigrationError {
-    fn from(_from: r2d2::Error) -> Self {
-        MigrationError {}
-    }
-}
-
-impl From<diesel_migrations::RunMigrationsError> for MigrationError {
-    fn from(_from: diesel_migrations::RunMigrationsError) -> Self {
-        MigrationError {}
-    }
-}
-
-fn migrate_database_schema(connection_pool: &SqliteConnectionPool) -> Result<(), MigrationError> {
+fn migrate_database_schema(connection_pool: &SqliteConnectionPool) -> Result<(), failure::Error> {
     info!("Migrating database schema");
     let pooled_connection = connection_pool.get()?;
     embedded_migrations::run(&*pooled_connection)?;
