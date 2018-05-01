@@ -22,7 +22,10 @@ diesel = { version = "*", features = ["chrono", "sqlite"] }
 diesel_migrations =  { version = "*", features = ["sqlite"] }
 env_logger = "*"
 failure = { version = "*", features = ["std"] }
-futures = "*"
+#futures = "*"
+futures = "0.1.*"
+#gotham = "*"
+#gotham_derive = "*"
 gotham = { git = "https://github.com/gotham-rs/gotham" }
 gotham_derive = { git = "https://github.com/gotham-rs/gotham" }
 gotham_middleware_diesel = { git = "https://github.com/gotham-rs/gotham" }
