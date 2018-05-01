@@ -47,13 +47,13 @@ pub type CollectionsResult<T> = Result<T, CollectionsError>;
 pub trait Collections {
     fn create_entity(&self, body: CollectionBody) -> CollectionsResult<CollectionEntity>;
 
-    fn update_entity(&self, entity: &mut CollectionEntity) -> CollectionsResult<EntityRevision>;
+    fn update_entity(&self, entity: &CollectionEntity) -> CollectionsResult<Option<EntityRevision>>;
 
     fn find_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<CollectionEntity>>;
 
-    fn remove_entity(&self, uid: &EntityUid) -> CollectionsResult<()>;
+    fn remove_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<()>>;
 
-    fn all_entities(&self, pagination: &Pagination) -> CollectionsResult<Vec<CollectionEntity>>;
+    fn find_all_entities(&self, pagination: &Pagination) -> CollectionsResult<Vec<CollectionEntity>>;
 
     fn find_entities_by_name(&self, name: &str) -> CollectionsResult<Vec<CollectionEntity>>;
 

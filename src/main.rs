@@ -138,7 +138,7 @@ struct UidPathExtractor {
     uid: String,
 }
 
-fn get_collections_by_uid(connection: &SqliteConnection, uid: &EntityUid) -> Result<Option<CollectionEntity>, failure::Error> {
+fn find_collection(connection: &SqliteConnection, uid: &EntityUid) -> Result<Option<CollectionEntity>, failure::Error> {
     let repository = CollectionRepository::new(connection);
     let result = repository.find_entity(&uid)?;
     Ok(result)
@@ -150,7 +150,7 @@ fn handle_get_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
 
     let connection = &*gotham_middleware_diesel::state_data::connection(&state);
 
-    let result = match get_collections_by_uid(connection, &uid) {
+    let result = match find_collection(connection, &uid) {
         Ok(Some(collection)) => match serde_json::to_vec(&collection) {
             Ok(response_body) => {
                 let response = create_response(
@@ -172,10 +172,10 @@ fn handle_get_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
     Box::new(result.into_future())
 }
 
-fn delete_collections_by_uid(connection: &SqliteConnection, uid: &EntityUid) -> Result<(), failure::Error> {
+fn remove_collection(connection: &SqliteConnection, uid: &EntityUid) -> Result<Option<()>, failure::Error> {
     let repository = CollectionRepository::new(connection);
-    repository.remove_entity(&uid)?;
-    Ok(())
+    let result = repository.remove_entity(&uid)?;
+    Ok(result)
 }
 
 fn handle_delete_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
@@ -184,9 +184,13 @@ fn handle_delete_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
 
     let connection = &*gotham_middleware_diesel::state_data::connection(&state);
 
-    let result = match delete_collections_by_uid(connection, &uid) {
-        Ok(()) => {
+    let result = match remove_collection(connection, &uid) {
+        Ok(Some(_)) => {
             let response = create_response(&state, StatusCode::Ok, None);
+            future::ok((state, response))
+        }
+        Ok(None) => {
+            let response = create_response(&state, StatusCode::Accepted, None);
             future::ok((state, response))
         }
         Err(e) => future::err((state, e.compat().into_handler_error())),
@@ -201,9 +205,9 @@ struct PaginationQueryStringExtractor {
     limit: Option<PaginationLimit>,
 }
 
-fn get_collections_paginated(connection: &SqliteConnection, pagination: &Pagination) -> Result<Vec<CollectionEntity>, failure::Error> {
+fn find_all_collections(connection: &SqliteConnection, pagination: &Pagination) -> Result<Vec<CollectionEntity>, failure::Error> {
     let repository = CollectionRepository::new(connection);
-    let result = repository.all_entities(pagination)?;
+    let result = repository.find_all_entities(pagination)?;
     Ok(result)
 }
 
@@ -216,7 +220,7 @@ fn handle_get_collections_path_pagination(mut state: State) -> Box<HandlerFuture
 
     let connection = &*gotham_middleware_diesel::state_data::connection(&state);
 
-    let handler_future = match get_collections_paginated(connection, &pagination) {
+    let handler_future = match find_all_collections(connection, &pagination) {
         Ok(collections) => match serde_json::to_vec(&collections) {
             Ok(response_body) => {
                 let response = create_response(
@@ -234,7 +238,7 @@ fn handle_get_collections_path_pagination(mut state: State) -> Box<HandlerFuture
     Box::new(handler_future)
 }
 
-fn post_collections(connection: &SqliteConnection, body: CollectionBody) -> Result<CollectionEntity, failure::Error> {
+fn create_collection(connection: &SqliteConnection, body: CollectionBody) -> Result<CollectionEntity, failure::Error> {
     let repository = CollectionRepository::new(connection);
     let result = repository.create_entity(body)?;
     Ok(result)
@@ -245,7 +249,7 @@ fn handle_post_collections(mut state: State) -> Box<HandlerFuture> {
         .concat2()
         .then(move |full_body| match full_body {
             Ok(valid_body) => {
-                let collection_body: CollectionBody = match serde_json::from_slice(&valid_body)
+                let entity_body: CollectionBody = match serde_json::from_slice(&valid_body)
                 {
                     Ok(p) => p,
                     Err(e) => {
@@ -258,7 +262,7 @@ fn handle_post_collections(mut state: State) -> Box<HandlerFuture> {
 
                 let connection = &*gotham_middleware_diesel::state_data::connection(&state);
 
-                let collection = match post_collections(connection, collection_body) {
+                let collection = match create_collection(connection, entity_body) {
                     Ok(collection) => collection,
                     Err(e) => {
                         return future::err((
@@ -284,6 +288,78 @@ fn handle_post_collections(mut state: State) -> Box<HandlerFuture> {
     Box::new(handler_future)
 }
 
+fn update_collection(connection: &SqliteConnection, entity: &CollectionEntity) -> Result<Option<EntityRevision>, failure::Error> {
+    let repository = CollectionRepository::new(connection);
+    let result = repository.update_entity(entity)?;
+    Ok(result)
+}
+
+fn handle_put_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
+    let handler_future = hyper::Body::take_from(&mut state)
+        .concat2()
+        .then(move |full_body| match full_body {
+            Ok(valid_body) => {
+                let entity: CollectionEntity = match serde_json::from_slice(&valid_body)
+                {
+                    Ok(p) => p,
+                    Err(e) => {
+                        warn!("Failed to deserialize request body - {}", e);
+                        return future::err((
+                            state,
+                            e.into_handler_error().with_status(StatusCode::BadRequest),
+                        ))
+                    }
+                };
+
+                let path = UidPathExtractor::take_from(&mut state);
+                let uid = EntityUid::from(path.uid);
+                let entity_uid = entity.header().uid();
+                if &uid != entity_uid {
+                    let e = format_err!("Mismatching identifiers: expected = {}, actual = {}", uid, entity_uid);
+                    warn!("Failed to validate request - {}", e);
+                    return future::err((
+                        state,
+                        e.compat().into_handler_error().with_status(StatusCode::BadRequest),
+                    ))
+                }
+
+                let connection = &*gotham_middleware_diesel::state_data::connection(&state);
+
+                let next_revision = match update_collection(connection, &entity) {
+                    Ok(Some(next_revision)) => next_revision,
+                    Ok(None) => {
+                        let e = format_err!("Unknown or revision mismatch: {:?}", entity.header());
+                        warn!("Failed to update collection - {}", e);
+                        return future::err((state, failure::Error::from(e).compat().into_handler_error().with_status(StatusCode::NotFound)))
+                    }
+                    Err(e) => {
+                        warn!("Failed to update collection - {}", e);
+                        return future::err((state, e.compat().into_handler_error()))
+                    }
+                };
+
+                let response = match serde_json::to_vec(&EntityHeader::new(uid, next_revision)) {
+                    Ok(response_body) => create_response(
+                        &state,
+                        StatusCode::Ok,
+                        Some((response_body, mime::APPLICATION_JSON))
+                    ),
+                    Err(e) => {
+                        warn!("Failed to serialize response body - {}", e);
+                        return future::err((state, e.into_handler_error()))
+                    }
+                };
+                future::ok((state, response))
+            }
+            Err(e) => {
+                warn!("Failed to read request body - {}", e);
+                future::err((state, e.into_handler_error()))
+            }
+        });
+
+    Box::new(handler_future)
+}
+
 fn router(middleware: SqliteDieselMiddleware) -> Router {
     // Create a new pipeline set
     let editable_pipeline_set = new_pipeline_set();
@@ -298,6 +374,10 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
     // Build the router
     build_router(default_pipeline_chain, pipeline_set, |route| {
         route.post("/collections").to(handle_post_collections);
+        route
+            .put("/collections/:uid")
+            .with_path_extractor::<UidPathExtractor>()
+            .to(handle_put_collections_path_uid);
         route
             .get("/collections")
             .with_query_string_extractor::<PaginationQueryStringExtractor>()

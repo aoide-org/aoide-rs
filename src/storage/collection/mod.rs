@@ -47,7 +47,7 @@ pub struct InsertableCollectionEntity<'a> {
 }
 
 impl<'a> InsertableCollectionEntity<'a> {
-    pub fn from_entity(entity: &'a CollectionEntity) -> Self {
+    pub fn borrow(entity: &'a CollectionEntity) -> Self {
         Self {
             uid: entity.header().uid().as_str(),
             rev_ordinal: entity.header().revision().ordinal() as i64,
@@ -68,12 +68,12 @@ pub struct UpdatableCollectionEntity<'a> {
 }
 
 impl<'a> UpdatableCollectionEntity<'a> {
-    pub fn from_entity_revision(entity: &'a CollectionEntity, revision: EntityRevision) -> Self {
+    pub fn borrow(next_revision: &EntityRevision, body: &'a CollectionBody) -> Self {
         Self {
-            rev_ordinal: revision.ordinal() as i64,
-            rev_timestamp: revision.timestamp().naive_utc(),
-            name: &entity.body().name,
-            description: entity.body().description.as_ref().map(|s| s.as_str()),
+            rev_ordinal: next_revision.ordinal() as i64,
+            rev_timestamp: next_revision.timestamp().naive_utc(),
+            name: &body.name,
+            description: body.description.as_ref().map(|s| s.as_str()),
         }
     }
 }
@@ -134,7 +134,7 @@ impl<'a> Collections for CollectionRepository<'a> {
     fn create_entity(&self, body: CollectionBody) -> CollectionsResult<CollectionEntity> {
         let entity = CollectionEntity::with_body(body);
         {
-            let insertable = InsertableCollectionEntity::from_entity(&entity);
+            let insertable = InsertableCollectionEntity::borrow(&entity);
             let query = diesel::insert_into(collection_entity::table).values(&insertable);
             if log_enabled!(log::Level::Debug) {
                 debug!(
@@ -150,12 +150,14 @@ impl<'a> Collections for CollectionRepository<'a> {
         Ok(entity)
     }
 
-    fn update_entity(&self, entity: &mut CollectionEntity) -> CollectionsResult<EntityRevision> {
+    fn update_entity(&self, entity: &CollectionEntity) -> CollectionsResult<Option<EntityRevision>> {
         let next_revision = entity.header().revision().next();
         {
-            let updatable = UpdatableCollectionEntity::from_entity_revision(&entity, next_revision);
+            let updatable = UpdatableCollectionEntity::borrow(&next_revision, &entity.body());
             let target = collection_entity::table
-                .filter(collection_entity::uid.eq(entity.header().uid().as_str()));
+                .filter(collection_entity::uid.eq(entity.header().uid().as_str())
+                    .and(collection_entity::rev_ordinal.eq(entity.header().revision().ordinal() as i64))
+                    .and(collection_entity::rev_timestamp.eq(entity.header().revision().timestamp().naive_utc())));
             let query = diesel::update(target).set(&updatable);
             if log_enabled!(log::Level::Debug) {
                 debug!(
@@ -163,16 +165,20 @@ impl<'a> Collections for CollectionRepository<'a> {
                     diesel::debug_query::<diesel::sqlite::Sqlite, _>(&query)
                 );
             }
-            query.execute(self.connection)?;
+            let rows_affected = query.execute(self.connection)?;
+            assert!(rows_affected >= 0);
+            assert!(rows_affected <= 1);
+            if rows_affected <= 0 {
+                return Ok(None);
+            }
         }
-        entity.update_revision(next_revision);
         if log_enabled!(log::Level::Debug) {
-            debug!("Updated collection entity: {:?}", entity.header());
+            debug!("Updated collection entity: {:?} -> {:?}", entity.header(), next_revision);
         }
-        Ok(next_revision)
+        Ok(Some(next_revision))
     }
 
-    fn remove_entity(&self, uid: &EntityUid) -> CollectionsResult<()> {
+    fn remove_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<()>> {
         let target = collection_entity::table.filter(collection_entity::uid.eq(uid.as_str()));
         let query = diesel::delete(target);
         if log_enabled!(log::Level::Debug) {
@@ -181,11 +187,16 @@ impl<'a> Collections for CollectionRepository<'a> {
                 diesel::debug_query::<diesel::sqlite::Sqlite, _>(&query)
             );
         }
-        query.execute(self.connection)?;
+        let rows_affected = query.execute(self.connection)?;
+        assert!(rows_affected >= 0);
+        assert!(rows_affected <= 1);
+        if rows_affected <= 0 {
+            return Ok(None);
+        }
         if log_enabled!(log::Level::Debug) {
             debug!("Removed collection entity: {}", uid);
         }
-        Ok(())
+        Ok(Some(()))
     }
 
     fn find_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<CollectionEntity>> {
@@ -206,7 +217,7 @@ impl<'a> Collections for CollectionRepository<'a> {
         Ok(result.map(|r| r.into()))
     }
     
-    fn all_entities(&self, pagination: &Pagination) -> CollectionsResult<Vec<CollectionEntity>> {
+    fn find_all_entities(&self, pagination: &Pagination) -> CollectionsResult<Vec<CollectionEntity>> {
         let offset = pagination.offset.map(|offset| offset as i64).unwrap_or(0);
         let limit = pagination.limit.map(|limit| limit as i64).unwrap_or(i64::MAX);
         let target = collection_entity::table
@@ -318,12 +329,14 @@ mod tests {
             .unwrap();
         println!("Created entity: {:?}", entity);
         assert!(entity.is_valid());
-        let initial_revision = entity.header().revision();
+        let prev_revision = entity.header().revision();
         entity.body_mut().name = "Renamed Collection".into();
-        let updated_revision = repository.update_entity(&mut entity).unwrap();
+        let next_revision = repository.update_entity(&entity).unwrap();
         println!("Updated entity: {:?}", entity);
-        assert!(initial_revision < updated_revision);
-        assert!(entity.header().revision() == updated_revision);
+        assert!(prev_revision < next_revision);
+        assert!(entity.header().revision() == prev_revision);
+        entity.update_revision(next_revision);
+        assert!(entity.header().revision() == next_revision);
     }
 
     #[test]
