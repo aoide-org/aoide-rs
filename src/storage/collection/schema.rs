@@ -30,3 +30,25 @@ table! {
         collection_id -> BigInt,
     }
 }
+
+table! {
+    track_entity (id) {
+        id -> BigInt,
+        uid -> Text,
+        rev_ordinal -> BigInt,
+        rev_timestamp -> Timestamp,
+        collection_id -> Nullable<BigInt>,
+        media_uri -> Nullable<Text>,
+        media_content_type -> Nullable<Text>,
+        media_sync_rev_ordinal -> Nullable<BigInt>,
+        media_sync_rev_timestamp -> Nullable<Timestamp>,
+        audio_duration -> Nullable<BigInt>,
+        audio_channels -> Nullable<SmallInt>,
+        audio_samplerate -> Nullable<Integer>,
+        audio_bitrate -> Nullable<Integer>,
+        entity_fmt -> SmallInt,
+        entity_ver_major -> Integer,
+        entity_ver_minor -> Integer,
+        entity_blob -> Binary,
+    }
+}

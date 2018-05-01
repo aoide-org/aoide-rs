@@ -48,8 +48,8 @@ CREATE TABLE track_entity (
     audio_samplerate         INTEGER,           -- Hz
     audio_bitrate            INTEGER,           -- bits per second (bps)
     entity_fmt               INTEGER NOT NULL,  -- serialization format: 1 = JSON, 2 = BSON, 3 = CBOR, 4 = Bincode, ...
-    entity_vermaj            INTEGER NOT NULL,  -- for data migration - breaking changes
-    entity_vermin            INTEGER NOT NULL,  -- for data migration - backward-compatible changes
+    entity_ver_major         INTEGER NOT NULL,  -- for data migration - breaking changes
+    entity_ver_minor         INTEGER NOT NULL,  -- for data migration - backward-compatible changes
     entity_blob              BLOB NOT NULL,     -- serialized track entity
     UNIQUE (media_uri)                         -- each track can only be stored once in a library
     FOREIGN KEY(collection_id) REFERENCES active_collection(collection_id)
