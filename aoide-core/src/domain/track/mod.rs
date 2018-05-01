@@ -320,14 +320,16 @@ impl TrackTag {
 }
 
 ///////////////////////////////////////////////////////////////////////
-/// TrackMetadata
+/// TrackBody
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct TrackMetadata {
+pub struct TrackBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub identity: Option<TrackIdentity>,
+
+    pub media: MediaMetadata,
 
     pub titles: Titles,
 
@@ -359,7 +361,7 @@ pub struct TrackMetadata {
     pub comments: Vec<Comment>, // no duplicate owners allowed
 }
 
-impl TrackMetadata {
+impl TrackBody {
     pub fn is_valid(&self) -> bool {
         self.titles.is_valid()
     }
@@ -388,12 +390,9 @@ impl TrackMetadata {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackEntity {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub header: Option<EntityHeader>,
+    pub header: EntityHeader,
 
-    pub media: MediaMetadata,
-
-    pub metadata: TrackMetadata,
+    pub body: TrackBody,
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -440,7 +439,8 @@ mod tests {
         let comments = vec![
             Comment::new_anonymous("Some anonymous notes about this track"),
         ];
-        let metadata = TrackMetadata {
+        let body = TrackBody {
+            media,
             music: Some(music),
             tags,
             comments,
@@ -449,9 +449,8 @@ mod tests {
         let uid = EntityUidGenerator::generate_uid();
         let header = EntityHeader::with_uid(uid);
         let entity = TrackEntity {
-            header: Some(header),
-            media,
-            metadata,
+            header,
+            body,
         };
         let entity_json = serde_json::to_string(&entity).unwrap();
         assert_ne!("{}", entity_json);

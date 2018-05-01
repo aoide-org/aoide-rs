@@ -7,38 +7,38 @@
                 "timestamp": "2018-04-14T18:10:11.8351783Z"
             }
         },
-        "media": {
-            "collectedResources": [
-                {
-                    "collectionUid": "myMXwslBoXkTDQ0olhq1QsiHRWWL4yj1V0IuoK+PYOg",
-                    "resource": {
-                        "uri": "file::///home/music/collection/test.mp3",
-                        "contentType": "audio/mpeg",
-                        "audioContent": {
-                            "duration": {
-                                "millis": 202821
-                            },
-                            "channels": {
-                                "count": 2
-                            },
-                            "samplerate": {
-                                "hz": 44100
-                            },
-                            "bitrate": {
-                                "bps": 320000
-                            }
-                        },
-                        "synchronizedRevision": {
-                            "ordinal": 23,
-                            "timestamp": "2018-03-22T17:10:55.488760124Z"
-                        }
-                    }
-                }
-            ]
-        },
-        "metadata": {
+        "body": {
             "identity": {
                 "mbrainzId": "d878c95a-8a6b-3be6-b6df-7d720a480625"
+            },
+            "media": {
+                "collectedResources": [
+                    {
+                        "collectionUid": "myMXwslBoXkTDQ0olhq1QsiHRWWL4yj1V0IuoK+PYOg",
+                        "resource": {
+                            "uri": "file::///home/music/collection/test.mp3",
+                            "contentType": "audio/mpeg",
+                            "audioContent": {
+                                "duration": {
+                                    "millis": 202821
+                                },
+                                "channels": {
+                                    "count": 2
+                                },
+                                "samplerate": {
+                                    "hz": 44100
+                                },
+                                "bitrate": {
+                                    "bps": 320000
+                                }
+                            },
+                            "synchronizedRevision": {
+                                "ordinal": 23,
+                                "timestamp": "2018-03-22T17:10:55.488760124Z"
+                            }
+                        }
+                    }
+                ]
             },
             "titles": {
                 "title": "Give Me All Your Luvin'"
