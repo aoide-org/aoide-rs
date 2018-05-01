@@ -52,11 +52,13 @@ pub trait Collections {
     fn find_entities_by_name_starting_with(
         &self,
         name: &str,
+        pagination: &Pagination,
     ) -> CollectionsResult<Vec<CollectionEntity>>;
 
     fn find_entities_by_name_containing(
         &self,
         name: &str,
+        pagination: &Pagination,
     ) -> CollectionsResult<Vec<CollectionEntity>>;
 
     fn activate_collection(&self, uid: &EntityUid) -> CollectionsResult<()>;

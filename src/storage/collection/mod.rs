@@ -209,6 +209,7 @@ impl<'a> Collections for CollectionRepository<'a> {
         let offset = pagination.offset.map(|offset| offset as i64).unwrap_or(0);
         let limit = pagination.limit.map(|limit| limit as i64).unwrap_or(i64::MAX);
         let target = collection_entity::table
+            .order(collection_entity::rev_timestamp.desc())
             .offset(offset)
             .limit(limit);
         let results = target.load::<QueryableCollectionEntity>(self.connection)?;
@@ -237,9 +238,15 @@ impl<'a> Collections for CollectionRepository<'a> {
     fn find_entities_by_name_starting_with(
         &self,
         name_prefix: &str,
+        pagination: &Pagination,
     ) -> CollectionsResult<Vec<CollectionEntity>> {
+        let offset = pagination.offset.map(|offset| offset as i64).unwrap_or(0);
+        let limit = pagination.limit.map(|limit| limit as i64).unwrap_or(i64::MAX);
         let target = collection_entity::table
-            .filter(collection_entity::name.like(format!("{}%", name_prefix)));
+            .filter(collection_entity::name.like(format!("{}%", name_prefix)))
+            .order(collection_entity::rev_timestamp.desc())
+            .offset(offset)
+            .limit(limit);
         let results = target.load::<QueryableCollectionEntity>(self.connection)?;
         if log_enabled!(log::Level::Debug) {
             debug!(
@@ -254,9 +261,15 @@ impl<'a> Collections for CollectionRepository<'a> {
     fn find_entities_by_name_containing(
         &self,
         partial_name: &str,
+        pagination: &Pagination,
     ) -> CollectionsResult<Vec<CollectionEntity>> {
+        let offset = pagination.offset.map(|offset| offset as i64).unwrap_or(0);
+        let limit = pagination.limit.map(|limit| limit as i64).unwrap_or(i64::MAX);
         let target = collection_entity::table
-            .filter(collection_entity::name.like(format!("%{}%", partial_name)));
+            .filter(collection_entity::name.like(format!("%{}%", partial_name)))
+            .order(collection_entity::rev_timestamp.desc())
+            .offset(offset)
+            .limit(limit);
         let results = target.load::<QueryableCollectionEntity>(self.connection)?;
         if log_enabled!(log::Level::Debug) {
             debug!(
