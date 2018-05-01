@@ -14,19 +14,23 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 table! {
-    collection_entity (id) {
+    track_entity (id) {
         id -> BigInt,
         uid -> Text,
         rev_ordinal -> BigInt,
         rev_timestamp -> Timestamp,
-        name -> Text,
-        description -> Nullable<Text>,
-    }
-}
-
-table! {
-    active_collection (id) {
-        id -> BigInt,
-        collection_id -> BigInt,
+        collection_id -> Nullable<BigInt>,
+        media_uri -> Nullable<Text>,
+        media_content_type -> Nullable<Text>,
+        media_sync_rev_ordinal -> Nullable<BigInt>,
+        media_sync_rev_timestamp -> Nullable<Timestamp>,
+        audio_duration -> Nullable<BigInt>,
+        audio_channels -> Nullable<SmallInt>,
+        audio_samplerate -> Nullable<Integer>,
+        audio_bitrate -> Nullable<Integer>,
+        entity_fmt -> SmallInt,
+        entity_ver_major -> Integer,
+        entity_ver_minor -> Integer,
+        entity_blob -> Binary,
     }
 }

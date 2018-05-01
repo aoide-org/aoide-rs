@@ -390,9 +390,41 @@ impl TrackBody {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackEntity {
-    pub header: EntityHeader,
+    header: EntityHeader,
 
-    pub body: TrackBody,
+    body: TrackBody,
+}
+
+impl TrackEntity {
+    pub fn new(header: EntityHeader, body: TrackBody) -> Self {
+        Self { header, body }
+    }
+
+    pub fn with_body(body: TrackBody) -> Self {
+        let uid = EntityUidGenerator::generate_uid();
+        let header = EntityHeader::with_uid(uid);
+        Self { header, body }
+    }
+
+    pub fn is_valid(&self) -> bool {
+        self.header.is_valid() && self.body.is_valid()
+    }
+
+    pub fn header<'a>(&'a self) -> &'a EntityHeader {
+        &self.header
+    }
+
+    pub fn body<'a>(&'a self) -> &'a TrackBody {
+        &self.body
+    }
+
+    pub fn body_mut<'a>(&'a mut self) -> &'a mut TrackBody {
+        &mut self.body
+    }
+
+    pub fn update_revision(&mut self, next_revision: EntityRevision) {
+        self.header.update_revision(next_revision);
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////

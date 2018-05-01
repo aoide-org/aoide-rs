@@ -42,9 +42,9 @@ pub trait Collections {
 
     fn update_entity(&self, entity: &CollectionEntity) -> CollectionsResult<Option<EntityRevision>>;
 
-    fn find_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<CollectionEntity>>;
-
     fn remove_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<()>>;
+
+    fn find_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<CollectionEntity>>;
 
     fn find_all_entities(&self, pagination: &Pagination) -> CollectionsResult<Vec<CollectionEntity>>;
 
@@ -70,9 +70,11 @@ pub type TracksResult<T> = Result<T, failure::Error>;
 pub trait Tracks {
     fn create_entity(&self, body: TrackBody) -> TracksResult<TrackEntity>;
 
+    /*
     fn update_entity(&self, entity: &CollectionEntity) -> TracksResult<Option<EntityRevision>>;
 
-    fn find_entity(&self, uid: &EntityUid) -> TracksResult<Option<TrackEntity>>;
-
     fn remove_entity(&self, uid: &EntityUid) -> TracksResult<Option<()>>;
+
+    fn find_entity(&self, uid: &EntityUid) -> TracksResult<Option<TrackEntity>>;
+    */
 }
