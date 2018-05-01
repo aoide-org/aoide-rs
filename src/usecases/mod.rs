@@ -17,6 +17,7 @@ use failure;
 
 use aoide_core::domain::entity::*;
 use aoide_core::domain::collection::*;
+use aoide_core::domain::track::*;
 
 
 pub type PaginationOffset = u64;
@@ -62,4 +63,16 @@ pub trait Collections {
     ) -> CollectionsResult<Vec<CollectionEntity>>;
 
     fn activate_collection(&self, uid: &EntityUid) -> CollectionsResult<()>;
+}
+
+pub type TracksResult<T> = Result<T, failure::Error>;
+
+pub trait Tracks {
+    fn create_entity(&self, body: TrackBody) -> TracksResult<TrackEntity>;
+
+    fn update_entity(&self, entity: &CollectionEntity) -> TracksResult<Option<EntityRevision>>;
+
+    fn find_entity(&self, uid: &EntityUid) -> TracksResult<Option<TrackEntity>>;
+
+    fn remove_entity(&self, uid: &EntityUid) -> TracksResult<Option<()>>;
 }
