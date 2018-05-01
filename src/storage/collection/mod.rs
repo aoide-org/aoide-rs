@@ -153,8 +153,7 @@ impl<'a> Collections for CollectionRepository<'a> {
                     diesel::debug_query::<diesel::sqlite::Sqlite, _>(&query)
                 );
             }
-            let rows_affected = query.execute(self.connection)?;
-            assert!(rows_affected >= 0);
+            let rows_affected: usize = query.execute(self.connection)?;
             assert!(rows_affected <= 1);
             if rows_affected <= 0 {
                 return Ok(None);
@@ -175,8 +174,7 @@ impl<'a> Collections for CollectionRepository<'a> {
                 diesel::debug_query::<diesel::sqlite::Sqlite, _>(&query)
             );
         }
-        let rows_affected = query.execute(self.connection)?;
-        assert!(rows_affected >= 0);
+        let rows_affected: usize = query.execute(self.connection)?;
         assert!(rows_affected <= 1);
         if rows_affected <= 0 {
             return Ok(None);
