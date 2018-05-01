@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use failure::Error;
+use failure;
 
 use aoide_core::domain::entity::*;
 use aoide_core::domain::collection::*;
@@ -34,15 +34,7 @@ impl Pagination {
     }
 }
 
-#[derive(Debug, Clone, Copy, Fail, PartialEq, Eq)]
-pub enum CollectionsError {
-    #[fail(display = "Collections: Not found")]
-    NotFound,
-    #[fail(display = "Collections: Unexpected error")]
-    Unexpected,
-}
-
-pub type CollectionsResult<T> = Result<T, CollectionsError>;
+pub type CollectionsResult<T> = Result<T, failure::Error>;
 
 pub trait Collections {
     fn create_entity(&self, body: CollectionBody) -> CollectionsResult<CollectionEntity>;

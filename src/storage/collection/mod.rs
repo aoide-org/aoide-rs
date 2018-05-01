@@ -118,18 +118,6 @@ impl<'a> CollectionRepository<'a> {
     }
 }
 
-impl From<diesel::result::Error> for CollectionsError {
-    fn from(from: diesel::result::Error) -> Self {
-        match from {
-            diesel::result::Error::NotFound => CollectionsError::NotFound,
-            _ => {
-                error!("Unexpected database error: {}", from);
-                CollectionsError::Unexpected
-            }
-        }
-    }
-}
-
 impl<'a> Collections for CollectionRepository<'a> {
     fn create_entity(&self, body: CollectionBody) -> CollectionsResult<CollectionEntity> {
         let entity = CollectionEntity::with_body(body);
@@ -281,8 +269,7 @@ impl<'a> Collections for CollectionRepository<'a> {
     }
 
     fn activate_collection(&self, _uid: &EntityUid) -> CollectionsResult<()> {
-        error!("TODO: Implement activation of a collection");
-        Err(CollectionsError::Unexpected)
+        bail!("TODO: Implement activation of a collection");
     }
 }
 
@@ -331,7 +318,7 @@ mod tests {
         assert!(entity.is_valid());
         let prev_revision = entity.header().revision();
         entity.body_mut().name = "Renamed Collection".into();
-        let next_revision = repository.update_entity(&entity).unwrap();
+        let next_revision = repository.update_entity(&entity).unwrap().unwrap();
         println!("Updated entity: {:?}", entity);
         assert!(prev_revision < next_revision);
         assert!(entity.header().revision() == prev_revision);
@@ -351,7 +338,7 @@ mod tests {
             .unwrap();
         println!("Created entity: {:?}", entity);
         assert!(entity.is_valid());
-        repository.remove_entity(&entity.header().uid()).unwrap();
+        assert!(Some(()) == repository.remove_entity(&entity.header().uid()).unwrap());
         println!("Removed entity: {}", entity.header().uid());
     }
 }
