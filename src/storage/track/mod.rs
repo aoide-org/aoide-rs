@@ -34,6 +34,9 @@ use aoide_core::domain::track::*;
 
 use usecases::*;
 
+use storage::EntityStorage;
+use storage::collection::*;
+
 ///////////////////////////////////////////////////////////////////////
 /// TrackRecord
 ///////////////////////////////////////////////////////////////////////
@@ -136,23 +139,44 @@ impl From<QueryableTrackEntity> for TrackEntity {
 
 pub struct TrackRepository<'a> {
     connection: &'a diesel::SqliteConnection,
+
+    collection_repo: CollectionRepository<'a>,
 }
 
 impl<'a> TrackRepository<'a> {
     pub fn new(connection: &'a diesel::SqliteConnection) -> Self {
-        Self { connection }
+        Self { connection, collection_repo: CollectionRepository::new(connection) }
     }
 }
 
 impl<'a> Tracks for TrackRepository<'a> {
-    fn create_entity(&self, body: TrackBody) -> TracksResult<TrackEntity> {
+    fn create_entity(&self, body: TrackBody, collection_uid: &EntityUid) -> TracksResult<TrackEntity> {
         let entity = TrackEntity::with_body(body);
         {
             let entity_blob = serde_json::to_vec(&entity)?;
-            // TODO: Determine and select active collection
-            let collection_id = Some(0);
-            let media_resource = entity.body().media.collected_resources.first().map(|c| &c.resource);
-            let insertable = InsertableTrackEntity::borrow(&entity, collection_id, media_resource, &entity_blob);
+            let collected_media_resources = &entity.body().media.collected_resources;
+            assert!(collected_media_resources.iter()
+                .filter(|ref elem| &elem.collection_uid == collection_uid)
+                .count() <= 1);
+            let collection_media_resource = collected_media_resources.iter()
+                .filter(|ref elem| &elem.collection_uid == collection_uid)
+                .nth(0)
+                .map(|ref elem| &elem.resource);
+            let collection_id = match collection_media_resource {
+                Some(&_) => self.collection_repo.find_storage_id(collection_uid)?,
+                None => {
+                    warn!("No media resource available for selected collection: {}", collection_uid);
+                    None
+                },
+            };
+            let track_media_resource = match collection_id {
+                Some(_) => collection_media_resource,
+                None => {
+                    warn!("Selected collection not found: {}", collection_uid);
+                    None
+                },
+            };
+            let insertable = InsertableTrackEntity::borrow(&entity, collection_id, track_media_resource, &entity_blob);
             let query = diesel::insert_into(track_entity::table).values(&insertable);
             if log_enabled!(log::Level::Debug) {
                 debug!(

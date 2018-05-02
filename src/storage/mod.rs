@@ -31,5 +31,5 @@ pub struct QueryableStorageId {
 pub type EntityStorageResult<T> = Result<T, failure::Error>;
 
 pub trait EntityStorage {
-    fn lookup_id(&self, uid: &EntityUid) -> EntityStorageResult<Option<i64>>;
+    fn find_storage_id(&self, uid: &EntityUid) -> EntityStorageResult<Option<StorageId>>;
 }

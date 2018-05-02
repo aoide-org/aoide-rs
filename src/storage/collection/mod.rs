@@ -130,7 +130,7 @@ const ID_COLUMN: IdColumn = (
 );
 
 impl<'a> EntityStorage for CollectionRepository<'a> {
-    fn lookup_id(&self, uid: &EntityUid) -> EntityStorageResult<Option<StorageId>> {
+    fn find_storage_id(&self, uid: &EntityUid) -> EntityStorageResult<Option<StorageId>> {
         let target = collection_entity::table
             .select(ID_COLUMN)
             .filter(collection_entity::uid.eq(uid.as_str()));

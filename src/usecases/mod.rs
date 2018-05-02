@@ -68,7 +68,7 @@ pub trait Collections {
 pub type TracksResult<T> = Result<T, failure::Error>;
 
 pub trait Tracks {
-    fn create_entity(&self, body: TrackBody) -> TracksResult<TrackEntity>;
+    fn create_entity(&self, body: TrackBody, collection_uid: &EntityUid) -> TracksResult<TrackEntity>;
 
     /*
     fn update_entity(&self, entity: &CollectionEntity) -> TracksResult<Option<EntityRevision>>;
