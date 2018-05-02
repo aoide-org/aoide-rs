@@ -31,6 +31,8 @@ use log;
 use aoide_core::domain::entity::*;
 use aoide_core::domain::collection::*;
 
+use storage::*;
+
 use usecases::*;
 
 ///////////////////////////////////////////////////////////////////////
@@ -116,6 +118,26 @@ pub struct CollectionRepository<'a> {
 impl<'a> CollectionRepository<'a> {
     pub fn new(connection: &'a diesel::SqliteConnection) -> Self {
         Self { connection }
+    }
+}
+
+type IdColumn = (
+    collection_entity::id,
+);
+
+const ID_COLUMN: IdColumn = (
+    collection_entity::id,
+);
+
+impl<'a> EntityStorage for CollectionRepository<'a> {
+    fn lookup_id(&self, uid: &EntityUid) -> EntityStorageResult<Option<StorageId>> {
+        let target = collection_entity::table
+            .select(ID_COLUMN)
+            .filter(collection_entity::uid.eq(uid.as_str()));
+        let result = target
+            .first::<QueryableStorageId>(self.connection)
+            .optional()?;
+        Ok(result.map(|r| r.id))
     }
 }
 
