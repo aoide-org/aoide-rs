@@ -117,27 +117,6 @@ impl CollectedMediaResource {
 }
 
 ///////////////////////////////////////////////////////////////////////
-/// MediaMetadata
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct MediaMetadata {
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub collected_resources: Vec<CollectedMediaResource>,
-}
-
-impl MediaMetadata {
-    pub fn is_valid(&self) -> bool {
-        !self.collected_resources.is_empty()
-            && (self.collected_resources
-                .iter()
-                .filter(|loc| loc.is_valid())
-                .count() == self.collected_resources.len())
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
 /// Titles
 ///////////////////////////////////////////////////////////////////////
 
@@ -327,11 +306,6 @@ impl TrackTag {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackBody {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub identity: Option<TrackIdentity>,
-
-    pub media: MediaMetadata,
-
     pub titles: Titles,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
@@ -350,6 +324,12 @@ pub struct TrackBody {
     pub disc_numbers: Option<DiscNumbers>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub identity: Option<TrackIdentity>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub collected_resources: Vec<CollectedMediaResource>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub music: Option<MusicMetadata>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
@@ -365,6 +345,11 @@ pub struct TrackBody {
 impl TrackBody {
     pub fn is_valid(&self) -> bool {
         self.titles.is_valid()
+            && !self.collected_resources.is_empty()
+            && (self.collected_resources
+                .iter()
+                .filter(|res| res.is_valid())
+                .count() == self.collected_resources.len())
     }
 
     pub fn actors_to_string(&self, role_opt: Option<ActorRole>) -> String {
@@ -440,6 +425,18 @@ mod tests {
 
     #[test]
     fn serialize_json() {
+        let classifications = vec![
+            Classification::new(Classifier::Energy, 0.1),
+            Classification::new(Classifier::Popularity, 0.9),
+        ];
+        let music = MusicMetadata {
+            classifications,
+            loudness: Some(Loudness::EBUR128LUFS(LUFS { db: -2.3 })),
+            ..Default::default()
+        };
+        let comments = vec![
+            Comment::new_anonymous("Some anonymous notes about this track"),
+        ];
         let uri = "subfolder/test.mp3";
         let media_resource = MediaResource {
             uri: uri.to_string(),
@@ -451,32 +448,18 @@ mod tests {
             collection_uid: EntityUidGenerator::generate_uid(),
             media_resource,
         };
-        let media = MediaMetadata {
-            collected_resources: vec![collected_resource],
-        };
-        let classifications = vec![
-            Classification::new(Classifier::Energy, 0.1),
-            Classification::new(Classifier::Popularity, 0.9),
-        ];
-        let music = MusicMetadata {
-            classifications,
-            loudness: Some(Loudness::EBUR128LUFS(LUFS { db: -2.3 })),
-            ..Default::default()
-        };
+        let collected_resources = vec![collected_resource];
         let tags = vec![
             Tag::new_faceted(TrackTag::FACET_STYLE, "1980s", 0.8),
             Tag::new_faceted("STYLE", "1990s", 0.3),
             Tag::new_faceted(TrackTag::FACET_SETTIME, "Filler", 0.6),
             Tag::new("non-faceted tag", 1.0),
         ];
-        let comments = vec![
-            Comment::new_anonymous("Some anonymous notes about this track"),
-        ];
         let body = TrackBody {
-            media,
             music: Some(music),
             tags,
             comments,
+            collected_resources,
             ..Default::default()
         };
         let uid = EntityUidGenerator::generate_uid();
