@@ -19,7 +19,6 @@ use aoide_core::domain::entity::*;
 use aoide_core::domain::collection::*;
 use aoide_core::domain::track::*;
 
-
 pub type PaginationOffset = u64;
 pub type PaginationLimit = u64;
 
@@ -68,7 +67,7 @@ pub trait Collections {
 pub type TracksResult<T> = Result<T, failure::Error>;
 
 pub trait Tracks {
-    fn create_entity(&self, body: TrackBody, collection_uid: &EntityUid) -> TracksResult<TrackEntity>;
+    fn create_entity(&self, body: TrackBody) -> TracksResult<TrackEntity>;
 
     /*
     fn update_entity(&self, entity: &CollectionEntity) -> TracksResult<Option<EntityRevision>>;

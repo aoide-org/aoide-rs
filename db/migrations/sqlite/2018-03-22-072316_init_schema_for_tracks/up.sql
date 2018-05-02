@@ -36,23 +36,10 @@ CREATE TABLE track_entity (
     uid                      TEXT NOT NULL,     -- globally unique identifier
     rev_ordinal              INTEGER NOT NULL,
     rev_timestamp            DATETIME NOT NULL, -- with implicit time zone (UTC)
-    collection_id            INTEGER,
-    -- The media/audio columns are set according to the collected resource of the collection.
-    -- All media/audio columns are NULL if the track is not related to a collection.
-    media_uri                TEXT,              -- RFC 3986
-    media_content_type       TEXT,              -- RFC 6838
-    media_sync_rev_ordinal   INTEGER,           -- most recent metadata synchronization
-    media_sync_rev_timestamp DATETIME,          -- most recent metadata synchronization
-    audio_duration           INTEGER,           -- milliseconds
-    audio_channels           INTEGER,           -- number of channels
-    audio_samplerate         INTEGER,           -- Hz
-    audio_bitrate            INTEGER,           -- bits per second (bps)
     entity_fmt               INTEGER NOT NULL,  -- serialization format: 1 = JSON, 2 = BSON, 3 = CBOR, 4 = Bincode, ...
-    entity_ver_major         INTEGER NOT NULL,  -- for data migration - breaking changes
-    entity_ver_minor         INTEGER NOT NULL,  -- for data migration - backward-compatible changes
-    entity_blob              BLOB NOT NULL,     -- serialized track entity
-    UNIQUE (media_uri)                         -- each track can only be stored once in a library
-    FOREIGN KEY(collection_id) REFERENCES active_collection(collection_id)
+    entity_ver_major         INTEGER NOT NULL,  -- serialization version for data migration - breaking changes
+    entity_ver_minor         INTEGER NOT NULL,  -- serialization version for data migration - backward-compatible changes
+    entity_blob              BLOB NOT NULL      -- serialized track entity
 );
 
 -- Keeps track of required and not yet finished track_* updates
@@ -117,12 +104,20 @@ CREATE TABLE track_fulltext (
     UNIQUE (track_id)
 );
 
-CREATE TABLE track_collections (
+CREATE TABLE track_collection_resource (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     collection_uid           TEXT NOT NULL,
+    media_uri                TEXT NOT NULL,     -- RFC 3986
+    media_content_type       TEXT NOT NULL,     -- RFC 6838
+    media_sync_rev_ordinal   INTEGER,           -- most recent metadata synchronization
+    media_sync_rev_timestamp DATETIME,          -- most recent metadata synchronization
+    audio_duration           INTEGER,           -- milliseconds
+    audio_channels           INTEGER,           -- number of channels
+    audio_samplerate         INTEGER,           -- Hz
+    audio_bitrate            INTEGER,           -- bits per second (bps)
     FOREIGN KEY(track_id) REFERENCES track(id),
-    UNIQUE (track_id, collection_uid) -- each track is contained in any collection at most once
+    UNIQUE (track_id, collection_uid) -- each track is contained in each collection at most once
 );
 
 CREATE TABLE track_tags (

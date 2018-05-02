@@ -18,7 +18,6 @@ mod schema;
 use std::i64;
 
 use self::schema::collection_entity;
-use self::schema::active_collection;
 
 use chrono::{DateTime, Utc};
 use chrono::naive::NaiveDateTime;

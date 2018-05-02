@@ -55,8 +55,11 @@ extern crate serde_derive;
 extern crate serde_json;
 
 use aoide_core::domain::collection::*;
+use aoide_core::domain::track::*;
 use aoide_core::domain::entity::*;
 use aoide::storage::collection::*;
+use aoide::storage::track::*;
+use aoide::storage::StorageId;
 use aoide::usecases::*;
 
 use diesel::prelude::*;
@@ -262,8 +265,8 @@ fn handle_post_collections(mut state: State) -> Box<HandlerFuture> {
 
                 let connection = &*gotham_middleware_diesel::state_data::connection(&state);
 
-                let collection = match create_collection(connection, entity_body) {
-                    Ok(collection) => collection,
+                let entity = match create_collection(connection, entity_body) {
+                    Ok(entity) => entity,
                     Err(e) => {
                         return future::err((
                             state,
@@ -272,7 +275,7 @@ fn handle_post_collections(mut state: State) -> Box<HandlerFuture> {
                     }
                 };
 
-                let response = match serde_json::to_vec(&collection) {
+                let response = match serde_json::to_vec(&entity.header()) {
                     Ok(response_body) => create_response(
                         &state,
                         StatusCode::Created,
@@ -360,6 +363,56 @@ fn handle_put_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
     Box::new(handler_future)
 }
 
+fn create_track(connection: &SqliteConnection, body: TrackBody) -> Result<TrackEntity, failure::Error> {
+    let repository = TrackRepository::new(connection);
+    let result = repository.create_entity(body)?;
+    Ok(result)
+}
+
+fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
+    let handler_future = hyper::Body::take_from(&mut state)
+        .concat2()
+        .then(move |full_body| match full_body {
+            Ok(valid_body) => {
+                let entity_body: TrackBody = match serde_json::from_slice(&valid_body)
+                {
+                    Ok(p) => p,
+                    Err(e) => {
+                        return future::err((
+                            state,
+                            e.into_handler_error().with_status(StatusCode::BadRequest),
+                        ))
+                    }
+                };
+
+                let connection = &*gotham_middleware_diesel::state_data::connection(&state);
+
+                let entity = match create_track(connection, entity_body) {
+                    Ok(entity) => entity,
+                    Err(e) => {
+                        return future::err((
+                            state,
+                            e.compat().into_handler_error(),
+                        ))
+                    }
+                };
+
+                let response = match serde_json::to_vec(entity.header()) {
+                    Ok(response_body) => create_response(
+                        &state,
+                        StatusCode::Created,
+                        Some((response_body, mime::APPLICATION_JSON)),
+                    ),
+                    Err(e) => return future::err((state, e.into_handler_error())),
+                };
+                future::ok((state, response))
+            }
+            Err(e) => future::err((state, e.into_handler_error())),
+        });
+
+    Box::new(handler_future)
+}
+
 fn router(middleware: SqliteDieselMiddleware) -> Router {
     // Create a new pipeline set
     let editable_pipeline_set = new_pipeline_set();
@@ -390,6 +443,7 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
             .delete("/collections/:uid")
             .with_path_extractor::<UidPathExtractor>()
             .to(handle_delete_collections_path_uid);
+        route.post("/tracks").to(handle_post_tracks);
     })
 }
 

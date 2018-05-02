@@ -18,7 +18,7 @@ DROP TABLE collection_entity;
 DROP TABLE track_entity;
 DROP TABLE track_overview;
 DROP TABLE track_fulltext;
-DROP TABLE track_collections;
+DROP TABLE track_collection_resource;
 DROP TABLE track_tags;
 DROP TABLE track_comments;
 DROP TABLE track_ratings;

@@ -80,20 +80,21 @@ impl AudioContent {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct MediaResource {
+    #[serde(skip_serializing_if = "String::is_empty", default)]
     pub uri: String,
 
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub content_type: String,
 
-    pub audio_content: AudioContent,
-
     #[serde(skip_serializing_if = "Option::is_none")]
     pub synchronized_revision: Option<EntityRevision>, // most recent metadata import/export
+
+    pub audio_content: Option<AudioContent>,
 }
 
 impl MediaResource {
     pub fn is_valid(&self) -> bool {
-        !self.uri.is_empty() && !self.content_type.is_empty() && self.audio_content.is_valid()
+        !self.uri.is_empty() && !self.content_type.is_empty()
     }
 }
 
@@ -106,12 +107,12 @@ impl MediaResource {
 pub struct CollectedMediaResource {
     pub collection_uid: CollectionUid,
 
-    pub resource: MediaResource,
+    pub media_resource: MediaResource,
 }
 
 impl CollectedMediaResource {
     pub fn is_valid(&self) -> bool {
-        self.collection_uid.is_valid() && self.resource.is_valid()
+        self.collection_uid.is_valid() && self.media_resource.is_valid()
     }
 }
 
@@ -440,7 +441,7 @@ mod tests {
     #[test]
     fn serialize_json() {
         let uri = "subfolder/test.mp3";
-        let resource = MediaResource {
+        let media_resource = MediaResource {
             uri: uri.to_string(),
             content_type: mime_guess::guess_mime_type(uri).to_string(),
             synchronized_revision: Some(EntityRevision::initial()),
@@ -448,7 +449,7 @@ mod tests {
         };
         let collected_resource = CollectedMediaResource {
             collection_uid: EntityUidGenerator::generate_uid(),
-            resource,
+            media_resource,
         };
         let media = MediaMetadata {
             collected_resources: vec![collected_resource],

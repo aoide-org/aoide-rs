@@ -15,9 +15,13 @@
                 "collectedResources": [
                     {
                         "collectionUid": "myMXwslBoXkTDQ0olhq1QsiHRWWL4yj1V0IuoK+PYOg",
-                        "resource": {
+                        "mediaResource": {
                             "uri": "file::///home/music/collection/test.mp3",
                             "contentType": "audio/mpeg",
+                            "synchronizedRevision": {
+                                "ordinal": 23,
+                                "timestamp": "2018-03-22T17:10:55.488760124Z"
+                            },
                             "audioContent": {
                                 "duration": {
                                     "millis": 202821
@@ -31,10 +35,6 @@
                                 "bitrate": {
                                     "bps": 320000
                                 }
-                            },
-                            "synchronizedRevision": {
-                                "ordinal": 23,
-                                "timestamp": "2018-03-22T17:10:55.488760124Z"
                             }
                         }
                     }
