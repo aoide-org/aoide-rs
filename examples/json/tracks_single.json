@@ -82,10 +82,9 @@
             "identity": {
                 "mbrainzId": "d878c95a-8a6b-3be6-b6df-7d720a480625"
             },
-            "collectedResources": [
+            "media": [
                 {
-                    "collectionUid": "myMXwslBoXkTDQ0olhq1QsiHRWWL4yj1V0IuoK+PYOg",
-                    "mediaResource": {
+                    "resource": {
                         "uri": "file::///home/music/collection/test.mp3",
                         "contentType": "audio/mpeg",
                         "synchronizedRevision": {
@@ -106,7 +105,10 @@
                                 "bps": 320000
                             }
                         }
-                    }
+                    },
+                    "collections": [
+                        "myMXwslBoXkTDQ0olhq1QsiHRWWL4yj1V0IuoK+PYOg"
+                    ]
                 }
             ],
             "music": {

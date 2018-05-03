@@ -69,7 +69,8 @@ pub struct AudioContent {
 impl AudioContent {
     pub fn is_valid(&self) -> bool {
         !self.duration.is_empty() && self.channels.is_valid() && self.samplerate.is_valid()
-            && self.bitrate.is_valid() && self.encoder.as_ref().map_or(true, |e| e.is_valid())
+            && self.bitrate.is_valid()
+            && self.encoder.as_ref().map_or(true, |e| e.is_valid())
     }
 }
 
@@ -89,6 +90,7 @@ pub struct MediaResource {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub synchronized_revision: Option<EntityRevision>, // most recent metadata import/export
 
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub audio_content: Option<AudioContent>,
 }
 
@@ -105,14 +107,17 @@ impl MediaResource {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct CollectedMediaResource {
-    pub collection_uid: CollectionUid,
+    pub resource: MediaResource,
 
-    pub media_resource: MediaResource,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub collections: Vec<CollectionUid>,
 }
 
 impl CollectedMediaResource {
     pub fn is_valid(&self) -> bool {
-        self.collection_uid.is_valid() && self.media_resource.is_valid()
+        self.resource.is_valid() && !self.collections.is_empty()
+            && (self.collections.iter().filter(|uid| uid.is_valid()).count()
+                == self.collections.len())
     }
 }
 
@@ -327,7 +332,7 @@ pub struct TrackBody {
     pub identity: Option<TrackIdentity>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub collected_resources: Vec<CollectedMediaResource>,
+    pub media: Vec<CollectedMediaResource>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub music: Option<MusicMetadata>,
@@ -344,12 +349,11 @@ pub struct TrackBody {
 
 impl TrackBody {
     pub fn is_valid(&self) -> bool {
-        self.titles.is_valid()
-            && !self.collected_resources.is_empty()
-            && (self.collected_resources
+        self.titles.is_valid() && !self.media.is_empty()
+            && (self.media
                 .iter()
                 .filter(|res| res.is_valid())
-                .count() == self.collected_resources.len())
+                .count() == self.media.len())
     }
 
     pub fn actors_to_string(&self, role_opt: Option<ActorRole>) -> String {
@@ -438,17 +442,17 @@ mod tests {
             Comment::new_anonymous("Some anonymous notes about this track"),
         ];
         let uri = "subfolder/test.mp3";
-        let media_resource = MediaResource {
+        let resource = MediaResource {
             uri: uri.to_string(),
             content_type: mime_guess::guess_mime_type(uri).to_string(),
             synchronized_revision: Some(EntityRevision::initial()),
             ..Default::default()
         };
         let collected_resource = CollectedMediaResource {
-            collection_uid: EntityUidGenerator::generate_uid(),
-            media_resource,
+            resource,
+            collections: vec![EntityUidGenerator::generate_uid()],
         };
-        let collected_resources = vec![collected_resource];
+        let media = vec![collected_resource];
         let tags = vec![
             Tag::new_faceted(TrackTag::FACET_STYLE, "1980s", 0.8),
             Tag::new_faceted("STYLE", "1990s", 0.3),
@@ -456,18 +460,15 @@ mod tests {
             Tag::new("non-faceted tag", 1.0),
         ];
         let body = TrackBody {
+            media,
             music: Some(music),
             tags,
             comments,
-            collected_resources,
             ..Default::default()
         };
         let uid = EntityUidGenerator::generate_uid();
         let header = EntityHeader::with_uid(uid);
-        let entity = TrackEntity {
-            header,
-            body,
-        };
+        let entity = TrackEntity { header, body };
         let entity_json = serde_json::to_string(&entity).unwrap();
         assert_ne!("{}", entity_json);
         println!("Track Entity (JSON): {}", entity_json);

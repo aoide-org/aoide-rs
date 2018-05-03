@@ -33,3 +33,11 @@ pub type EntityStorageResult<T> = Result<T, failure::Error>;
 pub trait EntityStorage {
     fn find_storage_id(&self, uid: &EntityUid) -> EntityStorageResult<Option<StorageId>>;
 }
+
+pub enum SerializationFormat {
+    JSON = 1,
+    BSON = 2,
+    CBOR = 3,
+    Bincode = 4,
+    MessagePack = 5,
+}

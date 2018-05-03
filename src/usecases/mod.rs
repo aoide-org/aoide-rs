@@ -60,8 +60,6 @@ pub trait Collections {
         name: &str,
         pagination: &Pagination,
     ) -> CollectionsResult<Vec<CollectionEntity>>;
-
-    fn activate_collection(&self, uid: &EntityUid) -> CollectionsResult<()>;
 }
 
 pub type TracksResult<T> = Result<T, failure::Error>;

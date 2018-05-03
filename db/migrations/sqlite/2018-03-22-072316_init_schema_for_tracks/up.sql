@@ -13,7 +13,7 @@
 -- You should have received a copy of the GNU Affero General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-CREATE TABLE collection_entity (
+CREATE TABLE collections_entity (
     id                       INTEGER PRIMARY KEY,
     uid                      TEXT NOT NULL,     -- globally unique identifier
     rev_ordinal              INTEGER NOT NULL,
@@ -23,36 +23,41 @@ CREATE TABLE collection_entity (
     UNIQUE (uid)
 );
 
--- Activates a single collection for the track database. All tracks
--- become dirty when switching the collection.
-CREATE TABLE active_collection (
-    id                       INTEGER PRIMARY KEY DEFAULT 1, -- only a single row is stored in this table
-    collection_id            INTEGER NOT NULL,
-    FOREIGN KEY(collection_id) REFERENCES collection(id)
-);
-
-CREATE TABLE track_entity (
+CREATE TABLE tracks_entity (
     id                       INTEGER PRIMARY KEY,
     uid                      TEXT NOT NULL,     -- globally unique identifier
     rev_ordinal              INTEGER NOT NULL,
     rev_timestamp            DATETIME NOT NULL, -- with implicit time zone (UTC)
-    entity_fmt               INTEGER NOT NULL,  -- serialization format: 1 = JSON, 2 = BSON, 3 = CBOR, 4 = Bincode, ...
-    entity_ver_major         INTEGER NOT NULL,  -- serialization version for data migration - breaking changes
-    entity_ver_minor         INTEGER NOT NULL,  -- serialization version for data migration - backward-compatible changes
-    entity_blob              BLOB NOT NULL      -- serialized track entity
+    ser_fmt                  INTEGER NOT NULL,  -- serialization format: 1 = JSON, 2 = BSON, 3 = CBOR, 4 = Bincode, ...
+    ser_ver_major            INTEGER NOT NULL,  -- serialization version for data migration - breaking changes
+    ser_ver_minor            INTEGER NOT NULL,  -- serialization version for data migration - backward-compatible changes
+    ser_blob                  BLOB NOT NULL      -- serialized track entity
 );
 
--- Keeps track of required and not yet finished track_* updates
--- after changes in the main track table. The track database is
--- consistent if this table is empty.
-CREATE TABLE dirty_tracks (
+CREATE TABLE tracks_media (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
-    FOREIGN KEY(track_id) REFERENCES track(id),
-    UNIQUE (track_id)
+    uri                      TEXT NOT NULL,     -- RFC 3986
+    content_type             TEXT NOT NULL,     -- RFC 6838
+    sync_rev_ordinal         INTEGER,           -- most recent metadata synchronization
+    sync_rev_timestamp       DATETIME,          -- most recent metadata synchronization
+    audio_duration           INTEGER,           -- milliseconds
+    audio_channels           INTEGER,           -- number of channels
+    audio_samplerate         INTEGER,           -- Hz
+    audio_bitrate            INTEGER,           -- bits per second (bps)
+    FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
+    UNIQUE (uri)
 );
 
-CREATE TABLE track_overview (
+CREATE TABLE tracks_media_collection (
+    id                       INTEGER PRIMARY KEY,
+    media_id                 INTEGER NOT NULL,
+    collection_uid           TEXT NOT NULL,
+    FOREIGN KEY(media_id) REFERENCES tracks_media(id),
+    UNIQUE(media_id, collection_uid)
+);
+
+CREATE TABLE tracks_overview (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     track_title              TEXT NOT NULL,
@@ -92,58 +97,42 @@ CREATE TABLE track_overview (
     music_speechiness        REAL, -- [0.0, 1.0]
     ratings_min              REAL, -- [0.0, 1.0]
     ratings_max              REAL, -- [0.0, 1.0]
-    FOREIGN KEY(track_id) REFERENCES track(id),
+    FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id)
 );
 
-CREATE TABLE track_fulltext (
+CREATE TABLE tracks_fulltext (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     fulltext                 CLOB NOT NULL,
-    FOREIGN KEY(track_id) REFERENCES track(id),
+    FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id)
 );
 
-CREATE TABLE track_collection_resource (
-    id                       INTEGER PRIMARY KEY,
-    track_id                 INTEGER NOT NULL,
-    collection_uid           TEXT NOT NULL,
-    media_uri                TEXT NOT NULL,     -- RFC 3986
-    media_content_type       TEXT NOT NULL,     -- RFC 6838
-    media_sync_rev_ordinal   INTEGER,           -- most recent metadata synchronization
-    media_sync_rev_timestamp DATETIME,          -- most recent metadata synchronization
-    audio_duration           INTEGER,           -- milliseconds
-    audio_channels           INTEGER,           -- number of channels
-    audio_samplerate         INTEGER,           -- Hz
-    audio_bitrate            INTEGER,           -- bits per second (bps)
-    FOREIGN KEY(track_id) REFERENCES track(id),
-    UNIQUE (track_id, collection_uid) -- each track is contained in each collection at most once
-);
-
-CREATE TABLE track_tags (
+CREATE TABLE tracks_tag (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     facet                    TEXT,
     term                     TEXT NOT NULL,
     confidence               REAL NOT NULL,
-    FOREIGN KEY(track_id) REFERENCES track(id),
+    FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id, facet, term)
 );
 
-CREATE TABLE track_comments (
+CREATE TABLE tracks_comment (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     owner                    TEXT,
     comment                  CLOB NOT NULL,
-    FOREIGN KEY(track_id) REFERENCES track(id),
+    FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id, owner)
 );
 
-CREATE TABLE track_ratings (
+CREATE TABLE tracks_rating (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     owner                    TEXT,
     rating                   REAL NOT NULL,
-    FOREIGN KEY(track_id) REFERENCES track(id),
+    FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id, owner)
 );
