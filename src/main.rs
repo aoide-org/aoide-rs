@@ -63,7 +63,7 @@ use aoide_core::domain::track::*;
 use aoide_core::domain::entity::*;
 use aoide::storage::collections::*;
 use aoide::storage::tracks::*;
-use aoide::storage::{SerializationFormat, SerializedEntity, deserialize_slice_with_format};
+use aoide::storage::{deserialize_slice_with_format, SerializationFormat, SerializedEntity};
 use aoide::usecases::*;
 
 use diesel::prelude::*;
@@ -80,7 +80,7 @@ use gotham::router::builder::*;
 use gotham::pipeline::new_pipeline;
 use gotham::pipeline::set::{finalize_pipeline_set, new_pipeline_set};
 use gotham::state::{FromState, State};
-use gotham::handler::{HandlerFuture, HandlerError, IntoHandlerError};
+use gotham::handler::{HandlerError, HandlerFuture, IntoHandlerError};
 use gotham_middleware_diesel::DieselMiddleware;
 
 use hyper::StatusCode;
@@ -142,7 +142,10 @@ fn init_env_logger_verbosity(verbosity_level: u8) {
     init_env_logger(log_level_filter);
 }
 
-fn on_handler_error<T>(e: T) -> HandlerError where T: error::Error + Send + 'static {
+fn on_handler_error<T>(e: T) -> HandlerError
+where
+    T: error::Error + Send + 'static,
+{
     warn!("Failed to handle request: {}", e);
     e.into_handler_error()
 }
@@ -158,7 +161,10 @@ struct UidPathExtractor {
     uid: String,
 }
 
-fn find_collection(connection: &SqliteConnection, uid: &EntityUid) -> Result<Option<CollectionEntity>, failure::Error> {
+fn find_collection(
+    connection: &SqliteConnection,
+    uid: &EntityUid,
+) -> Result<Option<CollectionEntity>, failure::Error> {
     let repository = CollectionRepository::new(connection);
     let result = repository.find_entity(&uid)?;
     Ok(result)
@@ -192,7 +198,10 @@ fn handle_get_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
     Box::new(result.into_future())
 }
 
-fn remove_collection(connection: &SqliteConnection, uid: &EntityUid) -> Result<Option<()>, failure::Error> {
+fn remove_collection(
+    connection: &SqliteConnection,
+    uid: &EntityUid,
+) -> Result<Option<()>, failure::Error> {
     let repository = CollectionRepository::new(connection);
     let result = repository.remove_entity(&uid)?;
     Ok(result)
@@ -225,9 +234,12 @@ struct PaginationQueryStringExtractor {
     limit: Option<PaginationLimit>,
 }
 
-fn find_all_collections(connection: &SqliteConnection, pagination: &Pagination) -> Result<Vec<CollectionEntity>, failure::Error> {
+fn find_recently_revisioned_collections(
+    connection: &SqliteConnection,
+    pagination: &Pagination,
+) -> Result<Vec<CollectionEntity>, failure::Error> {
     let repository = CollectionRepository::new(connection);
-    let result = repository.find_all_entities(pagination)?;
+    let result = repository.find_recently_revisioned_entities(pagination)?;
     Ok(result)
 }
 
@@ -240,7 +252,7 @@ fn handle_get_collections_path_pagination(mut state: State) -> Box<HandlerFuture
 
     let connection = &*gotham_middleware_diesel::state_data::connection(&state);
 
-    let handler_future = match find_all_collections(connection, &pagination) {
+    let handler_future = match find_recently_revisioned_collections(connection, &pagination) {
         Ok(collections) => match serde_json::to_vec(&collections) {
             Ok(response_body) => {
                 let response = create_response(
@@ -258,7 +270,10 @@ fn handle_get_collections_path_pagination(mut state: State) -> Box<HandlerFuture
     Box::new(handler_future)
 }
 
-fn create_collection(connection: &SqliteConnection, body: CollectionBody) -> Result<CollectionEntity, failure::Error> {
+fn create_collection(
+    connection: &SqliteConnection,
+    body: CollectionBody,
+) -> Result<CollectionEntity, failure::Error> {
     let repository = CollectionRepository::new(connection);
     let result = repository.create_entity(body)?;
     Ok(result)
@@ -269,8 +284,7 @@ fn handle_post_collections(mut state: State) -> Box<HandlerFuture> {
         .concat2()
         .then(move |full_body| match full_body {
             Ok(valid_body) => {
-                let entity_body: CollectionBody = match serde_json::from_slice(&valid_body)
-                {
+                let entity_body: CollectionBody = match serde_json::from_slice(&valid_body) {
                     Ok(p) => p,
                     Err(e) => {
                         return future::err((
@@ -284,12 +298,7 @@ fn handle_post_collections(mut state: State) -> Box<HandlerFuture> {
 
                 let entity = match create_collection(connection, entity_body) {
                     Ok(entity) => entity,
-                    Err(e) => {
-                        return future::err((
-                            state,
-                            on_handler_failure(e),
-                        ))
-                    }
+                    Err(e) => return future::err((state, on_handler_failure(e))),
                 };
 
                 let response = match serde_json::to_vec(&entity.header()) {
@@ -308,7 +317,10 @@ fn handle_post_collections(mut state: State) -> Box<HandlerFuture> {
     Box::new(handler_future)
 }
 
-fn update_collection(connection: &SqliteConnection, entity: &CollectionEntity) -> Result<Option<EntityRevision>, failure::Error> {
+fn update_collection(
+    connection: &SqliteConnection,
+    entity: &CollectionEntity,
+) -> Result<Option<EntityRevision>, failure::Error> {
     let repository = CollectionRepository::new(connection);
     let result = repository.update_entity(entity)?;
     Ok(result)
@@ -319,15 +331,13 @@ fn handle_put_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
         .concat2()
         .then(move |full_body| match full_body {
             Ok(valid_body) => {
-                let entity: CollectionEntity = match serde_json::from_slice(&valid_body)
-                {
+                let entity: CollectionEntity = match serde_json::from_slice(&valid_body) {
                     Ok(p) => p,
                     Err(e) => {
-                        warn!("Failed to deserialize request body - {}", e);
                         return future::err((
                             state,
                             on_handler_error(e).with_status(StatusCode::BadRequest),
-                        ))
+                        ));
                     }
                 };
 
@@ -335,12 +345,15 @@ fn handle_put_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
                 let uid = EntityUid::from(path.uid);
                 let entity_uid = entity.header().uid();
                 if &uid != entity_uid {
-                    let e = format_err!("Mismatching identifiers: expected = {}, actual = {}", uid, entity_uid);
-                    warn!("Failed to validate request - {}", e);
+                    let e = format_err!(
+                        "Mismatching identifiers: expected = {}, actual = {}",
+                        uid,
+                        entity_uid
+                    );
                     return future::err((
                         state,
                         on_handler_failure(e).with_status(StatusCode::BadRequest),
-                    ))
+                    ));
                 }
 
                 let connection = &*gotham_middleware_diesel::state_data::connection(&state);
@@ -348,13 +361,17 @@ fn handle_put_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
                 let next_revision = match update_collection(connection, &entity) {
                     Ok(Some(next_revision)) => next_revision,
                     Ok(None) => {
-                        let e = format_err!("Unknown or revision mismatch: {:?}", entity.header());
-                        warn!("Failed to update collection - {}", e);
-                        return future::err((state, failure::Error::from(e).compat().into_handler_error().with_status(StatusCode::NotFound)))
+                        let e = format_err!(
+                            "Inexistent entity or revision conflict: {:?}",
+                            entity.header()
+                        );
+                        return future::err((
+                            state,
+                            on_handler_failure(e).with_status(StatusCode::NotFound),
+                        ));
                     }
                     Err(e) => {
-                        warn!("Failed to update collection - {}", e);
-                        return future::err((state, on_handler_failure(e)))
+                        return future::err((state, on_handler_failure(e)));
                     }
                 };
 
@@ -362,25 +379,25 @@ fn handle_put_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
                     Ok(response_body) => create_response(
                         &state,
                         StatusCode::Ok,
-                        Some((response_body, mime::APPLICATION_JSON))
+                        Some((response_body, mime::APPLICATION_JSON)),
                     ),
                     Err(e) => {
-                        warn!("Failed to serialize response body - {}", e);
-                        return future::err((state, on_handler_error(e)))
+                        return future::err((state, on_handler_error(e)));
                     }
                 };
                 future::ok((state, response))
             }
-            Err(e) => {
-                warn!("Failed to read request body - {}", e);
-                future::err((state, on_handler_error(e)))
-            }
+            Err(e) => future::err((state, on_handler_error(e))),
         });
 
     Box::new(handler_future)
 }
 
-fn create_track(connection: &SqliteConnection, body: TrackBody, format: SerializationFormat) -> Result<TrackEntity, failure::Error> {
+fn create_track(
+    connection: &SqliteConnection,
+    body: TrackBody,
+    format: SerializationFormat,
+) -> Result<TrackEntity, failure::Error> {
     let repository = TrackRepository::new(connection);
     let result = repository.create_entity(body, format)?;
     Ok(result)
@@ -393,7 +410,8 @@ fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
             Ok(valid_body) => {
                 let format = match Headers::take_from(&mut state).get::<ContentType>() {
                     Some(content_type) => {
-                        if let Some(format) = SerializationFormat::from_media_type(&content_type.0) {
+                        if let Some(format) = SerializationFormat::from_media_type(&content_type.0)
+                        {
                             format
                         } else {
                             let e = format_err!("Unsupported content type");
@@ -402,36 +420,32 @@ fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
                                 on_handler_failure(e).with_status(StatusCode::UnsupportedMediaType),
                             ));
                         }
-                    },
+                    }
                     None => {
                         let e = format_err!("Missing content type");
                         return future::err((
                             state,
                             on_handler_failure(e).with_status(StatusCode::UnsupportedMediaType),
                         ));
-                    },
-                };
-
-                let entity_body: TrackBody = match deserialize_slice_with_format(&valid_body, format) {
-                    Ok(entity_body) => entity_body,
-                    Err(e) => {
-                        return future::err((
-                            state,
-                            on_handler_failure(e).with_status(StatusCode::BadRequest),
-                        ))
                     }
                 };
+
+                let entity_body: TrackBody =
+                    match deserialize_slice_with_format(&valid_body, format) {
+                        Ok(entity_body) => entity_body,
+                        Err(e) => {
+                            return future::err((
+                                state,
+                                on_handler_failure(e).with_status(StatusCode::BadRequest),
+                            ))
+                        }
+                    };
 
                 let connection = &*gotham_middleware_diesel::state_data::connection(&state);
 
                 let entity = match create_track(connection, entity_body, format) {
                     Ok(entity) => entity,
-                    Err(e) => {
-                        return future::err((
-                            state,
-                            on_handler_failure(e),
-                        ))
-                    }
+                    Err(e) => return future::err((state, on_handler_failure(e))),
                 };
 
                 let response = match serde_json::to_vec(entity.header()) {
@@ -450,7 +464,144 @@ fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
     Box::new(handler_future)
 }
 
-fn load_track(connection: &SqliteConnection, uid: &EntityUid) -> Result<Option<SerializedEntity>, failure::Error> {
+fn update_track(
+    connection: &SqliteConnection,
+    entity: &mut TrackEntity,
+    format: SerializationFormat,
+) -> Result<Option<()>, failure::Error> {
+    let repository = TrackRepository::new(connection);
+    let result = repository.update_entity(entity, format)?;
+    Ok(result)
+}
+
+fn handle_put_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
+    let handler_future = hyper::Body::take_from(&mut state)
+        .concat2()
+        .then(move |full_body| match full_body {
+            Ok(valid_body) => {
+                let format = match Headers::take_from(&mut state).get::<ContentType>() {
+                    Some(content_type) => {
+                        if let Some(format) = SerializationFormat::from_media_type(&content_type.0)
+                        {
+                            format
+                        } else {
+                            let e = format_err!("Unsupported content type");
+                            return future::err((
+                                state,
+                                on_handler_failure(e).with_status(StatusCode::UnsupportedMediaType),
+                            ));
+                        }
+                    }
+                    None => {
+                        let e = format_err!("Missing content type");
+                        return future::err((
+                            state,
+                            on_handler_failure(e).with_status(StatusCode::UnsupportedMediaType),
+                        ));
+                    }
+                };
+
+                let mut entity: TrackEntity =
+                    match deserialize_slice_with_format(&valid_body, format) {
+                        Ok(entity_body) => entity_body,
+                        Err(e) => {
+                            return future::err((
+                                state,
+                                on_handler_failure(e).with_status(StatusCode::BadRequest),
+                            ))
+                        }
+                    };
+
+                let path = UidPathExtractor::take_from(&mut state);
+                let uid = EntityUid::from(path.uid);
+                {
+                    let entity_uid = entity.header().uid();
+                    if &uid != entity_uid {
+                        let e = format_err!(
+                            "Mismatching identifiers: expected = {}, actual = {}",
+                            uid,
+                            entity_uid
+                        );
+                        return future::err((
+                            state,
+                            on_handler_failure(e).with_status(StatusCode::BadRequest),
+                        ));
+                    }
+                }
+
+                let connection = &*gotham_middleware_diesel::state_data::connection(&state);
+
+                let prev_revision = entity.header().revision();
+                let next_revision = match update_track(connection, &mut entity, format) {
+                    Ok(Some(())) => entity.header().revision(),
+                    Ok(None) => {
+                        let prev_header = EntityHeader::new(uid, prev_revision);
+                        let e = format_err!(
+                            "Inexistent entity or revision conflict: {:?}",
+                            prev_header
+                        );
+                        return future::err((
+                            state,
+                            on_handler_failure(e).with_status(StatusCode::NotFound),
+                        ));
+                    }
+                    Err(e) => {
+                        return future::err((state, on_handler_failure(e)));
+                    }
+                };
+
+                let response = match serde_json::to_vec(&EntityHeader::new(uid, next_revision)) {
+                    Ok(response_body) => create_response(
+                        &state,
+                        StatusCode::Ok,
+                        Some((response_body, mime::APPLICATION_JSON)),
+                    ),
+                    Err(e) => {
+                        return future::err((state, on_handler_error(e)));
+                    }
+                };
+                future::ok((state, response))
+            }
+            Err(e) => future::err((state, on_handler_error(e))),
+        });
+
+    Box::new(handler_future)
+}
+
+fn remove_track(
+    connection: &SqliteConnection,
+    uid: &EntityUid,
+) -> Result<Option<()>, failure::Error> {
+    let repository = TrackRepository::new(connection);
+    let result = repository.remove_entity(&uid)?;
+    Ok(result)
+}
+
+fn handle_delete_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
+    let path = UidPathExtractor::take_from(&mut state);
+    let uid: EntityUid = path.uid.into();
+
+    let connection = &*gotham_middleware_diesel::state_data::connection(&state);
+
+    let result = match remove_track(connection, &uid) {
+        Ok(Some(_)) => {
+            let response = create_response(&state, StatusCode::Ok, None);
+            future::ok((state, response))
+        }
+        Ok(None) => {
+            let response = create_response(&state, StatusCode::Accepted, None);
+            future::ok((state, response))
+        }
+        Err(e) => future::err((state, on_handler_failure(e))),
+    };
+
+    Box::new(result.into_future())
+}
+
+fn load_track(
+    connection: &SqliteConnection,
+    uid: &EntityUid,
+) -> Result<Option<SerializedEntity>, failure::Error> {
     let repository = TrackRepository::new(connection);
     let result = repository.load_entity(&uid)?;
     Ok(result)
@@ -470,7 +621,7 @@ fn handle_get_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
                 Some((serialized_entity.blob, serialized_entity.format.into())),
             );
             Ok((state, response))
-        },
+        }
         Ok(None) => {
             let response = create_response(&state, StatusCode::NotFound, None);
             Ok((state, response))
@@ -481,9 +632,12 @@ fn handle_get_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
     Box::new(result.into_future())
 }
 
-fn load_all_tracks(connection: &SqliteConnection, pagination: &Pagination) -> Result<Vec<SerializedEntity>, failure::Error> {
+fn load_recently_revisioned_tracks(
+    connection: &SqliteConnection,
+    pagination: &Pagination,
+) -> Result<Vec<SerializedEntity>, failure::Error> {
     let repository = TrackRepository::new(connection);
-    let result = repository.load_all_entities(pagination)?;
+    let result = repository.load_recently_revisioned_entities(pagination)?;
     Ok(result)
 }
 
@@ -496,32 +650,34 @@ fn handle_get_tracks_path_pagination(mut state: State) -> Box<HandlerFuture> {
 
     let connection = &*gotham_middleware_diesel::state_data::connection(&state);
 
-    let handler_future = match load_all_tracks(connection, &pagination) {
+    let handler_future = match load_recently_revisioned_tracks(connection, &pagination) {
         Ok(serialized_entities) => {
             let mut json_body = Vec::with_capacity(
-                serialized_entities.iter().fold(serialized_entities.len() + 1, |acc, ref item| acc + item.blob.len()));
+                serialized_entities
+                    .iter()
+                    .fold(serialized_entities.len() + 1, |acc, ref item| {
+                        acc + item.blob.len()
+                    }),
+            );
             json_body.extend_from_slice("[".as_bytes());
             for (i, item) in serialized_entities.iter().enumerate() {
                 if item.format != SerializationFormat::JSON {
-                    let e = format_err!("Unsupported serialization format while loading multiple entities: {:?}", item.format);
-                    return Box::new(future::err((
-                        state,
-                        on_handler_failure(e).with_status(StatusCode::UnsupportedMediaType),
-                    )));
+                    let e = format_err!("Unsupported serialization format while loading multiple entities: expected = {:?}, actual = {:?}", SerializationFormat::JSON, item.format);
+                    return Box::new(future::err((state, on_handler_failure(e))));
                 }
                 if i > 0 {
                     json_body.extend_from_slice(",".as_bytes());
                 }
                 json_body.extend_from_slice(&item.blob);
-            };
+            }
             json_body.extend_from_slice("]".as_bytes());
             let response = create_response(
-                    &state,
-                    StatusCode::Ok,
-                    Some((json_body, mime::APPLICATION_JSON)),
-                );
+                &state,
+                StatusCode::Ok,
+                Some((json_body, mime::APPLICATION_JSON)),
+            );
             future::ok((state, response))
-        },
+        }
         Err(e) => future::err((state, on_handler_failure(e))),
     };
 
@@ -547,6 +703,10 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
             .with_path_extractor::<UidPathExtractor>()
             .to(handle_put_collections_path_uid);
         route
+            .delete("/collections/:uid")
+            .with_path_extractor::<UidPathExtractor>()
+            .to(handle_delete_collections_path_uid);
+        route
             .get("/collections")
             .with_query_string_extractor::<PaginationQueryStringExtractor>()
             .to(handle_get_collections_path_pagination);
@@ -554,11 +714,15 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
             .get("/collections/:uid")
             .with_path_extractor::<UidPathExtractor>()
             .to(handle_get_collections_path_uid);
-        route
-            .delete("/collections/:uid")
-            .with_path_extractor::<UidPathExtractor>()
-            .to(handle_delete_collections_path_uid);
         route.post("/tracks").to(handle_post_tracks);
+        route
+            .put("/tracks/:uid")
+            .with_path_extractor::<UidPathExtractor>()
+            .to(handle_put_tracks_path_uid);
+        route
+            .delete("/tracks/:uid")
+            .with_path_extractor::<UidPathExtractor>()
+            .to(handle_delete_tracks_path_uid);
         route
             .get("/tracks")
             .with_query_string_extractor::<PaginationQueryStringExtractor>()

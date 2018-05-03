@@ -61,7 +61,11 @@ impl<'a> EntityStorage for TrackRepository<'a> {
 }
 
 impl<'a> Tracks for TrackRepository<'a> {
-    fn create_entity(&self, body: TrackBody, format: SerializationFormat) -> TracksResult<TrackEntity> {
+    fn create_entity(
+        &self,
+        body: TrackBody,
+        format: SerializationFormat,
+    ) -> TracksResult<TrackEntity> {
         let entity = TrackEntity::with_body(body);
         {
             let entity_blob = serialize_entity(&entity, format)?;
@@ -81,68 +85,48 @@ impl<'a> Tracks for TrackRepository<'a> {
         Ok(entity)
     }
 
-    fn load_entity(&self, uid: &EntityUid) -> TracksResult<Option<SerializedEntity>> {
-        let target = tracks_entity::table.filter(tracks_entity::uid.eq(uid.as_str()));
-        let result = target
-            .first::<QueryableSerializedEntity>(self.connection)
-            .optional()?;
-        if log_enabled!(log::Level::Debug) {
-            match &result {
-                &None => {
-                    debug!("Found no track entity with uid '{}'", uid);
+    fn update_entity(
+        &self,
+        entity: &mut TrackEntity,
+        format: SerializationFormat,
+    ) -> TracksResult<Option<()>> {
+        let prev_revision = entity.header().revision();
+        let next_revision = prev_revision.next();
+        {
+            entity.update_revision(next_revision);
+            let entity_blob = serialize_entity(&entity, format)?;
+            {
+                let updatable = UpdatableTracksEntity::bind(&next_revision, format, &entity_blob);
+                let target = tracks_entity::table.filter(
+                    tracks_entity::uid
+                        .eq(entity.header().uid().as_str())
+                        .and(tracks_entity::rev_ordinal.eq(prev_revision.ordinal() as i64))
+                        .and(
+                            tracks_entity::rev_timestamp.eq(prev_revision.timestamp().naive_utc()),
+                        ),
+                );
+                let query = diesel::update(target).set(&updatable);
+                if log_enabled!(log::Level::Debug) {
+                    debug!(
+                        "Executing SQLite query: {}",
+                        diesel::debug_query::<diesel::sqlite::Sqlite, _>(&query)
+                    );
                 }
-                &Some(_) => {
-                    debug!("Loaded track entity with uid '{}'", uid);
+                let rows_affected: usize = query.execute(self.connection)?;
+                assert!(rows_affected <= 1);
+                if rows_affected <= 0 {
+                    return Ok(None);
                 }
             }
         }
-        Ok(result.map(|r| r.into()))
-
-    }
-    
-    fn load_all_entities(&self, pagination: &Pagination) -> TracksResult<Vec<SerializedEntity>> {
-        let offset = pagination.offset.map(|offset| offset as i64).unwrap_or(0);
-        let limit = pagination.limit.map(|limit| limit as i64).unwrap_or(i64::MAX);
-        let target = tracks_entity::table
-            .order(tracks_entity::rev_timestamp.desc())
-            .offset(offset)
-            .limit(limit);
-        let results = target.load::<QueryableSerializedEntity>(self.connection)?;
         if log_enabled!(log::Level::Debug) {
             debug!(
-                "Loaded {} track entities",
-                results.len(),
+                "Updated track entity: {:?} -> {:?}",
+                entity.header(),
+                next_revision
             );
         }
-        Ok(results.into_iter().map(|r| r.into()).collect())
-    }
-
-    /*
-    fn update_entity(&self, entity: &TrackEntity) -> TracksResult<Option<EntityRevision>> {
-        let next_revision = entity.header().revision().next();
-        {
-            let updatable = UpdatableTrackEntity::bind(&next_revision, &entity.body());
-            let target = tracks_entity::table
-                .filter(tracks_entity::uid.eq(entity.header().uid().as_str())
-                    .and(tracks_entity::rev_ordinal.eq(entity.header().revision().ordinal() as i64))
-                    .and(tracks_entity::rev_timestamp.eq(entity.header().revision().timestamp().naive_utc())));
-            let query = diesel::update(target).set(&updatable);
-            if log_enabled!(log::Level::Debug) {
-                debug!(
-                    "Executing SQLite query: {}",
-                    diesel::debug_query::<diesel::sqlite::Sqlite, _>(&query)
-                );
-            }
-            let rows_affected: usize = query.execute(self.connection)?;
-            assert!(rows_affected <= 1);
-            if rows_affected <= 0 {
-                return Ok(None);
-            }
-        }
-        if log_enabled!(log::Level::Debug) {
-            debug!("Updated track entity: {:?} -> {:?}", entity.header(), next_revision);
-        }
-        Ok(Some(next_revision))
+        Ok(Some(()))
     }
 
     fn remove_entity(&self, uid: &EntityUid) -> TracksResult<Option<()>> {
@@ -165,10 +149,10 @@ impl<'a> Tracks for TrackRepository<'a> {
         Ok(Some(()))
     }
 
-    fn find_entity(&self, uid: &EntityUid) -> TracksResult<Option<TrackEntity>> {
+    fn load_entity(&self, uid: &EntityUid) -> TracksResult<Option<SerializedEntity>> {
         let target = tracks_entity::table.filter(tracks_entity::uid.eq(uid.as_str()));
         let result = target
-            .first::<QueryableTrackEntity>(self.connection)
+            .first::<QueryableSerializedEntity>(self.connection)
             .optional()?;
         if log_enabled!(log::Level::Debug) {
             match &result {
@@ -176,13 +160,32 @@ impl<'a> Tracks for TrackRepository<'a> {
                     debug!("Found no track entity with uid '{}'", uid);
                 }
                 &Some(_) => {
-                    debug!("Found a track entity with uid '{}'", uid);
+                    debug!("Loaded track entity with uid '{}'", uid);
                 }
             }
         }
         Ok(result.map(|r| r.into()))
     }
-    */
+
+    fn load_recently_revisioned_entities(
+        &self,
+        pagination: &Pagination,
+    ) -> TracksResult<Vec<SerializedEntity>> {
+        let offset = pagination.offset.map(|offset| offset as i64).unwrap_or(0);
+        let limit = pagination
+            .limit
+            .map(|limit| limit as i64)
+            .unwrap_or(i64::MAX);
+        let target = tracks_entity::table
+            .order(tracks_entity::rev_timestamp.desc())
+            .offset(offset)
+            .limit(limit);
+        let results = target.load::<QueryableSerializedEntity>(self.connection)?;
+        if log_enabled!(log::Level::Debug) {
+            debug!("Loaded {} track entities", results.len(),);
+        }
+        Ok(results.into_iter().map(|r| r.into()).collect())
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////

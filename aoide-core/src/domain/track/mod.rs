@@ -415,6 +415,10 @@ impl TrackEntity {
     pub fn update_revision(&mut self, next_revision: EntityRevision) {
         self.header.update_revision(next_revision);
     }
+
+    pub fn revert_revision(&mut self, prev_revision: EntityRevision) {
+        self.header.revert_revision(prev_revision);
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////

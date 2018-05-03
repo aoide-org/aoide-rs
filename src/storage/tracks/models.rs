@@ -17,7 +17,7 @@ use super::schema::{tracks_entity, tracks_media, tracks_media_collection};
 
 use chrono::naive::NaiveDateTime;
 
-use aoide_core::domain::entity::{EntityUid, EntityHeader};
+use aoide_core::domain::entity::{EntityUid, EntityRevision, EntityHeader};
 use aoide_core::domain::track::{MediaResource};
 
 use storage::{StorageId, SerializationFormat};
@@ -48,6 +48,30 @@ impl<'a> InsertableTracksEntity<'a> {
             uid: header.uid().as_str(),
             rev_ordinal: header.revision().ordinal() as i64,
             rev_timestamp: header.revision().timestamp().naive_utc(),
+            ser_fmt: ser_fmt as i16,
+            ser_ver_major: 0, // TODO
+            ser_ver_minor: 0, // TODO
+            ser_blob,
+        }
+    }
+}
+
+#[derive(Debug, AsChangeset)]
+#[table_name = "tracks_entity"]
+pub struct UpdatableTracksEntity<'a> {
+    pub rev_ordinal: i64,
+    pub rev_timestamp: NaiveDateTime,
+    pub ser_fmt: i16,
+    pub ser_ver_major: i32,
+    pub ser_ver_minor: i32,
+    pub ser_blob: &'a [u8],
+}
+
+impl<'a> UpdatableTracksEntity<'a> {
+    pub fn bind(next_revision: &'a EntityRevision, ser_fmt: SerializationFormat, ser_blob: &'a [u8]) -> Self {
+        Self {
+            rev_ordinal: next_revision.ordinal() as i64,
+            rev_timestamp: next_revision.timestamp().naive_utc(),
             ser_fmt: ser_fmt as i16,
             ser_ver_major: 0, // TODO
             ser_ver_minor: 0, // TODO

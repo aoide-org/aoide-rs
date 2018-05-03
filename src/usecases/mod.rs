@@ -32,7 +32,10 @@ pub struct Pagination {
 
 impl Pagination {
     pub fn none() -> Self {
-        Pagination { offset: None, limit: None }
+        Pagination {
+            offset: None,
+            limit: None,
+        }
     }
 }
 
@@ -41,13 +44,17 @@ pub type CollectionsResult<T> = Result<T, failure::Error>;
 pub trait Collections {
     fn create_entity(&self, body: CollectionBody) -> CollectionsResult<CollectionEntity>;
 
-    fn update_entity(&self, entity: &CollectionEntity) -> CollectionsResult<Option<EntityRevision>>;
+    fn update_entity(&self, entity: &CollectionEntity)
+        -> CollectionsResult<Option<EntityRevision>>;
 
     fn remove_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<()>>;
 
     fn find_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<CollectionEntity>>;
 
-    fn find_all_entities(&self, pagination: &Pagination) -> CollectionsResult<Vec<CollectionEntity>>;
+    fn find_recently_revisioned_entities(
+        &self,
+        pagination: &Pagination,
+    ) -> CollectionsResult<Vec<CollectionEntity>>;
 
     fn find_entities_by_name(&self, name: &str) -> CollectionsResult<Vec<CollectionEntity>>;
 
@@ -67,17 +74,20 @@ pub trait Collections {
 pub type TracksResult<T> = Result<T, failure::Error>;
 
 pub trait Tracks {
-    fn create_entity(&self, body: TrackBody, format: SerializationFormat) -> TracksResult<TrackEntity>;
+    fn create_entity(
+        &self,
+        body: TrackBody,
+        format: SerializationFormat,
+    ) -> TracksResult<TrackEntity>;
 
-    fn load_entity(&self, uid: &EntityUid) -> TracksResult<Option<SerializedEntity>>;
-
-    fn load_all_entities(&self, pagination: &Pagination) -> TracksResult<Vec<SerializedEntity>>;
-
-    /*
-    fn update_entity(&self, entity: &CollectionEntity) -> TracksResult<Option<EntityRevision>>;
+    fn update_entity(&self, entity: &mut TrackEntity, format: SerializationFormat) -> TracksResult<Option<()>>;
 
     fn remove_entity(&self, uid: &EntityUid) -> TracksResult<Option<()>>;
 
-    fn find_entity(&self, uid: &EntityUid) -> TracksResult<Option<TrackEntity>>;
-    */
+    fn load_entity(&self, uid: &EntityUid) -> TracksResult<Option<SerializedEntity>>;
+
+    fn load_recently_revisioned_entities(
+        &self,
+        pagination: &Pagination,
+    ) -> TracksResult<Vec<SerializedEntity>>;
 }

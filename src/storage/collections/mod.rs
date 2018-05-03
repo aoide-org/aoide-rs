@@ -154,7 +154,7 @@ impl<'a> Collections for CollectionRepository<'a> {
         Ok(result.map(|r| r.into()))
     }
     
-    fn find_all_entities(&self, pagination: &Pagination) -> CollectionsResult<Vec<CollectionEntity>> {
+    fn find_recently_revisioned_entities(&self, pagination: &Pagination) -> CollectionsResult<Vec<CollectionEntity>> {
         let offset = pagination.offset.map(|offset| offset as i64).unwrap_or(0);
         let limit = pagination.limit.map(|limit| limit as i64).unwrap_or(i64::MAX);
         let target = collections_entity::table
