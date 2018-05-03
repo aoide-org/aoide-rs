@@ -19,9 +19,9 @@ use mime;
 
 use aoide_core::domain::entity::*;
 
-pub mod collection;
+pub mod collections;
 
-pub mod track;
+pub mod tracks;
 
 pub type StorageId = i64;
 

@@ -59,8 +59,8 @@ extern crate serde_json;
 use aoide_core::domain::collection::*;
 use aoide_core::domain::track::*;
 use aoide_core::domain::entity::*;
-use aoide::storage::collection::*;
-use aoide::storage::track::*;
+use aoide::storage::collections::*;
+use aoide::storage::tracks::*;
 use aoide::storage::SerializedEntity;
 use aoide::usecases::*;
 
@@ -81,14 +81,14 @@ use gotham::state::{FromState, State};
 use gotham::handler::{HandlerFuture, IntoHandlerError};
 use gotham_middleware_diesel::DieselMiddleware;
 
-use hyper::{Response, StatusCode};
+use hyper::StatusCode;
 use hyper::header::{ContentType, Headers};
 
 use env_logger::Builder as LoggerBuilder;
 
 use log::LevelFilter as LogLevelFilter;
 
-use r2d2::{Pool, PooledConnection};
+use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
 
 use std::env;
@@ -96,7 +96,7 @@ use std::env;
 embed_migrations!("db/migrations/sqlite");
 
 type SqliteConnectionPool = Pool<ConnectionManager<SqliteConnection>>;
-type PooledSqliteConnection = PooledConnection<ConnectionManager<SqliteConnection>>;
+//type PooledSqliteConnection = PooledConnection<ConnectionManager<SqliteConnection>>;
 type SqliteDieselMiddleware = DieselMiddleware<SqliteConnection>;
 
 fn create_connection_pool(url: &str) -> Result<SqliteConnectionPool, failure::Error> {
