@@ -17,6 +17,14 @@ use failure;
 
 use mime;
 
+use rmp_serde;
+
+use serde;
+
+use serde_cbor;
+
+use serde_json;
+
 use aoide_core::domain::entity::*;
 
 pub mod collections;
@@ -39,22 +47,16 @@ pub trait EntityStorage {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SerializationFormat {
     JSON = 1,
-    BSON = 2,
-    CBOR = 3,
-    Bincode = 4,
-    MessagePack = 5,
+    CBOR = 2,
+    MessagePack = 3,
 }
 
 impl SerializationFormat {
     pub fn from(from: i16) -> Option<Self> {
         if from == (SerializationFormat::JSON as i16) {
             Some(SerializationFormat::JSON)
-        } else if from == (SerializationFormat::BSON as i16) {
-            Some(SerializationFormat::BSON)
         } else if from == (SerializationFormat::CBOR as i16) {
             Some(SerializationFormat::CBOR)
-        } else if from == (SerializationFormat::Bincode as i16) {
-            Some(SerializationFormat::Bincode)
         } else if from == (SerializationFormat::MessagePack as i16) {
             Some(SerializationFormat::MessagePack)
         } else {
@@ -71,15 +73,35 @@ pub struct SerializedEntity {
 
     pub version: EntityVersion,
 
-    pub serialized_blob: Vec<u8>,
+    pub blob: Vec<u8>,
 }
 
 impl Into<mime::Mime> for SerializationFormat {
     fn into(self) -> mime::Mime {
         match self {
             SerializationFormat::JSON => mime::APPLICATION_JSON,
+            SerializationFormat::CBOR => "application/cbor".parse::<mime::Mime>().unwrap(),
             SerializationFormat::MessagePack => mime::APPLICATION_MSGPACK,
-            _ => mime::APPLICATION_OCTET_STREAM,
+            //_ => mime::APPLICATION_OCTET_STREAM,
         }
     }
+}
+
+pub fn serialize_entity<T>(entity: &T, format: SerializationFormat) -> Result<Vec<u8>, failure::Error> where T: serde::Serialize {
+    let blob = match format {
+        SerializationFormat::JSON => serde_json::to_vec(entity)?,
+        SerializationFormat::CBOR => serde_cbor::to_vec(entity)?,
+        SerializationFormat::MessagePack => rmp_serde::to_vec(entity)?,
+        //_ => return Err(format_err!("Unsupported format for serialization: {:?}", format))
+    };
+    Ok(blob)
+}
+pub fn deserialize_entity<'a, T>(input: &'a SerializedEntity) -> Result<T, failure::Error> where T: serde::Deserialize<'a> {
+    let entity = match input.format {
+        SerializationFormat::JSON => serde_json::from_slice::<T>(&input.blob)?,
+        SerializationFormat::CBOR => serde_cbor::from_slice::<T>(&input.blob)?,
+        SerializationFormat::MessagePack => rmp_serde::from_slice::<T>(&input.blob)?,
+        //_ => return Err(format_err!("Unsupported format for deserialization: {:?}", input.format))
+    };
+    Ok(entity)
 }

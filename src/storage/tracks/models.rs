@@ -88,7 +88,7 @@ impl From<QueryableTracksEntity> for SerializedEntity {
             header,
             format,
             version,
-            serialized_blob: from.ser_blob,
+            blob: from.ser_blob,
         }
     }
 }

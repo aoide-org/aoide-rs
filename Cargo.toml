@@ -36,6 +36,7 @@ r2d2 = "*"
 r2d2-diesel = "*"
 rmp-serde = "*"
 serde = "*"
+serde_cbor = "*"
 serde_derive = "*"
 serde_json = "*"
 

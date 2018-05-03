@@ -51,6 +51,8 @@ extern crate rmp_serde;
 
 extern crate serde;
 
+extern crate serde_cbor;
+
 #[macro_use]
 extern crate serde_derive;
 
@@ -61,7 +63,7 @@ use aoide_core::domain::track::*;
 use aoide_core::domain::entity::*;
 use aoide::storage::collections::*;
 use aoide::storage::tracks::*;
-use aoide::storage::SerializedEntity;
+use aoide::storage::{SerializationFormat, SerializedEntity};
 use aoide::usecases::*;
 
 use diesel::prelude::*;
@@ -78,7 +80,7 @@ use gotham::router::builder::*;
 use gotham::pipeline::new_pipeline;
 use gotham::pipeline::set::{finalize_pipeline_set, new_pipeline_set};
 use gotham::state::{FromState, State};
-use gotham::handler::{HandlerFuture, IntoHandlerError};
+use gotham::handler::{HandlerFuture, HandlerError, IntoHandlerError};
 use gotham_middleware_diesel::DieselMiddleware;
 
 use hyper::StatusCode;
@@ -92,6 +94,7 @@ use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
 
 use std::env;
+use std::error;
 
 embed_migrations!("db/migrations/sqlite");
 
@@ -166,13 +169,13 @@ fn handle_get_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
                 );
                 Ok((state, response))
             }
-            Err(e) => Err((state, e.into_handler_error())),
+            Err(e) => Err((state, on_handler_error(e))),
         },
         Ok(None) => {
             let response = create_response(&state, StatusCode::NotFound, None);
             Ok((state, response))
         }
-        Err(e) => Err((state, e.compat().into_handler_error())),
+        Err(e) => Err((state, on_handler_failure(e))),
     };
 
     Box::new(result.into_future())
@@ -199,7 +202,7 @@ fn handle_delete_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
             let response = create_response(&state, StatusCode::Accepted, None);
             future::ok((state, response))
         }
-        Err(e) => future::err((state, e.compat().into_handler_error())),
+        Err(e) => future::err((state, on_handler_failure(e))),
     };
 
     Box::new(result.into_future())
@@ -236,9 +239,9 @@ fn handle_get_collections_path_pagination(mut state: State) -> Box<HandlerFuture
                 );
                 future::ok((state, response))
             }
-            Err(e) => future::err((state, e.into_handler_error())),
+            Err(e) => future::err((state, on_handler_error(e))),
         },
-        Err(e) => future::err((state, e.compat().into_handler_error())),
+        Err(e) => future::err((state, on_handler_failure(e))),
     };
 
     Box::new(handler_future)
@@ -261,7 +264,7 @@ fn handle_post_collections(mut state: State) -> Box<HandlerFuture> {
                     Err(e) => {
                         return future::err((
                             state,
-                            e.into_handler_error().with_status(StatusCode::BadRequest),
+                            on_handler_error(e).with_status(StatusCode::BadRequest),
                         ))
                     }
                 };
@@ -273,7 +276,7 @@ fn handle_post_collections(mut state: State) -> Box<HandlerFuture> {
                     Err(e) => {
                         return future::err((
                             state,
-                            e.compat().into_handler_error(),
+                            on_handler_failure(e),
                         ))
                     }
                 };
@@ -284,11 +287,11 @@ fn handle_post_collections(mut state: State) -> Box<HandlerFuture> {
                         StatusCode::Created,
                         Some((response_body, mime::APPLICATION_JSON)),
                     ),
-                    Err(e) => return future::err((state, e.into_handler_error())),
+                    Err(e) => return future::err((state, on_handler_error(e))),
                 };
                 future::ok((state, response))
             }
-            Err(e) => future::err((state, e.into_handler_error())),
+            Err(e) => future::err((state, on_handler_error(e))),
         });
 
     Box::new(handler_future)
@@ -312,7 +315,7 @@ fn handle_put_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
                         warn!("Failed to deserialize request body - {}", e);
                         return future::err((
                             state,
-                            e.into_handler_error().with_status(StatusCode::BadRequest),
+                            on_handler_error(e).with_status(StatusCode::BadRequest),
                         ))
                     }
                 };
@@ -325,7 +328,7 @@ fn handle_put_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
                     warn!("Failed to validate request - {}", e);
                     return future::err((
                         state,
-                        e.compat().into_handler_error().with_status(StatusCode::BadRequest),
+                        on_handler_failure(e).with_status(StatusCode::BadRequest),
                     ))
                 }
 
@@ -340,7 +343,7 @@ fn handle_put_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
                     }
                     Err(e) => {
                         warn!("Failed to update collection - {}", e);
-                        return future::err((state, e.compat().into_handler_error()))
+                        return future::err((state, on_handler_failure(e)))
                     }
                 };
 
@@ -352,14 +355,14 @@ fn handle_put_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
                     ),
                     Err(e) => {
                         warn!("Failed to serialize response body - {}", e);
-                        return future::err((state, e.into_handler_error()))
+                        return future::err((state, on_handler_error(e)))
                     }
                 };
                 future::ok((state, response))
             }
             Err(e) => {
                 warn!("Failed to read request body - {}", e);
-                future::err((state, e.into_handler_error()))
+                future::err((state, on_handler_error(e)))
             }
         });
 
@@ -368,8 +371,19 @@ fn handle_put_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
 
 fn create_track(connection: &SqliteConnection, body: TrackBody) -> Result<TrackEntity, failure::Error> {
     let repository = TrackRepository::new(connection);
-    let result = repository.create_entity(body)?;
+    let result = repository.create_entity(body, SerializationFormat::JSON)?;
     Ok(result)
+}
+
+fn on_handler_error<T>(e: T) -> HandlerError where T: error::Error + Send + 'static {
+    warn!("Failed to handle request: {}", e);
+    e.into_handler_error()
+}
+
+fn on_handler_failure(e: failure::Error) -> HandlerError {
+    let compat = e.compat();
+    warn!("Failed to handle request: {}", compat);
+    compat.into_handler_error()
 }
 
 fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
@@ -385,7 +399,7 @@ fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
                                 Err(e) => {
                                     return future::err((
                                         state,
-                                        e.into_handler_error().with_status(StatusCode::BadRequest),
+                                        on_handler_error(e).with_status(StatusCode::BadRequest),
                                     ))
                                 }
                             }
@@ -395,7 +409,7 @@ fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
                                 Err(e) => {
                                     return future::err((
                                         state,
-                                        e.into_handler_error().with_status(StatusCode::BadRequest),
+                                        on_handler_error(e).with_status(StatusCode::BadRequest),
                                     ))
                                 }
                             }
@@ -403,7 +417,7 @@ fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
                             let e = format_err!("Unsupported content type");
                             return future::err((
                                 state,
-                                e.compat().into_handler_error().with_status(StatusCode::UnsupportedMediaType),
+                                on_handler_failure(e).with_status(StatusCode::UnsupportedMediaType),
                             ))
                         }
                     },
@@ -411,7 +425,7 @@ fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
                         let e = format_err!("Missing content type");
                         return future::err((
                             state,
-                            e.compat().into_handler_error().with_status(StatusCode::UnsupportedMediaType),
+                            on_handler_failure(e).with_status(StatusCode::UnsupportedMediaType),
                         ))
                     },
                 };
@@ -423,7 +437,7 @@ fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
                     Err(e) => {
                         return future::err((
                             state,
-                            e.compat().into_handler_error(),
+                            on_handler_failure(e),
                         ))
                     }
                 };
@@ -434,11 +448,11 @@ fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
                         StatusCode::Created,
                         Some((response_body, mime::APPLICATION_JSON)),
                     ),
-                    Err(e) => return future::err((state, e.into_handler_error())),
+                    Err(e) => return future::err((state, on_handler_error(e))),
                 };
                 future::ok((state, response))
             }
-            Err(e) => future::err((state, e.into_handler_error())),
+            Err(e) => future::err((state, on_handler_error(e))),
         });
 
     Box::new(handler_future)
@@ -461,7 +475,7 @@ fn handle_get_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
             let response = create_response(
                 &state,
                 StatusCode::Ok,
-                Some((serialized_entity.serialized_blob, serialized_entity.format.into())),
+                Some((serialized_entity.blob, serialized_entity.format.into())),
             );
             Ok((state, response))
         },
@@ -469,7 +483,7 @@ fn handle_get_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
             let response = create_response(&state, StatusCode::NotFound, None);
             Ok((state, response))
         }
-        Err(e) => Err((state, e.compat().into_handler_error())),
+        Err(e) => Err((state, on_handler_failure(e))),
     };
 
     Box::new(result.into_future())

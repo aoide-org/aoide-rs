@@ -28,8 +28,6 @@ use diesel;
 
 use log;
 
-use rmp_serde;
-
 use storage::*;
 
 use usecases::*;
@@ -63,11 +61,11 @@ impl<'a> EntityStorage for TrackRepository<'a> {
 }
 
 impl<'a> Tracks for TrackRepository<'a> {
-    fn create_entity(&self, body: TrackBody) -> TracksResult<TrackEntity> {
+    fn create_entity(&self, body: TrackBody, format: SerializationFormat) -> TracksResult<TrackEntity> {
         let entity = TrackEntity::with_body(body);
         {
-            let entity_blob = rmp_serde::to_vec(&entity)?;
-            let insertable = InsertableTracksEntity::bind(entity.header(), SerializationFormat::MessagePack, &entity_blob);
+            let entity_blob = serialize_entity(&entity, format)?;
+            let insertable = InsertableTracksEntity::bind(entity.header(), format, &entity_blob);
             let query = diesel::insert_into(tracks_entity::table).values(&insertable);
             if log_enabled!(log::Level::Debug) {
                 debug!(
