@@ -23,9 +23,6 @@ use self::schema::*;
 
 use std::i64;
 
-use chrono::{DateTime, Utc};
-use chrono::naive::NaiveDateTime;
-
 use diesel::prelude::*;
 use diesel;
 

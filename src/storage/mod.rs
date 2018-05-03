@@ -13,6 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use chrono::{DateTime, Utc};
+use chrono::naive::NaiveDateTime;
+
 use failure;
 
 use mime;
@@ -38,6 +41,39 @@ pub struct QueryableStorageId {
     pub id: StorageId,
 }
 
+#[derive(Debug, Queryable)]
+pub struct QueryableSerializedEntity {
+    pub id: StorageId,
+    pub uid: String,
+    pub rev_ordinal: i64,
+    pub rev_timestamp: NaiveDateTime,
+    pub ser_fmt: i16,
+    pub ser_ver_major: i32,
+    pub ser_ver_minor: i32,
+    pub ser_blob: Vec<u8>,
+}
+
+impl From<QueryableSerializedEntity> for SerializedEntity {
+    fn from(from: QueryableSerializedEntity) -> Self {
+        let uid: EntityUid = from.uid.into();
+        let revision = EntityRevision::new(
+            from.rev_ordinal as u64,
+            DateTime::from_utc(from.rev_timestamp, Utc),
+        );
+        let header = EntityHeader::new(uid, revision);
+        let format = SerializationFormat::from(from.ser_fmt).unwrap();
+        assert!(from.ser_ver_major >= 0);
+        assert!(from.ser_ver_minor >= 0);
+        let version = EntityVersion::new(from.ser_ver_major as u32, from.ser_ver_minor as u32);
+        SerializedEntity {
+            header,
+            format,
+            version,
+            blob: from.ser_blob,
+        }
+    }
+}
+
 pub type EntityStorageResult<T> = Result<T, failure::Error>;
 
 pub trait EntityStorage {
@@ -58,6 +94,18 @@ impl SerializationFormat {
         } else if from == (SerializationFormat::CBOR as i16) {
             Some(SerializationFormat::CBOR)
         } else if from == (SerializationFormat::MessagePack as i16) {
+            Some(SerializationFormat::MessagePack)
+        } else {
+            None
+        }
+    }
+
+    pub fn from_media_type(media_type: &mime::Mime) -> Option<Self> {
+        if media_type == &mime::APPLICATION_JSON {
+            Some(SerializationFormat::JSON)
+        } else if media_type.type_() == mime::APPLICATION && media_type.subtype() == "cbor" {
+            Some(SerializationFormat::CBOR)
+        } else if media_type == &mime::APPLICATION_MSGPACK {
             Some(SerializationFormat::MessagePack)
         } else {
             None
@@ -96,12 +144,17 @@ pub fn serialize_entity<T>(entity: &T, format: SerializationFormat) -> Result<Ve
     };
     Ok(blob)
 }
-pub fn deserialize_entity<'a, T>(input: &'a SerializedEntity) -> Result<T, failure::Error> where T: serde::Deserialize<'a> {
-    let entity = match input.format {
-        SerializationFormat::JSON => serde_json::from_slice::<T>(&input.blob)?,
-        SerializationFormat::CBOR => serde_cbor::from_slice::<T>(&input.blob)?,
-        SerializationFormat::MessagePack => rmp_serde::from_slice::<T>(&input.blob)?,
-        //_ => return Err(format_err!("Unsupported format for deserialization: {:?}", input.format))
+
+pub fn deserialize_slice_with_format<'a, T>(slice: &'a [u8], format: SerializationFormat) -> Result<T, failure::Error> where T: serde::Deserialize<'a> {
+    let deserialized = match format {
+        SerializationFormat::JSON => serde_json::from_slice::<T>(slice)?,
+        SerializationFormat::CBOR => serde_cbor::from_slice::<T>(slice)?,
+        SerializationFormat::MessagePack => rmp_serde::from_slice::<T>(slice)?,
+        //_ => return Err(format_err!("Unsupported format for deserialization: {:?}", format))
     };
-    Ok(entity)
+    Ok(deserialized)
+}
+
+pub fn deserialize_entity<'a, T>(input: &'a SerializedEntity) -> Result<T, failure::Error> where T: serde::Deserialize<'a> {
+    deserialize_slice_with_format(&input.blob, input.format)
 }

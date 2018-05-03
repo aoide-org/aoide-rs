@@ -18,15 +18,10 @@ use super::schema::collections_entity;
 use chrono::{DateTime, Utc};
 use chrono::naive::NaiveDateTime;
 
-use diesel::prelude::*;
-use diesel;
-
 use aoide_core::domain::entity::{EntityUid, EntityHeader};
 use aoide_core::domain::collection::*;
 
 use storage::*;
-
-use usecases::*;
 
 #[derive(Debug, Insertable)]
 #[table_name = "collections_entity"]

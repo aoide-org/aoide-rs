@@ -15,16 +15,12 @@
 
 use super::schema::{tracks_entity, tracks_media, tracks_media_collection};
 
-use chrono::{DateTime, Utc};
 use chrono::naive::NaiveDateTime;
 
-use diesel::prelude::*;
-use diesel;
-
-use aoide_core::domain::entity::{EntityUid, EntityRevision, EntityVersion, EntityHeader};
+use aoide_core::domain::entity::{EntityUid, EntityHeader};
 use aoide_core::domain::track::{MediaResource};
 
-use storage::{StorageId, SerializationFormat, SerializedEntity};
+use storage::{StorageId, SerializationFormat};
 
 pub type TracksEntityIdColumn = (
     tracks_entity::id,
@@ -56,39 +52,6 @@ impl<'a> InsertableTracksEntity<'a> {
             ser_ver_major: 0, // TODO
             ser_ver_minor: 0, // TODO
             ser_blob,
-        }
-    }
-}
-
-#[derive(Debug, Queryable)]
-pub struct QueryableTracksEntity {
-    pub id: StorageId,
-    pub uid: String,
-    pub rev_ordinal: i64,
-    pub rev_timestamp: NaiveDateTime,
-    pub ser_fmt: i16,
-    pub ser_ver_major: i32,
-    pub ser_ver_minor: i32,
-    pub ser_blob: Vec<u8>,
-}
-
-impl From<QueryableTracksEntity> for SerializedEntity {
-    fn from(from: QueryableTracksEntity) -> Self {
-        let uid: EntityUid = from.uid.into();
-        let revision = EntityRevision::new(
-            from.rev_ordinal as u64,
-            DateTime::from_utc(from.rev_timestamp, Utc),
-        );
-        let header = EntityHeader::new(uid, revision);
-        let format = SerializationFormat::from(from.ser_fmt).unwrap();
-        assert!(from.ser_ver_major >= 0);
-        assert!(from.ser_ver_minor >= 0);
-        let version = EntityVersion::new(from.ser_ver_major as u32, from.ser_ver_minor as u32);
-        SerializedEntity {
-            header,
-            format,
-            version,
-            blob: from.ser_blob,
         }
     }
 }

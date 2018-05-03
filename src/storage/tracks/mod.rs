@@ -84,7 +84,7 @@ impl<'a> Tracks for TrackRepository<'a> {
     fn load_entity(&self, uid: &EntityUid) -> TracksResult<Option<SerializedEntity>> {
         let target = tracks_entity::table.filter(tracks_entity::uid.eq(uid.as_str()));
         let result = target
-            .first::<QueryableTracksEntity>(self.connection)
+            .first::<QueryableSerializedEntity>(self.connection)
             .optional()?;
         if log_enabled!(log::Level::Debug) {
             match &result {
@@ -92,12 +92,29 @@ impl<'a> Tracks for TrackRepository<'a> {
                     debug!("Found no track entity with uid '{}'", uid);
                 }
                 &Some(_) => {
-                    debug!("Found a track entity with uid '{}'", uid);
+                    debug!("Loaded track entity with uid '{}'", uid);
                 }
             }
         }
         Ok(result.map(|r| r.into()))
 
+    }
+    
+    fn load_all_entities(&self, pagination: &Pagination) -> TracksResult<Vec<SerializedEntity>> {
+        let offset = pagination.offset.map(|offset| offset as i64).unwrap_or(0);
+        let limit = pagination.limit.map(|limit| limit as i64).unwrap_or(i64::MAX);
+        let target = tracks_entity::table
+            .order(tracks_entity::rev_timestamp.desc())
+            .offset(offset)
+            .limit(limit);
+        let results = target.load::<QueryableSerializedEntity>(self.connection)?;
+        if log_enabled!(log::Level::Debug) {
+            debug!(
+                "Loaded {} track entities",
+                results.len(),
+            );
+        }
+        Ok(results.into_iter().map(|r| r.into()).collect())
     }
 
     /*

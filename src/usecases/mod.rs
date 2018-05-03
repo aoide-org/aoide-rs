@@ -71,6 +71,8 @@ pub trait Tracks {
 
     fn load_entity(&self, uid: &EntityUid) -> TracksResult<Option<SerializedEntity>>;
 
+    fn load_all_entities(&self, pagination: &Pagination) -> TracksResult<Vec<SerializedEntity>>;
+
     /*
     fn update_entity(&self, entity: &CollectionEntity) -> TracksResult<Option<EntityRevision>>;
 

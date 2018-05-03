@@ -63,7 +63,7 @@ use aoide_core::domain::track::*;
 use aoide_core::domain::entity::*;
 use aoide::storage::collections::*;
 use aoide::storage::tracks::*;
-use aoide::storage::{SerializationFormat, SerializedEntity};
+use aoide::storage::{SerializationFormat, SerializedEntity, deserialize_slice_with_format};
 use aoide::usecases::*;
 
 use diesel::prelude::*;
@@ -140,6 +140,17 @@ fn init_env_logger_verbosity(verbosity_level: u8) {
         _ => LogLevelFilter::Trace,
     };
     init_env_logger(log_level_filter);
+}
+
+fn on_handler_error<T>(e: T) -> HandlerError where T: error::Error + Send + 'static {
+    warn!("Failed to handle request: {}", e);
+    e.into_handler_error()
+}
+
+fn on_handler_failure(e: failure::Error) -> HandlerError {
+    let compat = e.compat();
+    warn!("Failed to handle request: {}", compat);
+    compat.into_handler_error()
 }
 
 #[derive(Deserialize, StateData, StaticResponseExtender)]
@@ -369,21 +380,10 @@ fn handle_put_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
     Box::new(handler_future)
 }
 
-fn create_track(connection: &SqliteConnection, body: TrackBody) -> Result<TrackEntity, failure::Error> {
+fn create_track(connection: &SqliteConnection, body: TrackBody, format: SerializationFormat) -> Result<TrackEntity, failure::Error> {
     let repository = TrackRepository::new(connection);
-    let result = repository.create_entity(body, SerializationFormat::JSON)?;
+    let result = repository.create_entity(body, format)?;
     Ok(result)
-}
-
-fn on_handler_error<T>(e: T) -> HandlerError where T: error::Error + Send + 'static {
-    warn!("Failed to handle request: {}", e);
-    e.into_handler_error()
-}
-
-fn on_handler_failure(e: failure::Error) -> HandlerError {
-    let compat = e.compat();
-    warn!("Failed to handle request: {}", compat);
-    compat.into_handler_error()
 }
 
 fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
@@ -391,34 +391,16 @@ fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
         .concat2()
         .then(move |full_body| match full_body {
             Ok(valid_body) => {
-                let entity_body: TrackBody = match Headers::take_from(&mut state).get::<ContentType>() {
+                let format = match Headers::take_from(&mut state).get::<ContentType>() {
                     Some(content_type) => {
-                        if &content_type.0 == &mime::APPLICATION_JSON {
-                            match serde_json::from_slice(&valid_body) {
-                                Ok(entity_body) => entity_body,
-                                Err(e) => {
-                                    return future::err((
-                                        state,
-                                        on_handler_error(e).with_status(StatusCode::BadRequest),
-                                    ))
-                                }
-                            }
-                        } else if &content_type.0 == &mime::APPLICATION_MSGPACK {
-                            match rmp_serde::from_slice(&valid_body) {
-                                Ok(entity_body) => entity_body,
-                                Err(e) => {
-                                    return future::err((
-                                        state,
-                                        on_handler_error(e).with_status(StatusCode::BadRequest),
-                                    ))
-                                }
-                            }
+                        if let Some(format) = SerializationFormat::from_media_type(&content_type.0) {
+                            format
                         } else {
                             let e = format_err!("Unsupported content type");
                             return future::err((
                                 state,
                                 on_handler_failure(e).with_status(StatusCode::UnsupportedMediaType),
-                            ))
+                            ));
                         }
                     },
                     None => {
@@ -426,13 +408,23 @@ fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
                         return future::err((
                             state,
                             on_handler_failure(e).with_status(StatusCode::UnsupportedMediaType),
-                        ))
+                        ));
                     },
+                };
+
+                let entity_body: TrackBody = match deserialize_slice_with_format(&valid_body, format) {
+                    Ok(entity_body) => entity_body,
+                    Err(e) => {
+                        return future::err((
+                            state,
+                            on_handler_failure(e).with_status(StatusCode::BadRequest),
+                        ))
+                    }
                 };
 
                 let connection = &*gotham_middleware_diesel::state_data::connection(&state);
 
-                let entity = match create_track(connection, entity_body) {
+                let entity = match create_track(connection, entity_body, format) {
                     Ok(entity) => entity,
                     Err(e) => {
                         return future::err((
@@ -489,6 +481,53 @@ fn handle_get_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
     Box::new(result.into_future())
 }
 
+fn load_all_tracks(connection: &SqliteConnection, pagination: &Pagination) -> Result<Vec<SerializedEntity>, failure::Error> {
+    let repository = TrackRepository::new(connection);
+    let result = repository.load_all_entities(pagination)?;
+    Ok(result)
+}
+
+fn handle_get_tracks_path_pagination(mut state: State) -> Box<HandlerFuture> {
+    let query_params = PaginationQueryStringExtractor::take_from(&mut state);
+    let pagination = Pagination {
+        offset: query_params.offset,
+        limit: query_params.limit,
+    };
+
+    let connection = &*gotham_middleware_diesel::state_data::connection(&state);
+
+    let handler_future = match load_all_tracks(connection, &pagination) {
+        Ok(serialized_entities) => {
+            let mut json_body = Vec::with_capacity(
+                serialized_entities.iter().fold(serialized_entities.len() + 1, |acc, ref item| acc + item.blob.len()));
+            json_body.extend_from_slice("[".as_bytes());
+            for (i, item) in serialized_entities.iter().enumerate() {
+                if item.format != SerializationFormat::JSON {
+                    let e = format_err!("Unsupported serialization format while loading multiple entities: {:?}", item.format);
+                    return Box::new(future::err((
+                        state,
+                        on_handler_failure(e).with_status(StatusCode::UnsupportedMediaType),
+                    )));
+                }
+                if i > 0 {
+                    json_body.extend_from_slice(",".as_bytes());
+                }
+                json_body.extend_from_slice(&item.blob);
+            };
+            json_body.extend_from_slice("]".as_bytes());
+            let response = create_response(
+                    &state,
+                    StatusCode::Ok,
+                    Some((json_body, mime::APPLICATION_JSON)),
+                );
+            future::ok((state, response))
+        },
+        Err(e) => future::err((state, on_handler_failure(e))),
+    };
+
+    Box::new(handler_future)
+}
+
 fn router(middleware: SqliteDieselMiddleware) -> Router {
     // Create a new pipeline set
     let editable_pipeline_set = new_pipeline_set();
@@ -520,6 +559,10 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
             .with_path_extractor::<UidPathExtractor>()
             .to(handle_delete_collections_path_uid);
         route.post("/tracks").to(handle_post_tracks);
+        route
+            .get("/tracks")
+            .with_query_string_extractor::<PaginationQueryStringExtractor>()
+            .to(handle_get_tracks_path_pagination);
         route
             .get("/tracks/:uid")
             .with_path_extractor::<UidPathExtractor>()
