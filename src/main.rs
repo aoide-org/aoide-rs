@@ -47,6 +47,8 @@ extern crate r2d2;
 
 extern crate r2d2_diesel;
 
+extern crate rmp_serde;
+
 extern crate serde;
 
 #[macro_use]
@@ -80,6 +82,7 @@ use gotham::handler::{HandlerFuture, IntoHandlerError};
 use gotham_middleware_diesel::DieselMiddleware;
 
 use hyper::{Response, StatusCode};
+use hyper::header::{ContentType, Headers};
 
 use env_logger::Builder as LoggerBuilder;
 
@@ -374,15 +377,43 @@ fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
         .concat2()
         .then(move |full_body| match full_body {
             Ok(valid_body) => {
-                let entity_body: TrackBody = match serde_json::from_slice(&valid_body)
-                {
-                    Ok(p) => p,
-                    Err(e) => {
+                let entity_body: TrackBody = match Headers::take_from(&mut state).get::<ContentType>() {
+                    Some(content_type) => {
+                        if &content_type.0 == &mime::APPLICATION_JSON {
+                            match serde_json::from_slice(&valid_body) {
+                                Ok(entity_body) => entity_body,
+                                Err(e) => {
+                                    return future::err((
+                                        state,
+                                        e.into_handler_error().with_status(StatusCode::BadRequest),
+                                    ))
+                                }
+                            }
+                        } else if &content_type.0 == &mime::APPLICATION_MSGPACK {
+                            match rmp_serde::from_slice(&valid_body) {
+                                Ok(entity_body) => entity_body,
+                                Err(e) => {
+                                    return future::err((
+                                        state,
+                                        e.into_handler_error().with_status(StatusCode::BadRequest),
+                                    ))
+                                }
+                            }
+                        } else {
+                            let e = format_err!("Unsupported content type");
+                            return future::err((
+                                state,
+                                e.compat().into_handler_error().with_status(StatusCode::UnsupportedMediaType),
+                            ))
+                        }
+                    },
+                    None => {
+                        let e = format_err!("Missing content type");
                         return future::err((
                             state,
-                            e.into_handler_error().with_status(StatusCode::BadRequest),
+                            e.compat().into_handler_error().with_status(StatusCode::UnsupportedMediaType),
                         ))
-                    }
+                    },
                 };
 
                 let connection = &*gotham_middleware_diesel::state_data::connection(&state);
