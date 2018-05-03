@@ -13,14 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+mod binding;
+
+use self::binding::*;
+
 mod schema;
 
+use self::schema::*;
+
 use std::i64;
-
-use self::schema::{tracks_entity, tracks_media, tracks_media_collection};
-
-use chrono::{DateTime, Utc};
-use chrono::naive::NaiveDateTime;
 
 use diesel::prelude::*;
 use diesel;
@@ -29,142 +30,11 @@ use log;
 
 use rmp_serde;
 
-use serde_json;
-
-use aoide_core::domain::entity::*;
-use aoide_core::domain::track::*;
-
 use storage::*;
 
 use usecases::*;
 
-///////////////////////////////////////////////////////////////////////
-/// TrackRecord
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Debug, Insertable)]
-#[table_name = "tracks_entity"]
-struct InsertableTracksEntity<'a> {
-    pub uid: &'a str,
-    pub rev_ordinal: i64,
-    pub rev_timestamp: NaiveDateTime,
-    pub ser_fmt: i16,
-    pub ser_ver_major: i32,
-    pub ser_ver_minor: i32,
-    pub ser_blob: &'a [u8],
-}
-
-impl<'a> InsertableTracksEntity<'a> {
-    pub fn bind(entity: &'a TrackEntity, ser_fmt: SerializationFormat, ser_blob: &'a [u8]) -> Self {
-        Self {
-            uid: entity.header().uid().as_str(),
-            rev_ordinal: entity.header().revision().ordinal() as i64,
-            rev_timestamp: entity.header().revision().timestamp().naive_utc(),
-            ser_fmt: ser_fmt as i16,
-            ser_ver_major: 0, // TODO
-            ser_ver_minor: 0, // TODO
-            ser_blob,
-        }
-    }
-}
-
-#[derive(Debug, Insertable)]
-#[table_name = "tracks_media"]
-struct InsertableTracksMedia<'a> {
-    pub track_id: i64,
-    pub uri: &'a str,
-    pub content_type: &'a str,
-    pub sync_rev_ordinal: Option<i64>,
-    pub sync_rev_timestamp: Option<NaiveDateTime>,
-    pub audio_duration: Option<i64>,
-    pub audio_channels: Option<i16>,
-    pub audio_samplerate: Option<i32>,
-    pub audio_bitrate: Option<i32>,
-    pub audio_enc_name: Option<&'a str>,
-    pub audio_enc_settings: Option<&'a str>,
-}
-
-impl<'a> InsertableTracksMedia<'a> {
-    pub fn bind(track_id: StorageId, resource: &'a MediaResource) -> Self {
-        Self {
-            track_id: track_id as i64,
-            uri: resource.uri.as_str(),
-            content_type: resource.content_type.as_str(),
-            sync_rev_ordinal: resource.synchronized_revision.map(|rev| rev.ordinal() as i64),
-            sync_rev_timestamp: resource.synchronized_revision.map(|rev| rev.timestamp().naive_utc()),
-            audio_duration: resource.audio_content.as_ref().map(|audio| audio.duration.millis as i64),
-            audio_channels: resource.audio_content.as_ref().map(|audio| audio.channels.count as i16),
-            audio_samplerate: resource.audio_content.as_ref().map(|audio| audio.samplerate.hz as i32),
-            audio_bitrate: resource.audio_content.as_ref().map(|audio| audio.bitrate.bps as i32),
-            audio_enc_name: resource.audio_content.as_ref().and_then(|audio| audio.encoder.as_ref()).map(|enc| enc.name.as_str()),
-            audio_enc_settings: resource.audio_content.as_ref().and_then(|audio| audio.encoder.as_ref()).and_then(|enc| enc.settings.as_ref()).map(|settings| settings.as_str()),
-        }
-    }
-}
-
-#[derive(Debug, Insertable)]
-#[table_name = "tracks_media_collection"]
-struct InsertableTracksMediaCollection<'a> {
-    pub media_id: i64,
-    pub collection_uid: &'a str,
-}
-
-impl<'a> InsertableTracksMediaCollection<'a> {
-    pub fn bind(media_id: StorageId, collection_uid: &'a EntityUid) -> Self {
-        Self {
-            media_id,
-            collection_uid: collection_uid.as_str(),
-        }
-    }
-}
-
-/*
-#[derive(Debug, AsChangeset)]
-#[table_name = "tracks_entity"]
-pub struct UpdatableTrackEntity<'a> {
-    pub rev_ordinal: i64,
-    pub rev_timestamp: NaiveDateTime,
-    pub name: &'a str,
-    pub description: Option<&'a str>,
-}
-
-impl<'a> UpdatableTrackEntity<'a> {
-    pub fn bind(next_revision: &EntityRevision, body: &'a TrackBody) -> Self {
-        Self {
-            rev_ordinal: next_revision.ordinal() as i64,
-            rev_timestamp: next_revision.timestamp().naive_utc(),
-            name: &body.name,
-            description: body.description.as_ref().map(|s| s.as_str()),
-        }
-    }
-}
-
-#[derive(Debug, Queryable)]
-pub struct QueryableTrackEntity {
-    pub id: i64,
-    pub uid: String,
-    pub rev_ordinal: i64,
-    pub rev_timestamp: NaiveDateTime,
-    pub name: String,
-    pub description: Option<String>,
-}
-
-impl From<QueryableTrackEntity> for TrackEntity {
-    fn from(from: QueryableTrackEntity) -> Self {
-        let uid: EntityUid = from.uid.into();
-        let revision = EntityRevision::new(
-            from.rev_ordinal as u64,
-            DateTime::from_utc(from.rev_timestamp, Utc),
-        );
-        let header = EntityHeader::new(uid, revision);
-        let body = TrackBody {
-            name: from.name,
-            description: from.description,
-        };
-        Self::new(header, body)
-    }
-}
-*/
+use aoide_core::domain::track::*;
 
 ///////////////////////////////////////////////////////////////////////
 /// TrackRepository
@@ -180,18 +50,10 @@ impl<'a> TrackRepository<'a> {
     }
 }
 
-type IdColumn = (
-    tracks_entity::id,
-);
-
-const ID_COLUMN: IdColumn = (
-    tracks_entity::id,
-);
-
 impl<'a> EntityStorage for TrackRepository<'a> {
     fn find_storage_id(&self, uid: &EntityUid) -> EntityStorageResult<Option<StorageId>> {
         let target = tracks_entity::table
-            .select(ID_COLUMN)
+            .select(TRACKS_ENTITY_ID_COLUMN)
             .filter(tracks_entity::uid.eq(uid.as_str()));
         let result = target
             .first::<QueryableStorageId>(self.connection)
@@ -205,7 +67,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         let entity = TrackEntity::with_body(body);
         {
             let entity_blob = rmp_serde::to_vec(&entity)?;
-            let insertable = InsertableTracksEntity::bind(&entity, SerializationFormat::MessagePack, &entity_blob);
+            let insertable = InsertableTracksEntity::bind(entity.header(), SerializationFormat::MessagePack, &entity_blob);
             let query = diesel::insert_into(tracks_entity::table).values(&insertable);
             if log_enabled!(log::Level::Debug) {
                 debug!(
@@ -219,6 +81,25 @@ impl<'a> Tracks for TrackRepository<'a> {
             debug!("Created track entity: {:?}", entity.header());
         }
         Ok(entity)
+    }
+
+    fn load_entity(&self, uid: &EntityUid) -> TracksResult<Option<SerializedEntity>> {
+        let target = tracks_entity::table.filter(tracks_entity::uid.eq(uid.as_str()));
+        let result = target
+            .first::<QueryableTracksEntity>(self.connection)
+            .optional()?;
+        if log_enabled!(log::Level::Debug) {
+            match &result {
+                &None => {
+                    debug!("Found no track entity with uid '{}'", uid);
+                }
+                &Some(_) => {
+                    debug!("Found a track entity with uid '{}'", uid);
+                }
+            }
+        }
+        Ok(result.map(|r| r.into()))
+
     }
 
     /*

@@ -15,6 +15,8 @@
 
 use failure;
 
+use storage::SerializedEntity;
+
 use aoide_core::domain::entity::*;
 use aoide_core::domain::collection::*;
 use aoide_core::domain::track::*;
@@ -66,6 +68,8 @@ pub type TracksResult<T> = Result<T, failure::Error>;
 
 pub trait Tracks {
     fn create_entity(&self, body: TrackBody) -> TracksResult<TrackEntity>;
+
+    fn load_entity(&self, uid: &EntityUid) -> TracksResult<Option<SerializedEntity>>;
 
     /*
     fn update_entity(&self, entity: &CollectionEntity) -> TracksResult<Option<EntityRevision>>;

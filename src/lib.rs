@@ -32,6 +32,8 @@ extern crate failure;
 #[macro_use]
 extern crate log;
 
+extern crate mime;
+
 extern crate rmp_serde;
 
 extern crate serde;

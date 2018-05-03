@@ -59,7 +59,7 @@ use aoide_core::domain::track::*;
 use aoide_core::domain::entity::*;
 use aoide::storage::collection::*;
 use aoide::storage::track::*;
-use aoide::storage::StorageId;
+use aoide::storage::SerializedEntity;
 use aoide::usecases::*;
 
 use diesel::prelude::*;
@@ -413,6 +413,37 @@ fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
     Box::new(handler_future)
 }
 
+fn load_track(connection: &SqliteConnection, uid: &EntityUid) -> Result<Option<SerializedEntity>, failure::Error> {
+    let repository = TrackRepository::new(connection);
+    let result = repository.load_entity(&uid)?;
+    Ok(result)
+}
+
+fn handle_get_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
+    let path = UidPathExtractor::take_from(&mut state);
+    let uid: EntityUid = path.uid.into();
+
+    let connection = &*gotham_middleware_diesel::state_data::connection(&state);
+
+    let result = match load_track(connection, &uid) {
+        Ok(Some(serialized_entity)) => {
+            let response = create_response(
+                &state,
+                StatusCode::Ok,
+                Some((serialized_entity.serialized_blob, serialized_entity.format.into())),
+            );
+            Ok((state, response))
+        },
+        Ok(None) => {
+            let response = create_response(&state, StatusCode::NotFound, None);
+            Ok((state, response))
+        }
+        Err(e) => Err((state, e.compat().into_handler_error())),
+    };
+
+    Box::new(result.into_future())
+}
+
 fn router(middleware: SqliteDieselMiddleware) -> Router {
     // Create a new pipeline set
     let editable_pipeline_set = new_pipeline_set();
@@ -444,6 +475,10 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
             .with_path_extractor::<UidPathExtractor>()
             .to(handle_delete_collections_path_uid);
         route.post("/tracks").to(handle_post_tracks);
+        route
+            .get("/tracks/:uid")
+            .with_path_extractor::<UidPathExtractor>()
+            .to(handle_get_tracks_path_uid);
     })
 }
 

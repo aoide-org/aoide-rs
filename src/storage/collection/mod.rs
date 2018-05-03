@@ -82,7 +82,7 @@ impl<'a> UpdatableCollectionsEntity<'a> {
 
 #[derive(Debug, Queryable)]
 pub struct QueryableCollectionsEntity {
-    pub id: i64,
+    pub id: StorageId,
     pub uid: String,
     pub rev_ordinal: i64,
     pub rev_timestamp: NaiveDateTime,
