@@ -239,8 +239,9 @@ fn remove_collection(
     uid: &EntityUid,
 ) -> Result<Option<()>, failure::Error> {
     let repository = CollectionRepository::new(connection);
-    let result = repository.remove_entity(&uid)?;
-    Ok(result)
+    connection.transaction::<_, failure::Error, _>(|| {
+        repository.remove_entity(&uid)
+    })
 }
 
 fn handle_delete_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
@@ -317,8 +318,9 @@ fn create_collection(
     body: CollectionBody,
 ) -> Result<CollectionEntity, failure::Error> {
     let repository = CollectionRepository::new(connection);
-    let result = repository.create_entity(body)?;
-    Ok(result)
+    connection.transaction::<_, failure::Error, _>(|| {
+        repository.create_entity(body)
+    })
 }
 
 fn handle_post_collections(mut state: State) -> Box<HandlerFuture> {
@@ -367,8 +369,9 @@ fn update_collection(
     entity: &CollectionEntity,
 ) -> Result<Option<EntityRevision>, failure::Error> {
     let repository = CollectionRepository::new(connection);
-    let result = repository.update_entity(entity)?;
-    Ok(result)
+    connection.transaction::<_, failure::Error, _>(|| {
+        repository.update_entity(entity)
+    })
 }
 
 fn handle_put_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
@@ -442,8 +445,9 @@ fn create_track(
     format: SerializationFormat,
 ) -> Result<TrackEntity, failure::Error> {
     let repository = TrackRepository::new(connection);
-    let result = repository.create_entity(body, format)?;
-    Ok(result)
+    connection.transaction::<_, failure::Error, _>(|| {
+        repository.create_entity(body, format)
+    })
 }
 
 fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
@@ -504,8 +508,9 @@ fn update_track(
     format: SerializationFormat,
 ) -> Result<Option<()>, failure::Error> {
     let repository = TrackRepository::new(connection);
-    let result = repository.update_entity(entity, format)?;
-    Ok(result)
+    connection.transaction::<_, failure::Error, _>(|| {
+        repository.update_entity(entity, format)
+    })
 }
 
 fn handle_put_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
@@ -591,7 +596,9 @@ fn remove_track(
     uid: &EntityUid,
 ) -> Result<(), failure::Error> {
     let repository = TrackRepository::new(connection);
-    repository.remove_entity(&uid)
+    connection.transaction::<_, failure::Error, _>(|| {
+        repository.remove_entity(&uid)
+    })
 }
 
 fn handle_delete_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
