@@ -47,9 +47,29 @@ impl<'a> TrackRepository<'a> {
         Self { connection }
     }
 
+    pub fn perform_housekeeping(&self) -> Result<(), failure::Error> {
+        self.cleanup_media()?;
+        self.cleanup_media_collection()?;
+        Ok(())
+    }
+
+    fn cleanup_media_collection(&self) -> Result<(), failure::Error> {
+        let query = diesel::delete(tracks_media_collection::table.filter(tracks_media_collection::media_id.ne_all(
+            tracks_media::table.select(tracks_media::id))));
+        query.execute(self.connection)?;
+        Ok(())
+    }
+
     fn delete_media_collection(&self, track_id: StorageId) -> Result<(), failure::Error> {
         let query = diesel::delete(tracks_media_collection::table.filter(tracks_media_collection::media_id.eq_any(
             tracks_media::table.select(tracks_media::id).filter(tracks_media::track_id.eq(track_id)))));
+        query.execute(self.connection)?;
+        Ok(())
+    }
+
+    fn cleanup_media(&self) -> Result<(), failure::Error> {
+        let query = diesel::delete(tracks_media::table.filter(tracks_media::track_id.ne_all(
+            tracks_entity::table.select(tracks_entity::id))));
         query.execute(self.connection)?;
         Ok(())
     }
