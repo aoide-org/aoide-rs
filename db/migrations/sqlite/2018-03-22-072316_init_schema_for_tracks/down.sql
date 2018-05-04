@@ -16,8 +16,7 @@
 DROP TABLE collections_entity;
 
 DROP TABLE tracks_entity;
-DROP TABLE tracks_media;
-DROP TABLE tracks_media_collection;
+DROP TABLE tracks_resource;
 DROP TABLE tracks_overview;
 DROP TABLE tracks_fulltext;
 DROP TABLE tracks_tag;

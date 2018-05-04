@@ -34,27 +34,21 @@ CREATE TABLE tracks_entity (
     ser_blob                  BLOB NOT NULL      -- serialized track entity
 );
 
-CREATE TABLE tracks_media (
+CREATE TABLE tracks_resource (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
+    collection_uid           TEXT NOT NULL,
     uri                      TEXT NOT NULL,     -- RFC 3986
-    content_type             TEXT NOT NULL,     -- RFC 6838
     sync_rev_ordinal         INTEGER,           -- most recent metadata synchronization
     sync_rev_timestamp       DATETIME,          -- most recent metadata synchronization
+    content_type             TEXT NOT NULL,     -- RFC 6838
     audio_duration           INTEGER,           -- milliseconds
     audio_channels           INTEGER,           -- number of channels
     audio_samplerate         INTEGER,           -- Hz
     audio_bitrate            INTEGER,           -- bits per second (bps)
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
-    UNIQUE (uri)
-);
-
-CREATE TABLE tracks_media_collection (
-    id                       INTEGER PRIMARY KEY,
-    media_id                 INTEGER NOT NULL,
-    collection_uid           TEXT NOT NULL,
-    FOREIGN KEY(media_id) REFERENCES tracks_media(id),
-    UNIQUE(media_id, collection_uid)
+    UNIQUE (collection_uid, track_id),
+    UNIQUE (collection_uid, uri)
 );
 
 CREATE TABLE tracks_overview (

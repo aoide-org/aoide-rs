@@ -48,76 +48,33 @@ impl<'a> TrackRepository<'a> {
     }
 
     pub fn perform_housekeeping(&self) -> Result<(), failure::Error> {
-        self.cleanup_media()?;
-        self.cleanup_media_collection()?;
+        self.cleanup_resources()?;
         Ok(())
     }
 
-    fn cleanup_media_collection(&self) -> Result<(), failure::Error> {
-        let query = diesel::delete(tracks_media_collection::table.filter(tracks_media_collection::media_id.ne_all(
-            tracks_media::table.select(tracks_media::id))));
-        query.execute(self.connection)?;
-        Ok(())
-    }
-
-    fn delete_media_collection(&self, track_id: StorageId) -> Result<(), failure::Error> {
-        let query = diesel::delete(tracks_media_collection::table.filter(tracks_media_collection::media_id.eq_any(
-            tracks_media::table.select(tracks_media::id).filter(tracks_media::track_id.eq(track_id)))));
-        query.execute(self.connection)?;
-        Ok(())
-    }
-
-    fn cleanup_media(&self) -> Result<(), failure::Error> {
-        let query = diesel::delete(tracks_media::table.filter(tracks_media::track_id.ne_all(
+    fn cleanup_resources(&self) -> Result<(), failure::Error> {
+        let query = diesel::delete(tracks_resource::table.filter(tracks_resource::track_id.ne_all(
             tracks_entity::table.select(tracks_entity::id))));
         query.execute(self.connection)?;
         Ok(())
     }
 
-    fn delete_media(&self, track_id: StorageId) -> Result<(), failure::Error> {
-        self.delete_media_collection(track_id)?;
-        let query = diesel::delete(tracks_media::table.filter(tracks_media::track_id.eq(track_id)));
+    fn delete_resources(&self, track_id: StorageId) -> Result<(), failure::Error> {
+        let query = diesel::delete(tracks_resource::table.filter(tracks_resource::track_id.eq(track_id)));
         query.execute(self.connection)?;
         Ok(())
     }
 
-    fn find_media_id(&self, uri: &str) -> EntityStorageResult<Option<StorageId>> {
-        let target = tracks_media::table
-            .select(TRACKS_MEDIA_ID_COLUMN)
-            .filter(tracks_media::uri.eq(uri));
-        let result = target
-            .first::<QueryableStorageId>(self.connection)
-            .optional()?;
-        Ok(result.map(|r| r.id))
-    }
-
-    fn insert_media_resource(&self, track_id: StorageId, media: &MediaResource) -> Result<(), failure::Error> {
-        let insertable = InsertableTracksMedia::bind(track_id, media);
-        let query = diesel::insert_into(tracks_media::table).values(&insertable);
+    fn insert_resource(&self, track_id: StorageId, resource: &CollectedMediaResource) -> Result<(), failure::Error> {
+        let insertable = InsertableTracksResource::bind(track_id, resource);
+        let query = diesel::insert_into(tracks_resource::table).values(&insertable);
         query.execute(self.connection)?;
         Ok(())
     }
 
-    fn insert_media_collection(&self, media_id: StorageId, collection_uid: &EntityUid) -> Result<(), failure::Error> {
-        let insertable = InsertableTracksMediaCollection::bind(media_id, collection_uid);
-        let query = diesel::insert_into(tracks_media_collection::table).values(&insertable);
-        query.execute(self.connection)?;
-        Ok(())
-    }
-
-    fn insert_media(&self, track_id: StorageId, body: &TrackBody) -> Result<(), failure::Error> {
-        for collected_resource in body.media.iter() {
-            self.insert_media_resource(track_id, &collected_resource.resource)?;
-            let media_uri = &collected_resource.resource.uri;
-            let maybe_media_id = self.find_media_id(media_uri)?;
-            match maybe_media_id {
-                Some(media_id) => {
-                    for collection_uid in collected_resource.collections.iter() {
-                        self.insert_media_collection(media_id, collection_uid)?;
-                    }
-                },
-                None => return Err(format_err!("Media not found: {}", media_uri))
-            };
+    fn insert_resources(&self, track_id: StorageId, body: &TrackBody) -> Result<(), failure::Error> {
+        for resource in body.resources.iter() {
+            self.insert_resource(track_id, resource)?;
         }
         Ok(())
     }
@@ -127,7 +84,7 @@ impl<'a> TrackRepository<'a> {
         let maybe_storage_id = self.find_storage_id(uid)?;
         match maybe_storage_id {
             Some(storage_id) => {
-                self.insert_media(storage_id, entity.body())?;
+                self.insert_resources(storage_id, entity.body())?;
                 Ok(storage_id)
             },
             None => Err(format_err!("Entity not found: {}", uid))
@@ -138,7 +95,7 @@ impl<'a> TrackRepository<'a> {
         let maybe_storage_id = self.find_storage_id(uid)?;
         match maybe_storage_id {
             Some(storage_id) => {
-                self.delete_media(storage_id)?;
+                self.delete_resources(storage_id)?;
                 Ok(storage_id)
             },
             None => Err(format_err!("Entity not found: {}", uid))
@@ -146,7 +103,7 @@ impl<'a> TrackRepository<'a> {
     }
 
     fn after_entity_updated(&self, storage_id: StorageId, body: &TrackBody) -> Result<(), failure::Error> {
-        self.insert_media(storage_id, body)
+        self.insert_resources(storage_id, body)
     }
 }
 
@@ -232,7 +189,7 @@ impl<'a> Tracks for TrackRepository<'a> {
     fn remove_entity(&self, uid: &EntityUid) -> TracksResult<()> {
         let target = tracks_entity::table.filter(tracks_entity::uid.eq(uid.as_str()));
         let query = diesel::delete(target);
-        let storage_id = self.before_entity_updated_or_removed(uid)?;
+        self.before_entity_updated_or_removed(uid)?;
         let rows_affected: usize = query.execute(self.connection)?;
         assert!(rows_affected <= 1);
         Ok(())

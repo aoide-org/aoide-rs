@@ -13,12 +13,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::schema::{tracks_entity, tracks_media, tracks_media_collection};
+use super::schema::{tracks_entity, tracks_resource};
 
 use chrono::naive::NaiveDateTime;
 
-use aoide_core::domain::entity::{EntityUid, EntityRevision, EntityHeader};
-use aoide_core::domain::track::{MediaResource};
+use aoide_core::domain::entity::{EntityRevision, EntityHeader};
+use aoide_core::domain::track::CollectedMediaResource;
 
 use storage::{StorageId, SerializationFormat};
 
@@ -80,22 +80,15 @@ impl<'a> UpdatableTracksEntity<'a> {
     }
 }
 
-pub type TracksMediaIdColumn = (
-    tracks_media::id,
-);
-
-pub const TRACKS_MEDIA_ID_COLUMN: TracksMediaIdColumn = (
-    tracks_media::id,
-);
-
 #[derive(Debug, Insertable)]
-#[table_name = "tracks_media"]
-pub struct InsertableTracksMedia<'a> {
+#[table_name = "tracks_resource"]
+pub struct InsertableTracksResource<'a> {
     pub track_id: StorageId,
+    pub collection_uid: &'a str,
     pub uri: &'a str,
-    pub content_type: &'a str,
     pub sync_rev_ordinal: Option<i64>,
     pub sync_rev_timestamp: Option<NaiveDateTime>,
+    pub content_type: &'a str,
     pub audio_duration: Option<i64>,
     pub audio_channels: Option<i16>,
     pub audio_samplerate: Option<i32>,
@@ -104,73 +97,21 @@ pub struct InsertableTracksMedia<'a> {
     pub audio_enc_settings: Option<&'a str>,
 }
 
-impl<'a> InsertableTracksMedia<'a> {
-    pub fn bind(track_id: StorageId, resource: &'a MediaResource) -> Self {
+impl<'a> InsertableTracksResource<'a> {
+    pub fn bind(track_id: StorageId, resource: &'a CollectedMediaResource) -> Self {
         Self {
             track_id,
-            uri: resource.uri.as_str(),
-            content_type: resource.content_type.as_str(),
-            sync_rev_ordinal: resource.synchronized_revision.map(|rev| rev.ordinal() as i64),
-            sync_rev_timestamp: resource.synchronized_revision.map(|rev| rev.timestamp().naive_utc()),
-            audio_duration: resource.audio_content.as_ref().map(|audio| audio.duration.millis as i64),
-            audio_channels: resource.audio_content.as_ref().map(|audio| audio.channels.count as i16),
-            audio_samplerate: resource.audio_content.as_ref().map(|audio| audio.samplerate.hz as i32),
-            audio_bitrate: resource.audio_content.as_ref().map(|audio| audio.bitrate.bps as i32),
-            audio_enc_name: resource.audio_content.as_ref().and_then(|audio| audio.encoder.as_ref()).map(|enc| enc.name.as_str()),
-            audio_enc_settings: resource.audio_content.as_ref().and_then(|audio| audio.encoder.as_ref()).and_then(|enc| enc.settings.as_ref()).map(|settings| settings.as_str()),
+            collection_uid: resource.collection.uid.as_str(),
+            uri: resource.media.uri.as_str(),
+            sync_rev_ordinal: resource.media.synchronized_revision.map(|rev| rev.ordinal() as i64),
+            sync_rev_timestamp: resource.media.synchronized_revision.map(|rev| rev.timestamp().naive_utc()),
+            content_type: resource.media.content_type.as_str(),
+            audio_duration: resource.media.audio_content.as_ref().map(|audio| audio.duration.millis as i64),
+            audio_channels: resource.media.audio_content.as_ref().map(|audio| audio.channels.count as i16),
+            audio_samplerate: resource.media.audio_content.as_ref().map(|audio| audio.samplerate.hz as i32),
+            audio_bitrate: resource.media.audio_content.as_ref().map(|audio| audio.bitrate.bps as i32),
+            audio_enc_name: resource.media.audio_content.as_ref().and_then(|audio| audio.encoder.as_ref()).map(|enc| enc.name.as_str()),
+            audio_enc_settings: resource.media.audio_content.as_ref().and_then(|audio| audio.encoder.as_ref()).and_then(|enc| enc.settings.as_ref()).map(|settings| settings.as_str()),
         }
     }
 }
-
-/*
-#[derive(Debug, Queryable)]
-pub struct QueryableTracksMedia<'a> {
-    pub id: StorageId,
-    pub track_id: StorageId,
-    pub uid: String,
-    pub rev_ordinal: i64,
-    pub rev_timestamp: NaiveDateTime,
-    pub ser_fmt: i16,
-    pub ser_ver_major: i32,
-    pub ser_ver_minor: i32,
-    pub ser_blob: &'a [u8],
-}
-*/
-
-#[derive(Debug, Insertable)]
-#[table_name = "tracks_media_collection"]
-pub struct InsertableTracksMediaCollection<'a> {
-    pub media_id: StorageId,
-    pub collection_uid: &'a str,
-}
-
-impl<'a> InsertableTracksMediaCollection<'a> {
-    pub fn bind(media_id: StorageId, collection_uid: &'a EntityUid) -> Self {
-        Self {
-            media_id,
-            collection_uid: collection_uid.as_str(),
-        }
-    }
-}
-
-/*
-#[derive(Debug, AsChangeset)]
-#[table_name = "tracks_entity"]
-pub struct UpdatableTrackEntity<'a> {
-    pub rev_ordinal: i64,
-    pub rev_timestamp: NaiveDateTime,
-    pub name: &'a str,
-    pub description: Option<&'a str>,
-}
-
-impl<'a> UpdatableTrackEntity<'a> {
-    pub fn bind(next_revision: &EntityRevision, body: &'a TrackBody) -> Self {
-        Self {
-            rev_ordinal: next_revision.ordinal() as i64,
-            rev_timestamp: next_revision.timestamp().naive_utc(),
-            name: &body.name,
-            description: body.description.as_ref().map(|s| s.as_str()),
-        }
-    }
-}
-*/

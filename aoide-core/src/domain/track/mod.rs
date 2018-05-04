@@ -84,11 +84,11 @@ pub struct MediaResource {
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub uri: String,
 
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub content_type: String,
-
     #[serde(skip_serializing_if = "Option::is_none")]
     pub synchronized_revision: Option<EntityRevision>, // most recent metadata import/export
+
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub content_type: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub audio_content: Option<AudioContent>,
@@ -104,20 +104,29 @@ impl MediaResource {
 /// CollectedMediaResource
 ///////////////////////////////////////////////////////////////////////
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct CollectionRef {
+    pub uid: CollectionUid,
+}
+
+impl CollectionRef {
+    pub fn is_valid(&self) -> bool {
+        self.uid.is_valid()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct CollectedMediaResource {
-    pub resource: MediaResource,
+    pub collection: CollectionRef,
 
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub collections: Vec<CollectionUid>,
+    pub media: MediaResource,
 }
 
 impl CollectedMediaResource {
     pub fn is_valid(&self) -> bool {
-        self.resource.is_valid() && !self.collections.is_empty()
-            && (self.collections.iter().filter(|uid| uid.is_valid()).count()
-                == self.collections.len())
+        self.collection.is_valid() && self.media.is_valid()
     }
 }
 
@@ -332,7 +341,7 @@ pub struct TrackBody {
     pub identity: Option<TrackIdentity>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub media: Vec<CollectedMediaResource>,
+    pub resources: Vec<CollectedMediaResource>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub music: Option<MusicMetadata>,
@@ -349,11 +358,11 @@ pub struct TrackBody {
 
 impl TrackBody {
     pub fn is_valid(&self) -> bool {
-        self.titles.is_valid() && !self.media.is_empty()
-            && (self.media
+        self.titles.is_valid() && !self.resources.is_empty()
+            && (self.resources
                 .iter()
-                .filter(|res| res.is_valid())
-                .count() == self.media.len())
+                .filter(|media| media.is_valid())
+                .count() == self.resources.len())
     }
 
     pub fn actors_to_string(&self, role_opt: Option<ActorRole>) -> String {
@@ -446,17 +455,16 @@ mod tests {
             Comment::new_anonymous("Some anonymous notes about this track"),
         ];
         let uri = "subfolder/test.mp3";
-        let resource = MediaResource {
+        let media = MediaResource {
             uri: uri.to_string(),
-            content_type: mime_guess::guess_mime_type(uri).to_string(),
             synchronized_revision: Some(EntityRevision::initial()),
+            content_type: mime_guess::guess_mime_type(uri).to_string(),
             ..Default::default()
         };
-        let collected_resource = CollectedMediaResource {
-            resource,
-            collections: vec![EntityUidGenerator::generate_uid()],
-        };
-        let media = vec![collected_resource];
+        let resources = vec![CollectedMediaResource {
+            collection: CollectionRef { uid: EntityUidGenerator::generate_uid() },
+            media,
+        }];
         let tags = vec![
             Tag::new_faceted(TrackTag::FACET_STYLE, "1980s", 0.8),
             Tag::new_faceted("STYLE", "1990s", 0.3),
@@ -464,7 +472,7 @@ mod tests {
             Tag::new("non-faceted tag", 1.0),
         ];
         let body = TrackBody {
-            media,
+            resources,
             music: Some(music),
             tags,
             comments,
