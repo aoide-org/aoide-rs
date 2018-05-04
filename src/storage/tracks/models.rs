@@ -80,6 +80,14 @@ impl<'a> UpdatableTracksEntity<'a> {
     }
 }
 
+pub type TracksMediaIdColumn = (
+    tracks_media::id,
+);
+
+pub const TRACKS_MEDIA_ID_COLUMN: TracksMediaIdColumn = (
+    tracks_media::id,
+);
+
 #[derive(Debug, Insertable)]
 #[table_name = "tracks_media"]
 pub struct InsertableTracksMedia<'a> {

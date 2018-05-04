@@ -46,6 +46,88 @@ impl<'a> TrackRepository<'a> {
     pub fn new(connection: &'a diesel::SqliteConnection) -> Self {
         Self { connection }
     }
+
+    fn delete_media_collection(&self, track_id: StorageId) -> Result<(), failure::Error> {
+        let query = diesel::delete(tracks_media_collection::table.filter(tracks_media_collection::media_id.eq_any(
+            tracks_media::table.select(tracks_media::id).filter(tracks_media::track_id.eq(track_id)))));
+        query.execute(self.connection)?;
+        Ok(())
+    }
+
+    fn delete_media(&self, track_id: StorageId) -> Result<(), failure::Error> {
+        self.delete_media_collection(track_id)?;
+        let query = diesel::delete(tracks_media::table.filter(tracks_media::track_id.eq(track_id)));
+        query.execute(self.connection)?;
+        Ok(())
+    }
+
+    fn find_media_id(&self, uri: &str) -> EntityStorageResult<Option<StorageId>> {
+        let target = tracks_media::table
+            .select(TRACKS_MEDIA_ID_COLUMN)
+            .filter(tracks_media::uri.eq(uri));
+        let result = target
+            .first::<QueryableStorageId>(self.connection)
+            .optional()?;
+        Ok(result.map(|r| r.id))
+    }
+
+    fn insert_media_resource(&self, track_id: StorageId, media: &MediaResource) -> Result<(), failure::Error> {
+        let insertable = InsertableTracksMedia::bind(track_id, media);
+        let query = diesel::insert_into(tracks_media::table).values(&insertable);
+        query.execute(self.connection)?;
+        Ok(())
+    }
+
+    fn insert_media_collection(&self, media_id: StorageId, collection_uid: &EntityUid) -> Result<(), failure::Error> {
+        let insertable = InsertableTracksMediaCollection::bind(media_id, collection_uid);
+        let query = diesel::insert_into(tracks_media_collection::table).values(&insertable);
+        query.execute(self.connection)?;
+        Ok(())
+    }
+
+    fn insert_media(&self, track_id: StorageId, body: &TrackBody) -> Result<(), failure::Error> {
+        for collected_resource in body.media.iter() {
+            self.insert_media_resource(track_id, &collected_resource.resource)?;
+            let media_uri = &collected_resource.resource.uri;
+            let maybe_media_id = self.find_media_id(media_uri)?;
+            match maybe_media_id {
+                Some(media_id) => {
+                    for collection_uid in collected_resource.collections.iter() {
+                        self.insert_media_collection(media_id, collection_uid)?;
+                    }
+                },
+                None => return Err(format_err!("Media not found: {}", media_uri))
+            };
+        }
+        Ok(())
+    }
+
+    fn after_entity_created(&self, entity: &TrackEntity) -> Result<StorageId, failure::Error> {
+        let uid = entity.header().uid();
+        let maybe_storage_id = self.find_storage_id(uid)?;
+        match maybe_storage_id {
+            Some(storage_id) => {
+                self.insert_media(storage_id, entity.body())?;
+                Ok(storage_id)
+            },
+            None => Err(format_err!("Entity not found: {}", uid))
+        }
+    }
+
+    fn before_entity_updated_or_removed(&self, uid: &EntityUid) -> Result<StorageId, failure::Error> {
+        let maybe_storage_id = self.find_storage_id(uid)?;
+        match maybe_storage_id {
+            Some(storage_id) => {
+                self.delete_media(storage_id)?;
+                Ok(storage_id)
+            },
+            None => Err(format_err!("Entity not found: {}", uid))
+        }
+    }
+
+    fn after_entity_updated(&self, storage_id: StorageId, body: &TrackBody) -> Result<(), failure::Error> {
+        self.insert_media(storage_id, body)
+    }
 }
 
 impl<'a> EntityStorage for TrackRepository<'a> {
@@ -79,6 +161,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             }
             query.execute(self.connection)?;
         }
+        self.after_entity_created(&entity)?;
         if log_enabled!(log::Level::Debug) {
             debug!("Created track entity: {:?}", entity.header());
         }
@@ -97,26 +180,23 @@ impl<'a> Tracks for TrackRepository<'a> {
             let entity_blob = serialize_entity(&entity, format)?;
             {
                 let updatable = UpdatableTracksEntity::bind(&next_revision, format, &entity_blob);
+                let uid = entity.header().uid();
                 let target = tracks_entity::table.filter(
                     tracks_entity::uid
-                        .eq(entity.header().uid().as_str())
+                        .eq(uid.as_str())
                         .and(tracks_entity::rev_ordinal.eq(prev_revision.ordinal() as i64))
                         .and(
                             tracks_entity::rev_timestamp.eq(prev_revision.timestamp().naive_utc()),
                         ),
                 );
+                let storage_id = self.before_entity_updated_or_removed(uid)?;
                 let query = diesel::update(target).set(&updatable);
-                if log_enabled!(log::Level::Debug) {
-                    debug!(
-                        "Executing SQLite query: {}",
-                        diesel::debug_query::<diesel::sqlite::Sqlite, _>(&query)
-                    );
-                }
                 let rows_affected: usize = query.execute(self.connection)?;
                 assert!(rows_affected <= 1);
                 if rows_affected <= 0 {
                     return Ok(None);
                 }
+                self.after_entity_updated(storage_id, &entity.body())?;
             }
         }
         if log_enabled!(log::Level::Debug) {
@@ -129,24 +209,13 @@ impl<'a> Tracks for TrackRepository<'a> {
         Ok(Some(()))
     }
 
-    fn remove_entity(&self, uid: &EntityUid) -> TracksResult<Option<()>> {
+    fn remove_entity(&self, uid: &EntityUid) -> TracksResult<()> {
         let target = tracks_entity::table.filter(tracks_entity::uid.eq(uid.as_str()));
         let query = diesel::delete(target);
-        if log_enabled!(log::Level::Debug) {
-            debug!(
-                "Executing SQLite query: {}",
-                diesel::debug_query::<diesel::sqlite::Sqlite, _>(&query)
-            );
-        }
+        let storage_id = self.before_entity_updated_or_removed(uid)?;
         let rows_affected: usize = query.execute(self.connection)?;
         assert!(rows_affected <= 1);
-        if rows_affected <= 0 {
-            return Ok(None);
-        }
-        if log_enabled!(log::Level::Debug) {
-            debug!("Removed track entity: {}", uid);
-        }
-        Ok(Some(()))
+        Ok(())
     }
 
     fn load_entity(&self, uid: &EntityUid) -> TracksResult<Option<SerializedEntity>> {

@@ -91,7 +91,7 @@ use env_logger::Builder as LoggerBuilder;
 
 use log::LevelFilter as LogLevelFilter;
 
-use r2d2::{Pool, PooledConnection};
+use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
 
 use std::env;
@@ -589,10 +589,9 @@ fn handle_put_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
 fn remove_track(
     connection: &SqliteConnection,
     uid: &EntityUid,
-) -> Result<Option<()>, failure::Error> {
+) -> Result<(), failure::Error> {
     let repository = TrackRepository::new(connection);
-    let result = repository.remove_entity(&uid)?;
-    Ok(result)
+    repository.remove_entity(&uid)
 }
 
 fn handle_delete_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
@@ -605,14 +604,10 @@ fn handle_delete_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
     };
 
     let result = match remove_track(&*pooled_connection, &uid) {
-        Ok(Some(_)) => {
+        Ok(_) => {
             let response = create_response(&state, StatusCode::Ok, None);
             future::ok((state, response))
-        }
-        Ok(None) => {
-            let response = create_response(&state, StatusCode::Accepted, None);
-            future::ok((state, response))
-        }
+        },
         Err(e) => future::err((state, on_handler_failure(e))),
     };
 

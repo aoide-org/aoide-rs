@@ -43,6 +43,9 @@ table! {
     }
 }
 
+joinable!(tracks_media -> tracks_entity (track_id));
+allow_tables_to_appear_in_same_query!(tracks_media, tracks_entity);
+
 table! {
     tracks_media_collection (id) {
         id -> BigInt,
@@ -50,3 +53,6 @@ table! {
         collection_uid -> Text,
     }
 }
+
+joinable!(tracks_media_collection -> tracks_media (media_id));
+allow_tables_to_appear_in_same_query!(tracks_media_collection, tracks_media);

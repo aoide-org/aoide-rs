@@ -82,7 +82,7 @@ pub trait Tracks {
 
     fn update_entity(&self, entity: &mut TrackEntity, format: SerializationFormat) -> TracksResult<Option<()>>;
 
-    fn remove_entity(&self, uid: &EntityUid) -> TracksResult<Option<()>>;
+    fn remove_entity(&self, uid: &EntityUid) -> TracksResult<()>;
 
     fn load_entity(&self, uid: &EntityUid) -> TracksResult<Option<SerializedEntity>>;
 
