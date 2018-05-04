@@ -156,9 +156,42 @@ fn on_handler_failure(e: failure::Error) -> HandlerError {
     compat.into_handler_error()
 }
 
+fn parse_serialization_format_from_state(
+    state: &State,
+) -> Result<SerializationFormat, failure::Error> {
+    match Headers::borrow_from(state).get::<ContentType>() {
+        Some(content_type) => {
+            if let Some(format) = SerializationFormat::from_media_type(&content_type.0) {
+                Ok(format)
+            } else {
+                Err(format_err!("Unsupported content type"))
+            }
+        }
+        None => Err(format_err!("Missing content type")),
+    }
+}
+
 #[derive(Deserialize, StateData, StaticResponseExtender)]
 struct UidPathExtractor {
     uid: String,
+}
+
+fn parse_and_verify_entity_uid_from_path(
+    entity_uid: &EntityUid,
+    state: &mut State,
+) -> Result<EntityUid, failure::Error> {
+    let path = UidPathExtractor::take_from(state);
+    let path_uid = path.uid.into();
+    if &path_uid == entity_uid {
+        Ok(path_uid)
+    } else {
+        let e = format_err!(
+            "Mismatching identifiers: expected = {}, actual = {}",
+            entity_uid,
+            path_uid
+        );
+        Err(e)
+    }
 }
 
 fn find_collection(
@@ -341,20 +374,15 @@ fn handle_put_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
                     }
                 };
 
-                let path = UidPathExtractor::take_from(&mut state);
-                let uid = EntityUid::from(path.uid);
-                let entity_uid = entity.header().uid();
-                if &uid != entity_uid {
-                    let e = format_err!(
-                        "Mismatching identifiers: expected = {}, actual = {}",
-                        uid,
-                        entity_uid
-                    );
-                    return future::err((
-                        state,
-                        on_handler_failure(e).with_status(StatusCode::BadRequest),
-                    ));
-                }
+                let uid = match parse_and_verify_entity_uid_from_path(entity.header().uid(), &mut state) {
+                    Ok(uid) => uid,
+                    Err(e) => {
+                        return future::err((
+                            state,
+                            on_handler_failure(e).with_status(StatusCode::BadRequest),
+                        ))
+                    }
+                };
 
                 let connection = &*gotham_middleware_diesel::state_data::connection(&state);
 
@@ -403,32 +431,19 @@ fn create_track(
     Ok(result)
 }
 
-fn read_serialization_format_from_state(state: &State) -> Result<SerializationFormat, failure::Error> {
-    match Headers::borrow_from(state).get::<ContentType>() {
-        Some(content_type) => {
-            if let Some(format) = SerializationFormat::from_media_type(&content_type.0) {
-                Ok(format)
-            } else {
-                Err(format_err!("Unsupported content type"))
-            }
-        }
-        None => {
-            Err(format_err!("Missing content type"))
-        }
-    }
-}
-
 fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
     let handler_future = hyper::Body::take_from(&mut state)
         .concat2()
         .then(move |full_body| match full_body {
             Ok(valid_body) => {
-                let format = match read_serialization_format_from_state(&state) {
+                let format = match parse_serialization_format_from_state(&state) {
                     Ok(format) => format,
-                    Err(e) => return future::err((
-                                state,
-                                on_handler_failure(e).with_status(StatusCode::UnsupportedMediaType),
-                            ))
+                    Err(e) => {
+                        return future::err((
+                            state,
+                            on_handler_failure(e).with_status(StatusCode::UnsupportedMediaType),
+                        ))
+                    }
                 };
 
                 let entity_body: TrackBody =
@@ -480,12 +495,14 @@ fn handle_put_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
         .concat2()
         .then(move |full_body| match full_body {
             Ok(valid_body) => {
-                let format = match read_serialization_format_from_state(&state) {
+                let format = match parse_serialization_format_from_state(&state) {
                     Ok(format) => format,
-                    Err(e) => return future::err((
-                                state,
-                                on_handler_failure(e).with_status(StatusCode::UnsupportedMediaType),
-                            ))
+                    Err(e) => {
+                        return future::err((
+                            state,
+                            on_handler_failure(e).with_status(StatusCode::UnsupportedMediaType),
+                        ))
+                    }
                 };
 
                 let mut entity: TrackEntity =
@@ -499,22 +516,15 @@ fn handle_put_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
                         }
                     };
 
-                let path = UidPathExtractor::take_from(&mut state);
-                let uid = EntityUid::from(path.uid);
-                {
-                    let entity_uid = entity.header().uid();
-                    if &uid != entity_uid {
-                        let e = format_err!(
-                            "Mismatching identifiers: expected = {}, actual = {}",
-                            uid,
-                            entity_uid
-                        );
+                let uid = match parse_and_verify_entity_uid_from_path(entity.header().uid(), &mut state) {
+                    Ok(uid) => uid,
+                    Err(e) => {
                         return future::err((
                             state,
                             on_handler_failure(e).with_status(StatusCode::BadRequest),
-                        ));
+                        ))
                     }
-                }
+                };
 
                 let connection = &*gotham_middleware_diesel::state_data::connection(&state);
 
