@@ -403,31 +403,32 @@ fn create_track(
     Ok(result)
 }
 
+fn read_serialization_format_from_state(state: &State) -> Result<SerializationFormat, failure::Error> {
+    match Headers::borrow_from(state).get::<ContentType>() {
+        Some(content_type) => {
+            if let Some(format) = SerializationFormat::from_media_type(&content_type.0) {
+                Ok(format)
+            } else {
+                Err(format_err!("Unsupported content type"))
+            }
+        }
+        None => {
+            Err(format_err!("Missing content type"))
+        }
+    }
+}
+
 fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
     let handler_future = hyper::Body::take_from(&mut state)
         .concat2()
         .then(move |full_body| match full_body {
             Ok(valid_body) => {
-                let format = match Headers::take_from(&mut state).get::<ContentType>() {
-                    Some(content_type) => {
-                        if let Some(format) = SerializationFormat::from_media_type(&content_type.0)
-                        {
-                            format
-                        } else {
-                            let e = format_err!("Unsupported content type");
-                            return future::err((
+                let format = match read_serialization_format_from_state(&state) {
+                    Ok(format) => format,
+                    Err(e) => return future::err((
                                 state,
                                 on_handler_failure(e).with_status(StatusCode::UnsupportedMediaType),
-                            ));
-                        }
-                    }
-                    None => {
-                        let e = format_err!("Missing content type");
-                        return future::err((
-                            state,
-                            on_handler_failure(e).with_status(StatusCode::UnsupportedMediaType),
-                        ));
-                    }
+                            ))
                 };
 
                 let entity_body: TrackBody =
@@ -479,26 +480,12 @@ fn handle_put_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
         .concat2()
         .then(move |full_body| match full_body {
             Ok(valid_body) => {
-                let format = match Headers::take_from(&mut state).get::<ContentType>() {
-                    Some(content_type) => {
-                        if let Some(format) = SerializationFormat::from_media_type(&content_type.0)
-                        {
-                            format
-                        } else {
-                            let e = format_err!("Unsupported content type");
-                            return future::err((
+                let format = match read_serialization_format_from_state(&state) {
+                    Ok(format) => format,
+                    Err(e) => return future::err((
                                 state,
                                 on_handler_failure(e).with_status(StatusCode::UnsupportedMediaType),
-                            ));
-                        }
-                    }
-                    None => {
-                        let e = format_err!("Missing content type");
-                        return future::err((
-                            state,
-                            on_handler_failure(e).with_status(StatusCode::UnsupportedMediaType),
-                        ));
-                    }
+                            ))
                 };
 
                 let mut entity: TrackEntity =
