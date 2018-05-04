@@ -34,8 +34,6 @@ extern crate gotham;
 #[macro_use]
 extern crate gotham_derive;
 
-extern crate gotham_middleware_diesel;
-
 extern crate hyper;
 
 #[macro_use]
@@ -61,6 +59,8 @@ extern crate serde_json;
 use aoide_core::domain::collection::*;
 use aoide_core::domain::track::*;
 use aoide_core::domain::entity::*;
+use aoide::middleware;
+use aoide::middleware::DieselMiddleware;
 use aoide::storage::collections::*;
 use aoide::storage::tracks::*;
 use aoide::storage::{deserialize_slice_with_format, SerializationFormat, SerializedEntity};
@@ -74,14 +74,15 @@ use futures::future::IntoFuture;
 //use futures::{future, Future};
 //use futures::stream::{Stream, StreamExt};
 
-use gotham::helpers::http::response::create_response;
+// Gotham v0.3
+//use gotham::helpers::http::response::create_response;
+use gotham::http::response::create_response;
 use gotham::router::Router;
 use gotham::router::builder::*;
 use gotham::pipeline::new_pipeline;
 use gotham::pipeline::set::{finalize_pipeline_set, new_pipeline_set};
 use gotham::state::{FromState, State};
 use gotham::handler::{HandlerError, HandlerFuture, IntoHandlerError};
-use gotham_middleware_diesel::DieselMiddleware;
 
 use hyper::StatusCode;
 use hyper::header::{ContentType, Headers};
@@ -90,7 +91,7 @@ use env_logger::Builder as LoggerBuilder;
 
 use log::LevelFilter as LogLevelFilter;
 
-use r2d2::Pool;
+use r2d2::{Pool, PooledConnection};
 use r2d2_diesel::ConnectionManager;
 
 use std::env;
@@ -99,7 +100,6 @@ use std::error;
 embed_migrations!("db/migrations/sqlite");
 
 type SqliteConnectionPool = Pool<ConnectionManager<SqliteConnection>>;
-//type PooledSqliteConnection = PooledConnection<ConnectionManager<SqliteConnection>>;
 type SqliteDieselMiddleware = DieselMiddleware<SqliteConnection>;
 
 fn create_connection_pool(url: &str) -> Result<SqliteConnectionPool, failure::Error> {
@@ -207,9 +207,12 @@ fn handle_get_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
     let path = UidPathExtractor::take_from(&mut state);
     let uid: EntityUid = path.uid.into();
 
-    let connection = &*gotham_middleware_diesel::state_data::connection(&state);
+    let pooled_connection = match middleware::state_data::try_connection(&state) {
+        Ok(pooled_connection) => pooled_connection,
+        Err(e) => return Box::new(future::err((state, on_handler_error(e)))),
+    };
 
-    let result = match find_collection(connection, &uid) {
+    let result = match find_collection(&*pooled_connection, &uid) {
         Ok(Some(collection)) => match serde_json::to_vec(&collection) {
             Ok(response_body) => {
                 let response = create_response(
@@ -244,9 +247,12 @@ fn handle_delete_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
     let path = UidPathExtractor::take_from(&mut state);
     let uid: EntityUid = path.uid.into();
 
-    let connection = &*gotham_middleware_diesel::state_data::connection(&state);
+    let pooled_connection = match middleware::state_data::try_connection(&state) {
+        Ok(pooled_connection) => pooled_connection,
+        Err(e) => return Box::new(future::err((state, on_handler_error(e)))),
+    };
 
-    let result = match remove_collection(connection, &uid) {
+    let result = match remove_collection(&*pooled_connection, &uid) {
         Ok(Some(_)) => {
             let response = create_response(&state, StatusCode::Ok, None);
             future::ok((state, response))
@@ -283,9 +289,12 @@ fn handle_get_collections_path_pagination(mut state: State) -> Box<HandlerFuture
         limit: query_params.limit,
     };
 
-    let connection = &*gotham_middleware_diesel::state_data::connection(&state);
+    let pooled_connection = match middleware::state_data::try_connection(&state) {
+        Ok(pooled_connection) => pooled_connection,
+        Err(e) => return Box::new(future::err((state, on_handler_error(e)))),
+    };
 
-    let handler_future = match find_recently_revisioned_collections(connection, &pagination) {
+    let handler_future = match find_recently_revisioned_collections(&*pooled_connection, &pagination) {
         Ok(collections) => match serde_json::to_vec(&collections) {
             Ok(response_body) => {
                 let response = create_response(
@@ -327,9 +336,12 @@ fn handle_post_collections(mut state: State) -> Box<HandlerFuture> {
                     }
                 };
 
-                let connection = &*gotham_middleware_diesel::state_data::connection(&state);
+                let pooled_connection = match middleware::state_data::try_connection(&state) {
+                    Ok(pooled_connection) => pooled_connection,
+                    Err(e) => return future::err((state, on_handler_error(e))),
+                };
 
-                let entity = match create_collection(connection, entity_body) {
+                let entity = match create_collection(&*pooled_connection, entity_body) {
                     Ok(entity) => entity,
                     Err(e) => return future::err((state, on_handler_failure(e))),
                 };
@@ -384,9 +396,12 @@ fn handle_put_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
                     }
                 };
 
-                let connection = &*gotham_middleware_diesel::state_data::connection(&state);
+                let pooled_connection = match middleware::state_data::try_connection(&state) {
+                    Ok(pooled_connection) => pooled_connection,
+                    Err(e) => return future::err((state, on_handler_error(e))),
+                };
 
-                let next_revision = match update_collection(connection, &entity) {
+                let next_revision = match update_collection(&*pooled_connection, &entity) {
                     Ok(Some(next_revision)) => next_revision,
                     Ok(None) => {
                         let e = format_err!(
@@ -457,9 +472,12 @@ fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
                         }
                     };
 
-                let connection = &*gotham_middleware_diesel::state_data::connection(&state);
+                let pooled_connection = match middleware::state_data::try_connection(&state) {
+                    Ok(pooled_connection) => pooled_connection,
+                    Err(e) => return future::err((state, on_handler_error(e))),
+                };
 
-                let entity = match create_track(connection, entity_body, format) {
+                let entity = match create_track(&*pooled_connection, entity_body, format) {
                     Ok(entity) => entity,
                     Err(e) => return future::err((state, on_handler_failure(e))),
                 };
@@ -526,10 +544,13 @@ fn handle_put_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
                     }
                 };
 
-                let connection = &*gotham_middleware_diesel::state_data::connection(&state);
+                let pooled_connection = match middleware::state_data::try_connection(&state) {
+                    Ok(pooled_connection) => pooled_connection,
+                    Err(e) => return future::err((state, on_handler_error(e))),
+                };
 
                 let prev_revision = entity.header().revision();
-                let next_revision = match update_track(connection, &mut entity, format) {
+                let next_revision = match update_track(&*pooled_connection, &mut entity, format) {
                     Ok(Some(())) => entity.header().revision(),
                     Ok(None) => {
                         let prev_header = EntityHeader::new(uid, prev_revision);
@@ -578,9 +599,12 @@ fn handle_delete_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
     let path = UidPathExtractor::take_from(&mut state);
     let uid: EntityUid = path.uid.into();
 
-    let connection = &*gotham_middleware_diesel::state_data::connection(&state);
+    let pooled_connection = match middleware::state_data::try_connection(&state) {
+        Ok(pooled_connection) => pooled_connection,
+        Err(e) => return Box::new(future::err((state, on_handler_error(e)))),
+    };
 
-    let result = match remove_track(connection, &uid) {
+    let result = match remove_track(&*pooled_connection, &uid) {
         Ok(Some(_)) => {
             let response = create_response(&state, StatusCode::Ok, None);
             future::ok((state, response))
@@ -608,9 +632,12 @@ fn handle_get_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
     let path = UidPathExtractor::take_from(&mut state);
     let uid: EntityUid = path.uid.into();
 
-    let connection = &*gotham_middleware_diesel::state_data::connection(&state);
+    let pooled_connection = match middleware::state_data::try_connection(&state) {
+        Ok(pooled_connection) => pooled_connection,
+        Err(e) => return Box::new(future::err((state, on_handler_error(e)))),
+    };
 
-    let result = match load_track(connection, &uid) {
+    let result = match load_track(&*pooled_connection, &uid) {
         Ok(Some(serialized_entity)) => {
             let response = create_response(
                 &state,
@@ -645,9 +672,12 @@ fn handle_get_tracks_path_pagination(mut state: State) -> Box<HandlerFuture> {
         limit: query_params.limit,
     };
 
-    let connection = &*gotham_middleware_diesel::state_data::connection(&state);
+    let pooled_connection = match middleware::state_data::try_connection(&state) {
+        Ok(pooled_connection) => pooled_connection,
+        Err(e) => return Box::new(future::err((state, on_handler_error(e)))),
+    };
 
-    let handler_future = match load_recently_revisioned_tracks(connection, &pagination) {
+    let handler_future = match load_recently_revisioned_tracks(&*pooled_connection, &pagination) {
         Ok(serialized_entities) => {
             let mut json_body = Vec::with_capacity(
                 serialized_entities
@@ -746,13 +776,15 @@ pub fn main() {
         _ => ":memory:",
     };
 
-    let connection_pool = create_connection_pool(db_url).unwrap();
+    info!("Creating database connection pool");
+    let connection_pool = create_connection_pool(db_url).expect("Failed to create database connection pool");
 
     migrate_database_schema(&connection_pool).unwrap();
 
     info!("Creating middleware");
     let middleware = DieselMiddleware::with_pool(connection_pool);
 
+    info!("Creating router");
     let router = router(middleware);
 
     let listen_addr = "127.0.0.1:7878";

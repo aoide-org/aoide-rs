@@ -29,10 +29,21 @@ extern crate chrono;
 #[macro_use]
 extern crate failure;
 
+extern crate futures;
+
+extern crate gotham;
+
+#[macro_use]
+extern crate gotham_derive;
+
 #[macro_use]
 extern crate log;
 
 extern crate mime;
+
+extern crate r2d2;
+
+extern crate r2d2_diesel;
 
 extern crate rmp_serde;
 
@@ -48,6 +59,8 @@ extern crate serde_json;
 ///////////////////////////////////////////////////////////////////////
 /// Public Modules
 ///////////////////////////////////////////////////////////////////////
+
+pub mod middleware;
 
 pub mod storage;
 
