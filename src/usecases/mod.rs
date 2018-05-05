@@ -15,6 +15,8 @@
 
 pub mod result;
 
+pub mod search;
+
 use failure;
 
 use self::result::Pagination;
