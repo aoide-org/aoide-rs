@@ -95,8 +95,9 @@ CREATE TABLE tracks_music (
     track_id                 INTEGER NOT NULL,
     music_loudness           REAL, -- LUFS dB
     music_tempo              REAL, -- beats per minute (bpm)
-    music_time_signature     TEXT, -- "numerator/denominator"
-    music_key_signature      TINYINT, -- {1, ..., 24}
+    music_time_sig_num       TINYINT,
+    music_time_sig_denom     TINYINT,
+    music_key_sig            TINYINT, -- {1, ..., 24}
     music_acousticness       REAL, -- [0.0, 1.0]
     music_danceability       REAL, -- [0.0, 1.0]
     music_energy             REAL, -- [0.0, 1.0]

@@ -48,6 +48,74 @@ joinable!(tracks_resource -> tracks_entity (track_id));
 allow_tables_to_appear_in_same_query!(tracks_resource, tracks_entity);
 
 table! {
+    tracks_overview (id) {
+        id -> BigInt,
+        track_id -> BigInt,
+        track_title -> Text,
+        track_subtitle -> Nullable<Text>,
+        track_number -> Nullable<Integer>,
+        track_total -> Nullable<Integer>,
+        disc_number -> Nullable<Integer>,
+        disc_total -> Nullable<Integer>,
+        album_title -> Nullable<Text>,
+        album_subtitle -> Nullable<Text>,
+        album_grouping -> Nullable<Text>,
+        album_compilation -> Nullable<Bool>,
+        release_date -> Nullable<Date>,
+        release_label -> Nullable<Text>,
+    }
+}
+
+joinable!(tracks_overview -> tracks_entity (track_id));
+allow_tables_to_appear_in_same_query!(tracks_overview, tracks_entity);
+
+table! {
+    tracks_summary (id) {
+        id -> BigInt,
+        track_id -> BigInt,
+        track_artists -> Nullable<Text>,
+        track_composers -> Nullable<Text>,
+        track_conductors -> Nullable<Text>,
+        track_performers -> Nullable<Text>,
+        track_producers -> Nullable<Text>,
+        track_remixers -> Nullable<Text>,
+        album_artists -> Nullable<Text>,
+        album_composers -> Nullable<Text>,
+        album_conductors -> Nullable<Text>,
+        album_performers -> Nullable<Text>,
+        album_producers -> Nullable<Text>,
+        ratings_min -> Nullable<Double>,
+        ratings_max -> Nullable<Double>,
+    }
+}
+
+joinable!(tracks_summary -> tracks_entity (track_id));
+allow_tables_to_appear_in_same_query!(tracks_summary, tracks_entity);
+
+table! {
+    tracks_music (id) {
+        id -> BigInt,
+        track_id -> BigInt,
+        music_loudness -> Nullable<Double>,
+        music_tempo -> Nullable<Double>,
+        music_time_sig_num -> Nullable<Tinyint>,
+        music_time_sig_denom -> Nullable<Tinyint>,
+        music_key_sig -> Nullable<Tinyint>,
+        music_acousticness -> Nullable<Double>,
+        music_danceability -> Nullable<Double>,
+        music_energy -> Nullable<Double>,
+        music_instrumentalness -> Nullable<Double>,
+        music_liveness -> Nullable<Double>,
+        music_popularity -> Nullable<Double>,
+        music_positivity -> Nullable<Double>,
+        music_speechiness -> Nullable<Double>,
+    }
+}
+
+joinable!(tracks_music -> tracks_entity (track_id));
+allow_tables_to_appear_in_same_query!(tracks_music, tracks_entity);
+
+table! {
     tracks_tag (id) {
         id -> BigInt,
         track_id -> BigInt,
