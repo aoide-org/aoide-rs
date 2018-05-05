@@ -31,24 +31,25 @@ CREATE TABLE tracks_entity (
     ser_fmt                  INTEGER NOT NULL,  -- serialization format: 1 = JSON, 2 = BSON, 3 = CBOR, 4 = Bincode, ...
     ser_ver_major            INTEGER NOT NULL,  -- serialization version for data migration - breaking changes
     ser_ver_minor            INTEGER NOT NULL,  -- serialization version for data migration - backward-compatible changes
-    ser_blob                  BLOB NOT NULL      -- serialized track entity
+    ser_blob                 BLOB NOT NULL      -- serialized track entity
 );
 
-CREATE TABLE tracks_resource (
+CREATE TABLE tracks_collection (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     collection_uid           TEXT NOT NULL,
-    uri                      TEXT NOT NULL,     -- RFC 3986
-    sync_rev_ordinal         INTEGER,           -- most recent metadata synchronization
-    sync_rev_timestamp       DATETIME,          -- most recent metadata synchronization
+    src_uri                  TEXT NOT NULL,     -- RFC 3986
+    src_sync_rev_ordinal     INTEGER,           -- most recent metadata synchronization
+    src_sync_rev_timestamp   DATETIME,          -- most recent metadata synchronization
     content_type             TEXT NOT NULL,     -- RFC 6838
     audio_duration           INTEGER,           -- milliseconds
     audio_channels           INTEGER,           -- number of channels
     audio_samplerate         INTEGER,           -- Hz
     audio_bitrate            INTEGER,           -- bits per second (bps)
+    color_code               INTEGER,
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (collection_uid, track_id),
-    UNIQUE (collection_uid, uri)
+    UNIQUE (collection_uid, src_uri)
 );
 
 CREATE TABLE tracks_overview (

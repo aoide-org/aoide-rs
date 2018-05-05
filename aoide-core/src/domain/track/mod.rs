@@ -75,12 +75,12 @@ impl AudioContent {
 }
 
 ///////////////////////////////////////////////////////////////////////
-/// MediaResource
+/// TrackSource
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct MediaResource {
+pub struct TrackSource {
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub uri: String,
 
@@ -94,18 +94,17 @@ pub struct MediaResource {
     pub audio_content: Option<AudioContent>,
 }
 
-impl MediaResource {
+impl TrackSource {
     pub fn is_valid(&self) -> bool {
         !self.uri.is_empty() && !self.content_type.is_empty()
     }
 }
 
 ///////////////////////////////////////////////////////////////////////
-/// CollectedMediaResource
+/// TrackCollection
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct CollectionRef {
     pub uid: CollectionUid,
 }
@@ -116,17 +115,39 @@ impl CollectionRef {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct CollectedMediaResource {
-    pub collection: CollectionRef,
+pub type TrackColorCode = u32; // 0xAARRGGBB
 
-    pub media: MediaResource,
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct TrackColor {
+    pub code: TrackColorCode,
 }
 
-impl CollectedMediaResource {
+impl TrackColor {
+    pub const BLACK: Self = Self { code: 0x000000 };
+    pub const WHITE: Self = Self { code: 0xffffff };
+    pub const RED: Self = Self { code: 0xff0000 };
+    pub const GREEN: Self = Self { code: 0x00ff00 };
+    pub const BLUE: Self = Self { code: 0x0000ff };
+    pub const YELLOW: Self = Self { code: 0xffff00 };
+    pub const MAGENTA: Self = Self { code: 0xff00ff };
+    pub const CYAN: Self = Self { code: 0x00ffff };
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct TrackCollection {
+    pub collection: CollectionRef,
+
+    pub source: TrackSource,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub color: Option<TrackColor>,
+}
+
+impl TrackCollection {
     pub fn is_valid(&self) -> bool {
-        self.collection.is_valid() && self.media.is_valid()
+        self.collection.is_valid() && self.source.is_valid()
     }
 }
 
@@ -341,7 +362,7 @@ pub struct TrackBody {
     pub identity: Option<TrackIdentity>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub resources: Vec<CollectedMediaResource>,
+    pub collections: Vec<TrackCollection>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub music: Option<MusicMetadata>,
@@ -358,11 +379,11 @@ pub struct TrackBody {
 
 impl TrackBody {
     pub fn is_valid(&self) -> bool {
-        self.titles.is_valid() && !self.resources.is_empty()
-            && (self.resources
+        self.titles.is_valid() && !self.collections.is_empty()
+            && (self.collections
                 .iter()
-                .filter(|media| media.is_valid())
-                .count() == self.resources.len())
+                .filter(|source| source.is_valid())
+                .count() == self.collections.len())
     }
 
     pub fn actors_to_string(&self, role_opt: Option<ActorRole>) -> String {
@@ -455,15 +476,16 @@ mod tests {
             Comment::new_anonymous("Some anonymous notes about this track"),
         ];
         let uri = "subfolder/test.mp3";
-        let media = MediaResource {
+        let source = TrackSource {
             uri: uri.to_string(),
             synchronized_revision: Some(EntityRevision::initial()),
             content_type: mime_guess::guess_mime_type(uri).to_string(),
             ..Default::default()
         };
-        let resources = vec![CollectedMediaResource {
+        let collections = vec![TrackCollection {
             collection: CollectionRef { uid: EntityUidGenerator::generate_uid() },
-            media,
+            source,
+            ..Default::default()
         }];
         let tags = vec![
             Tag::new_faceted(TrackTag::FACET_STYLE, "1980s", 0.8),
@@ -472,7 +494,7 @@ mod tests {
             Tag::new("non-faceted tag", 1.0),
         ];
         let body = TrackBody {
-            resources,
+            collections,
             music: Some(music),
             tags,
             comments,

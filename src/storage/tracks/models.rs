@@ -13,12 +13,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::schema::{tracks_entity, tracks_resource, tracks_tag, tracks_comment, tracks_rating};
+use super::schema::{tracks_entity, tracks_collection, tracks_tag, tracks_comment, tracks_rating};
 
 use chrono::naive::NaiveDateTime;
 
 use aoide_core::domain::entity::{EntityRevision, EntityHeader};
-use aoide_core::domain::track::CollectedMediaResource;
+use aoide_core::domain::track::TrackCollection;
 use aoide_core::domain::metadata::{ConfidenceValue, Tag, Comment, Rating};
 
 use storage::{StorageId, SerializationFormat};
@@ -74,13 +74,13 @@ impl<'a> UpdatableTracksEntity<'a> {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "tracks_resource"]
+#[table_name = "tracks_collection"]
 pub struct InsertableTracksResource<'a> {
     pub track_id: StorageId,
     pub collection_uid: &'a str,
-    pub uri: &'a str,
-    pub sync_rev_ordinal: Option<i64>,
-    pub sync_rev_timestamp: Option<NaiveDateTime>,
+    pub src_uri: &'a str,
+    pub src_sync_rev_ordinal: Option<i64>,
+    pub src_sync_rev_timestamp: Option<NaiveDateTime>,
     pub content_type: &'a str,
     pub audio_duration: Option<i64>,
     pub audio_channels: Option<i16>,
@@ -88,23 +88,25 @@ pub struct InsertableTracksResource<'a> {
     pub audio_bitrate: Option<i32>,
     pub audio_enc_name: Option<&'a str>,
     pub audio_enc_settings: Option<&'a str>,
+    pub color_code: Option<i32>,
 }
 
 impl<'a> InsertableTracksResource<'a> {
-    pub fn bind(track_id: StorageId, resource: &'a CollectedMediaResource) -> Self {
+    pub fn bind(track_id: StorageId, track_collection: &'a TrackCollection) -> Self {
         Self {
             track_id,
-            collection_uid: resource.collection.uid.as_str(),
-            uri: resource.media.uri.as_str(),
-            sync_rev_ordinal: resource.media.synchronized_revision.map(|rev| rev.ordinal() as i64),
-            sync_rev_timestamp: resource.media.synchronized_revision.map(|rev| rev.timestamp().naive_utc()),
-            content_type: resource.media.content_type.as_str(),
-            audio_duration: resource.media.audio_content.as_ref().map(|audio| audio.duration.millis as i64),
-            audio_channels: resource.media.audio_content.as_ref().map(|audio| audio.channels.count as i16),
-            audio_samplerate: resource.media.audio_content.as_ref().map(|audio| audio.samplerate.hz as i32),
-            audio_bitrate: resource.media.audio_content.as_ref().map(|audio| audio.bitrate.bps as i32),
-            audio_enc_name: resource.media.audio_content.as_ref().and_then(|audio| audio.encoder.as_ref()).map(|enc| enc.name.as_str()),
-            audio_enc_settings: resource.media.audio_content.as_ref().and_then(|audio| audio.encoder.as_ref()).and_then(|enc| enc.settings.as_ref()).map(|settings| settings.as_str()),
+            collection_uid: track_collection.collection.uid.as_str(),
+            src_uri: track_collection.source.uri.as_str(),
+            src_sync_rev_ordinal: track_collection.source.synchronized_revision.map(|rev| rev.ordinal() as i64),
+            src_sync_rev_timestamp: track_collection.source.synchronized_revision.map(|rev| rev.timestamp().naive_utc()),
+            content_type: track_collection.source.content_type.as_str(),
+            audio_duration: track_collection.source.audio_content.as_ref().map(|audio| audio.duration.millis as i64),
+            audio_channels: track_collection.source.audio_content.as_ref().map(|audio| audio.channels.count as i16),
+            audio_samplerate: track_collection.source.audio_content.as_ref().map(|audio| audio.samplerate.hz as i32),
+            audio_bitrate: track_collection.source.audio_content.as_ref().map(|audio| audio.bitrate.bps as i32),
+            audio_enc_name: track_collection.source.audio_content.as_ref().and_then(|audio| audio.encoder.as_ref()).map(|enc| enc.name.as_str()),
+            audio_enc_settings: track_collection.source.audio_content.as_ref().and_then(|audio| audio.encoder.as_ref()).and_then(|enc| enc.settings.as_ref()).map(|settings| settings.as_str()),
+            color_code: track_collection.color.map(|color| color.code as i32),
         }
     }
 }

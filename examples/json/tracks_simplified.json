@@ -52,12 +52,12 @@
             "identity": {
                 "mbrainzId": "d878c95a-8a6b-3be6-b6df-7d720a480625"
             },
-            "resources": [
+            "collections": [
                 {
                     "collection": {
                         "uid": "myMXwslBoXkTDQ0olhq1QsiHRWWL4yj1V0IuoK+PYOg"
                     },
-                    "media": {
+                    "source": {
                         "uri": "file::///home/music/collection/test.mp3",
                         "synchronizedRevision": {
                             "ordinal": 23,
@@ -78,6 +78,9 @@
                                 "bps": 320000
                             }
                         }
+                    },
+                    "color": {
+                        "code": 16711680
                     }
                 }
             ]

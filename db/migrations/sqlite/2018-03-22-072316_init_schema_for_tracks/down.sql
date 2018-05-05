@@ -16,7 +16,7 @@
 DROP TABLE collections_entity;
 
 DROP TABLE tracks_entity;
-DROP TABLE tracks_resource;
+DROP TABLE tracks_collection;
 DROP TABLE tracks_overview;
 DROP TABLE tracks_summary;
 DROP TABLE tracks_music;

@@ -49,36 +49,36 @@ impl<'a> TrackRepository<'a> {
     }
 
     pub fn perform_housekeeping(&self) -> Result<(), failure::Error> {
-        self.cleanup_resources()?;
+        self.cleanup_collections()?;
         self.cleanup_tags()?;
         self.cleanup_comments()?;
         self.cleanup_ratings()?;
         Ok(())
     }
 
-    fn cleanup_resources(&self) -> Result<(), failure::Error> {
-        let query = diesel::delete(tracks_resource::table.filter(tracks_resource::track_id.ne_all(
+    fn cleanup_collections(&self) -> Result<(), failure::Error> {
+        let query = diesel::delete(tracks_collection::table.filter(tracks_collection::track_id.ne_all(
             tracks_entity::table.select(tracks_entity::id))));
         query.execute(self.connection)?;
         Ok(())
     }
 
-    fn delete_resources(&self, track_id: StorageId) -> Result<(), failure::Error> {
-        let query = diesel::delete(tracks_resource::table.filter(tracks_resource::track_id.eq(track_id)));
+    fn delete_collections(&self, track_id: StorageId) -> Result<(), failure::Error> {
+        let query = diesel::delete(tracks_collection::table.filter(tracks_collection::track_id.eq(track_id)));
         query.execute(self.connection)?;
         Ok(())
     }
 
-    fn insert_resource(&self, track_id: StorageId, resource: &CollectedMediaResource) -> Result<(), failure::Error> {
-        let insertable = InsertableTracksResource::bind(track_id, resource);
-        let query = diesel::insert_into(tracks_resource::table).values(&insertable);
+    fn insert_collection(&self, track_id: StorageId, collection: &TrackCollection) -> Result<(), failure::Error> {
+        let insertable = InsertableTracksResource::bind(track_id, collection);
+        let query = diesel::insert_into(tracks_collection::table).values(&insertable);
         query.execute(self.connection)?;
         Ok(())
     }
 
-    fn insert_resources(&self, track_id: StorageId, body: &TrackBody) -> Result<(), failure::Error> {
-        for resource in body.resources.iter() {
-            self.insert_resource(track_id, resource)?;
+    fn insert_collections(&self, track_id: StorageId, body: &TrackBody) -> Result<(), failure::Error> {
+        for collection in body.collections.iter() {
+            self.insert_collection(track_id, collection)?;
         }
         Ok(())
     }
@@ -169,7 +169,7 @@ impl<'a> TrackRepository<'a> {
         let maybe_storage_id = self.find_storage_id(uid)?;
         match maybe_storage_id {
             Some(storage_id) => {
-                self.insert_resources(storage_id, entity.body())?;
+                self.insert_collections(storage_id, entity.body())?;
                 self.insert_tags(storage_id, entity.body())?;
                 self.insert_comments(storage_id, entity.body())?;
                 self.insert_ratings(storage_id, entity.body())?;
@@ -183,7 +183,7 @@ impl<'a> TrackRepository<'a> {
         let maybe_storage_id = self.find_storage_id(uid)?;
         match maybe_storage_id {
             Some(storage_id) => {
-                self.delete_resources(storage_id)?;
+                self.delete_collections(storage_id)?;
                 self.delete_tags(storage_id)?;
                 self.delete_comments(storage_id)?;
                 self.delete_ratings(storage_id)?;
@@ -194,7 +194,7 @@ impl<'a> TrackRepository<'a> {
     }
 
     fn after_entity_updated(&self, storage_id: StorageId, body: &TrackBody) -> Result<(), failure::Error> {
-        self.insert_resources(storage_id, body)?;
+        self.insert_collections(storage_id, body)?;
         self.insert_tags(storage_id, body)?;
         self.insert_comments(storage_id, body)?;
         self.insert_ratings(storage_id, body)?;
@@ -323,7 +323,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             .offset(offset)
             .limit(limit);
         let results = match collection_uid {
-            Some(ref uid) => target.filter(tracks_entity::id.eq_any(tracks_resource::table.select(tracks_resource::track_id).filter(tracks_resource::collection_uid.eq(uid.as_str())))).load::<QueryableSerializedEntity>(self.connection),
+            Some(ref uid) => target.filter(tracks_entity::id.eq_any(tracks_collection::table.select(tracks_collection::track_id).filter(tracks_collection::collection_uid.eq(uid.as_str())))).load::<QueryableSerializedEntity>(self.connection),
             None => target.load::<QueryableSerializedEntity>(self.connection),
         }?;
         if log_enabled!(log::Level::Debug) {

@@ -27,13 +27,13 @@ table! {
 }
 
 table! {
-    tracks_resource (id) {
+    tracks_collection (id) {
         id -> BigInt,
         track_id -> BigInt,
         collection_uid -> Text,
-        uri -> Text,
-        sync_rev_ordinal -> Nullable<BigInt>,
-        sync_rev_timestamp -> Nullable<Timestamp>,
+        src_uri -> Text,
+        src_sync_rev_ordinal -> Nullable<BigInt>,
+        src_sync_rev_timestamp -> Nullable<Timestamp>,
         content_type -> Text,
         audio_duration -> Nullable<BigInt>,
         audio_channels -> Nullable<SmallInt>,
@@ -41,11 +41,12 @@ table! {
         audio_bitrate -> Nullable<Integer>,
         audio_enc_name -> Nullable<Text>,
         audio_enc_settings -> Nullable<Text>,
+        color_code -> Nullable<Integer>,
     }
 }
 
-joinable!(tracks_resource -> tracks_entity (track_id));
-allow_tables_to_appear_in_same_query!(tracks_resource, tracks_entity);
+joinable!(tracks_collection -> tracks_entity (track_id));
+allow_tables_to_appear_in_same_query!(tracks_collection, tracks_entity);
 
 table! {
     tracks_overview (id) {
