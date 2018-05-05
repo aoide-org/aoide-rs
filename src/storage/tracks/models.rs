@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::schema::{tracks_entity, tracks_collection, tracks_tag, tracks_comment, tracks_rating};
+use super::schema::{tracks_entity, aux_tracks_collection, aux_tracks_tag, aux_tracks_comment, aux_tracks_rating};
 
 use chrono::naive::NaiveDateTime;
 
@@ -74,7 +74,7 @@ impl<'a> UpdatableTracksEntity<'a> {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "tracks_collection"]
+#[table_name = "aux_tracks_collection"]
 pub struct InsertableTracksResource<'a> {
     pub track_id: StorageId,
     pub collection_uid: &'a str,
@@ -112,7 +112,7 @@ impl<'a> InsertableTracksResource<'a> {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "tracks_tag"]
+#[table_name = "aux_tracks_tag"]
 pub struct InsertableTracksTag<'a> {
     pub track_id: StorageId,
     pub facet: Option<&'a str>,
@@ -132,7 +132,7 @@ impl<'a> InsertableTracksTag<'a> {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "tracks_comment"]
+#[table_name = "aux_tracks_comment"]
 pub struct InsertableTracksComment<'a> {
     pub track_id: StorageId,
     pub owner: Option<&'a str>,
@@ -150,7 +150,7 @@ impl<'a> InsertableTracksComment<'a> {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "tracks_rating"]
+#[table_name = "aux_tracks_rating"]
 pub struct InsertableTracksRating<'a> {
     pub track_id: StorageId,
     pub owner: Option<&'a str>,

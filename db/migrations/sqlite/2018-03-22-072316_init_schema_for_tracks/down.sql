@@ -16,10 +16,10 @@
 DROP TABLE collections_entity;
 
 DROP TABLE tracks_entity;
-DROP TABLE tracks_collection;
-DROP TABLE tracks_overview;
-DROP TABLE tracks_summary;
-DROP TABLE tracks_music;
-DROP TABLE tracks_tag;
-DROP TABLE tracks_comment;
-DROP TABLE tracks_rating;
+DROP TABLE aux_tracks_collection;
+DROP TABLE aux_tracks_overview;
+DROP TABLE aux_tracks_summary;
+DROP TABLE aux_tracks_music;
+DROP TABLE aux_tracks_tag;
+DROP TABLE aux_tracks_comment;
+DROP TABLE aux_tracks_rating;

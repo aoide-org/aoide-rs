@@ -27,7 +27,7 @@ table! {
 }
 
 table! {
-    tracks_collection (id) {
+    aux_tracks_collection (id) {
         id -> BigInt,
         track_id -> BigInt,
         collection_uid -> Text,
@@ -45,11 +45,11 @@ table! {
     }
 }
 
-joinable!(tracks_collection -> tracks_entity (track_id));
-allow_tables_to_appear_in_same_query!(tracks_collection, tracks_entity);
+joinable!(aux_tracks_collection -> tracks_entity (track_id));
+allow_tables_to_appear_in_same_query!(aux_tracks_collection, tracks_entity);
 
 table! {
-    tracks_overview (id) {
+    aux_tracks_overview (id) {
         id -> BigInt,
         track_id -> BigInt,
         track_title -> Text,
@@ -67,11 +67,11 @@ table! {
     }
 }
 
-joinable!(tracks_overview -> tracks_entity (track_id));
-allow_tables_to_appear_in_same_query!(tracks_overview, tracks_entity);
+joinable!(aux_tracks_overview -> tracks_entity (track_id));
+allow_tables_to_appear_in_same_query!(aux_tracks_overview, tracks_entity);
 
 table! {
-    tracks_summary (id) {
+    aux_tracks_summary (id) {
         id -> BigInt,
         track_id -> BigInt,
         track_artists -> Nullable<Text>,
@@ -90,11 +90,11 @@ table! {
     }
 }
 
-joinable!(tracks_summary -> tracks_entity (track_id));
-allow_tables_to_appear_in_same_query!(tracks_summary, tracks_entity);
+joinable!(aux_tracks_summary -> tracks_entity (track_id));
+allow_tables_to_appear_in_same_query!(aux_tracks_summary, tracks_entity);
 
 table! {
-    tracks_music (id) {
+    aux_tracks_music (id) {
         id -> BigInt,
         track_id -> BigInt,
         music_loudness -> Nullable<Double>,
@@ -113,11 +113,11 @@ table! {
     }
 }
 
-joinable!(tracks_music -> tracks_entity (track_id));
-allow_tables_to_appear_in_same_query!(tracks_music, tracks_entity);
+joinable!(aux_tracks_music -> tracks_entity (track_id));
+allow_tables_to_appear_in_same_query!(aux_tracks_music, tracks_entity);
 
 table! {
-    tracks_tag (id) {
+    aux_tracks_tag (id) {
         id -> BigInt,
         track_id -> BigInt,
         facet -> Nullable<Text>,
@@ -126,11 +126,11 @@ table! {
     }
 }
 
-joinable!(tracks_tag -> tracks_entity (track_id));
-allow_tables_to_appear_in_same_query!(tracks_tag, tracks_entity);
+joinable!(aux_tracks_tag -> tracks_entity (track_id));
+allow_tables_to_appear_in_same_query!(aux_tracks_tag, tracks_entity);
 
 table! {
-    tracks_comment (id) {
+    aux_tracks_comment (id) {
         id -> BigInt,
         track_id -> BigInt,
         owner -> Nullable<Text>,
@@ -138,11 +138,11 @@ table! {
     }
 }
 
-joinable!(tracks_comment -> tracks_entity (track_id));
-allow_tables_to_appear_in_same_query!(tracks_comment, tracks_entity);
+joinable!(aux_tracks_comment -> tracks_entity (track_id));
+allow_tables_to_appear_in_same_query!(aux_tracks_comment, tracks_entity);
 
 table! {
-    tracks_rating (id) {
+    aux_tracks_rating (id) {
         id -> BigInt,
         track_id -> BigInt,
         owner -> Nullable<Text>,
@@ -150,5 +150,5 @@ table! {
     }
 }
 
-joinable!(tracks_rating -> tracks_entity (track_id));
-allow_tables_to_appear_in_same_query!(tracks_rating, tracks_entity);
+joinable!(aux_tracks_rating -> tracks_entity (track_id));
+allow_tables_to_appear_in_same_query!(aux_tracks_rating, tracks_entity);

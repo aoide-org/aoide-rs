@@ -34,7 +34,7 @@ CREATE TABLE tracks_entity (
     ser_blob                 BLOB NOT NULL      -- serialized track entity
 );
 
-CREATE TABLE tracks_collection (
+CREATE TABLE aux_tracks_collection (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     collection_uid           TEXT NOT NULL,
@@ -52,7 +52,7 @@ CREATE TABLE tracks_collection (
     UNIQUE (collection_uid, src_uri)
 );
 
-CREATE TABLE tracks_overview (
+CREATE TABLE aux_tracks_overview (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     track_title              TEXT NOT NULL,
@@ -71,7 +71,7 @@ CREATE TABLE tracks_overview (
     UNIQUE (track_id)
 );
 
-CREATE TABLE tracks_summary (
+CREATE TABLE aux_tracks_summary (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     track_artists            TEXT,
@@ -91,7 +91,7 @@ CREATE TABLE tracks_summary (
     UNIQUE (track_id)
 );
 
-CREATE TABLE tracks_music (
+CREATE TABLE aux_tracks_music (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     music_loudness           REAL, -- LUFS dB
@@ -111,7 +111,7 @@ CREATE TABLE tracks_music (
     UNIQUE (track_id)
 );
 
-CREATE TABLE tracks_tag (
+CREATE TABLE aux_tracks_tag (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     facet                    TEXT,
@@ -121,7 +121,7 @@ CREATE TABLE tracks_tag (
     UNIQUE (track_id, facet, term)
 );
 
-CREATE TABLE tracks_comment (
+CREATE TABLE aux_tracks_comment (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     owner                    TEXT,
@@ -130,7 +130,7 @@ CREATE TABLE tracks_comment (
     UNIQUE (track_id, owner)
 );
 
-CREATE TABLE tracks_rating (
+CREATE TABLE aux_tracks_rating (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     owner                    TEXT,
