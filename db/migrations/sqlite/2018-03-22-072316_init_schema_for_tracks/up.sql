@@ -41,6 +41,8 @@ CREATE TABLE aux_tracks_identity (
     track_acoust_id          TEXT,
     track_mbrainz_id         TEXT,
     track_spotify_id         TEXT,
+    album_ean                TEXT,
+    album_upc                TEXT,
     album_asin               TEXT,
     album_mbrainz_id         TEXT,
     album_spotify_id         TEXT,

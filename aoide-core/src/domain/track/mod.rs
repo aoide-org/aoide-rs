@@ -209,6 +209,12 @@ pub struct TrackIdentity {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AlbumIdentity {
     #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub ean: String,
+
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub upc: String,
+
+    #[serde(skip_serializing_if = "String::is_empty", default)]
     pub asin: String,
 
     #[serde(skip_serializing_if = "Uuid::is_nil", default = "Uuid::nil")]

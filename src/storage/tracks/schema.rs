@@ -34,6 +34,8 @@ table! {
         track_acoust_id -> Nullable<Text>,
         track_mbrainz_id -> Nullable<Text>,
         track_spotify_id -> Nullable<Text>,
+        album_ean -> Nullable<Text>,
+        album_upc -> Nullable<Text>,
         album_asin -> Nullable<Text>,
         album_mbrainz_id -> Nullable<Text>,
         album_spotify_id -> Nullable<Text>,
