@@ -188,6 +188,9 @@ impl Titles {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackIdentity {
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub isrc: String, // International Standard Recording Code (ISO 3901)
+
     #[serde(skip_serializing_if = "Uuid::is_nil", default = "Uuid::nil")]
     pub acoust_id: Uuid,
 
