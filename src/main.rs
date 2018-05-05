@@ -287,14 +287,10 @@ fn handle_delete_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
     };
 
     let result = match remove_collection(&*pooled_connection, &uid) {
-        Ok(Some(_)) => {
-            let response = create_response(&state, StatusCode::Ok, None);
+        Ok(_) => {
+            let response = create_response(&state, StatusCode::NoContent, None);
             future::ok((state, response))
-        }
-        Ok(None) => {
-            let response = create_response(&state, StatusCode::Accepted, None);
-            future::ok((state, response))
-        }
+        },
         Err(e) => future::err((state, on_handler_failure(e))),
     };
 
@@ -641,7 +637,7 @@ fn handle_delete_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
 
     let result = match remove_track(&*pooled_connection, &uid) {
         Ok(_) => {
-            let response = create_response(&state, StatusCode::Ok, None);
+            let response = create_response(&state, StatusCode::NoContent, None);
             future::ok((state, response))
         }
         Err(e) => future::err((state, on_handler_failure(e))),
