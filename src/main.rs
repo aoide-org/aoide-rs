@@ -67,6 +67,8 @@ use aoide::storage::{deserialize_slice_with_format, SerializationFormat, Seriali
 use aoide::usecases::*;
 
 use diesel::prelude::*;
+use diesel::result::Error as DieselError;
+use diesel::result::DatabaseErrorKind;
 
 use futures::{future, Future, Stream};
 use futures::future::IntoFuture;
@@ -116,15 +118,12 @@ fn migrate_database_schema(connection_pool: &SqliteConnectionPool) -> Result<(),
     Ok(())
 }
 
-fn cleanup_database(
-    connection_pool: &SqliteConnectionPool) -> Result<(), failure::Error> {
+fn cleanup_database(connection_pool: &SqliteConnectionPool) -> Result<(), failure::Error> {
     info!("Cleaning up database");
     let pooled_connection = connection_pool.get()?;
     let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
-    connection.transaction::<_, failure::Error, _>(|| {
-        repository.perform_housekeeping()
-    })
+    connection.transaction::<_, failure::Error, _>(|| repository.perform_housekeeping())
 }
 
 fn init_env_logger(log_level_filter: LogLevelFilter) {
@@ -153,18 +152,29 @@ fn init_env_logger_verbosity(verbosity_level: u8) {
     init_env_logger(log_level_filter);
 }
 
-fn on_handler_error<T>(e: T) -> HandlerError
+fn on_handler_error_with_status<T>(e: T, status: StatusCode) -> HandlerError
 where
     T: error::Error + Send + 'static,
 {
     warn!("Failed to handle request: {}", e);
-    e.into_handler_error()
+    if log_enabled!(log::Level::Debug) {
+        debug!("Error: {:?}", e);
+    }
+    e.into_handler_error().with_status(status)
+}
+
+fn on_handler_error<T>(e: T) -> HandlerError
+where
+    T: error::Error + Send + 'static,
+{
+    on_handler_error_with_status(e, StatusCode::InternalServerError)
 }
 
 fn on_handler_failure(e: failure::Error) -> HandlerError {
-    let compat = e.compat();
-    warn!("Failed to handle request: {}", compat);
-    compat.into_handler_error()
+    match e.cause().downcast_ref::<DieselError>() {
+        Some(&DieselError::DatabaseError(DatabaseErrorKind::UniqueViolation, _)) | Some(&DieselError::DatabaseError(DatabaseErrorKind::ForeignKeyViolation, _)) => on_handler_error_with_status(e.compat(), StatusCode::BadRequest),
+        _ => on_handler_error(e.compat())
+    }
 }
 
 fn parse_serialization_format_from_state(
@@ -250,9 +260,7 @@ fn remove_collection(
     uid: &EntityUid,
 ) -> Result<Option<()>, failure::Error> {
     let repository = CollectionRepository::new(connection);
-    connection.transaction::<_, failure::Error, _>(|| {
-        repository.remove_entity(&uid)
-    })
+    connection.transaction::<_, failure::Error, _>(|| repository.remove_entity(&uid))
 }
 
 fn handle_delete_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
@@ -306,20 +314,21 @@ fn handle_get_collections_path_pagination(mut state: State) -> Box<HandlerFuture
         Err(e) => return Box::new(future::err((state, on_handler_error(e)))),
     };
 
-    let handler_future = match find_recently_revisioned_collections(&*pooled_connection, &pagination) {
-        Ok(collections) => match serde_json::to_vec(&collections) {
-            Ok(response_body) => {
-                let response = create_response(
-                    &state,
-                    StatusCode::Ok,
-                    Some((response_body, mime::APPLICATION_JSON)),
-                );
-                future::ok((state, response))
-            }
-            Err(e) => future::err((state, on_handler_error(e))),
-        },
-        Err(e) => future::err((state, on_handler_failure(e))),
-    };
+    let handler_future =
+        match find_recently_revisioned_collections(&*pooled_connection, &pagination) {
+            Ok(collections) => match serde_json::to_vec(&collections) {
+                Ok(response_body) => {
+                    let response = create_response(
+                        &state,
+                        StatusCode::Ok,
+                        Some((response_body, mime::APPLICATION_JSON)),
+                    );
+                    future::ok((state, response))
+                }
+                Err(e) => future::err((state, on_handler_error(e))),
+            },
+            Err(e) => future::err((state, on_handler_failure(e))),
+        };
 
     Box::new(handler_future)
 }
@@ -329,9 +338,7 @@ fn create_collection(
     body: CollectionBody,
 ) -> Result<CollectionEntity, failure::Error> {
     let repository = CollectionRepository::new(connection);
-    connection.transaction::<_, failure::Error, _>(|| {
-        repository.create_entity(body)
-    })
+    connection.transaction::<_, failure::Error, _>(|| repository.create_entity(body))
 }
 
 fn handle_post_collections(mut state: State) -> Box<HandlerFuture> {
@@ -380,9 +387,7 @@ fn update_collection(
     entity: &CollectionEntity,
 ) -> Result<Option<EntityRevision>, failure::Error> {
     let repository = CollectionRepository::new(connection);
-    connection.transaction::<_, failure::Error, _>(|| {
-        repository.update_entity(entity)
-    })
+    connection.transaction::<_, failure::Error, _>(|| repository.update_entity(entity))
 }
 
 fn handle_put_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
@@ -400,7 +405,10 @@ fn handle_put_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
                     }
                 };
 
-                let uid = match parse_and_verify_entity_uid_from_path(entity.header().uid(), &mut state) {
+                let uid = match parse_and_verify_entity_uid_from_path(
+                    entity.header().uid(),
+                    &mut state,
+                ) {
                     Ok(uid) => uid,
                     Err(e) => {
                         return future::err((
@@ -456,9 +464,7 @@ fn create_track(
     format: SerializationFormat,
 ) -> Result<TrackEntity, failure::Error> {
     let repository = TrackRepository::new(connection);
-    connection.transaction::<_, failure::Error, _>(|| {
-        repository.create_entity(body, format)
-    })
+    connection.transaction::<_, failure::Error, _>(|| repository.create_entity(body, format))
 }
 
 fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
@@ -519,9 +525,7 @@ fn update_track(
     format: SerializationFormat,
 ) -> Result<Option<()>, failure::Error> {
     let repository = TrackRepository::new(connection);
-    connection.transaction::<_, failure::Error, _>(|| {
-        repository.update_entity(entity, format)
-    })
+    connection.transaction::<_, failure::Error, _>(|| repository.update_entity(entity, format))
 }
 
 fn handle_put_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
@@ -550,7 +554,10 @@ fn handle_put_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
                         }
                     };
 
-                let uid = match parse_and_verify_entity_uid_from_path(entity.header().uid(), &mut state) {
+                let uid = match parse_and_verify_entity_uid_from_path(
+                    entity.header().uid(),
+                    &mut state,
+                ) {
                     Ok(uid) => uid,
                     Err(e) => {
                         return future::err((
@@ -602,14 +609,9 @@ fn handle_put_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
     Box::new(handler_future)
 }
 
-fn remove_track(
-    connection: &SqliteConnection,
-    uid: &EntityUid,
-) -> Result<(), failure::Error> {
+fn remove_track(connection: &SqliteConnection, uid: &EntityUid) -> Result<(), failure::Error> {
     let repository = TrackRepository::new(connection);
-    connection.transaction::<_, failure::Error, _>(|| {
-        repository.remove_entity(&uid)
-    })
+    connection.transaction::<_, failure::Error, _>(|| repository.remove_entity(&uid))
 }
 
 fn handle_delete_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
@@ -625,7 +627,7 @@ fn handle_delete_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
         Ok(_) => {
             let response = create_response(&state, StatusCode::Ok, None);
             future::ok((state, response))
-        },
+        }
         Err(e) => future::err((state, on_handler_failure(e))),
     };
 
@@ -789,7 +791,8 @@ pub fn main() {
         _ => ":memory:",
     };
 
-    let connection_pool = create_connection_pool(db_url).expect("Failed to create database connection pool");
+    let connection_pool =
+        create_connection_pool(db_url).expect("Failed to create database connection pool");
 
     migrate_database_schema(&connection_pool).unwrap();
 
