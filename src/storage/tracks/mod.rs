@@ -56,7 +56,7 @@ impl<'a> TrackRepository<'a> {
         Ok(())
     }
 
-    fn refresh_aux_storage(&self, track_id: StorageId, track_body: &TrackBody) -> Result<(), failure::Error> {
+    pub fn refresh_aux_storage(&self, track_id: StorageId, track_body: &TrackBody) -> Result<(), failure::Error> {
         self.delete_aux_storage(track_id)?;
         self.insert_aux_storage(track_id, track_body)?;
         Ok(())

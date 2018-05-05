@@ -27,6 +27,23 @@ table! {
 }
 
 table! {
+    aux_tracks_identity (id) {
+        id -> BigInt,
+        track_id -> BigInt,
+        track_isrc -> Nullable<Text>,
+        track_acoust_id -> Nullable<Text>,
+        track_mbrainz_id -> Nullable<Text>,
+        track_spotify_id -> Nullable<Text>,
+        album_asin -> Nullable<Text>,
+        album_mbrainz_id -> Nullable<Text>,
+        album_spotify_id -> Nullable<Text>,
+    }
+}
+
+joinable!(aux_tracks_identity -> tracks_entity (track_id));
+allow_tables_to_appear_in_same_query!(aux_tracks_identity, tracks_entity);
+
+table! {
     aux_tracks_resource (id) {
         id -> BigInt,
         track_id -> BigInt,
