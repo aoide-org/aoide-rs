@@ -49,7 +49,7 @@ impl<'a> TrackRepository<'a> {
     }
 
     pub fn perform_housekeeping(&self) -> Result<(), failure::Error> {
-        self.cleanup_aux_collections()?;
+        self.cleanup_aux_resources()?;
         self.cleanup_aux_tags()?;
         self.cleanup_aux_comments()?;
         self.cleanup_aux_ratings()?;
@@ -57,8 +57,8 @@ impl<'a> TrackRepository<'a> {
     }
 
     fn insert_aux_storage(&self, storage_id: StorageId, track_body: &TrackBody) -> Result<(), failure::Error> {
-        for collection in track_body.collections.iter() {
-            self.insert_aux_collection(storage_id, collection)?;
+        for resource in track_body.resources.iter() {
+            self.insert_aux_resource(storage_id, resource)?;
         }
         for tag in track_body.tags.iter() {
             self.insert_aux_tag(storage_id, tag)?;
@@ -73,29 +73,29 @@ impl<'a> TrackRepository<'a> {
     }
 
     fn delete_aux_storage(&self, track_id: StorageId) -> Result<(), failure::Error> {
-        self.delete_aux_collections(track_id)?;
+        self.delete_aux_resources(track_id)?;
         self.delete_aux_tags(track_id)?;
         self.delete_aux_comments(track_id)?;
         self.delete_aux_ratings(track_id)?;
         Ok(())
     }
 
-    fn cleanup_aux_collections(&self) -> Result<(), failure::Error> {
-        let query = diesel::delete(aux_tracks_collection::table.filter(aux_tracks_collection::track_id.ne_all(
+    fn cleanup_aux_resources(&self) -> Result<(), failure::Error> {
+        let query = diesel::delete(aux_tracks_resource::table.filter(aux_tracks_resource::track_id.ne_all(
             tracks_entity::table.select(tracks_entity::id))));
         query.execute(self.connection)?;
         Ok(())
     }
 
-    fn delete_aux_collections(&self, track_id: StorageId) -> Result<(), failure::Error> {
-        let query = diesel::delete(aux_tracks_collection::table.filter(aux_tracks_collection::track_id.eq(track_id)));
+    fn delete_aux_resources(&self, track_id: StorageId) -> Result<(), failure::Error> {
+        let query = diesel::delete(aux_tracks_resource::table.filter(aux_tracks_resource::track_id.eq(track_id)));
         query.execute(self.connection)?;
         Ok(())
     }
 
-    fn insert_aux_collection(&self, track_id: StorageId, collection: &TrackCollection) -> Result<(), failure::Error> {
+    fn insert_aux_resource(&self, track_id: StorageId, collection: &TrackResource) -> Result<(), failure::Error> {
         let insertable = InsertableTracksResource::bind(track_id, collection);
-        let query = diesel::insert_into(aux_tracks_collection::table).values(&insertable);
+        let query = diesel::insert_into(aux_tracks_resource::table).values(&insertable);
         query.execute(self.connection)?;
         Ok(())
     }
@@ -310,7 +310,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             .offset(offset)
             .limit(limit);
         let results = match collection_uid {
-            Some(ref uid) => target.filter(tracks_entity::id.eq_any(aux_tracks_collection::table.select(aux_tracks_collection::track_id).filter(aux_tracks_collection::collection_uid.eq(uid.as_str())))).load::<QueryableSerializedEntity>(self.connection),
+            Some(ref uid) => target.filter(tracks_entity::id.eq_any(aux_tracks_resource::table.select(aux_tracks_resource::track_id).filter(aux_tracks_resource::collection_uid.eq(uid.as_str())))).load::<QueryableSerializedEntity>(self.connection),
             None => target.load::<QueryableSerializedEntity>(self.connection),
         }?;
         if log_enabled!(log::Level::Debug) {

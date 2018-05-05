@@ -34,22 +34,24 @@ CREATE TABLE tracks_entity (
     ser_blob                 BLOB NOT NULL      -- serialized track entity
 );
 
-CREATE TABLE aux_tracks_collection (
+CREATE TABLE aux_tracks_resource (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     collection_uid           TEXT NOT NULL,
-    src_uri                  TEXT NOT NULL,     -- RFC 3986
-    src_sync_rev_ordinal     INTEGER,           -- most recent metadata synchronization
-    src_sync_rev_timestamp   DATETIME,          -- most recent metadata synchronization
+    collection_since         DATETIME NOT NULL,
+    source_uri               TEXT NOT NULL,     -- RFC 3986
+    source_sync_when         DATETIME,          -- most recent metadata synchronization
+    source_sync_rev_ordinal  INTEGER,           -- most recent metadata synchronization
+    source_sync_rev_timestamp DATETIME,         -- most recent metadata synchronization
     content_type             TEXT NOT NULL,     -- RFC 6838
     audio_duration           INTEGER,           -- milliseconds
     audio_channels           INTEGER,           -- number of channels
     audio_samplerate         INTEGER,           -- Hz
     audio_bitrate            INTEGER,           -- bits per second (bps)
-    color_code               INTEGER,
+    color_code               INTEGER,           -- 0xAARRGGBB (hex)
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (collection_uid, track_id),
-    UNIQUE (collection_uid, src_uri)
+    UNIQUE (collection_uid, source_uri)
 );
 
 CREATE TABLE aux_tracks_overview (

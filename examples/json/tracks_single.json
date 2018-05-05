@@ -82,16 +82,20 @@
             "identity": {
                 "mbrainzId": "d878c95a-8a6b-3be6-b6df-7d720a480625"
             },
-            "collections": [
+            "resources": [
                 {
                     "collection": {
-                        "uid": "myMXwslBoXkTDQ0olhq1QsiHRWWL4yj1V0IuoK+PYOg"
+                        "uid": "myMXwslBoXkTDQ0olhq1QsiHRWWL4yj1V0IuoK+PYOg",
+                        "since": "2018-05-01T13:27:56.3751483Z"
                     },
                     "source": {
                         "uri": "file::///home/music/collection/test.mp3",
-                        "synchronizedRevision": {
-                            "ordinal": 23,
-                            "timestamp": "2018-03-22T17:10:55.488760124Z"
+                        "synchronization": {
+                            "when": "2018-05-01T13:27:56.3751483Z",
+                            "revision": {
+                                "ordinal": 23,
+                                "timestamp": "2018-03-22T17:10:55.488760124Z"
+                            }
                         },
                         "contentType": "audio/mpeg",
                         "audioContent": {
@@ -206,13 +210,13 @@
                     "rating": 0.8
                 },
                 {
-                    "owner": "mrdj@aoide.org",
+                    "owner": "owner@aoide.org",
                     "rating": 0.7
                 }
             ],
             "comments": [
                 {
-                    "owner": "mrdj@aoide.org",
+                    "owner": "owner@aoide.org",
                     "comment": "Personal notes about this track"
                 },
                 {

@@ -27,13 +27,15 @@ table! {
 }
 
 table! {
-    aux_tracks_collection (id) {
+    aux_tracks_resource (id) {
         id -> BigInt,
         track_id -> BigInt,
         collection_uid -> Text,
-        src_uri -> Text,
-        src_sync_rev_ordinal -> Nullable<BigInt>,
-        src_sync_rev_timestamp -> Nullable<Timestamp>,
+        collection_since -> Timestamp,
+        source_uri -> Text,
+        source_sync_when -> Nullable<Timestamp>,
+        source_sync_rev_ordinal -> Nullable<BigInt>,
+        source_sync_rev_timestamp -> Nullable<Timestamp>,
         content_type -> Text,
         audio_duration -> Nullable<BigInt>,
         audio_channels -> Nullable<SmallInt>,
@@ -45,8 +47,8 @@ table! {
     }
 }
 
-joinable!(aux_tracks_collection -> tracks_entity (track_id));
-allow_tables_to_appear_in_same_query!(aux_tracks_collection, tracks_entity);
+joinable!(aux_tracks_resource -> tracks_entity (track_id));
+allow_tables_to_appear_in_same_query!(aux_tracks_resource, tracks_entity);
 
 table! {
     aux_tracks_overview (id) {

@@ -78,6 +78,14 @@ impl AudioContent {
 /// TrackSource
 ///////////////////////////////////////////////////////////////////////
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct TrackSynchronization {
+    pub when: DateTime<Utc>,
+
+    pub revision: EntityRevision,
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackSource {
@@ -85,7 +93,7 @@ pub struct TrackSource {
     pub uri: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub synchronized_revision: Option<EntityRevision>, // most recent metadata import/export
+    pub synchronization: Option<TrackSynchronization>, // most recent metadata import/export
 
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub content_type: String,
@@ -101,15 +109,17 @@ impl TrackSource {
 }
 
 ///////////////////////////////////////////////////////////////////////
-/// TrackCollection
+/// TrackResource
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct CollectionRef {
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct TrackCollection {
     pub uid: CollectionUid,
+
+    pub since: DateTime<Utc>,
 }
 
-impl CollectionRef {
+impl TrackCollection {
     pub fn is_valid(&self) -> bool {
         self.uid.is_valid()
     }
@@ -134,10 +144,10 @@ impl TrackColor {
     pub const CYAN: Self = Self { code: 0x00ffff };
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct TrackCollection {
-    pub collection: CollectionRef,
+pub struct TrackResource {
+    pub collection: TrackCollection,
 
     pub source: TrackSource,
 
@@ -145,7 +155,7 @@ pub struct TrackCollection {
     pub color: Option<TrackColor>,
 }
 
-impl TrackCollection {
+impl TrackResource {
     pub fn is_valid(&self) -> bool {
         self.collection.is_valid() && self.source.is_valid()
     }
@@ -362,7 +372,7 @@ pub struct TrackBody {
     pub identity: Option<TrackIdentity>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub collections: Vec<TrackCollection>,
+    pub resources: Vec<TrackResource>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub music: Option<MusicMetadata>,
@@ -379,11 +389,11 @@ pub struct TrackBody {
 
 impl TrackBody {
     pub fn is_valid(&self) -> bool {
-        self.titles.is_valid() && !self.collections.is_empty()
-            && (self.collections
+        self.titles.is_valid() && !self.resources.is_empty()
+            && (self.resources
                 .iter()
                 .filter(|source| source.is_valid())
-                .count() == self.collections.len())
+                .count() == self.resources.len())
     }
 
     pub fn actors_to_string(&self, role_opt: Option<ActorRole>) -> String {
@@ -478,14 +488,20 @@ mod tests {
         let uri = "subfolder/test.mp3";
         let source = TrackSource {
             uri: uri.to_string(),
-            synchronized_revision: Some(EntityRevision::initial()),
+            synchronization: Some(TrackSynchronization {
+                when: Utc::now(),
+                revision: EntityRevision::initial(),
+            }),
             content_type: mime_guess::guess_mime_type(uri).to_string(),
-            ..Default::default()
+            audio_content: None,
         };
-        let collections = vec![TrackCollection {
-            collection: CollectionRef { uid: EntityUidGenerator::generate_uid() },
+        let resources = vec![TrackResource {
+            collection: TrackCollection {
+                uid: EntityUidGenerator::generate_uid(),
+                since: Utc::now(),
+            },
             source,
-            ..Default::default()
+            color: Some(TrackColor::RED),
         }];
         let tags = vec![
             Tag::new_faceted(TrackTag::FACET_STYLE, "1980s", 0.8),
@@ -494,7 +510,7 @@ mod tests {
             Tag::new("non-faceted tag", 1.0),
         ];
         let body = TrackBody {
-            collections,
+            resources,
             music: Some(music),
             tags,
             comments,
