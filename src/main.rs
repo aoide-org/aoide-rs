@@ -118,12 +118,12 @@ fn migrate_database_schema(connection_pool: &SqliteConnectionPool) -> Result<(),
     Ok(())
 }
 
-fn cleanup_database(connection_pool: &SqliteConnectionPool) -> Result<(), failure::Error> {
-    info!("Cleaning up database");
+fn cleanup_database_storage(connection_pool: &SqliteConnectionPool) -> Result<(), failure::Error> {
+    info!("Cleaning up database storage");
     let pooled_connection = connection_pool.get()?;
     let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
-    connection.transaction::<_, failure::Error, _>(|| repository.perform_housekeeping())
+    connection.transaction::<_, failure::Error, _>(|| repository.cleanup_aux_storage())
 }
 
 fn init_env_logger(log_level_filter: LogLevelFilter) {
@@ -820,7 +820,7 @@ pub fn main() {
 
     migrate_database_schema(&connection_pool).unwrap();
 
-    cleanup_database(&connection_pool).unwrap();
+    cleanup_database_storage(&connection_pool).unwrap();
 
     info!("Creating middleware");
     let middleware = DieselMiddleware::with_pool(connection_pool);

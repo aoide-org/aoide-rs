@@ -48,11 +48,17 @@ impl<'a> TrackRepository<'a> {
         Self { connection }
     }
 
-    pub fn perform_housekeeping(&self) -> Result<(), failure::Error> {
+    pub fn cleanup_aux_storage(&self) -> Result<(), failure::Error> {
         self.cleanup_aux_resources()?;
         self.cleanup_aux_tags()?;
         self.cleanup_aux_comments()?;
         self.cleanup_aux_ratings()?;
+        Ok(())
+    }
+
+    fn refresh_aux_storage(&self, track_id: StorageId, track_body: &TrackBody) -> Result<(), failure::Error> {
+        self.delete_aux_storage(track_id)?;
+        self.insert_aux_storage(track_id, track_body)?;
         Ok(())
     }
 
