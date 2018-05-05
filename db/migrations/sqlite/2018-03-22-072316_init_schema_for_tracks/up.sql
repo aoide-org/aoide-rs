@@ -38,14 +38,14 @@ CREATE TABLE aux_tracks_identity (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     track_isrc               TEXT,
-    track_acoust_id          TEXT,
     track_mbrainz_id         TEXT,
     track_spotify_id         TEXT,
-    album_ean                TEXT,
-    album_upc                TEXT,
-    album_asin               TEXT,
+    track_acoust_id          TEXT,
     album_mbrainz_id         TEXT,
     album_spotify_id         TEXT,
+    release_ean              TEXT,
+    release_upc              TEXT,
+    release_asin             TEXT,
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id)
 );

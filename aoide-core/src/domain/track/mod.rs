@@ -192,13 +192,13 @@ pub struct TrackIdentity {
     pub isrc: String, // International Standard Recording Code (ISO 3901)
 
     #[serde(skip_serializing_if = "Uuid::is_nil", default = "Uuid::nil")]
-    pub acoust_id: Uuid,
-
-    #[serde(skip_serializing_if = "Uuid::is_nil", default = "Uuid::nil")]
     pub mbrainz_id: Uuid, // MusicBrainz Release Track Id
 
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub spotify_id: String, // excl. "spotify:track:" prefix
+
+    #[serde(skip_serializing_if = "Uuid::is_nil", default = "Uuid::nil")]
+    pub acoust_id: Uuid,
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -208,15 +208,6 @@ pub struct TrackIdentity {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AlbumIdentity {
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub ean: String,
-
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub upc: String,
-
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub asin: String,
-
     #[serde(skip_serializing_if = "Uuid::is_nil", default = "Uuid::nil")]
     pub mbrainz_id: Uuid, // MusicBrainz Release Id
 
@@ -231,9 +222,6 @@ pub struct AlbumIdentity {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AlbumMetadata {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub identity: Option<AlbumIdentity>,
-
     pub titles: Titles,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
@@ -244,6 +232,26 @@ pub struct AlbumMetadata {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub compilation: Option<bool>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub identity: Option<AlbumIdentity>,
+}
+
+///////////////////////////////////////////////////////////////////////
+/// ReleaseIdentity
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct ReleaseIdentity {
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub ean: String,
+
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub upc: String,
+
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub asin: String,
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -264,6 +272,9 @@ pub struct ReleaseMetadata {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub license: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub identity: Option<ReleaseIdentity>,
 }
 
 ///////////////////////////////////////////////////////////////////////

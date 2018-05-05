@@ -51,9 +51,6 @@
                 }
             ],
             "album": {
-                "identity": {
-                    "mbrainzId": "5436c9f0-3bc4-410b-8f2d-b584779d5b2c"
-                },
                 "titles": {
                     "title": "MDNA (Deluxe Version)",
                     "subtitle": null
@@ -64,12 +61,18 @@
                         "name": "Madonna"
                     }
                 ],
-                "compilation": false
+                "compilation": false,
+                "identity": {
+                    "mbrainzId": "5436c9f0-3bc4-410b-8f2d-b584779d5b2c"
+                }
             },
             "release": {
                 "released": "2012-03-23T00:00:00.000Z",
                 "label": "Interscope Records",
-                "copyright": "℗ 2012 Boy Toy, Inc. Exclusively licensed to Live Nation Worldwide, Inc. Exclusively licensed to Interscope Records"
+                "copyright": "℗ 2012 Boy Toy, Inc. Exclusively licensed to Live Nation Worldwide, Inc. Exclusively licensed to Interscope Records",
+                "identity": {
+                    "asin": "B007MPE20U"
+                }
             },
             "trackNumbers": {
                 "this": 5,
