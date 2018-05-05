@@ -56,27 +56,43 @@ CREATE TABLE tracks_overview (
     track_id                 INTEGER NOT NULL,
     track_title              TEXT NOT NULL,
     track_subtitle           TEXT,
-    track_artists            TEXT,
-    track_composers          TEXT,
-    track_conductors         TEXT,
-    track_performers         TEXT,
-    track_producers          TEXT,
-    track_remixers           TEXT,
     track_number             INTEGER, -- > 0
     track_total              INTEGER, -- > 0
     disc_number              INTEGER, -- > 0
     disc_total               INTEGER, -- > 0
     album_title              TEXT,
     album_subtitle           TEXT,
+    album_grouping           TEXT,
+    album_compilation        TINYINT, -- {0, 1}
+    release_date             DATE, -- naive date, i.e. without any time zone
+    release_label            TEXT,
+    FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
+    UNIQUE (track_id)
+);
+
+CREATE TABLE tracks_summary (
+    id                       INTEGER PRIMARY KEY,
+    track_id                 INTEGER NOT NULL,
+    track_artists            TEXT,
+    track_composers          TEXT,
+    track_conductors         TEXT,
+    track_performers         TEXT,
+    track_producers          TEXT,
+    track_remixers           TEXT,
     album_artists            TEXT,
     album_composers          TEXT,
     album_conductors         TEXT,
     album_performers         TEXT,
     album_producers          TEXT,
-    album_grouping           TEXT,
-    album_compilation        TINYINT, -- {0, 1}
-    release_date             DATE, -- naive date, i.e. without any time zone
-    release_label            TEXT,
+    ratings_min              REAL, -- [0.0, 1.0]
+    ratings_max              REAL, -- [0.0, 1.0]
+    FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
+    UNIQUE (track_id)
+);
+
+CREATE TABLE tracks_music (
+    id                       INTEGER PRIMARY KEY,
+    track_id                 INTEGER NOT NULL,
     music_loudness           REAL, -- LUFS dB
     music_tempo              REAL, -- beats per minute (bpm)
     music_time_signature     TEXT, -- "numerator/denominator"
@@ -89,16 +105,6 @@ CREATE TABLE tracks_overview (
     music_popularity         REAL, -- [0.0, 1.0]
     music_positivity         REAL, -- [0.0, 1.0]
     music_speechiness        REAL, -- [0.0, 1.0]
-    ratings_min              REAL, -- [0.0, 1.0]
-    ratings_max              REAL, -- [0.0, 1.0]
-    FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
-    UNIQUE (track_id)
-);
-
-CREATE TABLE tracks_fulltext (
-    id                       INTEGER PRIMARY KEY,
-    track_id                 INTEGER NOT NULL,
-    fulltext                 CLOB NOT NULL,
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id)
 );

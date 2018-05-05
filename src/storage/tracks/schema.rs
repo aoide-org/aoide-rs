@@ -45,4 +45,41 @@ table! {
 }
 
 joinable!(tracks_resource -> tracks_entity (track_id));
-allow_tables_to_appear_in_same_query!(tracks_entity, tracks_resource);
+allow_tables_to_appear_in_same_query!(tracks_resource, tracks_entity);
+
+table! {
+    tracks_tag (id) {
+        id -> BigInt,
+        track_id -> BigInt,
+        facet -> Nullable<Text>,
+        term -> Text,
+        confidence -> Double,
+    }
+}
+
+joinable!(tracks_tag -> tracks_entity (track_id));
+allow_tables_to_appear_in_same_query!(tracks_tag, tracks_entity);
+
+table! {
+    tracks_comment (id) {
+        id -> BigInt,
+        track_id -> BigInt,
+        owner -> Nullable<Text>,
+        comment -> Text,
+    }
+}
+
+joinable!(tracks_comment -> tracks_entity (track_id));
+allow_tables_to_appear_in_same_query!(tracks_comment, tracks_entity);
+
+table! {
+    tracks_rating (id) {
+        id -> BigInt,
+        track_id -> BigInt,
+        owner -> Nullable<Text>,
+        rating -> Double,
+    }
+}
+
+joinable!(tracks_rating -> tracks_entity (track_id));
+allow_tables_to_appear_in_same_query!(tracks_rating, tracks_entity);

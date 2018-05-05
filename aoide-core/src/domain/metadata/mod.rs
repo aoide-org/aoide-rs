@@ -21,7 +21,7 @@ use std::ops::Deref;
 /// Confidence
 ///////////////////////////////////////////////////////////////////////
 
-pub type ConfidenceValue = f32;
+pub type ConfidenceValue = f64;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -48,9 +48,9 @@ impl Deref for Confidence {
 }
 
 impl Confidence {
-    pub const MIN: Confidence = Confidence(0f32);
+    pub const MIN: Confidence = Confidence(0 as ConfidenceValue);
 
-    pub const MAX: Confidence = Confidence(1f32);
+    pub const MAX: Confidence = Confidence(1 as ConfidenceValue);
 
     pub fn is_valid(&self) -> bool {
         (*self >= Self::MIN) && (*self <= Self::MAX)
@@ -59,7 +59,7 @@ impl Confidence {
 
 impl fmt::Display for Confidence {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:.1}%", self.0 * 100f32)
+        write!(f, "{:.1}%", (self.0 * (1000 as ConfidenceValue)).round() / (10 as ConfidenceValue))
     }
 }
 
@@ -71,9 +71,11 @@ impl fmt::Display for Confidence {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Tag {
     #[serde(skip_serializing_if = "Option::is_none")]
-    facet: Option<String>, // lowercase / case-insensitive
-    term: String,
-    confidence: Confidence,
+    pub facet: Option<String>, // lowercase / case-insensitive
+    
+    pub term: String,
+
+    pub confidence: Confidence,
 }
 
 impl Tag {
@@ -122,8 +124,9 @@ impl Tag {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Rating {
     #[serde(skip_serializing_if = "Option::is_none")]
-    owner: Option<String>,
-    rating: Confidence,
+    pub owner: Option<String>,
+    
+    pub rating: Confidence,
 }
 
 impl Rating {
@@ -172,8 +175,9 @@ impl Rating {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Comment {
     #[serde(skip_serializing_if = "Option::is_none")]
-    owner: Option<String>,
-    comment: String,
+    pub owner: Option<String>,
+    
+    pub comment: String,
 }
 
 impl Comment {

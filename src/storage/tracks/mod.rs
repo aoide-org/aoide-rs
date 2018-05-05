@@ -33,6 +33,7 @@ use storage::*;
 use usecases::*;
 
 use aoide_core::domain::track::*;
+use aoide_core::domain::metadata::{Tag, Comment, Rating};
 
 ///////////////////////////////////////////////////////////////////////
 /// TrackRepository
@@ -49,6 +50,9 @@ impl<'a> TrackRepository<'a> {
 
     pub fn perform_housekeeping(&self) -> Result<(), failure::Error> {
         self.cleanup_resources()?;
+        self.cleanup_tags()?;
+        self.cleanup_comments()?;
+        self.cleanup_ratings()?;
         Ok(())
     }
 
@@ -79,12 +83,96 @@ impl<'a> TrackRepository<'a> {
         Ok(())
     }
 
+    fn cleanup_tags(&self) -> Result<(), failure::Error> {
+        let query = diesel::delete(tracks_tag::table.filter(tracks_tag::track_id.ne_all(
+            tracks_entity::table.select(tracks_entity::id))));
+        query.execute(self.connection)?;
+        Ok(())
+    }
+
+    fn delete_tags(&self, track_id: StorageId) -> Result<(), failure::Error> {
+        let query = diesel::delete(tracks_tag::table.filter(tracks_tag::track_id.eq(track_id)));
+        query.execute(self.connection)?;
+        Ok(())
+    }
+
+    fn insert_tag(&self, track_id: StorageId, tag: &Tag) -> Result<(), failure::Error> {
+        let insertable = InsertableTracksTag::bind(track_id, tag);
+        let query = diesel::insert_into(tracks_tag::table).values(&insertable);
+        query.execute(self.connection)?;
+        Ok(())
+    }
+
+    fn insert_tags(&self, track_id: StorageId, body: &TrackBody) -> Result<(), failure::Error> {
+        for tag in body.tags.iter() {
+            self.insert_tag(track_id, tag)?;
+        }
+        Ok(())
+    }
+
+    fn cleanup_comments(&self) -> Result<(), failure::Error> {
+        let query = diesel::delete(tracks_comment::table.filter(tracks_comment::track_id.ne_all(
+            tracks_entity::table.select(tracks_entity::id))));
+        query.execute(self.connection)?;
+        Ok(())
+    }
+
+    fn delete_comments(&self, track_id: StorageId) -> Result<(), failure::Error> {
+        let query = diesel::delete(tracks_comment::table.filter(tracks_comment::track_id.eq(track_id)));
+        query.execute(self.connection)?;
+        Ok(())
+    }
+
+    fn insert_comment(&self, track_id: StorageId, comment: &Comment) -> Result<(), failure::Error> {
+        let insertable = InsertableTracksComment::bind(track_id, comment);
+        let query = diesel::insert_into(tracks_comment::table).values(&insertable);
+        query.execute(self.connection)?;
+        Ok(())
+    }
+
+    fn insert_comments(&self, track_id: StorageId, body: &TrackBody) -> Result<(), failure::Error> {
+        for comment in body.comments.iter() {
+            self.insert_comment(track_id, comment)?;
+        }
+        Ok(())
+    }
+
+    fn cleanup_ratings(&self) -> Result<(), failure::Error> {
+        let query = diesel::delete(tracks_rating::table.filter(tracks_rating::track_id.ne_all(
+            tracks_entity::table.select(tracks_entity::id))));
+        query.execute(self.connection)?;
+        Ok(())
+    }
+
+    fn delete_ratings(&self, track_id: StorageId) -> Result<(), failure::Error> {
+        let query = diesel::delete(tracks_rating::table.filter(tracks_rating::track_id.eq(track_id)));
+        query.execute(self.connection)?;
+        Ok(())
+    }
+
+    fn insert_rating(&self, track_id: StorageId, rating: &Rating) -> Result<(), failure::Error> {
+        let insertable = InsertableTracksRating::bind(track_id, rating);
+        let query = diesel::insert_into(tracks_rating::table).values(&insertable);
+        query.execute(self.connection)?;
+        Ok(())
+    }
+
+    fn insert_ratings(&self, track_id: StorageId, body: &TrackBody) -> Result<(), failure::Error> {
+        for rating in body.ratings.iter() {
+            self.insert_rating(track_id, rating)?;
+        }
+        Ok(())
+    }
+
     fn after_entity_created(&self, entity: &TrackEntity) -> Result<StorageId, failure::Error> {
         let uid = entity.header().uid();
         let maybe_storage_id = self.find_storage_id(uid)?;
         match maybe_storage_id {
             Some(storage_id) => {
                 self.insert_resources(storage_id, entity.body())?;
+                self.insert_tags(storage_id, entity.body())?;
+                self.insert_comments(storage_id, entity.body())?;
+                self.insert_ratings(storage_id, entity.body())?;
                 Ok(storage_id)
             },
             None => Err(format_err!("Entity not found: {}", uid))
@@ -96,6 +184,9 @@ impl<'a> TrackRepository<'a> {
         match maybe_storage_id {
             Some(storage_id) => {
                 self.delete_resources(storage_id)?;
+                self.delete_tags(storage_id)?;
+                self.delete_comments(storage_id)?;
+                self.delete_ratings(storage_id)?;
                 Ok(storage_id)
             },
             None => Err(format_err!("Entity not found: {}", uid))
@@ -103,7 +194,11 @@ impl<'a> TrackRepository<'a> {
     }
 
     fn after_entity_updated(&self, storage_id: StorageId, body: &TrackBody) -> Result<(), failure::Error> {
-        self.insert_resources(storage_id, body)
+        self.insert_resources(storage_id, body)?;
+        self.insert_tags(storage_id, body)?;
+        self.insert_comments(storage_id, body)?;
+        self.insert_ratings(storage_id, body)?;
+        Ok(())
     }
 }
 

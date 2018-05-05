@@ -13,12 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::schema::{tracks_entity, tracks_resource};
+use super::schema::{tracks_entity, tracks_resource, tracks_tag, tracks_comment, tracks_rating};
 
 use chrono::naive::NaiveDateTime;
 
 use aoide_core::domain::entity::{EntityRevision, EntityHeader};
 use aoide_core::domain::track::CollectedMediaResource;
+use aoide_core::domain::metadata::{ConfidenceValue, Tag, Comment, Rating};
 
 use storage::{StorageId, SerializationFormat};
 
@@ -112,6 +113,62 @@ impl<'a> InsertableTracksResource<'a> {
             audio_bitrate: resource.media.audio_content.as_ref().map(|audio| audio.bitrate.bps as i32),
             audio_enc_name: resource.media.audio_content.as_ref().and_then(|audio| audio.encoder.as_ref()).map(|enc| enc.name.as_str()),
             audio_enc_settings: resource.media.audio_content.as_ref().and_then(|audio| audio.encoder.as_ref()).and_then(|enc| enc.settings.as_ref()).map(|settings| settings.as_str()),
+        }
+    }
+}
+
+#[derive(Debug, Insertable)]
+#[table_name = "tracks_tag"]
+pub struct InsertableTracksTag<'a> {
+    pub track_id: StorageId,
+    pub facet: Option<&'a str>,
+    pub term: &'a str,
+    pub confidence: ConfidenceValue,
+}
+
+impl<'a> InsertableTracksTag<'a> {
+    pub fn bind(track_id: StorageId, tag: &'a Tag) -> Self {
+        Self {
+            track_id,
+            facet: tag.facet.as_ref().map(|facet| facet.as_str()),
+            term: tag.term.as_str(),
+            confidence: *tag.confidence,
+        }
+    }
+}
+
+#[derive(Debug, Insertable)]
+#[table_name = "tracks_comment"]
+pub struct InsertableTracksComment<'a> {
+    pub track_id: StorageId,
+    pub owner: Option<&'a str>,
+    pub comment: &'a str,
+}
+
+impl<'a> InsertableTracksComment<'a> {
+    pub fn bind(track_id: StorageId, comment: &'a Comment) -> Self {
+        Self {
+            track_id,
+            owner: comment.owner.as_ref().map(|owner| owner.as_str()),
+            comment: comment.comment.as_str(),
+        }
+    }
+}
+
+#[derive(Debug, Insertable)]
+#[table_name = "tracks_rating"]
+pub struct InsertableTracksRating<'a> {
+    pub track_id: StorageId,
+    pub owner: Option<&'a str>,
+    pub rating: ConfidenceValue,
+}
+
+impl<'a> InsertableTracksRating<'a> {
+    pub fn bind(track_id: StorageId, rating: &'a Rating) -> Self {
+        Self {
+            track_id,
+            owner: rating.owner.as_ref().map(|owner| owner.as_str()),
+            rating: *rating.rating,
         }
     }
 }
