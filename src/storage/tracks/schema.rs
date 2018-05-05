@@ -66,6 +66,7 @@ table! {
         album_compilation -> Nullable<Bool>,
         release_date -> Nullable<Date>,
         release_label -> Nullable<Text>,
+        lyrics_explicit -> Nullable<Bool>,
     }
 }
 

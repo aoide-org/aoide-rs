@@ -314,6 +314,26 @@ pub struct MusicMetadata {
 }
 
 ///////////////////////////////////////////////////////////////////////
+/// TrackLyrics
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct TrackLyrics {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub explicit: Option<bool>,
+
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub text: String,
+}
+
+impl TrackLyrics {
+    pub fn is_empty(&self) -> bool {
+        self.explicit.is_none() && self.text.is_empty()
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
 /// TrackTag
 ///////////////////////////////////////////////////////////////////////
 
@@ -376,6 +396,9 @@ pub struct TrackBody {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub music: Option<MusicMetadata>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lyrics: Option<TrackLyrics>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub tags: Vec<Tag>, // no duplicate terms per facet allowed

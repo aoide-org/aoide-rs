@@ -69,6 +69,7 @@ CREATE TABLE aux_tracks_overview (
     album_compilation        TINYINT, -- {0, 1}
     release_date             DATE, -- naive date, i.e. without any time zone
     release_label            TEXT,
+    lyrics_explicit          TINYINT, -- {0, 1}
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id)
 );

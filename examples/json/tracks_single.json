@@ -153,6 +153,9 @@
                     }
                 ]
             },
+            "lyrics": {
+                "explicit": true
+            },
             "tags": [
                 {
                     "facet": "genre",
