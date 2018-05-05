@@ -165,7 +165,7 @@ impl TrackResource {
 /// Titles
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Titles {
     #[serde(skip_serializing_if = "String::is_empty", default)]
@@ -219,7 +219,7 @@ pub struct AlbumIdentity {
 /// AlbumMetadata
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AlbumMetadata {
     pub titles: Titles,
@@ -258,7 +258,7 @@ pub struct ReleaseIdentity {
 /// ReleaseMetadata
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ReleaseMetadata {
     #[serde(skip_serializing_if = "Option::is_none")]
