@@ -13,31 +13,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+pub mod result;
+
 use failure;
+
+use self::result::Pagination;
 
 use storage::{SerializationFormat, SerializedEntity};
 
 use aoide_core::domain::entity::*;
 use aoide_core::domain::collection::*;
 use aoide_core::domain::track::*;
-
-pub type PaginationOffset = u64;
-pub type PaginationLimit = u64;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Pagination {
-    pub offset: Option<PaginationOffset>,
-    pub limit: Option<PaginationLimit>,
-}
-
-impl Pagination {
-    pub fn none() -> Self {
-        Pagination {
-            offset: None,
-            limit: None,
-        }
-    }
-}
 
 pub type CollectionsResult<T> = Result<T, failure::Error>;
 

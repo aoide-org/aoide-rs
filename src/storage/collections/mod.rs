@@ -34,6 +34,7 @@ use aoide_core::domain::collection::*;
 use storage::*;
 
 use usecases::*;
+use usecases::result::Pagination;
 
 ///////////////////////////////////////////////////////////////////////
 /// CollectionRepository

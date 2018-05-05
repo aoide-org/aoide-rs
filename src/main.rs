@@ -65,6 +65,7 @@ use aoide::storage::collections::*;
 use aoide::storage::tracks::*;
 use aoide::storage::{deserialize_slice_with_format, SerializationFormat, SerializedEntity};
 use aoide::usecases::*;
+use aoide::usecases::result::*;
 
 use diesel::prelude::*;
 use diesel::result::Error as DieselError;
