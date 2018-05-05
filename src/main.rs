@@ -152,7 +152,7 @@ fn init_env_logger_verbosity(verbosity_level: u8) {
     init_env_logger(log_level_filter);
 }
 
-fn on_handler_error_with_status<T>(e: T, status: StatusCode) -> HandlerError
+fn on_handler_error<T>(e: T) -> HandlerError
 where
     T: error::Error + Send + 'static,
 {
@@ -160,19 +160,12 @@ where
     if log_enabled!(log::Level::Debug) {
         debug!("Error: {:?}", e);
     }
-    e.into_handler_error().with_status(status)
-}
-
-fn on_handler_error<T>(e: T) -> HandlerError
-where
-    T: error::Error + Send + 'static,
-{
-    on_handler_error_with_status(e, StatusCode::InternalServerError)
+    e.into_handler_error()
 }
 
 fn on_handler_failure(e: failure::Error) -> HandlerError {
     match e.cause().downcast_ref::<DieselError>() {
-        Some(&DieselError::DatabaseError(DatabaseErrorKind::UniqueViolation, _)) | Some(&DieselError::DatabaseError(DatabaseErrorKind::ForeignKeyViolation, _)) => on_handler_error_with_status(e.compat(), StatusCode::BadRequest),
+        Some(&DieselError::DatabaseError(DatabaseErrorKind::UniqueViolation, _)) | Some(&DieselError::DatabaseError(DatabaseErrorKind::ForeignKeyViolation, _)) => on_handler_error(e.compat()).with_status(StatusCode::BadRequest),
         _ => on_handler_error(e.compat())
     }
 }
@@ -197,21 +190,37 @@ struct UidPathExtractor {
     uid: String,
 }
 
-fn parse_and_verify_entity_uid_from_path(
-    entity_uid: &EntityUid,
-    state: &mut State,
-) -> Result<EntityUid, failure::Error> {
-    let path = UidPathExtractor::take_from(state);
-    let path_uid = path.uid.into();
-    if &path_uid == entity_uid {
-        Ok(path_uid)
-    } else {
-        let e = format_err!(
-            "Mismatching identifiers: expected = {}, actual = {}",
-            entity_uid,
-            path_uid
-        );
-        Err(e)
+impl UidPathExtractor {
+    fn try_parse_from(state: &mut State) -> Option<EntityUid> {
+        Self::try_take_from(state).map(|path| path.uid.into())
+    }
+
+    fn parse_from(state: &mut State) -> Result<EntityUid, failure::Error> {
+        match Self::try_parse_from(state) {
+            Some(uid) => Ok(uid),
+            None => {
+                let e = format_err!("Missing or invalid identifier");
+                Err(e)
+            }
+        }
+    }
+
+    fn parse_from_and_verify(state: &mut State, expected_uid: &EntityUid) -> Result<EntityUid, failure::Error> {
+        match Self::parse_from(state) {
+            Ok(uid) => {
+                if &uid == expected_uid {
+                    Ok(uid)
+                } else {
+                    let e = format_err!(
+                        "Mismatching identifiers: expected = {}, actual = {}",
+                        expected_uid,
+                        uid
+                    );
+                    Err(e)
+                }
+            }
+            Err(e) => Err(e)
+        }
     }
 }
 
@@ -225,8 +234,10 @@ fn find_collection(
 }
 
 fn handle_get_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
-    let path = UidPathExtractor::take_from(&mut state);
-    let uid: EntityUid = path.uid.into();
+    let uid = match UidPathExtractor::parse_from(&mut state) {
+        Ok(uid) => uid,
+        Err(e) => return Box::new(future::err((state, on_handler_failure(e).with_status(StatusCode::BadRequest)))),
+    };
 
     let pooled_connection = match middleware::state_data::try_connection(&state) {
         Ok(pooled_connection) => pooled_connection,
@@ -264,8 +275,10 @@ fn remove_collection(
 }
 
 fn handle_delete_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
-    let path = UidPathExtractor::take_from(&mut state);
-    let uid: EntityUid = path.uid.into();
+    let uid = match UidPathExtractor::parse_from(&mut state) {
+        Ok(uid) => uid,
+        Err(e) => return Box::new(future::err((state, on_handler_failure(e).with_status(StatusCode::BadRequest)))),
+    };
 
     let pooled_connection = match middleware::state_data::try_connection(&state) {
         Ok(pooled_connection) => pooled_connection,
@@ -302,7 +315,7 @@ fn find_recently_revisioned_collections(
     Ok(result)
 }
 
-fn handle_get_collections_path_pagination(mut state: State) -> Box<HandlerFuture> {
+fn handle_get_collections_query_pagination(mut state: State) -> Box<HandlerFuture> {
     let query_params = PaginationQueryStringExtractor::take_from(&mut state);
     let pagination = Pagination {
         offset: query_params.offset,
@@ -405,9 +418,9 @@ fn handle_put_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
                     }
                 };
 
-                let uid = match parse_and_verify_entity_uid_from_path(
-                    entity.header().uid(),
+                let uid = match UidPathExtractor::parse_from_and_verify(
                     &mut state,
+                    entity.header().uid(),
                 ) {
                     Ok(uid) => uid,
                     Err(e) => {
@@ -554,9 +567,9 @@ fn handle_put_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
                         }
                     };
 
-                let uid = match parse_and_verify_entity_uid_from_path(
-                    entity.header().uid(),
+                let uid = match UidPathExtractor::parse_from_and_verify(
                     &mut state,
+                    entity.header().uid(),
                 ) {
                     Ok(uid) => uid,
                     Err(e) => {
@@ -615,8 +628,10 @@ fn remove_track(connection: &SqliteConnection, uid: &EntityUid) -> Result<(), fa
 }
 
 fn handle_delete_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
-    let path = UidPathExtractor::take_from(&mut state);
-    let uid: EntityUid = path.uid.into();
+    let uid = match UidPathExtractor::parse_from(&mut state) {
+        Ok(uid) => uid,
+        Err(e) => return Box::new(future::err((state, on_handler_failure(e).with_status(StatusCode::BadRequest)))),
+    };
 
     let pooled_connection = match middleware::state_data::try_connection(&state) {
         Ok(pooled_connection) => pooled_connection,
@@ -644,8 +659,10 @@ fn load_track(
 }
 
 fn handle_get_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
-    let path = UidPathExtractor::take_from(&mut state);
-    let uid: EntityUid = path.uid.into();
+    let uid = match UidPathExtractor::parse_from(&mut state) {
+        Ok(uid) => uid,
+        Err(e) => return Box::new(future::err((state, on_handler_failure(e).with_status(StatusCode::BadRequest)))),
+    };
 
     let pooled_connection = match middleware::state_data::try_connection(&state) {
         Ok(pooled_connection) => pooled_connection,
@@ -673,14 +690,16 @@ fn handle_get_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
 
 fn load_recently_revisioned_tracks(
     connection: &SqliteConnection,
+    collection_uid: Option<&EntityUid>,
     pagination: &Pagination,
 ) -> Result<Vec<SerializedEntity>, failure::Error> {
     let repository = TrackRepository::new(connection);
-    let result = repository.load_recently_revisioned_entities(pagination)?;
+    let result = repository.load_recently_revisioned_entities(collection_uid, pagination)?;
     Ok(result)
 }
 
-fn handle_get_tracks_path_pagination(mut state: State) -> Box<HandlerFuture> {
+fn handle_get_tracks_path_uid_query_pagination(mut state: State) -> Box<HandlerFuture> {
+    let collection_uid = UidPathExtractor::try_parse_from(&mut state);
     let query_params = PaginationQueryStringExtractor::take_from(&mut state);
     let pagination = Pagination {
         offset: query_params.offset,
@@ -692,7 +711,7 @@ fn handle_get_tracks_path_pagination(mut state: State) -> Box<HandlerFuture> {
         Err(e) => return Box::new(future::err((state, on_handler_error(e)))),
     };
 
-    let handler_future = match load_recently_revisioned_tracks(&*pooled_connection, &pagination) {
+    let handler_future = match load_recently_revisioned_tracks(&*pooled_connection, collection_uid.as_ref(), &pagination) {
         Ok(serialized_entities) => {
             let mut json_body = Vec::with_capacity(
                 serialized_entities
@@ -751,7 +770,7 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
         route
             .get("/collections")
             .with_query_string_extractor::<PaginationQueryStringExtractor>()
-            .to(handle_get_collections_path_pagination);
+            .to(handle_get_collections_query_pagination);
         route
             .get("/collections/:uid")
             .with_path_extractor::<UidPathExtractor>()
@@ -768,7 +787,12 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
         route
             .get("/tracks")
             .with_query_string_extractor::<PaginationQueryStringExtractor>()
-            .to(handle_get_tracks_path_pagination);
+            .to(handle_get_tracks_path_uid_query_pagination);
+        route
+            .get("/collections/:uid/tracks")
+            .with_path_extractor::<UidPathExtractor>()
+            .with_query_string_extractor::<PaginationQueryStringExtractor>()
+            .to(handle_get_tracks_path_uid_query_pagination);
         route
             .get("/tracks/:uid")
             .with_path_extractor::<UidPathExtractor>()

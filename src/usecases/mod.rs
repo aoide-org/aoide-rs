@@ -88,6 +88,7 @@ pub trait Tracks {
 
     fn load_recently_revisioned_entities(
         &self,
+        collection_uid: Option<&EntityUid>,
         pagination: &Pagination,
     ) -> TracksResult<Vec<SerializedEntity>>;
 }

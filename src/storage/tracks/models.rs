@@ -23,14 +23,6 @@ use aoide_core::domain::metadata::{ConfidenceValue, Tag, Comment, Rating};
 
 use storage::{StorageId, SerializationFormat};
 
-pub type TracksEntityIdColumn = (
-    tracks_entity::id,
-);
-
-pub const TRACKS_ENTITY_ID_COLUMN: TracksEntityIdColumn = (
-    tracks_entity::id,
-);
-
 #[derive(Debug, Insertable)]
 #[table_name = "tracks_entity"]
 pub struct InsertableTracksEntity<'a> {

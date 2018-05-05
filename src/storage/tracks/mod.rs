@@ -205,7 +205,7 @@ impl<'a> TrackRepository<'a> {
 impl<'a> EntityStorage for TrackRepository<'a> {
     fn find_storage_id(&self, uid: &EntityUid) -> EntityStorageResult<Option<StorageId>> {
         let target = tracks_entity::table
-            .select(TRACKS_ENTITY_ID_COLUMN)
+            .select((tracks_entity::id,))
             .filter(tracks_entity::uid.eq(uid.as_str()));
         let result = target
             .first::<QueryableStorageId>(self.connection)
@@ -310,6 +310,7 @@ impl<'a> Tracks for TrackRepository<'a> {
 
     fn load_recently_revisioned_entities(
         &self,
+        collection_uid: Option<&EntityUid>,
         pagination: &Pagination,
     ) -> TracksResult<Vec<SerializedEntity>> {
         let offset = pagination.offset.map(|offset| offset as i64).unwrap_or(0);
@@ -321,7 +322,10 @@ impl<'a> Tracks for TrackRepository<'a> {
             .order(tracks_entity::rev_timestamp.desc())
             .offset(offset)
             .limit(limit);
-        let results = target.load::<QueryableSerializedEntity>(self.connection)?;
+        let results = match collection_uid {
+            Some(ref uid) => target.filter(tracks_entity::id.eq_any(tracks_resource::table.select(tracks_resource::track_id).filter(tracks_resource::collection_uid.eq(uid.as_str())))).load::<QueryableSerializedEntity>(self.connection),
+            None => target.load::<QueryableSerializedEntity>(self.connection),
+        }?;
         if log_enabled!(log::Level::Debug) {
             debug!("Loaded {} track entities", results.len(),);
         }
