@@ -13,15 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::schema::{tracks_entity, aux_tracks_resource, aux_tracks_tag, aux_tracks_comment, aux_tracks_rating};
+use super::schema::*;
 
-use chrono::naive::NaiveDateTime;
+use chrono::naive::{NaiveDate, NaiveDateTime};
 
 use storage::StorageId;
 use storage::serde::SerializationFormat;
 
 use aoide_core::domain::entity::{EntityRevision, EntityHeader};
-use aoide_core::domain::track::TrackResource;
+use aoide_core::domain::track::{TrackBody, TrackResource};
 use aoide_core::domain::metadata::{ConfidenceValue, Tag, Comment, Rating};
 
 #[derive(Debug, Insertable)]
@@ -70,6 +70,46 @@ impl<'a> UpdatableTracksEntity<'a> {
             ser_ver_major: 0, // TODO
             ser_ver_minor: 0, // TODO
             ser_blob,
+        }
+    }
+}
+
+#[derive(Debug, Insertable)]
+#[table_name = "aux_tracks_overview"]
+pub struct InsertableTracksOverview<'a> {
+    pub track_id: StorageId,
+    pub track_title: &'a str,
+    pub track_subtitle: Option<&'a str>,
+    pub track_number: Option<i32>,
+    pub track_total: Option<i32>,
+    pub disc_number: Option<i32>,
+    pub disc_total: Option<i32>,
+    pub album_title: Option<&'a str>,
+    pub album_subtitle: Option<&'a str>,
+    pub album_grouping: Option<&'a str>,
+    pub album_compilation: Option<bool>,
+    pub release_date: Option<NaiveDate>,
+    pub release_label: Option<&'a str>,
+    pub lyrics_explicit: Option<bool>,
+}
+
+impl<'a> InsertableTracksOverview<'a> {
+    pub fn bind(track_id: StorageId, body: &'a TrackBody) -> Self {
+        Self {
+            track_id,
+            track_title: body.titles.title.as_str(),
+            track_subtitle: body.titles.subtitle.as_ref().map(|subtitle| subtitle.as_str()),
+            track_number: body.track_numbers.map(|numbers| numbers.this as i32),
+            track_total: body.track_numbers.map(|numbers| numbers.total as i32),
+            disc_number: body.disc_numbers.map(|numbers| numbers.this as i32),
+            disc_total: body.disc_numbers.map(|numbers| numbers.total as i32),
+            album_title: body.album.as_ref().map(|album| album.titles.title.as_str()),
+            album_subtitle: body.album.as_ref().and_then(|album| album.titles.subtitle.as_ref()).map(|subtitle| subtitle.as_str()),
+            album_grouping: body.album.as_ref().and_then(|album| album.grouping.as_ref()).map(|grouping| grouping.as_str()),
+            album_compilation: body.album.as_ref().and_then(|album| album.compilation),
+            release_date: body.release.as_ref().and_then(|release| release.released).map(|released| released.date().naive_utc()),
+            release_label: body.release.as_ref().and_then(|release| release.label.as_ref()).map(|label| label.as_str()),
+            lyrics_explicit: body.lyrics.as_ref().and_then(|lyrics| lyrics.explicit),
         }
     }
 }
