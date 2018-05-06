@@ -107,8 +107,8 @@ impl<'a> InsertableTracksOverview<'a> {
             album_subtitle: body.album.as_ref().and_then(|album| album.titles.subtitle.as_ref()).map(|subtitle| subtitle.as_str()),
             album_grouping: body.album.as_ref().and_then(|album| album.grouping.as_ref()).map(|grouping| grouping.as_str()),
             album_compilation: body.album.as_ref().and_then(|album| album.compilation),
-            release_date: body.release.as_ref().and_then(|release| release.released).map(|released| released.date().naive_utc()),
-            release_label: body.release.as_ref().and_then(|release| release.label.as_ref()).map(|label| label.as_str()),
+            release_date: body.album.as_ref().and_then(|album| album.release.as_ref()).and_then(|release| release.released).map(|released| released.date().naive_utc()),
+            release_label: body.album.as_ref().and_then(|album| album.release.as_ref()).and_then(|release| release.label.as_ref()).map(|label| label.as_str()),
             lyrics_explicit: body.lyrics.as_ref().and_then(|lyrics| lyrics.explicit),
         }
     }

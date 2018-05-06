@@ -202,42 +202,6 @@ pub struct TrackIdentity {
 }
 
 ///////////////////////////////////////////////////////////////////////
-/// AlbumIdentity
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct AlbumIdentity {
-    #[serde(skip_serializing_if = "Uuid::is_nil", default = "Uuid::nil")]
-    pub mbrainz_id: Uuid, // MusicBrainz Release Id
-
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub spotify_id: String, // excl. "spotify:album:" prefix
-}
-
-///////////////////////////////////////////////////////////////////////
-/// AlbumMetadata
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct AlbumMetadata {
-    pub titles: Titles,
-
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub actors: Vec<Actor>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub grouping: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub compilation: Option<bool>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub identity: Option<AlbumIdentity>,
-}
-
-///////////////////////////////////////////////////////////////////////
 /// ReleaseIdentity
 ///////////////////////////////////////////////////////////////////////
 
@@ -275,6 +239,45 @@ pub struct ReleaseMetadata {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub identity: Option<ReleaseIdentity>,
+}
+
+///////////////////////////////////////////////////////////////////////
+/// AlbumIdentity
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct AlbumIdentity {
+    #[serde(skip_serializing_if = "Uuid::is_nil", default = "Uuid::nil")]
+    pub mbrainz_id: Uuid, // MusicBrainz Release Id
+
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub spotify_id: String, // excl. "spotify:album:" prefix
+}
+
+///////////////////////////////////////////////////////////////////////
+/// AlbumMetadata
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct AlbumMetadata {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub identity: Option<AlbumIdentity>,
+
+    pub titles: Titles,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub actors: Vec<Actor>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub grouping: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub compilation: Option<bool>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release: Option<ReleaseMetadata>,
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -394,6 +397,9 @@ impl TrackTag {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackBody {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub identity: Option<TrackIdentity>,
+
     pub titles: Titles,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
@@ -403,16 +409,10 @@ pub struct TrackBody {
     pub album: Option<AlbumMetadata>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub release: Option<ReleaseMetadata>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub track_numbers: Option<TrackNumbers>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub disc_numbers: Option<DiscNumbers>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub identity: Option<TrackIdentity>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub resources: Vec<TrackResource>,
