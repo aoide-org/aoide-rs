@@ -144,7 +144,7 @@
                         "confidence": 0.92
                     },
                     {
-                        "classifier": "positivity",
+                        "classifier": "valence",
                         "confidence": 0.85
                     },
                     {

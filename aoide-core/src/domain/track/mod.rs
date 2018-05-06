@@ -339,6 +339,16 @@ pub struct MusicMetadata {
     pub classifications: Vec<Classification>, // no duplicate classifiers allowed
 }
 
+impl MusicMetadata {
+    pub fn classification(&self, classifier: Classifier) -> Option<Confidence> {
+        assert!(self.classifications.iter().filter(|classification| classification.classifier == classifier).count() <= 1);
+        self.classifications.iter()
+            .filter(|classification| classification.classifier == classifier)
+            .nth(0)
+            .map(|classification| classification.confidence)
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////
 /// TrackLyrics
 ///////////////////////////////////////////////////////////////////////

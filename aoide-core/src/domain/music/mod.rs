@@ -187,8 +187,8 @@ impl fmt::Display for Tempo {
 #[derive(Clone, Copy, Default, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TimeSignature {
-    numerator: u8,   // number of beats in each bar, 0 = default/undefined
-    denominator: u8, // symbol length of each beat, 0 = default/undefined
+    pub numerator: u8,   // number of beats in each bar, 0 = default/undefined
+    pub denominator: u8, // symbol length of each beat, 0 = default/undefined
 }
 
 impl TimeSignature {
@@ -405,8 +405,8 @@ pub enum Classifier {
     Instrumentalness,
     Liveness,
     Popularity,
-    Positivity,
     Speechiness,
+    Valence,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]

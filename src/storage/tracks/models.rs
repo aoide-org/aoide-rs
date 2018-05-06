@@ -23,8 +23,8 @@ use storage::StorageId;
 use storage::serde::SerializationFormat;
 
 use aoide_core::domain::entity::{EntityRevision, EntityHeader};
-use aoide_core::domain::track::{TrackBody, TrackResource};
-use aoide_core::domain::music::{Actor, ActorRole};
+use aoide_core::domain::track::{TrackBody, TrackResource, MusicMetadata};
+use aoide_core::domain::music::{Actor, ActorRole, BeatsPerMinute, Classifier, Decibel, Loudness, LUFS};
 use aoide_core::domain::metadata::{Confidence, ConfidenceValue, Tag, Comment, Rating};
 
 #[derive(Debug, Insertable)]
@@ -220,10 +220,10 @@ pub struct InsertableTracksResource<'a> {
     pub source_sync_rev_ordinal: Option<i64>,
     pub source_sync_rev_timestamp: Option<NaiveDateTime>,
     pub content_type: &'a str,
-    pub audio_duration: Option<i64>,
+    pub audio_duration_ms: Option<i64>,
     pub audio_channels: Option<i16>,
-    pub audio_samplerate: Option<i32>,
-    pub audio_bitrate: Option<i32>,
+    pub audio_samplerate_hz: Option<i32>,
+    pub audio_bitrate_bps: Option<i32>,
     pub audio_enc_name: Option<&'a str>,
     pub audio_enc_settings: Option<&'a str>,
     pub color_code: Option<i32>,
@@ -240,13 +240,57 @@ impl<'a> InsertableTracksResource<'a> {
             source_sync_rev_ordinal: track_resource.source.synchronization.map(|sync| sync.revision.ordinal() as i64),
             source_sync_rev_timestamp: track_resource.source.synchronization.map(|sync| sync.revision.timestamp().naive_utc()),
             content_type: track_resource.source.content_type.as_str(),
-            audio_duration: track_resource.source.audio_content.as_ref().map(|audio| audio.duration.millis as i64),
+            audio_duration_ms: track_resource.source.audio_content.as_ref().map(|audio| audio.duration.millis as i64),
             audio_channels: track_resource.source.audio_content.as_ref().map(|audio| audio.channels.count as i16),
-            audio_samplerate: track_resource.source.audio_content.as_ref().map(|audio| audio.samplerate.hz as i32),
-            audio_bitrate: track_resource.source.audio_content.as_ref().map(|audio| audio.bitrate.bps as i32),
+            audio_samplerate_hz: track_resource.source.audio_content.as_ref().map(|audio| audio.samplerate.hz as i32),
+            audio_bitrate_bps: track_resource.source.audio_content.as_ref().map(|audio| audio.bitrate.bps as i32),
             audio_enc_name: track_resource.source.audio_content.as_ref().and_then(|audio| audio.encoder.as_ref()).map(|enc| enc.name.as_str()),
             audio_enc_settings: track_resource.source.audio_content.as_ref().and_then(|audio| audio.encoder.as_ref()).and_then(|enc| enc.settings.as_ref()).map(|settings| settings.as_str()),
             color_code: track_resource.color.map(|color| color.code as i32),
+        }
+    }
+}
+
+#[derive(Debug, Insertable)]
+#[table_name = "aux_tracks_music"]
+pub struct InsertableTracksMusic {
+    pub track_id: StorageId,
+    pub music_loudness_db: Option<Decibel>,
+    pub music_tempo_bpm: Option<BeatsPerMinute>,
+    pub music_time_sig_num: Option<i16>,
+    pub music_time_sig_denom: Option<i16>,
+    pub music_key_sig_code: Option<i16>,
+    pub music_acousticness: Option<ConfidenceValue>,
+    pub music_danceability: Option<ConfidenceValue>,
+    pub music_energy: Option<ConfidenceValue>,
+    pub music_instrumentalness: Option<ConfidenceValue>,
+    pub music_liveness: Option<ConfidenceValue>,
+    pub music_popularity: Option<ConfidenceValue>,
+    pub music_speechiness: Option<ConfidenceValue>,
+    pub music_valence: Option<ConfidenceValue>,
+}
+
+impl InsertableTracksMusic {
+    pub fn bind(track_id: StorageId, music: &MusicMetadata) -> Self {
+        let loudness_db = match music.loudness {
+            Some(Loudness::EBUR128LUFS(LUFS { db })) => Some(db),
+            None => None,
+        };
+        Self {
+            track_id,
+            music_loudness_db: loudness_db,
+            music_tempo_bpm: music.tempo.map(|tempo| tempo.bpm),
+            music_time_sig_num: music.time_signature.map(|time_signature| time_signature.numerator as i16),
+            music_time_sig_denom: music.time_signature.map(|time_signature| time_signature.denominator as i16),
+            music_key_sig_code: music.key_signature.map(|key_signature| key_signature.code as i16),
+            music_acousticness: music.classification(Classifier::Acousticness).map(|confidence| *confidence),
+            music_danceability: music.classification(Classifier::Danceability).map(|confidence| *confidence),
+            music_energy: music.classification(Classifier::Energy).map(|confidence| *confidence),
+            music_instrumentalness: music.classification(Classifier::Instrumentalness).map(|confidence| *confidence),
+            music_liveness: music.classification(Classifier::Liveness).map(|confidence| *confidence),
+            music_popularity: music.classification(Classifier::Popularity).map(|confidence| *confidence),
+            music_speechiness: music.classification(Classifier::Speechiness).map(|confidence| *confidence),
+            music_valence: music.classification(Classifier::Valence).map(|confidence| *confidence),
         }
     }
 }

@@ -60,10 +60,10 @@ CREATE TABLE aux_tracks_resource (
     source_sync_rev_ordinal  INTEGER,           -- most recent metadata synchronization
     source_sync_rev_timestamp DATETIME,         -- most recent metadata synchronization
     content_type             TEXT NOT NULL,     -- RFC 6838
-    audio_duration           INTEGER,           -- milliseconds
+    audio_duration_ms        INTEGER,           -- milliseconds
     audio_channels           INTEGER,           -- number of channels
-    audio_samplerate         INTEGER,           -- Hz
-    audio_bitrate            INTEGER,           -- bits per second (bps)
+    audio_samplerate_hz      INTEGER,           -- Hz
+    audio_bitrate_bps        INTEGER,           -- bits per second (bps)
     color_code               INTEGER,           -- 0xAARRGGBB (hex)
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (collection_uid, track_id),
@@ -113,18 +113,18 @@ CREATE TABLE aux_tracks_summary (
 CREATE TABLE aux_tracks_music (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
-    music_loudness           REAL, -- LUFS dB
-    music_tempo              REAL, -- beats per minute (bpm)
+    music_loudness_db        REAL, -- LUFS dB
+    music_tempo_bpm          REAL, -- beats per minute (bpm)
     music_time_sig_num       TINYINT,
     music_time_sig_denom     TINYINT,
-    music_key_sig            TINYINT, -- {1, ..., 24}
+    music_key_sig_code       TINYINT, -- {1, ..., 24}
     music_acousticness       REAL, -- [0.0, 1.0]
     music_danceability       REAL, -- [0.0, 1.0]
     music_energy             REAL, -- [0.0, 1.0]
     music_instrumentalness   REAL, -- [0.0, 1.0]
     music_liveness           REAL, -- [0.0, 1.0]
     music_popularity         REAL, -- [0.0, 1.0]
-    music_positivity         REAL, -- [0.0, 1.0]
+    music_valence         REAL, -- [0.0, 1.0]
     music_speechiness        REAL, -- [0.0, 1.0]
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id)
