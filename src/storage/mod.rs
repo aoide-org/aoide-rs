@@ -18,8 +18,6 @@ use chrono::naive::NaiveDateTime;
 
 use failure;
 
-use self::serde::{SerializationFormat, SerializedEntity};
-
 use aoide_core::domain::entity::*;
 
 pub mod collections;
@@ -33,39 +31,6 @@ pub type StorageId = i64;
 #[derive(Debug, Queryable)]
 pub struct QueryableStorageId {
     pub id: StorageId,
-}
-
-#[derive(Debug, Queryable)]
-pub struct QueryableSerializedEntity {
-    pub id: StorageId,
-    pub uid: String,
-    pub rev_ordinal: i64,
-    pub rev_timestamp: NaiveDateTime,
-    pub ser_fmt: i16,
-    pub ser_ver_major: i32,
-    pub ser_ver_minor: i32,
-    pub ser_blob: Vec<u8>,
-}
-
-impl From<QueryableSerializedEntity> for SerializedEntity {
-    fn from(from: QueryableSerializedEntity) -> Self {
-        let uid: EntityUid = from.uid.into();
-        let revision = EntityRevision::new(
-            from.rev_ordinal as u64,
-            DateTime::from_utc(from.rev_timestamp, Utc),
-        );
-        let header = EntityHeader::new(uid, revision);
-        let format = SerializationFormat::from(from.ser_fmt).unwrap();
-        assert!(from.ser_ver_major >= 0);
-        assert!(from.ser_ver_minor >= 0);
-        let version = EntityVersion::new(from.ser_ver_major as u32, from.ser_ver_minor as u32);
-        SerializedEntity {
-            header,
-            format,
-            version,
-            blob: from.ser_blob,
-        }
-    }
 }
 
 pub type EntityStorageResult<T> = Result<T, failure::Error>;

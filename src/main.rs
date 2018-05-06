@@ -66,6 +66,7 @@ use aoide::storage::tracks::*;
 use aoide::storage::serde::*;
 use aoide::usecases::*;
 use aoide::usecases::result::*;
+use aoide::usecases::search::SearchParams;
 
 use diesel::prelude::*;
 use diesel::result::Error as DieselError;
@@ -735,36 +736,87 @@ fn handle_get_tracks_path_uid_query_pagination(mut state: State) -> Box<HandlerF
         Err(e) => return Box::new(future::err((state, on_handler_error(e)))),
     };
 
-    let handler_future = match load_recently_revisioned_tracks(&*pooled_connection, collection_uid.as_ref(), &pagination) {
-        Ok(serialized_entities) => {
-            let mut json_body = Vec::with_capacity(
-                serialized_entities
-                    .iter()
-                    .fold(serialized_entities.len() + 1, |acc, ref item| {
-                        acc + item.blob.len()
-                    }),
-            );
-            json_body.extend_from_slice("[".as_bytes());
-            for (i, item) in serialized_entities.iter().enumerate() {
-                if item.format != SerializationFormat::JSON {
-                    let e = format_err!("Unsupported serialization format while loading multiple entities: expected = {:?}, actual = {:?}", SerializationFormat::JSON, item.format);
-                    return Box::new(future::err((state, on_handler_failure(e))));
-                }
-                if i > 0 {
-                    json_body.extend_from_slice(",".as_bytes());
-                }
-                json_body.extend_from_slice(&item.blob);
-            }
-            json_body.extend_from_slice("]".as_bytes());
+    let handler_future = match load_recently_revisioned_tracks(
+        &*pooled_connection,
+        collection_uid.as_ref(),
+        &pagination,
+    ).and_then(concat_serialized_entities_into_json_array) {
+        Ok(json_array) => {
             let response = create_response(
                 &state,
                 StatusCode::Ok,
-                Some((json_body, mime::APPLICATION_JSON)),
+                Some((json_array, mime::APPLICATION_JSON)),
             );
             future::ok((state, response))
         }
         Err(e) => future::err((state, on_handler_failure(e))),
     };
+
+    Box::new(handler_future)
+}
+
+fn search_tracks(
+    connection: &SqliteConnection,
+    collection_uid: Option<&EntityUid>,
+    search_params: &SearchParams,
+    pagination: &Pagination,
+) -> Result<Vec<SerializedEntity>, failure::Error> {
+    let repository = TrackRepository::new(connection);
+    let result = repository.search_entities(collection_uid, search_params, pagination)?;
+    Ok(result)
+}
+
+fn handle_post_tracks_search_path_uid_query_pagination(mut state: State) -> Box<HandlerFuture> {
+    let collection_uid = UidPathExtractor::try_parse_from(&mut state);
+    let query_params = PaginationQueryStringExtractor::take_from(&mut state);
+    let pagination = Pagination {
+        offset: query_params.offset,
+        limit: query_params.limit,
+    };
+
+    let handler_future = hyper::Body::take_from(&mut state)
+        .concat2()
+        .then(move |full_body| match full_body {
+            Ok(valid_body) => {
+                let format = match parse_serialization_format_from_state(&state) {
+                    Ok(format) => format,
+                    Err(e) => {
+                        return future::err((
+                            state,
+                            on_handler_failure(e).with_status(StatusCode::UnsupportedMediaType),
+                        ))
+                    }
+                };
+
+                let search_params: SearchParams =
+                    match deserialize_slice_with_format(&valid_body, format) {
+                        Ok(search_params) => search_params,
+                        Err(e) => {
+                            return future::err((
+                                state,
+                                on_handler_failure(e).with_status(StatusCode::BadRequest),
+                            ))
+                        }
+                    };
+
+                let pooled_connection = match middleware::state_data::try_connection(&state) {
+                    Ok(pooled_connection) => pooled_connection,
+                    Err(e) => return future::err((state, on_handler_error(e))),
+                };
+
+                let response = match search_tracks(&*pooled_connection, collection_uid.as_ref(), &search_params, &pagination)
+                    .and_then(concat_serialized_entities_into_json_array) {
+                    Ok(json_array) => create_response(
+                        &state,
+                        StatusCode::Ok,
+                        Some((json_array, mime::APPLICATION_JSON)),
+                    ),
+                    Err(e) => return future::err((state, on_handler_failure(e))),
+                };
+                future::ok((state, response))
+            }
+            Err(e) => future::err((state, on_handler_error(e))),
+        });
 
     Box::new(handler_future)
 }
@@ -817,6 +869,11 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
             .with_path_extractor::<UidPathExtractor>()
             .with_query_string_extractor::<PaginationQueryStringExtractor>()
             .to(handle_get_tracks_path_uid_query_pagination);
+        route
+            .post("/collections/:uid/tracks/search")
+            .with_path_extractor::<UidPathExtractor>()
+            .with_query_string_extractor::<PaginationQueryStringExtractor>()
+            .to(handle_post_tracks_search_path_uid_query_pagination);
         route
             .get("/tracks/:uid")
             .with_path_extractor::<UidPathExtractor>()

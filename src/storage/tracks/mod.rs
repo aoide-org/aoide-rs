@@ -21,8 +21,6 @@ mod schema;
 
 use self::schema::*;
 
-use std::i64;
-
 use diesel::prelude::*;
 use diesel;
 
@@ -30,18 +28,55 @@ use failure;
 
 use log;
 
-use storage::*;
-use storage::serde::{serialize_with_format, SerializationFormat};
+use std::i64;
 
-use usecases::*;
+use super::*;
+use super::serde::{serialize_with_format, SerializationFormat, SerializedEntity};
+
+use usecases::{Tracks, TracksResult};
+use usecases::search::SearchParams;
 use usecases::result::Pagination;
 
 use aoide_core::domain::track::*;
-use aoide_core::domain::metadata::{Tag, Comment, Rating};
+use aoide_core::domain::metadata::{Comment, Rating, Tag};
 
 ///////////////////////////////////////////////////////////////////////
 /// TrackRepository
 ///////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Queryable, Identifiable)]
+#[table_name = "tracks_entity"]
+pub struct QueryableSerializedEntity {
+    pub id: StorageId,
+    pub uid: String,
+    pub rev_ordinal: i64,
+    pub rev_timestamp: NaiveDateTime,
+    pub ser_fmt: i16,
+    pub ser_ver_major: i32,
+    pub ser_ver_minor: i32,
+    pub ser_blob: Vec<u8>,
+}
+
+impl From<QueryableSerializedEntity> for SerializedEntity {
+    fn from(from: QueryableSerializedEntity) -> Self {
+        let uid: EntityUid = from.uid.into();
+        let revision = EntityRevision::new(
+            from.rev_ordinal as u64,
+            DateTime::from_utc(from.rev_timestamp, Utc),
+        );
+        let header = EntityHeader::new(uid, revision);
+        let format = SerializationFormat::from(from.ser_fmt).unwrap();
+        assert!(from.ser_ver_major >= 0);
+        assert!(from.ser_ver_minor >= 0);
+        let version = EntityVersion::new(from.ser_ver_major as u32, from.ser_ver_minor as u32);
+        SerializedEntity {
+            header,
+            format,
+            version,
+            blob: from.ser_blob,
+        }
+    }
+}
 
 pub struct TrackRepository<'a> {
     connection: &'a diesel::SqliteConnection,
@@ -60,13 +95,21 @@ impl<'a> TrackRepository<'a> {
         Ok(())
     }
 
-    pub fn refresh_aux_storage(&self, track_id: StorageId, track_body: &TrackBody) -> Result<(), failure::Error> {
+    pub fn refresh_aux_storage(
+        &self,
+        track_id: StorageId,
+        track_body: &TrackBody,
+    ) -> Result<(), failure::Error> {
         self.delete_aux_storage(track_id)?;
         self.insert_aux_storage(track_id, track_body)?;
         Ok(())
     }
 
-    fn insert_aux_storage(&self, storage_id: StorageId, track_body: &TrackBody) -> Result<(), failure::Error> {
+    fn insert_aux_storage(
+        &self,
+        storage_id: StorageId,
+        track_body: &TrackBody,
+    ) -> Result<(), failure::Error> {
         for resource in track_body.resources.iter() {
             self.insert_aux_resource(storage_id, resource)?;
         }
@@ -91,19 +134,26 @@ impl<'a> TrackRepository<'a> {
     }
 
     fn cleanup_aux_resources(&self) -> Result<(), failure::Error> {
-        let query = diesel::delete(aux_tracks_resource::table.filter(aux_tracks_resource::track_id.ne_all(
-            tracks_entity::table.select(tracks_entity::id))));
+        let query = diesel::delete(aux_tracks_resource::table.filter(
+            aux_tracks_resource::track_id.ne_all(tracks_entity::table.select(tracks_entity::id)),
+        ));
         query.execute(self.connection)?;
         Ok(())
     }
 
     fn delete_aux_resources(&self, track_id: StorageId) -> Result<(), failure::Error> {
-        let query = diesel::delete(aux_tracks_resource::table.filter(aux_tracks_resource::track_id.eq(track_id)));
+        let query = diesel::delete(
+            aux_tracks_resource::table.filter(aux_tracks_resource::track_id.eq(track_id)),
+        );
         query.execute(self.connection)?;
         Ok(())
     }
 
-    fn insert_aux_resource(&self, track_id: StorageId, collection: &TrackResource) -> Result<(), failure::Error> {
+    fn insert_aux_resource(
+        &self,
+        track_id: StorageId,
+        collection: &TrackResource,
+    ) -> Result<(), failure::Error> {
         let insertable = InsertableTracksResource::bind(track_id, collection);
         let query = diesel::insert_into(aux_tracks_resource::table).values(&insertable);
         query.execute(self.connection)?;
@@ -111,14 +161,16 @@ impl<'a> TrackRepository<'a> {
     }
 
     fn cleanup_aux_tags(&self) -> Result<(), failure::Error> {
-        let query = diesel::delete(aux_tracks_tag::table.filter(aux_tracks_tag::track_id.ne_all(
-            tracks_entity::table.select(tracks_entity::id))));
+        let query = diesel::delete(aux_tracks_tag::table.filter(
+            aux_tracks_tag::track_id.ne_all(tracks_entity::table.select(tracks_entity::id)),
+        ));
         query.execute(self.connection)?;
         Ok(())
     }
 
     fn delete_aux_tags(&self, track_id: StorageId) -> Result<(), failure::Error> {
-        let query = diesel::delete(aux_tracks_tag::table.filter(aux_tracks_tag::track_id.eq(track_id)));
+        let query =
+            diesel::delete(aux_tracks_tag::table.filter(aux_tracks_tag::track_id.eq(track_id)));
         query.execute(self.connection)?;
         Ok(())
     }
@@ -131,19 +183,26 @@ impl<'a> TrackRepository<'a> {
     }
 
     fn cleanup_aux_comments(&self) -> Result<(), failure::Error> {
-        let query = diesel::delete(aux_tracks_comment::table.filter(aux_tracks_comment::track_id.ne_all(
-            tracks_entity::table.select(tracks_entity::id))));
+        let query = diesel::delete(aux_tracks_comment::table.filter(
+            aux_tracks_comment::track_id.ne_all(tracks_entity::table.select(tracks_entity::id)),
+        ));
         query.execute(self.connection)?;
         Ok(())
     }
 
     fn delete_aux_comments(&self, track_id: StorageId) -> Result<(), failure::Error> {
-        let query = diesel::delete(aux_tracks_comment::table.filter(aux_tracks_comment::track_id.eq(track_id)));
+        let query = diesel::delete(
+            aux_tracks_comment::table.filter(aux_tracks_comment::track_id.eq(track_id)),
+        );
         query.execute(self.connection)?;
         Ok(())
     }
 
-    fn insert_aux_comment(&self, track_id: StorageId, comment: &Comment) -> Result<(), failure::Error> {
+    fn insert_aux_comment(
+        &self,
+        track_id: StorageId,
+        comment: &Comment,
+    ) -> Result<(), failure::Error> {
         let insertable = InsertableTracksComment::bind(track_id, comment);
         let query = diesel::insert_into(aux_tracks_comment::table).values(&insertable);
         query.execute(self.connection)?;
@@ -151,19 +210,26 @@ impl<'a> TrackRepository<'a> {
     }
 
     fn cleanup_aux_ratings(&self) -> Result<(), failure::Error> {
-        let query = diesel::delete(aux_tracks_rating::table.filter(aux_tracks_rating::track_id.ne_all(
-            tracks_entity::table.select(tracks_entity::id))));
+        let query = diesel::delete(aux_tracks_rating::table.filter(
+            aux_tracks_rating::track_id.ne_all(tracks_entity::table.select(tracks_entity::id)),
+        ));
         query.execute(self.connection)?;
         Ok(())
     }
 
     fn delete_aux_ratings(&self, track_id: StorageId) -> Result<(), failure::Error> {
-        let query = diesel::delete(aux_tracks_rating::table.filter(aux_tracks_rating::track_id.eq(track_id)));
+        let query = diesel::delete(
+            aux_tracks_rating::table.filter(aux_tracks_rating::track_id.eq(track_id)),
+        );
         query.execute(self.connection)?;
         Ok(())
     }
 
-    fn insert_aux_rating(&self, track_id: StorageId, rating: &Rating) -> Result<(), failure::Error> {
+    fn insert_aux_rating(
+        &self,
+        track_id: StorageId,
+        rating: &Rating,
+    ) -> Result<(), failure::Error> {
         let insertable = InsertableTracksRating::bind(track_id, rating);
         let query = diesel::insert_into(aux_tracks_rating::table).values(&insertable);
         query.execute(self.connection)?;
@@ -177,23 +243,30 @@ impl<'a> TrackRepository<'a> {
             Some(storage_id) => {
                 self.insert_aux_storage(storage_id, entity.body())?;
                 Ok(storage_id)
-            },
-            None => Err(format_err!("Entity not found: {}", uid))
+            }
+            None => Err(format_err!("Entity not found: {}", uid)),
         }
     }
 
-    fn before_entity_updated_or_removed(&self, uid: &EntityUid) -> Result<StorageId, failure::Error> {
+    fn before_entity_updated_or_removed(
+        &self,
+        uid: &EntityUid,
+    ) -> Result<StorageId, failure::Error> {
         let maybe_storage_id = self.find_storage_id(uid)?;
         match maybe_storage_id {
             Some(storage_id) => {
                 self.delete_aux_storage(storage_id)?;
                 Ok(storage_id)
-            },
-            None => Err(format_err!("Entity not found: {}", uid))
+            }
+            None => Err(format_err!("Entity not found: {}", uid)),
         }
     }
 
-    fn after_entity_updated(&self, storage_id: StorageId, body: &TrackBody) -> Result<(), failure::Error> {
+    fn after_entity_updated(
+        &self,
+        storage_id: StorageId,
+        body: &TrackBody,
+    ) -> Result<(), failure::Error> {
         self.insert_aux_storage(storage_id, body)?;
         Ok(())
     }
@@ -320,12 +393,71 @@ impl<'a> Tracks for TrackRepository<'a> {
             .offset(offset)
             .limit(limit);
         let results = match collection_uid {
-            Some(ref uid) => target.filter(tracks_entity::id.eq_any(aux_tracks_resource::table.select(aux_tracks_resource::track_id).filter(aux_tracks_resource::collection_uid.eq(uid.as_str())))).load::<QueryableSerializedEntity>(self.connection),
+            Some(ref uid) => target
+                .filter(
+                    tracks_entity::id.eq_any(
+                        aux_tracks_resource::table
+                            .select(aux_tracks_resource::track_id)
+                            .filter(aux_tracks_resource::collection_uid.eq(uid.as_str())),
+                    ),
+                )
+                .load::<QueryableSerializedEntity>(self.connection),
             None => target.load::<QueryableSerializedEntity>(self.connection),
         }?;
         if log_enabled!(log::Level::Debug) {
             debug!("Loaded {} track entities", results.len(),);
         }
+        Ok(results.into_iter().map(|r| r.into()).collect())
+    }
+
+    fn search_entities(
+        &self,
+        collection_uid: Option<&EntityUid>,
+        search_params: &SearchParams,
+        pagination: &Pagination,
+    ) -> Result<Vec<SerializedEntity>, failure::Error> {
+        let offset = pagination.offset.map(|offset| offset as i64).unwrap_or(0);
+        let limit = pagination
+            .limit
+            .map(|limit| limit as i64)
+            .unwrap_or(i64::MAX);
+        let like_expr = search_params.filter.as_ref().map(|s| format!("%{}%", s)).unwrap_or("%".into());
+        let target = tracks_entity::table
+            .left_outer_join(aux_tracks_resource::table)
+            .left_outer_join(aux_tracks_overview::table)
+            .left_outer_join(aux_tracks_summary::table)
+            .left_outer_join(aux_tracks_music::table)
+            .filter(aux_tracks_overview::track_title.like(&like_expr))
+            .or_filter(aux_tracks_overview::album_title.like(&like_expr))
+            .or_filter(aux_tracks_summary::track_artists.like(&like_expr))
+            .or_filter(aux_tracks_summary::album_artists.like(&like_expr))
+            .or_filter(
+                tracks_entity::id.eq_any(
+                    aux_tracks_tag::table
+                        .select(aux_tracks_tag::track_id)
+                        .filter(aux_tracks_tag::facet.eq(TrackTag::FACET_GENRE))
+                        .filter(aux_tracks_tag::term.like(&like_expr)),
+                ),
+            )
+            .or_filter(
+                tracks_entity::id.eq_any(
+                    aux_tracks_comment::table
+                        .select(aux_tracks_comment::track_id)
+                        .filter(aux_tracks_comment::comment.like(&like_expr)),
+                ),
+            )
+            .select(tracks_entity::all_columns)
+            .offset(offset)
+            .limit(limit);
+        let results = match collection_uid {
+            Some(ref uid) => target
+                .filter(aux_tracks_resource::collection_uid.eq(uid.as_str()))
+                .order(aux_tracks_resource::collection_since.desc()) // recently added to collection
+                .load::<QueryableSerializedEntity>(self.connection),
+            None => target
+                .order(tracks_entity::rev_timestamp.desc()) // recently modified
+                .load::<QueryableSerializedEntity>(self.connection),
+        }?;
         Ok(results.into_iter().map(|r| r.into()).collect())
     }
 }

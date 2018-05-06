@@ -43,7 +43,6 @@ table! {
 }
 
 joinable!(aux_tracks_identity -> tracks_entity (track_id));
-allow_tables_to_appear_in_same_query!(aux_tracks_identity, tracks_entity);
 
 table! {
     aux_tracks_resource (id) {
@@ -67,7 +66,6 @@ table! {
 }
 
 joinable!(aux_tracks_resource -> tracks_entity (track_id));
-allow_tables_to_appear_in_same_query!(aux_tracks_resource, tracks_entity);
 
 table! {
     aux_tracks_overview (id) {
@@ -90,7 +88,6 @@ table! {
 }
 
 joinable!(aux_tracks_overview -> tracks_entity (track_id));
-allow_tables_to_appear_in_same_query!(aux_tracks_overview, tracks_entity);
 
 table! {
     aux_tracks_summary (id) {
@@ -113,7 +110,6 @@ table! {
 }
 
 joinable!(aux_tracks_summary -> tracks_entity (track_id));
-allow_tables_to_appear_in_same_query!(aux_tracks_summary, tracks_entity);
 
 table! {
     aux_tracks_music (id) {
@@ -136,7 +132,6 @@ table! {
 }
 
 joinable!(aux_tracks_music -> tracks_entity (track_id));
-allow_tables_to_appear_in_same_query!(aux_tracks_music, tracks_entity);
 
 table! {
     aux_tracks_tag (id) {
@@ -149,7 +144,6 @@ table! {
 }
 
 joinable!(aux_tracks_tag -> tracks_entity (track_id));
-allow_tables_to_appear_in_same_query!(aux_tracks_tag, tracks_entity);
 
 table! {
     aux_tracks_comment (id) {
@@ -161,7 +155,6 @@ table! {
 }
 
 joinable!(aux_tracks_comment -> tracks_entity (track_id));
-allow_tables_to_appear_in_same_query!(aux_tracks_comment, tracks_entity);
 
 table! {
     aux_tracks_rating (id) {
@@ -173,4 +166,7 @@ table! {
 }
 
 joinable!(aux_tracks_rating -> tracks_entity (track_id));
+
+allow_tables_to_appear_in_same_query!(tracks_entity, aux_tracks_resource, aux_tracks_overview, aux_tracks_summary, aux_tracks_music, aux_tracks_tag, aux_tracks_comment);
+allow_tables_to_appear_in_same_query!(aux_tracks_identity, tracks_entity);
 allow_tables_to_appear_in_same_query!(aux_tracks_rating, tracks_entity);

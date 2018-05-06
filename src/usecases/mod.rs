@@ -19,6 +19,7 @@ pub mod search;
 
 use failure;
 
+use self::search::SearchParams;
 use self::result::Pagination;
 
 use storage::serde::{SerializationFormat, SerializedEntity};
@@ -68,7 +69,11 @@ pub trait Tracks {
         format: SerializationFormat,
     ) -> TracksResult<TrackEntity>;
 
-    fn update_entity(&self, entity: &mut TrackEntity, format: SerializationFormat) -> TracksResult<Option<()>>;
+    fn update_entity(
+        &self,
+        entity: &mut TrackEntity,
+        format: SerializationFormat,
+    ) -> TracksResult<Option<()>>;
 
     fn remove_entity(&self, uid: &EntityUid) -> TracksResult<()>;
 
@@ -79,4 +84,11 @@ pub trait Tracks {
         collection_uid: Option<&EntityUid>,
         pagination: &Pagination,
     ) -> TracksResult<Vec<SerializedEntity>>;
+
+    fn search_entities(
+        &self,
+        collection_uid: Option<&EntityUid>,
+        search_params: &SearchParams,
+        pagination: &Pagination,
+    ) -> Result<Vec<SerializedEntity>, failure::Error>;
 }
