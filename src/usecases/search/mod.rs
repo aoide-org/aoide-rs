@@ -32,7 +32,7 @@ pub struct SortField {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SearchParams {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub filter_pred: Option<String>,
+    pub filter: Option<String>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub sort_fields: Vec<SortField>,

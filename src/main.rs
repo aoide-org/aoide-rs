@@ -63,7 +63,7 @@ use aoide::middleware;
 use aoide::middleware::DieselMiddleware;
 use aoide::storage::collections::*;
 use aoide::storage::tracks::*;
-use aoide::storage::{deserialize_slice_with_format, SerializationFormat, SerializedEntity};
+use aoide::storage::serde::*;
 use aoide::usecases::*;
 use aoide::usecases::result::*;
 
@@ -166,8 +166,11 @@ where
 
 fn on_handler_failure(e: failure::Error) -> HandlerError {
     match e.cause().downcast_ref::<DieselError>() {
-        Some(&DieselError::DatabaseError(DatabaseErrorKind::UniqueViolation, _)) | Some(&DieselError::DatabaseError(DatabaseErrorKind::ForeignKeyViolation, _)) => on_handler_error(e.compat()).with_status(StatusCode::BadRequest),
-        _ => on_handler_error(e.compat())
+        Some(&DieselError::DatabaseError(DatabaseErrorKind::UniqueViolation, _))
+        | Some(&DieselError::DatabaseError(DatabaseErrorKind::ForeignKeyViolation, _)) => {
+            on_handler_error(e.compat()).with_status(StatusCode::BadRequest)
+        }
+        _ => on_handler_error(e.compat()),
     }
 }
 
@@ -206,7 +209,10 @@ impl UidPathExtractor {
         }
     }
 
-    fn parse_from_and_verify(state: &mut State, expected_uid: &EntityUid) -> Result<EntityUid, failure::Error> {
+    fn parse_from_and_verify(
+        state: &mut State,
+        expected_uid: &EntityUid,
+    ) -> Result<EntityUid, failure::Error> {
         match Self::parse_from(state) {
             Ok(uid) => {
                 if &uid == expected_uid {
@@ -220,7 +226,7 @@ impl UidPathExtractor {
                     Err(e)
                 }
             }
-            Err(e) => Err(e)
+            Err(e) => Err(e),
         }
     }
 }
@@ -237,7 +243,12 @@ fn find_collection(
 fn handle_get_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
     let uid = match UidPathExtractor::parse_from(&mut state) {
         Ok(uid) => uid,
-        Err(e) => return Box::new(future::err((state, on_handler_failure(e).with_status(StatusCode::BadRequest)))),
+        Err(e) => {
+            return Box::new(future::err((
+                state,
+                on_handler_failure(e).with_status(StatusCode::BadRequest),
+            )))
+        }
     };
 
     let pooled_connection = match middleware::state_data::try_connection(&state) {
@@ -278,7 +289,12 @@ fn remove_collection(
 fn handle_delete_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
     let uid = match UidPathExtractor::parse_from(&mut state) {
         Ok(uid) => uid,
-        Err(e) => return Box::new(future::err((state, on_handler_failure(e).with_status(StatusCode::BadRequest)))),
+        Err(e) => {
+            return Box::new(future::err((
+                state,
+                on_handler_failure(e).with_status(StatusCode::BadRequest),
+            )))
+        }
     };
 
     let pooled_connection = match middleware::state_data::try_connection(&state) {
@@ -290,7 +306,7 @@ fn handle_delete_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
         Ok(_) => {
             let response = create_response(&state, StatusCode::NoContent, None);
             future::ok((state, response))
-        },
+        }
         Err(e) => future::err((state, on_handler_failure(e))),
     };
 
@@ -513,13 +529,13 @@ fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
                     Err(e) => return future::err((state, on_handler_failure(e))),
                 };
 
-                let response = match serde_json::to_vec(entity.header()) {
+                let response = match serialize_with_format(entity.header(), format) {
                     Ok(response_body) => create_response(
                         &state,
                         StatusCode::Created,
                         Some((response_body, mime::APPLICATION_JSON)),
                     ),
-                    Err(e) => return future::err((state, on_handler_error(e))),
+                    Err(e) => return future::err((state, on_handler_failure(e))),
                 };
                 future::ok((state, response))
             }
@@ -601,16 +617,17 @@ fn handle_put_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
                     }
                 };
 
-                let response = match serde_json::to_vec(&EntityHeader::new(uid, next_revision)) {
-                    Ok(response_body) => create_response(
-                        &state,
-                        StatusCode::Ok,
-                        Some((response_body, mime::APPLICATION_JSON)),
-                    ),
-                    Err(e) => {
-                        return future::err((state, on_handler_error(e)));
-                    }
-                };
+                let response =
+                    match serialize_with_format(&EntityHeader::new(uid, next_revision), format) {
+                        Ok(response_body) => create_response(
+                            &state,
+                            StatusCode::Ok,
+                            Some((response_body, mime::APPLICATION_JSON)),
+                        ),
+                        Err(e) => {
+                            return future::err((state, on_handler_failure(e)));
+                        }
+                    };
                 future::ok((state, response))
             }
             Err(e) => future::err((state, on_handler_error(e))),
@@ -627,7 +644,12 @@ fn remove_track(connection: &SqliteConnection, uid: &EntityUid) -> Result<(), fa
 fn handle_delete_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
     let uid = match UidPathExtractor::parse_from(&mut state) {
         Ok(uid) => uid,
-        Err(e) => return Box::new(future::err((state, on_handler_failure(e).with_status(StatusCode::BadRequest)))),
+        Err(e) => {
+            return Box::new(future::err((
+                state,
+                on_handler_failure(e).with_status(StatusCode::BadRequest),
+            )))
+        }
     };
 
     let pooled_connection = match middleware::state_data::try_connection(&state) {
@@ -658,7 +680,12 @@ fn load_track(
 fn handle_get_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
     let uid = match UidPathExtractor::parse_from(&mut state) {
         Ok(uid) => uid,
-        Err(e) => return Box::new(future::err((state, on_handler_failure(e).with_status(StatusCode::BadRequest)))),
+        Err(e) => {
+            return Box::new(future::err((
+                state,
+                on_handler_failure(e).with_status(StatusCode::BadRequest),
+            )))
+        }
     };
 
     let pooled_connection = match middleware::state_data::try_connection(&state) {

@@ -21,7 +21,7 @@ use failure;
 
 use self::result::Pagination;
 
-use storage::{SerializationFormat, SerializedEntity};
+use storage::serde::{SerializationFormat, SerializedEntity};
 
 use aoide_core::domain::entity::*;
 use aoide_core::domain::collection::*;

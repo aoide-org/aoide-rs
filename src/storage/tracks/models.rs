@@ -17,11 +17,12 @@ use super::schema::{tracks_entity, aux_tracks_resource, aux_tracks_tag, aux_trac
 
 use chrono::naive::NaiveDateTime;
 
+use storage::StorageId;
+use storage::serde::SerializationFormat;
+
 use aoide_core::domain::entity::{EntityRevision, EntityHeader};
 use aoide_core::domain::track::TrackResource;
 use aoide_core::domain::metadata::{ConfidenceValue, Tag, Comment, Rating};
-
-use storage::{StorageId, SerializationFormat};
 
 #[derive(Debug, Insertable)]
 #[table_name = "tracks_entity"]

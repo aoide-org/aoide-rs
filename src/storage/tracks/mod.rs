@@ -26,9 +26,12 @@ use std::i64;
 use diesel::prelude::*;
 use diesel;
 
+use failure;
+
 use log;
 
 use storage::*;
+use storage::serde::{serialize_with_format, SerializationFormat};
 
 use usecases::*;
 use usecases::result::Pagination;
@@ -216,7 +219,7 @@ impl<'a> Tracks for TrackRepository<'a> {
     ) -> TracksResult<TrackEntity> {
         let entity = TrackEntity::with_body(body);
         {
-            let entity_blob = serialize_entity(&entity, format)?;
+            let entity_blob = serialize_with_format(&entity, format)?;
             let insertable = InsertableTracksEntity::bind(entity.header(), format, &entity_blob);
             let query = diesel::insert_into(tracks_entity::table).values(&insertable);
             if log_enabled!(log::Level::Debug) {
@@ -243,7 +246,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         let next_revision = prev_revision.next();
         {
             entity.update_revision(next_revision);
-            let entity_blob = serialize_entity(&entity, format)?;
+            let entity_blob = serialize_with_format(&entity, format)?;
             {
                 let updatable = UpdatableTracksEntity::bind(&next_revision, format, &entity_blob);
                 let uid = entity.header().uid();
