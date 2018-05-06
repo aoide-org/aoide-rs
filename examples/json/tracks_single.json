@@ -8,9 +8,69 @@
             }
         },
         "body": {
+            "resources": [
+                {
+                    "collection": {
+                        "uid": "myMXwslBoXkTDQ0olhq1QsiHRWWL4yj1V0IuoK+PYOg",
+                        "since": "2018-05-01T13:27:56.3751483Z"
+                    },
+                    "source": {
+                        "uri": "file::///home/music/collection/test.mp3",
+                        "synchronization": {
+                            "when": "2018-05-01T13:27:56.3751483Z",
+                            "revision": {
+                                "ordinal": 23,
+                                "timestamp": "2018-03-22T17:10:55.488760124Z"
+                            }
+                        },
+                        "contentType": "audio/mpeg",
+                        "audioContent": {
+                            "duration": {
+                                "millis": 202821
+                            },
+                            "channels": {
+                                "count": 2
+                            },
+                            "samplerate": {
+                                "hz": 44100
+                            },
+                            "bitrate": {
+                                "bps": 320000
+                            }
+                        }
+                    },
+                    "color": {
+                        "code": 16711680
+                    }
+                }
+            ],
             "identity": {
                 "isrc": "USUG11200229",
                 "mbrainzId": "d878c95a-8a6b-3be6-b6df-7d720a480625"
+            },
+            "album": {
+                "identity": {
+                    "mbrainzId": "5436c9f0-3bc4-410b-8f2d-b584779d5b2c"
+                },
+                "release": {
+                    "identity": {
+                        "asin": "B007MPE20U"
+                    },
+                    "released": "2012-03-23T00:00:00.000Z",
+                    "label": "Interscope Records",
+                    "copyright": "℗ 2012 Boy Toy, Inc. Exclusively licensed to Live Nation Worldwide, Inc. Exclusively licensed to Interscope Records"
+                },
+                "titles": {
+                    "title": "MDNA (Deluxe Version)",
+                    "subtitle": null
+                },
+                "actors": [
+                    {
+                        "role": "artist",
+                        "name": "Madonna"
+                    }
+                ],
+                "compilation": false
             },
             "titles": {
                 "title": "Give Me All Your Luvin'"
@@ -54,30 +114,6 @@
                     "name": "Julien Jabre"
                 }
             ],
-            "album": {
-                "identity": {
-                    "mbrainzId": "5436c9f0-3bc4-410b-8f2d-b584779d5b2c"
-                },
-                "titles": {
-                    "title": "MDNA (Deluxe Version)",
-                    "subtitle": null
-                },
-                "actors": [
-                    {
-                        "role": "artist",
-                        "name": "Madonna"
-                    }
-                ],
-                "compilation": false,
-                "release": {
-                    "released": "2012-03-23T00:00:00.000Z",
-                    "label": "Interscope Records",
-                    "copyright": "℗ 2012 Boy Toy, Inc. Exclusively licensed to Live Nation Worldwide, Inc. Exclusively licensed to Interscope Records",
-                    "identity": {
-                        "asin": "B007MPE20U"
-                    }
-                }
-            },
             "trackNumbers": {
                 "this": 5,
                 "total": 18
@@ -86,42 +122,6 @@
                 "this": 1,
                 "total": 1
             },
-            "resources": [
-                {
-                    "collection": {
-                        "uid": "myMXwslBoXkTDQ0olhq1QsiHRWWL4yj1V0IuoK+PYOg",
-                        "since": "2018-05-01T13:27:56.3751483Z"
-                    },
-                    "source": {
-                        "uri": "file::///home/music/collection/test.mp3",
-                        "synchronization": {
-                            "when": "2018-05-01T13:27:56.3751483Z",
-                            "revision": {
-                                "ordinal": 23,
-                                "timestamp": "2018-03-22T17:10:55.488760124Z"
-                            }
-                        },
-                        "contentType": "audio/mpeg",
-                        "audioContent": {
-                            "duration": {
-                                "millis": 202821
-                            },
-                            "channels": {
-                                "count": 2
-                            },
-                            "samplerate": {
-                                "hz": 44100
-                            },
-                            "bitrate": {
-                                "bps": 320000
-                            }
-                        }
-                    },
-                    "color": {
-                        "code": 16711680
-                    }
-                }
-            ],
             "music": {
                 "loudness": {
                     "ebur128lufs": {

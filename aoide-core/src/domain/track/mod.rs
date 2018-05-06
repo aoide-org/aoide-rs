@@ -226,6 +226,9 @@ pub struct ReleaseIdentity {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ReleaseMetadata {
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub identity: Option<ReleaseIdentity>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub released: Option<DateTime<Utc>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -236,9 +239,6 @@ pub struct ReleaseMetadata {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub license: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub identity: Option<ReleaseIdentity>,
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -265,6 +265,9 @@ pub struct AlbumMetadata {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub identity: Option<AlbumIdentity>,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release: Option<ReleaseMetadata>,
+
     pub titles: Titles,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
@@ -275,9 +278,6 @@ pub struct AlbumMetadata {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub compilation: Option<bool>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub release: Option<ReleaseMetadata>,
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -397,8 +397,14 @@ impl TrackTag {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackBody {
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub resources: Vec<TrackResource>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub identity: Option<TrackIdentity>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub album: Option<AlbumMetadata>,
 
     pub titles: Titles,
 
@@ -406,16 +412,10 @@ pub struct TrackBody {
     pub actors: Vec<Actor>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub album: Option<AlbumMetadata>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub track_numbers: Option<TrackNumbers>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub disc_numbers: Option<DiscNumbers>,
-
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub resources: Vec<TrackResource>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub music: Option<MusicMetadata>,
