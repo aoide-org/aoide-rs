@@ -17,6 +17,8 @@ use super::schema::*;
 
 use chrono::naive::{NaiveDate, NaiveDateTime};
 
+use uuid::Uuid;
+
 use storage::StorageId;
 use storage::serde::SerializationFormat;
 
@@ -70,6 +72,54 @@ impl<'a> UpdatableTracksEntity<'a> {
             ser_ver_major: 0, // TODO
             ser_ver_minor: 0, // TODO
             ser_blob,
+        }
+    }
+}
+
+#[derive(Debug, Insertable)]
+#[table_name = "aux_tracks_identity"]
+pub struct InsertableTracksIdentity<'a> {
+    pub track_id: StorageId,
+    pub track_isrc: Option<&'a str>,
+    pub track_acoust_id: Option<String>,
+    pub track_mbrainz_id: Option<String>,
+    pub track_spotify_id: Option<&'a str>,
+    pub album_mbrainz_id: Option<String>,
+    pub album_spotify_id: Option<&'a str>,
+    pub release_ean: Option<&'a str>,
+    pub release_upc: Option<&'a str>,
+    pub release_asin: Option<&'a str>,
+}
+
+fn format_optional_uuid(uuid: &Uuid) -> Option<String> {
+    if uuid.is_nil() {
+        None
+    } else {
+        Some(format!("{}", uuid))
+    }
+}
+
+fn format_optional_id<'a>(id: &'a str) -> Option<&'a str> {
+    if id.is_empty() {
+        None
+    } else {
+        Some(id)
+    }
+}
+
+impl<'a> InsertableTracksIdentity<'a> {
+    pub fn bind(track_id: StorageId, body: &'a TrackBody) -> Self {
+        Self {
+            track_id,
+            track_isrc: body.identity.as_ref().and_then(|identity| format_optional_id(identity.isrc.as_str())),
+            track_acoust_id: body.identity.as_ref().and_then(|identity| format_optional_uuid(&identity.acoust_id)),
+            track_mbrainz_id: body.identity.as_ref().and_then(|identity| format_optional_uuid(&identity.mbrainz_id)),
+            track_spotify_id: body.identity.as_ref().and_then(|identity| format_optional_id(identity.spotify_id.as_str())),
+            album_mbrainz_id: body.album.as_ref().and_then(|album| album.identity.as_ref()).and_then(|identity| format_optional_uuid(&identity.mbrainz_id)),
+            album_spotify_id: body.album.as_ref().and_then(|album| album.identity.as_ref()).and_then(|identity| format_optional_id(identity.spotify_id.as_ref())),
+            release_ean: body.album.as_ref().and_then(|album| album.release.as_ref()).and_then(|release| release.identity.as_ref()).and_then(|identity| format_optional_id(identity.ean.as_str())),
+            release_upc: body.album.as_ref().and_then(|album| album.release.as_ref()).and_then(|release| release.identity.as_ref()).and_then(|identity| format_optional_id(identity.upc.as_str())),
+            release_asin: body.album.as_ref().and_then(|album| album.release.as_ref()).and_then(|release| release.identity.as_ref()).and_then(|identity| format_optional_id(identity.asin.as_str())),
         }
     }
 }
