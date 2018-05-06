@@ -723,7 +723,7 @@ fn load_recently_revisioned_tracks(
     Ok(result)
 }
 
-fn handle_get_tracks_path_uid_query_pagination(mut state: State) -> Box<HandlerFuture> {
+fn handle_get_collections_path_uid_tracks_query_pagination(mut state: State) -> Box<HandlerFuture> {
     let collection_uid = UidPathExtractor::try_parse_from(&mut state);
     let query_params = PaginationQueryStringExtractor::take_from(&mut state);
     let pagination = Pagination {
@@ -766,7 +766,7 @@ fn search_tracks(
     Ok(result)
 }
 
-fn handle_post_tracks_search_path_uid_query_pagination(mut state: State) -> Box<HandlerFuture> {
+fn handle_post_collections_path_uid_tracks_search_query_pagination(mut state: State) -> Box<HandlerFuture> {
     let collection_uid = UidPathExtractor::try_parse_from(&mut state);
     let query_params = PaginationQueryStringExtractor::take_from(&mut state);
     let pagination = Pagination {
@@ -834,50 +834,60 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
 
     // Build the router
     build_router(default_pipeline_chain, pipeline_set, |route| {
-        route.post("/collections").to(handle_post_collections);
-        route
+        route // add single collection (body)
+            .post("/collections")
+            .to(handle_post_collections);
+        route // update single collection
             .put("/collections/:uid")
             .with_path_extractor::<UidPathExtractor>()
             .to(handle_put_collections_path_uid);
-        route
+        route // remove single collection
             .delete("/collections/:uid")
             .with_path_extractor::<UidPathExtractor>()
             .to(handle_delete_collections_path_uid);
-        route
-            .get("/collections")
-            .with_query_string_extractor::<PaginationQueryStringExtractor>()
-            .to(handle_get_collections_query_pagination);
-        route
+        route // load single collection
             .get("/collections/:uid")
             .with_path_extractor::<UidPathExtractor>()
             .to(handle_get_collections_path_uid);
-        route.post("/tracks").to(handle_post_tracks);
-        route
+        route // load recently modified collections
+            .get("/collections")
+            .with_query_string_extractor::<PaginationQueryStringExtractor>()
+            .to(handle_get_collections_query_pagination);
+        route // add single track (body)
+            .post("/tracks")
+            .to(handle_post_tracks);
+        route // update single track
             .put("/tracks/:uid")
             .with_path_extractor::<UidPathExtractor>()
             .to(handle_put_tracks_path_uid);
-        route
+        route // remove single track
             .delete("/tracks/:uid")
             .with_path_extractor::<UidPathExtractor>()
             .to(handle_delete_tracks_path_uid);
-        route
-            .get("/tracks")
-            .with_query_string_extractor::<PaginationQueryStringExtractor>()
-            .to(handle_get_tracks_path_uid_query_pagination);
-        route
-            .get("/collections/:uid/tracks")
-            .with_path_extractor::<UidPathExtractor>()
-            .with_query_string_extractor::<PaginationQueryStringExtractor>()
-            .to(handle_get_tracks_path_uid_query_pagination);
-        route
-            .post("/collections/:uid/tracks/search")
-            .with_path_extractor::<UidPathExtractor>()
-            .with_query_string_extractor::<PaginationQueryStringExtractor>()
-            .to(handle_post_tracks_search_path_uid_query_pagination);
-        route
+        route // load single track
             .get("/tracks/:uid")
             .with_path_extractor::<UidPathExtractor>()
             .to(handle_get_tracks_path_uid);
+        route // load recently modified tracks
+            .get("/tracks")
+            .with_query_string_extractor::<PaginationQueryStringExtractor>()
+            .to(handle_get_collections_path_uid_tracks_query_pagination);
+        route // load recently modified tracks from collection
+            .get("/collections/:uid/tracks")
+            .with_path_extractor::<UidPathExtractor>()
+            .with_query_string_extractor::<PaginationQueryStringExtractor>()
+            .to(handle_get_collections_path_uid_tracks_query_pagination);
+        /*
+        route // replace single track (body) in collection by URI
+            .put("/collections/:uid/tracks")
+            .with_path_extractor::<UidPathExtractor>()
+            .to(handle_put_collections_path_uid_tracks);
+        */
+        route // search in collection
+            .post("/collections/:uid/tracks/search")
+            .with_path_extractor::<UidPathExtractor>()
+            .with_query_string_extractor::<PaginationQueryStringExtractor>()
+            .to(handle_post_collections_path_uid_tracks_search_query_pagination);
     })
 }
 
