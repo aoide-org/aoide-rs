@@ -442,19 +442,19 @@ impl TrackBody {
                 .count() == self.resources.len())
     }
 
-    pub fn actors_to_string(&self, role_opt: Option<ActorRole>) -> String {
+    pub fn actors_to_string(&self, role_opt: Option<ActorRole>) -> Option<String> {
         Actor::actors_to_string(&self.actors, role_opt)
     }
 
-    pub fn artists_to_string(&self) -> String {
+    pub fn artists_to_string(&self) -> Option<String> {
         self.actors_to_string(Some(ActorRole::Artist))
     }
 
-    pub fn album_actors_to_string(&self, role_opt: Option<ActorRole>) -> String {
+    pub fn album_actors_to_string(&self, role_opt: Option<ActorRole>) -> Option<String> {
         Actor::actors_to_string(&self.actors, role_opt)
     }
 
-    pub fn album_artists_to_string(&self) -> String {
+    pub fn album_artists_to_string(&self) -> Option<String> {
         self.album_actors_to_string(Some(ActorRole::Artist))
     }
 }

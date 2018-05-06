@@ -165,6 +165,26 @@ impl Rating {
     pub fn star_rating(&self, max_stars: u8) -> u8 {
         ((*self.rating * (max_stars as ConfidenceValue)).ceil() as u8).min(max_stars)
     }
+
+    pub fn minmax<'a>(ratings: &[Self], owner: Option<&'a str>) -> Option<(Confidence, Confidence)> {
+        let count = ratings
+            .iter()
+            .filter(|rating| owner.is_none() || rating.owner.is_none() || rating.owner.as_ref().map(|owner| owner.as_str()) == owner)
+            .count();
+        if count > 0 {
+            let (mut min_rating, mut max_rating) = (*Confidence::MAX, *Confidence::MIN);
+            ratings
+                .iter()
+                .filter(|rating| owner.is_none() || rating.owner.is_none() || rating.owner.as_ref().map(|owner| owner.as_str()) == owner)
+                .for_each(|rating| {
+                    min_rating = min_rating.min(*rating.rating);
+                    max_rating = max_rating.max(*rating.rating);
+                    });
+            Some((Confidence(min_rating), Confidence(max_rating)))
+        } else {
+            None
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -230,5 +250,27 @@ mod tests {
         assert_eq!("100.0%", format!("{}", Confidence::MAX));
         assert_eq!("90.1%", format!("{}", Confidence(0.9012345)));
         assert_eq!("90.2%", format!("{}", Confidence(0.9015)));
+    }
+
+    #[test]
+    fn minmax_rating() {
+        let owner1 = "a";
+        let owner2 = "b";
+        let owner3 = "c";
+        let owner4 = "d";
+        let ratings = vec![
+            Rating { owner: Some(owner1.into()), rating: 0.5.into() },
+            Rating { owner: None, rating: Confidence(0.4) },
+            Rating { owner: Some(owner2.into()), rating: Confidence(0.8) },
+            Rating { owner: Some(owner3.into()), rating: Confidence(0.1) },
+        ];
+        assert_eq!(None, Rating::minmax(&vec![], None));
+        assert_eq!(None, Rating::minmax(&vec![], Some(owner1)));
+        assert_eq!(None, Rating::minmax(&vec![], Some(owner4)));
+        assert_eq!(Some((Confidence(0.1), Confidence(0.8))), Rating::minmax(&ratings, None)); // all ratings
+        assert_eq!(Some((Confidence(0.4), Confidence(0.5))), Rating::minmax(&ratings, Some(owner1))); // anonymous and own rating
+        assert_eq!(Some((Confidence(0.4), Confidence(0.8))), Rating::minmax(&ratings, Some(owner2))); // anonymous and own rating
+        assert_eq!(Some((Confidence(0.1), Confidence(0.4))), Rating::minmax(&ratings, Some(owner3))); // anonymous and own rating
+        assert_eq!(Some((Confidence(0.4), Confidence(0.4))), Rating::minmax(&ratings, Some(owner4))); // only anonymous rating
     }
 }

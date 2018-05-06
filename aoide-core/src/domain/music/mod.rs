@@ -92,18 +92,26 @@ impl Actor {
         builder.push_str(&self.name);
     }
 
-    pub fn actors_to_string(actors: &[Self], role_opt: Option<ActorRole>) -> String {
-        let capacity = actors
+    pub fn actors_to_string(actors: &[Self], role_opt: Option<ActorRole>) -> Option<String> {
+        let count = actors
             .iter()
             .filter(|a| role_opt.is_none() || (Some(a.role) == role_opt))
-            .map(|a| a.string_len())
-            .sum();
-        let mut builder = String::with_capacity(capacity);
-        actors
-            .iter()
-            .filter(|a| role_opt.is_none() || (Some(a.role) == role_opt))
-            .for_each(|a| a.append_to_string(&mut builder));
-        builder
+            .count();
+        if count > 0 {
+            let capacity = actors
+                .iter()
+                .filter(|a| role_opt.is_none() || (Some(a.role) == role_opt))
+                .map(|a| a.string_len())
+                .sum();
+            let mut builder = String::with_capacity(capacity);
+            actors
+                .iter()
+                .filter(|a| role_opt.is_none() || (Some(a.role) == role_opt))
+                .for_each(|a| a.append_to_string(&mut builder));
+            Some(builder)
+        } else {
+            None
+        }
     }
 }
 
@@ -438,11 +446,24 @@ mod tests {
                 prefix: String::default(),
                 name: "Martin Solveig".to_string(),
             },
+            Actor {
+                role: ActorRole::Remixer,
+                prefix: String::default(),
+                name: String::default(),
+            },
             Actor::prefixed_artist(" feat. ", "M.I.A."),
             Actor::prefixed_artist(" and ", "Nicki Minaj"),
         ];
         assert_eq!(
-            "Madonna feat. M.I.A. and Nicki Minaj",
+            None,
+            Actor::actors_to_string(&actors, Some(ActorRole::Composer))
+        );
+        assert_eq!(
+            Some(String::default()),
+            Actor::actors_to_string(&actors, Some(ActorRole::Remixer))
+        );
+        assert_eq!(
+            Some("Madonna feat. M.I.A. and Nicki Minaj".to_string()),
             Actor::actors_to_string(&actors, Some(ActorRole::Artist))
         );
     }
