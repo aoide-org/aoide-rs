@@ -48,11 +48,20 @@ pub struct LocateParams {
     pub matcher: LocateMatcher,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "lowercase")]
+pub enum ReplaceMode {
+    Lazy, // replace or create if not found
+    Strict, // replace only
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ReplaceParams {
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub uri: String,
+
+    pub mode: ReplaceMode,
 
     pub body: TrackBody,
 }

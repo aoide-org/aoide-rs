@@ -872,18 +872,19 @@ fn handle_post_collections_path_uid_tracks_replace(mut state: State) -> Box<Hand
                     Err(e) => return future::err((state, on_handler_error(e))),
                 };
 
-                let entity = match replace_track(
+                let (entity, status_code) = match replace_track(
                     &*pooled_connection,
                     collection_uid.as_ref(),
                     replace_params,
                     format,
                 ) {
-                    Ok(TrackEntityReplacement::Some(entity)) => entity,
+                    Ok(TrackEntityReplacement::Replaced(entity)) => (entity, StatusCode::Ok),
+                    Ok(TrackEntityReplacement::Created(entity)) => (entity, StatusCode::Created),
                     Ok(TrackEntityReplacement::NotFound) => {
                         let response = create_response(&state, StatusCode::NotFound, None);
                         return future::ok((state, response))
                     }
-                    Ok(TrackEntityReplacement::MultipleCandidates) => {
+                    Ok(TrackEntityReplacement::Ambiguous) => {
                         let response = create_response(&state, StatusCode::BadRequest, None);
                         return future::ok((state, response))
                     }
@@ -893,7 +894,7 @@ fn handle_post_collections_path_uid_tracks_replace(mut state: State) -> Box<Hand
                 let response = match serialize_with_format(entity.header(), format) {
                     Ok(response_body) => create_response(
                         &state,
-                        StatusCode::Ok,
+                        status_code,
                         Some((response_body, format.into())),
                     ),
                     Err(e) => return future::err((state, on_handler_failure(e))),
