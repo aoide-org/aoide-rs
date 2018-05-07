@@ -30,10 +30,18 @@ pub struct SortField {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct SearchParams {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub filter: Option<String>,
+pub struct LocateParams {
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub source_uri: String,
+}
 
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub sort_fields: Vec<SortField>,
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct SearchParams {
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub filter: String,
+
+    // TODO: Implement sorting
+    //#[serde(skip_serializing_if = "Vec::is_empty", default)]
+    //pub sort_fields: Vec<SortField>,
 }

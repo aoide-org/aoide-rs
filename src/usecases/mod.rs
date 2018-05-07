@@ -90,5 +90,5 @@ pub trait Tracks {
         collection_uid: Option<&EntityUid>,
         search_params: &SearchParams,
         pagination: &Pagination,
-    ) -> Result<Vec<SerializedEntity>, failure::Error>;
+    ) -> TracksResult<Vec<SerializedEntity>>;
 }

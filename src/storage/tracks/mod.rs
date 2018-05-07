@@ -536,35 +536,47 @@ impl<'a> Tracks for TrackRepository<'a> {
         collection_uid: Option<&EntityUid>,
         search_params: &SearchParams,
         pagination: &Pagination,
-    ) -> Result<Vec<SerializedEntity>, failure::Error> {
+    ) -> TracksResult<Vec<SerializedEntity>> {
         let offset = pagination.offset.map(|offset| offset as i64).unwrap_or(0);
         let limit = pagination
             .limit
             .map(|limit| limit as i64)
             .unwrap_or(i64::MAX);
-        let like_expr = search_params.filter.as_ref().map(|s| format!("%{}%", s)).unwrap_or("%".into());
+        // Escape wildcard characters by themselves (see below)
+        let escaped_filter = search_params.filter.trim().replace('%', "%%");
+        let split_filter = escaped_filter.split_whitespace();
+        let like_expr_len = split_filter.clone().fold(1, |len, part| len + part.len() + 1);
+        let mut like_expr = split_filter
+            .fold(String::with_capacity(like_expr_len), |mut like_expr, part| {
+                // Prepend wildcard character before each part
+                like_expr.push('%');
+                like_expr.push_str(part);
+                like_expr
+            });
+        // Append final wildcard character after last part
+        like_expr.push('%');
         let target = tracks_entity::table
             .left_outer_join(aux_tracks_resource::table)
             .left_outer_join(aux_tracks_overview::table)
             .left_outer_join(aux_tracks_summary::table)
             .left_outer_join(aux_tracks_music::table)
-            .filter(aux_tracks_overview::track_title.like(&like_expr))
-            .or_filter(aux_tracks_overview::album_title.like(&like_expr))
-            .or_filter(aux_tracks_summary::track_artists.like(&like_expr))
-            .or_filter(aux_tracks_summary::album_artists.like(&like_expr))
+            .filter(aux_tracks_overview::track_title.like(&like_expr).escape('%'))
+            .or_filter(aux_tracks_overview::album_title.like(&like_expr).escape('%'))
+            .or_filter(aux_tracks_summary::track_artists.like(&like_expr).escape('%'))
+            .or_filter(aux_tracks_summary::album_artists.like(&like_expr).escape('%'))
             .or_filter(
                 tracks_entity::id.eq_any(
                     aux_tracks_tag::table
                         .select(aux_tracks_tag::track_id)
                         .filter(aux_tracks_tag::facet.eq(TrackTag::FACET_GENRE))
-                        .filter(aux_tracks_tag::term.like(&like_expr)),
+                        .filter(aux_tracks_tag::term.like(&like_expr).escape('%')),
                 ),
             )
             .or_filter(
                 tracks_entity::id.eq_any(
                     aux_tracks_comment::table
                         .select(aux_tracks_comment::track_id)
-                        .filter(aux_tracks_comment::comment.like(&like_expr)),
+                        .filter(aux_tracks_comment::comment.like(&like_expr).escape('%')),
                 ),
             )
             .select(tracks_entity::all_columns)
