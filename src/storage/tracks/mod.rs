@@ -420,18 +420,9 @@ impl<'a> Tracks for TrackRepository<'a> {
             let entity_blob = serialize_with_format(&entity, format)?;
             let insertable = InsertableTracksEntity::bind(entity.header(), format, &entity_blob);
             let query = diesel::insert_into(tracks_entity::table).values(&insertable);
-            if log_enabled!(log::Level::Debug) {
-                debug!(
-                    "Executing SQLite query: {}",
-                    diesel::debug_query::<diesel::sqlite::Sqlite, _>(&query)
-                );
-            }
             query.execute(self.connection)?;
         }
         self.after_entity_created(&entity)?;
-        if log_enabled!(log::Level::Debug) {
-            debug!("Created track entity: {:?}", entity.header());
-        }
         Ok(entity)
     }
 
@@ -490,16 +481,6 @@ impl<'a> Tracks for TrackRepository<'a> {
         let result = target
             .first::<QueryableSerializedEntity>(self.connection)
             .optional()?;
-        if log_enabled!(log::Level::Debug) {
-            match &result {
-                &None => {
-                    debug!("Found no track entity with uid '{}'", uid);
-                }
-                &Some(_) => {
-                    debug!("Loaded track entity with uid '{}'", uid);
-                }
-            }
-        }
         Ok(result.map(|r| r.into()))
     }
 
@@ -529,9 +510,6 @@ impl<'a> Tracks for TrackRepository<'a> {
                 .load::<QueryableSerializedEntity>(self.connection),
             None => target.load::<QueryableSerializedEntity>(self.connection),
         }?;
-        if log_enabled!(log::Level::Debug) {
-            debug!("Loaded {} track entities", results.len(),);
-        }
         Ok(results.into_iter().map(|r| r.into()).collect())
     }
 

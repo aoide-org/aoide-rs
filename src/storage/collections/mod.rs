@@ -76,16 +76,7 @@ impl<'a> Collections for CollectionRepository<'a> {
         {
             let insertable = InsertableCollectionsEntity::bind(&entity);
             let query = diesel::insert_into(collections_entity::table).values(&insertable);
-            if log_enabled!(log::Level::Debug) {
-                debug!(
-                    "Executing SQLite query: {}",
-                    diesel::debug_query::<diesel::sqlite::Sqlite, _>(&query)
-                );
-            }
             query.execute(self.connection)?;
-        }
-        if log_enabled!(log::Level::Debug) {
-            debug!("Created collection entity: {:?}", entity.header());
         }
         Ok(entity)
     }
@@ -99,20 +90,11 @@ impl<'a> Collections for CollectionRepository<'a> {
                     .and(collections_entity::rev_ordinal.eq(entity.header().revision().ordinal() as i64))
                     .and(collections_entity::rev_timestamp.eq(entity.header().revision().timestamp().naive_utc())));
             let query = diesel::update(target).set(&updatable);
-            if log_enabled!(log::Level::Debug) {
-                debug!(
-                    "Executing SQLite query: {}",
-                    diesel::debug_query::<diesel::sqlite::Sqlite, _>(&query)
-                );
-            }
             let rows_affected: usize = query.execute(self.connection)?;
             assert!(rows_affected <= 1);
             if rows_affected <= 0 {
                 return Ok(None);
             }
-        }
-        if log_enabled!(log::Level::Debug) {
-            debug!("Updated collection entity: {:?} -> {:?}", entity.header(), next_revision);
         }
         Ok(Some(next_revision))
     }
@@ -120,19 +102,10 @@ impl<'a> Collections for CollectionRepository<'a> {
     fn remove_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<()>> {
         let target = collections_entity::table.filter(collections_entity::uid.eq(uid.as_str()));
         let query = diesel::delete(target);
-        if log_enabled!(log::Level::Debug) {
-            debug!(
-                "Executing SQLite query: {}",
-                diesel::debug_query::<diesel::sqlite::Sqlite, _>(&query)
-            );
-        }
         let rows_affected: usize = query.execute(self.connection)?;
         assert!(rows_affected <= 1);
         if rows_affected <= 0 {
             return Ok(None);
-        }
-        if log_enabled!(log::Level::Debug) {
-            debug!("Removed collection entity: {}", uid);
         }
         Ok(Some(()))
     }
@@ -142,16 +115,6 @@ impl<'a> Collections for CollectionRepository<'a> {
         let result = target
             .first::<QueryableCollectionsEntity>(self.connection)
             .optional()?;
-        if log_enabled!(log::Level::Debug) {
-            match &result {
-                &None => {
-                    debug!("Found no collection entity with uid '{}'", uid);
-                }
-                &Some(_) => {
-                    debug!("Found a collection entity with uid '{}'", uid);
-                }
-            }
-        }
         Ok(result.map(|r| r.into()))
     }
     
@@ -163,25 +126,12 @@ impl<'a> Collections for CollectionRepository<'a> {
             .offset(offset)
             .limit(limit);
         let results = target.load::<QueryableCollectionsEntity>(self.connection)?;
-        if log_enabled!(log::Level::Debug) {
-            debug!(
-                "Loaded {} collection entities",
-                results.len(),
-            );
-        }
         Ok(results.into_iter().map(|r| r.into()).collect())
     }
 
     fn find_entities_by_name(&self, name: &str) -> CollectionsResult<Vec<CollectionEntity>> {
         let target = collections_entity::table.filter(collections_entity::name.eq(name));
         let results = target.load::<QueryableCollectionsEntity>(self.connection)?;
-        if log_enabled!(log::Level::Debug) {
-            debug!(
-                "Loaded {} collection entities by name '{}'",
-                results.len(),
-                name
-            );
-        }
         Ok(results.into_iter().map(|r| r.into()).collect())
     }
 
@@ -198,13 +148,6 @@ impl<'a> Collections for CollectionRepository<'a> {
             .offset(offset)
             .limit(limit);
         let results = target.load::<QueryableCollectionsEntity>(self.connection)?;
-        if log_enabled!(log::Level::Debug) {
-            debug!(
-                "Loaded {} collection entities by name starting with '{}'",
-                results.len(),
-                name_prefix
-            );
-        }
         Ok(results.into_iter().map(|r| r.into()).collect())
     }
 
@@ -221,13 +164,6 @@ impl<'a> Collections for CollectionRepository<'a> {
             .offset(offset)
             .limit(limit);
         let results = target.load::<QueryableCollectionsEntity>(self.connection)?;
-        if log_enabled!(log::Level::Debug) {
-            debug!(
-                "Loaded {} collection entities by name containing '{}'",
-                results.len(),
-                partial_name
-            );
-        }
         Ok(results.into_iter().map(|r| r.into()).collect())
     }
 }
