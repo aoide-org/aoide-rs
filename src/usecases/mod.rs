@@ -13,13 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod result;
+pub mod request;
 
-pub mod search;
+pub mod result;
 
 use failure;
 
-use self::search::SearchParams;
+use self::request::{LocateParams, SearchParams};
 use self::result::Pagination;
 
 use storage::serde::{SerializationFormat, SerializedEntity};
@@ -85,10 +85,17 @@ pub trait Tracks {
         pagination: &Pagination,
     ) -> TracksResult<Vec<SerializedEntity>>;
 
+    fn locate_entities(
+        &self,
+        collection_uid: Option<&EntityUid>,
+        pagination: &Pagination,
+        locate_params: &LocateParams
+    ) -> TracksResult<Vec<SerializedEntity>>;
+
     fn search_entities(
         &self,
         collection_uid: Option<&EntityUid>,
-        search_params: &SearchParams,
         pagination: &Pagination,
+        search_params: &SearchParams,
     ) -> TracksResult<Vec<SerializedEntity>>;
 }

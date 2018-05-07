@@ -34,7 +34,7 @@ use super::*;
 use super::serde::{serialize_with_format, SerializationFormat, SerializedEntity};
 
 use usecases::{Tracks, TracksResult};
-use usecases::search::SearchParams;
+use usecases::request::{LocateMatcher, LocateParams, SearchParams};
 use usecases::result::Pagination;
 
 use aoide_core::domain::track::*;
@@ -255,9 +255,8 @@ impl<'a> TrackRepository<'a> {
     }
 
     fn delete_aux_music(&self, track_id: StorageId) -> Result<(), failure::Error> {
-        let query = diesel::delete(
-            aux_tracks_music::table.filter(aux_tracks_music::track_id.eq(track_id)),
-        );
+        let query =
+            diesel::delete(aux_tracks_music::table.filter(aux_tracks_music::track_id.eq(track_id)));
         query.execute(self.connection)?;
         Ok(())
     }
@@ -268,7 +267,8 @@ impl<'a> TrackRepository<'a> {
         track_body: &TrackBody,
     ) -> Result<(), failure::Error> {
         if track_body.music.is_some() {
-            let insertable = InsertableTracksMusic::bind(track_id, track_body.music.as_ref().unwrap());
+            let insertable =
+                InsertableTracksMusic::bind(track_id, track_body.music.as_ref().unwrap());
             let query = diesel::insert_into(aux_tracks_music::table).values(&insertable);
             query.execute(self.connection)?;
         }
@@ -290,7 +290,11 @@ impl<'a> TrackRepository<'a> {
         Ok(())
     }
 
-    fn insert_aux_tag(&self, track_id: StorageId, track_body: &TrackBody) -> Result<(), failure::Error> {
+    fn insert_aux_tag(
+        &self,
+        track_id: StorageId,
+        track_body: &TrackBody,
+    ) -> Result<(), failure::Error> {
         for tag in track_body.tags.iter() {
             let insertable = InsertableTracksTag::bind(track_id, tag);
             let query = diesel::insert_into(aux_tracks_tag::table).values(&insertable);
@@ -531,28 +535,99 @@ impl<'a> Tracks for TrackRepository<'a> {
         Ok(results.into_iter().map(|r| r.into()).collect())
     }
 
-    fn search_entities(
+    fn locate_entities(
         &self,
         collection_uid: Option<&EntityUid>,
-        search_params: &SearchParams,
         pagination: &Pagination,
+        locate_params: &LocateParams,
     ) -> TracksResult<Vec<SerializedEntity>> {
         let offset = pagination.offset.map(|offset| offset as i64).unwrap_or(0);
         let limit = pagination
             .limit
             .map(|limit| limit as i64)
             .unwrap_or(i64::MAX);
-        // Escape wildcard characters by themselves (see below)
-        let escaped_filter = search_params.filter.trim().replace('%', "%%");
+
+        let target = tracks_entity::table
+            .left_outer_join(aux_tracks_resource::table)
+            .select(tracks_entity::all_columns)
+            .offset(offset)
+            .limit(limit);
+
+        let mut _escaped_uri = String::default(); // lifetime placeholder for lazy mode
+        let locate_uri = match locate_params.matcher {
+            // Escape wildcard character with backslash (see below)
+            LocateMatcher::Front => {
+                _escaped_uri = format!("{}%", locate_params.uri.replace('\\', "\\\\").replace('%', "\\%"));
+                &_escaped_uri
+            }
+            LocateMatcher::Back => {
+                _escaped_uri = format!("%{}", locate_params.uri.replace('\\', "\\\\").replace('%', "\\%"));
+                &_escaped_uri
+            }
+            LocateMatcher::Partial => {
+                _escaped_uri = format!("%{}%", locate_params.uri.replace('\\', "\\\\").replace('%', "\\%"));
+                &_escaped_uri
+            }
+            LocateMatcher::Exact => &locate_params.uri,
+        };
+
+        // TODO: Reduce code bloat
+        let results = match collection_uid {
+            Some(collection_uid) => {
+                let locate_target = target
+                    .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()))
+                    .order(aux_tracks_resource::collection_since.desc()); // recently added to collection
+                match locate_params.matcher {
+                    LocateMatcher::Exact => locate_target
+                        .filter(aux_tracks_resource::source_uri.eq(locate_uri))
+                        .load::<QueryableSerializedEntity>(self.connection),
+                    _ => locate_target
+                        .filter(aux_tracks_resource::source_uri.like(locate_uri).escape('\\'))
+                        .load::<QueryableSerializedEntity>(self.connection),
+                }
+            }
+            None => {
+                let locate_target = target
+                    .order(tracks_entity::rev_timestamp.desc()); // recently modified
+                match locate_params.matcher {
+                    LocateMatcher::Exact => locate_target
+                        .filter(aux_tracks_resource::source_uri.eq(locate_uri))
+                        .load::<QueryableSerializedEntity>(self.connection),
+                    _ => locate_target
+                        .filter(aux_tracks_resource::source_uri.like(locate_uri).escape('\\'))
+                        .load::<QueryableSerializedEntity>(self.connection),
+                }
+            }
+        }?;
+        Ok(results.into_iter().map(|r| r.into()).collect())
+    }
+
+    fn search_entities(
+        &self,
+        collection_uid: Option<&EntityUid>,
+        pagination: &Pagination,
+        search_params: &SearchParams,
+    ) -> TracksResult<Vec<SerializedEntity>> {
+        let offset = pagination.offset.map(|offset| offset as i64).unwrap_or(0);
+        let limit = pagination
+            .limit
+            .map(|limit| limit as i64)
+            .unwrap_or(i64::MAX);
+        // Escape wildcard character with backslash (see below)
+        let escaped_filter = search_params.filter.trim().replace('\\', "\\\\").replace('%', "\\%");
         let split_filter = escaped_filter.split_whitespace();
-        let like_expr_len = split_filter.clone().fold(1, |len, part| len + part.len() + 1);
-        let mut like_expr = split_filter
-            .fold(String::with_capacity(like_expr_len), |mut like_expr, part| {
+        let like_expr_len = split_filter
+            .clone()
+            .fold(1, |len, part| len + part.len() + 1);
+        let mut like_expr = split_filter.fold(
+            String::with_capacity(like_expr_len),
+            |mut like_expr, part| {
                 // Prepend wildcard character before each part
                 like_expr.push('%');
                 like_expr.push_str(part);
                 like_expr
-            });
+            },
+        );
         // Append final wildcard character after last part
         like_expr.push('%');
         let target = tracks_entity::table
@@ -560,23 +635,39 @@ impl<'a> Tracks for TrackRepository<'a> {
             .left_outer_join(aux_tracks_overview::table)
             .left_outer_join(aux_tracks_summary::table)
             .left_outer_join(aux_tracks_music::table)
-            .filter(aux_tracks_overview::track_title.like(&like_expr).escape('%'))
-            .or_filter(aux_tracks_overview::album_title.like(&like_expr).escape('%'))
-            .or_filter(aux_tracks_summary::track_artists.like(&like_expr).escape('%'))
-            .or_filter(aux_tracks_summary::album_artists.like(&like_expr).escape('%'))
+            .filter(
+                aux_tracks_overview::track_title
+                    .like(&like_expr)
+                    .escape('\\'),
+            )
+            .or_filter(
+                aux_tracks_overview::album_title
+                    .like(&like_expr)
+                    .escape('\\'),
+            )
+            .or_filter(
+                aux_tracks_summary::track_artists
+                    .like(&like_expr)
+                    .escape('\\'),
+            )
+            .or_filter(
+                aux_tracks_summary::album_artists
+                    .like(&like_expr)
+                    .escape('\\'),
+            )
             .or_filter(
                 tracks_entity::id.eq_any(
                     aux_tracks_tag::table
                         .select(aux_tracks_tag::track_id)
                         .filter(aux_tracks_tag::facet.eq(TrackTag::FACET_GENRE))
-                        .filter(aux_tracks_tag::term.like(&like_expr).escape('%')),
+                        .filter(aux_tracks_tag::term.like(&like_expr).escape('\\')),
                 ),
             )
             .or_filter(
                 tracks_entity::id.eq_any(
                     aux_tracks_comment::table
                         .select(aux_tracks_comment::track_id)
-                        .filter(aux_tracks_comment::comment.like(&like_expr).escape('%')),
+                        .filter(aux_tracks_comment::comment.like(&like_expr).escape('\\')),
                 ),
             )
             .select(tracks_entity::all_columns)

@@ -28,11 +28,22 @@ pub struct SortField {
     pub field: String,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "lowercase")]
+pub enum LocateMatcher {
+    Front,
+    Back,
+    Partial,
+    Exact,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LocateParams {
+    pub matcher: LocateMatcher,
+
     #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub source_uri: String,
+    pub uri: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

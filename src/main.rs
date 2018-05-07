@@ -65,8 +65,8 @@ use aoide::storage::collections::*;
 use aoide::storage::tracks::*;
 use aoide::storage::serde::*;
 use aoide::usecases::*;
+use aoide::usecases::request::{LocateParams, SearchParams};
 use aoide::usecases::result::*;
-use aoide::usecases::search::SearchParams;
 
 use diesel::prelude::*;
 use diesel::result::Error as DieselError;
@@ -755,15 +755,79 @@ fn handle_get_collections_path_uid_tracks_query_pagination(mut state: State) -> 
     Box::new(handler_future)
 }
 
+fn locate_tracks(
+    connection: &SqliteConnection,
+    collection_uid: Option<&EntityUid>,
+    pagination: &Pagination,
+    locate_params: &LocateParams,
+) -> TracksResult<Vec<SerializedEntity>> {
+    let repository = TrackRepository::new(connection);
+    repository.locate_entities(collection_uid, pagination, locate_params)
+}
+
+fn handle_post_collections_path_uid_tracks_locate_query_pagination(mut state: State) -> Box<HandlerFuture> {
+    let collection_uid = UidPathExtractor::try_parse_from(&mut state);
+    let query_params = PaginationQueryStringExtractor::take_from(&mut state);
+    let pagination = Pagination {
+        offset: query_params.offset,
+        limit: query_params.limit,
+    };
+
+    let handler_future = hyper::Body::take_from(&mut state)
+        .concat2()
+        .then(move |full_body| match full_body {
+            Ok(valid_body) => {
+                let format = match parse_serialization_format_from_state(&state) {
+                    Ok(format) => format,
+                    Err(e) => {
+                        return future::err((
+                            state,
+                            on_handler_failure(e).with_status(StatusCode::UnsupportedMediaType),
+                        ))
+                    }
+                };
+
+                let locate_params: LocateParams =
+                    match deserialize_slice_with_format(&valid_body, format) {
+                        Ok(locate_params) => locate_params,
+                        Err(e) => {
+                            return future::err((
+                                state,
+                                on_handler_failure(e).with_status(StatusCode::BadRequest),
+                            ))
+                        }
+                    };
+
+                let pooled_connection = match middleware::state_data::try_connection(&state) {
+                    Ok(pooled_connection) => pooled_connection,
+                    Err(e) => return future::err((state, on_handler_error(e))),
+                };
+
+                let response = match locate_tracks(&*pooled_connection, collection_uid.as_ref(), &pagination, &locate_params)
+                    .and_then(concat_serialized_entities_into_json_array) {
+                    Ok(json_array) => create_response(
+                        &state,
+                        StatusCode::Ok,
+                        Some((json_array, mime::APPLICATION_JSON)),
+                    ),
+                    Err(e) => return future::err((state, on_handler_failure(e))),
+                };
+                future::ok((state, response))
+            }
+            Err(e) => future::err((state, on_handler_error(e))),
+        });
+
+    Box::new(handler_future)
+}
+
 fn search_tracks(
     connection: &SqliteConnection,
     collection_uid: Option<&EntityUid>,
-    search_params: &SearchParams,
     pagination: &Pagination,
-) -> Result<Vec<SerializedEntity>, failure::Error> {
+    search_params: &SearchParams,
+) -> TracksResult<Vec<SerializedEntity>> {
     let repository = TrackRepository::new(connection);
-    let result = repository.search_entities(collection_uid, search_params, pagination)?;
-    Ok(result)
+    repository.search_entities(collection_uid, pagination, search_params)
 }
 
 fn handle_post_collections_path_uid_tracks_search_query_pagination(mut state: State) -> Box<HandlerFuture> {
@@ -804,7 +868,7 @@ fn handle_post_collections_path_uid_tracks_search_query_pagination(mut state: St
                     Err(e) => return future::err((state, on_handler_error(e))),
                 };
 
-                let response = match search_tracks(&*pooled_connection, collection_uid.as_ref(), &search_params, &pagination)
+                let response = match search_tracks(&*pooled_connection, collection_uid.as_ref(), &pagination, &search_params)
                     .and_then(concat_serialized_entities_into_json_array) {
                     Ok(json_array) => create_response(
                         &state,
@@ -883,7 +947,12 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
             .with_path_extractor::<UidPathExtractor>()
             .to(handle_put_collections_path_uid_tracks);
         */
-        route // search in collection
+        route // locate multiple track in (optional) collection
+            .post("/collections/:uid/tracks/locate")
+            .with_path_extractor::<UidPathExtractor>()
+            .with_query_string_extractor::<PaginationQueryStringExtractor>()
+            .to(handle_post_collections_path_uid_tracks_locate_query_pagination);
+        route // search multiple tracks in (optional) collection
             .post("/collections/:uid/tracks/search")
             .with_path_extractor::<UidPathExtractor>()
             .with_query_string_extractor::<PaginationQueryStringExtractor>()
