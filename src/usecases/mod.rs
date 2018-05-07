@@ -19,7 +19,7 @@ pub mod result;
 
 use failure;
 
-use self::request::{LocateParams, SearchParams};
+use self::request::{LocateParams, ReplaceParams, SearchParams};
 use self::result::Pagination;
 
 use storage::serde::{SerializationFormat, SerializedEntity};
@@ -73,7 +73,7 @@ pub trait Tracks {
         &self,
         entity: &mut TrackEntity,
         format: SerializationFormat,
-    ) -> TracksResult<Option<()>>;
+    ) -> TracksResult<Option<(EntityRevision, EntityRevision)>>;
 
     fn remove_entity(&self, uid: &EntityUid) -> TracksResult<()>;
 
@@ -89,13 +89,20 @@ pub trait Tracks {
         &self,
         collection_uid: Option<&EntityUid>,
         pagination: &Pagination,
-        locate_params: &LocateParams
+        locate_params: LocateParams
     ) -> TracksResult<Vec<SerializedEntity>>;
+
+    fn replace_entity(
+        &self,
+        collection_uid: Option<&EntityUid>,
+        replace_params: ReplaceParams,
+        format: SerializationFormat,
+    ) -> TracksResult<Option<TrackEntity>>;
 
     fn search_entities(
         &self,
         collection_uid: Option<&EntityUid>,
         pagination: &Pagination,
-        search_params: &SearchParams,
+        search_params: SearchParams,
     ) -> TracksResult<Vec<SerializedEntity>>;
 }

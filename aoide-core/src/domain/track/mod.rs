@@ -512,8 +512,8 @@ impl TrackEntity {
         self.header.update_revision(next_revision);
     }
 
-    pub fn revert_revision(&mut self, prev_revision: EntityRevision) {
-        self.header.revert_revision(prev_revision);
+    pub fn replace_body(&mut self, body: TrackBody) {
+        self.body = body;
     }
 }
 

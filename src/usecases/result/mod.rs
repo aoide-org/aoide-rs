@@ -17,7 +17,7 @@ pub type PaginationOffset = u64;
 
 pub type PaginationLimit = u64;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Pagination {
     #[serde(skip_serializing_if = "Option::is_none")]

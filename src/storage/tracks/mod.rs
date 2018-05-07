@@ -26,15 +26,13 @@ use diesel;
 
 use failure;
 
-use log;
-
 use std::i64;
 
 use super::*;
-use super::serde::{serialize_with_format, SerializationFormat, SerializedEntity};
+use super::serde::{serialize_with_format, deserialize_with_format, SerializationFormat, SerializedEntity};
 
 use usecases::{Tracks, TracksResult};
-use usecases::request::{LocateMatcher, LocateParams, SearchParams};
+use usecases::request::{LocateMatcher, LocateParams, ReplaceParams, SearchParams};
 use usecases::result::Pagination;
 
 use aoide_core::domain::track::*;
@@ -426,11 +424,38 @@ impl<'a> Tracks for TrackRepository<'a> {
         Ok(entity)
     }
 
+    fn replace_entity(
+        &self,
+        collection_uid: Option<&EntityUid>,
+        replace_params: ReplaceParams,
+        format: SerializationFormat,
+    ) -> TracksResult<Option<TrackEntity>> {
+        let locate_params = LocateParams {
+            uri: replace_params.uri,
+            matcher: LocateMatcher::Exact,
+        };
+        let located_entities =
+            self.locate_entities(collection_uid, &Pagination::default(), locate_params)?;
+        if located_entities.len() > 1 {
+            Err(format_err!("Cannot replace multiple entities at once"))
+        } else {
+            match located_entities.first() {
+                Some(serialized_entity) => {
+                    let mut entity = deserialize_with_format::<TrackEntity>(serialized_entity)?;
+                    entity.replace_body(replace_params.body);
+                    self.update_entity(&mut entity, format)?;
+                    Ok(Some(entity))
+                },
+                None => Ok(None),
+            }
+        }
+    }
+
     fn update_entity(
         &self,
         entity: &mut TrackEntity,
         format: SerializationFormat,
-    ) -> TracksResult<Option<()>> {
+    ) -> TracksResult<Option<(EntityRevision, EntityRevision)>> {
         let prev_revision = entity.header().revision();
         let next_revision = prev_revision.next();
         {
@@ -457,14 +482,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                 self.after_entity_updated(storage_id, &entity.body())?;
             }
         }
-        if log_enabled!(log::Level::Debug) {
-            debug!(
-                "Updated track entity: {:?} -> {:?}",
-                entity.header(),
-                next_revision
-            );
-        }
-        Ok(Some(()))
+        Ok(Some((prev_revision, next_revision)))
     }
 
     fn remove_entity(&self, uid: &EntityUid) -> TracksResult<()> {
@@ -517,7 +535,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         &self,
         collection_uid: Option<&EntityUid>,
         pagination: &Pagination,
-        locate_params: &LocateParams,
+        locate_params: LocateParams,
     ) -> TracksResult<Vec<SerializedEntity>> {
         let offset = pagination.offset.map(|offset| offset as i64).unwrap_or(0);
         let limit = pagination
@@ -531,22 +549,18 @@ impl<'a> Tracks for TrackRepository<'a> {
             .offset(offset)
             .limit(limit);
 
-        let mut _escaped_uri = String::default(); // lifetime placeholder for lazy mode
         let locate_uri = match locate_params.matcher {
             // Escape wildcard character with backslash (see below)
-            LocateMatcher::Front => {
-                _escaped_uri = format!("{}%", locate_params.uri.replace('\\', "\\\\").replace('%', "\\%"));
-                &_escaped_uri
-            }
-            LocateMatcher::Back => {
-                _escaped_uri = format!("%{}", locate_params.uri.replace('\\', "\\\\").replace('%', "\\%"));
-                &_escaped_uri
-            }
-            LocateMatcher::Partial => {
-                _escaped_uri = format!("%{}%", locate_params.uri.replace('\\', "\\\\").replace('%', "\\%"));
-                &_escaped_uri
-            }
-            LocateMatcher::Exact => &locate_params.uri,
+            LocateMatcher::Front => format!(
+                    "{}%",
+                    locate_params.uri.replace('\\', "\\\\").replace('%', "\\%")),
+            LocateMatcher::Back => format!(
+                    "%{}",
+                    locate_params.uri.replace('\\', "\\\\").replace('%', "\\%")),
+            LocateMatcher::Partial => format!(
+                    "%{}%",
+                    locate_params.uri.replace('\\', "\\\\").replace('%', "\\%")),
+            LocateMatcher::Exact => locate_params.uri,
         };
 
         // TODO: Reduce code bloat
@@ -560,19 +574,26 @@ impl<'a> Tracks for TrackRepository<'a> {
                         .filter(aux_tracks_resource::source_uri.eq(locate_uri))
                         .load::<QueryableSerializedEntity>(self.connection),
                     _ => locate_target
-                        .filter(aux_tracks_resource::source_uri.like(locate_uri).escape('\\'))
+                        .filter(
+                            aux_tracks_resource::source_uri
+                                .like(locate_uri)
+                                .escape('\\'),
+                        )
                         .load::<QueryableSerializedEntity>(self.connection),
                 }
             }
             None => {
-                let locate_target = target
-                    .order(tracks_entity::rev_timestamp.desc()); // recently modified
+                let locate_target = target.order(tracks_entity::rev_timestamp.desc()); // recently modified
                 match locate_params.matcher {
                     LocateMatcher::Exact => locate_target
                         .filter(aux_tracks_resource::source_uri.eq(locate_uri))
                         .load::<QueryableSerializedEntity>(self.connection),
                     _ => locate_target
-                        .filter(aux_tracks_resource::source_uri.like(locate_uri).escape('\\'))
+                        .filter(
+                            aux_tracks_resource::source_uri
+                                .like(locate_uri)
+                                .escape('\\'),
+                        )
                         .load::<QueryableSerializedEntity>(self.connection),
                 }
             }
@@ -584,7 +605,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         &self,
         collection_uid: Option<&EntityUid>,
         pagination: &Pagination,
-        search_params: &SearchParams,
+        search_params: SearchParams,
     ) -> TracksResult<Vec<SerializedEntity>> {
         let offset = pagination.offset.map(|offset| offset as i64).unwrap_or(0);
         let limit = pagination
@@ -592,7 +613,11 @@ impl<'a> Tracks for TrackRepository<'a> {
             .map(|limit| limit as i64)
             .unwrap_or(i64::MAX);
         // Escape wildcard character with backslash (see below)
-        let escaped_filter = search_params.filter.trim().replace('\\', "\\\\").replace('%', "\\%");
+        let escaped_filter = search_params
+            .filter
+            .trim()
+            .replace('\\', "\\\\")
+            .replace('%', "\\%");
         let split_filter = escaped_filter.split_whitespace();
         let like_expr_len = split_filter
             .clone()

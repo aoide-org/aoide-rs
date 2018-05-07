@@ -65,7 +65,7 @@ use aoide::storage::collections::*;
 use aoide::storage::tracks::*;
 use aoide::storage::serde::*;
 use aoide::usecases::*;
-use aoide::usecases::request::{LocateParams, SearchParams};
+use aoide::usecases::request::{LocateParams, ReplaceParams, SearchParams};
 use aoide::usecases::result::*;
 
 use diesel::prelude::*;
@@ -235,7 +235,7 @@ impl UidPathExtractor {
 fn find_collection(
     connection: &SqliteConnection,
     uid: &EntityUid,
-) -> Result<Option<CollectionEntity>, failure::Error> {
+) -> CollectionsResult<Option<CollectionEntity>> {
     let repository = CollectionRepository::new(connection);
     let result = repository.find_entity(&uid)?;
     Ok(result)
@@ -282,7 +282,7 @@ fn handle_get_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
 fn remove_collection(
     connection: &SqliteConnection,
     uid: &EntityUid,
-) -> Result<Option<()>, failure::Error> {
+) -> CollectionsResult<Option<()>> {
     let repository = CollectionRepository::new(connection);
     connection.transaction::<_, failure::Error, _>(|| repository.remove_entity(&uid))
 }
@@ -323,7 +323,7 @@ struct PaginationQueryStringExtractor {
 fn find_recently_revisioned_collections(
     connection: &SqliteConnection,
     pagination: &Pagination,
-) -> Result<Vec<CollectionEntity>, failure::Error> {
+) -> CollectionsResult<Vec<CollectionEntity>> {
     let repository = CollectionRepository::new(connection);
     let result = repository.find_recently_revisioned_entities(pagination)?;
     Ok(result)
@@ -412,7 +412,7 @@ fn handle_post_collections(mut state: State) -> Box<HandlerFuture> {
 fn update_collection(
     connection: &SqliteConnection,
     entity: &CollectionEntity,
-) -> Result<Option<EntityRevision>, failure::Error> {
+) -> CollectionsResult<Option<EntityRevision>> {
     let repository = CollectionRepository::new(connection);
     connection.transaction::<_, failure::Error, _>(|| repository.update_entity(entity))
 }
@@ -489,7 +489,7 @@ fn create_track(
     connection: &SqliteConnection,
     body: TrackBody,
     format: SerializationFormat,
-) -> Result<TrackEntity, failure::Error> {
+) -> TracksResult<TrackEntity> {
     let repository = TrackRepository::new(connection);
     connection.transaction::<_, failure::Error, _>(|| repository.create_entity(body, format))
 }
@@ -550,7 +550,7 @@ fn update_track(
     connection: &SqliteConnection,
     entity: &mut TrackEntity,
     format: SerializationFormat,
-) -> Result<Option<()>, failure::Error> {
+) -> TracksResult<Option<(EntityRevision, EntityRevision)>> {
     let repository = TrackRepository::new(connection);
     connection.transaction::<_, failure::Error, _>(|| repository.update_entity(entity, format))
 }
@@ -601,7 +601,10 @@ fn handle_put_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
 
                 let prev_revision = entity.header().revision();
                 let next_revision = match update_track(&*pooled_connection, &mut entity, format) {
-                    Ok(Some(())) => entity.header().revision(),
+                    Ok(Some((_, next_revision))) => {
+                        assert!(next_revision == entity.header().revision());
+                        next_revision
+                    }
                     Ok(None) => {
                         let prev_header = EntityHeader::new(uid, prev_revision);
                         let e = format_err!(
@@ -623,7 +626,7 @@ fn handle_put_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
                         Ok(response_body) => create_response(
                             &state,
                             StatusCode::Ok,
-                            Some((response_body, mime::APPLICATION_JSON)),
+                            Some((response_body, format.into())),
                         ),
                         Err(e) => {
                             return future::err((state, on_handler_failure(e)));
@@ -672,7 +675,7 @@ fn handle_delete_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
 fn load_track(
     connection: &SqliteConnection,
     uid: &EntityUid,
-) -> Result<Option<SerializedEntity>, failure::Error> {
+) -> TracksResult<Option<SerializedEntity>> {
     let repository = TrackRepository::new(connection);
     let result = repository.load_entity(&uid)?;
     Ok(result)
@@ -717,7 +720,7 @@ fn load_recently_revisioned_tracks(
     connection: &SqliteConnection,
     collection_uid: Option<&EntityUid>,
     pagination: &Pagination,
-) -> Result<Vec<SerializedEntity>, failure::Error> {
+) -> TracksResult<Vec<SerializedEntity>> {
     let repository = TrackRepository::new(connection);
     let result = repository.load_recently_revisioned_entities(collection_uid, pagination)?;
     Ok(result)
@@ -740,7 +743,8 @@ fn handle_get_collections_path_uid_tracks_query_pagination(mut state: State) -> 
         &*pooled_connection,
         collection_uid.as_ref(),
         &pagination,
-    ).and_then(concat_serialized_entities_into_json_array) {
+    ).and_then(concat_serialized_entities_into_json_array)
+    {
         Ok(json_array) => {
             let response = create_response(
                 &state,
@@ -759,13 +763,15 @@ fn locate_tracks(
     connection: &SqliteConnection,
     collection_uid: Option<&EntityUid>,
     pagination: &Pagination,
-    locate_params: &LocateParams,
+    locate_params: LocateParams,
 ) -> TracksResult<Vec<SerializedEntity>> {
     let repository = TrackRepository::new(connection);
     repository.locate_entities(collection_uid, pagination, locate_params)
 }
 
-fn handle_post_collections_path_uid_tracks_locate_query_pagination(mut state: State) -> Box<HandlerFuture> {
+fn handle_post_collections_path_uid_tracks_locate_query_pagination(
+    mut state: State,
+) -> Box<HandlerFuture> {
     let collection_uid = UidPathExtractor::try_parse_from(&mut state);
     let query_params = PaginationQueryStringExtractor::take_from(&mut state);
     let pagination = Pagination {
@@ -803,13 +809,16 @@ fn handle_post_collections_path_uid_tracks_locate_query_pagination(mut state: St
                     Err(e) => return future::err((state, on_handler_error(e))),
                 };
 
-                let response = match locate_tracks(&*pooled_connection, collection_uid.as_ref(), &pagination, &locate_params)
-                    .and_then(concat_serialized_entities_into_json_array) {
-                    Ok(json_array) => create_response(
-                        &state,
-                        StatusCode::Ok,
-                        Some((json_array, mime::APPLICATION_JSON)),
-                    ),
+                let response = match locate_tracks(
+                    &*pooled_connection,
+                    collection_uid.as_ref(),
+                    &pagination,
+                    locate_params,
+                ).and_then(concat_serialized_entities_into_json_array)
+                {
+                    Ok(json_array) => {
+                        create_response(&state, StatusCode::Ok, Some((json_array, format.into())))
+                    }
                     Err(e) => return future::err((state, on_handler_failure(e))),
                 };
                 future::ok((state, response))
@@ -820,17 +829,92 @@ fn handle_post_collections_path_uid_tracks_locate_query_pagination(mut state: St
     Box::new(handler_future)
 }
 
+fn replace_track(
+    connection: &SqliteConnection,
+    collection_uid: Option<&EntityUid>,
+    replace_params: ReplaceParams,
+    format: SerializationFormat,
+) -> TracksResult<Option<TrackEntity>> {
+    let repository = TrackRepository::new(connection);
+    connection.transaction::<_, failure::Error, _>(|| repository.replace_entity(collection_uid, replace_params, format))
+}
+
+fn handle_post_collections_path_uid_tracks_replace(mut state: State) -> Box<HandlerFuture> {
+    let collection_uid = UidPathExtractor::try_parse_from(&mut state);
+
+    let handler_future = hyper::Body::take_from(&mut state)
+        .concat2()
+        .then(move |full_body| match full_body {
+            Ok(valid_body) => {
+                let format = match parse_serialization_format_from_state(&state) {
+                    Ok(format) => format,
+                    Err(e) => {
+                        return future::err((
+                            state,
+                            on_handler_failure(e).with_status(StatusCode::UnsupportedMediaType),
+                        ))
+                    }
+                };
+
+                let replace_params: ReplaceParams =
+                    match deserialize_slice_with_format(&valid_body, format) {
+                        Ok(replace_params) => replace_params,
+                        Err(e) => {
+                            return future::err((
+                                state,
+                                on_handler_failure(e).with_status(StatusCode::BadRequest),
+                            ))
+                        }
+                    };
+
+                let pooled_connection = match middleware::state_data::try_connection(&state) {
+                    Ok(pooled_connection) => pooled_connection,
+                    Err(e) => return future::err((state, on_handler_error(e))),
+                };
+
+                let entity = match replace_track(
+                    &*pooled_connection,
+                    collection_uid.as_ref(),
+                    replace_params,
+                    format,
+                ) {
+                    Ok(Some(entity)) => entity,
+                    Ok(None) => {
+                        let response = create_response(&state, StatusCode::NotFound, None);
+                        return future::ok((state, response))
+                    }
+                    Err(e) => return future::err((state, on_handler_failure(e))),
+                };
+
+                let response = match serialize_with_format(entity.header(), format) {
+                    Ok(response_body) => create_response(
+                        &state,
+                        StatusCode::Ok,
+                        Some((response_body, format.into())),
+                    ),
+                    Err(e) => return future::err((state, on_handler_failure(e))),
+                };
+                future::ok((state, response))
+            }
+            Err(e) => return future::err((state, on_handler_error(e))),
+        });
+
+    Box::new(handler_future)
+}
+
 fn search_tracks(
     connection: &SqliteConnection,
     collection_uid: Option<&EntityUid>,
     pagination: &Pagination,
-    search_params: &SearchParams,
+    search_params: SearchParams,
 ) -> TracksResult<Vec<SerializedEntity>> {
     let repository = TrackRepository::new(connection);
     repository.search_entities(collection_uid, pagination, search_params)
 }
 
-fn handle_post_collections_path_uid_tracks_search_query_pagination(mut state: State) -> Box<HandlerFuture> {
+fn handle_post_collections_path_uid_tracks_search_query_pagination(
+    mut state: State,
+) -> Box<HandlerFuture> {
     let collection_uid = UidPathExtractor::try_parse_from(&mut state);
     let query_params = PaginationQueryStringExtractor::take_from(&mut state);
     let pagination = Pagination {
@@ -868,18 +952,21 @@ fn handle_post_collections_path_uid_tracks_search_query_pagination(mut state: St
                     Err(e) => return future::err((state, on_handler_error(e))),
                 };
 
-                let response = match search_tracks(&*pooled_connection, collection_uid.as_ref(), &pagination, &search_params)
-                    .and_then(concat_serialized_entities_into_json_array) {
-                    Ok(json_array) => create_response(
-                        &state,
-                        StatusCode::Ok,
-                        Some((json_array, mime::APPLICATION_JSON)),
-                    ),
+                let response = match search_tracks(
+                    &*pooled_connection,
+                    collection_uid.as_ref(),
+                    &pagination,
+                    search_params,
+                ).and_then(concat_serialized_entities_into_json_array)
+                {
+                    Ok(json_array) => {
+                        create_response(&state, StatusCode::Ok, Some((json_array, format.into())))
+                    }
                     Err(e) => return future::err((state, on_handler_failure(e))),
                 };
                 future::ok((state, response))
             }
-            Err(e) => future::err((state, on_handler_error(e))),
+            Err(e) => return future::err((state, on_handler_error(e))),
         });
 
     Box::new(handler_future)
@@ -941,17 +1028,15 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
             .with_path_extractor::<UidPathExtractor>()
             .with_query_string_extractor::<PaginationQueryStringExtractor>()
             .to(handle_get_collections_path_uid_tracks_query_pagination);
-        /*
-        route // replace single track (body) in collection by URI
-            .put("/collections/:uid/tracks")
-            .with_path_extractor::<UidPathExtractor>()
-            .to(handle_put_collections_path_uid_tracks);
-        */
         route // locate multiple track in (optional) collection
             .post("/collections/:uid/tracks/locate")
             .with_path_extractor::<UidPathExtractor>()
             .with_query_string_extractor::<PaginationQueryStringExtractor>()
             .to(handle_post_collections_path_uid_tracks_locate_query_pagination);
+        route // replace single track in (optional) collection
+            .post("/collections/:uid/tracks/replace")
+            .with_path_extractor::<UidPathExtractor>()
+            .to(handle_post_collections_path_uid_tracks_replace);
         route // search multiple tracks in (optional) collection
             .post("/collections/:uid/tracks/search")
             .with_path_extractor::<UidPathExtractor>()

@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use aoide_core::domain::track::TrackBody;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "lowercase")]
 pub enum SortDirection {
@@ -40,10 +42,19 @@ pub enum LocateMatcher {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LocateParams {
-    pub matcher: LocateMatcher,
-
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub uri: String,
+
+    pub matcher: LocateMatcher,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct ReplaceParams {
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub uri: String,
+
+    pub body: TrackBody,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

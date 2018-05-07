@@ -249,11 +249,6 @@ impl EntityHeader {
         assert!(self.revision < next_revision);
         self.revision = next_revision;
     }
-
-    pub fn revert_revision(&mut self, prev_revision: EntityRevision) {
-        assert!(self.revision > prev_revision);
-        self.revision = prev_revision;
-    }
 }
 
 ///////////////////////////////////////////////////////////////////////

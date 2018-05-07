@@ -26,8 +26,6 @@ use std::i64;
 use diesel::prelude::*;
 use diesel;
 
-use log;
-
 use aoide_core::domain::entity::EntityUid;
 use aoide_core::domain::collection::*;
 
