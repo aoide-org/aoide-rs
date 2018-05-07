@@ -62,6 +62,12 @@ pub trait Collections {
 
 pub type TracksResult<T> = Result<T, failure::Error>;
 
+pub enum TrackEntityReplacement {
+    NotFound,
+    Some(TrackEntity),
+    MultipleCandidates,
+}
+
 pub trait Tracks {
     fn create_entity(
         &self,
@@ -97,7 +103,7 @@ pub trait Tracks {
         collection_uid: Option<&EntityUid>,
         replace_params: ReplaceParams,
         format: SerializationFormat,
-    ) -> TracksResult<Option<TrackEntity>>;
+    ) -> TracksResult<TrackEntityReplacement>;
 
     fn search_entities(
         &self,

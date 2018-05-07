@@ -31,7 +31,7 @@ use std::i64;
 use super::*;
 use super::serde::{serialize_with_format, deserialize_with_format, SerializationFormat, SerializedEntity};
 
-use usecases::{Tracks, TracksResult};
+use usecases::{Tracks, TracksResult, TrackEntityReplacement};
 use usecases::request::{LocateMatcher, LocateParams, ReplaceParams, SearchParams};
 use usecases::result::Pagination;
 
@@ -429,7 +429,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         collection_uid: Option<&EntityUid>,
         replace_params: ReplaceParams,
         format: SerializationFormat,
-    ) -> TracksResult<Option<TrackEntity>> {
+    ) -> TracksResult<TrackEntityReplacement> {
         let locate_params = LocateParams {
             uri: replace_params.uri,
             matcher: LocateMatcher::Exact,
@@ -437,16 +437,16 @@ impl<'a> Tracks for TrackRepository<'a> {
         let located_entities =
             self.locate_entities(collection_uid, &Pagination::default(), locate_params)?;
         if located_entities.len() > 1 {
-            Err(format_err!("Cannot replace multiple entities at once"))
+            Ok(TrackEntityReplacement::MultipleCandidates)
         } else {
             match located_entities.first() {
                 Some(serialized_entity) => {
                     let mut entity = deserialize_with_format::<TrackEntity>(serialized_entity)?;
                     entity.replace_body(replace_params.body);
                     self.update_entity(&mut entity, format)?;
-                    Ok(Some(entity))
+                    Ok(TrackEntityReplacement::Some(entity))
                 },
-                None => Ok(None),
+                None => Ok(TrackEntityReplacement::NotFound),
             }
         }
     }

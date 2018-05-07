@@ -834,7 +834,7 @@ fn replace_track(
     collection_uid: Option<&EntityUid>,
     replace_params: ReplaceParams,
     format: SerializationFormat,
-) -> TracksResult<Option<TrackEntity>> {
+) -> TracksResult<TrackEntityReplacement> {
     let repository = TrackRepository::new(connection);
     connection.transaction::<_, failure::Error, _>(|| repository.replace_entity(collection_uid, replace_params, format))
 }
@@ -878,9 +878,13 @@ fn handle_post_collections_path_uid_tracks_replace(mut state: State) -> Box<Hand
                     replace_params,
                     format,
                 ) {
-                    Ok(Some(entity)) => entity,
-                    Ok(None) => {
+                    Ok(TrackEntityReplacement::Some(entity)) => entity,
+                    Ok(TrackEntityReplacement::NotFound) => {
                         let response = create_response(&state, StatusCode::NotFound, None);
+                        return future::ok((state, response))
+                    }
+                    Ok(TrackEntityReplacement::MultipleCandidates) => {
+                        let response = create_response(&state, StatusCode::BadRequest, None);
                         return future::ok((state, response))
                     }
                     Err(e) => return future::err((state, on_handler_failure(e))),
