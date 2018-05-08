@@ -45,6 +45,7 @@ CREATE TABLE aux_tracks_identity (
     album_spotify_id         TEXT,
     release_ean              TEXT,
     release_upc              TEXT,
+    release_mbrainz_id       TEXT,
     release_asin             TEXT,
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id)

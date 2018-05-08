@@ -214,6 +214,9 @@ pub struct ReleaseIdentity {
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub upc: String,
 
+    #[serde(skip_serializing_if = "Uuid::is_nil", default = "Uuid::nil")]
+    pub mbrainz_id: Uuid, // MusicBrainz Release Id
+
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub asin: String,
 }
@@ -249,7 +252,7 @@ pub struct ReleaseMetadata {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AlbumIdentity {
     #[serde(skip_serializing_if = "Uuid::is_nil", default = "Uuid::nil")]
-    pub mbrainz_id: Uuid, // MusicBrainz Release Id
+    pub mbrainz_id: Uuid, // MusicBrainz Release Group Id
 
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub spotify_id: String, // excl. "spotify:album:" prefix
@@ -450,6 +453,11 @@ impl TrackBody {
                 .iter()
                 .filter(|source| source.is_valid())
                 .count() == self.resources.len())
+    }
+
+    pub fn has_collection(&self, collection_uid: &CollectionUid) -> bool {
+        self.resources.iter()
+                .any(|resource| &resource.collection.uid == collection_uid)
     }
 
     pub fn actors_to_string(&self, role_opt: Option<ActorRole>) -> Option<String> {

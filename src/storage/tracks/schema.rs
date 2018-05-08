@@ -38,6 +38,7 @@ table! {
         album_spotify_id -> Nullable<Text>,
         release_ean -> Nullable<Text>,
         release_upc -> Nullable<Text>,
+        release_mbrainz_id -> Nullable<Text>,
         release_asin -> Nullable<Text>,
     }
 }
