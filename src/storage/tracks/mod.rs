@@ -29,9 +29,10 @@ use failure;
 use std::i64;
 
 use super::*;
-use super::serde::{serialize_with_format, deserialize_with_format, SerializationFormat, SerializedEntity};
+use super::serde::{deserialize_with_format, serialize_with_format, SerializationFormat,
+                   SerializedEntity};
 
-use usecases::{Tracks, TracksResult, TrackEntityReplacement};
+use usecases::{TrackEntityReplacement, Tracks, TracksResult};
 use usecases::request::{LocateMatcher, LocateParams, ReplaceMode, ReplaceParams, SearchParams};
 use usecases::result::Pagination;
 
@@ -437,24 +438,22 @@ impl<'a> Tracks for TrackRepository<'a> {
         let located_entities =
             self.locate_entities(collection_uid, &Pagination::default(), locate_params)?;
         if located_entities.len() > 1 {
-            Ok(TrackEntityReplacement::Ambiguous)
+            Ok(TrackEntityReplacement::FoundTooMany)
         } else {
             match located_entities.first() {
                 Some(serialized_entity) => {
                     let mut entity = deserialize_with_format::<TrackEntity>(serialized_entity)?;
                     entity.replace_body(replace_params.body);
                     self.update_entity(&mut entity, format)?;
-                    Ok(TrackEntityReplacement::Replaced(entity))
-                },
-                None => {
-                    match replace_params.mode {
-                        ReplaceMode::Lazy => {
-                            let entity = self.create_entity(replace_params.body, format)?;
-                            Ok(TrackEntityReplacement::Created(entity))
-                        },
-                        ReplaceMode::Strict => Ok(TrackEntityReplacement::NotFound)
-                    }
+                    Ok(TrackEntityReplacement::Updated(entity))
                 }
+                None => match replace_params.mode {
+                    ReplaceMode::UpdateOrCreate => {
+                        let entity = self.create_entity(replace_params.body, format)?;
+                        Ok(TrackEntityReplacement::Created(entity))
+                    }
+                    ReplaceMode::UpdateOnly => Ok(TrackEntityReplacement::NotFound),
+                },
             }
         }
     }
@@ -560,14 +559,17 @@ impl<'a> Tracks for TrackRepository<'a> {
         let locate_uri = match locate_params.matcher {
             // Escape wildcard character with backslash (see below)
             LocateMatcher::Front => format!(
-                    "{}%",
-                    locate_params.uri.replace('\\', "\\\\").replace('%', "\\%")),
+                "{}%",
+                locate_params.uri.replace('\\', "\\\\").replace('%', "\\%")
+            ),
             LocateMatcher::Back => format!(
-                    "%{}",
-                    locate_params.uri.replace('\\', "\\\\").replace('%', "\\%")),
+                "%{}",
+                locate_params.uri.replace('\\', "\\\\").replace('%', "\\%")
+            ),
             LocateMatcher::Partial => format!(
-                    "%{}%",
-                    locate_params.uri.replace('\\', "\\\\").replace('%', "\\%")),
+                "%{}%",
+                locate_params.uri.replace('\\', "\\\\").replace('%', "\\%")
+            ),
             LocateMatcher::Exact => locate_params.uri,
         };
 

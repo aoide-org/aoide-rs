@@ -63,10 +63,10 @@ pub trait Collections {
 pub type TracksResult<T> = Result<T, failure::Error>;
 
 pub enum TrackEntityReplacement {
-    Replaced(TrackEntity),
+    Updated(TrackEntity),
     Created(TrackEntity),
     NotFound,
-    Ambiguous,
+    FoundTooMany,
 }
 
 pub trait Tracks {

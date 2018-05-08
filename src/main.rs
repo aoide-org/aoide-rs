@@ -878,13 +878,13 @@ fn handle_post_collections_path_uid_tracks_replace(mut state: State) -> Box<Hand
                     replace_params,
                     format,
                 ) {
-                    Ok(TrackEntityReplacement::Replaced(entity)) => (entity, StatusCode::Ok),
+                    Ok(TrackEntityReplacement::Updated(entity)) => (entity, StatusCode::Ok),
                     Ok(TrackEntityReplacement::Created(entity)) => (entity, StatusCode::Created),
                     Ok(TrackEntityReplacement::NotFound) => {
                         let response = create_response(&state, StatusCode::NotFound, None);
                         return future::ok((state, response))
                     }
-                    Ok(TrackEntityReplacement::Ambiguous) => {
+                    Ok(TrackEntityReplacement::FoundTooMany) => {
                         let response = create_response(&state, StatusCode::BadRequest, None);
                         return future::ok((state, response))
                     }
