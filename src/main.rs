@@ -716,49 +716,6 @@ fn handle_get_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
     Box::new(result.into_future())
 }
 
-fn load_recently_revisioned_tracks(
-    connection: &SqliteConnection,
-    collection_uid: Option<&EntityUid>,
-    pagination: &Pagination,
-) -> TracksResult<Vec<SerializedEntity>> {
-    let repository = TrackRepository::new(connection);
-    let result = repository.load_recently_revisioned_entities(collection_uid, pagination)?;
-    Ok(result)
-}
-
-fn handle_get_collections_path_uid_tracks_query_pagination(mut state: State) -> Box<HandlerFuture> {
-    let collection_uid = UidPathExtractor::try_parse_from(&mut state);
-    let query_params = PaginationQueryStringExtractor::take_from(&mut state);
-    let pagination = Pagination {
-        offset: query_params.offset,
-        limit: query_params.limit,
-    };
-
-    let pooled_connection = match middleware::state_data::try_connection(&state) {
-        Ok(pooled_connection) => pooled_connection,
-        Err(e) => return Box::new(future::err((state, on_handler_error(e)))),
-    };
-
-    let handler_future = match load_recently_revisioned_tracks(
-        &*pooled_connection,
-        collection_uid.as_ref(),
-        &pagination,
-    ).and_then(concat_serialized_entities_into_json_array)
-    {
-        Ok(json_array) => {
-            let response = create_response(
-                &state,
-                StatusCode::Ok,
-                Some((json_array, mime::APPLICATION_JSON)),
-            );
-            future::ok((state, response))
-        }
-        Err(e) => future::err((state, on_handler_failure(e))),
-    };
-
-    Box::new(handler_future)
-}
-
 fn locate_tracks(
     connection: &SqliteConnection,
     collection_uid: Option<&EntityUid>,
@@ -973,6 +930,40 @@ fn handle_post_collections_path_uid_tracks_search_query_pagination(
             }
             Err(e) => return future::err((state, on_handler_error(e))),
         });
+
+    Box::new(handler_future)
+}
+
+fn handle_get_collections_path_uid_tracks_query_pagination(mut state: State) -> Box<HandlerFuture> {
+    let collection_uid = UidPathExtractor::try_parse_from(&mut state);
+    let query_params = PaginationQueryStringExtractor::take_from(&mut state);
+    let pagination = Pagination {
+        offset: query_params.offset,
+        limit: query_params.limit,
+    };
+
+    let pooled_connection = match middleware::state_data::try_connection(&state) {
+        Ok(pooled_connection) => pooled_connection,
+        Err(e) => return Box::new(future::err((state, on_handler_error(e)))),
+    };
+
+    let handler_future = match search_tracks(
+        &*pooled_connection,
+        collection_uid.as_ref(),
+        &pagination,
+        SearchParams::default(),
+    ).and_then(concat_serialized_entities_into_json_array)
+    {
+        Ok(json_array) => {
+            let response = create_response(
+                &state,
+                StatusCode::Ok,
+                Some((json_array, mime::APPLICATION_JSON)),
+            );
+            future::ok((state, response))
+        }
+        Err(e) => future::err((state, on_handler_failure(e))),
+    };
 
     Box::new(handler_future)
 }

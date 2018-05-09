@@ -425,39 +425,6 @@ impl<'a> Tracks for TrackRepository<'a> {
         Ok(entity)
     }
 
-    fn replace_entity(
-        &self,
-        collection_uid: Option<&EntityUid>,
-        replace_params: ReplaceParams,
-        format: SerializationFormat,
-    ) -> TracksResult<TrackEntityReplacement> {
-        let locate_params = LocateParams {
-            uri: replace_params.uri,
-            matcher: LocateMatcher::Exact,
-        };
-        let located_entities =
-            self.locate_entities(collection_uid, &Pagination::default(), locate_params)?;
-        if located_entities.len() > 1 {
-            Ok(TrackEntityReplacement::FoundTooMany)
-        } else {
-            match located_entities.first() {
-                Some(serialized_entity) => {
-                    let mut entity = deserialize_with_format::<TrackEntity>(serialized_entity)?;
-                    entity.replace_body(replace_params.body);
-                    self.update_entity(&mut entity, format)?;
-                    Ok(TrackEntityReplacement::Updated(entity))
-                }
-                None => match replace_params.mode {
-                    ReplaceMode::UpdateOrCreate => {
-                        let entity = self.create_entity(replace_params.body, format)?;
-                        Ok(TrackEntityReplacement::Created(entity))
-                    }
-                    ReplaceMode::UpdateOnly => Ok(TrackEntityReplacement::NotFound),
-                },
-            }
-        }
-    }
-
     fn update_entity(
         &self,
         entity: &mut TrackEntity,
@@ -492,6 +459,39 @@ impl<'a> Tracks for TrackRepository<'a> {
         Ok(Some((prev_revision, next_revision)))
     }
 
+    fn replace_entity(
+        &self,
+        collection_uid: Option<&EntityUid>,
+        replace_params: ReplaceParams,
+        format: SerializationFormat,
+    ) -> TracksResult<TrackEntityReplacement> {
+        let locate_params = LocateParams {
+            uri: replace_params.uri,
+            matcher: LocateMatcher::Exact,
+        };
+        let located_entities =
+            self.locate_entities(collection_uid, &Pagination::default(), locate_params)?;
+        if located_entities.len() > 1 {
+            Ok(TrackEntityReplacement::FoundTooMany)
+        } else {
+            match located_entities.first() {
+                Some(serialized_entity) => {
+                    let mut entity = deserialize_with_format::<TrackEntity>(serialized_entity)?;
+                    entity.replace_body(replace_params.body);
+                    self.update_entity(&mut entity, format)?;
+                    Ok(TrackEntityReplacement::Updated(entity))
+                }
+                None => match replace_params.mode {
+                    ReplaceMode::UpdateOrCreate => {
+                        let entity = self.create_entity(replace_params.body, format)?;
+                        Ok(TrackEntityReplacement::Created(entity))
+                    }
+                    ReplaceMode::UpdateOnly => Ok(TrackEntityReplacement::NotFound),
+                },
+            }
+        }
+    }
+
     fn remove_entity(&self, uid: &EntityUid) -> TracksResult<()> {
         let target = tracks_entity::table.filter(tracks_entity::uid.eq(uid.as_str()));
         let query = diesel::delete(target);
@@ -509,35 +509,6 @@ impl<'a> Tracks for TrackRepository<'a> {
         Ok(result.map(|r| r.into()))
     }
 
-    fn load_recently_revisioned_entities(
-        &self,
-        collection_uid: Option<&EntityUid>,
-        pagination: &Pagination,
-    ) -> TracksResult<Vec<SerializedEntity>> {
-        let offset = pagination.offset.map(|offset| offset as i64).unwrap_or(0);
-        let limit = pagination
-            .limit
-            .map(|limit| limit as i64)
-            .unwrap_or(i64::MAX);
-        let target = tracks_entity::table
-            .order(tracks_entity::rev_timestamp.desc())
-            .offset(offset)
-            .limit(limit);
-        let results = match collection_uid {
-            Some(ref uid) => target
-                .filter(
-                    tracks_entity::id.eq_any(
-                        aux_tracks_resource::table
-                            .select(aux_tracks_resource::track_id)
-                            .filter(aux_tracks_resource::collection_uid.eq(uid.as_str())),
-                    ),
-                )
-                .load::<QueryableSerializedEntity>(self.connection),
-            None => target.load::<QueryableSerializedEntity>(self.connection),
-        }?;
-        Ok(results.into_iter().map(|r| r.into()).collect())
-    }
-
     fn locate_entities(
         &self,
         collection_uid: Option<&EntityUid>,
@@ -549,6 +520,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             .select(tracks_entity::all_columns)
             .into_boxed();
 
+        // Locate filter
         let locate_uri = match locate_params.matcher {
             // Escape wildcard character with backslash (see below)
             LocateMatcher::Front => format!(
@@ -565,15 +537,6 @@ impl<'a> Tracks for TrackRepository<'a> {
             ),
             LocateMatcher::Exact => locate_params.uri,
         };
-
-        target = match collection_uid {
-            Some(collection_uid) => target
-                    .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()))
-                    .order(aux_tracks_resource::collection_since.desc()), // recently added to collection
-            None => target
-                    .order(tracks_entity::rev_timestamp.desc()) // recently modified
-        };
-
         target = match locate_params.matcher {
             LocateMatcher::Exact => target
                 .filter(aux_tracks_resource::source_uri.eq(locate_uri)),
@@ -585,13 +548,21 @@ impl<'a> Tracks for TrackRepository<'a> {
                 )
         };
 
-        target = match pagination.offset {
-            Some(offset) => target.offset(offset as i64),
+        // Collection filter & ordering
+        target = match collection_uid {
+            Some(collection_uid) => target
+                    .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()))
+                    .order(aux_tracks_resource::collection_since.desc()), // recently added to collection
             None => target
+                    .order(tracks_entity::rev_timestamp.desc()) // recently modified
         };
-        target = match pagination.limit {
-            Some(limit) => target.limit(limit as i64),
-            None => target
+
+        // Pagination
+        if let Some(offset) = pagination.offset {
+            target = target.offset(offset as i64);
+        };
+        if let Some(limit) = pagination.offset {
+            target = target.limit(limit as i64);
         };
 
         let results: Vec<QueryableSerializedEntity> = target.load(self.connection)?;
@@ -604,84 +575,116 @@ impl<'a> Tracks for TrackRepository<'a> {
         pagination: &Pagination,
         search_params: SearchParams,
     ) -> TracksResult<Vec<SerializedEntity>> {
-        let offset = pagination.offset.map(|offset| offset as i64).unwrap_or(0);
-        let limit = pagination
-            .limit
-            .map(|limit| limit as i64)
-            .unwrap_or(i64::MAX);
-        // Escape wildcard character with backslash (see below)
-        let escaped_filter = search_params
-            .filter
-            .trim()
-            .replace('\\', "\\\\")
-            .replace('%', "\\%");
-        let split_filter = escaped_filter.split_whitespace();
-        let like_expr_len = split_filter
-            .clone()
-            .fold(1, |len, part| len + part.len() + 1);
-        let mut like_expr = split_filter.fold(
-            String::with_capacity(like_expr_len),
-            |mut like_expr, part| {
-                // Prepend wildcard character before each part
-                like_expr.push('%');
-                like_expr.push_str(part);
-                like_expr
-            },
-        );
-        // Append final wildcard character after last part
-        like_expr.push('%');
-        let target = tracks_entity::table
-            .left_outer_join(aux_tracks_resource::table)
-            .left_outer_join(aux_tracks_overview::table)
-            .left_outer_join(aux_tracks_summary::table)
-            .left_outer_join(aux_tracks_music::table)
-            .filter(
-                aux_tracks_overview::track_title
-                    .like(&like_expr)
-                    .escape('\\'),
-            )
-            .or_filter(
-                aux_tracks_overview::album_title
-                    .like(&like_expr)
-                    .escape('\\'),
-            )
-            .or_filter(
-                aux_tracks_summary::track_artists
-                    .like(&like_expr)
-                    .escape('\\'),
-            )
-            .or_filter(
-                aux_tracks_summary::album_artists
-                    .like(&like_expr)
-                    .escape('\\'),
-            )
-            .or_filter(
-                tracks_entity::id.eq_any(
-                    aux_tracks_tag::table
-                        .select(aux_tracks_tag::track_id)
-                        .filter(aux_tracks_tag::facet.eq(TrackTag::FACET_GENRE))
-                        .filter(aux_tracks_tag::term.like(&like_expr).escape('\\')),
-                ),
-            )
-            .or_filter(
-                tracks_entity::id.eq_any(
-                    aux_tracks_comment::table
-                        .select(aux_tracks_comment::track_id)
-                        .filter(aux_tracks_comment::comment.like(&like_expr).escape('\\')),
-                ),
-            )
-            .select(tracks_entity::all_columns)
-            .offset(offset)
-            .limit(limit);
-        let results = match collection_uid {
-            Some(ref uid) => target
-                .filter(aux_tracks_resource::collection_uid.eq(uid.as_str()))
-                .order(aux_tracks_resource::collection_since.desc()) // recently added to collection
-                .load::<QueryableSerializedEntity>(self.connection),
-            None => target
-                .order(tracks_entity::rev_timestamp.desc()) // recently modified
-                .load::<QueryableSerializedEntity>(self.connection),
-        }?;
+        // TODO: if/else arms are incompatible due to joining tables?
+        let results = if search_params.filter.is_empty() {
+            // Select all (without joining)
+            let mut target = tracks_entity::table
+                .select(tracks_entity::all_columns)
+                .left_outer_join(aux_tracks_resource::table)
+                .into_boxed();
+
+            // Collection filter & ordering
+            target = match collection_uid {
+                Some(uid) => target
+                    .filter(aux_tracks_resource::collection_uid.eq(uid.as_str()))
+                    .order(aux_tracks_resource::collection_since.desc()), // recently added to collection
+                None => target
+                    .order(tracks_entity::rev_timestamp.desc()) // recently modified
+            };
+
+            // Pagination
+            if let Some(offset) = pagination.offset {
+                target = target.offset(offset as i64);
+            };
+            if let Some(limit) = pagination.offset {
+                target = target.limit(limit as i64);
+            };
+
+            target.load::<QueryableSerializedEntity>(self.connection)?
+        } else {
+            // Escape wildcard character with backslash (see below)
+            let escaped_filter = search_params.filter
+                .trim()
+                .replace('\\', "\\\\")
+                .replace('%', "\\%");
+            let split_filter = escaped_filter.split_whitespace();
+            let like_expr_len = split_filter
+                .clone()
+                .fold(1, |len, part| len + part.len() + 1);
+            let mut like_expr = split_filter.fold(
+                String::with_capacity(like_expr_len),
+                |mut like_expr, part| {
+                    // Prepend wildcard character before each part
+                    like_expr.push('%');
+                    like_expr.push_str(part);
+                    like_expr
+                },
+            );
+            // Append final wildcard character after last part
+            like_expr.push('%');
+            
+            let mut target = tracks_entity::table
+                .select(tracks_entity::all_columns)
+                .left_outer_join(aux_tracks_resource::table)
+                .left_outer_join(aux_tracks_overview::table)
+                .left_outer_join(aux_tracks_summary::table)
+                .left_outer_join(aux_tracks_music::table)
+                .filter(
+                    aux_tracks_overview::track_title
+                        .like(&like_expr)
+                        .escape('\\'),
+                )
+                .or_filter(
+                    aux_tracks_overview::album_title
+                        .like(&like_expr)
+                        .escape('\\'),
+                )
+                .or_filter(
+                    aux_tracks_summary::track_artists
+                        .like(&like_expr)
+                        .escape('\\'),
+                )
+                .or_filter(
+                    aux_tracks_summary::album_artists
+                        .like(&like_expr)
+                        .escape('\\'),
+                )
+                .or_filter(
+                    tracks_entity::id.eq_any(
+                        aux_tracks_tag::table
+                            .select(aux_tracks_tag::track_id)
+                            .filter(aux_tracks_tag::facet.eq(TrackTag::FACET_GENRE))
+                            .filter(aux_tracks_tag::term.like(&like_expr).escape('\\')),
+                    ),
+                )
+                .or_filter(
+                    tracks_entity::id.eq_any(
+                        aux_tracks_comment::table
+                            .select(aux_tracks_comment::track_id)
+                            .filter(aux_tracks_comment::comment.like(&like_expr).escape('\\')),
+                    ),
+                )
+                .into_boxed();
+
+            // Collection filter & ordering
+            target = match collection_uid {
+                Some(ref uid) => target
+                    .filter(aux_tracks_resource::collection_uid.eq(uid.as_str()))
+                    .order(aux_tracks_resource::collection_since.desc()), // recently added to collection
+                None => target
+                    .order(tracks_entity::rev_timestamp.desc()) // recently modified
+            };
+
+            // Pagination
+            if let Some(offset) = pagination.offset {
+                target = target.offset(offset as i64);
+            };
+            if let Some(limit) = pagination.offset {
+                target = target.limit(limit as i64);
+            };
+
+            target.load::<QueryableSerializedEntity>(self.connection)?
+        };
         Ok(results.into_iter().map(|r| r.into()).collect())
     }
 }

@@ -82,15 +82,16 @@ pub trait Tracks {
         format: SerializationFormat,
     ) -> TracksResult<Option<(EntityRevision, EntityRevision)>>;
 
+    fn replace_entity(
+        &self,
+        collection_uid: Option<&EntityUid>,
+        replace_params: ReplaceParams,
+        format: SerializationFormat,
+    ) -> TracksResult<TrackEntityReplacement>;
+
     fn remove_entity(&self, uid: &EntityUid) -> TracksResult<()>;
 
     fn load_entity(&self, uid: &EntityUid) -> TracksResult<Option<SerializedEntity>>;
-
-    fn load_recently_revisioned_entities(
-        &self,
-        collection_uid: Option<&EntityUid>,
-        pagination: &Pagination,
-    ) -> TracksResult<Vec<SerializedEntity>>;
 
     fn locate_entities(
         &self,
@@ -98,13 +99,6 @@ pub trait Tracks {
         pagination: &Pagination,
         locate_params: LocateParams
     ) -> TracksResult<Vec<SerializedEntity>>;
-
-    fn replace_entity(
-        &self,
-        collection_uid: Option<&EntityUid>,
-        replace_params: ReplaceParams,
-        format: SerializationFormat,
-    ) -> TracksResult<TrackEntityReplacement>;
 
     fn search_entities(
         &self,
