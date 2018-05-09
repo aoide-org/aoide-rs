@@ -544,17 +544,10 @@ impl<'a> Tracks for TrackRepository<'a> {
         pagination: &Pagination,
         locate_params: LocateParams,
     ) -> TracksResult<Vec<SerializedEntity>> {
-        let offset = pagination.offset.map(|offset| offset as i64).unwrap_or(0);
-        let limit = pagination
-            .limit
-            .map(|limit| limit as i64)
-            .unwrap_or(i64::MAX);
-
-        let target = tracks_entity::table
+        let mut target = tracks_entity::table
             .left_outer_join(aux_tracks_resource::table)
             .select(tracks_entity::all_columns)
-            .offset(offset)
-            .limit(limit);
+            .into_boxed();
 
         let locate_uri = match locate_params.matcher {
             // Escape wildcard character with backslash (see below)
@@ -573,41 +566,35 @@ impl<'a> Tracks for TrackRepository<'a> {
             LocateMatcher::Exact => locate_params.uri,
         };
 
-        // TODO: Reduce code bloat
-        let results = match collection_uid {
-            Some(collection_uid) => {
-                let locate_target = target
+        target = match collection_uid {
+            Some(collection_uid) => target
                     .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()))
-                    .order(aux_tracks_resource::collection_since.desc()); // recently added to collection
-                match locate_params.matcher {
-                    LocateMatcher::Exact => locate_target
-                        .filter(aux_tracks_resource::source_uri.eq(locate_uri))
-                        .load::<QueryableSerializedEntity>(self.connection),
-                    _ => locate_target
-                        .filter(
-                            aux_tracks_resource::source_uri
-                                .like(locate_uri)
-                                .escape('\\'),
-                        )
-                        .load::<QueryableSerializedEntity>(self.connection),
-                }
-            }
-            None => {
-                let locate_target = target.order(tracks_entity::rev_timestamp.desc()); // recently modified
-                match locate_params.matcher {
-                    LocateMatcher::Exact => locate_target
-                        .filter(aux_tracks_resource::source_uri.eq(locate_uri))
-                        .load::<QueryableSerializedEntity>(self.connection),
-                    _ => locate_target
-                        .filter(
-                            aux_tracks_resource::source_uri
-                                .like(locate_uri)
-                                .escape('\\'),
-                        )
-                        .load::<QueryableSerializedEntity>(self.connection),
-                }
-            }
-        }?;
+                    .order(aux_tracks_resource::collection_since.desc()), // recently added to collection
+            None => target
+                    .order(tracks_entity::rev_timestamp.desc()) // recently modified
+        };
+
+        target = match locate_params.matcher {
+            LocateMatcher::Exact => target
+                .filter(aux_tracks_resource::source_uri.eq(locate_uri)),
+            _ => target
+                .filter(
+                    aux_tracks_resource::source_uri
+                        .like(locate_uri)
+                        .escape('\\'),
+                )
+        };
+
+        target = match pagination.offset {
+            Some(offset) => target.offset(offset as i64),
+            None => target
+        };
+        target = match pagination.limit {
+            Some(limit) => target.limit(limit as i64),
+            None => target
+        };
+
+        let results: Vec<QueryableSerializedEntity> = target.load(self.connection)?;
         Ok(results.into_iter().map(|r| r.into()).collect())
     }
 
