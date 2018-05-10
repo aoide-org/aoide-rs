@@ -388,10 +388,10 @@ impl fmt::Display for DiscNumbers {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "lowercase")]
 pub enum TrackMark {
-    Cue,
+    LoadCue,
     HotCue,
-    Intro,
-    Outro,
+    FadeIn,
+    FadeOut,
     Loop,
 }
 
@@ -416,13 +416,19 @@ pub struct TrackMarker {
 }
 
 impl TrackMarker {
+    pub fn is_singular(mark: TrackMark) -> bool {
+        match mark {
+            TrackMark::LoadCue | TrackMark::FadeIn | TrackMark::FadeOut => true,
+            TrackMark::HotCue | TrackMark::Loop => false,
+        }
+    }
+
     pub fn is_valid(&self) -> bool {
-        let mark_valid = match self.mark {
-            TrackMark::Cue | TrackMark::HotCue => self.duration.is_empty(),
-            TrackMark::Intro | TrackMark::Outro => true,
-            TrackMark::Loop => !self.duration.is_empty(),
-        };
-        mark_valid && self.position.is_valid() && self.duration.is_valid()
+        self.position.is_valid() && self.duration.is_valid() && match self.mark {
+            TrackMark::LoadCue | TrackMark::HotCue => self.duration.is_empty(), // not available
+            TrackMark::FadeIn | TrackMark::FadeOut => true,                     // optional
+            TrackMark::Loop => !self.duration.is_empty(),                       // mandatory
+        }
     }
 }
 
@@ -446,9 +452,6 @@ pub struct MusicMetadata {
     pub key_signature: Option<KeySignature>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub markers: Vec<TrackMarker>,
-
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub classifications: Vec<Classification>, // no duplicate classifiers allowed
 }
 
@@ -457,7 +460,6 @@ impl MusicMetadata {
         self.loudness.iter().all(Loudness::is_valid) && self.tempo.iter().all(Tempo::is_valid)
             && self.time_signature.iter().all(TimeSignature::is_valid)
             && self.key_signature.iter().all(KeySignature::is_valid)
-            && self.markers.iter().all(TrackMarker::is_valid)
             && self.classifications.iter().all(Classification::is_valid)
             && self.classifications.iter().all(|classification| {
                 classification.is_valid() && self.is_classifier_unique(classification.classifier)
@@ -575,6 +577,9 @@ pub struct TrackBody {
     pub lyrics: Option<TrackLyrics>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub markers: Vec<TrackMarker>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub tags: Vec<Tag>, // no duplicate terms per facet allowed
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
@@ -594,6 +599,14 @@ impl TrackBody {
             && self.disc_numbers.iter().all(DiscNumbers::is_valid)
             && self.music.iter().all(MusicMetadata::is_valid)
             && self.lyrics.iter().all(TrackLyrics::is_valid)
+            && self.markers.iter().all(|marker| {
+                marker.is_valid()
+                    && (!TrackMarker::is_singular(marker.mark)
+                        || self.markers
+                            .iter()
+                            .filter(|marker2| marker.mark == marker2.mark)
+                            .count() <= 1)
+            })
             && self.tags.iter().all(Tag::is_valid)
             && self.ratings.iter().all(Rating::is_valid)
             && self.comments.iter().all(Comment::is_valid)
