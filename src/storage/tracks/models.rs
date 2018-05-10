@@ -285,14 +285,14 @@ impl InsertableTracksMusic {
             music_time_sig_num: music.time_signature.map(|time_signature| time_signature.numerator as i16),
             music_time_sig_denom: music.time_signature.map(|time_signature| time_signature.denominator as i16),
             music_key_sig_code: music.key_signature.map(|key_signature| key_signature.code as i16),
-            music_acousticness: music.classification(Classifier::Acousticness).map(|confidence| *confidence),
-            music_danceability: music.classification(Classifier::Danceability).map(|confidence| *confidence),
-            music_energy: music.classification(Classifier::Energy).map(|confidence| *confidence),
-            music_instrumentalness: music.classification(Classifier::Instrumentalness).map(|confidence| *confidence),
-            music_liveness: music.classification(Classifier::Liveness).map(|confidence| *confidence),
-            music_popularity: music.classification(Classifier::Popularity).map(|confidence| *confidence),
-            music_speechiness: music.classification(Classifier::Speechiness).map(|confidence| *confidence),
-            music_valence: music.classification(Classifier::Valence).map(|confidence| *confidence),
+            music_acousticness: music.classification(Classifier::Acousticness).map(|classification| *classification.confidence),
+            music_danceability: music.classification(Classifier::Danceability).map(|classification| *classification.confidence),
+            music_energy: music.classification(Classifier::Energy).map(|classification| *classification.confidence),
+            music_instrumentalness: music.classification(Classifier::Instrumentalness).map(|classification| *classification.confidence),
+            music_liveness: music.classification(Classifier::Liveness).map(|classification| *classification.confidence),
+            music_popularity: music.classification(Classifier::Popularity).map(|classification| *classification.confidence),
+            music_speechiness: music.classification(Classifier::Speechiness).map(|classification| *classification.confidence),
+            music_valence: music.classification(Classifier::Valence).map(|classification| *classification.confidence),
         }
     }
 }

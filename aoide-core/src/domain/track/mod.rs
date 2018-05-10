@@ -346,9 +346,20 @@ impl MusicMetadata {
     pub fn classification(&self, classifier: Classifier) -> Option<Confidence> {
         assert!(self.classifications.iter().filter(|classification| classification.classifier == classifier).count() <= 1);
         self.classifications.iter()
+    pub fn has_classifier(&self, classifier: Classifier) -> bool {
+        self.classifications.iter().any(|classification| classification.classifier == classifier)
+    }
+
+    fn is_classifier_unique(&self, classifier: Classifier) -> bool {
+        self.classifications.iter().filter(|classification| classification.classifier == classifier).count() <= 1
+    }
+
+    pub fn classification(&self, classifier: Classifier) -> Option<&Classification> {
+        assert!(self.is_classifier_unique(classifier));
+        self.classifications
+            .iter()
             .filter(|classification| classification.classifier == classifier)
             .nth(0)
-            .map(|classification| classification.confidence)
     }
 }
 
@@ -456,8 +467,9 @@ impl TrackBody {
     }
 
     pub fn has_collection(&self, collection_uid: &CollectionUid) -> bool {
-        self.resources.iter()
-                .any(|resource| &resource.collection.uid == collection_uid)
+        self.resources
+            .iter()
+            .any(|resource| &resource.collection.uid == collection_uid)
     }
 
     pub fn actors_to_string(&self, role_opt: Option<ActorRole>) -> Option<String> {
@@ -559,14 +571,16 @@ mod tests {
             content_type: mime_guess::guess_mime_type(uri).to_string(),
             audio_content: None,
         };
-        let resources = vec![TrackResource {
-            collection: TrackCollection {
-                uid: EntityUidGenerator::generate_uid(),
-                since: Utc::now(),
+        let resources = vec![
+            TrackResource {
+                collection: TrackCollection {
+                    uid: EntityUidGenerator::generate_uid(),
+                    since: Utc::now(),
+                },
+                source,
+                color: Some(TrackColor::RED),
             },
-            source,
-            color: Some(TrackColor::RED),
-        }];
+        ];
         let tags = vec![
             Tag::new_faceted(TrackTag::FACET_STYLE, "1980s", 0.8),
             Tag::new_faceted("STYLE", "1990s", 0.3),
