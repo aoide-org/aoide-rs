@@ -79,14 +79,15 @@ impl<'a> Collections for CollectionRepository<'a> {
         Ok(entity)
     }
 
-    fn update_entity(&self, entity: &CollectionEntity) -> CollectionsResult<Option<EntityRevision>> {
-        let next_revision = entity.header().revision().next();
+    fn update_entity(&self, entity: &CollectionEntity) -> CollectionsResult<Option<(EntityRevision, EntityRevision)>> {
+        let prev_revision = entity.header().revision();
+        let next_revision = prev_revision.next();
         {
             let updatable = UpdatableCollectionsEntity::bind(&next_revision, &entity.body());
             let target = collections_entity::table
                 .filter(collections_entity::uid.eq(entity.header().uid().as_str())
-                    .and(collections_entity::rev_ordinal.eq(entity.header().revision().ordinal() as i64))
-                    .and(collections_entity::rev_timestamp.eq(entity.header().revision().timestamp().naive_utc())));
+                    .and(collections_entity::rev_ordinal.eq(prev_revision.ordinal() as i64))
+                    .and(collections_entity::rev_timestamp.eq(prev_revision.timestamp().naive_utc())));
             let query = diesel::update(target).set(&updatable);
             let rows_affected: usize = query.execute(self.connection)?;
             assert!(rows_affected <= 1);
@@ -94,7 +95,7 @@ impl<'a> Collections for CollectionRepository<'a> {
                 return Ok(None);
             }
         }
-        Ok(Some(next_revision))
+        Ok(Some((prev_revision, next_revision)))
     }
 
     fn remove_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<()>> {
@@ -211,8 +212,9 @@ mod tests {
         assert!(entity.is_valid());
         let prev_revision = entity.header().revision();
         entity.body_mut().name = "Renamed Collection".into();
-        let next_revision = repository.update_entity(&entity).unwrap().unwrap();
+        let (prev_revision2, next_revision) = repository.update_entity(&entity).unwrap().unwrap();
         println!("Updated entity: {:?}", entity);
+        assert!(prev_revision == prev_revision2);
         assert!(prev_revision < next_revision);
         assert!(entity.header().revision() == prev_revision);
         entity.update_revision(next_revision);

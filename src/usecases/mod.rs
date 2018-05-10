@@ -34,7 +34,7 @@ pub trait Collections {
     fn create_entity(&self, body: CollectionBody) -> CollectionsResult<CollectionEntity>;
 
     fn update_entity(&self, entity: &CollectionEntity)
-        -> CollectionsResult<Option<EntityRevision>>;
+        -> CollectionsResult<Option<(EntityRevision, EntityRevision)>>;
 
     fn remove_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<()>>;
 
@@ -63,10 +63,10 @@ pub trait Collections {
 pub type TracksResult<T> = Result<T, failure::Error>;
 
 pub enum TrackEntityReplacement {
-    Updated(TrackEntity),
-    Created(TrackEntity),
     NotFound,
     FoundTooMany,
+    Created(TrackEntity),
+    Updated(TrackEntity),
 }
 
 pub trait Tracks {
