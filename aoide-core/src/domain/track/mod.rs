@@ -320,6 +320,51 @@ impl fmt::Display for DiscNumbers {
 }
 
 ///////////////////////////////////////////////////////////////////////
+/// TrackMarker
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "lowercase")]
+pub enum TrackMark {
+    Cue,
+    HotCue,
+    Intro,
+    Outro,
+    Loop,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct TrackMarker {
+    pub mark: TrackMark,
+
+    pub position: Duration,
+
+    #[serde(skip_serializing_if = "Duration::is_empty", default)]
+    pub duration: Duration,
+
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub label: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub number: Option<u64>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub color: Option<TrackColor>,
+}
+
+impl TrackMarker {
+    pub fn is_valid(&self) -> bool {
+        let mark_valid = match self.mark {
+            TrackMark::Cue | TrackMark::HotCue => self.duration.is_empty(),
+            TrackMark::Intro | TrackMark::Outro => true,
+            TrackMark::Loop => !self.duration.is_empty(),
+        };
+        mark_valid && self.position.is_valid() && self.duration.is_valid()
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
 /// MusicMetadata
 ///////////////////////////////////////////////////////////////////////
 
@@ -339,13 +384,22 @@ pub struct MusicMetadata {
     pub key_signature: Option<KeySignature>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub markers: Vec<TrackMarker>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub classifications: Vec<Classification>, // no duplicate classifiers allowed
 }
 
 impl MusicMetadata {
-    pub fn classification(&self, classifier: Classifier) -> Option<Confidence> {
-        assert!(self.classifications.iter().filter(|classification| classification.classifier == classifier).count() <= 1);
-        self.classifications.iter()
+    pub fn is_valid(&self) -> bool {
+        self.loudness.iter().all(Loudness::is_valid) && self.tempo.iter().all(Tempo::is_valid)
+            && self.time_signature.iter().all(TimeSignature::is_valid)
+            && self.key_signature.iter().all(KeySignature::is_valid)
+            && self.markers.iter().all(TrackMarker::is_valid)
+            && self.classifications.iter().all(Classification::is_valid)
+            && self.classifications.iter().all(|classification| classification.is_valid() && self.is_classifier_unique(classification.classifier))
+    }
+
     pub fn has_classifier(&self, classifier: Classifier) -> bool {
         self.classifications.iter().any(|classification| classification.classifier == classifier)
     }
