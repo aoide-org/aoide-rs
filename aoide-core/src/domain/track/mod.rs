@@ -544,6 +544,25 @@ impl TrackTag {
 }
 
 ///////////////////////////////////////////////////////////////////////
+/// TrackLock
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "lowercase")]
+pub enum TrackLock {
+    Loudness,
+    Tempo,
+    TimeSig,
+    KeySig,
+}
+
+impl TrackLock {
+    pub fn is_valid(&self) -> bool {
+        true
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
 /// TrackBody
 ///////////////////////////////////////////////////////////////////////
 
@@ -580,6 +599,9 @@ pub struct TrackBody {
     pub markers: Vec<TrackMarker>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub locks: Vec<TrackLock>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub tags: Vec<Tag>, // no duplicate terms per facet allowed
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
@@ -607,6 +629,7 @@ impl TrackBody {
                             .filter(|marker2| marker.mark == marker2.mark)
                             .count() <= 1)
             })
+            && self.locks.iter().all(TrackLock::is_valid)
             && self.tags.iter().all(Tag::is_valid)
             && self.ratings.iter().all(Rating::is_valid)
             && self.comments.iter().all(Comment::is_valid)
