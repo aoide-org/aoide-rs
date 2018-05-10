@@ -134,17 +134,30 @@ pub struct TrackColor {
 }
 
 impl TrackColor {
-    pub const BLACK: Self = Self { code: 0x000000 };
-    pub const WHITE: Self = Self { code: 0xffffff };
-    pub const RED: Self = Self { code: 0xff0000 };
-    pub const GREEN: Self = Self { code: 0x00ff00 };
-    pub const BLUE: Self = Self { code: 0x0000ff };
-    pub const YELLOW: Self = Self { code: 0xffff00 };
-    pub const MAGENTA: Self = Self { code: 0xff00ff };
-    pub const CYAN: Self = Self { code: 0x00ffff };
+    pub const ALPHA_MASK: TrackColorCode = 0xff000000;
+    pub const RED_MASK: TrackColorCode   = 0x00ff0000;
+    pub const GREEN_MASK: TrackColorCode = 0x0000ff00;
+    pub const BLUE_MASK: TrackColorCode  = 0x000000ff;
+
+    pub const BLACK: Self = Self { code: Self::ALPHA_MASK };
+    pub const RED: Self = Self { code: Self::ALPHA_MASK | Self::RED_MASK };
+    pub const GREEN: Self = Self { code: Self::ALPHA_MASK | Self::GREEN_MASK };
+    pub const BLUE: Self = Self { code: Self::ALPHA_MASK | Self::BLUE_MASK };
+    pub const YELLOW: Self = Self { code: Self::ALPHA_MASK | Self::RED_MASK | Self::GREEN_MASK };
+    pub const MAGENTA: Self = Self { code: Self::ALPHA_MASK | Self::RED_MASK | Self::BLUE_MASK };
+    pub const CYAN: Self = Self { code: Self::ALPHA_MASK | Self::GREEN_MASK | Self::BLUE_MASK };
+    pub const WHITE: Self = Self { code: Self::ALPHA_MASK | Self::RED_MASK | Self::GREEN_MASK | Self::BLUE_MASK };
 
     pub fn is_valid(&self) -> bool {
         true
+    }
+
+    pub fn into_opaque(&self) -> Self {
+        Self { code: self.code | Self::ALPHA_MASK }
+    }
+
+    pub fn into_transparent(&self) -> Self {
+        Self { code: self.code & !Self::ALPHA_MASK }
     }
 }
 
