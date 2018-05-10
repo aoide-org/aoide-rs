@@ -17,30 +17,35 @@ pub mod sample;
 pub mod signal;
 
 use std::u16;
-use std::u64;
 use std::fmt;
 
 ///////////////////////////////////////////////////////////////////////
 /// Duration
 ///////////////////////////////////////////////////////////////////////
 
+pub type DurationValue = f64;
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Duration {
-    pub millis: u64,
+    pub millis: DurationValue,
 }
 
 impl Duration {
     pub const UNIT_OF_MEASURE: &'static str = "ms";
 
-    pub const MIN: Duration = Duration { millis: u64::MIN };
+    pub const MIN: Duration = Duration { millis: 0 as DurationValue };
 
-    pub fn millis(millis: u64) -> Self {
+    pub fn millis(millis: DurationValue) -> Self {
         Self { millis }
     }
 
+    pub fn is_valid(&self) -> bool {
+        *self >= Self::MIN
+    }
+
     pub fn is_empty(&self) -> bool {
-        *self == Self::MIN
+        *self <= Self::MIN
     }
 }
 
