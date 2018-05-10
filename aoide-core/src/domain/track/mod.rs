@@ -142,6 +142,10 @@ impl TrackColor {
     pub const YELLOW: Self = Self { code: 0xffff00 };
     pub const MAGENTA: Self = Self { code: 0xff00ff };
     pub const CYAN: Self = Self { code: 0x00ffff };
+
+    pub fn is_valid(&self) -> bool {
+        true
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -158,6 +162,7 @@ pub struct TrackResource {
 impl TrackResource {
     pub fn is_valid(&self) -> bool {
         self.collection.is_valid() && self.source.is_valid()
+            && self.color.iter().all(TrackColor::is_valid)
     }
 }
 
@@ -201,6 +206,12 @@ pub struct TrackIdentity {
     pub acoust_id: Uuid,
 }
 
+impl TrackIdentity {
+    pub fn is_valid(&self) -> bool {
+        true
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////
 /// ReleaseIdentity
 ///////////////////////////////////////////////////////////////////////
@@ -219,6 +230,12 @@ pub struct ReleaseIdentity {
 
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub asin: String,
+}
+
+impl ReleaseIdentity {
+    pub fn is_valid(&self) -> bool {
+        true
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -244,6 +261,12 @@ pub struct ReleaseMetadata {
     pub license: Option<String>,
 }
 
+impl ReleaseMetadata {
+    pub fn is_valid(&self) -> bool {
+        self.identity.iter().all(ReleaseIdentity::is_valid)
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////
 /// AlbumIdentity
 ///////////////////////////////////////////////////////////////////////
@@ -256,6 +279,12 @@ pub struct AlbumIdentity {
 
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub spotify_id: String, // excl. "spotify:album:" prefix
+}
+
+impl AlbumIdentity {
+    pub fn is_valid(&self) -> bool {
+        true
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -283,6 +312,14 @@ pub struct AlbumMetadata {
     pub compilation: Option<bool>,
 }
 
+impl AlbumMetadata {
+    pub fn is_valid(&self) -> bool {
+        self.identity.iter().all(AlbumIdentity::is_valid)
+            && self.release.iter().all(ReleaseMetadata::is_valid) && self.titles.is_valid()
+            && self.actors.iter().all(Actor::is_valid)
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////
 /// TrackNumbers
 ///////////////////////////////////////////////////////////////////////
@@ -293,6 +330,12 @@ pub struct TrackNumbers {
     pub this: u32,
 
     pub total: u32,
+}
+
+impl TrackNumbers {
+    pub fn is_valid(&self) -> bool {
+        self.this <= self.total
+    }
 }
 
 impl fmt::Display for TrackNumbers {
@@ -311,6 +354,12 @@ pub struct DiscNumbers {
     pub this: u32,
 
     pub total: u32,
+}
+
+impl DiscNumbers {
+    pub fn is_valid(&self) -> bool {
+        self.this <= self.total
+    }
 }
 
 impl fmt::Display for DiscNumbers {
@@ -397,15 +446,22 @@ impl MusicMetadata {
             && self.key_signature.iter().all(KeySignature::is_valid)
             && self.markers.iter().all(TrackMarker::is_valid)
             && self.classifications.iter().all(Classification::is_valid)
-            && self.classifications.iter().all(|classification| classification.is_valid() && self.is_classifier_unique(classification.classifier))
+            && self.classifications.iter().all(|classification| {
+                classification.is_valid() && self.is_classifier_unique(classification.classifier)
+            })
     }
 
     pub fn has_classifier(&self, classifier: Classifier) -> bool {
-        self.classifications.iter().any(|classification| classification.classifier == classifier)
+        self.classifications
+            .iter()
+            .any(|classification| classification.classifier == classifier)
     }
 
     fn is_classifier_unique(&self, classifier: Classifier) -> bool {
-        self.classifications.iter().filter(|classification| classification.classifier == classifier).count() <= 1
+        self.classifications
+            .iter()
+            .filter(|classification| classification.classifier == classifier)
+            .count() <= 1
     }
 
     pub fn classification(&self, classifier: Classifier) -> Option<&Classification> {
@@ -434,6 +490,10 @@ pub struct TrackLyrics {
 impl TrackLyrics {
     pub fn is_empty(&self) -> bool {
         self.explicit.is_none() && self.text.is_empty()
+    }
+
+    pub fn is_valid(&self) -> bool {
+        true
     }
 }
 
@@ -513,11 +573,17 @@ pub struct TrackBody {
 
 impl TrackBody {
     pub fn is_valid(&self) -> bool {
-        self.titles.is_valid() && !self.resources.is_empty()
-            && (self.resources
-                .iter()
-                .filter(|source| source.is_valid())
-                .count() == self.resources.len())
+        !self.resources.is_empty() && self.resources.iter().all(TrackResource::is_valid)
+            && self.identity.iter().all(TrackIdentity::is_valid)
+            && self.album.iter().all(AlbumMetadata::is_valid) && self.titles.is_valid()
+            && self.actors.iter().all(Actor::is_valid)
+            && self.track_numbers.iter().all(TrackNumbers::is_valid)
+            && self.disc_numbers.iter().all(DiscNumbers::is_valid)
+            && self.music.iter().all(MusicMetadata::is_valid)
+            && self.lyrics.iter().all(TrackLyrics::is_valid)
+            && self.tags.iter().all(Tag::is_valid)
+            && self.ratings.iter().all(Rating::is_valid)
+            && self.comments.iter().all(Comment::is_valid)
     }
 
     pub fn has_collection(&self, collection_uid: &CollectionUid) -> bool {
