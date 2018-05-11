@@ -59,10 +59,10 @@ where
     ///
     /// n.b. connection will be re-established if the database goes away and returns mid execution
     /// without panic.
-    pub fn new(database_url: &str) -> Self {
+    pub fn new(database_url: &str, max_size: u32) -> Self {
         let manager = ConnectionManager::<T>::new(database_url);
 
-        let pool = Pool::<ConnectionManager<T>>::new(manager).expect("Failed to create pool.");
+        let pool = Pool::<ConnectionManager<T>>::builder().max_size(max_size).build(manager).expect("Failed to create pool.");
 
         DieselMiddleware::with_pool(pool)
     }

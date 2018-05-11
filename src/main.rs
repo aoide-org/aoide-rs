@@ -104,10 +104,10 @@ embed_migrations!("db/migrations/sqlite");
 type SqliteConnectionPool = Pool<ConnectionManager<SqliteConnection>>;
 type SqliteDieselMiddleware = DieselMiddleware<SqliteConnection>;
 
-fn create_connection_pool(url: &str) -> Result<SqliteConnectionPool, Error> {
+fn create_connection_pool(url: &str, max_size: u32) -> Result<SqliteConnectionPool, Error> {
     info!("Creating SQLite connection pool for '{}'", url);
     let manager = ConnectionManager::new(url);
-    let pool = SqliteConnectionPool::new(manager)?;
+    let pool = SqliteConnectionPool::builder().max_size(max_size).build(manager)?;
     Ok(pool)
 }
 
@@ -1111,8 +1111,10 @@ pub fn main() {
         _ => ":memory:",
     };
 
+    // Workaround: Use a pool of size 1 to avoid 'database is locked'
+    // errors due to multi-threading.
     let connection_pool =
-        create_connection_pool(db_url).expect("Failed to create database connection pool");
+        create_connection_pool(db_url, 1).expect("Failed to create database connection pool");
 
     migrate_database_schema(&connection_pool).unwrap();
 
