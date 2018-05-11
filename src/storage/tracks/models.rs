@@ -22,10 +22,11 @@ use uuid::Uuid;
 use storage::StorageId;
 use storage::serde::SerializationFormat;
 
-use aoide_core::domain::entity::{EntityRevision, EntityHeader};
-use aoide_core::domain::track::{TrackBody, TrackResource, MusicMetadata};
-use aoide_core::domain::music::{Actor, ActorRole, BeatsPerMinute, Classifier, Decibel, Loudness, LUFS};
-use aoide_core::domain::metadata::{Confidence, ConfidenceValue, Tag, Comment, Rating};
+use aoide_core::domain::entity::{EntityHeader, EntityRevision};
+use aoide_core::domain::metadata::{Comment, Confidence, ConfidenceValue, Rating, Tag};
+use aoide_core::domain::music::{Actor, ActorRole, BeatsPerMinute, Classifier, Decibel, Loudness,
+                                LUFS};
+use aoide_core::domain::track::{MusicMetadata, TrackBody, TrackResource};
 
 #[derive(Debug, Insertable)]
 #[table_name = "tracks_entity"]
@@ -40,7 +41,11 @@ pub struct InsertableTracksEntity<'a> {
 }
 
 impl<'a> InsertableTracksEntity<'a> {
-    pub fn bind(header: &'a EntityHeader, ser_fmt: SerializationFormat, ser_blob: &'a [u8]) -> Self {
+    pub fn bind(
+        header: &'a EntityHeader,
+        ser_fmt: SerializationFormat,
+        ser_blob: &'a [u8],
+    ) -> Self {
         Self {
             uid: header.uid().as_str(),
             rev_ordinal: header.revision().ordinal() as i64,
@@ -65,7 +70,11 @@ pub struct UpdatableTracksEntity<'a> {
 }
 
 impl<'a> UpdatableTracksEntity<'a> {
-    pub fn bind(next_revision: &'a EntityRevision, ser_fmt: SerializationFormat, ser_blob: &'a [u8]) -> Self {
+    pub fn bind(
+        next_revision: &'a EntityRevision,
+        ser_fmt: SerializationFormat,
+        ser_blob: &'a [u8],
+    ) -> Self {
         Self {
             rev_ordinal: next_revision.ordinal() as i64,
             rev_timestamp: next_revision.timestamp().naive_utc(),
@@ -113,16 +122,46 @@ impl<'a> InsertableTracksIdentity<'a> {
     pub fn bind(track_id: StorageId, body: &'a TrackBody) -> Self {
         Self {
             track_id,
-            track_isrc: body.identity.as_ref().and_then(|identity| format_optional_id(&identity.isrc)),
-            track_acoust_id: body.identity.as_ref().and_then(|identity| format_optional_uuid(&identity.acoust_id)),
-            track_mbrainz_id: body.identity.as_ref().and_then(|identity| format_optional_uuid(&identity.mbrainz_id)),
-            track_spotify_id: body.identity.as_ref().and_then(|identity| format_optional_id(&identity.spotify_id)),
-            album_mbrainz_id: body.album.as_ref().and_then(|album| album.identity.as_ref()).and_then(|identity| format_optional_uuid(&identity.mbrainz_id)),
-            album_spotify_id: body.album.as_ref().and_then(|album| album.identity.as_ref()).and_then(|identity| format_optional_id(&identity.spotify_id)),
-            release_ean: body.album.as_ref().and_then(|album| album.release.as_ref()).and_then(|release| release.identity.as_ref()).and_then(|identity| format_optional_id(&identity.ean)),
-            release_upc: body.album.as_ref().and_then(|album| album.release.as_ref()).and_then(|release| release.identity.as_ref()).and_then(|identity| format_optional_id(&identity.upc)),
-            release_mbrainz_id: body.album.as_ref().and_then(|album| album.release.as_ref()).and_then(|release| release.identity.as_ref()).and_then(|identity| format_optional_uuid(&identity.mbrainz_id)),
-            release_asin: body.album.as_ref().and_then(|album| album.release.as_ref()).and_then(|release| release.identity.as_ref()).and_then(|identity| format_optional_id(&identity.asin)),
+            track_isrc: body.identity
+                .as_ref()
+                .and_then(|identity| format_optional_id(&identity.isrc)),
+            track_acoust_id: body.identity
+                .as_ref()
+                .and_then(|identity| format_optional_uuid(&identity.acoust_id)),
+            track_mbrainz_id: body.identity
+                .as_ref()
+                .and_then(|identity| format_optional_uuid(&identity.mbrainz_id)),
+            track_spotify_id: body.identity
+                .as_ref()
+                .and_then(|identity| format_optional_id(&identity.spotify_id)),
+            album_mbrainz_id: body.album
+                .as_ref()
+                .and_then(|album| album.identity.as_ref())
+                .and_then(|identity| format_optional_uuid(&identity.mbrainz_id)),
+            album_spotify_id: body.album
+                .as_ref()
+                .and_then(|album| album.identity.as_ref())
+                .and_then(|identity| format_optional_id(&identity.spotify_id)),
+            release_ean: body.album
+                .as_ref()
+                .and_then(|album| album.release.as_ref())
+                .and_then(|release| release.identity.as_ref())
+                .and_then(|identity| format_optional_id(&identity.ean)),
+            release_upc: body.album
+                .as_ref()
+                .and_then(|album| album.release.as_ref())
+                .and_then(|release| release.identity.as_ref())
+                .and_then(|identity| format_optional_id(&identity.upc)),
+            release_mbrainz_id: body.album
+                .as_ref()
+                .and_then(|album| album.release.as_ref())
+                .and_then(|release| release.identity.as_ref())
+                .and_then(|identity| format_optional_uuid(&identity.mbrainz_id)),
+            release_asin: body.album
+                .as_ref()
+                .and_then(|album| album.release.as_ref())
+                .and_then(|release| release.identity.as_ref())
+                .and_then(|identity| format_optional_id(&identity.asin)),
         }
     }
 }
@@ -151,17 +190,34 @@ impl<'a> InsertableTracksOverview<'a> {
         Self {
             track_id,
             track_title: body.titles.title.as_str(),
-            track_subtitle: body.titles.subtitle.as_ref().map(|subtitle| subtitle.as_str()),
+            track_subtitle: body.titles
+                .subtitle
+                .as_ref()
+                .map(|subtitle| subtitle.as_str()),
             track_number: body.track_numbers.map(|numbers| numbers.this as i32),
             track_total: body.track_numbers.map(|numbers| numbers.total as i32),
             disc_number: body.disc_numbers.map(|numbers| numbers.this as i32),
             disc_total: body.disc_numbers.map(|numbers| numbers.total as i32),
             album_title: body.album.as_ref().map(|album| album.titles.title.as_str()),
-            album_subtitle: body.album.as_ref().and_then(|album| album.titles.subtitle.as_ref()).map(|subtitle| subtitle.as_str()),
-            album_grouping: body.album.as_ref().and_then(|album| album.grouping.as_ref()).map(|grouping| grouping.as_str()),
+            album_subtitle: body.album
+                .as_ref()
+                .and_then(|album| album.titles.subtitle.as_ref())
+                .map(|subtitle| subtitle.as_str()),
+            album_grouping: body.album
+                .as_ref()
+                .and_then(|album| album.grouping.as_ref())
+                .map(|grouping| grouping.as_str()),
             album_compilation: body.album.as_ref().and_then(|album| album.compilation),
-            release_date: body.album.as_ref().and_then(|album| album.release.as_ref()).and_then(|release| release.released).map(|released| released.date().naive_utc()),
-            release_label: body.album.as_ref().and_then(|album| album.release.as_ref()).and_then(|release| release.label.as_ref()).map(|label| label.as_str()),
+            release_date: body.album
+                .as_ref()
+                .and_then(|album| album.release.as_ref())
+                .and_then(|release| release.released)
+                .map(|released| released.date().naive_utc()),
+            release_label: body.album
+                .as_ref()
+                .and_then(|album| album.release.as_ref())
+                .and_then(|release| release.label.as_ref())
+                .map(|label| label.as_str()),
             lyrics_explicit: body.lyrics.as_ref().and_then(|lyrics| lyrics.explicit),
         }
     }
@@ -200,11 +256,21 @@ impl InsertableTracksSummary {
             track_performers: Actor::actors_to_string(&body.actors, Some(ActorRole::Performer)),
             track_producers: Actor::actors_to_string(&body.actors, Some(ActorRole::Producer)),
             track_remixers: Actor::actors_to_string(&body.actors, Some(ActorRole::Remixer)),
-            album_artists: body.album.as_ref().and_then(|album| Actor::actors_to_string(&album.actors, Some(ActorRole::Artist))),
-            album_composers: body.album.as_ref().and_then(|album| Actor::actors_to_string(&album.actors, Some(ActorRole::Composer))),
-            album_conductors: body.album.as_ref().and_then(|album| Actor::actors_to_string(&album.actors, Some(ActorRole::Conductor))),
-            album_performers: body.album.as_ref().and_then(|album| Actor::actors_to_string(&album.actors, Some(ActorRole::Performer))),
-            album_producers: body.album.as_ref().and_then(|album| Actor::actors_to_string(&album.actors, Some(ActorRole::Producer))),
+            album_artists: body.album
+                .as_ref()
+                .and_then(|album| Actor::actors_to_string(&album.actors, Some(ActorRole::Artist))),
+            album_composers: body.album.as_ref().and_then(|album| {
+                Actor::actors_to_string(&album.actors, Some(ActorRole::Composer))
+            }),
+            album_conductors: body.album.as_ref().and_then(|album| {
+                Actor::actors_to_string(&album.actors, Some(ActorRole::Conductor))
+            }),
+            album_performers: body.album.as_ref().and_then(|album| {
+                Actor::actors_to_string(&album.actors, Some(ActorRole::Performer))
+            }),
+            album_producers: body.album.as_ref().and_then(|album| {
+                Actor::actors_to_string(&album.actors, Some(ActorRole::Producer))
+            }),
             ratings_min,
             ratings_max,
         }
@@ -238,16 +304,52 @@ impl<'a> InsertableTracksResource<'a> {
             collection_uid: track_resource.collection.uid.as_str(),
             collection_since: track_resource.collection.since.naive_utc(),
             source_uri: track_resource.source.uri.as_str(),
-            source_sync_when: track_resource.source.synchronization.map(|sync| sync.when.naive_utc()),
-            source_sync_rev_ordinal: track_resource.source.synchronization.map(|sync| sync.revision.ordinal() as i64),
-            source_sync_rev_timestamp: track_resource.source.synchronization.map(|sync| sync.revision.timestamp().naive_utc()),
+            source_sync_when: track_resource
+                .source
+                .synchronization
+                .map(|sync| sync.when.naive_utc()),
+            source_sync_rev_ordinal: track_resource
+                .source
+                .synchronization
+                .map(|sync| sync.revision.ordinal() as i64),
+            source_sync_rev_timestamp: track_resource
+                .source
+                .synchronization
+                .map(|sync| sync.revision.timestamp().naive_utc()),
             content_type: track_resource.source.content_type.as_str(),
-            audio_duration_ms: track_resource.source.audio_content.as_ref().map(|audio| audio.duration.millis),
-            audio_channels: track_resource.source.audio_content.as_ref().map(|audio| audio.channels.count as i16),
-            audio_samplerate_hz: track_resource.source.audio_content.as_ref().map(|audio| audio.samplerate.hz as i32),
-            audio_bitrate_bps: track_resource.source.audio_content.as_ref().map(|audio| audio.bitrate.bps as i32),
-            audio_enc_name: track_resource.source.audio_content.as_ref().and_then(|audio| audio.encoder.as_ref()).map(|enc| enc.name.as_str()),
-            audio_enc_settings: track_resource.source.audio_content.as_ref().and_then(|audio| audio.encoder.as_ref()).and_then(|enc| enc.settings.as_ref()).map(|settings| settings.as_str()),
+            audio_duration_ms: track_resource
+                .source
+                .audio_content
+                .as_ref()
+                .map(|audio| audio.duration.millis),
+            audio_channels: track_resource
+                .source
+                .audio_content
+                .as_ref()
+                .map(|audio| audio.channels.count as i16),
+            audio_samplerate_hz: track_resource
+                .source
+                .audio_content
+                .as_ref()
+                .map(|audio| audio.samplerate.hz as i32),
+            audio_bitrate_bps: track_resource
+                .source
+                .audio_content
+                .as_ref()
+                .map(|audio| audio.bitrate.bps as i32),
+            audio_enc_name: track_resource
+                .source
+                .audio_content
+                .as_ref()
+                .and_then(|audio| audio.encoder.as_ref())
+                .map(|enc| enc.name.as_str()),
+            audio_enc_settings: track_resource
+                .source
+                .audio_content
+                .as_ref()
+                .and_then(|audio| audio.encoder.as_ref())
+                .and_then(|enc| enc.settings.as_ref())
+                .map(|settings| settings.as_str()),
             color_code: track_resource.color.map(|color| color.code as i32),
         }
     }
@@ -282,17 +384,39 @@ impl InsertableTracksMusic {
             track_id,
             music_loudness_db: loudness_db,
             music_tempo_bpm: music.tempo.map(|tempo| tempo.bpm),
-            music_time_sig_num: music.time_signature.map(|time_signature| time_signature.numerator as i16),
-            music_time_sig_denom: music.time_signature.map(|time_signature| time_signature.denominator as i16),
-            music_key_sig_code: music.key_signature.map(|key_signature| key_signature.code as i16),
-            music_acousticness: music.classification(Classifier::Acousticness).map(|classification| *classification.confidence),
-            music_danceability: music.classification(Classifier::Danceability).map(|classification| *classification.confidence),
-            music_energy: music.classification(Classifier::Energy).map(|classification| *classification.confidence),
-            music_instrumentalness: music.classification(Classifier::Instrumentalness).map(|classification| *classification.confidence),
-            music_liveness: music.classification(Classifier::Liveness).map(|classification| *classification.confidence),
-            music_popularity: music.classification(Classifier::Popularity).map(|classification| *classification.confidence),
-            music_speechiness: music.classification(Classifier::Speechiness).map(|classification| *classification.confidence),
-            music_valence: music.classification(Classifier::Valence).map(|classification| *classification.confidence),
+            music_time_sig_num: music
+                .time_signature
+                .map(|time_signature| time_signature.numerator as i16),
+            music_time_sig_denom: music
+                .time_signature
+                .map(|time_signature| time_signature.denominator as i16),
+            music_key_sig_code: music
+                .key_signature
+                .map(|key_signature| key_signature.code as i16),
+            music_acousticness: music
+                .classification(Classifier::Acousticness)
+                .map(|classification| *classification.confidence),
+            music_danceability: music
+                .classification(Classifier::Danceability)
+                .map(|classification| *classification.confidence),
+            music_energy: music
+                .classification(Classifier::Energy)
+                .map(|classification| *classification.confidence),
+            music_instrumentalness: music
+                .classification(Classifier::Instrumentalness)
+                .map(|classification| *classification.confidence),
+            music_liveness: music
+                .classification(Classifier::Liveness)
+                .map(|classification| *classification.confidence),
+            music_popularity: music
+                .classification(Classifier::Popularity)
+                .map(|classification| *classification.confidence),
+            music_speechiness: music
+                .classification(Classifier::Speechiness)
+                .map(|classification| *classification.confidence),
+            music_valence: music
+                .classification(Classifier::Valence)
+                .map(|classification| *classification.confidence),
         }
     }
 }

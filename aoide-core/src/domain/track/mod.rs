@@ -13,9 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use audio::*;
 use audio::sample::*;
 use audio::signal::*;
+use audio::*;
 use domain::collection::*;
 use domain::entity::*;
 use domain::metadata::*;
@@ -135,29 +135,49 @@ pub struct TrackColor {
 
 impl TrackColor {
     pub const ALPHA_MASK: TrackColorCode = 0xff000000;
-    pub const RED_MASK: TrackColorCode   = 0x00ff0000;
+    pub const RED_MASK: TrackColorCode = 0x00ff0000;
     pub const GREEN_MASK: TrackColorCode = 0x0000ff00;
-    pub const BLUE_MASK: TrackColorCode  = 0x000000ff;
+    pub const BLUE_MASK: TrackColorCode = 0x000000ff;
 
-    pub const BLACK: Self = Self { code: Self::ALPHA_MASK };
-    pub const RED: Self = Self { code: Self::ALPHA_MASK | Self::RED_MASK };
-    pub const GREEN: Self = Self { code: Self::ALPHA_MASK | Self::GREEN_MASK };
-    pub const BLUE: Self = Self { code: Self::ALPHA_MASK | Self::BLUE_MASK };
-    pub const YELLOW: Self = Self { code: Self::ALPHA_MASK | Self::RED_MASK | Self::GREEN_MASK };
-    pub const MAGENTA: Self = Self { code: Self::ALPHA_MASK | Self::RED_MASK | Self::BLUE_MASK };
-    pub const CYAN: Self = Self { code: Self::ALPHA_MASK | Self::GREEN_MASK | Self::BLUE_MASK };
-    pub const WHITE: Self = Self { code: Self::ALPHA_MASK | Self::RED_MASK | Self::GREEN_MASK | Self::BLUE_MASK };
+    pub const BLACK: Self = Self {
+        code: Self::ALPHA_MASK,
+    };
+    pub const RED: Self = Self {
+        code: Self::ALPHA_MASK | Self::RED_MASK,
+    };
+    pub const GREEN: Self = Self {
+        code: Self::ALPHA_MASK | Self::GREEN_MASK,
+    };
+    pub const BLUE: Self = Self {
+        code: Self::ALPHA_MASK | Self::BLUE_MASK,
+    };
+    pub const YELLOW: Self = Self {
+        code: Self::ALPHA_MASK | Self::RED_MASK | Self::GREEN_MASK,
+    };
+    pub const MAGENTA: Self = Self {
+        code: Self::ALPHA_MASK | Self::RED_MASK | Self::BLUE_MASK,
+    };
+    pub const CYAN: Self = Self {
+        code: Self::ALPHA_MASK | Self::GREEN_MASK | Self::BLUE_MASK,
+    };
+    pub const WHITE: Self = Self {
+        code: Self::ALPHA_MASK | Self::RED_MASK | Self::GREEN_MASK | Self::BLUE_MASK,
+    };
 
     pub fn is_valid(&self) -> bool {
         true
     }
 
     pub fn into_opaque(&self) -> Self {
-        Self { code: self.code | Self::ALPHA_MASK }
+        Self {
+            code: self.code | Self::ALPHA_MASK,
+        }
     }
 
     pub fn into_transparent(&self) -> Self {
-        Self { code: self.code & !Self::ALPHA_MASK }
+        Self {
+            code: self.code & !Self::ALPHA_MASK,
+        }
     }
 }
 
@@ -628,8 +648,7 @@ impl TrackBody {
                             .iter()
                             .filter(|marker2| marker.mark == marker2.mark)
                             .count() <= 1)
-            })
-            && self.locks.iter().all(TrackLock::is_valid)
+            }) && self.locks.iter().all(TrackLock::is_valid)
             && self.tags.iter().all(Tag::is_valid)
             && self.ratings.iter().all(Rating::is_valid)
             && self.comments.iter().all(Comment::is_valid)
@@ -713,8 +732,8 @@ impl TrackEntity {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json;
     use mime_guess;
+    use serde_json;
 
     #[test]
     fn serialize_json() {

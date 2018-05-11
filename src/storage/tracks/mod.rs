@@ -21,20 +21,20 @@ mod schema;
 
 use self::schema::*;
 
-use diesel::prelude::*;
 use diesel;
+use diesel::prelude::*;
 
 use failure;
 
 use std::i64;
 
-use super::*;
 use super::serde::{deserialize_with_format, serialize_with_format, SerializationFormat,
                    SerializedEntity};
+use super::*;
 
-use usecases::{TrackEntityReplacement, Tracks, TracksResult};
 use usecases::request::{LocateMatcher, LocateParams, ReplaceMode, ReplaceParams, SearchParams};
 use usecases::result::Pagination;
+use usecases::{TrackEntityReplacement, Tracks, TracksResult};
 
 use aoide_core::domain::track::*;
 
@@ -538,23 +538,20 @@ impl<'a> Tracks for TrackRepository<'a> {
             LocateMatcher::Exact => locate_params.uri,
         };
         target = match locate_params.matcher {
-            LocateMatcher::Exact => target
-                .filter(aux_tracks_resource::source_uri.eq(locate_uri)),
-            _ => target
-                .filter(
-                    aux_tracks_resource::source_uri
-                        .like(locate_uri)
-                        .escape('\\'),
-                )
+            LocateMatcher::Exact => target.filter(aux_tracks_resource::source_uri.eq(locate_uri)),
+            _ => target.filter(
+                aux_tracks_resource::source_uri
+                    .like(locate_uri)
+                    .escape('\\'),
+            ),
         };
 
         // Collection filter & ordering
         target = match collection_uid {
             Some(collection_uid) => target
-                    .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()))
-                    .order(aux_tracks_resource::collection_since.desc()), // recently added to collection
-            None => target
-                    .order(tracks_entity::rev_timestamp.desc()) // recently modified
+                .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()))
+                .order(aux_tracks_resource::collection_since.desc()), // recently added to collection
+            None => target.order(tracks_entity::rev_timestamp.desc()), // recently modified
         };
 
         // Pagination
@@ -588,8 +585,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                 Some(uid) => target
                     .filter(aux_tracks_resource::collection_uid.eq(uid.as_str()))
                     .order(aux_tracks_resource::collection_since.desc()), // recently added to collection
-                None => target
-                    .order(tracks_entity::rev_timestamp.desc()) // recently modified
+                None => target.order(tracks_entity::rev_timestamp.desc()), // recently modified
             };
 
             // Pagination
@@ -603,7 +599,8 @@ impl<'a> Tracks for TrackRepository<'a> {
             target.load::<QueryableSerializedEntity>(self.connection)?
         } else {
             // Escape wildcard character with backslash (see below)
-            let escaped_filter = search_params.filter
+            let escaped_filter = search_params
+                .filter
                 .trim()
                 .replace('\\', "\\\\")
                 .replace('%', "\\%");
@@ -622,7 +619,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             );
             // Append final wildcard character after last part
             like_expr.push('%');
-            
+
             let mut target = tracks_entity::table
                 .select(tracks_entity::all_columns)
                 .left_outer_join(aux_tracks_resource::table)
@@ -671,8 +668,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                 Some(ref uid) => target
                     .filter(aux_tracks_resource::collection_uid.eq(uid.as_str()))
                     .order(aux_tracks_resource::collection_since.desc()), // recently added to collection
-                None => target
-                    .order(tracks_entity::rev_timestamp.desc()) // recently modified
+                None => target.order(tracks_entity::rev_timestamp.desc()), // recently modified
             };
 
             // Pagination

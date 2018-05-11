@@ -168,6 +168,14 @@ table! {
 
 joinable!(aux_tracks_rating -> tracks_entity (track_id));
 
-allow_tables_to_appear_in_same_query!(tracks_entity, aux_tracks_resource, aux_tracks_overview, aux_tracks_summary, aux_tracks_music, aux_tracks_tag, aux_tracks_comment);
+allow_tables_to_appear_in_same_query!(
+    tracks_entity,
+    aux_tracks_resource,
+    aux_tracks_overview,
+    aux_tracks_summary,
+    aux_tracks_music,
+    aux_tracks_tag,
+    aux_tracks_comment
+);
 allow_tables_to_appear_in_same_query!(aux_tracks_identity, tracks_entity);
 allow_tables_to_appear_in_same_query!(aux_tracks_rating, tracks_entity);
