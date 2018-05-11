@@ -206,6 +206,7 @@ impl TrackResource {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Titles {
+    // A main title is mandatory even though it might be empty
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub title: String,
 
@@ -360,20 +361,36 @@ impl AlbumMetadata {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackNumbers {
-    pub this: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub this: Option<u32>,
 
-    pub total: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total: Option<u32>,
 }
 
 impl TrackNumbers {
+    pub fn is_empty(&self) -> bool {
+        self.this.is_none() && self.total.is_none()
+    }
+
     pub fn is_valid(&self) -> bool {
-        self.this <= self.total
+        match (self.this, self.total) {
+            (None, None) => true,
+            (Some(this), None) => this > 0,
+            (None, Some(total)) => total > 0,
+            (Some(this), Some(total)) => this > 0 && this <= total,
+        }
     }
 }
 
 impl fmt::Display for TrackNumbers {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}/{}", self.this, self.total)
+        match (self.this, self.total) {
+            (None, None) => write!(f, ""),
+            (Some(this), None) => write!(f, "{}", this),
+            (None, Some(total)) => write!(f, "/{}", total),
+            (Some(this), Some(total)) => write!(f, "{}/{}", this, total),
+        }
     }
 }
 
@@ -384,20 +401,36 @@ impl fmt::Display for TrackNumbers {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct DiscNumbers {
-    pub this: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub this: Option<u32>,
 
-    pub total: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total: Option<u32>,
 }
 
 impl DiscNumbers {
+    pub fn is_empty(&self) -> bool {
+        self.this.is_none() && self.total.is_none()
+    }
+
     pub fn is_valid(&self) -> bool {
-        self.this <= self.total
+        match (self.this, self.total) {
+            (None, None) => true,
+            (Some(this), None) => this > 0,
+            (None, Some(total)) => total > 0,
+            (Some(this), Some(total)) => this > 0 && this <= total,
+        }
     }
 }
 
 impl fmt::Display for DiscNumbers {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}/{}", self.this, self.total)
+        match (self.this, self.total) {
+            (None, None) => write!(f, ""),
+            (Some(this), None) => write!(f, "{}", this),
+            (None, Some(total)) => write!(f, "/{}", total),
+            (Some(this), Some(total)) => write!(f, "{}/{}", this, total),
+        }
     }
 }
 
@@ -603,11 +636,11 @@ pub struct TrackBody {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub actors: Vec<Actor>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub track_numbers: Option<TrackNumbers>,
+    #[serde(skip_serializing_if = "TrackNumbers::is_empty", default)]
+    pub track_numbers: TrackNumbers,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub disc_numbers: Option<DiscNumbers>,
+    #[serde(skip_serializing_if = "DiscNumbers::is_empty", default)]
+    pub disc_numbers: DiscNumbers,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub music: Option<MusicMetadata>,
@@ -637,8 +670,8 @@ impl TrackBody {
             && self.identity.iter().all(TrackIdentity::is_valid)
             && self.album.iter().all(AlbumMetadata::is_valid) && self.titles.is_valid()
             && self.actors.iter().all(Actor::is_valid)
-            && self.track_numbers.iter().all(TrackNumbers::is_valid)
-            && self.disc_numbers.iter().all(DiscNumbers::is_valid)
+            && self.track_numbers.is_valid()
+            && self.disc_numbers.is_valid()
             && self.music.iter().all(MusicMetadata::is_valid)
             && self.lyrics.iter().all(TrackLyrics::is_valid)
             && self.markers.iter().all(|marker| {

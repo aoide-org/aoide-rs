@@ -194,10 +194,10 @@ impl<'a> InsertableTracksOverview<'a> {
                 .subtitle
                 .as_ref()
                 .map(|subtitle| subtitle.as_str()),
-            track_number: body.track_numbers.map(|numbers| numbers.this as i32),
-            track_total: body.track_numbers.map(|numbers| numbers.total as i32),
-            disc_number: body.disc_numbers.map(|numbers| numbers.this as i32),
-            disc_total: body.disc_numbers.map(|numbers| numbers.total as i32),
+            track_number: body.track_numbers.this.map(|this| this as i32),
+            track_total: body.track_numbers.total.map(|total| total as i32),
+            disc_number: body.disc_numbers.this.map(|this| this as i32),
+            disc_total: body.disc_numbers.total.map(|total| total as i32),
             album_title: body.album.as_ref().map(|album| album.titles.title.as_str()),
             album_subtitle: body.album
                 .as_ref()
