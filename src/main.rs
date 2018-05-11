@@ -98,6 +98,7 @@ use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
 
 use std::env;
+use std::str;
 
 embed_migrations!("db/migrations/sqlite");
 
@@ -522,11 +523,15 @@ fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
                     match deserialize_slice_with_format(&valid_body, format) {
                         Ok(entity_body) => entity_body,
                         Err(e) => {
+                            warn!("Deserialization failed: {}", str::from_utf8(&valid_body).unwrap());
                             let response =
                                 format_response_message(&state, StatusCode::BadRequest, &e);
                             return future::ok((state, response));
                         }
                     };
+                if !entity_body.is_valid() {
+                    warn!("Invalid track body: {:?}", entity_body);
+                }
 
                 let pooled_connection = match middleware::state_data::try_connection(&state) {
                     Ok(pooled_connection) => pooled_connection,
@@ -596,11 +601,15 @@ fn handle_put_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
                     match deserialize_slice_with_format(&valid_body, format) {
                         Ok(entity_body) => entity_body,
                         Err(e) => {
+                            warn!("Deserialization failed: {}", str::from_utf8(&valid_body).unwrap());
                             let response =
                                 format_response_message(&state, StatusCode::BadRequest, &e);
                             return future::ok((state, response));
                         }
                     };
+                if !entity.body().is_valid() {
+                    warn!("Invalid track body: {:?}", entity.body());
+                }
 
                 let uid = match UidPathExtractor::parse_from_and_verify(
                     &mut state,
@@ -774,6 +783,7 @@ fn handle_post_collections_path_uid_tracks_locate_query_pagination(
                     match deserialize_slice_with_format(&valid_body, format) {
                         Ok(locate_params) => locate_params,
                         Err(e) => {
+                            warn!("Deserialization failed: {}", str::from_utf8(&valid_body).unwrap());
                             let response =
                                 format_response_message(&state, StatusCode::BadRequest, &e);
                             return future::ok((state, response));
@@ -848,18 +858,14 @@ fn handle_post_collections_path_uid_tracks_replace(mut state: State) -> Box<Hand
                     match deserialize_slice_with_format(&valid_body, format) {
                         Ok(replace_params) => replace_params,
                         Err(e) => {
+                            warn!("Deserialization failed: {}", str::from_utf8(&valid_body).unwrap());
                             let response =
                                 format_response_message(&state, StatusCode::BadRequest, &e);
                             return future::ok((state, response));
                         }
                     };
                 if !replace_params.body.is_valid() {
-                    let response = create_response_message(
-                        &state,
-                        StatusCode::BadRequest,
-                        "Invalid track body",
-                    );
-                    return future::ok((state, response));
+                    warn!("Invalid track body: {:?}", replace_params.body);
                 }
 
                 let pooled_connection = match middleware::state_data::try_connection(&state) {
@@ -879,8 +885,12 @@ fn handle_post_collections_path_uid_tracks_replace(mut state: State) -> Box<Hand
                 ) {
                     Ok(TrackEntityReplacement::Updated(entity)) => (entity, StatusCode::Ok),
                     Ok(TrackEntityReplacement::Created(entity)) => (entity, StatusCode::Created),
-                    Ok(TrackEntityReplacement::NotFound) => {
+                    Ok(TrackEntityReplacement::NotFound(None)) => {
                         let response = create_response(&state, StatusCode::NotFound, None);
+                        return future::ok((state, response));
+                    }
+                    Ok(TrackEntityReplacement::NotFound(Some(msg))) => {
+                        let response = create_response_message(&state, StatusCode::NotFound, msg);
                         return future::ok((state, response));
                     }
                     Ok(TrackEntityReplacement::FoundTooMany) => {
@@ -951,6 +961,7 @@ fn handle_post_collections_path_uid_tracks_search_query_pagination(
                     match deserialize_slice_with_format(&valid_body, format) {
                         Ok(search_params) => search_params,
                         Err(e) => {
+                            warn!("Deserialization failed: {}", str::from_utf8(&valid_body).unwrap());
                             let response =
                                 format_response_message(&state, StatusCode::BadRequest, &e);
                             return future::ok((state, response));

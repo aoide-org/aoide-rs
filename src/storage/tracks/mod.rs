@@ -466,7 +466,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         format: SerializationFormat,
     ) -> TracksResult<TrackEntityReplacement> {
         let locate_params = LocateParams {
-            uri: replace_params.uri,
+            uri: replace_params.uri.clone(),
             matcher: LocateMatcher::Exact,
         };
         let located_entities =
@@ -481,13 +481,34 @@ impl<'a> Tracks for TrackRepository<'a> {
                     self.update_entity(&mut entity, format)?;
                     Ok(TrackEntityReplacement::Updated(entity))
                 }
-                None => match replace_params.mode {
-                    ReplaceMode::UpdateOrCreate => {
-                        let entity = self.create_entity(replace_params.body, format)?;
-                        Ok(TrackEntityReplacement::Created(entity))
+                None => {
+                    match replace_params.mode {
+                        ReplaceMode::UpdateOrCreate => {
+                            if let Some(collection_uid) = collection_uid {
+                                // Check consistency to avoid unique constraint violations
+                                // when inserting into the database.
+                                match replace_params.body.resource(collection_uid) {
+                                    Some(resource) => {
+                                        if resource.source.uri != replace_params.uri {
+                                            let msg = format!("Mismatching track URI: expected = '{}', actual = '{}'", replace_params.uri, resource.source.uri);
+                                            return Ok(TrackEntityReplacement::NotFound(Some(msg)));
+                                        }
+                                    }
+                                    None => {
+                                        let msg = format!(
+                                            "Track does not belong to collection with URI '{}'",
+                                            collection_uid
+                                        );
+                                        return Ok(TrackEntityReplacement::NotFound(Some(msg)));
+                                    }
+                                }
+                            };
+                            let entity = self.create_entity(replace_params.body, format)?;
+                            Ok(TrackEntityReplacement::Created(entity))
+                        }
+                        ReplaceMode::UpdateOnly => Ok(TrackEntityReplacement::NotFound(None)),
                     }
-                    ReplaceMode::UpdateOnly => Ok(TrackEntityReplacement::NotFound),
-                },
+                }
             }
         }
     }

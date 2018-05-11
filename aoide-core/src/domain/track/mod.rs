@@ -654,10 +654,21 @@ impl TrackBody {
             && self.comments.iter().all(Comment::is_valid)
     }
 
-    pub fn has_collection(&self, collection_uid: &CollectionUid) -> bool {
+    pub fn resource<'a>(&'a self, collection_uid: &CollectionUid) -> Option<&'a TrackResource> {
+        assert!(
+            self.resources
+                .iter()
+                .filter(|resource| &resource.collection.uid == collection_uid)
+                .count() <= 1
+        );
         self.resources
             .iter()
-            .any(|resource| &resource.collection.uid == collection_uid)
+            .filter(|resource| &resource.collection.uid == collection_uid)
+            .nth(0)
+    }
+
+    pub fn has_collection(&self, collection_uid: &CollectionUid) -> bool {
+        self.resource(collection_uid).is_some()
     }
 
     pub fn actors_to_string(&self, role_opt: Option<ActorRole>) -> Option<String> {
