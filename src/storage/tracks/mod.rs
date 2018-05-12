@@ -686,7 +686,7 @@ impl<'a> Tracks for TrackRepository<'a> {
 
             // Collection filter & ordering
             target = match collection_uid {
-                Some(ref uid) => target
+                Some(uid) => target
                     .filter(aux_tracks_resource::collection_uid.eq(uid.as_str()))
                     .order(aux_tracks_resource::collection_since.desc()), // recently added to collection
                 None => target.order(tracks_entity::rev_timestamp.desc()), // recently modified
