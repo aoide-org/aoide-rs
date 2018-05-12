@@ -286,13 +286,13 @@ pub struct ReleaseMetadata {
     pub released: Option<DateTime<Utc>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub label: Option<String>,
+    pub label: Option<String>, // record label
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub copyright: Option<String>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub license: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub licenses: Vec<String>,
 }
 
 impl ReleaseMetadata {
