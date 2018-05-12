@@ -1107,19 +1107,19 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
     })
 }
 
-pub fn main() {
+pub fn main() -> Result<(), failure::Error> {
     let args: Vec<String> = env::args().collect();
-    if args.len() > 2 {
-        println!("usage: {} <DB_URL>", args[0]);
-        return;
-    }
 
     // TODO: Parse verbosity from args
     init_env_logger_verbosity(2);
 
     let db_url = match args.len() {
+        0 | 1 => ":memory:",
         2 => &args[1],
-        _ => ":memory:",
+        _ => {
+            println!("usage: {} <DB_URL>", args[0]);
+            bail!("Too many arguments");
+        }
     };
 
     // Workaround: Use a pool of size 1 to avoid 'database is locked'
@@ -1139,5 +1139,8 @@ pub fn main() {
 
     let listen_addr = "127.0.0.1:7878";
     info!("Listening for requests at http://{}", listen_addr);
-    gotham::start(listen_addr, router)
+    gotham::start(listen_addr, router);
+
+    info!("Exiting");
+    Ok(())
 }
