@@ -579,7 +579,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         if let Some(offset) = pagination.offset {
             target = target.offset(offset as i64);
         };
-        if let Some(limit) = pagination.offset {
+        if let Some(limit) = pagination.limit {
             target = target.limit(limit as i64);
         };
 
@@ -613,7 +613,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             if let Some(offset) = pagination.offset {
                 target = target.offset(offset as i64);
             };
-            if let Some(limit) = pagination.offset {
+            if let Some(limit) = pagination.limit {
                 target = target.limit(limit as i64);
             };
 
@@ -696,7 +696,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             if let Some(offset) = pagination.offset {
                 target = target.offset(offset as i64);
             };
-            if let Some(limit) = pagination.offset {
+            if let Some(limit) = pagination.limit {
                 target = target.limit(limit as i64);
             };
 
