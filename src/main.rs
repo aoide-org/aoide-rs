@@ -94,7 +94,7 @@ use env_logger::Builder as LoggerBuilder;
 
 use log::LevelFilter as LogLevelFilter;
 
-use r2d2::Pool;
+use r2d2::{Pool, PooledConnection};
 use r2d2_diesel::ConnectionManager;
 
 use std::env;
@@ -103,6 +103,7 @@ use std::str;
 embed_migrations!("db/migrations/sqlite");
 
 type SqliteConnectionPool = Pool<ConnectionManager<SqliteConnection>>;
+type SqlitePooledConnection = PooledConnection<ConnectionManager<SqliteConnection>>;
 type SqliteDieselMiddleware = DieselMiddleware<SqliteConnection>;
 
 fn create_connection_pool(url: &str, max_size: u32) -> Result<SqliteConnectionPool, Error> {
@@ -234,9 +235,10 @@ impl UidPathExtractor {
 }
 
 fn find_collection(
-    connection: &SqliteConnection,
+    pooled_connection: SqlitePooledConnection,
     uid: &EntityUid,
 ) -> CollectionsResult<Option<CollectionEntity>> {
+    let connection = &*pooled_connection;
     let repository = CollectionRepository::new(connection);
     repository.find_entity(&uid)
 }
@@ -258,7 +260,7 @@ fn handle_get_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
         }
     };
 
-    let response = match find_collection(&*pooled_connection, &uid) {
+    let response = match find_collection(pooled_connection, &uid) {
         Ok(Some(collection)) => match serde_json::to_vec(&collection) {
             Ok(response_body) => create_response(
                 &state,
@@ -275,9 +277,10 @@ fn handle_get_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
 }
 
 fn remove_collection(
-    connection: &SqliteConnection,
+    pooled_connection: SqlitePooledConnection,
     uid: &EntityUid,
 ) -> CollectionsResult<Option<()>> {
+    let connection = &*pooled_connection;
     let repository = CollectionRepository::new(connection);
     connection.transaction::<_, Error, _>(|| repository.remove_entity(&uid))
 }
@@ -299,7 +302,7 @@ fn handle_delete_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
         }
     };
 
-    let response = match remove_collection(&*pooled_connection, &uid) {
+    let response = match remove_collection(pooled_connection, &uid) {
         Ok(_) => create_response(&state, StatusCode::NoContent, None),
         Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
     };
@@ -314,9 +317,10 @@ struct PaginationQueryStringExtractor {
 }
 
 fn find_recently_revisioned_collections(
-    connection: &SqliteConnection,
+    pooled_connection: SqlitePooledConnection,
     pagination: &Pagination,
 ) -> CollectionsResult<Vec<CollectionEntity>> {
+    let connection = &*pooled_connection;
     let repository = CollectionRepository::new(connection);
     repository.find_recently_revisioned_entities(pagination)
 }
@@ -336,7 +340,7 @@ fn handle_get_collections_query_pagination(mut state: State) -> Box<HandlerFutur
         }
     };
 
-    let response = match find_recently_revisioned_collections(&*pooled_connection, &pagination) {
+    let response = match find_recently_revisioned_collections(pooled_connection, &pagination) {
         Ok(collections) => match serde_json::to_vec(&collections) {
             Ok(response_body) => create_response(
                 &state,
@@ -352,9 +356,10 @@ fn handle_get_collections_query_pagination(mut state: State) -> Box<HandlerFutur
 }
 
 fn create_collection(
-    connection: &SqliteConnection,
+    pooled_connection: SqlitePooledConnection,
     body: CollectionBody,
 ) -> Result<CollectionEntity, Error> {
+    let connection = &*pooled_connection;
     let repository = CollectionRepository::new(connection);
     connection.transaction::<_, Error, _>(|| repository.create_entity(body))
 }
@@ -381,7 +386,7 @@ fn handle_post_collections(mut state: State) -> Box<HandlerFuture> {
                     }
                 };
 
-                let entity = match create_collection(&*pooled_connection, entity_body) {
+                let entity = match create_collection(pooled_connection, entity_body) {
                     Ok(entity) => entity,
                     Err(e) => {
                         let response =
@@ -414,9 +419,10 @@ fn handle_post_collections(mut state: State) -> Box<HandlerFuture> {
 }
 
 fn update_collection(
-    connection: &SqliteConnection,
+    pooled_connection: SqlitePooledConnection,
     entity: &CollectionEntity,
 ) -> CollectionsResult<Option<(EntityRevision, EntityRevision)>> {
+    let connection = &*pooled_connection;
     let repository = CollectionRepository::new(connection);
     connection.transaction::<_, Error, _>(|| repository.update_entity(entity))
 }
@@ -455,7 +461,7 @@ fn handle_put_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
                 };
 
                 let prev_revision = entity.header().revision();
-                let next_revision = match update_collection(&*pooled_connection, &entity) {
+                let next_revision = match update_collection(pooled_connection, &entity) {
                     Ok(Some((_, next_revision))) => next_revision,
                     Ok(None) => {
                         let prev_header = EntityHeader::new(uid, prev_revision);
@@ -499,10 +505,11 @@ fn handle_put_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
 }
 
 fn create_track(
-    connection: &SqliteConnection,
+    pooled_connection: SqlitePooledConnection,
     body: TrackBody,
     format: SerializationFormat,
 ) -> TracksResult<TrackEntity> {
+    let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
     connection.transaction::<_, Error, _>(|| repository.create_entity(body, format))
 }
@@ -547,7 +554,7 @@ fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
                     }
                 };
 
-                let entity = match create_track(&*pooled_connection, entity_body, format) {
+                let entity = match create_track(pooled_connection, entity_body, format) {
                     Ok(entity) => entity,
                     Err(e) => {
                         let response =
@@ -580,10 +587,11 @@ fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
 }
 
 fn update_track(
-    connection: &SqliteConnection,
+    pooled_connection: SqlitePooledConnection,
     entity: &mut TrackEntity,
     format: SerializationFormat,
 ) -> TracksResult<Option<(EntityRevision, EntityRevision)>> {
+    let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
     connection.transaction::<_, Error, _>(|| repository.update_entity(entity, format))
 }
@@ -640,7 +648,7 @@ fn handle_put_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
                 };
 
                 let prev_revision = entity.header().revision();
-                let next_revision = match update_track(&*pooled_connection, &mut entity, format) {
+                let next_revision = match update_track(pooled_connection, &mut entity, format) {
                     Ok(Some((_, next_revision))) => {
                         assert!(next_revision == entity.header().revision());
                         next_revision
@@ -686,7 +694,8 @@ fn handle_put_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
     Box::new(handler_future)
 }
 
-fn remove_track(connection: &SqliteConnection, uid: &EntityUid) -> Result<(), Error> {
+fn remove_track(pooled_connection: SqlitePooledConnection, uid: &EntityUid) -> Result<(), Error> {
+    let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
     connection.transaction::<_, Error, _>(|| repository.remove_entity(&uid))
 }
@@ -708,7 +717,7 @@ fn handle_delete_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
         }
     };
 
-    let response = match remove_track(&*pooled_connection, &uid) {
+    let response = match remove_track(pooled_connection, &uid) {
         Ok(_) => create_response(&state, StatusCode::NoContent, None),
         Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
     };
@@ -717,9 +726,10 @@ fn handle_delete_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
 }
 
 fn load_track(
-    connection: &SqliteConnection,
+    pooled_connection: SqlitePooledConnection,
     uid: &EntityUid,
 ) -> TracksResult<Option<SerializedEntity>> {
+    let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
     repository.load_entity(&uid)
 }
@@ -741,7 +751,7 @@ fn handle_get_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
         }
     };
 
-    let response = match load_track(&*pooled_connection, &uid) {
+    let response = match load_track(pooled_connection, &uid) {
         Ok(Some(serialized_entity)) => create_response(
             &state,
             StatusCode::Ok,
@@ -755,11 +765,12 @@ fn handle_get_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
 }
 
 fn locate_tracks(
-    connection: &SqliteConnection,
+    pooled_connection: SqlitePooledConnection,
     collection_uid: Option<&EntityUid>,
     pagination: &Pagination,
     locate_params: LocateParams,
 ) -> TracksResult<Vec<SerializedEntity>> {
+    let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
     repository.locate_entities(collection_uid, pagination, locate_params)
 }
@@ -811,7 +822,7 @@ fn handle_post_collections_path_uid_tracks_locate_query_pagination(
                 };
 
                 let response = match locate_tracks(
-                    &*pooled_connection,
+                    pooled_connection,
                     collection_uid.as_ref(),
                     &pagination,
                     locate_params,
@@ -838,11 +849,12 @@ fn handle_post_collections_path_uid_tracks_locate_query_pagination(
 }
 
 fn replace_track(
-    connection: &SqliteConnection,
+    pooled_connection: SqlitePooledConnection,
     collection_uid: Option<&EntityUid>,
     replace_params: ReplaceParams,
     format: SerializationFormat,
 ) -> TracksResult<TrackEntityReplacement> {
+    let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
     connection.transaction::<_, Error, _>(|| {
         repository.replace_entity(collection_uid, replace_params, format)
@@ -892,7 +904,7 @@ fn handle_post_collections_path_uid_tracks_replace(mut state: State) -> Box<Hand
                 };
 
                 let (entity, status_code) = match replace_track(
-                    &*pooled_connection,
+                    pooled_connection,
                     collection_uid.as_ref(),
                     replace_params,
                     format,
@@ -939,11 +951,12 @@ fn handle_post_collections_path_uid_tracks_replace(mut state: State) -> Box<Hand
 }
 
 fn search_tracks(
-    connection: &SqliteConnection,
+    pooled_connection: SqlitePooledConnection,
     collection_uid: Option<&EntityUid>,
     pagination: &Pagination,
     search_params: SearchParams,
 ) -> TracksResult<Vec<SerializedEntity>> {
+    let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
     repository.search_entities(collection_uid, pagination, search_params)
 }
@@ -995,7 +1008,7 @@ fn handle_post_collections_path_uid_tracks_search_query_pagination(
                 };
 
                 let response = match search_tracks(
-                    &*pooled_connection,
+                    pooled_connection,
                     collection_uid.as_ref(),
                     &pagination,
                     search_params,
@@ -1034,7 +1047,7 @@ fn handle_get_collections_path_uid_tracks_query_pagination(mut state: State) -> 
     };
 
     let response = match search_tracks(
-        &*pooled_connection,
+        pooled_connection,
         collection_uid.as_ref(),
         &pagination,
         SearchParams::default(),
