@@ -17,9 +17,9 @@ use std::process;
 
 use futures::{future, Future};
 
+use gotham::handler::HandlerFuture;
 use gotham::middleware::{Middleware, NewMiddleware};
 use gotham::state::{request_id, State};
-use gotham::handler::HandlerFuture;
 
 use diesel::Connection;
 use r2d2::Pool;
@@ -62,7 +62,10 @@ where
     pub fn new(database_url: &str, max_size: u32) -> Self {
         let manager = ConnectionManager::<T>::new(database_url);
 
-        let pool = Pool::<ConnectionManager<T>>::builder().max_size(max_size).build(manager).expect("Failed to create pool.");
+        let pool = Pool::<ConnectionManager<T>>::builder()
+            .max_size(max_size)
+            .build(manager)
+            .expect("Failed to create pool.");
 
         DieselMiddleware::with_pool(pool)
     }

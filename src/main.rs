@@ -56,17 +56,17 @@ extern crate serde_derive;
 
 extern crate serde_json;
 
-use aoide_core::domain::collection::*;
-use aoide_core::domain::track::*;
-use aoide_core::domain::entity::*;
 use aoide::middleware;
 use aoide::middleware::DieselMiddleware;
 use aoide::storage::collections::*;
-use aoide::storage::tracks::*;
 use aoide::storage::serde::*;
-use aoide::usecases::*;
+use aoide::storage::tracks::*;
 use aoide::usecases::request::{LocateParams, ReplaceParams, SearchParams};
 use aoide::usecases::result::*;
+use aoide::usecases::*;
+use aoide_core::domain::collection::*;
+use aoide_core::domain::entity::*;
+use aoide_core::domain::track::*;
 
 use diesel::prelude::*;
 
@@ -79,16 +79,16 @@ use futures::{future, Future, Stream};
 
 // Gotham v0.3
 //use gotham::helpers::http::response::create_response;
+use gotham::handler::HandlerFuture;
 use gotham::http::response::create_response;
-use gotham::router::Router;
-use gotham::router::builder::*;
 use gotham::pipeline::new_pipeline;
 use gotham::pipeline::set::{finalize_pipeline_set, new_pipeline_set};
+use gotham::router::Router;
+use gotham::router::builder::*;
 use gotham::state::{FromState, State};
-use gotham::handler::HandlerFuture;
 
-use hyper::{Response, StatusCode};
 use hyper::header::{ContentType, Headers};
+use hyper::{Response, StatusCode};
 
 use env_logger::Builder as LoggerBuilder;
 
@@ -108,7 +108,9 @@ type SqliteDieselMiddleware = DieselMiddleware<SqliteConnection>;
 fn create_connection_pool(url: &str, max_size: u32) -> Result<SqliteConnectionPool, Error> {
     info!("Creating SQLite connection pool for '{}'", url);
     let manager = ConnectionManager::new(url);
-    let pool = SqliteConnectionPool::builder().max_size(max_size).build(manager)?;
+    let pool = SqliteConnectionPool::builder()
+        .max_size(max_size)
+        .build(manager)?;
     Ok(pool)
 }
 
@@ -523,7 +525,10 @@ fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
                     match deserialize_slice_with_format(&valid_body, format) {
                         Ok(entity_body) => entity_body,
                         Err(e) => {
-                            warn!("Deserialization failed: {}", str::from_utf8(&valid_body).unwrap());
+                            warn!(
+                                "Deserialization failed: {}",
+                                str::from_utf8(&valid_body).unwrap()
+                            );
                             let response =
                                 format_response_message(&state, StatusCode::BadRequest, &e);
                             return future::ok((state, response));
@@ -601,7 +606,10 @@ fn handle_put_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
                     match deserialize_slice_with_format(&valid_body, format) {
                         Ok(entity_body) => entity_body,
                         Err(e) => {
-                            warn!("Deserialization failed: {}", str::from_utf8(&valid_body).unwrap());
+                            warn!(
+                                "Deserialization failed: {}",
+                                str::from_utf8(&valid_body).unwrap()
+                            );
                             let response =
                                 format_response_message(&state, StatusCode::BadRequest, &e);
                             return future::ok((state, response));
@@ -783,7 +791,10 @@ fn handle_post_collections_path_uid_tracks_locate_query_pagination(
                     match deserialize_slice_with_format(&valid_body, format) {
                         Ok(locate_params) => locate_params,
                         Err(e) => {
-                            warn!("Deserialization failed: {}", str::from_utf8(&valid_body).unwrap());
+                            warn!(
+                                "Deserialization failed: {}",
+                                str::from_utf8(&valid_body).unwrap()
+                            );
                             let response =
                                 format_response_message(&state, StatusCode::BadRequest, &e);
                             return future::ok((state, response));
@@ -858,7 +869,10 @@ fn handle_post_collections_path_uid_tracks_replace(mut state: State) -> Box<Hand
                     match deserialize_slice_with_format(&valid_body, format) {
                         Ok(replace_params) => replace_params,
                         Err(e) => {
-                            warn!("Deserialization failed: {}", str::from_utf8(&valid_body).unwrap());
+                            warn!(
+                                "Deserialization failed: {}",
+                                str::from_utf8(&valid_body).unwrap()
+                            );
                             let response =
                                 format_response_message(&state, StatusCode::BadRequest, &e);
                             return future::ok((state, response));
@@ -961,7 +975,10 @@ fn handle_post_collections_path_uid_tracks_search_query_pagination(
                     match deserialize_slice_with_format(&valid_body, format) {
                         Ok(search_params) => search_params,
                         Err(e) => {
-                            warn!("Deserialization failed: {}", str::from_utf8(&valid_body).unwrap());
+                            warn!(
+                                "Deserialization failed: {}",
+                                str::from_utf8(&valid_body).unwrap()
+                            );
                             let response =
                                 format_response_message(&state, StatusCode::BadRequest, &e);
                             return future::ok((state, response));
