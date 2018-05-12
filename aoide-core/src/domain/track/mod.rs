@@ -441,10 +441,18 @@ impl fmt::Display for DiscNumbers {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "lowercase")]
 pub enum TrackMark {
-    LoadCue,
+    // Cueing
+    LoadCue, // default position when loading a track, only one per track
     HotCue,
+    // Fading: Short transitions for automatic playback, only one in/out per track
     FadeIn,
     FadeOut,
+    // Mixing: Long, manual transitions with beat matching
+    MixIn,
+    MixOut,
+    // Sampling
+    Sample,
+    // Looping
     Loop,
 }
 
@@ -472,15 +480,15 @@ impl TrackMarker {
     pub fn is_singular(mark: TrackMark) -> bool {
         match mark {
             TrackMark::LoadCue | TrackMark::FadeIn | TrackMark::FadeOut => true,
-            TrackMark::HotCue | TrackMark::Loop => false,
+            _ => false,
         }
     }
 
     pub fn is_valid(&self) -> bool {
         self.position.is_valid() && self.duration.is_valid() && match self.mark {
             TrackMark::LoadCue | TrackMark::HotCue => self.duration.is_empty(), // not available
-            TrackMark::FadeIn | TrackMark::FadeOut => true,                     // optional
-            TrackMark::Loop => !self.duration.is_empty(),                       // mandatory
+            TrackMark::Sample | TrackMark::Loop => !self.duration.is_empty(), // mandatory
+            _ => true, // optional, i.e. no restrictions on duration
         }
     }
 }
