@@ -65,6 +65,8 @@ CREATE TABLE aux_tracks_resource (
     audio_channels           INTEGER,           -- number of channels
     audio_samplerate_hz      INTEGER,           -- Hz
     audio_bitrate_bps        INTEGER,           -- bits per second (bps)
+    audio_enc_name           TEXT,              -- encoded by
+    audio_enc_settings       TEXT,              -- encoder settings
     color_code               INTEGER,           -- 0xAARRGGBB (hex)
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (collection_uid, track_id),
