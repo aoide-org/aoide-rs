@@ -190,6 +190,9 @@ pub struct TrackResource {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub color: Option<TrackColor>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub play_counter: Option<usize>,
 }
 
 impl TrackResource {
@@ -835,6 +838,7 @@ mod tests {
                 },
                 source,
                 color: Some(TrackColor::RED),
+                play_counter: None,
             },
         ];
         let tags = vec![
