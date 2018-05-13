@@ -424,9 +424,9 @@ impl OpenKeySignature {
 
     pub fn new(code: KeyCode, mode: KeyMode) -> Self {
         let key_signature = KeySignature {
-            code: (code * 2 - 1) + match mode {
-                KeyMode::Major => 0,
-                KeyMode::Minor => 1,
+            code: 2 * code - match mode {
+                KeyMode::Major => 1,
+                KeyMode::Minor => 0,
             },
         };
         Self { key_signature }
