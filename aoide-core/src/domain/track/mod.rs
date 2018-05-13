@@ -350,7 +350,7 @@ impl AlbumMetadata {
     pub fn is_valid(&self) -> bool {
         self.identity.iter().all(AlbumIdentity::is_valid)
             && self.release.iter().all(ReleaseMetadata::is_valid) && self.titles.is_valid()
-            && self.actors.iter().all(Actor::is_valid)
+            && Actors::is_valid(&self.actors)
     }
 }
 
@@ -677,7 +677,7 @@ impl TrackBody {
         !self.resources.is_empty() && self.resources.iter().all(TrackResource::is_valid)
             && self.identity.iter().all(TrackIdentity::is_valid)
             && self.album.iter().all(AlbumMetadata::is_valid) && self.titles.is_valid()
-            && self.actors.iter().all(Actor::is_valid)
+            && Actors::is_valid(&self.actors)
             && self.track_numbers.is_valid()
             && self.disc_numbers.is_valid()
             && self.music.iter().all(MusicMetadata::is_valid)
@@ -712,20 +712,20 @@ impl TrackBody {
         self.resource(collection_uid).is_some()
     }
 
-    pub fn actors_to_string(&self, role_opt: Option<ActorRole>) -> Option<String> {
-        Actor::actors_to_string(&self.actors, role_opt)
+    pub fn default_actor_name<'a>(&'a self, role: ActorRole) -> Option<&'a str> {
+        Actors::default_name(&self.actors, role)
     }
 
-    pub fn artists_to_string(&self) -> Option<String> {
-        self.actors_to_string(Some(ActorRole::Artist))
+    pub fn default_artist_name<'a>(&'a self) -> Option<&'a str> {
+        self.default_actor_name(ActorRole::Artist)
     }
 
-    pub fn album_actors_to_string(&self, role_opt: Option<ActorRole>) -> Option<String> {
-        Actor::actors_to_string(&self.actors, role_opt)
+    pub fn default_album_actor_name<'a>(&'a self, role: ActorRole) -> Option<&'a str> {
+        self.album.as_ref().and_then(|album| Actors::default_name(&album.actors, role))
     }
 
-    pub fn album_artists_to_string(&self) -> Option<String> {
-        self.album_actors_to_string(Some(ActorRole::Artist))
+    pub fn default_album_artist_name<'a>(&'a self) -> Option<&'a str> {
+        self.default_album_actor_name(ActorRole::Artist)
     }
 }
 

@@ -24,8 +24,7 @@ use storage::serde::SerializationFormat;
 
 use aoide_core::domain::entity::{EntityHeader, EntityRevision};
 use aoide_core::domain::metadata::{Comment, Confidence, ConfidenceValue, Rating, Tag};
-use aoide_core::domain::music::{Actor, ActorRole, BeatsPerMinute, Classifier, Decibel, Loudness,
-                                LUFS};
+use aoide_core::domain::music::{ActorRole, BeatsPerMinute, Classifier, Decibel, Loudness, LUFS};
 use aoide_core::domain::track::{MusicMetadata, TrackBody, TrackResource};
 
 #[derive(Debug, Insertable)]
@@ -225,52 +224,42 @@ impl<'a> InsertableTracksOverview<'a> {
 
 #[derive(Debug, Insertable)]
 #[table_name = "aux_tracks_summary"]
-pub struct InsertableTracksSummary {
+pub struct InsertableTracksSummary<'a> {
     pub track_id: StorageId,
-    pub track_artists: Option<String>,
-    pub track_composers: Option<String>,
-    pub track_conductors: Option<String>,
-    pub track_performers: Option<String>,
-    pub track_producers: Option<String>,
-    pub track_remixers: Option<String>,
-    pub album_artists: Option<String>,
-    pub album_composers: Option<String>,
-    pub album_conductors: Option<String>,
-    pub album_performers: Option<String>,
-    pub album_producers: Option<String>,
+    pub track_artist: Option<&'a str>,
+    pub track_composer: Option<&'a str>,
+    pub track_conductor: Option<&'a str>,
+    pub track_performer: Option<&'a str>,
+    pub track_producer: Option<&'a str>,
+    pub track_remixer: Option<&'a str>,
+    pub album_artist: Option<&'a str>,
+    pub album_composer: Option<&'a str>,
+    pub album_conductor: Option<&'a str>,
+    pub album_performer: Option<&'a str>,
+    pub album_producer: Option<&'a str>,
     pub ratings_min: Option<ConfidenceValue>,
     pub ratings_max: Option<ConfidenceValue>,
 }
 
-impl InsertableTracksSummary {
-    pub fn bind(track_id: StorageId, body: &TrackBody) -> Self {
+impl<'a> InsertableTracksSummary<'a> {
+    pub fn bind(track_id: StorageId, body: &'a TrackBody) -> Self {
         let (ratings_min, ratings_max) = match Rating::minmax(&body.ratings, None) {
             Some((Confidence(min), Confidence(max))) => (Some(min), Some(max)),
             None => (None, None),
         };
         Self {
             track_id,
-            track_artists: Actor::actors_to_string(&body.actors, Some(ActorRole::Artist)),
-            track_composers: Actor::actors_to_string(&body.actors, Some(ActorRole::Composer)),
-            track_conductors: Actor::actors_to_string(&body.actors, Some(ActorRole::Conductor)),
-            track_performers: Actor::actors_to_string(&body.actors, Some(ActorRole::Performer)),
-            track_producers: Actor::actors_to_string(&body.actors, Some(ActorRole::Producer)),
-            track_remixers: Actor::actors_to_string(&body.actors, Some(ActorRole::Remixer)),
-            album_artists: body.album
-                .as_ref()
-                .and_then(|album| Actor::actors_to_string(&album.actors, Some(ActorRole::Artist))),
-            album_composers: body.album.as_ref().and_then(|album| {
-                Actor::actors_to_string(&album.actors, Some(ActorRole::Composer))
-            }),
-            album_conductors: body.album.as_ref().and_then(|album| {
-                Actor::actors_to_string(&album.actors, Some(ActorRole::Conductor))
-            }),
-            album_performers: body.album.as_ref().and_then(|album| {
-                Actor::actors_to_string(&album.actors, Some(ActorRole::Performer))
-            }),
-            album_producers: body.album.as_ref().and_then(|album| {
-                Actor::actors_to_string(&album.actors, Some(ActorRole::Producer))
-            }),
+            track_artist: TrackBody::default_actor_name(&body, ActorRole::Artist),
+            track_composer: TrackBody::default_actor_name(&body, ActorRole::Composer),
+            track_conductor: TrackBody::default_actor_name(&body, ActorRole::Conductor),
+            track_performer: TrackBody::default_actor_name(&body, ActorRole::Performer),
+            track_producer: TrackBody::default_actor_name(&body, ActorRole::Producer),
+            track_remixer: TrackBody::default_actor_name(&body, ActorRole::Remixer),
+            album_artist: TrackBody::default_album_actor_name(&body, ActorRole::Artist),
+            album_composer: TrackBody::default_album_actor_name(&body, ActorRole::Composer),
+            album_conductor: TrackBody::default_album_actor_name(&body, ActorRole::Conductor),
+            album_performer: TrackBody::default_album_actor_name(&body, ActorRole::Performer),
+            album_producer: TrackBody::default_album_actor_name(&body, ActorRole::Producer),
             ratings_min,
             ratings_max,
         }

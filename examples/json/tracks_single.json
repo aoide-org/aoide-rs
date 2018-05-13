@@ -78,40 +78,30 @@
             "actors": [
                 {
                     "role": "artist",
+                    "name": "Madonna feat. M.I.A. and Nicki Minaj"
+                },
+                {
+                    "role": "artist",
+                    "prio": "primary",
                     "name": "Madonna"
+                },
+                {
+                    "role": "artist",
+                    "prio": "secondary",
+                    "name": "M.I.A."
+                },
+                {
+                    "role": "artist",
+                    "prio": "secondary",
+                    "name": "Nicki Minaj"
                 },
                 {
                     "role": "producer",
                     "name": "Martin Solveig"
                 },
                 {
-                    "role": "artist",
-                    "prefix": " ft. ",
-                    "name": "Nicki Minaj"
-                },
-                {
-                    "role": "artist",
-                    "prefix": " & ",
-                    "name": "M.I.A."
-                },
-                {
                     "role": "composer",
-                    "name": "Madonna"
-                },
-                {
-                    "role": "composer",
-                    "prefix": ", ",
-                    "name": "Nicki Minaj"
-                },
-                {
-                    "role": "composer",
-                    "prefix": ", ",
-                    "name": "Martin Solveig"
-                },
-                {
-                    "role": "composer",
-                    "prefix": " & ",
-                    "name": "Julien Jabre"
+                    "name": "Madonna, Nicki Minaj, Martin Solveig & Julien Jabre"
                 }
             ],
             "trackNumbers": {

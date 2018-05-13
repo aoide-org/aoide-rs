@@ -658,12 +658,12 @@ impl<'a> Tracks for TrackRepository<'a> {
                         .escape('\\'),
                 )
                 .or_filter(
-                    aux_tracks_summary::track_artists
+                    aux_tracks_summary::track_artist
                         .like(&like_expr)
                         .escape('\\'),
                 )
                 .or_filter(
-                    aux_tracks_summary::album_artists
+                    aux_tracks_summary::album_artist
                         .like(&like_expr)
                         .escape('\\'),
                 )

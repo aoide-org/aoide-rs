@@ -47,71 +47,81 @@ impl Default for ActorRole {
 }
 
 ///////////////////////////////////////////////////////////////////////
+/// ActorPriority
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "lowercase")]
+pub enum ActorPriority {
+    Summary = 0,
+    Primary = 1,
+    Secondary = 2,
+}
+
+impl ActorPriority {
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
+}
+
+impl Default for ActorPriority {
+    fn default() -> ActorPriority {
+        ActorPriority::Summary
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
 /// Actor
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Actor {
-    role: ActorRole,
-    // The prefix contains all necessary separators between the
-    // preceding and this actor's name, i.e. there is no implicit
-    // spacing!
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    prefix: String,
-    name: String,
+    pub role: ActorRole,
+
+    #[serde(skip_serializing_if = "ActorPriority::is_default", default)]
+    pub prio: ActorPriority,
+
+    pub name: String,
 }
 
 impl Actor {
-    pub fn artist<S: Into<String>>(name: S) -> Self {
-        Self {
-            role: ActorRole::Artist,
-            prefix: String::default(),
-            name: name.into(),
-        }
-    }
-
-    pub fn prefixed_artist<S1: Into<String>, S2: Into<String>>(prefix: S1, name: S2) -> Self {
-        Self {
-            role: ActorRole::Artist,
-            prefix: prefix.into(),
-            name: name.into(),
-        }
-    }
-
     pub fn is_valid(&self) -> bool {
         !self.name.is_empty()
     }
+}
 
-    fn string_len(&self) -> usize {
-        self.prefix.len() + self.name.len()
+pub struct Actors;
+
+impl Actors {
+    pub fn is_valid(actors: &[Actor]) -> bool {
+        actors.iter().all(|actor| actor.is_valid())
+        // TODO:
+        // - at most one summary entry exists for each role
+        // - at most one primary entry exists for each role
+        // - at least one summary or primary entry exists for each role
     }
 
-    fn append_to_string(&self, builder: &mut String) {
-        builder.push_str(&self.prefix);
-        builder.push_str(&self.name);
-    }
-
-    pub fn actors_to_string(actors: &[Self], role_opt: Option<ActorRole>) -> Option<String> {
-        let count = actors
+    pub fn summary<'a>(actors: &'a [Actor], role: ActorRole) -> Option<&'a Actor> {
+        // Assumption: At most one summary entry exists per role
+        actors
             .iter()
-            .filter(|a| role_opt.is_none() || (Some(a.role) == role_opt))
-            .count();
-        if count > 0 {
-            let capacity = actors
-                .iter()
-                .filter(|a| role_opt.is_none() || (Some(a.role) == role_opt))
-                .map(|a| a.string_len())
-                .sum();
-            let mut builder = String::with_capacity(capacity);
-            actors
-                .iter()
-                .filter(|a| role_opt.is_none() || (Some(a.role) == role_opt))
-                .for_each(|a| a.append_to_string(&mut builder));
-            Some(builder)
-        } else {
-            None
-        }
+            .filter(|actor| actor.role == role && actor.prio == ActorPriority::Summary)
+            .nth(0)
+    }
+
+    pub fn primary<'a>(actors: &'a [Actor], role: ActorRole) -> Option<&'a Actor> {
+        // Assumption: At most one primary entry exists per role
+        actors
+            .iter()
+            .filter(|actor| actor.role == role && actor.prio == ActorPriority::Primary)
+            .nth(0)
+    }
+
+    pub fn default_name<'a>(actors: &'a [Actor], role: ActorRole) -> Option<&'a str> {
+        Self::summary(actors, role)
+            .or_else(|| Self::primary(actors, role))
+            .map(|actor| actor.name.as_str())
     }
 }
 
@@ -444,34 +454,46 @@ mod tests {
     use super::*;
 
     #[test]
-    fn actor_artists_to_string() {
+    fn actors() {
+        let default_artist_name = "Madonna feat. M.I.A. and Nicki Minaj";
+        let default_producer_name = "Martin Solveig";
         let actors = vec![
-            Actor::artist("Madonna"),
+            Actor {
+                role: ActorRole::Artist,
+                prio: ActorPriority::Summary,
+                name: default_artist_name.into(),
+            },
+            Actor {
+                role: ActorRole::Artist,
+                prio: ActorPriority::Primary,
+                name: "Madonna".into(),
+            },
+            Actor {
+                role: ActorRole::Artist,
+                prio: ActorPriority::Secondary,
+                name: "M.I.A.".into(),
+            },
             Actor {
                 role: ActorRole::Producer,
-                prefix: String::default(),
-                name: "Martin Solveig".to_string(),
+                prio: ActorPriority::Primary,
+                name: default_producer_name.into(),
             },
             Actor {
-                role: ActorRole::Remixer,
-                prefix: String::default(),
-                name: String::default(),
+                role: ActorRole::Artist,
+                prio: ActorPriority::Secondary,
+                name: "Nicki Minaj".into(),
             },
-            Actor::prefixed_artist(" feat. ", "M.I.A."),
-            Actor::prefixed_artist(" and ", "Nicki Minaj"),
         ];
+        assert!(Actors::is_valid(&actors));
         assert_eq!(
-            None,
-            Actor::actors_to_string(&actors, Some(ActorRole::Composer))
+            Some(default_artist_name),
+            Actors::default_name(&actors, ActorRole::Artist)
         );
         assert_eq!(
-            Some(String::default()),
-            Actor::actors_to_string(&actors, Some(ActorRole::Remixer))
+            Some(default_producer_name),
+            Actors::default_name(&actors, ActorRole::Producer)
         );
-        assert_eq!(
-            Some("Madonna feat. M.I.A. and Nicki Minaj".to_string()),
-            Actor::actors_to_string(&actors, Some(ActorRole::Artist))
-        );
+        assert_eq!(None, Actors::default_name(&actors, ActorRole::Conductor));
     }
 
     #[test]
