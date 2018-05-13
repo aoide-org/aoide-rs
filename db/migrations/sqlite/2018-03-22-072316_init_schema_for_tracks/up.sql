@@ -120,11 +120,11 @@ CREATE TABLE aux_tracks_summary (
 CREATE TABLE aux_tracks_music (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
-    music_loudness_db        REAL, -- LUFS dB
-    music_tempo_bpm          REAL, -- beats per minute (bpm)
-    music_time_sig_num       TINYINT,
-    music_time_sig_denom     TINYINT,
-    music_key_sig_code       TINYINT, -- {1, ..., 24}
+    music_loudness_db        REAL NOT NULL, -- LUFS dB
+    music_tempo_bpm          REAL NOT NULL, -- beats per minute (bpm)
+    music_time_sig_num       TINYINT NOT NULL, -- >= 0
+    music_time_sig_denom     TINYINT NOT NULL, -- >= 0
+    music_key_sig_code       TINYINT NOT NULL, -- {(0), 1, ..., 24}
     music_acousticness       REAL, -- [0.0, 1.0]
     music_danceability       REAL, -- [0.0, 1.0]
     music_energy             REAL, -- [0.0, 1.0]

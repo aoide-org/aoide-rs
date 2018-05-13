@@ -364,11 +364,11 @@ impl<'a> InsertableTracksResource<'a> {
 #[table_name = "aux_tracks_music"]
 pub struct InsertableTracksMusic {
     pub track_id: StorageId,
-    pub music_loudness_db: Option<Decibel>,
-    pub music_tempo_bpm: Option<BeatsPerMinute>,
-    pub music_time_sig_num: Option<i16>,
-    pub music_time_sig_denom: Option<i16>,
-    pub music_key_sig_code: Option<i16>,
+    pub music_loudness_db: Decibel,
+    pub music_tempo_bpm: BeatsPerMinute,
+    pub music_time_sig_num: i16,
+    pub music_time_sig_denom: i16,
+    pub music_key_sig_code: i16,
     pub music_acousticness: Option<ConfidenceValue>,
     pub music_danceability: Option<ConfidenceValue>,
     pub music_energy: Option<ConfidenceValue>,
@@ -382,22 +382,16 @@ pub struct InsertableTracksMusic {
 impl InsertableTracksMusic {
     pub fn bind(track_id: StorageId, music: &MusicMetadata) -> Self {
         let loudness_db = match music.loudness {
-            Some(Loudness::EBUR128LUFS(LUFS { db })) => Some(db),
-            None => None,
+            Some(Loudness::EBUR128LUFS(LUFS { db })) => db,
+            None => 0 as Decibel,
         };
         Self {
             track_id,
             music_loudness_db: loudness_db,
-            music_tempo_bpm: music.tempo.map(|tempo| tempo.bpm),
-            music_time_sig_num: music
-                .time_signature
-                .map(|time_signature| time_signature.numerator as i16),
-            music_time_sig_denom: music
-                .time_signature
-                .map(|time_signature| time_signature.denominator as i16),
-            music_key_sig_code: music
-                .key_signature
-                .map(|key_signature| key_signature.code as i16),
+            music_tempo_bpm: music.tempo.bpm,
+            music_time_sig_num: music.time_signature.numerator as i16,
+            music_time_sig_denom: music.time_signature.denominator as i16,
+            music_key_sig_code: music.key_signature.code as i16,
             music_acousticness: music
                 .classification(Classifier::Acousticness)
                 .map(|classification| *classification.confidence),

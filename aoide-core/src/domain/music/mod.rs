@@ -174,17 +174,17 @@ pub enum Loudness {
     EBUR128LUFS(LUFS),
 }
 
+impl Loudness {
+    pub fn is_valid(&self) -> bool {
+        true
+    }
+}
+
 impl fmt::Display for Loudness {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             &Loudness::EBUR128LUFS(lufs) => write!(f, "{} {}", lufs.db, LUFS::UNIT_OF_MEASURE),
         }
-    }
-}
-
-impl Loudness {
-    pub fn is_valid(&self) -> bool {
-        true
     }
 }
 
@@ -212,6 +212,10 @@ impl Tempo {
         Self { bpm }
     }
 
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
+
     pub fn is_valid(&self) -> bool {
         *self > Self::default()
     }
@@ -235,6 +239,10 @@ pub struct TimeSignature {
 }
 
 impl TimeSignature {
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
+
     pub fn is_valid(&self) -> bool {
         (self.numerator > 0) && (self.denominator > 0)
     }
@@ -276,6 +284,10 @@ impl KeySignature {
     pub fn new(code: KeyCode) -> Self {
         assert!(Self::is_valid_code(code));
         Self { code }
+    }
+
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
     }
 
     pub fn is_valid(&self) -> bool {

@@ -503,17 +503,17 @@ impl TrackMarker {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct MusicMetadata {
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub loudness: Option<Loudness>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tempo: Option<Tempo>,
+    #[serde(skip_serializing_if = "Tempo::is_default", default)]
+    pub tempo: Tempo,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub time_signature: Option<TimeSignature>,
+    #[serde(skip_serializing_if = "TimeSignature::is_default", default)]
+    pub time_signature: TimeSignature,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub key_signature: Option<KeySignature>,
+    #[serde(skip_serializing_if = "KeySignature::is_default", default)]
+    pub key_signature: KeySignature,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub classifications: Vec<Classification>, // no duplicate classifiers allowed
@@ -521,9 +521,10 @@ pub struct MusicMetadata {
 
 impl MusicMetadata {
     pub fn is_valid(&self) -> bool {
-        self.loudness.iter().all(Loudness::is_valid) && self.tempo.iter().all(Tempo::is_valid)
-            && self.time_signature.iter().all(TimeSignature::is_valid)
-            && self.key_signature.iter().all(KeySignature::is_valid)
+        self.loudness.iter().all(Loudness::is_valid)
+            && (self.tempo.is_valid() || self.tempo.is_default())
+            && (self.time_signature.is_valid() || self.time_signature.is_default())
+            && (self.key_signature.is_valid() || self.key_signature.is_default())
             && self.classifications.iter().all(Classification::is_valid)
             && self.classifications.iter().all(|classification| {
                 classification.is_valid() && self.is_classifier_unique(classification.classifier)
