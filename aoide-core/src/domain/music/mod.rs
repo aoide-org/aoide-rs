@@ -18,6 +18,8 @@ use domain::metadata::Confidence;
 use std::f64;
 use std::fmt;
 
+use uuid::Uuid;
+
 ///////////////////////////////////////////////////////////////////////
 /// ActorRole
 ///////////////////////////////////////////////////////////////////////
@@ -71,6 +73,26 @@ impl Default for ActorPriority {
 }
 
 ///////////////////////////////////////////////////////////////////////
+/// ActorIdentity
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct ActorIdentity {
+    #[serde(skip_serializing_if = "Uuid::is_nil", default = "Uuid::nil")]
+    pub mbrainz_id: Uuid, // MusicBrainz Release Track Id
+
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub spotify_id: String, // excl. "spotify:track:" prefix
+}
+
+impl ActorIdentity {
+    pub fn is_valid(&self) -> bool {
+        true
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
 /// Actor
 ///////////////////////////////////////////////////////////////////////
 
@@ -83,6 +105,9 @@ pub struct Actor {
     pub prio: ActorPriority,
 
     pub name: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub identity: Option<ActorIdentity>,
 }
 
 impl Actor {
@@ -118,10 +143,12 @@ impl Actors {
             .nth(0)
     }
 
+    pub fn default_actor<'a>(actors: &'a [Actor], role: ActorRole) -> Option<&'a Actor> {
+        Self::summary(actors, role).or_else(|| Self::primary(actors, role))
+    }
+
     pub fn default_name<'a>(actors: &'a [Actor], role: ActorRole) -> Option<&'a str> {
-        Self::summary(actors, role)
-            .or_else(|| Self::primary(actors, role))
-            .map(|actor| actor.name.as_str())
+        Self::default_actor(actors, role).map(|actor| actor.name.as_str())
     }
 }
 
@@ -462,26 +489,31 @@ mod tests {
                 role: ActorRole::Artist,
                 prio: ActorPriority::Summary,
                 name: default_artist_name.into(),
+                ..Default::default()
             },
             Actor {
                 role: ActorRole::Artist,
                 prio: ActorPriority::Primary,
                 name: "Madonna".into(),
+                ..Default::default()
             },
             Actor {
                 role: ActorRole::Artist,
                 prio: ActorPriority::Secondary,
                 name: "M.I.A.".into(),
+                ..Default::default()
             },
             Actor {
                 role: ActorRole::Producer,
                 prio: ActorPriority::Primary,
                 name: default_producer_name.into(),
+                ..Default::default()
             },
             Actor {
                 role: ActorRole::Artist,
                 prio: ActorPriority::Secondary,
                 name: "Nicki Minaj".into(),
+                ..Default::default()
             },
         ];
         assert!(Actors::is_valid(&actors));

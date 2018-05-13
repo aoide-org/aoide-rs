@@ -93,8 +93,12 @@ pub struct InsertableTracksIdentity<'a> {
     pub track_acoust_id: Option<String>,
     pub track_mbrainz_id: Option<String>,
     pub track_spotify_id: Option<&'a str>,
+    pub track_artist_mbrainz_id: Option<String>,
+    pub track_artist_spotify_id: Option<&'a str>,
     pub album_mbrainz_id: Option<String>,
     pub album_spotify_id: Option<&'a str>,
+    pub album_artist_mbrainz_id: Option<String>,
+    pub album_artist_spotify_id: Option<&'a str>,
     pub release_ean: Option<&'a str>,
     pub release_upc: Option<&'a str>,
     pub release_mbrainz_id: Option<String>,
@@ -133,6 +137,12 @@ impl<'a> InsertableTracksIdentity<'a> {
             track_spotify_id: body.identity
                 .as_ref()
                 .and_then(|identity| format_optional_id(&identity.spotify_id)),
+            track_artist_mbrainz_id: body.default_artist()
+                .and_then(|actor| actor.identity.as_ref())
+                .and_then(|identity| format_optional_uuid(&identity.mbrainz_id)),
+            track_artist_spotify_id: body.default_artist()
+                .and_then(|actor| actor.identity.as_ref())
+                .and_then(|identity| format_optional_id(&identity.spotify_id)),
             album_mbrainz_id: body.album
                 .as_ref()
                 .and_then(|album| album.identity.as_ref())
@@ -140,6 +150,12 @@ impl<'a> InsertableTracksIdentity<'a> {
             album_spotify_id: body.album
                 .as_ref()
                 .and_then(|album| album.identity.as_ref())
+                .and_then(|identity| format_optional_id(&identity.spotify_id)),
+            album_artist_mbrainz_id: body.default_album_artist()
+                .and_then(|actor| actor.identity.as_ref())
+                .and_then(|identity| format_optional_uuid(&identity.mbrainz_id)),
+            album_artist_spotify_id: body.default_album_artist()
+                .and_then(|actor| actor.identity.as_ref())
                 .and_then(|identity| format_optional_id(&identity.spotify_id)),
             release_ean: body.album
                 .as_ref()
