@@ -143,12 +143,12 @@ impl Actors {
             .nth(0)
     }
 
-    pub fn default_actor<'a>(actors: &'a [Actor], role: ActorRole) -> Option<&'a Actor> {
+    pub fn main_actor<'a>(actors: &'a [Actor], role: ActorRole) -> Option<&'a Actor> {
         Self::summary(actors, role).or_else(|| Self::primary(actors, role))
     }
 
-    pub fn default_name<'a>(actors: &'a [Actor], role: ActorRole) -> Option<&'a str> {
-        Self::default_actor(actors, role).map(|actor| actor.name.as_str())
+    pub fn main_actor_name<'a>(actors: &'a [Actor], role: ActorRole) -> Option<&'a str> {
+        Self::main_actor(actors, role).map(|actor| actor.name.as_str())
     }
 }
 
@@ -531,13 +531,13 @@ mod tests {
         assert!(Actors::is_valid(&actors));
         assert_eq!(
             Some(default_artist_name),
-            Actors::default_name(&actors, ActorRole::Artist)
+            Actors::main_actor_name(&actors, ActorRole::Artist)
         );
         assert_eq!(
             Some(default_producer_name),
-            Actors::default_name(&actors, ActorRole::Producer)
+            Actors::main_actor_name(&actors, ActorRole::Producer)
         );
-        assert_eq!(None, Actors::default_name(&actors, ActorRole::Conductor));
+        assert_eq!(None, Actors::main_actor_name(&actors, ActorRole::Conductor));
     }
 
     #[test]

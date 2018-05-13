@@ -716,36 +716,36 @@ impl TrackBody {
         self.resource(collection_uid).is_some()
     }
 
-    pub fn default_actor<'a>(&'a self, role: ActorRole) -> Option<&'a Actor> {
-        Actors::default_actor(&self.actors, role)
+    pub fn main_actor<'a>(&'a self, role: ActorRole) -> Option<&'a Actor> {
+        Actors::main_actor(&self.actors, role)
     }
 
-    pub fn default_actor_name<'a>(&'a self, role: ActorRole) -> Option<&'a str> {
-        Actors::default_name(&self.actors, role)
+    pub fn main_actor_name<'a>(&'a self, role: ActorRole) -> Option<&'a str> {
+        Actors::main_actor_name(&self.actors, role)
     }
 
-    pub fn default_artist<'a>(&'a self) -> Option<&'a Actor> {
-        self.default_actor(ActorRole::Artist)
+    pub fn main_artist<'a>(&'a self) -> Option<&'a Actor> {
+        self.main_actor(ActorRole::Artist)
     }
 
-    pub fn default_artist_name<'a>(&'a self) -> Option<&'a str> {
-        self.default_actor_name(ActorRole::Artist)
+    pub fn main_artist_name<'a>(&'a self) -> Option<&'a str> {
+        self.main_actor_name(ActorRole::Artist)
     }
 
-    pub fn default_album_actor<'a>(&'a self, role: ActorRole) -> Option<&'a Actor> {
-        self.album.as_ref().and_then(|album| Actors::default_actor(&album.actors, role))
+    pub fn main_album_actor<'a>(&'a self, role: ActorRole) -> Option<&'a Actor> {
+        self.album.as_ref().and_then(|album| Actors::main_actor(&album.actors, role))
     }
 
-    pub fn default_album_actor_name<'a>(&'a self, role: ActorRole) -> Option<&'a str> {
-        self.album.as_ref().and_then(|album| Actors::default_name(&album.actors, role))
+    pub fn main_album_actor_name<'a>(&'a self, role: ActorRole) -> Option<&'a str> {
+        self.album.as_ref().and_then(|album| Actors::main_actor_name(&album.actors, role))
     }
 
-    pub fn default_album_artist<'a>(&'a self) -> Option<&'a Actor> {
-        self.default_album_actor(ActorRole::Artist)
+    pub fn main_album_artist<'a>(&'a self) -> Option<&'a Actor> {
+        self.main_album_actor(ActorRole::Artist)
     }
 
-    pub fn default_album_artist_name<'a>(&'a self) -> Option<&'a str> {
-        self.default_album_actor_name(ActorRole::Artist)
+    pub fn main_album_artist_name<'a>(&'a self) -> Option<&'a str> {
+        self.main_album_actor_name(ActorRole::Artist)
     }
 }
 
