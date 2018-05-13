@@ -81,13 +81,11 @@ CREATE TABLE aux_tracks_overview (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     track_title              TEXT NOT NULL,
-    track_subtitle           TEXT,
     track_number             INTEGER, -- > 0
     track_total              INTEGER, -- > 0
     disc_number              INTEGER, -- > 0
     disc_total               INTEGER, -- > 0
     album_title              TEXT,
-    album_subtitle           TEXT,
     album_grouping           TEXT,
     album_compilation        TINYINT, -- {0, 1}
     release_date             DATE, -- naive date, i.e. without any time zone

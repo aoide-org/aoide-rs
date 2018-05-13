@@ -186,13 +186,11 @@ impl<'a> InsertableTracksIdentity<'a> {
 pub struct InsertableTracksOverview<'a> {
     pub track_id: StorageId,
     pub track_title: &'a str,
-    pub track_subtitle: Option<&'a str>,
     pub track_number: Option<i32>,
     pub track_total: Option<i32>,
     pub disc_number: Option<i32>,
     pub disc_total: Option<i32>,
     pub album_title: Option<&'a str>,
-    pub album_subtitle: Option<&'a str>,
     pub album_grouping: Option<&'a str>,
     pub album_compilation: Option<bool>,
     pub release_date: Option<NaiveDate>,
@@ -204,20 +202,12 @@ impl<'a> InsertableTracksOverview<'a> {
     pub fn bind(track_id: StorageId, body: &'a TrackBody) -> Self {
         Self {
             track_id,
-            track_title: body.titles.title.as_str(),
-            track_subtitle: body.titles
-                .subtitle
-                .as_ref()
-                .map(|subtitle| subtitle.as_str()),
+            track_title: body.main_title_name().unwrap_or(""),
             track_number: body.track_numbers.this.map(|this| this as i32),
             track_total: body.track_numbers.total.map(|total| total as i32),
             disc_number: body.disc_numbers.this.map(|this| this as i32),
             disc_total: body.disc_numbers.total.map(|total| total as i32),
-            album_title: body.album.as_ref().map(|album| album.titles.title.as_str()),
-            album_subtitle: body.album
-                .as_ref()
-                .and_then(|album| album.titles.subtitle.as_ref())
-                .map(|subtitle| subtitle.as_str()),
+            album_title: body.main_album_title_name(),
             album_grouping: body.album
                 .as_ref()
                 .and_then(|album| album.grouping.as_ref())

@@ -21,6 +21,97 @@ use std::fmt;
 use uuid::Uuid;
 
 ///////////////////////////////////////////////////////////////////////
+/// TitleLevel
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "lowercase")]
+pub enum TitleLevel {
+    Main,
+    Sub,
+}
+
+impl Default for TitleLevel {
+    fn default() -> TitleLevel {
+        TitleLevel::Main
+    }
+}
+
+impl TitleLevel {
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+/// Title
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct Title {
+    #[serde(skip_serializing_if = "TitleLevel::is_default", default)]
+    pub level: TitleLevel,
+
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub language: String,
+
+    pub name: String,
+}
+
+impl Title {
+    pub fn is_valid(&self) -> bool {
+        !self.name.is_empty()
+    }
+
+    pub fn is_main_level(&self) -> bool {
+        self.level == TitleLevel::Main
+    }
+
+    pub fn is_language_independent(&self) -> bool {
+        self.language.is_empty()
+    }
+}
+
+pub struct Titles;
+
+impl Titles {
+    pub fn is_valid(titles: &[Title]) -> bool {
+        Self::has_language_independent_main_title(titles) && titles.iter().all(Title::is_valid)
+    }
+
+    pub fn language_independent_main_title<'a>(titles: &'a [Title]) -> Option<&'a Title> {
+        titles
+            .iter()
+            .filter(|title| title.is_main_level() && title.is_language_independent())
+            .nth(0)
+    }
+
+    pub fn has_language_independent_main_title<'a>(titles: &'a [Title]) -> bool {
+        if let Some(_) = Self::language_independent_main_title(titles) {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn main_title<'a>(titles: &'a [Title], language: String) -> Option<&'a Title> {
+        titles
+            .iter()
+            .filter(|title| title.is_main_level() && title.language == language)
+            .nth(0).or_else(|| Self::language_independent_main_title(titles))
+    }
+
+    pub fn language_independent_main_title_name<'a>(titles: &'a [Title]) -> Option<&'a str> {
+        Self::language_independent_main_title(titles).map(|title| title.name.as_str())
+    }
+
+    pub fn main_title_name<'a>(titles: &'a [Title], language: String) -> Option<&'a str> {
+        Self::main_title(titles, language).map(|title| title.name.as_str())
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
 /// ActorRole
 ///////////////////////////////////////////////////////////////////////
 
@@ -494,13 +585,13 @@ mod tests {
 
     #[test]
     fn actors() {
-        let default_artist_name = "Madonna feat. M.I.A. and Nicki Minaj";
+        let main_artist_name = "Madonna feat. M.I.A. and Nicki Minaj";
         let default_producer_name = "Martin Solveig";
         let actors = vec![
             Actor {
                 role: ActorRole::Artist,
                 prio: ActorPriority::Summary,
-                name: default_artist_name.into(),
+                name: main_artist_name.into(),
                 ..Default::default()
             },
             Actor {
@@ -530,7 +621,7 @@ mod tests {
         ];
         assert!(Actors::is_valid(&actors));
         assert_eq!(
-            Some(default_artist_name),
+            Some(main_artist_name),
             Actors::main_actor_name(&actors, ActorRole::Artist)
         );
         assert_eq!(

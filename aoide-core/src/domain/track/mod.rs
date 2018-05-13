@@ -203,27 +203,6 @@ impl TrackResource {
 }
 
 ///////////////////////////////////////////////////////////////////////
-/// Titles
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Titles {
-    // A main title is mandatory even though it might be empty
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub title: String,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub subtitle: Option<String>,
-}
-
-impl Titles {
-    pub fn is_valid(&self) -> bool {
-        !self.title.is_empty()
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
 /// TrackIdentity
 ///////////////////////////////////////////////////////////////////////
 
@@ -337,7 +316,8 @@ pub struct AlbumMetadata {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub release: Option<ReleaseMetadata>,
 
-    pub titles: Titles,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub titles: Vec<Title>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub actors: Vec<Actor>,
@@ -352,7 +332,8 @@ pub struct AlbumMetadata {
 impl AlbumMetadata {
     pub fn is_valid(&self) -> bool {
         self.identity.iter().all(AlbumIdentity::is_valid)
-            && self.release.iter().all(ReleaseMetadata::is_valid) && self.titles.is_valid()
+            && self.release.iter().all(ReleaseMetadata::is_valid)
+            && Titles::is_valid(&self.titles)
             && Actors::is_valid(&self.actors)
     }
 }
@@ -643,7 +624,8 @@ pub struct TrackBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub album: Option<AlbumMetadata>,
 
-    pub titles: Titles,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub titles: Vec<Title>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub actors: Vec<Actor>,
@@ -680,7 +662,8 @@ impl TrackBody {
     pub fn is_valid(&self) -> bool {
         !self.resources.is_empty() && self.resources.iter().all(TrackResource::is_valid)
             && self.identity.iter().all(TrackIdentity::is_valid)
-            && self.album.iter().all(AlbumMetadata::is_valid) && self.titles.is_valid()
+            && self.album.iter().all(AlbumMetadata::is_valid)
+            && Titles::is_valid(&self.titles)
             && Actors::is_valid(&self.actors)
             && self.track_numbers.is_valid()
             && self.disc_numbers.is_valid()
@@ -716,6 +699,14 @@ impl TrackBody {
         self.resource(collection_uid).is_some()
     }
 
+    pub fn main_title<'a>(&'a self) -> Option<&'a Title> {
+        Titles::language_independent_main_title(&self.titles)
+    }
+
+    pub fn main_title_name<'a>(&'a self) -> Option<&'a str> {
+        Titles::language_independent_main_title_name(&self.titles)
+    }
+
     pub fn main_actor<'a>(&'a self, role: ActorRole) -> Option<&'a Actor> {
         Actors::main_actor(&self.actors, role)
     }
@@ -730,6 +721,14 @@ impl TrackBody {
 
     pub fn main_artist_name<'a>(&'a self) -> Option<&'a str> {
         self.main_actor_name(ActorRole::Artist)
+    }
+
+    pub fn main_album_title<'a>(&'a self) -> Option<&'a Title> {
+        self.album.as_ref().and_then(|album| Titles::language_independent_main_title(&album.titles))
+    }
+
+    pub fn main_album_title_name<'a>(&'a self) -> Option<&'a str> {
+        self.album.as_ref().and_then(|album| Titles::language_independent_main_title_name(&album.titles))
     }
 
     pub fn main_album_actor<'a>(&'a self, role: ActorRole) -> Option<&'a Actor> {
