@@ -53,8 +53,8 @@ pub struct Title {
     #[serde(skip_serializing_if = "TitleLevel::is_default", default)]
     pub level: TitleLevel,
 
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub language: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
 
     pub name: String,
 }
@@ -69,11 +69,7 @@ impl Title {
     }
 
     pub fn is_language(&self, language: &str) -> bool {
-        self.language == language
-    }
-    
-    pub fn has_language(&self) -> bool {
-        !self.language.is_empty()
+        self.language.as_ref().map(|language| language.as_str()) == Some(language)
     }
 }
 
@@ -98,11 +94,11 @@ impl Titles {
     pub fn main_title_without_language<'a>(titles: &'a [Title]) -> Option<&'a Title> {
         debug_assert!(titles
             .iter()
-            .filter(|title| title.is_main_level() && !title.has_language())
+            .filter(|title| title.is_main_level() && title.language == None)
             .count() <= 1);
         titles
             .iter()
-            .filter(|title| title.is_main_level() && !title.has_language())
+            .filter(|title| title.is_main_level() && title.language == None)
             .nth(0)
     }
 
@@ -180,10 +176,10 @@ impl Default for ActorPriority {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ActorIdentity {
     #[serde(skip_serializing_if = "Uuid::is_nil", default = "Uuid::nil")]
-    pub mbrainz_id: Uuid, // MusicBrainz Release Track Id
+    pub mbrainz_id: Uuid, // MusicBrainz Artist Id
 
     #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub spotify_id: String, // excl. "spotify:track:" prefix
+    pub spotify_id: String, // excl. "spotify:artist:" prefix
 }
 
 impl ActorIdentity {
