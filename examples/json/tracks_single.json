@@ -44,21 +44,14 @@
                     }
                 }
             ],
-            "identity": {
-                "isrc": "USUG11200229",
-                "mbrainzId": "d878c95a-8a6b-3be6-b6df-7d720a480625"
-            },
             "album": {
-                "identity": {
-                    "mbrainzId": "5436c9f0-3bc4-410b-8f2d-b584779d5b2c"
-                },
                 "release": {
-                    "identity": {
-                        "asin": "B007MPE20U"
-                    },
                     "released": "2012-03-23T00:00:00.000Z",
                     "label": "Interscope Records",
-                    "copyright": "℗ 2012 Boy Toy, Inc. Exclusively licensed to Live Nation Worldwide, Inc. Exclusively licensed to Interscope Records"
+                    "copyright": "℗ 2012 Boy Toy, Inc. Exclusively licensed to Live Nation Worldwide, Inc. Exclusively licensed to Interscope Records",
+                    "refs": [
+                        "asin:B007MPE20U"
+                    ]
                 },
                 "titles": {
                     "title": "MDNA (Deluxe Version)",
@@ -69,6 +62,9 @@
                         "role": "artist",
                         "name": "Madonna"
                     }
+                ],
+                "refs": [
+                    "http://musicbrainz.org/release-group/5436c9f0-3bc4-410b-8f2d-b584779d5b2c"
                 ],
                 "compilation": false
             },
@@ -103,6 +99,10 @@
                     "role": "composer",
                     "name": "Madonna, Nicki Minaj, Martin Solveig & Julien Jabre"
                 }
+            ],
+            "refs": [
+                "isrc:USUG11200229",
+                "http://musicbrainz.org/track/d878c95a-8a6b-3be6-b6df-7d720a480625"
             ],
             "trackNumbers": {
                 "this": 5,

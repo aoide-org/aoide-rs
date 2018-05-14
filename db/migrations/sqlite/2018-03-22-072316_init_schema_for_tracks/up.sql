@@ -34,27 +34,6 @@ CREATE TABLE tracks_entity (
     ser_blob                 BLOB NOT NULL      -- serialized track entity
 );
 
-CREATE TABLE aux_tracks_identity (
-    id                       INTEGER PRIMARY KEY,
-    track_id                 INTEGER NOT NULL,
-    track_isrc               TEXT,
-    track_mbrainz_id         TEXT,
-    track_spotify_id         TEXT,
-    track_artist_mbrainz_id  TEXT,
-    track_artist_spotify_id  TEXT,
-    track_acoust_id          TEXT,
-    album_mbrainz_id         TEXT,
-    album_spotify_id         TEXT,
-    album_artist_mbrainz_id  TEXT,
-    album_artist_spotify_id  TEXT,
-    release_ean              TEXT,
-    release_upc              TEXT,
-    release_mbrainz_id       TEXT,
-    release_asin             TEXT,
-    FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
-    UNIQUE (track_id)
-);
-
 CREATE TABLE aux_tracks_resource (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,

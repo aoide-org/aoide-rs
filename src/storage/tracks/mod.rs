@@ -86,7 +86,6 @@ impl<'a> TrackRepository<'a> {
     }
 
     pub fn cleanup_aux_storage(&self) -> Result<(), failure::Error> {
-        self.cleanup_aux_identity()?;
         self.cleanup_aux_overview()?;
         self.cleanup_aux_summary()?;
         self.cleanup_aux_resource()?;
@@ -112,7 +111,6 @@ impl<'a> TrackRepository<'a> {
         storage_id: StorageId,
         track_body: &TrackBody,
     ) -> Result<(), failure::Error> {
-        self.insert_aux_identity(storage_id, track_body)?;
         self.insert_aux_overview(storage_id, track_body)?;
         self.insert_aux_summary(storage_id, track_body)?;
         self.insert_aux_resource(storage_id, track_body)?;
@@ -124,7 +122,6 @@ impl<'a> TrackRepository<'a> {
     }
 
     fn delete_aux_storage(&self, track_id: StorageId) -> Result<(), failure::Error> {
-        self.delete_aux_identity(track_id)?;
         self.delete_aux_overview(track_id)?;
         self.delete_aux_summary(track_id)?;
         self.delete_aux_resource(track_id)?;
@@ -132,33 +129,6 @@ impl<'a> TrackRepository<'a> {
         self.delete_aux_tag(track_id)?;
         self.delete_aux_comment(track_id)?;
         self.delete_aux_rating(track_id)?;
-        Ok(())
-    }
-
-    fn cleanup_aux_identity(&self) -> Result<(), failure::Error> {
-        let query = diesel::delete(aux_tracks_identity::table.filter(
-            aux_tracks_identity::track_id.ne_all(tracks_entity::table.select(tracks_entity::id)),
-        ));
-        query.execute(self.connection)?;
-        Ok(())
-    }
-
-    fn delete_aux_identity(&self, track_id: StorageId) -> Result<(), failure::Error> {
-        let query = diesel::delete(
-            aux_tracks_identity::table.filter(aux_tracks_identity::track_id.eq(track_id)),
-        );
-        query.execute(self.connection)?;
-        Ok(())
-    }
-
-    fn insert_aux_identity(
-        &self,
-        track_id: StorageId,
-        track_body: &TrackBody,
-    ) -> Result<(), failure::Error> {
-        let insertable = InsertableTracksIdentity::bind(track_id, track_body);
-        let query = diesel::insert_into(aux_tracks_identity::table).values(&insertable);
-        query.execute(self.connection)?;
         Ok(())
     }
 

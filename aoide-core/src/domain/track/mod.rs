@@ -203,67 +203,12 @@ impl TrackResource {
 }
 
 ///////////////////////////////////////////////////////////////////////
-/// TrackIdentity
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct TrackIdentity {
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub isrc: String, // International Standard Recording Code (ISO 3901)
-
-    #[serde(skip_serializing_if = "Uuid::is_nil", default = "Uuid::nil")]
-    pub mbrainz_id: Uuid, // MusicBrainz Release Track Id
-
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub spotify_id: String, // excl. "spotify:track:" prefix
-
-    #[serde(skip_serializing_if = "Uuid::is_nil", default = "Uuid::nil")]
-    pub acoust_id: Uuid,
-}
-
-impl TrackIdentity {
-    pub fn is_valid(&self) -> bool {
-        true
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-/// ReleaseIdentity
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct ReleaseIdentity {
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub ean: String,
-
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub upc: String,
-
-    #[serde(skip_serializing_if = "Uuid::is_nil", default = "Uuid::nil")]
-    pub mbrainz_id: Uuid, // MusicBrainz Release Id
-
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub asin: String,
-}
-
-impl ReleaseIdentity {
-    pub fn is_valid(&self) -> bool {
-        true
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
 /// ReleaseMetadata
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ReleaseMetadata {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub identity: Option<ReleaseIdentity>,
-
     #[serde(skip_serializing_if = "Option::is_none")]
     pub released: Option<DateTime<Utc>>,
 
@@ -275,29 +220,12 @@ pub struct ReleaseMetadata {
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub licenses: Vec<String>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub refs: Vec<String>, // external URIs
 }
 
 impl ReleaseMetadata {
-    pub fn is_valid(&self) -> bool {
-        self.identity.iter().all(ReleaseIdentity::is_valid)
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-/// AlbumIdentity
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct AlbumIdentity {
-    #[serde(skip_serializing_if = "Uuid::is_nil", default = "Uuid::nil")]
-    pub mbrainz_id: Uuid, // MusicBrainz Release Group Id
-
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub spotify_id: String, // excl. "spotify:album:" prefix
-}
-
-impl AlbumIdentity {
     pub fn is_valid(&self) -> bool {
         true
     }
@@ -311,9 +239,6 @@ impl AlbumIdentity {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AlbumMetadata {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub identity: Option<AlbumIdentity>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub release: Option<ReleaseMetadata>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
@@ -321,6 +246,9 @@ pub struct AlbumMetadata {
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub actors: Vec<Actor>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub refs: Vec<String>, // external URIs
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub grouping: Option<String>,
@@ -331,8 +259,7 @@ pub struct AlbumMetadata {
 
 impl AlbumMetadata {
     pub fn is_valid(&self) -> bool {
-        self.identity.iter().all(AlbumIdentity::is_valid)
-            && self.release.iter().all(ReleaseMetadata::is_valid)
+        self.release.iter().all(ReleaseMetadata::is_valid)
             && Titles::is_valid(&self.titles)
             && Actors::is_valid(&self.actors)
     }
@@ -619,9 +546,6 @@ pub struct TrackBody {
     pub resources: Vec<TrackResource>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub identity: Option<TrackIdentity>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub album: Option<AlbumMetadata>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
@@ -629,6 +553,9 @@ pub struct TrackBody {
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub actors: Vec<Actor>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub refs: Vec<String>, // external URIs
 
     #[serde(skip_serializing_if = "TrackNumbers::is_empty", default)]
     pub track_numbers: TrackNumbers,
@@ -661,7 +588,6 @@ pub struct TrackBody {
 impl TrackBody {
     pub fn is_valid(&self) -> bool {
         !self.resources.is_empty() && self.resources.iter().all(TrackResource::is_valid)
-            && self.identity.iter().all(TrackIdentity::is_valid)
             && self.album.iter().all(AlbumMetadata::is_valid)
             && Titles::is_valid(&self.titles)
             && Actors::is_valid(&self.actors)

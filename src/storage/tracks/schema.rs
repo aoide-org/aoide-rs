@@ -27,29 +27,6 @@ table! {
 }
 
 table! {
-    aux_tracks_identity (id) {
-        id -> BigInt,
-        track_id -> BigInt,
-        track_isrc -> Nullable<Text>,
-        track_acoust_id -> Nullable<Text>,
-        track_mbrainz_id -> Nullable<Text>,
-        track_spotify_id -> Nullable<Text>,
-        track_artist_mbrainz_id -> Nullable<Text>,
-        track_artist_spotify_id -> Nullable<Text>,
-        album_mbrainz_id -> Nullable<Text>,
-        album_spotify_id -> Nullable<Text>,
-        album_artist_mbrainz_id -> Nullable<Text>,
-        album_artist_spotify_id -> Nullable<Text>,
-        release_ean -> Nullable<Text>,
-        release_upc -> Nullable<Text>,
-        release_mbrainz_id -> Nullable<Text>,
-        release_asin -> Nullable<Text>,
-    }
-}
-
-joinable!(aux_tracks_identity -> tracks_entity (track_id));
-
-table! {
     aux_tracks_resource (id) {
         id -> BigInt,
         track_id -> BigInt,
@@ -181,5 +158,4 @@ allow_tables_to_appear_in_same_query!(
     aux_tracks_tag,
     aux_tracks_comment
 );
-allow_tables_to_appear_in_same_query!(aux_tracks_identity, tracks_entity);
 allow_tables_to_appear_in_same_query!(aux_tracks_rating, tracks_entity);

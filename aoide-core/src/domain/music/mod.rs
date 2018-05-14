@@ -169,26 +169,6 @@ impl Default for ActorPriority {
 }
 
 ///////////////////////////////////////////////////////////////////////
-/// ActorIdentity
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct ActorIdentity {
-    #[serde(skip_serializing_if = "Uuid::is_nil", default = "Uuid::nil")]
-    pub mbrainz_id: Uuid, // MusicBrainz Artist Id
-
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub spotify_id: String, // excl. "spotify:artist:" prefix
-}
-
-impl ActorIdentity {
-    pub fn is_valid(&self) -> bool {
-        true
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
 /// Actor
 ///////////////////////////////////////////////////////////////////////
 
@@ -202,8 +182,8 @@ pub struct Actor {
 
     pub name: String,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub identity: Option<ActorIdentity>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub refs: Vec<String>, // external URIs
 }
 
 impl Actor {
