@@ -526,7 +526,7 @@ impl MusicMetadata {
     }
 
     pub fn classification(&self, classifier: Classifier) -> Option<&Classification> {
-        assert!(self.is_classifier_unique(classifier));
+        debug_assert!(self.is_classifier_unique(classifier));
         self.classifications
             .iter()
             .filter(|classification| classification.classifier == classifier)
@@ -683,7 +683,7 @@ impl TrackBody {
     }
 
     pub fn resource<'a>(&'a self, collection_uid: &CollectionUid) -> Option<&'a TrackResource> {
-        assert!(
+        debug_assert!(
             self.resources
                 .iter()
                 .filter(|resource| &resource.collection.uid == collection_uid)
@@ -700,51 +700,19 @@ impl TrackBody {
     }
 
     pub fn main_title<'a>(&'a self) -> Option<&'a Title> {
-        Titles::language_independent_main_title(&self.titles)
-    }
-
-    pub fn main_title_name<'a>(&'a self) -> Option<&'a str> {
-        Titles::language_independent_main_title_name(&self.titles)
+        Titles::main_title_without_language(&self.titles)
     }
 
     pub fn main_actor<'a>(&'a self, role: ActorRole) -> Option<&'a Actor> {
         Actors::main_actor(&self.actors, role)
     }
 
-    pub fn main_actor_name<'a>(&'a self, role: ActorRole) -> Option<&'a str> {
-        Actors::main_actor_name(&self.actors, role)
+    pub fn album_main_title<'a>(&'a self) -> Option<&'a Title> {
+        self.album.as_ref().and_then(|album| Titles::main_title_without_language(&album.titles))
     }
 
-    pub fn main_artist<'a>(&'a self) -> Option<&'a Actor> {
-        self.main_actor(ActorRole::Artist)
-    }
-
-    pub fn main_artist_name<'a>(&'a self) -> Option<&'a str> {
-        self.main_actor_name(ActorRole::Artist)
-    }
-
-    pub fn main_album_title<'a>(&'a self) -> Option<&'a Title> {
-        self.album.as_ref().and_then(|album| Titles::language_independent_main_title(&album.titles))
-    }
-
-    pub fn main_album_title_name<'a>(&'a self) -> Option<&'a str> {
-        self.album.as_ref().and_then(|album| Titles::language_independent_main_title_name(&album.titles))
-    }
-
-    pub fn main_album_actor<'a>(&'a self, role: ActorRole) -> Option<&'a Actor> {
+    pub fn album_main_actor<'a>(&'a self, role: ActorRole) -> Option<&'a Actor> {
         self.album.as_ref().and_then(|album| Actors::main_actor(&album.actors, role))
-    }
-
-    pub fn main_album_actor_name<'a>(&'a self, role: ActorRole) -> Option<&'a str> {
-        self.album.as_ref().and_then(|album| Actors::main_actor_name(&album.actors, role))
-    }
-
-    pub fn main_album_artist<'a>(&'a self) -> Option<&'a Actor> {
-        self.main_album_actor(ActorRole::Artist)
-    }
-
-    pub fn main_album_artist_name<'a>(&'a self) -> Option<&'a str> {
-        self.main_album_actor_name(ActorRole::Artist)
     }
 }
 

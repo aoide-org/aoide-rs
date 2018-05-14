@@ -123,6 +123,8 @@ fn format_optional_id<'a>(id: &'a str) -> Option<&'a str> {
 
 impl<'a> InsertableTracksIdentity<'a> {
     pub fn bind(track_id: StorageId, body: &'a TrackBody) -> Self {
+        let track_main_artist = body.main_actor(ActorRole::Artist);
+        let album_main_artist = body.album_main_actor(ActorRole::Artist);
         Self {
             track_id,
             track_isrc: body.identity
@@ -137,10 +139,10 @@ impl<'a> InsertableTracksIdentity<'a> {
             track_spotify_id: body.identity
                 .as_ref()
                 .and_then(|identity| format_optional_id(&identity.spotify_id)),
-            track_artist_mbrainz_id: body.main_artist()
+            track_artist_mbrainz_id: track_main_artist
                 .and_then(|actor| actor.identity.as_ref())
                 .and_then(|identity| format_optional_uuid(&identity.mbrainz_id)),
-            track_artist_spotify_id: body.main_artist()
+            track_artist_spotify_id: track_main_artist
                 .and_then(|actor| actor.identity.as_ref())
                 .and_then(|identity| format_optional_id(&identity.spotify_id)),
             album_mbrainz_id: body.album
@@ -151,10 +153,10 @@ impl<'a> InsertableTracksIdentity<'a> {
                 .as_ref()
                 .and_then(|album| album.identity.as_ref())
                 .and_then(|identity| format_optional_id(&identity.spotify_id)),
-            album_artist_mbrainz_id: body.main_album_artist()
+            album_artist_mbrainz_id: album_main_artist
                 .and_then(|actor| actor.identity.as_ref())
                 .and_then(|identity| format_optional_uuid(&identity.mbrainz_id)),
-            album_artist_spotify_id: body.main_album_artist()
+            album_artist_spotify_id: album_main_artist
                 .and_then(|actor| actor.identity.as_ref())
                 .and_then(|identity| format_optional_id(&identity.spotify_id)),
             release_ean: body.album
@@ -202,12 +204,12 @@ impl<'a> InsertableTracksOverview<'a> {
     pub fn bind(track_id: StorageId, body: &'a TrackBody) -> Self {
         Self {
             track_id,
-            track_title: body.main_title_name().unwrap_or(""),
+            track_title: body.main_title().map(|title| title.name.as_str()).unwrap_or(""),
             track_number: body.track_numbers.this.map(|this| this as i32),
             track_total: body.track_numbers.total.map(|total| total as i32),
             disc_number: body.disc_numbers.this.map(|this| this as i32),
             disc_total: body.disc_numbers.total.map(|total| total as i32),
-            album_title: body.main_album_title_name(),
+            album_title: body.album_main_title().map(|title| title.name.as_str()),
             album_grouping: body.album
                 .as_ref()
                 .and_then(|album| album.grouping.as_ref())
@@ -255,17 +257,17 @@ impl<'a> InsertableTracksSummary<'a> {
         };
         Self {
             track_id,
-            track_artist: TrackBody::main_actor_name(&body, ActorRole::Artist),
-            track_composer: TrackBody::main_actor_name(&body, ActorRole::Composer),
-            track_conductor: TrackBody::main_actor_name(&body, ActorRole::Conductor),
-            track_performer: TrackBody::main_actor_name(&body, ActorRole::Performer),
-            track_producer: TrackBody::main_actor_name(&body, ActorRole::Producer),
-            track_remixer: TrackBody::main_actor_name(&body, ActorRole::Remixer),
-            album_artist: TrackBody::main_album_actor_name(&body, ActorRole::Artist),
-            album_composer: TrackBody::main_album_actor_name(&body, ActorRole::Composer),
-            album_conductor: TrackBody::main_album_actor_name(&body, ActorRole::Conductor),
-            album_performer: TrackBody::main_album_actor_name(&body, ActorRole::Performer),
-            album_producer: TrackBody::main_album_actor_name(&body, ActorRole::Producer),
+            track_artist: TrackBody::main_actor(&body, ActorRole::Artist).map(|actor| actor.name.as_str()),
+            track_composer: TrackBody::main_actor(&body, ActorRole::Composer).map(|actor| actor.name.as_str()),
+            track_conductor: TrackBody::main_actor(&body, ActorRole::Conductor).map(|actor| actor.name.as_str()),
+            track_performer: TrackBody::main_actor(&body, ActorRole::Performer).map(|actor| actor.name.as_str()),
+            track_producer: TrackBody::main_actor(&body, ActorRole::Producer).map(|actor| actor.name.as_str()),
+            track_remixer: TrackBody::main_actor(&body, ActorRole::Remixer).map(|actor| actor.name.as_str()),
+            album_artist: TrackBody::album_main_actor(&body, ActorRole::Artist).map(|actor| actor.name.as_str()),
+            album_composer: TrackBody::album_main_actor(&body, ActorRole::Composer).map(|actor| actor.name.as_str()),
+            album_conductor: TrackBody::album_main_actor(&body, ActorRole::Conductor).map(|actor| actor.name.as_str()),
+            album_performer: TrackBody::album_main_actor(&body, ActorRole::Performer).map(|actor| actor.name.as_str()),
+            album_producer: TrackBody::album_main_actor(&body, ActorRole::Producer).map(|actor| actor.name.as_str()),
             ratings_min,
             ratings_max,
         }

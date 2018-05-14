@@ -68,8 +68,12 @@ impl Title {
         self.level == TitleLevel::Main
     }
 
-    pub fn is_language_independent(&self) -> bool {
-        self.language.is_empty()
+    pub fn is_language(&self, language: &str) -> bool {
+        self.language == language
+    }
+    
+    pub fn has_language(&self) -> bool {
+        !self.language.is_empty()
     }
 }
 
@@ -77,37 +81,42 @@ pub struct Titles;
 
 impl Titles {
     pub fn is_valid(titles: &[Title]) -> bool {
-        Self::has_language_independent_main_title(titles) && titles.iter().all(Title::is_valid)
+        Self::has_main_title_without_language(titles) && titles.iter().all(Title::is_valid)
     }
 
-    pub fn language_independent_main_title<'a>(titles: &'a [Title]) -> Option<&'a Title> {
+    pub fn main_title_with_language<'a>(titles: &'a [Title], language: &str) -> Option<&'a Title> {
+        debug_assert!(titles
+            .iter()
+            .filter(|title| title.is_main_level() && title.is_language(language))
+            .count() <= 1);
         titles
             .iter()
-            .filter(|title| title.is_main_level() && title.is_language_independent())
+            .filter(|title| title.is_main_level() && title.is_language(language))
             .nth(0)
     }
 
-    pub fn has_language_independent_main_title<'a>(titles: &'a [Title]) -> bool {
-        if let Some(_) = Self::language_independent_main_title(titles) {
+    pub fn main_title_without_language<'a>(titles: &'a [Title]) -> Option<&'a Title> {
+        debug_assert!(titles
+            .iter()
+            .filter(|title| title.is_main_level() && !title.has_language())
+            .count() <= 1);
+        titles
+            .iter()
+            .filter(|title| title.is_main_level() && !title.has_language())
+            .nth(0)
+    }
+
+    pub fn has_main_title_without_language<'a>(titles: &'a [Title]) -> bool {
+        if let Some(_) = Self::main_title_without_language(titles) {
             true
         } else {
             false
         }
     }
 
-    pub fn main_title<'a>(titles: &'a [Title], language: String) -> Option<&'a Title> {
-        titles
-            .iter()
-            .filter(|title| title.is_main_level() && title.language == language)
-            .nth(0).or_else(|| Self::language_independent_main_title(titles))
-    }
-
-    pub fn language_independent_main_title_name<'a>(titles: &'a [Title]) -> Option<&'a str> {
-        Self::language_independent_main_title(titles).map(|title| title.name.as_str())
-    }
-
-    pub fn main_title_name<'a>(titles: &'a [Title], language: String) -> Option<&'a str> {
-        Self::main_title(titles, language).map(|title| title.name.as_str())
+    pub fn main_title<'a>(titles: &'a [Title], language: &str) -> Option<&'a Title> {
+        Self::main_title_with_language(titles, language)
+            .or_else(|| Self::main_title_without_language(titles))
     }
 }
 
@@ -218,8 +227,7 @@ impl Actors {
         // - at least one summary or primary entry exists for each role
     }
 
-    pub fn summary<'a>(actors: &'a [Actor], role: ActorRole) -> Option<&'a Actor> {
-        // Assumption: At most one summary entry exists per role
+    pub fn summary_actor<'a>(actors: &'a [Actor], role: ActorRole) -> Option<&'a Actor> {
         debug_assert!(actors
             .iter()
             .filter(|actor| actor.role == role && actor.prio == ActorPriority::Summary)
@@ -230,8 +238,7 @@ impl Actors {
             .nth(0)
     }
 
-    pub fn primary<'a>(actors: &'a [Actor], role: ActorRole) -> Option<&'a Actor> {
-        // Assumption: At most one primary entry exists per role
+    pub fn primary_actor<'a>(actors: &'a [Actor], role: ActorRole) -> Option<&'a Actor> {
         debug_assert!(actors
             .iter()
             .filter(|actor| actor.role == role && actor.prio == ActorPriority::Primary)
@@ -243,11 +250,7 @@ impl Actors {
     }
 
     pub fn main_actor<'a>(actors: &'a [Actor], role: ActorRole) -> Option<&'a Actor> {
-        Self::summary(actors, role).or_else(|| Self::primary(actors, role))
-    }
-
-    pub fn main_actor_name<'a>(actors: &'a [Actor], role: ActorRole) -> Option<&'a str> {
-        Self::main_actor(actors, role).map(|actor| actor.name.as_str())
+        Self::summary_actor(actors, role).or_else(|| Self::primary_actor(actors, role))
     }
 }
 
@@ -381,7 +384,7 @@ impl KeySignature {
     }
 
     pub fn new(code: KeyCode) -> Self {
-        assert!(Self::is_valid_code(code));
+        debug_assert!(Self::is_valid_code(code));
         Self { code }
     }
 
@@ -629,14 +632,14 @@ mod tests {
         ];
         assert!(Actors::is_valid(&actors));
         assert_eq!(
-            Some(main_artist_name),
-            Actors::main_actor_name(&actors, ActorRole::Artist)
+            main_artist_name,
+            Actors::main_actor(&actors, ActorRole::Artist).unwrap().name
         );
         assert_eq!(
-            Some(default_producer_name),
-            Actors::main_actor_name(&actors, ActorRole::Producer)
+            default_producer_name,
+            Actors::main_actor(&actors, ActorRole::Producer).unwrap().name
         );
-        assert_eq!(None, Actors::main_actor_name(&actors, ActorRole::Conductor));
+        assert_eq!(None, Actors::main_actor(&actors, ActorRole::Conductor));
     }
 
     #[test]
