@@ -175,7 +175,7 @@ impl EntityRevision {
     }
 
     pub fn next(&self) -> Self {
-        assert!(self.is_valid());
+        debug_assert!(self.is_valid());
         Self {
             ordinal: self.ordinal + 1,
             timestamp: Utc::now(),
@@ -246,7 +246,7 @@ impl EntityHeader {
     }
 
     pub fn update_revision(&mut self, next_revision: EntityRevision) {
-        assert!(self.revision < next_revision);
+        debug_assert!(self.revision < next_revision);
         self.revision = next_revision;
     }
 }

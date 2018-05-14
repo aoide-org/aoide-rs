@@ -220,6 +220,10 @@ impl Actors {
 
     pub fn summary<'a>(actors: &'a [Actor], role: ActorRole) -> Option<&'a Actor> {
         // Assumption: At most one summary entry exists per role
+        debug_assert!(actors
+            .iter()
+            .filter(|actor| actor.role == role && actor.prio == ActorPriority::Summary)
+            .count() <= 1);
         actors
             .iter()
             .filter(|actor| actor.role == role && actor.prio == ActorPriority::Summary)
@@ -228,6 +232,10 @@ impl Actors {
 
     pub fn primary<'a>(actors: &'a [Actor], role: ActorRole) -> Option<&'a Actor> {
         // Assumption: At most one primary entry exists per role
+        debug_assert!(actors
+            .iter()
+            .filter(|actor| actor.role == role && actor.prio == ActorPriority::Primary)
+            .count() <= 1);
         actors
             .iter()
             .filter(|actor| actor.role == role && actor.prio == ActorPriority::Primary)

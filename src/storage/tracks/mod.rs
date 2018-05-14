@@ -64,8 +64,8 @@ impl From<QueryableSerializedEntity> for SerializedEntity {
         );
         let header = EntityHeader::new(uid, revision);
         let format = SerializationFormat::from(from.ser_fmt).unwrap();
-        assert!(from.ser_ver_major >= 0);
-        assert!(from.ser_ver_minor >= 0);
+        debug_assert!(from.ser_ver_major >= 0);
+        debug_assert!(from.ser_ver_minor >= 0);
         let version = EntityVersion::new(from.ser_ver_major as u32, from.ser_ver_minor as u32);
         SerializedEntity {
             header,
@@ -449,7 +449,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                 let storage_id = self.before_entity_updated_or_removed(uid)?;
                 let query = diesel::update(target).set(&updatable);
                 let rows_affected: usize = query.execute(self.connection)?;
-                assert!(rows_affected <= 1);
+                debug_assert!(rows_affected <= 1);
                 if rows_affected <= 0 {
                     return Ok(None);
                 }
@@ -518,7 +518,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         let query = diesel::delete(target);
         self.before_entity_updated_or_removed(uid)?;
         let rows_affected: usize = query.execute(self.connection)?;
-        assert!(rows_affected <= 1);
+        debug_assert!(rows_affected <= 1);
         Ok(())
     }
 

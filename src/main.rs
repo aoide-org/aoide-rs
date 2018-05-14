@@ -650,7 +650,7 @@ fn handle_put_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
                 let prev_revision = entity.header().revision();
                 let next_revision = match update_track(pooled_connection, &mut entity, format) {
                     Ok(Some((_, next_revision))) => {
-                        assert!(next_revision == entity.header().revision());
+                        debug_assert!(next_revision == entity.header().revision());
                         next_revision
                     }
                     Ok(None) => {

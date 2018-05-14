@@ -90,7 +90,7 @@ impl<'a> Collections for CollectionRepository<'a> {
                     .and(collections_entity::rev_timestamp.eq(prev_revision.timestamp().naive_utc())));
             let query = diesel::update(target).set(&updatable);
             let rows_affected: usize = query.execute(self.connection)?;
-            assert!(rows_affected <= 1);
+            debug_assert!(rows_affected <= 1);
             if rows_affected <= 0 {
                 return Ok(None);
             }
@@ -102,7 +102,7 @@ impl<'a> Collections for CollectionRepository<'a> {
         let target = collections_entity::table.filter(collections_entity::uid.eq(uid.as_str()));
         let query = diesel::delete(target);
         let rows_affected: usize = query.execute(self.connection)?;
-        assert!(rows_affected <= 1);
+        debug_assert!(rows_affected <= 1);
         if rows_affected <= 0 {
             return Ok(None);
         }
