@@ -26,6 +26,7 @@ use storage::serde::{SerializationFormat, SerializedEntity};
 
 use aoide_core::domain::entity::*;
 use aoide_core::domain::collection::*;
+use aoide_core::domain::metadata::*;
 use aoide_core::domain::track::*;
 
 pub type CollectionsResult<T> = Result<T, failure::Error>;
@@ -106,4 +107,21 @@ pub trait Tracks {
         pagination: &Pagination,
         search_params: SearchParams,
     ) -> TracksResult<Vec<SerializedEntity>>;
+}
+
+pub type TrackTagsResult<T> = Result<T, failure::Error>;
+
+pub trait TrackTags {
+    fn all_tag_facets(
+        &self,
+        collection_uid: Option<&EntityUid>,
+        pagination: &Pagination,
+    ) -> TrackTagsResult<Vec<TagFacetCount>>;
+
+    fn all_tag_terms(
+        &self,
+        collection_uid: Option<&EntityUid>,
+        facet: Option<&str>,
+        pagination: &Pagination,
+    ) -> TrackTagsResult<Vec<TagTermCount>>;
 }

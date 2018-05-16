@@ -22,6 +22,7 @@ mod schema;
 use self::schema::*;
 
 use diesel;
+use diesel::dsl::*;
 use diesel::prelude::*;
 
 use failure;
@@ -34,8 +35,9 @@ use super::*;
 
 use usecases::request::{LocateMatcher, LocateParams, ReplaceMode, ReplaceParams, SearchParams};
 use usecases::result::Pagination;
-use usecases::{TrackEntityReplacement, Tracks, TracksResult};
+use usecases::{TrackEntityReplacement, Tracks, TracksResult, TrackTags, TrackTagsResult};
 
+use aoide_core::domain::metadata::*;
 use aoide_core::domain::track::*;
 
 ///////////////////////////////////////////////////////////////////////
@@ -563,6 +565,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         pagination: &Pagination,
         search_params: SearchParams,
     ) -> TracksResult<Vec<SerializedEntity>> {
+
         // TODO: if/else arms are incompatible due to joining tables?
         let results = if search_params.filter.is_empty() {
             // Select all (without joining)
@@ -746,4 +749,118 @@ mod tests {
         println!("Removed entity: {}", entity.header().uid());
     }
     */
+}
+
+impl<'a> TrackTags for TrackRepository<'a> {
+
+    fn all_tag_facets(
+        &self,
+        collection_uid: Option<&EntityUid>,
+        pagination: &Pagination,
+    ) -> TrackTagsResult<Vec<TagFacetCount>> {
+        let mut target = aux_tracks_tag::table
+            .select((aux_tracks_tag::facet, sql::<diesel::sql_types::BigInt>("count(*) AS count")))
+            .group_by(aux_tracks_tag::facet)
+            .order(sql::<diesel::sql_types::BigInt>("count").desc())
+            .into_boxed();
+
+        // Pagination
+        if let Some(offset) = pagination.offset {
+            target = target.offset(offset as i64);
+        };
+        if let Some(limit) = pagination.limit {
+            target = target.limit(limit as i64);
+        };
+
+        if let Some(collection_uid) = collection_uid {
+            let target = target
+                .inner_join(aux_tracks_resource::table.on(
+                    aux_tracks_tag::track_id.eq(aux_tracks_resource::track_id)
+                    .and(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()))
+            ));
+            let rows = target.load::<(Option<String>, i64)>(self.connection)?;
+            let mut result = Vec::with_capacity(rows.len());
+            for row in rows.into_iter() {
+                result.push(TagFacetCount {
+                    facet: row.0, count: row.1 as usize
+                });
+            }
+
+            Ok(result)
+        } else {
+            let rows = target.load::<(Option<String>, i64)>(self.connection)?;
+            let mut result = Vec::with_capacity(rows.len());
+            for row in rows.into_iter() {
+                result.push(TagFacetCount {
+                    facet: row.0, count: row.1 as usize
+                });
+            }
+
+            Ok(result)
+        }
+
+    }
+
+    fn all_tag_terms(
+        &self,
+        collection_uid: Option<&EntityUid>,
+        facet: Option<&str>,
+        pagination: &Pagination,
+    ) -> TrackTagsResult<Vec<TagTermCount>> {
+        let mut target = aux_tracks_tag::table
+            .select((aux_tracks_tag::term, sql::<diesel::sql_types::BigInt>("count(*) AS count")))
+            .group_by(aux_tracks_tag::term)
+            .order(sql::<diesel::sql_types::BigInt>("count").desc())
+            .into_boxed();
+
+        // Facet Filtering
+        target = match facet {
+            Some(facet) => target.filter(aux_tracks_tag::facet.eq(facet)),
+            None => target.filter(aux_tracks_tag::facet.is_null()),
+        };
+
+        if let Some(offset) = pagination.offset {
+            target = target.offset(offset as i64);
+        };
+        if let Some(limit) = pagination.limit {
+            target = target.limit(limit as i64);
+        };
+
+        // Pagination
+        if let Some(offset) = pagination.offset {
+            target = target.offset(offset as i64);
+        };
+        if let Some(limit) = pagination.limit {
+            target = target.limit(limit as i64);
+        };
+
+        if let Some(collection_uid) = collection_uid {
+            let target = target
+                .inner_join(aux_tracks_resource::table.on(
+                    aux_tracks_tag::track_id.eq(aux_tracks_resource::track_id)
+                    .and(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()))
+            ));
+            let rows = target.load::<(String, i64)>(self.connection)?;
+            let mut result = Vec::with_capacity(rows.len());
+            for row in rows.into_iter() {
+                result.push(TagTermCount {
+                    term: row.0, count: row.1 as usize
+                });
+            }
+
+            Ok(result)
+        } else {
+            let rows = target.load::<(String, i64)>(self.connection)?;
+            let mut result = Vec::with_capacity(rows.len());
+            for row in rows.into_iter() {
+                result.push(TagTermCount {
+                    term: row.0, count: row.1 as usize
+                });
+            }
+
+            Ok(result)
+        }
+
+    }
+
 }

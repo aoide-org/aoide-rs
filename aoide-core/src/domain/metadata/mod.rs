@@ -116,6 +116,23 @@ impl Tag {
     }
 }
 
+#[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct TagFacetCount {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub facet: Option<String>,
+
+    pub count: usize,
+}
+
+#[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct TagTermCount {
+    pub term: String,
+
+    pub count: usize,
+}
+
 ///////////////////////////////////////////////////////////////////////
 /// Rating
 ///////////////////////////////////////////////////////////////////////
