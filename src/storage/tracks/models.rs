@@ -17,8 +17,6 @@ use super::schema::*;
 
 use chrono::naive::{NaiveDate, NaiveDateTime};
 
-use uuid::Uuid;
-
 use storage::StorageId;
 use storage::serde::SerializationFormat;
 

@@ -108,7 +108,7 @@ CREATE TABLE aux_tracks_music (
     music_instrumentalness   REAL, -- [0.0, 1.0]
     music_liveness           REAL, -- [0.0, 1.0]
     music_popularity         REAL, -- [0.0, 1.0]
-    music_valence         REAL, -- [0.0, 1.0]
+    music_valence            REAL, -- [0.0, 1.0]
     music_speechiness        REAL, -- [0.0, 1.0]
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id)
