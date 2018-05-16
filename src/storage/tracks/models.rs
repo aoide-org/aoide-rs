@@ -316,16 +316,16 @@ impl InsertableTracksMusic {
 #[table_name = "aux_tracks_ref"]
 pub struct InsertableTracksRef<'a> {
     pub track_id: StorageId,
-    pub type_: i16,
-    pub value: &'a str,
+    pub ref_type: i16,
+    pub ref_value: &'a str,
 }
 
 impl<'a> InsertableTracksRef<'a> {
     pub fn bind(track_id: StorageId, ref_type: RefType, ref_value: &'a str) -> Self {
         Self {
             track_id,
-            type_: ref_type as i16,
-            value: ref_value,
+            ref_type: ref_type as i16,
+            ref_value,
         }
     }
 }

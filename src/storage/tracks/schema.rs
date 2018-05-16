@@ -119,8 +119,8 @@ table! {
     aux_tracks_ref (id) {
         id -> BigInt,
         track_id -> BigInt,
-        type_ -> SmallInt,
-        value -> Text,
+        ref_type -> SmallInt,
+        ref_value -> Text,
     }
 }
 

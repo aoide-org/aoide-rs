@@ -92,6 +92,7 @@ impl<'a> TrackRepository<'a> {
         self.cleanup_aux_summary()?;
         self.cleanup_aux_resource()?;
         self.cleanup_aux_music()?;
+        self.cleanup_aux_ref()?;
         self.cleanup_aux_tag()?;
         self.cleanup_aux_comment()?;
         self.cleanup_aux_rating()?;
@@ -117,6 +118,7 @@ impl<'a> TrackRepository<'a> {
         self.insert_aux_summary(storage_id, track_body)?;
         self.insert_aux_resource(storage_id, track_body)?;
         self.insert_aux_music(storage_id, track_body)?;
+        self.insert_aux_ref(storage_id, track_body)?;
         self.insert_aux_tag(storage_id, track_body)?;
         self.insert_aux_comment(storage_id, track_body)?;
         self.insert_aux_rating(storage_id, track_body)?;
@@ -128,6 +130,7 @@ impl<'a> TrackRepository<'a> {
         self.delete_aux_summary(track_id)?;
         self.delete_aux_resource(track_id)?;
         self.delete_aux_music(track_id)?;
+        self.delete_aux_ref(track_id)?;
         self.delete_aux_tag(track_id)?;
         self.delete_aux_comment(track_id)?;
         self.delete_aux_rating(track_id)?;
@@ -242,6 +245,57 @@ impl<'a> TrackRepository<'a> {
                 InsertableTracksMusic::bind(track_id, track_body.music.as_ref().unwrap());
             let query = diesel::insert_into(aux_tracks_music::table).values(&insertable);
             query.execute(self.connection)?;
+        }
+        Ok(())
+    }
+
+    fn cleanup_aux_ref(&self) -> Result<(), failure::Error> {
+        let query = diesel::delete(aux_tracks_ref::table.filter(
+            aux_tracks_ref::track_id.ne_all(tracks_entity::table.select(tracks_entity::id)),
+        ));
+        query.execute(self.connection)?;
+        Ok(())
+    }
+
+    fn delete_aux_ref(&self, track_id: StorageId) -> Result<(), failure::Error> {
+        let query =
+            diesel::delete(aux_tracks_ref::table.filter(aux_tracks_ref::track_id.eq(track_id)));
+        query.execute(self.connection)?;
+        Ok(())
+    }
+
+    fn insert_aux_ref(
+        &self,
+        track_id: StorageId,
+        track_body: &TrackBody,
+    ) -> Result<(), failure::Error> {
+        for actor in track_body.actors.iter() {
+            for actor_ref in actor.refs.iter() {
+                let insertable = InsertableTracksRef::bind(track_id, RefType::Actor, &actor_ref);
+                let query = diesel::replace_into(aux_tracks_ref::table).values(&insertable);
+                query.execute(self.connection)?;
+            }
+        }
+        if let Some(album) = track_body.album.as_ref() {
+            for actor in album.actors.iter() {
+                for actor_ref in actor.refs.iter() {
+                    let insertable = InsertableTracksRef::bind(track_id, RefType::Actor, &actor_ref);
+                    let query = diesel::replace_into(aux_tracks_ref::table).values(&insertable);
+                    query.execute(self.connection)?;
+                }
+            }
+            for album_ref in album.refs.iter() {
+                let insertable = InsertableTracksRef::bind(track_id, RefType::Album, &album_ref);
+                let query = diesel::replace_into(aux_tracks_ref::table).values(&insertable);
+                query.execute(self.connection)?;
+            }
+            if let Some(release) = album.release.as_ref() { 
+                for release_ref in release.refs.iter() {
+                    let insertable = InsertableTracksRef::bind(track_id, RefType::Release, &release_ref);
+                    let query = diesel::replace_into(aux_tracks_ref::table).values(&insertable);
+                    query.execute(self.connection)?;
+                }
+            }
         }
         Ok(())
     }

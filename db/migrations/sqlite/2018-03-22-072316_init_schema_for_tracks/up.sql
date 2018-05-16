@@ -117,10 +117,10 @@ CREATE TABLE aux_tracks_music (
 CREATE TABLE aux_tracks_ref (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
-    type                     TINYINT, -- 0=track, actor=1, album=2, release=3
-    value                    TEXT NOT NULL,
+    ref_type                 TINYINT, -- 0=track, actor=1, album=2, release=3
+    ref_value                TEXT NOT NULL,
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
-    UNIQUE (track_id, type, value)
+    UNIQUE (track_id, ref_type, ref_value)
 );
 
 CREATE TABLE aux_tracks_tag (
