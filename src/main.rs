@@ -66,6 +66,7 @@ use aoide::usecases::result::*;
 use aoide::usecases::*;
 use aoide_core::domain::collection::*;
 use aoide_core::domain::entity::*;
+use aoide_core::domain::metadata::*;
 use aoide_core::domain::track::*;
 
 use diesel::prelude::*;
@@ -1064,6 +1065,98 @@ fn handle_get_collections_path_uid_tracks_query_pagination(mut state: State) -> 
     Box::new(future::ok((state, response)))
 }
 
+fn all_tag_facets(
+    pooled_connection: SqlitePooledConnection,
+    collection_uid: Option<&EntityUid>,
+    pagination: &Pagination,
+) -> TrackTagsResult<Vec<TagFacetCount>> {
+    let connection = &*pooled_connection;
+    let repository = TrackRepository::new(connection);
+    repository.all_tag_facets(collection_uid, pagination)
+}
+
+fn handle_get_collections_path_uid_tags_facets_query_pagination(mut state: State) -> Box<HandlerFuture> {
+    let collection_uid = UidPathExtractor::try_parse_from(&mut state);
+    let query_params = PaginationQueryStringExtractor::take_from(&mut state);
+    let pagination = Pagination {
+        offset: query_params.offset,
+        limit: query_params.limit,
+    };
+
+    let pooled_connection = match middleware::state_data::try_connection(&state) {
+        Ok(pooled_connection) => pooled_connection,
+        Err(e) => {
+            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
+            return Box::new(future::ok((state, response)));
+        }
+    };
+
+    let response = match all_tag_facets(pooled_connection, collection_uid.as_ref(), &pagination) {
+        Ok(result) => match serde_json::to_vec(&result) {
+            Ok(response_body) => create_response(
+                &state,
+                StatusCode::Ok,
+                Some((response_body, mime::APPLICATION_JSON)),
+            ),
+            Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
+        },
+        Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
+    };
+
+    Box::new(future::ok((state, response)))
+}
+
+fn all_tag_terms(
+    pooled_connection: SqlitePooledConnection,
+    collection_uid: Option<&EntityUid>,
+    facet: Option<&str>,
+    pagination: &Pagination,
+) -> TrackTagsResult<Vec<TagTermCount>> {
+    let connection = &*pooled_connection;
+    let repository = TrackRepository::new(connection);
+    repository.all_tag_terms(collection_uid, facet, pagination)
+}
+
+#[derive(Debug, Deserialize, StateData, StaticResponseExtender)]
+struct TagFacetPaginationQueryStringExtractor {
+    facet: Option<String>,
+    offset: Option<PaginationOffset>,
+    limit: Option<PaginationLimit>,
+
+}
+
+fn handle_get_collections_path_uid_tags_terms_query_facet_pagination(mut state: State) -> Box<HandlerFuture> {
+    let collection_uid = UidPathExtractor::try_parse_from(&mut state);
+    let query_params = TagFacetPaginationQueryStringExtractor::take_from(&mut state);
+    let facet = query_params.facet.as_ref().map(|facet| facet.as_str());
+    let pagination = Pagination {
+        offset: query_params.offset,
+        limit: query_params.limit,
+    };
+
+    let pooled_connection = match middleware::state_data::try_connection(&state) {
+        Ok(pooled_connection) => pooled_connection,
+        Err(e) => {
+            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
+            return Box::new(future::ok((state, response)));
+        }
+    };
+
+    let response = match all_tag_terms(pooled_connection, collection_uid.as_ref(), facet, &pagination) {
+        Ok(result) => match serde_json::to_vec(&result) {
+            Ok(response_body) => create_response(
+                &state,
+                StatusCode::Ok,
+                Some((response_body, mime::APPLICATION_JSON)),
+            ),
+            Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
+        },
+        Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
+    };
+
+    Box::new(future::ok((state, response)))
+}
+
 fn router(middleware: SqliteDieselMiddleware) -> Router {
     // Create a new pipeline set
     let editable_pipeline_set = new_pipeline_set();
@@ -1134,6 +1227,16 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
             .with_path_extractor::<UidPathExtractor>()
             .with_query_string_extractor::<PaginationQueryStringExtractor>()
             .to(handle_post_collections_path_uid_tracks_search_query_pagination);
+        route // all tag facets in (optional) collection
+            .get("/collections/:uid/tags/facets")
+            .with_path_extractor::<UidPathExtractor>()
+            .with_query_string_extractor::<PaginationQueryStringExtractor>()
+            .to(handle_get_collections_path_uid_tags_facets_query_pagination);
+        route // all tag terms for a facet in (optional) collection
+            .get("/collections/:uid/tags/terms")
+            .with_path_extractor::<UidPathExtractor>()
+            .with_query_string_extractor::<TagFacetPaginationQueryStringExtractor>()
+            .to(handle_get_collections_path_uid_tags_terms_query_facet_pagination);
     })
 }
 
