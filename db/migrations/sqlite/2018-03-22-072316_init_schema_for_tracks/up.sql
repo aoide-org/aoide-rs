@@ -133,6 +133,15 @@ CREATE TABLE aux_tracks_tag (
     UNIQUE (track_id, facet, term)
 );
 
+CREATE INDEX idx_tracks_tag_facet ON aux_tracks_tag(
+    facet
+);
+
+CREATE INDEX idx_tracks_tag_facet_term ON aux_tracks_tag(
+    facet,
+    term
+);
+
 CREATE TABLE aux_tracks_comment (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
