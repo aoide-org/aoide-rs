@@ -20,6 +20,7 @@ DROP TABLE aux_tracks_resource;
 DROP TABLE aux_tracks_overview;
 DROP TABLE aux_tracks_summary;
 DROP TABLE aux_tracks_music;
+DROP TABLE aux_tracks_ref;
 DROP TABLE aux_tracks_tag;
 DROP TABLE aux_tracks_comment;
 DROP TABLE aux_tracks_rating;

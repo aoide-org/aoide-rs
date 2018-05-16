@@ -116,6 +116,17 @@ table! {
 joinable!(aux_tracks_music -> tracks_entity (track_id));
 
 table! {
+    aux_tracks_ref (id) {
+        id -> BigInt,
+        track_id -> BigInt,
+        type_ -> SmallInt,
+        value -> Text,
+    }
+}
+
+joinable!(aux_tracks_ref -> tracks_entity (track_id));
+
+table! {
     aux_tracks_tag (id) {
         id -> BigInt,
         track_id -> BigInt,

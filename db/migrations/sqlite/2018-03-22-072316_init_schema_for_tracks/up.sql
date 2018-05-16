@@ -114,6 +114,15 @@ CREATE TABLE aux_tracks_music (
     UNIQUE (track_id)
 );
 
+CREATE TABLE aux_tracks_ref (
+    id                       INTEGER PRIMARY KEY,
+    track_id                 INTEGER NOT NULL,
+    type                     TINYINT, -- 0=track, actor=1, album=2, release=3
+    value                    TEXT NOT NULL,
+    FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
+    UNIQUE (track_id, type, value)
+);
+
 CREATE TABLE aux_tracks_tag (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
