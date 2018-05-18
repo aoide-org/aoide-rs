@@ -23,7 +23,7 @@ use storage::serde::SerializationFormat;
 use aoide_core::domain::entity::{EntityHeader, EntityRevision};
 use aoide_core::domain::metadata::{Comment, Confidence, ConfidenceValue, Rating, Tag};
 use aoide_core::domain::music::{ActorRole, BeatsPerMinute, Classifier, Decibel, Loudness, LUFS};
-use aoide_core::domain::track::{MusicMetadata, TrackBody, TrackResource, RefType};
+use aoide_core::domain::track::{MusicMetadata, TrackBody, TrackResource, RefOrigin};
 
 #[derive(Debug, Insertable)]
 #[table_name = "tracks_entity"]
@@ -316,16 +316,16 @@ impl InsertableTracksMusic {
 #[table_name = "aux_tracks_ref"]
 pub struct InsertableTracksRef<'a> {
     pub track_id: StorageId,
-    pub ref_type: i16,
-    pub ref_value: &'a str,
+    pub origin: i16,
+    pub value: &'a str,
 }
 
 impl<'a> InsertableTracksRef<'a> {
-    pub fn bind(track_id: StorageId, ref_type: RefType, ref_value: &'a str) -> Self {
+    pub fn bind(track_id: StorageId, origin: RefOrigin, value: &'a str) -> Self {
         Self {
             track_id,
-            ref_type: ref_type as i16,
-            ref_value,
+            origin: origin as i16,
+            value,
         }
     }
 }

@@ -269,29 +269,34 @@ impl<'a> TrackRepository<'a> {
         track_id: StorageId,
         track_body: &TrackBody,
     ) -> Result<(), failure::Error> {
+        for track_ref in track_body.refs.iter() {
+            let insertable = InsertableTracksRef::bind(track_id, RefOrigin::Track, &track_ref);
+            let query = diesel::replace_into(aux_tracks_ref::table).values(&insertable);
+            query.execute(self.connection)?;
+        }
         for actor in track_body.actors.iter() {
             for actor_ref in actor.refs.iter() {
-                let insertable = InsertableTracksRef::bind(track_id, RefType::Actor, &actor_ref);
+                let insertable = InsertableTracksRef::bind(track_id, RefOrigin::TrackActor, &actor_ref);
                 let query = diesel::replace_into(aux_tracks_ref::table).values(&insertable);
                 query.execute(self.connection)?;
             }
         }
         if let Some(album) = track_body.album.as_ref() {
+            for album_ref in album.refs.iter() {
+                let insertable = InsertableTracksRef::bind(track_id, RefOrigin::Album, &album_ref);
+                let query = diesel::replace_into(aux_tracks_ref::table).values(&insertable);
+                query.execute(self.connection)?;
+            }
             for actor in album.actors.iter() {
                 for actor_ref in actor.refs.iter() {
-                    let insertable = InsertableTracksRef::bind(track_id, RefType::Actor, &actor_ref);
+                    let insertable = InsertableTracksRef::bind(track_id, RefOrigin::AlbumActor, &actor_ref);
                     let query = diesel::replace_into(aux_tracks_ref::table).values(&insertable);
                     query.execute(self.connection)?;
                 }
             }
-            for album_ref in album.refs.iter() {
-                let insertable = InsertableTracksRef::bind(track_id, RefType::Album, &album_ref);
-                let query = diesel::replace_into(aux_tracks_ref::table).values(&insertable);
-                query.execute(self.connection)?;
-            }
             if let Some(release) = album.release.as_ref() { 
                 for release_ref in release.refs.iter() {
-                    let insertable = InsertableTracksRef::bind(track_id, RefType::Release, &release_ref);
+                    let insertable = InsertableTracksRef::bind(track_id, RefOrigin::Release, &release_ref);
                     let query = diesel::replace_into(aux_tracks_ref::table).values(&insertable);
                     query.execute(self.connection)?;
                 }

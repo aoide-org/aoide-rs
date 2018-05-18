@@ -515,16 +515,17 @@ impl TrackTag {
 }
 
 ///////////////////////////////////////////////////////////////////////
-/// RefType
+/// RefOrigin
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "lowercase")]
-pub enum RefType {
-    Track = 0,
-    Actor = 1,
-    Album = 2,
-    Release = 3,
+pub enum RefOrigin {
+    Track = 1,
+    TrackActor = 2,
+    Album = 3,
+    AlbumActor = 4,
+    Release = 5,
 }
 
 ///////////////////////////////////////////////////////////////////////
