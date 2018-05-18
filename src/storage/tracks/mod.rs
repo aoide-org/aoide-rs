@@ -388,8 +388,7 @@ impl<'a> TrackRepository<'a> {
 
     fn after_entity_created(&self, entity: &TrackEntity) -> Result<StorageId, failure::Error> {
         let uid = entity.header().uid();
-        let maybe_storage_id = self.find_storage_id(uid)?;
-        match maybe_storage_id {
+        match self.find_storage_id(uid)? {
             Some(storage_id) => {
                 self.insert_aux_storage(storage_id, entity.body())?;
                 Ok(storage_id)
@@ -402,8 +401,7 @@ impl<'a> TrackRepository<'a> {
         &self,
         uid: &EntityUid,
     ) -> Result<StorageId, failure::Error> {
-        let maybe_storage_id = self.find_storage_id(uid)?;
-        match maybe_storage_id {
+        match self.find_storage_id(uid)? {
             Some(storage_id) => {
                 self.delete_aux_storage(storage_id)?;
                 Ok(storage_id)
