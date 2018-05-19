@@ -920,4 +920,53 @@ impl<'a> TrackTags for TrackRepository<'a> {
 
     }
 
+    fn all_tags(
+        &self,
+        collection_uid: Option<&EntityUid>,
+        pagination: &Pagination,
+    ) -> TrackTagsResult<Vec<TagCount>> {
+        let mut target = aux_tracks_tag::table
+            .select((aux_tracks_tag::facet, aux_tracks_tag::term, sql::<diesel::sql_types::BigInt>("count(*) AS count")))
+            .group_by(aux_tracks_tag::facet)
+            .group_by(aux_tracks_tag::term)
+            .order(sql::<diesel::sql_types::BigInt>("count").desc())
+            .into_boxed();
+
+        // Pagination
+        if let Some(offset) = pagination.offset {
+            target = target.offset(offset as i64);
+        };
+        if let Some(limit) = pagination.limit {
+            target = target.limit(limit as i64);
+        };
+
+        if let Some(collection_uid) = collection_uid {
+            let target = target
+                .inner_join(aux_tracks_resource::table.on(
+                    aux_tracks_tag::track_id.eq(aux_tracks_resource::track_id)
+                    .and(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()))
+            ));
+            let rows = target.load::<(Option<String>, String, i64)>(self.connection)?;
+            let mut result = Vec::with_capacity(rows.len());
+            for row in rows.into_iter() {
+                result.push(TagCount {
+                    facet: row.0, term: row.1, count: row.2 as usize
+                });
+            }
+
+            Ok(result)
+        } else {
+            let rows = target.load::<(Option<String>, String, i64)>(self.connection)?;
+            let mut result = Vec::with_capacity(rows.len());
+            for row in rows.into_iter() {
+                result.push(TagCount {
+                    facet: row.0, term: row.1, count: row.2 as usize
+                });
+            }
+
+            Ok(result)
+        }
+
+    }
+
 }
