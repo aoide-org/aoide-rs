@@ -1065,23 +1065,37 @@ fn handle_get_collections_path_uid_tracks_query_pagination(mut state: State) -> 
     Box::new(future::ok((state, response)))
 }
 
-fn all_tag_facets(
+#[derive(Debug, Deserialize, StateData, StaticResponseExtender)]
+struct TagFacetPaginationQueryStringExtractor {
+    facet: Option<String>,
+    offset: Option<PaginationOffset>,
+    limit: Option<PaginationLimit>,
+}
+
+impl TagFacetPaginationQueryStringExtractor {
+    pub fn facets<'a>(&'a self) -> Option<Vec<&'a str>> {
+        self.facet.as_ref().map(|facet| facet.split_terminator(',').collect())
+    }
+
+    pub fn pagination(&self) -> Pagination {
+        Pagination { offset: self.offset, limit: self.limit }
+    }
+}
+
+fn all_tags_facets(
     pooled_connection: SqlitePooledConnection,
     collection_uid: Option<&EntityUid>,
+    facets: Option<&Vec<&str>>,
     pagination: &Pagination,
 ) -> TrackTagsResult<Vec<TagFacetCount>> {
     let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
-    repository.all_tag_facets(collection_uid, pagination)
+    repository.all_tags_facets(collection_uid, facets, pagination)
 }
 
-fn handle_get_collections_path_uid_tags_facets_query_pagination(mut state: State) -> Box<HandlerFuture> {
+fn handle_get_collections_path_uid_tags_facets_query_facet_pagination(mut state: State) -> Box<HandlerFuture> {
     let collection_uid = UidPathExtractor::try_parse_from(&mut state);
-    let query_params = PaginationQueryStringExtractor::take_from(&mut state);
-    let pagination = Pagination {
-        offset: query_params.offset,
-        limit: query_params.limit,
-    };
+    let query_params = TagFacetPaginationQueryStringExtractor::take_from(&mut state);
 
     let pooled_connection = match middleware::state_data::try_connection(&state) {
         Ok(pooled_connection) => pooled_connection,
@@ -1091,7 +1105,7 @@ fn handle_get_collections_path_uid_tags_facets_query_pagination(mut state: State
         }
     };
 
-    let response = match all_tag_facets(pooled_connection, collection_uid.as_ref(), &pagination) {
+    let response = match all_tags_facets(pooled_connection, collection_uid.as_ref(), query_params.facets().as_ref(), &query_params.pagination()) {
         Ok(result) => match serde_json::to_vec(&result) {
             Ok(response_body) => create_response(
                 &state,
@@ -1109,29 +1123,17 @@ fn handle_get_collections_path_uid_tags_facets_query_pagination(mut state: State
 fn all_tags(
     pooled_connection: SqlitePooledConnection,
     collection_uid: Option<&EntityUid>,
-    facet: Option<&str>,
+    facets: Option<&Vec<&str>>,
     pagination: &Pagination,
 ) -> TrackTagsResult<Vec<TagCount>> {
     let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
-    repository.all_tags(collection_uid, facet, pagination)
-}
-
-#[derive(Debug, Deserialize, StateData, StaticResponseExtender)]
-struct TagFacetPaginationQueryStringExtractor {
-    facet: Option<String>,
-    offset: Option<PaginationOffset>,
-    limit: Option<PaginationLimit>,
+    repository.all_tags(collection_uid, facets, pagination)
 }
 
 fn handle_get_collections_path_uid_tags_query_facet_pagination(mut state: State) -> Box<HandlerFuture> {
     let collection_uid = UidPathExtractor::try_parse_from(&mut state);
     let query_params = TagFacetPaginationQueryStringExtractor::take_from(&mut state);
-    let facet = query_params.facet.as_ref().map(|facet| facet.as_str());
-    let pagination = Pagination {
-        offset: query_params.offset,
-        limit: query_params.limit,
-    };
 
     let pooled_connection = match middleware::state_data::try_connection(&state) {
         Ok(pooled_connection) => pooled_connection,
@@ -1141,7 +1143,7 @@ fn handle_get_collections_path_uid_tags_query_facet_pagination(mut state: State)
         }
     };
 
-    let response = match all_tags(pooled_connection, collection_uid.as_ref(), facet, &pagination) {
+    let response = match all_tags(pooled_connection, collection_uid.as_ref(), query_params.facets().as_ref(), &query_params.pagination()) {
         Ok(result) => match serde_json::to_vec(&result) {
             Ok(response_body) => create_response(
                 &state,
@@ -1226,12 +1228,12 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
             .with_path_extractor::<UidPathExtractor>()
             .with_query_string_extractor::<PaginationQueryStringExtractor>()
             .to(handle_post_collections_path_uid_tracks_search_query_pagination);
-        route // all tag facets in (optional) collection
+        route // all tag facets in collection
             .get("/collections/:uid/tags/facets")
             .with_path_extractor::<UidPathExtractor>()
-            .with_query_string_extractor::<PaginationQueryStringExtractor>()
-            .to(handle_get_collections_path_uid_tags_facets_query_pagination);
-        route // all tag (facet, term) tuples in (optional) collection
+            .with_query_string_extractor::<TagFacetPaginationQueryStringExtractor>()
+            .to(handle_get_collections_path_uid_tags_facets_query_facet_pagination);
+        route // all tag (facet, term) tuples in collection
             .get("/collections/:uid/tags")
             .with_path_extractor::<UidPathExtractor>()
             .with_query_string_extractor::<TagFacetPaginationQueryStringExtractor>()

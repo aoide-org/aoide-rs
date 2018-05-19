@@ -738,16 +738,33 @@ impl<'a> Tracks for TrackRepository<'a> {
 
 impl<'a> TrackTags for TrackRepository<'a> {
 
-    fn all_tag_facets(
+    fn all_tags_facets(
         &self,
         collection_uid: Option<&EntityUid>,
+        facets: Option<&Vec<&str>>,
         pagination: &Pagination,
     ) -> TrackTagsResult<Vec<TagFacetCount>> {
         let mut target = aux_tracks_tag::table
             .select((aux_tracks_tag::facet, sql::<diesel::sql_types::BigInt>("count(*) AS count")))
             .group_by(aux_tracks_tag::facet)
-            .order(sql::<diesel::sql_types::BigInt>("count").desc())
+            .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
             .into_boxed();
+
+        // Facet Filtering
+        target = match facets {
+            Some(facets) => {
+                if facets.is_empty() {
+                    // All tags with an empty facet.
+                    // Empty facet values should not exist, but nevertheless include
+                    // them in this filter and combine them with the tags that don't
+                    // have any facet.
+                    target.filter(aux_tracks_tag::facet.is_null().or(aux_tracks_tag::facet.eq("")))
+                } else {
+                    target.filter(aux_tracks_tag::facet.eq_any(facets))
+                }
+            }
+            None => target
+        };
 
         // Pagination
         if let Some(offset) = pagination.offset {
@@ -789,24 +806,27 @@ impl<'a> TrackTags for TrackRepository<'a> {
     fn all_tags(
         &self,
         collection_uid: Option<&EntityUid>,
-        facet: Option<&str>,
+        facets: Option<&Vec<&str>>,
         pagination: &Pagination,
     ) -> TrackTagsResult<Vec<TagCount>> {
         let mut target = aux_tracks_tag::table
             .select((aux_tracks_tag::facet, aux_tracks_tag::term, sql::<diesel::sql_types::BigInt>("count(*) AS count")))
             .group_by(aux_tracks_tag::facet)
             .group_by(aux_tracks_tag::term)
-            .order(sql::<diesel::sql_types::BigInt>("count").desc())
+            .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
             .into_boxed();
 
         // Facet Filtering
-        target = match facet {
-            Some(facet) => {
-                if facet.is_empty() {
-                    // Empty facets should not exist, but nevertheless include them in this filter
+        target = match facets {
+            Some(facets) => {
+                if facets.is_empty() {
+                    // All tags with an empty facet.
+                    // Empty facet values should not exist, but nevertheless include
+                    // them in this filter and combine them with the tags that don't
+                    // have any facet.
                     target.filter(aux_tracks_tag::facet.is_null().or(aux_tracks_tag::facet.eq("")))
                 } else {
-                    target.filter(aux_tracks_tag::facet.eq(facet))
+                    target.filter(aux_tracks_tag::facet.eq_any(facets))
                 }
             }
             None => target

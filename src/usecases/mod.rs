@@ -112,16 +112,17 @@ pub trait Tracks {
 pub type TrackTagsResult<T> = Result<T, failure::Error>;
 
 pub trait TrackTags {
-    fn all_tag_facets(
+    fn all_tags_facets(
         &self,
         collection_uid: Option<&EntityUid>,
+        facets: Option<&Vec<&str>>,
         pagination: &Pagination,
     ) -> TrackTagsResult<Vec<TagFacetCount>>;
 
     fn all_tags(
         &self,
         collection_uid: Option<&EntityUid>,
-        facet: Option<&str>,
+        facets: Option<&Vec<&str>>,
         pagination: &Pagination,
     ) -> TrackTagsResult<Vec<TagCount>>;
 }
