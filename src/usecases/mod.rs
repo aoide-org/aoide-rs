@@ -118,16 +118,10 @@ pub trait TrackTags {
         pagination: &Pagination,
     ) -> TrackTagsResult<Vec<TagFacetCount>>;
 
-    fn all_tag_terms(
-        &self,
-        collection_uid: Option<&EntityUid>,
-        facet: Option<&str>,
-        pagination: &Pagination,
-    ) -> TrackTagsResult<Vec<TagTermCount>>;
-
     fn all_tags(
         &self,
         collection_uid: Option<&EntityUid>,
+        facet: Option<&str>,
         pagination: &Pagination,
     ) -> TrackTagsResult<Vec<TagCount>>;
 }
