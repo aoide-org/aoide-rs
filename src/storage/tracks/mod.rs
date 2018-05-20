@@ -754,11 +754,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
         target = match facets {
             Some(facets) => {
                 if facets.is_empty() {
-                    // All tags with an empty facet.
-                    // Empty facet values should not exist, but nevertheless include
-                    // them in this filter and combine them with the tags that don't
-                    // have any facet.
-                    target.filter(aux_tracks_tag::facet.is_null().or(aux_tracks_tag::facet.eq("")))
+                    target.filter(aux_tracks_tag::facet.is_null())
                 } else {
                     target.filter(aux_tracks_tag::facet.eq_any(facets))
                 }
@@ -820,11 +816,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
         target = match facets {
             Some(facets) => {
                 if facets.is_empty() {
-                    // All tags with an empty facet.
-                    // Empty facet values should not exist, but nevertheless include
-                    // them in this filter and combine them with the tags that don't
-                    // have any facet.
-                    target.filter(aux_tracks_tag::facet.is_null().or(aux_tracks_tag::facet.eq("")))
+                    target.filter(aux_tracks_tag::facet.is_null())
                 } else {
                     target.filter(aux_tracks_tag::facet.eq_any(facets))
                 }

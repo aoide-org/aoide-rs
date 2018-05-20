@@ -343,7 +343,13 @@ impl<'a> InsertableTracksTag<'a> {
     pub fn bind(track_id: StorageId, tag: &'a Tag) -> Self {
         Self {
             track_id,
-            facet: tag.facet.as_ref().map(|facet| facet.as_str()),
+            facet: tag.facet.as_ref().and_then(|facet|
+                // Empty strings become NULL in database
+                if facet.is_empty() {
+                    None
+                } else {
+                    Some(facet.as_str())
+                }),
             term: tag.term.as_str(),
             confidence: *tag.confidence,
         }
