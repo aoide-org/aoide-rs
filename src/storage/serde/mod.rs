@@ -48,14 +48,17 @@ impl SerializationFormat {
     }
 
     pub fn from_media_type(media_type: &mime::Mime) -> Option<Self> {
-        if media_type == &mime::APPLICATION_JSON {
-            Some(SerializationFormat::JSON)
-        } else if media_type.type_() == mime::APPLICATION && media_type.subtype() == "cbor" {
-            Some(SerializationFormat::CBOR)
-        } else if media_type == &mime::APPLICATION_MSGPACK {
-            Some(SerializationFormat::MessagePack)
-        } else {
-            None
+        match (media_type.type_(), media_type.subtype()) {
+            (mime::APPLICATION, mime::JSON) => Some(SerializationFormat::JSON),
+            (mime::APPLICATION, mime::MSGPACK) => Some(SerializationFormat::MessagePack),
+            (mime::APPLICATION, subtype) => {
+                if subtype.as_str() == "cbor" {
+                    Some(SerializationFormat::CBOR)
+                } else {
+                    None
+                }
+            }
+            _ => None
         }
     }
 }
