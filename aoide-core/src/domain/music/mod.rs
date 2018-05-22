@@ -408,6 +408,7 @@ impl OpenKeySignature {
     }
 
     pub fn new(code: KeyCode, mode: KeyMode) -> Self {
+        debug_assert!(Self::is_valid_code(code));
         let key_signature = KeySignature {
             code: 2 * code - match mode {
                 KeyMode::Major => 1,
@@ -475,6 +476,7 @@ impl LancelotKeySignature {
     }
 
     pub fn new(code: KeyCode, mode: KeyMode) -> Self {
+        debug_assert!(Self::is_valid_code(code));
         let key_signature = KeySignature {
             code: ((code * 2 + 9) % 24) + match mode {
                 KeyMode::Major => 0,
@@ -520,6 +522,56 @@ impl fmt::Display for LancelotKeySignature {
                 KeyMode::Minor => 'A',
             }
         )
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+/// EngineKeySignature (as found in Denon Engine Prime Library)
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct EngineKeySignature {
+    key_signature: KeySignature,
+}
+
+impl EngineKeySignature {
+    pub const MIN_CODE: KeyCode = 1;
+    pub const MAX_CODE: KeyCode = 24;
+
+    pub fn is_valid_code(code: KeyCode) -> bool {
+        code >= KeySignature::MIN_CODE && code <= KeySignature::MAX_CODE
+    }
+
+    pub fn new(code: KeyCode) -> Self {
+        debug_assert!(Self::is_valid_code(code));
+        let key_signature = KeySignature {
+            code: code % 24 + 1
+        };
+        Self { key_signature }
+    }
+
+    pub fn is_valid(&self) -> bool {
+        self.key_signature.is_valid()
+    }
+
+    pub fn code(&self) -> KeyCode {
+        match self.key_signature.code {
+            1 => 24,
+            code => code - 1,
+        }
+    }
+}
+
+impl From<KeySignature> for EngineKeySignature {
+    fn from(key_signature: KeySignature) -> Self {
+        Self { key_signature }
+    }
+}
+
+impl From<EngineKeySignature> for KeySignature {
+    fn from(from: EngineKeySignature) -> Self {
+        from.key_signature
     }
 }
 
@@ -625,70 +677,110 @@ mod tests {
 
     #[test]
     fn convert_key_signatures() {
+        // C maj
         assert_eq!(
             KeySignature::new(1),
             OpenKeySignature::new(1, KeyMode::Major).into()
-        ); // C maj
+        );
         assert_eq!(
             KeySignature::new(1),
             LancelotKeySignature::new(8, KeyMode::Major).into()
-        ); // C maj
+        );
+        assert_eq!(
+            KeySignature::new(1),
+            EngineKeySignature::new(24).into()
+        );
+        // A min
         assert_eq!(
             KeySignature::new(2),
             OpenKeySignature::new(1, KeyMode::Minor).into()
-        ); // A min
+        );
         assert_eq!(
             KeySignature::new(2),
             LancelotKeySignature::new(8, KeyMode::Minor).into()
-        ); // A min
+        );
+        assert_eq!(
+            KeySignature::new(2),
+            EngineKeySignature::new(1).into()
+        );
+         // E maj
         assert_eq!(
             KeySignature::new(9),
             OpenKeySignature::new(5, KeyMode::Major).into()
-        ); // E maj
+        );
         assert_eq!(
             KeySignature::new(9),
             LancelotKeySignature::new(12, KeyMode::Major).into()
-        ); // E maj
+        );
+        assert_eq!(
+            KeySignature::new(9),
+            EngineKeySignature::new(8).into()
+        );
+        // Db min
         assert_eq!(
             KeySignature::new(10),
             OpenKeySignature::new(5, KeyMode::Minor).into()
-        ); // Db min
+        );
         assert_eq!(
             KeySignature::new(10),
             LancelotKeySignature::new(12, KeyMode::Minor).into()
-        ); // Db min
+        );
+        assert_eq!(
+            KeySignature::new(10),
+            EngineKeySignature::new(9).into()
+        );
+        // B maj
         assert_eq!(
             KeySignature::new(11),
             OpenKeySignature::new(6, KeyMode::Major).into()
-        ); // B maj
+        );
         assert_eq!(
             KeySignature::new(11),
             LancelotKeySignature::new(1, KeyMode::Major).into()
-        ); // B maj
+        );
+        assert_eq!(
+            KeySignature::new(11),
+            EngineKeySignature::new(10).into()
+        );
+        // Ab min
         assert_eq!(
             KeySignature::new(12),
             OpenKeySignature::new(6, KeyMode::Minor).into()
-        ); // Ab min
+        );
         assert_eq!(
             KeySignature::new(12),
             LancelotKeySignature::new(1, KeyMode::Minor).into()
-        ); // Ab min
+        );
+        assert_eq!(
+            KeySignature::new(12),
+            EngineKeySignature::new(11).into()
+        );
+        // F maj
         assert_eq!(
             KeySignature::new(23),
             OpenKeySignature::new(12, KeyMode::Major).into()
-        ); // F maj
+        );
         assert_eq!(
             KeySignature::new(23),
             LancelotKeySignature::new(7, KeyMode::Major).into()
-        ); // F maj
+        );
+        assert_eq!(
+            KeySignature::new(23),
+            EngineKeySignature::new(22).into()
+        );
+        // D min
         assert_eq!(
             KeySignature::new(24),
             OpenKeySignature::new(12, KeyMode::Minor).into()
-        ); // D min
+        );
         assert_eq!(
             KeySignature::new(24),
             LancelotKeySignature::new(7, KeyMode::Minor).into()
-        ); // D min
+        );
+        assert_eq!(
+            KeySignature::new(24),
+            EngineKeySignature::new(23).into()
+        );
     }
 
     #[test]
