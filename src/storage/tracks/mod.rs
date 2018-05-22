@@ -709,7 +709,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                     tracks_entity::id.eq_any(
                         aux_tracks_comment::table
                             .select(aux_tracks_comment::track_id)
-                            .filter(aux_tracks_comment::comment.like(&like_expr).escape('\\')),
+                            .filter(aux_tracks_comment::text.like(&like_expr).escape('\\')),
                     ),
                 )
                 .into_boxed();

@@ -53,10 +53,11 @@
                         "asin:B007MPE20U"
                     ]
                 },
-                "titles": {
-                    "title": "MDNA (Deluxe Version)",
-                    "subtitle": null
-                },
+                "titles": [
+                    {
+                        "name": "MDNA (Deluxe Version)"
+                    }
+                ],
                 "actors": [
                     {
                         "role": "artist",
@@ -68,9 +69,11 @@
                 ],
                 "compilation": false
             },
-            "titles": {
-                "title": "Give Me All Your Luvin'"
-            },
+            "titles": [
+                {
+                    "name": "Give Me All Your Luvin'"
+                }
+            ],
             "actors": [
                 {
                     "role": "artist",
@@ -204,20 +207,20 @@
             ],
             "ratings": [
                 {
-                    "rating": 0.8
+                    "score": 0.8
                 },
                 {
                     "owner": "owner@aoide.org",
-                    "rating": 0.7
+                    "score": 0.7
                 }
             ],
             "comments": [
                 {
                     "owner": "owner@aoide.org",
-                    "comment": "Personal notes about this track"
+                    "text": "Personal notes about this track"
                 },
                 {
-                    "comment": "Anonymous notes about this track"
+                    "text": "Anonymous notes about this track"
                 }
             ]
         }

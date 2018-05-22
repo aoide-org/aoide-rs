@@ -146,7 +146,7 @@ CREATE TABLE aux_tracks_comment (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     owner                    TEXT,
-    comment                  CLOB NOT NULL,
+    text                     CLOB NOT NULL,
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id, owner)
 );
@@ -155,7 +155,7 @@ CREATE TABLE aux_tracks_rating (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     owner                    TEXT,
-    rating                   REAL NOT NULL,
+    score                    REAL NOT NULL,
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id, owner)
 );

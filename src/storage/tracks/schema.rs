@@ -143,7 +143,7 @@ table! {
         id -> BigInt,
         track_id -> BigInt,
         owner -> Nullable<Text>,
-        comment -> Text,
+        text -> Text,
     }
 }
 
@@ -154,7 +154,7 @@ table! {
         id -> BigInt,
         track_id -> BigInt,
         owner -> Nullable<Text>,
-        rating -> Double,
+        score -> Double,
     }
 }
 

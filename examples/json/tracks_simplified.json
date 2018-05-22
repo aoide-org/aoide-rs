@@ -53,10 +53,11 @@
                         "asin:B007MPE20U"
                     ]
                 },
-                "titles": {
-                    "title": "MDNA (Deluxe Version)",
-                    "subtitle": null
-                },
+                "titles": [
+                    {
+                        "name": "MDNA (Deluxe Version)"
+                    }
+                ],
                 "actors": [
                     {
                         "role": "artist",
@@ -68,9 +69,11 @@
                 ],
                 "compilation": false
             },
-            "titles": {
-                "title": "Give Me All Your Luvin'"
-            },
+            "titles": [
+                {
+                    "name": "Give Me All Your Luvin'"
+                }
+            ],
             "actors": [
                 {
                     "role": "artist",

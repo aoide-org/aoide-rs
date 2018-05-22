@@ -362,7 +362,7 @@ impl<'a> InsertableTracksTag<'a> {
 pub struct InsertableTracksComment<'a> {
     pub track_id: StorageId,
     pub owner: Option<&'a str>,
-    pub comment: &'a str,
+    pub text: &'a str,
 }
 
 impl<'a> InsertableTracksComment<'a> {
@@ -370,7 +370,7 @@ impl<'a> InsertableTracksComment<'a> {
         Self {
             track_id,
             owner: comment.owner.as_ref().map(|owner| owner.as_str()),
-            comment: comment.comment.as_str(),
+            text: comment.text.as_str(),
         }
     }
 }
@@ -380,7 +380,7 @@ impl<'a> InsertableTracksComment<'a> {
 pub struct InsertableTracksRating<'a> {
     pub track_id: StorageId,
     pub owner: Option<&'a str>,
-    pub rating: ConfidenceValue,
+    pub score: ConfidenceValue,
 }
 
 impl<'a> InsertableTracksRating<'a> {
@@ -388,7 +388,7 @@ impl<'a> InsertableTracksRating<'a> {
         Self {
             track_id,
             owner: rating.owner.as_ref().map(|owner| owner.as_str()),
-            rating: *rating.rating,
+            score: *rating.score,
         }
     }
 }

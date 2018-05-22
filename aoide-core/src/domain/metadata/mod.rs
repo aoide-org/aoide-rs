@@ -48,9 +48,9 @@ impl Deref for Confidence {
 }
 
 impl Confidence {
-    pub const MIN: Confidence = Confidence(0 as ConfidenceValue);
+    pub const MIN: Self = Confidence(0 as ConfidenceValue);
 
-    pub const MAX: Confidence = Confidence(1 as ConfidenceValue);
+    pub const MAX: Self = Confidence(1 as ConfidenceValue);
 
     pub fn is_valid(&self) -> bool {
         (*self >= Self::MIN) && (*self <= Self::MAX)
@@ -59,7 +59,11 @@ impl Confidence {
 
 impl fmt::Display for Confidence {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:.1}%", (self.0 * (1000 as ConfidenceValue)).round() / (10 as ConfidenceValue))
+        write!(
+            f,
+            "{:.1}%",
+            (self.0 * (1000 as ConfidenceValue)).round() / (10 as ConfidenceValue)
+        )
     }
 }
 
@@ -72,7 +76,7 @@ impl fmt::Display for Confidence {
 pub struct Tag {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub facet: Option<String>, // lowercase / case-insensitive
-    
+
     pub term: String,
 
     pub confidence: Confidence,
@@ -140,32 +144,38 @@ pub struct TagCount {
 /// Rating
 ///////////////////////////////////////////////////////////////////////
 
+pub type RatingScore = Confidence;
+pub type RatingScoreValue = ConfidenceValue;
+
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Rating {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub owner: Option<String>,
-    
-    pub rating: Confidence,
+
+    pub score: RatingScore,
 }
 
 impl Rating {
-    pub fn new<O: Into<String>, R: Into<Confidence>>(owner: O, rating: R) -> Self {
+    pub const MIN_SCORE: RatingScore = RatingScore::MIN;
+    pub const MAX_SCORE: RatingScore = RatingScore::MAX;
+
+    pub fn new<O: Into<String>, S: Into<RatingScore>>(owner: O, score: S) -> Self {
         Self {
             owner: Some(owner.into()),
-            rating: rating.into(),
+            score: score.into(),
         }
     }
 
-    pub fn new_anonymous<R: Into<Confidence>>(rating: R) -> Self {
+    pub fn new_anonymous<S: Into<RatingScore>>(score: S) -> Self {
         Self {
             owner: None,
-            rating: rating.into(),
+            score: score.into(),
         }
     }
 
     pub fn is_valid(&self) -> bool {
-        if !self.rating.is_valid() {
+        if !self.score.is_valid() {
             false
         } else if let Some(ref owner) = self.owner {
             !owner.is_empty()
@@ -178,29 +188,38 @@ impl Rating {
         self.owner.is_none()
     }
 
-    pub fn rating_from_stars(stars: u8, max_stars: u8) -> Confidence {
-        Confidence((stars.min(max_stars) as ConfidenceValue) / (max_stars as ConfidenceValue))
+    pub fn rating_from_stars(stars: u8, max_stars: u8) -> RatingScore {
+        Confidence((stars.min(max_stars) as RatingScoreValue) / (max_stars as RatingScoreValue))
     }
 
     pub fn star_rating(&self, max_stars: u8) -> u8 {
-        ((*self.rating * (max_stars as ConfidenceValue)).ceil() as u8).min(max_stars)
+        ((*self.score * (max_stars as RatingScoreValue)).ceil() as u8).min(max_stars)
     }
 
-    pub fn minmax<'a>(ratings: &[Self], owner: Option<&'a str>) -> Option<(Confidence, Confidence)> {
+    pub fn minmax<'a>(
+        ratings: &[Self],
+        owner: Option<&'a str>,
+    ) -> Option<(RatingScore, RatingScore)> {
         let count = ratings
             .iter()
-            .filter(|rating| owner.is_none() || rating.owner.is_none() || rating.owner.as_ref().map(|owner| owner.as_str()) == owner)
+            .filter(|rating| {
+                owner.is_none() || rating.owner.is_none()
+                    || rating.owner.as_ref().map(|owner| owner.as_str()) == owner
+            })
             .count();
         if count > 0 {
-            let (mut min_rating, mut max_rating) = (*Confidence::MAX, *Confidence::MIN);
+            let (mut min_score, mut max_score) = (*Self::MAX_SCORE, *Self::MIN_SCORE);
             ratings
                 .iter()
-                .filter(|rating| owner.is_none() || rating.owner.is_none() || rating.owner.as_ref().map(|owner| owner.as_str()) == owner)
+                .filter(|rating| {
+                    owner.is_none() || rating.owner.is_none()
+                        || rating.owner.as_ref().map(|owner| owner.as_str()) == owner
+                })
                 .for_each(|rating| {
-                    min_rating = min_rating.min(*rating.rating);
-                    max_rating = max_rating.max(*rating.rating);
-                    });
-            Some((Confidence(min_rating), Confidence(max_rating)))
+                    min_score = min_score.min(*rating.score);
+                    max_score = max_score.max(*rating.score);
+                });
+            Some((min_score.into(), max_score.into()))
         } else {
             None
         }
@@ -216,22 +235,22 @@ impl Rating {
 pub struct Comment {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub owner: Option<String>,
-    
-    pub comment: String,
+
+    pub text: String,
 }
 
 impl Comment {
-    pub fn new<O: Into<String>, C: Into<String>>(owner: O, comment: C) -> Self {
+    pub fn new<O: Into<String>, T: Into<String>>(owner: O, text: T) -> Self {
         Self {
             owner: Some(owner.into()),
-            comment: comment.into(),
+            text: text.into(),
         }
     }
 
-    pub fn new_anonymous<C: Into<String>>(comment: C) -> Self {
+    pub fn new_anonymous<T: Into<String>>(text: T) -> Self {
         Self {
             owner: None,
-            comment: comment.into(),
+            text: text.into(),
         }
     }
 
@@ -279,18 +298,45 @@ mod tests {
         let owner3 = "c";
         let owner4 = "d";
         let ratings = vec![
-            Rating { owner: Some(owner1.into()), rating: 0.5.into() },
-            Rating { owner: None, rating: Confidence(0.4) },
-            Rating { owner: Some(owner2.into()), rating: Confidence(0.8) },
-            Rating { owner: Some(owner3.into()), rating: Confidence(0.1) },
+            Rating {
+                owner: Some(owner1.into()),
+                score: 0.5.into(),
+            },
+            Rating {
+                owner: None,
+                score: 0.4.into(),
+            },
+            Rating {
+                owner: Some(owner2.into()),
+                score: 0.8.into(),
+            },
+            Rating {
+                owner: Some(owner3.into()),
+                score: 0.1.into(),
+            },
         ];
         assert_eq!(None, Rating::minmax(&vec![], None));
         assert_eq!(None, Rating::minmax(&vec![], Some(owner1)));
         assert_eq!(None, Rating::minmax(&vec![], Some(owner4)));
-        assert_eq!(Some((Confidence(0.1), Confidence(0.8))), Rating::minmax(&ratings, None)); // all ratings
-        assert_eq!(Some((Confidence(0.4), Confidence(0.5))), Rating::minmax(&ratings, Some(owner1))); // anonymous and own rating
-        assert_eq!(Some((Confidence(0.4), Confidence(0.8))), Rating::minmax(&ratings, Some(owner2))); // anonymous and own rating
-        assert_eq!(Some((Confidence(0.1), Confidence(0.4))), Rating::minmax(&ratings, Some(owner3))); // anonymous and own rating
-        assert_eq!(Some((Confidence(0.4), Confidence(0.4))), Rating::minmax(&ratings, Some(owner4))); // only anonymous rating
+        assert_eq!(
+            Some((0.1.into(), 0.8.into())),
+            Rating::minmax(&ratings, None)
+        ); // all ratings
+        assert_eq!(
+            Some((0.4.into(), 0.5.into())),
+            Rating::minmax(&ratings, Some(owner1))
+        ); // anonymous and own rating
+        assert_eq!(
+            Some((0.4.into(), 0.8.into())),
+            Rating::minmax(&ratings, Some(owner2))
+        ); // anonymous and own rating
+        assert_eq!(
+            Some((0.1.into(), 0.4.into())),
+            Rating::minmax(&ratings, Some(owner3))
+        ); // anonymous and own rating
+        assert_eq!(
+            Some((0.4.into(), 0.4.into())),
+            Rating::minmax(&ratings, Some(owner4))
+        ); // only anonymous rating
     }
 }
