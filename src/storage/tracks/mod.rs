@@ -756,7 +756,14 @@ impl<'a> TrackTags for TrackRepository<'a> {
                 if facets.is_empty() {
                     target.filter(aux_tracks_tag::facet.is_null())
                 } else {
-                    target.filter(aux_tracks_tag::facet.eq_any(facets))
+                    let filtered =
+                        target.filter(aux_tracks_tag::facet.eq_any(facets));
+                    if facets.iter().any(|facet| facet.is_empty()) {
+                        // Empty facets are interpreted as null, just like an empty vector
+                        filtered.or_filter(aux_tracks_tag::facet.is_null())
+                    } else {
+                        filtered
+                    }
                 }
             }
             None => target
@@ -818,7 +825,14 @@ impl<'a> TrackTags for TrackRepository<'a> {
                 if facets.is_empty() {
                     target.filter(aux_tracks_tag::facet.is_null())
                 } else {
-                    target.filter(aux_tracks_tag::facet.eq_any(facets))
+                    let filtered =
+                        target.filter(aux_tracks_tag::facet.eq_any(facets));
+                    if facets.iter().any(|facet| facet.is_empty()) {
+                        // Empty facets are interpreted as null, just like an empty vector
+                        filtered.or_filter(aux_tracks_tag::facet.is_null())
+                    } else {
+                        filtered
+                    }
                 }
             }
             None => target

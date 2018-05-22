@@ -1074,7 +1074,7 @@ struct TagFacetPaginationQueryStringExtractor {
 
 impl TagFacetPaginationQueryStringExtractor {
     pub fn facets<'a>(&'a self) -> Option<Vec<&'a str>> {
-        self.facet.as_ref().map(|facet| facet.split_terminator(',').collect())
+        self.facet.as_ref().map(|facet| facet.split(',').collect())
     }
 
     pub fn pagination(&self) -> Pagination {
