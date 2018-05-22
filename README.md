@@ -78,16 +78,22 @@ Test your scripts with the migration commands *run* followed by *revert* + *run*
 
 ## Running
 
-Run the service with the following command:
+Print help information:
 
 ```bash
-cargo run --bin aoide
+cargo run --bin aoide -- --help
 ```
 
-Starting the service without specifying an SQLite database file will create an in-memory database. To connect to an existing database start the service with the path to the file as an additional argument:
+Starting the service without specifying an SQLite database file will create an in-memory database:
 
 ```bash
-cargo run --bin aoide test.sqlite
+cargo run --bin aoide -- -vv
+```
+
+To connect to an existing database or to create a new database start the service with the path to the file as an additional argument:
+
+```bash
+cargo run --bin aoide -- -vv /tmp/aoide.sqlite
 ```
 
 ## Examples

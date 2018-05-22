@@ -17,6 +17,8 @@ extern crate aoide;
 
 extern crate aoide_core;
 
+extern crate clap;
+
 extern crate diesel;
 
 #[macro_use]
@@ -68,6 +70,8 @@ use aoide_core::domain::collection::*;
 use aoide_core::domain::entity::*;
 use aoide_core::domain::metadata::*;
 use aoide_core::domain::track::*;
+
+use clap::{Arg, App};
 
 use diesel::prelude::*;
 
@@ -1242,19 +1246,25 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
 }
 
 pub fn main() -> Result<(), failure::Error> {
-    let args: Vec<String> = env::args().collect();
+    let matches = App::new("aoide")
+            .version("0.0.1")
+            //.author("")
+            //.about("")
+            .arg(Arg::with_name("DB_URL")
+                .help("Sets the database URL")
+                .default_value(":memory:")
+                .index(1))
+            .arg(Arg::with_name("v")
+                .short("v")
+                .multiple(true)
+                .help("Sets the level of verbosity (= number of occurrences)"))
+            .get_matches();
 
-    // TODO: Parse verbosity from args
-    init_env_logger_verbosity(2);
+    let verbosity = matches.occurrences_of("v");
+    init_env_logger_verbosity(verbosity.min(8) as u8);
 
-    let db_url = match args.len() {
-        0 | 1 => ":memory:",
-        2 => &args[1],
-        _ => {
-            println!("usage: {} <DB_URL>", args[0]);
-            bail!("Too many arguments");
-        }
-    };
+    let db_url = matches.value_of("DB_URL").unwrap();
+    info!("Database URL: {}", db_url);
 
     // Workaround: Use a pool of size 1 to avoid 'database is locked'
     // errors due to multi-threading.
