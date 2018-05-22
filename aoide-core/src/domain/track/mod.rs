@@ -20,6 +20,7 @@ use domain::collection::*;
 use domain::entity::*;
 use domain::metadata::*;
 use domain::music::*;
+use domain::music::sonic::*;
 
 use chrono::{DateTime, Utc};
 

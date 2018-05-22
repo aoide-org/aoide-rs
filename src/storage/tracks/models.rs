@@ -22,7 +22,8 @@ use storage::serde::SerializationFormat;
 
 use aoide_core::domain::entity::{EntityHeader, EntityRevision};
 use aoide_core::domain::metadata::{Comment, Confidence, ConfidenceValue, Rating, Tag};
-use aoide_core::domain::music::{ActorRole, BeatsPerMinute, Classifier, Decibel, Loudness, LUFS};
+use aoide_core::domain::music::{ActorRole, Classifier};
+use aoide_core::domain::music::sonic::{BeatsPerMinute, Decibel, Loudness, LUFS};
 use aoide_core::domain::track::{MusicMetadata, TrackBody, TrackResource, RefOrigin};
 
 #[derive(Debug, Insertable)]
