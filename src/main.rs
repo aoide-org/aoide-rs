@@ -1129,7 +1129,7 @@ fn all_tags(
     collection_uid: Option<&EntityUid>,
     facets: Option<&Vec<&str>>,
     pagination: &Pagination,
-) -> TrackTagsResult<Vec<TagCount>> {
+) -> TrackTagsResult<Vec<MultiTag>> {
     let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
     repository.all_tags(collection_uid, facets, pagination)

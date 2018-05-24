@@ -15,7 +15,7 @@
 
 pub mod sonic;
 
-use domain::metadata::Confidence;
+use domain::metadata::Score;
 
 ///////////////////////////////////////////////////////////////////////
 /// TitleLevel
@@ -50,10 +50,10 @@ pub struct Title {
     #[serde(skip_serializing_if = "TitleLevel::is_default", default)]
     pub level: TitleLevel,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub language: Option<String>,
-
     pub name: String,
+
+    #[serde(rename = "lang", skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
 }
 
 impl Title {
@@ -172,15 +172,15 @@ impl Default for ActorPriority {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Actor {
-    pub role: ActorRole,
+    #[serde(rename = "prio", skip_serializing_if = "ActorPriority::is_default", default)]
+    pub priority: ActorPriority,
 
-    #[serde(skip_serializing_if = "ActorPriority::is_default", default)]
-    pub prio: ActorPriority,
+    pub role: ActorRole,
 
     pub name: String,
 
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub refs: Vec<String>, // external URIs
+    #[serde(rename = "refs", skip_serializing_if = "Vec::is_empty", default)]
+    pub references: Vec<String>, // external URIs
 }
 
 impl Actor {
@@ -196,34 +196,29 @@ impl Actors {
         actors.iter().all(|actor| actor.is_valid())
         // TODO:
         // - at most one summary entry exists for each role
-        // - at most one primary entry exists for each role
-        // - at least one summary or primary entry exists for each role
     }
 
     pub fn summary_actor<'a>(actors: &'a [Actor], role: ActorRole) -> Option<&'a Actor> {
         debug_assert!(actors
             .iter()
-            .filter(|actor| actor.role == role && actor.prio == ActorPriority::Summary)
+            .filter(|actor| actor.priority == ActorPriority::Summary && actor.role == role)
             .count() <= 1);
         actors
             .iter()
-            .filter(|actor| actor.role == role && actor.prio == ActorPriority::Summary)
+            .filter(|actor| actor.priority == ActorPriority::Summary && actor.role == role)
             .nth(0)
     }
 
-    pub fn primary_actor<'a>(actors: &'a [Actor], role: ActorRole) -> Option<&'a Actor> {
-        debug_assert!(actors
-            .iter()
-            .filter(|actor| actor.role == role && actor.prio == ActorPriority::Primary)
-            .count() <= 1);
-        actors
-            .iter()
-            .filter(|actor| actor.role == role && actor.prio == ActorPriority::Primary)
-            .nth(0)
-    }
-
+    // The summary actor or otherwise the singular primary actor
     pub fn main_actor<'a>(actors: &'a [Actor], role: ActorRole) -> Option<&'a Actor> {
-        Self::summary_actor(actors, role).or_else(|| Self::primary_actor(actors, role))
+        debug_assert!(Self::summary_actor(actors, role).is_some() || actors
+            .iter()
+            .filter(|actor| actor.priority == ActorPriority::Primary && actor.role == role)
+            .count() <= 1);
+        Self::summary_actor(actors, role).or_else(|| actors
+            .iter()
+            .filter(|actor| actor.priority == ActorPriority::Primary && actor.role == role)
+            .nth(0))
     }
 }
 
@@ -233,7 +228,7 @@ impl Actors {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "lowercase")]
-pub enum Classifier {
+pub enum ClassificationSubject {
     Acousticness,
     Danceability,
     Energy,
@@ -247,20 +242,20 @@ pub enum Classifier {
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Classification {
-    pub classifier: Classifier,
-    pub confidence: Confidence,
+    pub subject: ClassificationSubject,
+    pub score: Score,
 }
 
 impl Classification {
-    pub fn new<C: Into<Confidence>>(classifier: Classifier, confidence: C) -> Self {
+    pub fn new<C: Into<Score>>(subject: ClassificationSubject, score: C) -> Self {
         Self {
-            classifier,
-            confidence: confidence.into(),
+            subject,
+            score: score.into(),
         }
     }
 
     pub fn is_valid(&self) -> bool {
-        self.confidence.is_valid()
+        self.score.is_valid()
     }
 }
 
@@ -274,49 +269,58 @@ mod tests {
 
     #[test]
     fn actors() {
-        let main_artist_name = "Madonna feat. M.I.A. and Nicki Minaj";
-        let default_producer_name = "Martin Solveig";
+        let summary_artist_name = "Madonna feat. M.I.A. and Nicki Minaj";
+        let primary_producer_name = "Martin Solveig";
         let actors = vec![
             Actor {
+                priority: ActorPriority::Summary,
                 role: ActorRole::Artist,
-                prio: ActorPriority::Summary,
-                name: main_artist_name.into(),
+                name: summary_artist_name.into(),
                 ..Default::default()
             },
             Actor {
+                priority: ActorPriority::Primary,
                 role: ActorRole::Artist,
-                prio: ActorPriority::Primary,
                 name: "Madonna".into(),
                 ..Default::default()
             },
             Actor {
+                priority: ActorPriority::Secondary,
                 role: ActorRole::Artist,
-                prio: ActorPriority::Secondary,
                 name: "M.I.A.".into(),
                 ..Default::default()
             },
             Actor {
+                priority: ActorPriority::Primary,
                 role: ActorRole::Producer,
-                prio: ActorPriority::Primary,
-                name: default_producer_name.into(),
+                name: primary_producer_name.into(),
                 ..Default::default()
             },
             Actor {
+                priority: ActorPriority::Secondary,
                 role: ActorRole::Artist,
-                prio: ActorPriority::Secondary,
                 name: "Nicki Minaj".into(),
                 ..Default::default()
             },
         ];
         assert!(Actors::is_valid(&actors));
         assert_eq!(
-            main_artist_name,
+            summary_artist_name,
+            Actors::summary_actor(&actors, ActorRole::Artist).unwrap().name
+        );
+        assert_eq!(
+            summary_artist_name,
             Actors::main_actor(&actors, ActorRole::Artist).unwrap().name
         );
         assert_eq!(
-            default_producer_name,
+            None,
+            Actors::summary_actor(&actors, ActorRole::Producer)
+        );
+        assert_eq!(
+            primary_producer_name,
             Actors::main_actor(&actors, ActorRole::Producer).unwrap().name
         );
+        assert_eq!(None, Actors::summary_actor(&actors, ActorRole::Conductor));
         assert_eq!(None, Actors::main_actor(&actors, ActorRole::Conductor));
     }
 }

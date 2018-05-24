@@ -97,19 +97,19 @@ table! {
     aux_tracks_music (id) {
         id -> BigInt,
         track_id -> BigInt,
-        music_loudness_db -> Nullable<Double>,
-        music_tempo_bpm -> Nullable<Double>,
-        music_time_sig_num -> Nullable<SmallInt>,
-        music_time_sig_denom -> Nullable<SmallInt>,
-        music_key_sig_code -> Nullable<SmallInt>,
-        music_acousticness -> Nullable<Double>,
-        music_danceability -> Nullable<Double>,
-        music_energy -> Nullable<Double>,
-        music_instrumentalness -> Nullable<Double>,
-        music_liveness -> Nullable<Double>,
-        music_popularity -> Nullable<Double>,
-        music_speechiness -> Nullable<Double>,
-        music_valence -> Nullable<Double>,
+        loudness_db -> Nullable<Double>,
+        tempo_bpm -> Nullable<Double>,
+        time_sig_num -> Nullable<SmallInt>,
+        time_sig_denom -> Nullable<SmallInt>,
+        key_sig_code -> Nullable<SmallInt>,
+        acousticness_score -> Nullable<Double>,
+        danceability_score -> Nullable<Double>,
+        energy_score -> Nullable<Double>,
+        instrumentalness_score -> Nullable<Double>,
+        liveness_score -> Nullable<Double>,
+        popularity_score -> Nullable<Double>,
+        speechiness_score -> Nullable<Double>,
+        valence_score -> Nullable<Double>,
     }
 }
 
@@ -120,7 +120,7 @@ table! {
         id -> BigInt,
         track_id -> BigInt,
         origin -> SmallInt,
-        value -> Text,
+        identifier -> Text,
     }
 }
 
@@ -132,7 +132,7 @@ table! {
         track_id -> BigInt,
         facet -> Nullable<Text>,
         term -> Text,
-        confidence -> Double,
+        score -> Double,
     }
 }
 

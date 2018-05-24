@@ -269,33 +269,33 @@ impl<'a> TrackRepository<'a> {
         track_id: StorageId,
         track_body: &TrackBody,
     ) -> Result<(), failure::Error> {
-        for track_ref in track_body.refs.iter() {
+        for track_ref in track_body.references.iter() {
             let insertable = InsertableTracksRef::bind(track_id, RefOrigin::Track, &track_ref);
             let query = diesel::replace_into(aux_tracks_ref::table).values(&insertable);
             query.execute(self.connection)?;
         }
         for actor in track_body.actors.iter() {
-            for actor_ref in actor.refs.iter() {
+            for actor_ref in actor.references.iter() {
                 let insertable = InsertableTracksRef::bind(track_id, RefOrigin::TrackActor, &actor_ref);
                 let query = diesel::replace_into(aux_tracks_ref::table).values(&insertable);
                 query.execute(self.connection)?;
             }
         }
         if let Some(album) = track_body.album.as_ref() {
-            for album_ref in album.refs.iter() {
+            for album_ref in album.references.iter() {
                 let insertable = InsertableTracksRef::bind(track_id, RefOrigin::Album, &album_ref);
                 let query = diesel::replace_into(aux_tracks_ref::table).values(&insertable);
                 query.execute(self.connection)?;
             }
             for actor in album.actors.iter() {
-                for actor_ref in actor.refs.iter() {
+                for actor_ref in actor.references.iter() {
                     let insertable = InsertableTracksRef::bind(track_id, RefOrigin::AlbumActor, &actor_ref);
                     let query = diesel::replace_into(aux_tracks_ref::table).values(&insertable);
                     query.execute(self.connection)?;
                 }
             }
             if let Some(release) = album.release.as_ref() { 
-                for release_ref in release.refs.iter() {
+                for release_ref in release.references.iter() {
                     let insertable = InsertableTracksRef::bind(track_id, RefOrigin::Release, &release_ref);
                     let query = diesel::replace_into(aux_tracks_ref::table).values(&insertable);
                     query.execute(self.connection)?;
@@ -811,9 +811,9 @@ impl<'a> TrackTags for TrackRepository<'a> {
         collection_uid: Option<&EntityUid>,
         facets: Option<&Vec<&str>>,
         pagination: &Pagination,
-    ) -> TrackTagsResult<Vec<TagCount>> {
+    ) -> TrackTagsResult<Vec<MultiTag>> {
         let mut target = aux_tracks_tag::table
-            .select((aux_tracks_tag::facet, aux_tracks_tag::term, sql::<diesel::sql_types::BigInt>("count(*) AS count")))
+            .select((aux_tracks_tag::facet, aux_tracks_tag::term, sql::<diesel::sql_types::Double>("AVG(score) AS score"), sql::<diesel::sql_types::BigInt>("COUNT(*) AS count")))
             .group_by(aux_tracks_tag::facet)
             .group_by(aux_tracks_tag::term)
             .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
@@ -852,21 +852,31 @@ impl<'a> TrackTags for TrackRepository<'a> {
                     aux_tracks_tag::track_id.eq(aux_tracks_resource::track_id)
                     .and(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()))
             ));
-            let rows = target.load::<(Option<String>, String, i64)>(self.connection)?;
+            let rows = target.load::<(Option<String>, String, f64, i64)>(self.connection)?;
             let mut result = Vec::with_capacity(rows.len());
             for row in rows.into_iter() {
-                result.push(TagCount {
-                    facet: row.0, term: row.1, count: row.2 as usize
+                result.push(MultiTag {
+                    tag: Tag {
+                        facet: row.0,
+                        term: row.1,
+                        score: Score(row.2),
+                    },
+                    count: row.3 as usize,
                 });
             }
 
             Ok(result)
         } else {
-            let rows = target.load::<(Option<String>, String, i64)>(self.connection)?;
+            let rows = target.load::<(Option<String>, String, f64, i64)>(self.connection)?;
             let mut result = Vec::with_capacity(rows.len());
             for row in rows.into_iter() {
-                result.push(TagCount {
-                    facet: row.0, term: row.1, count: row.2 as usize
+                result.push(MultiTag {
+                    tag: Tag {
+                        facet: row.0,
+                        term: row.1,
+                        score: Score(row.2),
+                    },
+                    count: row.3 as usize,
                 });
             }
 

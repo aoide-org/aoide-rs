@@ -97,19 +97,19 @@ CREATE TABLE aux_tracks_summary (
 CREATE TABLE aux_tracks_music (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
-    music_loudness_db        REAL NOT NULL, -- LUFS dB
-    music_tempo_bpm          REAL NOT NULL, -- beats per minute (bpm)
-    music_time_sig_num       TINYINT NOT NULL, -- >= 0
-    music_time_sig_denom     TINYINT NOT NULL, -- >= 0
-    music_key_sig_code       TINYINT NOT NULL, -- {(0), 1, ..., 24}
-    music_acousticness       REAL, -- [0.0, 1.0]
-    music_danceability       REAL, -- [0.0, 1.0]
-    music_energy             REAL, -- [0.0, 1.0]
-    music_instrumentalness   REAL, -- [0.0, 1.0]
-    music_liveness           REAL, -- [0.0, 1.0]
-    music_popularity         REAL, -- [0.0, 1.0]
-    music_valence            REAL, -- [0.0, 1.0]
-    music_speechiness        REAL, -- [0.0, 1.0]
+    loudness_db              REAL NOT NULL, -- LUFS dB
+    tempo_bpm                REAL NOT NULL, -- beats per minute (bpm)
+    time_sig_num             TINYINT NOT NULL, -- >= 0
+    time_sig_denom           TINYINT NOT NULL, -- >= 0
+    key_sig_code             TINYINT NOT NULL, -- {(0), 1, ..., 24}
+    acousticness_score       REAL, -- [0.0, 1.0]
+    danceability_score       REAL, -- [0.0, 1.0]
+    energy_score             REAL, -- [0.0, 1.0]
+    instrumentalness_score   REAL, -- [0.0, 1.0]
+    liveness_score           REAL, -- [0.0, 1.0]
+    popularity_score         REAL, -- [0.0, 1.0]
+    valence_score            REAL, -- [0.0, 1.0]
+    speechiness_score        REAL, -- [0.0, 1.0]
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id)
 );
@@ -118,9 +118,9 @@ CREATE TABLE aux_tracks_ref (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     origin                   TINYINT,
-    value                    TEXT NOT NULL,
+    identifier               TEXT NOT NULL,
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
-    UNIQUE (track_id, origin, value)
+    UNIQUE (track_id, origin, identifier)
 );
 
 CREATE TABLE aux_tracks_tag (
@@ -128,7 +128,7 @@ CREATE TABLE aux_tracks_tag (
     track_id                 INTEGER NOT NULL,
     facet                    TEXT,
     term                     TEXT NOT NULL,
-    confidence               REAL NOT NULL,
+    score                    REAL NOT NULL,
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id, facet, term)
 );

@@ -220,8 +220,8 @@ pub struct ReleaseMetadata {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub licenses: Vec<String>,
 
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub refs: Vec<String>, // external URIs
+    #[serde(rename = "refs", skip_serializing_if = "Vec::is_empty", default)]
+    pub references: Vec<String>, // external URIs
 }
 
 impl ReleaseMetadata {
@@ -246,8 +246,8 @@ pub struct AlbumMetadata {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub actors: Vec<Actor>,
 
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub refs: Vec<String>, // external URIs
+    #[serde(rename = "refs", skip_serializing_if = "Vec::is_empty", default)]
+    pub references: Vec<String>, // external URIs
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub grouping: Option<String>,
@@ -423,7 +423,7 @@ pub struct MusicMetadata {
     pub key_signature: KeySignature,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub classifications: Vec<Classification>, // no duplicate classifiers allowed
+    pub classifications: Vec<Classification>, // no duplicate subjects allowed
 }
 
 impl MusicMetadata {
@@ -434,28 +434,28 @@ impl MusicMetadata {
             && (self.key_signature.is_valid() || self.key_signature.is_default())
             && self.classifications.iter().all(Classification::is_valid)
             && self.classifications.iter().all(|classification| {
-                classification.is_valid() && self.is_classifier_unique(classification.classifier)
+                classification.is_valid() && self.is_subject_unique(classification.subject)
             })
     }
 
-    pub fn has_classifier(&self, classifier: Classifier) -> bool {
+    pub fn has_subject(&self, subject: ClassificationSubject) -> bool {
         self.classifications
             .iter()
-            .any(|classification| classification.classifier == classifier)
+            .any(|classification| classification.subject == subject)
     }
 
-    fn is_classifier_unique(&self, classifier: Classifier) -> bool {
+    fn is_subject_unique(&self, subject: ClassificationSubject) -> bool {
         self.classifications
             .iter()
-            .filter(|classification| classification.classifier == classifier)
+            .filter(|classification| classification.subject == subject)
             .count() <= 1
     }
 
-    pub fn classification(&self, classifier: Classifier) -> Option<&Classification> {
-        debug_assert!(self.is_classifier_unique(classifier));
+    pub fn classification(&self, subject: ClassificationSubject) -> Option<&Classification> {
+        debug_assert!(self.is_subject_unique(subject));
         self.classifications
             .iter()
-            .filter(|classification| classification.classifier == classifier)
+            .filter(|classification| classification.subject == subject)
             .nth(0)
     }
 }
@@ -567,8 +567,8 @@ pub struct TrackBody {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub actors: Vec<Actor>,
 
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub refs: Vec<String>, // external URIs
+    #[serde(rename = "refs", skip_serializing_if = "Vec::is_empty", default)]
+    pub references: Vec<String>, // external URIs
 
     #[serde(skip_serializing_if = "TrackNumbers::is_empty", default)]
     pub track_numbers: TrackNumbers,
@@ -716,8 +716,8 @@ mod tests {
     #[test]
     fn serialize_json() {
         let classifications = vec![
-            Classification::new(Classifier::Energy, 0.1),
-            Classification::new(Classifier::Popularity, 0.9),
+            Classification::new(ClassificationSubject::Energy, 0.1),
+            Classification::new(ClassificationSubject::Popularity, 0.9),
         ];
         let music = MusicMetadata {
             classifications,

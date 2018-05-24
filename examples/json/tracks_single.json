@@ -133,20 +133,20 @@
                 },
                 "classifications": [
                     {
-                        "classifier": "energy",
-                        "confidence": 0.92
+                        "subject": "energy",
+                        "score": 0.92
                     },
                     {
-                        "classifier": "valence",
-                        "confidence": 0.85
+                        "subject": "valence",
+                        "score": 0.85
                     },
                     {
-                        "classifier": "danceability",
-                        "confidence": 0.78
+                        "subject": "danceability",
+                        "score": 0.78
                     },
                     {
-                        "classifier": "popularity",
-                        "confidence": 0.75
+                        "subject": "popularity",
+                        "score": 0.75
                     }
                 ]
             },
@@ -157,52 +157,50 @@
                 {
                     "facet": "genre",
                     "term": "Pop",
-                    "confidence": 0.9
+                    "score": 0.9
                 },
                 {
                     "facet": "genre",
                     "term": "Electronic",
-                    "confidence": 0.3
+                    "score": 0.3
                 },
                 {
                     "facet": "style",
-                    "term": "2010s",
-                    "confidence": 1.0
+                    "term": "2010s"
                 },
                 {
                     "facet": "genre",
                     "term": "Dance",
-                    "confidence": 0.7
+                    "score": 0.7
                 },
                 {
                     "facet": "genre",
                     "term": "Hip Hop/Rap",
-                    "confidence": 0.2
+                    "score": 0.2
                 },
                 {
                     "facet": "lang",
-                    "term": "eng",
-                    "confidence": 1.0
+                    "term": "eng"
                 },
                 {
                     "facet": "crowd",
                     "term": "Wedding",
-                    "confidence": 0.8
+                    "score": 0.8
                 },
                 {
                     "facet": "style",
                     "term": "1980s",
-                    "confidence": 0.1
+                    "score": 0.1
                 },
                 {
                     "facet": "crowd",
                     "term": "Party",
-                    "confidence": 0.95
+                    "score": 0.95
                 },
                 {
                     "facet": "settime",
                     "term": "Filler",
-                    "confidence": 0.7
+                    "score": 0.7
                 }
             ],
             "ratings": [

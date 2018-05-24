@@ -124,5 +124,5 @@ pub trait TrackTags {
         collection_uid: Option<&EntityUid>,
         facets: Option<&Vec<&str>>,
         pagination: &Pagination,
-    ) -> TrackTagsResult<Vec<TagCount>>;
+    ) -> TrackTagsResult<Vec<MultiTag>>;
 }

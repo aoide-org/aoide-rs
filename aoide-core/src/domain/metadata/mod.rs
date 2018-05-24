@@ -18,51 +18,64 @@ use std::fmt;
 use std::ops::Deref;
 
 ///////////////////////////////////////////////////////////////////////
-/// Confidence
+/// Scoring
 ///////////////////////////////////////////////////////////////////////
 
-pub type ConfidenceValue = f64;
+pub type ScoreValue = f64;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Confidence(pub ConfidenceValue);
+pub struct Score(pub ScoreValue);
 
-impl From<ConfidenceValue> for Confidence {
-    fn from(from: ConfidenceValue) -> Self {
-        Confidence(from)
+impl From<ScoreValue> for Score {
+    fn from(from: ScoreValue) -> Self {
+        Score(from)
     }
 }
 
-impl From<Confidence> for ConfidenceValue {
-    fn from(from: Confidence) -> Self {
+impl From<Score> for ScoreValue {
+    fn from(from: Score) -> Self {
         from.0
     }
 }
 
-impl Deref for Confidence {
-    type Target = ConfidenceValue;
+impl Deref for Score {
+    type Target = ScoreValue;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl Confidence {
-    pub const MIN: Self = Confidence(0 as ConfidenceValue);
+impl Score {
+    pub const MIN: Self = Score(0 as ScoreValue);
 
-    pub const MAX: Self = Confidence(1 as ConfidenceValue);
+    pub const MAX: Self = Score(1 as ScoreValue);
+
+    pub fn new<S: Into<ScoreValue>>(score_value: S) -> Self {
+        score_value.into().min(*Self::MAX).max(*Self::MIN).into()
+    }
 
     pub fn is_valid(&self) -> bool {
         (*self >= Self::MIN) && (*self <= Self::MAX)
     }
+
+    pub fn is_min(&self) -> bool {
+        *self <= Self::MIN
+    }
+
+    pub fn is_max(&self) -> bool {
+        *self >= Self::MAX
+    }
 }
 
-impl fmt::Display for Confidence {
+impl fmt::Display for Score {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        debug_assert!(self.is_valid());
         write!(
             f,
             "{:.1}%",
-            (self.0 * (1000 as ConfidenceValue)).round() / (10 as ConfidenceValue)
+            (self.0 * (1000 as ScoreValue)).round() / (10 as ScoreValue)
         )
     }
 }
@@ -79,27 +92,36 @@ pub struct Tag {
 
     pub term: String,
 
-    pub confidence: Confidence,
+    #[serde(skip_serializing_if = "Tag::is_default_score", default = "Tag::default_score")]
+    pub score: Score,
 }
 
 impl Tag {
-    pub fn new<T: Into<String>, C: Into<Confidence>>(term: T, confidence: C) -> Self {
+    pub fn default_score() -> Score {
+        Score::MAX
+    }
+
+    pub fn is_default_score(score: &Score) -> bool {
+        *score == Self::default_score()
+    }
+
+    pub fn new<T: Into<String>, S: Into<Score>>(term: T, score: S) -> Self {
         Self {
             facet: None,
             term: term.into(),
-            confidence: confidence.into(),
+            score: score.into(),
         }
     }
 
-    pub fn new_faceted<T: Into<String>, C: Into<Confidence>>(
-        facet: &str,
+    pub fn new_faceted<F: AsRef<str>, T: Into<String>, S: Into<Score>>(
+        facet: F,
         term: T,
-        confidence: C,
+        score: S,
     ) -> Self {
         Self {
-            facet: Some(facet.to_lowercase()),
+            facet: Some(facet.as_ref().to_lowercase()),
             term: term.into(),
-            confidence: confidence.into(),
+            score: score.into(),
         }
     }
 
@@ -108,12 +130,10 @@ impl Tag {
     }
 
     pub fn is_valid(&self) -> bool {
-        if !self.confidence.is_valid() {
-            false
-        } else if self.term.is_empty() {
+        if !self.score.is_valid() || self.term.is_empty() {
             false
         } else if let Some(ref facet) = self.facet {
-            !facet.is_empty() && (facet.find(char::is_uppercase) == None)
+            !facet.is_empty() && !facet.contains(char::is_uppercase)
         } else {
             true
         }
@@ -129,13 +149,10 @@ pub struct TagFacetCount {
     pub count: usize,
 }
 
-#[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct TagCount {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub facet: Option<String>,
-
-    pub term: String,
+pub struct MultiTag {
+    pub tag: Tag,
 
     pub count: usize,
 }
@@ -144,30 +161,24 @@ pub struct TagCount {
 /// Rating
 ///////////////////////////////////////////////////////////////////////
 
-pub type RatingScore = Confidence;
-pub type RatingScoreValue = ConfidenceValue;
-
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Rating {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub owner: Option<String>,
 
-    pub score: RatingScore,
+    pub score: Score,
 }
 
 impl Rating {
-    pub const MIN_SCORE: RatingScore = RatingScore::MIN;
-    pub const MAX_SCORE: RatingScore = RatingScore::MAX;
-
-    pub fn new<O: Into<String>, S: Into<RatingScore>>(owner: O, score: S) -> Self {
+    pub fn new<O: Into<String>, S: Into<Score>>(owner: O, score: S) -> Self {
         Self {
             owner: Some(owner.into()),
             score: score.into(),
         }
     }
 
-    pub fn new_anonymous<S: Into<RatingScore>>(score: S) -> Self {
+    pub fn new_anonymous<S: Into<Score>>(score: S) -> Self {
         Self {
             owner: None,
             score: score.into(),
@@ -188,18 +199,18 @@ impl Rating {
         self.owner.is_none()
     }
 
-    pub fn rating_from_stars(stars: u8, max_stars: u8) -> RatingScore {
-        Confidence((stars.min(max_stars) as RatingScoreValue) / (max_stars as RatingScoreValue))
+    pub fn rating_from_stars(stars: u8, max_stars: u8) -> Score {
+        Score((stars.min(max_stars) as ScoreValue) / (max_stars as ScoreValue))
     }
 
     pub fn star_rating(&self, max_stars: u8) -> u8 {
-        ((*self.score * (max_stars as RatingScoreValue)).ceil() as u8).min(max_stars)
+        ((*self.score * (max_stars as ScoreValue)).ceil() as u8).min(max_stars)
     }
 
     pub fn minmax<'a>(
         ratings: &[Self],
         owner: Option<&'a str>,
-    ) -> Option<(RatingScore, RatingScore)> {
+    ) -> Option<(Score, Score)> {
         let count = ratings
             .iter()
             .filter(|rating| {
@@ -208,7 +219,7 @@ impl Rating {
             })
             .count();
         if count > 0 {
-            let (mut min_score, mut max_score) = (*Self::MAX_SCORE, *Self::MIN_SCORE);
+            let (mut score_min, mut score_max) = (*Score::MAX, *Score::MIN);
             ratings
                 .iter()
                 .filter(|rating| {
@@ -216,10 +227,10 @@ impl Rating {
                         || rating.owner.as_ref().map(|owner| owner.as_str()) == owner
                 })
                 .for_each(|rating| {
-                    min_score = min_score.min(*rating.score);
-                    max_score = max_score.max(*rating.score);
+                    score_min = score_min.min(*rating.score);
+                    score_max = score_max.max(*rating.score);
                 });
-            Some((min_score.into(), max_score.into()))
+            Some((score_min.into(), score_max.into()))
         } else {
             None
         }
@@ -276,19 +287,26 @@ mod tests {
     use super::*;
 
     #[test]
-    fn confidence_valid() {
-        assert!(Confidence::MIN.is_valid());
-        assert!(Confidence::MAX.is_valid());
-        assert!(!Confidence(*Confidence::MIN - *Confidence::MAX).is_valid());
-        assert!(!Confidence(*Confidence::MAX + *Confidence::MAX).is_valid());
+    fn score_valid() {
+        assert!(Score::MIN.is_valid());
+        assert!(Score::MAX.is_valid());
+        assert!(Score::MIN.is_min());
+        assert!(!Score::MAX.is_min());
+        assert!(!Score::MIN.is_max());
+        assert!(Score::MAX.is_max());
+        assert!(Score(*Score::MIN + *Score::MAX).is_valid());
+        assert!(!Score(*Score::MIN - *Score::MAX).is_valid());
+        assert!(Score(*Score::MIN - *Score::MAX).is_min());
+        assert!(!Score(*Score::MAX + *Score::MAX).is_valid());
+        assert!(Score(*Score::MAX + *Score::MAX).is_max());
     }
 
     #[test]
-    fn confidence_display() {
-        assert_eq!("0.0%", format!("{}", Confidence::MIN));
-        assert_eq!("100.0%", format!("{}", Confidence::MAX));
-        assert_eq!("90.1%", format!("{}", Confidence(0.9012345)));
-        assert_eq!("90.2%", format!("{}", Confidence(0.9015)));
+    fn score_display() {
+        assert_eq!("0.0%", format!("{}", Score::MIN));
+        assert_eq!("100.0%", format!("{}", Score::MAX));
+        assert_eq!("90.1%", format!("{}", Score(0.9012345)));
+        assert_eq!("90.2%", format!("{}", Score(0.9015)));
     }
 
     #[test]
