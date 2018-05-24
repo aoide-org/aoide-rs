@@ -1254,17 +1254,26 @@ pub fn main() -> Result<(), failure::Error> {
                 .help("Sets the database URL")
                 .default_value(":memory:")
                 .index(1))
-            .arg(Arg::with_name("v")
+            .arg(Arg::with_name("LISTEN_ADDR")
+                .short("l")
+                .long("listen")
+                .default_value("localhost:7878")
+                .help("Sets the network listen address"))
+            .arg(Arg::with_name("verbosity")
                 .short("v")
+                .long("verbose")
                 .multiple(true)
                 .help("Sets the level of verbosity (= number of occurrences)"))
             .get_matches();
 
-    let verbosity = matches.occurrences_of("v");
+    let verbosity = matches.occurrences_of("verbosity");
     init_env_logger_verbosity(verbosity.min(8) as u8);
 
     let db_url = matches.value_of("DB_URL").unwrap();
     info!("Database URL: {}", db_url);
+
+    let listen_addr = matches.value_of("LISTEN_ADDR").unwrap();
+    info!("Network listen address: {}", listen_addr);
 
     // Workaround: Use a pool of size 1 to avoid 'database is locked'
     // errors due to multi-threading.
@@ -1281,7 +1290,6 @@ pub fn main() -> Result<(), failure::Error> {
     info!("Creating router");
     let router = router(middleware);
 
-    let listen_addr = "127.0.0.1:7878";
     info!("Listening for requests at http://{}", listen_addr);
     gotham::start(listen_addr, router);
 
