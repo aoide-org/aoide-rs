@@ -318,15 +318,15 @@ impl InsertableTracksMusic {
 pub struct InsertableTracksRef<'a> {
     pub track_id: StorageId,
     pub origin: i16,
-    pub identifier: &'a str,
+    pub reference: &'a str,
 }
 
 impl<'a> InsertableTracksRef<'a> {
-    pub fn bind(track_id: StorageId, origin: RefOrigin, identifier: &'a str) -> Self {
+    pub fn bind(track_id: StorageId, origin: RefOrigin, reference: &'a str) -> Self {
         Self {
             track_id,
             origin: origin as i16,
-            identifier,
+            reference,
         }
     }
 }

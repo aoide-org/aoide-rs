@@ -118,9 +118,9 @@ CREATE TABLE aux_tracks_ref (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     origin                   TINYINT,
-    identifier               TEXT NOT NULL,
+    reference                TEXT NOT NULL,
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
-    UNIQUE (track_id, origin, identifier)
+    UNIQUE (track_id, origin, reference)
 );
 
 CREATE TABLE aux_tracks_tag (

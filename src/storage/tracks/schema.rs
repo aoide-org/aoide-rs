@@ -120,7 +120,7 @@ table! {
         id -> BigInt,
         track_id -> BigInt,
         origin -> SmallInt,
-        identifier -> Text,
+        reference -> Text,
     }
 }
 
