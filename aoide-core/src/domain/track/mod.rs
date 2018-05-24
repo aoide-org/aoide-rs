@@ -499,20 +499,29 @@ impl TrackTag {
     // "Pop", "Dance", "Electronic", "R&B/Soul", "Hip Hop/Rap", ...
     pub const FACET_GENRE: &'static str = "genre";
 
-    // "1980s", "2000s", "Evergreen", "Classic", ...
+    // Sub-genres or details like "East Coast", "West Coast", ...
     pub const FACET_STYLE: &'static str = "style";
 
     // "Happy", "Sexy", "Sad", "Melancholic", "Uplifting", ...
     pub const FACET_MOOD: &'static str = "mood";
 
-    // "Bar", "Lounge", "Beach", "Party", "Club", ...
+    // Decades like "1980s", "2000s", ..., or other time-related classification
+    pub const FACET_EPOCH: &'static str = "epoch";
+
+    // "Birthday"/"Bday", "Xmas"/"Holiday"/"Christmas", "Summer", "Vacation", "Wedding", "Workout"...
+    pub const FACET_EVENT: &'static str = "event";
+
+    // "Bar", "Beach", "Dinner", "Club", "Lounge", ...
     pub const FACET_VENUE: &'static str = "venue";
 
-    // "Wedding", "Birthday", "Festival", ...
+    // "Dinner", "Festival", "Party", "Soundcheck", "Top40", "Workout", ...
     pub const FACET_CROWD: &'static str = "crowd";
 
     // "Warmup", "Opener", "Filler", "Peak", "Closer", "Afterhours", ...
-    pub const FACET_SETTIME: &'static str = "settime";
+    pub const FACET_SESSION: &'static str = "session";
+
+    // Equivalence tags for marking duplicates or similar/alternative versions within a collection
+    pub const FACET_EQUIV: &'static str = "equiv";
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -751,7 +760,7 @@ mod tests {
         let tags = vec![
             Tag::new_faceted(TrackTag::FACET_STYLE, "1980s", 0.8),
             Tag::new_faceted("STYLE", "1990s", 0.3),
-            Tag::new_faceted(TrackTag::FACET_SETTIME, "Filler", 0.6),
+            Tag::new_faceted(TrackTag::FACET_SESSION, "Filler", 0.6),
             Tag::new("non-faceted tag", 1.0),
         ];
         let body = TrackBody {
