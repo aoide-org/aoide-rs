@@ -63,8 +63,8 @@ table! {
         album_subtitle -> Nullable<Text>,
         album_grouping -> Nullable<Text>,
         album_compilation -> Nullable<Bool>,
-        release_date -> Nullable<Date>,
-        release_label -> Nullable<Text>,
+        released_at -> Nullable<Date>,
+        released_by -> Nullable<Text>,
         lyrics_explicit -> Nullable<Bool>,
     }
 }
@@ -130,9 +130,9 @@ table! {
     aux_tracks_tag (id) {
         id -> BigInt,
         track_id -> BigInt,
-        facet -> Nullable<Text>,
-        term -> Text,
         score -> Double,
+        term -> Text,
+        facet -> Nullable<Text>,
     }
 }
 
@@ -142,8 +142,8 @@ table! {
     aux_tracks_comment (id) {
         id -> BigInt,
         track_id -> BigInt,
-        owner -> Nullable<Text>,
         text -> Text,
+        owner -> Nullable<Text>,
     }
 }
 
@@ -153,8 +153,8 @@ table! {
     aux_tracks_rating (id) {
         id -> BigInt,
         track_id -> BigInt,
-        owner -> Nullable<Text>,
         score -> Double,
+        owner -> Nullable<Text>,
     }
 }
 
@@ -169,4 +169,5 @@ allow_tables_to_appear_in_same_query!(
     aux_tracks_tag,
     aux_tracks_comment
 );
+
 allow_tables_to_appear_in_same_query!(aux_tracks_rating, tracks_entity);

@@ -24,8 +24,8 @@ use domain::metadata::Score;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "lowercase")]
 pub enum TitleLevel {
-    Main,
-    Sub,
+    Main = 0, // default
+    Sub = 1,
 }
 
 impl Default for TitleLevel {
@@ -47,10 +47,10 @@ impl TitleLevel {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Title {
+    pub name: String,
+
     #[serde(skip_serializing_if = "TitleLevel::is_default", default)]
     pub level: TitleLevel,
-
-    pub name: String,
 
     #[serde(rename = "lang", skip_serializing_if = "Option::is_none")]
     pub language: Option<String>,
@@ -120,19 +120,25 @@ impl Titles {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "lowercase")]
 pub enum ActorRole {
-    Artist,
-    Arranger,
-    Composer,
-    Conductor,
-    DjMixer,
-    Engineer,
-    Lyricist,
-    Mixer,
-    Performer,
-    Producer,
-    Publisher,
-    Remixer,
-    Writer,
+    Artist = 0, // default
+    Arranger = 1,
+    Composer = 2,
+    Conductor = 3,
+    DjMixer = 4,
+    Engineer = 5,
+    Lyricist = 6,
+    Mixer = 7,
+    Performer = 8,
+    Producer = 9,
+    Publisher = 10,
+    Remixer = 11,
+    Writer = 12,
+}
+
+impl ActorRole {
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
 }
 
 impl Default for ActorRole {
@@ -148,7 +154,7 @@ impl Default for ActorRole {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "lowercase")]
 pub enum ActorPriority {
-    Summary = 0,
+    Summary = 0, // default
     Primary = 1,
     Secondary = 2,
 }
@@ -172,12 +178,13 @@ impl Default for ActorPriority {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Actor {
-    #[serde(rename = "prio", skip_serializing_if = "ActorPriority::is_default", default)]
-    pub priority: ActorPriority,
+    pub name: String,
 
+    #[serde(skip_serializing_if = "ActorRole::is_default", default)]
     pub role: ActorRole,
 
-    pub name: String,
+    #[serde(rename = "prio", skip_serializing_if = "ActorPriority::is_default", default)]
+    pub priority: ActorPriority,
 
     #[serde(rename = "refs", skip_serializing_if = "Vec::is_empty", default)]
     pub references: Vec<String>, // external URIs
@@ -273,33 +280,33 @@ mod tests {
         let primary_producer_name = "Martin Solveig";
         let actors = vec![
             Actor {
-                priority: ActorPriority::Summary,
-                role: ActorRole::Artist,
                 name: summary_artist_name.into(),
+                role: ActorRole::Artist,
+                priority: ActorPriority::Summary,
                 ..Default::default()
             },
             Actor {
-                priority: ActorPriority::Primary,
-                role: ActorRole::Artist,
                 name: "Madonna".into(),
-                ..Default::default()
-            },
-            Actor {
-                priority: ActorPriority::Secondary,
                 role: ActorRole::Artist,
-                name: "M.I.A.".into(),
-                ..Default::default()
-            },
-            Actor {
                 priority: ActorPriority::Primary,
-                role: ActorRole::Producer,
-                name: primary_producer_name.into(),
                 ..Default::default()
             },
             Actor {
-                priority: ActorPriority::Secondary,
+                name: "M.I.A.".into(),
                 role: ActorRole::Artist,
+                priority: ActorPriority::Secondary,
+                ..Default::default()
+            },
+            Actor {
+                name: primary_producer_name.into(),
+                role: ActorRole::Producer,
+                priority: ActorPriority::Primary,
+                ..Default::default()
+            },
+            Actor {
                 name: "Nicki Minaj".into(),
+                role: ActorRole::Artist,
+                priority: ActorPriority::Secondary,
                 ..Default::default()
             },
         ];

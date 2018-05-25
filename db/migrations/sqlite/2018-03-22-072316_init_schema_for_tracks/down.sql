@@ -15,7 +15,6 @@
 
 DROP TABLE collections_entity;
 
-DROP TABLE tracks_entity;
 DROP TABLE aux_tracks_resource;
 DROP TABLE aux_tracks_overview;
 DROP TABLE aux_tracks_summary;
@@ -24,3 +23,4 @@ DROP TABLE aux_tracks_ref;
 DROP TABLE aux_tracks_tag;
 DROP TABLE aux_tracks_comment;
 DROP TABLE aux_tracks_rating;
+DROP TABLE tracks_entity;

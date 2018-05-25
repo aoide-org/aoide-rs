@@ -46,8 +46,8 @@
             ],
             "album": {
                 "release": {
-                    "released": "2012-03-23T00:00:00.000Z",
-                    "label": "Interscope Records",
+                    "releasedAt": "2012-03-23T00:00:00.000Z",
+                    "releasedBy": "Interscope Records",
                     "copyright": "℗ 2012 Boy Toy, Inc. Exclusively licensed to Live Nation Worldwide, Inc. Exclusively licensed to Interscope Records",
                     "refs": [
                         "asin:B007MPE20U"
@@ -60,7 +60,6 @@
                 ],
                 "actors": [
                     {
-                        "role": "artist",
                         "name": "Madonna"
                     }
                 ],
@@ -76,21 +75,17 @@
             ],
             "actors": [
                 {
-                    "role": "artist",
                     "name": "Madonna feat. M.I.A. and Nicki Minaj"
                 },
                 {
-                    "role": "artist",
                     "prio": "primary",
                     "name": "Madonna"
                 },
                 {
-                    "role": "artist",
                     "prio": "secondary",
                     "name": "M.I.A."
                 },
                 {
-                    "role": "artist",
                     "prio": "secondary",
                     "name": "Nicki Minaj"
                 },

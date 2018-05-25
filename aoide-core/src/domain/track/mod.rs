@@ -209,10 +209,10 @@ impl TrackResource {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ReleaseMetadata {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub released: Option<DateTime<Utc>>,
+    pub released_at: Option<DateTime<Utc>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub label: Option<String>, // record label
+    pub released_by: Option<String>, // record label
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub copyright: Option<String>,

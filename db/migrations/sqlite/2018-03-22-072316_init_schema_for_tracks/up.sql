@@ -13,6 +13,10 @@
 -- You should have received a copy of the GNU Affero General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+-----------------------------------------------------------------------
+-- Collections
+-----------------------------------------------------------------------
+
 CREATE TABLE collections_entity (
     id                       INTEGER PRIMARY KEY,
     uid                      TEXT NOT NULL,     -- globally unique identifier
@@ -22,6 +26,10 @@ CREATE TABLE collections_entity (
     description              TEXT,
     UNIQUE (uid)
 );
+
+-----------------------------------------------------------------------
+-- Tracks
+-----------------------------------------------------------------------
 
 CREATE TABLE tracks_entity (
     id                       INTEGER PRIMARY KEY,
@@ -67,8 +75,8 @@ CREATE TABLE aux_tracks_overview (
     album_title              TEXT,
     album_grouping           TEXT,
     album_compilation        TINYINT, -- {0, 1}
-    release_date             DATE, -- naive date, i.e. without any time zone
-    release_label            TEXT,
+    released_at              DATE, -- naive date, i.e. without any time zone
+    released_by              TEXT, -- record label
     lyrics_explicit          TINYINT, -- {0, 1}
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id)
@@ -126,11 +134,11 @@ CREATE TABLE aux_tracks_ref (
 CREATE TABLE aux_tracks_tag (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
-    facet                    TEXT,
     term                     TEXT NOT NULL,
     score                    REAL NOT NULL,
+    facet                    TEXT,
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
-    UNIQUE (track_id, facet, term)
+    UNIQUE (track_id, term, facet)
 );
 
 CREATE INDEX idx_tracks_tag_facet ON aux_tracks_tag(
@@ -145,8 +153,8 @@ CREATE INDEX idx_tracks_tag_facet_term ON aux_tracks_tag(
 CREATE TABLE aux_tracks_comment (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
-    owner                    TEXT,
     text                     CLOB NOT NULL,
+    owner                    TEXT,
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id, owner)
 );
@@ -154,8 +162,8 @@ CREATE TABLE aux_tracks_comment (
 CREATE TABLE aux_tracks_rating (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
-    owner                    TEXT,
     score                    REAL NOT NULL,
+    owner                    TEXT,
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id, owner)
 );
