@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use aoide_core::domain::metadata::Score;
 use aoide_core::domain::track::TrackBody;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -31,12 +32,12 @@ pub struct SortField {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "lowercase")]
-pub enum LocateMatcher {
-    Front,
-    Back,
-    Partial,
-    Exact,
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub enum StringMatcher {
+    StartsWith,
+    EndsWith,
+    Contains,
+    Equals,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -45,7 +46,7 @@ pub struct LocateParams {
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub uri: String,
 
-    pub matcher: LocateMatcher,
+    pub matcher: StringMatcher,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -67,11 +68,45 @@ pub struct ReplaceParams {
     pub body: TrackBody,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct TagFilter {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub term: Option<String>,
+
+    #[serde(skip_serializing_if = "TagFilter::is_default_term_matcher", default = "TagFilter::default_term_matcher")]
+    pub term_matcher: StringMatcher,
+
+    // Use an empty string for matching only tags without a facet
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub facet: Option<String>,
+
+    // Lower bound (inclusive)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub score_min: Option<Score>,
+
+    // Upper bound (inclusive)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub score_max: Option<Score>,
+}
+
+impl TagFilter {
+    pub fn default_term_matcher() -> StringMatcher {
+        StringMatcher::Equals
+    }
+    pub fn is_default_term_matcher(term_matcher: &StringMatcher) -> bool {
+        *term_matcher == Self::default_term_matcher()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SearchParams {
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub filter: String,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub tags: Vec<TagFilter>,
 
     // TODO: Implement sorting
     //#[serde(skip_serializing_if = "Vec::is_empty", default)]

@@ -21,8 +21,8 @@ mod schema;
 
 use self::schema::*;
 
-use super::collections::schema::collections_entity;
 use super::collections::CollectionRepository;
+use super::collections::schema::collections_entity;
 
 use diesel;
 use diesel::dsl::*;
@@ -36,12 +36,13 @@ use super::serde::{deserialize_with_format, serialize_with_format, Serialization
                    SerializedEntity};
 use super::*;
 
-use usecases::request::{LocateMatcher, LocateParams, ReplaceMode, ReplaceParams, SearchParams};
+use usecases::request::{StringMatcher, LocateParams, ReplaceMode, ReplaceParams, SearchParams};
 use usecases::result::Pagination;
-use usecases::{Collections, TrackEntityReplacement, Tracks, TracksResult, TrackTags, TrackTagsResult};
+use usecases::{Collections, TrackEntityReplacement, TrackTags, TrackTagsResult, Tracks,
+               TracksResult};
 
-use aoide_core::domain::metadata::*;
 use aoide_core::domain::collection::*;
+use aoide_core::domain::metadata::*;
 use aoide_core::domain::track::*;
 
 ///////////////////////////////////////////////////////////////////////
@@ -91,12 +92,17 @@ impl<'a> TrackRepository<'a> {
         Self { connection }
     }
 
-    pub fn recreate_missing_collections(&self, collection_prototype: &CollectionBody) -> Result<Vec<CollectionEntity>, failure::Error> {
+    pub fn recreate_missing_collections(
+        &self,
+        collection_prototype: &CollectionBody,
+    ) -> Result<Vec<CollectionEntity>, failure::Error> {
         let orphaned_collection_uids = aux_tracks_resource::table
             .select(aux_tracks_resource::collection_uid)
             .distinct()
-            .filter(aux_tracks_resource::collection_uid.ne_all(
-                collections_entity::table.select(collections_entity::uid)))
+            .filter(
+                aux_tracks_resource::collection_uid
+                    .ne_all(collections_entity::table.select(collections_entity::uid)),
+            )
             .load::<String>(self.connection)?;
         let mut recreated_collections = Vec::with_capacity(orphaned_collection_uids.len());
         if !orphaned_collection_uids.is_empty() {
@@ -303,7 +309,8 @@ impl<'a> TrackRepository<'a> {
         }
         for actor in track_body.actors.iter() {
             for actor_ref in actor.references.iter() {
-                let insertable = InsertableTracksRef::bind(track_id, RefOrigin::TrackActor, &actor_ref);
+                let insertable =
+                    InsertableTracksRef::bind(track_id, RefOrigin::TrackActor, &actor_ref);
                 let query = diesel::replace_into(aux_tracks_ref::table).values(&insertable);
                 query.execute(self.connection)?;
             }
@@ -316,14 +323,16 @@ impl<'a> TrackRepository<'a> {
             }
             for actor in album.actors.iter() {
                 for actor_ref in actor.references.iter() {
-                    let insertable = InsertableTracksRef::bind(track_id, RefOrigin::AlbumActor, &actor_ref);
+                    let insertable =
+                        InsertableTracksRef::bind(track_id, RefOrigin::AlbumActor, &actor_ref);
                     let query = diesel::replace_into(aux_tracks_ref::table).values(&insertable);
                     query.execute(self.connection)?;
                 }
             }
-            if let Some(release) = album.release.as_ref() { 
+            if let Some(release) = album.release.as_ref() {
                 for release_ref in release.references.iter() {
-                    let insertable = InsertableTracksRef::bind(track_id, RefOrigin::Release, &release_ref);
+                    let insertable =
+                        InsertableTracksRef::bind(track_id, RefOrigin::Release, &release_ref);
                     let query = diesel::replace_into(aux_tracks_ref::table).values(&insertable);
                     query.execute(self.connection)?;
                 }
@@ -475,11 +484,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         Ok(entity)
     }
 
-    fn insert_entity(
-        &self,
-        entity: &TrackEntity,
-        format: SerializationFormat,
-    ) -> TracksResult<()> {
+    fn insert_entity(&self, entity: &TrackEntity, format: SerializationFormat) -> TracksResult<()> {
         {
             let entity_blob = serialize_with_format(entity, format)?;
             let insertable = InsertableTracksEntity::bind(entity.header(), format, &entity_blob);
@@ -532,7 +537,7 @@ impl<'a> Tracks for TrackRepository<'a> {
     ) -> TracksResult<TrackEntityReplacement> {
         let locate_params = LocateParams {
             uri: replace_params.uri.clone(),
-            matcher: LocateMatcher::Exact,
+            matcher: StringMatcher::Equals,
         };
         let located_entities =
             self.locate_entities(collection_uid, &Pagination::default(), locate_params)?;
@@ -606,25 +611,25 @@ impl<'a> Tracks for TrackRepository<'a> {
             .select(tracks_entity::all_columns)
             .into_boxed();
 
-        // Locate filter
+        // URI filter
         let locate_uri = match locate_params.matcher {
             // Escape wildcard character with backslash (see below)
-            LocateMatcher::Front => format!(
+            StringMatcher::StartsWith => format!(
                 "{}%",
                 locate_params.uri.replace('\\', "\\\\").replace('%', "\\%")
             ),
-            LocateMatcher::Back => format!(
+            StringMatcher::EndsWith => format!(
                 "%{}",
                 locate_params.uri.replace('\\', "\\\\").replace('%', "\\%")
             ),
-            LocateMatcher::Partial => format!(
+            StringMatcher::Contains => format!(
                 "%{}%",
                 locate_params.uri.replace('\\', "\\\\").replace('%', "\\%")
             ),
-            LocateMatcher::Exact => locate_params.uri,
+            StringMatcher::Equals => locate_params.uri,
         };
         target = match locate_params.matcher {
-            LocateMatcher::Exact => target.filter(aux_tracks_resource::source_uri.eq(locate_uri)),
+            StringMatcher::Equals => target.filter(aux_tracks_resource::source_uri.eq(locate_uri)),
             _ => target.filter(
                 aux_tracks_resource::source_uri
                     .like(locate_uri)
@@ -658,7 +663,6 @@ impl<'a> Tracks for TrackRepository<'a> {
         pagination: &Pagination,
         search_params: SearchParams,
     ) -> TracksResult<Vec<SerializedEntity>> {
-
         // TODO: if/else arms are incompatible due to joining tables?
         let results = if search_params.filter.is_empty() {
             // Select all (without joining)
@@ -666,6 +670,56 @@ impl<'a> Tracks for TrackRepository<'a> {
                 .select(tracks_entity::all_columns)
                 .left_outer_join(aux_tracks_resource::table)
                 .into_boxed();
+
+            for (index, tag_filter) in search_params.tags.into_iter().enumerate() {
+                let mut sub_query = aux_tracks_tag::table
+                    .select(aux_tracks_tag::track_id)
+                    .into_boxed();
+                if let Some(term) = tag_filter.term {
+                    let term_cmp = match tag_filter.term_matcher {
+                        // Escape wildcard character with backslash (see below)
+                        StringMatcher::StartsWith => format!(
+                            "{}%",
+                            term.replace('\\', "\\\\").replace('%', "\\%")
+                        ),
+                        StringMatcher::EndsWith => format!(
+                            "%{}",
+                            term.replace('\\', "\\\\").replace('%', "\\%")
+                        ),
+                        StringMatcher::Contains => format!(
+                            "%{}%",
+                            term.replace('\\', "\\\\").replace('%', "\\%")
+                        ),
+                        StringMatcher::Equals => term,
+                    };
+                    sub_query = match tag_filter.term_matcher {
+                        StringMatcher::Equals => sub_query.filter(aux_tracks_tag::term.eq(term_cmp)),
+                        _ => sub_query.filter(
+                            aux_tracks_tag::term
+                                .like(term_cmp)
+                                .escape('\\'),
+                        ),
+                    };
+                };
+                if let Some(facet) = tag_filter.facet {
+                    sub_query = if facet.is_empty() {
+                        // explicitly filter for non-existent facets
+                        sub_query.filter(aux_tracks_tag::facet.is_null())
+                    } else {
+                        sub_query.filter(aux_tracks_tag::facet.eq(facet))
+                    }
+                };
+                if let Some(score_min) = tag_filter.score_min {
+                    sub_query = sub_query.filter(aux_tracks_tag::score.ge(*score_min));
+                };
+                if let Some(score_max) = tag_filter.score_max {
+                    sub_query = sub_query.filter(aux_tracks_tag::score.le(*score_max));
+                };
+                target = match index {
+                    0 => target.filter(tracks_entity::id.eq_any(sub_query)),
+                    _ => target.or_filter(tracks_entity::id.eq_any(sub_query)),
+                };
+            }
 
             // Collection filter & ordering
             target = match collection_uid {
@@ -712,8 +766,12 @@ impl<'a> Tracks for TrackRepository<'a> {
                 .left_outer_join(aux_tracks_resource::table)
                 .left_outer_join(aux_tracks_overview::table)
                 .left_outer_join(aux_tracks_summary::table)
-                .left_outer_join(aux_tracks_music::table)
                 .filter(
+                    aux_tracks_resource::source_uri
+                        .like(&like_expr)
+                        .escape('\\'),
+                )
+                .or_filter(
                     aux_tracks_overview::track_title
                         .like(&like_expr)
                         .escape('\\'),
@@ -732,14 +790,6 @@ impl<'a> Tracks for TrackRepository<'a> {
                     aux_tracks_summary::album_artist
                         .like(&like_expr)
                         .escape('\\'),
-                )
-                .or_filter(
-                    tracks_entity::id.eq_any(
-                        aux_tracks_tag::table
-                            .select(aux_tracks_tag::track_id)
-                            .filter(aux_tracks_tag::facet.eq(TrackTag::FACET_GENRE))
-                            .filter(aux_tracks_tag::term.like(&like_expr).escape('\\')),
-                    ),
                 )
                 .or_filter(
                     tracks_entity::id.eq_any(
@@ -773,7 +823,6 @@ impl<'a> Tracks for TrackRepository<'a> {
 }
 
 impl<'a> TrackTags for TrackRepository<'a> {
-
     fn all_tags_facets(
         &self,
         collection_uid: Option<&EntityUid>,
@@ -781,7 +830,10 @@ impl<'a> TrackTags for TrackRepository<'a> {
         pagination: &Pagination,
     ) -> TrackTagsResult<Vec<TagFacetCount>> {
         let mut target = aux_tracks_tag::table
-            .select((aux_tracks_tag::facet, sql::<diesel::sql_types::BigInt>("count(*) AS count")))
+            .select((
+                aux_tracks_tag::facet,
+                sql::<diesel::sql_types::BigInt>("count(*) AS count"),
+            ))
             .group_by(aux_tracks_tag::facet)
             .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
             .into_boxed();
@@ -792,8 +844,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
                 if facets.is_empty() {
                     target.filter(aux_tracks_tag::facet.is_null())
                 } else {
-                    let filtered =
-                        target.filter(aux_tracks_tag::facet.eq_any(facets));
+                    let filtered = target.filter(aux_tracks_tag::facet.eq_any(facets));
                     if facets.iter().any(|facet| facet.is_empty()) {
                         // Empty facets are interpreted as null, just like an empty vector
                         filtered.or_filter(aux_tracks_tag::facet.is_null())
@@ -802,7 +853,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
                     }
                 }
             }
-            None => target
+            None => target,
         };
 
         // Pagination
@@ -814,16 +865,17 @@ impl<'a> TrackTags for TrackRepository<'a> {
         };
 
         if let Some(collection_uid) = collection_uid {
-            let target = target
-                .inner_join(aux_tracks_resource::table.on(
-                    aux_tracks_tag::track_id.eq(aux_tracks_resource::track_id)
-                    .and(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()))
-            ));
+            let target = target.inner_join(
+                aux_tracks_resource::table.on(aux_tracks_tag::track_id
+                    .eq(aux_tracks_resource::track_id)
+                    .and(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()))),
+            );
             let rows = target.load::<(Option<String>, i64)>(self.connection)?;
             let mut result = Vec::with_capacity(rows.len());
             for row in rows.into_iter() {
                 result.push(TagFacetCount {
-                    facet: row.0, count: row.1 as usize
+                    facet: row.0,
+                    count: row.1 as usize,
                 });
             }
 
@@ -833,13 +885,13 @@ impl<'a> TrackTags for TrackRepository<'a> {
             let mut result = Vec::with_capacity(rows.len());
             for row in rows.into_iter() {
                 result.push(TagFacetCount {
-                    facet: row.0, count: row.1 as usize
+                    facet: row.0,
+                    count: row.1 as usize,
                 });
             }
 
             Ok(result)
         }
-
     }
 
     fn all_tags(
@@ -849,7 +901,12 @@ impl<'a> TrackTags for TrackRepository<'a> {
         pagination: &Pagination,
     ) -> TrackTagsResult<Vec<MultiTag>> {
         let mut target = aux_tracks_tag::table
-            .select((aux_tracks_tag::facet, aux_tracks_tag::term, sql::<diesel::sql_types::Double>("AVG(score) AS score"), sql::<diesel::sql_types::BigInt>("COUNT(*) AS count")))
+            .select((
+                aux_tracks_tag::facet,
+                aux_tracks_tag::term,
+                sql::<diesel::sql_types::Double>("AVG(score) AS score"),
+                sql::<diesel::sql_types::BigInt>("COUNT(*) AS count"),
+            ))
             .group_by(aux_tracks_tag::facet)
             .group_by(aux_tracks_tag::term)
             .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
@@ -861,8 +918,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
                 if facets.is_empty() {
                     target.filter(aux_tracks_tag::facet.is_null())
                 } else {
-                    let filtered =
-                        target.filter(aux_tracks_tag::facet.eq_any(facets));
+                    let filtered = target.filter(aux_tracks_tag::facet.eq_any(facets));
                     if facets.iter().any(|facet| facet.is_empty()) {
                         // Empty facets are interpreted as null, just like an empty vector
                         filtered.or_filter(aux_tracks_tag::facet.is_null())
@@ -871,7 +927,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
                     }
                 }
             }
-            None => target
+            None => target,
         };
 
         // Pagination
@@ -883,11 +939,11 @@ impl<'a> TrackTags for TrackRepository<'a> {
         };
 
         if let Some(collection_uid) = collection_uid {
-            let target = target
-                .inner_join(aux_tracks_resource::table.on(
-                    aux_tracks_tag::track_id.eq(aux_tracks_resource::track_id)
-                    .and(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()))
-            ));
+            let target = target.inner_join(
+                aux_tracks_resource::table.on(aux_tracks_tag::track_id
+                    .eq(aux_tracks_resource::track_id)
+                    .and(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()))),
+            );
             let rows = target.load::<(Option<String>, String, f64, i64)>(self.connection)?;
             let mut result = Vec::with_capacity(rows.len());
             for row in rows.into_iter() {
@@ -918,9 +974,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
 
             Ok(result)
         }
-
     }
-
 }
 
 ///////////////////////////////////////////////////////////////////////
