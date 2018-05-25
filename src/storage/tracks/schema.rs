@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use super::collections::schema::collections_entity;
+
 table! {
     tracks_entity (id) {
         id -> BigInt,
@@ -48,6 +50,8 @@ table! {
 }
 
 joinable!(aux_tracks_resource -> tracks_entity (track_id));
+
+allow_tables_to_appear_in_same_query!(aux_tracks_resource, collections_entity);
 
 table! {
     aux_tracks_overview (id) {
@@ -149,6 +153,16 @@ table! {
 
 joinable!(aux_tracks_comment -> tracks_entity (track_id));
 
+allow_tables_to_appear_in_same_query!(
+    tracks_entity,
+    aux_tracks_resource,
+    aux_tracks_overview,
+    aux_tracks_summary,
+    aux_tracks_music,
+    aux_tracks_tag,
+    aux_tracks_comment
+);
+
 table! {
     aux_tracks_rating (id) {
         id -> BigInt,
@@ -159,16 +173,6 @@ table! {
 }
 
 joinable!(aux_tracks_rating -> tracks_entity (track_id));
-
-allow_tables_to_appear_in_same_query!(
-    tracks_entity,
-    aux_tracks_resource,
-    aux_tracks_overview,
-    aux_tracks_summary,
-    aux_tracks_music,
-    aux_tracks_tag,
-    aux_tracks_comment
-);
 
 allow_tables_to_appear_in_same_query!(aux_tracks_rating, tracks_entity);
 

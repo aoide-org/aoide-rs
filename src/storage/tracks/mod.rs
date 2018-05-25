@@ -21,6 +21,9 @@ mod schema;
 
 use self::schema::*;
 
+use super::collections::schema::collections_entity;
+use super::collections::CollectionRepository;
+
 use diesel;
 use diesel::dsl::*;
 use diesel::prelude::*;
@@ -35,9 +38,10 @@ use super::*;
 
 use usecases::request::{LocateMatcher, LocateParams, ReplaceMode, ReplaceParams, SearchParams};
 use usecases::result::Pagination;
-use usecases::{TrackEntityReplacement, Tracks, TracksResult, TrackTags, TrackTagsResult};
+use usecases::{Collections, TrackEntityReplacement, Tracks, TracksResult, TrackTags, TrackTagsResult};
 
 use aoide_core::domain::metadata::*;
+use aoide_core::domain::collection::*;
 use aoide_core::domain::track::*;
 
 ///////////////////////////////////////////////////////////////////////
@@ -85,6 +89,29 @@ pub struct TrackRepository<'a> {
 impl<'a> TrackRepository<'a> {
     pub fn new(connection: &'a diesel::SqliteConnection) -> Self {
         Self { connection }
+    }
+
+    pub fn recreate_missing_collections(&self, collection_prototype: &CollectionBody) -> Result<Vec<CollectionEntity>, failure::Error> {
+        let orphaned_collection_uids = aux_tracks_resource::table
+            .select(aux_tracks_resource::collection_uid)
+            .distinct()
+            .filter(aux_tracks_resource::collection_uid.ne_all(
+                collections_entity::table.select(collections_entity::uid)))
+            .load::<String>(self.connection)?;
+        let mut recreated_collections = Vec::with_capacity(orphaned_collection_uids.len());
+        if !orphaned_collection_uids.is_empty() {
+            let collection_repo = CollectionRepository::new(self.connection);
+            for collection_uid in orphaned_collection_uids {
+                info!("Recreating missing collection: {}", collection_uid);
+                let collection_entity = CollectionEntity::new(
+                    EntityHeader::with_uid(collection_uid),
+                    collection_prototype.clone(),
+                );
+                collection_repo.insert_entity(&collection_entity)?;
+                recreated_collections.push(collection_entity);
+            }
+        }
+        Ok(recreated_collections)
     }
 
     pub fn cleanup_aux_storage(&self) -> Result<(), failure::Error> {
@@ -391,7 +418,7 @@ impl<'a> TrackRepository<'a> {
         Ok(())
     }
 
-    fn after_entity_created(&self, entity: &TrackEntity) -> Result<StorageId, failure::Error> {
+    fn after_entity_inserted(&self, entity: &TrackEntity) -> Result<StorageId, failure::Error> {
         let uid = entity.header().uid();
         match self.find_storage_id(uid)? {
             Some(storage_id) => {
@@ -444,14 +471,23 @@ impl<'a> Tracks for TrackRepository<'a> {
         format: SerializationFormat,
     ) -> TracksResult<TrackEntity> {
         let entity = TrackEntity::with_body(body);
+        self.insert_entity(&entity, format)?;
+        Ok(entity)
+    }
+
+    fn insert_entity(
+        &self,
+        entity: &TrackEntity,
+        format: SerializationFormat,
+    ) -> TracksResult<()> {
         {
-            let entity_blob = serialize_with_format(&entity, format)?;
+            let entity_blob = serialize_with_format(entity, format)?;
             let insertable = InsertableTracksEntity::bind(entity.header(), format, &entity_blob);
             let query = diesel::insert_into(tracks_entity::table).values(&insertable);
             query.execute(self.connection)?;
         }
-        self.after_entity_created(&entity)?;
-        Ok(entity)
+        self.after_entity_inserted(&entity)?;
+        Ok(())
     }
 
     fn update_entity(

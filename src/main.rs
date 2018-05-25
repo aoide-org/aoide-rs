@@ -71,7 +71,7 @@ use aoide_core::domain::entity::*;
 use aoide_core::domain::metadata::*;
 use aoide_core::domain::track::*;
 
-use clap::{Arg, App};
+use clap::{App, Arg};
 
 use diesel::prelude::*;
 
@@ -133,6 +133,21 @@ fn cleanup_database_storage(connection_pool: &SqliteConnectionPool) -> Result<()
     let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
     connection.transaction::<_, Error, _>(|| repository.cleanup_aux_storage())
+}
+
+fn repair_database_storage(connection_pool: &SqliteConnectionPool) -> Result<(), Error> {
+    info!("Repairing database storage");
+    let pooled_connection = connection_pool.get()?;
+    let connection = &*pooled_connection;
+    let repository = TrackRepository::new(connection);
+    let collection_prototype = CollectionBody {
+        name: "Missing Collection".into(),
+        description: Some("Recreated by aoide".into()),
+    };
+    connection.transaction::<_, Error, _>(|| {
+        repository.recreate_missing_collections(&collection_prototype)
+    })?;
+    Ok(())
 }
 
 fn init_env_logger(log_level_filter: LogLevelFilter) {
@@ -1082,7 +1097,10 @@ impl TagFacetPaginationQueryStringExtractor {
     }
 
     pub fn pagination(&self) -> Pagination {
-        Pagination { offset: self.offset, limit: self.limit }
+        Pagination {
+            offset: self.offset,
+            limit: self.limit,
+        }
     }
 }
 
@@ -1097,7 +1115,9 @@ fn all_tags_facets(
     repository.all_tags_facets(collection_uid, facets, pagination)
 }
 
-fn handle_get_collections_path_uid_tags_facets_query_facet_pagination(mut state: State) -> Box<HandlerFuture> {
+fn handle_get_collections_path_uid_tags_facets_query_facet_pagination(
+    mut state: State,
+) -> Box<HandlerFuture> {
     let collection_uid = UidPathExtractor::try_parse_from(&mut state);
     let query_params = TagFacetPaginationQueryStringExtractor::take_from(&mut state);
 
@@ -1109,7 +1129,12 @@ fn handle_get_collections_path_uid_tags_facets_query_facet_pagination(mut state:
         }
     };
 
-    let response = match all_tags_facets(pooled_connection, collection_uid.as_ref(), query_params.facets().as_ref(), &query_params.pagination()) {
+    let response = match all_tags_facets(
+        pooled_connection,
+        collection_uid.as_ref(),
+        query_params.facets().as_ref(),
+        &query_params.pagination(),
+    ) {
         Ok(result) => match serde_json::to_vec(&result) {
             Ok(response_body) => create_response(
                 &state,
@@ -1135,7 +1160,9 @@ fn all_tags(
     repository.all_tags(collection_uid, facets, pagination)
 }
 
-fn handle_get_collections_path_uid_tags_query_facet_pagination(mut state: State) -> Box<HandlerFuture> {
+fn handle_get_collections_path_uid_tags_query_facet_pagination(
+    mut state: State,
+) -> Box<HandlerFuture> {
     let collection_uid = UidPathExtractor::try_parse_from(&mut state);
     let query_params = TagFacetPaginationQueryStringExtractor::take_from(&mut state);
 
@@ -1147,7 +1174,12 @@ fn handle_get_collections_path_uid_tags_query_facet_pagination(mut state: State)
         }
     };
 
-    let response = match all_tags(pooled_connection, collection_uid.as_ref(), query_params.facets().as_ref(), &query_params.pagination()) {
+    let response = match all_tags(
+        pooled_connection,
+        collection_uid.as_ref(),
+        query_params.facets().as_ref(),
+        &query_params.pagination(),
+    ) {
         Ok(result) => match serde_json::to_vec(&result) {
             Ok(response_body) => create_response(
                 &state,
@@ -1283,6 +1315,8 @@ pub fn main() -> Result<(), failure::Error> {
     migrate_database_schema(&connection_pool).unwrap();
 
     cleanup_database_storage(&connection_pool).unwrap();
+
+    repair_database_storage(&connection_pool).unwrap();
 
     info!("Creating middleware");
     let middleware = DieselMiddleware::with_pool(connection_pool);

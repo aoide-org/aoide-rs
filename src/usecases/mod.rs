@@ -34,6 +34,8 @@ pub type CollectionsResult<T> = Result<T, failure::Error>;
 pub trait Collections {
     fn create_entity(&self, body: CollectionBody) -> CollectionsResult<CollectionEntity>;
 
+    fn insert_entity(&self, entity: &CollectionEntity) -> CollectionsResult<()>;
+
     fn update_entity(&self, entity: &CollectionEntity)
         -> CollectionsResult<Option<(EntityRevision, EntityRevision)>>;
 
@@ -76,6 +78,12 @@ pub trait Tracks {
         body: TrackBody,
         format: SerializationFormat,
     ) -> TracksResult<TrackEntity>;
+
+    fn insert_entity(
+        &self,
+        entity: &TrackEntity,
+        format: SerializationFormat,
+    ) -> TracksResult<()>;
 
     fn update_entity(
         &self,

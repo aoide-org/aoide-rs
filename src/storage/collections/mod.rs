@@ -17,7 +17,7 @@ mod models;
 
 use self::models::*;
 
-mod schema;
+pub mod schema;
 
 use self::schema::*;
 
@@ -71,12 +71,14 @@ impl<'a> EntityStorage for CollectionRepository<'a> {
 impl<'a> Collections for CollectionRepository<'a> {
     fn create_entity(&self, body: CollectionBody) -> CollectionsResult<CollectionEntity> {
         let entity = CollectionEntity::with_body(body);
-        {
-            let insertable = InsertableCollectionsEntity::bind(&entity);
-            let query = diesel::insert_into(collections_entity::table).values(&insertable);
-            query.execute(self.connection)?;
-        }
-        Ok(entity)
+        self.insert_entity(&entity).and(Ok(entity))
+    }
+
+    fn insert_entity(&self, entity: &CollectionEntity) -> CollectionsResult<()> {
+        let insertable = InsertableCollectionsEntity::bind(entity);
+        let query = diesel::insert_into(collections_entity::table).values(&insertable);
+        query.execute(self.connection)?;
+        Ok(())
     }
 
     fn update_entity(&self, entity: &CollectionEntity) -> CollectionsResult<Option<(EntityRevision, EntityRevision)>> {
