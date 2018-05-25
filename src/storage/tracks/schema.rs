@@ -171,3 +171,23 @@ allow_tables_to_appear_in_same_query!(
 );
 
 allow_tables_to_appear_in_same_query!(aux_tracks_rating, tracks_entity);
+
+table! {
+    pending_tasks (id) {
+        id -> BigInt,
+        collection_uid -> Text,
+        job_type -> Integer,
+        job_params -> Binary,
+    }
+}
+
+table! {
+    pending_tasks_tracks (id) {
+        id -> BigInt,
+        task_id -> BigInt,
+        track_id -> BigInt,
+    }
+}
+
+joinable!(pending_tasks_tracks -> pending_tasks (task_id));
+joinable!(pending_tasks_tracks -> tracks_entity (track_id));

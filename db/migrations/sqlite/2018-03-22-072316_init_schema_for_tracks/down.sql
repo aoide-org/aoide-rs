@@ -24,3 +24,6 @@ DROP TABLE aux_tracks_tag;
 DROP TABLE aux_tracks_comment;
 DROP TABLE aux_tracks_rating;
 DROP TABLE tracks_entity;
+
+DROP TABLE pending_tasks_tracks;
+DROP TABLE pending_tasks;

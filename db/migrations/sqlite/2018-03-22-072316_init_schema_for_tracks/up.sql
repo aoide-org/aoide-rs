@@ -167,3 +167,23 @@ CREATE TABLE aux_tracks_rating (
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id, owner)
 );
+
+-----------------------------------------------------------------------
+-- Tasks
+-----------------------------------------------------------------------
+
+CREATE TABLE pending_tasks (
+    -- AUTOINCREMENT: Required for ordered execution of pending tasks
+    id                       INTEGER PRIMARY KEY AUTOINCREMENT,
+    collection_uid           TEXT,
+    job_type                 INTEGER NOT NULL,
+    job_params               BLOB NOT NULL
+);
+
+CREATE TABLE pending_tasks_tracks (
+    id                       INTEGER PRIMARY KEY,
+    task_id                  INTEGER NOT NULL,
+    track_id                 INTEGER NOT NULL,
+    FOREIGN KEY(task_id) REFERENCES pending_tasks(id),
+    FOREIGN KEY(track_id) REFERENCES tracks_entity(id)
+);
