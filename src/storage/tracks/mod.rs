@@ -36,7 +36,8 @@ use super::serde::{deserialize_with_format, serialize_with_format, Serialization
                    SerializedEntity};
 use super::*;
 
-use usecases::request::{StringMatcher, LocateParams, ReplaceMode, ReplaceParams, SearchParams};
+use usecases::request::{LocateParams, ReplaceMode, ReplaceParams, ScoreFilter, SearchParams,
+                        StringFilter, TagFilter};
 use usecases::result::Pagination;
 use usecases::{Collections, TrackEntityReplacement, TrackTags, TrackTagsResult, Tracks,
                TracksResult};
@@ -459,6 +460,81 @@ impl<'a> TrackRepository<'a> {
         self.insert_aux_storage(storage_id, body)?;
         Ok(())
     }
+
+    fn select_track_ids_filter_tag<'b, DB>(
+        &self,
+        tag_filter: TagFilter,
+    ) -> diesel::query_builder::BoxedSelectStatement<
+        'b,
+        diesel::sql_types::BigInt,
+        aux_tracks_tag::table,
+        DB,
+    >
+    where
+        DB: diesel::backend::Backend + 'b,
+    {
+        let mut select = aux_tracks_tag::table
+            .select(aux_tracks_tag::track_id)
+            .into_boxed();
+
+        // Filter tag facet
+        if tag_filter.facet == TagFilter::no_facet() {
+            select = select.filter(aux_tracks_tag::facet.is_null());
+        } else if let Some(facet) = tag_filter.facet {
+            select = select.filter(aux_tracks_tag::facet.eq(facet));
+        }
+
+        // Filter tag term
+        if let Some(term_filter) = tag_filter.term_filter {
+            let either_eq_or_like = match term_filter {
+                // Equal comparison
+                StringFilter::Equals(all) => (Some(all), None),
+                // Like comparison: Escape wildcard character with backslash (see below)
+                StringFilter::StartsWith(head) => (
+                    None,
+                    Some(format!(
+                        "{}%",
+                        head.replace('\\', "\\\\").replace('%', "\\%")
+                    )),
+                ),
+                StringFilter::EndsWith(tail) => (
+                    None,
+                    Some(format!(
+                        "%{}",
+                        tail.replace('\\', "\\\\").replace('%', "\\%")
+                    )),
+                ),
+                StringFilter::Contains(part) => (
+                    None,
+                    Some(format!(
+                        "%{}%",
+                        part.replace('\\', "\\\\").replace('%', "\\%")
+                    )),
+                ),
+            };
+
+            select = match either_eq_or_like {
+                (Some(eq), None) => select.filter(aux_tracks_tag::term.eq(eq)),
+                (None, Some(like)) => select.filter(aux_tracks_tag::term.like(like).escape('\\')),
+                _ => panic!("unreachable"),
+            };
+        };
+
+        // Filter tag score
+        if let Some(score_filter) = tag_filter.score_filter {
+            select = match score_filter {
+                ScoreFilter::LessThan(score) => select.filter(aux_tracks_tag::score.lt(*score)),
+                ScoreFilter::NotLessThan(score) => select.filter(aux_tracks_tag::score.ge(*score)),
+                ScoreFilter::GreaterThan(score) => select.filter(aux_tracks_tag::score.gt(*score)),
+                ScoreFilter::NotGreaterThan(score) => {
+                    select.filter(aux_tracks_tag::score.le(*score))
+                }
+                ScoreFilter::Equals(score) => select.filter(aux_tracks_tag::score.eq(*score)),
+            };
+        }
+
+        select
+    }
 }
 
 impl<'a> EntityStorage for TrackRepository<'a> {
@@ -536,8 +612,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         format: SerializationFormat,
     ) -> TracksResult<TrackEntityReplacement> {
         let locate_params = LocateParams {
-            uri: replace_params.uri.clone(),
-            matcher: StringMatcher::Equals,
+            uri_filter: StringFilter::Equals(replace_params.uri.clone()),
         };
         let located_entities =
             self.locate_entities(collection_uid, &Pagination::default(), locate_params)?;
@@ -612,29 +687,38 @@ impl<'a> Tracks for TrackRepository<'a> {
             .into_boxed();
 
         // URI filter
-        let locate_uri = match locate_params.matcher {
-            // Escape wildcard character with backslash (see below)
-            StringMatcher::StartsWith => format!(
-                "{}%",
-                locate_params.uri.replace('\\', "\\\\").replace('%', "\\%")
+        let either_eq_or_like = match locate_params.uri_filter {
+            // Equal comparison
+            StringFilter::Equals(all) => (Some(all), None),
+            // Like comparison: Escape wildcard character with backslash (see below)
+            StringFilter::StartsWith(head) => (
+                None,
+                Some(format!(
+                    "{}%",
+                    head.replace('\\', "\\\\").replace('%', "\\%")
+                )),
             ),
-            StringMatcher::EndsWith => format!(
-                "%{}",
-                locate_params.uri.replace('\\', "\\\\").replace('%', "\\%")
+            StringFilter::EndsWith(tail) => (
+                None,
+                Some(format!(
+                    "%{}",
+                    tail.replace('\\', "\\\\").replace('%', "\\%")
+                )),
             ),
-            StringMatcher::Contains => format!(
-                "%{}%",
-                locate_params.uri.replace('\\', "\\\\").replace('%', "\\%")
+            StringFilter::Contains(part) => (
+                None,
+                Some(format!(
+                    "%{}%",
+                    part.replace('\\', "\\\\").replace('%', "\\%")
+                )),
             ),
-            StringMatcher::Equals => locate_params.uri,
         };
-        target = match locate_params.matcher {
-            StringMatcher::Equals => target.filter(aux_tracks_resource::source_uri.eq(locate_uri)),
-            _ => target.filter(
-                aux_tracks_resource::source_uri
-                    .like(locate_uri)
-                    .escape('\\'),
-            ),
+        target = match either_eq_or_like {
+            (Some(eq), None) => target.filter(aux_tracks_resource::source_uri.eq(eq)),
+            (None, Some(like)) => {
+                target.filter(aux_tracks_resource::source_uri.like(like).escape('\\'))
+            }
+            _ => panic!("unreachable"),
         };
 
         // Collection filter & ordering
@@ -671,57 +755,21 @@ impl<'a> Tracks for TrackRepository<'a> {
                 .left_outer_join(aux_tracks_resource::table)
                 .into_boxed();
 
-            for (index, tag_filter) in search_params.tags.into_iter().enumerate() {
-                let mut sub_query = aux_tracks_tag::table
-                    .select(aux_tracks_tag::track_id)
-                    .into_boxed();
-                if let Some(term) = tag_filter.term {
-                    let term_cmp = match tag_filter.term_matcher {
-                        // Escape wildcard character with backslash (see below)
-                        StringMatcher::StartsWith => format!(
-                            "{}%",
-                            term.replace('\\', "\\\\").replace('%', "\\%")
-                        ),
-                        StringMatcher::EndsWith => format!(
-                            "%{}",
-                            term.replace('\\', "\\\\").replace('%', "\\%")
-                        ),
-                        StringMatcher::Contains => format!(
-                            "%{}%",
-                            term.replace('\\', "\\\\").replace('%', "\\%")
-                        ),
-                        StringMatcher::Equals => term,
+            // Filter tags 1st level: Conjunction
+            // TODO: Extract into function
+            for tag_filters in search_params.tags.into_iter() {
+                // Filter tags 2nd level: Disjunction
+                for (index, tag_filter) in tag_filters.into_iter().enumerate() {
+                    let sub_query = self.select_track_ids_filter_tag(tag_filter);
+                    target = match index {
+                        0 => target.filter(tracks_entity::id.eq_any(sub_query)),
+                        _ => target.or_filter(tracks_entity::id.eq_any(sub_query)),
                     };
-                    sub_query = match tag_filter.term_matcher {
-                        StringMatcher::Equals => sub_query.filter(aux_tracks_tag::term.eq(term_cmp)),
-                        _ => sub_query.filter(
-                            aux_tracks_tag::term
-                                .like(term_cmp)
-                                .escape('\\'),
-                        ),
-                    };
-                };
-                if let Some(facet) = tag_filter.facet {
-                    sub_query = if facet.is_empty() {
-                        // explicitly filter for non-existent facets
-                        sub_query.filter(aux_tracks_tag::facet.is_null())
-                    } else {
-                        sub_query.filter(aux_tracks_tag::facet.eq(facet))
-                    }
-                };
-                if let Some(score_min) = tag_filter.score_min {
-                    sub_query = sub_query.filter(aux_tracks_tag::score.ge(*score_min));
-                };
-                if let Some(score_max) = tag_filter.score_max {
-                    sub_query = sub_query.filter(aux_tracks_tag::score.le(*score_max));
-                };
-                target = match index {
-                    0 => target.filter(tracks_entity::id.eq_any(sub_query)),
-                    _ => target.or_filter(tracks_entity::id.eq_any(sub_query)),
-                };
+                }
             }
 
             // Collection filter & ordering
+            // TODO: Extract into a function
             target = match collection_uid {
                 Some(uid) => target
                     .filter(aux_tracks_resource::collection_uid.eq(uid.as_str()))
@@ -730,6 +778,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             };
 
             // Pagination
+            // TODO: Extract into a function
             if let Some(offset) = pagination.offset {
                 target = target.offset(offset as i64);
             };
@@ -799,6 +848,19 @@ impl<'a> Tracks for TrackRepository<'a> {
                     ),
                 )
                 .into_boxed();
+
+            // Filter tags 1st level: Conjunction
+            // TODO: Extract into function
+            for tag_filters in search_params.tags.into_iter() {
+                // Filter tags 2nd level: Disjunction
+                for (index, tag_filter) in tag_filters.into_iter().enumerate() {
+                    let sub_query = self.select_track_ids_filter_tag(tag_filter);
+                    target = match index {
+                        0 => target.filter(tracks_entity::id.eq_any(sub_query)),
+                        _ => target.or_filter(tracks_entity::id.eq_any(sub_query)),
+                    };
+                }
+            }
 
             // Collection filter & ordering
             target = match collection_uid {

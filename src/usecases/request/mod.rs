@@ -31,29 +31,36 @@ pub struct SortField {
     pub field: String,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub enum StringMatcher {
-    StartsWith,
-    EndsWith,
-    Contains,
-    Equals,
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub enum StringFilter {
+    Equals(String),     // all
+    StartsWith(String), // head
+    EndsWith(String),   // tail
+    Contains(String),   // part
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub enum ScoreFilter {
+    LessThan(Score),
+    NotLessThan(Score),
+    GreaterThan(Score),
+    NotGreaterThan(Score),
+    Equals(Score)
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LocateParams {
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub uri: String,
-
-    pub matcher: StringMatcher,
+    #[serde(rename = "uri")]
+    pub uri_filter: StringFilter,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum ReplaceMode {
     UpdateOnly,
-
     UpdateOrCreate,
 }
 
@@ -68,34 +75,36 @@ pub struct ReplaceParams {
     pub body: TrackBody,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TagFilter {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub term: Option<String>,
-
-    #[serde(skip_serializing_if = "TagFilter::is_default_term_matcher", default = "TagFilter::default_term_matcher")]
-    pub term_matcher: StringMatcher,
-
-    // Use an empty string for matching only tags without a facet
+    // Facets are only matched with equals. Use an empty string
+    // for matching tags without a facet.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub facet: Option<String>,
 
-    // Lower bound (inclusive)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub score_min: Option<Score>,
+    #[serde(rename = "term", skip_serializing_if = "Option::is_none")]
+    pub term_filter: Option<StringFilter>,
 
-    // Upper bound (inclusive)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub score_max: Option<Score>,
+    #[serde(rename = "score", skip_serializing_if = "Option::is_none")]
+    pub score_filter: Option<ScoreFilter>,
 }
 
 impl TagFilter {
-    pub fn default_term_matcher() -> StringMatcher {
-        StringMatcher::Equals
+    pub fn any_facet() -> Option<String> {
+        None
     }
-    pub fn is_default_term_matcher(term_matcher: &StringMatcher) -> bool {
-        *term_matcher == Self::default_term_matcher()
+
+    pub fn no_facet() -> Option<String> {
+        Some(String::default())
+    }
+
+    pub fn any_term() -> Option<StringFilter> {
+        None
+    }
+
+    pub fn any_score() -> Option<StringFilter> {
+        None
     }
 }
 
@@ -105,10 +114,29 @@ pub struct SearchParams {
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub filter: String,
 
+    // 1st level: Conjunction
+    // 2nd level: Disjunction
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub tags: Vec<TagFilter>,
+    pub tags: Vec<Vec<TagFilter>>,
 
     // TODO: Implement sorting
     //#[serde(skip_serializing_if = "Vec::is_empty", default)]
     //pub sort_fields: Vec<SortField>,
+}
+
+///////////////////////////////////////////////////////////////////////
+/// Tests
+///////////////////////////////////////////////////////////////////////
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+ 
+    #[test]
+    fn default_tag_filter() {
+        assert_eq!(TagFilter::any_facet(), TagFilter::default().facet);
+        assert_ne!(TagFilter::no_facet(), TagFilter::default().facet);
+        assert_eq!(TagFilter::any_term(), TagFilter::default().term);
+        assert_eq!(TagFilter::any_score(), TagFilter::default().score);
+    }
 }
