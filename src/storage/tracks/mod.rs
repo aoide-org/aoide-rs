@@ -488,35 +488,25 @@ impl<'a> TrackRepository<'a> {
         if let Some(term_filter) = tag_filter.term_filter {
             let either_eq_or_like = match term_filter {
                 // Equal comparison
-                StringFilter::Equals(all) => (Some(all), None),
+                StringFilter::Equals(all) => EitherEqualOrLike::Equal(all),
                 // Like comparison: Escape wildcard character with backslash (see below)
-                StringFilter::StartsWith(head) => (
-                    None,
-                    Some(format!(
+                StringFilter::StartsWith(head) => EitherEqualOrLike::Like(format!(
                         "{}%",
                         head.replace('\\', "\\\\").replace('%', "\\%")
                     )),
-                ),
-                StringFilter::EndsWith(tail) => (
-                    None,
-                    Some(format!(
+                StringFilter::EndsWith(tail) => EitherEqualOrLike::Like(format!(
                         "%{}",
                         tail.replace('\\', "\\\\").replace('%', "\\%")
                     )),
-                ),
-                StringFilter::Contains(part) => (
-                    None,
-                    Some(format!(
+                StringFilter::Contains(part) => EitherEqualOrLike::Like(format!(
                         "%{}%",
                         part.replace('\\', "\\\\").replace('%', "\\%")
                     )),
-                ),
             };
 
             select = match either_eq_or_like {
-                (Some(eq), None) => select.filter(aux_tracks_tag::term.eq(eq)),
-                (None, Some(like)) => select.filter(aux_tracks_tag::term.like(like).escape('\\')),
-                _ => panic!("unreachable"),
+                EitherEqualOrLike::Equal(eq) => select.filter(aux_tracks_tag::term.eq(eq)),
+                EitherEqualOrLike::Like(like) => select.filter(aux_tracks_tag::term.like(like).escape('\\')),
             };
         };
 
@@ -547,6 +537,11 @@ impl<'a> EntityStorage for TrackRepository<'a> {
             .optional()?;
         Ok(result.map(|r| r.id))
     }
+}
+
+enum EitherEqualOrLike {
+    Equal(String),
+    Like(String),
 }
 
 impl<'a> Tracks for TrackRepository<'a> {
@@ -689,36 +684,24 @@ impl<'a> Tracks for TrackRepository<'a> {
         // URI filter
         let either_eq_or_like = match locate_params.uri_filter {
             // Equal comparison
-            StringFilter::Equals(all) => (Some(all), None),
+            StringFilter::Equals(all) => EitherEqualOrLike::Equal(all),
             // Like comparison: Escape wildcard character with backslash (see below)
-            StringFilter::StartsWith(head) => (
-                None,
-                Some(format!(
+            StringFilter::StartsWith(head) => EitherEqualOrLike::Like(format!(
                     "{}%",
                     head.replace('\\', "\\\\").replace('%', "\\%")
                 )),
-            ),
-            StringFilter::EndsWith(tail) => (
-                None,
-                Some(format!(
+            StringFilter::EndsWith(tail) => EitherEqualOrLike::Like(format!(
                     "%{}",
                     tail.replace('\\', "\\\\").replace('%', "\\%")
                 )),
-            ),
-            StringFilter::Contains(part) => (
-                None,
-                Some(format!(
+            StringFilter::Contains(part) => EitherEqualOrLike::Like(format!(
                     "%{}%",
                     part.replace('\\', "\\\\").replace('%', "\\%")
                 )),
-            ),
         };
         target = match either_eq_or_like {
-            (Some(eq), None) => target.filter(aux_tracks_resource::source_uri.eq(eq)),
-            (None, Some(like)) => {
-                target.filter(aux_tracks_resource::source_uri.like(like).escape('\\'))
-            }
-            _ => panic!("unreachable"),
+            EitherEqualOrLike::Equal(eq) => target.filter(aux_tracks_resource::source_uri.eq(eq)),
+            EitherEqualOrLike::Like(like) => target.filter(aux_tracks_resource::source_uri.like(like).escape('\\')),
         };
 
         // Collection filter & ordering
@@ -756,7 +739,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                 .into_boxed();
 
             // Filter tags 1st level: Conjunction
-            // TODO: Extract into function
+            // TODO: Extract into a function (https://github.com/diesel-rs/diesel/issues/546)
             for tag_filters in search_params.tags.into_iter() {
                 // Filter tags 2nd level: Disjunction
                 for (index, tag_filter) in tag_filters.into_iter().enumerate() {
@@ -769,7 +752,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             }
 
             // Collection filter & ordering
-            // TODO: Extract into a function
+            // TODO: Extract into a function (https://github.com/diesel-rs/diesel/issues/546)
             target = match collection_uid {
                 Some(uid) => target
                     .filter(aux_tracks_resource::collection_uid.eq(uid.as_str()))
@@ -778,7 +761,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             };
 
             // Pagination
-            // TODO: Extract into a function
+            // TODO: Extract into a function (https://github.com/diesel-rs/diesel/issues/546)
             if let Some(offset) = pagination.offset {
                 target = target.offset(offset as i64);
             };
@@ -850,7 +833,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                 .into_boxed();
 
             // Filter tags 1st level: Conjunction
-            // TODO: Extract into function
+            // TODO: Extract into a function (https://github.com/diesel-rs/diesel/issues/546)
             for tag_filters in search_params.tags.into_iter() {
                 // Filter tags 2nd level: Disjunction
                 for (index, tag_filter) in tag_filters.into_iter().enumerate() {
@@ -863,6 +846,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             }
 
             // Collection filter & ordering
+            // TODO: Extract into a function (https://github.com/diesel-rs/diesel/issues/546)
             target = match collection_uid {
                 Some(uid) => target
                     .filter(aux_tracks_resource::collection_uid.eq(uid.as_str()))
@@ -871,6 +855,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             };
 
             // Pagination
+            // TODO: Extract into a function (https://github.com/diesel-rs/diesel/issues/546)
             if let Some(offset) = pagination.offset {
                 target = target.offset(offset as i64);
             };
