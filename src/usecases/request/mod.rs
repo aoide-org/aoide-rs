@@ -103,7 +103,7 @@ impl TagFilter {
         None
     }
 
-    pub fn any_score() -> Option<StringFilter> {
+    pub fn any_score() -> Option<ScoreFilter> {
         None
     }
 }
@@ -136,7 +136,7 @@ mod tests {
     fn default_tag_filter() {
         assert_eq!(TagFilter::any_facet(), TagFilter::default().facet);
         assert_ne!(TagFilter::no_facet(), TagFilter::default().facet);
-        assert_eq!(TagFilter::any_term(), TagFilter::default().term);
-        assert_eq!(TagFilter::any_score(), TagFilter::default().score);
+        assert_eq!(TagFilter::any_term(), TagFilter::default().term_filter);
+        assert_eq!(TagFilter::any_score(), TagFilter::default().score_filter);
     }
 }
