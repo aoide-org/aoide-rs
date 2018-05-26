@@ -462,7 +462,7 @@ impl<'a> TrackRepository<'a> {
     }
 }
 
-fn select_track_ids_filter_tag<'a, DB>(
+fn select_track_ids_matching_tag_filter<'a, DB>(
     tag_filter: TagFilter,
 ) -> diesel::query_builder::BoxedSelectStatement<
     'a,
@@ -768,7 +768,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             for tag_filters in search_params.tags.into_iter() {
                 // Filter tags 2nd level: Disjunction
                 for (index, tag_filter) in tag_filters.into_iter().enumerate() {
-                    let sub_query = select_track_ids_filter_tag(tag_filter);
+                    let sub_query = select_track_ids_matching_tag_filter(tag_filter);
                     target = match index {
                         0 => target.filter(tracks_entity::id.eq_any(sub_query)),
                         _ => target.or_filter(tracks_entity::id.eq_any(sub_query)),
@@ -847,7 +847,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             for tag_filters in search_params.tags.into_iter() {
                 // Filter tags 2nd level: Disjunction
                 for (index, tag_filter) in tag_filters.into_iter().enumerate() {
-                    let sub_query = select_track_ids_filter_tag(tag_filter);
+                    let sub_query = select_track_ids_matching_tag_filter(tag_filter);
                     target = match index {
                         0 => target.filter(tracks_entity::id.eq_any(sub_query)),
                         _ => target.or_filter(tracks_entity::id.eq_any(sub_query)),
