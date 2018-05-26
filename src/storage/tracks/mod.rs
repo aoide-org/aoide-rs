@@ -460,71 +460,88 @@ impl<'a> TrackRepository<'a> {
         self.insert_aux_storage(storage_id, body)?;
         Ok(())
     }
+}
 
-    fn select_track_ids_filter_tag<'b, DB>(
-        &self,
-        tag_filter: TagFilter,
-    ) -> diesel::query_builder::BoxedSelectStatement<
-        'b,
-        diesel::sql_types::BigInt,
-        aux_tracks_tag::table,
-        DB,
-    >
-    where
-        DB: diesel::backend::Backend + 'b,
-    {
-        let mut select = aux_tracks_tag::table
-            .select(aux_tracks_tag::track_id)
-            .into_boxed();
+fn select_track_ids_filter_tag<'a, DB>(
+    tag_filter: TagFilter,
+) -> diesel::query_builder::BoxedSelectStatement<
+    'a,
+    diesel::sql_types::BigInt,
+    aux_tracks_tag::table,
+    DB,
+>
+where
+    DB: diesel::backend::Backend + 'a,
+{
+    let mut select = aux_tracks_tag::table
+        .select(aux_tracks_tag::track_id)
+        .into_boxed();
 
-        // Filter tag facet
-        if tag_filter.facet == TagFilter::no_facet() {
-            select = select.filter(aux_tracks_tag::facet.is_null());
-        } else if let Some(facet) = tag_filter.facet {
-            select = select.filter(aux_tracks_tag::facet.eq(facet));
-        }
+    // Filter tag facet
+    if tag_filter.facet == TagFilter::no_facet() {
+        select = select.filter(aux_tracks_tag::facet.is_null());
+    } else if let Some(facet) = tag_filter.facet {
+        select = select.filter(aux_tracks_tag::facet.eq(facet));
+    }
 
-        // Filter tag term
-        if let Some(term_filter) = tag_filter.term_filter {
-            let either_eq_or_like = match term_filter {
-                // Equal comparison
-                StringFilter::Equals(all) => EitherEqualOrLike::Equal(all),
-                // Like comparison: Escape wildcard character with backslash (see below)
-                StringFilter::StartsWith(head) => EitherEqualOrLike::Like(format!(
-                        "{}%",
-                        head.replace('\\', "\\\\").replace('%', "\\%")
-                    )),
-                StringFilter::EndsWith(tail) => EitherEqualOrLike::Like(format!(
-                        "%{}",
-                        tail.replace('\\', "\\\\").replace('%', "\\%")
-                    )),
-                StringFilter::Contains(part) => EitherEqualOrLike::Like(format!(
-                        "%{}%",
-                        part.replace('\\', "\\\\").replace('%', "\\%")
-                    )),
-            };
-
-            select = match either_eq_or_like {
-                EitherEqualOrLike::Equal(eq) => select.filter(aux_tracks_tag::term.eq(eq)),
-                EitherEqualOrLike::Like(like) => select.filter(aux_tracks_tag::term.like(like).escape('\\')),
-            };
+    // Filter tag term
+    if let Some(term_filter) = tag_filter.term_filter {
+        let either_eq_or_like = match term_filter {
+            // Equal comparison
+            StringFilter::Equals(all) => EitherEqualOrLike::Equal(all),
+            // Like comparison: Escape wildcard character with backslash (see below)
+            StringFilter::StartsWith(head) => EitherEqualOrLike::Like(format!(
+                "{}%",
+                head.replace('\\', "\\\\").replace('%', "\\%")
+            )),
+            StringFilter::EndsWith(tail) => EitherEqualOrLike::Like(format!(
+                "%{}",
+                tail.replace('\\', "\\\\").replace('%', "\\%")
+            )),
+            StringFilter::Contains(part) => EitherEqualOrLike::Like(format!(
+                "%{}%",
+                part.replace('\\', "\\\\").replace('%', "\\%")
+            )),
         };
 
-        // Filter tag score
-        if let Some(score_filter) = tag_filter.score_filter {
-            select = match score_filter {
-                ScoreFilter::LessThan(score) => select.filter(aux_tracks_tag::score.lt(*score)),
-                ScoreFilter::NotLessThan(score) => select.filter(aux_tracks_tag::score.ge(*score)),
-                ScoreFilter::GreaterThan(score) => select.filter(aux_tracks_tag::score.gt(*score)),
-                ScoreFilter::NotGreaterThan(score) => {
-                    select.filter(aux_tracks_tag::score.le(*score))
-                }
-                ScoreFilter::Equals(score) => select.filter(aux_tracks_tag::score.eq(*score)),
-            };
-        }
+        select = match either_eq_or_like {
+            EitherEqualOrLike::Equal(eq) => select.filter(aux_tracks_tag::term.eq(eq)),
+            EitherEqualOrLike::Like(like) => {
+                select.filter(aux_tracks_tag::term.like(like).escape('\\'))
+            }
+        };
+    };
 
-        select
+    // Filter tag score
+    if let Some(score_filter) = tag_filter.score_filter {
+        select = match score_filter {
+            ScoreFilter::LessThan(score) => select.filter(aux_tracks_tag::score.lt(*score)),
+            ScoreFilter::NotLessThan(score) => select.filter(aux_tracks_tag::score.ge(*score)),
+            ScoreFilter::GreaterThan(score) => select.filter(aux_tracks_tag::score.gt(*score)),
+            ScoreFilter::NotGreaterThan(score) => select.filter(aux_tracks_tag::score.le(*score)),
+            ScoreFilter::Equals(score) => select.filter(aux_tracks_tag::score.eq(*score)),
+        };
     }
+
+    select
+}
+
+fn apply_pagination<'a, ST, QS, DB>(
+    source: diesel::query_builder::BoxedSelectStatement<'a, ST, QS, DB>,
+    pagination: &Pagination,
+) -> diesel::query_builder::BoxedSelectStatement<'a, ST, QS, DB>
+where
+    QS: diesel::query_source::QuerySource,
+    DB: diesel::backend::Backend + diesel::sql_types::HasSqlType<ST> + 'a,
+{
+    let mut target = source;
+    if let Some(offset) = pagination.offset {
+        target = target.offset(offset as i64);
+    };
+    if let Some(limit) = pagination.limit {
+        target = target.limit(limit as i64);
+    };
+    target
 }
 
 impl<'a> EntityStorage for TrackRepository<'a> {
@@ -687,21 +704,23 @@ impl<'a> Tracks for TrackRepository<'a> {
             StringFilter::Equals(all) => EitherEqualOrLike::Equal(all),
             // Like comparison: Escape wildcard character with backslash (see below)
             StringFilter::StartsWith(head) => EitherEqualOrLike::Like(format!(
-                    "{}%",
-                    head.replace('\\', "\\\\").replace('%', "\\%")
-                )),
+                "{}%",
+                head.replace('\\', "\\\\").replace('%', "\\%")
+            )),
             StringFilter::EndsWith(tail) => EitherEqualOrLike::Like(format!(
-                    "%{}",
-                    tail.replace('\\', "\\\\").replace('%', "\\%")
-                )),
+                "%{}",
+                tail.replace('\\', "\\\\").replace('%', "\\%")
+            )),
             StringFilter::Contains(part) => EitherEqualOrLike::Like(format!(
-                    "%{}%",
-                    part.replace('\\', "\\\\").replace('%', "\\%")
-                )),
+                "%{}%",
+                part.replace('\\', "\\\\").replace('%', "\\%")
+            )),
         };
         target = match either_eq_or_like {
             EitherEqualOrLike::Equal(eq) => target.filter(aux_tracks_resource::source_uri.eq(eq)),
-            EitherEqualOrLike::Like(like) => target.filter(aux_tracks_resource::source_uri.like(like).escape('\\')),
+            EitherEqualOrLike::Like(like) => {
+                target.filter(aux_tracks_resource::source_uri.like(like).escape('\\'))
+            }
         };
 
         // Collection filter & ordering
@@ -713,12 +732,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         };
 
         // Pagination
-        if let Some(offset) = pagination.offset {
-            target = target.offset(offset as i64);
-        };
-        if let Some(limit) = pagination.limit {
-            target = target.limit(limit as i64);
-        };
+        target = apply_pagination(target, pagination);
 
         let results: Vec<QueryableSerializedEntity> = target.load(self.connection)?;
         Ok(results.into_iter().map(|r| r.into()).collect())
@@ -754,7 +768,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             for tag_filters in search_params.tags.into_iter() {
                 // Filter tags 2nd level: Disjunction
                 for (index, tag_filter) in tag_filters.into_iter().enumerate() {
-                    let sub_query = self.select_track_ids_filter_tag(tag_filter);
+                    let sub_query = select_track_ids_filter_tag(tag_filter);
                     target = match index {
                         0 => target.filter(tracks_entity::id.eq_any(sub_query)),
                         _ => target.or_filter(tracks_entity::id.eq_any(sub_query)),
@@ -772,13 +786,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             };
 
             // Pagination
-            // TODO: Extract into a function (https://github.com/diesel-rs/diesel/issues/546)
-            if let Some(offset) = pagination.offset {
-                target = target.offset(offset as i64);
-            };
-            if let Some(limit) = pagination.limit {
-                target = target.limit(limit as i64);
-            };
+            target = apply_pagination(target, pagination);
 
             target.load::<QueryableSerializedEntity>(self.connection)?
         } else {
@@ -839,7 +847,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             for tag_filters in search_params.tags.into_iter() {
                 // Filter tags 2nd level: Disjunction
                 for (index, tag_filter) in tag_filters.into_iter().enumerate() {
-                    let sub_query = self.select_track_ids_filter_tag(tag_filter);
+                    let sub_query = select_track_ids_filter_tag(tag_filter);
                     target = match index {
                         0 => target.filter(tracks_entity::id.eq_any(sub_query)),
                         _ => target.or_filter(tracks_entity::id.eq_any(sub_query)),
@@ -857,13 +865,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             };
 
             // Pagination
-            // TODO: Extract into a function (https://github.com/diesel-rs/diesel/issues/546)
-            if let Some(offset) = pagination.offset {
-                target = target.offset(offset as i64);
-            };
-            if let Some(limit) = pagination.limit {
-                target = target.limit(limit as i64);
-            };
+            target = apply_pagination(target, pagination);
 
             target.load::<QueryableSerializedEntity>(self.connection)?
         };
@@ -906,12 +908,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
         };
 
         // Pagination
-        if let Some(offset) = pagination.offset {
-            target = target.offset(offset as i64);
-        };
-        if let Some(limit) = pagination.limit {
-            target = target.limit(limit as i64);
-        };
+        target = apply_pagination(target, pagination);
 
         if let Some(collection_uid) = collection_uid {
             let target = target.inner_join(
@@ -980,12 +977,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
         };
 
         // Pagination
-        if let Some(offset) = pagination.offset {
-            target = target.offset(offset as i64);
-        };
-        if let Some(limit) = pagination.limit {
-            target = target.limit(limit as i64);
-        };
+        target = apply_pagination(target, pagination);
 
         if let Some(collection_uid) = collection_uid {
             let target = target.inner_join(
