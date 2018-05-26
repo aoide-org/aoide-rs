@@ -730,8 +730,19 @@ impl<'a> Tracks for TrackRepository<'a> {
         pagination: &Pagination,
         search_params: SearchParams,
     ) -> TracksResult<Vec<SerializedEntity>> {
+        // Escape wildcard character with backslash (see below)
+        let escaped_tokens = search_params
+            .tokens
+            .replace('\\', "\\\\")
+            .replace('%', "\\%");
+        let escaped_and_tokenized = escaped_tokens
+            .split_whitespace()
+            .filter(|token| !token.is_empty());
+        let escaped_and_tokenized_len = escaped_and_tokenized
+            .clone()
+            .fold(0, |len, token| len + token.len());
         // TODO: if/else arms are incompatible due to joining tables?
-        let results = if search_params.tokens.is_empty() {
+        let results = if escaped_and_tokenized_len == 0 {
             // Select all (without joining)
             let mut target = tracks_entity::table
                 .select(tracks_entity::all_columns)
@@ -771,18 +782,9 @@ impl<'a> Tracks for TrackRepository<'a> {
 
             target.load::<QueryableSerializedEntity>(self.connection)?
         } else {
-            // Escape wildcard character with backslash (see below)
-            let escaped_tokens = search_params
-                .tokens
-                .trim()
-                .replace('\\', "\\\\")
-                .replace('%', "\\%");
-            let escaped_and_tokenized = escaped_tokens.split_whitespace();
-            let like_expr_len = escaped_and_tokenized
-                .clone()
-                .fold(1, |len, part| len + part.len() + 1);
+            debug_assert!(escaped_and_tokenized_len > 0);
             let mut like_expr = escaped_and_tokenized.fold(
-                String::with_capacity(like_expr_len),
+                String::with_capacity(1 + escaped_and_tokenized_len + 1), // leading/trailing '%'
                 |mut like_expr, part| {
                     // Prepend wildcard character before each part
                     like_expr.push('%');

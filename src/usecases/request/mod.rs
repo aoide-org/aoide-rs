@@ -111,7 +111,7 @@ impl TagFilter {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SearchParams {
-    // Tokenized + trimmed by whitespace and applied to titles, artists, comments
+    // Tokenized by whitespace and applied to location (URI), titles, artists, comments
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub tokens: String,
 
