@@ -111,8 +111,9 @@ impl TagFilter {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SearchParams {
+    // Tokenized + trimmed by whitespace and applied to titles, artists, comments
     #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub filter: String,
+    pub tokens: String,
 
     // 1st level: Conjunction
     // 2nd level: Disjunction

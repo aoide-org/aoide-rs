@@ -731,7 +731,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         search_params: SearchParams,
     ) -> TracksResult<Vec<SerializedEntity>> {
         // TODO: if/else arms are incompatible due to joining tables?
-        let results = if search_params.filter.is_empty() {
+        let results = if search_params.tokens.is_empty() {
             // Select all (without joining)
             let mut target = tracks_entity::table
                 .select(tracks_entity::all_columns)
@@ -772,16 +772,16 @@ impl<'a> Tracks for TrackRepository<'a> {
             target.load::<QueryableSerializedEntity>(self.connection)?
         } else {
             // Escape wildcard character with backslash (see below)
-            let escaped_filter = search_params
-                .filter
+            let escaped_tokens = search_params
+                .tokens
                 .trim()
                 .replace('\\', "\\\\")
                 .replace('%', "\\%");
-            let split_filter = escaped_filter.split_whitespace();
-            let like_expr_len = split_filter
+            let escaped_and_tokenized = escaped_tokens.split_whitespace();
+            let like_expr_len = escaped_and_tokenized
                 .clone()
                 .fold(1, |len, part| len + part.len() + 1);
-            let mut like_expr = split_filter.fold(
+            let mut like_expr = escaped_and_tokenized.fold(
                 String::with_capacity(like_expr_len),
                 |mut like_expr, part| {
                     // Prepend wildcard character before each part
