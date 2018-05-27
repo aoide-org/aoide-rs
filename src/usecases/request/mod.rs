@@ -41,7 +41,7 @@ pub enum FilterModifier {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct StringFilterParams {
     pub value: String,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub modifier: Option<FilterModifier>,
 }
@@ -59,7 +59,7 @@ pub enum StringFilter {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ScoreFilterParams {
     pub value: Score,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub modifier: Option<FilterModifier>,
 }
@@ -69,7 +69,7 @@ pub struct ScoreFilterParams {
 pub enum ScoreFilter {
     LessThan(ScoreFilterParams),
     GreaterThan(ScoreFilterParams),
-    EqualTo(ScoreFilterParams)
+    EqualTo(ScoreFilterParams),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -130,18 +130,44 @@ impl TagFilter {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "lowercase")]
+pub enum PhraseFilterField {
+    Source, // URI
+    Grouping,
+    TrackTitle,
+    AlbumTitle,
+    TrackArtist,
+    AlbumArtist,
+    Comments, // all comments, i.e. independent of owner
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct PhraseFilter {
+    // Tokenized by whitespace, concatenized with wildcards,
+    // and filtered using "contains" semantics with selected
+    // (or all) fields
+    pub phrase: String,
+
+    // Empty == All
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub fields: Vec<PhraseFilterField>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modifier: Option<FilterModifier>,
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SearchParams {
-    // Tokenized by whitespace and applied to location (URI), titles, artists, comments
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub tokens: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub phrase_filter: Option<PhraseFilter>,
 
     // 1st level: Conjunction
     // 2nd level: Disjunction
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub tags: Vec<Vec<TagFilter>>,
-
+    pub tag_filters: Vec<Vec<TagFilter>>,
     // TODO: Implement sorting
     //#[serde(skip_serializing_if = "Vec::is_empty", default)]
     //pub sort_fields: Vec<SortField>,
@@ -154,7 +180,7 @@ pub struct SearchParams {
 #[cfg(test)]
 mod tests {
     use super::*;
- 
+
     #[test]
     fn default_tag_filter() {
         assert_eq!(TagFilter::any_facet(), TagFilter::default().facet);

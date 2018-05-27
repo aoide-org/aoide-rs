@@ -160,7 +160,7 @@ allow_tables_to_appear_in_same_query!(
     aux_tracks_summary,
     aux_tracks_music,
     aux_tracks_tag,
-    aux_tracks_comment
+    aux_tracks_comment,
 );
 
 table! {
