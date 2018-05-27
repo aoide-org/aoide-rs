@@ -31,23 +31,45 @@ pub struct SortField {
     pub field: String,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "lowercase")]
+pub enum FilterModifier {
+    Inverse,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct StringFilterParams {
+    pub value: String,
+    
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modifier: Option<FilterModifier>,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub enum StringFilter {
-    Equals(String),     // all
-    StartsWith(String), // head
-    EndsWith(String),   // tail
-    Contains(String),   // part
+    StartsWith(StringFilterParams), // head
+    EndsWith(StringFilterParams),   // tail
+    Contains(StringFilterParams),   // part
+    Matches(StringFilterParams),    // all
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct ScoreFilterParams {
+    pub value: Score,
+    
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modifier: Option<FilterModifier>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub enum ScoreFilter {
-    LessThan(Score),
-    NotLessThan(Score),
-    GreaterThan(Score),
-    NotGreaterThan(Score),
-    Equals(Score)
+    LessThan(ScoreFilterParams),
+    GreaterThan(ScoreFilterParams),
+    EqualTo(ScoreFilterParams)
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
