@@ -182,7 +182,6 @@ fn create_response_message<S: Into<String>>(
     response_message: S,
 ) -> Response {
     let response_text = response_message.into();
-    info!("{:?}: {}", response_code, response_text);
     create_response(
         &state,
         response_code,
@@ -275,6 +274,7 @@ fn handle_get_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
     let pooled_connection = match middleware::state_data::try_connection(&state) {
         Ok(pooled_connection) => pooled_connection,
         Err(e) => {
+            error!("No database connection: {:?}", &e);
             let response = format_response_message(&state, StatusCode::InternalServerError, &e);
             return Box::new(future::ok((state, response)));
         }
@@ -317,6 +317,7 @@ fn handle_delete_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
     let pooled_connection = match middleware::state_data::try_connection(&state) {
         Ok(pooled_connection) => pooled_connection,
         Err(e) => {
+            error!("No database connection: {:?}", &e);
             let response = format_response_message(&state, StatusCode::InternalServerError, &e);
             return Box::new(future::ok((state, response)));
         }
@@ -355,6 +356,7 @@ fn handle_get_collections_query_pagination(mut state: State) -> Box<HandlerFutur
     let pooled_connection = match middleware::state_data::try_connection(&state) {
         Ok(pooled_connection) => pooled_connection,
         Err(e) => {
+            error!("No database connection: {:?}", &e);
             let response = format_response_message(&state, StatusCode::InternalServerError, &e);
             return Box::new(future::ok((state, response)));
         }
@@ -400,6 +402,7 @@ fn handle_post_collections(mut state: State) -> Box<HandlerFuture> {
                 let pooled_connection = match middleware::state_data::try_connection(&state) {
                     Ok(pooled_connection) => pooled_connection,
                     Err(e) => {
+                        error!("No database connection: {:?}", &e);
                         let response =
                             format_response_message(&state, StatusCode::InternalServerError, &e);
                         return future::ok((state, response));
@@ -474,6 +477,7 @@ fn handle_put_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
                 let pooled_connection = match middleware::state_data::try_connection(&state) {
                     Ok(pooled_connection) => pooled_connection,
                     Err(e) => {
+                        error!("No database connection: {:?}", &e);
                         let response =
                             format_response_message(&state, StatusCode::InternalServerError, &e);
                         return future::ok((state, response));
@@ -562,12 +566,16 @@ fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
                         }
                     };
                 if !entity_body.is_valid() {
-                    warn!("Invalid track body: {:?}", entity_body);
+                    warn!("Invalid track: {:?}", entity_body);
+                    let response =
+                        create_response_message(&state, StatusCode::BadRequest, "Invalid track");
+                    return future::ok((state, response));
                 }
 
                 let pooled_connection = match middleware::state_data::try_connection(&state) {
                     Ok(pooled_connection) => pooled_connection,
                     Err(e) => {
+                        error!("No database connection: {:?}", &e);
                         let response =
                             format_response_message(&state, StatusCode::InternalServerError, &e);
                         return future::ok((state, response));
@@ -644,7 +652,10 @@ fn handle_put_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
                         }
                     };
                 if !entity.body().is_valid() {
-                    warn!("Invalid track body: {:?}", entity.body());
+                    warn!("Invalid track: {:?}", entity.body());
+                    let response =
+                        create_response_message(&state, StatusCode::BadRequest, "Invalid track");
+                    return future::ok((state, response));
                 }
 
                 let uid = match UidPathExtractor::parse_from_and_verify(
@@ -661,6 +672,7 @@ fn handle_put_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
                 let pooled_connection = match middleware::state_data::try_connection(&state) {
                     Ok(pooled_connection) => pooled_connection,
                     Err(e) => {
+                        error!("No database connection: {:?}", &e);
                         let response =
                             format_response_message(&state, StatusCode::InternalServerError, &e);
                         return future::ok((state, response));
@@ -732,6 +744,7 @@ fn handle_delete_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
     let pooled_connection = match middleware::state_data::try_connection(&state) {
         Ok(pooled_connection) => pooled_connection,
         Err(e) => {
+            error!("No database connection: {:?}", &e);
             let response = format_response_message(&state, StatusCode::InternalServerError, &e);
             return Box::new(future::ok((state, response)));
         }
@@ -766,6 +779,7 @@ fn handle_get_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
     let pooled_connection = match middleware::state_data::try_connection(&state) {
         Ok(pooled_connection) => pooled_connection,
         Err(e) => {
+            error!("No database connection: {:?}", &e);
             let response = format_response_message(&state, StatusCode::InternalServerError, &e);
             return Box::new(future::ok((state, response)));
         }
@@ -835,6 +849,7 @@ fn handle_post_collections_path_uid_tracks_locate_query_pagination(
                 let pooled_connection = match middleware::state_data::try_connection(&state) {
                     Ok(pooled_connection) => pooled_connection,
                     Err(e) => {
+                        error!("No database connection: {:?}", &e);
                         let response =
                             format_response_message(&state, StatusCode::InternalServerError, &e);
                         return future::ok((state, response));
@@ -911,12 +926,16 @@ fn handle_post_collections_path_uid_tracks_replace(mut state: State) -> Box<Hand
                         }
                     };
                 if !replace_params.body.is_valid() {
-                    warn!("Invalid track body: {:?}", replace_params.body);
+                    warn!("Invalid track: {:?}", replace_params.body);
+                    let response =
+                        create_response_message(&state, StatusCode::BadRequest, "Invalid track");
+                    return future::ok((state, response));
                 }
 
                 let pooled_connection = match middleware::state_data::try_connection(&state) {
                     Ok(pooled_connection) => pooled_connection,
                     Err(e) => {
+                        error!("No database connection: {:?}", &e);
                         let response =
                             format_response_message(&state, StatusCode::InternalServerError, &e);
                         return future::ok((state, response));
@@ -1021,6 +1040,7 @@ fn handle_post_collections_path_uid_tracks_search_query_pagination(
                 let pooled_connection = match middleware::state_data::try_connection(&state) {
                     Ok(pooled_connection) => pooled_connection,
                     Err(e) => {
+                        error!("No database connection: {:?}", &e);
                         let response =
                             format_response_message(&state, StatusCode::InternalServerError, &e);
                         return future::ok((state, response));
@@ -1061,6 +1081,7 @@ fn handle_get_collections_path_uid_tracks_query_pagination(mut state: State) -> 
     let pooled_connection = match middleware::state_data::try_connection(&state) {
         Ok(pooled_connection) => pooled_connection,
         Err(e) => {
+            error!("No database connection: {:?}", &e);
             let response = format_response_message(&state, StatusCode::InternalServerError, &e);
             return Box::new(future::ok((state, response)));
         }
@@ -1124,6 +1145,7 @@ fn handle_get_collections_path_uid_tags_facets_query_facet_pagination(
     let pooled_connection = match middleware::state_data::try_connection(&state) {
         Ok(pooled_connection) => pooled_connection,
         Err(e) => {
+            error!("No database connection: {:?}", &e);
             let response = format_response_message(&state, StatusCode::InternalServerError, &e);
             return Box::new(future::ok((state, response)));
         }
@@ -1169,6 +1191,7 @@ fn handle_get_collections_path_uid_tags_query_facet_pagination(
     let pooled_connection = match middleware::state_data::try_connection(&state) {
         Ok(pooled_connection) => pooled_connection,
         Err(e) => {
+            error!("No database connection: {:?}", &e);
             let response = format_response_message(&state, StatusCode::InternalServerError, &e);
             return Box::new(future::ok((state, response)));
         }
