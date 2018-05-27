@@ -35,6 +35,7 @@ table! {
         collection_uid -> Text,
         collection_since -> Timestamp,
         source_uri -> Text,
+        source_uri_decoded -> Text,
         source_sync_when -> Nullable<Timestamp>,
         source_sync_rev_ordinal -> Nullable<BigInt>,
         source_sync_rev_timestamp -> Nullable<Timestamp>,

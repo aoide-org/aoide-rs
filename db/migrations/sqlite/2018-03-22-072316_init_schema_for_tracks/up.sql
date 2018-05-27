@@ -48,6 +48,7 @@ CREATE TABLE aux_tracks_resource (
     collection_uid           TEXT NOT NULL,
     collection_since         DATETIME NOT NULL,
     source_uri               TEXT NOT NULL,     -- RFC 3986
+    source_uri_decoded       TEXT NOT NULL,
     source_sync_when         DATETIME,          -- most recent metadata synchronization
     source_sync_rev_ordinal  INTEGER,           -- most recent metadata synchronization
     source_sync_rev_timestamp DATETIME,         -- most recent metadata synchronization

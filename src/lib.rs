@@ -42,6 +42,8 @@ extern crate log;
 
 extern crate mime;
 
+extern crate percent_encoding;
+
 extern crate r2d2;
 
 extern crate r2d2_diesel;

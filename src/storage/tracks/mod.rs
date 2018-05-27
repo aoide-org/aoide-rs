@@ -34,6 +34,7 @@ use std::i64;
 
 use super::serde::{deserialize_with_format, serialize_with_format, SerializationFormat,
                    SerializedEntity};
+
 use super::*;
 
 use usecases::request::{FilterModifier, LocateParams, PhraseFilterField, ReplaceMode,
@@ -902,12 +903,12 @@ impl<'a> Tracks for TrackRepository<'a> {
             {
                 target = match search_params.phrase_filter.as_ref().unwrap().modifier {
                     None => target.or_filter(
-                        aux_tracks_resource::source_uri
+                        aux_tracks_resource::source_uri_decoded
                             .like(&like_expr)
                             .escape('\\'),
                     ),
                     Some(FilterModifier::Inverse) => target.or_filter(
-                        aux_tracks_resource::source_uri
+                        aux_tracks_resource::source_uri_decoded
                             .not_like(&like_expr)
                             .escape('\\'),
                     ),

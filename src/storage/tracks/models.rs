@@ -17,6 +17,8 @@ use super::schema::*;
 
 use chrono::naive::{NaiveDate, NaiveDateTime};
 
+use percent_encoding::percent_decode;
+
 use storage::StorageId;
 use storage::serde::SerializationFormat;
 
@@ -183,6 +185,7 @@ pub struct InsertableTracksResource<'a> {
     pub collection_uid: &'a str,
     pub collection_since: NaiveDateTime,
     pub source_uri: &'a str,
+    pub source_uri_decoded: String,
     pub source_sync_when: Option<NaiveDateTime>,
     pub source_sync_rev_ordinal: Option<i64>,
     pub source_sync_rev_timestamp: Option<NaiveDateTime>,
@@ -203,6 +206,7 @@ impl<'a> InsertableTracksResource<'a> {
             collection_uid: track_resource.collection.uid.as_str(),
             collection_since: track_resource.collection.since.naive_utc(),
             source_uri: track_resource.source.uri.as_str(),
+            source_uri_decoded: percent_decode(track_resource.source.uri.as_bytes()).decode_utf8_lossy().into(),
             source_sync_when: track_resource
                 .source
                 .synchronization

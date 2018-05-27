@@ -103,6 +103,13 @@ pub struct TrackSource {
 
 impl TrackSource {
     pub fn is_valid(&self) -> bool {
+        // TODO: Validate the URI
+        // Currently (2018-05-28) there is no crate that is able to do this.
+        // Crate http/hyper: Fail to recognize absolute file paths with the
+        // scheme "file" and without an authority, e.g. parsing fails for
+        // "file:///path/to/local/file.txt"
+        // Crate url: Doesn't care about reserved characters, e.g. parses
+        // "file:///path to local/file.txt" successfully
         !self.uri.is_empty() && !self.content_type.is_empty()
     }
 }

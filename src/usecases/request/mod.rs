@@ -133,7 +133,7 @@ impl TagFilter {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "lowercase")]
 pub enum PhraseFilterField {
-    Source, // URI
+    Source, // percent-decoded URI
     Grouping,
     TrackTitle,
     AlbumTitle,
