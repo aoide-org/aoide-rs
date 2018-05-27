@@ -19,8 +19,8 @@ use audio::*;
 use domain::collection::*;
 use domain::entity::*;
 use domain::metadata::*;
-use domain::music::*;
 use domain::music::sonic::*;
+use domain::music::*;
 
 use chrono::{DateTime, Utc};
 
@@ -208,6 +208,9 @@ impl TrackResource {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ReleaseMetadata {
+    #[serde(rename = "refs", skip_serializing_if = "Vec::is_empty", default)]
+    pub references: Vec<String>, // external URIs
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub released_at: Option<DateTime<Utc>>,
 
@@ -219,9 +222,6 @@ pub struct ReleaseMetadata {
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub licenses: Vec<String>,
-
-    #[serde(rename = "refs", skip_serializing_if = "Vec::is_empty", default)]
-    pub references: Vec<String>, // external URIs
 }
 
 impl ReleaseMetadata {
@@ -237,8 +237,8 @@ impl ReleaseMetadata {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AlbumMetadata {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub release: Option<ReleaseMetadata>,
+    #[serde(rename = "refs", skip_serializing_if = "Vec::is_empty", default)]
+    pub references: Vec<String>, // external URIs
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub titles: Vec<Title>,
@@ -246,18 +246,13 @@ pub struct AlbumMetadata {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub actors: Vec<Actor>,
 
-    #[serde(rename = "refs", skip_serializing_if = "Vec::is_empty", default)]
-    pub references: Vec<String>, // external URIs
-
     #[serde(skip_serializing_if = "Option::is_none")]
     pub compilation: Option<bool>,
 }
 
 impl AlbumMetadata {
     pub fn is_valid(&self) -> bool {
-        self.release.iter().all(ReleaseMetadata::is_valid)
-            && Titles::is_valid(&self.titles)
-            && Actors::is_valid(&self.actors)
+        Titles::is_valid(&self.titles) && Actors::is_valid(&self.actors)
     }
 }
 
@@ -394,7 +389,7 @@ impl TrackMarker {
     pub fn is_valid(&self) -> bool {
         self.position.is_valid() && self.duration.is_valid() && match self.mark {
             TrackMark::LoadCue | TrackMark::HotCue => self.duration.is_empty(), // not available
-            TrackMark::Sample | TrackMark::Loop => !self.duration.is_empty(), // mandatory
+            TrackMark::Sample | TrackMark::Loop => !self.duration.is_empty(),   // mandatory
             _ => true, // optional, i.e. no restrictions on duration
         }
     }
@@ -564,20 +559,14 @@ pub struct TrackBody {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub resources: Vec<TrackResource>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub album: Option<AlbumMetadata>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub grouping: Option<String>,
-
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub titles: Vec<Title>,
-
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub actors: Vec<Actor>,
-
     #[serde(rename = "refs", skip_serializing_if = "Vec::is_empty", default)]
     pub references: Vec<String>, // external URIs
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release: Option<ReleaseMetadata>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub album: Option<AlbumMetadata>,
 
     #[serde(skip_serializing_if = "TrackNumbers::is_empty", default)]
     pub track_numbers: TrackNumbers,
@@ -585,11 +574,20 @@ pub struct TrackBody {
     #[serde(skip_serializing_if = "DiscNumbers::is_empty", default)]
     pub disc_numbers: DiscNumbers,
 
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub titles: Vec<Title>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub actors: Vec<Actor>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub music: Option<MusicMetadata>,
+    pub grouping: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub lyrics: Option<TrackLyrics>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub music: Option<MusicMetadata>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub markers: Vec<TrackMarker>,
@@ -601,20 +599,19 @@ pub struct TrackBody {
     pub tags: Vec<Tag>, // no duplicate terms per facet allowed
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub ratings: Vec<Rating>, // no duplicate owners allowed
+    pub comments: Vec<Comment>, // no duplicate owners allowed
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub comments: Vec<Comment>, // no duplicate owners allowed
+    pub ratings: Vec<Rating>, // no duplicate owners allowed
 }
 
 impl TrackBody {
     pub fn is_valid(&self) -> bool {
         !self.resources.is_empty() && self.resources.iter().all(TrackResource::is_valid)
             && self.album.iter().all(AlbumMetadata::is_valid)
-            && Titles::is_valid(&self.titles)
-            && Actors::is_valid(&self.actors)
-            && self.track_numbers.is_valid()
-            && self.disc_numbers.is_valid()
+            && self.release.iter().all(ReleaseMetadata::is_valid)
+            && Titles::is_valid(&self.titles) && Actors::is_valid(&self.actors)
+            && self.track_numbers.is_valid() && self.disc_numbers.is_valid()
             && self.music.iter().all(MusicMetadata::is_valid)
             && self.lyrics.iter().all(TrackLyrics::is_valid)
             && self.markers.iter().all(|marker| {
@@ -656,11 +653,15 @@ impl TrackBody {
     }
 
     pub fn album_main_title<'a>(&'a self) -> Option<&'a Title> {
-        self.album.as_ref().and_then(|album| Titles::main_title_without_language(&album.titles))
+        self.album
+            .as_ref()
+            .and_then(|album| Titles::main_title_without_language(&album.titles))
     }
 
     pub fn album_main_actor<'a>(&'a self, role: ActorRole) -> Option<&'a Actor> {
-        self.album.as_ref().and_then(|album| Actors::main_actor(&album.actors, role))
+        self.album
+            .as_ref()
+            .and_then(|album| Actors::main_actor(&album.actors, role))
     }
 }
 

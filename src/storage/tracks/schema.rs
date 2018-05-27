@@ -59,18 +59,18 @@ table! {
         track_id -> BigInt,
         track_title -> Text,
         track_subtitle -> Nullable<Text>,
+        grouping -> Nullable<Text>,
+        lyrics_explicit -> Nullable<Bool>,
+        album_title -> Nullable<Text>,
+        album_compilation -> Nullable<Bool>,
         track_number -> Nullable<Integer>,
         track_total -> Nullable<Integer>,
         disc_number -> Nullable<Integer>,
         disc_total -> Nullable<Integer>,
-        grouping -> Nullable<Text>,
-        album_title -> Nullable<Text>,
         album_subtitle -> Nullable<Text>,
-        album_compilation -> Nullable<Bool>,
         released_at -> Nullable<Date>,
         released_by -> Nullable<Text>,
         release_copyright -> Nullable<Text>,
-        lyrics_explicit -> Nullable<Bool>,
     }
 }
 

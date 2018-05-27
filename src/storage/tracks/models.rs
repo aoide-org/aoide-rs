@@ -89,17 +89,17 @@ impl<'a> UpdatableTracksEntity<'a> {
 pub struct InsertableTracksOverview<'a> {
     pub track_id: StorageId,
     pub track_title: &'a str,
+    pub grouping: Option<&'a str>,
+    pub lyrics_explicit: Option<bool>,
+    pub album_title: Option<&'a str>,
+    pub album_compilation: Option<bool>,
     pub track_number: Option<i32>,
     pub track_total: Option<i32>,
     pub disc_number: Option<i32>,
     pub disc_total: Option<i32>,
-    pub grouping: Option<&'a str>,
-    pub album_title: Option<&'a str>,
-    pub album_compilation: Option<bool>,
     pub released_at: Option<NaiveDate>,
     pub released_by: Option<&'a str>,
     pub release_copyright: Option<&'a str>,
-    pub lyrics_explicit: Option<bool>,
 }
 
 impl<'a> InsertableTracksOverview<'a> {
@@ -107,30 +107,27 @@ impl<'a> InsertableTracksOverview<'a> {
         Self {
             track_id,
             track_title: body.main_title().map(|title| title.name.as_str()).unwrap_or(""),
+            grouping: body.grouping.as_ref()
+                .map(|grouping| grouping.as_str()),
+            lyrics_explicit: body.lyrics.as_ref().and_then(|lyrics| lyrics.explicit),
+            album_title: body.album_main_title().map(|title| title.name.as_str()),
+            album_compilation: body.album.as_ref().and_then(|album| album.compilation),
             track_number: body.track_numbers.this.map(|this| this as i32),
             track_total: body.track_numbers.total.map(|total| total as i32),
             disc_number: body.disc_numbers.this.map(|this| this as i32),
             disc_total: body.disc_numbers.total.map(|total| total as i32),
-            grouping: body.grouping.as_ref()
-                .map(|grouping| grouping.as_str()),
-            album_title: body.album_main_title().map(|title| title.name.as_str()),
-            album_compilation: body.album.as_ref().and_then(|album| album.compilation),
-            released_at: body.album
+            released_at: body.release
                 .as_ref()
-                .and_then(|album| album.release.as_ref())
                 .and_then(|release| release.released_at)
                 .map(|released_at| released_at.date().naive_utc()),
-            released_by: body.album
+            released_by: body.release
                 .as_ref()
-                .and_then(|album| album.release.as_ref())
                 .and_then(|release| release.released_by.as_ref())
                 .map(|released_by| released_by.as_str()),
-            release_copyright: body.album
+            release_copyright: body.release
                 .as_ref()
-                .and_then(|album| album.release.as_ref())
                 .and_then(|release| release.copyright.as_ref())
                 .map(|copyright| copyright.as_str()),
-            lyrics_explicit: body.lyrics.as_ref().and_then(|lyrics| lyrics.explicit),
         }
     }
 }

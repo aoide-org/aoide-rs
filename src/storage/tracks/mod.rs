@@ -331,13 +331,13 @@ impl<'a> TrackRepository<'a> {
                     query.execute(self.connection)?;
                 }
             }
-            if let Some(release) = album.release.as_ref() {
-                for release_ref in release.references.iter() {
-                    let insertable =
-                        InsertableTracksRef::bind(track_id, RefOrigin::Release, &release_ref);
-                    let query = diesel::replace_into(aux_tracks_ref::table).values(&insertable);
-                    query.execute(self.connection)?;
-                }
+        }
+        if let Some(release) = track_body.release.as_ref() {
+            for release_ref in release.references.iter() {
+                let insertable =
+                    InsertableTracksRef::bind(track_id, RefOrigin::Release, &release_ref);
+                let query = diesel::replace_into(aux_tracks_ref::table).values(&insertable);
+                query.execute(self.connection)?;
             }
         }
         Ok(())
