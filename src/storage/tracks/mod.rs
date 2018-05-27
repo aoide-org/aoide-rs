@@ -929,12 +929,12 @@ impl<'a> Tracks for TrackRepository<'a> {
             {
                 target = match search_params.phrase_filter.as_ref().unwrap().modifier {
                     None => target.or_filter(
-                        aux_tracks_overview::album_grouping
+                        aux_tracks_overview::grouping
                             .like(&like_expr)
                             .escape('\\'),
                     ),
                     Some(FilterModifier::Inverse) => target.or_filter(
-                        aux_tracks_overview::album_grouping
+                        aux_tracks_overview::grouping
                             .not_like(&like_expr)
                             .escape('\\'),
                     ),

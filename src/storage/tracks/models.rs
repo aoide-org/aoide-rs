@@ -93,8 +93,8 @@ pub struct InsertableTracksOverview<'a> {
     pub track_total: Option<i32>,
     pub disc_number: Option<i32>,
     pub disc_total: Option<i32>,
+    pub grouping: Option<&'a str>,
     pub album_title: Option<&'a str>,
-    pub album_grouping: Option<&'a str>,
     pub album_compilation: Option<bool>,
     pub released_at: Option<NaiveDate>,
     pub released_by: Option<&'a str>,
@@ -110,11 +110,9 @@ impl<'a> InsertableTracksOverview<'a> {
             track_total: body.track_numbers.total.map(|total| total as i32),
             disc_number: body.disc_numbers.this.map(|this| this as i32),
             disc_total: body.disc_numbers.total.map(|total| total as i32),
-            album_title: body.album_main_title().map(|title| title.name.as_str()),
-            album_grouping: body.album
-                .as_ref()
-                .and_then(|album| album.grouping.as_ref())
+            grouping: body.grouping.as_ref()
                 .map(|grouping| grouping.as_str()),
+            album_title: body.album_main_title().map(|title| title.name.as_str()),
             album_compilation: body.album.as_ref().and_then(|album| album.compilation),
             released_at: body.album
                 .as_ref()

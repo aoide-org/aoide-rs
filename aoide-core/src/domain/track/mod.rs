@@ -250,9 +250,6 @@ pub struct AlbumMetadata {
     pub references: Vec<String>, // external URIs
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub grouping: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub compilation: Option<bool>,
 }
 
@@ -569,6 +566,9 @@ pub struct TrackBody {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub album: Option<AlbumMetadata>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub grouping: Option<String>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub titles: Vec<Title>,
