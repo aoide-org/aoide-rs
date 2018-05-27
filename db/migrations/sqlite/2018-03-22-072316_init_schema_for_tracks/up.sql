@@ -77,6 +77,7 @@ CREATE TABLE aux_tracks_overview (
     album_compilation        TINYINT, -- {0, 1}
     released_at              DATE, -- naive date, i.e. without any time zone
     released_by              TEXT, -- record label
+    release_copyright        TEXT,
     lyrics_explicit          TINYINT, -- {0, 1}
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id)

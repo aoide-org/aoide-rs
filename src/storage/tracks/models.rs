@@ -98,6 +98,7 @@ pub struct InsertableTracksOverview<'a> {
     pub album_compilation: Option<bool>,
     pub released_at: Option<NaiveDate>,
     pub released_by: Option<&'a str>,
+    pub release_copyright: Option<&'a str>,
     pub lyrics_explicit: Option<bool>,
 }
 
@@ -124,6 +125,11 @@ impl<'a> InsertableTracksOverview<'a> {
                 .and_then(|album| album.release.as_ref())
                 .and_then(|release| release.released_by.as_ref())
                 .map(|released_by| released_by.as_str()),
+            release_copyright: body.album
+                .as_ref()
+                .and_then(|album| album.release.as_ref())
+                .and_then(|release| release.copyright.as_ref())
+                .map(|copyright| copyright.as_str()),
             lyrics_explicit: body.lyrics.as_ref().and_then(|lyrics| lyrics.explicit),
         }
     }
