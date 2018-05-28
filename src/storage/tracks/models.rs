@@ -91,7 +91,6 @@ impl<'a> UpdatableTracksEntity<'a> {
 pub struct InsertableTracksOverview<'a> {
     pub track_id: StorageId,
     pub track_title: &'a str,
-    pub grouping: Option<&'a str>,
     pub lyrics_explicit: Option<bool>,
     pub album_title: Option<&'a str>,
     pub album_compilation: Option<bool>,
@@ -109,8 +108,6 @@ impl<'a> InsertableTracksOverview<'a> {
         Self {
             track_id,
             track_title: body.main_title().map(|title| title.name.as_str()).unwrap_or(""),
-            grouping: body.grouping.as_ref()
-                .map(|grouping| grouping.as_str()),
             lyrics_explicit: body.lyrics.as_ref().and_then(|lyrics| lyrics.explicit),
             album_title: body.album_main_title().map(|title| title.name.as_str()),
             album_compilation: body.album.as_ref().and_then(|album| album.compilation),

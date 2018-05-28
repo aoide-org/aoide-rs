@@ -59,7 +59,6 @@ table! {
         id -> BigInt,
         track_id -> BigInt,
         track_title -> Text,
-        grouping -> Nullable<Text>,
         lyrics_explicit -> Nullable<Bool>,
         album_title -> Nullable<Text>,
         album_compilation -> Nullable<Bool>,

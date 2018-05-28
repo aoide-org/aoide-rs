@@ -495,6 +495,9 @@ impl TrackTag {
     // ISO 639-2 language codes: "eng", "fre"/"fra", "ita", "spa", "ger"/"deu", ...
     pub const FACET_LANG: &'static str = "lang";
 
+    // The Content Group aka Grouping field
+    pub const FACET_CGROUP: &'static str = "cgroup";
+
     // "Pop", "Dance", "Electronic", "R&B/Soul", "Hip Hop/Rap", ...
     pub const FACET_GENRE: &'static str = "genre";
 
@@ -586,9 +589,6 @@ pub struct TrackBody {
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub actors: Vec<Actor>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub grouping: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub lyrics: Option<TrackLyrics>,

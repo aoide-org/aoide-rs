@@ -971,30 +971,6 @@ impl<'a> Tracks for TrackRepository<'a> {
                     ),
                 };
             }
-            if search_params
-                .phrase_filter
-                .as_ref()
-                .unwrap()
-                .fields
-                .is_empty()
-                || search_params
-                    .phrase_filter
-                    .as_ref()
-                    .unwrap()
-                    .fields
-                    .iter()
-                    .any(|target| *target == PhraseFilterField::Grouping)
-            {
-                target = match search_params.phrase_filter.as_ref().unwrap().modifier {
-                    None => target
-                        .or_filter(aux_tracks_overview::grouping.like(&like_expr).escape('\\')),
-                    Some(FilterModifier::Inverse) => target.or_filter(
-                        aux_tracks_overview::grouping
-                            .not_like(&like_expr)
-                            .escape('\\'),
-                    ),
-                };
-            }
 
             // aux_tracks_summary (join)
             if search_params
@@ -1121,22 +1097,6 @@ impl<'a> Tracks for TrackRepository<'a> {
                 .select(aux_tracks_resource::track_id)
                 .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_str())));
         let rows = match field {
-            FrequencyField::Grouping => {
-                let mut target = aux_tracks_overview::table
-                    .select((
-                        aux_tracks_overview::grouping,
-                        sql::<diesel::sql_types::BigInt>("count(*) AS count"),
-                    ))
-                    .filter(aux_tracks_overview::grouping.is_not_null())
-                    .group_by(aux_tracks_overview::grouping)
-                    .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
-                    .then_order_by(aux_tracks_overview::grouping)
-                    .into_boxed();
-                if let Some(track_id_subselect) = track_id_subselect {
-                    target = target.filter(aux_tracks_overview::track_id.eq_any(track_id_subselect));
-                }
-                target.load::<(Option<String>, i64)>(self.connection)?
-            }
             FrequencyField::TrackTitle => {
                 let mut target = aux_tracks_overview::table
                     .select((

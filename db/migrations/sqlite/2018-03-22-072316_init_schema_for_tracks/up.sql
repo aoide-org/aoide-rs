@@ -73,7 +73,6 @@ CREATE TABLE aux_tracks_overview (
     track_total              INTEGER, -- > 0
     disc_number              INTEGER, -- > 0
     disc_total               INTEGER, -- > 0
-    grouping                 TEXT,
     album_title              TEXT,
     album_compilation        TINYINT, -- {0, 1}
     released_at              DATE, -- naive date, i.e. without any time zone

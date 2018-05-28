@@ -134,7 +134,6 @@ impl TagFilter {
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum PhraseFilterField {
     Source, // percent-decoded URI
-    Grouping,
     TrackTitle,
     AlbumTitle,
     TrackArtist,
@@ -176,7 +175,6 @@ pub struct SearchParams {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum FrequencyField {
-    Grouping,
     TrackTitle,
     AlbumTitle,
     TrackArtist,
