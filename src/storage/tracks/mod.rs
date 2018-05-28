@@ -37,9 +37,9 @@ use super::serde::{deserialize_with_format, serialize_with_format, Serialization
 
 use super::*;
 
-use usecases::request::{FilterModifier, LocateParams, PhraseFilterField, ReplaceMode,
-                        ReplaceParams, ScoreFilter, SearchParams, StringFilter,
-                        StringFilterParams, TagFilter};
+use usecases::request::{FilterModifier, FrequencyField, LocateParams, PhraseFilterField,
+                        ReplaceMode, ReplaceParams, ScoreFilter, SearchParams, StringFilter,
+                        StringFilterParams, StringFrequency, StringFrequencyResult, TagFilter};
 use usecases::result::Pagination;
 use usecases::{Collections, TrackEntityReplacement, TrackTags, TrackTagsResult, Tracks,
                TracksResult};
@@ -887,6 +887,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                 .left_outer_join(aux_tracks_summary::table)
                 .into_boxed();
 
+            // aux_track_resource (join)
             if search_params
                 .phrase_filter
                 .as_ref()
@@ -914,33 +915,8 @@ impl<'a> Tracks for TrackRepository<'a> {
                     ),
                 };
             }
-            if search_params
-                .phrase_filter
-                .as_ref()
-                .unwrap()
-                .fields
-                .is_empty()
-                || search_params
-                    .phrase_filter
-                    .as_ref()
-                    .unwrap()
-                    .fields
-                    .iter()
-                    .any(|target| *target == PhraseFilterField::Grouping)
-            {
-                target = match search_params.phrase_filter.as_ref().unwrap().modifier {
-                    None => target.or_filter(
-                        aux_tracks_overview::grouping
-                            .like(&like_expr)
-                            .escape('\\'),
-                    ),
-                    Some(FilterModifier::Inverse) => target.or_filter(
-                        aux_tracks_overview::grouping
-                            .not_like(&like_expr)
-                            .escape('\\'),
-                    ),
-                };
-            }
+
+            // aux_track_overview (join)
             if search_params
                 .phrase_filter
                 .as_ref()
@@ -1007,6 +983,32 @@ impl<'a> Tracks for TrackRepository<'a> {
                     .unwrap()
                     .fields
                     .iter()
+                    .any(|target| *target == PhraseFilterField::Grouping)
+            {
+                target = match search_params.phrase_filter.as_ref().unwrap().modifier {
+                    None => target
+                        .or_filter(aux_tracks_overview::grouping.like(&like_expr).escape('\\')),
+                    Some(FilterModifier::Inverse) => target.or_filter(
+                        aux_tracks_overview::grouping
+                            .not_like(&like_expr)
+                            .escape('\\'),
+                    ),
+                };
+            }
+
+            // aux_tracks_summary (join)
+            if search_params
+                .phrase_filter
+                .as_ref()
+                .unwrap()
+                .fields
+                .is_empty()
+                || search_params
+                    .phrase_filter
+                    .as_ref()
+                    .unwrap()
+                    .fields
+                    .iter()
                     .any(|target| *target == PhraseFilterField::TrackArtist)
             {
                 target = match search_params.phrase_filter.as_ref().unwrap().modifier {
@@ -1049,6 +1051,8 @@ impl<'a> Tracks for TrackRepository<'a> {
                     ),
                 };
             }
+
+            // aux_track_comment (subselect)
             if search_params
                 .phrase_filter
                 .as_ref()
@@ -1109,6 +1113,104 @@ impl<'a> Tracks for TrackRepository<'a> {
             target.load::<QueryableSerializedEntity>(self.connection)?
         };
         Ok(results.into_iter().map(|r| r.into()).collect())
+    }
+
+    fn all_field_frequencies(&self, collection_uid: Option<&EntityUid>, field: FrequencyField) -> TracksResult<StringFrequencyResult> {
+        let track_id_subselect = collection_uid.map(
+            |collection_uid| aux_tracks_resource::table
+                .select(aux_tracks_resource::track_id)
+                .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_str())));
+        let rows = match field {
+            FrequencyField::Grouping => {
+                let mut target = aux_tracks_overview::table
+                    .select((
+                        aux_tracks_overview::grouping,
+                        sql::<diesel::sql_types::BigInt>("count(*) AS count"),
+                    ))
+                    .filter(aux_tracks_overview::grouping.is_not_null())
+                    .group_by(aux_tracks_overview::grouping)
+                    .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
+                    .then_order_by(aux_tracks_overview::grouping)
+                    .into_boxed();
+                if let Some(track_id_subselect) = track_id_subselect {
+                    target = target.filter(aux_tracks_overview::track_id.eq_any(track_id_subselect));
+                }
+                target.load::<(Option<String>, i64)>(self.connection)?
+            }
+            FrequencyField::TrackTitle => {
+                let mut target = aux_tracks_overview::table
+                    .select((
+                        // Column track_title is NOT NULL!
+                        // Doesn't work: aux_tracks_overview::track_title.nullable(),
+                        sql::<diesel::sql_types::Nullable<diesel::sql_types::Text>>("track_title"),
+                        sql::<diesel::sql_types::BigInt>("count(*) AS count"),
+                    ))
+                    .group_by(aux_tracks_overview::track_title)
+                    .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
+                    .then_order_by(aux_tracks_overview::track_title)
+                    .into_boxed();
+                if let Some(track_id_subselect) = track_id_subselect {
+                    target = target.filter(aux_tracks_overview::track_id.eq_any(track_id_subselect));
+                }
+                target.load::<(Option<String>, i64)>(self.connection)?
+            }
+            FrequencyField::AlbumTitle => {
+                let mut target = aux_tracks_overview::table
+                    .select((
+                        aux_tracks_overview::album_title,
+                        sql::<diesel::sql_types::BigInt>("count(*) AS count"),
+                    ))
+                    .filter(aux_tracks_overview::album_title.is_not_null())
+                    .group_by(aux_tracks_overview::album_title)
+                    .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
+                    .then_order_by(aux_tracks_overview::album_title)
+                    .into_boxed();
+                if let Some(track_id_subselect) = track_id_subselect {
+                    target = target.filter(aux_tracks_overview::track_id.eq_any(track_id_subselect));
+                }
+                target.load::<(Option<String>, i64)>(self.connection)?
+            }
+            FrequencyField::TrackArtist => {
+                let mut target = aux_tracks_summary::table
+                    .select((
+                        aux_tracks_summary::track_artist,
+                        sql::<diesel::sql_types::BigInt>("count(*) AS count"),
+                    ))
+                    .filter(aux_tracks_summary::track_artist.is_not_null())
+                    .group_by(aux_tracks_summary::track_artist)
+                    .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
+                    .then_order_by(aux_tracks_summary::track_artist)
+                    .into_boxed();
+                if let Some(track_id_subselect) = track_id_subselect {
+                    target = target.filter(aux_tracks_summary::track_id.eq_any(track_id_subselect));
+                }
+                target.load::<(Option<String>, i64)>(self.connection)?
+            }
+            FrequencyField::AlbumArtist => {
+                let mut target = aux_tracks_summary::table
+                    .select((
+                        aux_tracks_summary::album_artist,
+                        sql::<diesel::sql_types::BigInt>("count(*) AS count"),
+                    ))
+                    .filter(aux_tracks_summary::album_artist.is_not_null())
+                    .group_by(aux_tracks_summary::album_artist)
+                    .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
+                    .then_order_by(aux_tracks_summary::album_artist)
+                    .into_boxed();
+                if let Some(track_id_subselect) = track_id_subselect {
+                    target = target.filter(aux_tracks_summary::track_id.eq_any(track_id_subselect));
+                }
+                target.load::<(Option<String>, i64)>(self.connection)?
+            }
+        };
+        let mut frequencies = Vec::with_capacity(rows.len());
+        for row in rows.into_iter() {
+            let value = row.0;
+            debug_assert!(row.1 > 0);
+            let count = row.1 as usize;
+            frequencies.push(StringFrequency { value, count });
+        }
+        Ok(StringFrequencyResult { field, frequencies })
     }
 }
 

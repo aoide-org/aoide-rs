@@ -63,7 +63,8 @@ use aoide::middleware::DieselMiddleware;
 use aoide::storage::collections::*;
 use aoide::storage::serde::*;
 use aoide::storage::tracks::*;
-use aoide::usecases::request::{LocateParams, ReplaceParams, SearchParams};
+use aoide::usecases::request::{FrequencyField, LocateParams, ReplaceParams, SearchParams,
+                               StringFrequencyResult};
 use aoide::usecases::result::*;
 use aoide::usecases::*;
 use aoide_core::domain::collection::*;
@@ -1106,6 +1107,84 @@ fn handle_get_collections_path_uid_tracks_query_pagination(mut state: State) -> 
 }
 
 #[derive(Debug, Deserialize, StateData, StaticResponseExtender)]
+struct FrequencyFieldQueryStringExtractor {
+    field: Option<String>,
+}
+
+impl FrequencyFieldQueryStringExtractor {
+    pub fn fields<'a>(&'a self) -> Vec<FrequencyField> {
+        if let Some(ref field_list) = self.field {
+            let result: Vec<FrequencyField> = field_list
+                .split(',')
+                .map(|field_str| serde_json::from_str(&format!("\"{}\"", field_str)))
+                .filter_map(|from_str| from_str.ok())
+                .collect();
+            debug_assert!(result.len() <= field_list.split(',').count());
+            let unrecognized_field_count = field_list.split(',').count() - result.len();
+            if unrecognized_field_count > 0 {
+                warn!(
+                    "{} unrecognized field(s) in '{}'",
+                    unrecognized_field_count, field_list
+                );
+            }
+            result
+        } else {
+            Vec::new()
+        }
+    }
+}
+
+fn all_field_frequencies(
+    pooled_connection: SqlitePooledConnection,
+    collection_uid: Option<&EntityUid>,
+    fields: Vec<FrequencyField>,
+) -> TracksResult<Vec<StringFrequencyResult>> {
+    let mut results: Vec<StringFrequencyResult> = Vec::with_capacity(fields.len());
+
+    let connection = &*pooled_connection;
+    let repository = TrackRepository::new(connection);
+    for field in fields.into_iter() {
+        let result = repository.all_field_frequencies(collection_uid, field)?;
+        results.push(result);
+    }
+
+    Ok(results)
+}
+
+fn handle_get_collections_path_uid_frequencies_query_field(mut state: State) -> Box<HandlerFuture> {
+    let collection_uid = UidPathExtractor::try_parse_from(&mut state);
+    let query_params = FrequencyFieldQueryStringExtractor::take_from(&mut state);
+
+    let pooled_connection = match middleware::state_data::try_connection(&state) {
+        Ok(pooled_connection) => pooled_connection,
+        Err(e) => {
+            error!("No database connection: {:?}", &e);
+            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
+            return Box::new(future::ok((state, response)));
+        }
+    };
+
+    let response = match all_field_frequencies(
+        pooled_connection,
+        collection_uid.as_ref(),
+        query_params.fields(),
+    ) {
+        Ok(results) => match serde_json::to_vec(&results) {
+            Ok(json) => {
+                create_response(&state, StatusCode::Ok, Some((json, mime::APPLICATION_JSON)))
+            }
+            Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
+        },
+        Err(e) => {
+            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
+            return Box::new(future::ok((state, response)));
+        }
+    };
+
+    Box::new(future::ok((state, response)))
+}
+
+#[derive(Debug, Deserialize, StateData, StaticResponseExtender)]
 struct TagFacetPaginationQueryStringExtractor {
     facet: Option<String>,
     offset: Option<PaginationOffset>,
@@ -1114,7 +1193,9 @@ struct TagFacetPaginationQueryStringExtractor {
 
 impl TagFacetPaginationQueryStringExtractor {
     pub fn facets<'a>(&'a self) -> Option<Vec<&'a str>> {
-        self.facet.as_ref().map(|facet| facet.split(',').collect())
+        self.facet
+            .as_ref()
+            .map(|facet_list| facet_list.split(',').collect())
     }
 
     pub fn pagination(&self) -> Pagination {
@@ -1287,6 +1368,11 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
             .with_path_extractor::<UidPathExtractor>()
             .with_query_string_extractor::<PaginationQueryStringExtractor>()
             .to(handle_post_collections_path_uid_tracks_search_query_pagination);
+        route // all tag facets in collection
+            .get("/collections/:uid/frequencies")
+            .with_path_extractor::<UidPathExtractor>()
+            .with_query_string_extractor::<FrequencyFieldQueryStringExtractor>()
+            .to(handle_get_collections_path_uid_frequencies_query_field);
         route // all tag facets in collection
             .get("/collections/:uid/tags/facets")
             .with_path_extractor::<UidPathExtractor>()

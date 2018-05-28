@@ -17,7 +17,7 @@ use aoide_core::domain::metadata::Score;
 use aoide_core::domain::track::TrackBody;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "lowercase")]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum SortDirection {
     Asc,
     Desc,
@@ -32,7 +32,7 @@ pub struct SortField {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "lowercase")]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum FilterModifier {
     Inverse,
 }
@@ -131,7 +131,7 @@ impl TagFilter {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "lowercase")]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum PhraseFilterField {
     Source, // percent-decoded URI
     Grouping,
@@ -171,6 +171,30 @@ pub struct SearchParams {
     // TODO: Implement sorting
     //#[serde(skip_serializing_if = "Vec::is_empty", default)]
     //pub sort_fields: Vec<SortField>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub enum FrequencyField {
+    Grouping,
+    TrackTitle,
+    AlbumTitle,
+    TrackArtist,
+    AlbumArtist,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct StringFrequency {
+    pub value: Option<String>,
+    pub count: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct StringFrequencyResult {
+    pub field: FrequencyField,
+    pub frequencies: Vec<StringFrequency>,
 }
 
 ///////////////////////////////////////////////////////////////////////
