@@ -16,6 +16,9 @@
 pub mod sample;
 pub mod signal;
 
+#[cfg(test)]
+mod tests;
+
 use std::u16;
 use std::fmt;
 
@@ -134,56 +137,5 @@ impl Channels {
                 Some(layout) => layout.channel_count() == self.count,
             }
         }
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-/// Tests
-///////////////////////////////////////////////////////////////////////
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn channel_layout_channel_count() {
-        assert_eq!(ChannelLayout::Mono.channel_count(), 1);
-        assert_eq!(ChannelLayout::DualMono.channel_count(), 2);
-        assert_eq!(ChannelLayout::Stereo.channel_count(), 2);
-    }
-
-    #[test]
-    fn channels_default() {
-        assert_eq!(0, Channels::default().count);
-    }
-
-    #[test]
-    fn channels_is_valid() {
-        assert!(!Channels::default().is_valid());
-        assert!(Channels::layout(ChannelLayout::Mono).is_valid());
-        assert!(Channels::layout(ChannelLayout::DualMono).is_valid());
-        assert!(Channels::layout(ChannelLayout::Stereo).is_valid());
-        assert!(Channels::count(Channels::COUNT_MIN).is_valid());
-        assert!(Channels::count(Channels::COUNT_MAX).is_valid());
-        assert!(!Channels {
-            count: 1,
-            layout: Some(ChannelLayout::DualMono),
-        }.is_valid());
-        assert!(!Channels {
-            count: 2,
-            layout: Some(ChannelLayout::Mono),
-        }.is_valid());
-        assert!(!Channels {
-            count: 3,
-            layout: Some(ChannelLayout::Stereo),
-        }.is_valid());
-    }
-
-    #[test]
-    fn channel_count_default_layout() {
-        assert_eq!(None, Channels::default_layout(0));
-        assert_eq!(Some(ChannelLayout::Mono), Channels::default_layout(1));
-        assert_eq!(Some(ChannelLayout::Stereo), Channels::default_layout(2));
-        assert_eq!(None, Channels::default_layout(3));
     }
 }

@@ -13,6 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#[cfg(test)]
+mod tests;
+
 use std::u32;
 use std::fmt;
 use std::ops::Deref;
@@ -180,37 +183,5 @@ impl SampleRate {
 impl fmt::Display for SampleRate {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{} {}", self.hz, SampleRate::UNIT_OF_MEASURE)
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-/// Tests
-///////////////////////////////////////////////////////////////////////
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn sample_rate_default() {
-        assert_eq!(SampleRate::default().hz, 0);
-    }
-
-    #[test]
-    fn sample_rate_is_valid() {
-        assert!(!SampleRate::default().is_valid());
-        assert!(SampleRate::MAX.is_valid());
-        assert!(SampleRate::COMPACT_DISC.is_valid());
-        assert!(SampleRate::STUDIO_48KHZ.is_valid());
-        assert!(SampleRate::STUDIO_96KHZ.is_valid());
-        assert!(SampleRate::STUDIO_192KHZ.is_valid());
-    }
-
-    #[test]
-    fn sample_rate_to_string() {
-        assert_eq!("44100 Hz", SampleRate::COMPACT_DISC.to_string());
-        assert_eq!("48000 Hz", SampleRate::STUDIO_48KHZ.to_string());
-        assert_eq!("96000 Hz", SampleRate::STUDIO_96KHZ.to_string());
-        assert_eq!("192000 Hz", SampleRate::STUDIO_192KHZ.to_string());
     }
 }

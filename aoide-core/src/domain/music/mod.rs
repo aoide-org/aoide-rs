@@ -15,6 +15,9 @@
 
 pub mod sonic;
 
+#[cfg(test)]
+mod tests;
+
 use domain::metadata::Score;
 
 ///////////////////////////////////////////////////////////////////////
@@ -263,71 +266,5 @@ impl Classification {
 
     pub fn is_valid(&self) -> bool {
         self.score.is_valid()
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-/// Tests
-///////////////////////////////////////////////////////////////////////
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn actors() {
-        let summary_artist_name = "Madonna feat. M.I.A. and Nicki Minaj";
-        let primary_producer_name = "Martin Solveig";
-        let actors = vec![
-            Actor {
-                name: summary_artist_name.into(),
-                role: ActorRole::Artist,
-                priority: ActorPriority::Summary,
-                ..Default::default()
-            },
-            Actor {
-                name: "Madonna".into(),
-                role: ActorRole::Artist,
-                priority: ActorPriority::Primary,
-                ..Default::default()
-            },
-            Actor {
-                name: "M.I.A.".into(),
-                role: ActorRole::Artist,
-                priority: ActorPriority::Secondary,
-                ..Default::default()
-            },
-            Actor {
-                name: primary_producer_name.into(),
-                role: ActorRole::Producer,
-                priority: ActorPriority::Primary,
-                ..Default::default()
-            },
-            Actor {
-                name: "Nicki Minaj".into(),
-                role: ActorRole::Artist,
-                priority: ActorPriority::Secondary,
-                ..Default::default()
-            },
-        ];
-        assert!(Actors::is_valid(&actors));
-        assert_eq!(
-            summary_artist_name,
-            Actors::summary_actor(&actors, ActorRole::Artist).unwrap().name
-        );
-        assert_eq!(
-            summary_artist_name,
-            Actors::main_actor(&actors, ActorRole::Artist).unwrap().name
-        );
-        assert_eq!(
-            None,
-            Actors::summary_actor(&actors, ActorRole::Producer)
-        );
-        assert_eq!(
-            primary_producer_name,
-            Actors::main_actor(&actors, ActorRole::Producer).unwrap().name
-        );
-        assert_eq!(None, Actors::summary_actor(&actors, ActorRole::Conductor));
-        assert_eq!(None, Actors::main_actor(&actors, ActorRole::Conductor));
     }
 }
