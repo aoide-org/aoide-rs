@@ -13,23 +13,57 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#[cfg(test)]
+mod tests;
+
 use aoide_core::audio;
 use aoide_core::domain::metadata::Score;
 use aoide_core::domain::track::TrackBody;
 
+pub type PaginationOffset = u64;
+
+pub type PaginationLimit = u64;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct Pagination {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub offset: Option<PaginationOffset>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<PaginationLimit>,
+}
+
+impl Pagination {
+    pub fn none() -> Self {
+        Pagination {
+            offset: None,
+            limit: None,
+        }
+    }
+
+    pub fn is_none(&self) -> bool {
+        self == &Self::none()
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum SortDirection {
-    Asc,
-    Desc,
+    #[serde(rename = "asc")]
+    Ascending,
+
+    #[serde(rename = "desc")]
+    Descending,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SortField {
-    pub dir: SortDirection,
-
     pub field: String,
+
+    #[serde(rename = "dir")]
+    pub direction: SortDirection,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -71,31 +105,6 @@ pub enum ScoreFilter {
     LessThan(ScoreFilterParams),
     GreaterThan(ScoreFilterParams),
     EqualTo(ScoreFilterParams),
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct LocateParams {
-    #[serde(rename = "uri")]
-    pub uri_filter: StringFilter,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub enum ReplaceMode {
-    UpdateOnly,
-    UpdateOrCreate,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct ReplaceParams {
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub uri: String,
-
-    pub mode: ReplaceMode,
-
-    pub body: TrackBody,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -146,27 +155,52 @@ pub enum PhraseFilterField {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PhraseFilter {
     // Tokenized by whitespace, concatenized with wildcards,
-    // and filtered using "contains" semantics with selected
-    // (or all) fields
-    pub phrase: String,
+    // and filtered using "contains" semantics against any
+    // of the selected (or all) fields
+    pub query: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modifier: Option<FilterModifier>,
 
     // Empty == All
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub fields: Vec<PhraseFilterField>,
+}
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub modifier: Option<FilterModifier>,
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct LocateParams {
+    #[serde(rename = "uri")]
+    pub uri_filter: StringFilter,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub enum ReplaceMode {
+    UpdateOnly,
+    UpdateOrCreate,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct ReplaceParams {
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub uri: String,
+
+    pub mode: ReplaceMode,
+
+    pub body: TrackBody,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SearchParams {
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "phrase", skip_serializing_if = "Option::is_none")]
     pub phrase_filter: Option<PhraseFilter>,
 
     // 1st level: Conjunction
     // 2nd level: Disjunction
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(rename = "tags", skip_serializing_if = "Vec::is_empty", default)]
     pub tag_filters: Vec<Vec<TagFilter>>,
     // TODO: Implement sorting
     //#[serde(skip_serializing_if = "Vec::is_empty", default)]
@@ -175,7 +209,7 @@ pub struct SearchParams {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub enum FrequencyField {
+pub enum CountableStringField {
     TrackTitle,
     AlbumTitle,
     TrackArtist,
@@ -184,16 +218,16 @@ pub enum FrequencyField {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct StringFrequency {
+pub struct StringCount {
     pub value: Option<String>,
     pub count: usize,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct StringFrequencyResult {
-    pub field: FrequencyField,
-    pub frequencies: Vec<StringFrequency>,
+pub struct StringFieldCounts {
+    pub field: CountableStringField,
+    pub counts: Vec<StringCount>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -209,21 +243,4 @@ pub struct ResourceStats {
     pub count: usize,
     pub duration: audio::Duration,
     pub content_types: Vec<ContentTypeStats>,
-}
-
-///////////////////////////////////////////////////////////////////////
-/// Tests
-///////////////////////////////////////////////////////////////////////
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn default_tag_filter() {
-        assert_eq!(TagFilter::any_facet(), TagFilter::default().facet);
-        assert_ne!(TagFilter::no_facet(), TagFilter::default().facet);
-        assert_eq!(TagFilter::any_term(), TagFilter::default().term_filter);
-        assert_eq!(TagFilter::any_score(), TagFilter::default().score_filter);
-    }
 }

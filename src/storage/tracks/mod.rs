@@ -37,11 +37,10 @@ use super::serde::{deserialize_with_format, serialize_with_format, Serialization
 
 use super::*;
 
-use usecases::request::{FilterModifier, FrequencyField, LocateParams, PhraseFilterField,
+use usecases::api::{Pagination, FilterModifier, CountableStringField, LocateParams, PhraseFilterField,
                         ReplaceMode, ReplaceParams, ScoreFilter, SearchParams, StringFilter,
-                        StringFilterParams, StringFrequency, StringFrequencyResult, TagFilter,
+                        StringFilterParams, StringCount, StringFieldCounts, TagFilter,
                         ResourceStats, ContentTypeStats};
-use usecases::result::Pagination;
 use usecases::{Collections, TrackEntityReplacement, TrackTags, TrackTagsResult, Tracks,
                TracksResult};
 
@@ -821,7 +820,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         // Escape wildcard character with backslash (see below)
         let escaped_tokens = search_params.phrase_filter.as_ref().map(|phrase_filter| {
             phrase_filter
-                .phrase
+                .query
                 .replace('\\', "\\\\")
                 .replace('%', "\\%")
         });
@@ -1093,18 +1092,18 @@ impl<'a> Tracks for TrackRepository<'a> {
         Ok(results.into_iter().map(|r| r.into()).collect())
     }
 
-    fn field_frequencies(
+    fn field_counts(
         &self,
         collection_uid: Option<&EntityUid>,
-        field: FrequencyField,
-    ) -> TracksResult<StringFrequencyResult> {
+        field: CountableStringField,
+    ) -> TracksResult<StringFieldCounts> {
         let track_id_subselect = collection_uid.map(|collection_uid| {
             aux_tracks_resource::table
                 .select(aux_tracks_resource::track_id)
                 .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()))
         });
         let rows = match field {
-            FrequencyField::TrackTitle => {
+            CountableStringField::TrackTitle => {
                 let mut target = aux_tracks_overview::table
                     .select((
                         aux_tracks_overview::track_title,
@@ -1121,7 +1120,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                 }
                 target.load::<(Option<String>, i64)>(self.connection)?
             }
-            FrequencyField::AlbumTitle => {
+            CountableStringField::AlbumTitle => {
                 let mut target = aux_tracks_overview::table
                     .select((
                         aux_tracks_overview::album_title,
@@ -1138,7 +1137,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                 }
                 target.load::<(Option<String>, i64)>(self.connection)?
             }
-            FrequencyField::TrackArtist => {
+            CountableStringField::TrackArtist => {
                 let mut target = aux_tracks_summary::table
                     .select((
                         aux_tracks_summary::track_artist,
@@ -1154,7 +1153,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                 }
                 target.load::<(Option<String>, i64)>(self.connection)?
             }
-            FrequencyField::AlbumArtist => {
+            CountableStringField::AlbumArtist => {
                 let mut target = aux_tracks_summary::table
                     .select((
                         aux_tracks_summary::album_artist,
@@ -1171,14 +1170,14 @@ impl<'a> Tracks for TrackRepository<'a> {
                 target.load::<(Option<String>, i64)>(self.connection)?
             }
         };
-        let mut frequencies = Vec::with_capacity(rows.len());
+        let mut counts = Vec::with_capacity(rows.len());
         for row in rows.into_iter() {
             let value = row.0;
             debug_assert!(row.1 > 0);
             let count = row.1 as usize;
-            frequencies.push(StringFrequency { value, count });
+            counts.push(StringCount { value, count });
         }
-        Ok(StringFrequencyResult { field, frequencies })
+        Ok(StringFieldCounts { field, counts })
     }
 
     fn resource_statistics(&self, collection_uid: Option<&EntityUid>) -> TracksResult<ResourceStats> {

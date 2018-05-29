@@ -13,14 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod request;
-
-pub mod result;
+pub mod api;
 
 use failure;
 
-use self::request::{LocateParams, ReplaceParams, SearchParams, FrequencyField, StringFrequencyResult, ResourceStats};
-use self::result::Pagination;
+use self::api::{Pagination, LocateParams, ReplaceParams, SearchParams, CountableStringField, StringFieldCounts, ResourceStats};
 
 use storage::serde::{SerializationFormat, SerializedEntity};
 
@@ -116,11 +113,11 @@ pub trait Tracks {
         search_params: SearchParams,
     ) -> TracksResult<Vec<SerializedEntity>>;
 
-    fn field_frequencies(
+    fn field_counts(
         &self,
         collection_uid: Option<&EntityUid>,
-        field: FrequencyField,
-    ) -> TracksResult<StringFrequencyResult>;
+        field: CountableStringField,
+    ) -> TracksResult<StringFieldCounts>;
 
     fn resource_statistics(
         &self,

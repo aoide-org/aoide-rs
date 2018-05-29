@@ -63,9 +63,8 @@ use aoide::middleware::DieselMiddleware;
 use aoide::storage::collections::*;
 use aoide::storage::serde::*;
 use aoide::storage::tracks::*;
-use aoide::usecases::request::{FrequencyField, LocateParams, ReplaceParams, ResourceStats,
-                               SearchParams, StringFrequencyResult};
-use aoide::usecases::result::*;
+use aoide::usecases::api::{Pagination, PaginationLimit, PaginationOffset, CountableStringField, LocateParams, ReplaceParams, ResourceStats,
+                               SearchParams, StringFieldCounts};
 use aoide::usecases::*;
 use aoide_core::domain::collection::*;
 use aoide_core::domain::entity::*;
@@ -1144,14 +1143,14 @@ fn handle_get_collections_path_resources_stats(mut state: State) -> Box<HandlerF
 }
 
 #[derive(Debug, Deserialize, StateData, StaticResponseExtender)]
-struct FrequencyFieldQueryStringExtractor {
+struct CountableStringFieldQueryStringExtractor {
     field: Option<String>,
 }
 
-impl FrequencyFieldQueryStringExtractor {
-    pub fn fields<'a>(&'a self) -> Vec<FrequencyField> {
+impl CountableStringFieldQueryStringExtractor {
+    pub fn fields<'a>(&'a self) -> Vec<CountableStringField> {
         if let Some(ref field_list) = self.field {
-            let mut result: Vec<FrequencyField> = field_list
+            let mut result: Vec<CountableStringField> = field_list
                 .split(',')
                 .map(|field_str| serde_json::from_str(&format!("\"{}\"", field_str)))
                 .filter_map(|from_str| from_str.ok())
@@ -1174,37 +1173,37 @@ impl FrequencyFieldQueryStringExtractor {
             // for testing. It is recommended to specify all required
             // fields explicitly.
             vec![
-                FrequencyField::AlbumArtist,
-                FrequencyField::AlbumTitle,
-                FrequencyField::TrackArtist,
-                FrequencyField::TrackTitle,
+                CountableStringField::AlbumArtist,
+                CountableStringField::AlbumTitle,
+                CountableStringField::TrackArtist,
+                CountableStringField::TrackTitle,
             ]
         }
     }
 }
 
-fn all_field_frequencies(
+fn all_field_counts(
     pooled_connection: SqlitePooledConnection,
     collection_uid: Option<&EntityUid>,
-    fields: Vec<FrequencyField>,
-) -> TracksResult<Vec<StringFrequencyResult>> {
-    let mut results: Vec<StringFrequencyResult> = Vec::with_capacity(fields.len());
+    fields: Vec<CountableStringField>,
+) -> TracksResult<Vec<StringFieldCounts>> {
+    let mut results: Vec<StringFieldCounts> = Vec::with_capacity(fields.len());
 
     let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
     for field in fields.into_iter() {
-        let result = repository.field_frequencies(collection_uid, field)?;
+        let result = repository.field_counts(collection_uid, field)?;
         results.push(result);
     }
 
     Ok(results)
 }
 
-fn handle_get_collections_path_uid_fields_freqs_query_field(
+fn handle_get_collections_path_uid_fields_counts_query_field(
     mut state: State,
 ) -> Box<HandlerFuture> {
     let collection_uid = UidPathExtractor::try_parse_from(&mut state);
-    let query_params = FrequencyFieldQueryStringExtractor::take_from(&mut state);
+    let query_params = CountableStringFieldQueryStringExtractor::take_from(&mut state);
 
     let pooled_connection = match middleware::state_data::try_connection(&state) {
         Ok(pooled_connection) => pooled_connection,
@@ -1215,7 +1214,7 @@ fn handle_get_collections_path_uid_fields_freqs_query_field(
         }
     };
 
-    let response = match all_field_frequencies(
+    let response = match all_field_counts(
         pooled_connection,
         collection_uid.as_ref(),
         query_params.fields(),
@@ -1431,11 +1430,11 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
             .get("/collections/:uid/resources/stats")
             .with_path_extractor::<UidPathExtractor>()
             .to(handle_get_collections_path_resources_stats);
-        route // selected field frequencies in collection
-            .get("/collections/:uid/fields/freqs")
+        route // selected (string) field counts in collection
+            .get("/collections/:uid/fields/counts")
             .with_path_extractor::<UidPathExtractor>()
-            .with_query_string_extractor::<FrequencyFieldQueryStringExtractor>()
-            .to(handle_get_collections_path_uid_fields_freqs_query_field);
+            .with_query_string_extractor::<CountableStringFieldQueryStringExtractor>()
+            .to(handle_get_collections_path_uid_fields_counts_query_field);
         route // all tag facets in collection
             .get("/collections/:uid/tags/facets")
             .with_path_extractor::<UidPathExtractor>()

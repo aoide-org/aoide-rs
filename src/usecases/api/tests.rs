@@ -13,29 +13,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub type PaginationOffset = u64;
+use super::*;
 
-pub type PaginationLimit = u64;
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Pagination {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub offset: Option<PaginationOffset>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub limit: Option<PaginationLimit>,
-}
-
-impl Pagination {
-    pub fn none() -> Self {
-        Pagination {
-            offset: None,
-            limit: None,
-        }
-    }
-
-    pub fn is_none(&self) -> bool {
-        self == &Self::none()
-    }
+#[test]
+fn default_tag_filter() {
+    assert_eq!(TagFilter::any_facet(), TagFilter::default().facet);
+    assert_ne!(TagFilter::no_facet(), TagFilter::default().facet);
+    assert_eq!(TagFilter::any_term(), TagFilter::default().term_filter);
+    assert_eq!(TagFilter::any_score(), TagFilter::default().score_filter);
 }
