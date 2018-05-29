@@ -58,18 +58,14 @@ extern crate serde_derive;
 
 extern crate serde_json;
 
-use aoide::middleware;
-use aoide::middleware::DieselMiddleware;
-use aoide::storage::collections::*;
-use aoide::storage::serde::*;
-use aoide::storage::tracks::*;
-use aoide::usecases::api::{Pagination, PaginationLimit, PaginationOffset, CountableStringField, LocateParams, ReplaceParams, ResourceStats,
-                               SearchParams, StringFieldCounts};
-use aoide::usecases::*;
-use aoide_core::domain::collection::*;
-use aoide_core::domain::entity::*;
-use aoide_core::domain::metadata::*;
-use aoide_core::domain::track::*;
+use aoide::{middleware, middleware::DieselMiddleware,
+            storage::{collections::*, serde::*, tracks::*},
+            usecases::{*,
+                       api::{CountableStringField, LocateParams, Pagination, PaginationLimit,
+                             PaginationOffset, ReplaceParams, ResourceStats, SearchParams,
+                             StringFieldCounts}}};
+
+use aoide_core::domain::{collection::*, entity::*, metadata::*, track::*};
 
 use clap::{App, Arg};
 

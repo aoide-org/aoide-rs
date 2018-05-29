@@ -29,13 +29,11 @@ use std::i64;
 use diesel::prelude::*;
 use diesel;
 
-use aoide_core::domain::entity::EntityUid;
-use aoide_core::domain::collection::*;
+use aoide_core::domain::{entity::EntityUid, collection::*};
 
 use storage::*;
 
-use usecases::*;
-use usecases::api::Pagination;
+use usecases::{*, api::Pagination};
 
 ///////////////////////////////////////////////////////////////////////
 /// CollectionRepository

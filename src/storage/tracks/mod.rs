@@ -15,14 +15,18 @@
 
 mod models;
 
-use self::models::*;
-
 mod schema;
+
+use self::models::*;
 
 use self::schema::*;
 
-use super::collections::CollectionRepository;
-use super::collections::schema::collections_entity;
+use super::*;
+
+use super::serde::{deserialize_with_format, serialize_with_format, SerializationFormat,
+                   SerializedEntity};
+
+use super::collections::{CollectionRepository, schema::collections_entity};
 
 use diesel;
 use diesel::dsl::*;
@@ -32,22 +36,14 @@ use failure;
 
 use std::i64;
 
-use super::serde::{deserialize_with_format, serialize_with_format, SerializationFormat,
-                   SerializedEntity};
-
-use super::*;
-
-use usecases::api::{Pagination, FilterModifier, CountableStringField, LocateParams, PhraseFilterField,
-                        ReplaceMode, ReplaceParams, ScoreFilter, SearchParams, StringFilter,
-                        StringFilterParams, StringCount, StringFieldCounts, TagFilter,
-                        ResourceStats, ContentTypeStats};
 use usecases::{Collections, TrackEntityReplacement, TrackTags, TrackTagsResult, Tracks,
-               TracksResult};
+               TracksResult,
+               api::{ContentTypeStats, CountableStringField, FilterModifier, LocateParams,
+                     Pagination, PhraseFilterField, ReplaceMode, ReplaceParams, ResourceStats,
+                     ScoreFilter, SearchParams, StringCount, StringFieldCounts, StringFilter,
+                     StringFilterParams, TagFilter}};
 
-use aoide_core::audio::*;
-use aoide_core::domain::collection::*;
-use aoide_core::domain::metadata::*;
-use aoide_core::domain::track::*;
+use aoide_core::{audio::*, domain::{collection::*, metadata::*, track::*}};
 
 ///////////////////////////////////////////////////////////////////////
 /// TrackRepository
@@ -1180,7 +1176,10 @@ impl<'a> Tracks for TrackRepository<'a> {
         Ok(StringFieldCounts { field, counts })
     }
 
-    fn resource_statistics(&self, collection_uid: Option<&EntityUid>) -> TracksResult<ResourceStats> {
+    fn resource_statistics(
+        &self,
+        collection_uid: Option<&EntityUid>,
+    ) -> TracksResult<ResourceStats> {
         let total_count = {
             let mut target = aux_tracks_resource::table
                 .select(diesel::dsl::count_star())
@@ -1210,7 +1209,10 @@ impl<'a> Tracks for TrackRepository<'a> {
 
         let content_types = {
             let mut target = aux_tracks_resource::table
-                .select((aux_tracks_resource::content_type, sql::<diesel::sql_types::BigInt>("count(*) AS count")))
+                .select((
+                    aux_tracks_resource::content_type,
+                    sql::<diesel::sql_types::BigInt>("count(*) AS count"),
+                ))
                 .group_by(aux_tracks_resource::content_type)
                 .into_boxed();
             // Collection filtering
@@ -1232,7 +1234,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         Ok(ResourceStats {
             count: total_count,
             duration: total_duration,
-            content_types
+            content_types,
         })
     }
 }
