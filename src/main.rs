@@ -118,28 +118,26 @@ fn create_connection_pool(url: &str, max_size: u32) -> Result<SqliteConnectionPo
 
 fn migrate_database_schema(connection_pool: &SqliteConnectionPool) -> Result<(), Error> {
     info!("Migrating database schema");
-    let pooled_connection = connection_pool.get()?;
-    embedded_migrations::run(&*pooled_connection)?;
+    let connection = &*connection_pool.get()?;
+    embedded_migrations::run(connection)?;
     Ok(())
 }
 
 fn cleanup_database_storage(connection_pool: &SqliteConnectionPool) -> Result<(), Error> {
     info!("Cleaning up database storage");
-    let pooled_connection = connection_pool.get()?;
-    let connection = &*pooled_connection;
+    let connection = &*connection_pool.get()?;
     let repository = TrackRepository::new(connection);
     connection.transaction::<_, Error, _>(|| repository.cleanup_aux_storage())
 }
 
 fn repair_database_storage(connection_pool: &SqliteConnectionPool) -> Result<(), Error> {
     info!("Repairing database storage");
-    let pooled_connection = connection_pool.get()?;
-    let connection = &*pooled_connection;
-    let repository = TrackRepository::new(connection);
     let collection_prototype = CollectionBody {
         name: "Missing Collection".into(),
         description: Some("Recreated by aoide".into()),
     };
+    let connection = &*connection_pool.get()?;
+    let repository = TrackRepository::new(connection);
     connection.transaction::<_, Error, _>(|| {
         repository.recreate_missing_collections(&collection_prototype)
     })?;
