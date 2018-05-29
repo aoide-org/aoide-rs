@@ -68,12 +68,18 @@ CREATE TABLE aux_tracks_resource (
 CREATE TABLE aux_tracks_overview (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
-    track_title              TEXT NOT NULL,
-    track_number             INTEGER, -- > 0
-    track_total              INTEGER, -- > 0
-    disc_number              INTEGER, -- > 0
-    disc_total               INTEGER, -- > 0
+    track_title              TEXT,
+    track_subtitle           TEXT,
+    track_work               TEXT,
+    track_movement           TEXT,
+    track_index              INTEGER, -- > 0
+    track_count              INTEGER, -- > 0
+    disc_index               INTEGER, -- > 0
+    disc_count               INTEGER, -- > 0
+    movement_index           INTEGER, -- > 0
+    movement_count           INTEGER, -- > 0
     album_title              TEXT,
+    album_subtitle           TEXT,
     album_compilation        TINYINT, -- {0, 1}
     released_at              DATE, -- naive date, i.e. without any time zone
     released_by              TEXT, -- record label

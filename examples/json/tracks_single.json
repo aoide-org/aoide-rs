@@ -73,12 +73,12 @@
                 "compilation": false
             },
             "trackNumbers": {
-                "this": 5,
-                "total": 18
+                "index": 5,
+                "count": 18
             },
             "discNumbers": {
-                "this": 1,
-                "total": 1
+                "index": 1,
+                "count": 1
             },
             "titles": [
                 {

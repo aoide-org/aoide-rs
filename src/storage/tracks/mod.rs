@@ -1100,11 +1100,10 @@ impl<'a> Tracks for TrackRepository<'a> {
             FrequencyField::TrackTitle => {
                 let mut target = aux_tracks_overview::table
                     .select((
-                        // Column track_title is NOT NULL!
-                        // Doesn't work: aux_tracks_overview::track_title.nullable(),
-                        sql::<diesel::sql_types::Nullable<diesel::sql_types::Text>>("track_title"),
+                        aux_tracks_overview::track_title,
                         sql::<diesel::sql_types::BigInt>("count(*) AS count"),
                     ))
+                    .filter(aux_tracks_overview::track_title.is_not_null())
                     .group_by(aux_tracks_overview::track_title)
                     .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
                     .then_order_by(aux_tracks_overview::track_title)

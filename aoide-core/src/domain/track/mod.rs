@@ -267,81 +267,41 @@ impl AlbumMetadata {
 }
 
 ///////////////////////////////////////////////////////////////////////
-/// TrackNumbers
+/// IndexCount
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct TrackNumbers {
+pub struct IndexCount {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub this: Option<u32>,
+    pub index: Option<u32>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub total: Option<u32>,
+    pub count: Option<u32>,
 }
 
-impl TrackNumbers {
+impl IndexCount {
     pub fn is_empty(&self) -> bool {
-        self.this.is_none() && self.total.is_none()
+        self.index.is_none() && self.count.is_none()
     }
 
     pub fn is_valid(&self) -> bool {
-        match (self.this, self.total) {
+        match (self.index, self.count) {
             (None, None) => true,
-            (Some(this), None) => this > 0,
-            (None, Some(total)) => total > 0,
-            (Some(this), Some(total)) => this > 0 && this <= total,
+            (Some(index), None) => index > 0,
+            (None, Some(count)) => count > 0,
+            (Some(index), Some(count)) => index > 0 && index <= count,
         }
     }
 }
 
-impl fmt::Display for TrackNumbers {
+impl fmt::Display for IndexCount {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match (self.this, self.total) {
+        match (self.index, self.count) {
             (None, None) => write!(f, ""),
-            (Some(this), None) => write!(f, "{}", this),
-            (None, Some(total)) => write!(f, "/{}", total),
-            (Some(this), Some(total)) => write!(f, "{}/{}", this, total),
-        }
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-/// DiscNumbers
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct DiscNumbers {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub this: Option<u32>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub total: Option<u32>,
-}
-
-impl DiscNumbers {
-    pub fn is_empty(&self) -> bool {
-        self.this.is_none() && self.total.is_none()
-    }
-
-    pub fn is_valid(&self) -> bool {
-        match (self.this, self.total) {
-            (None, None) => true,
-            (Some(this), None) => this > 0,
-            (None, Some(total)) => total > 0,
-            (Some(this), Some(total)) => this > 0 && this <= total,
-        }
-    }
-}
-
-impl fmt::Display for DiscNumbers {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match (self.this, self.total) {
-            (None, None) => write!(f, ""),
-            (Some(this), None) => write!(f, "{}", this),
-            (None, Some(total)) => write!(f, "/{}", total),
-            (Some(this), Some(total)) => write!(f, "{}/{}", this, total),
+            (Some(index), None) => write!(f, "{}", index),
+            (None, Some(count)) => write!(f, "/{}", count),
+            (Some(index), Some(count)) => write!(f, "{}/{}", index, count),
         }
     }
 }
@@ -581,11 +541,14 @@ pub struct TrackBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub album: Option<AlbumMetadata>,
 
-    #[serde(skip_serializing_if = "TrackNumbers::is_empty", default)]
-    pub track_numbers: TrackNumbers,
+    #[serde(skip_serializing_if = "IndexCount::is_empty", default)]
+    pub track_numbers: IndexCount,
 
-    #[serde(skip_serializing_if = "DiscNumbers::is_empty", default)]
-    pub disc_numbers: DiscNumbers,
+    #[serde(skip_serializing_if = "IndexCount::is_empty", default)]
+    pub disc_numbers: IndexCount,
+
+    #[serde(skip_serializing_if = "IndexCount::is_empty", default)]
+    pub movement_numbers: IndexCount,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub titles: Vec<Title>,
@@ -654,18 +617,8 @@ impl TrackBody {
         self.resource(collection_uid).is_some()
     }
 
-    pub fn main_title<'a>(&'a self) -> Option<&'a Title> {
-        Titles::main_title_without_language(&self.titles)
-    }
-
     pub fn main_actor<'a>(&'a self, role: ActorRole) -> Option<&'a Actor> {
         Actors::main_actor(&self.actors, role)
-    }
-
-    pub fn album_main_title<'a>(&'a self) -> Option<&'a Title> {
-        self.album
-            .as_ref()
-            .and_then(|album| Titles::main_title_without_language(&album.titles))
     }
 
     pub fn album_main_actor<'a>(&'a self, role: ActorRole) -> Option<&'a Actor> {

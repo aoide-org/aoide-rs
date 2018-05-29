@@ -29,6 +29,11 @@ use domain::metadata::Score;
 pub enum TitleLevel {
     Main = 0, // default
     Sub = 1,
+    // for classical music, only used for tracks not albums
+    #[serde(rename = "wrk")]
+    Work = 2,
+    #[serde(rename = "mvn")]
+    Movement = 3,
 }
 
 impl Default for TitleLevel {
@@ -63,56 +68,28 @@ impl Title {
     pub fn is_valid(&self) -> bool {
         !self.name.is_empty()
     }
-
-    pub fn is_main_level(&self) -> bool {
-        self.level == TitleLevel::Main
-    }
-
-    pub fn is_language(&self, language: &str) -> bool {
-        self.language.as_ref().map(|language| language.as_str()) == Some(language)
-    }
 }
 
 pub struct Titles;
 
 impl Titles {
     pub fn is_valid(titles: &[Title]) -> bool {
-        Self::has_main_title_without_language(titles) && titles.iter().all(Title::is_valid)
+        Self::main_title(titles).is_some() && titles.iter().all(Title::is_valid)
     }
 
-    pub fn main_title_with_language<'a>(titles: &'a [Title], language: &str) -> Option<&'a Title> {
+    pub fn title<'a>(titles: &'a [Title], level: TitleLevel, language: Option<&str>) -> Option<&'a Title> {
         debug_assert!(titles
             .iter()
-            .filter(|title| title.is_main_level() && title.is_language(language))
+            .filter(|title| title.level == level && title.language.as_ref().map(|v| v.as_str()) == language)
             .count() <= 1);
         titles
             .iter()
-            .filter(|title| title.is_main_level() && title.is_language(language))
+            .filter(|title| title.level == level && title.language.as_ref().map(|v| v.as_str()) == language)
             .nth(0)
     }
 
-    pub fn main_title_without_language<'a>(titles: &'a [Title]) -> Option<&'a Title> {
-        debug_assert!(titles
-            .iter()
-            .filter(|title| title.is_main_level() && title.language == None)
-            .count() <= 1);
-        titles
-            .iter()
-            .filter(|title| title.is_main_level() && title.language == None)
-            .nth(0)
-    }
-
-    pub fn has_main_title_without_language<'a>(titles: &'a [Title]) -> bool {
-        if let Some(_) = Self::main_title_without_language(titles) {
-            true
-        } else {
-            false
-        }
-    }
-
-    pub fn main_title<'a>(titles: &'a [Title], language: &str) -> Option<&'a Title> {
-        Self::main_title_with_language(titles, language)
-            .or_else(|| Self::main_title_without_language(titles))
+    pub fn main_title<'a>(titles: &'a [Title]) -> Option<&'a Title> {
+        Self::title(titles, TitleLevel::Main, None)
     }
 }
 
@@ -206,29 +183,24 @@ impl Actors {
         actors.iter().all(|actor| actor.is_valid())
         // TODO:
         // - at most one summary entry exists for each role
+        // - at least one summary entry exists if more than one primary entry exists for disambiguation
     }
 
-    pub fn summary_actor<'a>(actors: &'a [Actor], role: ActorRole) -> Option<&'a Actor> {
+    pub fn actor<'a>(actors: &'a [Actor], role: ActorRole, priority: ActorPriority) -> Option<&'a Actor> {
         debug_assert!(actors
             .iter()
-            .filter(|actor| actor.priority == ActorPriority::Summary && actor.role == role)
+            .filter(|actor| actor.role == role && actor.priority == priority)
             .count() <= 1);
         actors
             .iter()
-            .filter(|actor| actor.priority == ActorPriority::Summary && actor.role == role)
+            .filter(|actor| actor.role == role && actor.priority == priority)
             .nth(0)
     }
 
-    // The summary actor or otherwise the singular primary actor
+    // The singular summary actor or if none exists then the singular primary actor
     pub fn main_actor<'a>(actors: &'a [Actor], role: ActorRole) -> Option<&'a Actor> {
-        debug_assert!(Self::summary_actor(actors, role).is_some() || actors
-            .iter()
-            .filter(|actor| actor.priority == ActorPriority::Primary && actor.role == role)
-            .count() <= 1);
-        Self::summary_actor(actors, role).or_else(|| actors
-            .iter()
-            .filter(|actor| actor.priority == ActorPriority::Primary && actor.role == role)
-            .nth(0))
+        Self::actor(actors, role, ActorPriority::Summary).or_else(
+            || Self::actor(actors, role, ActorPriority::Primary))
     }
 }
 

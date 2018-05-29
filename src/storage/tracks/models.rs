@@ -24,7 +24,7 @@ use storage::serde::SerializationFormat;
 
 use aoide_core::domain::entity::{EntityHeader, EntityRevision};
 use aoide_core::domain::metadata::{Comment, Score, ScoreValue, Rating, Tag};
-use aoide_core::domain::music::{ActorRole, ClassificationSubject};
+use aoide_core::domain::music::{Actors, ActorRole, Titles, TitleLevel, ClassificationSubject};
 use aoide_core::domain::music::sonic::{BeatsPerMinute, Decibel, Loudness, LUFS};
 use aoide_core::domain::track::{MusicMetadata, TrackBody, TrackResource, RefOrigin};
 
@@ -90,40 +90,52 @@ impl<'a> UpdatableTracksEntity<'a> {
 #[table_name = "aux_tracks_overview"]
 pub struct InsertableTracksOverview<'a> {
     pub track_id: StorageId,
-    pub track_title: &'a str,
+    pub track_title: Option<&'a str>,
+    pub track_subtitle: Option<&'a str>,
+    pub track_work: Option<&'a str>,
+    pub track_movement: Option<&'a str>,
     pub lyrics_explicit: Option<bool>,
     pub album_title: Option<&'a str>,
+    pub album_subtitle: Option<&'a str>,
     pub album_compilation: Option<bool>,
-    pub track_number: Option<i32>,
-    pub track_total: Option<i32>,
-    pub disc_number: Option<i32>,
-    pub disc_total: Option<i32>,
+    pub track_index: Option<i32>,
+    pub track_count: Option<i32>,
+    pub disc_index: Option<i32>,
+    pub disc_count: Option<i32>,
+    pub movement_index: Option<i32>,
+    pub movement_count: Option<i32>,
     pub released_at: Option<NaiveDate>,
     pub released_by: Option<&'a str>,
     pub release_copyright: Option<&'a str>,
 }
 
 impl<'a> InsertableTracksOverview<'a> {
-    pub fn bind(track_id: StorageId, body: &'a TrackBody) -> Self {
+    pub fn bind(track_id: StorageId, track: &'a TrackBody) -> Self {
         Self {
             track_id,
-            track_title: body.main_title().map(|title| title.name.as_str()).unwrap_or(""),
-            lyrics_explicit: body.lyrics.as_ref().and_then(|lyrics| lyrics.explicit),
-            album_title: body.album_main_title().map(|title| title.name.as_str()),
-            album_compilation: body.album.as_ref().and_then(|album| album.compilation),
-            track_number: body.track_numbers.this.map(|this| this as i32),
-            track_total: body.track_numbers.total.map(|total| total as i32),
-            disc_number: body.disc_numbers.this.map(|this| this as i32),
-            disc_total: body.disc_numbers.total.map(|total| total as i32),
-            released_at: body.release
+            track_title: Titles::main_title(&track.titles).map(|title| title.name.as_str()),
+            track_subtitle: Titles::title(&track.titles, TitleLevel::Sub, None).map(|title| title.name.as_str()),
+            track_work: Titles::title(&track.titles, TitleLevel::Work, None).map(|title| title.name.as_str()),
+            track_movement: Titles::title(&track.titles, TitleLevel::Movement, None).map(|title| title.name.as_str()),
+            lyrics_explicit: track.lyrics.as_ref().and_then(|lyrics| lyrics.explicit),
+            album_title: track.album.as_ref().and_then(|album| Titles::main_title(&album.titles)).map(|title| title.name.as_str()),
+            album_subtitle: track.album.as_ref().and_then(|album| Titles::title(&album.titles, TitleLevel::Sub, None)).map(|title| title.name.as_str()),
+            album_compilation: track.album.as_ref().and_then(|album| album.compilation),
+            track_index: track.track_numbers.index.map(|index| index as i32),
+            track_count: track.track_numbers.count.map(|count| count as i32),
+            disc_index: track.disc_numbers.index.map(|index| index as i32),
+            disc_count: track.disc_numbers.count.map(|count| count as i32),
+            movement_index: track.movement_numbers.index.map(|index| index as i32),
+            movement_count: track.movement_numbers.count.map(|count| count as i32),
+            released_at: track.release
                 .as_ref()
                 .and_then(|release| release.released_at)
                 .map(|released_at| released_at.date().naive_utc()),
-            released_by: body.release
+            released_by: track.release
                 .as_ref()
                 .and_then(|release| release.released_by.as_ref())
                 .map(|released_by| released_by.as_str()),
-            release_copyright: body.release
+            release_copyright: track.release
                 .as_ref()
                 .and_then(|release| release.copyright.as_ref())
                 .map(|copyright| copyright.as_str()),
@@ -151,24 +163,24 @@ pub struct InsertableTracksSummary<'a> {
 }
 
 impl<'a> InsertableTracksSummary<'a> {
-    pub fn bind(track_id: StorageId, body: &'a TrackBody) -> Self {
-        let (ratings_min, ratings_max) = match Rating::minmax(&body.ratings, None) {
+    pub fn bind(track_id: StorageId, track: &'a TrackBody) -> Self {
+        let (ratings_min, ratings_max) = match Rating::minmax(&track.ratings, None) {
             Some((Score(min), Score(max))) => (Some(min), Some(max)),
             None => (None, None),
         };
         Self {
             track_id,
-            track_artist: TrackBody::main_actor(&body, ActorRole::Artist).map(|actor| actor.name.as_str()),
-            track_composer: TrackBody::main_actor(&body, ActorRole::Composer).map(|actor| actor.name.as_str()),
-            track_conductor: TrackBody::main_actor(&body, ActorRole::Conductor).map(|actor| actor.name.as_str()),
-            track_performer: TrackBody::main_actor(&body, ActorRole::Performer).map(|actor| actor.name.as_str()),
-            track_producer: TrackBody::main_actor(&body, ActorRole::Producer).map(|actor| actor.name.as_str()),
-            track_remixer: TrackBody::main_actor(&body, ActorRole::Remixer).map(|actor| actor.name.as_str()),
-            album_artist: TrackBody::album_main_actor(&body, ActorRole::Artist).map(|actor| actor.name.as_str()),
-            album_composer: TrackBody::album_main_actor(&body, ActorRole::Composer).map(|actor| actor.name.as_str()),
-            album_conductor: TrackBody::album_main_actor(&body, ActorRole::Conductor).map(|actor| actor.name.as_str()),
-            album_performer: TrackBody::album_main_actor(&body, ActorRole::Performer).map(|actor| actor.name.as_str()),
-            album_producer: TrackBody::album_main_actor(&body, ActorRole::Producer).map(|actor| actor.name.as_str()),
+            track_artist: Actors::main_actor(&track.actors, ActorRole::Artist).map(|actor| actor.name.as_str()),
+            track_composer: Actors::main_actor(&track.actors, ActorRole::Composer).map(|actor| actor.name.as_str()),
+            track_conductor: Actors::main_actor(&track.actors, ActorRole::Conductor).map(|actor| actor.name.as_str()),
+            track_performer: Actors::main_actor(&track.actors, ActorRole::Performer).map(|actor| actor.name.as_str()),
+            track_producer: Actors::main_actor(&track.actors, ActorRole::Producer).map(|actor| actor.name.as_str()),
+            track_remixer: Actors::main_actor(&track.actors, ActorRole::Remixer).map(|actor| actor.name.as_str()),
+            album_artist: track.album.as_ref().and_then(|album| Actors::main_actor(&album.actors, ActorRole::Artist)).map(|actor| actor.name.as_str()),
+            album_composer: track.album.as_ref().and_then(|album| Actors::main_actor(&album.actors, ActorRole::Composer)).map(|actor| actor.name.as_str()),
+            album_conductor: track.album.as_ref().and_then(|album| Actors::main_actor(&album.actors, ActorRole::Conductor)).map(|actor| actor.name.as_str()),
+            album_performer: track.album.as_ref().and_then(|album| Actors::main_actor(&album.actors, ActorRole::Performer)).map(|actor| actor.name.as_str()),
+            album_producer: track.album.as_ref().and_then(|album| Actors::main_actor(&album.actors, ActorRole::Producer)).map(|actor| actor.name.as_str()),
             ratings_min,
             ratings_max,
         }
