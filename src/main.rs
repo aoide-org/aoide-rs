@@ -1368,8 +1368,8 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
             .with_path_extractor::<UidPathExtractor>()
             .with_query_string_extractor::<PaginationQueryStringExtractor>()
             .to(handle_post_collections_path_uid_tracks_search_query_pagination);
-        route // all tag facets in collection
-            .get("/collections/:uid/frequencies")
+        route // selected field frequencies in collection
+            .get("/collections/:uid/freqs")
             .with_path_extractor::<UidPathExtractor>()
             .with_query_string_extractor::<FrequencyFieldQueryStringExtractor>()
             .to(handle_get_collections_path_uid_frequencies_query_field);
