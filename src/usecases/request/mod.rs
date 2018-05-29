@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use aoide_core::audio;
 use aoide_core::domain::metadata::Score;
 use aoide_core::domain::track::TrackBody;
 
@@ -193,6 +194,21 @@ pub struct StringFrequency {
 pub struct StringFrequencyResult {
     pub field: FrequencyField,
     pub frequencies: Vec<StringFrequency>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct ContentTypeStats {
+    pub content_type: String,
+    pub count: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct ResourceStats {
+    pub count: usize,
+    pub duration: audio::Duration,
+    pub content_types: Vec<ContentTypeStats>,
 }
 
 ///////////////////////////////////////////////////////////////////////

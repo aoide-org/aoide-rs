@@ -39,11 +39,13 @@ use super::*;
 
 use usecases::request::{FilterModifier, FrequencyField, LocateParams, PhraseFilterField,
                         ReplaceMode, ReplaceParams, ScoreFilter, SearchParams, StringFilter,
-                        StringFilterParams, StringFrequency, StringFrequencyResult, TagFilter};
+                        StringFilterParams, StringFrequency, StringFrequencyResult, TagFilter,
+                        ResourceStats, ContentTypeStats};
 use usecases::result::Pagination;
 use usecases::{Collections, TrackEntityReplacement, TrackTags, TrackTagsResult, Tracks,
                TracksResult};
 
+use aoide_core::audio::*;
 use aoide_core::domain::collection::*;
 use aoide_core::domain::metadata::*;
 use aoide_core::domain::track::*;
@@ -1091,11 +1093,16 @@ impl<'a> Tracks for TrackRepository<'a> {
         Ok(results.into_iter().map(|r| r.into()).collect())
     }
 
-    fn all_field_frequencies(&self, collection_uid: Option<&EntityUid>, field: FrequencyField) -> TracksResult<StringFrequencyResult> {
-        let track_id_subselect = collection_uid.map(
-            |collection_uid| aux_tracks_resource::table
+    fn field_frequencies(
+        &self,
+        collection_uid: Option<&EntityUid>,
+        field: FrequencyField,
+    ) -> TracksResult<StringFrequencyResult> {
+        let track_id_subselect = collection_uid.map(|collection_uid| {
+            aux_tracks_resource::table
                 .select(aux_tracks_resource::track_id)
-                .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_str())));
+                .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()))
+        });
         let rows = match field {
             FrequencyField::TrackTitle => {
                 let mut target = aux_tracks_overview::table
@@ -1109,7 +1116,8 @@ impl<'a> Tracks for TrackRepository<'a> {
                     .then_order_by(aux_tracks_overview::track_title)
                     .into_boxed();
                 if let Some(track_id_subselect) = track_id_subselect {
-                    target = target.filter(aux_tracks_overview::track_id.eq_any(track_id_subselect));
+                    target =
+                        target.filter(aux_tracks_overview::track_id.eq_any(track_id_subselect));
                 }
                 target.load::<(Option<String>, i64)>(self.connection)?
             }
@@ -1125,7 +1133,8 @@ impl<'a> Tracks for TrackRepository<'a> {
                     .then_order_by(aux_tracks_overview::album_title)
                     .into_boxed();
                 if let Some(track_id_subselect) = track_id_subselect {
-                    target = target.filter(aux_tracks_overview::track_id.eq_any(track_id_subselect));
+                    target =
+                        target.filter(aux_tracks_overview::track_id.eq_any(track_id_subselect));
                 }
                 target.load::<(Option<String>, i64)>(self.connection)?
             }
@@ -1170,6 +1179,62 @@ impl<'a> Tracks for TrackRepository<'a> {
             frequencies.push(StringFrequency { value, count });
         }
         Ok(StringFrequencyResult { field, frequencies })
+    }
+
+    fn resource_statistics(&self, collection_uid: Option<&EntityUid>) -> TracksResult<ResourceStats> {
+        let total_count = {
+            let mut target = aux_tracks_resource::table
+                .select(diesel::dsl::count_star())
+                .into_boxed();
+            // Collection filtering
+            target = match collection_uid {
+                Some(uid) => target.filter(aux_tracks_resource::collection_uid.eq(uid.as_str())),
+                None => target,
+            };
+            target.first::<i64>(self.connection)? as usize
+        };
+
+        let total_duration_ms = {
+            let mut target = aux_tracks_resource::table
+                .select(diesel::dsl::sum(aux_tracks_resource::audio_duration_ms))
+                .into_boxed();
+            // Collection filtering
+            target = match collection_uid {
+                Some(uid) => target.filter(aux_tracks_resource::collection_uid.eq(uid.as_str())),
+                None => target,
+            };
+            target.first::<Option<f64>>(self.connection)?
+        };
+        let total_duration = total_duration_ms
+            .map(|millis| Duration { millis })
+            .unwrap_or(Duration::EMPTY);
+
+        let content_types = {
+            let mut target = aux_tracks_resource::table
+                .select((aux_tracks_resource::content_type, sql::<diesel::sql_types::BigInt>("count(*) AS count")))
+                .group_by(aux_tracks_resource::content_type)
+                .into_boxed();
+            // Collection filtering
+            target = match collection_uid {
+                Some(uid) => target.filter(aux_tracks_resource::collection_uid.eq(uid.as_str())),
+                None => target,
+            };
+            let rows = target.load::<(String, i64)>(self.connection)?;
+            let mut content_types: Vec<ContentTypeStats> = Vec::with_capacity(rows.len());
+            for row in rows.into_iter() {
+                content_types.push(ContentTypeStats {
+                    content_type: row.0,
+                    count: row.1 as usize,
+                });
+            }
+            content_types
+        };
+
+        Ok(ResourceStats {
+            count: total_count,
+            duration: total_duration,
+            content_types
+        })
     }
 }
 

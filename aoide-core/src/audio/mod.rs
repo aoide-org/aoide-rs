@@ -37,18 +37,18 @@ pub struct Duration {
 impl Duration {
     pub const UNIT_OF_MEASURE: &'static str = "ms";
 
-    pub const MIN: Duration = Duration { millis: 0 as DurationValue };
+    pub const EMPTY: Duration = Duration { millis: 0 as DurationValue };
 
     pub fn millis(millis: DurationValue) -> Self {
         Self { millis }
     }
 
     pub fn is_valid(&self) -> bool {
-        *self >= Self::MIN
+        *self >= Self::EMPTY
     }
 
     pub fn is_empty(&self) -> bool {
-        *self <= Self::MIN
+        *self <= Self::EMPTY
     }
 }
 

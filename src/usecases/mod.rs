@@ -19,7 +19,7 @@ pub mod result;
 
 use failure;
 
-use self::request::{LocateParams, ReplaceParams, SearchParams, FrequencyField, StringFrequencyResult};
+use self::request::{LocateParams, ReplaceParams, SearchParams, FrequencyField, StringFrequencyResult, ResourceStats};
 use self::result::Pagination;
 
 use storage::serde::{SerializationFormat, SerializedEntity};
@@ -116,11 +116,16 @@ pub trait Tracks {
         search_params: SearchParams,
     ) -> TracksResult<Vec<SerializedEntity>>;
 
-    fn all_field_frequencies(
+    fn field_frequencies(
         &self,
         collection_uid: Option<&EntityUid>,
         field: FrequencyField,
     ) -> TracksResult<StringFrequencyResult>;
+
+    fn resource_statistics(
+        &self,
+        collection_uid: Option<&EntityUid>,
+    ) -> TracksResult<ResourceStats>;
 }
 
 pub type TrackTagsResult<T> = Result<T, failure::Error>;

@@ -63,8 +63,8 @@ use aoide::middleware::DieselMiddleware;
 use aoide::storage::collections::*;
 use aoide::storage::serde::*;
 use aoide::storage::tracks::*;
-use aoide::usecases::request::{FrequencyField, LocateParams, ReplaceParams, SearchParams,
-                               StringFrequencyResult};
+use aoide::usecases::request::{FrequencyField, LocateParams, ReplaceParams, ResourceStats,
+                               SearchParams, StringFrequencyResult};
 use aoide::usecases::result::*;
 use aoide::usecases::*;
 use aoide_core::domain::collection::*;
@@ -1106,6 +1106,43 @@ fn handle_get_collections_path_uid_tracks_query_pagination(mut state: State) -> 
     Box::new(future::ok((state, response)))
 }
 
+fn resource_statistics(
+    pooled_connection: SqlitePooledConnection,
+    collection_uid: Option<&EntityUid>,
+) -> TracksResult<ResourceStats> {
+    let connection = &*pooled_connection;
+    let repository = TrackRepository::new(connection);
+    repository.resource_statistics(collection_uid)
+}
+
+fn handle_get_collections_path_resources_stats(mut state: State) -> Box<HandlerFuture> {
+    let collection_uid = UidPathExtractor::try_parse_from(&mut state);
+
+    let pooled_connection = match middleware::state_data::try_connection(&state) {
+        Ok(pooled_connection) => pooled_connection,
+        Err(e) => {
+            error!("No database connection: {:?}", &e);
+            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
+            return Box::new(future::ok((state, response)));
+        }
+    };
+
+    let response = match resource_statistics(pooled_connection, collection_uid.as_ref()) {
+        Ok(result) => match serde_json::to_vec(&result) {
+            Ok(json) => {
+                create_response(&state, StatusCode::Ok, Some((json, mime::APPLICATION_JSON)))
+            }
+            Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
+        },
+        Err(e) => {
+            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
+            return Box::new(future::ok((state, response)));
+        }
+    };
+
+    Box::new(future::ok((state, response)))
+}
+
 #[derive(Debug, Deserialize, StateData, StaticResponseExtender)]
 struct FrequencyFieldQueryStringExtractor {
     field: Option<String>,
@@ -1114,7 +1151,7 @@ struct FrequencyFieldQueryStringExtractor {
 impl FrequencyFieldQueryStringExtractor {
     pub fn fields<'a>(&'a self) -> Vec<FrequencyField> {
         if let Some(ref field_list) = self.field {
-            let result: Vec<FrequencyField> = field_list
+            let mut result: Vec<FrequencyField> = field_list
                 .split(',')
                 .map(|field_str| serde_json::from_str(&format!("\"{}\"", field_str)))
                 .filter_map(|from_str| from_str.ok())
@@ -1127,9 +1164,21 @@ impl FrequencyFieldQueryStringExtractor {
                     unrecognized_field_count, field_list
                 );
             }
+            result.sort();
+            result.dedup();
             result
         } else {
-            Vec::new()
+            // All of the following fields if the corresponding query
+            // parameter is missing.
+            // This functionality is only provided for convenience and
+            // for testing. It is recommended to specify all required
+            // fields explicitly.
+            vec![
+                FrequencyField::AlbumArtist,
+                FrequencyField::AlbumTitle,
+                FrequencyField::TrackArtist,
+                FrequencyField::TrackTitle,
+            ]
         }
     }
 }
@@ -1144,14 +1193,16 @@ fn all_field_frequencies(
     let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
     for field in fields.into_iter() {
-        let result = repository.all_field_frequencies(collection_uid, field)?;
+        let result = repository.field_frequencies(collection_uid, field)?;
         results.push(result);
     }
 
     Ok(results)
 }
 
-fn handle_get_collections_path_uid_frequencies_query_field(mut state: State) -> Box<HandlerFuture> {
+fn handle_get_collections_path_uid_fields_freqs_query_field(
+    mut state: State,
+) -> Box<HandlerFuture> {
     let collection_uid = UidPathExtractor::try_parse_from(&mut state);
     let query_params = FrequencyFieldQueryStringExtractor::take_from(&mut state);
 
@@ -1195,7 +1246,15 @@ impl TagFacetPaginationQueryStringExtractor {
     pub fn facets<'a>(&'a self) -> Option<Vec<&'a str>> {
         self.facet
             .as_ref()
-            .map(|facet_list| facet_list.split(',').collect())
+            .map(|facet_list| facet_list.split(',').collect::<Vec<&'a str>>())
+            .map(|mut facets| {
+                facets.sort();
+                facets
+            })
+            .map(|mut facets| {
+                facets.dedup();
+                facets
+            })
     }
 
     pub fn pagination(&self) -> Pagination {
@@ -1368,11 +1427,15 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
             .with_path_extractor::<UidPathExtractor>()
             .with_query_string_extractor::<PaginationQueryStringExtractor>()
             .to(handle_post_collections_path_uid_tracks_search_query_pagination);
+        route // various resource_statistics about collection
+            .get("/collections/:uid/resources/stats")
+            .with_path_extractor::<UidPathExtractor>()
+            .to(handle_get_collections_path_resources_stats);
         route // selected field frequencies in collection
-            .get("/collections/:uid/freqs")
+            .get("/collections/:uid/fields/freqs")
             .with_path_extractor::<UidPathExtractor>()
             .with_query_string_extractor::<FrequencyFieldQueryStringExtractor>()
-            .to(handle_get_collections_path_uid_frequencies_query_field);
+            .to(handle_get_collections_path_uid_fields_freqs_query_field);
         route // all tag facets in collection
             .get("/collections/:uid/tags/facets")
             .with_path_extractor::<UidPathExtractor>()
