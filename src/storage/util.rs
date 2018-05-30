@@ -13,25 +13,25 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use chrono::{DateTime, Utc};
-use chrono::naive::NaiveDateTime;
+use diesel;
+use diesel::prelude::*;
 
-use failure;
+use usecases::api::Pagination;
 
-use aoide_core::domain::entity::EntityUid;
-
-pub mod collections;
-
-pub mod serde;
-
-pub mod tracks;
-
-pub mod util;
-
-pub type StorageId = i64;
-
-pub type EntityStorageResult<T> = Result<T, failure::Error>;
-
-pub trait EntityStorage {
-    fn find_storage_id(&self, uid: &EntityUid) -> EntityStorageResult<Option<StorageId>>;
+pub fn apply_pagination<'a, ST, QS, DB>(
+    source: diesel::query_builder::BoxedSelectStatement<'a, ST, QS, DB>,
+    pagination: &Pagination,
+) -> diesel::query_builder::BoxedSelectStatement<'a, ST, QS, DB>
+where
+    QS: diesel::query_source::QuerySource,
+    DB: diesel::backend::Backend + diesel::sql_types::HasSqlType<ST> + 'a,
+{
+    let mut target = source;
+    if let Some(offset) = pagination.offset {
+        target = target.offset(offset as i64);
+    };
+    if let Some(limit) = pagination.limit {
+        target = target.limit(limit as i64);
+    };
+    target
 }

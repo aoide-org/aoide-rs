@@ -13,15 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-mod models;
-
-mod schema;
-
 use self::models::*;
 
 use self::schema::*;
 
 use super::*;
+
+use super::util::*;
 
 use super::serde::{deserialize_with_format, serialize_with_format, SerializationFormat,
                    SerializedEntity};
@@ -43,7 +41,11 @@ use usecases::{Collections, TrackEntityReplacement, TrackTags, TrackTagsResult, 
                      ScoreFilter, SearchParams, StringCount, StringFieldCounts, StringFilter,
                      StringFilterParams, TagFilter}};
 
-use aoide_core::{audio::*, domain::{collection::*, metadata::*, track::*}};
+use aoide_core::{audio::*, domain::{collection::{CollectionBody, CollectionEntity}, entity::*, metadata::*, track::*}};
+
+mod models;
+
+mod schema;
 
 ///////////////////////////////////////////////////////////////////////
 /// TrackRepository
@@ -564,33 +566,14 @@ where
     select
 }
 
-fn apply_pagination<'a, ST, QS, DB>(
-    source: diesel::query_builder::BoxedSelectStatement<'a, ST, QS, DB>,
-    pagination: &Pagination,
-) -> diesel::query_builder::BoxedSelectStatement<'a, ST, QS, DB>
-where
-    QS: diesel::query_source::QuerySource,
-    DB: diesel::backend::Backend + diesel::sql_types::HasSqlType<ST> + 'a,
-{
-    let mut target = source;
-    if let Some(offset) = pagination.offset {
-        target = target.offset(offset as i64);
-    };
-    if let Some(limit) = pagination.limit {
-        target = target.limit(limit as i64);
-    };
-    target
-}
-
 impl<'a> EntityStorage for TrackRepository<'a> {
     fn find_storage_id(&self, uid: &EntityUid) -> EntityStorageResult<Option<StorageId>> {
-        let target = tracks_entity::table
-            .select((tracks_entity::id,))
-            .filter(tracks_entity::uid.eq(uid.as_str()));
-        let result = target
-            .first::<QueryableStorageId>(self.connection)
+        let result = tracks_entity::table
+            .select(tracks_entity::id)
+            .filter(tracks_entity::uid.eq(uid.as_str()))
+            .first::<StorageId>(self.connection)
             .optional()?;
-        Ok(result.map(|r| r.id))
+        Ok(result)
     }
 }
 

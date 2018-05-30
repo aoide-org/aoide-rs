@@ -18,7 +18,7 @@ use super::schema::collections_entity;
 use chrono::{DateTime, Utc};
 use chrono::naive::NaiveDateTime;
 
-use aoide_core::domain::entity::{EntityUid, EntityHeader};
+use aoide_core::domain::entity::{EntityUid, EntityHeader, EntityRevision};
 use aoide_core::domain::collection::*;
 
 use storage::*;

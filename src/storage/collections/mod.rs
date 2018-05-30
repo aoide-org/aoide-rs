@@ -13,13 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod schema;
-
-mod models;
-
-#[cfg(test)]
-mod tests;
-
 use self::models::*;
 
 use self::schema::*;
@@ -29,11 +22,18 @@ use std::i64;
 use diesel::prelude::*;
 use diesel;
 
-use aoide_core::domain::{entity::EntityUid, collection::*};
+use aoide_core::domain::{collection::*, entity::{EntityRevision, EntityUid}};
 
 use storage::*;
 
 use usecases::{*, api::Pagination};
+
+mod models;
+
+#[cfg(test)]
+mod tests;
+
+pub mod schema;
 
 ///////////////////////////////////////////////////////////////////////
 /// CollectionRepository
@@ -49,23 +49,14 @@ impl<'a> CollectionRepository<'a> {
     }
 }
 
-type IdColumn = (
-    collections_entity::id,
-);
-
-const ID_COLUMN: IdColumn = (
-    collections_entity::id,
-);
-
 impl<'a> EntityStorage for CollectionRepository<'a> {
     fn find_storage_id(&self, uid: &EntityUid) -> EntityStorageResult<Option<StorageId>> {
-        let target = collections_entity::table
-            .select(ID_COLUMN)
-            .filter(collections_entity::uid.eq(uid.as_str()));
-        let result = target
-            .first::<QueryableStorageId>(self.connection)
+        let result = collections_entity::table
+            .select(collections_entity::id)
+            .filter(collections_entity::uid.eq(uid.as_str()))
+            .first::<StorageId>(self.connection)
             .optional()?;
-        Ok(result.map(|r| r.id))
+        Ok(result)
     }
 }
 
