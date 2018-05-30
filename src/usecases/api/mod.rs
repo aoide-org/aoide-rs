@@ -49,25 +49,6 @@ impl Pagination {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub enum SortDirection {
-    #[serde(rename = "asc")]
-    Ascending,
-
-    #[serde(rename = "desc")]
-    Descending,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct SortField {
-    pub field: String,
-
-    #[serde(rename = "dir")]
-    pub direction: SortDirection,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum FilterModifier {
     Inverse,
 }
@@ -192,19 +173,60 @@ pub struct ReplaceParams {
     pub body: TrackBody,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub enum TrackSortField {
+    InCollectionSince, // = recently added (only if searching in a single collection)
+    LastRevisionedAt,  // = recently modified (created or updated)
+    TrackTitle,
+    AlbumTitle,
+    TrackArtist,
+    AlbumArtist,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub enum SortDirection {
+    #[serde(rename = "asc")]
+    Ascending,
+
+    #[serde(rename = "desc")]
+    Descending,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct TrackSortOrder {
+    pub field: TrackSortField,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub direction: Option<SortDirection>,
+}
+
+impl TrackSortOrder {
+    pub fn default_direction(field: TrackSortField) -> SortDirection {
+        match field {
+            TrackSortField::InCollectionSince | TrackSortField::LastRevisionedAt => {
+                SortDirection::Descending
+            }
+            _ => SortDirection::Ascending,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SearchParams {
-    #[serde(rename = "phrase", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub phrase_filter: Option<PhraseFilter>,
 
     // 1st level: Conjunction
     // 2nd level: Disjunction
-    #[serde(rename = "tags", skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub tag_filters: Vec<Vec<TagFilter>>,
-    // TODO: Implement sorting
-    //#[serde(skip_serializing_if = "Vec::is_empty", default)]
-    //pub sort_fields: Vec<SortField>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub sort_ordering: Vec<TrackSortOrder>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

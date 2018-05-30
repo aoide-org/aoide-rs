@@ -24,7 +24,7 @@ use super::util::*;
 use super::serde::{deserialize_with_format, serialize_with_format, SerializationFormat,
                    SerializedEntity};
 
-use super::collections::{CollectionRepository, schema::collections_entity};
+use super::collections::{schema::collections_entity, CollectionRepository};
 
 use diesel;
 use diesel::dsl::*;
@@ -34,14 +34,22 @@ use failure;
 
 use std::i64;
 
-use usecases::{Collections, TrackEntityReplacement, TrackTags, TrackTagsResult, Tracks,
-               TracksResult,
-               api::{ContentTypeStats, CountableStringField, FilterModifier, LocateParams,
+use usecases::{api::{ContentTypeStats, CountableStringField, FilterModifier, LocateParams,
                      Pagination, PhraseFilterField, ReplaceMode, ReplaceParams, ResourceStats,
-                     ScoreFilter, SearchParams, StringCount, StringFieldCounts, StringFilter,
-                     StringFilterParams, TagFilter}};
+                     ScoreFilter, SearchParams, SortDirection, StringCount, StringFieldCounts,
+                     StringFilter, StringFilterParams, TagFilter, TrackSortField, TrackSortOrder},
+               Collections,
+               TrackEntityReplacement,
+               TrackTags,
+               TrackTagsResult,
+               Tracks,
+               TracksResult};
 
-use aoide_core::{audio::*, domain::{collection::{CollectionBody, CollectionEntity}, entity::*, metadata::*, track::*}};
+use aoide_core::{audio::*,
+                 domain::{collection::{CollectionBody, CollectionEntity},
+                          entity::*,
+                          metadata::*,
+                          track::*}};
 
 mod models;
 
@@ -810,42 +818,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             .as_ref()
             .map(|tokenized| tokenized.clone().fold(0, |len, token| len + token.len()))
             .unwrap_or(0);
-        // TODO: if/else arms are incompatible due to joining tables?
-        let results = if escaped_and_tokenized_len == 0 {
-            // Select all (without joining)
-            let mut target = tracks_entity::table
-                .select(tracks_entity::all_columns)
-                .left_outer_join(aux_tracks_resource::table)
-                .into_boxed();
-
-            // Filter tags 1st level: Conjunction
-            // TODO: Extract into a function (https://github.com/diesel-rs/diesel/issues/546)
-            for tag_filters in search_params.tag_filters.into_iter() {
-                // Filter tags 2nd level: Disjunction
-                for (index, tag_filter) in tag_filters.into_iter().enumerate() {
-                    let sub_query = select_track_ids_matching_tag_filter(tag_filter);
-                    target = match index {
-                        0 => target.filter(tracks_entity::id.eq_any(sub_query)),
-                        _ => target.or_filter(tracks_entity::id.eq_any(sub_query)),
-                    };
-                }
-            }
-
-            // Collection filter & ordering
-            // TODO: Extract into a function (https://github.com/diesel-rs/diesel/issues/546)
-            target = match collection_uid {
-                Some(uid) => target
-                    .filter(aux_tracks_resource::collection_uid.eq(uid.as_str()))
-                    .order(aux_tracks_resource::collection_since.desc()), // recently added to collection
-                None => target.order(tracks_entity::rev_timestamp.desc()), // recently modified
-            };
-
-            // Pagination
-            target = apply_pagination(target, pagination);
-
-            target.load::<QueryableSerializedEntity>(self.connection)?
-        } else {
-            debug_assert!(escaped_and_tokenized_len > 0);
+        let like_expr = if escaped_and_tokenized_len > 0 {
             let mut like_expr = escaped_and_tokenized.unwrap().fold(
                 String::with_capacity(1 + escaped_and_tokenized_len + 1), // leading/trailing '%'
                 |mut like_expr, part| {
@@ -857,16 +830,22 @@ impl<'a> Tracks for TrackRepository<'a> {
             );
             // Append final wildcard character after last part
             like_expr.push('%');
+            like_expr
+        } else {
+            // unused
+            String::new()
+        };
 
-            // TODO: Avoid unneeded joins according to the values in
-            // search_params.phrase_filter.fields (see below)
-            let mut target = tracks_entity::table
-                .select(tracks_entity::all_columns)
-                .left_outer_join(aux_tracks_resource::table)
-                .left_outer_join(aux_tracks_overview::table)
-                .left_outer_join(aux_tracks_summary::table)
-                .into_boxed();
+        // TODO: Avoid unneeded joins according to the values in
+        // search_params.phrase_filter.fields and search_params.sort_ordering[].field (see below)
+        let mut target = tracks_entity::table
+            .select(tracks_entity::all_columns)
+            .left_outer_join(aux_tracks_resource::table)
+            .left_outer_join(aux_tracks_overview::table)
+            .left_outer_join(aux_tracks_summary::table)
+            .into_boxed();
 
+        if !like_expr.is_empty() {
             // aux_track_resource (join)
             if search_params
                 .phrase_filter
@@ -1040,34 +1019,93 @@ impl<'a> Tracks for TrackRepository<'a> {
                     ),
                 };
             }
+        }
 
-            // Filter tags 1st level: Conjunction
-            // TODO: Extract into a function (https://github.com/diesel-rs/diesel/issues/546)
-            for tag_filters in search_params.tag_filters.into_iter() {
-                // Filter tags 2nd level: Disjunction
-                for (index, tag_filter) in tag_filters.into_iter().enumerate() {
-                    let sub_query = select_track_ids_matching_tag_filter(tag_filter);
-                    target = match index {
-                        0 => target.filter(tracks_entity::id.eq_any(sub_query)),
-                        _ => target.or_filter(tracks_entity::id.eq_any(sub_query)),
-                    };
-                }
+        // Filter tags 1st level: Conjunction
+        // TODO: Extract into a function (https://github.com/diesel-rs/diesel/issues/546)
+        for tag_filters in search_params.tag_filters.into_iter() {
+            // Filter tags 2nd level: Disjunction
+            for (index, tag_filter) in tag_filters.into_iter().enumerate() {
+                let sub_query = select_track_ids_matching_tag_filter(tag_filter);
+                target = match index {
+                    0 => target.filter(tracks_entity::id.eq_any(sub_query)),
+                    _ => target.or_filter(tracks_entity::id.eq_any(sub_query)),
+                };
             }
+        }
 
-            // Collection filter & ordering
-            // TODO: Extract into a function (https://github.com/diesel-rs/diesel/issues/546)
-            target = match collection_uid {
-                Some(uid) => target
-                    .filter(aux_tracks_resource::collection_uid.eq(uid.as_str()))
-                    .order(aux_tracks_resource::collection_since.desc()), // recently added to collection
-                None => target.order(tracks_entity::rev_timestamp.desc()), // recently modified
-            };
-
-            // Pagination
-            target = apply_pagination(target, pagination);
-
-            target.load::<QueryableSerializedEntity>(self.connection)?
+        // Collection filter
+        if let Some(uid) = collection_uid {
+            target = target.filter(aux_tracks_resource::collection_uid.eq(uid.as_str()));
         };
+
+        for sort_order in search_params.sort_ordering {
+            let direction = sort_order
+                .direction
+                .unwrap_or_else(|| TrackSortOrder::default_direction(sort_order.field));
+            target =
+                match sort_order.field {
+                    field @ TrackSortField::InCollectionSince => {
+                        if collection_uid.is_some() {
+                            match direction {
+                                SortDirection::Ascending => target
+                                    .then_order_by(aux_tracks_resource::collection_since.asc()),
+                                SortDirection::Descending => target
+                                    .then_order_by(aux_tracks_resource::collection_since.desc()),
+                            }
+                        } else {
+                            warn!("Cannot order by {:?} over multiple collections", field);
+                            target
+                        }
+                    }
+                    TrackSortField::LastRevisionedAt => match direction {
+                        SortDirection::Ascending => {
+                            target.then_order_by(tracks_entity::rev_timestamp.asc())
+                        }
+                        SortDirection::Descending => {
+                            target.then_order_by(tracks_entity::rev_timestamp.desc())
+                        }
+                    },
+                    TrackSortField::TrackTitle => match direction {
+                        SortDirection::Ascending => {
+                            target.then_order_by(aux_tracks_overview::track_title.asc())
+                        }
+                        SortDirection::Descending => {
+                            target.then_order_by(aux_tracks_overview::track_title.desc())
+                        }
+                    },
+                    TrackSortField::AlbumTitle => match direction {
+                        SortDirection::Ascending => {
+                            target.then_order_by(aux_tracks_overview::album_title.asc())
+                        }
+                        SortDirection::Descending => {
+                            target.then_order_by(aux_tracks_overview::album_title.desc())
+                        }
+                    },
+                    TrackSortField::TrackArtist => match direction {
+                        SortDirection::Ascending => {
+                            target.then_order_by(aux_tracks_summary::track_artist.asc())
+                        }
+                        SortDirection::Descending => {
+                            target.then_order_by(aux_tracks_summary::track_artist.desc())
+                        }
+                    },
+                    TrackSortField::AlbumArtist => match direction {
+                        SortDirection::Ascending => {
+                            target.then_order_by(aux_tracks_summary::album_artist.asc())
+                        }
+                        SortDirection::Descending => {
+                            target.then_order_by(aux_tracks_summary::album_artist.desc())
+                        }
+                    },
+                }
+        }
+
+        // Pagination
+        target = apply_pagination(target, pagination);
+
+        let results = target.load::<QueryableSerializedEntity>(self.connection)?;
+
         Ok(results.into_iter().map(|r| r.into()).collect())
     }
 
