@@ -559,9 +559,6 @@ fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
                     };
                 if !entity_body.is_valid() {
                     warn!("Invalid track: {:?}", entity_body);
-                    let response =
-                        create_response_message(&state, StatusCode::BadRequest, "Invalid track");
-                    return future::ok((state, response));
                 }
 
                 let pooled_connection = match middleware::state_data::try_connection(&state) {
@@ -645,9 +642,6 @@ fn handle_put_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
                     };
                 if !entity.body().is_valid() {
                     warn!("Invalid track: {:?}", entity.body());
-                    let response =
-                        create_response_message(&state, StatusCode::BadRequest, "Invalid track");
-                    return future::ok((state, response));
                 }
 
                 let uid = match UidPathExtractor::parse_from_and_verify(
@@ -919,9 +913,6 @@ fn handle_post_collections_path_uid_tracks_replace(mut state: State) -> Box<Hand
                     };
                 if !replace_params.body.is_valid() {
                     warn!("Invalid track: {:?}", replace_params.body);
-                    let response =
-                        create_response_message(&state, StatusCode::BadRequest, "Invalid track");
-                    return future::ok((state, response));
                 }
 
                 let pooled_connection = match middleware::state_data::try_connection(&state) {
