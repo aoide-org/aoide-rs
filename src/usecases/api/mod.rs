@@ -16,10 +16,9 @@
 #[cfg(test)]
 mod tests;
 
-use aoide_core::audio::{Duration, DurationValue};
+use aoide_core::audio::Duration;
 use aoide_core::domain::metadata::Score;
 use aoide_core::domain::track::TrackBody;
-use aoide_core::domain::music::sonic::BeatsPerMinute;
 
 pub type PaginationOffset = u64;
 
@@ -126,9 +125,24 @@ impl TagFilter {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub enum NumericField {
+    ChannelCount,
+    DurationMs,
+    SampleRateHz,
+    BitRateBps,
+    TempoBpm,
+    KeySignatureCode,
+    TimeSignatureNum,
+    TimeSignatureDenom,
+}
+
+pub type NumericValue = f64;
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct TempoFilterParams {
-    pub bpm: BeatsPerMinute,
+pub struct NumericValueFilterParams {
+    pub value: NumericValue,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub modifier: Option<FilterModifier>,
@@ -136,32 +150,23 @@ pub struct TempoFilterParams {
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub enum TempoFilter {
-    LessThan(TempoFilterParams),
-    GreaterThan(TempoFilterParams),
-    EqualTo(TempoFilterParams),
+pub enum NumericValueFilter {
+    LessThan(NumericValueFilterParams),
+    GreaterThan(NumericValueFilterParams),
+    EqualTo(NumericValueFilterParams),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct DurationFilterParams {
-    pub millis: DurationValue,
+pub struct NumericFilter {
+    pub field: NumericField,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub modifier: Option<FilterModifier>,
+    pub value: NumericValueFilter,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub enum DurationFilter {
-    LessThan(DurationFilterParams),
-    GreaterThan(DurationFilterParams),
-    EqualTo(DurationFilterParams),
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub enum PhraseFilterField {
+pub enum PhraseField {
     Source, // percent-decoded URI
     TrackTitle,
     AlbumTitle,
@@ -178,12 +183,12 @@ pub struct PhraseFilter {
     // of the selected (or all) fields
     pub query: String,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub modifier: Option<FilterModifier>,
-
     // Empty == All
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub fields: Vec<PhraseFilterField>,
+    pub fields: Vec<PhraseField>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modifier: Option<FilterModifier>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -262,10 +267,7 @@ pub struct SearchParams {
     pub tag_filters: Vec<TagFilter>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub duration_filters: Vec<DurationFilter>,
-
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub tempo_filters: Vec<TempoFilter>,
+    pub numeric_filters: Vec<NumericFilter>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub ordering: Vec<TrackSort>,

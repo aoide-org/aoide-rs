@@ -837,7 +837,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                     || phrase_filter
                         .fields
                         .iter()
-                        .any(|target| *target == PhraseFilterField::Source)
+                        .any(|target| *target == PhraseField::Source)
                 {
                     target = match phrase_filter.modifier {
                         None => target.or_filter(
@@ -858,7 +858,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                     || phrase_filter
                         .fields
                         .iter()
-                        .any(|target| *target == PhraseFilterField::TrackTitle)
+                        .any(|target| *target == PhraseField::TrackTitle)
                 {
                     target = match phrase_filter.modifier {
                         None => target.or_filter(
@@ -877,7 +877,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                     || phrase_filter
                         .fields
                         .iter()
-                        .any(|target| *target == PhraseFilterField::AlbumTitle)
+                        .any(|target| *target == PhraseField::AlbumTitle)
                 {
                     target = match phrase_filter.modifier {
                         None => target.or_filter(
@@ -898,7 +898,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                     || phrase_filter
                         .fields
                         .iter()
-                        .any(|target| *target == PhraseFilterField::TrackArtist)
+                        .any(|target| *target == PhraseField::TrackArtist)
                 {
                     target = match phrase_filter.modifier {
                         None => target.or_filter(
@@ -917,7 +917,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                     || phrase_filter
                         .fields
                         .iter()
-                        .any(|target| *target == PhraseFilterField::AlbumArtist)
+                        .any(|target| *target == PhraseField::AlbumArtist)
                 {
                     target = match phrase_filter.modifier {
                         None => target.or_filter(
@@ -938,7 +938,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                     || phrase_filter
                         .fields
                         .iter()
-                        .any(|target| *target == PhraseFilterField::Comments)
+                        .any(|target| *target == PhraseField::Comments)
                 {
                     let subselect = aux_tracks_comment::table
                         .select(aux_tracks_comment::track_id)
@@ -947,6 +947,8 @@ impl<'a> Tracks for TrackRepository<'a> {
                                 .like(like_expr.clone())
                                 .escape('\\'),
                         );
+                    // The modifier has to be applied to the subselect instead
+                    // of inverting the like query itself!
                     target = match phrase_filter.modifier {
                         None => target.or_filter(tracks_entity::id.eq_any(subselect)),
                         Some(FilterModifier::Inverse) => {
@@ -959,7 +961,7 @@ impl<'a> Tracks for TrackRepository<'a> {
 
         for tag_filter in search_params.tag_filters.into_iter() {
             // TODO: Support an additional level of tag filters that are combined
-            // by discjunction:
+            // by disjunction:
             //    eq_any(1st tag filter subselect).or(eq_any(2nd tag filter subselect...))
             // Currently Diese dynamically constructing nested filter conditions with
             // multiple levels.
@@ -972,61 +974,64 @@ impl<'a> Tracks for TrackRepository<'a> {
             }
         }
 
-        for duration_filter in search_params.duration_filters {
-            target = match duration_filter {
-                DurationFilter::LessThan(filter_params) => match filter_params.modifier {
-                    None => {
-                        target.filter(aux_tracks_resource::audio_duration_ms.lt(filter_params.millis))
+        for numeric_filter in search_params.numeric_filters {
+            target = match numeric_filter.field {
+                NumericField::DurationMs => match numeric_filter.value {
+                    NumericValueFilter::LessThan(filter_params) => match filter_params.modifier {
+                        None => {
+                            target.filter(aux_tracks_resource::audio_duration_ms.lt(filter_params.value))
+                        }
+                        Some(FilterModifier::Inverse) => {
+                            target.filter(aux_tracks_resource::audio_duration_ms.ge(filter_params.value))
+                        }
                     }
-                    Some(FilterModifier::Inverse) => {
-                        target.filter(aux_tracks_resource::audio_duration_ms.ge(filter_params.millis))
+                    NumericValueFilter::GreaterThan(filter_params) => match filter_params.modifier {
+                        None => {
+                            target.filter(aux_tracks_resource::audio_duration_ms.gt(filter_params.value))
+                        }
+                        Some(FilterModifier::Inverse) => {
+                            target.filter(aux_tracks_resource::audio_duration_ms.le(filter_params.value))
+                        }
                     }
-                },
-                DurationFilter::GreaterThan(filter_params) => match filter_params.modifier {
-                    None => {
-                        target.filter(aux_tracks_resource::audio_duration_ms.gt(filter_params.millis))
+                    NumericValueFilter::EqualTo(filter_params) => match filter_params.modifier {
+                        None => {
+                            target.filter(aux_tracks_resource::audio_duration_ms.eq(filter_params.value))
+                        }
+                        Some(FilterModifier::Inverse) => {
+                            target.filter(aux_tracks_resource::audio_duration_ms.ne(filter_params.value))
+                        }
                     }
-                    Some(FilterModifier::Inverse) => {
-                        target.filter(aux_tracks_resource::audio_duration_ms.le(filter_params.millis))
-                    }
-                },
-                DurationFilter::EqualTo(filter_params) => match filter_params.modifier {
-                    None => {
-                        target.filter(aux_tracks_resource::audio_duration_ms.eq(filter_params.millis))
-                    }
-                    Some(FilterModifier::Inverse) => {
-                        target.filter(aux_tracks_resource::audio_duration_ms.ne(filter_params.millis))
-                    }
-                },
-            };
-        }
-
-        for tempo_filter in search_params.tempo_filters {
-            target = match tempo_filter {
-                TempoFilter::LessThan(filter_params) => match filter_params.modifier {
-                    None => {
-                        target.filter(aux_tracks_music::tempo_bpm.lt(filter_params.bpm))
-                    }
-                    Some(FilterModifier::Inverse) => {
-                        target.filter(aux_tracks_music::tempo_bpm.ge(filter_params.bpm))
-                    }
-                },
-                TempoFilter::GreaterThan(filter_params) => match filter_params.modifier {
-                    None => {
-                        target.filter(aux_tracks_music::tempo_bpm.gt(filter_params.bpm))
-                    }
-                    Some(FilterModifier::Inverse) => {
-                        target.filter(aux_tracks_music::tempo_bpm.le(filter_params.bpm))
-                    }
-                },
-                TempoFilter::EqualTo(filter_params) => match filter_params.modifier {
-                    None => {
-                        target.filter(aux_tracks_music::tempo_bpm.eq(filter_params.bpm))
-                    }
-                    Some(FilterModifier::Inverse) => {
-                        target.filter(aux_tracks_music::tempo_bpm.ne(filter_params.bpm))
-                    }
-                },
+                }
+                NumericField::TempoBpm => match numeric_filter.value {
+                    NumericValueFilter::LessThan(filter_params) => match filter_params.modifier {
+                        None => {
+                            target.filter(aux_tracks_music::tempo_bpm.lt(filter_params.value))
+                        }
+                        Some(FilterModifier::Inverse) => {
+                            target.filter(aux_tracks_music::tempo_bpm.ge(filter_params.value))
+                        }
+                    },
+                    NumericValueFilter::GreaterThan(filter_params) => match filter_params.modifier {
+                        None => {
+                            target.filter(aux_tracks_music::tempo_bpm.gt(filter_params.value))
+                        }
+                        Some(FilterModifier::Inverse) => {
+                            target.filter(aux_tracks_music::tempo_bpm.le(filter_params.value))
+                        }
+                    },
+                    NumericValueFilter::EqualTo(filter_params) => match filter_params.modifier {
+                        None => {
+                            target.filter(aux_tracks_music::tempo_bpm.eq(filter_params.value))
+                        }
+                        Some(FilterModifier::Inverse) => {
+                            target.filter(aux_tracks_music::tempo_bpm.ne(filter_params.value))
+                        }
+                    },
+                }
+                _ => {
+                    error!("Filtering for numeric field {:?} is not implemented", numeric_filter.field);
+                    target
+                }
             };
         }
 
