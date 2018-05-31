@@ -210,7 +210,7 @@ impl Actors {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "lowercase")]
-pub enum ClassificationSubject {
+pub enum Class {
     Acousticness,
     Danceability,
     Energy,
@@ -224,14 +224,14 @@ pub enum ClassificationSubject {
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Classification {
-    pub subject: ClassificationSubject,
+    pub class: Class,
     pub score: Score,
 }
 
 impl Classification {
-    pub fn new<C: Into<Score>>(subject: ClassificationSubject, score: C) -> Self {
+    pub fn new<C: Into<Score>>(class: Class, score: C) -> Self {
         Self {
-            subject,
+            class,
             score: score.into(),
         }
     }

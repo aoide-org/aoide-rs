@@ -24,7 +24,7 @@ use storage::serde::SerializationFormat;
 
 use aoide_core::domain::entity::{EntityHeader, EntityRevision};
 use aoide_core::domain::metadata::{Comment, Score, ScoreValue, Rating, Tag};
-use aoide_core::domain::music::{Actors, ActorRole, Titles, TitleLevel, ClassificationSubject};
+use aoide_core::domain::music::{Actors, ActorRole, Titles, TitleLevel, Class};
 use aoide_core::domain::music::sonic::{BeatsPerMinute, Decibel, Loudness, LUFS};
 use aoide_core::domain::track::{MusicMetadata, TrackBody, TrackResource, RefOrigin};
 
@@ -300,28 +300,28 @@ impl InsertableTracksMusic {
             timesig_num: music.time_signature.numerator as i16,
             timesig_denom: music.time_signature.denominator as i16,
             acousticness_score: music
-                .classification(ClassificationSubject::Acousticness)
+                .classification(Class::Acousticness)
                 .map(|classification| *classification.score),
             danceability_score: music
-                .classification(ClassificationSubject::Danceability)
+                .classification(Class::Danceability)
                 .map(|classification| *classification.score),
             energy_score: music
-                .classification(ClassificationSubject::Energy)
+                .classification(Class::Energy)
                 .map(|classification| *classification.score),
             instrumentalness_score: music
-                .classification(ClassificationSubject::Instrumentalness)
+                .classification(Class::Instrumentalness)
                 .map(|classification| *classification.score),
             liveness_score: music
-                .classification(ClassificationSubject::Liveness)
+                .classification(Class::Liveness)
                 .map(|classification| *classification.score),
             popularity_score: music
-                .classification(ClassificationSubject::Popularity)
+                .classification(Class::Popularity)
                 .map(|classification| *classification.score),
             speechiness_score: music
-                .classification(ClassificationSubject::Speechiness)
+                .classification(Class::Speechiness)
                 .map(|classification| *classification.score),
             valence_score: music
-                .classification(ClassificationSubject::Valence)
+                .classification(Class::Valence)
                 .map(|classification| *classification.score),
         }
     }

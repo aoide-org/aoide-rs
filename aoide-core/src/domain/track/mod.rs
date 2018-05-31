@@ -385,7 +385,7 @@ pub struct MusicMetadata {
     pub time_signature: TimeSignature,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub classifications: Vec<Classification>, // no duplicate subjects allowed
+    pub classifications: Vec<Classification>, // no duplicate classs allowed
 }
 
 impl MusicMetadata {
@@ -396,28 +396,28 @@ impl MusicMetadata {
             && (self.key_signature.is_valid() || self.key_signature.is_default())
             && self.classifications.iter().all(Classification::is_valid)
             && self.classifications.iter().all(|classification| {
-                classification.is_valid() && self.is_subject_unique(classification.subject)
+                classification.is_valid() && self.is_class_unique(classification.class)
             })
     }
 
-    pub fn has_subject(&self, subject: ClassificationSubject) -> bool {
+    pub fn has_class(&self, class: Class) -> bool {
         self.classifications
             .iter()
-            .any(|classification| classification.subject == subject)
+            .any(|classification| classification.class == class)
     }
 
-    fn is_subject_unique(&self, subject: ClassificationSubject) -> bool {
+    fn is_class_unique(&self, class: Class) -> bool {
         self.classifications
             .iter()
-            .filter(|classification| classification.subject == subject)
+            .filter(|classification| classification.class == class)
             .count() <= 1
     }
 
-    pub fn classification(&self, subject: ClassificationSubject) -> Option<&Classification> {
-        debug_assert!(self.is_subject_unique(subject));
+    pub fn classification(&self, class: Class) -> Option<&Classification> {
+        debug_assert!(self.is_class_unique(class));
         self.classifications
             .iter()
-            .filter(|classification| classification.subject == subject)
+            .filter(|classification| classification.class == class)
             .nth(0)
     }
 }

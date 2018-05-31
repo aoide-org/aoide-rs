@@ -131,19 +131,19 @@
                 },
                 "classifications": [
                     {
-                        "subject": "energy",
+                        "class": "energy",
                         "score": 0.92
                     },
                     {
-                        "subject": "valence",
+                        "class": "valence",
                         "score": 0.85
                     },
                     {
-                        "subject": "danceability",
+                        "class": "danceability",
                         "score": 0.78
                     },
                     {
-                        "subject": "popularity",
+                        "class": "popularity",
                         "score": 0.75
                     }
                 ]

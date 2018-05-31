@@ -20,8 +20,8 @@ use serde_json;
 #[test]
 fn serialize_json() {
     let classifications = vec![
-        Classification::new(ClassificationSubject::Energy, 0.1),
-        Classification::new(ClassificationSubject::Popularity, 0.9),
+        Classification::new(Class::Energy, 0.1),
+        Classification::new(Class::Popularity, 0.9),
     ];
     let music = MusicMetadata {
         classifications,
