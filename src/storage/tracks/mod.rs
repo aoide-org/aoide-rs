@@ -852,6 +852,25 @@ impl<'a> Tracks for TrackRepository<'a> {
                         ),
                     };
                 }
+                if phrase_filter.fields.is_empty()
+                    || phrase_filter
+                        .fields
+                        .iter()
+                        .any(|target| *target == PhraseField::MediaType)
+                {
+                    target = match phrase_filter.modifier {
+                        None => target.or_filter(
+                            aux_tracks_resource::media_type
+                                .like(like_expr.clone())
+                                .escape('\\'),
+                        ),
+                        Some(FilterModifier::Inverse) => target.or_filter(
+                            aux_tracks_resource::media_type
+                                .not_like(like_expr.clone())
+                                .escape('\\'),
+                        ),
+                    };
+                }
 
                 // aux_track_overview (join)
                 if phrase_filter.fields.is_empty()

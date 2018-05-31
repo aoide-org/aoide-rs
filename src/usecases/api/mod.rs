@@ -174,6 +174,7 @@ pub struct NumericFilter {
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum PhraseField {
     Source, // percent-decoded URI
+    MediaType,
     TrackTitle,
     AlbumTitle,
     TrackArtist,
