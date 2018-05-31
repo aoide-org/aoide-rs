@@ -6,15 +6,14 @@ description = "Backend services for curating and enjoying your music"
 publish = false
 
 [dependencies]
-base64 = { version = "*" }
+base64 = "*"
 chrono = { version = "*", features = ["serde"] }
 failure = "*"
 log = "*"
 mime = "*"
 rand = "*"
 ring = "*"
-serde = "*"
-serde_derive = "*"
+serde = { version = "*", features = ["derive"] }
 serde_json = "*"
 
 [dev-dependencies]

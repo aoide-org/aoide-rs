@@ -21,9 +21,8 @@ use gotham::handler::HandlerFuture;
 use gotham::middleware::{Middleware, NewMiddleware};
 use gotham::state::{request_id, State};
 
-use diesel::Connection;
+use diesel::{Connection, r2d2::ConnectionManager};
 use r2d2::Pool;
-use r2d2_diesel::ConnectionManager;
 
 use self::state_data::DieselState;
 
@@ -149,7 +148,7 @@ mod tests {
     use super::*;
 
     use diesel::sqlite::SqliteConnection;
-    use r2d2_diesel::ConnectionManager;
+    use diesel::r2d2::ConnectionManager;
 
     static DATABASE_URL: &'static str = ":memory:";
 

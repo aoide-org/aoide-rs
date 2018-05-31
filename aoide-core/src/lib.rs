@@ -31,11 +31,11 @@ extern crate mime_guess;
 extern crate rand;
 
 extern crate ring;
-extern crate serde;
 
 #[macro_use]
-extern crate serde_derive;
+extern crate serde;
 
+#[cfg(test)]
 extern crate serde_json;
 
 ///////////////////////////////////////////////////////////////////////

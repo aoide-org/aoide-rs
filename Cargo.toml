@@ -19,7 +19,7 @@ aoide-core = { version = "*", path = "aoide-core" }
 
 chrono = { version = "*", features = ["serde"] }
 clap = "*"
-diesel = { version = "*", features = ["chrono", "sqlite"] }
+diesel = { version = "*", features = ["chrono", "r2d2", "sqlite"] }
 diesel_migrations =  { version = "*", features = ["sqlite"] }
 env_logger = "*"
 failure = { version = "*", features = ["std"] }
@@ -32,7 +32,6 @@ log = "*"
 mime = ">= 0.3"
 percent-encoding = "*"
 r2d2 = "*"
-r2d2-diesel = "*"
 rmp-serde = "*"
 serde = "*"
 serde_cbor = "*"

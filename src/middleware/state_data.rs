@@ -1,10 +1,10 @@
 //! Defines data structure for storage in Gotham State that provides access to the underlying r2d2
 //! pool so a connection can be established if required by Middleware or Handlers.
 
-use diesel::Connection;
-use gotham::state::{FromState, State};
+use diesel::{Connection, r2d2::ConnectionManager};
 use r2d2::{Error, Pool, PooledConnection};
-use r2d2_diesel::ConnectionManager;
+
+use gotham::state::{FromState, State};
 
 /// Convenience function for Middleware and Handlers to obtain a Diesel connection.
 pub fn try_connection<T>(s: &State) -> Result<PooledConnection<ConnectionManager<T>>, Error>

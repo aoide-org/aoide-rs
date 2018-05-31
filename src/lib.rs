@@ -46,8 +46,6 @@ extern crate percent_encoding;
 
 extern crate r2d2;
 
-extern crate r2d2_diesel;
-
 extern crate rmp_serde;
 
 extern crate serde;

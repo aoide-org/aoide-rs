@@ -45,8 +45,6 @@ extern crate mime;
 
 extern crate r2d2;
 
-extern crate r2d2_diesel;
-
 extern crate rmp_serde;
 
 extern crate serde;
@@ -70,6 +68,7 @@ use aoide_core::domain::{collection::*, entity::*, metadata::*, track::*};
 use clap::{App, Arg};
 
 use diesel::prelude::*;
+use diesel::r2d2::ConnectionManager;
 
 use failure::Error;
 
@@ -96,7 +95,6 @@ use env_logger::Builder as LoggerBuilder;
 use log::LevelFilter as LogLevelFilter;
 
 use r2d2::{Pool, PooledConnection};
-use r2d2_diesel::ConnectionManager;
 
 use std::env;
 use std::str;
