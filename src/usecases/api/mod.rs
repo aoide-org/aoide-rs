@@ -16,9 +16,10 @@
 #[cfg(test)]
 mod tests;
 
-use aoide_core::audio;
+use aoide_core::audio::{Duration, DurationValue};
 use aoide_core::domain::metadata::Score;
 use aoide_core::domain::track::TrackBody;
+use aoide_core::domain::music::sonic::BeatsPerMinute;
 
 pub type PaginationOffset = u64;
 
@@ -53,7 +54,7 @@ pub enum FilterModifier {
     Inverse,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct StringFilterParams {
     pub value: String,
@@ -62,7 +63,7 @@ pub struct StringFilterParams {
     pub modifier: Option<FilterModifier>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub enum StringFilter {
     StartsWith(StringFilterParams), // head
@@ -71,7 +72,7 @@ pub enum StringFilter {
     Matches(StringFilterParams),    // all
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ScoreFilterParams {
     pub value: Score,
@@ -91,7 +92,7 @@ pub enum ScoreFilter {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TagFilter {
-    // Facets are only matched with equals. Use an empty string
+    // Facets are always matched with equals. Use an empty string
     // for matching tags without a facet.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub facet: Option<String>,
@@ -101,6 +102,9 @@ pub struct TagFilter {
 
     #[serde(rename = "score", skip_serializing_if = "Option::is_none")]
     pub score_filter: Option<ScoreFilter>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modifier: Option<FilterModifier>,
 }
 
 impl TagFilter {
@@ -119,6 +123,40 @@ impl TagFilter {
     pub fn any_score() -> Option<ScoreFilter> {
         None
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct TempoFilterParams {
+    pub bpm: BeatsPerMinute,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modifier: Option<FilterModifier>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub enum TempoFilter {
+    LessThan(TempoFilterParams),
+    GreaterThan(TempoFilterParams),
+    EqualTo(TempoFilterParams),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct DurationFilterParams {
+    pub millis: DurationValue,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modifier: Option<FilterModifier>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub enum DurationFilter {
+    LessThan(DurationFilterParams),
+    GreaterThan(DurationFilterParams),
+    EqualTo(DurationFilterParams),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -196,14 +234,14 @@ pub enum SortDirection {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct TrackSortOrder {
+pub struct TrackSort {
     pub field: TrackSortField,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub direction: Option<SortDirection>,
 }
 
-impl TrackSortOrder {
+impl TrackSort {
     pub fn default_direction(field: TrackSortField) -> SortDirection {
         match field {
             TrackSortField::InCollectionSince | TrackSortField::LastRevisionedAt => {
@@ -220,13 +258,17 @@ pub struct SearchParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub phrase_filter: Option<PhraseFilter>,
 
-    // 1st level: Conjunction
-    // 2nd level: Disjunction
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub tag_filters: Vec<Vec<TagFilter>>,
+    pub tag_filters: Vec<TagFilter>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub sort_ordering: Vec<TrackSortOrder>,
+    pub duration_filters: Vec<DurationFilter>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub tempo_filters: Vec<TempoFilter>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub ordering: Vec<TrackSort>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -263,6 +305,6 @@ pub struct ContentTypeStats {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ResourceStats {
     pub count: usize,
-    pub duration: audio::Duration,
+    pub duration: Duration,
     pub content_types: Vec<ContentTypeStats>,
 }

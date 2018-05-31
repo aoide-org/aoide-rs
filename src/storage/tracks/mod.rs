@@ -34,10 +34,7 @@ use failure;
 
 use std::i64;
 
-use usecases::{api::{ContentTypeStats, CountableStringField, FilterModifier, LocateParams,
-                     Pagination, PhraseFilterField, ReplaceMode, ReplaceParams, ResourceStats,
-                     ScoreFilter, SearchParams, SortDirection, StringCount, StringFieldCounts,
-                     StringFilter, StringFilterParams, TagFilter, TrackSortField, TrackSortOrder},
+use usecases::{api::*,
                Collections,
                TrackEntityReplacement,
                TrackTags,
@@ -473,12 +470,12 @@ impl<'a> TrackRepository<'a> {
 
 fn select_track_ids_matching_tag_filter<'a, DB>(
     tag_filter: TagFilter,
-) -> diesel::query_builder::BoxedSelectStatement<
+) -> (diesel::query_builder::BoxedSelectStatement<
     'a,
     diesel::sql_types::BigInt,
     aux_tracks_tag::table,
     DB,
->
+>, Option<FilterModifier>)
 where
     DB: diesel::backend::Backend + 'a,
 {
@@ -537,13 +534,11 @@ where
             EitherEqualOrLike::Equal(eq) => match modifier {
                 None => select.filter(aux_tracks_tag::term.eq(eq)),
                 Some(FilterModifier::Inverse) => select.filter(aux_tracks_tag::term.ne(eq)),
-            },
+            }
             EitherEqualOrLike::Like(like) => match modifier {
                 None => select.filter(aux_tracks_tag::term.like(like).escape('\\')),
-                Some(FilterModifier::Inverse) => {
-                    select.filter(aux_tracks_tag::term.not_like(like).escape('\\'))
-                }
-            },
+                Some(FilterModifier::Inverse) => select.filter(aux_tracks_tag::term.not_like(like).escape('\\')),
+            }
         };
     }
 
@@ -552,26 +547,20 @@ where
         select = match score_filter {
             ScoreFilter::LessThan(filter_params) => match filter_params.modifier {
                 None => select.filter(aux_tracks_tag::score.lt(*filter_params.value)),
-                Some(FilterModifier::Inverse) => {
-                    select.filter(aux_tracks_tag::score.ge(*filter_params.value))
-                }
-            },
+                Some(FilterModifier::Inverse) => select.filter(aux_tracks_tag::score.ge(*filter_params.value)),
+            }
             ScoreFilter::GreaterThan(filter_params) => match filter_params.modifier {
                 None => select.filter(aux_tracks_tag::score.gt(*filter_params.value)),
-                Some(FilterModifier::Inverse) => {
-                    select.filter(aux_tracks_tag::score.le(*filter_params.value))
-                }
-            },
+                Some(FilterModifier::Inverse) => select.filter(aux_tracks_tag::score.le(*filter_params.value)),
+            }
             ScoreFilter::EqualTo(filter_params) => match filter_params.modifier {
                 None => select.filter(aux_tracks_tag::score.eq(*filter_params.value)),
-                Some(FilterModifier::Inverse) => {
-                    select.filter(aux_tracks_tag::score.ne(*filter_params.value))
-                }
-            },
+                Some(FilterModifier::Inverse) => select.filter(aux_tracks_tag::score.ne(*filter_params.value)),
+            }
         };
     }
 
-    select
+    (select, tag_filter.modifier)
 }
 
 impl<'a> EntityStorage for TrackRepository<'a> {
@@ -804,234 +793,241 @@ impl<'a> Tracks for TrackRepository<'a> {
         pagination: &Pagination,
         search_params: SearchParams,
     ) -> TracksResult<Vec<SerializedEntity>> {
-        // Escape wildcard character with backslash (see below)
-        let escaped_tokens = search_params.phrase_filter.as_ref().map(|phrase_filter| {
-            phrase_filter
-                .query
-                .replace('\\', "\\\\")
-                .replace('%', "\\%")
-        });
-        let escaped_and_tokenized = escaped_tokens
-            .as_ref()
-            .map(|tokens| tokens.split_whitespace().filter(|token| !token.is_empty()));
-        let escaped_and_tokenized_len = escaped_and_tokenized
-            .as_ref()
-            .map(|tokenized| tokenized.clone().fold(0, |len, token| len + token.len()))
-            .unwrap_or(0);
-        let like_expr = if escaped_and_tokenized_len > 0 {
-            let mut like_expr = escaped_and_tokenized.unwrap().fold(
-                String::with_capacity(1 + escaped_and_tokenized_len + 1), // leading/trailing '%'
-                |mut like_expr, part| {
-                    // Prepend wildcard character before each part
-                    like_expr.push('%');
-                    like_expr.push_str(part);
-                    like_expr
-                },
-            );
-            // Append final wildcard character after last part
-            like_expr.push('%');
-            like_expr
-        } else {
-            // unused
-            String::new()
-        };
-
-        // TODO: Avoid unneeded joins according to the values in
-        // search_params.phrase_filter.fields and search_params.sort_ordering[].field (see below)
         let mut target = tracks_entity::table
             .select(tracks_entity::all_columns)
             .left_outer_join(aux_tracks_resource::table)
             .left_outer_join(aux_tracks_overview::table)
             .left_outer_join(aux_tracks_summary::table)
+            .left_outer_join(aux_tracks_music::table)
             .into_boxed();
 
-        if !like_expr.is_empty() {
-            // aux_track_resource (join)
-            if search_params
-                .phrase_filter
-                .as_ref()
-                .unwrap()
-                .fields
-                .is_empty()
-                || search_params
-                    .phrase_filter
-                    .as_ref()
-                    .unwrap()
-                    .fields
-                    .iter()
-                    .any(|target| *target == PhraseFilterField::Source)
-            {
-                target = match search_params.phrase_filter.as_ref().unwrap().modifier {
-                    None => target.or_filter(
-                        aux_tracks_resource::source_uri_decoded
-                            .like(&like_expr)
-                            .escape('\\'),
-                    ),
-                    Some(FilterModifier::Inverse) => target.or_filter(
-                        aux_tracks_resource::source_uri_decoded
-                            .not_like(&like_expr)
-                            .escape('\\'),
-                    ),
-                };
-            }
-
-            // aux_track_overview (join)
-            if search_params
-                .phrase_filter
-                .as_ref()
-                .unwrap()
-                .fields
-                .is_empty()
-                || search_params
-                    .phrase_filter
-                    .as_ref()
-                    .unwrap()
-                    .fields
-                    .iter()
-                    .any(|target| *target == PhraseFilterField::TrackTitle)
-            {
-                target = match search_params.phrase_filter.as_ref().unwrap().modifier {
-                    None => target.or_filter(
-                        aux_tracks_overview::track_title
-                            .like(&like_expr)
-                            .escape('\\'),
-                    ),
-                    Some(FilterModifier::Inverse) => target.or_filter(
-                        aux_tracks_overview::track_title
-                            .not_like(&like_expr)
-                            .escape('\\'),
-                    ),
-                };
-            }
-            if search_params
-                .phrase_filter
-                .as_ref()
-                .unwrap()
-                .fields
-                .is_empty()
-                || search_params
-                    .phrase_filter
-                    .as_ref()
-                    .unwrap()
-                    .fields
-                    .iter()
-                    .any(|target| *target == PhraseFilterField::AlbumTitle)
-            {
-                target = match search_params.phrase_filter.as_ref().unwrap().modifier {
-                    None => target.or_filter(
-                        aux_tracks_overview::album_title
-                            .like(&like_expr)
-                            .escape('\\'),
-                    ),
-                    Some(FilterModifier::Inverse) => target.or_filter(
-                        aux_tracks_overview::album_title
-                            .not_like(&like_expr)
-                            .escape('\\'),
-                    ),
-                };
-            }
-
-            // aux_tracks_summary (join)
-            if search_params
-                .phrase_filter
-                .as_ref()
-                .unwrap()
-                .fields
-                .is_empty()
-                || search_params
-                    .phrase_filter
-                    .as_ref()
-                    .unwrap()
-                    .fields
-                    .iter()
-                    .any(|target| *target == PhraseFilterField::TrackArtist)
-            {
-                target = match search_params.phrase_filter.as_ref().unwrap().modifier {
-                    None => target.or_filter(
-                        aux_tracks_summary::track_artist
-                            .like(&like_expr)
-                            .escape('\\'),
-                    ),
-                    Some(FilterModifier::Inverse) => target.or_filter(
-                        aux_tracks_summary::track_artist
-                            .not_like(&like_expr)
-                            .escape('\\'),
-                    ),
-                };
-            }
-            if search_params
-                .phrase_filter
-                .as_ref()
-                .unwrap()
-                .fields
-                .is_empty()
-                || search_params
-                    .phrase_filter
-                    .as_ref()
-                    .unwrap()
-                    .fields
-                    .iter()
-                    .any(|target| *target == PhraseFilterField::AlbumArtist)
-            {
-                target = match search_params.phrase_filter.as_ref().unwrap().modifier {
-                    None => target.or_filter(
-                        aux_tracks_summary::album_artist
-                            .like(&like_expr)
-                            .escape('\\'),
-                    ),
-                    Some(FilterModifier::Inverse) => target.or_filter(
-                        aux_tracks_summary::album_artist
-                            .not_like(&like_expr)
-                            .escape('\\'),
-                    ),
-                };
-            }
-
-            // aux_track_comment (subselect)
-            if search_params
-                .phrase_filter
-                .as_ref()
-                .unwrap()
-                .fields
-                .is_empty()
-                || search_params
-                    .phrase_filter
-                    .as_ref()
-                    .unwrap()
-                    .fields
-                    .iter()
-                    .any(|target| *target == PhraseFilterField::Comments)
-            {
-                target = match search_params.phrase_filter.as_ref().unwrap().modifier {
-                    None => target.or_filter(
-                        tracks_entity::id.eq_any(
-                            aux_tracks_comment::table
-                                .select(aux_tracks_comment::track_id)
-                                .filter(aux_tracks_comment::text.like(&like_expr).escape('\\')),
+        if let Some(phrase_filter) = search_params.phrase_filter {
+            // Escape wildcard character with backslash (see below)
+            let escaped_query = phrase_filter
+                .query
+                .replace('\\', "\\\\")
+                .replace('%', "\\%");
+            let escaped_and_tokenized = escaped_query
+                .split_whitespace()
+                .filter(|token| !token.is_empty());
+            let escaped_and_tokenized_len = escaped_and_tokenized
+                .clone()
+                .fold(0, |len, token| len + token.len());
+            // TODO: Use Rc<String> to avoid cloning strings?
+            let like_expr = if escaped_and_tokenized_len > 0 {
+                let mut like_expr = escaped_and_tokenized.fold(
+                    String::with_capacity(1 + escaped_and_tokenized_len + 1), // leading/trailing '%'
+                    |mut like_expr, part| {
+                        // Prepend wildcard character before each part
+                        like_expr.push('%');
+                        like_expr.push_str(part);
+                        like_expr
+                    },
+                );
+                // Append final wildcard character after last part
+                like_expr.push('%');
+                like_expr
+            } else {
+                // unused
+                String::new()
+            };
+            if !like_expr.is_empty() {
+                // aux_track_resource (join)
+                if phrase_filter.fields.is_empty()
+                    || phrase_filter
+                        .fields
+                        .iter()
+                        .any(|target| *target == PhraseFilterField::Source)
+                {
+                    target = match phrase_filter.modifier {
+                        None => target.or_filter(
+                            aux_tracks_resource::source_uri_decoded
+                                .like(like_expr.clone())
+                                .escape('\\'),
                         ),
-                    ),
-                    Some(FilterModifier::Inverse) => target.or_filter(
-                        tracks_entity::id.ne_all(
-                            aux_tracks_comment::table
-                                .select(aux_tracks_comment::track_id)
-                                .filter(aux_tracks_comment::text.like(&like_expr).escape('\\')),
+                        Some(FilterModifier::Inverse) => target.or_filter(
+                            aux_tracks_resource::source_uri_decoded
+                                .not_like(like_expr.clone())
+                                .escape('\\'),
                         ),
-                    ),
-                };
+                    };
+                }
+
+                // aux_track_overview (join)
+                if phrase_filter.fields.is_empty()
+                    || phrase_filter
+                        .fields
+                        .iter()
+                        .any(|target| *target == PhraseFilterField::TrackTitle)
+                {
+                    target = match phrase_filter.modifier {
+                        None => target.or_filter(
+                            aux_tracks_overview::track_title
+                                .like(like_expr.clone())
+                                .escape('\\'),
+                        ),
+                        Some(FilterModifier::Inverse) => target.or_filter(
+                            aux_tracks_overview::track_title
+                                .not_like(like_expr.clone())
+                                .escape('\\'),
+                        ),
+                    };
+                }
+                if phrase_filter.fields.is_empty()
+                    || phrase_filter
+                        .fields
+                        .iter()
+                        .any(|target| *target == PhraseFilterField::AlbumTitle)
+                {
+                    target = match phrase_filter.modifier {
+                        None => target.or_filter(
+                            aux_tracks_overview::album_title
+                                .like(like_expr.clone())
+                                .escape('\\'),
+                        ),
+                        Some(FilterModifier::Inverse) => target.or_filter(
+                            aux_tracks_overview::album_title
+                                .not_like(like_expr.clone())
+                                .escape('\\'),
+                        ),
+                    };
+                }
+
+                // aux_tracks_summary (join)
+                if phrase_filter.fields.is_empty()
+                    || phrase_filter
+                        .fields
+                        .iter()
+                        .any(|target| *target == PhraseFilterField::TrackArtist)
+                {
+                    target = match phrase_filter.modifier {
+                        None => target.or_filter(
+                            aux_tracks_summary::track_artist
+                                .like(like_expr.clone())
+                                .escape('\\'),
+                        ),
+                        Some(FilterModifier::Inverse) => target.or_filter(
+                            aux_tracks_summary::track_artist
+                                .not_like(like_expr.clone())
+                                .escape('\\'),
+                        ),
+                    };
+                }
+                if phrase_filter.fields.is_empty()
+                    || phrase_filter
+                        .fields
+                        .iter()
+                        .any(|target| *target == PhraseFilterField::AlbumArtist)
+                {
+                    target = match phrase_filter.modifier {
+                        None => target.or_filter(
+                            aux_tracks_summary::album_artist
+                                .like(like_expr.clone())
+                                .escape('\\'),
+                        ),
+                        Some(FilterModifier::Inverse) => target.or_filter(
+                            aux_tracks_summary::album_artist
+                                .not_like(like_expr.clone())
+                                .escape('\\'),
+                        ),
+                    };
+                }
+
+                // aux_track_comment (subselect)
+                if phrase_filter.fields.is_empty()
+                    || phrase_filter
+                        .fields
+                        .iter()
+                        .any(|target| *target == PhraseFilterField::Comments)
+                {
+                    let subselect = aux_tracks_comment::table
+                        .select(aux_tracks_comment::track_id)
+                        .filter(
+                            aux_tracks_comment::text
+                                .like(like_expr.clone())
+                                .escape('\\'),
+                        );
+                    target = match phrase_filter.modifier {
+                        None => target.or_filter(tracks_entity::id.eq_any(subselect)),
+                        Some(FilterModifier::Inverse) => {
+                            target.or_filter(tracks_entity::id.ne_all(subselect))
+                        }
+                    };
+                }
             }
         }
 
-        // Filter tags 1st level: Conjunction
-        // TODO: Extract into a function (https://github.com/diesel-rs/diesel/issues/546)
-        for tag_filters in search_params.tag_filters.into_iter() {
-            // Filter tags 2nd level: Disjunction
-            for (index, tag_filter) in tag_filters.into_iter().enumerate() {
-                let sub_query = select_track_ids_matching_tag_filter(tag_filter);
-                target = match index {
-                    0 => target.filter(tracks_entity::id.eq_any(sub_query)),
-                    _ => target.or_filter(tracks_entity::id.eq_any(sub_query)),
-                };
+        for tag_filter in search_params.tag_filters.into_iter() {
+            // TODO: Support an additional level of tag filters that are combined
+            // by discjunction:
+            //    eq_any(1st tag filter subselect).or(eq_any(2nd tag filter subselect...))
+            // Currently Diese dynamically constructing nested filter conditions with
+            // multiple levels.
+            let (subselect, modifier) = select_track_ids_matching_tag_filter(tag_filter);
+            target = match modifier {
+                None => target.filter(tracks_entity::id.eq_any(subselect)),
+                Some(FilterModifier::Inverse) => {
+                    target.filter(tracks_entity::id.ne_all(subselect))
+                }
             }
+        }
+
+        for duration_filter in search_params.duration_filters {
+            target = match duration_filter {
+                DurationFilter::LessThan(filter_params) => match filter_params.modifier {
+                    None => {
+                        target.filter(aux_tracks_resource::audio_duration_ms.lt(filter_params.millis))
+                    }
+                    Some(FilterModifier::Inverse) => {
+                        target.filter(aux_tracks_resource::audio_duration_ms.ge(filter_params.millis))
+                    }
+                },
+                DurationFilter::GreaterThan(filter_params) => match filter_params.modifier {
+                    None => {
+                        target.filter(aux_tracks_resource::audio_duration_ms.gt(filter_params.millis))
+                    }
+                    Some(FilterModifier::Inverse) => {
+                        target.filter(aux_tracks_resource::audio_duration_ms.le(filter_params.millis))
+                    }
+                },
+                DurationFilter::EqualTo(filter_params) => match filter_params.modifier {
+                    None => {
+                        target.filter(aux_tracks_resource::audio_duration_ms.eq(filter_params.millis))
+                    }
+                    Some(FilterModifier::Inverse) => {
+                        target.filter(aux_tracks_resource::audio_duration_ms.ne(filter_params.millis))
+                    }
+                },
+            };
+        }
+
+        for tempo_filter in search_params.tempo_filters {
+            target = match tempo_filter {
+                TempoFilter::LessThan(filter_params) => match filter_params.modifier {
+                    None => {
+                        target.filter(aux_tracks_music::tempo_bpm.lt(filter_params.bpm))
+                    }
+                    Some(FilterModifier::Inverse) => {
+                        target.filter(aux_tracks_music::tempo_bpm.ge(filter_params.bpm))
+                    }
+                },
+                TempoFilter::GreaterThan(filter_params) => match filter_params.modifier {
+                    None => {
+                        target.filter(aux_tracks_music::tempo_bpm.gt(filter_params.bpm))
+                    }
+                    Some(FilterModifier::Inverse) => {
+                        target.filter(aux_tracks_music::tempo_bpm.le(filter_params.bpm))
+                    }
+                },
+                TempoFilter::EqualTo(filter_params) => match filter_params.modifier {
+                    None => {
+                        target.filter(aux_tracks_music::tempo_bpm.eq(filter_params.bpm))
+                    }
+                    Some(FilterModifier::Inverse) => {
+                        target.filter(aux_tracks_music::tempo_bpm.ne(filter_params.bpm))
+                    }
+                },
+            };
         }
 
         // Collection filter
@@ -1039,10 +1035,10 @@ impl<'a> Tracks for TrackRepository<'a> {
             target = target.filter(aux_tracks_resource::collection_uid.eq(uid.as_str()));
         };
 
-        for sort_order in search_params.sort_ordering {
+        for sort_order in search_params.ordering {
             let direction = sort_order
                 .direction
-                .unwrap_or_else(|| TrackSortOrder::default_direction(sort_order.field));
+                .unwrap_or_else(|| TrackSort::default_direction(sort_order.field));
             target =
                 match sort_order.field {
                     field @ TrackSortField::InCollectionSince => {
