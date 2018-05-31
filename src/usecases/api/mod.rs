@@ -283,6 +283,7 @@ pub struct SearchParams {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum CountableStringField {
+    MediaType,
     TrackTitle,
     AlbumTitle,
     TrackArtist,

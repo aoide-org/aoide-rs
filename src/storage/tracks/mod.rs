@@ -1285,6 +1285,27 @@ impl<'a> Tracks for TrackRepository<'a> {
                 .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()))
         });
         let rows = match field {
+            CountableStringField::MediaType => {
+                let mut target = aux_tracks_resource::table
+                    .select((
+                        aux_tracks_resource::media_type,
+                        sql::<diesel::sql_types::BigInt>("count(*) AS count"),
+                    ))
+                    .group_by(aux_tracks_resource::media_type)
+                    .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
+                    .then_order_by(aux_tracks_resource::media_type)
+                    .into_boxed();
+                if let Some(collection_uid) = collection_uid {
+                    target =
+                        target.filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()));
+                }
+                let rows = target.load::<(String, i64)>(self.connection)?;
+                // TODO: Remove this transformation and select media_type
+                // as a nullable column?!
+                rows.into_iter()
+                    .map(|(media_type, count)| (Some(media_type), count))
+                    .collect()
+            }
             CountableStringField::TrackTitle => {
                 let mut target = aux_tracks_overview::table
                     .select((
