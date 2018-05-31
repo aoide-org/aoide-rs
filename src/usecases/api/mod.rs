@@ -304,8 +304,8 @@ pub struct StringFieldCounts {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct ContentTypeStats {
-    pub content_type: String,
+pub struct MediaTypeStats {
+    pub media_type: String,
     pub count: usize,
 }
 
@@ -314,5 +314,5 @@ pub struct ContentTypeStats {
 pub struct ResourceStats {
     pub count: usize,
     pub duration: Duration,
-    pub content_types: Vec<ContentTypeStats>,
+    pub media_types: Vec<MediaTypeStats>,
 }

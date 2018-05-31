@@ -98,7 +98,7 @@ pub struct TrackSource {
     pub synchronization: Option<TrackSynchronization>, // most recent metadata import/export
 
     #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub content_type: String,
+    pub media_type: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub audio_content: Option<AudioContent>,
@@ -113,7 +113,7 @@ impl TrackSource {
         // "file:///path/to/local/file.txt"
         // Crate url: Doesn't care about reserved characters, e.g. parses
         // "file:///path to local/file.txt" successfully
-        !self.uri.is_empty() && !self.content_type.is_empty()
+        !self.uri.is_empty() && !self.media_type.is_empty()
     }
 }
 

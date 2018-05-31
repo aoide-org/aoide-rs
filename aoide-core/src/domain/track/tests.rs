@@ -38,7 +38,7 @@ fn serialize_json() {
             when: Utc::now(),
             revision: EntityRevision::initial(),
         }),
-        content_type: mime_guess::guess_mime_type(uri).to_string(),
+        media_type: mime_guess::guess_mime_type(uri).to_string(),
         audio_content: None,
     };
     let resources = vec![

@@ -198,7 +198,7 @@ pub struct InsertableTracksResource<'a> {
     pub source_sync_when: Option<NaiveDateTime>,
     pub source_sync_rev_ordinal: Option<i64>,
     pub source_sync_rev_timestamp: Option<NaiveDateTime>,
-    pub content_type: &'a str,
+    pub media_type: &'a str,
     pub audio_duration_ms: Option<f64>,
     pub audio_channels: Option<i16>,
     pub audio_samplerate_hz: Option<i32>,
@@ -228,7 +228,7 @@ impl<'a> InsertableTracksResource<'a> {
                 .source
                 .synchronization
                 .map(|sync| sync.revision.timestamp().naive_utc()),
-            content_type: track_resource.source.content_type.as_str(),
+            media_type: track_resource.source.media_type.as_str(),
             audio_duration_ms: track_resource
                 .source
                 .audio_content

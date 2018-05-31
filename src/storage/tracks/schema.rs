@@ -39,7 +39,7 @@ table! {
         source_sync_when -> Nullable<Timestamp>,
         source_sync_rev_ordinal -> Nullable<BigInt>,
         source_sync_rev_timestamp -> Nullable<Timestamp>,
-        content_type -> Text,
+        media_type -> Text,
         audio_duration_ms -> Nullable<Double>,
         audio_channels -> Nullable<SmallInt>,
         audio_samplerate_hz -> Nullable<Integer>,

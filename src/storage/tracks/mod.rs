@@ -1374,13 +1374,13 @@ impl<'a> Tracks for TrackRepository<'a> {
             .map(|millis| Duration { millis })
             .unwrap_or(Duration::EMPTY);
 
-        let content_types = {
+        let media_types = {
             let mut target = aux_tracks_resource::table
                 .select((
-                    aux_tracks_resource::content_type,
+                    aux_tracks_resource::media_type,
                     sql::<diesel::sql_types::BigInt>("count(*) AS count"),
                 ))
-                .group_by(aux_tracks_resource::content_type)
+                .group_by(aux_tracks_resource::media_type)
                 .into_boxed();
             // Collection filtering
             target = match collection_uid {
@@ -1388,20 +1388,20 @@ impl<'a> Tracks for TrackRepository<'a> {
                 None => target,
             };
             let rows = target.load::<(String, i64)>(self.connection)?;
-            let mut content_types: Vec<ContentTypeStats> = Vec::with_capacity(rows.len());
+            let mut media_types: Vec<MediaTypeStats> = Vec::with_capacity(rows.len());
             for row in rows.into_iter() {
-                content_types.push(ContentTypeStats {
-                    content_type: row.0,
+                media_types.push(MediaTypeStats {
+                    media_type: row.0,
                     count: row.1 as usize,
                 });
             }
-            content_types
+            media_types
         };
 
         Ok(ResourceStats {
             count: total_count,
             duration: total_duration,
-            content_types,
+            media_types,
         })
     }
 }
