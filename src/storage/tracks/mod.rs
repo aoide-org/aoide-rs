@@ -1291,7 +1291,6 @@ impl<'a> Tracks for TrackRepository<'a> {
                         aux_tracks_overview::track_title,
                         sql::<diesel::sql_types::BigInt>("count(*) AS count"),
                     ))
-                    .filter(aux_tracks_overview::track_title.is_not_null())
                     .group_by(aux_tracks_overview::track_title)
                     .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
                     .then_order_by(aux_tracks_overview::track_title)
@@ -1308,7 +1307,6 @@ impl<'a> Tracks for TrackRepository<'a> {
                         aux_tracks_overview::album_title,
                         sql::<diesel::sql_types::BigInt>("count(*) AS count"),
                     ))
-                    .filter(aux_tracks_overview::album_title.is_not_null())
                     .group_by(aux_tracks_overview::album_title)
                     .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
                     .then_order_by(aux_tracks_overview::album_title)
@@ -1325,7 +1323,6 @@ impl<'a> Tracks for TrackRepository<'a> {
                         aux_tracks_summary::track_artist,
                         sql::<diesel::sql_types::BigInt>("count(*) AS count"),
                     ))
-                    .filter(aux_tracks_summary::track_artist.is_not_null())
                     .group_by(aux_tracks_summary::track_artist)
                     .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
                     .then_order_by(aux_tracks_summary::track_artist)
@@ -1341,7 +1338,6 @@ impl<'a> Tracks for TrackRepository<'a> {
                         aux_tracks_summary::album_artist,
                         sql::<diesel::sql_types::BigInt>("count(*) AS count"),
                     ))
-                    .filter(aux_tracks_summary::album_artist.is_not_null())
                     .group_by(aux_tracks_summary::album_artist)
                     .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
                     .then_order_by(aux_tracks_summary::album_artist)
