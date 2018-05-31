@@ -19,6 +19,6 @@ use super::*;
 fn default_tag_filter() {
     assert_eq!(TagFilter::any_facet(), TagFilter::default().facet);
     assert_ne!(TagFilter::no_facet(), TagFilter::default().facet);
-    assert_eq!(TagFilter::any_term(), TagFilter::default().term_filter);
-    assert_eq!(TagFilter::any_score(), TagFilter::default().score_filter);
+    assert_eq!(TagFilter::any_term(), TagFilter::default().term_condition);
+    assert_eq!(TagFilter::any_score(), TagFilter::default().score_condition);
 }

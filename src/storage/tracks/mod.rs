@@ -491,71 +491,71 @@ where
     }
 
     // Filter tag term
-    if let Some(term_filter) = tag_filter.term_filter {
-        let (either_eq_or_like, modifier) = match term_filter {
+    if let Some(term_condition) = tag_filter.term_condition {
+        let (either_eq_or_like, modifier) = match term_condition {
             // Equal comparison
-            StringFilter::Matches(filter_params) => (
-                EitherEqualOrLike::Equal(filter_params.value),
-                filter_params.modifier,
+            StringCondition::Matches(condition_params) => (
+                EitherEqualOrLike::Equal(condition_params.value),
+                condition_params.modifier,
             ),
             // Like comparison: Escape wildcard character with backslash (see below)
-            StringFilter::StartsWith(filter_params) => (
+            StringCondition::StartsWith(condition_params) => (
                 EitherEqualOrLike::Like(format!(
                     "{}%",
-                    filter_params
+                    condition_params
                         .value
                         .replace('\\', "\\\\")
                         .replace('%', "\\%")
                 )),
-                filter_params.modifier,
+                condition_params.modifier,
             ),
-            StringFilter::EndsWith(filter_params) => (
+            StringCondition::EndsWith(condition_params) => (
                 EitherEqualOrLike::Like(format!(
                     "%{}",
-                    filter_params
+                    condition_params
                         .value
                         .replace('\\', "\\\\")
                         .replace('%', "\\%")
                 )),
-                filter_params.modifier,
+                condition_params.modifier,
             ),
-            StringFilter::Contains(filter_params) => (
+            StringCondition::Contains(condition_params) => (
                 EitherEqualOrLike::Like(format!(
                     "%{}%",
-                    filter_params
+                    condition_params
                         .value
                         .replace('\\', "\\\\")
                         .replace('%', "\\%")
                 )),
-                filter_params.modifier,
+                condition_params.modifier,
             ),
         };
         select = match either_eq_or_like {
             EitherEqualOrLike::Equal(eq) => match modifier {
                 None => select.filter(aux_tracks_tag::term.eq(eq)),
-                Some(FilterModifier::Inverse) => select.filter(aux_tracks_tag::term.ne(eq)),
+                Some(ConditionModifier::Complement) => select.filter(aux_tracks_tag::term.ne(eq)),
             }
             EitherEqualOrLike::Like(like) => match modifier {
                 None => select.filter(aux_tracks_tag::term.like(like).escape('\\')),
-                Some(FilterModifier::Inverse) => select.filter(aux_tracks_tag::term.not_like(like).escape('\\')),
+                Some(ConditionModifier::Complement) => select.filter(aux_tracks_tag::term.not_like(like).escape('\\')),
             }
         };
     }
 
     // Filter tag score
-    if let Some(score_filter) = tag_filter.score_filter {
-        select = match score_filter {
-            ScoreFilter::LessThan(filter_params) => match filter_params.modifier {
-                None => select.filter(aux_tracks_tag::score.lt(*filter_params.value)),
-                Some(FilterModifier::Inverse) => select.filter(aux_tracks_tag::score.ge(*filter_params.value)),
+    if let Some(score_condition) = tag_filter.score_condition {
+        select = match score_condition {
+            ScoreCondition::LessThan(condition_params) => match condition_params.modifier {
+                None => select.filter(aux_tracks_tag::score.lt(*condition_params.value)),
+                Some(ConditionModifier::Complement) => select.filter(aux_tracks_tag::score.ge(*condition_params.value)),
             }
-            ScoreFilter::GreaterThan(filter_params) => match filter_params.modifier {
-                None => select.filter(aux_tracks_tag::score.gt(*filter_params.value)),
-                Some(FilterModifier::Inverse) => select.filter(aux_tracks_tag::score.le(*filter_params.value)),
+            ScoreCondition::GreaterThan(condition_params) => match condition_params.modifier {
+                None => select.filter(aux_tracks_tag::score.gt(*condition_params.value)),
+                Some(ConditionModifier::Complement) => select.filter(aux_tracks_tag::score.le(*condition_params.value)),
             }
-            ScoreFilter::EqualTo(filter_params) => match filter_params.modifier {
-                None => select.filter(aux_tracks_tag::score.eq(*filter_params.value)),
-                Some(FilterModifier::Inverse) => select.filter(aux_tracks_tag::score.ne(*filter_params.value)),
+            ScoreCondition::EqualTo(condition_params) => match condition_params.modifier {
+                None => select.filter(aux_tracks_tag::score.eq(*condition_params.value)),
+                Some(ConditionModifier::Complement) => select.filter(aux_tracks_tag::score.ne(*condition_params.value)),
             }
         };
     }
@@ -641,7 +641,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         replace_params: ReplaceParams,
         format: SerializationFormat,
     ) -> TracksResult<TrackEntityReplacement> {
-        let uri_filter = StringFilter::Matches(StringFilterParams {
+        let uri_filter = StringCondition::Matches(StringConditionParams {
             value: replace_params.uri.clone(),
             modifier: None,
         });
@@ -721,52 +721,52 @@ impl<'a> Tracks for TrackRepository<'a> {
         // URI filter
         let (either_eq_or_like, modifier) = match locate_params.uri_filter {
             // Equal comparison
-            StringFilter::Matches(filter_params) => (
-                EitherEqualOrLike::Equal(filter_params.value),
-                filter_params.modifier,
+            StringCondition::Matches(condition_params) => (
+                EitherEqualOrLike::Equal(condition_params.value),
+                condition_params.modifier,
             ),
             // Like comparison: Escape wildcard character with backslash (see below)
-            StringFilter::StartsWith(filter_params) => (
+            StringCondition::StartsWith(condition_params) => (
                 EitherEqualOrLike::Like(format!(
                     "{}%",
-                    filter_params
+                    condition_params
                         .value
                         .replace('\\', "\\\\")
                         .replace('%', "\\%")
                 )),
-                filter_params.modifier,
+                condition_params.modifier,
             ),
-            StringFilter::EndsWith(filter_params) => (
+            StringCondition::EndsWith(condition_params) => (
                 EitherEqualOrLike::Like(format!(
                     "%{}",
-                    filter_params
+                    condition_params
                         .value
                         .replace('\\', "\\\\")
                         .replace('%', "\\%")
                 )),
-                filter_params.modifier,
+                condition_params.modifier,
             ),
-            StringFilter::Contains(filter_params) => (
+            StringCondition::Contains(condition_params) => (
                 EitherEqualOrLike::Like(format!(
                     "%{}%",
-                    filter_params
+                    condition_params
                         .value
                         .replace('\\', "\\\\")
                         .replace('%', "\\%")
                 )),
-                filter_params.modifier,
+                condition_params.modifier,
             ),
         };
         target = match either_eq_or_like {
             EitherEqualOrLike::Equal(eq) => match modifier {
                 None => target.filter(aux_tracks_resource::source_uri.eq(eq)),
-                Some(FilterModifier::Inverse) => {
+                Some(ConditionModifier::Complement) => {
                     target.filter(aux_tracks_resource::source_uri.ne(eq))
                 }
             },
             EitherEqualOrLike::Like(like) => match modifier {
                 None => target.filter(aux_tracks_resource::source_uri.like(like).escape('\\')),
-                Some(FilterModifier::Inverse) => {
+                Some(ConditionModifier::Complement) => {
                     target.filter(aux_tracks_resource::source_uri.not_like(like).escape('\\'))
                 }
             },
@@ -947,8 +947,6 @@ impl<'a> Tracks for TrackRepository<'a> {
                                 .like(like_expr.clone())
                                 .escape('\\'),
                         );
-                    // The modifier has to be applied to the subselect instead
-                    // of inverting the like query itself!
                     target = match phrase_filter.modifier {
                         None => target.or_filter(tracks_entity::id.eq_any(subselect)),
                         Some(FilterModifier::Inverse) => {
@@ -960,13 +958,8 @@ impl<'a> Tracks for TrackRepository<'a> {
         }
 
         for tag_filter in search_params.tag_filters.into_iter() {
-            // TODO: Support an additional level of tag filters that are combined
-            // by disjunction:
-            //    eq_any(1st tag filter subselect).or(eq_any(2nd tag filter subselect...))
-            // Currently Diese dynamically constructing nested filter conditions with
-            // multiple levels.
-            let (subselect, modifier) = select_track_ids_matching_tag_filter(tag_filter);
-            target = match modifier {
+            let (subselect, filter_modifier) = select_track_ids_matching_tag_filter(tag_filter);
+            target = match filter_modifier {
                 None => target.filter(tracks_entity::id.eq_any(subselect)),
                 Some(FilterModifier::Inverse) => {
                     target.filter(tracks_entity::id.ne_all(subselect))
@@ -976,55 +969,55 @@ impl<'a> Tracks for TrackRepository<'a> {
 
         for numeric_filter in search_params.numeric_filters {
             target = match numeric_filter.field {
-                NumericField::DurationMs => match numeric_filter.value {
-                    NumericValueFilter::LessThan(filter_params) => match filter_params.modifier {
+                NumericField::DurationMs => match numeric_filter.condition {
+                    NumericValueCondition::LessThan(condition_params) => match condition_params.modifier {
                         None => {
-                            target.filter(aux_tracks_resource::audio_duration_ms.lt(filter_params.value))
+                            target.filter(aux_tracks_resource::audio_duration_ms.lt(condition_params.value))
                         }
-                        Some(FilterModifier::Inverse) => {
-                            target.filter(aux_tracks_resource::audio_duration_ms.ge(filter_params.value))
+                        Some(ConditionModifier::Complement) => {
+                            target.filter(aux_tracks_resource::audio_duration_ms.ge(condition_params.value))
                         }
                     }
-                    NumericValueFilter::GreaterThan(filter_params) => match filter_params.modifier {
+                    NumericValueCondition::GreaterThan(condition_params) => match condition_params.modifier {
                         None => {
-                            target.filter(aux_tracks_resource::audio_duration_ms.gt(filter_params.value))
+                            target.filter(aux_tracks_resource::audio_duration_ms.gt(condition_params.value))
                         }
-                        Some(FilterModifier::Inverse) => {
-                            target.filter(aux_tracks_resource::audio_duration_ms.le(filter_params.value))
+                        Some(ConditionModifier::Complement) => {
+                            target.filter(aux_tracks_resource::audio_duration_ms.le(condition_params.value))
                         }
                     }
-                    NumericValueFilter::EqualTo(filter_params) => match filter_params.modifier {
+                    NumericValueCondition::EqualTo(condition_params) => match condition_params.modifier {
                         None => {
-                            target.filter(aux_tracks_resource::audio_duration_ms.eq(filter_params.value))
+                            target.filter(aux_tracks_resource::audio_duration_ms.eq(condition_params.value))
                         }
-                        Some(FilterModifier::Inverse) => {
-                            target.filter(aux_tracks_resource::audio_duration_ms.ne(filter_params.value))
+                        Some(ConditionModifier::Complement) => {
+                            target.filter(aux_tracks_resource::audio_duration_ms.ne(condition_params.value))
                         }
                     }
                 }
-                NumericField::TempoBpm => match numeric_filter.value {
-                    NumericValueFilter::LessThan(filter_params) => match filter_params.modifier {
+                NumericField::TempoBpm => match numeric_filter.condition {
+                    NumericValueCondition::LessThan(condition_params) => match condition_params.modifier {
                         None => {
-                            target.filter(aux_tracks_music::tempo_bpm.lt(filter_params.value))
+                            target.filter(aux_tracks_music::tempo_bpm.lt(condition_params.value))
                         }
-                        Some(FilterModifier::Inverse) => {
-                            target.filter(aux_tracks_music::tempo_bpm.ge(filter_params.value))
+                        Some(ConditionModifier::Complement) => {
+                            target.filter(aux_tracks_music::tempo_bpm.ge(condition_params.value))
                         }
                     },
-                    NumericValueFilter::GreaterThan(filter_params) => match filter_params.modifier {
+                    NumericValueCondition::GreaterThan(condition_params) => match condition_params.modifier {
                         None => {
-                            target.filter(aux_tracks_music::tempo_bpm.gt(filter_params.value))
+                            target.filter(aux_tracks_music::tempo_bpm.gt(condition_params.value))
                         }
-                        Some(FilterModifier::Inverse) => {
-                            target.filter(aux_tracks_music::tempo_bpm.le(filter_params.value))
+                        Some(ConditionModifier::Complement) => {
+                            target.filter(aux_tracks_music::tempo_bpm.le(condition_params.value))
                         }
                     },
-                    NumericValueFilter::EqualTo(filter_params) => match filter_params.modifier {
+                    NumericValueCondition::EqualTo(condition_params) => match condition_params.modifier {
                         None => {
-                            target.filter(aux_tracks_music::tempo_bpm.eq(filter_params.value))
+                            target.filter(aux_tracks_music::tempo_bpm.eq(condition_params.value))
                         }
-                        Some(FilterModifier::Inverse) => {
-                            target.filter(aux_tracks_music::tempo_bpm.ne(filter_params.value))
+                        Some(ConditionModifier::Complement) => {
+                            target.filter(aux_tracks_music::tempo_bpm.ne(condition_params.value))
                         }
                     },
                 }

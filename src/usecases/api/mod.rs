@@ -49,43 +49,49 @@ impl Pagination {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub enum ConditionModifier {
+    Complement,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum FilterModifier {
     Inverse,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct StringFilterParams {
+pub struct StringConditionParams {
     pub value: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub modifier: Option<FilterModifier>,
+    pub modifier: Option<ConditionModifier>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub enum StringFilter {
-    StartsWith(StringFilterParams), // head
-    EndsWith(StringFilterParams),   // tail
-    Contains(StringFilterParams),   // part
-    Matches(StringFilterParams),    // all
+pub enum StringCondition {
+    StartsWith(StringConditionParams), // head
+    EndsWith(StringConditionParams),   // tail
+    Contains(StringConditionParams),   // part
+    Matches(StringConditionParams),    // all
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct ScoreFilterParams {
+pub struct ScoreConditionParams {
     pub value: Score,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub modifier: Option<FilterModifier>,
+    pub modifier: Option<ConditionModifier>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub enum ScoreFilter {
-    LessThan(ScoreFilterParams),
-    GreaterThan(ScoreFilterParams),
-    EqualTo(ScoreFilterParams),
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub enum ScoreCondition {
+    LessThan(ScoreConditionParams),
+    GreaterThan(ScoreConditionParams),
+    EqualTo(ScoreConditionParams),
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -97,10 +103,10 @@ pub struct TagFilter {
     pub facet: Option<String>,
 
     #[serde(rename = "term", skip_serializing_if = "Option::is_none")]
-    pub term_filter: Option<StringFilter>,
+    pub term_condition: Option<StringCondition>,
 
     #[serde(rename = "score", skip_serializing_if = "Option::is_none")]
-    pub score_filter: Option<ScoreFilter>,
+    pub score_condition: Option<ScoreCondition>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub modifier: Option<FilterModifier>,
@@ -115,11 +121,11 @@ impl TagFilter {
         Some(String::default())
     }
 
-    pub fn any_term() -> Option<StringFilter> {
+    pub fn any_term() -> Option<StringCondition> {
         None
     }
 
-    pub fn any_score() -> Option<ScoreFilter> {
+    pub fn any_score() -> Option<ScoreCondition> {
         None
     }
 }
@@ -141,19 +147,19 @@ pub type NumericValue = f64;
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct NumericValueFilterParams {
+pub struct NumericValueConditionParams {
     pub value: NumericValue,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub modifier: Option<FilterModifier>,
+    pub modifier: Option<ConditionModifier>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub enum NumericValueFilter {
-    LessThan(NumericValueFilterParams),
-    GreaterThan(NumericValueFilterParams),
-    EqualTo(NumericValueFilterParams),
+pub enum NumericValueCondition {
+    LessThan(NumericValueConditionParams),
+    GreaterThan(NumericValueConditionParams),
+    EqualTo(NumericValueConditionParams),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -161,7 +167,7 @@ pub enum NumericValueFilter {
 pub struct NumericFilter {
     pub field: NumericField,
 
-    pub value: NumericValueFilter,
+    pub condition: NumericValueCondition,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -195,7 +201,7 @@ pub struct PhraseFilter {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LocateParams {
     #[serde(rename = "uri")]
-    pub uri_filter: StringFilter,
+    pub uri_filter: StringCondition,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
