@@ -133,10 +133,10 @@ impl TagFilter {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum NumericField {
-    ChannelCount,
+    ChannelsCount,
     DurationMs,
-    SampleRateHz,
-    BitRateBps,
+    SamplerateHz,
+    BitrateBps,
     TempoBpm,
     KeySignatureCode,
     TimeSignatureNum,

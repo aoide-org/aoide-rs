@@ -26,7 +26,7 @@
                         "contentType": "audio/mpeg",
                         "audioContent": {
                             "duration": {
-                                "millis": 202821
+                                "ms": 202821
                             },
                             "channels": {
                                 "count": 2

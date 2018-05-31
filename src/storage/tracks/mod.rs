@@ -1014,7 +1014,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                         }
                     }
                 }
-                NumericField::SampleRateHz => match numeric_filter.condition {
+                NumericField::SamplerateHz => match numeric_filter.condition {
                     NumericValueCondition::LessThan(condition_params) => match condition_params.modifier {
                         None => {
                             target.filter(aux_tracks_resource::audio_samplerate_hz.lt(condition_params.value as i32))
@@ -1040,7 +1040,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                         }
                     }
                 }
-                NumericField::BitRateBps => match numeric_filter.condition {
+                NumericField::BitrateBps => match numeric_filter.condition {
                     NumericValueCondition::LessThan(condition_params) => match condition_params.modifier {
                         None => {
                             target.filter(aux_tracks_resource::audio_bitrate_bps.lt(condition_params.value as i32))
@@ -1066,7 +1066,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                         }
                     }
                 }
-                NumericField::ChannelCount => match numeric_filter.condition {
+                NumericField::ChannelsCount => match numeric_filter.condition {
                     NumericValueCondition::LessThan(condition_params) => match condition_params.modifier {
                         None => {
                             target.filter(aux_tracks_resource::audio_channels.lt(condition_params.value as i16))
@@ -1407,7 +1407,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             target.first::<Option<f64>>(self.connection)?
         };
         let total_duration = total_duration_ms
-            .map(|millis| Duration { millis })
+            .map(|ms| Duration { ms })
             .unwrap_or(Duration::EMPTY);
 
         let media_types = {

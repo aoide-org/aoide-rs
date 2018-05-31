@@ -31,16 +31,16 @@ pub type DurationValue = f64;
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Duration {
-    pub millis: DurationValue,
+    pub ms: DurationValue,
 }
 
 impl Duration {
     pub const UNIT_OF_MEASURE: &'static str = "ms";
 
-    pub const EMPTY: Duration = Duration { millis: 0 as DurationValue };
+    pub const EMPTY: Duration = Duration { ms: 0 as DurationValue };
 
-    pub fn millis(millis: DurationValue) -> Self {
-        Self { millis }
+    pub fn ms(ms: DurationValue) -> Self {
+        Self { ms }
     }
 
     pub fn is_valid(&self) -> bool {
@@ -54,7 +54,7 @@ impl Duration {
 
 impl fmt::Display for Duration {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", self.millis, Duration::UNIT_OF_MEASURE)
+        write!(f, "{} {}", self.ms, Duration::UNIT_OF_MEASURE)
     }
 }
 

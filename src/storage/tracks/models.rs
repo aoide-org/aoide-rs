@@ -233,7 +233,7 @@ impl<'a> InsertableTracksResource<'a> {
                 .source
                 .audio_content
                 .as_ref()
-                .map(|audio| audio.duration.millis),
+                .map(|audio| audio.duration.ms),
             audio_channels: track_resource
                 .source
                 .audio_content

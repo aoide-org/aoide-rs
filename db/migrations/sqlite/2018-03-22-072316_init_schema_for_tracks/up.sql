@@ -54,7 +54,7 @@ CREATE TABLE aux_tracks_resource (
     source_sync_rev_timestamp DATETIME,         -- most recent metadata synchronization
     media_type               TEXT NOT NULL,     -- RFC 6838
     audio_duration_ms        REAL,              -- milliseconds
-    audio_channels           INTEGER,           -- number of channels
+    audio_channels_count     INTEGER,           -- number of channels
     audio_samplerate_hz      INTEGER,           -- Hz
     audio_bitrate_bps        INTEGER,           -- bits per second (bps)
     audio_enc_name           TEXT,              -- encoded by

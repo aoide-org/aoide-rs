@@ -41,7 +41,7 @@ table! {
         source_sync_rev_timestamp -> Nullable<Timestamp>,
         media_type -> Text,
         audio_duration_ms -> Nullable<Double>,
-        audio_channels -> Nullable<SmallInt>,
+        audio_channels_count -> Nullable<SmallInt>,
         audio_samplerate_hz -> Nullable<Integer>,
         audio_bitrate_bps -> Nullable<Integer>,
         audio_enc_name -> Nullable<Text>,
