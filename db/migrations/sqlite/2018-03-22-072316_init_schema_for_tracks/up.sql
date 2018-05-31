@@ -114,9 +114,9 @@ CREATE TABLE aux_tracks_music (
     track_id                 INTEGER NOT NULL,
     loudness_db              REAL NOT NULL, -- LUFS dB
     tempo_bpm                REAL NOT NULL, -- beats per minute (bpm)
-    time_sig_num             TINYINT NOT NULL, -- >= 0
-    time_sig_denom           TINYINT NOT NULL, -- >= 0
-    key_sig_code             TINYINT NOT NULL, -- {(0), 1, ..., 24}
+    timesig_num              TINYINT NOT NULL, -- >= 0
+    timesig_denom            TINYINT NOT NULL, -- >= 0
+    keysig_code              TINYINT NOT NULL, -- {(0), 1, ..., 24}
     acousticness_score       REAL, -- [0.0, 1.0]
     danceability_score       REAL, -- [0.0, 1.0]
     energy_score             REAL, -- [0.0, 1.0]

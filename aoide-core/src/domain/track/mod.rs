@@ -378,11 +378,11 @@ pub struct MusicMetadata {
     #[serde(skip_serializing_if = "Tempo::is_default", default)]
     pub tempo: Tempo,
 
-    #[serde(skip_serializing_if = "TimeSignature::is_default", default)]
-    pub time_signature: TimeSignature,
-
-    #[serde(skip_serializing_if = "KeySignature::is_default", default)]
+    #[serde(rename = "keysig", skip_serializing_if = "KeySignature::is_default", default)]
     pub key_signature: KeySignature,
+
+    #[serde(rename = "timesig", skip_serializing_if = "TimeSignature::is_default", default)]
+    pub time_signature: TimeSignature,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub classifications: Vec<Classification>, // no duplicate subjects allowed

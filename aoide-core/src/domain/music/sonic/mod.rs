@@ -103,7 +103,10 @@ pub type KeyCode = u8;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "lowercase")]
 pub enum KeyMode {
+    #[serde(rename = "maj")]
     Major,
+
+    #[serde(rename = "min")]
     Minor,
 }
 
@@ -160,6 +163,7 @@ impl fmt::Display for KeySignature {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct OpenKeySignature {
+    #[serde(rename = "keysig")]
     key_signature: KeySignature,
 }
 
@@ -228,6 +232,7 @@ impl fmt::Display for OpenKeySignature {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LancelotKeySignature {
+    #[serde(rename = "keysig")]
     key_signature: KeySignature,
 }
 
@@ -296,6 +301,7 @@ impl fmt::Display for LancelotKeySignature {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EngineKeySignature {
+    #[serde(rename = "keysig")]
     key_signature: KeySignature,
 }
 
@@ -346,7 +352,10 @@ impl From<EngineKeySignature> for KeySignature {
 #[derive(Clone, Copy, Default, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TimeSignature {
-    pub numerator: u8,   // number of beats in each bar, 0 = default/undefined
+    #[serde(rename = "num")]
+    pub numerator: u8, // number of beats in each bar, 0 = default/undefined
+
+    #[serde(rename = "denom")]
     pub denominator: u8, // symbol length of each beat, 0 = default/undefined
 }
 

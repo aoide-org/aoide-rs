@@ -1069,26 +1069,26 @@ impl<'a> Tracks for TrackRepository<'a> {
                 NumericField::ChannelsCount => match numeric_filter.condition {
                     NumericValueCondition::LessThan(condition_params) => match condition_params.modifier {
                         None => {
-                            target.filter(aux_tracks_resource::audio_channels.lt(condition_params.value as i16))
+                            target.filter(aux_tracks_resource::audio_channels_count.lt(condition_params.value as i16))
                         }
                         Some(ConditionModifier::Complement) => {
-                            target.filter(aux_tracks_resource::audio_channels.ge(condition_params.value as i16))
+                            target.filter(aux_tracks_resource::audio_channels_count.ge(condition_params.value as i16))
                         }
                     }
                     NumericValueCondition::GreaterThan(condition_params) => match condition_params.modifier {
                         None => {
-                            target.filter(aux_tracks_resource::audio_channels.gt(condition_params.value as i16))
+                            target.filter(aux_tracks_resource::audio_channels_count.gt(condition_params.value as i16))
                         }
                         Some(ConditionModifier::Complement) => {
-                            target.filter(aux_tracks_resource::audio_channels.le(condition_params.value as i16))
+                            target.filter(aux_tracks_resource::audio_channels_count.le(condition_params.value as i16))
                         }
                     }
                     NumericValueCondition::EqualTo(condition_params) => match condition_params.modifier {
                         None => {
-                            target.filter(aux_tracks_resource::audio_channels.eq(condition_params.value as i16))
+                            target.filter(aux_tracks_resource::audio_channels_count.eq(condition_params.value as i16))
                         }
                         Some(ConditionModifier::Complement) => {
-                            target.filter(aux_tracks_resource::audio_channels.ne(condition_params.value as i16))
+                            target.filter(aux_tracks_resource::audio_channels_count.ne(condition_params.value as i16))
                         }
                     }
                 }
@@ -1118,81 +1118,81 @@ impl<'a> Tracks for TrackRepository<'a> {
                         }
                     },
                 }
-                NumericField::KeySignatureCode => match numeric_filter.condition {
+                NumericField::KeysigCode => match numeric_filter.condition {
                     NumericValueCondition::LessThan(condition_params) => match condition_params.modifier {
                         None => {
-                            target.filter(aux_tracks_music::key_sig_code.lt(condition_params.value as i16))
+                            target.filter(aux_tracks_music::keysig_code.lt(condition_params.value as i16))
                         }
                         Some(ConditionModifier::Complement) => {
-                            target.filter(aux_tracks_music::key_sig_code.ge(condition_params.value as i16))
+                            target.filter(aux_tracks_music::keysig_code.ge(condition_params.value as i16))
                         }
                     },
                     NumericValueCondition::GreaterThan(condition_params) => match condition_params.modifier {
                         None => {
-                            target.filter(aux_tracks_music::key_sig_code.gt(condition_params.value as i16))
+                            target.filter(aux_tracks_music::keysig_code.gt(condition_params.value as i16))
                         }
                         Some(ConditionModifier::Complement) => {
-                            target.filter(aux_tracks_music::key_sig_code.le(condition_params.value as i16))
+                            target.filter(aux_tracks_music::keysig_code.le(condition_params.value as i16))
                         }
                     },
                     NumericValueCondition::EqualTo(condition_params) => match condition_params.modifier {
                         None => {
-                            target.filter(aux_tracks_music::key_sig_code.eq(condition_params.value as i16))
+                            target.filter(aux_tracks_music::keysig_code.eq(condition_params.value as i16))
                         }
                         Some(ConditionModifier::Complement) => {
-                            target.filter(aux_tracks_music::key_sig_code.ne(condition_params.value as i16))
+                            target.filter(aux_tracks_music::keysig_code.ne(condition_params.value as i16))
                         }
                     },
                 }
-                NumericField::TimeSignatureNum => match numeric_filter.condition {
+                NumericField::TimesigNum => match numeric_filter.condition {
                     NumericValueCondition::LessThan(condition_params) => match condition_params.modifier {
                         None => {
-                            target.filter(aux_tracks_music::time_sig_num.lt(condition_params.value as i16))
+                            target.filter(aux_tracks_music::timesig_num.lt(condition_params.value as i16))
                         }
                         Some(ConditionModifier::Complement) => {
-                            target.filter(aux_tracks_music::time_sig_num.ge(condition_params.value as i16))
+                            target.filter(aux_tracks_music::timesig_num.ge(condition_params.value as i16))
                         }
                     },
                     NumericValueCondition::GreaterThan(condition_params) => match condition_params.modifier {
                         None => {
-                            target.filter(aux_tracks_music::time_sig_num.gt(condition_params.value as i16))
+                            target.filter(aux_tracks_music::timesig_num.gt(condition_params.value as i16))
                         }
                         Some(ConditionModifier::Complement) => {
-                            target.filter(aux_tracks_music::time_sig_num.le(condition_params.value as i16))
+                            target.filter(aux_tracks_music::timesig_num.le(condition_params.value as i16))
                         }
                     },
                     NumericValueCondition::EqualTo(condition_params) => match condition_params.modifier {
                         None => {
-                            target.filter(aux_tracks_music::time_sig_num.eq(condition_params.value as i16))
+                            target.filter(aux_tracks_music::timesig_num.eq(condition_params.value as i16))
                         }
                         Some(ConditionModifier::Complement) => {
-                            target.filter(aux_tracks_music::time_sig_num.ne(condition_params.value as i16))
+                            target.filter(aux_tracks_music::timesig_num.ne(condition_params.value as i16))
                         }
                     },
                 }
-                NumericField::TimeSignatureDenom => match numeric_filter.condition {
+                NumericField::TimesigDenom => match numeric_filter.condition {
                     NumericValueCondition::LessThan(condition_params) => match condition_params.modifier {
                         None => {
-                            target.filter(aux_tracks_music::time_sig_denom.lt(condition_params.value as i16))
+                            target.filter(aux_tracks_music::timesig_denom.lt(condition_params.value as i16))
                         }
                         Some(ConditionModifier::Complement) => {
-                            target.filter(aux_tracks_music::time_sig_denom.ge(condition_params.value as i16))
+                            target.filter(aux_tracks_music::timesig_denom.ge(condition_params.value as i16))
                         }
                     },
                     NumericValueCondition::GreaterThan(condition_params) => match condition_params.modifier {
                         None => {
-                            target.filter(aux_tracks_music::time_sig_denom.gt(condition_params.value as i16))
+                            target.filter(aux_tracks_music::timesig_denom.gt(condition_params.value as i16))
                         }
                         Some(ConditionModifier::Complement) => {
-                            target.filter(aux_tracks_music::time_sig_denom.le(condition_params.value as i16))
+                            target.filter(aux_tracks_music::timesig_denom.le(condition_params.value as i16))
                         }
                     },
                     NumericValueCondition::EqualTo(condition_params) => match condition_params.modifier {
                         None => {
-                            target.filter(aux_tracks_music::time_sig_denom.eq(condition_params.value as i16))
+                            target.filter(aux_tracks_music::timesig_denom.eq(condition_params.value as i16))
                         }
                         Some(ConditionModifier::Complement) => {
-                            target.filter(aux_tracks_music::time_sig_denom.ne(condition_params.value as i16))
+                            target.filter(aux_tracks_music::timesig_denom.ne(condition_params.value as i16))
                         }
                     },
                 }

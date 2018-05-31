@@ -200,7 +200,7 @@ pub struct InsertableTracksResource<'a> {
     pub source_sync_rev_timestamp: Option<NaiveDateTime>,
     pub media_type: &'a str,
     pub audio_duration_ms: Option<f64>,
-    pub audio_channels: Option<i16>,
+    pub audio_channels_count: Option<i16>,
     pub audio_samplerate_hz: Option<i32>,
     pub audio_bitrate_bps: Option<i32>,
     pub audio_enc_name: Option<&'a str>,
@@ -234,7 +234,7 @@ impl<'a> InsertableTracksResource<'a> {
                 .audio_content
                 .as_ref()
                 .map(|audio| audio.duration.ms),
-            audio_channels: track_resource
+            audio_channels_count: track_resource
                 .source
                 .audio_content
                 .as_ref()
@@ -273,9 +273,9 @@ pub struct InsertableTracksMusic {
     pub track_id: StorageId,
     pub loudness_db: Decibel,
     pub tempo_bpm: BeatsPerMinute,
-    pub time_sig_num: i16,
-    pub time_sig_denom: i16,
-    pub key_sig_code: i16,
+    pub keysig_code: i16,
+    pub timesig_num: i16,
+    pub timesig_denom: i16,
     pub acousticness_score: Option<ScoreValue>,
     pub danceability_score: Option<ScoreValue>,
     pub energy_score: Option<ScoreValue>,
@@ -296,9 +296,9 @@ impl InsertableTracksMusic {
             track_id,
             loudness_db: loudness_db,
             tempo_bpm: music.tempo.bpm,
-            time_sig_num: music.time_signature.numerator as i16,
-            time_sig_denom: music.time_signature.denominator as i16,
-            key_sig_code: music.key_signature.code as i16,
+            keysig_code: music.key_signature.code as i16,
+            timesig_num: music.time_signature.numerator as i16,
+            timesig_denom: music.time_signature.denominator as i16,
             acousticness_score: music
                 .classification(ClassificationSubject::Acousticness)
                 .map(|classification| *classification.score),
