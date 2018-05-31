@@ -18,15 +18,15 @@ mod tests;
 
 use base64;
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, TimeZone, Utc};
 
-use ring::*;
+use rand::{thread_rng, RngCore, AsByteSliceMut};
+
+use ring::digest;
 
 use std::fmt;
 
 use std::ops::Deref;
-
-use uuid::Uuid;
 
 ///////////////////////////////////////////////////////////////////////
 /// EntityUid
@@ -79,19 +79,32 @@ impl fmt::Display for EntityUid {
 #[derive(Clone, Debug, Default)]
 pub struct EntityUidGenerator;
 
+fn digest_timestamp<T: TimeZone>(
+    digest_ctx: &mut digest::Context,
+    dt: DateTime<T>,
+) -> &mut digest::Context {
+    let mut buf_timestamp = [dt.timestamp(); 1];
+    buf_timestamp.to_le();
+    digest_ctx.update(buf_timestamp.as_byte_slice_mut());
+    let mut buf_subsec = [dt.timestamp_subsec_nanos(); 1];
+    buf_subsec.to_le();
+    digest_ctx.update(buf_subsec.as_byte_slice_mut());
+    digest_ctx
+}
+
 impl EntityUidGenerator {
     pub fn generate_uid() -> EntityUid {
         let mut digest_ctx = digest::Context::new(&digest::SHA256);
-        // TODO: Generate UUID v1 based on MAC address
-        let uuid_v1 = Uuid::nil();
-        digest_ctx.update(uuid_v1.as_bytes());
-        let uuid_v4 = Uuid::new_v4();
-        digest_ctx.update(uuid_v4.as_bytes());
-        let now = Utc::now();
-        // TODO: Avoid temporary string formatting
-        digest_ctx.update(format!("{}", now).as_bytes());
+        // 12 bytes from current timestamp
+        digest_timestamp(&mut digest_ctx, Utc::now());
+        // 16 random bytes
+        let mut buf_random = [0u8, 16];
+        thread_rng().fill_bytes(&mut buf_random);
+        digest_ctx.update(&buf_random);
+        // Calculate SHA256 of generated 32 bytes -> 32 bytes
         let digest = digest_ctx.finish();
-        base64::encode_config(&digest, base64::URL_SAFE_NO_PAD).into()
+        // Encode the first 24 bytes as string -> 32 URL-safe chars
+        base64::encode_config(&digest.as_ref()[0..24], base64::URL_SAFE_NO_PAD).into()
     }
 }
 

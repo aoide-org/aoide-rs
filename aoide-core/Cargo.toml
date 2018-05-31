@@ -11,11 +11,11 @@ chrono = { version = "*", features = ["serde"] }
 failure = "*"
 log = "*"
 mime = "*"
+rand = "*"
 ring = "*"
 serde = "*"
 serde_derive = "*"
 serde_json = "*"
-uuid = { version = "*", features = ["serde", "v1", "v4"] }
 
 [dev-dependencies]
 mime_guess = "*"
