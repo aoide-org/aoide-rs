@@ -17,8 +17,7 @@
 mod tests;
 
 use aoide_core::audio::Duration;
-use aoide_core::domain::metadata::Score;
-use aoide_core::domain::track::TrackBody;
+use aoide_core::domain::{entity::EntityHeader, metadata::Score, track::TrackBody};
 
 pub type PaginationOffset = u64;
 
@@ -214,13 +213,30 @@ pub enum ReplaceMode {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct ReplaceParams {
+pub struct TrackReplacement {
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub uri: String,
 
+    pub track: TrackBody,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct TrackReplacementParams {
     pub mode: ReplaceMode,
 
-    pub body: TrackBody,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub replacements: Vec<TrackReplacement>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct TrackReplacementReport {
+    pub created: Vec<EntityHeader>,
+    pub updated: Vec<EntityHeader>,
+    pub skipped: Vec<EntityHeader>,
+    pub rejected: Vec<String>, // e.g. ambiguous or inconsistent
+    pub discarded: Vec<String>, // e.g. nonexistent and need to be created
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

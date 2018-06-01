@@ -659,6 +659,10 @@ impl TrackEntity {
         &self.header
     }
 
+    pub fn into_header(self) -> EntityHeader {
+        self.header
+    }
+
     pub fn body<'a>(&'a self) -> &'a TrackBody {
         &self.body
     }

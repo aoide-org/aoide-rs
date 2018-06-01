@@ -56,12 +56,13 @@ extern crate serde_derive;
 
 extern crate serde_json;
 
-use aoide::{middleware, middleware::DieselMiddleware,
+use aoide::{middleware,
+            middleware::DieselMiddleware,
             storage::{collections::*, serde::*, tracks::*},
-            usecases::{*,
-                       api::{CountableStringField, LocateParams, Pagination, PaginationLimit,
-                             PaginationOffset, ReplaceParams, ResourceStats, SearchParams,
-                             StringFieldCounts}}};
+            usecases::{api::{CountableStringField, LocateParams, Pagination, PaginationLimit,
+                             PaginationOffset, TrackReplacementParams, TrackReplacementReport, ResourceStats, SearchParams,
+                             StringFieldCounts},
+                       *}};
 
 use aoide_core::domain::{collection::*, entity::*, metadata::*, track::*};
 
@@ -83,8 +84,8 @@ use gotham::handler::HandlerFuture;
 use gotham::http::response::create_response;
 use gotham::pipeline::new_pipeline;
 use gotham::pipeline::set::{finalize_pipeline_set, new_pipeline_set};
-use gotham::router::Router;
 use gotham::router::builder::*;
+use gotham::router::Router;
 use gotham::state::{FromState, State};
 
 use hyper::header::{ContentType, Headers};
@@ -869,16 +870,16 @@ fn handle_post_collections_path_uid_tracks_locate_query_pagination(
     Box::new(handler_future)
 }
 
-fn replace_track(
+fn replace_tracks(
     pooled_connection: SqlitePooledConnection,
     collection_uid: Option<&EntityUid>,
-    replace_params: ReplaceParams,
+    replacement_params: TrackReplacementParams,
     format: SerializationFormat,
-) -> TracksResult<TrackEntityReplacement> {
+) -> TracksResult<TrackReplacementReport> {
     let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
     connection.transaction::<_, Error, _>(|| {
-        repository.replace_entity(collection_uid, replace_params, format)
+        repository.replace_entities(collection_uid, replacement_params, format)
     })
 }
 
@@ -898,9 +899,9 @@ fn handle_post_collections_path_uid_tracks_replace(mut state: State) -> Box<Hand
                     }
                 };
 
-                let replace_params: ReplaceParams =
+                let replacement_params: TrackReplacementParams =
                     match deserialize_slice_with_format(&valid_body, format) {
-                        Ok(replace_params) => replace_params,
+                        Ok(replacement_params) => replacement_params,
                         Err(e) => {
                             warn!(
                                 "Deserialization failed: {}",
@@ -911,9 +912,6 @@ fn handle_post_collections_path_uid_tracks_replace(mut state: State) -> Box<Hand
                             return future::ok((state, response));
                         }
                     };
-                if !replace_params.body.is_valid() {
-                    warn!("Invalid track: {:?}", replace_params.body);
-                }
 
                 let pooled_connection = match middleware::state_data::try_connection(&state) {
                     Ok(pooled_connection) => pooled_connection,
@@ -925,25 +923,28 @@ fn handle_post_collections_path_uid_tracks_replace(mut state: State) -> Box<Hand
                     }
                 };
 
-                let (entity, status_code) = match replace_track(
+                let response = match replace_tracks(
                     pooled_connection,
                     collection_uid.as_ref(),
-                    replace_params,
+                    replacement_params,
                     format,
                 ) {
-                    Ok(TrackEntityReplacement::Updated(entity)) => (entity, StatusCode::Ok),
-                    Ok(TrackEntityReplacement::Created(entity)) => (entity, StatusCode::Created),
-                    Ok(TrackEntityReplacement::NotFound(None)) => {
-                        let response = create_response(&state, StatusCode::NotFound, None);
-                        return future::ok((state, response));
-                    }
-                    Ok(TrackEntityReplacement::NotFound(Some(msg))) => {
-                        let response = create_response_message(&state, StatusCode::NotFound, msg);
-                        return future::ok((state, response));
-                    }
-                    Ok(TrackEntityReplacement::FoundTooMany) => {
-                        let response = create_response(&state, StatusCode::BadRequest, None);
-                        return future::ok((state, response));
+                    Ok(report) => {
+                        match serialize_with_format(&report, format) {
+                            Ok(response_body) => create_response(
+                                &state,
+                                StatusCode::Ok,
+                                Some((response_body, format.into())),
+                            ),
+                            Err(e) => {
+                                let response = format_response_message(
+                                    &state,
+                                    StatusCode::InternalServerError,
+                                    &e,
+                                );
+                                return future::ok((state, response));
+                            }
+                        }
                     }
                     Err(e) => {
                         let response = format_response_message(&state, StatusCode::BadRequest, &e);
@@ -951,16 +952,6 @@ fn handle_post_collections_path_uid_tracks_replace(mut state: State) -> Box<Hand
                     }
                 };
 
-                let response = match serialize_with_format(entity.header(), format) {
-                    Ok(response_body) => {
-                        create_response(&state, status_code, Some((response_body, format.into())))
-                    }
-                    Err(e) => {
-                        let response =
-                            format_response_message(&state, StatusCode::InternalServerError, &e);
-                        return future::ok((state, response));
-                    }
-                };
                 future::ok((state, response))
             }
             Err(e) => {

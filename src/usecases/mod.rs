@@ -17,7 +17,7 @@ pub mod api;
 
 use failure;
 
-use self::api::{Pagination, LocateParams, ReplaceParams, SearchParams, CountableStringField, StringFieldCounts, ResourceStats};
+use self::api::{Pagination, LocateParams, TrackReplacementParams, TrackReplacementReport, SearchParams, CountableStringField, StringFieldCounts, ResourceStats};
 
 use storage::serde::{SerializationFormat, SerializedEntity};
 
@@ -62,13 +62,6 @@ pub trait Collections {
 
 pub type TracksResult<T> = Result<T, failure::Error>;
 
-pub enum TrackEntityReplacement {
-    NotFound(Option<String>),
-    FoundTooMany,
-    Created(TrackEntity),
-    Updated(TrackEntity),
-}
-
 pub trait Tracks {
     fn create_entity(
         &self,
@@ -88,12 +81,12 @@ pub trait Tracks {
         format: SerializationFormat,
     ) -> TracksResult<Option<(EntityRevision, EntityRevision)>>;
 
-    fn replace_entity(
+    fn replace_entities(
         &self,
         collection_uid: Option<&EntityUid>,
-        replace_params: ReplaceParams,
+        replace_params: TrackReplacementParams,
         format: SerializationFormat,
-    ) -> TracksResult<TrackEntityReplacement>;
+    ) -> TracksResult<TrackReplacementReport>;
 
     fn remove_entity(&self, uid: &EntityUid) -> TracksResult<()>;
 

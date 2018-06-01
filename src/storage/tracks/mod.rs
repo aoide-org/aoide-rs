@@ -36,7 +36,6 @@ use std::i64;
 
 use usecases::{api::*,
                Collections,
-               TrackEntityReplacement,
                TrackTags,
                TrackTagsResult,
                Tracks,
@@ -635,59 +634,78 @@ impl<'a> Tracks for TrackRepository<'a> {
         Ok(Some((prev_revision, next_revision)))
     }
 
-    fn replace_entity(
+    fn replace_entities(
         &self,
         collection_uid: Option<&EntityUid>,
-        replace_params: ReplaceParams,
+        replacement_params: TrackReplacementParams,
         format: SerializationFormat,
-    ) -> TracksResult<TrackEntityReplacement> {
-        let uri_filter = StringCondition::Matches(StringConditionParams {
-            value: replace_params.uri.clone(),
-            modifier: None,
-        });
-        let locate_params = LocateParams { uri_filter };
-        let located_entities =
-            self.locate_entities(collection_uid, &Pagination::default(), locate_params)?;
-        if located_entities.len() > 1 {
-            Ok(TrackEntityReplacement::FoundTooMany)
-        } else {
-            match located_entities.first() {
-                Some(serialized_entity) => {
-                    let mut entity = deserialize_with_format::<TrackEntity>(serialized_entity)?;
-                    entity.replace_body(replace_params.body);
-                    self.update_entity(&mut entity, format)?;
-                    Ok(TrackEntityReplacement::Updated(entity))
-                }
-                None => {
-                    match replace_params.mode {
-                        ReplaceMode::UpdateOrCreate => {
-                            if let Some(collection_uid) = collection_uid {
-                                // Check consistency to avoid unique constraint violations
-                                // when inserting into the database.
-                                match replace_params.body.resource(collection_uid) {
-                                    Some(resource) => {
-                                        if resource.source.uri != replace_params.uri {
-                                            let msg = format!("Mismatching track URI: expected = '{}', actual = '{}'", replace_params.uri, resource.source.uri);
-                                            return Ok(TrackEntityReplacement::NotFound(Some(msg)));
-                                        }
-                                    }
-                                    None => {
-                                        let msg = format!(
-                                            "Track does not belong to collection with URI '{}'",
-                                            collection_uid
-                                        );
-                                        return Ok(TrackEntityReplacement::NotFound(Some(msg)));
-                                    }
-                                }
-                            };
-                            let entity = self.create_entity(replace_params.body, format)?;
-                            Ok(TrackEntityReplacement::Created(entity))
-                        }
-                        ReplaceMode::UpdateOnly => Ok(TrackEntityReplacement::NotFound(None)),
-                    }
-                }
+    ) -> TracksResult<TrackReplacementReport> {
+        let mut report = TrackReplacementReport::default();
+        for replacement in replacement_params.replacements.into_iter() {
+            let uri_filter = StringCondition::Matches(StringConditionParams {
+                value: replacement.uri.clone(),
+                modifier: None,
+            });
+            let locate_params = LocateParams { uri_filter };
+            let located_entities =
+                self.locate_entities(collection_uid, &Pagination::default(), locate_params)?;
+            // Ambiguous?
+            if located_entities.len() > 1 {
+                assert!(collection_uid.is_none());
+                warn!("Found multiple tracks with URI '{}' in different collections", replacement.uri);
+                report.rejected.push(replacement.uri);
+                continue;
             }
+            if !replacement.track.is_valid() {
+                warn!("Replacing track although it is not valid: {:?}", replacement.track);
+                // ...ignore issues and continue
+            }
+            // Update?
+            if let Some(serialized_entity) = located_entities.first() {
+                let mut entity = deserialize_with_format::<TrackEntity>(serialized_entity)?;
+                if entity.body() == &replacement.track {
+                    info!("Track '{}' is unchanged and does not need to be updated", entity.header().uid());
+                    report.skipped.push(entity.into_header());
+                    continue;
+                }
+                entity.replace_body(replacement.track);
+                self.update_entity(&mut entity, format)?;
+                report.updated.push(entity.into_header());
+                continue;
+            }
+            // Create?
+            match replacement_params.mode {
+                ReplaceMode::UpdateOnly => {
+                    info!("Track with URI '{}' does not exist and needs to be created", replacement.uri);
+                    report.discarded.push(replacement.uri);
+                    continue;
+                }
+                ReplaceMode::UpdateOrCreate => {
+                    if let Some(collection_uid) = collection_uid {
+                        // Check consistency to avoid unique constraint violations
+                        // when inserting into the database.
+                        match replacement.track.resource(collection_uid) {
+                            Some(resource) => {
+                                if resource.source.uri != replacement.uri {
+                                    warn!("Mismatching track URI: expected = '{}', actual = '{}'", replacement.uri, resource.source.uri);
+                                    report.rejected.push(replacement.uri);
+                                    continue;
+                                }
+                            }
+                            None => {
+                                warn!("Track with URI '{}' does not belong to collection '{}'", replacement.uri,
+                                    collection_uid);
+                                report.rejected.push(replacement.uri);
+                                continue;
+                            }
+                        }
+                    }
+                    let entity = self.create_entity(replacement.track, format)?;
+                    report.created.push(entity.into_header())
+                }
+            };
         }
+        Ok(report)
     }
 
     fn remove_entity(&self, uid: &EntityUid) -> TracksResult<()> {
