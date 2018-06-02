@@ -664,7 +664,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             if let Some(serialized_entity) = located_entities.first() {
                 let mut entity = deserialize_with_format::<TrackEntity>(serialized_entity)?;
                 if entity.body() == &replacement.track {
-                    info!("Track '{}' is unchanged and does not need to be updated", entity.header().uid());
+                    debug!("Track '{}' is unchanged and does not need to be updated", entity.header().uid());
                     report.skipped.push(entity.into_header());
                     continue;
                 }
@@ -731,11 +731,6 @@ impl<'a> Tracks for TrackRepository<'a> {
         pagination: &Pagination,
         locate_params: LocateParams,
     ) -> TracksResult<Vec<SerializedEntity>> {
-        let mut target = tracks_entity::table
-            .left_outer_join(aux_tracks_resource::table)
-            .select(tracks_entity::all_columns)
-            .into_boxed();
-
         // URI filter
         let (either_eq_or_like, modifier) = match locate_params.uri_filter {
             // Equal comparison
@@ -775,28 +770,35 @@ impl<'a> Tracks for TrackRepository<'a> {
                 condition_params.modifier,
             ),
         };
-        target = match either_eq_or_like {
+
+        // A subselect has proven to be much more efficient than
+        // joining the aux_tracks_resource table!!
+        let mut track_id_subselect = aux_tracks_resource::table
+            .select(aux_tracks_resource::track_id)
+            .into_boxed();
+        if let Some(collection_uid) = collection_uid {
+            track_id_subselect = track_id_subselect
+                .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()));
+        };
+        track_id_subselect = match either_eq_or_like {
             EitherEqualOrLike::Equal(eq) => match modifier {
-                None => target.filter(aux_tracks_resource::source_uri.eq(eq)),
+                None => track_id_subselect.filter(aux_tracks_resource::source_uri.eq(eq)),
                 Some(ConditionModifier::Complement) => {
-                    target.filter(aux_tracks_resource::source_uri.ne(eq))
+                    track_id_subselect.filter(aux_tracks_resource::source_uri.ne(eq))
                 }
             },
             EitherEqualOrLike::Like(like) => match modifier {
-                None => target.filter(aux_tracks_resource::source_uri.like(like).escape('\\')),
+                None => track_id_subselect.filter(aux_tracks_resource::source_uri.like(like).escape('\\')),
                 Some(ConditionModifier::Complement) => {
-                    target.filter(aux_tracks_resource::source_uri.not_like(like).escape('\\'))
+                    track_id_subselect.filter(aux_tracks_resource::source_uri.not_like(like).escape('\\'))
                 }
             },
         };
 
-        // Collection filter & ordering
-        target = match collection_uid {
-            Some(collection_uid) => target
-                .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()))
-                .order(aux_tracks_resource::collection_since.desc()), // recently added to collection
-            None => target.order(tracks_entity::rev_timestamp.desc()), // recently modified
-        };
+        let mut target = tracks_entity::table
+            .select(tracks_entity::all_columns)
+            .filter(tracks_entity::id.eq_any(track_id_subselect))
+            .into_boxed();
 
         // Pagination
         target = apply_pagination(target, pagination);
@@ -1494,37 +1496,25 @@ impl<'a> TrackTags for TrackRepository<'a> {
             None => target,
         };
 
+        // Collection filtering
+        if let Some(collection_uid) = collection_uid {
+            let track_id_subselect = aux_tracks_resource::table.select(aux_tracks_resource::track_id).filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()));
+            target = target.filter(aux_tracks_tag::track_id.eq_any(track_id_subselect));
+        }
+
         // Pagination
         target = apply_pagination(target, pagination);
 
-        if let Some(collection_uid) = collection_uid {
-            let target = target.inner_join(
-                aux_tracks_resource::table.on(aux_tracks_tag::track_id
-                    .eq(aux_tracks_resource::track_id)
-                    .and(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()))),
-            );
-            let rows = target.load::<(Option<String>, i64)>(self.connection)?;
-            let mut result = Vec::with_capacity(rows.len());
-            for row in rows.into_iter() {
-                result.push(TagFacetCount {
-                    facet: row.0,
-                    count: row.1 as usize,
-                });
-            }
-
-            Ok(result)
-        } else {
-            let rows = target.load::<(Option<String>, i64)>(self.connection)?;
-            let mut result = Vec::with_capacity(rows.len());
-            for row in rows.into_iter() {
-                result.push(TagFacetCount {
-                    facet: row.0,
-                    count: row.1 as usize,
-                });
-            }
-
-            Ok(result)
+        let rows = target.load::<(Option<String>, i64)>(self.connection)?;
+        let mut result = Vec::with_capacity(rows.len());
+        for row in rows.into_iter() {
+            result.push(TagFacetCount {
+                facet: row.0,
+                count: row.1 as usize,
+            });
         }
+
+        Ok(result)
     }
 
     fn all_tags(
@@ -1563,44 +1553,28 @@ impl<'a> TrackTags for TrackRepository<'a> {
             None => target,
         };
 
+        // Collection filtering
+        if let Some(collection_uid) = collection_uid {
+            let track_id_subselect = aux_tracks_resource::table.select(aux_tracks_resource::track_id).filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()));
+            target = target.filter(aux_tracks_tag::track_id.eq_any(track_id_subselect));
+        }
+
         // Pagination
         target = apply_pagination(target, pagination);
 
-        if let Some(collection_uid) = collection_uid {
-            let target = target.inner_join(
-                aux_tracks_resource::table.on(aux_tracks_tag::track_id
-                    .eq(aux_tracks_resource::track_id)
-                    .and(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()))),
-            );
-            let rows = target.load::<(Option<String>, String, f64, i64)>(self.connection)?;
-            let mut result = Vec::with_capacity(rows.len());
-            for row in rows.into_iter() {
-                result.push(MultiTag {
-                    tag: Tag {
-                        facet: row.0,
-                        term: row.1,
-                        score: Score(row.2),
-                    },
-                    count: row.3 as usize,
-                });
-            }
-
-            Ok(result)
-        } else {
-            let rows = target.load::<(Option<String>, String, f64, i64)>(self.connection)?;
-            let mut result = Vec::with_capacity(rows.len());
-            for row in rows.into_iter() {
-                result.push(MultiTag {
-                    tag: Tag {
-                        facet: row.0,
-                        term: row.1,
-                        score: Score(row.2),
-                    },
-                    count: row.3 as usize,
-                });
-            }
-
-            Ok(result)
+        let rows = target.load::<(Option<String>, String, f64, i64)>(self.connection)?;
+        let mut result = Vec::with_capacity(rows.len());
+        for row in rows.into_iter() {
+            result.push(MultiTag {
+                tag: Tag {
+                    facet: row.0,
+                    term: row.1,
+                    score: Score(row.2),
+                },
+                count: row.3 as usize,
+            });
         }
+
+        Ok(result)
     }
 }
