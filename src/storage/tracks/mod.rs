@@ -813,12 +813,20 @@ impl<'a> Tracks for TrackRepository<'a> {
         pagination: &Pagination,
         search_params: SearchParams,
     ) -> TracksResult<Vec<SerializedEntity>> {
+        // TODO: Joins are very expensive and should only be used
+        // when the results need to be ordered. For filtering
+        // subselects have proven to be much more efficient.
+        //
+        // In general queries with joins are not suitable to be
+        // executed efficiently as batch operations. Since search
+        // operations are expected to be executed standalone the
+        // joins are acceptable in this case.
         let mut target = tracks_entity::table
             .select(tracks_entity::all_columns)
-            .left_outer_join(aux_tracks_resource::table)
-            .left_outer_join(aux_tracks_overview::table)
-            .left_outer_join(aux_tracks_summary::table)
-            .left_outer_join(aux_tracks_music::table)
+            .inner_join(aux_tracks_resource::table)
+            .inner_join(aux_tracks_overview::table)
+            .inner_join(aux_tracks_summary::table)
+            .inner_join(aux_tracks_music::table)
             .into_boxed();
 
         if let Some(phrase_filter) = search_params.phrase_filter {
