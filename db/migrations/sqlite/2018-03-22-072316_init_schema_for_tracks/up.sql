@@ -27,6 +27,10 @@ CREATE TABLE collections_entity (
     UNIQUE (uid)
 );
 
+CREATE INDEX idx_collections_entity_name ON collections_entity (
+    name
+);
+
 -----------------------------------------------------------------------
 -- Tracks
 -----------------------------------------------------------------------
@@ -39,7 +43,8 @@ CREATE TABLE tracks_entity (
     ser_fmt                  INTEGER NOT NULL,  -- serialization format: 1 = JSON, 2 = BSON, 3 = CBOR, 4 = Bincode, ...
     ser_ver_major            INTEGER NOT NULL,  -- serialization version for data migration - breaking changes
     ser_ver_minor            INTEGER NOT NULL,  -- serialization version for data migration - backward-compatible changes
-    ser_blob                 BLOB NOT NULL      -- serialized track entity
+    ser_blob                 BLOB NOT NULL,     -- serialized track entity
+    UNIQUE (uid)
 );
 
 CREATE TABLE aux_tracks_resource (
@@ -63,6 +68,18 @@ CREATE TABLE aux_tracks_resource (
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (collection_uid, track_id),
     UNIQUE (collection_uid, source_uri)
+);
+
+CREATE INDEX idx_tracks_resource_track_id ON aux_tracks_resource (
+    track_id
+);
+
+CREATE INDEX idx_tracks_resource_collection_uid ON aux_tracks_resource (
+    collection_uid
+);
+
+CREATE INDEX idx_tracks_resource_source_uri ON aux_tracks_resource (
+    source_uri
 );
 
 CREATE TABLE aux_tracks_overview (
@@ -114,9 +131,9 @@ CREATE TABLE aux_tracks_music (
     track_id                 INTEGER NOT NULL,
     loudness_db              REAL NOT NULL, -- LUFS dB
     tempo_bpm                REAL NOT NULL, -- beats per minute (bpm)
+    keysig_code              TINYINT NOT NULL, -- {(0), 1, ..., 24}
     timesig_num              TINYINT NOT NULL, -- >= 0
     timesig_denom            TINYINT NOT NULL, -- >= 0
-    keysig_code              TINYINT NOT NULL, -- {(0), 1, ..., 24}
     acousticness_score       REAL, -- [0.0, 1.0]
     danceability_score       REAL, -- [0.0, 1.0]
     energy_score             REAL, -- [0.0, 1.0]
@@ -132,29 +149,37 @@ CREATE TABLE aux_tracks_music (
 CREATE TABLE aux_tracks_ref (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
-    origin                   TINYINT,
+    origin                   TINYINT NOT NULL,
     reference                TEXT NOT NULL,
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id, origin, reference)
+);
+
+CREATE INDEX idx_tracks_ref_track_id ON aux_tracks_ref(
+    track_id
 );
 
 CREATE TABLE aux_tracks_tag (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     term                     TEXT NOT NULL,
-    score                    REAL NOT NULL,
+    score                    REAL NOT NULL, -- [0.0, 1.0]
     facet                    TEXT,
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id, term, facet)
 );
 
-CREATE INDEX idx_tracks_tag_facet ON aux_tracks_tag(
+CREATE INDEX idx_tracks_tag_track_id ON aux_tracks_tag (
+    track_id
+);
+
+CREATE INDEX idx_tracks_tag_term_facet ON aux_tracks_tag(
+    term,
     facet
 );
 
-CREATE INDEX idx_tracks_tag_facet_term ON aux_tracks_tag(
-    facet,
-    term
+CREATE INDEX idx_tracks_tag_facet ON aux_tracks_tag (
+    facet
 );
 
 CREATE TABLE aux_tracks_comment (
@@ -166,13 +191,29 @@ CREATE TABLE aux_tracks_comment (
     UNIQUE (track_id, owner)
 );
 
+CREATE INDEX idx_tracks_comment_track_id ON aux_tracks_comment (
+    track_id
+);
+
+CREATE INDEX idx_tracks_comment_owner ON aux_tracks_comment (
+    owner
+);
+
 CREATE TABLE aux_tracks_rating (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
-    score                    REAL NOT NULL,
+    score                    REAL NOT NULL, -- [0.0, 1.0]
     owner                    TEXT,
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id, owner)
+);
+
+CREATE INDEX idx_tracks_rating_track_id ON aux_tracks_rating (
+    track_id
+);
+
+CREATE INDEX idx_tracks_rating_owner ON aux_tracks_rating (
+    owner
 );
 
 -----------------------------------------------------------------------
