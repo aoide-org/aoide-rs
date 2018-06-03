@@ -1088,7 +1088,7 @@ fn resource_statistics(
     repository.resource_statistics(collection_uid)
 }
 
-fn handle_get_collections_path_resources_stats(mut state: State) -> Box<HandlerFuture> {
+fn handle_get_collections_path_tracks_stats(mut state: State) -> Box<HandlerFuture> {
     let collection_uid = UidPathExtractor::try_parse_from(&mut state);
 
     let pooled_connection = match middleware::state_data::try_connection(&state) {
@@ -1173,7 +1173,7 @@ fn all_field_counts(
     Ok(results)
 }
 
-fn handle_get_collections_path_uid_fields_counts_query_field(
+fn handle_get_collections_path_uid_tracks_fields_query_field(
     mut state: State,
 ) -> Box<HandlerFuture> {
     let collection_uid = UidPathExtractor::try_parse_from(&mut state);
@@ -1249,7 +1249,7 @@ fn all_tags_facets(
     repository.all_tags_facets(collection_uid, facets, pagination)
 }
 
-fn handle_get_collections_path_uid_tags_facets_query_facet_pagination(
+fn handle_get_collections_path_uid_tracks_tags_facets_query_facet_pagination(
     mut state: State,
 ) -> Box<HandlerFuture> {
     let collection_uid = UidPathExtractor::try_parse_from(&mut state);
@@ -1295,7 +1295,7 @@ fn all_tags(
     repository.all_tags(collection_uid, facets, pagination)
 }
 
-fn handle_get_collections_path_uid_tags_query_facet_pagination(
+fn handle_get_collections_path_uid_tracks_tags_query_facet_pagination(
     mut state: State,
 ) -> Box<HandlerFuture> {
     let collection_uid = UidPathExtractor::try_parse_from(&mut state);
@@ -1386,39 +1386,39 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
             .with_path_extractor::<UidPathExtractor>()
             .with_query_string_extractor::<PaginationQueryStringExtractor>()
             .to(handle_get_collections_path_uid_tracks_query_pagination);
-        route // locate multiple track in (optional) collection
+        route // locate multiple track in collection
             .post("/collections/:uid/tracks/locate")
             .with_path_extractor::<UidPathExtractor>()
             .with_query_string_extractor::<PaginationQueryStringExtractor>()
             .to(handle_post_collections_path_uid_tracks_locate_query_pagination);
-        route // replace single track in (optional) collection
+        route // replace single track in collection
             .post("/collections/:uid/tracks/replace")
             .with_path_extractor::<UidPathExtractor>()
             .to(handle_post_collections_path_uid_tracks_replace);
-        route // search multiple tracks in (optional) collection
+        route // search multiple tracks in collection
             .post("/collections/:uid/tracks/search")
             .with_path_extractor::<UidPathExtractor>()
             .with_query_string_extractor::<PaginationQueryStringExtractor>()
             .to(handle_post_collections_path_uid_tracks_search_query_pagination);
-        route // various resource_statistics about collection
-            .get("/collections/:uid/resources/stats")
+        route // various statistics about tracks in collection
+            .get("/collections/:uid/tracks/stats")
             .with_path_extractor::<UidPathExtractor>()
-            .to(handle_get_collections_path_resources_stats);
-        route // selected (string) field counts in collection
-            .get("/collections/:uid/fields/counts")
+            .to(handle_get_collections_path_tracks_stats);
+        route // selected (string) fields in collection
+            .get("/collections/:uid/tracks/fields")
             .with_path_extractor::<UidPathExtractor>()
             .with_query_string_extractor::<CountableStringFieldQueryStringExtractor>()
-            .to(handle_get_collections_path_uid_fields_counts_query_field);
+            .to(handle_get_collections_path_uid_tracks_fields_query_field);
         route // all tag facets in collection
-            .get("/collections/:uid/tags/facets")
+            .get("/collections/:uid/tracks/tags/facets")
             .with_path_extractor::<UidPathExtractor>()
             .with_query_string_extractor::<TagFacetPaginationQueryStringExtractor>()
-            .to(handle_get_collections_path_uid_tags_facets_query_facet_pagination);
+            .to(handle_get_collections_path_uid_tracks_tags_facets_query_facet_pagination);
         route // all tag (facet, term) tuples in collection
-            .get("/collections/:uid/tags")
+            .get("/collections/:uid/tracks/tags")
             .with_path_extractor::<UidPathExtractor>()
             .with_query_string_extractor::<TagFacetPaginationQueryStringExtractor>()
-            .to(handle_get_collections_path_uid_tags_query_facet_pagination);
+            .to(handle_get_collections_path_uid_tracks_tags_query_facet_pagination);
     })
 }
 
