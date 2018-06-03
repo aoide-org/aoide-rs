@@ -22,10 +22,6 @@ extern crate aoide_core;
 #[macro_use]
 extern crate diesel;
 
-#[cfg(test)]
-#[macro_use]
-extern crate diesel_migrations;
-
 extern crate chrono;
 
 #[macro_use]
@@ -46,6 +42,10 @@ extern crate serde;
 extern crate serde_cbor;
 
 extern crate serde_json;
+
+#[cfg(test)]
+#[macro_use]
+extern crate diesel_migrations;
 
 ///////////////////////////////////////////////////////////////////////
 /// Public Modules

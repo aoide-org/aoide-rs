@@ -97,7 +97,7 @@ use r2d2::{Pool, PooledConnection};
 use std::env;
 use std::str;
 
-embed_migrations!("db/migrations/sqlite");
+embed_migrations!("aoide-storage/db/migrations/sqlite");
 
 type SqliteConnectionPool = Pool<ConnectionManager<SqliteConnection>>;
 type SqlitePooledConnection = PooledConnection<ConnectionManager<SqliteConnection>>;
