@@ -314,7 +314,6 @@ impl From<EngineKeySignature> for KeySignature {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Default, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TimeSignature(u8, u8);
 
 impl TimeSignature {

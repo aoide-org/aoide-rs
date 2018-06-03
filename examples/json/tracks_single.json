@@ -2,10 +2,7 @@
     {
         "header": {
             "uid": "Ejtxuj1yF6AEAIO4Nhxf4aPjmbF20awOGxrVYY7E4kM",
-            "revision": {
-                "ordinal": 28,
-                "timestamp": "2018-04-14T18:10:11.8351783Z"
-            }
+            "revision": [ 28, "2018-04-14T18:10:11.8351783Z" ]
         },
         "body": {
             "resources": [
@@ -18,10 +15,7 @@
                         "uri": "file::///home/music/collection/test.mp3",
                         "synchronization": {
                             "when": "2018-05-01T13:27:56.3751483Z",
-                            "revision": {
-                                "ordinal": 23,
-                                "timestamp": "2018-03-22T17:10:55.488760124Z"
-                            }
+                            "revision": [ 23, "2018-03-22T17:10:55.488760124Z" ]
                         },
                         "mediaType": "audio/mpeg",
                         "audioContent": {

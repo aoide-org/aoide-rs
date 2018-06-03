@@ -165,59 +165,45 @@ pub type EntityRevisionOrdinal = u64;
 pub type EntityRevisionTimestamp = DateTime<Utc>;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct EntityRevision {
-    ordinal: EntityRevisionOrdinal,
-
-    timestamp: EntityRevisionTimestamp,
-}
+pub struct EntityRevision(EntityRevisionOrdinal, EntityRevisionTimestamp);
 
 impl EntityRevision {
     pub fn new<I1: Into<EntityRevisionOrdinal>, I2: Into<EntityRevisionTimestamp>>(
         ordinal: I1,
         timestamp: I2,
     ) -> Self {
-        Self {
-            ordinal: ordinal.into(),
-            timestamp: timestamp.into(),
-        }
+        EntityRevision(ordinal.into(), timestamp.into())
     }
 
     pub fn initial() -> Self {
-        Self {
-            ordinal: 1,
-            timestamp: Utc::now(),
-        }
+        Self::new(1 as EntityRevisionOrdinal, Utc::now())
     }
 
     pub fn next(&self) -> Self {
         debug_assert!(self.is_valid());
-        Self {
-            ordinal: self.ordinal + 1,
-            timestamp: Utc::now(),
-        }
+        Self::new(self.ordinal() + 1, Utc::now())
     }
 
     pub fn is_valid(&self) -> bool {
-        self.ordinal > 0
+        self.ordinal() > 0
     }
 
     pub fn is_initial(&self) -> bool {
-        self.ordinal == 1
+        self.ordinal() == 1
     }
 
     pub fn ordinal(&self) -> EntityRevisionOrdinal {
-        self.ordinal
+        self.0
     }
 
     pub fn timestamp(&self) -> EntityRevisionTimestamp {
-        self.timestamp
+        self.1
     }
 }
 
 impl fmt::Display for EntityRevision {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}@{}", self.ordinal, self.timestamp)
+        write!(f, "{}@{}", self.ordinal(), self.timestamp())
     }
 }
 
