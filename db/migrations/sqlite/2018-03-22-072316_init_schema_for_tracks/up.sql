@@ -74,10 +74,6 @@ CREATE INDEX idx_tracks_resource_track_id ON aux_tracks_resource (
     track_id
 );
 
-CREATE INDEX idx_tracks_resource_collection_uid ON aux_tracks_resource (
-    collection_uid
-);
-
 CREATE INDEX idx_tracks_resource_source_uri ON aux_tracks_resource (
     source_uri
 );
@@ -155,10 +151,6 @@ CREATE TABLE aux_tracks_ref (
     UNIQUE (track_id, origin, reference)
 );
 
-CREATE INDEX idx_tracks_ref_track_id ON aux_tracks_ref(
-    track_id
-);
-
 CREATE TABLE aux_tracks_tag (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
@@ -167,10 +159,6 @@ CREATE TABLE aux_tracks_tag (
     facet                    TEXT,
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id, term, facet)
-);
-
-CREATE INDEX idx_tracks_tag_track_id ON aux_tracks_tag (
-    track_id
 );
 
 CREATE INDEX idx_tracks_tag_term_facet ON aux_tracks_tag(
@@ -191,10 +179,6 @@ CREATE TABLE aux_tracks_comment (
     UNIQUE (track_id, owner)
 );
 
-CREATE INDEX idx_tracks_comment_track_id ON aux_tracks_comment (
-    track_id
-);
-
 CREATE INDEX idx_tracks_comment_owner ON aux_tracks_comment (
     owner
 );
@@ -206,10 +190,6 @@ CREATE TABLE aux_tracks_rating (
     owner                    TEXT,
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id, owner)
-);
-
-CREATE INDEX idx_tracks_rating_track_id ON aux_tracks_rating (
-    track_id
 );
 
 CREATE INDEX idx_tracks_rating_owner ON aux_tracks_rating (
