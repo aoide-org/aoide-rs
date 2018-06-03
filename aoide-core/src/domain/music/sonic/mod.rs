@@ -327,22 +327,30 @@ impl TimeSignature {
     }
 
     // number of beats in each bar, 0 = default/undefined
-    pub fn numerator(&self) -> u8 {
+    pub fn upper(&self) -> u8 {
         self.0
     }
 
-    // symbol length of each beat, 0 = default/undefined
-    pub fn denominator(&self) -> u8 {
+    pub fn beats_per_bar(&self) -> u8 {
+        self.upper()
+    }
+
+    // 0 = default/undefined
+    pub fn lower(&self) -> u8 {
         self.1
     }
 
+    pub fn beat_unit(&self) -> u8 {
+        self.lower()
+    }
+
     pub fn is_valid(&self) -> bool {
-        (self.numerator() > 0) && (self.denominator() > 0)
+        (self.upper() > 0) && (self.lower() > 0)
     }
 }
 
 impl fmt::Display for TimeSignature {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}/{}", self.numerator(), self.denominator())
+        write!(f, "{}/{}", self.upper(), self.lower())
     }
 }

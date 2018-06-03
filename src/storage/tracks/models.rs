@@ -282,8 +282,8 @@ impl<'a> InsertableTracksResource<'a> {
 pub struct InsertableTracksMusic {
     pub track_id: StorageId,
     pub tempo_bpm: BeatsPerMinute,
-    pub timesig_num: i16,
-    pub timesig_denom: i16,
+    pub timesig_upper: i16,
+    pub timesig_lower: i16,
     pub keysig_code: i16,
     pub acousticness_score: Option<ScoreValue>,
     pub danceability_score: Option<ScoreValue>,
@@ -300,8 +300,8 @@ impl InsertableTracksMusic {
         Self {
             track_id,
             tempo_bpm: profile.tempo.bpm,
-            timesig_num: profile.time_signature.numerator() as i16,
-            timesig_denom: profile.time_signature.denominator() as i16,
+            timesig_upper: profile.time_signature.upper() as i16,
+            timesig_lower: profile.time_signature.lower() as i16,
             keysig_code: profile.key_signature.code as i16,
             acousticness_score: profile
                 .feature(SongFeature::Acousticness)

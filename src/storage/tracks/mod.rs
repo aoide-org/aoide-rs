@@ -1172,55 +1172,55 @@ impl<'a> Tracks for TrackRepository<'a> {
                         }
                     },
                 }
-                NumericField::TimesigNum => match numeric_filter.condition {
+                NumericField::TimesigUpper => match numeric_filter.condition {
                     NumericValueCondition::LessThan(condition_params) => match condition_params.modifier {
                         None => {
-                            target.filter(aux_tracks_music::timesig_num.lt(condition_params.value as i16))
+                            target.filter(aux_tracks_music::timesig_upper.lt(condition_params.value as i16))
                         }
                         Some(ConditionModifier::Complement) => {
-                            target.filter(aux_tracks_music::timesig_num.ge(condition_params.value as i16))
+                            target.filter(aux_tracks_music::timesig_upper.ge(condition_params.value as i16))
                         }
                     },
                     NumericValueCondition::GreaterThan(condition_params) => match condition_params.modifier {
                         None => {
-                            target.filter(aux_tracks_music::timesig_num.gt(condition_params.value as i16))
+                            target.filter(aux_tracks_music::timesig_upper.gt(condition_params.value as i16))
                         }
                         Some(ConditionModifier::Complement) => {
-                            target.filter(aux_tracks_music::timesig_num.le(condition_params.value as i16))
+                            target.filter(aux_tracks_music::timesig_upper.le(condition_params.value as i16))
                         }
                     },
                     NumericValueCondition::EqualTo(condition_params) => match condition_params.modifier {
                         None => {
-                            target.filter(aux_tracks_music::timesig_num.eq(condition_params.value as i16))
+                            target.filter(aux_tracks_music::timesig_upper.eq(condition_params.value as i16))
                         }
                         Some(ConditionModifier::Complement) => {
-                            target.filter(aux_tracks_music::timesig_num.ne(condition_params.value as i16))
+                            target.filter(aux_tracks_music::timesig_upper.ne(condition_params.value as i16))
                         }
                     },
                 }
-                NumericField::TimesigDenom => match numeric_filter.condition {
+                NumericField::TimesigLower => match numeric_filter.condition {
                     NumericValueCondition::LessThan(condition_params) => match condition_params.modifier {
                         None => {
-                            target.filter(aux_tracks_music::timesig_denom.lt(condition_params.value as i16))
+                            target.filter(aux_tracks_music::timesig_lower.lt(condition_params.value as i16))
                         }
                         Some(ConditionModifier::Complement) => {
-                            target.filter(aux_tracks_music::timesig_denom.ge(condition_params.value as i16))
+                            target.filter(aux_tracks_music::timesig_lower.ge(condition_params.value as i16))
                         }
                     },
                     NumericValueCondition::GreaterThan(condition_params) => match condition_params.modifier {
                         None => {
-                            target.filter(aux_tracks_music::timesig_denom.gt(condition_params.value as i16))
+                            target.filter(aux_tracks_music::timesig_lower.gt(condition_params.value as i16))
                         }
                         Some(ConditionModifier::Complement) => {
-                            target.filter(aux_tracks_music::timesig_denom.le(condition_params.value as i16))
+                            target.filter(aux_tracks_music::timesig_lower.le(condition_params.value as i16))
                         }
                     },
                     NumericValueCondition::EqualTo(condition_params) => match condition_params.modifier {
                         None => {
-                            target.filter(aux_tracks_music::timesig_denom.eq(condition_params.value as i16))
+                            target.filter(aux_tracks_music::timesig_lower.eq(condition_params.value as i16))
                         }
                         Some(ConditionModifier::Complement) => {
-                            target.filter(aux_tracks_music::timesig_denom.ne(condition_params.value as i16))
+                            target.filter(aux_tracks_music::timesig_lower.ne(condition_params.value as i16))
                         }
                     },
                 }
