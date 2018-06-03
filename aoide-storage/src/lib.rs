@@ -17,31 +17,40 @@
 /// External Crates
 ///////////////////////////////////////////////////////////////////////
 //
-extern crate base64;
+extern crate aoide_core;
+
+#[macro_use]
+extern crate diesel;
+
+#[cfg(test)]
+#[macro_use]
+extern crate diesel_migrations;
 
 extern crate chrono;
 
+#[macro_use]
+extern crate failure;
+
+#[macro_use]
 extern crate log;
 
 extern crate mime;
 
-extern crate rand;
+extern crate percent_encoding;
 
-extern crate ring;
+extern crate rmp_serde;
 
 #[macro_use]
 extern crate serde;
 
-#[cfg(test)]
-extern crate mime_guess;
+extern crate serde_cbor;
 
-#[cfg(test)]
 extern crate serde_json;
 
 ///////////////////////////////////////////////////////////////////////
 /// Public Modules
 ///////////////////////////////////////////////////////////////////////
 //
-pub mod audio;
+pub mod storage;
 
-pub mod domain;
+pub mod usecases;

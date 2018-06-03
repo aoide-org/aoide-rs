@@ -1,19 +1,25 @@
 [package]
-name = "aoide-core"
+name = "aoide-storage"
 version = "0.0.1"
 authors = [ "Uwe Klotz <uwe.klotz@gmail>" ]
 publish = false
 
 [dependencies]
+aoide-core = { version = "*", path = "../aoide-core" }
+
 base64 = "*"
 chrono = { version = "*", features = ["serde"] }
+diesel = { version = "*", features = ["chrono", "sqlite"] }
 failure = "*"
 log = "*"
 mime = "*"
+percent-encoding = "*"
 rand = "*"
 ring = "*"
+rmp-serde = "*"
 serde = { version = "*", features = ["derive"] }
+serde_cbor = "*"
 serde_json = "*"
 
 [dev-dependencies]
-mime_guess = "*"
+diesel_migrations =  { version = "*", features = ["sqlite"] }

@@ -16,18 +16,9 @@
 ///////////////////////////////////////////////////////////////////////
 /// External Crates
 ///////////////////////////////////////////////////////////////////////
-extern crate aoide_core;
 
-#[macro_use]
 extern crate diesel;
 
-#[cfg(test)]
-#[macro_use]
-extern crate diesel_migrations;
-
-extern crate chrono;
-
-#[macro_use]
 extern crate failure;
 
 extern crate futures;
@@ -40,31 +31,10 @@ extern crate gotham_derive;
 #[macro_use]
 extern crate log;
 
-extern crate mime;
-
-extern crate percent_encoding;
-
 extern crate r2d2;
-
-extern crate rmp_serde;
-
-extern crate serde;
-
-extern crate serde_cbor;
-
-#[macro_use]
-extern crate serde_derive;
-
-extern crate serde_json;
-
-extern crate uuid;
 
 ///////////////////////////////////////////////////////////////////////
 /// Public Modules
 ///////////////////////////////////////////////////////////////////////
 
 pub mod middleware;
-
-pub mod storage;
-
-pub mod usecases;

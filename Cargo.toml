@@ -9,17 +9,19 @@ publish = false
 members = [
   "./",
   "aoide-core",
+  "aoide-storage",
 ]
 
 [patch.crates-io]
 aoide-core = { path = "aoide-core" }
+aoide-storage = { path = "aoide-storage" }
 
 [dependencies]
 aoide-core = { version = "*", path = "aoide-core" }
+aoide-storage = { version = "*", path = "aoide-storage" }
 
-chrono = { version = "*", features = ["serde"] }
 clap = "*"
-diesel = { version = "*", features = ["chrono", "r2d2", "sqlite"] }
+diesel = { version = "*", features = ["r2d2", "sqlite"] }
 diesel_migrations =  { version = "*", features = ["sqlite"] }
 env_logger = "*"
 failure = { version = "*", features = ["std"] }
@@ -32,15 +34,9 @@ gotham_derive = "*"
 # pinned for Gotham
 hyper = "0.11.*"
 log = "*"
-mime = ">= 0.3"
-percent-encoding = "*"
+mime = "*"
 r2d2 = "*"
-rmp-serde = "*"
 serde = "*"
-serde_cbor = "*"
-serde_derive = "*"
 serde_json = "*"
-uuid = "*"
 
 [dev-dependencies]
-

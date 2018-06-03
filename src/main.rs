@@ -17,6 +17,8 @@ extern crate aoide;
 
 extern crate aoide_core;
 
+extern crate aoide_storage;
+
 extern crate clap;
 
 extern crate diesel;
@@ -45,24 +47,19 @@ extern crate mime;
 
 extern crate r2d2;
 
-extern crate rmp_serde;
-
-extern crate serde;
-
-extern crate serde_cbor;
-
 #[macro_use]
-extern crate serde_derive;
+extern crate serde;
 
 extern crate serde_json;
 
-use aoide::{middleware,
-            middleware::DieselMiddleware,
-            storage::{collections::*, serde::*, tracks::*},
-            usecases::{api::{CountableStringField, LocateParams, Pagination, PaginationLimit,
-                             PaginationOffset, TrackReplacementParams, TrackReplacementReport, ResourceStats, SearchParams,
-                             StringFieldCounts},
-                       *}};
+use aoide::{middleware, middleware::DieselMiddleware};
+
+use aoide_storage::{storage::{collections::*, serde::*, tracks::*},
+                    usecases::{api::{CountableStringField, LocateParams, Pagination,
+                                     PaginationLimit, PaginationOffset, ResourceStats,
+                                     SearchParams, StringFieldCounts, TrackReplacementParams,
+                                     TrackReplacementReport},
+                               *}};
 
 use aoide_core::domain::{collection::*, entity::*, metadata::*, track::*};
 
@@ -929,23 +926,21 @@ fn handle_post_collections_path_uid_tracks_replace(mut state: State) -> Box<Hand
                     replacement_params,
                     format,
                 ) {
-                    Ok(report) => {
-                        match serialize_with_format(&report, format) {
-                            Ok(response_body) => create_response(
+                    Ok(report) => match serialize_with_format(&report, format) {
+                        Ok(response_body) => create_response(
+                            &state,
+                            StatusCode::Ok,
+                            Some((response_body, format.into())),
+                        ),
+                        Err(e) => {
+                            let response = format_response_message(
                                 &state,
-                                StatusCode::Ok,
-                                Some((response_body, format.into())),
-                            ),
-                            Err(e) => {
-                                let response = format_response_message(
-                                    &state,
-                                    StatusCode::InternalServerError,
-                                    &e,
-                                );
-                                return future::ok((state, response));
-                            }
+                                StatusCode::InternalServerError,
+                                &e,
+                            );
+                            return future::ok((state, response));
                         }
-                    }
+                    },
                     Err(e) => {
                         let response = format_response_message(&state, StatusCode::BadRequest, &e);
                         return future::ok((state, response));
