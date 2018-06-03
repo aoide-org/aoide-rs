@@ -315,26 +315,34 @@ impl From<EngineKeySignature> for KeySignature {
 
 #[derive(Clone, Copy, Default, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct TimeSignature {
-    #[serde(rename = "num")]
-    pub numerator: u8, // number of beats in each bar, 0 = default/undefined
-
-    #[serde(rename = "denom")]
-    pub denominator: u8, // symbol length of each beat, 0 = default/undefined
-}
+pub struct TimeSignature(u8, u8);
 
 impl TimeSignature {
     pub fn is_default(&self) -> bool {
         *self == Self::default()
     }
 
+    pub fn new(numerator: u8, denominator: u8) -> Self {
+        TimeSignature(numerator, denominator)
+    }
+
+    // number of beats in each bar, 0 = default/undefined
+    pub fn numerator(&self) -> u8 {
+        self.0
+    }
+
+    // symbol length of each beat, 0 = default/undefined
+    pub fn denominator(&self) -> u8 {
+        self.1
+    }
+
     pub fn is_valid(&self) -> bool {
-        (self.numerator > 0) && (self.denominator > 0)
+        (self.numerator() > 0) && (self.denominator() > 0)
     }
 }
 
 impl fmt::Display for TimeSignature {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}/{}", self.numerator, self.denominator)
+        write!(f, "{}/{}", self.numerator(), self.denominator())
     }
 }

@@ -18,6 +18,8 @@ pub mod sonic;
 #[cfg(test)]
 mod tests;
 
+use self::sonic::*;
+
 use domain::metadata::Score;
 
 ///////////////////////////////////////////////////////////////////////
@@ -205,12 +207,39 @@ impl Actors {
 }
 
 ///////////////////////////////////////////////////////////////////////
-/// Classification
+/// Lyrics
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct Lyrics {
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub text: String,
+
+    #[serde(rename = "lang", skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub explicit: Option<bool>,
+}
+
+impl Lyrics {
+    pub fn is_empty(&self) -> bool {
+        self.explicit.is_none() && self.text.is_empty()
+    }
+
+    pub fn is_valid(&self) -> bool {
+        true
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+/// Song Features & Classification
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "lowercase")]
-pub enum Class {
+pub enum SongFeature {
     Acousticness,
     Danceability,
     Energy,
@@ -221,22 +250,77 @@ pub enum Class {
     Valence,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Classification {
-    pub class: Class,
-    pub score: Score,
-}
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SongFeatureScore(SongFeature, Score);
 
-impl Classification {
-    pub fn new<C: Into<Score>>(class: Class, score: C) -> Self {
-        Self {
-            class,
-            score: score.into(),
-        }
+impl SongFeatureScore {
+    pub fn new<S: Into<Score>>(feature: SongFeature, score: S) -> Self {
+        SongFeatureScore(feature, score.into())
+    }
+
+    pub fn feature(&self) -> SongFeature {
+        self.0
+    }
+
+    pub fn score(&self) -> Score {
+        self.1
     }
 
     pub fn is_valid(&self) -> bool {
-        self.score.is_valid()
+        self.score().is_valid()
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+/// SongProfile
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct SongProfile {
+    #[serde(skip_serializing_if = "Tempo::is_default", default)]
+    pub tempo: Tempo,
+
+    #[serde(rename = "timesig", skip_serializing_if = "TimeSignature::is_default", default)]
+    pub time_signature: TimeSignature,
+
+    #[serde(rename = "keysig", skip_serializing_if = "KeySignature::is_default", default)]
+    pub key_signature: KeySignature,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub features: Vec<SongFeatureScore>, // no duplicate features allowed
+}
+
+impl SongProfile {
+    pub fn is_valid(&self) -> bool {
+        (self.tempo.is_valid() || self.tempo.is_default())
+            && (self.time_signature.is_valid() || self.time_signature.is_default())
+            && (self.key_signature.is_valid() || self.key_signature.is_default())
+            && self.features.iter().all(SongFeatureScore::is_valid)
+            && self.features.iter().all(|feature_score| {
+                feature_score.is_valid() && self.is_feature_unique(feature_score.feature())
+            })
+    }
+
+    pub fn has_feature(&self, feature: SongFeature) -> bool {
+        self.features
+            .iter()
+            .any(|feature_score| feature_score.feature() == feature)
+    }
+
+    fn is_feature_unique(&self, feature: SongFeature) -> bool {
+        self.features
+            .iter()
+            .filter(|feature_score| feature_score.feature() == feature)
+            .count() <= 1
+    }
+
+    pub fn feature(&self, feature: SongFeature) -> Option<&SongFeatureScore> {
+        debug_assert!(self.is_feature_unique(feature));
+        self.features
+            .iter()
+            .filter(|feature_score| feature_score.feature() == feature)
+            .nth(0)
     }
 }

@@ -118,34 +118,19 @@
             "lyrics": {
                 "explicit": true
             },
-            "music": {
+            "profile": {
                 "tempo": {
                     "bpm": 145.0
                 },
-                "timesig": {
-                    "num": 4,
-                    "denom": 4
-                },
+                "timesig": [ 4, 4 ],
                 "keysig": {
                     "code": 11
                 },
-                "classifications": [
-                    {
-                        "class": "energy",
-                        "score": 0.92
-                    },
-                    {
-                        "class": "valence",
-                        "score": 0.85
-                    },
-                    {
-                        "class": "danceability",
-                        "score": 0.78
-                    },
-                    {
-                        "class": "popularity",
-                        "score": 0.75
-                    }
+                "features": [
+                    [ "energy", 0.92 ],
+                    [ "valence", 0.85 ],
+                    [ "danceability", 0.78 ],
+                    [ "popularity", 0.75 ]
                 ]
             },
             "tags": [

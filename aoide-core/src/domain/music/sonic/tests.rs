@@ -16,6 +16,11 @@
 use super::*;
 
 #[test]
+fn default_time_signature() {
+    assert!(!TimeSignature::default().is_valid());
+}
+
+#[test]
 fn default_key_signature() {
     assert!(!KeySignature::default().is_valid());
     assert!(!OpenKeySignature::default().is_valid());

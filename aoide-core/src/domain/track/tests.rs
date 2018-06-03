@@ -21,12 +21,12 @@ use serde_json;
 
 #[test]
 fn serialize_json() {
-    let classifications = vec![
-        Classification::new(Class::Energy, 0.1),
-        Classification::new(Class::Popularity, 0.9),
+    let features = vec![
+        SongFeatureScore::new(SongFeature::Energy, 0.1),
+        SongFeatureScore::new(SongFeature::Popularity, 0.9),
     ];
-    let music = MusicMetadata {
-        classifications,
+    let profile = SongProfile {
+        features,
         ..Default::default()
     };
     let comments = vec![
@@ -61,7 +61,7 @@ fn serialize_json() {
     ];
     let body = TrackBody {
         resources,
-        music: Some(music),
+        profile: Some(profile),
         tags,
         comments,
         ..Default::default()

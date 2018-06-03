@@ -86,19 +86,19 @@ CREATE TABLE aux_tracks_overview (
     track_subtitle           TEXT,
     track_work               TEXT,
     track_movement           TEXT,
+    album_title              TEXT,
+    album_subtitle           TEXT,
+    released_at              DATE, -- naive date, i.e. without any time zone
+    released_by              TEXT, -- record label
+    release_copyright        TEXT,
     track_index              INTEGER, -- > 0
     track_count              INTEGER, -- > 0
     disc_index               INTEGER, -- > 0
     disc_count               INTEGER, -- > 0
     movement_index           INTEGER, -- > 0
     movement_count           INTEGER, -- > 0
-    album_title              TEXT,
-    album_subtitle           TEXT,
-    album_compilation        TINYINT, -- {0, 1}
-    released_at              DATE, -- naive date, i.e. without any time zone
-    released_by              TEXT, -- record label
-    release_copyright        TEXT,
     lyrics_explicit          TINYINT, -- {0, 1}
+    album_compilation        TINYINT, -- {0, 1}
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id)
 );

@@ -16,13 +16,12 @@
 #[cfg(test)]
 mod tests;
 
+use audio::*;
 use audio::sample::*;
 use audio::signal::*;
-use audio::*;
 use domain::collection::*;
 use domain::entity::*;
 use domain::metadata::*;
-use domain::music::sonic::*;
 use domain::music::*;
 
 use chrono::{DateTime, Utc};
@@ -370,83 +369,6 @@ impl TrackMarker {
 }
 
 ///////////////////////////////////////////////////////////////////////
-/// MusicMetadata
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct MusicMetadata {
-    #[serde(skip_serializing_if = "Tempo::is_default", default)]
-    pub tempo: Tempo,
-
-    #[serde(rename = "timesig", skip_serializing_if = "TimeSignature::is_default", default)]
-    pub time_signature: TimeSignature,
-
-    #[serde(rename = "keysig", skip_serializing_if = "KeySignature::is_default", default)]
-    pub key_signature: KeySignature,
-
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub classifications: Vec<Classification>, // no duplicate classs allowed
-}
-
-impl MusicMetadata {
-    pub fn is_valid(&self) -> bool {
-        (self.tempo.is_valid() || self.tempo.is_default())
-            && (self.time_signature.is_valid() || self.time_signature.is_default())
-            && (self.key_signature.is_valid() || self.key_signature.is_default())
-            && self.classifications.iter().all(Classification::is_valid)
-            && self.classifications.iter().all(|classification| {
-                classification.is_valid() && self.is_class_unique(classification.class)
-            })
-    }
-
-    pub fn has_class(&self, class: Class) -> bool {
-        self.classifications
-            .iter()
-            .any(|classification| classification.class == class)
-    }
-
-    fn is_class_unique(&self, class: Class) -> bool {
-        self.classifications
-            .iter()
-            .filter(|classification| classification.class == class)
-            .count() <= 1
-    }
-
-    pub fn classification(&self, class: Class) -> Option<&Classification> {
-        debug_assert!(self.is_class_unique(class));
-        self.classifications
-            .iter()
-            .filter(|classification| classification.class == class)
-            .nth(0)
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-/// TrackLyrics
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct TrackLyrics {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub explicit: Option<bool>,
-
-    #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub text: String,
-}
-
-impl TrackLyrics {
-    pub fn is_empty(&self) -> bool {
-        self.explicit.is_none() && self.text.is_empty()
-    }
-
-    pub fn is_valid(&self) -> bool {
-        true
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
 /// TrackTag
 ///////////////////////////////////////////////////////////////////////
 
@@ -470,7 +392,7 @@ impl TrackTag {
     // "Happy", "Sexy", "Sad", "Melancholic", "Uplifting", ...
     pub const FACET_MOOD: &'static str = "mood";
 
-    // Decades like "1980s", "2000s", ..., or other time-related classification
+    // Decades like "1980s", "2000s", ..., or other time-related feature
     pub const FACET_EPOCH: &'static str = "epoch";
 
     // "Birthday"/"Bday", "Xmas"/"Holiday"/"Christmas", "Summer", "Vacation", "Wedding", "Workout"...
@@ -557,10 +479,10 @@ pub struct TrackBody {
     pub actors: Vec<Actor>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub lyrics: Option<TrackLyrics>,
+    pub lyrics: Option<Lyrics>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub music: Option<MusicMetadata>,
+    pub profile: Option<SongProfile>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub markers: Vec<TrackMarker>,
@@ -583,10 +505,10 @@ impl TrackBody {
         !self.resources.is_empty() && self.resources.iter().all(TrackResource::is_valid)
             && self.album.iter().all(AlbumMetadata::is_valid)
             && self.release.iter().all(ReleaseMetadata::is_valid)
-            && Titles::is_valid(&self.titles) && Actors::is_valid(&self.actors)
             && self.track_numbers.is_valid() && self.disc_numbers.is_valid()
-            && self.music.iter().all(MusicMetadata::is_valid)
-            && self.lyrics.iter().all(TrackLyrics::is_valid)
+            && Titles::is_valid(&self.titles) && Actors::is_valid(&self.actors)
+            && self.lyrics.iter().all(Lyrics::is_valid)
+            && self.profile.iter().all(SongProfile::is_valid)
             && self.markers.iter().all(|marker| {
                 marker.is_valid()
                     && (!TrackMarker::is_singular(marker.mark)

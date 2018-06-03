@@ -279,9 +279,9 @@ impl<'a> TrackRepository<'a> {
         track_id: StorageId,
         track_body: &TrackBody,
     ) -> Result<(), failure::Error> {
-        if track_body.music.is_some() {
+        if track_body.profile.is_some() {
             let insertable =
-                InsertableTracksMusic::bind(track_id, track_body.music.as_ref().unwrap());
+                InsertableTracksMusic::bind(track_id, track_body.profile.as_ref().unwrap());
             let query = diesel::insert_into(aux_tracks_music::table).values(&insertable);
             query.execute(self.connection)?;
         }

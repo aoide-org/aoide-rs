@@ -25,9 +25,9 @@ use storage::serde::SerializationFormat;
 use aoide_core::audio::{Decibel, Loudness, LUFS};
 use aoide_core::domain::entity::{EntityHeader, EntityRevision};
 use aoide_core::domain::metadata::{Comment, Score, ScoreValue, Rating, Tag};
-use aoide_core::domain::music::{Actors, ActorRole, Titles, TitleLevel, Class};
+use aoide_core::domain::music::{Actors, ActorRole, Titles, TitleLevel, SongFeature, SongProfile};
 use aoide_core::domain::music::sonic::{BeatsPerMinute};
-use aoide_core::domain::track::{MusicMetadata, TrackBody, TrackResource, RefOrigin};
+use aoide_core::domain::track::{TrackBody, TrackResource, RefOrigin};
 
 #[derive(Debug, Insertable)]
 #[table_name = "tracks_entity"]
@@ -95,19 +95,19 @@ pub struct InsertableTracksOverview<'a> {
     pub track_subtitle: Option<&'a str>,
     pub track_work: Option<&'a str>,
     pub track_movement: Option<&'a str>,
-    pub lyrics_explicit: Option<bool>,
     pub album_title: Option<&'a str>,
     pub album_subtitle: Option<&'a str>,
-    pub album_compilation: Option<bool>,
+    pub released_at: Option<NaiveDate>,
+    pub released_by: Option<&'a str>,
+    pub release_copyright: Option<&'a str>,
     pub track_index: Option<i32>,
     pub track_count: Option<i32>,
     pub disc_index: Option<i32>,
     pub disc_count: Option<i32>,
     pub movement_index: Option<i32>,
     pub movement_count: Option<i32>,
-    pub released_at: Option<NaiveDate>,
-    pub released_by: Option<&'a str>,
-    pub release_copyright: Option<&'a str>,
+    pub lyrics_explicit: Option<bool>,
+    pub album_compilation: Option<bool>,
 }
 
 impl<'a> InsertableTracksOverview<'a> {
@@ -118,16 +118,8 @@ impl<'a> InsertableTracksOverview<'a> {
             track_subtitle: Titles::title(&track.titles, TitleLevel::Sub, None).map(|title| title.name.as_str()),
             track_work: Titles::title(&track.titles, TitleLevel::Work, None).map(|title| title.name.as_str()),
             track_movement: Titles::title(&track.titles, TitleLevel::Movement, None).map(|title| title.name.as_str()),
-            lyrics_explicit: track.lyrics.as_ref().and_then(|lyrics| lyrics.explicit),
             album_title: track.album.as_ref().and_then(|album| Titles::main_title(&album.titles)).map(|title| title.name.as_str()),
             album_subtitle: track.album.as_ref().and_then(|album| Titles::title(&album.titles, TitleLevel::Sub, None)).map(|title| title.name.as_str()),
-            album_compilation: track.album.as_ref().and_then(|album| album.compilation),
-            track_index: track.track_numbers.index.map(|index| index as i32),
-            track_count: track.track_numbers.count.map(|count| count as i32),
-            disc_index: track.disc_numbers.index.map(|index| index as i32),
-            disc_count: track.disc_numbers.count.map(|count| count as i32),
-            movement_index: track.movement_numbers.index.map(|index| index as i32),
-            movement_count: track.movement_numbers.count.map(|count| count as i32),
             released_at: track.release
                 .as_ref()
                 .and_then(|release| release.released_at)
@@ -140,6 +132,14 @@ impl<'a> InsertableTracksOverview<'a> {
                 .as_ref()
                 .and_then(|release| release.copyright.as_ref())
                 .map(|copyright| copyright.as_str()),
+            track_index: track.track_numbers.index.map(|index| index as i32),
+            track_count: track.track_numbers.count.map(|count| count as i32),
+            disc_index: track.disc_numbers.index.map(|index| index as i32),
+            disc_count: track.disc_numbers.count.map(|count| count as i32),
+            movement_index: track.movement_numbers.index.map(|index| index as i32),
+            movement_count: track.movement_numbers.count.map(|count| count as i32),
+            lyrics_explicit: track.lyrics.as_ref().and_then(|lyrics| lyrics.explicit),
+            album_compilation: track.album.as_ref().and_then(|album| album.compilation),
         }
     }
 }
@@ -296,37 +296,37 @@ pub struct InsertableTracksMusic {
 }
 
 impl InsertableTracksMusic {
-    pub fn bind(track_id: StorageId, music: &MusicMetadata) -> Self {
+    pub fn bind(track_id: StorageId, profile: &SongProfile) -> Self {
         Self {
             track_id,
-            tempo_bpm: music.tempo.bpm,
-            timesig_num: music.time_signature.numerator as i16,
-            timesig_denom: music.time_signature.denominator as i16,
-            keysig_code: music.key_signature.code as i16,
-            acousticness_score: music
-                .classification(Class::Acousticness)
-                .map(|classification| *classification.score),
-            danceability_score: music
-                .classification(Class::Danceability)
-                .map(|classification| *classification.score),
-            energy_score: music
-                .classification(Class::Energy)
-                .map(|classification| *classification.score),
-            instrumentalness_score: music
-                .classification(Class::Instrumentalness)
-                .map(|classification| *classification.score),
-            liveness_score: music
-                .classification(Class::Liveness)
-                .map(|classification| *classification.score),
-            popularity_score: music
-                .classification(Class::Popularity)
-                .map(|classification| *classification.score),
-            speechiness_score: music
-                .classification(Class::Speechiness)
-                .map(|classification| *classification.score),
-            valence_score: music
-                .classification(Class::Valence)
-                .map(|classification| *classification.score),
+            tempo_bpm: profile.tempo.bpm,
+            timesig_num: profile.time_signature.numerator() as i16,
+            timesig_denom: profile.time_signature.denominator() as i16,
+            keysig_code: profile.key_signature.code as i16,
+            acousticness_score: profile
+                .feature(SongFeature::Acousticness)
+                .map(|feature_score| *feature_score.score()),
+            danceability_score: profile
+                .feature(SongFeature::Danceability)
+                .map(|feature_score| *feature_score.score()),
+            energy_score: profile
+                .feature(SongFeature::Energy)
+                .map(|feature_score| *feature_score.score()),
+            instrumentalness_score: profile
+                .feature(SongFeature::Instrumentalness)
+                .map(|feature_score| *feature_score.score()),
+            liveness_score: profile
+                .feature(SongFeature::Liveness)
+                .map(|feature_score| *feature_score.score()),
+            popularity_score: profile
+                .feature(SongFeature::Popularity)
+                .map(|feature_score| *feature_score.score()),
+            speechiness_score: profile
+                .feature(SongFeature::Speechiness)
+                .map(|feature_score| *feature_score.score()),
+            valence_score: profile
+                .feature(SongFeature::Valence)
+                .map(|feature_score| *feature_score.score()),
         }
     }
 }
