@@ -59,7 +59,7 @@ mod schema;
 #[table_name = "tracks_entity"]
 pub struct QueryableSerializedEntity {
     pub id: StorageId,
-    pub uid: String,
+    pub uid: Vec<u8>,
     pub rev_ordinal: i64,
     pub rev_timestamp: NaiveDateTime,
     pub ser_fmt: i16,
@@ -70,7 +70,7 @@ pub struct QueryableSerializedEntity {
 
 impl From<QueryableSerializedEntity> for SerializedEntity {
     fn from(from: QueryableSerializedEntity) -> Self {
-        let uid: EntityUid = from.uid.into();
+        let uid = EntityUid::from_slice(&from.uid);
         let revision = EntityRevision::new(
             from.rev_ordinal as u64,
             DateTime::from_utc(from.rev_timestamp, Utc),
@@ -109,14 +109,15 @@ impl<'a> TrackRepository<'a> {
                 aux_tracks_resource::collection_uid
                     .ne_all(collections_entity::table.select(collections_entity::uid)),
             )
-            .load::<String>(self.connection)?;
+            .load::<Vec<u8>>(self.connection)?;
         let mut recreated_collections = Vec::with_capacity(orphaned_collection_uids.len());
         if !orphaned_collection_uids.is_empty() {
             let collection_repo = CollectionRepository::new(self.connection);
             for collection_uid in orphaned_collection_uids {
-                info!("Recreating missing collection: {}", collection_uid);
+                let uid = EntityUid::from_slice(&collection_uid);
+                info!("Recreating missing collection '{}'", uid.to_string());
                 let collection_entity = CollectionEntity::new(
-                    EntityHeader::with_uid(collection_uid),
+                    EntityHeader::with_uid(uid),
                     collection_prototype.clone(),
                 );
                 collection_repo.insert_entity(&collection_entity)?;
@@ -566,7 +567,7 @@ impl<'a> EntityStorage for TrackRepository<'a> {
     fn find_storage_id(&self, uid: &EntityUid) -> EntityStorageResult<Option<StorageId>> {
         let result = tracks_entity::table
             .select(tracks_entity::id)
-            .filter(tracks_entity::uid.eq(uid.as_str()))
+            .filter(tracks_entity::uid.eq(uid.as_ref()))
             .first::<StorageId>(self.connection)
             .optional()?;
         Ok(result)
@@ -615,7 +616,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                 let uid = entity.header().uid();
                 let target = tracks_entity::table.filter(
                     tracks_entity::uid
-                        .eq(uid.as_str())
+                        .eq(uid.as_ref())
                         .and(tracks_entity::rev_ordinal.eq(prev_revision.ordinal() as i64))
                         .and(
                             tracks_entity::rev_timestamp.eq(prev_revision.timestamp().naive_utc()),
@@ -709,7 +710,7 @@ impl<'a> Tracks for TrackRepository<'a> {
     }
 
     fn remove_entity(&self, uid: &EntityUid) -> TracksResult<()> {
-        let target = tracks_entity::table.filter(tracks_entity::uid.eq(uid.as_str()));
+        let target = tracks_entity::table.filter(tracks_entity::uid.eq(uid.as_ref()));
         let query = diesel::delete(target);
         self.before_entity_updated_or_removed(uid)?;
         let rows_affected: usize = query.execute(self.connection)?;
@@ -718,7 +719,7 @@ impl<'a> Tracks for TrackRepository<'a> {
     }
 
     fn load_entity(&self, uid: &EntityUid) -> TracksResult<Option<SerializedEntity>> {
-        let target = tracks_entity::table.filter(tracks_entity::uid.eq(uid.as_str()));
+        let target = tracks_entity::table.filter(tracks_entity::uid.eq(uid.as_ref()));
         let result = target
             .first::<QueryableSerializedEntity>(self.connection)
             .optional()?;
@@ -778,7 +779,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             .into_boxed();
         if let Some(collection_uid) = collection_uid {
             track_id_subselect = track_id_subselect
-                .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()));
+                .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_ref()));
         };
         track_id_subselect = match either_eq_or_like {
             EitherEqualOrLike::Equal(eq) => match modifier {
@@ -1229,7 +1230,7 @@ impl<'a> Tracks for TrackRepository<'a> {
 
         // Collection filter
         if let Some(uid) = collection_uid {
-            target = target.filter(aux_tracks_resource::collection_uid.eq(uid.as_str()));
+            target = target.filter(aux_tracks_resource::collection_uid.eq(uid.as_ref()));
         };
 
         for sort_order in search_params.ordering {
@@ -1310,7 +1311,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         let track_id_subselect = collection_uid.map(|collection_uid| {
             aux_tracks_resource::table
                 .select(aux_tracks_resource::track_id)
-                .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()))
+                .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_ref()))
         });
         let rows = match field {
             CountableStringField::MediaType => {
@@ -1325,7 +1326,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                     .into_boxed();
                 if let Some(collection_uid) = collection_uid {
                     target =
-                        target.filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()));
+                        target.filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_ref()));
                 }
                 let rows = target.load::<(String, i64)>(self.connection)?;
                 // TODO: Remove this transformation and select media_type
@@ -1417,7 +1418,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                 .into_boxed();
             // Collection filtering
             target = match collection_uid {
-                Some(uid) => target.filter(aux_tracks_resource::collection_uid.eq(uid.as_str())),
+                Some(uid) => target.filter(aux_tracks_resource::collection_uid.eq(uid.as_ref())),
                 None => target,
             };
             target.first::<i64>(self.connection)? as usize
@@ -1429,7 +1430,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                 .into_boxed();
             // Collection filtering
             target = match collection_uid {
-                Some(uid) => target.filter(aux_tracks_resource::collection_uid.eq(uid.as_str())),
+                Some(uid) => target.filter(aux_tracks_resource::collection_uid.eq(uid.as_ref())),
                 None => target,
             };
             target.first::<Option<f64>>(self.connection)?
@@ -1448,7 +1449,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                 .into_boxed();
             // Collection filtering
             target = match collection_uid {
-                Some(uid) => target.filter(aux_tracks_resource::collection_uid.eq(uid.as_str())),
+                Some(uid) => target.filter(aux_tracks_resource::collection_uid.eq(uid.as_ref())),
                 None => target,
             };
             let rows = target.load::<(String, i64)>(self.connection)?;
@@ -1506,7 +1507,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
 
         // Collection filtering
         if let Some(collection_uid) = collection_uid {
-            let track_id_subselect = aux_tracks_resource::table.select(aux_tracks_resource::track_id).filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()));
+            let track_id_subselect = aux_tracks_resource::table.select(aux_tracks_resource::track_id).filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_ref()));
             target = target.filter(aux_tracks_tag::track_id.eq_any(track_id_subselect));
         }
 
@@ -1563,7 +1564,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
 
         // Collection filtering
         if let Some(collection_uid) = collection_uid {
-            let track_id_subselect = aux_tracks_resource::table.select(aux_tracks_resource::track_id).filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_str()));
+            let track_id_subselect = aux_tracks_resource::table.select(aux_tracks_resource::track_id).filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_ref()));
             target = target.filter(aux_tracks_tag::track_id.eq_any(track_id_subselect));
         }
 

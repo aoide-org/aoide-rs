@@ -19,7 +19,7 @@
 
 CREATE TABLE collections_entity (
     id                       INTEGER PRIMARY KEY,
-    uid                      TEXT NOT NULL,     -- globally unique identifier
+    uid                      BINARY(24) NOT NULL, -- globally unique identifier
     rev_ordinal              INTEGER NOT NULL,
     rev_timestamp            DATETIME NOT NULL, -- with implicit time zone (UTC)
     name                     TEXT NOT NULL,     -- display name
@@ -37,7 +37,7 @@ CREATE INDEX idx_collections_entity_name ON collections_entity (
 
 CREATE TABLE tracks_entity (
     id                       INTEGER PRIMARY KEY,
-    uid                      TEXT NOT NULL,     -- globally unique identifier
+    uid                      BINARY(24) NOT NULL, -- globally unique identifier
     rev_ordinal              INTEGER NOT NULL,
     rev_timestamp            DATETIME NOT NULL, -- with implicit time zone (UTC)
     ser_fmt                  INTEGER NOT NULL,  -- serialization format: 1 = JSON, 2 = BSON, 3 = CBOR, 4 = Bincode, ...
@@ -50,7 +50,7 @@ CREATE TABLE tracks_entity (
 CREATE TABLE aux_tracks_resource (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
-    collection_uid           TEXT NOT NULL,
+    collection_uid           BINARY(24) NOT NULL,
     collection_since         DATETIME NOT NULL,
     source_uri               TEXT NOT NULL,     -- RFC 3986
     source_uri_decoded       TEXT NOT NULL,
@@ -203,7 +203,7 @@ CREATE INDEX idx_tracks_rating_owner ON aux_tracks_rating (
 CREATE TABLE pending_tasks (
     -- AUTOINCREMENT: Required for ordered execution of pending tasks
     id                       INTEGER PRIMARY KEY AUTOINCREMENT,
-    collection_uid           TEXT,
+    collection_uid           BINARY(24),
     job_type                 INTEGER NOT NULL,
     job_params               BLOB NOT NULL
 );

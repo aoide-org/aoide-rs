@@ -18,7 +18,7 @@ use super::collections::schema::collections_entity;
 table! {
     tracks_entity (id) {
         id -> BigInt,
-        uid -> Text,
+        uid -> Binary,
         rev_ordinal -> BigInt,
         rev_timestamp -> Timestamp,
         ser_fmt -> SmallInt,
@@ -32,7 +32,7 @@ table! {
     aux_tracks_resource (id) {
         id -> BigInt,
         track_id -> BigInt,
-        collection_uid -> Text,
+        collection_uid -> Binary,
         collection_since -> Timestamp,
         source_uri -> Text,
         source_uri_decoded -> Text,
@@ -184,7 +184,7 @@ allow_tables_to_appear_in_same_query!(aux_tracks_rating, tracks_entity);
 table! {
     pending_tasks (id) {
         id -> BigInt,
-        collection_uid -> Text,
+        collection_uid -> Binary,
         job_type -> Integer,
         job_params -> Binary,
     }

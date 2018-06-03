@@ -20,55 +20,157 @@ use base64;
 
 use chrono::{DateTime, TimeZone, Utc};
 
-use rand::{thread_rng, RngCore, AsByteSliceMut};
+use failure;
+
+use rand::{thread_rng, AsByteSliceMut, RngCore};
 
 use ring::digest;
 
+use serde::{Serialize, Deserialize, Serializer, Deserializer};
+use serde::de;
+use serde::de::Visitor as SerdeDeserializeVisitor;
+
 use std::fmt;
 
-use std::ops::Deref;
+use std::mem;
+
+use std::str;
 
 ///////////////////////////////////////////////////////////////////////
 /// EntityUid
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct EntityUid(String);
-
-impl From<String> for EntityUid {
-    fn from(from: String) -> Self {
-        EntityUid(from)
-    }
-}
-
-impl From<EntityUid> for String {
-    fn from(from: EntityUid) -> Self {
-        from.0
-    }
-}
-
-impl Deref for EntityUid {
-    type Target = String;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct EntityUid([u8; 24]);
 
 impl EntityUid {
+    const SLICE_LEN: usize = mem::size_of::<Self>();
+    const STR_LEN: usize = (Self::SLICE_LEN * 4) / 3;
+    const STR_ENCODING: base64::Config = base64::URL_SAFE_NO_PAD;
+
     pub fn is_valid(&self) -> bool {
-        !(*self).is_empty()
+        self != &Self::default()
     }
 
-    pub fn as_str<'a>(&'a self) -> &'a str {
+    pub fn copy_from_slice(&mut self, slice: &[u8]) {
+        assert!(slice.len() == Self::SLICE_LEN);
+        self.as_mut().copy_from_slice(&slice[0..Self::SLICE_LEN]);
+    }
+
+    pub fn from_slice(slice: &[u8]) -> Self {
+        let mut result = Self::default();
+        result.copy_from_slice(slice);
+        result
+    }
+
+    pub fn decode_str(mut self, encoded: &str) -> Result<Self, failure::Error> {
+        ensure!(
+            encoded.len() == Self::STR_LEN,
+            "Wrong encoded string slice length: expected = {}, actual = {}",
+            Self::STR_LEN,
+            encoded.len()
+        );
+        let decoded_len = base64::decode_config_slice(encoded, Self::STR_ENCODING, self.as_mut())?;
+        debug_assert!(decoded_len == Self::SLICE_LEN);
+        Ok(self)
+    }
+
+    pub fn encode_slice(&self, encoded: &mut [u8]) -> Result<(), failure::Error> {
+        ensure!(
+            encoded.len() == Self::STR_LEN,
+            "Wrong encoded string slice length: expected = {}, actual = {}",
+            Self::STR_LEN,
+            encoded.len()
+        );
+        let encoded_len = base64::encode_config_slice(self.as_ref(), Self::STR_ENCODING, encoded);
+        debug_assert!(encoded_len == Self::STR_LEN);
+        Ok(())
+    }
+
+    pub fn encode_str(&self, encoded: &mut str) -> Result<(), failure::Error> {
+        unsafe {
+            self.encode_slice(&mut encoded.as_bytes_mut())
+        }
+    }
+
+    pub fn decode_from_str(encoded: &str) -> Result<Self, failure::Error> {
+        Self::default().decode_str(encoded)
+    }
+
+    pub fn encode_to_slice(&self) -> [u8; Self::STR_LEN] {
+        let mut encoded = [0u8; Self::STR_LEN];
+        self.encode_slice(&mut encoded).unwrap();
+        encoded
+    }
+
+    pub fn encode_to_string(&self) -> String {
+        let mut encoded = String::with_capacity(Self::STR_LEN);
+        base64::encode_config_buf(self.as_ref(), Self::STR_ENCODING, &mut encoded);
+        debug_assert!(encoded.len() == Self::STR_LEN);
+        encoded
+    }
+}
+
+impl AsRef<[u8]> for EntityUid {
+    fn as_ref(&self) -> &[u8] {
         &self.0
+    }
+}
+
+impl AsMut<[u8]> for EntityUid {
+    fn as_mut(&mut self) -> &mut [u8] {
+        &mut self.0
+    }
+}
+
+// Serialize (and deserialize) as string for maximum compatibility and portability
+impl Serialize for EntityUid {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let encoded = self.encode_to_slice();
+        unsafe {
+            serializer.serialize_str(str::from_utf8_unchecked(&encoded))
+        }
+    }
+}
+
+struct EntityUidDeserializeVisitor;
+
+impl<'de> SerdeDeserializeVisitor<'de> for EntityUidDeserializeVisitor {
+    type Value = EntityUid;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_fmt(format_args!("an URL-safe Base64 encoded string of length {}", EntityUid::STR_LEN))
+    }
+
+    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        match EntityUid::decode_from_str(value) {
+            Ok(result) => Ok(result),
+            Err(e) => Err(E::custom(e.to_string()))
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for EntityUid {
+    fn deserialize<D>(deserializer: D) -> Result<EntityUid, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_str(EntityUidDeserializeVisitor)
     }
 }
 
 impl fmt::Display for EntityUid {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.as_str())
+        let encoded = self.encode_to_slice();
+        unsafe {
+            write!(f, "{}", str::from_utf8_unchecked(&encoded))
+        }
     }
 }
 
@@ -103,8 +205,8 @@ impl EntityUidGenerator {
         digest_ctx.update(&buf_random);
         // Calculate SHA256 of generated 32 bytes -> 32 bytes
         let digest = digest_ctx.finish();
-        // Encode the first 24 bytes as string -> 32 URL-safe chars
-        base64::encode_config(&digest.as_ref()[0..24], base64::URL_SAFE_NO_PAD).into()
+        // Use only the first 24 bytes
+        EntityUid::from_slice(&digest.as_ref()[0..EntityUid::SLICE_LEN])
     }
 }
 
@@ -211,7 +313,7 @@ impl fmt::Display for EntityRevision {
 /// EntityHeader
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityHeader {
     uid: EntityUid,

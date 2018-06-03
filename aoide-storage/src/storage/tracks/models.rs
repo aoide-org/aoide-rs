@@ -32,7 +32,7 @@ use aoide_core::domain::track::{TrackBody, TrackResource, RefOrigin};
 #[derive(Debug, Insertable)]
 #[table_name = "tracks_entity"]
 pub struct InsertableTracksEntity<'a> {
-    pub uid: &'a str,
+    pub uid: &'a [u8],
     pub rev_ordinal: i64,
     pub rev_timestamp: NaiveDateTime,
     pub ser_fmt: i16,
@@ -48,7 +48,7 @@ impl<'a> InsertableTracksEntity<'a> {
         ser_blob: &'a [u8],
     ) -> Self {
         Self {
-            uid: header.uid().as_str(),
+            uid: header.uid().as_ref(),
             rev_ordinal: header.revision().ordinal() as i64,
             rev_timestamp: header.revision().timestamp().naive_utc(),
             ser_fmt: ser_fmt as i16,
@@ -192,7 +192,7 @@ impl<'a> InsertableTracksSummary<'a> {
 #[table_name = "aux_tracks_resource"]
 pub struct InsertableTracksResource<'a> {
     pub track_id: StorageId,
-    pub collection_uid: &'a str,
+    pub collection_uid: &'a [u8],
     pub collection_since: NaiveDateTime,
     pub source_uri: &'a str,
     pub source_uri_decoded: String,
@@ -214,7 +214,7 @@ impl<'a> InsertableTracksResource<'a> {
     pub fn bind(track_id: StorageId, track_resource: &'a TrackResource) -> Self {
         Self {
             track_id,
-            collection_uid: track_resource.collection.uid.as_str(),
+            collection_uid: track_resource.collection.uid.as_ref(),
             collection_since: track_resource.collection.since.naive_utc(),
             source_uri: track_resource.source.uri.as_str(),
             source_uri_decoded: percent_decode(track_resource.source.uri.as_bytes()).decode_utf8_lossy().into(),

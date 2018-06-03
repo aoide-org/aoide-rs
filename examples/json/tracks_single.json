@@ -1,14 +1,14 @@
 [
     {
         "header": {
-            "uid": "Ejtxuj1yF6AEAIO4Nhxf4aPjmbF20awOGxrVYY7E4kM",
+            "uid": "Ejtxuj1yF6AEAIO4Nhxf4aPjmbF20awO",
             "revision": [ 28, "2018-04-14T18:10:11.8351783Z" ]
         },
         "body": {
             "resources": [
                 {
                     "collection": {
-                        "uid": "myMXwslBoXkTDQ0olhq1QsiHRWWL4yj1V0IuoK+PYOg",
+                        "uid": "myMXwslBoXkTDQ0olhq1QsiHRWWL4yj1",
                         "since": "2018-05-01T13:27:56.3751483Z"
                     },
                     "source": {

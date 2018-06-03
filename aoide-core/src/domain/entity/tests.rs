@@ -18,6 +18,7 @@ use super::*;
 #[test]
 fn default_uid() {
     assert!(!EntityUid::default().is_valid());
+    assert_eq!(EntityUid::default().as_ref().len(), mem::size_of::<EntityUid>());
 }
 
 #[test]

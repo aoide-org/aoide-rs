@@ -21,6 +21,9 @@ extern crate base64;
 
 extern crate chrono;
 
+#[macro_use]
+extern crate failure;
+
 extern crate log;
 
 extern crate mime;

@@ -16,7 +16,7 @@
 table! {
     collections_entity (id) {
         id -> BigInt,
-        uid -> Text,
+        uid -> Binary,
         rev_ordinal -> BigInt,
         rev_timestamp -> Timestamp,
         name -> Text,

@@ -26,7 +26,7 @@ use storage::*;
 #[derive(Debug, Insertable)]
 #[table_name = "collections_entity"]
 pub struct InsertableCollectionsEntity<'a> {
-    pub uid: &'a str,
+    pub uid: &'a [u8],
     pub rev_ordinal: i64,
     pub rev_timestamp: NaiveDateTime,
     pub name: &'a str,
@@ -36,7 +36,7 @@ pub struct InsertableCollectionsEntity<'a> {
 impl<'a> InsertableCollectionsEntity<'a> {
     pub fn bind(entity: &'a CollectionEntity) -> Self {
         Self {
-            uid: entity.header().uid().as_str(),
+            uid: entity.header().uid().as_ref(),
             rev_ordinal: entity.header().revision().ordinal() as i64,
             rev_timestamp: entity.header().revision().timestamp().naive_utc(),
             name: &entity.body().name,
@@ -68,7 +68,7 @@ impl<'a> UpdatableCollectionsEntity<'a> {
 #[derive(Debug, Queryable)]
 pub struct QueryableCollectionsEntity {
     pub id: StorageId,
-    pub uid: String,
+    pub uid: Vec<u8>,
     pub rev_ordinal: i64,
     pub rev_timestamp: NaiveDateTime,
     pub name: String,
@@ -77,7 +77,7 @@ pub struct QueryableCollectionsEntity {
 
 impl From<QueryableCollectionsEntity> for CollectionEntity {
     fn from(from: QueryableCollectionsEntity) -> Self {
-        let uid: EntityUid = from.uid.into();
+        let uid = EntityUid::from_slice(&from.uid);
         let revision = EntityRevision::new(
             from.rev_ordinal as u64,
             DateTime::from_utc(from.rev_timestamp, Utc),

@@ -208,17 +208,11 @@ struct UidPathExtractor {
 
 impl UidPathExtractor {
     fn try_parse_from(state: &mut State) -> Option<EntityUid> {
-        Self::try_take_from(state).map(|path| path.uid.into())
+        Self::try_take_from(state).and_then(|path| EntityUid::decode_from_str(&path.uid).ok())
     }
 
     fn parse_from(state: &mut State) -> Result<EntityUid, Error> {
-        match Self::try_parse_from(state) {
-            Some(uid) => Ok(uid),
-            None => {
-                let e = format_err!("Missing or invalid identifier");
-                Err(e)
-            }
-        }
+        EntityUid::decode_from_str(&Self::take_from(state).uid)
     }
 
     fn parse_from_and_verify(
