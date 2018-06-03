@@ -62,6 +62,7 @@ CREATE TABLE aux_tracks_resource (
     audio_channels_count     INTEGER,           -- number of channels
     audio_samplerate_hz      INTEGER,           -- Hz
     audio_bitrate_bps        INTEGER,           -- bits per second (bps)
+    audio_loudness_db        REAL,              -- LUFS dB
     audio_enc_name           TEXT,              -- encoded by
     audio_enc_settings       TEXT,              -- encoder settings
     color_code               INTEGER,           -- 0xAARRGGBB (hex)
@@ -125,11 +126,10 @@ CREATE TABLE aux_tracks_summary (
 CREATE TABLE aux_tracks_music (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
-    loudness_db              REAL NOT NULL, -- LUFS dB
     tempo_bpm                REAL NOT NULL, -- beats per minute (bpm)
-    keysig_code              TINYINT NOT NULL, -- {(0), 1, ..., 24}
     timesig_num              TINYINT NOT NULL, -- >= 0
     timesig_denom            TINYINT NOT NULL, -- >= 0
+    keysig_code              TINYINT NOT NULL, -- {(0), 1, ..., 24}
     acousticness_score       REAL, -- [0.0, 1.0]
     danceability_score       REAL, -- [0.0, 1.0]
     energy_score             REAL, -- [0.0, 1.0]

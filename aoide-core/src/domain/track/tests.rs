@@ -14,7 +14,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use super::*;
+
 use mime_guess;
+
 use serde_json;
 
 #[test]
@@ -25,7 +27,6 @@ fn serialize_json() {
     ];
     let music = MusicMetadata {
         classifications,
-        loudness: Some(Loudness::EBUR128LUFS(LUFS { db: -2.3 })),
         ..Default::default()
     };
     let comments = vec![

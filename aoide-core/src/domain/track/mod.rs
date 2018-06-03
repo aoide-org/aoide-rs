@@ -64,6 +64,9 @@ pub struct AudioContent {
 
     pub bitrate: BitRate,
 
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub loudness: Option<Loudness>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub encoder: Option<AudioEncoder>,
 }
@@ -72,6 +75,7 @@ impl AudioContent {
     pub fn is_valid(&self) -> bool {
         !self.duration.is_empty() && self.channels.is_valid() && self.samplerate.is_valid()
             && self.bitrate.is_valid()
+            && self.loudness.iter().all(Loudness::is_valid)
             && self.encoder.as_ref().map_or(true, |e| e.is_valid())
     }
 }
@@ -372,17 +376,14 @@ impl TrackMarker {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct MusicMetadata {
-    #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub loudness: Option<Loudness>,
-
     #[serde(skip_serializing_if = "Tempo::is_default", default)]
     pub tempo: Tempo,
 
-    #[serde(rename = "keysig", skip_serializing_if = "KeySignature::is_default", default)]
-    pub key_signature: KeySignature,
-
     #[serde(rename = "timesig", skip_serializing_if = "TimeSignature::is_default", default)]
     pub time_signature: TimeSignature,
+
+    #[serde(rename = "keysig", skip_serializing_if = "KeySignature::is_default", default)]
+    pub key_signature: KeySignature,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub classifications: Vec<Classification>, // no duplicate classs allowed
@@ -390,8 +391,7 @@ pub struct MusicMetadata {
 
 impl MusicMetadata {
     pub fn is_valid(&self) -> bool {
-        self.loudness.iter().all(Loudness::is_valid)
-            && (self.tempo.is_valid() || self.tempo.is_default())
+        (self.tempo.is_valid() || self.tempo.is_default())
             && (self.time_signature.is_valid() || self.time_signature.is_default())
             && (self.key_signature.is_valid() || self.key_signature.is_default())
             && self.classifications.iter().all(Classification::is_valid)
@@ -512,8 +512,8 @@ pub enum RefOrigin {
 pub enum TrackLock {
     Loudness,
     Tempo,
-    TimeSig,
     KeySig,
+    TimeSig,
 }
 
 impl TrackLock {

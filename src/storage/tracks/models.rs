@@ -22,10 +22,11 @@ use percent_encoding::percent_decode;
 use storage::StorageId;
 use storage::serde::SerializationFormat;
 
+use aoide_core::audio::{Decibel, Loudness, LUFS};
 use aoide_core::domain::entity::{EntityHeader, EntityRevision};
 use aoide_core::domain::metadata::{Comment, Score, ScoreValue, Rating, Tag};
 use aoide_core::domain::music::{Actors, ActorRole, Titles, TitleLevel, Class};
-use aoide_core::domain::music::sonic::{BeatsPerMinute, Decibel, Loudness, LUFS};
+use aoide_core::domain::music::sonic::{BeatsPerMinute};
 use aoide_core::domain::track::{MusicMetadata, TrackBody, TrackResource, RefOrigin};
 
 #[derive(Debug, Insertable)]
@@ -203,6 +204,7 @@ pub struct InsertableTracksResource<'a> {
     pub audio_channels_count: Option<i16>,
     pub audio_samplerate_hz: Option<i32>,
     pub audio_bitrate_bps: Option<i32>,
+    pub audio_loudness_db: Option<Decibel>,
     pub audio_enc_name: Option<&'a str>,
     pub audio_enc_settings: Option<&'a str>,
     pub color_code: Option<i32>,
@@ -249,6 +251,14 @@ impl<'a> InsertableTracksResource<'a> {
                 .audio_content
                 .as_ref()
                 .map(|audio| audio.bitrate.bps as i32),
+            audio_loudness_db: track_resource
+                .source
+                .audio_content
+                .as_ref()
+                .and_then(|audio| audio.loudness)
+                .and_then(|loudness| match loudness {
+                    Loudness::EBUR128LUFS(LUFS { db }) => Some(db),
+                }),
             audio_enc_name: track_resource
                 .source
                 .audio_content
@@ -271,11 +281,10 @@ impl<'a> InsertableTracksResource<'a> {
 #[table_name = "aux_tracks_music"]
 pub struct InsertableTracksMusic {
     pub track_id: StorageId,
-    pub loudness_db: Decibel,
     pub tempo_bpm: BeatsPerMinute,
-    pub keysig_code: i16,
     pub timesig_num: i16,
     pub timesig_denom: i16,
+    pub keysig_code: i16,
     pub acousticness_score: Option<ScoreValue>,
     pub danceability_score: Option<ScoreValue>,
     pub energy_score: Option<ScoreValue>,
@@ -288,17 +297,12 @@ pub struct InsertableTracksMusic {
 
 impl InsertableTracksMusic {
     pub fn bind(track_id: StorageId, music: &MusicMetadata) -> Self {
-        let loudness_db = match music.loudness {
-            Some(Loudness::EBUR128LUFS(LUFS { db })) => db,
-            None => 0 as Decibel,
-        };
         Self {
             track_id,
-            loudness_db: loudness_db,
             tempo_bpm: music.tempo.bpm,
-            keysig_code: music.key_signature.code as i16,
             timesig_num: music.time_signature.numerator as i16,
             timesig_denom: music.time_signature.denominator as i16,
+            keysig_code: music.key_signature.code as i16,
             acousticness_score: music
                 .classification(Class::Acousticness)
                 .map(|classification| *classification.score),

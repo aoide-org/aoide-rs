@@ -20,42 +20,6 @@ use std::f64;
 use std::fmt;
 
 ///////////////////////////////////////////////////////////////////////
-/// Loudness
-///////////////////////////////////////////////////////////////////////
-
-pub type Decibel = f64;
-
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct LUFS {
-    pub db: Decibel,
-}
-
-impl LUFS {
-    pub const UNIT_OF_MEASURE: &'static str = "dB";
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "lowercase")]
-pub enum Loudness {
-    EBUR128LUFS(LUFS),
-}
-
-impl Loudness {
-    pub fn is_valid(&self) -> bool {
-        true
-    }
-}
-
-impl fmt::Display for Loudness {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            &Loudness::EBUR128LUFS(lufs) => write!(f, "{} {}", lufs.db, LUFS::UNIT_OF_MEASURE),
-        }
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
 /// Tempo
 ///////////////////////////////////////////////////////////////////////
 

@@ -23,7 +23,7 @@
                                 "timestamp": "2018-03-22T17:10:55.488760124Z"
                             }
                         },
-                        "contentType": "audio/mpeg",
+                        "mediaType": "audio/mpeg",
                         "audioContent": {
                             "duration": {
                                 "ms": 202821
@@ -36,6 +36,11 @@
                             },
                             "bitrate": {
                                 "bps": 320000
+                            },
+                            "loudness": {
+                                "ebur128lufs": {
+                                    "db": -9.55269
+                                }
                             }
                         }
                     },
@@ -114,19 +119,14 @@
                 "explicit": true
             },
             "music": {
-                "loudness": {
-                    "ebur128lufs": {
-                        "db": -9.55269
-                    }
-                },
                 "tempo": {
                     "bpm": 145.0
                 },
-                "timeSignature": {
-                    "numerator": 4,
-                    "denominator": 4
+                "timesig": {
+                    "num": 4,
+                    "denom": 4
                 },
-                "keySignature": {
+                "keysig": {
                     "code": 11
                 },
                 "classifications": [
