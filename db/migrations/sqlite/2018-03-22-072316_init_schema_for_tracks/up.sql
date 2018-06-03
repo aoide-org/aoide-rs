@@ -213,5 +213,10 @@ CREATE TABLE pending_tasks_tracks (
     task_id                  INTEGER NOT NULL,
     track_id                 INTEGER NOT NULL,
     FOREIGN KEY(task_id) REFERENCES pending_tasks(id),
-    FOREIGN KEY(track_id) REFERENCES tracks_entity(id)
+    FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
+    UNIQUE(task_id, track_id)
+);
+
+CREATE INDEX idx_pending_tasks_tracks_track_id ON pending_tasks_tracks (
+    track_id
 );
