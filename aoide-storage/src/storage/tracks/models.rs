@@ -132,12 +132,12 @@ impl<'a> InsertableTracksOverview<'a> {
                 .as_ref()
                 .and_then(|release| release.copyright.as_ref())
                 .map(|copyright| copyright.as_str()),
-            track_index: track.track_numbers.index.map(|index| index as i32),
-            track_count: track.track_numbers.count.map(|count| count as i32),
-            disc_index: track.disc_numbers.index.map(|index| index as i32),
-            disc_count: track.disc_numbers.count.map(|count| count as i32),
-            movement_index: track.movement_numbers.index.map(|index| index as i32),
-            movement_count: track.movement_numbers.count.map(|count| count as i32),
+            track_index: track.track_numbers.index().map(|index| index as i32),
+            track_count: track.track_numbers.count().map(|count| count as i32),
+            disc_index: track.disc_numbers.index().map(|index| index as i32),
+            disc_count: track.disc_numbers.count().map(|count| count as i32),
+            movement_index: track.movement_numbers.index().map(|index| index as i32),
+            movement_count: track.movement_numbers.count().map(|count| count as i32),
             lyrics_explicit: track.lyrics.as_ref().and_then(|lyrics| lyrics.explicit),
             album_compilation: track.album.as_ref().and_then(|album| album.compilation),
         }

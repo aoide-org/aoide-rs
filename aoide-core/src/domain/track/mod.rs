@@ -275,21 +275,26 @@ impl AlbumMetadata {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct IndexCount {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub index: Option<u32>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub count: Option<u32>,
-}
+pub struct IndexCount (
+    /*index*/ Option<u32>,
+    /*count*/ Option<u32>,
+);
 
 impl IndexCount {
+    pub fn index(&self) -> Option<u32> {
+        self.0
+    }
+
+    pub fn count(&self) -> Option<u32> {
+        self.1
+    }
+
     pub fn is_empty(&self) -> bool {
-        self.index.is_none() && self.count.is_none()
+        self.index().is_none() && self.count().is_none()
     }
 
     pub fn is_valid(&self) -> bool {
-        match (self.index, self.count) {
+        match (self.index(), self.count()) {
             (None, None) => true,
             (Some(index), None) => index > 0,
             (None, Some(count)) => count > 0,
@@ -300,7 +305,7 @@ impl IndexCount {
 
 impl fmt::Display for IndexCount {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match (self.index, self.count) {
+        match (self.index(), self.count()) {
             (None, None) => write!(f, ""),
             (Some(index), None) => write!(f, "{}", index),
             (None, Some(count)) => write!(f, "/{}", count),

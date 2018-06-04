@@ -71,14 +71,8 @@
                 ],
                 "compilation": false
             },
-            "trackNumbers": {
-                "index": 5,
-                "count": 18
-            },
-            "discNumbers": {
-                "index": 1,
-                "count": 1
-            },
+            "trackNumbers": [ 5, 18 ],
+            "discNumbers": [ 1, 1 ],
             "titles": [
                 {
                     "name": "Give Me All Your Luvin'"
