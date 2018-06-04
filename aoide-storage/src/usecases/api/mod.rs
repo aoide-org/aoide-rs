@@ -95,17 +95,40 @@ pub enum ScoreCondition {
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct TagFilter {
-    // Facets are always matched with equals. Use an empty string
-    // for matching tags without a facet.
+pub struct GenreFilter {
+    #[serde(rename = "score", skip_serializing_if = "Option::is_none")]
+    pub score_condition: Option<ScoreCondition>,
+
+    #[serde(rename = "term", skip_serializing_if = "Option::is_none")]
+    pub name_condition: Option<StringCondition>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub facet: Option<String>,
+    pub modifier: Option<FilterModifier>,
+}
+
+impl GenreFilter {
+    pub fn any_score() -> Option<ScoreCondition> {
+        None
+    }
+
+    pub fn any_name() -> Option<StringCondition> {
+        None
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct TagFilter {
+    #[serde(rename = "score", skip_serializing_if = "Option::is_none")]
+    pub score_condition: Option<ScoreCondition>,
 
     #[serde(rename = "term", skip_serializing_if = "Option::is_none")]
     pub term_condition: Option<StringCondition>,
 
-    #[serde(rename = "score", skip_serializing_if = "Option::is_none")]
-    pub score_condition: Option<ScoreCondition>,
+    // Facets are always matched with equals. Use an empty string
+    // for matching tags without a facet.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub facet: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub modifier: Option<FilterModifier>,
@@ -285,6 +308,9 @@ impl TrackSort {
 pub struct SearchParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub phrase_filter: Option<PhraseFilter>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub genre_filters: Vec<GenreFilter>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub tag_filters: Vec<TagFilter>,

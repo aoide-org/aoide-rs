@@ -123,7 +123,7 @@ CREATE TABLE aux_tracks_summary (
     UNIQUE (track_id)
 );
 
-CREATE TABLE aux_tracks_music (
+CREATE TABLE aux_tracks_profile (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     tempo_bpm                REAL NOT NULL, -- beats per minute (bpm)
@@ -142,13 +142,13 @@ CREATE TABLE aux_tracks_music (
     UNIQUE (track_id)
 );
 
-CREATE TABLE aux_tracks_ref (
+CREATE TABLE aux_tracks_genre (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
-    origin                   TINYINT NOT NULL,
-    reference                TEXT NOT NULL,
+    score                    REAL NOT NULL, -- [0.0, 1.0]
+    name                     TEXT NOT NULL,
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
-    UNIQUE (track_id, origin, reference)
+    UNIQUE (track_id, name)
 );
 
 CREATE TABLE aux_tracks_tag (
@@ -194,6 +194,15 @@ CREATE TABLE aux_tracks_rating (
 
 CREATE INDEX idx_tracks_rating_owner ON aux_tracks_rating (
     owner
+);
+
+CREATE TABLE aux_tracks_ref (
+    id                       INTEGER PRIMARY KEY,
+    track_id                 INTEGER NOT NULL,
+    origin                   TINYINT NOT NULL,
+    reference                TEXT NOT NULL,
+    FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
+    UNIQUE (track_id, origin, reference)
 );
 
 -----------------------------------------------------------------------

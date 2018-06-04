@@ -25,7 +25,7 @@ use storage::serde::SerializationFormat;
 use aoide_core::audio::{Decibel, Loudness, LUFS};
 use aoide_core::domain::entity::{EntityHeader, EntityRevision};
 use aoide_core::domain::metadata::{Comment, Score, ScoreValue, Rating, ScoredTag};
-use aoide_core::domain::music::{Actors, ActorRole, Titles, TitleLevel, SongFeature, SongProfile};
+use aoide_core::domain::music::{Actors, ActorRole, Titles, TitleLevel, SongFeature, SongProfile, ScoredGenre};
 use aoide_core::domain::music::sonic::{BeatsPerMinute};
 use aoide_core::domain::track::{TrackBody, TrackResource, RefOrigin};
 
@@ -278,7 +278,7 @@ impl<'a> InsertableTracksResource<'a> {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "aux_tracks_music"]
+#[table_name = "aux_tracks_profile"]
 pub struct InsertableTracksMusic {
     pub track_id: StorageId,
     pub tempo_bpm: BeatsPerMinute,
@@ -345,6 +345,24 @@ impl<'a> InsertableTracksRef<'a> {
             track_id,
             origin: origin as i16,
             reference,
+        }
+    }
+}
+
+#[derive(Debug, Insertable)]
+#[table_name = "aux_tracks_genre"]
+pub struct InsertableTracksGenre<'a> {
+    pub track_id: StorageId,
+    pub score: ScoreValue,
+    pub name: &'a str,
+}
+
+impl<'a> InsertableTracksGenre<'a> {
+    pub fn bind(track_id: StorageId, genre: &'a ScoredGenre) -> Self {
+        Self {
+            track_id,
+            score: *genre.score(),
+            name: genre.name().as_str(),
         }
     }
 }

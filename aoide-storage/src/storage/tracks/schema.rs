@@ -104,7 +104,7 @@ table! {
 joinable!(aux_tracks_summary -> tracks_entity (track_id));
 
 table! {
-    aux_tracks_music (id) {
+    aux_tracks_profile (id) {
         id -> BigInt,
         track_id -> BigInt,
         tempo_bpm -> Double,
@@ -122,18 +122,31 @@ table! {
     }
 }
 
-joinable!(aux_tracks_music -> tracks_entity (track_id));
+joinable!(aux_tracks_profile -> tracks_entity (track_id));
 
 table! {
-    aux_tracks_ref (id) {
+    aux_tracks_genre (id) {
         id -> BigInt,
         track_id -> BigInt,
-        origin -> SmallInt,
-        reference -> Text,
+        score -> Double,
+        name -> Text,
     }
 }
 
-joinable!(aux_tracks_ref -> tracks_entity (track_id));
+joinable!(aux_tracks_genre -> tracks_entity (track_id));
+
+table! {
+    aux_tracks_rating (id) {
+        id -> BigInt,
+        track_id -> BigInt,
+        score -> Double,
+        owner -> Nullable<Text>,
+    }
+}
+
+joinable!(aux_tracks_rating -> tracks_entity (track_id));
+
+allow_tables_to_appear_in_same_query!(aux_tracks_rating, tracks_entity);
 
 table! {
     aux_tracks_tag (id) {
@@ -158,28 +171,27 @@ table! {
 
 joinable!(aux_tracks_comment -> tracks_entity (track_id));
 
+table! {
+    aux_tracks_ref (id) {
+        id -> BigInt,
+        track_id -> BigInt,
+        origin -> SmallInt,
+        reference -> Text,
+    }
+}
+
+joinable!(aux_tracks_ref -> tracks_entity (track_id));
+
 allow_tables_to_appear_in_same_query!(
     tracks_entity,
     aux_tracks_resource,
     aux_tracks_overview,
     aux_tracks_summary,
-    aux_tracks_music,
+    aux_tracks_profile,
+    aux_tracks_genre,
     aux_tracks_tag,
     aux_tracks_comment,
 );
-
-table! {
-    aux_tracks_rating (id) {
-        id -> BigInt,
-        track_id -> BigInt,
-        score -> Double,
-        owner -> Nullable<Text>,
-    }
-}
-
-joinable!(aux_tracks_rating -> tracks_entity (track_id));
-
-allow_tables_to_appear_in_same_query!(aux_tracks_rating, tracks_entity);
 
 table! {
     pending_tasks (id) {

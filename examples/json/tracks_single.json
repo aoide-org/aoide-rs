@@ -127,12 +127,18 @@
                     [ 0.75, "popularity" ]
                 ]
             },
+            "genres": [
+                [ 0.9, "Pop" ],
+                [ 0.3, "Electronic" ],
+                [ 0.7, "Dance" ],
+                [ 0.1, "Hip Hop/Rap" ]
+            ],
+            "ratings": [
+                [ 0.8, null ],
+                [ 0.7, "owner@aoide.org" ]
+            ],
             "tags": [
-                [ 0.9, "Pop",  "genre" ],
-                [ 0.3, "Electronic", "genre" ],
                 [ 1, "2010s", "style" ],
-                [ 0.7, "Dance", "genre" ],
-                [ 0.1, "Hip Hop/Rap", "genre" ],
                 [ 0.1, "A tag without a facet", null ],
                 [ 1, "eng", "lang" ],
                 [ 0.8, "Wedding", "crowd" ],
@@ -143,10 +149,6 @@
             "comments": [
                 [ "Personal notes about this track", "owner@aoide.org" ],
                 [ "Anonymous notes about this track", null ]
-            ],
-            "ratings": [
-                [ 0.8, null ],
-                [ 0.7, "owner@aoide.org" ]
             ]
         }
     }
