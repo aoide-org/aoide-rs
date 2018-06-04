@@ -88,18 +88,13 @@ impl fmt::Display for Score {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Tag {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub facet: Option<String>, // lowercase / case-insensitive
+pub struct ScoredTag(
+    /*score*/ Score,
+    /*term*/ String,
+    /*facet*/ Option<String>, // lowercase / case-insensitive
+);
 
-    pub term: String,
-
-    #[serde(skip_serializing_if = "Tag::is_default_score", default = "Tag::default_score")]
-    pub score: Score,
-}
-
-impl Tag {
+impl ScoredTag {
     pub fn default_score() -> Score {
         Score::MAX
     }
@@ -108,34 +103,46 @@ impl Tag {
         *score == Self::default_score()
     }
 
-    pub fn new<T: Into<String>, S: Into<Score>>(term: T, score: S) -> Self {
-        Self {
-            facet: None,
-            term: term.into(),
-            score: score.into(),
-        }
+    pub fn new<S: Into<Score>, T: Into<String>, F: Into<String>>(
+        score: S,
+        term: T,
+        facet: Option<F>,
+    ) -> Self {
+        ScoredTag(score.into(), term.into(), facet.map(F::into))
     }
 
-    pub fn new_faceted<F: AsRef<str>, T: Into<String>, S: Into<Score>>(
-        facet: F,
-        term: T,
+    pub fn new_term<S: Into<Score>, T: Into<String>>(score: S, term: T) -> Self {
+        ScoredTag(score.into(), term.into(), None)
+    }
+
+    pub fn new_faceted_term<S: Into<Score>, T: Into<String>, F: Into<String>>(
         score: S,
+        term: T,
+        facet: F,
     ) -> Self {
-        Self {
-            facet: Some(facet.as_ref().to_lowercase()),
-            term: term.into(),
-            score: score.into(),
-        }
+        ScoredTag(score.into(), term.into(), Some(facet.into()))
+    }
+
+    pub fn score(&self) -> Score {
+        self.0
+    }
+
+    pub fn term<'a>(&'a self) -> &'a String {
+        &self.1
+    }
+
+    pub fn facet<'a>(&'a self) -> &'a Option<String> {
+        &self.2
     }
 
     pub fn is_faceted(&self) -> bool {
-        self.facet.is_some()
+        self.facet().is_some()
     }
 
     pub fn is_valid(&self) -> bool {
-        if !self.score.is_valid() || self.term.is_empty() {
+        if !self.score().is_valid() || self.term().is_empty() {
             false
-        } else if let Some(ref facet) = self.facet {
+        } else if let Some(ref facet) = self.facet().as_ref() {
             !facet.is_empty() && !facet.contains(char::is_uppercase)
         } else {
             true
@@ -154,8 +161,8 @@ pub struct TagFacetCount {
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct MultiTag {
-    pub tag: Tag,
+pub struct ScoredTagCount {
+    pub tag: ScoredTag,
 
     pub count: usize,
 }

@@ -22,8 +22,8 @@ use serde_json;
 #[test]
 fn serialize_json() {
     let features = vec![
-        SongFeatureScore::new(SongFeature::Energy, 0.1),
-        SongFeatureScore::new(SongFeature::Popularity, 0.9),
+        ScoredSongFeature::new(0.1, SongFeature::Energy),
+        ScoredSongFeature::new(0.9, SongFeature::Popularity),
     ];
     let profile = SongProfile {
         features,
@@ -54,9 +54,9 @@ fn serialize_json() {
         },
     ];
     let tags = vec![
-        Tag::new_faceted(TrackTag::FACET_STYLE, "1980s", 0.8),
+        Tag::new_faceted(TrackTagging::FACET_STYLE, "1980s", 0.8),
         Tag::new_faceted("STYLE", "1990s", 0.3),
-        Tag::new_faceted(TrackTag::FACET_SESSION, "Filler", 0.6),
+        Tag::new_faceted(TrackTagging::FACET_SESSION, "Filler", 0.6),
         Tag::new("non-faceted tag", 1.0),
     ];
     let body = TrackBody {

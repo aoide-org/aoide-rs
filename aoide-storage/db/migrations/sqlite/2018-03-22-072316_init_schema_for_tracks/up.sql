@@ -154,8 +154,8 @@ CREATE TABLE aux_tracks_ref (
 CREATE TABLE aux_tracks_tag (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
-    term                     TEXT NOT NULL,
     score                    REAL NOT NULL, -- [0.0, 1.0]
+    term                     TEXT NOT NULL,
     facet                    TEXT,
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
     UNIQUE (track_id, term, facet)

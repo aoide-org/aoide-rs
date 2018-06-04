@@ -24,7 +24,7 @@ use storage::serde::SerializationFormat;
 
 use aoide_core::audio::{Decibel, Loudness, LUFS};
 use aoide_core::domain::entity::{EntityHeader, EntityRevision};
-use aoide_core::domain::metadata::{Comment, Score, ScoreValue, Rating, Tag};
+use aoide_core::domain::metadata::{Comment, Score, ScoreValue, Rating, ScoredTag};
 use aoide_core::domain::music::{Actors, ActorRole, Titles, TitleLevel, SongFeature, SongProfile};
 use aoide_core::domain::music::sonic::{BeatsPerMinute};
 use aoide_core::domain::track::{TrackBody, TrackResource, RefOrigin};
@@ -353,24 +353,24 @@ impl<'a> InsertableTracksRef<'a> {
 #[table_name = "aux_tracks_tag"]
 pub struct InsertableTracksTag<'a> {
     pub track_id: StorageId,
-    pub facet: Option<&'a str>,
-    pub term: &'a str,
     pub score: ScoreValue,
+    pub term: &'a str,
+    pub facet: Option<&'a str>,
 }
 
 impl<'a> InsertableTracksTag<'a> {
-    pub fn bind(track_id: StorageId, tag: &'a Tag) -> Self {
+    pub fn bind(track_id: StorageId, tag: &'a ScoredTag) -> Self {
         Self {
             track_id,
-            facet: tag.facet.as_ref().and_then(|facet|
+            score: *tag.score(),
+            term: tag.term().as_str(),
+            facet: tag.facet().as_ref().and_then(|facet|
                 // Empty strings become NULL in database
                 if facet.is_empty() {
                     None
                 } else {
                     Some(facet.as_str())
                 }),
-            term: tag.term.as_str(),
-            score: *tag.score,
         }
     }
 }

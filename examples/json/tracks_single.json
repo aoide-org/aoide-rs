@@ -121,61 +121,24 @@
                     "code": 11
                 },
                 "features": [
-                    [ "energy", 0.92 ],
-                    [ "valence", 0.85 ],
-                    [ "danceability", 0.78 ],
-                    [ "popularity", 0.75 ]
+                    [ 0.92, "energy" ],
+                    [ 0.85, "valence" ],
+                    [ 0.78, "danceability" ],
+                    [ 0.75, "popularity" ]
                 ]
             },
             "tags": [
-                {
-                    "facet": "genre",
-                    "term": "Pop",
-                    "score": 0.9
-                },
-                {
-                    "facet": "genre",
-                    "term": "Electronic",
-                    "score": 0.3
-                },
-                {
-                    "facet": "style",
-                    "term": "2010s"
-                },
-                {
-                    "facet": "genre",
-                    "term": "Dance",
-                    "score": 0.7
-                },
-                {
-                    "facet": "genre",
-                    "term": "Hip Hop/Rap",
-                    "score": 0.2
-                },
-                {
-                    "facet": "lang",
-                    "term": "eng"
-                },
-                {
-                    "facet": "crowd",
-                    "term": "Wedding",
-                    "score": 0.8
-                },
-                {
-                    "facet": "style",
-                    "term": "1980s",
-                    "score": 0.1
-                },
-                {
-                    "facet": "crowd",
-                    "term": "Party",
-                    "score": 0.95
-                },
-                {
-                    "facet": "settime",
-                    "term": "Filler",
-                    "score": 0.7
-                }
+                [ 0.9, "Pop",  "genre" ],
+                [ 0.3, "Electronic", "genre" ],
+                [ 1, "2010s", "style" ],
+                [ 0.7, "Dance", "genre" ],
+                [ 0.1, "Hip Hop/Rap", "genre" ],
+                [ 0.1, "A tag without a facet", null ],
+                [ 1, "eng", "lang" ],
+                [ 0.8, "Wedding", "crowd" ],
+                [ 0.1, "1980s", "style" ],
+                [ 0.95, "Party", "crowd" ],
+                [ 0.7, "Filler", "settime" ]
             ],
             "comments": [
                 {

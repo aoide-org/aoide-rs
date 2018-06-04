@@ -369,12 +369,12 @@ impl TrackMarker {
 }
 
 ///////////////////////////////////////////////////////////////////////
-/// TrackTag
+/// TrackTagging
 ///////////////////////////////////////////////////////////////////////
 
-pub struct TrackTag;
+pub struct TrackTagging;
 
-impl TrackTag {
+impl TrackTagging {
     // Some predefined facets that are commonly used and could serve as a starting point
 
     // ISO 639-2 language codes: "eng", "fre"/"fra", "ita", "spa", "ger"/"deu", ...
@@ -491,7 +491,7 @@ pub struct TrackBody {
     pub locks: Vec<TrackLock>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub tags: Vec<Tag>, // no duplicate terms per facet allowed
+    pub tags: Vec<ScoredTag>, // no duplicate terms per facet allowed
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub comments: Vec<Comment>, // no duplicate owners allowed
@@ -517,7 +517,7 @@ impl TrackBody {
                             .filter(|marker2| marker.mark == marker2.mark)
                             .count() <= 1)
             }) && self.locks.iter().all(TrackLock::is_valid)
-            && self.tags.iter().all(Tag::is_valid)
+            && self.tags.iter().all(ScoredTag::is_valid)
             && self.ratings.iter().all(Rating::is_valid)
             && self.comments.iter().all(Comment::is_valid)
     }

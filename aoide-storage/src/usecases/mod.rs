@@ -118,20 +118,20 @@ pub trait Tracks {
     ) -> TracksResult<ResourceStats>;
 }
 
-pub type TrackTagsResult<T> = Result<T, failure::Error>;
+pub type TrackTaggingsResult<T> = Result<T, failure::Error>;
 
-pub trait TrackTags {
+pub trait TrackTaggings {
     fn all_tags_facets(
         &self,
         collection_uid: Option<&EntityUid>,
         facets: Option<&Vec<&str>>,
         pagination: &Pagination,
-    ) -> TrackTagsResult<Vec<TagFacetCount>>;
+    ) -> TrackTaggingsResult<Vec<TagFacetCount>>;
 
     fn all_tags(
         &self,
         collection_uid: Option<&EntityUid>,
         facets: Option<&Vec<&str>>,
         pagination: &Pagination,
-    ) -> TrackTagsResult<Vec<MultiTag>>;
+    ) -> TrackTaggingsResult<Vec<ScoredTagCount>>;
 }

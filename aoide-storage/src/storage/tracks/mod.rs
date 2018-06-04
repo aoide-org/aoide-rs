@@ -36,8 +36,8 @@ use std::i64;
 
 use usecases::{api::*,
                Collections,
-               TrackTags,
-               TrackTagsResult,
+               TrackTaggings,
+               TrackTaggingsResult,
                Tracks,
                TracksResult};
 
@@ -1471,13 +1471,13 @@ impl<'a> Tracks for TrackRepository<'a> {
     }
 }
 
-impl<'a> TrackTags for TrackRepository<'a> {
+impl<'a> TrackTaggings for TrackRepository<'a> {
     fn all_tags_facets(
         &self,
         collection_uid: Option<&EntityUid>,
         facets: Option<&Vec<&str>>,
         pagination: &Pagination,
-    ) -> TrackTagsResult<Vec<TagFacetCount>> {
+    ) -> TrackTaggingsResult<Vec<TagFacetCount>> {
         let mut target = aux_tracks_tag::table
             .select((
                 aux_tracks_tag::facet,
@@ -1531,12 +1531,12 @@ impl<'a> TrackTags for TrackRepository<'a> {
         collection_uid: Option<&EntityUid>,
         facets: Option<&Vec<&str>>,
         pagination: &Pagination,
-    ) -> TrackTagsResult<Vec<MultiTag>> {
+    ) -> TrackTaggingsResult<Vec<ScoredTagCount>> {
         let mut target = aux_tracks_tag::table
             .select((
-                aux_tracks_tag::facet,
-                aux_tracks_tag::term,
                 sql::<diesel::sql_types::Double>("AVG(score) AS score"),
+                aux_tracks_tag::term,
+                aux_tracks_tag::facet,
                 sql::<diesel::sql_types::BigInt>("COUNT(*) AS count"),
             ))
             .group_by(aux_tracks_tag::facet)
@@ -1571,15 +1571,11 @@ impl<'a> TrackTags for TrackRepository<'a> {
         // Pagination
         target = apply_pagination(target, pagination);
 
-        let rows = target.load::<(Option<String>, String, f64, i64)>(self.connection)?;
+        let rows = target.load::<(f64, String, Option<String>, i64)>(self.connection)?;
         let mut result = Vec::with_capacity(rows.len());
         for row in rows.into_iter() {
-            result.push(MultiTag {
-                tag: Tag {
-                    facet: row.0,
-                    term: row.1,
-                    score: Score(row.2),
-                },
+            result.push(ScoredTagCount {
+                tag: ScoredTag::new(row.0, row.1, row.2),
                 count: row.3 as usize,
             });
         }

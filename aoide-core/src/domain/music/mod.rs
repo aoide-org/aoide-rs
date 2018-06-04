@@ -252,18 +252,18 @@ pub enum SongFeature {
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct SongFeatureScore(SongFeature, Score);
+pub struct ScoredSongFeature(Score, SongFeature);
 
-impl SongFeatureScore {
-    pub fn new<S: Into<Score>>(feature: SongFeature, score: S) -> Self {
-        SongFeatureScore(feature, score.into())
-    }
-
-    pub fn feature(&self) -> SongFeature {
-        self.0
+impl ScoredSongFeature {
+    pub fn new<S: Into<Score>>(score: S, feature: SongFeature) -> Self {
+        ScoredSongFeature(score.into(), feature)
     }
 
     pub fn score(&self) -> Score {
+        self.0
+    }
+
+    pub fn feature(&self) -> SongFeature {
         self.1
     }
 
@@ -289,7 +289,7 @@ pub struct SongProfile {
     pub key_signature: KeySignature,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub features: Vec<SongFeatureScore>, // no duplicate features allowed
+    pub features: Vec<ScoredSongFeature>, // no duplicate features allowed
 }
 
 impl SongProfile {
@@ -297,7 +297,7 @@ impl SongProfile {
         (self.tempo.is_valid() || self.tempo.is_default())
             && (self.time_signature.is_valid() || self.time_signature.is_default())
             && (self.key_signature.is_valid() || self.key_signature.is_default())
-            && self.features.iter().all(SongFeatureScore::is_valid)
+            && self.features.iter().all(ScoredSongFeature::is_valid)
             && self.features.iter().all(|feature_score| {
                 feature_score.is_valid() && self.is_feature_unique(feature_score.feature())
             })
@@ -316,7 +316,7 @@ impl SongProfile {
             .count() <= 1
     }
 
-    pub fn feature(&self, feature: SongFeature) -> Option<&SongFeatureScore> {
+    pub fn feature(&self, feature: SongFeature) -> Option<&ScoredSongFeature> {
         debug_assert!(self.is_feature_unique(feature));
         self.features
             .iter()
