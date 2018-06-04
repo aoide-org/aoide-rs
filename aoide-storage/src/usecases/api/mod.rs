@@ -68,7 +68,7 @@ pub struct StringConditionParams {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum StringCondition {
     StartsWith(StringConditionParams), // head
     EndsWith(StringConditionParams),   // tail
