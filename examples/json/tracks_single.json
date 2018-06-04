@@ -1,144 +1,146 @@
-{
-    "header": {
-        "uid": "M2sTSrH3UaLuGNLIdobCrA0BbR0TcYso",
-        "revision": [
-            1,
-            "2018-06-04T16:10:28.950631824Z"
-        ]
-    },
-    "body": {
-        "resources": [
-            {
-                "collection": {
-                    "uid": "Mk1qnoKwOaDOdj_icH9CnSpXEdxDGUXK",
-                    "since": "2018-05-31T00:06:15.214Z"
-                },
-                "source": {
-                    "uri": "file:///home/uk/Music/Collection/jungle/happy%20man%20-%20single/01-01%20jungle%20happy%20man.m4a",
-                    "mediaType": "audio/mp4",
-                    "audioContent": {
-                        "duration": {
-                            "ms": 190380.408163
-                        },
-                        "channels": {
-                            "count": 2
-                        },
-                        "samplerate": {
-                            "hz": 44100
-                        },
-                        "bitrate": {
-                            "bps": 257000
-                        },
-                        "loudness": {
-                            "ebur128lufs": {
-                                "db": -10.236723134409614
+[
+    {
+        "header": {
+            "uid": "M2sTSrH3UaLuGNLIdobCrA0BbR0TcYso",
+            "revision": [
+                1,
+                "2018-06-04T16:10:28.950631824Z"
+            ]
+        },
+        "body": {
+            "resources": [
+                {
+                    "collection": {
+                        "uid": "Mk1qnoKwOaDOdj_icH9CnSpXEdxDGUXK",
+                        "since": "2018-05-31T00:06:15.214Z"
+                    },
+                    "source": {
+                        "uri": "file:///home/uk/Music/Collection/jungle/happy%20man%20-%20single/01-01%20jungle%20happy%20man.m4a",
+                        "mediaType": "audio/mp4",
+                        "audioContent": {
+                            "duration": {
+                                "ms": 190380.408163
+                            },
+                            "channels": {
+                                "count": 2
+                            },
+                            "samplerate": {
+                                "hz": 44100
+                            },
+                            "bitrate": {
+                                "bps": 257000
+                            },
+                            "loudness": {
+                                "ebur128lufs": {
+                                    "db": -10.236723134409614
+                                }
                             }
                         }
+                    },
+                    "playCounter": 2
+                }
+            ],
+            "release": {
+                "releasedAt": "2018-05-09T07:00:00Z",
+                "copyright": "℗ 2018 XL Recordings"
+            },
+            "album": {
+                "titles": [
+                    {
+                        "name": "Happy Man - Single"
                     }
-                },
-                "playCounter": 2
-            }
-        ],
-        "release": {
-            "releasedAt": "2018-05-09T07:00:00Z",
-            "copyright": "℗ 2018 XL Recordings"
-        },
-        "album": {
+                ],
+                "actors": [
+                    {
+                        "name": "Jungle"
+                    }
+                ]
+            },
+            "trackNumbers": [
+                1,
+                1
+            ],
             "titles": [
                 {
-                    "name": "Happy Man - Single"
+                    "name": "Happy Man"
                 }
             ],
             "actors": [
                 {
                     "name": "Jungle"
+                },
+                {
+                    "name": "Joshua Lloyd-Watson & Thomas McFarland",
+                    "role": "composer"
                 }
-            ]
-        },
-        "trackNumbers": [
-            1,
-            1
-        ],
-        "titles": [
-            {
-                "name": "Happy Man"
-            }
-        ],
-        "actors": [
-            {
-                "name": "Jungle"
+            ],
+            "profile": {
+                "tempo": {
+                    "bpm": 108.0
+                },
+                "keysig": {
+                    "code": 24
+                },
+                "features": [
+                    [
+                        0.6000000000000001,
+                        "energy"
+                    ],
+                    [
+                        0.8,
+                        "valence"
+                    ]
+                ]
             },
-            {
-                "name": "Joshua Lloyd-Watson & Thomas McFarland",
-                "role": "composer"
-            }
-        ],
-        "profile": {
-            "tempo": {
-                "bpm": 108.0
-            },
-            "keysig": {
-                "code": 24
-            },
-            "features": [
+            "markers": [
+                {
+                    "mark": "loadcue",
+                    "position": {
+                        "ms": 47.41496598639456
+                    },
+                    "color": {
+                        "code": 4294901760
+                    }
+                }
+            ],
+            "genres": [
                 [
-                    0.6000000000000001,
-                    "energy"
+                    1.0,
+                    "Funk Pop"
                 ],
                 [
                     0.8,
-                    "valence"
+                    "Electronic"
+                ]
+            ],
+            "tags": [
+                [
+                    1.0,
+                    "2010s",
+                    "epoch"
+                ],
+                [
+                    1.0,
+                    "Enjoy",
+                    "event"
+                ],
+                [
+                    1.0,
+                    "Lounge",
+                    "venue"
+                ],
+                [
+                    1.0,
+                    "ThisIsAComment",
+                    null
+                ]
+            ],
+            "ratings": [
+                [
+                    0.6000000000000001,
+                    null
                 ]
             ]
-        },
-        "markers": [
-            {
-                "mark": "loadcue",
-                "position": {
-                    "ms": 47.41496598639456
-                },
-                "color": {
-                    "code": 4294901760
-                }
-            }
-        ],
-        "genres": [
-            [
-                1.0,
-                "Funk Pop"
-            ],
-            [
-                0.8,
-                "Electronic"
-            ]
-        ],
-        "tags": [
-            [
-                1.0,
-                "2010s",
-                "epoch"
-            ],
-            [
-                1.0,
-                "Enjoy",
-                "event"
-            ],
-            [
-                1.0,
-                "Lounge",
-                "venue"
-            ],
-            [
-                1.0,
-                "ThisIsAComment",
-                null
-            ]
-        ],
-        "ratings": [
-            [
-                0.6000000000000001,
-                null
-            ]
-        ]
+        }
     }
-}
+]
