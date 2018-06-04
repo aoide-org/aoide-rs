@@ -261,30 +261,34 @@ impl Rating {
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Comment {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub owner: Option<String>,
-
-    pub text: String,
-}
+pub struct Comment(
+    /*text*/ String,
+    /*owner*/ Option<String>,
+);
 
 impl Comment {
-    pub fn new<O: Into<String>, T: Into<String>>(owner: O, text: T) -> Self {
-        Self {
-            owner: Some(owner.into()),
-            text: text.into(),
-        }
+    pub fn new<T: Into<String>, O: Into<String>>(text: T, owner: Option<O>) -> Self {
+        Comment(text.into(), owner.map(O::into))
     }
 
     pub fn new_anonymous<T: Into<String>>(text: T) -> Self {
-        Self {
-            owner: None,
-            text: text.into(),
-        }
+        Comment(text.into(), None)
+    }
+
+    pub fn new_owned<T: Into<String>, O: Into<String>>(text: T, owner: O) -> Self {
+        Comment(text.into(), Some(owner.into()))
+    }
+
+    pub fn text<'a>(&'a self) -> &'a String {
+        &self.0
+    }
+
+    pub fn owner<'a>(&'a self) -> &'a Option<String> {
+        &self.1
     }
 
     pub fn is_valid(&self) -> bool {
-        if let Some(ref owner) = self.owner {
+        if let Some(ref owner) = self.owner().as_ref() {
             !owner.is_empty()
         } else {
             true
@@ -292,6 +296,10 @@ impl Comment {
     }
 
     pub fn is_anonymous(&self) -> bool {
-        self.owner.is_none()
+        self.owner().is_none()
+    }
+
+    pub fn is_owned(&self) -> bool {
+        self.owner().is_some()
     }
 }

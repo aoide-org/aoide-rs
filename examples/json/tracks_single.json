@@ -141,13 +141,8 @@
                 [ 0.7, "Filler", "settime" ]
             ],
             "comments": [
-                {
-                    "owner": "owner@aoide.org",
-                    "text": "Personal notes about this track"
-                },
-                {
-                    "text": "Anonymous notes about this track"
-                }
+                [ "Personal notes about this track", "owner@aoide.org" ],
+                [ "Anonymous notes about this track", null ]
             ],
             "ratings": [
                 [ 0.8, null ],

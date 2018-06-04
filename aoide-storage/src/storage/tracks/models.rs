@@ -405,8 +405,8 @@ impl<'a> InsertableTracksComment<'a> {
     pub fn bind(track_id: StorageId, comment: &'a Comment) -> Self {
         Self {
             track_id,
-            text: comment.text.as_str(),
-            owner: comment.owner.as_ref().map(|owner| owner.as_str()),
+            text: comment.text().as_str(),
+            owner: comment.owner().as_ref().map(|owner| owner.as_str()),
         }
     }
 }
