@@ -17,7 +17,7 @@
 mod tests;
 
 use aoide_core::audio::Duration;
-use aoide_core::domain::{entity::EntityHeader, metadata::Score, track::TrackBody};
+use aoide_core::domain::{entity::EntityHeader, metadata::{Score, ScoredTag}, music::ScoredGenre, track::TrackBody};
 
 pub type PaginationOffset = u64;
 
@@ -99,7 +99,7 @@ pub struct GenreFilter {
     #[serde(rename = "score", skip_serializing_if = "Option::is_none")]
     pub score_condition: Option<ScoreCondition>,
 
-    #[serde(rename = "term", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "name", skip_serializing_if = "Option::is_none")]
     pub name_condition: Option<StringCondition>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -359,4 +359,29 @@ pub struct ResourceStats {
     pub count: usize,
     pub duration: Duration,
     pub media_types: Vec<MediaTypeStats>,
+}
+
+#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct ScoredGenreCount {
+    pub genre: ScoredGenre,
+
+    pub count: usize,
+}
+
+#[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct TagFacetCount {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub facet: Option<String>,
+
+    pub count: usize,
+}
+
+#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct ScoredTagCount {
+    pub tag: ScoredTag,
+
+    pub count: usize,
 }

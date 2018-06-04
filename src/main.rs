@@ -58,10 +58,10 @@ use aoide_storage::{storage::{collections::*, serde::*, tracks::*},
                     usecases::{api::{CountableStringField, LocateParams, Pagination,
                                      PaginationLimit, PaginationOffset, ResourceStats,
                                      SearchParams, StringFieldCounts, TrackReplacementParams,
-                                     TrackReplacementReport},
+                                     TrackReplacementReport, ScoredGenreCount, ScoredTagCount, TagFacetCount},
                                *}};
 
-use aoide_core::domain::{collection::*, entity::*, metadata::*, track::*};
+use aoide_core::domain::{collection::*, entity::*, track::*};
 
 use clap::{App, Arg};
 
@@ -1197,6 +1197,54 @@ fn handle_get_collections_path_uid_tracks_fields_query_field(
     Box::new(future::ok((state, response)))
 }
 
+fn all_genres(
+    pooled_connection: SqlitePooledConnection,
+    collection_uid: Option<&EntityUid>,
+    pagination: &Pagination,
+) -> TrackGenresResult<Vec<ScoredGenreCount>> {
+    let connection = &*pooled_connection;
+    let repository = TrackRepository::new(connection);
+    repository.all_genres(collection_uid, pagination)
+}
+
+fn handle_get_collections_path_uid_tracks_genres_query_pagination(
+    mut state: State,
+) -> Box<HandlerFuture> {
+    let collection_uid = UidPathExtractor::try_parse_from(&mut state);
+    let query_params = PaginationQueryStringExtractor::take_from(&mut state);
+    let pagination = Pagination {
+        offset: query_params.offset,
+        limit: query_params.limit,
+    };
+
+    let pooled_connection = match middleware::state_data::try_connection(&state) {
+        Ok(pooled_connection) => pooled_connection,
+        Err(e) => {
+            error!("No database connection: {:?}", &e);
+            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
+            return Box::new(future::ok((state, response)));
+        }
+    };
+
+    let response = match all_genres(
+        pooled_connection,
+        collection_uid.as_ref(),
+        &pagination,
+    ) {
+        Ok(result) => match serde_json::to_vec(&result) {
+            Ok(response_body) => create_response(
+                &state,
+                StatusCode::Ok,
+                Some((response_body, mime::APPLICATION_JSON)),
+            ),
+            Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
+        },
+        Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
+    };
+
+    Box::new(future::ok((state, response)))
+}
+
 #[derive(Debug, Deserialize, StateData, StaticResponseExtender)]
 struct TagFacetPaginationQueryStringExtractor {
     facet: Option<String>,
@@ -1232,7 +1280,7 @@ fn all_tags_facets(
     collection_uid: Option<&EntityUid>,
     facets: Option<&Vec<&str>>,
     pagination: &Pagination,
-) -> TrackTaggingsResult<Vec<TagFacetCount>> {
+) -> TrackTagsResult<Vec<TagFacetCount>> {
     let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
     repository.all_tags_facets(collection_uid, facets, pagination)
@@ -1278,7 +1326,7 @@ fn all_tags(
     collection_uid: Option<&EntityUid>,
     facets: Option<&Vec<&str>>,
     pagination: &Pagination,
-) -> TrackTaggingsResult<Vec<ScoredTagCount>> {
+) -> TrackTagsResult<Vec<ScoredTagCount>> {
     let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
     repository.all_tags(collection_uid, facets, pagination)
@@ -1398,6 +1446,11 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
             .with_path_extractor::<UidPathExtractor>()
             .with_query_string_extractor::<CountableStringFieldQueryStringExtractor>()
             .to(handle_get_collections_path_uid_tracks_fields_query_field);
+        route // all genres in collection
+            .get("/collections/:uid/tracks/genres")
+            .with_path_extractor::<UidPathExtractor>()
+            .with_query_string_extractor::<PaginationQueryStringExtractor>()
+            .to(handle_get_collections_path_uid_tracks_genres_query_pagination);
         route // all tag facets in collection
             .get("/collections/:uid/tracks/tags/facets")
             .with_path_extractor::<UidPathExtractor>()

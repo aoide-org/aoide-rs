@@ -17,13 +17,14 @@ pub mod api;
 
 use failure;
 
-use self::api::{Pagination, LocateParams, TrackReplacementParams, TrackReplacementReport, SearchParams, CountableStringField, StringFieldCounts, ResourceStats};
+use self::api::{CountableStringField, LocateParams, Pagination, ResourceStats, ScoredGenreCount,
+                ScoredTagCount, SearchParams, StringFieldCounts, TagFacetCount,
+                TrackReplacementParams, TrackReplacementReport};
 
 use storage::serde::{SerializationFormat, SerializedEntity};
 
-use aoide_core::domain::entity::*;
 use aoide_core::domain::collection::*;
-use aoide_core::domain::metadata::*;
+use aoide_core::domain::entity::*;
 use aoide_core::domain::track::*;
 
 pub type CollectionsResult<T> = Result<T, failure::Error>;
@@ -33,8 +34,10 @@ pub trait Collections {
 
     fn insert_entity(&self, entity: &CollectionEntity) -> CollectionsResult<()>;
 
-    fn update_entity(&self, entity: &CollectionEntity)
-        -> CollectionsResult<Option<(EntityRevision, EntityRevision)>>;
+    fn update_entity(
+        &self,
+        entity: &CollectionEntity,
+    ) -> CollectionsResult<Option<(EntityRevision, EntityRevision)>>;
 
     fn remove_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<()>>;
 
@@ -69,11 +72,7 @@ pub trait Tracks {
         format: SerializationFormat,
     ) -> TracksResult<TrackEntity>;
 
-    fn insert_entity(
-        &self,
-        entity: &TrackEntity,
-        format: SerializationFormat,
-    ) -> TracksResult<()>;
+    fn insert_entity(&self, entity: &TrackEntity, format: SerializationFormat) -> TracksResult<()>;
 
     fn update_entity(
         &self,
@@ -96,7 +95,7 @@ pub trait Tracks {
         &self,
         collection_uid: Option<&EntityUid>,
         pagination: &Pagination,
-        locate_params: LocateParams
+        locate_params: LocateParams,
     ) -> TracksResult<Vec<SerializedEntity>>;
 
     fn search_entities(
@@ -118,20 +117,30 @@ pub trait Tracks {
     ) -> TracksResult<ResourceStats>;
 }
 
-pub type TrackTaggingsResult<T> = Result<T, failure::Error>;
+pub type TrackGenresResult<T> = Result<T, failure::Error>;
 
-pub trait TrackTaggings {
+pub trait TrackGenres {
+    fn all_genres(
+        &self,
+        collection_uid: Option<&EntityUid>,
+        pagination: &Pagination,
+    ) -> TrackGenresResult<Vec<ScoredGenreCount>>;
+}
+
+pub type TrackTagsResult<T> = Result<T, failure::Error>;
+
+pub trait TrackTags {
     fn all_tags_facets(
         &self,
         collection_uid: Option<&EntityUid>,
         facets: Option<&Vec<&str>>,
         pagination: &Pagination,
-    ) -> TrackTaggingsResult<Vec<TagFacetCount>>;
+    ) -> TrackTagsResult<Vec<TagFacetCount>>;
 
     fn all_tags(
         &self,
         collection_uid: Option<&EntityUid>,
         facets: Option<&Vec<&str>>,
         pagination: &Pagination,
-    ) -> TrackTaggingsResult<Vec<ScoredTagCount>>;
+    ) -> TrackTagsResult<Vec<ScoredTagCount>>;
 }

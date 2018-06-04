@@ -36,14 +36,17 @@ use std::i64;
 
 use usecases::{api::*,
                Collections,
-               TrackTaggings,
-               TrackTaggingsResult,
+               TrackTags,
+               TrackTagsResult,
+               TrackGenres,
+               TrackGenresResult,
                Tracks,
                TracksResult};
 
 use aoide_core::{audio::*,
                  domain::{collection::{CollectionBody, CollectionEntity},
                           entity::*,
+                          music::*,
                           metadata::*,
                           track::*}};
 
@@ -1600,13 +1603,51 @@ impl<'a> Tracks for TrackRepository<'a> {
     }
 }
 
-impl<'a> TrackTaggings for TrackRepository<'a> {
+impl<'a> TrackGenres for TrackRepository<'a> {
+    fn all_genres(
+        &self,
+        collection_uid: Option<&EntityUid>,
+        pagination: &Pagination,
+    ) -> TrackGenresResult<Vec<ScoredGenreCount>> {
+        let mut target = aux_tracks_genre::table
+            .select((
+                sql::<diesel::sql_types::Double>("AVG(score) AS score"),
+                aux_tracks_genre::name,
+                sql::<diesel::sql_types::BigInt>("COUNT(*) AS count"),
+            ))
+            .group_by(aux_tracks_genre::name)
+            .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
+            .into_boxed();
+
+        // Collection filtering
+        if let Some(collection_uid) = collection_uid {
+            let track_id_subselect = aux_tracks_resource::table.select(aux_tracks_resource::track_id).filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_ref()));
+            target = target.filter(aux_tracks_genre::track_id.eq_any(track_id_subselect));
+        }
+
+        // Pagination
+        target = apply_pagination(target, pagination);
+
+        let rows = target.load::<(f64, String, i64)>(self.connection)?;
+        let mut result = Vec::with_capacity(rows.len());
+        for row in rows.into_iter() {
+            result.push(ScoredGenreCount {
+                genre: ScoredGenre::new(row.0, row.1),
+                count: row.2 as usize,
+            });
+        }
+
+        Ok(result)
+    }
+}
+
+impl<'a> TrackTags for TrackRepository<'a> {
     fn all_tags_facets(
         &self,
         collection_uid: Option<&EntityUid>,
         facets: Option<&Vec<&str>>,
         pagination: &Pagination,
-    ) -> TrackTaggingsResult<Vec<TagFacetCount>> {
+    ) -> TrackTagsResult<Vec<TagFacetCount>> {
         let mut target = aux_tracks_tag::table
             .select((
                 aux_tracks_tag::facet,
@@ -1660,7 +1701,7 @@ impl<'a> TrackTaggings for TrackRepository<'a> {
         collection_uid: Option<&EntityUid>,
         facets: Option<&Vec<&str>>,
         pagination: &Pagination,
-    ) -> TrackTaggingsResult<Vec<ScoredTagCount>> {
+    ) -> TrackTagsResult<Vec<ScoredTagCount>> {
         let mut target = aux_tracks_tag::table
             .select((
                 sql::<diesel::sql_types::Double>("AVG(score) AS score"),
