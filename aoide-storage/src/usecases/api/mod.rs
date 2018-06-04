@@ -190,6 +190,9 @@ pub struct NumericFilter {
     pub field: NumericField,
 
     pub condition: NumericValueCondition,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modifier: Option<FilterModifier>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
