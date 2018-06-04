@@ -54,10 +54,10 @@ fn serialize_json() {
         },
     ];
     let tags = vec![
-        Tag::new_faceted(TrackTagging::FACET_STYLE, "1980s", 0.8),
-        Tag::new_faceted("STYLE", "1990s", 0.3),
-        Tag::new_faceted(TrackTagging::FACET_SESSION, "Filler", 0.6),
-        Tag::new("non-faceted tag", 1.0),
+        ScoredTag::new_term_faceted(0.8, "1980s", TrackTagging::FACET_STYLE),
+        ScoredTag::new_term_faceted(0.3, "1990s", "style"),
+        ScoredTag::new_term_faceted(0.6, "Filler", TrackTagging::FACET_SESSION),
+        ScoredTag::new_term(1.0, "Non-faceted tag"),
     ];
     let body = TrackBody {
         resources,

@@ -150,13 +150,8 @@
                 }
             ],
             "ratings": [
-                {
-                    "score": 0.8
-                },
-                {
-                    "owner": "owner@aoide.org",
-                    "score": 0.7
-                }
+                [ 0.8, null ],
+                [ 0.7, "owner@aoide.org" ]
             ]
         }
     }

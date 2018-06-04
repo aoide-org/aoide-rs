@@ -45,22 +45,10 @@ fn minmax_rating() {
     let owner3 = "c";
     let owner4 = "d";
     let ratings = vec![
-        Rating {
-            owner: Some(owner1.into()),
-            score: 0.5.into(),
-        },
-        Rating {
-            owner: None,
-            score: 0.4.into(),
-        },
-        Rating {
-            owner: Some(owner2.into()),
-            score: 0.8.into(),
-        },
-        Rating {
-            owner: Some(owner3.into()),
-            score: 0.1.into(),
-        },
+        Rating::new_owned(0.5, owner1),
+        Rating::new_anonymous(0.4),
+        Rating::new_owned(0.8, owner2),
+        Rating::new_owned(0.1, owner3),
     ];
     assert_eq!(None, Rating::minmax(&vec![], None));
     assert_eq!(None, Rating::minmax(&vec![], Some(owner1)));

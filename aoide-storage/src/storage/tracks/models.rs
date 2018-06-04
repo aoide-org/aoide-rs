@@ -376,37 +376,37 @@ impl<'a> InsertableTracksTag<'a> {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "aux_tracks_comment"]
-pub struct InsertableTracksComment<'a> {
-    pub track_id: StorageId,
-    pub owner: Option<&'a str>,
-    pub text: &'a str,
-}
-
-impl<'a> InsertableTracksComment<'a> {
-    pub fn bind(track_id: StorageId, comment: &'a Comment) -> Self {
-        Self {
-            track_id,
-            owner: comment.owner.as_ref().map(|owner| owner.as_str()),
-            text: comment.text.as_str(),
-        }
-    }
-}
-
-#[derive(Debug, Insertable)]
 #[table_name = "aux_tracks_rating"]
 pub struct InsertableTracksRating<'a> {
     pub track_id: StorageId,
-    pub owner: Option<&'a str>,
     pub score: ScoreValue,
+    pub owner: Option<&'a str>,
 }
 
 impl<'a> InsertableTracksRating<'a> {
     pub fn bind(track_id: StorageId, rating: &'a Rating) -> Self {
         Self {
             track_id,
-            owner: rating.owner.as_ref().map(|owner| owner.as_str()),
-            score: *rating.score,
+            score: *rating.score(),
+            owner: rating.owner().as_ref().map(|owner| owner.as_str()),
+        }
+    }
+}
+
+#[derive(Debug, Insertable)]
+#[table_name = "aux_tracks_comment"]
+pub struct InsertableTracksComment<'a> {
+    pub track_id: StorageId,
+    pub text: &'a str,
+    pub owner: Option<&'a str>,
+}
+
+impl<'a> InsertableTracksComment<'a> {
+    pub fn bind(track_id: StorageId, comment: &'a Comment) -> Self {
+        Self {
+            track_id,
+            text: comment.text.as_str(),
+            owner: comment.owner.as_ref().map(|owner| owner.as_str()),
         }
     }
 }

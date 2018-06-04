@@ -115,7 +115,7 @@ impl ScoredTag {
         ScoredTag(score.into(), term.into(), None)
     }
 
-    pub fn new_faceted_term<S: Into<Score>, T: Into<String>, F: Into<String>>(
+    pub fn new_term_faceted<S: Into<Score>, T: Into<String>, F: Into<String>>(
         score: S,
         term: T,
         facet: F,
@@ -173,32 +173,36 @@ pub struct ScoredTagCount {
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Rating {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub owner: Option<String>,
-
-    pub score: Score,
-}
+pub struct Rating(
+    /*score*/ Score,
+    /*owner*/ Option<String>,
+);
 
 impl Rating {
-    pub fn new<O: Into<String>, S: Into<Score>>(owner: O, score: S) -> Self {
-        Self {
-            owner: Some(owner.into()),
-            score: score.into(),
-        }
+    pub fn new<S: Into<Score>, O: Into<String>>(score: S, owner: Option<O>) -> Self {
+        Rating(score.into(), owner.map(O::into))
     }
 
     pub fn new_anonymous<S: Into<Score>>(score: S) -> Self {
-        Self {
-            owner: None,
-            score: score.into(),
-        }
+        Rating(score.into(), None)
+    }
+
+    pub fn new_owned<S: Into<Score>, O: Into<String>>(score: S, owner: O) -> Self {
+        Rating(score.into(), Some(owner.into()))
+    }
+
+    pub fn score(&self) -> Score {
+        self.0
+    }
+
+    pub fn owner<'a>(&'a self) -> &'a Option<String> {
+        &self.1
     }
 
     pub fn is_valid(&self) -> bool {
-        if !self.score.is_valid() {
+        if !self.score().is_valid() {
             false
-        } else if let Some(ref owner) = self.owner {
+        } else if let Some(ref owner) = self.owner().as_ref() {
             !owner.is_empty()
         } else {
             true
@@ -206,7 +210,11 @@ impl Rating {
     }
 
     pub fn is_anonymous(&self) -> bool {
-        self.owner.is_none()
+        self.owner().is_none()
+    }
+
+    pub fn is_owned(&self) -> bool {
+        self.owner().is_some()
     }
 
     pub fn rating_from_stars(stars: u8, max_stars: u8) -> Score {
@@ -214,7 +222,7 @@ impl Rating {
     }
 
     pub fn star_rating(&self, max_stars: u8) -> u8 {
-        ((*self.score * (max_stars as ScoreValue)).ceil() as u8).min(max_stars)
+        ((*self.score() * (max_stars as ScoreValue)).ceil() as u8).min(max_stars)
     }
 
     pub fn minmax<'a>(
@@ -224,8 +232,8 @@ impl Rating {
         let count = ratings
             .iter()
             .filter(|rating| {
-                owner.is_none() || rating.owner.is_none()
-                    || rating.owner.as_ref().map(|owner| owner.as_str()) == owner
+                owner.is_none() || rating.owner().is_none()
+                    || rating.owner().as_ref().map(|owner| owner.as_str()) == owner
             })
             .count();
         if count > 0 {
@@ -233,12 +241,12 @@ impl Rating {
             ratings
                 .iter()
                 .filter(|rating| {
-                    owner.is_none() || rating.owner.is_none()
-                        || rating.owner.as_ref().map(|owner| owner.as_str()) == owner
+                    owner.is_none() || rating.owner().is_none()
+                        || rating.owner().as_ref().map(|owner| owner.as_str()) == owner
                 })
                 .for_each(|rating| {
-                    score_min = score_min.min(*rating.score);
-                    score_max = score_max.max(*rating.score);
+                    score_min = score_min.min(*rating.score());
+                    score_max = score_max.max(*rating.score());
                 });
             Some((score_min.into(), score_max.into()))
         } else {
