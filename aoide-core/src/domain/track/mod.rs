@@ -16,9 +16,9 @@
 #[cfg(test)]
 mod tests;
 
-use audio::*;
 use audio::sample::*;
 use audio::signal::*;
+use audio::*;
 use domain::collection::*;
 use domain::entity::*;
 use domain::metadata::*;
@@ -73,8 +73,7 @@ pub struct AudioContent {
 impl AudioContent {
     pub fn is_valid(&self) -> bool {
         !self.duration.is_empty() && self.channels.is_valid() && self.samplerate.is_valid()
-            && self.bitrate.is_valid()
-            && self.loudness.iter().all(Loudness::is_valid)
+            && self.bitrate.is_valid() && self.loudness.iter().all(Loudness::is_valid)
             && self.encoder.as_ref().map_or(true, |e| e.is_valid())
     }
 }
@@ -275,10 +274,7 @@ impl AlbumMetadata {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct IndexCount (
-    /*index*/ Option<u32>,
-    /*count*/ Option<u32>,
-);
+pub struct IndexCount(/*index*/ Option<u32>, /*count*/ Option<u32>);
 
 impl IndexCount {
     pub fn index(&self) -> Option<u32> {

@@ -17,7 +17,10 @@
 mod tests;
 
 use aoide_core::audio::Duration;
-use aoide_core::domain::{entity::EntityHeader, metadata::{Score, ScoredTag}, music::ScoredGenre, track::TrackBody};
+use aoide_core::domain::{entity::EntityHeader,
+                         metadata::{Score, ScoredTag},
+                         music::ScoredGenre,
+                         track::TrackBody};
 
 pub type PaginationOffset = u64;
 
@@ -261,7 +264,7 @@ pub struct TrackReplacementReport {
     pub created: Vec<EntityHeader>,
     pub updated: Vec<EntityHeader>,
     pub skipped: Vec<EntityHeader>,
-    pub rejected: Vec<String>, // e.g. ambiguous or inconsistent
+    pub rejected: Vec<String>,  // e.g. ambiguous or inconsistent
     pub discarded: Vec<String>, // e.g. nonexistent and need to be created
 }
 

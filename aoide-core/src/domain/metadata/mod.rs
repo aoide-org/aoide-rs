@@ -156,10 +156,7 @@ impl ScoredTag {
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Rating(
-    /*score*/ Score,
-    /*owner*/ Option<String>,
-);
+pub struct Rating(/*score*/ Score, /*owner*/ Option<String>);
 
 impl Rating {
     pub fn new<S: Into<Score>, O: Into<String>>(score: S, owner: Option<O>) -> Self {
@@ -208,10 +205,7 @@ impl Rating {
         ((*self.score() * (max_stars as ScoreValue)).ceil() as u8).min(max_stars)
     }
 
-    pub fn minmax<'a>(
-        ratings: &[Self],
-        owner: Option<&'a str>,
-    ) -> Option<(Score, Score)> {
+    pub fn minmax<'a>(ratings: &[Self], owner: Option<&'a str>) -> Option<(Score, Score)> {
         let count = ratings
             .iter()
             .filter(|rating| {
@@ -244,10 +238,7 @@ impl Rating {
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Comment(
-    /*text*/ String,
-    /*owner*/ Option<String>,
-);
+pub struct Comment(/*text*/ String, /*owner*/ Option<String>);
 
 impl Comment {
     pub fn new<T: Into<String>, O: Into<String>>(text: T, owner: Option<O>) -> Self {

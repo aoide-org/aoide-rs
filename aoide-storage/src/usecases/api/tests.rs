@@ -17,8 +17,14 @@ use super::*;
 
 #[test]
 fn default_genre_filter() {
-    assert_eq!(GenreFilter::any_score(), GenreFilter::default().score_condition);
-    assert_eq!(GenreFilter::any_name(), GenreFilter::default().name_condition);
+    assert_eq!(
+        GenreFilter::any_score(),
+        GenreFilter::default().score_condition
+    );
+    assert_eq!(
+        GenreFilter::any_name(),
+        GenreFilter::default().name_condition
+    );
 }
 
 #[test]

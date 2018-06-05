@@ -19,15 +19,16 @@ use chrono::naive::{NaiveDate, NaiveDateTime};
 
 use percent_encoding::percent_decode;
 
-use storage::StorageId;
 use storage::serde::SerializationFormat;
+use storage::StorageId;
 
 use aoide_core::audio::{Decibel, Loudness, LUFS};
 use aoide_core::domain::entity::{EntityHeader, EntityRevision};
-use aoide_core::domain::metadata::{Comment, Score, ScoreValue, Rating, ScoredTag};
-use aoide_core::domain::music::{Actors, ActorRole, Titles, TitleLevel, SongFeature, SongProfile, ScoredGenre};
-use aoide_core::domain::music::sonic::{BeatsPerMinute};
-use aoide_core::domain::track::{TrackBody, TrackResource, RefOrigin};
+use aoide_core::domain::metadata::{Comment, Rating, Score, ScoreValue, ScoredTag};
+use aoide_core::domain::music::sonic::BeatsPerMinute;
+use aoide_core::domain::music::{ActorRole, Actors, ScoredGenre, SongFeature, SongProfile,
+                                TitleLevel, Titles};
+use aoide_core::domain::track::{RefOrigin, TrackBody, TrackResource};
 
 #[derive(Debug, Insertable)]
 #[table_name = "tracks_entity"]
@@ -115,20 +116,34 @@ impl<'a> InsertableTracksOverview<'a> {
         Self {
             track_id,
             track_title: Titles::main_title(&track.titles).map(|title| title.name.as_str()),
-            track_subtitle: Titles::title(&track.titles, TitleLevel::Sub, None).map(|title| title.name.as_str()),
-            track_work: Titles::title(&track.titles, TitleLevel::Work, None).map(|title| title.name.as_str()),
-            track_movement: Titles::title(&track.titles, TitleLevel::Movement, None).map(|title| title.name.as_str()),
-            album_title: track.album.as_ref().and_then(|album| Titles::main_title(&album.titles)).map(|title| title.name.as_str()),
-            album_subtitle: track.album.as_ref().and_then(|album| Titles::title(&album.titles, TitleLevel::Sub, None)).map(|title| title.name.as_str()),
-            released_at: track.release
+            track_subtitle: Titles::title(&track.titles, TitleLevel::Sub, None)
+                .map(|title| title.name.as_str()),
+            track_work: Titles::title(&track.titles, TitleLevel::Work, None)
+                .map(|title| title.name.as_str()),
+            track_movement: Titles::title(&track.titles, TitleLevel::Movement, None)
+                .map(|title| title.name.as_str()),
+            album_title: track
+                .album
+                .as_ref()
+                .and_then(|album| Titles::main_title(&album.titles))
+                .map(|title| title.name.as_str()),
+            album_subtitle: track
+                .album
+                .as_ref()
+                .and_then(|album| Titles::title(&album.titles, TitleLevel::Sub, None))
+                .map(|title| title.name.as_str()),
+            released_at: track
+                .release
                 .as_ref()
                 .and_then(|release| release.released_at)
                 .map(|released_at| released_at.date().naive_utc()),
-            released_by: track.release
+            released_by: track
+                .release
                 .as_ref()
                 .and_then(|release| release.released_by.as_ref())
                 .map(|released_by| released_by.as_str()),
-            release_copyright: track.release
+            release_copyright: track
+                .release
                 .as_ref()
                 .and_then(|release| release.copyright.as_ref())
                 .map(|copyright| copyright.as_str()),
@@ -171,17 +186,43 @@ impl<'a> InsertableTracksSummary<'a> {
         };
         Self {
             track_id,
-            track_artist: Actors::main_actor(&track.actors, ActorRole::Artist).map(|actor| actor.name.as_str()),
-            track_composer: Actors::main_actor(&track.actors, ActorRole::Composer).map(|actor| actor.name.as_str()),
-            track_conductor: Actors::main_actor(&track.actors, ActorRole::Conductor).map(|actor| actor.name.as_str()),
-            track_performer: Actors::main_actor(&track.actors, ActorRole::Performer).map(|actor| actor.name.as_str()),
-            track_producer: Actors::main_actor(&track.actors, ActorRole::Producer).map(|actor| actor.name.as_str()),
-            track_remixer: Actors::main_actor(&track.actors, ActorRole::Remixer).map(|actor| actor.name.as_str()),
-            album_artist: track.album.as_ref().and_then(|album| Actors::main_actor(&album.actors, ActorRole::Artist)).map(|actor| actor.name.as_str()),
-            album_composer: track.album.as_ref().and_then(|album| Actors::main_actor(&album.actors, ActorRole::Composer)).map(|actor| actor.name.as_str()),
-            album_conductor: track.album.as_ref().and_then(|album| Actors::main_actor(&album.actors, ActorRole::Conductor)).map(|actor| actor.name.as_str()),
-            album_performer: track.album.as_ref().and_then(|album| Actors::main_actor(&album.actors, ActorRole::Performer)).map(|actor| actor.name.as_str()),
-            album_producer: track.album.as_ref().and_then(|album| Actors::main_actor(&album.actors, ActorRole::Producer)).map(|actor| actor.name.as_str()),
+            track_artist: Actors::main_actor(&track.actors, ActorRole::Artist)
+                .map(|actor| actor.name.as_str()),
+            track_composer: Actors::main_actor(&track.actors, ActorRole::Composer)
+                .map(|actor| actor.name.as_str()),
+            track_conductor: Actors::main_actor(&track.actors, ActorRole::Conductor)
+                .map(|actor| actor.name.as_str()),
+            track_performer: Actors::main_actor(&track.actors, ActorRole::Performer)
+                .map(|actor| actor.name.as_str()),
+            track_producer: Actors::main_actor(&track.actors, ActorRole::Producer)
+                .map(|actor| actor.name.as_str()),
+            track_remixer: Actors::main_actor(&track.actors, ActorRole::Remixer)
+                .map(|actor| actor.name.as_str()),
+            album_artist: track
+                .album
+                .as_ref()
+                .and_then(|album| Actors::main_actor(&album.actors, ActorRole::Artist))
+                .map(|actor| actor.name.as_str()),
+            album_composer: track
+                .album
+                .as_ref()
+                .and_then(|album| Actors::main_actor(&album.actors, ActorRole::Composer))
+                .map(|actor| actor.name.as_str()),
+            album_conductor: track
+                .album
+                .as_ref()
+                .and_then(|album| Actors::main_actor(&album.actors, ActorRole::Conductor))
+                .map(|actor| actor.name.as_str()),
+            album_performer: track
+                .album
+                .as_ref()
+                .and_then(|album| Actors::main_actor(&album.actors, ActorRole::Performer))
+                .map(|actor| actor.name.as_str()),
+            album_producer: track
+                .album
+                .as_ref()
+                .and_then(|album| Actors::main_actor(&album.actors, ActorRole::Producer))
+                .map(|actor| actor.name.as_str()),
             ratings_min,
             ratings_max,
         }
@@ -217,7 +258,9 @@ impl<'a> InsertableTracksResource<'a> {
             collection_uid: track_resource.collection.uid.as_ref(),
             collection_since: track_resource.collection.since.naive_utc(),
             source_uri: track_resource.source.uri.as_str(),
-            source_uri_decoded: percent_decode(track_resource.source.uri.as_bytes()).decode_utf8_lossy().into(),
+            source_uri_decoded: percent_decode(track_resource.source.uri.as_bytes())
+                .decode_utf8_lossy()
+                .into(),
             source_sync_when: track_resource
                 .source
                 .synchronization

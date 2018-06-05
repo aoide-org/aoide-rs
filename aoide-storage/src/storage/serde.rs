@@ -58,7 +58,7 @@ impl SerializationFormat {
                     None
                 }
             }
-            _ => None
+            _ => None,
         }
     }
 }
@@ -86,7 +86,8 @@ impl Into<mime::Mime> for SerializationFormat {
 }
 
 pub fn concat_serialized_entities_json_array(
-    serialized_entities: &[SerializedEntity]) -> Result<Vec<u8>, failure::Error> {
+    serialized_entities: &[SerializedEntity],
+) -> Result<Vec<u8>, failure::Error> {
     let mut json_array = Vec::with_capacity(
         serialized_entities
             .iter()
@@ -110,11 +111,18 @@ pub fn concat_serialized_entities_json_array(
 }
 
 pub fn concat_serialized_entities_into_json_array(
-    serialized_entities: Vec<SerializedEntity>) -> Result<Vec<u8>, failure::Error> {
+    serialized_entities: Vec<SerializedEntity>,
+) -> Result<Vec<u8>, failure::Error> {
     concat_serialized_entities_json_array(&serialized_entities)
 }
 
-pub fn serialize_with_format<T>(entity: &T, format: SerializationFormat) -> Result<Vec<u8>, failure::Error> where T: serde::Serialize {
+pub fn serialize_with_format<T>(
+    entity: &T,
+    format: SerializationFormat,
+) -> Result<Vec<u8>, failure::Error>
+where
+    T: serde::Serialize,
+{
     let blob = match format {
         SerializationFormat::JSON => serde_json::to_vec(entity)?,
         SerializationFormat::CBOR => serde_cbor::to_vec(entity)?,
@@ -124,7 +132,13 @@ pub fn serialize_with_format<T>(entity: &T, format: SerializationFormat) -> Resu
     Ok(blob)
 }
 
-pub fn deserialize_slice_with_format<'a, T>(slice: &'a [u8], format: SerializationFormat) -> Result<T, failure::Error> where T: serde::Deserialize<'a> {
+pub fn deserialize_slice_with_format<'a, T>(
+    slice: &'a [u8],
+    format: SerializationFormat,
+) -> Result<T, failure::Error>
+where
+    T: serde::Deserialize<'a>,
+{
     let deserialized = match format {
         SerializationFormat::JSON => serde_json::from_slice::<T>(slice)?,
         SerializationFormat::CBOR => serde_cbor::from_slice::<T>(slice)?,
@@ -134,6 +148,9 @@ pub fn deserialize_slice_with_format<'a, T>(slice: &'a [u8], format: Serializati
     Ok(deserialized)
 }
 
-pub fn deserialize_with_format<'a, T>(input: &'a SerializedEntity) -> Result<T, failure::Error> where T: serde::Deserialize<'a> {
+pub fn deserialize_with_format<'a, T>(input: &'a SerializedEntity) -> Result<T, failure::Error>
+where
+    T: serde::Deserialize<'a>,
+{
     deserialize_slice_with_format(&input.blob, input.format)
 }

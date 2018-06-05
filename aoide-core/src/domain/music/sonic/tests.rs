@@ -38,10 +38,7 @@ fn convert_key_signatures() {
         KeySignature::new(1),
         LancelotKeySignature::new(8, KeyMode::Major).into()
     );
-    assert_eq!(
-        KeySignature::new(1),
-        EngineKeySignature::new(24).into()
-    );
+    assert_eq!(KeySignature::new(1), EngineKeySignature::new(24).into());
     // A min
     assert_eq!(
         KeySignature::new(2),
@@ -51,11 +48,8 @@ fn convert_key_signatures() {
         KeySignature::new(2),
         LancelotKeySignature::new(8, KeyMode::Minor).into()
     );
-    assert_eq!(
-        KeySignature::new(2),
-        EngineKeySignature::new(1).into()
-    );
-        // E maj
+    assert_eq!(KeySignature::new(2), EngineKeySignature::new(1).into());
+    // E maj
     assert_eq!(
         KeySignature::new(9),
         OpenKeySignature::new(5, KeyMode::Major).into()
@@ -64,10 +58,7 @@ fn convert_key_signatures() {
         KeySignature::new(9),
         LancelotKeySignature::new(12, KeyMode::Major).into()
     );
-    assert_eq!(
-        KeySignature::new(9),
-        EngineKeySignature::new(8).into()
-    );
+    assert_eq!(KeySignature::new(9), EngineKeySignature::new(8).into());
     // Db min
     assert_eq!(
         KeySignature::new(10),
@@ -77,10 +68,7 @@ fn convert_key_signatures() {
         KeySignature::new(10),
         LancelotKeySignature::new(12, KeyMode::Minor).into()
     );
-    assert_eq!(
-        KeySignature::new(10),
-        EngineKeySignature::new(9).into()
-    );
+    assert_eq!(KeySignature::new(10), EngineKeySignature::new(9).into());
     // B maj
     assert_eq!(
         KeySignature::new(11),
@@ -90,10 +78,7 @@ fn convert_key_signatures() {
         KeySignature::new(11),
         LancelotKeySignature::new(1, KeyMode::Major).into()
     );
-    assert_eq!(
-        KeySignature::new(11),
-        EngineKeySignature::new(10).into()
-    );
+    assert_eq!(KeySignature::new(11), EngineKeySignature::new(10).into());
     // Ab min
     assert_eq!(
         KeySignature::new(12),
@@ -103,10 +88,7 @@ fn convert_key_signatures() {
         KeySignature::new(12),
         LancelotKeySignature::new(1, KeyMode::Minor).into()
     );
-    assert_eq!(
-        KeySignature::new(12),
-        EngineKeySignature::new(11).into()
-    );
+    assert_eq!(KeySignature::new(12), EngineKeySignature::new(11).into());
     // F maj
     assert_eq!(
         KeySignature::new(23),
@@ -116,10 +98,7 @@ fn convert_key_signatures() {
         KeySignature::new(23),
         LancelotKeySignature::new(7, KeyMode::Major).into()
     );
-    assert_eq!(
-        KeySignature::new(23),
-        EngineKeySignature::new(22).into()
-    );
+    assert_eq!(KeySignature::new(23), EngineKeySignature::new(22).into());
     // D min
     assert_eq!(
         KeySignature::new(24),
@@ -129,10 +108,7 @@ fn convert_key_signatures() {
         KeySignature::new(24),
         LancelotKeySignature::new(7, KeyMode::Minor).into()
     );
-    assert_eq!(
-        KeySignature::new(24),
-        EngineKeySignature::new(23).into()
-    );
+    assert_eq!(KeySignature::new(24), EngineKeySignature::new(23).into());
 }
 
 #[test]

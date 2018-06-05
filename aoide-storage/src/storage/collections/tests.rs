@@ -73,6 +73,9 @@ fn remove_entity() {
         .unwrap();
     println!("Created entity: {:?}", entity);
     assert!(entity.is_valid());
-    assert_eq!(Some(()), repository.remove_entity(&entity.header().uid()).unwrap());
+    assert_eq!(
+        Some(()),
+        repository.remove_entity(&entity.header().uid()).unwrap()
+    );
     println!("Removed entity: {}", entity.header().uid());
 }

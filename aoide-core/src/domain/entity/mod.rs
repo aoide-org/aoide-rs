@@ -26,9 +26,9 @@ use rand::{thread_rng, AsByteSliceMut, RngCore};
 
 use ring::digest;
 
-use serde::{Serialize, Deserialize, Serializer, Deserializer};
 use serde::de;
 use serde::de::Visitor as SerdeDeserializeVisitor;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use std::fmt;
 
@@ -88,9 +88,7 @@ impl EntityUid {
     }
 
     pub fn encode_str(&self, encoded: &mut str) -> Result<(), failure::Error> {
-        unsafe {
-            self.encode_slice(&mut encoded.as_bytes_mut())
-        }
+        unsafe { self.encode_slice(&mut encoded.as_bytes_mut()) }
     }
 
     pub fn decode_from_str(encoded: &str) -> Result<Self, failure::Error> {
@@ -130,9 +128,7 @@ impl Serialize for EntityUid {
         S: Serializer,
     {
         let encoded = self.encode_to_slice();
-        unsafe {
-            serializer.serialize_str(str::from_utf8_unchecked(&encoded))
-        }
+        unsafe { serializer.serialize_str(str::from_utf8_unchecked(&encoded)) }
     }
 }
 
@@ -142,7 +138,10 @@ impl<'de> SerdeDeserializeVisitor<'de> for EntityUidDeserializeVisitor {
     type Value = EntityUid;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_fmt(format_args!("an URL-safe Base64 encoded string of length {}", EntityUid::STR_LEN))
+        formatter.write_fmt(format_args!(
+            "an URL-safe Base64 encoded string of length {}",
+            EntityUid::STR_LEN
+        ))
     }
 
     fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
@@ -151,7 +150,7 @@ impl<'de> SerdeDeserializeVisitor<'de> for EntityUidDeserializeVisitor {
     {
         match EntityUid::decode_from_str(value) {
             Ok(result) => Ok(result),
-            Err(e) => Err(E::custom(e.to_string()))
+            Err(e) => Err(E::custom(e.to_string())),
         }
     }
 }
@@ -168,9 +167,7 @@ impl<'de> Deserialize<'de> for EntityUid {
 impl fmt::Display for EntityUid {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let encoded = self.encode_to_slice();
-        unsafe {
-            write!(f, "{}", str::from_utf8_unchecked(&encoded))
-        }
+        unsafe { write!(f, "{}", str::from_utf8_unchecked(&encoded)) }
     }
 }
 

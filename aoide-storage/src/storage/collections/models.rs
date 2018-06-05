@@ -15,11 +15,11 @@
 
 use super::schema::collections_entity;
 
-use chrono::{DateTime, Utc};
 use chrono::naive::NaiveDateTime;
+use chrono::{DateTime, Utc};
 
-use aoide_core::domain::entity::{EntityUid, EntityHeader, EntityRevision};
 use aoide_core::domain::collection::*;
+use aoide_core::domain::entity::{EntityHeader, EntityRevision, EntityUid};
 
 use storage::*;
 

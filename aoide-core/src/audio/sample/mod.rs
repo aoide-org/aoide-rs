@@ -16,9 +16,9 @@
 #[cfg(test)]
 mod tests;
 
-use std::u32;
 use std::fmt;
 use std::ops::Deref;
+use std::u32;
 
 ///////////////////////////////////////////////////////////////////////
 /// SampleLayout

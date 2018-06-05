@@ -57,8 +57,9 @@ use aoide::{middleware, middleware::DieselMiddleware};
 use aoide_storage::{storage::{collections::*, serde::*, tracks::*},
                     usecases::{api::{CountableStringField, LocateParams, Pagination,
                                      PaginationLimit, PaginationOffset, ResourceStats,
-                                     SearchParams, StringFieldCounts, TrackReplacementParams,
-                                     TrackReplacementReport, ScoredGenreCount, ScoredTagCount, TagFacetCount},
+                                     ScoredGenreCount, ScoredTagCount, SearchParams,
+                                     StringFieldCounts, TagFacetCount, TrackReplacementParams,
+                                     TrackReplacementReport},
                                *}};
 
 use aoide_core::domain::{collection::*, entity::*, track::*};
@@ -1226,11 +1227,7 @@ fn handle_get_collections_path_uid_tracks_genres_query_pagination(
         }
     };
 
-    let response = match all_genres(
-        pooled_connection,
-        collection_uid.as_ref(),
-        &pagination,
-    ) {
+    let response = match all_genres(pooled_connection, collection_uid.as_ref(), &pagination) {
         Ok(result) => match serde_json::to_vec(&result) {
             Ok(response_body) => create_response(
                 &state,

@@ -28,9 +28,9 @@ use env_logger::Builder as LoggerBuilder;
 use log::LevelFilter as LogLevelFilter;
 
 use std::env;
-use std::path::Path;
 use std::fs::File;
 use std::io;
+use std::path::Path;
 
 fn init_env_logger(log_level_filter: LogLevelFilter) {
     let mut logger_builder = LoggerBuilder::new();

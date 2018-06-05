@@ -19,8 +19,8 @@ pub mod signal;
 #[cfg(test)]
 mod tests;
 
-use std::u16;
 use std::fmt;
+use std::u16;
 
 ///////////////////////////////////////////////////////////////////////
 /// Duration
@@ -37,7 +37,9 @@ pub struct Duration {
 impl Duration {
     pub const UNIT_OF_MEASURE: &'static str = "ms";
 
-    pub const EMPTY: Duration = Duration { ms: 0 as DurationValue };
+    pub const EMPTY: Duration = Duration {
+        ms: 0 as DurationValue,
+    };
 
     pub fn ms(ms: DurationValue) -> Self {
         Self { ms }

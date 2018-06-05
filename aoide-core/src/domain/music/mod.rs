@@ -79,14 +79,23 @@ impl Titles {
         Self::main_title(titles).is_some() && titles.iter().all(Title::is_valid)
     }
 
-    pub fn title<'a>(titles: &'a [Title], level: TitleLevel, language: Option<&str>) -> Option<&'a Title> {
-        debug_assert!(titles
-            .iter()
-            .filter(|title| title.level == level && title.language.as_ref().map(|v| v.as_str()) == language)
-            .count() <= 1);
+    pub fn title<'a>(
+        titles: &'a [Title],
+        level: TitleLevel,
+        language: Option<&str>,
+    ) -> Option<&'a Title> {
+        debug_assert!(
+            titles
+                .iter()
+                .filter(|title| title.level == level
+                    && title.language.as_ref().map(|v| v.as_str()) == language)
+                .count() <= 1
+        );
         titles
             .iter()
-            .filter(|title| title.level == level && title.language.as_ref().map(|v| v.as_str()) == language)
+            .filter(|title| {
+                title.level == level && title.language.as_ref().map(|v| v.as_str()) == language
+            })
             .nth(0)
     }
 
@@ -188,11 +197,17 @@ impl Actors {
         // - at least one summary entry exists if more than one primary entry exists for disambiguation
     }
 
-    pub fn actor<'a>(actors: &'a [Actor], role: ActorRole, priority: ActorPriority) -> Option<&'a Actor> {
-        debug_assert!(actors
-            .iter()
-            .filter(|actor| actor.role == role && actor.priority == priority)
-            .count() <= 1);
+    pub fn actor<'a>(
+        actors: &'a [Actor],
+        role: ActorRole,
+        priority: ActorPriority,
+    ) -> Option<&'a Actor> {
+        debug_assert!(
+            actors
+                .iter()
+                .filter(|actor| actor.role == role && actor.priority == priority)
+                .count() <= 1
+        );
         actors
             .iter()
             .filter(|actor| actor.role == role && actor.priority == priority)
@@ -201,8 +216,8 @@ impl Actors {
 
     // The singular summary actor or if none exists then the singular primary actor
     pub fn main_actor<'a>(actors: &'a [Actor], role: ActorRole) -> Option<&'a Actor> {
-        Self::actor(actors, role, ActorPriority::Summary).or_else(
-            || Self::actor(actors, role, ActorPriority::Primary))
+        Self::actor(actors, role, ActorPriority::Summary)
+            .or_else(|| Self::actor(actors, role, ActorPriority::Primary))
     }
 }
 
@@ -212,10 +227,7 @@ impl Actors {
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct ScoredGenre(
-    /*score*/ Score,
-    /*name*/ String,
-);
+pub struct ScoredGenre(/*score*/ Score, /*name*/ String);
 
 impl ScoredGenre {
     pub fn new<S: Into<Score>, N: Into<String>>(score: S, name: N) -> Self {

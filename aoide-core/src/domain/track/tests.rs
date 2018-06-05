@@ -29,9 +29,9 @@ fn serialize_json() {
         features,
         ..Default::default()
     };
-    let comments = vec![
-        Comment::new_anonymous("Some anonymous notes about this track"),
-    ];
+    let comments = vec![Comment::new_anonymous(
+        "Some anonymous notes about this track",
+    )];
     let uri = "subfolder/test.mp3";
     let source = TrackSource {
         uri: uri.to_string(),
@@ -42,17 +42,15 @@ fn serialize_json() {
         media_type: mime_guess::guess_mime_type(uri).to_string(),
         audio_content: None,
     };
-    let resources = vec![
-        TrackResource {
-            collection: TrackCollection {
-                uid: EntityUidGenerator::generate_uid(),
-                since: Utc::now(),
-            },
-            source,
-            color: Some(TrackColor::RED),
-            play_counter: None,
+    let resources = vec![TrackResource {
+        collection: TrackCollection {
+            uid: EntityUidGenerator::generate_uid(),
+            since: Utc::now(),
         },
-    ];
+        source,
+        color: Some(TrackColor::RED),
+        play_counter: None,
+    }];
     let tags = vec![
         ScoredTag::new_term_faceted(0.8, "1980s", TrackTagging::FACET_STYLE),
         ScoredTag::new_term_faceted(0.3, "1990s", "style"),

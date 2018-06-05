@@ -1,7 +1,7 @@
 //! Defines data structure for storage in Gotham State that provides access to the underlying r2d2
 //! pool so a connection can be established if required by Middleware or Handlers.
 
-use diesel::{Connection, r2d2::ConnectionManager};
+use diesel::{r2d2::ConnectionManager, Connection};
 use r2d2::{Error, Pool, PooledConnection};
 
 use gotham::state::{FromState, State};
