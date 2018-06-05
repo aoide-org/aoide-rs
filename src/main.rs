@@ -54,7 +54,9 @@ extern crate serde_json;
 
 use aoide::{middleware, middleware::DieselMiddleware};
 
-use aoide_storage::{storage::{collections::*, serde::*, tracks::*},
+use aoide_storage::{storage::{collections::*,
+                              serde::*,
+                              tracks::{util::TrackRepositoryHelper, *}},
                     usecases::{api::{CountableStringField, LocateParams, Pagination,
                                      PaginationLimit, PaginationOffset, ResourceStats,
                                      ScoredGenreCount, ScoredTagCount, SearchParams,
@@ -123,8 +125,8 @@ fn migrate_database_schema(connection_pool: &SqliteConnectionPool) -> Result<(),
 fn cleanup_database_storage(connection_pool: &SqliteConnectionPool) -> Result<(), Error> {
     info!("Cleaning up database storage");
     let connection = &*connection_pool.get()?;
-    let repository = TrackRepository::new(connection);
-    connection.transaction::<_, Error, _>(|| repository.cleanup_aux_storage())
+    let helper = TrackRepositoryHelper::new(connection);
+    connection.transaction::<_, Error, _>(|| helper.cleanup())
 }
 
 fn repair_database_storage(connection_pool: &SqliteConnectionPool) -> Result<(), Error> {
@@ -134,10 +136,9 @@ fn repair_database_storage(connection_pool: &SqliteConnectionPool) -> Result<(),
         description: Some("Recreated by aoide".into()),
     };
     let connection = &*connection_pool.get()?;
-    let repository = TrackRepository::new(connection);
-    connection.transaction::<_, Error, _>(|| {
-        repository.recreate_missing_collections(&collection_prototype)
-    })?;
+    let helper = TrackRepositoryHelper::new(connection);
+    connection
+        .transaction::<_, Error, _>(|| helper.recreate_missing_collections(&collection_prototype))?;
     Ok(())
 }
 

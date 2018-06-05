@@ -151,23 +151,30 @@ CREATE TABLE aux_tracks_genre (
     UNIQUE (track_id, name)
 );
 
+CREATE TABLE aux_tracks_tag_facets (
+    id                       INTEGER PRIMARY KEY,
+    facet                    TEXT NOT NULL COLLATE NOCASE,
+    UNIQUE (facet)
+);
+
 CREATE TABLE aux_tracks_tag (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     score                    REAL NOT NULL, -- [0.0, 1.0]
-    term                     TEXT NOT NULL,
-    facet                    TEXT,
+    term                     INTEGER NOT NULL,
+    facet_id                 INTEGER,
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
-    UNIQUE (track_id, term, facet)
+    FOREIGN KEY(facet_id) REFERENCES aux_tracks_tag_facets(id),
+    UNIQUE (track_id, term, facet_id)
 );
 
 CREATE INDEX idx_tracks_tag_term_facet ON aux_tracks_tag(
     term,
-    facet
+    facet_id
 );
 
 CREATE INDEX idx_tracks_tag_facet ON aux_tracks_tag (
-    facet
+    facet_id
 );
 
 CREATE TABLE aux_tracks_comment (

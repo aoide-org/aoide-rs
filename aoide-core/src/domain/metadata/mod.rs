@@ -108,11 +108,19 @@ impl ScoredTag {
         term: T,
         facet: Option<F>,
     ) -> Self {
-        ScoredTag(score.into(), term.into(), facet.map(F::into))
+        let score = score.into();
+        let term = term.into();
+        let facet = facet.map(F::into);
+        debug_assert!(match facet {
+            None => true,
+            Some(ref facet) => facet == &facet.to_lowercase(),
+        });
+        ScoredTag(score, term, facet)
     }
 
     pub fn new_term<S: Into<Score>, T: Into<String>>(score: S, term: T) -> Self {
-        ScoredTag(score.into(), term.into(), None)
+        let facet: Option<String> = None;
+        Self::new(score, term, facet)
     }
 
     pub fn new_term_faceted<S: Into<Score>, T: Into<String>, F: Into<String>>(
@@ -120,7 +128,7 @@ impl ScoredTag {
         term: T,
         facet: F,
     ) -> Self {
-        ScoredTag(score.into(), term.into(), Some(facet.into()))
+        Self::new(score, term, Some(facet))
     }
 
     pub fn score(&self) -> Score {

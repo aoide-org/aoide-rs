@@ -411,27 +411,33 @@ impl<'a> InsertableTracksGenre<'a> {
 }
 
 #[derive(Debug, Insertable)]
+#[table_name = "aux_tracks_tag_facets"]
+pub struct InsertableTracksTagFacet<'a> {
+    pub facet: &'a str,
+}
+
+impl<'a> InsertableTracksTagFacet<'a> {
+    pub fn bind(facet: &'a str) -> Self {
+        Self { facet }
+    }
+}
+
+#[derive(Debug, Insertable)]
 #[table_name = "aux_tracks_tag"]
 pub struct InsertableTracksTag<'a> {
     pub track_id: StorageId,
+    pub facet_id: Option<StorageId>,
     pub score: ScoreValue,
     pub term: &'a str,
-    pub facet: Option<&'a str>,
 }
 
 impl<'a> InsertableTracksTag<'a> {
-    pub fn bind(track_id: StorageId, tag: &'a ScoredTag) -> Self {
+    pub fn bind(track_id: StorageId, facet_id: Option<StorageId>, tag: &'a ScoredTag) -> Self {
         Self {
             track_id,
+            facet_id,
             score: *tag.score(),
             term: tag.term().as_str(),
-            facet: tag.facet().as_ref().and_then(|facet|
-                // Empty strings become NULL in database
-                if facet.is_empty() {
-                    None
-                } else {
-                    Some(facet.as_str())
-                }),
         }
     }
 }
