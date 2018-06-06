@@ -1240,7 +1240,7 @@ fn all_tags_facets(
     repository.all_tags_facets(collection_uid, facets, pagination)
 }
 
-fn handle_get_collections_path_uid_tracks_tags_facets_query_facet_pagination(
+fn handle_get_collections_path_uid_tags_facets_query_facet_pagination(
     mut state: State,
 ) -> Box<HandlerFuture> {
     let collection_uid = UidPathExtractor::try_parse_from(&mut state);
@@ -1286,7 +1286,7 @@ fn all_tags(
     repository.all_tags(collection_uid, facets, pagination)
 }
 
-fn handle_get_collections_path_uid_tracks_tags_query_facet_pagination(
+fn handle_get_collections_path_uid_tags_query_facet_pagination(
     mut state: State,
 ) -> Box<HandlerFuture> {
     let collection_uid = UidPathExtractor::try_parse_from(&mut state);
@@ -1334,17 +1334,30 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
 
     // Build the router
     build_router(default_pipeline_chain, pipeline_set, |route| {
-        route // add single collection (body)
-            .post("/collections")
-            .to(handle_post_collections);
-        route // update single collection
-            .put("/collections/:uid")
+        route // tag facets + total count in a collection
+            .get("/collections/:uid/tags/facets")
             .with_path_extractor::<UidPathExtractor>()
-            .to(handle_put_collections_path_uid);
-        route // remove single collection
-            .delete("/collections/:uid")
+            .with_query_string_extractor::<TagFacetPaginationQueryStringExtractor>()
+            .to(handle_get_collections_path_uid_tags_facets_query_facet_pagination);
+        route // tag (avg. score, term, facet) tuples + total count in a collection
+            .get("/collections/:uid/tags")
             .with_path_extractor::<UidPathExtractor>()
-            .to(handle_delete_collections_path_uid);
+            .with_query_string_extractor::<TagFacetPaginationQueryStringExtractor>()
+            .to(handle_get_collections_path_uid_tags_query_facet_pagination);
+        route // selected (string) fields in collection
+            .get("/collections/:uid/tracks/fields")
+            .with_path_extractor::<UidPathExtractor>()
+            .with_query_string_extractor::<CountableStringFieldQueryStringExtractor>()
+            .to(handle_get_collections_path_uid_tracks_fields_query_field);
+        route // various statistics about tracks in collection
+            .get("/collections/:uid/tracks/stats")
+            .with_path_extractor::<UidPathExtractor>()
+            .to(handle_get_collections_path_tracks_stats);
+        route // load recently modified tracks from collection
+            .get("/collections/:uid/tracks")
+            .with_path_extractor::<UidPathExtractor>()
+            .with_query_string_extractor::<PaginationQueryStringExtractor>()
+            .to(handle_get_collections_path_uid_tracks_query_pagination);
         route // load single collection
             .get("/collections/:uid")
             .with_path_extractor::<UidPathExtractor>()
@@ -1353,30 +1366,6 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
             .get("/collections")
             .with_query_string_extractor::<PaginationQueryStringExtractor>()
             .to(handle_get_collections_query_pagination);
-        route // add single track (body)
-            .post("/tracks")
-            .to(handle_post_tracks);
-        route // update single track
-            .put("/tracks/:uid")
-            .with_path_extractor::<UidPathExtractor>()
-            .to(handle_put_tracks_path_uid);
-        route // remove single track
-            .delete("/tracks/:uid")
-            .with_path_extractor::<UidPathExtractor>()
-            .to(handle_delete_tracks_path_uid);
-        route // load single track
-            .get("/tracks/:uid")
-            .with_path_extractor::<UidPathExtractor>()
-            .to(handle_get_tracks_path_uid);
-        route // load recently modified tracks
-            .get("/tracks")
-            .with_query_string_extractor::<PaginationQueryStringExtractor>()
-            .to(handle_get_collections_path_uid_tracks_query_pagination);
-        route // load recently modified tracks from collection
-            .get("/collections/:uid/tracks")
-            .with_path_extractor::<UidPathExtractor>()
-            .with_query_string_extractor::<PaginationQueryStringExtractor>()
-            .to(handle_get_collections_path_uid_tracks_query_pagination);
         route // locate multiple track in collection
             .post("/collections/:uid/tracks/locate")
             .with_path_extractor::<UidPathExtractor>()
@@ -1391,25 +1380,44 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
             .with_path_extractor::<UidPathExtractor>()
             .with_query_string_extractor::<PaginationQueryStringExtractor>()
             .to(handle_post_collections_path_uid_tracks_search_query_pagination);
-        route // various statistics about tracks in collection
-            .get("/collections/:uid/tracks/stats")
+        route // add single collection (body)
+            .post("/collections")
+            .to(handle_post_collections);
+        route // update single collection
+            .put("/collections/:uid")
             .with_path_extractor::<UidPathExtractor>()
-            .to(handle_get_collections_path_tracks_stats);
-        route // selected (string) fields in collection
-            .get("/collections/:uid/tracks/fields")
+            .to(handle_put_collections_path_uid);
+        route // remove single collection
+            .delete("/collections/:uid")
             .with_path_extractor::<UidPathExtractor>()
-            .with_query_string_extractor::<CountableStringFieldQueryStringExtractor>()
-            .to(handle_get_collections_path_uid_tracks_fields_query_field);
-        route // all tag facets in collection
-            .get("/collections/:uid/tracks/tags/facets")
+            .to(handle_delete_collections_path_uid);
+        route // load single track
+            .get("/tracks/:uid")
             .with_path_extractor::<UidPathExtractor>()
+            .to(handle_get_tracks_path_uid);
+        route // load recently revisioned tracks
+            .get("/tracks")
+            .with_query_string_extractor::<PaginationQueryStringExtractor>()
+            .to(handle_get_collections_path_uid_tracks_query_pagination);
+        route // add single track (body)
+            .post("/tracks")
+            .to(handle_post_tracks);
+        route // update single track
+            .put("/tracks/:uid")
+            .with_path_extractor::<UidPathExtractor>()
+            .to(handle_put_tracks_path_uid);
+        route // remove single track
+            .delete("/tracks/:uid")
+            .with_path_extractor::<UidPathExtractor>()
+            .to(handle_delete_tracks_path_uid);
+        route // tag facets + total count (across all collections)
+            .get("/tags/facets")
             .with_query_string_extractor::<TagFacetPaginationQueryStringExtractor>()
-            .to(handle_get_collections_path_uid_tracks_tags_facets_query_facet_pagination);
-        route // all tag (facet, term) tuples in collection
-            .get("/collections/:uid/tracks/tags")
-            .with_path_extractor::<UidPathExtractor>()
+            .to(handle_get_collections_path_uid_tags_facets_query_facet_pagination);
+        route // tag (avg. score, term, facet) tuples + total count across all collections
+            .get("/tags")
             .with_query_string_extractor::<TagFacetPaginationQueryStringExtractor>()
-            .to(handle_get_collections_path_uid_tracks_tags_query_facet_pagination);
+            .to(handle_get_collections_path_uid_tags_query_facet_pagination);
     })
 }
 
