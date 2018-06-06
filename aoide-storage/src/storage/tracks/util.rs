@@ -228,11 +228,15 @@ impl<'a> TrackRepositoryHelper<'a> {
     }
 
     fn cleanup_tag(&self) -> Result<(), Error> {
-        // Tags
+        // Orphaned tags
         diesel::delete(aux_tracks_tag::table.filter(
             aux_tracks_tag::track_id.ne_all(tracks_entity::table.select(tracks_entity::id)),
         )).execute(self.connection)?;
-        // Facets
+        // Orphaned tag terms
+        diesel::delete(aux_tracks_tag_terms::table.filter(
+            aux_tracks_tag_terms::id.ne_all(aux_tracks_tag::table.select(aux_tracks_tag::term_id)),
+        )).execute(self.connection)?;
+        // Orphaned tag facets
         diesel::delete(
             aux_tracks_tag_facets::table.filter(
                 aux_tracks_tag_facets::id
@@ -248,7 +252,29 @@ impl<'a> TrackRepositoryHelper<'a> {
         Ok(())
     }
 
-    fn get_or_add_facet(&self, facet: &str) -> Result<StorageId, Error> {
+    fn get_or_add_tag_term(&self, term: &str) -> Result<StorageId, Error> {
+        debug_assert!(!term.is_empty());
+        loop {
+            match aux_tracks_tag_terms::table
+                .select(aux_tracks_tag_terms::id)
+                .filter(aux_tracks_tag_terms::term.eq(term))
+                .first(self.connection)
+                .optional()?
+            {
+                Some(id) => return Ok(id),
+                None => {
+                    let insertable = InsertableTracksTagTerm::bind(term);
+                    diesel::insert_or_ignore_into(aux_tracks_tag_terms::table)
+                        .values(&insertable)
+                        .execute(self.connection)?;
+                    // and retry...
+                }
+            }
+        }
+    }
+
+    fn get_or_add_tag_facet(&self, facet: &str) -> Result<StorageId, Error> {
+        debug_assert!(!facet.is_empty());
         debug_assert!(facet == &facet.to_lowercase());
         loop {
             // TODO: End the expression with ".optional()?"" after removing Nullable from aux_tracks_tag_facets::id in schema
@@ -261,7 +287,7 @@ impl<'a> TrackRepositoryHelper<'a> {
                 Ok(Some(id)) => return Ok(id),
                 Ok(None) | Err(diesel::NotFound) => {
                     let insertable = InsertableTracksTagFacet::bind(facet);
-                    diesel::replace_into(aux_tracks_tag_facets::table)
+                    diesel::insert_or_ignore_into(aux_tracks_tag_facets::table)
                         .values(&insertable)
                         .execute(self.connection)?;
                     // and retry...
@@ -273,11 +299,12 @@ impl<'a> TrackRepositoryHelper<'a> {
 
     fn insert_tag(&self, track_id: StorageId, track_body: &TrackBody) -> Result<(), Error> {
         for tag in track_body.tags.iter() {
+            let term_id = self.get_or_add_tag_term(tag.term())?;
             let facet_id = match tag.facet() {
-                Some(facet) => Some(self.get_or_add_facet(facet)?),
+                Some(facet) => Some(self.get_or_add_tag_facet(facet)?),
                 None => None,
             };
-            let insertable = InsertableTracksTag::bind(track_id, facet_id, tag);
+            let insertable = InsertableTracksTag::bind(track_id, term_id, facet_id, tag.score());
             diesel::insert_into(aux_tracks_tag::table)
                 .values(&insertable)
                 .execute(self.connection)?;

@@ -22,6 +22,7 @@ DROP TABLE aux_tracks_profile;
 DROP TABLE aux_tracks_comment;
 DROP TABLE aux_tracks_rating;
 DROP TABLE aux_tracks_tag;
+DROP TABLE aux_tracks_tag_terms;
 DROP TABLE aux_tracks_tag_facets;
 DROP TABLE aux_tracks_ref;
 DROP TABLE tracks_entity;

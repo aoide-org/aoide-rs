@@ -24,7 +24,7 @@ use storage::StorageId;
 
 use aoide_core::audio::{Decibel, Loudness, LUFS};
 use aoide_core::domain::entity::{EntityHeader, EntityRevision};
-use aoide_core::domain::metadata::{Comment, Rating, Score, ScoreValue, ScoredTag};
+use aoide_core::domain::metadata::{Comment, Rating, Score, ScoreValue};
 use aoide_core::domain::music::sonic::BeatsPerMinute;
 use aoide_core::domain::music::{ActorRole, Actors, SongFeature, SongProfile, TitleLevel, Titles};
 use aoide_core::domain::track::{RefOrigin, TrackBody, TrackResource};
@@ -392,6 +392,18 @@ impl<'a> InsertableTracksRef<'a> {
 }
 
 #[derive(Debug, Insertable)]
+#[table_name = "aux_tracks_tag_terms"]
+pub struct InsertableTracksTagTerm<'a> {
+    pub term: &'a str,
+}
+
+impl<'a> InsertableTracksTagTerm<'a> {
+    pub fn bind(term: &'a str) -> Self {
+        Self { term }
+    }
+}
+
+#[derive(Debug, Insertable)]
 #[table_name = "aux_tracks_tag_facets"]
 pub struct InsertableTracksTagFacet<'a> {
     pub facet: &'a str,
@@ -405,20 +417,25 @@ impl<'a> InsertableTracksTagFacet<'a> {
 
 #[derive(Debug, Insertable)]
 #[table_name = "aux_tracks_tag"]
-pub struct InsertableTracksTag<'a> {
+pub struct InsertableTracksTag {
     pub track_id: StorageId,
+    pub term_id: StorageId,
     pub facet_id: Option<StorageId>,
     pub score: ScoreValue,
-    pub term: &'a str,
 }
 
-impl<'a> InsertableTracksTag<'a> {
-    pub fn bind(track_id: StorageId, facet_id: Option<StorageId>, tag: &'a ScoredTag) -> Self {
+impl InsertableTracksTag {
+    pub fn bind(
+        track_id: StorageId,
+        term_id: StorageId,
+        facet_id: Option<StorageId>,
+        score: Score,
+    ) -> Self {
         Self {
             track_id,
+            term_id,
             facet_id,
-            score: *tag.score(),
-            term: tag.term().as_str(),
+            score: *score,
         }
     }
 }

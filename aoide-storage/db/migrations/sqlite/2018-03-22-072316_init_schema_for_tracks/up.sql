@@ -142,6 +142,12 @@ CREATE TABLE aux_tracks_profile (
     UNIQUE (track_id)
 );
 
+CREATE TABLE aux_tracks_tag_terms (
+    id                       INTEGER PRIMARY KEY,
+    term                    TEXT NOT NULL,
+    UNIQUE (term)
+);
+
 CREATE TABLE aux_tracks_tag_facets (
     id                       INTEGER PRIMARY KEY,
     facet                    TEXT NOT NULL COLLATE NOCASE,
@@ -152,15 +158,16 @@ CREATE TABLE aux_tracks_tag (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     score                    REAL NOT NULL, -- [0.0, 1.0]
-    term                     INTEGER NOT NULL,
+    term_id                  INTEGER NOT NULL,
     facet_id                 INTEGER,
     FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
+    FOREIGN KEY(term_id) REFERENCES aux_tracks_tag_terms(id),
     FOREIGN KEY(facet_id) REFERENCES aux_tracks_tag_facets(id),
-    UNIQUE (track_id, term, facet_id)
+    UNIQUE (track_id, term_id, facet_id)
 );
 
 CREATE INDEX idx_tracks_tag_term_facet ON aux_tracks_tag(
-    term,
+    term_id,
     facet_id
 );
 
