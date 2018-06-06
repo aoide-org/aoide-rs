@@ -125,17 +125,6 @@ table! {
 joinable!(aux_tracks_profile -> tracks_entity (track_id));
 
 table! {
-    aux_tracks_genre (id) {
-        id -> BigInt,
-        track_id -> BigInt,
-        score -> Double,
-        name -> Text,
-    }
-}
-
-joinable!(aux_tracks_genre -> tracks_entity (track_id));
-
-table! {
     aux_tracks_tag_facets (id) {
         // TODO: Change type of id from Nullable<BigInt> to BigInt
         // See also: https://github.com/diesel-rs/diesel/pull/1644
@@ -199,7 +188,6 @@ allow_tables_to_appear_in_same_query!(
     aux_tracks_overview,
     aux_tracks_summary,
     aux_tracks_profile,
-    aux_tracks_genre,
     aux_tracks_tag,
     aux_tracks_tag_facets,
     aux_tracks_comment,

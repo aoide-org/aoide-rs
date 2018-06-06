@@ -142,15 +142,6 @@ CREATE TABLE aux_tracks_profile (
     UNIQUE (track_id)
 );
 
-CREATE TABLE aux_tracks_genre (
-    id                       INTEGER PRIMARY KEY,
-    track_id                 INTEGER NOT NULL,
-    score                    REAL NOT NULL, -- [0.0, 1.0]
-    name                     TEXT NOT NULL,
-    FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
-    UNIQUE (track_id, name)
-);
-
 CREATE TABLE aux_tracks_tag_facets (
     id                       INTEGER PRIMARY KEY,
     facet                    TEXT NOT NULL COLLATE NOCASE,

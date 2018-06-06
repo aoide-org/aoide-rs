@@ -17,9 +17,9 @@ pub mod api;
 
 use failure;
 
-use self::api::{CountableStringField, LocateParams, Pagination, ResourceStats, ScoredGenreCount,
-                ScoredTagCount, SearchParams, StringFieldCounts, TagFacetCount,
-                TrackReplacementParams, TrackReplacementReport};
+use self::api::{CountableStringField, LocateParams, Pagination, ResourceStats, ScoredTagCount,
+                SearchParams, StringFieldCounts, TagFacetCount, TrackReplacementParams,
+                TrackReplacementReport};
 
 use storage::serde::{SerializationFormat, SerializedEntity};
 
@@ -115,16 +115,6 @@ pub trait Tracks {
         &self,
         collection_uid: Option<&EntityUid>,
     ) -> TracksResult<ResourceStats>;
-}
-
-pub type TrackGenresResult<T> = Result<T, failure::Error>;
-
-pub trait TrackGenres {
-    fn all_genres(
-        &self,
-        collection_uid: Option<&EntityUid>,
-        pagination: &Pagination,
-    ) -> TrackGenresResult<Vec<ScoredGenreCount>>;
 }
 
 pub type TrackTagsResult<T> = Result<T, failure::Error>;

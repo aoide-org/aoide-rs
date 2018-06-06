@@ -16,18 +16,6 @@
 use super::*;
 
 #[test]
-fn default_genre_filter() {
-    assert_eq!(
-        GenreFilter::any_score(),
-        GenreFilter::default().score_condition
-    );
-    assert_eq!(
-        GenreFilter::any_name(),
-        GenreFilter::default().name_condition
-    );
-}
-
-#[test]
 fn default_tag_filter() {
     assert_eq!(TagFilter::any_score(), TagFilter::default().score_condition);
     assert_eq!(TagFilter::any_term(), TagFilter::default().term_condition);

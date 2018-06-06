@@ -384,6 +384,9 @@ impl TrackTagging {
     // The Content Group aka Grouping field
     pub const FACET_CGROUP: &'static str = "cgroup";
 
+    // "Pop", "Dance", "Electronic", "R&B/Soul", "Hip Hop/Rap", ...
+    pub const FACET_GENRE: &'static str = "genre";
+
     // Sub-genres or details like "East Coast", "West Coast", ...
     pub const FACET_STYLE: &'static str = "style";
 
@@ -489,9 +492,6 @@ pub struct TrackBody {
     pub locks: Vec<TrackLock>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub genres: Vec<ScoredGenre>, // no duplicate names allowed
-
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub tags: Vec<ScoredTag>, // no duplicate terms per facet allowed
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
@@ -518,7 +518,6 @@ impl TrackBody {
                             .filter(|marker2| marker.mark == marker2.mark)
                             .count() <= 1)
             }) && self.locks.iter().all(TrackLock::is_valid)
-            && self.genres.iter().all(ScoredGenre::is_valid)
             && self.tags.iter().all(ScoredTag::is_valid)
             && self.ratings.iter().all(Rating::is_valid)
             && self.comments.iter().all(Comment::is_valid)

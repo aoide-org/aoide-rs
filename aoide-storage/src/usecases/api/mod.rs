@@ -19,7 +19,6 @@ mod tests;
 use aoide_core::audio::Duration;
 use aoide_core::domain::{entity::EntityHeader,
                          metadata::{Score, ScoredTag},
-                         music::ScoredGenre,
                          track::TrackBody};
 
 pub type PaginationOffset = u64;
@@ -94,29 +93,6 @@ pub enum ScoreCondition {
     LessThan(ScoreConditionParams),
     GreaterThan(ScoreConditionParams),
     EqualTo(ScoreConditionParams),
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct GenreFilter {
-    #[serde(rename = "score", skip_serializing_if = "Option::is_none")]
-    pub score_condition: Option<ScoreCondition>,
-
-    #[serde(rename = "name", skip_serializing_if = "Option::is_none")]
-    pub name_condition: Option<StringCondition>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub modifier: Option<FilterModifier>,
-}
-
-impl GenreFilter {
-    pub fn any_score() -> Option<ScoreCondition> {
-        None
-    }
-
-    pub fn any_name() -> Option<StringCondition> {
-        None
-    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -316,13 +292,10 @@ pub struct SearchParams {
     pub phrase_filter: Option<PhraseFilter>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub genre_filters: Vec<GenreFilter>,
+    pub numeric_filters: Vec<NumericFilter>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub tag_filters: Vec<TagFilter>,
-
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub numeric_filters: Vec<NumericFilter>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub ordering: Vec<TrackSort>,
@@ -365,14 +338,6 @@ pub struct ResourceStats {
     pub count: usize,
     pub duration: Duration,
     pub media_types: Vec<MediaTypeStats>,
-}
-
-#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct ScoredGenreCount {
-    pub genre: ScoredGenre,
-
-    pub count: usize,
 }
 
 #[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]

@@ -36,11 +36,10 @@ use diesel;
 use diesel::dsl::*;
 use diesel::prelude::*;
 
-use usecases::{api::*, TrackGenres, TrackGenresResult, TrackTags, TrackTagsResult, Tracks,
-               TracksResult};
+use usecases::{api::*, TrackTags, TrackTagsResult, Tracks, TracksResult};
 
 use aoide_core::{audio::*,
-                 domain::{entity::*, metadata::*, music::*, track::*}};
+                 domain::{entity::*, metadata::*, track::*}};
 
 ///////////////////////////////////////////////////////////////////////
 /// TrackRepository
@@ -92,105 +91,6 @@ impl<'a> TrackRepository<'a> {
             helper: TrackRepositoryHelper::new(connection),
         }
     }
-}
-
-fn select_track_ids_matching_genre_filter<'a, DB>(
-    genre_filter: GenreFilter,
-) -> (
-    diesel::query_builder::BoxedSelectStatement<
-        'a,
-        diesel::sql_types::BigInt,
-        aux_tracks_genre::table,
-        DB,
-    >,
-    Option<FilterModifier>,
-)
-where
-    DB: diesel::backend::Backend + 'a,
-{
-    let mut select = aux_tracks_genre::table
-        .select(aux_tracks_genre::track_id)
-        .into_boxed();
-
-    // Filter name
-    if let Some(name_condition) = genre_filter.name_condition {
-        let (either_eq_or_like, modifier) = match name_condition {
-            // Equal comparison
-            StringCondition::Matches(condition_params) => (
-                EitherEqualOrLike::Equal(condition_params.value),
-                condition_params.modifier,
-            ),
-            // Like comparison: Escape wildcard character with backslash (see below)
-            StringCondition::StartsWith(condition_params) => (
-                EitherEqualOrLike::Like(format!(
-                    "{}%",
-                    condition_params
-                        .value
-                        .replace('\\', "\\\\")
-                        .replace('%', "\\%")
-                )),
-                condition_params.modifier,
-            ),
-            StringCondition::EndsWith(condition_params) => (
-                EitherEqualOrLike::Like(format!(
-                    "%{}",
-                    condition_params
-                        .value
-                        .replace('\\', "\\\\")
-                        .replace('%', "\\%")
-                )),
-                condition_params.modifier,
-            ),
-            StringCondition::Contains(condition_params) => (
-                EitherEqualOrLike::Like(format!(
-                    "%{}%",
-                    condition_params
-                        .value
-                        .replace('\\', "\\\\")
-                        .replace('%', "\\%")
-                )),
-                condition_params.modifier,
-            ),
-        };
-        select = match either_eq_or_like {
-            EitherEqualOrLike::Equal(eq) => match modifier {
-                None => select.filter(aux_tracks_genre::name.eq(eq)),
-                Some(ConditionModifier::Inverse) => select.filter(aux_tracks_genre::name.ne(eq)),
-            },
-            EitherEqualOrLike::Like(like) => match modifier {
-                None => select.filter(aux_tracks_genre::name.like(like).escape('\\')),
-                Some(ConditionModifier::Inverse) => {
-                    select.filter(aux_tracks_genre::name.not_like(like).escape('\\'))
-                }
-            },
-        };
-    }
-
-    // Filter score
-    if let Some(score_condition) = genre_filter.score_condition {
-        select = match score_condition {
-            ScoreCondition::LessThan(condition_params) => match condition_params.modifier {
-                None => select.filter(aux_tracks_genre::score.lt(*condition_params.value)),
-                Some(ConditionModifier::Inverse) => {
-                    select.filter(aux_tracks_genre::score.ge(*condition_params.value))
-                }
-            },
-            ScoreCondition::GreaterThan(condition_params) => match condition_params.modifier {
-                None => select.filter(aux_tracks_genre::score.gt(*condition_params.value)),
-                Some(ConditionModifier::Inverse) => {
-                    select.filter(aux_tracks_genre::score.le(*condition_params.value))
-                }
-            },
-            ScoreCondition::EqualTo(condition_params) => match condition_params.modifier {
-                None => select.filter(aux_tracks_genre::score.eq(*condition_params.value)),
-                Some(ConditionModifier::Inverse) => {
-                    select.filter(aux_tracks_genre::score.ne(*condition_params.value))
-                }
-            },
-        };
-    }
-
-    (select, genre_filter.modifier)
 }
 
 fn select_track_ids_matching_tag_filter<'a, DB>(
@@ -864,16 +764,6 @@ impl<'a> Tracks for TrackRepository<'a> {
             }
         }
 
-        for genre_filter in search_params.genre_filters.into_iter() {
-            let (subselect, filter_modifier) = select_track_ids_matching_genre_filter(genre_filter);
-            target = match filter_modifier {
-                None => target.filter(tracks_entity::id.eq_any(subselect)),
-                Some(FilterModifier::Complement) => {
-                    target.filter(tracks_entity::id.ne_all(subselect))
-                }
-            }
-        }
-
         for tag_filter in search_params.tag_filters.into_iter() {
             let (subselect, filter_modifier) = select_track_ids_matching_tag_filter(tag_filter);
             target = match filter_modifier {
@@ -1412,46 +1302,6 @@ impl<'a> Tracks for TrackRepository<'a> {
             duration: total_duration,
             media_types,
         })
-    }
-}
-
-impl<'a> TrackGenres for TrackRepository<'a> {
-    fn all_genres(
-        &self,
-        collection_uid: Option<&EntityUid>,
-        pagination: &Pagination,
-    ) -> TrackGenresResult<Vec<ScoredGenreCount>> {
-        let mut target = aux_tracks_genre::table
-            .select((
-                sql::<diesel::sql_types::Double>("AVG(score) AS score"),
-                aux_tracks_genre::name,
-                sql::<diesel::sql_types::BigInt>("COUNT(*) AS count"),
-            ))
-            .group_by(aux_tracks_genre::name)
-            .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
-            .into_boxed();
-
-        // Collection filtering
-        if let Some(collection_uid) = collection_uid {
-            let track_id_subselect = aux_tracks_resource::table
-                .select(aux_tracks_resource::track_id)
-                .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_ref()));
-            target = target.filter(aux_tracks_genre::track_id.eq_any(track_id_subselect));
-        }
-
-        // Pagination
-        target = apply_pagination(target, pagination);
-
-        let rows = target.load::<(f64, String, i64)>(self.connection)?;
-        let mut result = Vec::with_capacity(rows.len());
-        for row in rows.into_iter() {
-            result.push(ScoredGenreCount {
-                genre: ScoredGenre::new(row.0, row.1),
-                count: row.2 as usize,
-            });
-        }
-
-        Ok(result)
     }
 }
 

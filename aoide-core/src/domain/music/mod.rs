@@ -222,32 +222,6 @@ impl Actors {
 }
 
 ///////////////////////////////////////////////////////////////////////
-/// Genre
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct ScoredGenre(/*score*/ Score, /*name*/ String);
-
-impl ScoredGenre {
-    pub fn new<S: Into<Score>, N: Into<String>>(score: S, name: N) -> Self {
-        ScoredGenre(score.into(), name.into())
-    }
-
-    pub fn score(&self) -> Score {
-        self.0
-    }
-
-    pub fn name<'a>(&'a self) -> &'a String {
-        &self.1
-    }
-
-    pub fn is_valid(&self) -> bool {
-        self.score().is_valid() && !self.name().is_empty()
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
 /// Lyrics
 ///////////////////////////////////////////////////////////////////////
 

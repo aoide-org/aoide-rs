@@ -2,7 +2,10 @@
     {
         "header": {
             "uid": "Ejtxuj1yF6AEAIO4Nhxf4aPjmbF20awO",
-            "revision": [ 28, "2018-04-14T18:10:11.8351783Z" ]
+            "revision": [
+                28,
+                "2018-04-14T18:10:11.8351783Z"
+            ]
         },
         "body": {
             "resources": [
@@ -15,7 +18,10 @@
                         "uri": "file::///home/music/collection/test.mp3",
                         "synchronization": {
                             "when": "2018-05-01T13:27:56.3751483Z",
-                            "revision": [ 23, "2018-03-22T17:10:55.488760124Z" ]
+                            "revision": [
+                                23,
+                                "2018-03-22T17:10:55.488760124Z"
+                            ]
                         },
                         "mediaType": "audio/mpeg",
                         "audioContent": {
@@ -71,8 +77,14 @@
                 ],
                 "compilation": false
             },
-            "trackNumbers": [ 5, 18 ],
-            "discNumbers": [ 1, 1 ],
+            "trackNumbers": [
+                5,
+                18
+            ],
+            "discNumbers": [
+                1,
+                1
+            ],
             "titles": [
                 {
                     "name": "Give Me All Your Luvin'"
@@ -110,39 +122,108 @@
                 "tempo": {
                     "bpm": 145.0
                 },
-                "timesig": [ 4, 4 ],
+                "timesig": [
+                    4,
+                    4
+                ],
                 "keysig": {
                     "code": 11
                 },
                 "features": [
-                    [ 0.92, "energy" ],
-                    [ 0.85, "valence" ],
-                    [ 0.78, "danceability" ],
-                    [ 0.75, "popularity" ]
+                    [
+                        0.92,
+                        "energy"
+                    ],
+                    [
+                        0.85,
+                        "valence"
+                    ],
+                    [
+                        0.78,
+                        "danceability"
+                    ],
+                    [
+                        0.75,
+                        "popularity"
+                    ]
                 ]
             },
-            "genres": [
-                [ 0.9, "Pop" ],
-                [ 0.3, "Electronic" ],
-                [ 0.7, "Dance" ],
-                [ 0.1, "Hip Hop/Rap" ]
-            ],
             "ratings": [
-                [ 0.8, null ],
-                [ 0.7, "owner@aoide.org" ]
+                [
+                    0.8,
+                    null
+                ],
+                [
+                    0.7,
+                    "owner@aoide.org"
+                ]
             ],
             "tags": [
-                [ 1, "2010s", "style" ],
-                [ 0.1, "A tag without a facet", null ],
-                [ 1, "eng", "lang" ],
-                [ 0.8, "Wedding", "crowd" ],
-                [ 0.1, "1980s", "style" ],
-                [ 0.95, "Party", "crowd" ],
-                [ 0.7, "Filler", "settime" ]
+                [
+                    0.9,
+                    "Pop",
+                    "genre"
+                ],
+                [
+                    0.3,
+                    "Electronic",
+                    "genre"
+                ],
+                [
+                    1,
+                    "2010s",
+                    "style"
+                ],
+                [
+                    0.1,
+                    "A tag without a facet",
+                    null
+                ],
+                [
+                    0.7,
+                    "Dance",
+                    "genre"
+                ],
+                [
+                    1,
+                    "eng",
+                    "lang"
+                ],
+                [
+                    0.8,
+                    "Wedding",
+                    "crowd"
+                ],
+                [
+                    0.1,
+                    "Hip Hop/Rap",
+                    "genre"
+                ],
+                [
+                    0.1,
+                    "1980s",
+                    "style"
+                ],
+                [
+                    0.95,
+                    "Party",
+                    "crowd"
+                ],
+                [
+                    0.7,
+                    "Filler",
+                    "settime"
+                ]
             ],
             "comments": [
-                [ "Personal notes about this track", "owner@aoide.org" ],
-                [ "Anonymous notes about this track", null ]
+                [
+                    "Personal notes about this track",
+                    "owner@aoide.org"
+                ],
+                [
+                    "Anonymous notes about this track",
+                    null
+                ]
             ]
         }
     }

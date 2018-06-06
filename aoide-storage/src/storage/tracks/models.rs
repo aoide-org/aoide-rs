@@ -26,8 +26,7 @@ use aoide_core::audio::{Decibel, Loudness, LUFS};
 use aoide_core::domain::entity::{EntityHeader, EntityRevision};
 use aoide_core::domain::metadata::{Comment, Rating, Score, ScoreValue, ScoredTag};
 use aoide_core::domain::music::sonic::BeatsPerMinute;
-use aoide_core::domain::music::{ActorRole, Actors, ScoredGenre, SongFeature, SongProfile,
-                                TitleLevel, Titles};
+use aoide_core::domain::music::{ActorRole, Actors, SongFeature, SongProfile, TitleLevel, Titles};
 use aoide_core::domain::track::{RefOrigin, TrackBody, TrackResource};
 
 #[derive(Debug, Insertable)]
@@ -388,24 +387,6 @@ impl<'a> InsertableTracksRef<'a> {
             track_id,
             origin: origin as i16,
             reference,
-        }
-    }
-}
-
-#[derive(Debug, Insertable)]
-#[table_name = "aux_tracks_genre"]
-pub struct InsertableTracksGenre<'a> {
-    pub track_id: StorageId,
-    pub score: ScoreValue,
-    pub name: &'a str,
-}
-
-impl<'a> InsertableTracksGenre<'a> {
-    pub fn bind(track_id: StorageId, genre: &'a ScoredGenre) -> Self {
-        Self {
-            track_id,
-            score: *genre.score(),
-            name: genre.name().as_str(),
         }
     }
 }
