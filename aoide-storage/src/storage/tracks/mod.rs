@@ -1388,16 +1388,16 @@ impl<'a> TrackTags for TrackRepository<'a> {
         pagination: &Pagination,
     ) -> TrackTagsResult<Vec<ScoredTagCount>> {
         let mut target = aux_tracks_tag::table
-            .inner_join(aux_tracks_tag_terms::table)
+            .left_outer_join(aux_tracks_tag_terms::table)
             .left_outer_join(aux_tracks_tag_facets::table)
             .select((
                 sql::<diesel::sql_types::Double>("AVG(score) AS score"),
                 aux_tracks_tag_terms::term,
+                // The joined 'facet' column becomes nullable
                 sql::<diesel::sql_types::Nullable<diesel::sql_types::Text>>("facet"),
                 sql::<diesel::sql_types::BigInt>("COUNT(*) AS count"),
             ))
-            .group_by(aux_tracks_tag::facet_id)
-            .group_by(aux_tracks_tag::term_id)
+            .group_by((aux_tracks_tag::term_id, aux_tracks_tag::facet_id))
             .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
             .into_boxed();
 
