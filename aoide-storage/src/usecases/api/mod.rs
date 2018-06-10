@@ -16,7 +16,6 @@
 #[cfg(test)]
 mod tests;
 
-use aoide_core::audio::Duration;
 use aoide_core::domain::{entity::EntityHeader,
                          metadata::{Score, ScoredTag},
                          track::TrackBody};
@@ -323,21 +322,6 @@ pub struct StringCount {
 pub struct StringFieldCounts {
     pub field: CountableStringField,
     pub counts: Vec<StringCount>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct MediaTypeStats {
-    pub media_type: String,
-    pub count: usize,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct ResourceStats {
-    pub count: usize,
-    pub duration: Duration,
-    pub media_types: Vec<MediaTypeStats>,
 }
 
 #[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]

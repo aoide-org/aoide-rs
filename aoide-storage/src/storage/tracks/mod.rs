@@ -39,7 +39,7 @@ use diesel::prelude::*;
 use usecases::{api::*, TrackTags, TrackTagsResult, Tracks, TracksResult};
 
 use aoide_core::{audio::*,
-                 domain::{entity::*, metadata::*, track::*}};
+                 domain::{collection::CollectionTrackStats, entity::*, metadata::*, track::*}};
 
 ///////////////////////////////////////////////////////////////////////
 /// TrackRepository
@@ -1159,6 +1159,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         &self,
         collection_uid: Option<&EntityUid>,
         field: CountableStringField,
+        pagination: &Pagination,
     ) -> TracksResult<StringFieldCounts> {
         let track_id_subselect = collection_uid.map(|collection_uid| {
             aux_tracks_resource::table
@@ -1180,6 +1181,10 @@ impl<'a> Tracks for TrackRepository<'a> {
                     target = target
                         .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_ref()));
                 }
+
+                // Pagination
+                target = apply_pagination(target, pagination);
+
                 let rows = target.load::<(String, i64)>(self.connection)?;
                 // TODO: Remove this transformation and select media_type
                 // as a nullable column?!
@@ -1201,6 +1206,10 @@ impl<'a> Tracks for TrackRepository<'a> {
                     target =
                         target.filter(aux_tracks_overview::track_id.eq_any(track_id_subselect));
                 }
+
+                // Pagination
+                target = apply_pagination(target, pagination);
+
                 target.load::<(Option<String>, i64)>(self.connection)?
             }
             CountableStringField::AlbumTitle => {
@@ -1217,6 +1226,10 @@ impl<'a> Tracks for TrackRepository<'a> {
                     target =
                         target.filter(aux_tracks_overview::track_id.eq_any(track_id_subselect));
                 }
+
+                // Pagination
+                target = apply_pagination(target, pagination);
+
                 target.load::<(Option<String>, i64)>(self.connection)?
             }
             CountableStringField::TrackArtist => {
@@ -1232,6 +1245,10 @@ impl<'a> Tracks for TrackRepository<'a> {
                 if let Some(track_id_subselect) = track_id_subselect {
                     target = target.filter(aux_tracks_summary::track_id.eq_any(track_id_subselect));
                 }
+
+                // Pagination
+                target = apply_pagination(target, pagination);
+
                 target.load::<(Option<String>, i64)>(self.connection)?
             }
             CountableStringField::AlbumArtist => {
@@ -1247,6 +1264,10 @@ impl<'a> Tracks for TrackRepository<'a> {
                 if let Some(track_id_subselect) = track_id_subselect {
                     target = target.filter(aux_tracks_summary::track_id.eq_any(track_id_subselect));
                 }
+
+                // Pagination
+                target = apply_pagination(target, pagination);
+
                 target.load::<(Option<String>, i64)>(self.connection)?
             }
         };
@@ -1260,65 +1281,23 @@ impl<'a> Tracks for TrackRepository<'a> {
         Ok(StringFieldCounts { field, counts })
     }
 
-    fn resource_statistics(
-        &self,
-        collection_uid: Option<&EntityUid>,
-    ) -> TracksResult<ResourceStats> {
-        let total_count = {
-            let mut target = aux_tracks_resource::table
-                .select(diesel::dsl::count_star())
-                .into_boxed();
-            // Collection filtering
-            target = match collection_uid {
-                Some(uid) => target.filter(aux_tracks_resource::collection_uid.eq(uid.as_ref())),
-                None => target,
-            };
-            target.first::<i64>(self.connection)? as usize
-        };
+    fn collection_stats(&self, collection_uid: &EntityUid) -> TracksResult<CollectionTrackStats> {
+        let total_count = aux_tracks_resource::table
+            .select(diesel::dsl::count_star())
+            .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_ref()))
+            .first::<i64>(self.connection)? as usize;
 
-        let total_duration_ms = {
-            let mut target = aux_tracks_resource::table
-                .select(diesel::dsl::sum(aux_tracks_resource::audio_duration_ms))
-                .into_boxed();
-            // Collection filtering
-            target = match collection_uid {
-                Some(uid) => target.filter(aux_tracks_resource::collection_uid.eq(uid.as_ref())),
-                None => target,
-            };
-            target.first::<Option<f64>>(self.connection)?
-        };
+        let total_duration_ms = aux_tracks_resource::table
+            .select(diesel::dsl::sum(aux_tracks_resource::audio_duration_ms))
+            .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_ref()))
+            .first::<Option<f64>>(self.connection)?;
         let total_duration = total_duration_ms
             .map(|ms| Duration { ms })
             .unwrap_or(Duration::EMPTY);
 
-        let media_types = {
-            let mut target = aux_tracks_resource::table
-                .select((
-                    aux_tracks_resource::media_type,
-                    sql::<diesel::sql_types::BigInt>("count(*) AS count"),
-                ))
-                .group_by(aux_tracks_resource::media_type)
-                .into_boxed();
-            // Collection filtering
-            target = match collection_uid {
-                Some(uid) => target.filter(aux_tracks_resource::collection_uid.eq(uid.as_ref())),
-                None => target,
-            };
-            let rows = target.load::<(String, i64)>(self.connection)?;
-            let mut media_types: Vec<MediaTypeStats> = Vec::with_capacity(rows.len());
-            for row in rows.into_iter() {
-                media_types.push(MediaTypeStats {
-                    media_type: row.0,
-                    count: row.1 as usize,
-                });
-            }
-            media_types
-        };
-
-        Ok(ResourceStats {
-            count: total_count,
-            duration: total_duration,
-            media_types,
+        Ok(CollectionTrackStats {
+            total_count,
+            total_duration,
         })
     }
 }

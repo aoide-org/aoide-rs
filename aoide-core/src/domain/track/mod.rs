@@ -85,9 +85,9 @@ impl AudioContent {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackSynchronization {
-    pub when: DateTime<Utc>,
-
     pub revision: EntityRevision,
+
+    pub when: DateTime<Utc>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]

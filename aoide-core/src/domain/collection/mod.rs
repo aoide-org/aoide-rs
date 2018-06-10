@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use audio::Duration;
 use domain::entity::*;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -30,23 +31,53 @@ impl CollectionBody {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct CollectionStats {
+    pub tracks: Option<CollectionTrackStats>,
+}
+
+impl CollectionStats {
+    pub fn is_empty(&self) -> bool {
+        self.tracks.is_none()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct CollectionTrackStats {
+    pub total_count: usize,
+    pub total_duration: Duration,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct CollectionEntity {
     header: EntityHeader,
 
     body: CollectionBody,
+
+    #[serde(skip_serializing_if = "CollectionStats::is_empty", default)]
+    pub stats: CollectionStats,
 }
 
 impl CollectionEntity {
     pub fn new(header: EntityHeader, body: CollectionBody) -> Self {
-        Self { header, body }
+        Self {
+            header,
+            body,
+            stats: CollectionStats::default(),
+        }
     }
 
     pub fn with_body(body: CollectionBody) -> Self {
         let uid = EntityUidGenerator::generate_uid();
         let header = EntityHeader::with_uid(uid);
-        Self { header, body }
+        Self {
+            header,
+            body,
+            stats: CollectionStats::default(),
+        }
     }
 
     pub fn is_valid(&self) -> bool {

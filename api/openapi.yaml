@@ -10,22 +10,27 @@ paths:
   /collections:
     get:
       summary: List recently revisioned collections
-      description: List all collections that have recently been added or modified.
+      description: >
+        List all collections that have recently been added or modified.
       operationId: listRecentlyRevisionedCollections
       tags:
         - collections
       parameters:
+        - $ref: '#/components/parameters/withCollectionOptions'
         - $ref: '#/components/parameters/paginationOffset'
         - $ref: '#/components/parameters/paginationLimit'
       responses:
         '200':
-          description: An array of collection entities.
+          description: >
+            An array of collection entities.
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/CollectionEntity'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
         '500':
           $ref: '#/components/responses/500InternalServerError'
     post:
@@ -33,32 +38,47 @@ paths:
       operationId: addCollection
       tags:
         - collections
+      requestBody:
+        description: >
+          Properties of the new collection.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Collection'
       responses:
         '201':
-          description: The header of the newly created collection entity.
+          description: >
+            The header of the newly created collection entity.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/EntityHeader'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  '/collections/{uid}':
+  '/collections/{collectionUid}':
     get:
       summary: Load a collection
-      description: Load a collection entity referenced by its UID.
+      description: >
+        Load a collection entity referenced by its UID.
       operationId: loadCollection
       tags:
         - collections
       parameters:
-        - name: uid
+        - name: collectionUid
           in: path
           required: true
-          description: The UID of the collection to load.
           schema:
             $ref: '#/components/schemas/EntityUid'
+          description: >
+            The UID of the collection to load.
+        - $ref: '#/components/parameters/withCollectionOptions'
       responses:
         '200':
-          description: The loaded collection entity.
+          description: >
+            The loaded collection entity.
           content:
             application/json:
               schema:
@@ -69,23 +89,39 @@ paths:
           $ref: '#/components/responses/500InternalServerError'
     put:
       summary: Update a collection
+      description: >
+        Update a collection entity after validating that the provided `header` matches that of the current entity (optimistic locking).
       operationId: updateCollection
       tags:
         - collections
       parameters:
-        - name: uid
+        - name: collectionUid
           in: path
           required: true
-          description: The UID of the collection to update.
           schema:
             $ref: '#/components/schemas/EntityUid'
+          description: >
+            The UID of the collection to update.
+      requestBody:
+        description: >
+          A collection entity with the current `header` and and updated `body`.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionEntity'
       responses:
         '200':
-          description: TODO.
+          description: >
+            The header of the updated collection entity.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/EntityHeader'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '404':
+          $ref: '#/components/responses/404NotFound'
         '500':
           $ref: '#/components/responses/500InternalServerError'
     delete:
@@ -94,21 +130,25 @@ paths:
       tags:
         - collections
       parameters:
-        - name: uid
+        - name: collectionUid
           in: path
           required: true
-          description: The UID of the collection to remove.
           schema:
             $ref: '#/components/schemas/EntityUid'
+          description: >
+            The UID of the collection to remove.
       responses:
         '204':
           $ref: '#/components/responses/204NoContent'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
         '500':
           $ref: '#/components/responses/500InternalServerError'
   '/tracks':
     get:
       summary: List recently revisioned tracks
-      description: List all tracks that have recently been added or modified.
+      description: >
+        List all tracks that have recently been added or modified.
       operationId: listRecentlyRevisionedTracks
       tags:
         - tracks
@@ -117,7 +157,8 @@ paths:
         - $ref: '#/components/parameters/paginationLimit'
       responses:
         '200':
-          description: An array of track entities.
+          description: >
+            An array of track entities.
           content:
             application/json:
               schema:
@@ -126,23 +167,41 @@ paths:
                   $ref: '#/components/schemas/TrackEntity'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  '/tracks/{uid}':
+    post:
+      summary: Add a new track
+      operationId: addTrack
+      tags:
+        - tracks
+      responses:
+        '201':
+          description: >
+            The header of the newly created track entity.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntityHeader'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  '/tracks/{trackUid}':
     get:
       summary: Load a track
-      description: Load a track entity referenced by its UID.
+      description: >
+        Load a track entity referenced by its UID.
       operationId: loadTrack
       tags:
         - tracks
       parameters:
-        - name: uid
+        - name: trackUid
           in: path
           required: true
-          description: The UID of the track to load.
+          description: >
+            The UID of the track to load.
           schema:
             $ref: '#/components/schemas/EntityUid'
       responses:
         '200':
-          description: The loaded track entity.
+          description: >
+            The loaded track entity.
           content:
             application/json:
               schema:
@@ -151,31 +210,160 @@ paths:
           $ref: '#/components/responses/404NotFound'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  '/collections/{uid}/tracks':
+    put:
+      summary: Update a track
+      description: >
+        Update a track entity after validating that the provided `header` matches that of the current entity (optimistic locking).
+      operationId: updateTrack
+      tags:
+        - tracks
+      parameters:
+        - name: trackUid
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/EntityUid'
+          description: >
+            The UID of the track to update.
+      requestBody:
+        description: >
+          A track entity with the current `header` and and updated `body`.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrackEntity'
+      responses:
+        '200':
+          description: >
+            The header of the updated track entity.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntityHeader'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+    delete:
+      summary: Remove a track
+      operationId: removeTrack
+      tags:
+        - tracks
+      parameters:
+        - name: trackUid
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/EntityUid'
+          description: >
+            The UID of the track to remove.
+      responses:
+        '204':
+          $ref: '#/components/responses/204NoContent'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  '/collections/{collectionUid}/tracks':
     get:
       summary: List recently added tracks
-      description: List all tracks that have recently been added to a collection.
+      description: >
+        List all tracks that have recently been added to a collection.
       operationId: listRecentlyAddedTracks
       tags:
         - tracks
       parameters:
-        - name: uid
+        - name: collectionUid
           in: path
           required: true
-          description: The UID of the collection.
+          description: >
+            The UID of the collection.
           schema:
             $ref: '#/components/schemas/EntityUid'
         - $ref: '#/components/parameters/paginationOffset'
         - $ref: '#/components/parameters/paginationLimit'
       responses:
         '200':
-          description: An array of track entities.
+          description: >
+            An array of track entities.
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/TrackEntity'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  '/fields':
+    get:
+      summary: List most frequently used field values
+      description: >
+        List the frequencies of selected fields in a collection, i.e. grouped by value with total count. Field values are listed in descending order of their total count. Pagination is applied separately for each selected field.
+      operationId: listFrequentlyUsedFieldValues
+      tags:
+        - fields
+      parameters:
+        - $ref: '#/components/parameters/withFieldList'
+        - $ref: '#/components/parameters/paginationOffset'
+        - $ref: '#/components/parameters/paginationLimit'
+      responses:
+        '200':
+          description: >
+            An array of fields with their values and counts.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StringFieldCounts'
+        '204':
+          $ref: '#/components/responses/204NoContent'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  '/collections/{collectionUid}/fields':
+    get:
+      summary: List most frequently used field values in collection
+      description: >
+        List the frequencies of selected fields in a collection, i.e. grouped by value with total count. Field values are listed in descending order of their total count. Pagination is applied separately for each selected field.
+      operationId: listFrequentlyUsedFieldValuesInCollection
+      tags:
+        - fields
+      parameters:
+        - name: collectionUid
+          in: path
+          required: true
+          description: >
+            The UID of the collection.
+          schema:
+            $ref: '#/components/schemas/EntityUid'
+        - $ref: '#/components/parameters/withFieldList'
+        - $ref: '#/components/parameters/paginationOffset'
+        - $ref: '#/components/parameters/paginationLimit'
+      responses:
+        '200':
+          description: >
+            An array of fields with their values and counts.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StringFieldCounts'
+        '204':
+          $ref: '#/components/responses/204NoContent'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
         '404':
           $ref: '#/components/responses/404NotFound'
         '500':
@@ -183,17 +371,19 @@ paths:
   '/tags':
     get:
       summary: List most frequently used tags
-      description: List selected tags ordered by how often they occur (descending).
+      description: >
+        List selected tags ordered by how often they occur (descending).
       operationId: listFrequentlyUsedTags
       tags:
         - tags
       parameters:
-        - $ref: '#/components/parameters/tagFacetList'
+        - $ref: '#/components/parameters/withTagFacetList'
         - $ref: '#/components/parameters/paginationOffset'
         - $ref: '#/components/parameters/paginationLimit'
       responses:
         '200':
-          description: An array of tags with their average score and total usage count.
+          description: >
+            An array of tags with their average score and total usage count.
           content:
             application/json:
               schema:
@@ -205,17 +395,19 @@ paths:
   '/tags/facets':
     get:
       summary: List most frequently used tag facets
-      description: List selected tag facets ordered by how often they occur (descending).
+      description: >
+        List selected tag facets ordered by how often they occur (descending).
       operationId: listFrequentlyUsedTagFacets
       tags:
         - tags
       parameters:
-        - $ref: '#/components/parameters/tagFacetList'
+        - $ref: '#/components/parameters/withTagFacetList'
         - $ref: '#/components/parameters/paginationOffset'
         - $ref: '#/components/parameters/paginationLimit'
       responses:
         '200':
-          description: An array of tag facets with their total usage count.
+          description: >
+            An array of tag facets with their total occurence count.
           content:
             application/json:
               schema:
@@ -224,26 +416,29 @@ paths:
                   $ref: '#/components/schemas/ScoredTagFacetCount'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  '/collections/{uid}/tags':
+  '/collections/{collectionUid}/tags':
     get:
       summary: List most frequently used tags in collection
-      description: List selected tags ordered by how often they occur (descending) in a collection.
+      description: >
+        List selected tags ordered by how often they occur (descending) in a collection.
       operationId: listFrequentlyUsedTags
       tags:
         - tags
       parameters:
-        - name: uid
+        - name: collectionUid
           in: path
           required: true
-          description: The UID of the collection.
+          description: >
+            The UID of the collection.
           schema:
             $ref: '#/components/schemas/EntityUid'
-        - $ref: '#/components/parameters/tagFacetList'
+        - $ref: '#/components/parameters/withTagFacetList'
         - $ref: '#/components/parameters/paginationOffset'
         - $ref: '#/components/parameters/paginationLimit'
       responses:
         '200':
-          description: An array of tags with their average score and total usage count.
+          description: >
+            An array of tags with their average score and total usage count.
           content:
             application/json:
               schema:
@@ -252,26 +447,28 @@ paths:
                   $ref: '#/components/schemas/ScoredTagCount'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  '/collections/{uid}/tags/facets':
+  '/collections/{collectionUid}/tags/facets':
     get:
       summary: List most frequently used tag facets in collection
-      description: List selected tag facets ordered by how often they occur (descending) in a collection.
+      description: >
+        List selected tag facets ordered by how often they occur (descending) in a collection.
       operationId: listFrequentlyUsedTagFacets
       tags:
         - tags
       parameters:
-        - name: uid
+        - name: collectionUid
           in: path
           required: true
           description: The UID of the collection.
           schema:
             $ref: '#/components/schemas/EntityUid'
-        - $ref: '#/components/parameters/tagFacetList'
+        - $ref: '#/components/parameters/withTagFacetList'
         - $ref: '#/components/parameters/paginationOffset'
         - $ref: '#/components/parameters/paginationLimit'
       responses:
         '200':
-          description: An array of tag facets with their total usage count.
+          description: >
+            An array of tag facets with their total occurence count.
           content:
             application/json:
               schema:
@@ -282,35 +479,67 @@ paths:
           $ref: '#/components/responses/500InternalServerError'
 components:
   responses:
+    201Created:
+      description: >
+        The resource has been created.
     204NoContent:
-      description: The request has been processed, no response available.
+      description: >
+        The request has been processed, no response available.
     400BadRequest:
-      description: The request with the provided parameters was invalid.
+      description: >
+        The request with the provided parameters was invalid.
     404NotFound:
-      description: The specified resource was not found.
+      description: >
+        The specified resource was not found.
     500InternalServerError:
-      description: The server failed to process the request.
+      description: >
+        The server failed to process the request.
   parameters:
     paginationOffset:
       name: offset
       in: query
-      description: Number of items to skip before returning the results or 0 if missing.
       required: false
       schema:
         type: integer
         format: int64
         minimum: 0
+      description: >
+        Number of items to skip before returning the results or 0 if missing.
     paginationLimit:
       name: limit
       in: query
-      description: Maximum number of items to return.
       required: false
       schema:
-        type: array
-        items:
-          $ref: '#/components/schemas/TrackEntity'
-    tagFacetList:
-      name: facet
+        type: integer
+        format: int64
+        minimum: 0
+      description: >
+        Maximum number of items to return.
+    withCollectionOptions:
+      name: with
+      in: query
+      required: false
+      schema:
+        type: string
+      description: >
+        Comma-separated list of boolean options:
+          * `track-stats` - Include track statistics
+    withFieldList:
+      name: with
+      in: query
+      description: >-
+        Comma-separated list of field selectors:
+          * `album-artist`
+          * `album-title`
+          * `media-type`
+          * `track-artist`
+          * `track-title`
+      required: false
+      schema:
+        type: string
+      example: 'media-type,track-artist,album-title'
+    withTagFacetList:
+      name: with
       in: query
       description: >-
         Comma-separated list of case-insensitive strings for selecting a subset of tags by any of the given facets (alternation). An empty list or a list containing an empty item (= leading/trainling comma or 2 subsequent commas) selects all tags without a facet (= null). If this parameter is missing all tags are selected.
@@ -319,6 +548,135 @@ components:
         type: string
       example: ',genre,mood'
   schemas:
+    Actor:
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        prio:
+          type: string
+          enum:
+            - summary
+            - primary
+            - secondary
+          description: >
+            Optional priority that defaults to `summary` if missing
+              * `summary` - the default display actor string
+              * `primary` - primary actor(s)
+              * `secondary` - secondary actor(s)
+        role:
+          type: string
+          enum:
+            - artist
+            - arranger
+            - composer
+            - conductor
+            - djmixer
+            - engineer
+            - lyricist
+            - mixer
+            - performer
+            - producer
+            - publisher
+            - remixer
+            - writer
+    Album:
+      properties:
+        refs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExternalReference'
+        actors:
+          type: array
+          items:
+            $ref: '#/components/schemas/Actor'
+        titles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Title'
+        compilation:
+          type: boolean
+          description: >
+            Indicates if this album is a compilation with various artists.
+    AudioContent:
+      properties:
+        duration:
+          $ref: '#/components/schemas/Duration'
+        channels:
+          $ref: '#/components/schemas/Channels'
+        samplerate:
+          $ref: '#/components/schemas/SampleRate'
+        bitrate:
+          $ref: '#/components/schemas/BitRate'
+    BitRate:
+      required:
+        - bps
+      properties:
+        bps:
+          type: integer
+          format: int32
+          minimum: 1
+          example: 256000
+    Channels:
+      required:
+        - count
+      properties:
+        count:
+          type: integer
+          format: int32
+          minimum: 1
+          example: 2
+    Collection:
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+    CollectionStats:
+      properties:
+        tracks:
+          $ref: '#/components/schemas/CollectionTrackStats'
+    CollectionTrackStats:
+      required:
+        - totalCount
+        - totalDuration
+      properties:
+        totalCount:
+          type: integer
+          format: int64
+          minimum: 0
+        totalDuration:
+          $ref: '#/components/schemas/Duration'
+    CollectionEntity:
+      required:
+        - header
+        - body
+      properties:
+        header:
+          $ref: '#/components/schemas/EntityHeader'
+        body:
+          $ref: '#/components/schemas/Collection'
+        stats:
+          $ref: '#/components/schemas/CollectionStats'
+    CountableField:
+      type: string
+      enum:
+        - album-artist
+        - album-title
+        - media-type
+        - track-artist
+        - track-title
+    Duration:
+      required:
+        - ms
+      properties:
+        ms:
+          type: integer
+          format: int64
+          minimum: 0
     EntityUid:
       description: A unique entity identifier (UID).
       type: string
@@ -329,12 +687,13 @@ components:
       type: integer
       format: int64
       minimum: 1
-      example: 1
+      example: 3
     EntityRevisionTimestamp:
       type: string
       format: date-time
     EntityRevision:
-      description: A tuple of 2 elements containing an ordinal and a timestamp.
+      description: >
+        Tuple of 2 elements containing an ordinal and a timestamp.
       type: array
       minItems: 2
       maxItems: 2
@@ -348,29 +707,194 @@ components:
           $ref: '#/components/schemas/EntityUid'
         revision:
           $ref: '#/components/schemas/EntityRevision'
-    Collection:
+    ExternalReference:
+      type: string
+      minLength: 1
+      description: >
+        Stringified external reference, e.g. a URL.
+      example: 'http://musicbrainz.org/track/d878c95a-8a6b-3be6-b6df-7d720a480625'
+    IndexCount:
+      description: >
+        Identifies the number of the current item and the number of total items. Both values are optional and might be `null`.
+      type: array
+      minItems: 2
+      maxItems: 2
+      items:
+        type: integer
+        minimum: 0
+    MediaType:
+      type: string
+      minLength: 1
+      example: 'audio/mpeg'
+    Release:
+      properties:
+        refs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExternalReference'
+        releaseAt:
+          type: string
+          format: date-time
+        releaseBy:
+          type: string
+        copyright:
+          type: string
+        licenses:
+          type: array
+          items:
+            type: string
+    SampleRate:
+      required:
+        - hz
+      properties:
+        hz:
+          type: integer
+          format: int32
+          minimum: 1
+          example: 44100
+    ScoredTag:
+      type: array
+      description: >
+        Tuple of 3 elements containing a score value, a term, and an optional (= nullable) facet.
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/ScoreValue'
+          - $ref: '#/components/schemas/TagTerm'
+          - $ref: '#/components/schemas/TagFacet'
+    ScoredTagFacetCount:
+      description: >
+        Optional tag facet with the total number of occurrences.
+      required:
+        - count
+      properties:
+        facet:
+          $ref: '#/components/schemas/TagFacet'
+        count:
+          $ref: '#/components/schemas/TagCount'
+    ScoredTagCount:
+      description: >
+        Tag with an average score across all occurrences and the total number of occurrences.
+      required:
+        - tag
+        - count
+      properties:
+        tag:
+          $ref: '#/components/schemas/ScoredTag'
+        count:
+          $ref: '#/components/schemas/TagCount'
+    ScoreValue:
+      type: number
+      description: >
+        Normalized score value between 0 and 1.
+      example: 0.83
+      minimum: 0
+      maximum: 1
+    StringCount:
+      required:
+        - value
+        - count
+      properties:
+        value:
+          type: string
+        count:
+          type: integer
+          minimum: 0
+          example: 235
+    StringFieldCounts:
+      required:
+        - field
+        - counts
+      properties:
+        field:
+          $ref: '#/components/schemas/CountableField'
+        counts:
+          type: array
+          items:
+            $ref: '#/components/schemas/StringCount'
+    TagTerm:
+      type: string
+      description: >
+        Non-empty string that defines the content of tag.
+      example: 'Hip Hop/Rap'
+      minLength: 1
+    TagFacet:
+      type: string
+      description: >
+        Non-empty, lowercase, string that defines the (optional) facet of tag.
+      example: 'genre'
+      minLength: 1
+    TagCount:
+        type: integer
+        description: >
+          Total number of occurrences.
+        minimum: 0
+        example: 1746
+    Title:
       required:
         - name
       properties:
         name:
           type: string
-        description:
+        level:
           type: string
-    CollectionEntity:
-      required:
-        - header
-        - body
-      properties:
-        header:
-          $ref: '#/components/schemas/EntityHeader'
-        body:
-          $ref: '#/components/schemas/Collection'
+          enum:
+            - main
+            - sub
+            - wrk
+            - mvn
+          description: >
+            Optional level that defaults to `main` if missing
+              * `main` - default display title string
+              * `sub` - a subtitle
+              * `wrk` - a work title for classical music
+              * `mvn` - a movement title for classical music
+        lang:
+          type: string
     Track:
       properties:
-        name:
+        resources:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrackResource'
+        refs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExternalReference'
+        release:
+          $ref: '#/components/schemas/Release'
+        album:
+          $ref: '#/components/schemas/Album'
+        actors:
+          type: array
+          items:
+            $ref: '#/components/schemas/Actor'
+        titles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Title'
+        trackNumbers:
+          $ref: '#/components/schemas/IndexCount'
+        discNumbers:
+          $ref: '#/components/schemas/IndexCount'
+        movementNumbers:
+          $ref: '#/components/schemas/IndexCount'
+    TrackCollection:
+      required:
+        - uid
+        - since
+      properties:
+        uid:
+          $ref: '#/components/schemas/EntityUid'
+        since:
           type: string
-        description:
+          format: date-time
+    TrackColor:
+      required:
+        - code
+      properties:
+        code:
           type: string
+          example: "#FF808080"
     TrackEntity:
       required:
         - header
@@ -380,52 +904,34 @@ components:
           $ref: '#/components/schemas/EntityHeader'
         body:
           $ref: '#/components/schemas/Track'
-    ScoreValue:
-      type: number
-      description: A normalized score value between 0 and 1.
-      example: 0.83
-      minimum: 0
-      maximum: 1
-    TagTerm:
-      type: string
-      description: A non-empty string that defines the content of tag.
-      example: "Hip Hop/Rap"
-      minLength: 1
-    TagFacet:
-      type: string
-      description: A non-empty, lowercase, string that defines the (optional) facet of tag.
-      example: "genre"
-      minLength: 1
-    TagCount:
-        type: integer
-        description: The (total) number of occurrences.
-        minimum: 0
-        example: 1746
-    ScoredTag:
-      type: array
-      description: A tuple of 3 elements containing a score value, a term, and a (nullable) facet.
-      items:
-        oneOf:
-          - $ref: '#/components/schemas/ScoreValue'
-          - $ref: '#/components/schemas/TagTerm'
-          - $ref: '#/components/schemas/TagFacet'
-    ScoredTagFacetCount:
-      description: The tag facet and the total number of occurrences.
-      required:
-        - facet
-        - count
+    TrackResource:
       properties:
-        facet:
-          $ref: '#/components/schemas/TagFacet'
-        count:
-          $ref: '#/components/schemas/TagCount'
-    ScoredTagCount:
-      description: The tag with an average score across all occurrences and the total number of occurrences.
-      required:
-        - tag
-        - count
+        collection:
+          $ref: '#/components/schemas/TrackCollection'
+        source:
+          $ref: '#/components/schemas/TrackSource'
+        color:
+          $ref: '#/components/schemas/TrackColor'
+        playCounter:
+          type: integer
+          minimum: 0
+    TrackSource:
       properties:
-        tag:
-          $ref: '#/components/schemas/ScoredTag'
-        count:
-          $ref: '#/components/schemas/TagCount'
+        uri:
+          type: string
+        synchronization:
+          $ref: '#/components/schemas/TrackSynchronization'
+        mediaType:
+          $ref: '#/components/schemas/MediaType'
+        audioContent:
+          $ref: '#/components/schemas/AudioContent'
+    TrackSynchronization:
+      required:
+        - revision
+        - when
+      properties:
+        revision:
+          $ref: '#/components/schemas/EntityRevision'
+        when:
+          type: string
+          format: date-time

@@ -58,10 +58,9 @@ use aoide_storage::{storage::{collections::*,
                               serde::*,
                               tracks::{util::TrackRepositoryHelper, *}},
                     usecases::{api::{CountableStringField, LocateParams, Pagination,
-                                     PaginationLimit, PaginationOffset, ResourceStats,
-                                     ScoredTagCount, SearchParams, StringFieldCounts,
-                                     TagFacetCount, TrackReplacementParams,
-                                     TrackReplacementReport},
+                                     PaginationLimit, PaginationOffset, ScoredTagCount,
+                                     SearchParams, StringFieldCounts, TagFacetCount,
+                                     TrackReplacementParams, TrackReplacementReport},
                                *}};
 
 use aoide_core::domain::{collection::*, entity::*, track::*};
@@ -239,13 +238,38 @@ impl UidPathExtractor {
     }
 }
 
+#[derive(Debug, Deserialize, StateData, StaticResponseExtender)]
+struct PaginationWithToggleQueryStringExtractor {
+    offset: Option<PaginationOffset>,
+    limit: Option<PaginationLimit>,
+    with: Option<String>,
+}
+
+impl PaginationWithToggleQueryStringExtractor {
+    pub fn with_toggle(&self, toggle: &str) -> bool {
+        match self.with {
+            Some(ref with) => with.split(',').any(|token| token == toggle),
+            None => false,
+        }
+    }
+}
+
 fn find_collection(
     pooled_connection: SqlitePooledConnection,
     uid: &EntityUid,
-) -> CollectionsResult<Option<CollectionEntity>> {
+    with_track_stats: bool,
+) -> Result<Option<CollectionEntity>, failure::Error> {
     let connection = &*pooled_connection;
     let repository = CollectionRepository::new(connection);
-    repository.find_entity(&uid)
+    let mut collection = repository.find_entity(&uid)?;
+    if let Some(ref mut collection) = collection {
+        if with_track_stats {
+            let track_repo = TrackRepository::new(connection);
+            debug_assert!(collection.stats.tracks.is_none());
+            collection.stats.tracks = Some(track_repo.collection_stats(uid)?);
+        }
+    }
+    Ok(collection)
 }
 
 fn handle_get_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
@@ -256,6 +280,7 @@ fn handle_get_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
             return Box::new(future::ok((state, response)));
         }
     };
+    let query_params = PaginationWithToggleQueryStringExtractor::take_from(&mut state);
 
     let pooled_connection = match middleware::state_data::try_connection(&state) {
         Ok(pooled_connection) => pooled_connection,
@@ -266,7 +291,11 @@ fn handle_get_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
         }
     };
 
-    let response = match find_collection(pooled_connection, &uid) {
+    let response = match find_collection(
+        pooled_connection,
+        &uid,
+        query_params.with_toggle("track-stats"),
+    ) {
         Ok(Some(collection)) => match serde_json::to_vec(&collection) {
             Ok(response_body) => create_response(
                 &state,
@@ -317,23 +346,26 @@ fn handle_delete_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
     Box::new(future::ok((state, response)))
 }
 
-#[derive(Debug, Deserialize, StateData, StaticResponseExtender)]
-struct PaginationQueryStringExtractor {
-    offset: Option<PaginationOffset>,
-    limit: Option<PaginationLimit>,
-}
-
 fn find_recently_revisioned_collections(
     pooled_connection: SqlitePooledConnection,
     pagination: &Pagination,
-) -> CollectionsResult<Vec<CollectionEntity>> {
+    with_track_stats: bool,
+) -> Result<Vec<CollectionEntity>, failure::Error> {
     let connection = &*pooled_connection;
     let repository = CollectionRepository::new(connection);
-    repository.find_recently_revisioned_entities(pagination)
+    let mut collections = repository.find_recently_revisioned_entities(pagination)?;
+    if with_track_stats {
+        let repository = TrackRepository::new(connection);
+        for collection in collections.iter_mut() {
+            debug_assert!(collection.stats.tracks.is_none());
+            collection.stats.tracks = Some(repository.collection_stats(collection.header().uid())?);
+        }
+    }
+    Ok(collections)
 }
 
 fn handle_get_collections_query_pagination(mut state: State) -> Box<HandlerFuture> {
-    let query_params = PaginationQueryStringExtractor::take_from(&mut state);
+    let query_params = PaginationWithToggleQueryStringExtractor::take_from(&mut state);
     let pagination = Pagination {
         offset: query_params.offset,
         limit: query_params.limit,
@@ -348,7 +380,11 @@ fn handle_get_collections_query_pagination(mut state: State) -> Box<HandlerFutur
         }
     };
 
-    let response = match find_recently_revisioned_collections(pooled_connection, &pagination) {
+    let response = match find_recently_revisioned_collections(
+        pooled_connection,
+        &pagination,
+        query_params.with_toggle("track-stats"),
+    ) {
         Ok(collections) => match serde_json::to_vec(&collections) {
             Ok(response_body) => create_response(
                 &state,
@@ -793,7 +829,7 @@ fn handle_post_collections_path_uid_tracks_locate_query_pagination(
     mut state: State,
 ) -> Box<HandlerFuture> {
     let collection_uid = UidPathExtractor::try_parse_from(&mut state);
-    let query_params = PaginationQueryStringExtractor::take_from(&mut state);
+    let query_params = PaginationWithToggleQueryStringExtractor::take_from(&mut state);
     let pagination = Pagination {
         offset: query_params.offset,
         limit: query_params.limit,
@@ -969,7 +1005,7 @@ fn handle_post_collections_path_uid_tracks_search_query_pagination(
     mut state: State,
 ) -> Box<HandlerFuture> {
     let collection_uid = UidPathExtractor::try_parse_from(&mut state);
-    let query_params = PaginationQueryStringExtractor::take_from(&mut state);
+    let query_params = PaginationWithToggleQueryStringExtractor::take_from(&mut state);
     let pagination = Pagination {
         offset: query_params.offset,
         limit: query_params.limit,
@@ -1037,7 +1073,7 @@ fn handle_post_collections_path_uid_tracks_search_query_pagination(
 
 fn handle_get_collections_path_uid_tracks_query_pagination(mut state: State) -> Box<HandlerFuture> {
     let collection_uid = UidPathExtractor::try_parse_from(&mut state);
-    let query_params = PaginationQueryStringExtractor::take_from(&mut state);
+    let query_params = PaginationWithToggleQueryStringExtractor::take_from(&mut state);
     let pagination = Pagination {
         offset: query_params.offset,
         limit: query_params.limit,
@@ -1070,52 +1106,18 @@ fn handle_get_collections_path_uid_tracks_query_pagination(mut state: State) -> 
     Box::new(future::ok((state, response)))
 }
 
-fn resource_statistics(
-    pooled_connection: SqlitePooledConnection,
-    collection_uid: Option<&EntityUid>,
-) -> TracksResult<ResourceStats> {
-    let connection = &*pooled_connection;
-    let repository = TrackRepository::new(connection);
-    repository.resource_statistics(collection_uid)
-}
-
-fn handle_get_collections_path_tracks_stats(mut state: State) -> Box<HandlerFuture> {
-    let collection_uid = UidPathExtractor::try_parse_from(&mut state);
-
-    let pooled_connection = match middleware::state_data::try_connection(&state) {
-        Ok(pooled_connection) => pooled_connection,
-        Err(e) => {
-            error!("No database connection: {:?}", &e);
-            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    let response = match resource_statistics(pooled_connection, collection_uid.as_ref()) {
-        Ok(result) => match serde_json::to_vec(&result) {
-            Ok(json) => {
-                create_response(&state, StatusCode::Ok, Some((json, mime::APPLICATION_JSON)))
-            }
-            Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
-        },
-        Err(e) => {
-            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    Box::new(future::ok((state, response)))
-}
-
 #[derive(Debug, Deserialize, StateData, StaticResponseExtender)]
 struct CountableStringFieldQueryStringExtractor {
-    field: Option<String>,
+    with: Option<String>,
+    offset: Option<PaginationOffset>,
+    limit: Option<PaginationLimit>,
 }
 
 impl CountableStringFieldQueryStringExtractor {
-    pub fn fields<'a>(&'a self) -> Vec<CountableStringField> {
-        if let Some(ref field_list) = self.field {
-            let mut result: Vec<CountableStringField> = field_list
+    pub fn with_fields<'a>(&'a self) -> Vec<CountableStringField> {
+        let mut result = Vec::new();
+        if let Some(ref field_list) = self.with {
+            result = field_list
                 .split(',')
                 .map(|field_str| serde_json::from_str(&format!("\"{}\"", field_str)))
                 .filter_map(|from_str| from_str.ok())
@@ -1124,26 +1126,14 @@ impl CountableStringFieldQueryStringExtractor {
             let unrecognized_field_count = field_list.split(',').count() - result.len();
             if unrecognized_field_count > 0 {
                 warn!(
-                    "{} unrecognized field(s) in '{}'",
+                    "{} unrecognized field selector(s) in '{}'",
                     unrecognized_field_count, field_list
                 );
             }
             result.sort();
             result.dedup();
-            result
-        } else {
-            // All of the following fields if the corresponding query
-            // parameter is missing.
-            // This functionality is only provided for convenience and
-            // for testing. It is recommended to specify all required
-            // fields explicitly.
-            vec![
-                CountableStringField::AlbumArtist,
-                CountableStringField::AlbumTitle,
-                CountableStringField::TrackArtist,
-                CountableStringField::TrackTitle,
-            ]
         }
+        result
     }
 }
 
@@ -1151,24 +1141,34 @@ fn all_field_counts(
     pooled_connection: SqlitePooledConnection,
     collection_uid: Option<&EntityUid>,
     fields: Vec<CountableStringField>,
+    pagination: &Pagination,
 ) -> TracksResult<Vec<StringFieldCounts>> {
     let mut results: Vec<StringFieldCounts> = Vec::with_capacity(fields.len());
 
     let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
     for field in fields.into_iter() {
-        let result = repository.field_counts(collection_uid, field)?;
+        let result = repository.field_counts(collection_uid, field, pagination)?;
         results.push(result);
     }
 
     Ok(results)
 }
 
-fn handle_get_collections_path_uid_tracks_fields_query_field(
-    mut state: State,
-) -> Box<HandlerFuture> {
+fn handle_get_collections_path_uid_fields_query_field(mut state: State) -> Box<HandlerFuture> {
     let collection_uid = UidPathExtractor::try_parse_from(&mut state);
     let query_params = CountableStringFieldQueryStringExtractor::take_from(&mut state);
+    let pagination = Pagination {
+        offset: query_params.offset,
+        limit: query_params.limit,
+    };
+
+    let selected_fields = query_params.with_fields();
+    if selected_fields.is_empty() {
+        warn!("No countable fields selected");
+        let response = create_response(&state, StatusCode::NoContent, None);
+        return Box::new(future::ok((state, response)));
+    }
 
     let pooled_connection = match middleware::state_data::try_connection(&state) {
         Ok(pooled_connection) => pooled_connection,
@@ -1182,7 +1182,8 @@ fn handle_get_collections_path_uid_tracks_fields_query_field(
     let response = match all_field_counts(
         pooled_connection,
         collection_uid.as_ref(),
-        query_params.fields(),
+        selected_fields,
+        &pagination,
     ) {
         Ok(results) => match serde_json::to_vec(&results) {
             Ok(json) => {
@@ -1201,14 +1202,14 @@ fn handle_get_collections_path_uid_tracks_fields_query_field(
 
 #[derive(Debug, Deserialize, StateData, StaticResponseExtender)]
 struct TagFacetPaginationQueryStringExtractor {
-    facet: Option<String>,
+    with: Option<String>,
     offset: Option<PaginationOffset>,
     limit: Option<PaginationLimit>,
 }
 
 impl TagFacetPaginationQueryStringExtractor {
-    pub fn facets<'a>(&'a self) -> Option<Vec<&'a str>> {
-        self.facet
+    pub fn with_facets<'a>(&'a self) -> Option<Vec<&'a str>> {
+        self.with
             .as_ref()
             .map(|facet_list| facet_list.split(',').collect::<Vec<&'a str>>())
             .map(|mut facets| {
@@ -1258,7 +1259,7 @@ fn handle_get_collections_path_uid_tags_facets_query_facet_pagination(
     let response = match all_tags_facets(
         pooled_connection,
         collection_uid.as_ref(),
-        query_params.facets().as_ref(),
+        query_params.with_facets().as_ref(),
         &query_params.pagination(),
     ) {
         Ok(result) => match serde_json::to_vec(&result) {
@@ -1304,7 +1305,7 @@ fn handle_get_collections_path_uid_tags_query_facet_pagination(
     let response = match all_tags(
         pooled_connection,
         collection_uid.as_ref(),
-        query_params.facets().as_ref(),
+        query_params.with_facets().as_ref(),
         &query_params.pagination(),
     ) {
         Ok(result) => match serde_json::to_vec(&result) {
@@ -1345,31 +1346,28 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
             .with_query_string_extractor::<TagFacetPaginationQueryStringExtractor>()
             .to(handle_get_collections_path_uid_tags_query_facet_pagination);
         route // selected (string) fields in collection
-            .get("/collections/:uid/tracks/fields")
+            .get("/collections/:uid/fields")
             .with_path_extractor::<UidPathExtractor>()
             .with_query_string_extractor::<CountableStringFieldQueryStringExtractor>()
-            .to(handle_get_collections_path_uid_tracks_fields_query_field);
-        route // various statistics about tracks in collection
-            .get("/collections/:uid/tracks/stats")
-            .with_path_extractor::<UidPathExtractor>()
-            .to(handle_get_collections_path_tracks_stats);
+            .to(handle_get_collections_path_uid_fields_query_field);
         route // load recently modified tracks from collection
             .get("/collections/:uid/tracks")
             .with_path_extractor::<UidPathExtractor>()
-            .with_query_string_extractor::<PaginationQueryStringExtractor>()
+            .with_query_string_extractor::<PaginationWithToggleQueryStringExtractor>()
             .to(handle_get_collections_path_uid_tracks_query_pagination);
         route // load single collection
             .get("/collections/:uid")
             .with_path_extractor::<UidPathExtractor>()
+            .with_query_string_extractor::<PaginationWithToggleQueryStringExtractor>()
             .to(handle_get_collections_path_uid);
         route // load recently modified collections
             .get("/collections")
-            .with_query_string_extractor::<PaginationQueryStringExtractor>()
+            .with_query_string_extractor::<PaginationWithToggleQueryStringExtractor>()
             .to(handle_get_collections_query_pagination);
         route // locate multiple track in collection
             .post("/collections/:uid/tracks/locate")
             .with_path_extractor::<UidPathExtractor>()
-            .with_query_string_extractor::<PaginationQueryStringExtractor>()
+            .with_query_string_extractor::<PaginationWithToggleQueryStringExtractor>()
             .to(handle_post_collections_path_uid_tracks_locate_query_pagination);
         route // replace single track in collection
             .post("/collections/:uid/tracks/replace")
@@ -1378,7 +1376,7 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
         route // search multiple tracks in collection
             .post("/collections/:uid/tracks/search")
             .with_path_extractor::<UidPathExtractor>()
-            .with_query_string_extractor::<PaginationQueryStringExtractor>()
+            .with_query_string_extractor::<PaginationWithToggleQueryStringExtractor>()
             .to(handle_post_collections_path_uid_tracks_search_query_pagination);
         route // add single collection (body)
             .post("/collections")
@@ -1391,13 +1389,17 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
             .delete("/collections/:uid")
             .with_path_extractor::<UidPathExtractor>()
             .to(handle_delete_collections_path_uid);
+        route // selected (string) fields
+            .get("/fields")
+            .with_query_string_extractor::<CountableStringFieldQueryStringExtractor>()
+            .to(handle_get_collections_path_uid_fields_query_field);
         route // load single track
             .get("/tracks/:uid")
             .with_path_extractor::<UidPathExtractor>()
             .to(handle_get_tracks_path_uid);
         route // load recently revisioned tracks
             .get("/tracks")
-            .with_query_string_extractor::<PaginationQueryStringExtractor>()
+            .with_query_string_extractor::<PaginationWithToggleQueryStringExtractor>()
             .to(handle_get_collections_path_uid_tracks_query_pagination);
         route // add single track (body)
             .post("/tracks")
