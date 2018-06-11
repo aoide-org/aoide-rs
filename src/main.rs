@@ -57,9 +57,9 @@ use aoide::{middleware, middleware::DieselMiddleware};
 use aoide_storage::{storage::{collections::*,
                               serde::*,
                               tracks::{util::TrackRepositoryHelper, *}},
-                    usecases::{api::{CountableStringField, LocateParams, Pagination,
-                                     PaginationLimit, PaginationOffset, ScoredTagCount,
-                                     SearchParams, StringFieldCounts, TagFacetCount,
+                    usecases::{api::{LocateParams, Pagination, PaginationLimit,
+                                     PaginationOffset, ScoredTagCount, SearchParams,
+                                     StringField, StringFieldCounts, TagFacetCount,
                                      TrackReplacementParams, TrackReplacementReport},
                                *}};
 
@@ -208,10 +208,6 @@ struct UidPathExtractor {
 }
 
 impl UidPathExtractor {
-    fn try_parse_from(state: &mut State) -> Option<EntityUid> {
-        Self::try_take_from(state).and_then(|path| EntityUid::decode_from_str(&path.uid).ok())
-    }
-
     fn parse_from(state: &mut State) -> Result<EntityUid, Error> {
         EntityUid::decode_from_str(&Self::take_from(state).uid)
     }
@@ -239,164 +235,74 @@ impl UidPathExtractor {
 }
 
 #[derive(Debug, Deserialize, StateData, StaticResponseExtender)]
-struct PaginationWithToggleQueryStringExtractor {
+#[serde(rename_all = "camelCase")]
+struct DefaultQueryStringExtractor {
+    collection_uid: Option<String>,
+    with: Option<String>,
     offset: Option<PaginationOffset>,
     limit: Option<PaginationLimit>,
-    with: Option<String>,
 }
 
-impl PaginationWithToggleQueryStringExtractor {
-    pub fn with_toggle(&self, toggle: &str) -> bool {
+impl DefaultQueryStringExtractor {
+    pub fn decode_collection_uid(&self) -> Result<Option<CollectionUid>, Error> {
+        match self.collection_uid {
+            None => Ok(None),
+            Some(ref uid) => match CollectionUid::decode_from_str(uid) {
+                Ok(uid) => Ok(Some(uid)),
+                Err(e) => Err(e),
+            },
+        }
+    }
+
+    pub fn try_with_token(&self, with_token: &str) -> bool {
         match self.with {
-            Some(ref with) => with.split(',').any(|token| token == toggle),
+            Some(ref with) => with.split(',').any(|token| token == with_token),
             None => false,
         }
     }
-}
 
-fn find_collection(
-    pooled_connection: SqlitePooledConnection,
-    uid: &EntityUid,
-    with_track_stats: bool,
-) -> Result<Option<CollectionEntity>, failure::Error> {
-    let connection = &*pooled_connection;
-    let repository = CollectionRepository::new(connection);
-    let mut collection = repository.find_entity(&uid)?;
-    if let Some(ref mut collection) = collection {
-        if with_track_stats {
-            let track_repo = TrackRepository::new(connection);
-            debug_assert!(collection.stats.tracks.is_none());
-            collection.stats.tracks = Some(track_repo.collection_stats(uid)?);
+    pub fn with_fields<'a>(&'a self) -> Vec<StringField> {
+        let mut result = Vec::new();
+        if let Some(ref field_list) = self.with {
+            result = field_list
+                .split(',')
+                .map(|field_str| serde_json::from_str(&format!("\"{}\"", field_str)))
+                .filter_map(|from_str| from_str.ok())
+                .collect();
+            debug_assert!(result.len() <= field_list.split(',').count());
+            let unrecognized_field_count = field_list.split(',').count() - result.len();
+            if unrecognized_field_count > 0 {
+                warn!(
+                    "{} unrecognized field selector(s) in '{}'",
+                    unrecognized_field_count, field_list
+                );
+            }
+            result.sort();
+            result.dedup();
+        }
+        result
+    }
+
+    pub fn with_facets<'a>(&'a self) -> Option<Vec<&'a str>> {
+        self.with
+            .as_ref()
+            .map(|facet_list| facet_list.split(',').collect::<Vec<&'a str>>())
+            .map(|mut facets| {
+                facets.sort();
+                facets
+            })
+            .map(|mut facets| {
+                facets.dedup();
+                facets
+            })
+    }
+
+    pub fn pagination(&self) -> Pagination {
+        Pagination {
+            offset: self.offset,
+            limit: self.limit,
         }
     }
-    Ok(collection)
-}
-
-fn handle_get_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
-    let uid = match UidPathExtractor::parse_from(&mut state) {
-        Ok(uid) => uid,
-        Err(e) => {
-            let response = format_response_message(&state, StatusCode::BadRequest, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-    let query_params = PaginationWithToggleQueryStringExtractor::take_from(&mut state);
-
-    let pooled_connection = match middleware::state_data::try_connection(&state) {
-        Ok(pooled_connection) => pooled_connection,
-        Err(e) => {
-            error!("No database connection: {:?}", &e);
-            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    let response = match find_collection(
-        pooled_connection,
-        &uid,
-        query_params.with_toggle("track-stats"),
-    ) {
-        Ok(Some(collection)) => match serde_json::to_vec(&collection) {
-            Ok(response_body) => create_response(
-                &state,
-                StatusCode::Ok,
-                Some((response_body, mime::APPLICATION_JSON)),
-            ),
-            Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
-        },
-        Ok(None) => create_response(&state, StatusCode::NotFound, None),
-        Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
-    };
-
-    Box::new(future::ok((state, response)))
-}
-
-fn remove_collection(
-    pooled_connection: SqlitePooledConnection,
-    uid: &EntityUid,
-) -> CollectionsResult<Option<()>> {
-    let connection = &*pooled_connection;
-    let repository = CollectionRepository::new(connection);
-    connection.transaction::<_, Error, _>(|| repository.remove_entity(&uid))
-}
-
-fn handle_delete_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
-    let uid = match UidPathExtractor::parse_from(&mut state) {
-        Ok(uid) => uid,
-        Err(e) => {
-            let response = format_response_message(&state, StatusCode::BadRequest, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    let pooled_connection = match middleware::state_data::try_connection(&state) {
-        Ok(pooled_connection) => pooled_connection,
-        Err(e) => {
-            error!("No database connection: {:?}", &e);
-            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    let response = match remove_collection(pooled_connection, &uid) {
-        Ok(_) => create_response(&state, StatusCode::NoContent, None),
-        Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
-    };
-
-    Box::new(future::ok((state, response)))
-}
-
-fn find_recently_revisioned_collections(
-    pooled_connection: SqlitePooledConnection,
-    pagination: &Pagination,
-    with_track_stats: bool,
-) -> Result<Vec<CollectionEntity>, failure::Error> {
-    let connection = &*pooled_connection;
-    let repository = CollectionRepository::new(connection);
-    let mut collections = repository.find_recently_revisioned_entities(pagination)?;
-    if with_track_stats {
-        let repository = TrackRepository::new(connection);
-        for collection in collections.iter_mut() {
-            debug_assert!(collection.stats.tracks.is_none());
-            collection.stats.tracks = Some(repository.collection_stats(collection.header().uid())?);
-        }
-    }
-    Ok(collections)
-}
-
-fn handle_get_collections_query_pagination(mut state: State) -> Box<HandlerFuture> {
-    let query_params = PaginationWithToggleQueryStringExtractor::take_from(&mut state);
-    let pagination = Pagination {
-        offset: query_params.offset,
-        limit: query_params.limit,
-    };
-
-    let pooled_connection = match middleware::state_data::try_connection(&state) {
-        Ok(pooled_connection) => pooled_connection,
-        Err(e) => {
-            error!("No database connection: {:?}", &e);
-            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    let response = match find_recently_revisioned_collections(
-        pooled_connection,
-        &pagination,
-        query_params.with_toggle("track-stats"),
-    ) {
-        Ok(collections) => match serde_json::to_vec(&collections) {
-            Ok(response_body) => create_response(
-                &state,
-                StatusCode::Ok,
-                Some((response_body, mime::APPLICATION_JSON)),
-            ),
-            Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
-        },
-        Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
-    };
-
-    Box::new(future::ok((state, response)))
 }
 
 fn create_collection(
@@ -408,7 +314,7 @@ fn create_collection(
     connection.transaction::<_, Error, _>(|| repository.create_entity(body))
 }
 
-fn handle_post_collections(mut state: State) -> Box<HandlerFuture> {
+fn handle_create_collection(mut state: State) -> Box<HandlerFuture> {
     let handler_future = hyper::Body::take_from(&mut state)
         .concat2()
         .then(move |full_body| match full_body {
@@ -472,7 +378,7 @@ fn update_collection(
     connection.transaction::<_, Error, _>(|| repository.update_entity(entity))
 }
 
-fn handle_put_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
+fn handle_update_collection(mut state: State) -> Box<HandlerFuture> {
     let handler_future = hyper::Body::take_from(&mut state)
         .concat2()
         .then(move |full_body| match full_body {
@@ -550,6 +456,151 @@ fn handle_put_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
     Box::new(handler_future)
 }
 
+fn delete_collection(
+    pooled_connection: SqlitePooledConnection,
+    uid: &EntityUid,
+) -> CollectionsResult<Option<()>> {
+    let connection = &*pooled_connection;
+    let repository = CollectionRepository::new(connection);
+    connection.transaction::<_, Error, _>(|| repository.remove_entity(&uid))
+}
+
+fn handle_delete_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
+    let uid = match UidPathExtractor::parse_from(&mut state) {
+        Ok(uid) => uid,
+        Err(e) => {
+            let response = format_response_message(&state, StatusCode::BadRequest, &e);
+            return Box::new(future::ok((state, response)));
+        }
+    };
+
+    let pooled_connection = match middleware::state_data::try_connection(&state) {
+        Ok(pooled_connection) => pooled_connection,
+        Err(e) => {
+            error!("No database connection: {:?}", &e);
+            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
+            return Box::new(future::ok((state, response)));
+        }
+    };
+
+    let response = match delete_collection(pooled_connection, &uid) {
+        Ok(_) => create_response(&state, StatusCode::NoContent, None),
+        Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
+    };
+
+    Box::new(future::ok((state, response)))
+}
+
+fn load_collection(
+    pooled_connection: SqlitePooledConnection,
+    uid: &EntityUid,
+    with_track_stats: bool,
+) -> Result<Option<CollectionEntity>, Error> {
+    let connection = &*pooled_connection;
+    let repository = CollectionRepository::new(connection);
+    let mut collection = repository.find_entity(&uid)?;
+    if let Some(ref mut collection) = collection {
+        if with_track_stats {
+            let track_repo = TrackRepository::new(connection);
+            debug_assert!(collection.stats.tracks.is_none());
+            collection.stats.tracks = Some(track_repo.collection_stats(uid)?);
+        }
+    }
+    Ok(collection)
+}
+
+fn handle_load_collection(mut state: State) -> Box<HandlerFuture> {
+    let uid = match UidPathExtractor::parse_from(&mut state) {
+        Ok(uid) => uid,
+        Err(e) => {
+            let response = format_response_message(&state, StatusCode::BadRequest, &e);
+            return Box::new(future::ok((state, response)));
+        }
+    };
+    let query_params = DefaultQueryStringExtractor::take_from(&mut state);
+
+    let pooled_connection = match middleware::state_data::try_connection(&state) {
+        Ok(pooled_connection) => pooled_connection,
+        Err(e) => {
+            error!("No database connection: {:?}", &e);
+            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
+            return Box::new(future::ok((state, response)));
+        }
+    };
+
+    let response = match load_collection(
+        pooled_connection,
+        &uid,
+        query_params.try_with_token("track-stats"),
+    ) {
+        Ok(Some(collection)) => match serde_json::to_vec(&collection) {
+            Ok(response_body) => create_response(
+                &state,
+                StatusCode::Ok,
+                Some((response_body, mime::APPLICATION_JSON)),
+            ),
+            Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
+        },
+        Ok(None) => create_response(&state, StatusCode::NotFound, None),
+        Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
+    };
+
+    Box::new(future::ok((state, response)))
+}
+
+fn list_collections(
+    pooled_connection: SqlitePooledConnection,
+    pagination: &Pagination,
+    with_track_stats: bool,
+) -> Result<Vec<CollectionEntity>, Error> {
+    let connection = &*pooled_connection;
+    let repository = CollectionRepository::new(connection);
+    let mut collections = repository.find_recently_revisioned_entities(pagination)?;
+    if with_track_stats {
+        let repository = TrackRepository::new(connection);
+        for collection in collections.iter_mut() {
+            debug_assert!(collection.stats.tracks.is_none());
+            collection.stats.tracks = Some(repository.collection_stats(collection.header().uid())?);
+        }
+    }
+    Ok(collections)
+}
+
+fn handle_list_collections(mut state: State) -> Box<HandlerFuture> {
+    let query_params = DefaultQueryStringExtractor::take_from(&mut state);
+    let pagination = Pagination {
+        offset: query_params.offset,
+        limit: query_params.limit,
+    };
+
+    let pooled_connection = match middleware::state_data::try_connection(&state) {
+        Ok(pooled_connection) => pooled_connection,
+        Err(e) => {
+            error!("No database connection: {:?}", &e);
+            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
+            return Box::new(future::ok((state, response)));
+        }
+    };
+
+    let response = match list_collections(
+        pooled_connection,
+        &pagination,
+        query_params.try_with_token("track-stats"),
+    ) {
+        Ok(collections) => match serde_json::to_vec(&collections) {
+            Ok(response_body) => create_response(
+                &state,
+                StatusCode::Ok,
+                Some((response_body, mime::APPLICATION_JSON)),
+            ),
+            Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
+        },
+        Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
+    };
+
+    Box::new(future::ok((state, response)))
+}
+
 fn create_track(
     pooled_connection: SqlitePooledConnection,
     body: TrackBody,
@@ -560,7 +611,7 @@ fn create_track(
     connection.transaction::<_, Error, _>(|| repository.create_entity(body, format))
 }
 
-fn handle_post_tracks(mut state: State) -> Box<HandlerFuture> {
+fn handle_create_track(mut state: State) -> Box<HandlerFuture> {
     let handler_future = hyper::Body::take_from(&mut state)
         .concat2()
         .then(move |full_body| match full_body {
@@ -643,7 +694,7 @@ fn update_track(
     connection.transaction::<_, Error, _>(|| repository.update_entity(entity, format))
 }
 
-fn handle_put_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
+fn handle_update_track(mut state: State) -> Box<HandlerFuture> {
     let handler_future = hyper::Body::take_from(&mut state)
         .concat2()
         .then(move |full_body| match full_body {
@@ -742,13 +793,13 @@ fn handle_put_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
     Box::new(handler_future)
 }
 
-fn remove_track(pooled_connection: SqlitePooledConnection, uid: &EntityUid) -> Result<(), Error> {
+fn delete_track(pooled_connection: SqlitePooledConnection, uid: &EntityUid) -> Result<(), Error> {
     let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
     connection.transaction::<_, Error, _>(|| repository.remove_entity(&uid))
 }
 
-fn handle_delete_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
+fn handle_delete_track(mut state: State) -> Box<HandlerFuture> {
     let uid = match UidPathExtractor::parse_from(&mut state) {
         Ok(uid) => uid,
         Err(e) => {
@@ -766,7 +817,7 @@ fn handle_delete_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
         }
     };
 
-    let response = match remove_track(pooled_connection, &uid) {
+    let response = match delete_track(pooled_connection, &uid) {
         Ok(_) => create_response(&state, StatusCode::NoContent, None),
         Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
     };
@@ -783,7 +834,7 @@ fn load_track(
     repository.load_entity(&uid)
 }
 
-fn handle_get_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
+fn handle_load_track(mut state: State) -> Box<HandlerFuture> {
     let uid = match UidPathExtractor::parse_from(&mut state) {
         Ok(uid) => uid,
         Err(e) => {
@@ -814,7 +865,127 @@ fn handle_get_tracks_path_uid(mut state: State) -> Box<HandlerFuture> {
     Box::new(future::ok((state, response)))
 }
 
-fn locate_tracks(
+fn handle_list_tracks(mut state: State) -> Box<HandlerFuture> {
+    let query_params = DefaultQueryStringExtractor::take_from(&mut state);
+
+    let collection_uid = match query_params.decode_collection_uid() {
+        Ok(collection_uid) => collection_uid,
+        Err(e) => {
+            let response = format_response_message(&state, StatusCode::BadRequest, &e);
+            return Box::new(future::ok((state, response)));
+        }
+    };
+
+    let pooled_connection = match middleware::state_data::try_connection(&state) {
+        Ok(pooled_connection) => pooled_connection,
+        Err(e) => {
+            error!("No database connection: {:?}", &e);
+            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
+            return Box::new(future::ok((state, response)));
+        }
+    };
+
+    let response = match search_tracks(
+        pooled_connection,
+        collection_uid.as_ref(),
+        &query_params.pagination(),
+        SearchParams::default(),
+    ).and_then(concat_serialized_entities_into_json_array)
+    {
+        Ok(json_array) => create_response(
+            &state,
+            StatusCode::Ok,
+            Some((json_array, mime::APPLICATION_JSON)),
+        ),
+        Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
+    };
+
+    Box::new(future::ok((state, response)))
+}
+
+fn search_tracks(
+    pooled_connection: SqlitePooledConnection,
+    collection_uid: Option<&EntityUid>,
+    pagination: &Pagination,
+    search_params: SearchParams,
+) -> TracksResult<Vec<SerializedEntity>> {
+    let connection = &*pooled_connection;
+    let repository = TrackRepository::new(connection);
+    repository.search_entities(collection_uid, pagination, search_params)
+}
+
+fn handle_search_tracks(mut state: State) -> Box<HandlerFuture> {
+    let query_params = DefaultQueryStringExtractor::take_from(&mut state);
+
+    let collection_uid = match query_params.decode_collection_uid() {
+        Ok(collection_uid) => collection_uid,
+        Err(e) => {
+            let response = format_response_message(&state, StatusCode::BadRequest, &e);
+            return Box::new(future::ok((state, response)));
+        }
+    };
+
+    let handler_future = hyper::Body::take_from(&mut state)
+        .concat2()
+        .then(move |full_body| match full_body {
+            Ok(valid_body) => {
+                let format = match parse_serialization_format_from_state(&state) {
+                    Ok(format) => format,
+                    Err(e) => {
+                        let response =
+                            format_response_message(&state, StatusCode::UnsupportedMediaType, &e);
+                        return future::ok((state, response));
+                    }
+                };
+
+                let search_params: SearchParams =
+                    match deserialize_slice_with_format(&valid_body, format) {
+                        Ok(search_params) => search_params,
+                        Err(e) => {
+                            warn!(
+                                "Deserialization failed: {}",
+                                str::from_utf8(&valid_body).unwrap()
+                            );
+                            let response =
+                                format_response_message(&state, StatusCode::BadRequest, &e);
+                            return future::ok((state, response));
+                        }
+                    };
+
+                let pooled_connection = match middleware::state_data::try_connection(&state) {
+                    Ok(pooled_connection) => pooled_connection,
+                    Err(e) => {
+                        error!("No database connection: {:?}", &e);
+                        let response =
+                            format_response_message(&state, StatusCode::InternalServerError, &e);
+                        return future::ok((state, response));
+                    }
+                };
+
+                let response = match search_tracks(
+                    pooled_connection,
+                    collection_uid.as_ref(),
+                    &query_params.pagination(),
+                    search_params,
+                ).and_then(concat_serialized_entities_into_json_array)
+                {
+                    Ok(json_array) => {
+                        create_response(&state, StatusCode::Ok, Some((json_array, format.into())))
+                    }
+                    Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
+                };
+                future::ok((state, response))
+            }
+            Err(e) => {
+                let response = format_response_message(&state, StatusCode::InternalServerError, &e);
+                future::ok((state, response))
+            }
+        });
+
+    Box::new(handler_future)
+}
+
+fn locate_track(
     pooled_connection: SqlitePooledConnection,
     collection_uid: Option<&EntityUid>,
     pagination: &Pagination,
@@ -825,14 +996,15 @@ fn locate_tracks(
     repository.locate_entities(collection_uid, pagination, locate_params)
 }
 
-fn handle_post_collections_path_uid_tracks_locate_query_pagination(
-    mut state: State,
-) -> Box<HandlerFuture> {
-    let collection_uid = UidPathExtractor::try_parse_from(&mut state);
-    let query_params = PaginationWithToggleQueryStringExtractor::take_from(&mut state);
-    let pagination = Pagination {
-        offset: query_params.offset,
-        limit: query_params.limit,
+fn handle_locate_track(mut state: State) -> Box<HandlerFuture> {
+    let query_params = DefaultQueryStringExtractor::take_from(&mut state);
+
+    let collection_uid = match query_params.decode_collection_uid() {
+        Ok(collection_uid) => collection_uid,
+        Err(e) => {
+            let response = format_response_message(&state, StatusCode::BadRequest, &e);
+            return Box::new(future::ok((state, response)));
+        }
     };
 
     let handler_future = hyper::Body::take_from(&mut state)
@@ -872,10 +1044,10 @@ fn handle_post_collections_path_uid_tracks_locate_query_pagination(
                     }
                 };
 
-                let response = match locate_tracks(
+                let response = match locate_track(
                     pooled_connection,
                     collection_uid.as_ref(),
-                    &pagination,
+                    &query_params.pagination(),
                     locate_params,
                 ).and_then(concat_serialized_entities_into_json_array)
                 {
@@ -912,8 +1084,16 @@ fn replace_tracks(
     })
 }
 
-fn handle_post_collections_path_uid_tracks_replace(mut state: State) -> Box<HandlerFuture> {
-    let collection_uid = UidPathExtractor::try_parse_from(&mut state);
+fn handle_replace_tracks(mut state: State) -> Box<HandlerFuture> {
+    let query_params = DefaultQueryStringExtractor::take_from(&mut state);
+
+    let collection_uid = match query_params.decode_collection_uid() {
+        Ok(collection_uid) => collection_uid,
+        Err(e) => {
+            let response = format_response_message(&state, StatusCode::BadRequest, &e);
+            return Box::new(future::ok((state, response)));
+        }
+    };
 
     let handler_future = hyper::Body::take_from(&mut state)
         .concat2()
@@ -990,157 +1170,10 @@ fn handle_post_collections_path_uid_tracks_replace(mut state: State) -> Box<Hand
     Box::new(handler_future)
 }
 
-fn search_tracks(
+fn list_fields(
     pooled_connection: SqlitePooledConnection,
     collection_uid: Option<&EntityUid>,
-    pagination: &Pagination,
-    search_params: SearchParams,
-) -> TracksResult<Vec<SerializedEntity>> {
-    let connection = &*pooled_connection;
-    let repository = TrackRepository::new(connection);
-    repository.search_entities(collection_uid, pagination, search_params)
-}
-
-fn handle_post_collections_path_uid_tracks_search_query_pagination(
-    mut state: State,
-) -> Box<HandlerFuture> {
-    let collection_uid = UidPathExtractor::try_parse_from(&mut state);
-    let query_params = PaginationWithToggleQueryStringExtractor::take_from(&mut state);
-    let pagination = Pagination {
-        offset: query_params.offset,
-        limit: query_params.limit,
-    };
-
-    let handler_future = hyper::Body::take_from(&mut state)
-        .concat2()
-        .then(move |full_body| match full_body {
-            Ok(valid_body) => {
-                let format = match parse_serialization_format_from_state(&state) {
-                    Ok(format) => format,
-                    Err(e) => {
-                        let response =
-                            format_response_message(&state, StatusCode::UnsupportedMediaType, &e);
-                        return future::ok((state, response));
-                    }
-                };
-
-                let search_params: SearchParams =
-                    match deserialize_slice_with_format(&valid_body, format) {
-                        Ok(search_params) => search_params,
-                        Err(e) => {
-                            warn!(
-                                "Deserialization failed: {}",
-                                str::from_utf8(&valid_body).unwrap()
-                            );
-                            let response =
-                                format_response_message(&state, StatusCode::BadRequest, &e);
-                            return future::ok((state, response));
-                        }
-                    };
-
-                let pooled_connection = match middleware::state_data::try_connection(&state) {
-                    Ok(pooled_connection) => pooled_connection,
-                    Err(e) => {
-                        error!("No database connection: {:?}", &e);
-                        let response =
-                            format_response_message(&state, StatusCode::InternalServerError, &e);
-                        return future::ok((state, response));
-                    }
-                };
-
-                let response = match search_tracks(
-                    pooled_connection,
-                    collection_uid.as_ref(),
-                    &pagination,
-                    search_params,
-                ).and_then(concat_serialized_entities_into_json_array)
-                {
-                    Ok(json_array) => {
-                        create_response(&state, StatusCode::Ok, Some((json_array, format.into())))
-                    }
-                    Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
-                };
-                future::ok((state, response))
-            }
-            Err(e) => {
-                let response = format_response_message(&state, StatusCode::InternalServerError, &e);
-                future::ok((state, response))
-            }
-        });
-
-    Box::new(handler_future)
-}
-
-fn handle_get_collections_path_uid_tracks_query_pagination(mut state: State) -> Box<HandlerFuture> {
-    let collection_uid = UidPathExtractor::try_parse_from(&mut state);
-    let query_params = PaginationWithToggleQueryStringExtractor::take_from(&mut state);
-    let pagination = Pagination {
-        offset: query_params.offset,
-        limit: query_params.limit,
-    };
-
-    let pooled_connection = match middleware::state_data::try_connection(&state) {
-        Ok(pooled_connection) => pooled_connection,
-        Err(e) => {
-            error!("No database connection: {:?}", &e);
-            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    let response = match search_tracks(
-        pooled_connection,
-        collection_uid.as_ref(),
-        &pagination,
-        SearchParams::default(),
-    ).and_then(concat_serialized_entities_into_json_array)
-    {
-        Ok(json_array) => create_response(
-            &state,
-            StatusCode::Ok,
-            Some((json_array, mime::APPLICATION_JSON)),
-        ),
-        Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
-    };
-
-    Box::new(future::ok((state, response)))
-}
-
-#[derive(Debug, Deserialize, StateData, StaticResponseExtender)]
-struct CountableStringFieldQueryStringExtractor {
-    with: Option<String>,
-    offset: Option<PaginationOffset>,
-    limit: Option<PaginationLimit>,
-}
-
-impl CountableStringFieldQueryStringExtractor {
-    pub fn with_fields<'a>(&'a self) -> Vec<CountableStringField> {
-        let mut result = Vec::new();
-        if let Some(ref field_list) = self.with {
-            result = field_list
-                .split(',')
-                .map(|field_str| serde_json::from_str(&format!("\"{}\"", field_str)))
-                .filter_map(|from_str| from_str.ok())
-                .collect();
-            debug_assert!(result.len() <= field_list.split(',').count());
-            let unrecognized_field_count = field_list.split(',').count() - result.len();
-            if unrecognized_field_count > 0 {
-                warn!(
-                    "{} unrecognized field selector(s) in '{}'",
-                    unrecognized_field_count, field_list
-                );
-            }
-            result.sort();
-            result.dedup();
-        }
-        result
-    }
-}
-
-fn all_field_counts(
-    pooled_connection: SqlitePooledConnection,
-    collection_uid: Option<&EntityUid>,
-    fields: Vec<CountableStringField>,
+    fields: Vec<StringField>,
     pagination: &Pagination,
 ) -> TracksResult<Vec<StringFieldCounts>> {
     let mut results: Vec<StringFieldCounts> = Vec::with_capacity(fields.len());
@@ -1148,19 +1181,22 @@ fn all_field_counts(
     let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
     for field in fields.into_iter() {
-        let result = repository.field_counts(collection_uid, field, pagination)?;
+        let result = repository.list_fields(collection_uid, field, pagination)?;
         results.push(result);
     }
 
     Ok(results)
 }
 
-fn handle_get_collections_path_uid_fields_query_field(mut state: State) -> Box<HandlerFuture> {
-    let collection_uid = UidPathExtractor::try_parse_from(&mut state);
-    let query_params = CountableStringFieldQueryStringExtractor::take_from(&mut state);
-    let pagination = Pagination {
-        offset: query_params.offset,
-        limit: query_params.limit,
+fn handle_list_fields(mut state: State) -> Box<HandlerFuture> {
+    let query_params = DefaultQueryStringExtractor::take_from(&mut state);
+
+    let collection_uid = match query_params.decode_collection_uid() {
+        Ok(collection_uid) => collection_uid,
+        Err(e) => {
+            let response = format_response_message(&state, StatusCode::BadRequest, &e);
+            return Box::new(future::ok((state, response)));
+        }
     };
 
     let selected_fields = query_params.with_fields();
@@ -1179,11 +1215,11 @@ fn handle_get_collections_path_uid_fields_query_field(mut state: State) -> Box<H
         }
     };
 
-    let response = match all_field_counts(
+    let response = match list_fields(
         pooled_connection,
         collection_uid.as_ref(),
         selected_fields,
-        &pagination,
+        &query_params.pagination(),
     ) {
         Ok(results) => match serde_json::to_vec(&results) {
             Ok(json) => {
@@ -1200,37 +1236,7 @@ fn handle_get_collections_path_uid_fields_query_field(mut state: State) -> Box<H
     Box::new(future::ok((state, response)))
 }
 
-#[derive(Debug, Deserialize, StateData, StaticResponseExtender)]
-struct TagFacetPaginationQueryStringExtractor {
-    with: Option<String>,
-    offset: Option<PaginationOffset>,
-    limit: Option<PaginationLimit>,
-}
-
-impl TagFacetPaginationQueryStringExtractor {
-    pub fn with_facets<'a>(&'a self) -> Option<Vec<&'a str>> {
-        self.with
-            .as_ref()
-            .map(|facet_list| facet_list.split(',').collect::<Vec<&'a str>>())
-            .map(|mut facets| {
-                facets.sort();
-                facets
-            })
-            .map(|mut facets| {
-                facets.dedup();
-                facets
-            })
-    }
-
-    pub fn pagination(&self) -> Pagination {
-        Pagination {
-            offset: self.offset,
-            limit: self.limit,
-        }
-    }
-}
-
-fn all_tags_facets(
+fn list_tag_facets(
     pooled_connection: SqlitePooledConnection,
     collection_uid: Option<&EntityUid>,
     facets: Option<&Vec<&str>>,
@@ -1238,14 +1244,19 @@ fn all_tags_facets(
 ) -> TrackTagsResult<Vec<TagFacetCount>> {
     let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
-    repository.all_tags_facets(collection_uid, facets, pagination)
+    repository.list_tag_facets(collection_uid, facets, pagination)
 }
 
-fn handle_get_collections_path_uid_tags_facets_query_facet_pagination(
-    mut state: State,
-) -> Box<HandlerFuture> {
-    let collection_uid = UidPathExtractor::try_parse_from(&mut state);
-    let query_params = TagFacetPaginationQueryStringExtractor::take_from(&mut state);
+fn handle_list_tag_facets(mut state: State) -> Box<HandlerFuture> {
+    let query_params = DefaultQueryStringExtractor::take_from(&mut state);
+
+    let collection_uid = match query_params.decode_collection_uid() {
+        Ok(collection_uid) => collection_uid,
+        Err(e) => {
+            let response = format_response_message(&state, StatusCode::BadRequest, &e);
+            return Box::new(future::ok((state, response)));
+        }
+    };
 
     let pooled_connection = match middleware::state_data::try_connection(&state) {
         Ok(pooled_connection) => pooled_connection,
@@ -1256,7 +1267,7 @@ fn handle_get_collections_path_uid_tags_facets_query_facet_pagination(
         }
     };
 
-    let response = match all_tags_facets(
+    let response = match list_tag_facets(
         pooled_connection,
         collection_uid.as_ref(),
         query_params.with_facets().as_ref(),
@@ -1276,7 +1287,7 @@ fn handle_get_collections_path_uid_tags_facets_query_facet_pagination(
     Box::new(future::ok((state, response)))
 }
 
-fn all_tags(
+fn list_tags(
     pooled_connection: SqlitePooledConnection,
     collection_uid: Option<&EntityUid>,
     facets: Option<&Vec<&str>>,
@@ -1284,14 +1295,19 @@ fn all_tags(
 ) -> TrackTagsResult<Vec<ScoredTagCount>> {
     let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
-    repository.all_tags(collection_uid, facets, pagination)
+    repository.list_tags(collection_uid, facets, pagination)
 }
 
-fn handle_get_collections_path_uid_tags_query_facet_pagination(
-    mut state: State,
-) -> Box<HandlerFuture> {
-    let collection_uid = UidPathExtractor::try_parse_from(&mut state);
-    let query_params = TagFacetPaginationQueryStringExtractor::take_from(&mut state);
+fn handle_list_tags(mut state: State) -> Box<HandlerFuture> {
+    let query_params = DefaultQueryStringExtractor::take_from(&mut state);
+
+    let collection_uid = match query_params.decode_collection_uid() {
+        Ok(collection_uid) => collection_uid,
+        Err(e) => {
+            let response = format_response_message(&state, StatusCode::BadRequest, &e);
+            return Box::new(future::ok((state, response)));
+        }
+    };
 
     let pooled_connection = match middleware::state_data::try_connection(&state) {
         Ok(pooled_connection) => pooled_connection,
@@ -1302,7 +1318,7 @@ fn handle_get_collections_path_uid_tags_query_facet_pagination(
         }
     };
 
-    let response = match all_tags(
+    let response = match list_tags(
         pooled_connection,
         collection_uid.as_ref(),
         query_params.with_facets().as_ref(),
@@ -1335,95 +1351,73 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
 
     // Build the router
     build_router(default_pipeline_chain, pipeline_set, |route| {
-        route // tag facets + total count in a collection
-            .get("/collections/:uid/tags/facets")
-            .with_path_extractor::<UidPathExtractor>()
-            .with_query_string_extractor::<TagFacetPaginationQueryStringExtractor>()
-            .to(handle_get_collections_path_uid_tags_facets_query_facet_pagination);
-        route // tag (avg. score, term, facet) tuples + total count in a collection
-            .get("/collections/:uid/tags")
-            .with_path_extractor::<UidPathExtractor>()
-            .with_query_string_extractor::<TagFacetPaginationQueryStringExtractor>()
-            .to(handle_get_collections_path_uid_tags_query_facet_pagination);
-        route // selected (string) fields in collection
-            .get("/collections/:uid/fields")
-            .with_path_extractor::<UidPathExtractor>()
-            .with_query_string_extractor::<CountableStringFieldQueryStringExtractor>()
-            .to(handle_get_collections_path_uid_fields_query_field);
-        route // load recently modified tracks from collection
-            .get("/collections/:uid/tracks")
-            .with_path_extractor::<UidPathExtractor>()
-            .with_query_string_extractor::<PaginationWithToggleQueryStringExtractor>()
-            .to(handle_get_collections_path_uid_tracks_query_pagination);
-        route // load single collection
+        route // load collection
             .get("/collections/:uid")
             .with_path_extractor::<UidPathExtractor>()
-            .with_query_string_extractor::<PaginationWithToggleQueryStringExtractor>()
-            .to(handle_get_collections_path_uid);
-        route // load recently modified collections
-            .get("/collections")
-            .with_query_string_extractor::<PaginationWithToggleQueryStringExtractor>()
-            .to(handle_get_collections_query_pagination);
-        route // locate multiple track in collection
-            .post("/collections/:uid/tracks/locate")
-            .with_path_extractor::<UidPathExtractor>()
-            .with_query_string_extractor::<PaginationWithToggleQueryStringExtractor>()
-            .to(handle_post_collections_path_uid_tracks_locate_query_pagination);
-        route // replace single track in collection
-            .post("/collections/:uid/tracks/replace")
-            .with_path_extractor::<UidPathExtractor>()
-            .to(handle_post_collections_path_uid_tracks_replace);
-        route // search multiple tracks in collection
-            .post("/collections/:uid/tracks/search")
-            .with_path_extractor::<UidPathExtractor>()
-            .with_query_string_extractor::<PaginationWithToggleQueryStringExtractor>()
-            .to(handle_post_collections_path_uid_tracks_search_query_pagination);
-        route // add single collection (body)
-            .post("/collections")
-            .to(handle_post_collections);
-        route // update single collection
+            .with_query_string_extractor::<DefaultQueryStringExtractor>()
+            .to(handle_load_collection);
+        route // update collection
             .put("/collections/:uid")
             .with_path_extractor::<UidPathExtractor>()
-            .to(handle_put_collections_path_uid);
-        route // remove single collection
+            .to(handle_update_collection);
+        route // delete collection
             .delete("/collections/:uid")
             .with_path_extractor::<UidPathExtractor>()
             .to(handle_delete_collections_path_uid);
-        route // selected (string) fields
-            .get("/fields")
-            .with_query_string_extractor::<CountableStringFieldQueryStringExtractor>()
-            .to(handle_get_collections_path_uid_fields_query_field);
-        route // load single track
+        route // list collections
+            .get("/collections")
+            .with_query_string_extractor::<DefaultQueryStringExtractor>()
+            .to(handle_list_collections);
+        route // create collection
+            .post("/collections")
+            .to(handle_create_collection);
+        route // load track
             .get("/tracks/:uid")
             .with_path_extractor::<UidPathExtractor>()
-            .to(handle_get_tracks_path_uid);
-        route // load recently revisioned tracks
-            .get("/tracks")
-            .with_query_string_extractor::<PaginationWithToggleQueryStringExtractor>()
-            .to(handle_get_collections_path_uid_tracks_query_pagination);
-        route // add single track (body)
-            .post("/tracks")
-            .to(handle_post_tracks);
-        route // update single track
+            .to(handle_load_track);
+        route // update track
             .put("/tracks/:uid")
             .with_path_extractor::<UidPathExtractor>()
-            .to(handle_put_tracks_path_uid);
-        route // remove single track
+            .to(handle_update_track);
+        route // delete track
             .delete("/tracks/:uid")
             .with_path_extractor::<UidPathExtractor>()
-            .to(handle_delete_tracks_path_uid);
-        route // tag facets + total count (across all collections)
+            .to(handle_delete_track);
+        route // search tracks
+            .post("/tracks/search")
+            .with_query_string_extractor::<DefaultQueryStringExtractor>()
+            .to(handle_search_tracks);
+        route // locate track
+            .post("/tracks/locate")
+            .with_query_string_extractor::<DefaultQueryStringExtractor>()
+            .to(handle_locate_track);
+        route // replace tracks
+            .post("/tracks/replace")
+            .with_query_string_extractor::<DefaultQueryStringExtractor>()
+            .to(handle_replace_tracks);
+        route // list tracks
+            .get("/tracks")
+            .with_query_string_extractor::<DefaultQueryStringExtractor>()
+            .to(handle_list_tracks);
+        route // create track
+            .post("/tracks")
+            .to(handle_create_track);
+        route // list tag facets
             .get("/tags/facets")
-            .with_query_string_extractor::<TagFacetPaginationQueryStringExtractor>()
-            .to(handle_get_collections_path_uid_tags_facets_query_facet_pagination);
-        route // tag (avg. score, term, facet) tuples + total count across all collections
+            .with_query_string_extractor::<DefaultQueryStringExtractor>()
+            .to(handle_list_tag_facets);
+        route // list tags
             .get("/tags")
-            .with_query_string_extractor::<TagFacetPaginationQueryStringExtractor>()
-            .to(handle_get_collections_path_uid_tags_query_facet_pagination);
+            .with_query_string_extractor::<DefaultQueryStringExtractor>()
+            .to(handle_list_tags);
+        route // list (string) fields
+            .get("/fields")
+            .with_query_string_extractor::<DefaultQueryStringExtractor>()
+            .to(handle_list_fields);
     })
 }
 
-pub fn main() -> Result<(), failure::Error> {
+pub fn main() -> Result<(), Error> {
     let matches = App::new("aoide")
             .version("0.0.1")
             //.author("")

@@ -302,7 +302,7 @@ pub struct SearchParams {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub enum CountableStringField {
+pub enum StringField {
     MediaType,
     TrackTitle,
     AlbumTitle,
@@ -320,7 +320,7 @@ pub struct StringCount {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct StringFieldCounts {
-    pub field: CountableStringField,
+    pub field: StringField,
     pub counts: Vec<StringCount>,
 }
 

@@ -1155,10 +1155,10 @@ impl<'a> Tracks for TrackRepository<'a> {
         Ok(results.into_iter().map(|r| r.into()).collect())
     }
 
-    fn field_counts(
+    fn list_fields(
         &self,
         collection_uid: Option<&EntityUid>,
-        field: CountableStringField,
+        field: StringField,
         pagination: &Pagination,
     ) -> TracksResult<StringFieldCounts> {
         let track_id_subselect = collection_uid.map(|collection_uid| {
@@ -1167,7 +1167,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                 .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_ref()))
         });
         let rows = match field {
-            CountableStringField::MediaType => {
+            StringField::MediaType => {
                 let mut target = aux_tracks_resource::table
                     .select((
                         aux_tracks_resource::media_type,
@@ -1192,7 +1192,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                     .map(|(media_type, count)| (Some(media_type), count))
                     .collect()
             }
-            CountableStringField::TrackTitle => {
+            StringField::TrackTitle => {
                 let mut target = aux_tracks_overview::table
                     .select((
                         aux_tracks_overview::track_title,
@@ -1212,7 +1212,7 @@ impl<'a> Tracks for TrackRepository<'a> {
 
                 target.load::<(Option<String>, i64)>(self.connection)?
             }
-            CountableStringField::AlbumTitle => {
+            StringField::AlbumTitle => {
                 let mut target = aux_tracks_overview::table
                     .select((
                         aux_tracks_overview::album_title,
@@ -1232,7 +1232,7 @@ impl<'a> Tracks for TrackRepository<'a> {
 
                 target.load::<(Option<String>, i64)>(self.connection)?
             }
-            CountableStringField::TrackArtist => {
+            StringField::TrackArtist => {
                 let mut target = aux_tracks_summary::table
                     .select((
                         aux_tracks_summary::track_artist,
@@ -1251,7 +1251,7 @@ impl<'a> Tracks for TrackRepository<'a> {
 
                 target.load::<(Option<String>, i64)>(self.connection)?
             }
-            CountableStringField::AlbumArtist => {
+            StringField::AlbumArtist => {
                 let mut target = aux_tracks_summary::table
                     .select((
                         aux_tracks_summary::album_artist,
@@ -1303,7 +1303,7 @@ impl<'a> Tracks for TrackRepository<'a> {
 }
 
 impl<'a> TrackTags for TrackRepository<'a> {
-    fn all_tags_facets(
+    fn list_tag_facets(
         &self,
         collection_uid: Option<&EntityUid>,
         facets: Option<&Vec<&str>>,
@@ -1360,7 +1360,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
         Ok(result)
     }
 
-    fn all_tags(
+    fn list_tags(
         &self,
         collection_uid: Option<&EntityUid>,
         facets: Option<&Vec<&str>>,

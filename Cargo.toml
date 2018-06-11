@@ -33,6 +33,7 @@ gotham_derive = "*"
 #hyper = "*"
 # pinned for Gotham
 hyper = "0.11.*"
+libsqlite3-sys = { version = "*", features = ["bundled"] }
 log = "*"
 mime = "*"
 r2d2 = "*"

@@ -17,7 +17,7 @@ pub mod api;
 
 use failure;
 
-use self::api::{CountableStringField, LocateParams, Pagination, ScoredTagCount, SearchParams,
+use self::api::{LocateParams, Pagination, ScoredTagCount, SearchParams, StringField,
                 StringFieldCounts, TagFacetCount, TrackReplacementParams, TrackReplacementReport};
 
 use storage::serde::{SerializationFormat, SerializedEntity};
@@ -104,10 +104,10 @@ pub trait Tracks {
         search_params: SearchParams,
     ) -> TracksResult<Vec<SerializedEntity>>;
 
-    fn field_counts(
+    fn list_fields(
         &self,
         collection_uid: Option<&EntityUid>,
-        field: CountableStringField,
+        field: StringField,
         pagination: &Pagination,
     ) -> TracksResult<StringFieldCounts>;
 
@@ -117,14 +117,14 @@ pub trait Tracks {
 pub type TrackTagsResult<T> = Result<T, failure::Error>;
 
 pub trait TrackTags {
-    fn all_tags_facets(
+    fn list_tag_facets(
         &self,
         collection_uid: Option<&EntityUid>,
         facets: Option<&Vec<&str>>,
         pagination: &Pagination,
     ) -> TrackTagsResult<Vec<TagFacetCount>>;
 
-    fn all_tags(
+    fn list_tags(
         &self,
         collection_uid: Option<&EntityUid>,
         facets: Option<&Vec<&str>>,
