@@ -236,6 +236,66 @@ paths:
           $ref: '#/components/responses/400BadRequest'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+  '/tracks/locate':
+    post:
+      summary: Locate tracks
+      description: >
+        Locate tracks according to their resource URI.
+      operationId: locateTracks
+      tags:
+        - tracks
+      parameters:
+        - $ref: '#/components/parameters/collectionUidParam'
+        - $ref: '#/components/parameters/paginationOffset'
+        - $ref: '#/components/parameters/paginationLimit'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocateTracksParams'
+      responses:
+        '200':
+          description: >
+            An array of matching tracks.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrackEntity'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  '/tracks/search':
+    post:
+      summary: Search tracks
+      description: >
+        Search tracks matching various filter conditions and sort the results.
+      operationId: searchTracks
+      tags:
+        - tracks
+      parameters:
+        - $ref: '#/components/parameters/collectionUidParam'
+        - $ref: '#/components/parameters/paginationOffset'
+        - $ref: '#/components/parameters/paginationLimit'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchTracksParams'
+      responses:
+        '200':
+          description: >
+            An array of matching tracks in the requested order.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrackEntity'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
   '/tags':
     get:
       summary: List tags
@@ -525,6 +585,9 @@ components:
           $ref: '#/components/schemas/Collection'
         stats:
           $ref: '#/components/schemas/CollectionStats'
+    ConditionModifier:
+      type: string
+      enum: [ not ]
     Duration:
       required:
         - ms
@@ -569,6 +632,9 @@ components:
       description: >
         Stringified external reference, e.g. a URL.
       example: 'http://musicbrainz.org/track/d878c95a-8a6b-3be6-b6df-7d720a480625'
+    FilterModifier:
+      type: string
+      enum: [ complement ]
     IndexCount:
       description: >
         Identifies the number of the current item and the number of total items. Both values are optional and might be `null`.
@@ -578,10 +644,51 @@ components:
       items:
         type: integer
         minimum: 0
+    LocateTracksParams:
+      properties:
+        uri:
+          $ref: '#/components/schemas/StringCondition'
     MediaType:
       type: string
       minLength: 1
       example: 'audio/mpeg'
+    NumericCondition:
+      description: >
+        A numeric condition is specified by exactly one of the defined properties.
+      properties:
+        less-than:
+          $ref: '#/components/schemas/NumericConditionParams'
+        greater-than:
+          $ref: '#/components/schemas/NumericConditionParams'
+        equal-to:
+          $ref: '#/components/schemas/NumericConditionParams'
+    NumericConditionParams:
+      required:
+        - value
+      properties:
+        value:
+          type: number
+        modifier:
+          $ref: '#/components/schemas/ConditionModifier'
+    NumericField:
+      type: string
+      enum:
+        - bitrate-bps
+        - channels-count
+        - duration-ms
+        - keysig-code
+        - samplerate-hz
+        - tempo-bpm
+        - timesig-upper
+        - timesig-lower
+    NumericFilter:
+      properties:
+        field:
+          $ref: '#/components/schemas/NumericField'
+        condition:
+          $ref: '#/components/schemas/NumericCondition'
+        modifier:
+          $ref: '#/components/schemas/FilterModifier'
     Release:
       properties:
         refs:
@@ -635,6 +742,70 @@ components:
       example: 0.83
       minimum: 0
       maximum: 1
+    SearchTracksParams:
+      properties:
+        phraseFilter:
+          $ref: '#/components/schemas/PhraseFilter'
+        numericFilters:
+          type: array
+          items:
+            $ref: '#/components/schemas/NumericFilter'
+        tagFilters:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagFilter'
+        ordering:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrackSort'
+    PhraseField:
+      type: string
+      enum:
+        - album-artist
+        - album-title
+        - comments
+        - media-type
+        - source
+        - track-artist
+        - track-title
+      description: >
+            * `source` - percent-decoded URI
+            * `comments` - all comments, i.e. independent of the owner
+    PhraseFilter:
+      properties:
+        query:
+          type: string
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/PhraseField'
+        modifier:
+          $ref: '#/components/schemas/FilterModifier'
+    SortDirection:
+      type: string
+      enum:
+        - asc
+        - desc
+    StringCondition:
+      description: >
+        A string condition is specified by exactly one of the defined properties.
+      properties:
+        starts-with:
+          $ref: '#/components/schemas/StringConditionParams'
+        ends-with:
+          $ref: '#/components/schemas/StringConditionParams'
+        contains:
+          $ref: '#/components/schemas/StringConditionParams'
+        matches:
+          $ref: '#/components/schemas/StringConditionParams'
+    StringConditionParams:
+      required:
+        - value
+      properties:
+        value:
+          type: string
+        modifier:
+          $ref: '#/components/schemas/ConditionModifier'
     StringCount:
       required:
         - value
@@ -687,6 +858,16 @@ components:
           $ref: '#/components/schemas/TagFacet'
         count:
           $ref: '#/components/schemas/TagCount'
+    TagFilter:
+      properties:
+        score:
+          $ref: '#/components/schemas/NumericCondition'
+        term:
+          $ref: '#/components/schemas/StringCondition'
+        facet:
+          type: string
+        modifier:
+          $ref: '#/components/schemas/FilterModifier'
     TagTerm:
       type: string
       description: >
@@ -779,6 +960,21 @@ components:
         playCounter:
           type: integer
           minimum: 0
+    TrackSortField:
+      type: string
+      enum:
+        - album-artist
+        - album-title
+        - in-collection-since
+        - last-revisioned-at
+        - track-artist
+        - track-title
+    TrackSort:
+      properties:
+        field:
+          $ref: '#/components/schemas/TrackSortField'
+        direction:
+          $ref: '#/components/schemas/SortDirection'
     TrackSource:
       properties:
         uri:

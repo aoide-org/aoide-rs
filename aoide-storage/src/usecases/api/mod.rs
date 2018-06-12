@@ -16,9 +16,7 @@
 #[cfg(test)]
 mod tests;
 
-use aoide_core::domain::{entity::EntityHeader,
-                         metadata::{Score, ScoredTag},
-                         track::TrackBody};
+use aoide_core::domain::{entity::EntityHeader, metadata::ScoredTag, track::TrackBody};
 
 pub type PaginationOffset = u64;
 
@@ -77,28 +75,11 @@ pub enum StringCondition {
     Matches(StringConditionParams),    // all
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct ScoreConditionParams {
-    pub value: Score,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub modifier: Option<ConditionModifier>,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub enum ScoreCondition {
-    LessThan(ScoreConditionParams),
-    GreaterThan(ScoreConditionParams),
-    EqualTo(ScoreConditionParams),
-}
-
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TagFilter {
     #[serde(rename = "score", skip_serializing_if = "Option::is_none")]
-    pub score_condition: Option<ScoreCondition>,
+    pub score_condition: Option<NumericCondition>,
 
     #[serde(rename = "term", skip_serializing_if = "Option::is_none")]
     pub term_condition: Option<StringCondition>,
@@ -125,7 +106,7 @@ impl TagFilter {
         None
     }
 
-    pub fn any_score() -> Option<ScoreCondition> {
+    pub fn any_score() -> Option<NumericCondition> {
         None
     }
 }
@@ -147,7 +128,7 @@ pub type NumericValue = f64;
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct NumericValueConditionParams {
+pub struct NumericConditionParams {
     pub value: NumericValue,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -156,10 +137,10 @@ pub struct NumericValueConditionParams {
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub enum NumericValueCondition {
-    LessThan(NumericValueConditionParams),
-    GreaterThan(NumericValueConditionParams),
-    EqualTo(NumericValueConditionParams),
+pub enum NumericCondition {
+    LessThan(NumericConditionParams),
+    GreaterThan(NumericConditionParams),
+    EqualTo(NumericConditionParams),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -167,7 +148,7 @@ pub enum NumericValueCondition {
 pub struct NumericFilter {
     pub field: NumericField,
 
-    pub condition: NumericValueCondition,
+    pub condition: NumericCondition,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub modifier: Option<FilterModifier>,
@@ -176,13 +157,13 @@ pub struct NumericFilter {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum PhraseField {
-    Source, // percent-decoded URI
-    MediaType,
-    TrackTitle,
-    AlbumTitle,
-    TrackArtist,
     AlbumArtist,
+    AlbumTitle,
     Comments, // all comments, i.e. independent of owner
+    MediaType,
+    Source, // percent-decoded URI
+    TrackArtist,
+    TrackTitle,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -201,11 +182,20 @@ pub struct PhraseFilter {
     pub modifier: Option<FilterModifier>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct UriFilter {
+    pub condition: StringCondition,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modifier: Option<FilterModifier>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LocateParams {
     #[serde(rename = "uri")]
-    pub uri_filter: StringCondition,
+    pub uri_filter: UriFilter,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -246,12 +236,12 @@ pub struct TrackReplacementReport {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum TrackSortField {
+    AlbumArtist,
+    AlbumTitle,
     InCollectionSince, // = recently added (only if searching in a single collection)
     LastRevisionedAt,  // = recently modified (created or updated)
-    TrackTitle,
-    AlbumTitle,
     TrackArtist,
-    AlbumArtist,
+    TrackTitle,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
