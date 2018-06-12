@@ -57,10 +57,10 @@ use aoide::{middleware, middleware::DieselMiddleware};
 use aoide_storage::{storage::{collections::*,
                               serde::*,
                               tracks::{util::TrackRepositoryHelper, *}},
-                    usecases::{api::{LocateParams, Pagination, PaginationLimit,
-                                     PaginationOffset, ScoredTagCount, SearchParams,
-                                     StringField, StringFieldCounts, TagFacetCount,
-                                     TrackReplacementParams, TrackReplacementReport},
+                    usecases::{api::{LocateTracksParams, Pagination, PaginationLimit,
+                                     PaginationOffset, ReplaceTracksParams,
+                                     ReplaceTracksResults, ScoredTagCount, SearchTracksParams,
+                                     StringField, StringFieldCounts, TagFacetCount},
                                *}};
 
 use aoide_core::domain::{collection::*, entity::*, track::*};
@@ -889,7 +889,7 @@ fn handle_list_tracks(mut state: State) -> Box<HandlerFuture> {
         pooled_connection,
         collection_uid.as_ref(),
         &query_params.pagination(),
-        SearchParams::default(),
+        SearchTracksParams::default(),
     ).and_then(concat_serialized_entities_into_json_array)
     {
         Ok(json_array) => create_response(
@@ -907,7 +907,7 @@ fn search_tracks(
     pooled_connection: SqlitePooledConnection,
     collection_uid: Option<&EntityUid>,
     pagination: &Pagination,
-    search_params: SearchParams,
+    search_params: SearchTracksParams,
 ) -> TracksResult<Vec<SerializedEntity>> {
     let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
@@ -938,7 +938,7 @@ fn handle_search_tracks(mut state: State) -> Box<HandlerFuture> {
                     }
                 };
 
-                let search_params: SearchParams =
+                let search_params: SearchTracksParams =
                     match deserialize_slice_with_format(&valid_body, format) {
                         Ok(search_params) => search_params,
                         Err(e) => {
@@ -989,7 +989,7 @@ fn locate_tracks(
     pooled_connection: SqlitePooledConnection,
     collection_uid: Option<&EntityUid>,
     pagination: &Pagination,
-    locate_params: LocateParams,
+    locate_params: LocateTracksParams,
 ) -> TracksResult<Vec<SerializedEntity>> {
     let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
@@ -1020,7 +1020,7 @@ fn handle_locate_tracks(mut state: State) -> Box<HandlerFuture> {
                     }
                 };
 
-                let locate_params: LocateParams =
+                let locate_params: LocateTracksParams =
                     match deserialize_slice_with_format(&valid_body, format) {
                         Ok(locate_params) => locate_params,
                         Err(e) => {
@@ -1074,9 +1074,9 @@ fn handle_locate_tracks(mut state: State) -> Box<HandlerFuture> {
 fn replace_tracks(
     pooled_connection: SqlitePooledConnection,
     collection_uid: Option<&EntityUid>,
-    replacement_params: TrackReplacementParams,
+    replacement_params: ReplaceTracksParams,
     format: SerializationFormat,
-) -> TracksResult<TrackReplacementReport> {
+) -> TracksResult<ReplaceTracksResults> {
     let connection = &*pooled_connection;
     let repository = TrackRepository::new(connection);
     connection.transaction::<_, Error, _>(|| {
@@ -1108,7 +1108,7 @@ fn handle_replace_tracks(mut state: State) -> Box<HandlerFuture> {
                     }
                 };
 
-                let replacement_params: TrackReplacementParams =
+                let replacement_params: ReplaceTracksParams =
                     match deserialize_slice_with_format(&valid_body, format) {
                         Ok(replacement_params) => replacement_params,
                         Err(e) => {

@@ -17,8 +17,8 @@ pub mod api;
 
 use failure;
 
-use self::api::{LocateParams, Pagination, ScoredTagCount, SearchParams, StringField,
-                StringFieldCounts, TagFacetCount, TrackReplacementParams, TrackReplacementReport};
+use self::api::{LocateTracksParams, Pagination, ReplaceTracksParams, ReplaceTracksResults,
+                ScoredTagCount, SearchTracksParams, StringField, StringFieldCounts, TagFacetCount};
 
 use storage::serde::{SerializationFormat, SerializedEntity};
 
@@ -82,9 +82,9 @@ pub trait Tracks {
     fn replace_entities(
         &self,
         collection_uid: Option<&EntityUid>,
-        replace_params: TrackReplacementParams,
+        replace_params: ReplaceTracksParams,
         format: SerializationFormat,
-    ) -> TracksResult<TrackReplacementReport>;
+    ) -> TracksResult<ReplaceTracksResults>;
 
     fn remove_entity(&self, uid: &EntityUid) -> TracksResult<()>;
 
@@ -94,14 +94,14 @@ pub trait Tracks {
         &self,
         collection_uid: Option<&EntityUid>,
         pagination: &Pagination,
-        locate_params: LocateParams,
+        locate_params: LocateTracksParams,
     ) -> TracksResult<Vec<SerializedEntity>>;
 
     fn search_entities(
         &self,
         collection_uid: Option<&EntityUid>,
         pagination: &Pagination,
-        search_params: SearchParams,
+        search_params: SearchTracksParams,
     ) -> TracksResult<Vec<SerializedEntity>>;
 
     fn list_fields(

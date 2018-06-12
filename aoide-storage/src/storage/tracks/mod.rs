@@ -396,11 +396,11 @@ impl<'a> Tracks for TrackRepository<'a> {
     fn replace_entities(
         &self,
         collection_uid: Option<&EntityUid>,
-        replacement_params: TrackReplacementParams,
+        replace_params: ReplaceTracksParams,
         format: SerializationFormat,
-    ) -> TracksResult<TrackReplacementReport> {
-        let mut report = TrackReplacementReport::default();
-        for replacement in replacement_params.replacements.into_iter() {
+    ) -> TracksResult<ReplaceTracksResults> {
+        let mut results = ReplaceTracksResults::default();
+        for replacement in replace_params.replacements.into_iter() {
             let uri_filter = UriFilter {
                 condition: StringCondition::Matches(StringConditionParams {
                     value: replacement.uri.clone(),
@@ -408,7 +408,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                 }),
                 modifier: None,
             };
-            let locate_params = LocateParams { uri_filter };
+            let locate_params = LocateTracksParams { uri_filter };
             let located_entities =
                 self.locate_entities(collection_uid, &Pagination::default(), locate_params)?;
             // Ambiguous?
@@ -418,7 +418,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                     "Found multiple tracks with URI '{}' in different collections",
                     replacement.uri
                 );
-                report.rejected.push(replacement.uri);
+                results.rejected.push(replacement.uri);
                 continue;
             }
             if !replacement.track.is_valid() {
@@ -436,22 +436,22 @@ impl<'a> Tracks for TrackRepository<'a> {
                         "Track '{}' is unchanged and does not need to be updated",
                         entity.header().uid()
                     );
-                    report.skipped.push(entity.into_header());
+                    results.skipped.push(entity.into_header());
                     continue;
                 }
                 entity.replace_body(replacement.track);
                 self.update_entity(&mut entity, format)?;
-                report.updated.push(entity.into_header());
+                results.updated.push(entity.into_header());
                 continue;
             }
             // Create?
-            match replacement_params.mode {
+            match replace_params.mode {
                 ReplaceMode::UpdateOnly => {
                     info!(
                         "Track with URI '{}' does not exist and needs to be created",
                         replacement.uri
                     );
-                    report.discarded.push(replacement.uri);
+                    results.discarded.push(replacement.uri);
                     continue;
                 }
                 ReplaceMode::UpdateOrCreate => {
@@ -465,7 +465,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                                         "Mismatching track URI: expected = '{}', actual = '{}'",
                                         replacement.uri, resource.source.uri
                                     );
-                                    report.rejected.push(replacement.uri);
+                                    results.rejected.push(replacement.uri);
                                     continue;
                                 }
                             }
@@ -474,17 +474,17 @@ impl<'a> Tracks for TrackRepository<'a> {
                                     "Track with URI '{}' does not belong to collection '{}'",
                                     replacement.uri, collection_uid
                                 );
-                                report.rejected.push(replacement.uri);
+                                results.rejected.push(replacement.uri);
                                 continue;
                             }
                         }
                     }
                     let entity = self.create_entity(replacement.track, format)?;
-                    report.created.push(entity.into_header())
+                    results.created.push(entity.into_header())
                 }
             };
         }
-        Ok(report)
+        Ok(results)
     }
 
     fn remove_entity(&self, uid: &EntityUid) -> TracksResult<()> {
@@ -508,7 +508,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         &self,
         collection_uid: Option<&EntityUid>,
         pagination: &Pagination,
-        locate_params: LocateParams,
+        locate_params: LocateTracksParams,
     ) -> TracksResult<Vec<SerializedEntity>> {
         // URI filter
         let (either_eq_or_like, modifier) = match locate_params.uri_filter.condition {
@@ -576,6 +576,7 @@ impl<'a> Tracks for TrackRepository<'a> {
 
         let mut target = tracks_entity::table
             .select(tracks_entity::all_columns)
+            .order_by(tracks_entity::id) // preserve relative order of results
             .into_boxed();
 
         target = match locate_params.uri_filter.modifier {
@@ -596,7 +597,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         &self,
         collection_uid: Option<&EntityUid>,
         pagination: &Pagination,
-        search_params: SearchParams,
+        search_params: SearchTracksParams,
     ) -> TracksResult<Vec<SerializedEntity>> {
         // TODO: Joins are very expensive and should only be used
         // when the results need to be ordered. For filtering
@@ -1152,6 +1153,9 @@ impl<'a> Tracks for TrackRepository<'a> {
                     },
                 }
         }
+        // Finally order by PK to preserve the relative order of results
+        // even if no sorting was requested.
+        target = target.then_order_by(tracks_entity::id);
 
         // Pagination
         target = apply_pagination(target, pagination);

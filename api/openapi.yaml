@@ -246,8 +246,6 @@ paths:
         - tracks
       parameters:
         - $ref: '#/components/parameters/collectionUidParam'
-        - $ref: '#/components/parameters/paginationOffset'
-        - $ref: '#/components/parameters/paginationLimit'
       requestBody:
         required: true
         content:
@@ -264,6 +262,34 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/TrackEntity'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  '/tracks/replace':
+    post:
+      summary: Replace tracks by URI
+      description: >
+        Replace tracks according to their resource URI. Optionally the URI lookup can be restricted to a single collection.
+      operationId: locateTracks
+      tags:
+        - tracks
+      parameters:
+        - $ref: '#/components/parameters/collectionUidParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplaceTracksParams'
+      responses:
+        '200':
+          description: >
+            An array of matching tracks.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReplaceTracksResults'
         '500':
           $ref: '#/components/responses/500InternalServerError'
   '/tracks/search':
@@ -706,6 +732,47 @@ components:
           type: array
           items:
             type: string
+    ReplacementMode:
+      type: string
+      enum:
+        - update-only
+        - update-or-create
+    ReplaceTracksParams:
+      properties:
+        mode:
+          $ref: '#/components/schemas/ReplacementMode'
+        replacements:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrackReplacement'
+    ReplaceTracksResults:
+      properties:
+        created:
+          type: array
+          items:
+            $ref: '#/components/schemas/EntityHeader'
+        updated:
+          type: array
+          items:
+            $ref: '#/components/schemas/EntityHeader'
+        skipped:
+          description: >
+            Unchanged tracks, i.e. that don't need to be updated.
+          type: array
+          items:
+            $ref: '#/components/schemas/EntityHeader'
+        rejected:
+          description: >
+            Informational messages about ambiguous or inconsistent tracks.
+          type: array
+          items:
+            type: string
+        discarded:
+          description: >
+            Informational messages about nonexistent tracks that need to be created.
+          type: array
+          items:
+            type: string
     SampleRate:
       required:
         - hz
@@ -948,6 +1015,14 @@ components:
         header:
           $ref: '#/components/schemas/EntityHeader'
         body:
+          $ref: '#/components/schemas/Track'
+    TrackReplacement:
+      properties:
+        uri:
+          type: string
+          description: >
+            The URI for looking up the existing track (if any) that gets replaced.
+        track:
           $ref: '#/components/schemas/Track'
     TrackResource:
       properties:

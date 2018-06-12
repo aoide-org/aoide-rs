@@ -193,7 +193,7 @@ pub struct UriFilter {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct LocateParams {
+pub struct LocateTracksParams {
     #[serde(rename = "uri")]
     pub uri_filter: UriFilter,
 }
@@ -209,6 +209,8 @@ pub enum ReplaceMode {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackReplacement {
     #[serde(skip_serializing_if = "String::is_empty", default)]
+    // The URI for looking up the existing track (if any)
+    // that gets replaced.
     pub uri: String,
 
     pub track: TrackBody,
@@ -216,7 +218,7 @@ pub struct TrackReplacement {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct TrackReplacementParams {
+pub struct ReplaceTracksParams {
     pub mode: ReplaceMode,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
@@ -225,7 +227,7 @@ pub struct TrackReplacementParams {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct TrackReplacementReport {
+pub struct ReplaceTracksResults {
     pub created: Vec<EntityHeader>,
     pub updated: Vec<EntityHeader>,
     pub skipped: Vec<EntityHeader>,
@@ -276,7 +278,7 @@ impl TrackSort {
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct SearchParams {
+pub struct SearchTracksParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub phrase_filter: Option<PhraseFilter>,
 
