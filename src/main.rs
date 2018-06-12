@@ -985,7 +985,7 @@ fn handle_search_tracks(mut state: State) -> Box<HandlerFuture> {
     Box::new(handler_future)
 }
 
-fn locate_track(
+fn locate_tracks(
     pooled_connection: SqlitePooledConnection,
     collection_uid: Option<&EntityUid>,
     pagination: &Pagination,
@@ -996,7 +996,7 @@ fn locate_track(
     repository.locate_entities(collection_uid, pagination, locate_params)
 }
 
-fn handle_locate_track(mut state: State) -> Box<HandlerFuture> {
+fn handle_locate_tracks(mut state: State) -> Box<HandlerFuture> {
     let query_params = DefaultQueryStringExtractor::take_from(&mut state);
 
     let collection_uid = match query_params.decode_collection_uid() {
@@ -1044,7 +1044,7 @@ fn handle_locate_track(mut state: State) -> Box<HandlerFuture> {
                     }
                 };
 
-                let response = match locate_track(
+                let response = match locate_tracks(
                     pooled_connection,
                     collection_uid.as_ref(),
                     &query_params.pagination(),
@@ -1390,7 +1390,7 @@ fn router(middleware: SqliteDieselMiddleware) -> Router {
         route // locate track
             .post("/tracks/locate")
             .with_query_string_extractor::<DefaultQueryStringExtractor>()
-            .to(handle_locate_track);
+            .to(handle_locate_tracks);
         route // replace tracks
             .post("/tracks/replace")
             .with_query_string_extractor::<DefaultQueryStringExtractor>()
