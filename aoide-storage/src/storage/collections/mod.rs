@@ -40,6 +40,7 @@ pub mod schema;
 /// CollectionRepository
 ///////////////////////////////////////////////////////////////////////
 
+#[derive(Clone)]
 pub struct CollectionRepository<'a> {
     connection: &'a diesel::SqliteConnection,
 }

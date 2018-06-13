@@ -79,6 +79,7 @@ impl From<QueryableSerializedEntity> for SerializedEntity {
     }
 }
 
+#[derive(Clone)]
 pub struct TrackRepository<'a> {
     connection: &'a diesel::SqliteConnection,
     helper: TrackRepositoryHelper<'a>,

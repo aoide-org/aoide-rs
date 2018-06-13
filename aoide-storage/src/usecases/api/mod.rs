@@ -256,7 +256,7 @@ pub enum SortDirection {
     Descending,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackSort {
     pub field: TrackSortField,

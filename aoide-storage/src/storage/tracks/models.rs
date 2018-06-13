@@ -319,7 +319,7 @@ impl<'a> InsertableTracksResource<'a> {
     }
 }
 
-#[derive(Debug, Insertable)]
+#[derive(Debug, Clone, Copy, Insertable)]
 #[table_name = "aux_tracks_profile"]
 pub struct InsertableTracksMusic {
     pub track_id: StorageId,
@@ -415,7 +415,7 @@ impl<'a> InsertableTracksTagFacet<'a> {
     }
 }
 
-#[derive(Debug, Insertable)]
+#[derive(Debug, Clone, Copy, Insertable)]
 #[table_name = "aux_tracks_tag"]
 pub struct InsertableTracksTag {
     pub track_id: StorageId,

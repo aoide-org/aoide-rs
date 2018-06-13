@@ -37,6 +37,7 @@ use aoide_core::domain::{collection::{CollectionBody, CollectionEntity},
 /// TrackRepositoryHelper
 ///////////////////////////////////////////////////////////////////////
 
+#[derive(Clone)]
 pub struct TrackRepositoryHelper<'a> {
     connection: &'a diesel::SqliteConnection,
 }

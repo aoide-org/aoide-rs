@@ -72,6 +72,7 @@ impl Title {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct Titles;
 
 impl Titles {
@@ -187,6 +188,7 @@ impl Actor {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct Actors;
 
 impl Actors {

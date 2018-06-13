@@ -123,7 +123,7 @@ impl TrackSource {
 /// TrackResource
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct TrackCollection {
     pub uid: CollectionUid,
 
@@ -373,6 +373,7 @@ impl TrackMarker {
 /// TrackTagging
 ///////////////////////////////////////////////////////////////////////
 
+#[derive(Debug, Clone, Copy)]
 pub struct TrackTagging;
 
 impl TrackTagging {

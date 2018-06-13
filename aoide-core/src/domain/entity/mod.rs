@@ -132,6 +132,7 @@ impl Serialize for EntityUid {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 struct EntityUidDeserializeVisitor;
 
 impl<'de> SerdeDeserializeVisitor<'de> for EntityUidDeserializeVisitor {
@@ -175,7 +176,7 @@ impl fmt::Display for EntityUid {
 /// EntityUidGenerator
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct EntityUidGenerator;
 
 fn digest_timestamp<T: TimeZone>(
