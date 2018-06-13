@@ -22,17 +22,7 @@ extern crate failure;
 
 extern crate futures;
 
-extern crate gotham;
-
-#[macro_use]
-extern crate gotham_derive;
-
 #[macro_use]
 extern crate log;
 
 extern crate r2d2;
-
-///////////////////////////////////////////////////////////////////////
-/// Public Modules
-///////////////////////////////////////////////////////////////////////
-pub mod middleware;

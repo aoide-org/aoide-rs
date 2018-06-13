@@ -227,7 +227,7 @@ pub struct ReplaceTracksParams {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct ReplaceTracksResults {
+pub struct ReplacedTracks {
     pub created: Vec<EntityHeader>,
     pub updated: Vec<EntityHeader>,
     pub skipped: Vec<EntityHeader>,

@@ -17,7 +17,7 @@ pub mod api;
 
 use failure;
 
-use self::api::{LocateTracksParams, Pagination, ReplaceTracksParams, ReplaceTracksResults,
+use self::api::{LocateTracksParams, Pagination, ReplaceTracksParams, ReplacedTracks,
                 ScoredTagCount, SearchTracksParams, StringField, StringFieldCounts, TagFacetCount};
 
 use storage::serde::{SerializationFormat, SerializedEntity};
@@ -36,16 +36,13 @@ pub trait Collections {
     fn update_entity(
         &self,
         entity: &CollectionEntity,
-    ) -> CollectionsResult<Option<(EntityRevision, EntityRevision)>>;
+    ) -> CollectionsResult<(EntityRevision, Option<EntityRevision>)>;
 
-    fn remove_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<()>>;
+    fn delete_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<()>>;
 
-    fn find_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<CollectionEntity>>;
+    fn load_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<CollectionEntity>>;
 
-    fn find_recently_revisioned_entities(
-        &self,
-        pagination: &Pagination,
-    ) -> CollectionsResult<Vec<CollectionEntity>>;
+    fn list_entities(&self, pagination: &Pagination) -> CollectionsResult<Vec<CollectionEntity>>;
 
     fn find_entities_by_name(&self, name: &str) -> CollectionsResult<Vec<CollectionEntity>>;
 
@@ -75,18 +72,18 @@ pub trait Tracks {
 
     fn update_entity(
         &self,
-        entity: &mut TrackEntity,
+        entity: TrackEntity,
         format: SerializationFormat,
-    ) -> TracksResult<Option<(EntityRevision, EntityRevision)>>;
+    ) -> TracksResult<(EntityRevision, Option<EntityRevision>)>;
 
     fn replace_entities(
         &self,
         collection_uid: Option<&EntityUid>,
         replace_params: ReplaceTracksParams,
         format: SerializationFormat,
-    ) -> TracksResult<ReplaceTracksResults>;
+    ) -> TracksResult<ReplacedTracks>;
 
-    fn remove_entity(&self, uid: &EntityUid) -> TracksResult<()>;
+    fn delete_entity(&self, uid: &EntityUid) -> TracksResult<Option<()>>;
 
     fn load_entity(&self, uid: &EntityUid) -> TracksResult<Option<SerializedEntity>>;
 

@@ -407,7 +407,7 @@ impl<'a> TrackRepositoryHelper<'a> {
 
     pub fn refresh_entity(&self, entity: &TrackEntity) -> Result<StorageId, Error> {
         let uid = entity.header().uid();
-        match self.find_storage_id(uid)? {
+        match self.find_storage_id(&uid)? {
             Some(storage_id) => {
                 self.on_refresh(storage_id, entity.body())?;
                 Ok(storage_id)
@@ -418,7 +418,7 @@ impl<'a> TrackRepositoryHelper<'a> {
 
     pub fn after_entity_inserted(&self, entity: &TrackEntity) -> Result<StorageId, Error> {
         let uid = entity.header().uid();
-        match self.find_storage_id(uid)? {
+        match self.find_storage_id(&uid)? {
             Some(storage_id) => {
                 self.on_insert(storage_id, entity.body())?;
                 Ok(storage_id)

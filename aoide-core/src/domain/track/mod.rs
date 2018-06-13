@@ -587,6 +587,10 @@ impl TrackEntity {
         self.header
     }
 
+    pub fn into_body(self) -> TrackBody {
+        self.body
+    }
+
     pub fn body<'a>(&'a self) -> &'a TrackBody {
         &self.body
     }
@@ -603,3 +607,5 @@ impl TrackEntity {
         self.body = body;
     }
 }
+
+pub type TrackUid = EntityUid;

@@ -289,7 +289,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/ReplaceTracksResults'
+                  $ref: '#/components/schemas/ReplacedTracks'
         '500':
           $ref: '#/components/responses/500InternalServerError'
   '/tracks/search':
@@ -745,7 +745,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TrackReplacement'
-    ReplaceTracksResults:
+    ReplacedTracks:
       properties:
         created:
           type: array

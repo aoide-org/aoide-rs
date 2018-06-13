@@ -52,17 +52,17 @@ fn update_entity() {
     assert!(entity.is_valid());
     let prev_revision = entity.header().revision();
     entity.body_mut().name = "Renamed Collection".into();
-    let (prev_revision2, next_revision) = repository.update_entity(&entity).unwrap().unwrap();
+    let (prev_revision2, next_revision) = repository.update_entity(&entity).unwrap();
     println!("Updated entity: {:?}", entity);
     assert!(prev_revision == prev_revision2);
-    assert!(prev_revision < next_revision);
+    assert!(prev_revision < next_revision.unwrap());
     assert!(entity.header().revision() == prev_revision);
-    entity.update_revision(next_revision);
-    assert!(entity.header().revision() == next_revision);
+    entity.update_revision(next_revision.unwrap());
+    assert!(entity.header().revision() == next_revision.unwrap());
 }
 
 #[test]
-fn remove_entity() {
+fn delete_entity() {
     let connection = establish_connection();
     let repository = CollectionRepository::new(&connection);
     let entity = repository
@@ -75,7 +75,7 @@ fn remove_entity() {
     assert!(entity.is_valid());
     assert_eq!(
         Some(()),
-        repository.remove_entity(&entity.header().uid()).unwrap()
+        repository.delete_entity(&entity.header().uid()).unwrap()
     );
     println!("Removed entity: {}", entity.header().uid());
 }

@@ -361,17 +361,18 @@ impl<'a> Tracks for TrackRepository<'a> {
 
     fn update_entity(
         &self,
-        entity: &mut TrackEntity,
+        entity: TrackEntity,
         format: SerializationFormat,
-    ) -> TracksResult<Option<(EntityRevision, EntityRevision)>> {
+    ) -> TracksResult<(EntityRevision, Option<EntityRevision>)> {
         let prev_revision = entity.header().revision();
         let next_revision = prev_revision.next();
         {
-            entity.update_revision(next_revision);
-            let entity_blob = serialize_with_format(&entity, format)?;
+            let uid = entity.header().uid().clone();
+            let updated_header = EntityHeader::new(uid, next_revision);
+            let updated_entity = TrackEntity::new(updated_header, entity.into_body());
+            let entity_blob = serialize_with_format(&updated_entity, format)?;
             {
                 let updatable = UpdatableTracksEntity::bind(&next_revision, format, &entity_blob);
-                let uid = entity.header().uid();
                 let target = tracks_entity::table.filter(
                     tracks_entity::uid
                         .eq(uid.as_ref())
@@ -380,18 +381,18 @@ impl<'a> Tracks for TrackRepository<'a> {
                             tracks_entity::rev_timestamp.eq(prev_revision.timestamp().naive_utc()),
                         ),
                 );
-                let storage_id = self.helper.before_entity_updated_or_removed(uid)?;
+                let storage_id = self.helper.before_entity_updated_or_removed(&uid)?;
                 let query = diesel::update(target).set(&updatable);
                 let rows_affected: usize = query.execute(self.connection)?;
                 debug_assert!(rows_affected <= 1);
                 if rows_affected <= 0 {
-                    return Ok(None);
+                    return Ok((prev_revision, None));
                 }
                 self.helper
-                    .after_entity_updated(storage_id, &entity.body())?;
+                    .after_entity_updated(storage_id, &updated_entity.body())?;
             }
         }
-        Ok(Some((prev_revision, next_revision)))
+        Ok((prev_revision, Some(next_revision)))
     }
 
     fn replace_entities(
@@ -399,8 +400,8 @@ impl<'a> Tracks for TrackRepository<'a> {
         collection_uid: Option<&EntityUid>,
         replace_params: ReplaceTracksParams,
         format: SerializationFormat,
-    ) -> TracksResult<ReplaceTracksResults> {
-        let mut results = ReplaceTracksResults::default();
+    ) -> TracksResult<ReplacedTracks> {
+        let mut results = ReplacedTracks::default();
         for replacement in replace_params.replacements.into_iter() {
             let uri_filter = UriFilter {
                 condition: StringCondition::Matches(StringConditionParams {
@@ -431,18 +432,31 @@ impl<'a> Tracks for TrackRepository<'a> {
             }
             // Update?
             if let Some(serialized_entity) = located_entities.first() {
-                let mut entity = deserialize_with_format::<TrackEntity>(serialized_entity)?;
+                let entity = deserialize_with_format::<TrackEntity>(serialized_entity)?;
+                let uid = entity.header().uid().clone();
                 if entity.body() == &replacement.track {
                     debug!(
                         "Track '{}' is unchanged and does not need to be updated",
-                        entity.header().uid()
+                        uid
                     );
                     results.skipped.push(entity.into_header());
                     continue;
                 }
-                entity.replace_body(replacement.track);
-                self.update_entity(&mut entity, format)?;
-                results.updated.push(entity.into_header());
+                let replaced_entity = TrackEntity::new(entity.into_header(), replacement.track);
+                match self.update_entity(replaced_entity, format)? {
+                    (_, None) => {
+                        let msg = format!(
+                            "Failed to update track '{}' due to internal race condition",
+                            uid
+                        );
+                        //warn!(msg);
+                        results.rejected.push(msg);
+                    }
+                    (_, Some(next_revision)) => {
+                        let header = EntityHeader::new(uid, next_revision);
+                        results.updated.push(header);
+                    }
+                };
                 continue;
             }
             // Create?
@@ -488,13 +502,18 @@ impl<'a> Tracks for TrackRepository<'a> {
         Ok(results)
     }
 
-    fn remove_entity(&self, uid: &EntityUid) -> TracksResult<()> {
+    fn delete_entity(&self, uid: &EntityUid) -> TracksResult<Option<()>> {
         let target = tracks_entity::table.filter(tracks_entity::uid.eq(uid.as_ref()));
         let query = diesel::delete(target);
         self.helper.before_entity_updated_or_removed(uid)?;
         let rows_affected: usize = query.execute(self.connection)?;
         debug_assert!(rows_affected <= 1);
-        Ok(())
+        debug_assert!(rows_affected <= 1);
+        if rows_affected <= 0 {
+            Ok(None)
+        } else {
+            Ok(Some(()))
+        }
     }
 
     fn load_entity(&self, uid: &EntityUid) -> TracksResult<Option<SerializedEntity>> {

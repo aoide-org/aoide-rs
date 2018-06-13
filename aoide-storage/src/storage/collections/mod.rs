@@ -78,7 +78,7 @@ impl<'a> Collections for CollectionRepository<'a> {
     fn update_entity(
         &self,
         entity: &CollectionEntity,
-    ) -> CollectionsResult<Option<(EntityRevision, EntityRevision)>> {
+    ) -> CollectionsResult<(EntityRevision, Option<EntityRevision>)> {
         let prev_revision = entity.header().revision();
         let next_revision = prev_revision.next();
         {
@@ -95,24 +95,25 @@ impl<'a> Collections for CollectionRepository<'a> {
             let rows_affected: usize = query.execute(self.connection)?;
             debug_assert!(rows_affected <= 1);
             if rows_affected <= 0 {
-                return Ok(None);
+                return Ok((prev_revision, None));
             }
         }
-        Ok(Some((prev_revision, next_revision)))
+        Ok((prev_revision, Some(next_revision)))
     }
 
-    fn remove_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<()>> {
+    fn delete_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<()>> {
         let target = collections_entity::table.filter(collections_entity::uid.eq(uid.as_ref()));
         let query = diesel::delete(target);
         let rows_affected: usize = query.execute(self.connection)?;
         debug_assert!(rows_affected <= 1);
         if rows_affected <= 0 {
-            return Ok(None);
+            Ok(None)
+        } else {
+            Ok(Some(()))
         }
-        Ok(Some(()))
     }
 
-    fn find_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<CollectionEntity>> {
+    fn load_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<CollectionEntity>> {
         let target = collections_entity::table.filter(collections_entity::uid.eq(uid.as_ref()));
         let result = target
             .first::<QueryableCollectionsEntity>(self.connection)
@@ -120,10 +121,7 @@ impl<'a> Collections for CollectionRepository<'a> {
         Ok(result.map(|r| r.into()))
     }
 
-    fn find_recently_revisioned_entities(
-        &self,
-        pagination: &Pagination,
-    ) -> CollectionsResult<Vec<CollectionEntity>> {
+    fn list_entities(&self, pagination: &Pagination) -> CollectionsResult<Vec<CollectionEntity>> {
         let offset = pagination.offset.map(|offset| offset as i64).unwrap_or(0);
         let limit = pagination
             .limit

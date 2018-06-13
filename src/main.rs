@@ -19,6 +19,10 @@ extern crate aoide_core;
 
 extern crate aoide_storage;
 
+extern crate actix;
+
+extern crate actix_web;
+
 extern crate clap;
 
 extern crate diesel;
@@ -32,11 +36,6 @@ extern crate env_logger;
 extern crate failure;
 
 extern crate futures;
-
-extern crate gotham;
-
-#[macro_use]
-extern crate gotham_derive;
 
 extern crate hyper;
 
@@ -52,18 +51,19 @@ extern crate serde;
 
 extern crate serde_json;
 
-use aoide::{middleware, middleware::DieselMiddleware};
-
 use aoide_storage::{storage::{collections::*,
                               serde::*,
                               tracks::{util::TrackRepositoryHelper, *}},
                     usecases::{api::{LocateTracksParams, Pagination, PaginationLimit,
-                                     PaginationOffset, ReplaceTracksParams,
-                                     ReplaceTracksResults, ScoredTagCount, SearchTracksParams,
-                                     StringField, StringFieldCounts, TagFacetCount},
+                                     PaginationOffset, ReplaceTracksParams, ReplacedTracks,
+                                     ScoredTagCount, SearchTracksParams, StringField,
+                                     StringFieldCounts, TagFacetCount},
                                *}};
 
 use aoide_core::domain::{collection::*, entity::*, track::*};
+
+use actix::prelude::*;
+use actix_web::*;
 
 use clap::{App, Arg};
 
@@ -72,23 +72,7 @@ use diesel::r2d2::ConnectionManager;
 
 use failure::Error;
 
-use futures::{future, Future, Stream};
-// futures v0.2.1
-//use futures::{future, Future};
-//use futures::stream::{Stream, StreamExt};
-
-// Gotham v0.3
-//use gotham::helpers::http::response::create_response;
-use gotham::handler::HandlerFuture;
-use gotham::http::response::create_response;
-use gotham::pipeline::new_pipeline;
-use gotham::pipeline::set::{finalize_pipeline_set, new_pipeline_set};
-use gotham::router::builder::*;
-use gotham::router::Router;
-use gotham::state::{FromState, State};
-
-use hyper::header::{ContentType, Headers};
-use hyper::{Response, StatusCode};
+use futures::future::Future;
 
 use env_logger::Builder as LoggerBuilder;
 
@@ -103,7 +87,790 @@ embed_migrations!("aoide-storage/db/migrations/sqlite");
 
 type SqliteConnectionPool = Pool<ConnectionManager<SqliteConnection>>;
 type SqlitePooledConnection = PooledConnection<ConnectionManager<SqliteConnection>>;
-type SqliteDieselMiddleware = DieselMiddleware<SqliteConnection>;
+
+pub struct SqliteExecutor {
+    pool: SqliteConnectionPool,
+}
+
+impl SqliteExecutor {
+    pub fn new(pool: SqliteConnectionPool) -> Self {
+        Self { pool }
+    }
+
+    pub fn pool(&self) -> &SqliteConnectionPool {
+        &self.pool
+    }
+
+    pub fn pooled_connection(&self) -> Result<SqlitePooledConnection, Error> {
+        let pooled_connection = self.pool.get()?;
+        Ok(pooled_connection)
+    }
+}
+
+impl Actor for SqliteExecutor {
+    type Context = SyncContext<Self>;
+}
+
+struct AppState {
+    executor: Addr<Syn, SqliteExecutor>,
+}
+
+#[derive(Debug)]
+pub struct CreateCollectionMessage {
+    pub collection: CollectionBody,
+}
+
+pub type CreateCollectionResult = CollectionsResult<CollectionEntity>;
+
+impl Message for CreateCollectionMessage {
+    type Result = CreateCollectionResult;
+}
+
+impl Handler<CreateCollectionMessage> for SqliteExecutor {
+    type Result = CreateCollectionResult;
+
+    fn handle(&mut self, msg: CreateCollectionMessage, _: &mut Self::Context) -> Self::Result {
+        let connection = &*self.pooled_connection()?;
+        let repository = CollectionRepository::new(connection);
+        connection.transaction::<_, Error, _>(|| repository.create_entity(msg.collection))
+    }
+}
+
+fn on_create_collection(
+    (state, body): (State<AppState>, Json<CollectionBody>),
+) -> FutureResponse<HttpResponse> {
+    let msg = CreateCollectionMessage {
+        collection: body.into_inner(),
+    };
+    state
+        .executor
+        .send(msg)
+        .from_err()
+        .and_then(|res| match res {
+            Ok(collection) => Ok(HttpResponse::Created().json(collection.header())),
+            Err(e) => Err(e.into()),
+        })
+        .responder()
+}
+
+#[derive(Debug)]
+pub struct UpdateCollectionMessage {
+    pub collection: CollectionEntity,
+}
+
+pub type UpdateCollectionResult = CollectionsResult<(EntityRevision, Option<EntityRevision>)>;
+
+impl Message for UpdateCollectionMessage {
+    type Result = UpdateCollectionResult;
+}
+
+impl Handler<UpdateCollectionMessage> for SqliteExecutor {
+    type Result = UpdateCollectionResult;
+
+    fn handle(&mut self, msg: UpdateCollectionMessage, _: &mut Self::Context) -> Self::Result {
+        let connection = &*self.pooled_connection()?;
+        let repository = CollectionRepository::new(connection);
+        connection.transaction::<_, Error, _>(|| repository.update_entity(&msg.collection))
+    }
+}
+
+fn on_update_collection(
+    (state, path, body): (State<AppState>, Path<EntityUid>, Json<CollectionEntity>),
+) -> FutureResponse<HttpResponse> {
+    let msg = UpdateCollectionMessage {
+        collection: body.into_inner(),
+    };
+    // TODO: Handle UID mismatch
+    let uid = path.into_inner();
+    assert!(uid == *msg.collection.header().uid());
+    state
+        .executor
+        .send(msg)
+        .from_err()
+        .and_then(move |res| match res {
+            Ok((_, Some(next_revision))) => {
+                let next_header = EntityHeader::new(uid, next_revision);
+                Ok(HttpResponse::Ok().json(next_header))
+            }
+            Ok((_, None)) => Err(actix_web::error::ErrorBadRequest(format_err!(
+                "Inexistent entity or revision conflict"
+            ))),
+            Err(e) => Err(e.into()),
+        })
+        .responder()
+}
+
+#[derive(Debug)]
+pub struct DeleteCollectionMessage {
+    pub uid: CollectionUid,
+}
+
+pub type DeleteCollectionResult = CollectionsResult<Option<()>>;
+
+impl Message for DeleteCollectionMessage {
+    type Result = DeleteCollectionResult;
+}
+
+impl Handler<DeleteCollectionMessage> for SqliteExecutor {
+    type Result = DeleteCollectionResult;
+
+    fn handle(&mut self, msg: DeleteCollectionMessage, _: &mut Self::Context) -> Self::Result {
+        let connection = &*self.pooled_connection()?;
+        let repository = CollectionRepository::new(connection);
+        connection.transaction::<_, Error, _>(|| repository.delete_entity(&msg.uid))
+    }
+}
+
+fn on_delete_collection(
+    (state, path): (State<AppState>, Path<EntityUid>),
+) -> FutureResponse<HttpResponse> {
+    let msg = DeleteCollectionMessage {
+        uid: path.into_inner(),
+    };
+    state
+        .executor
+        .send(msg)
+        .from_err()
+        .and_then(|res| match res {
+            Ok(Some(())) => Ok(HttpResponse::NoContent().into()),
+            Ok(None) => Ok(HttpResponse::NotFound().into()),
+            Err(e) => Err(e.into()),
+        })
+        .responder()
+}
+
+#[derive(Debug)]
+pub struct LoadCollectionMessage {
+    pub uid: CollectionUid,
+}
+
+pub type LoadCollectionResult = CollectionsResult<Option<CollectionEntity>>;
+
+impl Message for LoadCollectionMessage {
+    type Result = LoadCollectionResult;
+}
+
+impl Handler<LoadCollectionMessage> for SqliteExecutor {
+    type Result = LoadCollectionResult;
+
+    fn handle(&mut self, msg: LoadCollectionMessage, _: &mut Self::Context) -> Self::Result {
+        let connection = &*self.pooled_connection()?;
+        let repository = CollectionRepository::new(connection);
+        connection.transaction::<_, Error, _>(|| repository.load_entity(&msg.uid))
+    }
+}
+
+fn on_load_collection(
+    (state, path): (State<AppState>, Path<EntityUid>),
+) -> FutureResponse<HttpResponse> {
+    let msg = LoadCollectionMessage {
+        uid: path.into_inner(),
+    };
+    state
+        .executor
+        .send(msg)
+        .from_err()
+        .and_then(|res| match res {
+            Ok(Some(collection)) => Ok(HttpResponse::Ok().json(collection)),
+            Ok(None) => Ok(HttpResponse::NotFound().into()),
+            Err(e) => Err(e.into()),
+        })
+        .responder()
+}
+
+#[derive(Debug)]
+pub struct ListCollectionsMessage {
+    pub pagination: Pagination,
+}
+
+pub type ListCollectionsResult = CollectionsResult<Vec<CollectionEntity>>;
+
+impl Message for ListCollectionsMessage {
+    type Result = ListCollectionsResult;
+}
+
+impl Handler<ListCollectionsMessage> for SqliteExecutor {
+    type Result = ListCollectionsResult;
+
+    fn handle(&mut self, msg: ListCollectionsMessage, _: &mut Self::Context) -> Self::Result {
+        let connection = &*self.pooled_connection()?;
+        let repository = CollectionRepository::new(connection);
+        connection.transaction::<_, Error, _>(|| repository.list_entities(&msg.pagination))
+    }
+}
+
+fn on_list_collections(
+    (state, query): (State<AppState>, Query<Pagination>),
+) -> FutureResponse<HttpResponse> {
+    let msg = ListCollectionsMessage {
+        pagination: query.into_inner(),
+    };
+    state
+        .executor
+        .send(msg)
+        .from_err()
+        .and_then(|res| match res {
+            Ok(collections) => Ok(HttpResponse::Ok().json(collections)),
+            Err(e) => Err(e.into()),
+        })
+        .responder()
+}
+
+#[derive(Debug)]
+pub struct CreateTrackMessage {
+    pub track: TrackBody,
+}
+
+pub type CreateTrackResult = TracksResult<TrackEntity>;
+
+impl Message for CreateTrackMessage {
+    type Result = CreateTrackResult;
+}
+
+impl Handler<CreateTrackMessage> for SqliteExecutor {
+    type Result = CreateTrackResult;
+
+    fn handle(&mut self, msg: CreateTrackMessage, _: &mut Self::Context) -> Self::Result {
+        let connection = &*self.pooled_connection()?;
+        let repository = TrackRepository::new(connection);
+        connection.transaction::<_, Error, _>(|| {
+            repository.create_entity(msg.track, SerializationFormat::JSON)
+        })
+    }
+}
+
+fn on_create_track(
+    (state, body): (State<AppState>, Json<TrackBody>),
+) -> FutureResponse<HttpResponse> {
+    let msg = CreateTrackMessage {
+        track: body.into_inner(),
+    };
+    state
+        .executor
+        .send(msg)
+        .from_err()
+        .and_then(|res| match res {
+            Ok(track) => Ok(HttpResponse::Created().json(track.header())),
+            Err(e) => Err(e.into()),
+        })
+        .responder()
+}
+
+#[derive(Debug)]
+pub struct UpdateTrackMessage {
+    pub track: TrackEntity,
+}
+
+pub type UpdateTrackResult = TracksResult<(EntityRevision, Option<EntityRevision>)>;
+
+impl Message for UpdateTrackMessage {
+    type Result = UpdateTrackResult;
+}
+
+impl Handler<UpdateTrackMessage> for SqliteExecutor {
+    type Result = UpdateTrackResult;
+
+    fn handle(&mut self, msg: UpdateTrackMessage, _: &mut Self::Context) -> Self::Result {
+        let connection = &*self.pooled_connection()?;
+        let repository = TrackRepository::new(connection);
+        connection.transaction::<_, Error, _>(|| {
+            repository.update_entity(msg.track, SerializationFormat::JSON)
+        })
+    }
+}
+
+fn on_update_track(
+    (state, path_uid, body): (State<AppState>, Path<EntityUid>, Json<TrackEntity>),
+) -> FutureResponse<HttpResponse> {
+    let uid = path_uid.into_inner();
+    let msg = UpdateTrackMessage {
+        track: body.into_inner(),
+    };
+    // TODO: Handle UID mismatch
+    assert!(uid == *msg.track.header().uid());
+    state
+        .executor
+        .send(msg)
+        .from_err()
+        .and_then(move |res| match res {
+            Ok((_, Some(next_revision))) => {
+                let next_header = EntityHeader::new(uid, next_revision);
+                Ok(HttpResponse::Ok().json(next_header))
+            }
+            Ok((_, None)) => Err(actix_web::error::ErrorBadRequest(format_err!(
+                "Inexistent entity or revision conflict"
+            ))),
+            Err(e) => Err(e.into()),
+        })
+        .responder()
+}
+
+#[derive(Debug)]
+pub struct DeleteTrackMessage {
+    pub uid: TrackUid,
+}
+
+pub type DeleteTrackResult = TracksResult<Option<()>>;
+
+impl Message for DeleteTrackMessage {
+    type Result = DeleteTrackResult;
+}
+
+impl Handler<DeleteTrackMessage> for SqliteExecutor {
+    type Result = DeleteTrackResult;
+
+    fn handle(&mut self, msg: DeleteTrackMessage, _: &mut Self::Context) -> Self::Result {
+        let connection = &*self.pooled_connection()?;
+        let repository = TrackRepository::new(connection);
+        connection.transaction::<_, Error, _>(|| repository.delete_entity(&msg.uid))
+    }
+}
+
+fn on_delete_track(
+    (state, path_uid): (State<AppState>, Path<EntityUid>),
+) -> FutureResponse<HttpResponse> {
+    let msg = DeleteTrackMessage {
+        uid: path_uid.into_inner(),
+    };
+    state
+        .executor
+        .send(msg)
+        .from_err()
+        .and_then(|res| match res {
+            Ok(Some(())) => Ok(HttpResponse::NoContent().into()),
+            Ok(None) => Ok(HttpResponse::NotFound().into()),
+            Err(e) => Err(e.into()),
+        })
+        .responder()
+}
+
+#[derive(Debug)]
+pub struct LoadTrackMessage {
+    pub uid: TrackUid,
+}
+
+pub type LoadTrackResult = TracksResult<Option<SerializedEntity>>;
+
+impl Message for LoadTrackMessage {
+    type Result = LoadTrackResult;
+}
+
+impl Handler<LoadTrackMessage> for SqliteExecutor {
+    type Result = LoadTrackResult;
+
+    fn handle(&mut self, msg: LoadTrackMessage, _: &mut Self::Context) -> Self::Result {
+        let connection = &*self.pooled_connection()?;
+        let repository = TrackRepository::new(connection);
+        connection.transaction::<_, Error, _>(|| repository.load_entity(&msg.uid))
+    }
+}
+
+fn on_load_track(
+    (state, path_uid): (State<AppState>, Path<EntityUid>),
+) -> FutureResponse<HttpResponse> {
+    let msg = LoadTrackMessage {
+        uid: path_uid.into_inner(),
+    };
+    state
+        .executor
+        .send(msg)
+        .from_err()
+        .and_then(|res| match res {
+            Ok(Some(serialized_track)) => {
+                let mime_type: mime::Mime = serialized_track.format.into();
+                Ok(HttpResponse::Ok()
+                    .content_type(mime_type.to_string().as_str())
+                    .body(serialized_track.blob))
+            }
+            Ok(None) => Ok(HttpResponse::NotFound().into()),
+            Err(e) => Err(e.into()),
+        })
+        .responder()
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct TracksQueryParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub collection_uid: Option<CollectionUid>,
+
+    // TODO: Try again with flatten
+    // actix_web::pipeline: Error occured during request handling: invalid type: string "2", expected u64
+    //#[serde(flatten)]
+    //pub pagination: Pagination,
+    offset: Option<PaginationOffset>,
+    limit: Option<PaginationLimit>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    with: Option<String>,
+}
+
+impl TracksQueryParams {
+    pub fn pagination(&self) -> Pagination {
+        Pagination {
+            offset: self.offset,
+            limit: self.limit,
+        }
+    }
+
+    pub fn with_fields<'a>(&'a self) -> Vec<StringField> {
+        let mut result = Vec::new();
+        if let Some(ref field_list) = self.with {
+            result = field_list
+                .split(',')
+                .map(|field_str| serde_json::from_str(&format!("\"{}\"", field_str)))
+                .filter_map(|from_str| from_str.ok())
+                .collect();
+            debug_assert!(result.len() <= field_list.split(',').count());
+            let unrecognized_field_count = field_list.split(',').count() - result.len();
+            if unrecognized_field_count > 0 {
+                warn!(
+                    "{} unrecognized field selector(s) in '{}'",
+                    unrecognized_field_count, field_list
+                );
+            }
+            result.sort();
+            result.dedup();
+        }
+        result
+    }
+
+    pub fn with_facets<'a>(&'a self) -> Option<Vec<&'a str>> {
+        self.with
+            .as_ref()
+            .map(|facet_list| facet_list.split(',').collect::<Vec<&'a str>>())
+            .map(|mut facets| {
+                facets.sort();
+                facets
+            })
+            .map(|mut facets| {
+                facets.dedup();
+                facets
+            })
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct SearchTracksMessage {
+    pub collection_uid: Option<CollectionUid>,
+    pub pagination: Pagination,
+    pub params: SearchTracksParams,
+}
+
+pub type SearchTracksResult = TracksResult<Vec<SerializedEntity>>;
+
+impl Message for SearchTracksMessage {
+    type Result = SearchTracksResult;
+}
+
+impl Handler<SearchTracksMessage> for SqliteExecutor {
+    type Result = SearchTracksResult;
+
+    fn handle(&mut self, msg: SearchTracksMessage, _: &mut Self::Context) -> Self::Result {
+        let connection = &*self.pooled_connection()?;
+        let repository = TrackRepository::new(connection);
+        connection.transaction::<_, Error, _>(|| {
+            repository.search_entities(msg.collection_uid.as_ref(), &msg.pagination, msg.params)
+        })
+    }
+}
+
+fn on_list_tracks(
+    (state, query): (State<AppState>, Query<TracksQueryParams>),
+) -> FutureResponse<HttpResponse> {
+    let query_params = query.into_inner();
+    let msg = SearchTracksMessage {
+        collection_uid: query_params.collection_uid,
+        pagination: query_params.pagination(),
+        ..Default::default()
+    };
+    state
+        .executor
+        .send(msg)
+        .from_err()
+        .and_then(|res| match res {
+            Ok(serialized_tracks) => concat_serialized_entities_into_json_array(serialized_tracks),
+            Err(e) => Err(e.into()),
+        })
+        .from_err()
+        .and_then(|json| {
+            Ok(HttpResponse::Ok()
+                .content_type(mime::APPLICATION_JSON.to_string().as_str())
+                .body(json))
+        })
+        .responder()
+}
+
+fn on_search_tracks(
+    (state, query, body): (
+        State<AppState>,
+        Query<TracksQueryParams>,
+        Json<SearchTracksParams>,
+    ),
+) -> FutureResponse<HttpResponse> {
+    let query_params = query.into_inner();
+    let msg = SearchTracksMessage {
+        collection_uid: query_params.collection_uid,
+        pagination: query_params.pagination(),
+        params: body.into_inner(),
+    };
+    state
+        .executor
+        .send(msg)
+        .from_err()
+        .and_then(|res| match res {
+            Ok(serialized_tracks) => concat_serialized_entities_into_json_array(serialized_tracks),
+            Err(e) => Err(e.into()),
+        })
+        .from_err()
+        .and_then(|json| {
+            Ok(HttpResponse::Ok()
+                .content_type(mime::APPLICATION_JSON.to_string().as_str())
+                .body(json))
+        })
+        .responder()
+}
+
+#[derive(Debug)]
+pub struct LocateTracksMessage {
+    pub collection_uid: Option<CollectionUid>,
+    pub pagination: Pagination,
+    pub params: LocateTracksParams,
+}
+
+pub type LocateTracksResult = TracksResult<Vec<SerializedEntity>>;
+
+impl Message for LocateTracksMessage {
+    type Result = LocateTracksResult;
+}
+
+impl Handler<LocateTracksMessage> for SqliteExecutor {
+    type Result = LocateTracksResult;
+
+    fn handle(&mut self, msg: LocateTracksMessage, _: &mut Self::Context) -> Self::Result {
+        let connection = &*self.pooled_connection()?;
+        let repository = TrackRepository::new(connection);
+        connection.transaction::<_, Error, _>(|| {
+            repository.locate_entities(msg.collection_uid.as_ref(), &msg.pagination, msg.params)
+        })
+    }
+}
+
+fn on_locate_tracks(
+    (state, query, body): (
+        State<AppState>,
+        Query<TracksQueryParams>,
+        Json<LocateTracksParams>,
+    ),
+) -> FutureResponse<HttpResponse> {
+    let query_params = query.into_inner();
+    let msg = LocateTracksMessage {
+        collection_uid: query_params.collection_uid,
+        pagination: query_params.pagination(),
+        params: body.into_inner(),
+    };
+    state
+        .executor
+        .send(msg)
+        .from_err()
+        .and_then(|res| match res {
+            Ok(serialized_tracks) => concat_serialized_entities_into_json_array(serialized_tracks),
+            Err(e) => Err(e.into()),
+        })
+        .from_err()
+        .and_then(|json| {
+            Ok(HttpResponse::Ok()
+                .content_type(mime::APPLICATION_JSON.to_string().as_str())
+                .body(json))
+        })
+        .responder()
+}
+
+#[derive(Debug)]
+pub struct ReplaceTracksMessage {
+    pub collection_uid: Option<CollectionUid>,
+    pub params: ReplaceTracksParams,
+    pub format: SerializationFormat,
+}
+
+pub type ReplaceTracksResult = TracksResult<ReplacedTracks>;
+
+impl Message for ReplaceTracksMessage {
+    type Result = ReplaceTracksResult;
+}
+
+impl Handler<ReplaceTracksMessage> for SqliteExecutor {
+    type Result = ReplaceTracksResult;
+
+    fn handle(&mut self, msg: ReplaceTracksMessage, _: &mut Self::Context) -> Self::Result {
+        let connection = &*self.pooled_connection()?;
+        let repository = TrackRepository::new(connection);
+        connection.transaction::<_, Error, _>(|| {
+            repository.replace_entities(msg.collection_uid.as_ref(), msg.params, msg.format)
+        })
+    }
+}
+
+fn on_replace_tracks(
+    (state, query, body): (
+        State<AppState>,
+        Query<TracksQueryParams>,
+        Json<ReplaceTracksParams>,
+    ),
+) -> FutureResponse<HttpResponse> {
+    let query_params = query.into_inner();
+    let msg = ReplaceTracksMessage {
+        collection_uid: query_params.collection_uid,
+        params: body.into_inner(),
+        format: SerializationFormat::JSON,
+    };
+    state
+        .executor
+        .send(msg)
+        .from_err()
+        .and_then(|res| match res {
+            Ok(res) => Ok(HttpResponse::Ok().json(res)),
+            Err(e) => Err(e.into()),
+        })
+        .responder()
+}
+
+#[derive(Debug, Default)]
+struct ListTracksFieldsMessage {
+    pub params: TracksQueryParams,
+}
+
+pub type ListTracksFieldsResult = TracksResult<Vec<StringFieldCounts>>;
+
+impl Message for ListTracksFieldsMessage {
+    type Result = ListTracksFieldsResult;
+}
+
+impl Handler<ListTracksFieldsMessage> for SqliteExecutor {
+    type Result = ListTracksFieldsResult;
+
+    fn handle(&mut self, msg: ListTracksFieldsMessage, _: &mut Self::Context) -> Self::Result {
+        let fields = msg.params.with_fields();
+        let mut results: Vec<StringFieldCounts> = Vec::with_capacity(fields.len());
+        let connection = &*self.pooled_connection()?;
+        let repository = TrackRepository::new(connection);
+        // TODO: Enclose in transaction?
+        for field in fields.into_iter() {
+            let result = repository.list_fields(
+                msg.params.collection_uid.as_ref(),
+                field,
+                &msg.params.pagination(),
+            )?;
+            results.push(result);
+        }
+        Ok(results)
+    }
+}
+
+fn on_list_tracks_fields(
+    (state, query): (State<AppState>, Query<TracksQueryParams>),
+) -> FutureResponse<HttpResponse> {
+    let msg = ListTracksFieldsMessage {
+        params: query.into_inner(),
+    };
+    state
+        .executor
+        .send(msg)
+        .from_err()
+        .and_then(|res| match res {
+            Ok(tags) => Ok(HttpResponse::Ok().json(tags)),
+            Err(e) => Err(e.into()),
+        })
+        .responder()
+}
+
+#[derive(Debug, Default)]
+struct ListTracksTagsMessage {
+    pub params: TracksQueryParams,
+}
+
+pub type ListTracksTagsResult = TracksResult<Vec<ScoredTagCount>>;
+
+impl Message for ListTracksTagsMessage {
+    type Result = ListTracksTagsResult;
+}
+
+impl Handler<ListTracksTagsMessage> for SqliteExecutor {
+    type Result = ListTracksTagsResult;
+
+    fn handle(&mut self, msg: ListTracksTagsMessage, _: &mut Self::Context) -> Self::Result {
+        let connection = &*self.pooled_connection()?;
+        let repository = TrackRepository::new(connection);
+        connection.transaction::<_, Error, _>(|| {
+            repository.list_tags(
+                msg.params.collection_uid.as_ref(),
+                msg.params.with_facets().as_ref(),
+                &msg.params.pagination(),
+            )
+        })
+    }
+}
+
+fn on_list_tracks_tags(
+    (state, query): (State<AppState>, Query<TracksQueryParams>),
+) -> FutureResponse<HttpResponse> {
+    let msg = ListTracksTagsMessage {
+        params: query.into_inner(),
+    };
+    state
+        .executor
+        .send(msg)
+        .from_err()
+        .and_then(|res| match res {
+            Ok(tags) => Ok(HttpResponse::Ok().json(tags)),
+            Err(e) => Err(e.into()),
+        })
+        .responder()
+}
+
+#[derive(Debug, Default)]
+struct ListTracksTagsFacetsMessage {
+    pub params: TracksQueryParams,
+}
+
+pub type ListTracksTagsFacetsResult = TracksResult<Vec<TagFacetCount>>;
+
+impl Message for ListTracksTagsFacetsMessage {
+    type Result = ListTracksTagsFacetsResult;
+}
+
+impl Handler<ListTracksTagsFacetsMessage> for SqliteExecutor {
+    type Result = ListTracksTagsFacetsResult;
+
+    fn handle(&mut self, msg: ListTracksTagsFacetsMessage, _: &mut Self::Context) -> Self::Result {
+        let connection = &*self.pooled_connection()?;
+        let repository = TrackRepository::new(connection);
+        connection.transaction::<_, Error, _>(|| {
+            repository.list_tag_facets(
+                msg.params.collection_uid.as_ref(),
+                msg.params.with_facets().as_ref(),
+                &msg.params.pagination(),
+            )
+        })
+    }
+}
+
+fn on_list_tracks_tags_facets(
+    (state, query): (State<AppState>, Query<TracksQueryParams>),
+) -> FutureResponse<HttpResponse> {
+    let msg = ListTracksTagsFacetsMessage {
+        params: query.into_inner(),
+    };
+    state
+        .executor
+        .send(msg)
+        .from_err()
+        .and_then(|res| match res {
+            Ok(tags) => Ok(HttpResponse::Ok().json(tags)),
+            Err(e) => Err(e.into()),
+        })
+        .responder()
+}
 
 fn create_connection_pool(url: &str, max_size: u32) -> Result<SqliteConnectionPool, Error> {
     info!("Creating SQLite connection pool for '{}'", url);
@@ -167,1256 +934,6 @@ fn init_env_logger_verbosity(verbosity_level: u8) {
     init_env_logger(log_level_filter);
 }
 
-fn create_response_message<S: Into<String>>(
-    state: &State,
-    response_code: StatusCode,
-    response_message: S,
-) -> Response {
-    let response_text = response_message.into();
-    create_response(
-        &state,
-        response_code,
-        Some((response_text.into_bytes(), mime::TEXT_PLAIN_UTF_8)),
-    )
-}
-
-fn format_response_message<D: std::fmt::Display>(
-    state: &State,
-    response_code: StatusCode,
-    displayable: &D,
-) -> Response {
-    let response_message = format!("{}", displayable);
-    create_response_message(state, response_code, response_message)
-}
-
-fn parse_serialization_format_from_state(state: &State) -> Result<SerializationFormat, Error> {
-    match Headers::borrow_from(state).get::<ContentType>() {
-        Some(content_type) => {
-            if let Some(format) = SerializationFormat::from_media_type(&content_type.0) {
-                Ok(format)
-            } else {
-                Err(format_err!("Unsupported content type"))
-            }
-        }
-        None => Err(format_err!("Missing content type")),
-    }
-}
-
-#[derive(Deserialize, StateData, StaticResponseExtender)]
-struct UidPathExtractor {
-    uid: String,
-}
-
-impl UidPathExtractor {
-    fn parse_from(state: &mut State) -> Result<EntityUid, Error> {
-        EntityUid::decode_from_str(&Self::take_from(state).uid)
-    }
-
-    fn parse_from_and_verify(
-        state: &mut State,
-        expected_uid: &EntityUid,
-    ) -> Result<EntityUid, Error> {
-        match Self::parse_from(state) {
-            Ok(uid) => {
-                if &uid == expected_uid {
-                    Ok(uid)
-                } else {
-                    let e = format_err!(
-                        "Mismatching identifiers: expected = {}, actual = {}",
-                        expected_uid,
-                        uid
-                    );
-                    Err(e)
-                }
-            }
-            Err(e) => Err(e),
-        }
-    }
-}
-
-#[derive(Debug, Deserialize, StateData, StaticResponseExtender)]
-#[serde(rename_all = "camelCase")]
-struct DefaultQueryStringExtractor {
-    collection_uid: Option<String>,
-    with: Option<String>,
-    offset: Option<PaginationOffset>,
-    limit: Option<PaginationLimit>,
-}
-
-impl DefaultQueryStringExtractor {
-    pub fn decode_collection_uid(&self) -> Result<Option<CollectionUid>, Error> {
-        match self.collection_uid {
-            None => Ok(None),
-            Some(ref uid) => match CollectionUid::decode_from_str(uid) {
-                Ok(uid) => Ok(Some(uid)),
-                Err(e) => Err(e),
-            },
-        }
-    }
-
-    pub fn try_with_token(&self, with_token: &str) -> bool {
-        match self.with {
-            Some(ref with) => with.split(',').any(|token| token == with_token),
-            None => false,
-        }
-    }
-
-    pub fn with_fields<'a>(&'a self) -> Vec<StringField> {
-        let mut result = Vec::new();
-        if let Some(ref field_list) = self.with {
-            result = field_list
-                .split(',')
-                .map(|field_str| serde_json::from_str(&format!("\"{}\"", field_str)))
-                .filter_map(|from_str| from_str.ok())
-                .collect();
-            debug_assert!(result.len() <= field_list.split(',').count());
-            let unrecognized_field_count = field_list.split(',').count() - result.len();
-            if unrecognized_field_count > 0 {
-                warn!(
-                    "{} unrecognized field selector(s) in '{}'",
-                    unrecognized_field_count, field_list
-                );
-            }
-            result.sort();
-            result.dedup();
-        }
-        result
-    }
-
-    pub fn with_facets<'a>(&'a self) -> Option<Vec<&'a str>> {
-        self.with
-            .as_ref()
-            .map(|facet_list| facet_list.split(',').collect::<Vec<&'a str>>())
-            .map(|mut facets| {
-                facets.sort();
-                facets
-            })
-            .map(|mut facets| {
-                facets.dedup();
-                facets
-            })
-    }
-
-    pub fn pagination(&self) -> Pagination {
-        Pagination {
-            offset: self.offset,
-            limit: self.limit,
-        }
-    }
-}
-
-fn create_collection(
-    pooled_connection: SqlitePooledConnection,
-    body: CollectionBody,
-) -> Result<CollectionEntity, Error> {
-    let connection = &*pooled_connection;
-    let repository = CollectionRepository::new(connection);
-    connection.transaction::<_, Error, _>(|| repository.create_entity(body))
-}
-
-fn handle_create_collection(mut state: State) -> Box<HandlerFuture> {
-    let handler_future = hyper::Body::take_from(&mut state)
-        .concat2()
-        .then(move |full_body| match full_body {
-            Ok(valid_body) => {
-                let entity_body: CollectionBody = match serde_json::from_slice(&valid_body) {
-                    Ok(p) => p,
-                    Err(e) => {
-                        let response = format_response_message(&state, StatusCode::BadRequest, &e);
-                        return future::ok((state, response));
-                    }
-                };
-
-                let pooled_connection = match middleware::state_data::try_connection(&state) {
-                    Ok(pooled_connection) => pooled_connection,
-                    Err(e) => {
-                        error!("No database connection: {:?}", &e);
-                        let response =
-                            format_response_message(&state, StatusCode::InternalServerError, &e);
-                        return future::ok((state, response));
-                    }
-                };
-
-                let entity = match create_collection(pooled_connection, entity_body) {
-                    Ok(entity) => entity,
-                    Err(e) => {
-                        let response =
-                            format_response_message(&state, StatusCode::InternalServerError, &e);
-                        return future::ok((state, response));
-                    }
-                };
-
-                let response = match serde_json::to_vec(&entity.header()) {
-                    Ok(response_body) => create_response(
-                        &state,
-                        StatusCode::Created,
-                        Some((response_body, mime::APPLICATION_JSON)),
-                    ),
-                    Err(e) => {
-                        let response =
-                            format_response_message(&state, StatusCode::InternalServerError, &e);
-                        return future::ok((state, response));
-                    }
-                };
-                future::ok((state, response))
-            }
-            Err(e) => {
-                let response = format_response_message(&state, StatusCode::InternalServerError, &e);
-                return future::ok((state, response));
-            }
-        });
-
-    Box::new(handler_future)
-}
-
-fn update_collection(
-    pooled_connection: SqlitePooledConnection,
-    entity: &CollectionEntity,
-) -> CollectionsResult<Option<(EntityRevision, EntityRevision)>> {
-    let connection = &*pooled_connection;
-    let repository = CollectionRepository::new(connection);
-    connection.transaction::<_, Error, _>(|| repository.update_entity(entity))
-}
-
-fn handle_update_collection(mut state: State) -> Box<HandlerFuture> {
-    let handler_future = hyper::Body::take_from(&mut state)
-        .concat2()
-        .then(move |full_body| match full_body {
-            Ok(valid_body) => {
-                let entity: CollectionEntity = match serde_json::from_slice(&valid_body) {
-                    Ok(p) => p,
-                    Err(e) => {
-                        let response = format_response_message(&state, StatusCode::BadRequest, &e);
-                        return future::ok((state, response));
-                    }
-                };
-
-                let uid = match UidPathExtractor::parse_from_and_verify(
-                    &mut state,
-                    entity.header().uid(),
-                ) {
-                    Ok(uid) => uid,
-                    Err(e) => {
-                        let response = format_response_message(&state, StatusCode::BadRequest, &e);
-                        return future::ok((state, response));
-                    }
-                };
-
-                let pooled_connection = match middleware::state_data::try_connection(&state) {
-                    Ok(pooled_connection) => pooled_connection,
-                    Err(e) => {
-                        error!("No database connection: {:?}", &e);
-                        let response =
-                            format_response_message(&state, StatusCode::InternalServerError, &e);
-                        return future::ok((state, response));
-                    }
-                };
-
-                let prev_revision = entity.header().revision();
-                let next_revision = match update_collection(pooled_connection, &entity) {
-                    Ok(Some((_, next_revision))) => next_revision,
-                    Ok(None) => {
-                        let prev_header = EntityHeader::new(uid, prev_revision);
-                        let response_message =
-                            format!("Inexistent entity or revision conflict: {:?}", prev_header);
-                        let response = create_response_message(
-                            &state,
-                            StatusCode::InternalServerError,
-                            response_message,
-                        );
-                        return future::ok((state, response));
-                    }
-                    Err(e) => {
-                        let response =
-                            format_response_message(&state, StatusCode::InternalServerError, &e);
-                        return future::ok((state, response));
-                    }
-                };
-
-                let response = match serde_json::to_vec(&EntityHeader::new(uid, next_revision)) {
-                    Ok(response_body) => create_response(
-                        &state,
-                        StatusCode::Ok,
-                        Some((response_body, mime::APPLICATION_JSON)),
-                    ),
-                    Err(e) => {
-                        let response =
-                            format_response_message(&state, StatusCode::InternalServerError, &e);
-                        return future::ok((state, response));
-                    }
-                };
-                future::ok((state, response))
-            }
-            Err(e) => {
-                let response = format_response_message(&state, StatusCode::InternalServerError, &e);
-                return future::ok((state, response));
-            }
-        });
-
-    Box::new(handler_future)
-}
-
-fn delete_collection(
-    pooled_connection: SqlitePooledConnection,
-    uid: &EntityUid,
-) -> CollectionsResult<Option<()>> {
-    let connection = &*pooled_connection;
-    let repository = CollectionRepository::new(connection);
-    connection.transaction::<_, Error, _>(|| repository.remove_entity(&uid))
-}
-
-fn handle_delete_collections_path_uid(mut state: State) -> Box<HandlerFuture> {
-    let uid = match UidPathExtractor::parse_from(&mut state) {
-        Ok(uid) => uid,
-        Err(e) => {
-            let response = format_response_message(&state, StatusCode::BadRequest, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    let pooled_connection = match middleware::state_data::try_connection(&state) {
-        Ok(pooled_connection) => pooled_connection,
-        Err(e) => {
-            error!("No database connection: {:?}", &e);
-            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    let response = match delete_collection(pooled_connection, &uid) {
-        Ok(_) => create_response(&state, StatusCode::NoContent, None),
-        Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
-    };
-
-    Box::new(future::ok((state, response)))
-}
-
-fn load_collection(
-    pooled_connection: SqlitePooledConnection,
-    uid: &EntityUid,
-    with_track_stats: bool,
-) -> Result<Option<CollectionEntity>, Error> {
-    let connection = &*pooled_connection;
-    let repository = CollectionRepository::new(connection);
-    let mut collection = repository.find_entity(&uid)?;
-    if let Some(ref mut collection) = collection {
-        if with_track_stats {
-            let track_repo = TrackRepository::new(connection);
-            debug_assert!(collection.stats.tracks.is_none());
-            collection.stats.tracks = Some(track_repo.collection_stats(uid)?);
-        }
-    }
-    Ok(collection)
-}
-
-fn handle_load_collection(mut state: State) -> Box<HandlerFuture> {
-    let uid = match UidPathExtractor::parse_from(&mut state) {
-        Ok(uid) => uid,
-        Err(e) => {
-            let response = format_response_message(&state, StatusCode::BadRequest, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-    let query_params = DefaultQueryStringExtractor::take_from(&mut state);
-
-    let pooled_connection = match middleware::state_data::try_connection(&state) {
-        Ok(pooled_connection) => pooled_connection,
-        Err(e) => {
-            error!("No database connection: {:?}", &e);
-            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    let response = match load_collection(
-        pooled_connection,
-        &uid,
-        query_params.try_with_token("track-stats"),
-    ) {
-        Ok(Some(collection)) => match serde_json::to_vec(&collection) {
-            Ok(response_body) => create_response(
-                &state,
-                StatusCode::Ok,
-                Some((response_body, mime::APPLICATION_JSON)),
-            ),
-            Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
-        },
-        Ok(None) => create_response(&state, StatusCode::NotFound, None),
-        Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
-    };
-
-    Box::new(future::ok((state, response)))
-}
-
-fn list_collections(
-    pooled_connection: SqlitePooledConnection,
-    pagination: &Pagination,
-    with_track_stats: bool,
-) -> Result<Vec<CollectionEntity>, Error> {
-    let connection = &*pooled_connection;
-    let repository = CollectionRepository::new(connection);
-    let mut collections = repository.find_recently_revisioned_entities(pagination)?;
-    if with_track_stats {
-        let repository = TrackRepository::new(connection);
-        for collection in collections.iter_mut() {
-            debug_assert!(collection.stats.tracks.is_none());
-            collection.stats.tracks = Some(repository.collection_stats(collection.header().uid())?);
-        }
-    }
-    Ok(collections)
-}
-
-fn handle_list_collections(mut state: State) -> Box<HandlerFuture> {
-    let query_params = DefaultQueryStringExtractor::take_from(&mut state);
-    let pagination = Pagination {
-        offset: query_params.offset,
-        limit: query_params.limit,
-    };
-
-    let pooled_connection = match middleware::state_data::try_connection(&state) {
-        Ok(pooled_connection) => pooled_connection,
-        Err(e) => {
-            error!("No database connection: {:?}", &e);
-            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    let response = match list_collections(
-        pooled_connection,
-        &pagination,
-        query_params.try_with_token("track-stats"),
-    ) {
-        Ok(collections) => match serde_json::to_vec(&collections) {
-            Ok(response_body) => create_response(
-                &state,
-                StatusCode::Ok,
-                Some((response_body, mime::APPLICATION_JSON)),
-            ),
-            Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
-        },
-        Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
-    };
-
-    Box::new(future::ok((state, response)))
-}
-
-fn create_track(
-    pooled_connection: SqlitePooledConnection,
-    body: TrackBody,
-    format: SerializationFormat,
-) -> TracksResult<TrackEntity> {
-    let connection = &*pooled_connection;
-    let repository = TrackRepository::new(connection);
-    connection.transaction::<_, Error, _>(|| repository.create_entity(body, format))
-}
-
-fn handle_create_track(mut state: State) -> Box<HandlerFuture> {
-    let handler_future = hyper::Body::take_from(&mut state)
-        .concat2()
-        .then(move |full_body| match full_body {
-            Ok(valid_body) => {
-                let format = match parse_serialization_format_from_state(&state) {
-                    Ok(format) => format,
-                    Err(e) => {
-                        let response =
-                            format_response_message(&state, StatusCode::UnsupportedMediaType, &e);
-                        return future::ok((state, response));
-                    }
-                };
-
-                let entity_body: TrackBody =
-                    match deserialize_slice_with_format(&valid_body, format) {
-                        Ok(entity_body) => entity_body,
-                        Err(e) => {
-                            warn!(
-                                "Deserialization failed: {}",
-                                str::from_utf8(&valid_body).unwrap()
-                            );
-                            let response =
-                                format_response_message(&state, StatusCode::BadRequest, &e);
-                            return future::ok((state, response));
-                        }
-                    };
-                if !entity_body.is_valid() {
-                    warn!("Invalid track: {:?}", entity_body);
-                }
-
-                let pooled_connection = match middleware::state_data::try_connection(&state) {
-                    Ok(pooled_connection) => pooled_connection,
-                    Err(e) => {
-                        error!("No database connection: {:?}", &e);
-                        let response =
-                            format_response_message(&state, StatusCode::InternalServerError, &e);
-                        return future::ok((state, response));
-                    }
-                };
-
-                let entity = match create_track(pooled_connection, entity_body, format) {
-                    Ok(entity) => entity,
-                    Err(e) => {
-                        let response =
-                            format_response_message(&state, StatusCode::InternalServerError, &e);
-                        return future::ok((state, response));
-                    }
-                };
-
-                let response = match serialize_with_format(entity.header(), format) {
-                    Ok(response_body) => create_response(
-                        &state,
-                        StatusCode::Created,
-                        Some((response_body, mime::APPLICATION_JSON)),
-                    ),
-                    Err(e) => {
-                        let response =
-                            format_response_message(&state, StatusCode::InternalServerError, &e);
-                        return future::ok((state, response));
-                    }
-                };
-                future::ok((state, response))
-            }
-            Err(e) => {
-                let response = format_response_message(&state, StatusCode::InternalServerError, &e);
-                return future::ok((state, response));
-            }
-        });
-
-    Box::new(handler_future)
-}
-
-fn update_track(
-    pooled_connection: SqlitePooledConnection,
-    entity: &mut TrackEntity,
-    format: SerializationFormat,
-) -> TracksResult<Option<(EntityRevision, EntityRevision)>> {
-    let connection = &*pooled_connection;
-    let repository = TrackRepository::new(connection);
-    connection.transaction::<_, Error, _>(|| repository.update_entity(entity, format))
-}
-
-fn handle_update_track(mut state: State) -> Box<HandlerFuture> {
-    let handler_future = hyper::Body::take_from(&mut state)
-        .concat2()
-        .then(move |full_body| match full_body {
-            Ok(valid_body) => {
-                let format = match parse_serialization_format_from_state(&state) {
-                    Ok(format) => format,
-                    Err(e) => {
-                        let response =
-                            format_response_message(&state, StatusCode::UnsupportedMediaType, &e);
-                        return future::ok((state, response));
-                    }
-                };
-
-                let mut entity: TrackEntity =
-                    match deserialize_slice_with_format(&valid_body, format) {
-                        Ok(entity_body) => entity_body,
-                        Err(e) => {
-                            warn!(
-                                "Deserialization failed: {}",
-                                str::from_utf8(&valid_body).unwrap()
-                            );
-                            let response =
-                                format_response_message(&state, StatusCode::BadRequest, &e);
-                            return future::ok((state, response));
-                        }
-                    };
-                if !entity.body().is_valid() {
-                    warn!("Invalid track: {:?}", entity.body());
-                }
-
-                let uid = match UidPathExtractor::parse_from_and_verify(
-                    &mut state,
-                    entity.header().uid(),
-                ) {
-                    Ok(uid) => uid,
-                    Err(e) => {
-                        let response = format_response_message(&state, StatusCode::BadRequest, &e);
-                        return future::ok((state, response));
-                    }
-                };
-
-                let pooled_connection = match middleware::state_data::try_connection(&state) {
-                    Ok(pooled_connection) => pooled_connection,
-                    Err(e) => {
-                        error!("No database connection: {:?}", &e);
-                        let response =
-                            format_response_message(&state, StatusCode::InternalServerError, &e);
-                        return future::ok((state, response));
-                    }
-                };
-
-                let prev_revision = entity.header().revision();
-                let next_revision = match update_track(pooled_connection, &mut entity, format) {
-                    Ok(Some((_, next_revision))) => {
-                        debug_assert!(next_revision == entity.header().revision());
-                        next_revision
-                    }
-                    Ok(None) => {
-                        let prev_header = EntityHeader::new(uid, prev_revision);
-                        let response_message =
-                            format!("Inexistent entity or revision conflict: {:?}", prev_header);
-                        let response =
-                            create_response_message(&state, StatusCode::NotFound, response_message);
-                        return future::ok((state, response));
-                    }
-                    Err(e) => {
-                        let response =
-                            format_response_message(&state, StatusCode::InternalServerError, &e);
-                        return future::ok((state, response));
-                    }
-                };
-
-                let response = match serialize_with_format(
-                    &EntityHeader::new(uid, next_revision),
-                    format,
-                ) {
-                    Ok(response_body) => create_response(
-                        &state,
-                        StatusCode::Ok,
-                        Some((response_body, format.into())),
-                    ),
-                    Err(e) => {
-                        let response =
-                            format_response_message(&state, StatusCode::InternalServerError, &e);
-                        return future::ok((state, response));
-                    }
-                };
-                future::ok((state, response))
-            }
-            Err(e) => {
-                let response = format_response_message(&state, StatusCode::InternalServerError, &e);
-                return future::ok((state, response));
-            }
-        });
-
-    Box::new(handler_future)
-}
-
-fn delete_track(pooled_connection: SqlitePooledConnection, uid: &EntityUid) -> Result<(), Error> {
-    let connection = &*pooled_connection;
-    let repository = TrackRepository::new(connection);
-    connection.transaction::<_, Error, _>(|| repository.remove_entity(&uid))
-}
-
-fn handle_delete_track(mut state: State) -> Box<HandlerFuture> {
-    let uid = match UidPathExtractor::parse_from(&mut state) {
-        Ok(uid) => uid,
-        Err(e) => {
-            let response = format_response_message(&state, StatusCode::BadRequest, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    let pooled_connection = match middleware::state_data::try_connection(&state) {
-        Ok(pooled_connection) => pooled_connection,
-        Err(e) => {
-            error!("No database connection: {:?}", &e);
-            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    let response = match delete_track(pooled_connection, &uid) {
-        Ok(_) => create_response(&state, StatusCode::NoContent, None),
-        Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
-    };
-
-    Box::new(future::ok((state, response)))
-}
-
-fn load_track(
-    pooled_connection: SqlitePooledConnection,
-    uid: &EntityUid,
-) -> TracksResult<Option<SerializedEntity>> {
-    let connection = &*pooled_connection;
-    let repository = TrackRepository::new(connection);
-    repository.load_entity(&uid)
-}
-
-fn handle_load_track(mut state: State) -> Box<HandlerFuture> {
-    let uid = match UidPathExtractor::parse_from(&mut state) {
-        Ok(uid) => uid,
-        Err(e) => {
-            let response = format_response_message(&state, StatusCode::BadRequest, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    let pooled_connection = match middleware::state_data::try_connection(&state) {
-        Ok(pooled_connection) => pooled_connection,
-        Err(e) => {
-            error!("No database connection: {:?}", &e);
-            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    let response = match load_track(pooled_connection, &uid) {
-        Ok(Some(serialized_entity)) => create_response(
-            &state,
-            StatusCode::Ok,
-            Some((serialized_entity.blob, serialized_entity.format.into())),
-        ),
-        Ok(None) => create_response(&state, StatusCode::NotFound, None),
-        Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
-    };
-
-    Box::new(future::ok((state, response)))
-}
-
-fn handle_list_tracks(mut state: State) -> Box<HandlerFuture> {
-    let query_params = DefaultQueryStringExtractor::take_from(&mut state);
-
-    let collection_uid = match query_params.decode_collection_uid() {
-        Ok(collection_uid) => collection_uid,
-        Err(e) => {
-            let response = format_response_message(&state, StatusCode::BadRequest, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    let pooled_connection = match middleware::state_data::try_connection(&state) {
-        Ok(pooled_connection) => pooled_connection,
-        Err(e) => {
-            error!("No database connection: {:?}", &e);
-            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    let response = match search_tracks(
-        pooled_connection,
-        collection_uid.as_ref(),
-        &query_params.pagination(),
-        SearchTracksParams::default(),
-    ).and_then(concat_serialized_entities_into_json_array)
-    {
-        Ok(json_array) => create_response(
-            &state,
-            StatusCode::Ok,
-            Some((json_array, mime::APPLICATION_JSON)),
-        ),
-        Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
-    };
-
-    Box::new(future::ok((state, response)))
-}
-
-fn search_tracks(
-    pooled_connection: SqlitePooledConnection,
-    collection_uid: Option<&EntityUid>,
-    pagination: &Pagination,
-    search_params: SearchTracksParams,
-) -> TracksResult<Vec<SerializedEntity>> {
-    let connection = &*pooled_connection;
-    let repository = TrackRepository::new(connection);
-    repository.search_entities(collection_uid, pagination, search_params)
-}
-
-fn handle_search_tracks(mut state: State) -> Box<HandlerFuture> {
-    let query_params = DefaultQueryStringExtractor::take_from(&mut state);
-
-    let collection_uid = match query_params.decode_collection_uid() {
-        Ok(collection_uid) => collection_uid,
-        Err(e) => {
-            let response = format_response_message(&state, StatusCode::BadRequest, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    let handler_future = hyper::Body::take_from(&mut state)
-        .concat2()
-        .then(move |full_body| match full_body {
-            Ok(valid_body) => {
-                let format = match parse_serialization_format_from_state(&state) {
-                    Ok(format) => format,
-                    Err(e) => {
-                        let response =
-                            format_response_message(&state, StatusCode::UnsupportedMediaType, &e);
-                        return future::ok((state, response));
-                    }
-                };
-
-                let search_params: SearchTracksParams =
-                    match deserialize_slice_with_format(&valid_body, format) {
-                        Ok(search_params) => search_params,
-                        Err(e) => {
-                            warn!(
-                                "Deserialization failed: {}",
-                                str::from_utf8(&valid_body).unwrap()
-                            );
-                            let response =
-                                format_response_message(&state, StatusCode::BadRequest, &e);
-                            return future::ok((state, response));
-                        }
-                    };
-
-                let pooled_connection = match middleware::state_data::try_connection(&state) {
-                    Ok(pooled_connection) => pooled_connection,
-                    Err(e) => {
-                        error!("No database connection: {:?}", &e);
-                        let response =
-                            format_response_message(&state, StatusCode::InternalServerError, &e);
-                        return future::ok((state, response));
-                    }
-                };
-
-                let response = match search_tracks(
-                    pooled_connection,
-                    collection_uid.as_ref(),
-                    &query_params.pagination(),
-                    search_params,
-                ).and_then(concat_serialized_entities_into_json_array)
-                {
-                    Ok(json_array) => {
-                        create_response(&state, StatusCode::Ok, Some((json_array, format.into())))
-                    }
-                    Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
-                };
-                future::ok((state, response))
-            }
-            Err(e) => {
-                let response = format_response_message(&state, StatusCode::InternalServerError, &e);
-                future::ok((state, response))
-            }
-        });
-
-    Box::new(handler_future)
-}
-
-fn locate_tracks(
-    pooled_connection: SqlitePooledConnection,
-    collection_uid: Option<&EntityUid>,
-    pagination: &Pagination,
-    locate_params: LocateTracksParams,
-) -> TracksResult<Vec<SerializedEntity>> {
-    let connection = &*pooled_connection;
-    let repository = TrackRepository::new(connection);
-    repository.locate_entities(collection_uid, pagination, locate_params)
-}
-
-fn handle_locate_tracks(mut state: State) -> Box<HandlerFuture> {
-    let query_params = DefaultQueryStringExtractor::take_from(&mut state);
-
-    let collection_uid = match query_params.decode_collection_uid() {
-        Ok(collection_uid) => collection_uid,
-        Err(e) => {
-            let response = format_response_message(&state, StatusCode::BadRequest, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    let handler_future = hyper::Body::take_from(&mut state)
-        .concat2()
-        .then(move |full_body| match full_body {
-            Ok(valid_body) => {
-                let format = match parse_serialization_format_from_state(&state) {
-                    Ok(format) => format,
-                    Err(e) => {
-                        let response =
-                            format_response_message(&state, StatusCode::UnsupportedMediaType, &e);
-                        return future::ok((state, response));
-                    }
-                };
-
-                let locate_params: LocateTracksParams =
-                    match deserialize_slice_with_format(&valid_body, format) {
-                        Ok(locate_params) => locate_params,
-                        Err(e) => {
-                            warn!(
-                                "Deserialization failed: {}",
-                                str::from_utf8(&valid_body).unwrap()
-                            );
-                            let response =
-                                format_response_message(&state, StatusCode::BadRequest, &e);
-                            return future::ok((state, response));
-                        }
-                    };
-
-                let pooled_connection = match middleware::state_data::try_connection(&state) {
-                    Ok(pooled_connection) => pooled_connection,
-                    Err(e) => {
-                        error!("No database connection: {:?}", &e);
-                        let response =
-                            format_response_message(&state, StatusCode::InternalServerError, &e);
-                        return future::ok((state, response));
-                    }
-                };
-
-                let response = match locate_tracks(
-                    pooled_connection,
-                    collection_uid.as_ref(),
-                    &query_params.pagination(),
-                    locate_params,
-                ).and_then(concat_serialized_entities_into_json_array)
-                {
-                    Ok(json_array) => {
-                        create_response(&state, StatusCode::Ok, Some((json_array, format.into())))
-                    }
-                    Err(e) => {
-                        let response =
-                            format_response_message(&state, StatusCode::InternalServerError, &e);
-                        return future::ok((state, response));
-                    }
-                };
-                future::ok((state, response))
-            }
-            Err(e) => {
-                let response = format_response_message(&state, StatusCode::InternalServerError, &e);
-                return future::ok((state, response));
-            }
-        });
-
-    Box::new(handler_future)
-}
-
-fn replace_tracks(
-    pooled_connection: SqlitePooledConnection,
-    collection_uid: Option<&EntityUid>,
-    replacement_params: ReplaceTracksParams,
-    format: SerializationFormat,
-) -> TracksResult<ReplaceTracksResults> {
-    let connection = &*pooled_connection;
-    let repository = TrackRepository::new(connection);
-    connection.transaction::<_, Error, _>(|| {
-        repository.replace_entities(collection_uid, replacement_params, format)
-    })
-}
-
-fn handle_replace_tracks(mut state: State) -> Box<HandlerFuture> {
-    let query_params = DefaultQueryStringExtractor::take_from(&mut state);
-
-    let collection_uid = match query_params.decode_collection_uid() {
-        Ok(collection_uid) => collection_uid,
-        Err(e) => {
-            let response = format_response_message(&state, StatusCode::BadRequest, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    let handler_future = hyper::Body::take_from(&mut state)
-        .concat2()
-        .then(move |full_body| match full_body {
-            Ok(valid_body) => {
-                let format = match parse_serialization_format_from_state(&state) {
-                    Ok(format) => format,
-                    Err(e) => {
-                        let response =
-                            format_response_message(&state, StatusCode::UnsupportedMediaType, &e);
-                        return future::ok((state, response));
-                    }
-                };
-
-                let replacement_params: ReplaceTracksParams =
-                    match deserialize_slice_with_format(&valid_body, format) {
-                        Ok(replacement_params) => replacement_params,
-                        Err(e) => {
-                            warn!(
-                                "Deserialization failed: {}",
-                                str::from_utf8(&valid_body).unwrap()
-                            );
-                            let response =
-                                format_response_message(&state, StatusCode::BadRequest, &e);
-                            return future::ok((state, response));
-                        }
-                    };
-
-                let pooled_connection = match middleware::state_data::try_connection(&state) {
-                    Ok(pooled_connection) => pooled_connection,
-                    Err(e) => {
-                        error!("No database connection: {:?}", &e);
-                        let response =
-                            format_response_message(&state, StatusCode::InternalServerError, &e);
-                        return future::ok((state, response));
-                    }
-                };
-
-                let response = match replace_tracks(
-                    pooled_connection,
-                    collection_uid.as_ref(),
-                    replacement_params,
-                    format,
-                ) {
-                    Ok(report) => match serialize_with_format(&report, format) {
-                        Ok(response_body) => create_response(
-                            &state,
-                            StatusCode::Ok,
-                            Some((response_body, format.into())),
-                        ),
-                        Err(e) => {
-                            let response = format_response_message(
-                                &state,
-                                StatusCode::InternalServerError,
-                                &e,
-                            );
-                            return future::ok((state, response));
-                        }
-                    },
-                    Err(e) => {
-                        let response = format_response_message(&state, StatusCode::BadRequest, &e);
-                        return future::ok((state, response));
-                    }
-                };
-
-                future::ok((state, response))
-            }
-            Err(e) => {
-                let response = format_response_message(&state, StatusCode::InternalServerError, &e);
-                return future::ok((state, response));
-            }
-        });
-
-    Box::new(handler_future)
-}
-
-fn list_fields(
-    pooled_connection: SqlitePooledConnection,
-    collection_uid: Option<&EntityUid>,
-    fields: Vec<StringField>,
-    pagination: &Pagination,
-) -> TracksResult<Vec<StringFieldCounts>> {
-    let mut results: Vec<StringFieldCounts> = Vec::with_capacity(fields.len());
-
-    let connection = &*pooled_connection;
-    let repository = TrackRepository::new(connection);
-    for field in fields.into_iter() {
-        let result = repository.list_fields(collection_uid, field, pagination)?;
-        results.push(result);
-    }
-
-    Ok(results)
-}
-
-fn handle_list_fields(mut state: State) -> Box<HandlerFuture> {
-    let query_params = DefaultQueryStringExtractor::take_from(&mut state);
-
-    let collection_uid = match query_params.decode_collection_uid() {
-        Ok(collection_uid) => collection_uid,
-        Err(e) => {
-            let response = format_response_message(&state, StatusCode::BadRequest, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    let selected_fields = query_params.with_fields();
-    if selected_fields.is_empty() {
-        warn!("No countable fields selected");
-        let response = create_response(&state, StatusCode::NoContent, None);
-        return Box::new(future::ok((state, response)));
-    }
-
-    let pooled_connection = match middleware::state_data::try_connection(&state) {
-        Ok(pooled_connection) => pooled_connection,
-        Err(e) => {
-            error!("No database connection: {:?}", &e);
-            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    let response = match list_fields(
-        pooled_connection,
-        collection_uid.as_ref(),
-        selected_fields,
-        &query_params.pagination(),
-    ) {
-        Ok(results) => match serde_json::to_vec(&results) {
-            Ok(json) => {
-                create_response(&state, StatusCode::Ok, Some((json, mime::APPLICATION_JSON)))
-            }
-            Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
-        },
-        Err(e) => {
-            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    Box::new(future::ok((state, response)))
-}
-
-fn list_tag_facets(
-    pooled_connection: SqlitePooledConnection,
-    collection_uid: Option<&EntityUid>,
-    facets: Option<&Vec<&str>>,
-    pagination: &Pagination,
-) -> TrackTagsResult<Vec<TagFacetCount>> {
-    let connection = &*pooled_connection;
-    let repository = TrackRepository::new(connection);
-    repository.list_tag_facets(collection_uid, facets, pagination)
-}
-
-fn handle_list_tag_facets(mut state: State) -> Box<HandlerFuture> {
-    let query_params = DefaultQueryStringExtractor::take_from(&mut state);
-
-    let collection_uid = match query_params.decode_collection_uid() {
-        Ok(collection_uid) => collection_uid,
-        Err(e) => {
-            let response = format_response_message(&state, StatusCode::BadRequest, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    let pooled_connection = match middleware::state_data::try_connection(&state) {
-        Ok(pooled_connection) => pooled_connection,
-        Err(e) => {
-            error!("No database connection: {:?}", &e);
-            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    let response = match list_tag_facets(
-        pooled_connection,
-        collection_uid.as_ref(),
-        query_params.with_facets().as_ref(),
-        &query_params.pagination(),
-    ) {
-        Ok(result) => match serde_json::to_vec(&result) {
-            Ok(response_body) => create_response(
-                &state,
-                StatusCode::Ok,
-                Some((response_body, mime::APPLICATION_JSON)),
-            ),
-            Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
-        },
-        Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
-    };
-
-    Box::new(future::ok((state, response)))
-}
-
-fn list_tags(
-    pooled_connection: SqlitePooledConnection,
-    collection_uid: Option<&EntityUid>,
-    facets: Option<&Vec<&str>>,
-    pagination: &Pagination,
-) -> TrackTagsResult<Vec<ScoredTagCount>> {
-    let connection = &*pooled_connection;
-    let repository = TrackRepository::new(connection);
-    repository.list_tags(collection_uid, facets, pagination)
-}
-
-fn handle_list_tags(mut state: State) -> Box<HandlerFuture> {
-    let query_params = DefaultQueryStringExtractor::take_from(&mut state);
-
-    let collection_uid = match query_params.decode_collection_uid() {
-        Ok(collection_uid) => collection_uid,
-        Err(e) => {
-            let response = format_response_message(&state, StatusCode::BadRequest, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    let pooled_connection = match middleware::state_data::try_connection(&state) {
-        Ok(pooled_connection) => pooled_connection,
-        Err(e) => {
-            error!("No database connection: {:?}", &e);
-            let response = format_response_message(&state, StatusCode::InternalServerError, &e);
-            return Box::new(future::ok((state, response)));
-        }
-    };
-
-    let response = match list_tags(
-        pooled_connection,
-        collection_uid.as_ref(),
-        query_params.with_facets().as_ref(),
-        &query_params.pagination(),
-    ) {
-        Ok(result) => match serde_json::to_vec(&result) {
-            Ok(response_body) => create_response(
-                &state,
-                StatusCode::Ok,
-                Some((response_body, mime::APPLICATION_JSON)),
-            ),
-            Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
-        },
-        Err(e) => format_response_message(&state, StatusCode::InternalServerError, &e),
-    };
-
-    Box::new(future::ok((state, response)))
-}
-
-fn router(middleware: SqliteDieselMiddleware) -> Router {
-    // Create a new pipeline set
-    let editable_pipeline_set = new_pipeline_set();
-
-    // Add the middleware to a new pipeline
-    let (editable_pipeline_set, pipeline) =
-        editable_pipeline_set.add(new_pipeline().add(middleware).build());
-    let pipeline_set = finalize_pipeline_set(editable_pipeline_set);
-
-    let default_pipeline_chain = (pipeline, ());
-
-    // Build the router
-    build_router(default_pipeline_chain, pipeline_set, |route| {
-        route // load collection
-            .get("/collections/:uid")
-            .with_path_extractor::<UidPathExtractor>()
-            .with_query_string_extractor::<DefaultQueryStringExtractor>()
-            .to(handle_load_collection);
-        route // update collection
-            .put("/collections/:uid")
-            .with_path_extractor::<UidPathExtractor>()
-            .to(handle_update_collection);
-        route // delete collection
-            .delete("/collections/:uid")
-            .with_path_extractor::<UidPathExtractor>()
-            .to(handle_delete_collections_path_uid);
-        route // list collections
-            .get("/collections")
-            .with_query_string_extractor::<DefaultQueryStringExtractor>()
-            .to(handle_list_collections);
-        route // create collection
-            .post("/collections")
-            .to(handle_create_collection);
-        route // load track
-            .get("/tracks/:uid")
-            .with_path_extractor::<UidPathExtractor>()
-            .to(handle_load_track);
-        route // update track
-            .put("/tracks/:uid")
-            .with_path_extractor::<UidPathExtractor>()
-            .to(handle_update_track);
-        route // delete track
-            .delete("/tracks/:uid")
-            .with_path_extractor::<UidPathExtractor>()
-            .to(handle_delete_track);
-        route // search tracks
-            .post("/tracks/search")
-            .with_query_string_extractor::<DefaultQueryStringExtractor>()
-            .to(handle_search_tracks);
-        route // locate track
-            .post("/tracks/locate")
-            .with_query_string_extractor::<DefaultQueryStringExtractor>()
-            .to(handle_locate_tracks);
-        route // replace tracks
-            .post("/tracks/replace")
-            .with_query_string_extractor::<DefaultQueryStringExtractor>()
-            .to(handle_replace_tracks);
-        route // list tracks
-            .get("/tracks")
-            .with_query_string_extractor::<DefaultQueryStringExtractor>()
-            .to(handle_list_tracks);
-        route // create track
-            .post("/tracks")
-            .to(handle_create_track);
-        route // list tag facets
-            .get("/tags/facets")
-            .with_query_string_extractor::<DefaultQueryStringExtractor>()
-            .to(handle_list_tag_facets);
-        route // list tags
-            .get("/tags")
-            .with_query_string_extractor::<DefaultQueryStringExtractor>()
-            .to(handle_list_tags);
-        route // list (string) fields
-            .get("/fields")
-            .with_query_string_extractor::<DefaultQueryStringExtractor>()
-            .to(handle_list_fields);
-    })
-}
-
 pub fn main() -> Result<(), Error> {
     let matches = App::new("aoide")
             .version("0.0.1")
@@ -1458,14 +975,62 @@ pub fn main() -> Result<(), Error> {
 
     repair_database_storage(&connection_pool).unwrap();
 
-    info!("Creating middleware");
-    let middleware = DieselMiddleware::with_pool(connection_pool);
-
-    info!("Creating router");
-    let router = router(middleware);
+    info!("Creating actor system");
+    let sys = actix::System::new("aoide");
+    let addr = SyncArbiter::start(3, move || SqliteExecutor::new(connection_pool.clone()));
+    server::new(move || {
+        actix_web::App::with_state(AppState {
+                executor: addr.clone(),
+            })
+            .middleware(actix_web::middleware::Logger::default()) // enable logger
+            .prefix("/")
+            .resource("/tracks", |r| {
+                r.method(http::Method::GET).with_async(on_list_tracks);
+                r.method(http::Method::POST).with_async(on_create_track);
+            })
+            .resource("/tracks/search", |r| {
+                r.method(http::Method::POST).with_async(on_search_tracks);
+            })
+            .resource("/tracks/fields", |r| {
+                r.method(http::Method::GET).with_async(on_list_tracks_fields);
+            })
+            .resource("/tracks/tags", |r| {
+                r.method(http::Method::GET).with_async(on_list_tracks_tags);
+            })
+            .resource("/tracks/tags/facets", |r| {
+                r.method(http::Method::GET).with_async(on_list_tracks_tags_facets);
+            })
+            .resource("/tracks/replace", |r| {
+                r.method(http::Method::POST).with_async(on_replace_tracks);
+            })
+            .resource("/tracks/locate", |r| {
+                r.method(http::Method::POST).with_async(on_locate_tracks);
+            })
+            .resource("/tracks/{uid}", |r| {
+                r.method(http::Method::GET).with_async(on_load_track);
+                r.method(http::Method::PUT).with_async(on_update_track);
+                r.method(http::Method::DELETE).with_async(on_delete_track);
+            })
+            .resource("/collections", |r| {
+                r.method(http::Method::GET).with_async(on_list_collections);
+                r.method(http::Method::POST).with_async(on_create_collection);
+            })
+            .resource("/collections/{uid}", |r| {
+                r.method(http::Method::GET).with_async(on_load_collection);
+                r.method(http::Method::PUT).with_async(on_update_collection);
+                r.method(http::Method::DELETE).with_async(on_delete_collection);
+            })
+            .default_resource(|r| {
+                r.method(http::Method::GET).f(|_req| HttpResponse::NotFound());
+                r.route().filter(pred::Not(pred::Get())).f(
+                    |_req| HttpResponse::MethodNotAllowed());
+            })
+    }).bind(listen_addr)
+        .unwrap()
+        .start();
 
     info!("Listening for requests at http://{}", listen_addr);
-    gotham::start(listen_addr, router);
+    let _ = sys.run();
 
     info!("Exiting");
     Ok(())
