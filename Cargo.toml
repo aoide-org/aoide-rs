@@ -28,10 +28,10 @@ diesel = { version = "*", features = ["r2d2", "sqlite"] }
 diesel_migrations =  { version = "*", features = ["sqlite"] }
 env_logger = "*"
 failure = { version = "*", features = ["std"] }
-# pinned for Actix
+# futures: Pinned for Actix Web
 futures = "0.1.*"
 #futures = "*"
-# pinned for Actix Web
+# hype: Pinned for Actix Web
 hyper = "0.11.*"
 #hyper = "*"
 libsqlite3-sys = { version = "*", features = ["bundled"] }

@@ -63,15 +63,3 @@ fn header_with_uid() {
     assert!(header.is_valid());
     assert!(header.revision().is_initial());
 }
-
-#[test]
-fn header_update_revision() {
-    let mut header = EntityHeader::with_uid(EntityUidGenerator::generate_uid());
-    let uid = header.uid().clone();
-    let initial_revision = header.revision();
-    assert!(initial_revision.is_initial());
-    let next_revision = header.revision().next();
-    header.update_revision(next_revision);
-    assert!(*header.uid() == uid);
-    assert!(header.revision() == next_revision);
-}

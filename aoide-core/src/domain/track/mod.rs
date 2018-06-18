@@ -583,14 +583,6 @@ impl TrackEntity {
         &self.header
     }
 
-    pub fn into_header(self) -> EntityHeader {
-        self.header
-    }
-
-    pub fn into_body(self) -> TrackBody {
-        self.body
-    }
-
     pub fn body<'a>(&'a self) -> &'a TrackBody {
         &self.body
     }
@@ -599,12 +591,8 @@ impl TrackEntity {
         &mut self.body
     }
 
-    pub fn update_revision(&mut self, next_revision: EntityRevision) {
-        self.header.update_revision(next_revision);
-    }
-
-    pub fn replace_body(&mut self, body: TrackBody) {
-        self.body = body;
+    pub fn split_into(self) -> (EntityHeader, TrackBody) {
+        (self.header, self.body)
     }
 }
 

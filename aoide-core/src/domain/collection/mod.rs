@@ -95,10 +95,6 @@ impl CollectionEntity {
     pub fn body_mut<'a>(&'a mut self) -> &'a mut CollectionBody {
         &mut self.body
     }
-
-    pub fn update_revision(&mut self, next_revision: EntityRevision) {
-        self.header.update_revision(next_revision);
-    }
 }
 
 pub type CollectionUid = EntityUid;

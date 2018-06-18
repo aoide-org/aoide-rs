@@ -57,8 +57,6 @@ fn update_entity() {
     assert!(prev_revision == prev_revision2);
     assert!(prev_revision < next_revision.unwrap());
     assert!(entity.header().revision() == prev_revision);
-    entity.update_revision(next_revision.unwrap());
-    assert!(entity.header().revision() == next_revision.unwrap());
 }
 
 #[test]

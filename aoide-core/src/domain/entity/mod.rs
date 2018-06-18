@@ -346,9 +346,4 @@ impl EntityHeader {
     pub fn revision(&self) -> EntityRevision {
         self.revision
     }
-
-    pub fn update_revision(&mut self, next_revision: EntityRevision) {
-        debug_assert!(self.revision < next_revision);
-        self.revision = next_revision;
-    }
 }
