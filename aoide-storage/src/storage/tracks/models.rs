@@ -27,7 +27,7 @@ use aoide_core::domain::entity::{EntityHeader, EntityRevision};
 use aoide_core::domain::metadata::{Comment, Rating, Score, ScoreValue};
 use aoide_core::domain::music::sonic::BeatsPerMinute;
 use aoide_core::domain::music::{ActorRole, Actors, SongFeature, SongProfile, TitleLevel, Titles};
-use aoide_core::domain::track::{RefOrigin, TrackBody, TrackResource};
+use aoide_core::domain::track::{RefOrigin, Track, TrackResource};
 
 #[derive(Debug, Insertable)]
 #[table_name = "tracks_entity"]
@@ -111,7 +111,7 @@ pub struct InsertableTracksOverview<'a> {
 }
 
 impl<'a> InsertableTracksOverview<'a> {
-    pub fn bind(track_id: StorageId, track: &'a TrackBody) -> Self {
+    pub fn bind(track_id: StorageId, track: &'a Track) -> Self {
         Self {
             track_id,
             track_title: Titles::main_title(&track.titles).map(|title| title.name.as_str()),
@@ -178,7 +178,7 @@ pub struct InsertableTracksSummary<'a> {
 }
 
 impl<'a> InsertableTracksSummary<'a> {
-    pub fn bind(track_id: StorageId, track: &'a TrackBody) -> Self {
+    pub fn bind(track_id: StorageId, track: &'a Track) -> Self {
         let (ratings_min, ratings_max) = match Rating::minmax(&track.ratings, None) {
             Some((Score(min), Score(max))) => (Some(min), Some(max)),
             None => (None, None),

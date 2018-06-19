@@ -29,7 +29,7 @@ use aoide_core::domain::track::*;
 pub type CollectionsResult<T> = Result<T, failure::Error>;
 
 pub trait Collections {
-    fn create_entity(&self, body: CollectionBody) -> CollectionsResult<CollectionEntity>;
+    fn create_entity(&self, body: Collection) -> CollectionsResult<CollectionEntity>;
 
     fn insert_entity(&self, entity: &CollectionEntity) -> CollectionsResult<()>;
 
@@ -62,11 +62,7 @@ pub trait Collections {
 pub type TracksResult<T> = Result<T, failure::Error>;
 
 pub trait Tracks {
-    fn create_entity(
-        &self,
-        body: TrackBody,
-        format: SerializationFormat,
-    ) -> TracksResult<TrackEntity>;
+    fn create_entity(&self, body: Track, format: SerializationFormat) -> TracksResult<TrackEntity>;
 
     fn insert_entity(&self, entity: &TrackEntity, format: SerializationFormat) -> TracksResult<()>;
 

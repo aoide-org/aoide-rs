@@ -446,12 +446,12 @@ impl TrackLock {
 }
 
 ///////////////////////////////////////////////////////////////////////
-/// TrackBody
+/// Track
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct TrackBody {
+pub struct Track {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub resources: Vec<TrackResource>,
 
@@ -501,7 +501,7 @@ pub struct TrackBody {
     pub ratings: Vec<Rating>, // no duplicate owners allowed
 }
 
-impl TrackBody {
+impl Track {
     pub fn is_valid(&self) -> bool {
         !self.resources.is_empty() && self.resources.iter().all(TrackResource::is_valid)
             && self.album.iter().all(AlbumMetadata::is_valid)
@@ -555,4 +555,4 @@ impl TrackBody {
 /// TrackEntity
 ///////////////////////////////////////////////////////////////////////
 
-pub type TrackEntity = Entity<TrackBody>;
+pub type TrackEntity = Entity<Track>;

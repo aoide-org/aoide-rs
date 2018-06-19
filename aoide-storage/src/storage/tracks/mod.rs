@@ -340,7 +340,7 @@ enum EitherEqualOrLike {
 impl<'a> Tracks for TrackRepository<'a> {
     fn create_entity(
         &self,
-        body: TrackBody,
+        body: Track,
         format: SerializationFormat,
     ) -> TracksResult<TrackEntity> {
         let entity = TrackEntity::new(EntityHeader::initial(), body);

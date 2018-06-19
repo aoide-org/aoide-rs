@@ -16,7 +16,7 @@
 #[cfg(test)]
 mod tests;
 
-use aoide_core::domain::{entity::EntityHeader, metadata::ScoredTag, track::TrackBody};
+use aoide_core::domain::{entity::EntityHeader, metadata::ScoredTag, track::Track};
 
 pub type PaginationOffset = u64;
 
@@ -213,7 +213,7 @@ pub struct TrackReplacement {
     // that gets replaced.
     pub uri: String,
 
-    pub track: TrackBody,
+    pub track: Track,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

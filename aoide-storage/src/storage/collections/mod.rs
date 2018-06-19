@@ -63,7 +63,7 @@ impl<'a> EntityStorage for CollectionRepository<'a> {
 }
 
 impl<'a> Collections for CollectionRepository<'a> {
-    fn create_entity(&self, body: CollectionBody) -> CollectionsResult<CollectionEntity> {
+    fn create_entity(&self, body: Collection) -> CollectionsResult<CollectionEntity> {
         let entity = CollectionEntity::new(EntityHeader::initial(), body);
         self.insert_entity(&entity).and(Ok(entity))
     }

@@ -55,7 +55,7 @@ pub struct UpdatableCollectionsEntity<'a> {
 }
 
 impl<'a> UpdatableCollectionsEntity<'a> {
-    pub fn bind(next_revision: &EntityRevision, body: &'a CollectionBody) -> Self {
+    pub fn bind(next_revision: &EntityRevision, body: &'a Collection) -> Self {
         Self {
             rev_ordinal: next_revision.ordinal() as i64,
             rev_timestamp: next_revision.timestamp().naive_utc(),
@@ -83,7 +83,7 @@ impl From<QueryableCollectionsEntity> for CollectionEntity {
             DateTime::from_utc(from.rev_timestamp, Utc),
         );
         let header = EntityHeader::new(uid, revision);
-        let body = CollectionBody {
+        let body = Collection {
             name: from.name,
             description: from.description,
         };

@@ -29,7 +29,7 @@ fn create_entity() {
     let connection = establish_connection();
     let repository = CollectionRepository::new(&connection);
     let entity = repository
-        .create_entity(CollectionBody {
+        .create_entity(Collection {
             name: "Test Collection".into(),
             description: Some("Description".into()),
         })
@@ -43,7 +43,7 @@ fn update_entity() {
     let connection = establish_connection();
     let repository = CollectionRepository::new(&connection);
     let mut entity = repository
-        .create_entity(CollectionBody {
+        .create_entity(Collection {
             name: "Test Collection".into(),
             description: Some("Description".into()),
         })
@@ -64,7 +64,7 @@ fn delete_entity() {
     let connection = establish_connection();
     let repository = CollectionRepository::new(&connection);
     let entity = repository
-        .create_entity(CollectionBody {
+        .create_entity(Collection {
             name: "Test Collection".into(),
             description: None,
         })

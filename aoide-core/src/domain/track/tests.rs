@@ -57,7 +57,7 @@ fn serialize_json() {
         ScoredTag::new_term_faceted(0.6, "Filler", TrackTagging::FACET_SESSION),
         ScoredTag::new_term(1.0, "Non-faceted tag"),
     ];
-    let body = TrackBody {
+    let body = Track {
         resources,
         profile: Some(profile),
         tags,

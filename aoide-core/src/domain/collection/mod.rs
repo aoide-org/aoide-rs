@@ -18,14 +18,14 @@ use domain::entity::*;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct CollectionBody {
+pub struct Collection {
     pub name: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
 }
 
-impl CollectionBody {
+impl Collection {
     pub fn is_valid(&self) -> bool {
         !self.name.is_empty()
     }
@@ -50,7 +50,7 @@ impl CollectionStats {
     }
 }
 
-pub type CollectionEntity = Entity<CollectionBody>;
+pub type CollectionEntity = Entity<Collection>;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]

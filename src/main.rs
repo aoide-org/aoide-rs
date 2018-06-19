@@ -116,7 +116,7 @@ struct AppState {
 
 #[derive(Debug)]
 pub struct CreateCollectionMessage {
-    pub collection: CollectionBody,
+    pub collection: Collection,
 }
 
 pub type CreateCollectionResult = CollectionsResult<CollectionEntity>;
@@ -136,7 +136,7 @@ impl Handler<CreateCollectionMessage> for SqliteExecutor {
 }
 
 fn on_create_collection(
-    (state, body): (State<AppState>, Json<CollectionBody>),
+    (state, body): (State<AppState>, Json<Collection>),
 ) -> FutureResponse<HttpResponse> {
     let msg = CreateCollectionMessage {
         collection: body.into_inner(),
@@ -357,7 +357,7 @@ fn on_list_collections(
 
 #[derive(Debug)]
 pub struct CreateTrackMessage {
-    pub track: TrackBody,
+    pub track: Track,
 }
 
 pub type CreateTrackResult = TracksResult<TrackEntity>;
@@ -378,9 +378,7 @@ impl Handler<CreateTrackMessage> for SqliteExecutor {
     }
 }
 
-fn on_create_track(
-    (state, body): (State<AppState>, Json<TrackBody>),
-) -> FutureResponse<HttpResponse> {
+fn on_create_track((state, body): (State<AppState>, Json<Track>)) -> FutureResponse<HttpResponse> {
     let msg = CreateTrackMessage {
         track: body.into_inner(),
     };
@@ -961,7 +959,7 @@ fn cleanup_database_storage(connection_pool: &SqliteConnectionPool) -> Result<()
 
 fn repair_database_storage(connection_pool: &SqliteConnectionPool) -> Result<(), Error> {
     info!("Repairing database storage");
-    let collection_prototype = CollectionBody {
+    let collection_prototype = Collection {
         name: "Missing Collection".into(),
         description: Some("Recreated by aoide".into()),
     };

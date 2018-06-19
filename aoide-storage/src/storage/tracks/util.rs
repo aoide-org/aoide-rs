@@ -29,7 +29,7 @@ use diesel::prelude::*;
 
 use failure::Error;
 
-use aoide_core::domain::{collection::{CollectionBody, CollectionEntity},
+use aoide_core::domain::{collection::{Collection, CollectionEntity},
                          entity::*,
                          track::*};
 
@@ -49,7 +49,7 @@ impl<'a> TrackRepositoryHelper<'a> {
 
     pub fn recreate_missing_collections(
         &self,
-        collection_prototype: &CollectionBody,
+        collection_prototype: &Collection,
     ) -> Result<Vec<CollectionEntity>, Error> {
         let orphaned_collection_uids = aux_tracks_resource::table
             .select(aux_tracks_resource::collection_uid)
@@ -92,8 +92,8 @@ impl<'a> TrackRepositoryHelper<'a> {
         Ok(())
     }
 
-    fn insert_overview(&self, track_id: StorageId, track_body: &TrackBody) -> Result<(), Error> {
-        let insertable = InsertableTracksOverview::bind(track_id, track_body);
+    fn insert_overview(&self, track_id: StorageId, track: &Track) -> Result<(), Error> {
+        let insertable = InsertableTracksOverview::bind(track_id, track);
         let query = diesel::insert_into(aux_tracks_overview::table).values(&insertable);
         query.execute(self.connection)?;
         Ok(())
@@ -115,8 +115,8 @@ impl<'a> TrackRepositoryHelper<'a> {
         Ok(())
     }
 
-    fn insert_summary(&self, track_id: StorageId, track_body: &TrackBody) -> Result<(), Error> {
-        let insertable = InsertableTracksSummary::bind(track_id, track_body);
+    fn insert_summary(&self, track_id: StorageId, track: &Track) -> Result<(), Error> {
+        let insertable = InsertableTracksSummary::bind(track_id, track);
         let query = diesel::insert_into(aux_tracks_summary::table).values(&insertable);
         query.execute(self.connection)?;
         Ok(())
@@ -138,8 +138,8 @@ impl<'a> TrackRepositoryHelper<'a> {
         Ok(())
     }
 
-    fn insert_resource(&self, track_id: StorageId, track_body: &TrackBody) -> Result<(), Error> {
-        for resource in track_body.resources.iter() {
+    fn insert_resource(&self, track_id: StorageId, track: &Track) -> Result<(), Error> {
+        for resource in track.resources.iter() {
             let insertable = InsertableTracksResource::bind(track_id, resource);
             let query = diesel::insert_into(aux_tracks_resource::table).values(&insertable);
             query.execute(self.connection)?;
@@ -163,10 +163,10 @@ impl<'a> TrackRepositoryHelper<'a> {
         Ok(())
     }
 
-    fn insert_profile(&self, track_id: StorageId, track_body: &TrackBody) -> Result<(), Error> {
-        if track_body.profile.is_some() {
+    fn insert_profile(&self, track_id: StorageId, track: &Track) -> Result<(), Error> {
+        if track.profile.is_some() {
             let insertable =
-                InsertableTracksMusic::bind(track_id, track_body.profile.as_ref().unwrap());
+                InsertableTracksMusic::bind(track_id, track.profile.as_ref().unwrap());
             let query = diesel::insert_into(aux_tracks_profile::table).values(&insertable);
             query.execute(self.connection)?;
         }
@@ -188,13 +188,13 @@ impl<'a> TrackRepositoryHelper<'a> {
         Ok(())
     }
 
-    fn insert_ref(&self, track_id: StorageId, track_body: &TrackBody) -> Result<(), Error> {
-        for track_ref in track_body.references.iter() {
+    fn insert_ref(&self, track_id: StorageId, track: &Track) -> Result<(), Error> {
+        for track_ref in track.references.iter() {
             let insertable = InsertableTracksRef::bind(track_id, RefOrigin::Track, &track_ref);
             let query = diesel::replace_into(aux_tracks_ref::table).values(&insertable);
             query.execute(self.connection)?;
         }
-        for actor in track_body.actors.iter() {
+        for actor in track.actors.iter() {
             for actor_ref in actor.references.iter() {
                 let insertable =
                     InsertableTracksRef::bind(track_id, RefOrigin::TrackActor, &actor_ref);
@@ -202,7 +202,7 @@ impl<'a> TrackRepositoryHelper<'a> {
                 query.execute(self.connection)?;
             }
         }
-        if let Some(album) = track_body.album.as_ref() {
+        if let Some(album) = track.album.as_ref() {
             for album_ref in album.references.iter() {
                 let insertable = InsertableTracksRef::bind(track_id, RefOrigin::Album, &album_ref);
                 let query = diesel::replace_into(aux_tracks_ref::table).values(&insertable);
@@ -217,7 +217,7 @@ impl<'a> TrackRepositoryHelper<'a> {
                 }
             }
         }
-        if let Some(release) = track_body.release.as_ref() {
+        if let Some(release) = track.release.as_ref() {
             for release_ref in release.references.iter() {
                 let insertable =
                     InsertableTracksRef::bind(track_id, RefOrigin::Release, &release_ref);
@@ -298,8 +298,8 @@ impl<'a> TrackRepositoryHelper<'a> {
         }
     }
 
-    fn insert_tag(&self, track_id: StorageId, track_body: &TrackBody) -> Result<(), Error> {
-        for tag in track_body.tags.iter() {
+    fn insert_tag(&self, track_id: StorageId, track: &Track) -> Result<(), Error> {
+        for tag in track.tags.iter() {
             let term_id = self.get_or_add_tag_term(tag.term())?;
             let facet_id = match tag.facet() {
                 Some(facet) => Some(self.get_or_add_tag_facet(facet)?),
@@ -329,8 +329,8 @@ impl<'a> TrackRepositoryHelper<'a> {
         Ok(())
     }
 
-    fn insert_comment(&self, track_id: StorageId, track_body: &TrackBody) -> Result<(), Error> {
-        for comment in track_body.comments.iter() {
+    fn insert_comment(&self, track_id: StorageId, track: &Track) -> Result<(), Error> {
+        for comment in track.comments.iter() {
             let insertable = InsertableTracksComment::bind(track_id, comment);
             let query = diesel::insert_into(aux_tracks_comment::table).values(&insertable);
             query.execute(self.connection)?;
@@ -354,8 +354,8 @@ impl<'a> TrackRepositoryHelper<'a> {
         Ok(())
     }
 
-    fn insert_rating(&self, track_id: StorageId, track_body: &TrackBody) -> Result<(), Error> {
-        for rating in track_body.ratings.iter() {
+    fn insert_rating(&self, track_id: StorageId, track: &Track) -> Result<(), Error> {
+        for rating in track.ratings.iter() {
             let insertable = InsertableTracksRating::bind(track_id, rating);
             let query = diesel::insert_into(aux_tracks_rating::table).values(&insertable);
             query.execute(self.connection)?;
@@ -375,15 +375,15 @@ impl<'a> TrackRepositoryHelper<'a> {
         Ok(())
     }
 
-    fn on_insert(&self, storage_id: StorageId, track_body: &TrackBody) -> Result<(), Error> {
-        self.insert_overview(storage_id, track_body)?;
-        self.insert_summary(storage_id, track_body)?;
-        self.insert_resource(storage_id, track_body)?;
-        self.insert_profile(storage_id, track_body)?;
-        self.insert_ref(storage_id, track_body)?;
-        self.insert_tag(storage_id, track_body)?;
-        self.insert_comment(storage_id, track_body)?;
-        self.insert_rating(storage_id, track_body)?;
+    fn on_insert(&self, storage_id: StorageId, track: &Track) -> Result<(), Error> {
+        self.insert_overview(storage_id, track)?;
+        self.insert_summary(storage_id, track)?;
+        self.insert_resource(storage_id, track)?;
+        self.insert_profile(storage_id, track)?;
+        self.insert_ref(storage_id, track)?;
+        self.insert_tag(storage_id, track)?;
+        self.insert_comment(storage_id, track)?;
+        self.insert_rating(storage_id, track)?;
         Ok(())
     }
 
@@ -399,9 +399,9 @@ impl<'a> TrackRepositoryHelper<'a> {
         Ok(())
     }
 
-    fn on_refresh(&self, storage_id: StorageId, track_body: &TrackBody) -> Result<(), Error> {
+    fn on_refresh(&self, storage_id: StorageId, track: &Track) -> Result<(), Error> {
         self.on_delete(storage_id)?;
-        self.on_insert(storage_id, track_body)?;
+        self.on_insert(storage_id, track)?;
         Ok(())
     }
 
@@ -440,9 +440,9 @@ impl<'a> TrackRepositoryHelper<'a> {
     pub fn after_entity_updated(
         &self,
         storage_id: StorageId,
-        track_body: &TrackBody,
+        track: &Track,
     ) -> Result<(), Error> {
-        self.on_insert(storage_id, track_body)?;
+        self.on_insert(storage_id, track)?;
         Ok(())
     }
 }
