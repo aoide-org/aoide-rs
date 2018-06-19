@@ -16,7 +16,6 @@ paths:
       tags:
         - collections
       parameters:
-        - $ref: '#/components/parameters/withCollectionOptions'
         - $ref: '#/components/parameters/paginationOffset'
         - $ref: '#/components/parameters/paginationLimit'
       responses:
@@ -72,11 +71,11 @@ paths:
       responses:
         '200':
           description: >
-            The loaded collection entity.
+            The loaded collection entity, optionally with additional statistics.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CollectionEntity'
+                $ref: '#/components/schemas/CollectionEntityWithStats'
         '404':
           $ref: '#/components/responses/404NotFound'
         '500':
@@ -601,6 +600,15 @@ components:
         totalDuration:
           $ref: '#/components/schemas/Duration'
     CollectionEntity:
+      required:
+        - header
+        - body
+      properties:
+        header:
+          $ref: '#/components/schemas/EntityHeader'
+        body:
+          $ref: '#/components/schemas/Collection'
+    CollectionEntityWithStats:
       required:
         - header
         - body

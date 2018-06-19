@@ -54,10 +54,9 @@ extern crate serde_json;
 use aoide_storage::{storage::{collections::*,
                               serde::*,
                               tracks::{util::TrackRepositoryHelper, *}},
-                    usecases::{api::{LocateTracksParams, Pagination, PaginationLimit,
-                                     PaginationOffset, ReplaceTracksParams, ReplacedTracks,
-                                     ScoredTagCount, SearchTracksParams, StringField,
-                                     StringFieldCounts, TagFacetCount},
+                    usecases::{api::{LocateTracksParams, Pagination, ReplaceTracksParams,
+                                     ReplacedTracks, ScoredTagCount, SearchTracksParams,
+                                     StringField, StringFieldCounts, TagFacetCount},
                                *}};
 
 use aoide_core::domain::{collection::*, entity::*, track::*};
@@ -242,9 +241,10 @@ fn on_delete_collection(
 #[derive(Debug)]
 pub struct LoadCollectionMessage {
     pub uid: EntityUid,
+    pub with_track_stats: bool,
 }
 
-pub type LoadCollectionResult = CollectionsResult<Option<CollectionEntity>>;
+pub type LoadCollectionResult = CollectionsResult<Option<CollectionEntityWithStats>>;
 
 impl Message for LoadCollectionMessage {
     type Result = LoadCollectionResult;
@@ -256,15 +256,54 @@ impl Handler<LoadCollectionMessage> for SqliteExecutor {
     fn handle(&mut self, msg: LoadCollectionMessage, _: &mut Self::Context) -> Self::Result {
         let connection = &*self.pooled_connection()?;
         let repository = CollectionRepository::new(connection);
-        connection.transaction::<_, Error, _>(|| repository.load_entity(&msg.uid))
+        connection.transaction::<_, Error, _>(|| {
+            let entity = repository.load_entity(&msg.uid)?;
+            if let Some(entity) = entity {
+                let track_stats = if msg.with_track_stats {
+                    let track_repo = TrackRepository::new(connection);
+                    Some(track_repo.collection_stats(&msg.uid)?)
+                } else {
+                    None
+                };
+                Ok(Some(CollectionEntityWithStats {
+                    entity,
+                    stats: CollectionStats {
+                        tracks: track_stats,
+                    },
+                }))
+            } else {
+                Ok(None)
+            }
+        })
+    }
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WithTokensQueryParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    with: Option<String>,
+}
+
+impl WithTokensQueryParams {
+    pub fn try_with_token(&self, with_token: &str) -> bool {
+        match self.with {
+            Some(ref with) => with.split(',').any(|token| token == with_token),
+            None => false,
+        }
     }
 }
 
 fn on_load_collection(
-    (state, path): (State<AppState>, Path<EntityUid>),
+    (state, path_uid, query_with): (
+        State<AppState>,
+        Path<EntityUid>,
+        Query<WithTokensQueryParams>,
+    ),
 ) -> FutureResponse<HttpResponse> {
     let msg = LoadCollectionMessage {
-        uid: path.into_inner(),
+        uid: path_uid.into_inner(),
+        with_track_stats: query_with.into_inner().try_with_token("track-stats"),
     };
     state
         .executor
@@ -300,10 +339,10 @@ impl Handler<ListCollectionsMessage> for SqliteExecutor {
 }
 
 fn on_list_collections(
-    (state, query): (State<AppState>, Query<Pagination>),
+    (state, query_pagination): (State<AppState>, Query<Pagination>),
 ) -> FutureResponse<HttpResponse> {
     let msg = ListCollectionsMessage {
-        pagination: query.into_inner(),
+        pagination: query_pagination.into_inner(),
     };
     state
         .executor
@@ -493,61 +532,6 @@ fn on_load_track(
 struct TracksQueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub collection_uid: Option<EntityUid>,
-
-    // TODO: Try again with flatten
-    // actix_web::pipeline: Error occured during request handling: invalid type: string "2", expected u64
-    //#[serde(flatten)]
-    //pub pagination: Pagination,
-    offset: Option<PaginationOffset>,
-    limit: Option<PaginationLimit>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    with: Option<String>,
-}
-
-impl TracksQueryParams {
-    pub fn pagination(&self) -> Pagination {
-        Pagination {
-            offset: self.offset,
-            limit: self.limit,
-        }
-    }
-
-    pub fn with_fields<'a>(&'a self) -> Vec<StringField> {
-        let mut result = Vec::new();
-        if let Some(ref field_list) = self.with {
-            result = field_list
-                .split(',')
-                .map(|field_str| serde_json::from_str(&format!("\"{}\"", field_str)))
-                .filter_map(|from_str| from_str.ok())
-                .collect();
-            debug_assert!(result.len() <= field_list.split(',').count());
-            let unrecognized_field_count = field_list.split(',').count() - result.len();
-            if unrecognized_field_count > 0 {
-                warn!(
-                    "{} unrecognized field selector(s) in '{}'",
-                    unrecognized_field_count, field_list
-                );
-            }
-            result.sort();
-            result.dedup();
-        }
-        result
-    }
-
-    pub fn with_facets<'a>(&'a self) -> Option<Vec<&'a str>> {
-        self.with
-            .as_ref()
-            .map(|facet_list| facet_list.split(',').collect::<Vec<&'a str>>())
-            .map(|mut facets| {
-                facets.sort();
-                facets
-            })
-            .map(|mut facets| {
-                facets.dedup();
-                facets
-            })
-    }
 }
 
 #[derive(Debug, Default)]
@@ -576,12 +560,15 @@ impl Handler<SearchTracksMessage> for SqliteExecutor {
 }
 
 fn on_list_tracks(
-    (state, query): (State<AppState>, Query<TracksQueryParams>),
+    (state, query_tracks, query_pagination): (
+        State<AppState>,
+        Query<TracksQueryParams>,
+        Query<Pagination>,
+    ),
 ) -> FutureResponse<HttpResponse> {
-    let query_params = query.into_inner();
     let msg = SearchTracksMessage {
-        collection_uid: query_params.collection_uid,
-        pagination: query_params.pagination(),
+        collection_uid: query_tracks.into_inner().collection_uid,
+        pagination: query_pagination.into_inner(),
         ..Default::default()
     };
     state
@@ -602,16 +589,16 @@ fn on_list_tracks(
 }
 
 fn on_search_tracks(
-    (state, query, body): (
+    (state, query_tracks, query_pagination, body): (
         State<AppState>,
         Query<TracksQueryParams>,
+        Query<Pagination>,
         Json<SearchTracksParams>,
     ),
 ) -> FutureResponse<HttpResponse> {
-    let query_params = query.into_inner();
     let msg = SearchTracksMessage {
-        collection_uid: query_params.collection_uid,
-        pagination: query_params.pagination(),
+        collection_uid: query_tracks.into_inner().collection_uid,
+        pagination: query_pagination.into_inner(),
         params: body.into_inner(),
     };
     state
@@ -657,16 +644,16 @@ impl Handler<LocateTracksMessage> for SqliteExecutor {
 }
 
 fn on_locate_tracks(
-    (state, query, body): (
+    (state, query_tracks, query_pagination, body): (
         State<AppState>,
         Query<TracksQueryParams>,
+        Query<Pagination>,
         Json<LocateTracksParams>,
     ),
 ) -> FutureResponse<HttpResponse> {
-    let query_params = query.into_inner();
     let msg = LocateTracksMessage {
-        collection_uid: query_params.collection_uid,
-        pagination: query_params.pagination(),
+        collection_uid: query_tracks.into_inner().collection_uid,
+        pagination: query_pagination.into_inner(),
         params: body.into_inner(),
     };
     state
@@ -712,15 +699,14 @@ impl Handler<ReplaceTracksMessage> for SqliteExecutor {
 }
 
 fn on_replace_tracks(
-    (state, query, body): (
+    (state, query_tracks, body): (
         State<AppState>,
         Query<TracksQueryParams>,
         Json<ReplaceTracksParams>,
     ),
 ) -> FutureResponse<HttpResponse> {
-    let query_params = query.into_inner();
     let msg = ReplaceTracksMessage {
-        collection_uid: query_params.collection_uid,
+        collection_uid: query_tracks.into_inner().collection_uid,
         params: body.into_inner(),
         format: SerializationFormat::JSON,
     };
@@ -737,7 +723,9 @@ fn on_replace_tracks(
 
 #[derive(Debug, Default)]
 struct ListTracksFieldsMessage {
-    pub params: TracksQueryParams,
+    pub collection_uid: Option<EntityUid>,
+    pub with_fields: Vec<StringField>,
+    pub pagination: Pagination,
 }
 
 pub type ListTracksFieldsResult = TracksResult<Vec<StringFieldCounts>>;
@@ -750,28 +738,63 @@ impl Handler<ListTracksFieldsMessage> for SqliteExecutor {
     type Result = ListTracksFieldsResult;
 
     fn handle(&mut self, msg: ListTracksFieldsMessage, _: &mut Self::Context) -> Self::Result {
-        let fields = msg.params.with_fields();
-        let mut results: Vec<StringFieldCounts> = Vec::with_capacity(fields.len());
+        let mut results: Vec<StringFieldCounts> = Vec::with_capacity(msg.with_fields.len());
         let connection = &*self.pooled_connection()?;
         let repository = TrackRepository::new(connection);
-        // TODO: Enclose in transaction?
-        for field in fields.into_iter() {
-            let result = repository.list_fields(
-                msg.params.collection_uid.as_ref(),
-                field,
-                &msg.params.pagination(),
-            )?;
-            results.push(result);
+        connection.transaction::<_, Error, _>(|| {
+            for field in msg.with_fields.into_iter() {
+                let result =
+                    repository.list_fields(msg.collection_uid.as_ref(), field, &msg.pagination)?;
+                results.push(result);
+            }
+            Ok(results)
+        })
+    }
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct TracksWithStringFieldsQueryParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    with: Option<String>,
+}
+
+impl TracksWithStringFieldsQueryParams {
+    pub fn with_fields<'a>(&'a self) -> Vec<StringField> {
+        let mut result = Vec::new();
+        if let Some(ref field_list) = self.with {
+            result = field_list
+                .split(',')
+                .map(|field_str| serde_json::from_str(&format!("\"{}\"", field_str)))
+                .filter_map(|from_str| from_str.ok())
+                .collect();
+            debug_assert!(result.len() <= field_list.split(',').count());
+            let unrecognized_field_count = field_list.split(',').count() - result.len();
+            if unrecognized_field_count > 0 {
+                warn!(
+                    "{} unrecognized field selector(s) in '{}'",
+                    unrecognized_field_count, field_list
+                );
+            }
+            result.sort();
+            result.dedup();
         }
-        Ok(results)
+        result
     }
 }
 
 fn on_list_tracks_fields(
-    (state, query): (State<AppState>, Query<TracksQueryParams>),
+    (state, query_tracks, query_with, query_pagination): (
+        State<AppState>,
+        Query<TracksQueryParams>,
+        Query<TracksWithStringFieldsQueryParams>,
+        Query<Pagination>,
+    ),
 ) -> FutureResponse<HttpResponse> {
     let msg = ListTracksFieldsMessage {
-        params: query.into_inner(),
+        collection_uid: query_tracks.into_inner().collection_uid,
+        with_fields: query_with.into_inner().with_fields(),
+        pagination: query_pagination.into_inner(),
     };
     state
         .executor
@@ -784,9 +807,34 @@ fn on_list_tracks_fields(
         .responder()
 }
 
+#[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct TracksWithTagFacetsQueryParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    with: Option<String>,
+}
+
+impl TracksWithTagFacetsQueryParams {
+    pub fn with_facets<'a>(&'a self) -> Option<Vec<&'a str>> {
+        self.with
+            .as_ref()
+            .map(|facet_list| facet_list.split(',').collect::<Vec<&'a str>>())
+            .map(|mut facets| {
+                facets.sort();
+                facets
+            })
+            .map(|mut facets| {
+                facets.dedup();
+                facets
+            })
+    }
+}
+
 #[derive(Debug, Default)]
 struct ListTracksTagsMessage {
-    pub params: TracksQueryParams,
+    pub collection_uid: Option<EntityUid>,
+    pub query_params: TracksWithTagFacetsQueryParams,
+    pub pagination: Pagination,
 }
 
 pub type ListTracksTagsResult = TracksResult<Vec<ScoredTagCount>>;
@@ -803,19 +851,26 @@ impl Handler<ListTracksTagsMessage> for SqliteExecutor {
         let repository = TrackRepository::new(connection);
         connection.transaction::<_, Error, _>(|| {
             repository.list_tags(
-                msg.params.collection_uid.as_ref(),
-                msg.params.with_facets().as_ref(),
-                &msg.params.pagination(),
+                msg.collection_uid.as_ref(),
+                msg.query_params.with_facets().as_ref(),
+                &msg.pagination,
             )
         })
     }
 }
 
 fn on_list_tracks_tags(
-    (state, query): (State<AppState>, Query<TracksQueryParams>),
+    (state, query_tracks, query_with, query_pagination): (
+        State<AppState>,
+        Query<TracksQueryParams>,
+        Query<TracksWithTagFacetsQueryParams>,
+        Query<Pagination>,
+    ),
 ) -> FutureResponse<HttpResponse> {
     let msg = ListTracksTagsMessage {
-        params: query.into_inner(),
+        collection_uid: query_tracks.into_inner().collection_uid,
+        query_params: query_with.into_inner(),
+        pagination: query_pagination.into_inner(),
     };
     state
         .executor
@@ -830,7 +885,9 @@ fn on_list_tracks_tags(
 
 #[derive(Debug, Default)]
 struct ListTracksTagsFacetsMessage {
-    pub params: TracksQueryParams,
+    pub collection_uid: Option<EntityUid>,
+    pub query_params: TracksWithTagFacetsQueryParams,
+    pub pagination: Pagination,
 }
 
 pub type ListTracksTagsFacetsResult = TracksResult<Vec<TagFacetCount>>;
@@ -847,19 +904,26 @@ impl Handler<ListTracksTagsFacetsMessage> for SqliteExecutor {
         let repository = TrackRepository::new(connection);
         connection.transaction::<_, Error, _>(|| {
             repository.list_tag_facets(
-                msg.params.collection_uid.as_ref(),
-                msg.params.with_facets().as_ref(),
-                &msg.params.pagination(),
+                msg.collection_uid.as_ref(),
+                msg.query_params.with_facets().as_ref(),
+                &msg.pagination,
             )
         })
     }
 }
 
 fn on_list_tracks_tags_facets(
-    (state, query): (State<AppState>, Query<TracksQueryParams>),
+    (state, query_tracks, query_with, query_pagination): (
+        State<AppState>,
+        Query<TracksQueryParams>,
+        Query<TracksWithTagFacetsQueryParams>,
+        Query<Pagination>,
+    ),
 ) -> FutureResponse<HttpResponse> {
     let msg = ListTracksTagsFacetsMessage {
-        params: query.into_inner(),
+        collection_uid: query_tracks.into_inner().collection_uid,
+        query_params: query_with.into_inner(),
+        pagination: query_pagination.into_inner(),
     };
     state
         .executor
