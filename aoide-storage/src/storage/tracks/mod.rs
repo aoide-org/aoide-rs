@@ -368,7 +368,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         let next_revision = prev_revision.next();
         {
             let uid = entity.header().uid().clone();
-            let updated_entity = entity.replace_revision(next_revision);
+            let updated_entity = entity.replace_header_revision(next_revision);
             let entity_blob = serialize_with_format(&updated_entity, format)?;
             {
                 let updatable = UpdatableTracksEntity::bind(&next_revision, format, &entity_blob);

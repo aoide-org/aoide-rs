@@ -18,7 +18,7 @@ mod tests;
 
 use base64;
 
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
 
 use failure;
 
@@ -301,6 +301,15 @@ impl EntityRevision {
     }
 }
 
+impl Default for EntityRevision {
+    fn default() -> EntityRevision {
+        EntityRevision::new(
+            0 as EntityRevisionOrdinal,
+            DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(0, 0), Utc),
+        )
+    }
+}
+
 impl fmt::Display for EntityRevision {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}@{}", self.ordinal(), self.timestamp())
@@ -311,7 +320,7 @@ impl fmt::Display for EntityRevision {
 /// EntityHeader
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityHeader {
     uid: EntityUid,
@@ -380,7 +389,7 @@ impl<T> Entity<T> {
         &mut self.body
     }
 
-    pub fn replace_revision(self, revision: EntityRevision) -> Self {
+    pub fn replace_header_revision(self, revision: EntityRevision) -> Self {
         let header = EntityHeader::new(*self.header.uid(), revision);
         Self {
             header,
