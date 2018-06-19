@@ -23,7 +23,7 @@ use diesel;
 use diesel::prelude::*;
 
 use aoide_core::domain::{collection::*,
-                         entity::{EntityRevision, EntityUid}};
+                         entity::{EntityHeader, EntityRevision, EntityUid}};
 
 use storage::*;
 
@@ -64,7 +64,7 @@ impl<'a> EntityStorage for CollectionRepository<'a> {
 
 impl<'a> Collections for CollectionRepository<'a> {
     fn create_entity(&self, body: CollectionBody) -> CollectionsResult<CollectionEntity> {
-        let entity = CollectionEntity::with_body(body);
+        let entity = CollectionEntity::new(EntityHeader::initial(), body);
         self.insert_entity(&entity).and(Ok(entity))
     }
 

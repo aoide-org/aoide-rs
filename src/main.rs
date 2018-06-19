@@ -202,7 +202,7 @@ fn on_update_collection(
 
 #[derive(Debug)]
 pub struct DeleteCollectionMessage {
-    pub uid: CollectionUid,
+    pub uid: EntityUid,
 }
 
 pub type DeleteCollectionResult = CollectionsResult<Option<()>>;
@@ -241,7 +241,7 @@ fn on_delete_collection(
 
 #[derive(Debug)]
 pub struct LoadCollectionMessage {
-    pub uid: CollectionUid,
+    pub uid: EntityUid,
 }
 
 pub type LoadCollectionResult = CollectionsResult<Option<CollectionEntity>>;
@@ -492,7 +492,7 @@ fn on_load_track(
 #[serde(rename_all = "camelCase")]
 struct TracksQueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub collection_uid: Option<CollectionUid>,
+    pub collection_uid: Option<EntityUid>,
 
     // TODO: Try again with flatten
     // actix_web::pipeline: Error occured during request handling: invalid type: string "2", expected u64
@@ -552,7 +552,7 @@ impl TracksQueryParams {
 
 #[derive(Debug, Default)]
 pub struct SearchTracksMessage {
-    pub collection_uid: Option<CollectionUid>,
+    pub collection_uid: Option<EntityUid>,
     pub pagination: Pagination,
     pub params: SearchTracksParams,
 }
@@ -633,7 +633,7 @@ fn on_search_tracks(
 
 #[derive(Debug)]
 pub struct LocateTracksMessage {
-    pub collection_uid: Option<CollectionUid>,
+    pub collection_uid: Option<EntityUid>,
     pub pagination: Pagination,
     pub params: LocateTracksParams,
 }
@@ -688,7 +688,7 @@ fn on_locate_tracks(
 
 #[derive(Debug)]
 pub struct ReplaceTracksMessage {
-    pub collection_uid: Option<CollectionUid>,
+    pub collection_uid: Option<EntityUid>,
     pub params: ReplaceTracksParams,
     pub format: SerializationFormat,
 }

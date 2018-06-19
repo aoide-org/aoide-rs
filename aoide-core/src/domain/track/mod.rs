@@ -19,7 +19,6 @@ mod tests;
 use audio::sample::*;
 use audio::signal::*;
 use audio::*;
-use domain::collection::*;
 use domain::entity::*;
 use domain::metadata::*;
 use domain::music::*;
@@ -125,7 +124,7 @@ impl TrackSource {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct TrackCollection {
-    pub uid: CollectionUid,
+    pub uid: EntityUid,
 
     pub since: DateTime<Utc>,
 }
@@ -524,7 +523,7 @@ impl TrackBody {
             && self.comments.iter().all(Comment::is_valid)
     }
 
-    pub fn resource<'a>(&'a self, collection_uid: &CollectionUid) -> Option<&'a TrackResource> {
+    pub fn resource<'a>(&'a self, collection_uid: &EntityUid) -> Option<&'a TrackResource> {
         debug_assert!(
             self.resources
                 .iter()
@@ -537,7 +536,7 @@ impl TrackBody {
             .nth(0)
     }
 
-    pub fn has_collection(&self, collection_uid: &CollectionUid) -> bool {
+    pub fn has_collection(&self, collection_uid: &EntityUid) -> bool {
         self.resource(collection_uid).is_some()
     }
 

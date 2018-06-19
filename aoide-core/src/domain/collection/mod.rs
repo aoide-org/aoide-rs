@@ -31,6 +31,13 @@ impl CollectionBody {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct CollectionTrackStats {
+    pub total_count: usize,
+    pub total_duration: Duration,
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct CollectionStats {
@@ -43,52 +50,14 @@ impl CollectionStats {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct CollectionTrackStats {
-    pub total_count: usize,
-    pub total_duration: Duration,
-}
+pub type CollectionEntity = Entity<CollectionBody>;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct CollectionEntity {
-    header: EntityHeader,
-
-    body: CollectionBody,
+pub struct CollectionEntityWithStats {
+    #[serde(flatten)]
+    pub entity: CollectionEntity,
 
     #[serde(skip_serializing_if = "CollectionStats::is_empty", default)]
     pub stats: CollectionStats,
 }
-
-impl CollectionEntity {
-    pub fn new(header: EntityHeader, body: CollectionBody) -> Self {
-        Self {
-            header,
-            body,
-            stats: CollectionStats::default(),
-        }
-    }
-
-    pub fn with_body(body: CollectionBody) -> Self {
-        Self::new(EntityHeader::initial(), body)
-    }
-
-    pub fn is_valid(&self) -> bool {
-        self.header.is_valid() && self.body.is_valid()
-    }
-
-    pub fn header<'a>(&'a self) -> &'a EntityHeader {
-        &self.header
-    }
-
-    pub fn body<'a>(&'a self) -> &'a CollectionBody {
-        &self.body
-    }
-
-    pub fn body_mut<'a>(&'a mut self) -> &'a mut CollectionBody {
-        &mut self.body
-    }
-}
-
-pub type CollectionUid = EntityUid;
