@@ -66,7 +66,7 @@ impl<'a> TrackRepositoryHelper<'a> {
                 let uid = EntityUid::from_slice(&collection_uid);
                 info!("Recreating missing collection '{}'", uid.to_string());
                 let collection_entity = CollectionEntity::new(
-                    EntityHeader::with_uid(uid),
+                    EntityHeader::initial_with_uid(uid),
                     collection_prototype.clone(),
                 );
                 collection_repo.insert_entity(&collection_entity)?;

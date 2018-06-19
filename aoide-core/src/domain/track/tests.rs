@@ -65,8 +65,8 @@ fn serialize_json() {
         ..Default::default()
     };
     let uid = EntityUidGenerator::generate_uid();
-    let header = EntityHeader::with_uid(uid);
-    let entity = TrackEntity { header, body };
+    let header = EntityHeader::initial_with_uid(uid);
+    let entity = TrackEntity::new(header, body);
     let entity_json = serde_json::to_string(&entity).unwrap();
     assert_ne!("{}", entity_json);
     println!("Track Entity (JSON): {}", entity_json);

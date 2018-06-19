@@ -52,14 +52,14 @@ fn revision_sequence() {
 
 #[test]
 fn header_without_uid() {
-    let header = EntityHeader::with_uid(EntityUid::default());
+    let header = EntityHeader::initial_with_uid(EntityUid::default());
     assert!(!header.is_valid());
     assert!(header.revision().is_initial());
 }
 
 #[test]
 fn header_with_uid() {
-    let header = EntityHeader::with_uid(EntityUidGenerator::generate_uid());
+    let header = EntityHeader::initial_with_uid(EntityUidGenerator::generate_uid());
     assert!(header.is_valid());
     assert!(header.revision().is_initial());
 }

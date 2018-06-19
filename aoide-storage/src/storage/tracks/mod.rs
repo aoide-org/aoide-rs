@@ -343,7 +343,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         body: TrackBody,
         format: SerializationFormat,
     ) -> TracksResult<TrackEntity> {
-        let entity = TrackEntity::with_body(body);
+        let entity = TrackEntity::new(EntityHeader::initial(), body);
         self.insert_entity(&entity, format)?;
         Ok(entity)
     }
@@ -368,8 +368,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         let next_revision = prev_revision.next();
         {
             let uid = entity.header().uid().clone();
-            let updated_header = EntityHeader::new(uid, next_revision);
-            let updated_entity = TrackEntity::new(updated_header, entity.split_into().1);
+            let updated_entity = entity.replace_revision(next_revision);
             let entity_blob = serialize_with_format(&updated_entity, format)?;
             {
                 let updatable = UpdatableTracksEntity::bind(&next_revision, format, &entity_blob);
@@ -439,10 +438,10 @@ impl<'a> Tracks for TrackRepository<'a> {
                         "Track '{}' is unchanged and does not need to be updated",
                         uid
                     );
-                    results.skipped.push(entity.split_into().0);
+                    results.skipped.push(*entity.header());
                     continue;
                 }
-                let replaced_entity = TrackEntity::new(entity.split_into().0, replacement.track);
+                let replaced_entity = entity.replace_body(replacement.track);
                 match self.update_entity(replaced_entity, format)? {
                     (_, None) => {
                         let msg = format!(
@@ -495,7 +494,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                         }
                     }
                     let entity = self.create_entity(replacement.track, format)?;
-                    results.created.push(entity.split_into().0)
+                    results.created.push(*entity.header())
                 }
             };
         }

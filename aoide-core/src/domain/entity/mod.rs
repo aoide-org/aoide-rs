@@ -327,11 +327,14 @@ impl EntityHeader {
         }
     }
 
-    pub fn with_uid<T: Into<EntityUid>>(uid: T) -> Self {
-        let revision = EntityRevision::initial();
+    pub fn initial() -> Self {
+        Self::initial_with_uid(EntityUidGenerator::generate_uid())
+    }
+
+    pub fn initial_with_uid<T: Into<EntityUid>>(uid: T) -> Self {
         Self {
             uid: uid.into(),
-            revision,
+            revision: EntityRevision::initial(),
         }
     }
 
@@ -345,5 +348,44 @@ impl EntityHeader {
 
     pub fn revision(&self) -> EntityRevision {
         self.revision
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+/// Entity
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct Entity<T> {
+    header: EntityHeader,
+
+    body: T,
+}
+
+impl<T> Entity<T> {
+    pub fn new(header: EntityHeader, body: T) -> Self {
+        Self { header, body }
+    }
+
+    pub fn header<'a>(&'a self) -> &'a EntityHeader {
+        &self.header
+    }
+
+    pub fn body<'a>(&'a self) -> &'a T {
+        &self.body
+    }
+
+    pub fn body_mut<'a>(&'a mut self) -> &'a mut T {
+        &mut self.body
+    }
+
+    pub fn replace_revision(self, revision: EntityRevision) -> Self {
+        let header = EntityHeader::new(*self.header.uid(), revision);
+        Self::new(header, self.body)
+    }
+
+    pub fn replace_body(self, body: T) -> Self {
+        Self::new(self.header, body)
     }
 }

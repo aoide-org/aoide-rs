@@ -71,13 +71,7 @@ impl CollectionEntity {
     }
 
     pub fn with_body(body: CollectionBody) -> Self {
-        let uid = EntityUidGenerator::generate_uid();
-        let header = EntityHeader::with_uid(uid);
-        Self {
-            header,
-            body,
-            stats: CollectionStats::default(),
-        }
+        Self::new(EntityHeader::initial(), body)
     }
 
     pub fn is_valid(&self) -> bool {

@@ -407,7 +407,7 @@ fn on_update_track(
 
 #[derive(Debug)]
 pub struct DeleteTrackMessage {
-    pub uid: TrackUid,
+    pub uid: EntityUid,
 }
 
 pub type DeleteTrackResult = TracksResult<Option<()>>;
@@ -446,7 +446,7 @@ fn on_delete_track(
 
 #[derive(Debug)]
 pub struct LoadTrackMessage {
-    pub uid: TrackUid,
+    pub uid: EntityUid,
 }
 
 pub type LoadTrackResult = TracksResult<Option<SerializedEntity>>;
