@@ -124,42 +124,42 @@ where
 
     // Filter tag term
     if let Some(term_condition) = tag_filter.term_condition {
-        let (either_eq_or_like, modifier) = match term_condition {
+        let (either_eq_or_like, modifier) = match term_condition.comparator {
             // Equal comparison
-            StringCondition::Matches(condition_params) => (
-                EitherEqualOrLike::Equal(condition_params.value),
-                condition_params.modifier,
+            StringComparator::Matches => (
+                EitherEqualOrLike::Equal(term_condition.value),
+                term_condition.modifier,
             ),
             // Like comparison: Escape wildcard character with backslash (see below)
-            StringCondition::StartsWith(condition_params) => (
+            StringComparator::StartsWith => (
                 EitherEqualOrLike::Like(format!(
                     "{}%",
-                    condition_params
+                    term_condition
                         .value
                         .replace('\\', "\\\\")
                         .replace('%', "\\%")
                 )),
-                condition_params.modifier,
+                term_condition.modifier,
             ),
-            StringCondition::EndsWith(condition_params) => (
+            StringComparator::EndsWith => (
                 EitherEqualOrLike::Like(format!(
                     "%{}",
-                    condition_params
+                    term_condition
                         .value
                         .replace('\\', "\\\\")
                         .replace('%', "\\%")
                 )),
-                condition_params.modifier,
+                term_condition.modifier,
             ),
-            StringCondition::Contains(condition_params) => (
+            StringComparator::Contains => (
                 EitherEqualOrLike::Like(format!(
                     "%{}%",
-                    condition_params
+                    term_condition
                         .value
                         .replace('\\', "\\\\")
                         .replace('%', "\\%")
                 )),
-                condition_params.modifier,
+                term_condition.modifier,
             ),
         };
         select = match either_eq_or_like {
@@ -196,23 +196,23 @@ where
 
     // Filter tag score
     if let Some(score_condition) = tag_filter.score_condition {
-        select = match score_condition {
-            NumericCondition::LessThan(condition_params) => match condition_params.modifier {
-                None => select.filter(aux_tracks_tag::score.lt(condition_params.value)),
+        select = match score_condition.comparator {
+            NumericComparator::LessThan => match score_condition.modifier {
+                None => select.filter(aux_tracks_tag::score.lt(score_condition.value)),
                 Some(ConditionModifier::Not) => {
-                    select.filter(aux_tracks_tag::score.ge(condition_params.value))
+                    select.filter(aux_tracks_tag::score.ge(score_condition.value))
                 }
             },
-            NumericCondition::GreaterThan(condition_params) => match condition_params.modifier {
-                None => select.filter(aux_tracks_tag::score.gt(condition_params.value)),
+            NumericComparator::GreaterThan => match score_condition.modifier {
+                None => select.filter(aux_tracks_tag::score.gt(score_condition.value)),
                 Some(ConditionModifier::Not) => {
-                    select.filter(aux_tracks_tag::score.le(condition_params.value))
+                    select.filter(aux_tracks_tag::score.le(score_condition.value))
                 }
             },
-            NumericCondition::EqualTo(condition_params) => match condition_params.modifier {
-                None => select.filter(aux_tracks_tag::score.eq(condition_params.value)),
+            NumericComparator::EqualTo => match score_condition.modifier {
+                None => select.filter(aux_tracks_tag::score.eq(score_condition.value)),
                 Some(ConditionModifier::Not) => {
-                    select.filter(aux_tracks_tag::score.ne(condition_params.value))
+                    select.filter(aux_tracks_tag::score.ne(score_condition.value))
                 }
             },
         };
@@ -239,95 +239,108 @@ where
         .select(aux_tracks_profile::track_id)
         .into_boxed();
 
-    select = match numeric_filter.field {
-        NumericField::TempoBpm => match numeric_filter.condition {
-            NumericCondition::LessThan(condition_params) => match condition_params.modifier {
-                None => select.filter(aux_tracks_profile::tempo_bpm.lt(condition_params.value)),
-                Some(ConditionModifier::Not) => {
-                    select.filter(aux_tracks_profile::tempo_bpm.ge(condition_params.value))
-                }
-            },
-            NumericCondition::GreaterThan(condition_params) => match condition_params.modifier {
-                None => select.filter(aux_tracks_profile::tempo_bpm.gt(condition_params.value)),
-                Some(ConditionModifier::Not) => {
-                    select.filter(aux_tracks_profile::tempo_bpm.le(condition_params.value))
-                }
-            },
-            NumericCondition::EqualTo(condition_params) => match condition_params.modifier {
-                None => select.filter(aux_tracks_profile::tempo_bpm.eq(condition_params.value)),
-                Some(ConditionModifier::Not) => {
-                    select.filter(aux_tracks_profile::tempo_bpm.ne(condition_params.value))
-                }
-            },
-        },
-        NumericField::KeysigCode => {
-            match numeric_filter.condition {
-                NumericCondition::LessThan(condition_params) => match condition_params.modifier {
+    select =
+        match numeric_filter.field {
+            NumericField::TempoBpm => match numeric_filter.condition.comparator {
+                NumericComparator::LessThan => match numeric_filter.condition.modifier {
                     None => select
-                        .filter(aux_tracks_profile::keysig_code.lt(condition_params.value as i16)),
+                        .filter(aux_tracks_profile::tempo_bpm.lt(numeric_filter.condition.value)),
                     Some(ConditionModifier::Not) => select
-                        .filter(aux_tracks_profile::keysig_code.ge(condition_params.value as i16)),
+                        .filter(aux_tracks_profile::tempo_bpm.ge(numeric_filter.condition.value)),
                 },
-                NumericCondition::GreaterThan(condition_params) => {
-                    match condition_params.modifier {
-                        None => select.filter(
-                            aux_tracks_profile::keysig_code.gt(condition_params.value as i16),
-                        ),
-                        Some(ConditionModifier::Not) => select.filter(
-                            aux_tracks_profile::keysig_code.le(condition_params.value as i16),
-                        ),
-                    }
-                }
-                NumericCondition::EqualTo(condition_params) => match condition_params.modifier {
+                NumericComparator::GreaterThan => match numeric_filter.condition.modifier {
                     None => select
-                        .filter(aux_tracks_profile::keysig_code.eq(condition_params.value as i16)),
+                        .filter(aux_tracks_profile::tempo_bpm.gt(numeric_filter.condition.value)),
                     Some(ConditionModifier::Not) => select
-                        .filter(aux_tracks_profile::keysig_code.ne(condition_params.value as i16)),
+                        .filter(aux_tracks_profile::tempo_bpm.le(numeric_filter.condition.value)),
                 },
-            }
-        }
-        NumericField::TimesigUpper => match numeric_filter.condition {
-            NumericCondition::LessThan(condition_params) => match condition_params.modifier {
-                None => select
-                    .filter(aux_tracks_profile::timesig_upper.lt(condition_params.value as i16)),
-                Some(ConditionModifier::Not) => select
-                    .filter(aux_tracks_profile::timesig_upper.ge(condition_params.value as i16)),
+                NumericComparator::EqualTo => match numeric_filter.condition.modifier {
+                    None => select
+                        .filter(aux_tracks_profile::tempo_bpm.eq(numeric_filter.condition.value)),
+                    Some(ConditionModifier::Not) => select
+                        .filter(aux_tracks_profile::tempo_bpm.ne(numeric_filter.condition.value)),
+                },
             },
-            NumericCondition::GreaterThan(condition_params) => match condition_params.modifier {
-                None => select
-                    .filter(aux_tracks_profile::timesig_upper.gt(condition_params.value as i16)),
-                Some(ConditionModifier::Not) => select
-                    .filter(aux_tracks_profile::timesig_upper.le(condition_params.value as i16)),
+            NumericField::KeysigCode => match numeric_filter.condition.comparator {
+                NumericComparator::LessThan => match numeric_filter.condition.modifier {
+                    None => select.filter(
+                        aux_tracks_profile::keysig_code.lt(numeric_filter.condition.value as i16),
+                    ),
+                    Some(ConditionModifier::Not) => select.filter(
+                        aux_tracks_profile::keysig_code.ge(numeric_filter.condition.value as i16),
+                    ),
+                },
+                NumericComparator::GreaterThan => match numeric_filter.condition.modifier {
+                    None => select.filter(
+                        aux_tracks_profile::keysig_code.gt(numeric_filter.condition.value as i16),
+                    ),
+                    Some(ConditionModifier::Not) => select.filter(
+                        aux_tracks_profile::keysig_code.le(numeric_filter.condition.value as i16),
+                    ),
+                },
+                NumericComparator::EqualTo => match numeric_filter.condition.modifier {
+                    None => select.filter(
+                        aux_tracks_profile::keysig_code.eq(numeric_filter.condition.value as i16),
+                    ),
+                    Some(ConditionModifier::Not) => select.filter(
+                        aux_tracks_profile::keysig_code.ne(numeric_filter.condition.value as i16),
+                    ),
+                },
             },
-            NumericCondition::EqualTo(condition_params) => match condition_params.modifier {
-                None => select
-                    .filter(aux_tracks_profile::timesig_upper.eq(condition_params.value as i16)),
-                Some(ConditionModifier::Not) => select
-                    .filter(aux_tracks_profile::timesig_upper.ne(condition_params.value as i16)),
+            NumericField::TimesigUpper => match numeric_filter.condition.comparator {
+                NumericComparator::LessThan => match numeric_filter.condition.modifier {
+                    None => select.filter(
+                        aux_tracks_profile::timesig_upper.lt(numeric_filter.condition.value as i16),
+                    ),
+                    Some(ConditionModifier::Not) => select.filter(
+                        aux_tracks_profile::timesig_upper.ge(numeric_filter.condition.value as i16),
+                    ),
+                },
+                NumericComparator::GreaterThan => match numeric_filter.condition.modifier {
+                    None => select.filter(
+                        aux_tracks_profile::timesig_upper.gt(numeric_filter.condition.value as i16),
+                    ),
+                    Some(ConditionModifier::Not) => select.filter(
+                        aux_tracks_profile::timesig_upper.le(numeric_filter.condition.value as i16),
+                    ),
+                },
+                NumericComparator::EqualTo => match numeric_filter.condition.modifier {
+                    None => select.filter(
+                        aux_tracks_profile::timesig_upper.eq(numeric_filter.condition.value as i16),
+                    ),
+                    Some(ConditionModifier::Not) => select.filter(
+                        aux_tracks_profile::timesig_upper.ne(numeric_filter.condition.value as i16),
+                    ),
+                },
             },
-        },
-        NumericField::TimesigLower => match numeric_filter.condition {
-            NumericCondition::LessThan(condition_params) => match condition_params.modifier {
-                None => select
-                    .filter(aux_tracks_profile::timesig_lower.lt(condition_params.value as i16)),
-                Some(ConditionModifier::Not) => select
-                    .filter(aux_tracks_profile::timesig_lower.ge(condition_params.value as i16)),
+            NumericField::TimesigLower => match numeric_filter.condition.comparator {
+                NumericComparator::LessThan => match numeric_filter.condition.modifier {
+                    None => select.filter(
+                        aux_tracks_profile::timesig_lower.lt(numeric_filter.condition.value as i16),
+                    ),
+                    Some(ConditionModifier::Not) => select.filter(
+                        aux_tracks_profile::timesig_lower.ge(numeric_filter.condition.value as i16),
+                    ),
+                },
+                NumericComparator::GreaterThan => match numeric_filter.condition.modifier {
+                    None => select.filter(
+                        aux_tracks_profile::timesig_lower.gt(numeric_filter.condition.value as i16),
+                    ),
+                    Some(ConditionModifier::Not) => select.filter(
+                        aux_tracks_profile::timesig_lower.le(numeric_filter.condition.value as i16),
+                    ),
+                },
+                NumericComparator::EqualTo => match numeric_filter.condition.modifier {
+                    None => select.filter(
+                        aux_tracks_profile::timesig_lower.eq(numeric_filter.condition.value as i16),
+                    ),
+                    Some(ConditionModifier::Not) => select.filter(
+                        aux_tracks_profile::timesig_lower.ne(numeric_filter.condition.value as i16),
+                    ),
+                },
             },
-            NumericCondition::GreaterThan(condition_params) => match condition_params.modifier {
-                None => select
-                    .filter(aux_tracks_profile::timesig_lower.gt(condition_params.value as i16)),
-                Some(ConditionModifier::Not) => select
-                    .filter(aux_tracks_profile::timesig_lower.le(condition_params.value as i16)),
-            },
-            NumericCondition::EqualTo(condition_params) => match condition_params.modifier {
-                None => select
-                    .filter(aux_tracks_profile::timesig_lower.eq(condition_params.value as i16)),
-                Some(ConditionModifier::Not) => select
-                    .filter(aux_tracks_profile::timesig_lower.ne(condition_params.value as i16)),
-            },
-        },
-        _ => return None,
-    };
+            _ => return None,
+        };
 
     Some((select, numeric_filter.modifier))
 }
@@ -338,11 +351,7 @@ enum EitherEqualOrLike {
 }
 
 impl<'a> Tracks for TrackRepository<'a> {
-    fn create_entity(
-        &self,
-        body: Track,
-        format: SerializationFormat,
-    ) -> TracksResult<TrackEntity> {
+    fn create_entity(&self, body: Track, format: SerializationFormat) -> TracksResult<TrackEntity> {
         let entity = TrackEntity::new(EntityHeader::initial(), body);
         self.insert_entity(&entity, format)?;
         Ok(entity)
@@ -403,10 +412,11 @@ impl<'a> Tracks for TrackRepository<'a> {
         let mut results = ReplacedTracks::default();
         for replacement in replace_params.replacements.into_iter() {
             let uri_filter = UriFilter {
-                condition: StringCondition::Matches(StringConditionParams {
+                condition: StringCondition {
+                    comparator: StringComparator::Matches,
                     value: replacement.uri.clone(),
                     modifier: None,
-                }),
+                },
                 modifier: None,
             };
             let locate_params = LocateTracksParams { uri_filter };
@@ -530,42 +540,43 @@ impl<'a> Tracks for TrackRepository<'a> {
         locate_params: LocateTracksParams,
     ) -> TracksResult<Vec<SerializedEntity>> {
         // URI filter
-        let (either_eq_or_like, modifier) = match locate_params.uri_filter.condition {
+        let uri_condition = locate_params.uri_filter.condition;
+        let (either_eq_or_like, modifier) = match uri_condition.comparator {
             // Equal comparison
-            StringCondition::Matches(condition_params) => (
-                EitherEqualOrLike::Equal(condition_params.value),
-                condition_params.modifier,
+            StringComparator::Matches => (
+                EitherEqualOrLike::Equal(uri_condition.value),
+                uri_condition.modifier,
             ),
             // Like comparison: Escape wildcard character with backslash (see below)
-            StringCondition::StartsWith(condition_params) => (
+            StringComparator::StartsWith => (
                 EitherEqualOrLike::Like(format!(
                     "{}%",
-                    condition_params
+                    uri_condition
                         .value
                         .replace('\\', "\\\\")
                         .replace('%', "\\%")
                 )),
-                condition_params.modifier,
+                uri_condition.modifier,
             ),
-            StringCondition::EndsWith(condition_params) => (
+            StringComparator::EndsWith => (
                 EitherEqualOrLike::Like(format!(
                     "%{}",
-                    condition_params
+                    uri_condition
                         .value
                         .replace('\\', "\\\\")
                         .replace('%', "\\%")
                 )),
-                condition_params.modifier,
+                uri_condition.modifier,
             ),
-            StringCondition::Contains(condition_params) => (
+            StringComparator::Contains => (
                 EitherEqualOrLike::Like(format!(
                     "%{}%",
-                    condition_params
+                    uri_condition
                         .value
                         .replace('\\', "\\\\")
                         .replace('%', "\\%")
                 )),
-                condition_params.modifier,
+                uri_condition.modifier,
             ),
         };
 
@@ -635,13 +646,12 @@ impl<'a> Tracks for TrackRepository<'a> {
 
         if let Some(phrase_filter) = search_params.phrase_filter {
             // Escape wildcard character with backslash (see below)
-            let escaped_query = phrase_filter
-                .query
+            let escaped = phrase_filter
+                .phrase
                 .replace('\\', "\\\\")
                 .replace('%', "\\%");
-            let escaped_and_tokenized = escaped_query
-                .split_whitespace()
-                .filter(|token| !token.is_empty());
+            let escaped_and_tokenized =
+                escaped.split_whitespace().filter(|token| !token.is_empty());
             let escaped_and_tokenized_len = escaped_and_tokenized
                 .clone()
                 .fold(0, |len, token| len + token.len());
@@ -827,277 +837,253 @@ impl<'a> Tracks for TrackRepository<'a> {
                     }
                 },
                 None => match numeric_filter.field {
-                    NumericField::DurationMs => match numeric_filter.condition {
-                        NumericCondition::LessThan(condition_params) => {
-                            match condition_params.modifier {
-                                None => match numeric_filter.modifier {
-                                    None => target.filter(
-                                        aux_tracks_resource::audio_duration_ms
-                                            .lt(condition_params.value),
-                                    ),
-                                    Some(FilterModifier::Complement) => target
-                                        .filter(not(aux_tracks_resource::audio_duration_ms
-                                            .lt(condition_params.value))),
-                                },
-                                Some(ConditionModifier::Not) => match numeric_filter.modifier {
-                                    None => target.filter(
-                                        aux_tracks_resource::audio_duration_ms
-                                            .ge(condition_params.value),
-                                    ),
-                                    Some(FilterModifier::Complement) => target
-                                        .filter(not(aux_tracks_resource::audio_duration_ms
-                                            .ge(condition_params.value))),
-                                },
-                            }
-                        }
-                        NumericCondition::GreaterThan(condition_params) => {
-                            match condition_params.modifier {
-                                None => match numeric_filter.modifier {
-                                    None => target.filter(
-                                        aux_tracks_resource::audio_duration_ms
-                                            .gt(condition_params.value),
-                                    ),
-                                    Some(FilterModifier::Complement) => target
-                                        .filter(not(aux_tracks_resource::audio_duration_ms
-                                            .gt(condition_params.value))),
-                                },
-                                Some(ConditionModifier::Not) => match numeric_filter.modifier {
-                                    None => target.filter(
-                                        aux_tracks_resource::audio_duration_ms
-                                            .le(condition_params.value),
-                                    ),
-                                    Some(FilterModifier::Complement) => target
-                                        .filter(not(aux_tracks_resource::audio_duration_ms
-                                            .le(condition_params.value))),
-                                },
-                            }
-                        }
-                        NumericCondition::EqualTo(condition_params) => {
-                            match condition_params.modifier {
-                                None => match numeric_filter.modifier {
-                                    None => target.filter(
-                                        aux_tracks_resource::audio_duration_ms
-                                            .eq(condition_params.value),
-                                    ),
-                                    Some(FilterModifier::Complement) => target
-                                        .filter(not(aux_tracks_resource::audio_duration_ms
-                                            .eq(condition_params.value))),
-                                },
-                                Some(ConditionModifier::Not) => match numeric_filter.modifier {
-                                    None => target.filter(
-                                        aux_tracks_resource::audio_duration_ms
-                                            .ne(condition_params.value),
-                                    ),
-                                    Some(FilterModifier::Complement) => target
-                                        .filter(not(aux_tracks_resource::audio_duration_ms
-                                            .ne(condition_params.value))),
-                                },
-                            }
-                        }
+                    NumericField::DurationMs => match numeric_filter.condition.comparator {
+                        NumericComparator::LessThan => match numeric_filter.condition.modifier {
+                            None => match numeric_filter.modifier {
+                                None => target.filter(
+                                    aux_tracks_resource::audio_duration_ms
+                                        .lt(numeric_filter.condition.value),
+                                ),
+                                Some(FilterModifier::Complement) => target
+                                    .filter(not(aux_tracks_resource::audio_duration_ms
+                                        .lt(numeric_filter.condition.value))),
+                            },
+                            Some(ConditionModifier::Not) => match numeric_filter.modifier {
+                                None => target.filter(
+                                    aux_tracks_resource::audio_duration_ms
+                                        .ge(numeric_filter.condition.value),
+                                ),
+                                Some(FilterModifier::Complement) => target
+                                    .filter(not(aux_tracks_resource::audio_duration_ms
+                                        .ge(numeric_filter.condition.value))),
+                            },
+                        },
+                        NumericComparator::GreaterThan => match numeric_filter.condition.modifier {
+                            None => match numeric_filter.modifier {
+                                None => target.filter(
+                                    aux_tracks_resource::audio_duration_ms
+                                        .gt(numeric_filter.condition.value),
+                                ),
+                                Some(FilterModifier::Complement) => target
+                                    .filter(not(aux_tracks_resource::audio_duration_ms
+                                        .gt(numeric_filter.condition.value))),
+                            },
+                            Some(ConditionModifier::Not) => match numeric_filter.modifier {
+                                None => target.filter(
+                                    aux_tracks_resource::audio_duration_ms
+                                        .le(numeric_filter.condition.value),
+                                ),
+                                Some(FilterModifier::Complement) => target
+                                    .filter(not(aux_tracks_resource::audio_duration_ms
+                                        .le(numeric_filter.condition.value))),
+                            },
+                        },
+                        NumericComparator::EqualTo => match numeric_filter.condition.modifier {
+                            None => match numeric_filter.modifier {
+                                None => target.filter(
+                                    aux_tracks_resource::audio_duration_ms
+                                        .eq(numeric_filter.condition.value),
+                                ),
+                                Some(FilterModifier::Complement) => target
+                                    .filter(not(aux_tracks_resource::audio_duration_ms
+                                        .eq(numeric_filter.condition.value))),
+                            },
+                            Some(ConditionModifier::Not) => match numeric_filter.modifier {
+                                None => target.filter(
+                                    aux_tracks_resource::audio_duration_ms
+                                        .ne(numeric_filter.condition.value),
+                                ),
+                                Some(FilterModifier::Complement) => target
+                                    .filter(not(aux_tracks_resource::audio_duration_ms
+                                        .ne(numeric_filter.condition.value))),
+                            },
+                        },
                     },
-                    NumericField::SamplerateHz => match numeric_filter.condition {
-                        NumericCondition::LessThan(condition_params) => {
-                            match condition_params.modifier {
-                                None => match numeric_filter.modifier {
-                                    None => target.filter(
-                                        aux_tracks_resource::audio_samplerate_hz
-                                            .lt(condition_params.value as i32),
-                                    ),
-                                    Some(FilterModifier::Complement) => target
-                                        .filter(not(aux_tracks_resource::audio_samplerate_hz
-                                            .lt(condition_params.value as i32))),
-                                },
-                                Some(ConditionModifier::Not) => match numeric_filter.modifier {
-                                    None => target.filter(
-                                        aux_tracks_resource::audio_samplerate_hz
-                                            .ge(condition_params.value as i32),
-                                    ),
-                                    Some(FilterModifier::Complement) => target
-                                        .filter(not(aux_tracks_resource::audio_samplerate_hz
-                                            .ge(condition_params.value as i32))),
-                                },
-                            }
-                        }
-                        NumericCondition::GreaterThan(condition_params) => {
-                            match condition_params.modifier {
-                                None => match numeric_filter.modifier {
-                                    None => target.filter(
-                                        aux_tracks_resource::audio_samplerate_hz
-                                            .gt(condition_params.value as i32),
-                                    ),
-                                    Some(FilterModifier::Complement) => target
-                                        .filter(not(aux_tracks_resource::audio_samplerate_hz
-                                            .gt(condition_params.value as i32))),
-                                },
-                                Some(ConditionModifier::Not) => match numeric_filter.modifier {
-                                    None => target.filter(
-                                        aux_tracks_resource::audio_samplerate_hz
-                                            .le(condition_params.value as i32),
-                                    ),
-                                    Some(FilterModifier::Complement) => target
-                                        .filter(not(aux_tracks_resource::audio_samplerate_hz
-                                            .le(condition_params.value as i32))),
-                                },
-                            }
-                        }
-                        NumericCondition::EqualTo(condition_params) => {
-                            match condition_params.modifier {
-                                None => match numeric_filter.modifier {
-                                    None => target.filter(
-                                        aux_tracks_resource::audio_samplerate_hz
-                                            .eq(condition_params.value as i32),
-                                    ),
-                                    Some(FilterModifier::Complement) => target
-                                        .filter(not(aux_tracks_resource::audio_samplerate_hz
-                                            .eq(condition_params.value as i32))),
-                                },
-                                Some(ConditionModifier::Not) => match numeric_filter.modifier {
-                                    None => target.filter(
-                                        aux_tracks_resource::audio_samplerate_hz
-                                            .ne(condition_params.value as i32),
-                                    ),
-                                    Some(FilterModifier::Complement) => target
-                                        .filter(not(aux_tracks_resource::audio_samplerate_hz
-                                            .ne(condition_params.value as i32))),
-                                },
-                            }
-                        }
+                    NumericField::SamplerateHz => match numeric_filter.condition.comparator {
+                        NumericComparator::LessThan => match numeric_filter.condition.modifier {
+                            None => match numeric_filter.modifier {
+                                None => target.filter(
+                                    aux_tracks_resource::audio_samplerate_hz
+                                        .lt(numeric_filter.condition.value as i32),
+                                ),
+                                Some(FilterModifier::Complement) => target
+                                    .filter(not(aux_tracks_resource::audio_samplerate_hz
+                                        .lt(numeric_filter.condition.value as i32))),
+                            },
+                            Some(ConditionModifier::Not) => match numeric_filter.modifier {
+                                None => target.filter(
+                                    aux_tracks_resource::audio_samplerate_hz
+                                        .ge(numeric_filter.condition.value as i32),
+                                ),
+                                Some(FilterModifier::Complement) => target
+                                    .filter(not(aux_tracks_resource::audio_samplerate_hz
+                                        .ge(numeric_filter.condition.value as i32))),
+                            },
+                        },
+                        NumericComparator::GreaterThan => match numeric_filter.condition.modifier {
+                            None => match numeric_filter.modifier {
+                                None => target.filter(
+                                    aux_tracks_resource::audio_samplerate_hz
+                                        .gt(numeric_filter.condition.value as i32),
+                                ),
+                                Some(FilterModifier::Complement) => target
+                                    .filter(not(aux_tracks_resource::audio_samplerate_hz
+                                        .gt(numeric_filter.condition.value as i32))),
+                            },
+                            Some(ConditionModifier::Not) => match numeric_filter.modifier {
+                                None => target.filter(
+                                    aux_tracks_resource::audio_samplerate_hz
+                                        .le(numeric_filter.condition.value as i32),
+                                ),
+                                Some(FilterModifier::Complement) => target
+                                    .filter(not(aux_tracks_resource::audio_samplerate_hz
+                                        .le(numeric_filter.condition.value as i32))),
+                            },
+                        },
+                        NumericComparator::EqualTo => match numeric_filter.condition.modifier {
+                            None => match numeric_filter.modifier {
+                                None => target.filter(
+                                    aux_tracks_resource::audio_samplerate_hz
+                                        .eq(numeric_filter.condition.value as i32),
+                                ),
+                                Some(FilterModifier::Complement) => target
+                                    .filter(not(aux_tracks_resource::audio_samplerate_hz
+                                        .eq(numeric_filter.condition.value as i32))),
+                            },
+                            Some(ConditionModifier::Not) => match numeric_filter.modifier {
+                                None => target.filter(
+                                    aux_tracks_resource::audio_samplerate_hz
+                                        .ne(numeric_filter.condition.value as i32),
+                                ),
+                                Some(FilterModifier::Complement) => target
+                                    .filter(not(aux_tracks_resource::audio_samplerate_hz
+                                        .ne(numeric_filter.condition.value as i32))),
+                            },
+                        },
                     },
-                    NumericField::BitrateBps => match numeric_filter.condition {
-                        NumericCondition::LessThan(condition_params) => {
-                            match condition_params.modifier {
-                                None => match numeric_filter.modifier {
-                                    None => target.filter(
-                                        aux_tracks_resource::audio_bitrate_bps
-                                            .lt(condition_params.value as i32),
-                                    ),
-                                    Some(FilterModifier::Complement) => target
-                                        .filter(not(aux_tracks_resource::audio_bitrate_bps
-                                            .lt(condition_params.value as i32))),
-                                },
-                                Some(ConditionModifier::Not) => match numeric_filter.modifier {
-                                    None => target.filter(
-                                        aux_tracks_resource::audio_bitrate_bps
-                                            .ge(condition_params.value as i32),
-                                    ),
-                                    Some(FilterModifier::Complement) => target
-                                        .filter(not(aux_tracks_resource::audio_bitrate_bps
-                                            .ge(condition_params.value as i32))),
-                                },
-                            }
-                        }
-                        NumericCondition::GreaterThan(condition_params) => {
-                            match condition_params.modifier {
-                                None => match numeric_filter.modifier {
-                                    None => target.filter(
-                                        aux_tracks_resource::audio_bitrate_bps
-                                            .gt(condition_params.value as i32),
-                                    ),
-                                    Some(FilterModifier::Complement) => target
-                                        .filter(not(aux_tracks_resource::audio_bitrate_bps
-                                            .gt(condition_params.value as i32))),
-                                },
-                                Some(ConditionModifier::Not) => match numeric_filter.modifier {
-                                    None => target.filter(
-                                        aux_tracks_resource::audio_bitrate_bps
-                                            .le(condition_params.value as i32),
-                                    ),
-                                    Some(FilterModifier::Complement) => target
-                                        .filter(not(aux_tracks_resource::audio_bitrate_bps
-                                            .le(condition_params.value as i32))),
-                                },
-                            }
-                        }
-                        NumericCondition::EqualTo(condition_params) => {
-                            match condition_params.modifier {
-                                None => match numeric_filter.modifier {
-                                    None => target.filter(
-                                        aux_tracks_resource::audio_bitrate_bps
-                                            .eq(condition_params.value as i32),
-                                    ),
-                                    Some(FilterModifier::Complement) => target
-                                        .filter(not(aux_tracks_resource::audio_bitrate_bps
-                                            .eq(condition_params.value as i32))),
-                                },
-                                Some(ConditionModifier::Not) => match numeric_filter.modifier {
-                                    None => target.filter(
-                                        aux_tracks_resource::audio_bitrate_bps
-                                            .ne(condition_params.value as i32),
-                                    ),
-                                    Some(FilterModifier::Complement) => target
-                                        .filter(not(aux_tracks_resource::audio_bitrate_bps
-                                            .ne(condition_params.value as i32))),
-                                },
-                            }
-                        }
+                    NumericField::BitrateBps => match numeric_filter.condition.comparator {
+                        NumericComparator::LessThan => match numeric_filter.condition.modifier {
+                            None => match numeric_filter.modifier {
+                                None => target.filter(
+                                    aux_tracks_resource::audio_bitrate_bps
+                                        .lt(numeric_filter.condition.value as i32),
+                                ),
+                                Some(FilterModifier::Complement) => target
+                                    .filter(not(aux_tracks_resource::audio_bitrate_bps
+                                        .lt(numeric_filter.condition.value as i32))),
+                            },
+                            Some(ConditionModifier::Not) => match numeric_filter.modifier {
+                                None => target.filter(
+                                    aux_tracks_resource::audio_bitrate_bps
+                                        .ge(numeric_filter.condition.value as i32),
+                                ),
+                                Some(FilterModifier::Complement) => target
+                                    .filter(not(aux_tracks_resource::audio_bitrate_bps
+                                        .ge(numeric_filter.condition.value as i32))),
+                            },
+                        },
+                        NumericComparator::GreaterThan => match numeric_filter.condition.modifier {
+                            None => match numeric_filter.modifier {
+                                None => target.filter(
+                                    aux_tracks_resource::audio_bitrate_bps
+                                        .gt(numeric_filter.condition.value as i32),
+                                ),
+                                Some(FilterModifier::Complement) => target
+                                    .filter(not(aux_tracks_resource::audio_bitrate_bps
+                                        .gt(numeric_filter.condition.value as i32))),
+                            },
+                            Some(ConditionModifier::Not) => match numeric_filter.modifier {
+                                None => target.filter(
+                                    aux_tracks_resource::audio_bitrate_bps
+                                        .le(numeric_filter.condition.value as i32),
+                                ),
+                                Some(FilterModifier::Complement) => target
+                                    .filter(not(aux_tracks_resource::audio_bitrate_bps
+                                        .le(numeric_filter.condition.value as i32))),
+                            },
+                        },
+                        NumericComparator::EqualTo => match numeric_filter.condition.modifier {
+                            None => match numeric_filter.modifier {
+                                None => target.filter(
+                                    aux_tracks_resource::audio_bitrate_bps
+                                        .eq(numeric_filter.condition.value as i32),
+                                ),
+                                Some(FilterModifier::Complement) => target
+                                    .filter(not(aux_tracks_resource::audio_bitrate_bps
+                                        .eq(numeric_filter.condition.value as i32))),
+                            },
+                            Some(ConditionModifier::Not) => match numeric_filter.modifier {
+                                None => target.filter(
+                                    aux_tracks_resource::audio_bitrate_bps
+                                        .ne(numeric_filter.condition.value as i32),
+                                ),
+                                Some(FilterModifier::Complement) => target
+                                    .filter(not(aux_tracks_resource::audio_bitrate_bps
+                                        .ne(numeric_filter.condition.value as i32))),
+                            },
+                        },
                     },
-                    NumericField::ChannelsCount => match numeric_filter.condition {
-                        NumericCondition::LessThan(condition_params) => {
-                            match condition_params.modifier {
-                                None => match numeric_filter.modifier {
-                                    None => target.filter(
-                                        aux_tracks_resource::audio_channels_count
-                                            .lt(condition_params.value as i16),
-                                    ),
-                                    Some(FilterModifier::Complement) => target
-                                        .filter(not(aux_tracks_resource::audio_channels_count
-                                            .lt(condition_params.value as i16))),
-                                },
-                                Some(ConditionModifier::Not) => match numeric_filter.modifier {
-                                    None => target.filter(
-                                        aux_tracks_resource::audio_channels_count
-                                            .ge(condition_params.value as i16),
-                                    ),
-                                    Some(FilterModifier::Complement) => target
-                                        .filter(not(aux_tracks_resource::audio_channels_count
-                                            .ge(condition_params.value as i16))),
-                                },
-                            }
-                        }
-                        NumericCondition::GreaterThan(condition_params) => {
-                            match condition_params.modifier {
-                                None => match numeric_filter.modifier {
-                                    None => target.filter(
-                                        aux_tracks_resource::audio_channels_count
-                                            .gt(condition_params.value as i16),
-                                    ),
-                                    Some(FilterModifier::Complement) => target
-                                        .filter(not(aux_tracks_resource::audio_channels_count
-                                            .gt(condition_params.value as i16))),
-                                },
-                                Some(ConditionModifier::Not) => match numeric_filter.modifier {
-                                    None => target.filter(
-                                        aux_tracks_resource::audio_channels_count
-                                            .le(condition_params.value as i16),
-                                    ),
-                                    Some(FilterModifier::Complement) => target
-                                        .filter(not(aux_tracks_resource::audio_channels_count
-                                            .le(condition_params.value as i16))),
-                                },
-                            }
-                        }
-                        NumericCondition::EqualTo(condition_params) => {
-                            match condition_params.modifier {
-                                None => match numeric_filter.modifier {
-                                    None => target.filter(
-                                        aux_tracks_resource::audio_channels_count
-                                            .eq(condition_params.value as i16),
-                                    ),
-                                    Some(FilterModifier::Complement) => target
-                                        .filter(not(aux_tracks_resource::audio_channels_count
-                                            .eq(condition_params.value as i16))),
-                                },
-                                Some(ConditionModifier::Not) => match numeric_filter.modifier {
-                                    None => target.filter(
-                                        aux_tracks_resource::audio_channels_count
-                                            .ne(condition_params.value as i16),
-                                    ),
-                                    Some(FilterModifier::Complement) => target
-                                        .filter(not(aux_tracks_resource::audio_channels_count
-                                            .ne(condition_params.value as i16))),
-                                },
-                            }
-                        }
+                    NumericField::ChannelsCount => match numeric_filter.condition.comparator {
+                        NumericComparator::LessThan => match numeric_filter.condition.modifier {
+                            None => match numeric_filter.modifier {
+                                None => target.filter(
+                                    aux_tracks_resource::audio_channels_count
+                                        .lt(numeric_filter.condition.value as i16),
+                                ),
+                                Some(FilterModifier::Complement) => target
+                                    .filter(not(aux_tracks_resource::audio_channels_count
+                                        .lt(numeric_filter.condition.value as i16))),
+                            },
+                            Some(ConditionModifier::Not) => match numeric_filter.modifier {
+                                None => target.filter(
+                                    aux_tracks_resource::audio_channels_count
+                                        .ge(numeric_filter.condition.value as i16),
+                                ),
+                                Some(FilterModifier::Complement) => target
+                                    .filter(not(aux_tracks_resource::audio_channels_count
+                                        .ge(numeric_filter.condition.value as i16))),
+                            },
+                        },
+                        NumericComparator::GreaterThan => match numeric_filter.condition.modifier {
+                            None => match numeric_filter.modifier {
+                                None => target.filter(
+                                    aux_tracks_resource::audio_channels_count
+                                        .gt(numeric_filter.condition.value as i16),
+                                ),
+                                Some(FilterModifier::Complement) => target
+                                    .filter(not(aux_tracks_resource::audio_channels_count
+                                        .gt(numeric_filter.condition.value as i16))),
+                            },
+                            Some(ConditionModifier::Not) => match numeric_filter.modifier {
+                                None => target.filter(
+                                    aux_tracks_resource::audio_channels_count
+                                        .le(numeric_filter.condition.value as i16),
+                                ),
+                                Some(FilterModifier::Complement) => target
+                                    .filter(not(aux_tracks_resource::audio_channels_count
+                                        .le(numeric_filter.condition.value as i16))),
+                            },
+                        },
+                        NumericComparator::EqualTo => match numeric_filter.condition.modifier {
+                            None => match numeric_filter.modifier {
+                                None => target.filter(
+                                    aux_tracks_resource::audio_channels_count
+                                        .eq(numeric_filter.condition.value as i16),
+                                ),
+                                Some(FilterModifier::Complement) => target
+                                    .filter(not(aux_tracks_resource::audio_channels_count
+                                        .eq(numeric_filter.condition.value as i16))),
+                            },
+                            Some(ConditionModifier::Not) => match numeric_filter.modifier {
+                                None => target.filter(
+                                    aux_tracks_resource::audio_channels_count
+                                        .ne(numeric_filter.condition.value as i16),
+                                ),
+                                Some(FilterModifier::Complement) => target
+                                    .filter(not(aux_tracks_resource::audio_channels_count
+                                        .ne(numeric_filter.condition.value as i16))),
+                            },
+                        },
                     },
                     numeric_field => {
                         unreachable!("unhandled numeric filter field: {:?}", numeric_field)

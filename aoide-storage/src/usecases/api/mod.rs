@@ -57,40 +57,42 @@ pub enum FilterModifier {
     Complement,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct StringConditionParams {
-    pub value: String,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub modifier: Option<ConditionModifier>,
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub enum StringComparator {
+    StartsWith, // head
+    EndsWith,   // tail
+    Contains,   // part
+    Matches,    // all
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub enum StringCondition {
-    StartsWith(StringConditionParams), // head
-    EndsWith(StringConditionParams),   // tail
-    Contains(StringConditionParams),   // part
-    Matches(StringConditionParams),    // all
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct StringCondition {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modifier: Option<ConditionModifier>,
+
+    pub comparator: StringComparator,
+
+    pub value: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TagFilter {
-    #[serde(rename = "score", skip_serializing_if = "Option::is_none")]
-    pub score_condition: Option<NumericCondition>,
-
-    #[serde(rename = "term", skip_serializing_if = "Option::is_none")]
-    pub term_condition: Option<StringCondition>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modifier: Option<FilterModifier>,
 
     // Facets are always matched with equals. Use an empty string
     // for matching tags without a facet.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub facet: Option<String>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub modifier: Option<FilterModifier>,
+    #[serde(rename = "term", skip_serializing_if = "Option::is_none")]
+    pub term_condition: Option<StringCondition>,
+
+    #[serde(rename = "score", skip_serializing_if = "Option::is_none")]
+    pub score_condition: Option<NumericCondition>,
 }
 
 impl TagFilter {
@@ -127,31 +129,33 @@ pub enum NumericField {
 pub type NumericValue = f64;
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct NumericConditionParams {
-    pub value: NumericValue,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub modifier: Option<ConditionModifier>,
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub enum NumericComparator {
+    LessThan,
+    GreaterThan,
+    EqualTo,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub enum NumericCondition {
-    LessThan(NumericConditionParams),
-    GreaterThan(NumericConditionParams),
-    EqualTo(NumericConditionParams),
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct NumericCondition {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modifier: Option<ConditionModifier>,
+
+    pub comparator: NumericComparator,
+
+    pub value: NumericValue,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct NumericFilter {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modifier: Option<FilterModifier>,
+
     pub field: NumericField,
 
     pub condition: NumericCondition,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub modifier: Option<FilterModifier>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -169,26 +173,27 @@ pub enum PhraseField {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PhraseFilter {
-    // Tokenized by whitespace, concatenized with wildcards,
-    // and filtered using "contains" semantics against any
-    // of the selected (or all) fields
-    pub query: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modifier: Option<FilterModifier>,
 
     // Empty == All
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub fields: Vec<PhraseField>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub modifier: Option<FilterModifier>,
+    // Tokenized by whitespace, concatenated with wildcards,
+    // and filtered using case-insensitive "contains" semantics
+    // against each of the selected fields, e.g. "la bell" or
+    // "tt ll" both match "Patti LaBelle"
+    pub phrase: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct UriFilter {
-    pub condition: StringCondition,
-
     #[serde(skip_serializing_if = "Option::is_none")]
     pub modifier: Option<FilterModifier>,
+
+    pub condition: StringCondition,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -320,7 +325,6 @@ pub struct StringFieldCounts {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TagFacetCount {
     pub facet: Option<String>,
-
     pub count: usize,
 }
 
@@ -328,6 +332,5 @@ pub struct TagFacetCount {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ScoredTagCount {
     pub tag: ScoredTag,
-
     pub count: usize,
 }

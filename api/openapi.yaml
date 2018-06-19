@@ -10,7 +10,7 @@ paths:
   /collections:
     get:
       summary: List collections
-      description: >
+      description: |
         List all collections that have recently been created/modified.
       operationId: listCollections
       tags:
@@ -38,7 +38,7 @@ paths:
       tags:
         - collections
       requestBody:
-        description: >
+        description: |
           Properties of the new collection.
         required: true
         content:
@@ -47,7 +47,7 @@ paths:
               $ref: '#/components/schemas/Collection'
       responses:
         '201':
-          description: >
+          description: |
             The header of the newly created collection entity.
           content:
             application/json:
@@ -60,7 +60,7 @@ paths:
   '/collections/{collectionUid}':
     get:
       summary: Load a collection
-      description: >
+      description: |
         Load a collection entity referenced by its UID.
       operationId: loadCollection
       tags:
@@ -70,7 +70,7 @@ paths:
         - $ref: '#/components/parameters/withCollectionOptions'
       responses:
         '200':
-          description: >
+          description: |
             The loaded collection entity, optionally with additional statistics.
           content:
             application/json:
@@ -90,7 +90,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
       requestBody:
-        description: >
+        description: |
           A collection entity with the current `header` and and updated `body`.
         required: true
         content:
@@ -99,7 +99,7 @@ paths:
               $ref: '#/components/schemas/CollectionEntity'
       responses:
         '200':
-          description: >
+          description: |
             The header of the updated collection entity.
           content:
             application/json:
@@ -125,7 +125,7 @@ paths:
           $ref: '#/components/responses/400BadRequest'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  '/tracks':
+  /tracks:
     get:
       summary: List tracks
       description: >
@@ -160,7 +160,7 @@ paths:
         - tracks
       responses:
         '201':
-          description: >
+          description: |
             The header of the newly created track entity.
           content:
             application/json:
@@ -171,7 +171,7 @@ paths:
   '/tracks/{trackUid}':
     get:
       summary: Load a track
-      description: >
+      description: |
         Load a track entity referenced by its UID.
       operationId: loadTrack
       tags:
@@ -180,7 +180,7 @@ paths:
         - $ref: '#/components/parameters/trackUidPath'
       responses:
         '200':
-          description: >
+          description: |
             The loaded track entity.
           content:
             application/json:
@@ -200,7 +200,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/trackUidPath'
       requestBody:
-        description: >
+        description: |
           A track entity with the current `header` and and updated `body`.
         required: true
         content:
@@ -209,7 +209,7 @@ paths:
               $ref: '#/components/schemas/TrackEntity'
       responses:
         '200':
-          description: >
+          description: |
             The header of the updated track entity.
           content:
             application/json:
@@ -235,11 +235,11 @@ paths:
           $ref: '#/components/responses/400BadRequest'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  '/tracks/locate':
+  /tracks/locate:
     post:
-      summary: Locate tracks
-      description: >
-        Locate tracks according to their resource URI.
+      summary: Locate tracks by URI
+      description: |
+        Locate tracks according to their (percent-encoded) source URI. Optionally the URI lookup can be restricted to a single collection.
       operationId: locateTracks
       tags:
         - tracks
@@ -253,7 +253,7 @@ paths:
               $ref: '#/components/schemas/LocateTracksParams'
       responses:
         '200':
-          description: >
+          description: |
             An array of matching tracks.
           content:
             application/json:
@@ -263,11 +263,11 @@ paths:
                   $ref: '#/components/schemas/TrackEntity'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  '/tracks/replace':
+  /tracks/replace:
     post:
       summary: Replace tracks by URI
       description: >
-        Replace tracks according to their resource URI. Optionally the URI lookup can be restricted to a single collection.
+        Replace tracks with a new revision by locating them through their (percent-encoded) source URI. Optionally the URI lookup can be restricted to a single collection.
       operationId: locateTracks
       tags:
         - tracks
@@ -281,7 +281,7 @@ paths:
               $ref: '#/components/schemas/ReplaceTracksParams'
       responses:
         '200':
-          description: >
+          description: |
             An array of matching tracks.
           content:
             application/json:
@@ -291,11 +291,11 @@ paths:
                   $ref: '#/components/schemas/ReplacedTracks'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  '/tracks/search':
+  /tracks/search:
     post:
       summary: Search tracks
-      description: >
-        Search tracks matching various filter conditions and sort the results.
+      description: |
+        Search tracks by evaluating various filter conditions and sort the results.
       operationId: searchTracks
       tags:
         - tracks
@@ -311,7 +311,7 @@ paths:
               $ref: '#/components/schemas/SearchTracksParams'
       responses:
         '200':
-          description: >
+          description: |
             An array of matching tracks in the requested order.
           content:
             application/json:
@@ -321,11 +321,11 @@ paths:
                   $ref: '#/components/schemas/TrackEntity'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  '/tags':
+  /tags:
     get:
       summary: List tags
       description: >
-        List term frequencies for selected facets, i.e. grouped by facet and term with the average score and a total count. Terms are listed in descending order of their total count. The results can optionally be restricted to a single collection. Pagination is applied separately for each of the selected facets.
+        List term frequencies of tags for selected (or all) facets. Results are provided as tags with an average score, listed in descending order of their total count. Optionally the evaluation can be restricted to a single collection.
       operationId: listTagFrequencies
       tags:
         - tags
@@ -336,7 +336,7 @@ paths:
         - $ref: '#/components/parameters/paginationLimit'
       responses:
         '200':
-          description: >
+          description: |
             Tag frequencies.
           content:
             application/json:
@@ -346,11 +346,11 @@ paths:
                   $ref: '#/components/schemas/ScoredTagCount'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  '/tags/facets':
+  /tags/facets:
     get:
       summary: List tag facets
       description: >
-        List frequencies of selected tag facets, i.e. grouped by facet with a total count. Facets are listed in descending order of their total count. The results can optionally be restricted to a single collection. Pagination is applied separately for each of the selected facets.
+        List frequencies for selected (or all) tag facets in descending order of their total count. Optionally the evaluation can be restricted to a single collection.
       operationId: listTagFacets
       tags:
         - tags
@@ -361,7 +361,7 @@ paths:
         - $ref: '#/components/parameters/paginationLimit'
       responses:
         '200':
-          description: >
+          description: |
             Tag facet frequencies.
           content:
             application/json:
@@ -371,11 +371,11 @@ paths:
                   $ref: '#/components/schemas/TagFacetCount'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  '/fields':
+  /fields:
     get:
       summary: List (string) fields
       description: >
-        List frequencies of selected fields, i.e. grouped by field and value with a total count. Field values are listed in descending order of their total count. The results can optionally be restricted to a single collection. Pagination is applied separately for each of the selected fields.
+        List frequencies of values for selected (string) fields. The results are grouped by field and pagination is applied separately for each field. Field values are listed in descending order of their total count. Optionally the results can be restricted to a single collection. 
       operationId: listFields
       tags:
         - fields
@@ -386,7 +386,7 @@ paths:
         - $ref: '#/components/parameters/paginationLimit'
       responses:
         '200':
-          description: >
+          description: |
             Field frequencies.
           content:
             application/json:
@@ -405,19 +405,19 @@ paths:
 components:
   responses:
     201Created:
-      description: >
+      description: |
         The resource has been created.
     204NoContent:
-      description: >
+      description: |
         The request has been processed, no response available.
     400BadRequest:
-      description: >
+      description: |
         The request with the provided parameters was invalid.
     404NotFound:
-      description: >
+      description: |
         The specified resource was not found.
     500InternalServerError:
-      description: >
+      description: |
         The server failed to process the request.
   parameters:
     paginationOffset:
@@ -428,7 +428,7 @@ components:
         type: integer
         format: int64
         minimum: 0
-      description: >
+      description: |
         Number of items to skip before returning the results or 0 if missing.
     paginationLimit:
       name: limit
@@ -438,7 +438,7 @@ components:
         type: integer
         format: int64
         minimum: 0
-      description: >
+      description: |
         Maximum number of items to return.
     collectionUidParam:
       name: collectionUid
@@ -452,7 +452,7 @@ components:
       name: collectionUid
       in: path
       required: true
-      description: >
+      description: |
         The UID of the collection.
       schema:
         $ref: '#/components/schemas/EntityUid'
@@ -460,7 +460,7 @@ components:
       name: trackUid
       in: path
       required: true
-      description: >
+      description: |
         The UID of the track.
       schema:
         $ref: '#/components/schemas/EntityUid'
@@ -470,13 +470,13 @@ components:
       required: false
       schema:
         type: string
-      description: >
+      description: |
         Comma-separated list of boolean options:
           * `track-stats` - Include track statistics
     withFieldList:
       name: with
       in: query
-      description: >-
+      description: |-
         Comma-separated list of field selectors:
           * `album-artist`
           * `album-title`
@@ -509,7 +509,7 @@ components:
             - summary
             - primary
             - secondary
-          description: >
+          description: |
             Optional priority that defaults to `summary` if missing
               * `summary` - the default display string
               * `primary` - primary actor(s)
@@ -546,7 +546,7 @@ components:
             $ref: '#/components/schemas/Title'
         compilation:
           type: boolean
-          description: >
+          description: |
             Indicates if this album is a compilation with various artists.
     AudioContent:
       properties:
@@ -621,7 +621,8 @@ components:
           $ref: '#/components/schemas/CollectionStats'
     ConditionModifier:
       type: string
-      enum: [ not ]
+      enum:
+        - not
     Duration:
       required:
         - ms
@@ -635,7 +636,7 @@ components:
       type: string
       minLength: 32
       maxLength: 32
-      example: '0AcZjgLUx5bFAd5EaJ42RTET1n2S_oxn'
+      example: 0AcZjgLUx5bFAd5EaJ42RTET1n2S_oxn
     EntityRevisionOrdinal:
       type: integer
       format: int64
@@ -645,7 +646,7 @@ components:
       type: string
       format: date-time
     EntityRevision:
-      description: >
+      description: |
         Tuple of 2 elements containing an ordinal and a timestamp.
       type: array
       minItems: 2
@@ -663,15 +664,17 @@ components:
     ExternalReference:
       type: string
       minLength: 1
-      description: >
+      description: |
         Stringified external reference, e.g. a URL.
       example: 'http://musicbrainz.org/track/d878c95a-8a6b-3be6-b6df-7d720a480625'
     FilterModifier:
       type: string
-      enum: [ complement ]
+      enum:
+        - complement
     IndexCount:
       description: >
-        Identifies the number of the current item and the number of total items. Both values are optional and might be `null`.
+        Identifies the number of the current item and the number of total items.
+        Both values are optional and might be `null`.
       type: array
       minItems: 2
       maxItems: 2
@@ -685,25 +688,26 @@ components:
     MediaType:
       type: string
       minLength: 1
-      example: 'audio/mpeg'
-    NumericCondition:
+      example: audio/mpeg
+    NumericComparator:
       description: >
-        A numeric condition is specified by exactly one of the defined properties.
-      properties:
-        less-than:
-          $ref: '#/components/schemas/NumericConditionParams'
-        greater-than:
-          $ref: '#/components/schemas/NumericConditionParams'
-        equal-to:
-          $ref: '#/components/schemas/NumericConditionParams'
-    NumericConditionParams:
+        Numeric comparison operators.
+      type: string
+      enum:
+        - less-than
+        - greater-than
+        - equal-to
+    NumericCondition:
       required:
+        - comparator
         - value
       properties:
-        value:
-          type: number
         modifier:
           $ref: '#/components/schemas/ConditionModifier'
+        comparator:
+          $ref: '#/components/schemas/NumericComparator'
+        value:
+          type: number
     NumericField:
       type: string
       enum:
@@ -717,12 +721,12 @@ components:
         - timesig-lower
     NumericFilter:
       properties:
+        modifier:
+          $ref: '#/components/schemas/FilterModifier'
         field:
           $ref: '#/components/schemas/NumericField'
         condition:
           $ref: '#/components/schemas/NumericCondition'
-        modifier:
-          $ref: '#/components/schemas/FilterModifier'
     Release:
       properties:
         refs:
@@ -764,13 +768,13 @@ components:
           items:
             $ref: '#/components/schemas/EntityHeader'
         skipped:
-          description: >
+          description: |
             Unchanged tracks, i.e. that don't need to be updated.
           type: array
           items:
             $ref: '#/components/schemas/EntityHeader'
         rejected:
-          description: >
+          description: |
             Informational messages about ambiguous or inconsistent tracks.
           type: array
           items:
@@ -812,7 +816,7 @@ components:
           $ref: '#/components/schemas/TagCount'
     ScoreValue:
       type: number
-      description: >
+      description: |
         Normalized score value between 0 and 1.
       example: 0.83
       minimum: 0
@@ -844,43 +848,50 @@ components:
         - track-artist
         - track-title
       description: >
-            * `source` - percent-decoded URI
-            * `comments` - all comments, i.e. independent of the owner
+        Selectable track fields, including
+          * `comments` - all comments, i.e. independent of the owner
+          * `source` - percent-decoded URI
+          * ...and more...
     PhraseFilter:
+      required:
+        - phrase
       properties:
-        query:
-          type: string
+        modifier:
+          $ref: '#/components/schemas/FilterModifier'
         fields:
           type: array
           items:
             $ref: '#/components/schemas/PhraseField'
-        modifier:
-          $ref: '#/components/schemas/FilterModifier'
+        phrase:
+          type: string
+          example: "michael jackson"
+          description: >
+            Tokenized by whitespace, concatenated with wildcards, and filtered using case-insensitive "contains" semantics against each of the selected fields, e.g. "la bell" or "tt ll" both match "Patti LaBelle".
     SortDirection:
       type: string
       enum:
         - asc
         - desc
-    StringCondition:
+    StringComparator:
       description: >
-        A string condition is specified by exactly one of the defined properties.
-      properties:
-        starts-with:
-          $ref: '#/components/schemas/StringConditionParams'
-        ends-with:
-          $ref: '#/components/schemas/StringConditionParams'
-        contains:
-          $ref: '#/components/schemas/StringConditionParams'
-        matches:
-          $ref: '#/components/schemas/StringConditionParams'
-    StringConditionParams:
+        Comparison operators for strings.
+      type: string
+      enum:
+        - starts-with
+        - ends-with
+        - contains
+        - matches
+    StringCondition:
       required:
+        - comparator
         - value
       properties:
-        value:
-          type: string
         modifier:
           $ref: '#/components/schemas/ConditionModifier'
+        comparator:
+          $ref: '#/components/schemas/StringComparator'
+        value:
+          type: string
     StringCount:
       required:
         - value
@@ -913,18 +924,18 @@ components:
             $ref: '#/components/schemas/StringCount'
     TagCount:
       type: integer
-      description: >
+      description: |
         Total number of occurrences.
       minimum: 0
       example: 1746
     TagFacet:
       type: string
-      description: >
+      description: |
         Non-empty, lowercase, string that defines the (optional) facet of tag.
-      example: 'genre'
+      example: genre
       minLength: 1
     TagFacetCount:
-      description: >
+      description: |
         Optional tag facet with the total number of occurrences.
       required:
         - count
@@ -935,19 +946,19 @@ components:
           $ref: '#/components/schemas/TagCount'
     TagFilter:
       properties:
-        score:
-          $ref: '#/components/schemas/NumericCondition'
-        term:
-          $ref: '#/components/schemas/StringCondition'
-        facet:
-          type: string
         modifier:
           $ref: '#/components/schemas/FilterModifier'
+        facet:
+          $ref: '#/components/schemas/TagFacet'
+        term:
+          $ref: '#/components/schemas/StringCondition'
+        score:
+          $ref: '#/components/schemas/NumericCondition'
     TagTerm:
       type: string
-      description: >
+      description: |
         Non-empty string that defines the content of tag.
-      example: 'Hip Hop/Rap'
+      example: Hip Hop/Rap
       minLength: 1
     Title:
       required:
@@ -962,7 +973,7 @@ components:
             - sub
             - wrk
             - mvn
-          description: >
+          description: |
             Optional level that defaults to `main` if missing
               * `main` - default display string
               * `sub` - a subtitle
@@ -1014,7 +1025,7 @@ components:
       properties:
         code:
           type: string
-          example: "#FF808080"
+          example: '#FF808080'
     TrackEntity:
       required:
         - header
