@@ -79,7 +79,7 @@ impl<'a> Collections for CollectionRepository<'a> {
         &self,
         entity: &CollectionEntity,
     ) -> CollectionsResult<(EntityRevision, Option<EntityRevision>)> {
-        let prev_revision = entity.header().revision();
+        let prev_revision = entity.header().revision().clone();
         let next_revision = prev_revision.next();
         {
             let updatable = UpdatableCollectionsEntity::bind(&next_revision, &entity.body());

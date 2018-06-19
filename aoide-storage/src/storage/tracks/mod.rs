@@ -364,7 +364,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         entity: TrackEntity,
         format: SerializationFormat,
     ) -> TracksResult<(EntityRevision, Option<EntityRevision>)> {
-        let prev_revision = entity.header().revision();
+        let prev_revision = entity.header().revision().clone();
         let next_revision = prev_revision.next();
         {
             let uid = entity.header().uid().clone();

@@ -214,7 +214,7 @@ impl EntityUidGenerator {
 
 pub type EntityVersionNumber = u32;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityVersion {
     major: EntityVersionNumber,
@@ -276,12 +276,12 @@ impl EntityRevision {
     }
 
     pub fn initial() -> Self {
-        Self::new(1 as EntityRevisionOrdinal, Utc::now())
+        EntityRevision(1 as EntityRevisionOrdinal, Utc::now())
     }
 
     pub fn next(&self) -> Self {
         debug_assert!(self.is_valid());
-        Self::new(self.ordinal() + 1, Utc::now())
+        EntityRevision(self.0 + 1, Utc::now())
     }
 
     pub fn is_valid(&self) -> bool {
@@ -342,12 +342,12 @@ impl EntityHeader {
         self.uid.is_valid() && self.revision.is_valid()
     }
 
-    pub fn uid<'a>(&'a self) -> &'a EntityUid {
+    pub fn uid(&self) -> &EntityUid {
         &self.uid
     }
 
-    pub fn revision(&self) -> EntityRevision {
-        self.revision
+    pub fn revision(&self) -> &EntityRevision {
+        &self.revision
     }
 }
 
@@ -368,24 +368,30 @@ impl<T> Entity<T> {
         Self { header, body }
     }
 
-    pub fn header<'a>(&'a self) -> &'a EntityHeader {
+    pub fn header(&self) -> &EntityHeader {
         &self.header
     }
 
-    pub fn body<'a>(&'a self) -> &'a T {
+    pub fn body(&self) -> &T {
         &self.body
     }
 
-    pub fn body_mut<'a>(&'a mut self) -> &'a mut T {
+    pub fn body_mut(&mut self) -> &mut T {
         &mut self.body
     }
 
     pub fn replace_revision(self, revision: EntityRevision) -> Self {
         let header = EntityHeader::new(*self.header.uid(), revision);
-        Self::new(header, self.body)
+        Self {
+            header,
+            body: self.body,
+        }
     }
 
     pub fn replace_body(self, body: T) -> Self {
-        Self::new(self.header, body)
+        Self {
+            header: self.header,
+            body,
+        }
     }
 }

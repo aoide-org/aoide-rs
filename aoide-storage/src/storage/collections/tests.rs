@@ -35,7 +35,7 @@ fn create_entity() {
         })
         .unwrap();
     println!("Created entity: {:?}", entity);
-    assert!(entity.is_valid());
+    assert!(entity.header().is_valid());
 }
 
 #[test]
@@ -49,14 +49,14 @@ fn update_entity() {
         })
         .unwrap();
     println!("Created entity: {:?}", entity);
-    assert!(entity.is_valid());
-    let prev_revision = entity.header().revision();
+    assert!(entity.header().is_valid());
+    let prev_revision = entity.header().revision().clone();
     entity.body_mut().name = "Renamed Collection".into();
     let (prev_revision2, next_revision) = repository.update_entity(&entity).unwrap();
     println!("Updated entity: {:?}", entity);
     assert!(prev_revision == prev_revision2);
     assert!(prev_revision < next_revision.unwrap());
-    assert!(entity.header().revision() == prev_revision);
+    assert!(entity.header().revision() == &prev_revision);
 }
 
 #[test]
@@ -70,7 +70,7 @@ fn delete_entity() {
         })
         .unwrap();
     println!("Created entity: {:?}", entity);
-    assert!(entity.is_valid());
+    assert!(entity.header().is_valid());
     assert_eq!(
         Some(()),
         repository.delete_entity(&entity.header().uid()).unwrap()
