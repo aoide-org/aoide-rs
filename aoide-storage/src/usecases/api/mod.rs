@@ -247,6 +247,8 @@ pub enum TrackSortField {
     AlbumTitle,
     InCollectionSince, // = recently added (only if searching in a single collection)
     LastRevisionedAt,  // = recently modified (created or updated)
+    ReleasedAt,
+    ReleasedBy,
     TrackArtist,
     TrackTitle,
 }

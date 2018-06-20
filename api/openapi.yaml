@@ -1061,6 +1061,8 @@ components:
         - album-title
         - in-collection-since
         - last-revisioned-at
+        - released-at
+        - released-by
         - track-artist
         - track-title
     TrackSort:

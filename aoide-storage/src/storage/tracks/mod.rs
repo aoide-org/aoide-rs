@@ -1140,6 +1140,22 @@ impl<'a> Tracks for TrackRepository<'a> {
                             target.then_order_by(aux_tracks_overview::album_title.desc())
                         }
                     },
+                    TrackSortField::ReleasedAt => match direction {
+                        SortDirection::Ascending => {
+                            target.then_order_by(aux_tracks_overview::released_at.asc())
+                        }
+                        SortDirection::Descending => {
+                            target.then_order_by(aux_tracks_overview::released_at.desc())
+                        }
+                    },
+                    TrackSortField::ReleasedBy => match direction {
+                        SortDirection::Ascending => {
+                            target.then_order_by(aux_tracks_overview::released_by.asc())
+                        }
+                        SortDirection::Descending => {
+                            target.then_order_by(aux_tracks_overview::released_by.desc())
+                        }
+                    },
                     TrackSortField::TrackArtist => match direction {
                         SortDirection::Ascending => {
                             target.then_order_by(aux_tracks_summary::track_artist.asc())
