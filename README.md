@@ -46,6 +46,16 @@ A list of projects which we depend on directly.
 
 [GStreamer](https://gstreamer.freedesktop.org) and [GStreamer bindings for Rust](https://github.com/sdroege/gstreamer-rs)
 
+## Build
+
+### Docker
+
+```bash
+make build
+```
+
+On Fedora `docker` must be executed as root and you might need to add `sudo` before this command. Since the build needs write access for the target directory you might also need to relocate that.
+
 ## Tools
 
 ### Database Migrations
