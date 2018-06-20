@@ -14,7 +14,7 @@ paths:
         List all collections that have recently been created/modified.
       operationId: listCollections
       tags:
-        - collections
+        - Collections
       parameters:
         - $ref: '#/components/parameters/paginationOffset'
         - $ref: '#/components/parameters/paginationLimit'
@@ -36,7 +36,7 @@ paths:
       summary: Create a new collection
       operationId: createCollection
       tags:
-        - collections
+        - Collections
       requestBody:
         description: |
           Properties of the new collection.
@@ -64,7 +64,7 @@ paths:
         Load a collection entity referenced by its UID.
       operationId: loadCollection
       tags:
-        - collections
+        - Collections
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
         - $ref: '#/components/parameters/withCollectionOptions'
@@ -86,7 +86,7 @@ paths:
         Update a collection entity after validating that the provided `header` matches that of the current entity (optimistic locking).
       operationId: updateCollection
       tags:
-        - collections
+        - Collections
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
       requestBody:
@@ -115,7 +115,7 @@ paths:
       summary: Delete a collection
       operationId: deleteCollection
       tags:
-        - collections
+        - Collections
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
       responses:
@@ -132,7 +132,7 @@ paths:
         List all tracks that have either recently been created/modified if no collection is specified or that have recently been added to the given collection.
       operationId: listTracks
       tags:
-        - tracks
+        - Tracks
       parameters:
         - $ref: '#/components/parameters/collectionUidParam'
         - $ref: '#/components/parameters/paginationOffset'
@@ -157,7 +157,7 @@ paths:
       summary: Create a new track
       operationId: createTrack
       tags:
-        - tracks
+        - Tracks
       responses:
         '201':
           description: |
@@ -175,7 +175,7 @@ paths:
         Load a track entity referenced by its UID.
       operationId: loadTrack
       tags:
-        - tracks
+        - Tracks
       parameters:
         - $ref: '#/components/parameters/trackUidPath'
       responses:
@@ -196,7 +196,7 @@ paths:
         Update a track entity after validating that the provided `header` matches that of the current entity (optimistic locking).
       operationId: updateTrack
       tags:
-        - tracks
+        - Tracks
       parameters:
         - $ref: '#/components/parameters/trackUidPath'
       requestBody:
@@ -225,7 +225,7 @@ paths:
       summary: Delete a track
       operationId: deleteTrack
       tags:
-        - tracks
+        - Tracks
       parameters:
         - $ref: '#/components/parameters/trackUidPath'
       responses:
@@ -242,7 +242,7 @@ paths:
         Locate tracks according to their (percent-encoded) source URI. Optionally the URI lookup can be restricted to a single collection.
       operationId: locateTracks
       tags:
-        - tracks
+        - Tracks
       parameters:
         - $ref: '#/components/parameters/collectionUidParam'
       requestBody:
@@ -270,7 +270,7 @@ paths:
         Replace tracks with a new revision by locating them through their (percent-encoded) source URI. Optionally the URI lookup can be restricted to a single collection.
       operationId: locateTracks
       tags:
-        - tracks
+        - Tracks
       parameters:
         - $ref: '#/components/parameters/collectionUidParam'
       requestBody:
@@ -298,7 +298,7 @@ paths:
         Search tracks by evaluating various filter conditions and sort the results.
       operationId: searchTracks
       tags:
-        - tracks
+        - Tracks
       parameters:
         - $ref: '#/components/parameters/collectionUidParam'
         - $ref: '#/components/parameters/paginationOffset'
@@ -321,14 +321,14 @@ paths:
                   $ref: '#/components/schemas/TrackEntity'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /tags:
+  /tracks/tags:
     get:
       summary: List tags
       description: >
         List term frequencies of tags for selected (or all) facets. Results are provided as tags with an average score, listed in descending order of their total count. Optionally the evaluation can be restricted to a single collection.
       operationId: listTagFrequencies
       tags:
-        - tags
+        - Track Tags
       parameters:
         - $ref: '#/components/parameters/collectionUidParam'
         - $ref: '#/components/parameters/withTagFacetList'
@@ -346,14 +346,14 @@ paths:
                   $ref: '#/components/schemas/ScoredTagCount'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /tags/facets:
+  /tracks/tags/facets:
     get:
       summary: List tag facets
       description: >
         List frequencies for selected (or all) tag facets in descending order of their total count. Optionally the evaluation can be restricted to a single collection.
       operationId: listTagFacets
       tags:
-        - tags
+        - Track Tags
       parameters:
         - $ref: '#/components/parameters/collectionUidParam'
         - $ref: '#/components/parameters/withTagFacetList'
@@ -371,14 +371,14 @@ paths:
                   $ref: '#/components/schemas/TagFacetCount'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /fields:
+  /tracks/fields:
     get:
       summary: List (string) fields
       description: >
         List frequencies of values for selected (string) fields. The results are grouped by field and pagination is applied separately for each field. Field values are listed in descending order of their total count. Optionally the results can be restricted to a single collection. 
       operationId: listFields
       tags:
-        - fields
+        - Track Fields
       parameters:
         - $ref: '#/components/parameters/collectionUidParam'
         - $ref: '#/components/parameters/withFieldList'
