@@ -314,15 +314,15 @@ impl fmt::Display for IndexCount {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "lowercase")]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum TrackMark {
-    // Cueing
-    LoadCue, // default position when loading a track, only one per track
+    // Cueing: Points without a length
+    LoadCue, // default start point when loading a track, only one per track
     HotCue,
-    // Fading: Short transitions for automatic playback, only one in/out per track
-    FadeIn,
-    FadeOut,
-    // Mixing: Long, manual transitions with beat matching
+    // Fading: Short sections for automatic playback transitions
+    FadeIn,  // only one per track
+    FadeOut, // only one per track
+    // Mixing: Long sections for manual transitions with beat matching
     MixIn,
     MixOut,
     // Sampling
@@ -336,16 +336,16 @@ pub enum TrackMark {
 pub struct TrackMarker {
     pub mark: TrackMark,
 
-    pub position: Duration,
+    pub offset: Duration,
 
     #[serde(skip_serializing_if = "Duration::is_empty", default)]
-    pub duration: Duration,
+    pub length: Duration,
 
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub label: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub number: Option<u64>,
+    pub number: Option<i32>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub color: Option<TrackColor>,
@@ -360,10 +360,10 @@ impl TrackMarker {
     }
 
     pub fn is_valid(&self) -> bool {
-        self.position.is_valid() && self.duration.is_valid() && match self.mark {
-            TrackMark::LoadCue | TrackMark::HotCue => self.duration.is_empty(), // not available
-            TrackMark::Sample | TrackMark::Loop => !self.duration.is_empty(),   // mandatory
-            _ => true, // optional, i.e. no restrictions on duration
+        self.offset.is_valid() && self.length.is_valid() && match self.mark {
+            TrackMark::LoadCue | TrackMark::HotCue => self.length.is_empty(), // not available
+            TrackMark::Sample | TrackMark::Loop => !self.length.is_empty(),   // mandatory
+            _ => true, // optional, i.e. no restrictions on length
         }
     }
 }

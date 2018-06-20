@@ -27,23 +27,23 @@ fn actors() {
         },
         Actor {
             name: primary_artist_name.into(),
-            priority: ActorPriority::Primary,
+            precedence: ActorPrecedence::Primary,
             ..Default::default()
         },
         Actor {
             name: "M.I.A.".into(),
-            priority: ActorPriority::Secondary,
+            precedence: ActorPrecedence::Secondary,
             ..Default::default()
         },
         Actor {
             name: primary_producer_name.into(),
             role: ActorRole::Producer,
-            priority: ActorPriority::Primary,
+            precedence: ActorPrecedence::Primary,
             ..Default::default()
         },
         Actor {
             name: "Nicki Minaj".into(),
-            priority: ActorPriority::Secondary,
+            precedence: ActorPrecedence::Secondary,
             ..Default::default()
         },
     ];
@@ -53,13 +53,13 @@ fn actors() {
     // Artist(s)
     assert_eq!(
         summary_artist_name,
-        Actors::actor(&actors, ActorRole::Artist, ActorPriority::Summary)
+        Actors::actor(&actors, ActorRole::Artist, ActorPrecedence::Summary)
             .unwrap()
             .name
     );
     assert_eq!(
         primary_artist_name,
-        Actors::actor(&actors, ActorRole::Artist, ActorPriority::Primary)
+        Actors::actor(&actors, ActorRole::Artist, ActorPrecedence::Primary)
             .unwrap()
             .name
     );
@@ -72,17 +72,17 @@ fn actors() {
     // Producer(s)
     assert_eq!(
         None,
-        Actors::actor(&actors, ActorRole::Producer, ActorPriority::Summary)
+        Actors::actor(&actors, ActorRole::Producer, ActorPrecedence::Summary)
     );
     assert_eq!(
         primary_producer_name,
-        Actors::actor(&actors, ActorRole::Producer, ActorPriority::Primary)
+        Actors::actor(&actors, ActorRole::Producer, ActorPrecedence::Primary)
             .unwrap()
             .name
     );
     assert_eq!(
         None,
-        Actors::actor(&actors, ActorRole::Producer, ActorPriority::Secondary)
+        Actors::actor(&actors, ActorRole::Producer, ActorPrecedence::Secondary)
     );
     assert_eq!(
         primary_producer_name,
@@ -93,9 +93,9 @@ fn actors() {
 
     // Conductor(s)
     for prio in [
-        ActorPriority::Summary,
-        ActorPriority::Primary,
-        ActorPriority::Secondary,
+        ActorPrecedence::Summary,
+        ActorPrecedence::Primary,
+        ActorPrecedence::Secondary,
     ].iter()
     {
         assert_eq!(None, Actors::actor(&actors, ActorRole::Conductor, *prio));

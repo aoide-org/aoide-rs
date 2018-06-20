@@ -321,11 +321,11 @@ impl TimeSignature {
         *self == Self::default()
     }
 
-    pub fn new(numerator: u8, denominator: u8) -> Self {
-        TimeSignature(numerator, denominator)
+    pub fn new(upper: u8, lower: u8) -> Self {
+        TimeSignature(upper, lower)
     }
 
-    // number of beats in each bar, 0 = default/undefined
+    // number of beats in each measure or bar, 0 = default/undefined
     pub fn upper(&self) -> u8 {
         self.0
     }

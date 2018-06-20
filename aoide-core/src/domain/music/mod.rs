@@ -140,26 +140,26 @@ impl Default for ActorRole {
 }
 
 ///////////////////////////////////////////////////////////////////////
-/// ActorPriority
+/// ActorPrecedence
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "lowercase")]
-pub enum ActorPriority {
+pub enum ActorPrecedence {
     Summary = 0, // default
     Primary = 1,
     Secondary = 2,
 }
 
-impl ActorPriority {
+impl ActorPrecedence {
     pub fn is_default(&self) -> bool {
         *self == Self::default()
     }
 }
 
-impl Default for ActorPriority {
-    fn default() -> ActorPriority {
-        ActorPriority::Summary
+impl Default for ActorPrecedence {
+    fn default() -> ActorPrecedence {
+        ActorPrecedence::Summary
     }
 }
 
@@ -175,8 +175,8 @@ pub struct Actor {
     #[serde(skip_serializing_if = "ActorRole::is_default", default)]
     pub role: ActorRole,
 
-    #[serde(rename = "prio", skip_serializing_if = "ActorPriority::is_default", default)]
-    pub priority: ActorPriority,
+    #[serde(skip_serializing_if = "ActorPrecedence::is_default", default)]
+    pub precedence: ActorPrecedence,
 
     #[serde(rename = "refs", skip_serializing_if = "Vec::is_empty", default)]
     pub references: Vec<String>, // external URIs
@@ -202,24 +202,24 @@ impl Actors {
     pub fn actor<'a>(
         actors: &'a [Actor],
         role: ActorRole,
-        priority: ActorPriority,
+        precedence: ActorPrecedence,
     ) -> Option<&'a Actor> {
         debug_assert!(
             actors
                 .iter()
-                .filter(|actor| actor.role == role && actor.priority == priority)
+                .filter(|actor| actor.role == role && actor.precedence == precedence)
                 .count() <= 1
         );
         actors
             .iter()
-            .filter(|actor| actor.role == role && actor.priority == priority)
+            .filter(|actor| actor.role == role && actor.precedence == precedence)
             .nth(0)
     }
 
     // The singular summary actor or if none exists then the singular primary actor
     pub fn main_actor<'a>(actors: &'a [Actor], role: ActorRole) -> Option<&'a Actor> {
-        Self::actor(actors, role, ActorPriority::Summary)
-            .or_else(|| Self::actor(actors, role, ActorPriority::Primary))
+        Self::actor(actors, role, ActorPrecedence::Summary)
+            .or_else(|| Self::actor(actors, role, ActorPrecedence::Primary))
     }
 }
 
