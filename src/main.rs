@@ -1008,8 +1008,11 @@ pub fn main() -> Result<(), Error> {
             .arg(Arg::with_name("LISTEN_ADDR")
                 .short("l")
                 .long("listen")
-                .default_value("localhost:7878")
+                .default_value("localhost:8080")
                 .help("Sets the network listen address"))
+            .arg(Arg::with_name("skipDatabaseMaintenance")
+                .long("skipDatabaseMaintenance")
+                .help("Skips database schema migration and maintenance tasks on startup"))
             .arg(Arg::with_name("verbosity")
                 .short("v")
                 .long("verbose")
@@ -1031,11 +1034,13 @@ pub fn main() -> Result<(), Error> {
     let connection_pool =
         create_connection_pool(db_url, 1).expect("Failed to create database connection pool");
 
-    migrate_database_schema(&connection_pool).unwrap();
-
-    cleanup_database_storage(&connection_pool).unwrap();
-
-    repair_database_storage(&connection_pool).unwrap();
+    if matches.is_present("skipDatabaseMaintenance") {
+        info!("Skipping database maintenance");
+    } else {
+        migrate_database_schema(&connection_pool).unwrap();
+        cleanup_database_storage(&connection_pool).unwrap();
+        repair_database_storage(&connection_pool).unwrap();
+    }
 
     info!("Creating actor system");
     let sys = actix::System::new("aoide");
