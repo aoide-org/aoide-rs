@@ -1,0 +1,18 @@
+#!/bin/sh -x
+
+# Number of 'v' characters controls the verbosity
+# aka log level. The default log level is INFO.
+AOIDE_VERBOSITY="${AOIDE_VERBOSITY:-vv}"
+
+AOIDE_HOST=${AOIDE_HOST:-localhost}
+
+# The default port is EXPOSEDd in the Dockerfile and should
+# should not be changed.
+AOIDE_PORT=${AOIDE_PORT:-8080}
+
+# This path is defined as a VOLUME in the Dockerfile
+AOIDE_DATA="/data"
+
+AOIDE_DB_URL="${AOIDE_DB_URL:-file://${AOIDE_DATA}/aoide.sqlite}"
+
+exec /aoide -${AOIDE_VERBOSITY} --listen ${AOIDE_HOST}:${AOIDE_PORT} "${AOIDE_DB_URL}"

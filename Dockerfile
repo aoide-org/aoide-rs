@@ -1,13 +1,21 @@
-#FROM scratch
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates
 
-COPY ./target/x86_64-unknown-linux-musl/release/aoide /aoide
-COPY ./resources /resources
-COPY ./docker-start.sh /docker-start.sh
+COPY [ \
+    "./target/x86_64-unknown-linux-musl/release/aoide", \
+    "./docker-entrypoint.sh", \
+    "/" ]
 
-VOLUME /data
+COPY [ \
+    "./resources", \
+    "/resources" ]
 
-EXPOSE 8080
+VOLUME [ \
+    "/data" ]
 
-ENTRYPOINT [ "/bin/sh", "-c", "/docker-start.sh" ]
+EXPOSE 8080/tcp
+
+# A shell script is needed to evaluate arguments in form of
+# environment variables at runtime. This is the reason why
+# we cannot use "FROM scratch" for this image.
+ENTRYPOINT [ "/docker-entrypoint.sh" ]
