@@ -51,13 +51,18 @@ extern crate serde;
 
 extern crate serde_json;
 
-use aoide_storage::{storage::{collections::*,
-                              serde::*,
-                              tracks::{util::TrackRepositoryHelper, *}},
-                    usecases::{api::{LocateTracksParams, Pagination, ReplaceTracksParams,
-                                     ReplacedTracks, ScoredTagCount, SearchTracksParams,
-                                     StringField, StringFieldCounts, TagFacetCount},
-                               *}};
+use aoide_storage::{
+    storage::{
+        collections::*, serde::*, tracks::{util::TrackRepositoryHelper, *},
+    },
+    usecases::{
+        api::{
+            LocateTracksParams, Pagination, ReplaceTracksParams, ReplacedTracks, ScoredTagCount,
+            SearchTracksParams, StringField, StringFieldCounts, TagFacetCount,
+        },
+        *,
+    },
+};
 
 use aoide_core::domain::{collection::*, entity::*, track::*};
 
@@ -996,37 +1001,42 @@ fn init_env_logger_verbosity(verbosity_level: u8) {
     init_env_logger(log_level_filter);
 }
 
+const DB_URL_ARG: &str = "DB_URL";
+const LISTEN_ADDR_ARG: &str = "LISTEN_ADDR";
+const SKIP_DATABASE_MAINTENANCE_ARG: &str = "SKIP_DATABASE_MAINTENANCE";
+const VERBOSITY_ARG: &str = "VERBOSITY";
+
 pub fn main() -> Result<(), Error> {
     let matches = App::new("aoide")
             .version("0.0.1")
             //.author("")
             //.about("")
-            .arg(Arg::with_name("DB_URL")
+            .arg(Arg::with_name(DB_URL_ARG)
                 .help("Sets the database URL")
                 .default_value(":memory:")
                 .index(1))
-            .arg(Arg::with_name("LISTEN_ADDR")
+            .arg(Arg::with_name(LISTEN_ADDR_ARG)
                 .short("l")
                 .long("listen")
                 .default_value("localhost:8080")
                 .help("Sets the network listen address"))
-            .arg(Arg::with_name("skipDatabaseMaintenance")
+            .arg(Arg::with_name(SKIP_DATABASE_MAINTENANCE_ARG)
                 .long("skipDatabaseMaintenance")
                 .help("Skips database schema migration and maintenance tasks on startup"))
-            .arg(Arg::with_name("verbosity")
+            .arg(Arg::with_name(VERBOSITY_ARG)
                 .short("v")
                 .long("verbose")
                 .multiple(true)
                 .help("Sets the level of verbosity (= number of occurrences)"))
             .get_matches();
 
-    let verbosity = matches.occurrences_of("verbosity");
+    let verbosity = matches.occurrences_of(VERBOSITY_ARG);
     init_env_logger_verbosity(verbosity.min(8) as u8);
 
-    let db_url = matches.value_of("DB_URL").unwrap();
+    let db_url = matches.value_of(DB_URL_ARG).unwrap();
     info!("Database URL: {}", db_url);
 
-    let listen_addr = matches.value_of("LISTEN_ADDR").unwrap();
+    let listen_addr = matches.value_of(LISTEN_ADDR_ARG).unwrap();
     info!("Network listen address: {}", listen_addr);
 
     // Workaround: Use a pool of size 1 to avoid 'database is locked'
@@ -1034,7 +1044,7 @@ pub fn main() -> Result<(), Error> {
     let connection_pool =
         create_connection_pool(db_url, 1).expect("Failed to create database connection pool");
 
-    if matches.is_present("skipDatabaseMaintenance") {
+    if matches.is_present(SKIP_DATABASE_MAINTENANCE_ARG) {
         info!("Skipping database maintenance");
     } else {
         migrate_database_schema(&connection_pool).unwrap();
