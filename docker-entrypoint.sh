@@ -4,7 +4,8 @@
 # aka log level. The default log level is INFO.
 AOIDE_VERBOSITY="${AOIDE_VERBOSITY:-vv}"
 
-AOIDE_HOST=${AOIDE_HOST:-localhost}
+# Default: IPv6 wildcard address "::"" (IPv4: "0.0.0.0")
+AOIDE_HOST=${AOIDE_HOST:-::}
 
 # The default port is EXPOSEDd in the Dockerfile and should
 # should not be changed.

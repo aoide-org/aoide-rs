@@ -1,5 +1,7 @@
 FROM alpine:latest
-RUN apk --no-cache add ca-certificates
+
+RUN apk --no-cache add \
+    ca-certificates
 
 COPY [ \
     "./target/x86_64-unknown-linux-musl/release/aoide", \
@@ -13,7 +15,7 @@ COPY [ \
 VOLUME [ \
     "/data" ]
 
-EXPOSE 8080/tcp
+EXPOSE 8080
 
 # A shell script is needed to evaluate arguments in form of
 # environment variables at runtime. This is the reason why
