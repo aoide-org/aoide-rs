@@ -46,7 +46,7 @@ use aoide_core::{audio::*,
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Queryable, Identifiable)]
-#[table_name = "tracks_entity"]
+#[table_name = "tracks"]
 pub struct QueryableSerializedEntity {
     pub id: StorageId,
     pub uid: Vec<u8>,
@@ -361,7 +361,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         {
             let entity_blob = serialize_with_format(entity, format)?;
             let insertable = InsertableTracksEntity::bind(entity.header(), format, &entity_blob);
-            let query = diesel::insert_into(tracks_entity::table).values(&insertable);
+            let query = diesel::insert_into(tracks::table).values(&insertable);
             query.execute(self.connection)?;
         }
         self.helper.after_entity_inserted(&entity)?;
@@ -381,12 +381,12 @@ impl<'a> Tracks for TrackRepository<'a> {
             let entity_blob = serialize_with_format(&updated_entity, format)?;
             {
                 let updatable = UpdatableTracksEntity::bind(&next_revision, format, &entity_blob);
-                let target = tracks_entity::table.filter(
-                    tracks_entity::uid
+                let target = tracks::table.filter(
+                    tracks::uid
                         .eq(uid.as_ref())
-                        .and(tracks_entity::rev_ordinal.eq(prev_revision.ordinal() as i64))
+                        .and(tracks::rev_ordinal.eq(prev_revision.ordinal() as i64))
                         .and(
-                            tracks_entity::rev_timestamp.eq(prev_revision.timestamp().naive_utc()),
+                            tracks::rev_timestamp.eq(prev_revision.timestamp().naive_utc()),
                         ),
                 );
                 let storage_id = self.helper.before_entity_updated_or_removed(&uid)?;
@@ -512,7 +512,7 @@ impl<'a> Tracks for TrackRepository<'a> {
     }
 
     fn delete_entity(&self, uid: &EntityUid) -> TracksResult<Option<()>> {
-        let target = tracks_entity::table.filter(tracks_entity::uid.eq(uid.as_ref()));
+        let target = tracks::table.filter(tracks::uid.eq(uid.as_ref()));
         let query = diesel::delete(target);
         self.helper.before_entity_updated_or_removed(uid)?;
         let rows_affected: usize = query.execute(self.connection)?;
@@ -526,7 +526,7 @@ impl<'a> Tracks for TrackRepository<'a> {
     }
 
     fn load_entity(&self, uid: &EntityUid) -> TracksResult<Option<SerializedEntity>> {
-        let target = tracks_entity::table.filter(tracks_entity::uid.eq(uid.as_ref()));
+        let target = tracks::table.filter(tracks::uid.eq(uid.as_ref()));
         let result = target
             .first::<QueryableSerializedEntity>(self.connection)
             .optional()?;
@@ -604,15 +604,15 @@ impl<'a> Tracks for TrackRepository<'a> {
             },
         };
 
-        let mut target = tracks_entity::table
-            .select(tracks_entity::all_columns)
-            .order_by(tracks_entity::id) // preserve relative order of results
+        let mut target = tracks::table
+            .select(tracks::all_columns)
+            .order_by(tracks::id) // preserve relative order of results
             .into_boxed();
 
         target = match locate_params.uri_filter.modifier {
-            None => target.or_filter(tracks_entity::id.eq_any(track_id_subselect)),
+            None => target.or_filter(tracks::id.eq_any(track_id_subselect)),
             Some(FilterModifier::Complement) => {
-                target.or_filter(tracks_entity::id.ne_all(track_id_subselect))
+                target.or_filter(tracks::id.ne_all(track_id_subselect))
             }
         };
 
@@ -637,8 +637,8 @@ impl<'a> Tracks for TrackRepository<'a> {
         // executed efficiently as batch operations. Since search
         // operations are expected to be executed standalone the
         // joins are acceptable in this case.
-        let mut target = tracks_entity::table
-            .select(tracks_entity::all_columns)
+        let mut target = tracks::table
+            .select(tracks::all_columns)
             .inner_join(aux_tracks_resource::table)
             .inner_join(aux_tracks_overview::table)
             .inner_join(aux_tracks_summary::table)
@@ -809,9 +809,9 @@ impl<'a> Tracks for TrackRepository<'a> {
                                 .escape('\\'),
                         );
                     target = match phrase_filter.modifier {
-                        None => target.or_filter(tracks_entity::id.eq_any(subselect)),
+                        None => target.or_filter(tracks::id.eq_any(subselect)),
                         Some(FilterModifier::Complement) => {
-                            target.or_filter(tracks_entity::id.ne_all(subselect))
+                            target.or_filter(tracks::id.ne_all(subselect))
                         }
                     };
                 }
@@ -821,9 +821,9 @@ impl<'a> Tracks for TrackRepository<'a> {
         for tag_filter in search_params.tag_filters.into_iter() {
             let (subselect, filter_modifier) = select_track_ids_matching_tag_filter(tag_filter);
             target = match filter_modifier {
-                None => target.filter(tracks_entity::id.eq_any(subselect)),
+                None => target.filter(tracks::id.eq_any(subselect)),
                 Some(FilterModifier::Complement) => {
-                    target.filter(tracks_entity::id.ne_all(subselect))
+                    target.filter(tracks::id.ne_all(subselect))
                 }
             }
         }
@@ -831,9 +831,9 @@ impl<'a> Tracks for TrackRepository<'a> {
         for numeric_filter in search_params.numeric_filters {
             target = match select_track_ids_from_profile_matching_numeric_filter(numeric_filter) {
                 Some((subselect, filter_modifier)) => match filter_modifier {
-                    None => target.filter(tracks_entity::id.eq_any(subselect)),
+                    None => target.filter(tracks::id.eq_any(subselect)),
                     Some(FilterModifier::Complement) => {
-                        target.filter(tracks_entity::id.ne_all(subselect))
+                        target.filter(tracks::id.ne_all(subselect))
                     }
                 },
                 None => match numeric_filter.field {
@@ -1118,10 +1118,10 @@ impl<'a> Tracks for TrackRepository<'a> {
                     }
                     TrackSortField::LastRevisionedAt => match direction {
                         SortDirection::Ascending => {
-                            target.then_order_by(tracks_entity::rev_timestamp.asc())
+                            target.then_order_by(tracks::rev_timestamp.asc())
                         }
                         SortDirection::Descending => {
-                            target.then_order_by(tracks_entity::rev_timestamp.desc())
+                            target.then_order_by(tracks::rev_timestamp.desc())
                         }
                     },
                     TrackSortField::TrackTitle => match direction {
@@ -1176,7 +1176,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         }
         // Finally order by PK to preserve the relative order of results
         // even if no sorting was requested.
-        target = target.then_order_by(tracks_entity::id);
+        target = target.then_order_by(tracks::id);
 
         // Pagination
         target = apply_pagination(target, pagination);

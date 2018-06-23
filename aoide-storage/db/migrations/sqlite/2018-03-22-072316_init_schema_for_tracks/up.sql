@@ -17,7 +17,7 @@
 -- Collections
 -----------------------------------------------------------------------
 
-CREATE TABLE collections_entity (
+CREATE TABLE collections (
     id                       INTEGER PRIMARY KEY,
     uid                      BINARY(24) NOT NULL, -- globally unique identifier
     rev_ordinal              INTEGER NOT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE collections_entity (
     UNIQUE (uid)
 );
 
-CREATE INDEX idx_collections_entity_name ON collections_entity (
+CREATE INDEX idx_collections_name ON collections (
     name
 );
 
@@ -35,7 +35,7 @@ CREATE INDEX idx_collections_entity_name ON collections_entity (
 -- Tracks
 -----------------------------------------------------------------------
 
-CREATE TABLE tracks_entity (
+CREATE TABLE tracks (
     id                       INTEGER PRIMARY KEY,
     uid                      BINARY(24) NOT NULL, -- globally unique identifier
     rev_ordinal              INTEGER NOT NULL,
@@ -66,7 +66,7 @@ CREATE TABLE aux_tracks_resource (
     audio_enc_name           TEXT,              -- encoded by
     audio_enc_settings       TEXT,              -- encoder settings
     color_code               INTEGER,           -- 0xAARRGGBB (hex)
-    FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
+    FOREIGN KEY(track_id) REFERENCES tracks(id),
     UNIQUE (collection_uid, track_id),
     UNIQUE (collection_uid, source_uri)
 );
@@ -99,7 +99,7 @@ CREATE TABLE aux_tracks_overview (
     movement_count           INTEGER, -- > 0
     lyrics_explicit          TINYINT, -- {0, 1}
     album_compilation        TINYINT, -- {0, 1}
-    FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
+    FOREIGN KEY(track_id) REFERENCES tracks(id),
     UNIQUE (track_id)
 );
 
@@ -119,7 +119,7 @@ CREATE TABLE aux_tracks_summary (
     album_producer           TEXT,
     ratings_min              REAL, -- [0.0, 1.0]
     ratings_max              REAL, -- [0.0, 1.0]
-    FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
+    FOREIGN KEY(track_id) REFERENCES tracks(id),
     UNIQUE (track_id)
 );
 
@@ -138,7 +138,7 @@ CREATE TABLE aux_tracks_profile (
     popularity_score         REAL, -- [0.0, 1.0]
     valence_score            REAL, -- [0.0, 1.0]
     speechiness_score        REAL, -- [0.0, 1.0]
-    FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
+    FOREIGN KEY(track_id) REFERENCES tracks(id),
     UNIQUE (track_id)
 );
 
@@ -160,7 +160,7 @@ CREATE TABLE aux_tracks_tag (
     score                    REAL NOT NULL, -- [0.0, 1.0]
     term_id                  INTEGER NOT NULL,
     facet_id                 INTEGER,
-    FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
+    FOREIGN KEY(track_id) REFERENCES tracks(id),
     FOREIGN KEY(term_id) REFERENCES aux_tracks_tag_terms(id),
     FOREIGN KEY(facet_id) REFERENCES aux_tracks_tag_facets(id),
     UNIQUE (track_id, term_id, facet_id)
@@ -180,7 +180,7 @@ CREATE TABLE aux_tracks_comment (
     track_id                 INTEGER NOT NULL,
     text                     CLOB NOT NULL,
     owner                    TEXT,
-    FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
+    FOREIGN KEY(track_id) REFERENCES tracks(id),
     UNIQUE (track_id, owner)
 );
 
@@ -193,7 +193,7 @@ CREATE TABLE aux_tracks_rating (
     track_id                 INTEGER NOT NULL,
     score                    REAL NOT NULL, -- [0.0, 1.0]
     owner                    TEXT,
-    FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
+    FOREIGN KEY(track_id) REFERENCES tracks(id),
     UNIQUE (track_id, owner)
 );
 
@@ -206,7 +206,7 @@ CREATE TABLE aux_tracks_ref (
     track_id                 INTEGER NOT NULL,
     origin                   TINYINT NOT NULL,
     reference                TEXT NOT NULL,
-    FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
+    FOREIGN KEY(track_id) REFERENCES tracks(id),
     UNIQUE (track_id, origin, reference)
 );
 
@@ -227,7 +227,7 @@ CREATE TABLE pending_tasks_tracks (
     task_id                  INTEGER NOT NULL,
     track_id                 INTEGER NOT NULL,
     FOREIGN KEY(task_id) REFERENCES pending_tasks(id),
-    FOREIGN KEY(track_id) REFERENCES tracks_entity(id),
+    FOREIGN KEY(track_id) REFERENCES tracks(id),
     UNIQUE(task_id, track_id)
 );
 

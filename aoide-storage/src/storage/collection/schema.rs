@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 table! {
-    collections_entity (id) {
+    collections (id) {
         id -> BigInt,
         uid -> Binary,
         rev_ordinal -> BigInt,

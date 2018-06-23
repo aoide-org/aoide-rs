@@ -30,7 +30,7 @@ use aoide_core::domain::music::{ActorRole, Actors, SongFeature, SongProfile, Tit
 use aoide_core::domain::track::{RefOrigin, Track, TrackResource};
 
 #[derive(Debug, Insertable)]
-#[table_name = "tracks_entity"]
+#[table_name = "tracks"]
 pub struct InsertableTracksEntity<'a> {
     pub uid: &'a [u8],
     pub rev_ordinal: i64,
@@ -60,7 +60,7 @@ impl<'a> InsertableTracksEntity<'a> {
 }
 
 #[derive(Debug, AsChangeset)]
-#[table_name = "tracks_entity"]
+#[table_name = "tracks"]
 pub struct UpdatableTracksEntity<'a> {
     pub rev_ordinal: i64,
     pub rev_timestamp: NaiveDateTime,

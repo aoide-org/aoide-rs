@@ -22,8 +22,9 @@ use std::i64;
 use diesel;
 use diesel::prelude::*;
 
-use aoide_core::domain::{collection::*,
-                         entity::{EntityHeader, EntityRevision, EntityUid}};
+use aoide_core::domain::{
+    collection::*, entity::{EntityHeader, EntityRevision, EntityUid},
+};
 
 use storage::*;
 
@@ -53,9 +54,9 @@ impl<'a> CollectionRepository<'a> {
 
 impl<'a> EntityStorage for CollectionRepository<'a> {
     fn find_storage_id(&self, uid: &EntityUid) -> EntityStorageResult<Option<StorageId>> {
-        let result = collections_entity::table
-            .select(collections_entity::id)
-            .filter(collections_entity::uid.eq(uid.as_ref()))
+        let result = collections::table
+            .select(collections::id)
+            .filter(collections::uid.eq(uid.as_ref()))
             .first::<StorageId>(self.connection)
             .optional()?;
         Ok(result)
@@ -70,7 +71,7 @@ impl<'a> Collections for CollectionRepository<'a> {
 
     fn insert_entity(&self, entity: &CollectionEntity) -> CollectionsResult<()> {
         let insertable = InsertableCollectionsEntity::bind(entity);
-        let query = diesel::insert_into(collections_entity::table).values(&insertable);
+        let query = diesel::insert_into(collections::table).values(&insertable);
         query.execute(self.connection)?;
         Ok(())
     }
@@ -83,13 +84,11 @@ impl<'a> Collections for CollectionRepository<'a> {
         let next_revision = prev_revision.next();
         {
             let updatable = UpdatableCollectionsEntity::bind(&next_revision, &entity.body());
-            let target = collections_entity::table.filter(
-                collections_entity::uid
+            let target = collections::table.filter(
+                collections::uid
                     .eq(entity.header().uid().as_ref())
-                    .and(collections_entity::rev_ordinal.eq(prev_revision.ordinal() as i64))
-                    .and(
-                        collections_entity::rev_timestamp.eq(prev_revision.timestamp().naive_utc()),
-                    ),
+                    .and(collections::rev_ordinal.eq(prev_revision.ordinal() as i64))
+                    .and(collections::rev_timestamp.eq(prev_revision.timestamp().naive_utc())),
             );
             let query = diesel::update(target).set(&updatable);
             let rows_affected: usize = query.execute(self.connection)?;
@@ -102,7 +101,7 @@ impl<'a> Collections for CollectionRepository<'a> {
     }
 
     fn delete_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<()>> {
-        let target = collections_entity::table.filter(collections_entity::uid.eq(uid.as_ref()));
+        let target = collections::table.filter(collections::uid.eq(uid.as_ref()));
         let query = diesel::delete(target);
         let rows_affected: usize = query.execute(self.connection)?;
         debug_assert!(rows_affected <= 1);
@@ -114,7 +113,7 @@ impl<'a> Collections for CollectionRepository<'a> {
     }
 
     fn load_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<CollectionEntity>> {
-        let target = collections_entity::table.filter(collections_entity::uid.eq(uid.as_ref()));
+        let target = collections::table.filter(collections::uid.eq(uid.as_ref()));
         let result = target
             .first::<QueryableCollectionsEntity>(self.connection)
             .optional()?;
@@ -127,8 +126,8 @@ impl<'a> Collections for CollectionRepository<'a> {
             .limit
             .map(|limit| limit as i64)
             .unwrap_or(i64::MAX);
-        let target = collections_entity::table
-            .order(collections_entity::rev_timestamp.desc())
+        let target = collections::table
+            .order(collections::rev_timestamp.desc())
             .offset(offset)
             .limit(limit);
         let results = target.load::<QueryableCollectionsEntity>(self.connection)?;
@@ -136,7 +135,7 @@ impl<'a> Collections for CollectionRepository<'a> {
     }
 
     fn find_entities_by_name(&self, name: &str) -> CollectionsResult<Vec<CollectionEntity>> {
-        let target = collections_entity::table.filter(collections_entity::name.eq(name));
+        let target = collections::table.filter(collections::name.eq(name));
         let results = target.load::<QueryableCollectionsEntity>(self.connection)?;
         Ok(results.into_iter().map(|r| r.into()).collect())
     }
@@ -151,9 +150,9 @@ impl<'a> Collections for CollectionRepository<'a> {
             .limit
             .map(|limit| limit as i64)
             .unwrap_or(i64::MAX);
-        let target = collections_entity::table
-            .filter(collections_entity::name.like(format!("{}%", name_prefix)))
-            .order(collections_entity::rev_timestamp.desc())
+        let target = collections::table
+            .filter(collections::name.like(format!("{}%", name_prefix)))
+            .order(collections::rev_timestamp.desc())
             .offset(offset)
             .limit(limit);
         let results = target.load::<QueryableCollectionsEntity>(self.connection)?;
@@ -170,9 +169,9 @@ impl<'a> Collections for CollectionRepository<'a> {
             .limit
             .map(|limit| limit as i64)
             .unwrap_or(i64::MAX);
-        let target = collections_entity::table
-            .filter(collections_entity::name.like(format!("%{}%", partial_name)))
-            .order(collections_entity::rev_timestamp.desc())
+        let target = collections::table
+            .filter(collections::name.like(format!("%{}%", partial_name)))
+            .order(collections::rev_timestamp.desc())
             .offset(offset)
             .limit(limit);
         let results = target.load::<QueryableCollectionsEntity>(self.connection)?;

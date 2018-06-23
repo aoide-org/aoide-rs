@@ -53,7 +53,7 @@ extern crate serde_json;
 
 use aoide_storage::{
     storage::{
-        collections::*, serde::*, tracks::{util::TrackRepositoryHelper, *},
+        collection::*, serde::*, track::{util::TrackRepositoryHelper, *},
     },
     usecases::{
         api::{

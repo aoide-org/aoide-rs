@@ -17,10 +17,10 @@ use super::models::*;
 
 use super::schema::*;
 
-use storage::{collections::{schema::collections_entity, CollectionRepository},
-              EntityStorage,
-              EntityStorageResult,
-              StorageId};
+use storage::{
+    collection::{schema::collections, CollectionRepository}, EntityStorage, EntityStorageResult,
+    StorageId,
+};
 
 use usecases::Collections;
 
@@ -29,9 +29,9 @@ use diesel::prelude::*;
 
 use failure::Error;
 
-use aoide_core::domain::{collection::{Collection, CollectionEntity},
-                         entity::*,
-                         track::*};
+use aoide_core::domain::{
+    collection::{Collection, CollectionEntity}, entity::*, track::*,
+};
 
 ///////////////////////////////////////////////////////////////////////
 /// TrackRepositoryHelper
@@ -56,7 +56,7 @@ impl<'a> TrackRepositoryHelper<'a> {
             .distinct()
             .filter(
                 aux_tracks_resource::collection_uid
-                    .ne_all(collections_entity::table.select(collections_entity::uid)),
+                    .ne_all(collections::table.select(collections::uid)),
             )
             .load::<Vec<u8>>(self.connection)?;
         let mut recreated_collections = Vec::with_capacity(orphaned_collection_uids.len());
@@ -77,9 +77,10 @@ impl<'a> TrackRepositoryHelper<'a> {
     }
 
     fn cleanup_overview(&self) -> Result<(), Error> {
-        let query = diesel::delete(aux_tracks_overview::table.filter(
-            aux_tracks_overview::track_id.ne_all(tracks_entity::table.select(tracks_entity::id)),
-        ));
+        let query = diesel::delete(
+            aux_tracks_overview::table
+                .filter(aux_tracks_overview::track_id.ne_all(tracks::table.select(tracks::id))),
+        );
         query.execute(self.connection)?;
         Ok(())
     }
@@ -100,9 +101,10 @@ impl<'a> TrackRepositoryHelper<'a> {
     }
 
     fn cleanup_summary(&self) -> Result<(), Error> {
-        let query = diesel::delete(aux_tracks_summary::table.filter(
-            aux_tracks_summary::track_id.ne_all(tracks_entity::table.select(tracks_entity::id)),
-        ));
+        let query = diesel::delete(
+            aux_tracks_summary::table
+                .filter(aux_tracks_summary::track_id.ne_all(tracks::table.select(tracks::id))),
+        );
         query.execute(self.connection)?;
         Ok(())
     }
@@ -123,9 +125,10 @@ impl<'a> TrackRepositoryHelper<'a> {
     }
 
     fn cleanup_resource(&self) -> Result<(), Error> {
-        let query = diesel::delete(aux_tracks_resource::table.filter(
-            aux_tracks_resource::track_id.ne_all(tracks_entity::table.select(tracks_entity::id)),
-        ));
+        let query = diesel::delete(
+            aux_tracks_resource::table
+                .filter(aux_tracks_resource::track_id.ne_all(tracks::table.select(tracks::id))),
+        );
         query.execute(self.connection)?;
         Ok(())
     }
@@ -148,9 +151,10 @@ impl<'a> TrackRepositoryHelper<'a> {
     }
 
     fn cleanup_profile(&self) -> Result<(), Error> {
-        let query = diesel::delete(aux_tracks_profile::table.filter(
-            aux_tracks_profile::track_id.ne_all(tracks_entity::table.select(tracks_entity::id)),
-        ));
+        let query = diesel::delete(
+            aux_tracks_profile::table
+                .filter(aux_tracks_profile::track_id.ne_all(tracks::table.select(tracks::id))),
+        );
         query.execute(self.connection)?;
         Ok(())
     }
@@ -165,8 +169,7 @@ impl<'a> TrackRepositoryHelper<'a> {
 
     fn insert_profile(&self, track_id: StorageId, track: &Track) -> Result<(), Error> {
         if track.profile.is_some() {
-            let insertable =
-                InsertableTracksMusic::bind(track_id, track.profile.as_ref().unwrap());
+            let insertable = InsertableTracksMusic::bind(track_id, track.profile.as_ref().unwrap());
             let query = diesel::insert_into(aux_tracks_profile::table).values(&insertable);
             query.execute(self.connection)?;
         }
@@ -174,9 +177,10 @@ impl<'a> TrackRepositoryHelper<'a> {
     }
 
     fn cleanup_ref(&self) -> Result<(), Error> {
-        let query = diesel::delete(aux_tracks_ref::table.filter(
-            aux_tracks_ref::track_id.ne_all(tracks_entity::table.select(tracks_entity::id)),
-        ));
+        let query = diesel::delete(
+            aux_tracks_ref::table
+                .filter(aux_tracks_ref::track_id.ne_all(tracks::table.select(tracks::id))),
+        );
         query.execute(self.connection)?;
         Ok(())
     }
@@ -230,9 +234,10 @@ impl<'a> TrackRepositoryHelper<'a> {
 
     fn cleanup_tag(&self) -> Result<(), Error> {
         // Orphaned tags
-        diesel::delete(aux_tracks_tag::table.filter(
-            aux_tracks_tag::track_id.ne_all(tracks_entity::table.select(tracks_entity::id)),
-        )).execute(self.connection)?;
+        diesel::delete(
+            aux_tracks_tag::table
+                .filter(aux_tracks_tag::track_id.ne_all(tracks::table.select(tracks::id))),
+        ).execute(self.connection)?;
         // Orphaned tag terms
         diesel::delete(aux_tracks_tag_terms::table.filter(
             aux_tracks_tag_terms::id.ne_all(aux_tracks_tag::table.select(aux_tracks_tag::term_id)),
@@ -314,9 +319,10 @@ impl<'a> TrackRepositoryHelper<'a> {
     }
 
     fn cleanup_comment(&self) -> Result<(), Error> {
-        let query = diesel::delete(aux_tracks_comment::table.filter(
-            aux_tracks_comment::track_id.ne_all(tracks_entity::table.select(tracks_entity::id)),
-        ));
+        let query = diesel::delete(
+            aux_tracks_comment::table
+                .filter(aux_tracks_comment::track_id.ne_all(tracks::table.select(tracks::id))),
+        );
         query.execute(self.connection)?;
         Ok(())
     }
@@ -339,9 +345,10 @@ impl<'a> TrackRepositoryHelper<'a> {
     }
 
     fn cleanup_rating(&self) -> Result<(), Error> {
-        let query = diesel::delete(aux_tracks_rating::table.filter(
-            aux_tracks_rating::track_id.ne_all(tracks_entity::table.select(tracks_entity::id)),
-        ));
+        let query = diesel::delete(
+            aux_tracks_rating::table
+                .filter(aux_tracks_rating::track_id.ne_all(tracks::table.select(tracks::id))),
+        );
         query.execute(self.connection)?;
         Ok(())
     }
@@ -437,11 +444,7 @@ impl<'a> TrackRepositoryHelper<'a> {
         }
     }
 
-    pub fn after_entity_updated(
-        &self,
-        storage_id: StorageId,
-        track: &Track,
-    ) -> Result<(), Error> {
+    pub fn after_entity_updated(&self, storage_id: StorageId, track: &Track) -> Result<(), Error> {
         self.on_insert(storage_id, track)?;
         Ok(())
     }
@@ -449,9 +452,9 @@ impl<'a> TrackRepositoryHelper<'a> {
 
 impl<'a> EntityStorage for TrackRepositoryHelper<'a> {
     fn find_storage_id(&self, uid: &EntityUid) -> EntityStorageResult<Option<StorageId>> {
-        let result = tracks_entity::table
-            .select(tracks_entity::id)
-            .filter(tracks_entity::uid.eq(uid.as_ref()))
+        let result = tracks::table
+            .select(tracks::id)
+            .filter(tracks::uid.eq(uid.as_ref()))
             .first::<StorageId>(self.connection)
             .optional()?;
         Ok(result)

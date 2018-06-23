@@ -13,10 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::collections::schema::collections_entity;
+use super::collection::schema::collections;
 
 table! {
-    tracks_entity (id) {
+    tracks (id) {
         id -> BigInt,
         uid -> Binary,
         rev_ordinal -> BigInt,
@@ -51,9 +51,9 @@ table! {
     }
 }
 
-joinable!(aux_tracks_resource -> tracks_entity (track_id));
+joinable!(aux_tracks_resource -> tracks (track_id));
 
-allow_tables_to_appear_in_same_query!(aux_tracks_resource, collections_entity);
+allow_tables_to_appear_in_same_query!(aux_tracks_resource, collections);
 
 table! {
     aux_tracks_overview (id) {
@@ -79,7 +79,7 @@ table! {
     }
 }
 
-joinable!(aux_tracks_overview -> tracks_entity (track_id));
+joinable!(aux_tracks_overview -> tracks (track_id));
 
 table! {
     aux_tracks_summary (id) {
@@ -101,7 +101,7 @@ table! {
     }
 }
 
-joinable!(aux_tracks_summary -> tracks_entity (track_id));
+joinable!(aux_tracks_summary -> tracks (track_id));
 
 table! {
     aux_tracks_profile (id) {
@@ -122,7 +122,7 @@ table! {
     }
 }
 
-joinable!(aux_tracks_profile -> tracks_entity (track_id));
+joinable!(aux_tracks_profile -> tracks (track_id));
 
 table! {
     aux_tracks_tag_terms (id) {
@@ -150,7 +150,7 @@ table! {
     }
 }
 
-joinable!(aux_tracks_tag -> tracks_entity (track_id));
+joinable!(aux_tracks_tag -> tracks (track_id));
 
 joinable!(aux_tracks_tag -> aux_tracks_tag_terms (term_id));
 
@@ -165,9 +165,9 @@ table! {
     }
 }
 
-joinable!(aux_tracks_rating -> tracks_entity (track_id));
+joinable!(aux_tracks_rating -> tracks (track_id));
 
-allow_tables_to_appear_in_same_query!(aux_tracks_rating, tracks_entity);
+allow_tables_to_appear_in_same_query!(aux_tracks_rating, tracks);
 
 table! {
     aux_tracks_comment (id) {
@@ -178,7 +178,7 @@ table! {
     }
 }
 
-joinable!(aux_tracks_comment -> tracks_entity (track_id));
+joinable!(aux_tracks_comment -> tracks (track_id));
 
 table! {
     aux_tracks_ref (id) {
@@ -189,10 +189,10 @@ table! {
     }
 }
 
-joinable!(aux_tracks_ref -> tracks_entity (track_id));
+joinable!(aux_tracks_ref -> tracks (track_id));
 
 allow_tables_to_appear_in_same_query!(
-    tracks_entity,
+    tracks,
     aux_tracks_resource,
     aux_tracks_overview,
     aux_tracks_summary,
@@ -221,4 +221,4 @@ table! {
 }
 
 joinable!(pending_tasks_tracks -> pending_tasks (task_id));
-joinable!(pending_tasks_tracks -> tracks_entity (track_id));
+joinable!(pending_tasks_tracks -> tracks (track_id));

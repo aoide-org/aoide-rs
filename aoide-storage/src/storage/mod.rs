@@ -20,11 +20,11 @@ use failure;
 
 use aoide_core::domain::entity::EntityUid;
 
-pub mod collections;
+pub mod collection;
 
 pub mod serde;
 
-pub mod tracks;
+pub mod track;
 
 pub mod util;
 
