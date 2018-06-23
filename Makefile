@@ -27,7 +27,7 @@ stop:
 	(docker rm -f $(NAME) 2> /dev/null) || true
 
 run: stop
-	docker run -d -p $(RUN_HTTP_PORT):8080 -v "$(RUN_DATA_DIR)":/data:Z --name=$(NAME) -t $(REPO)/$(NAME):$(GIT_VERSION)
+	docker run -d -p $(RUN_HTTP_PORT):8080 -v "$(RUN_DATA_DIR)":/aoide/data:Z --user aoide --name=$(NAME) -t $(REPO)/$(NAME):$(GIT_VERSION)
 
 tag-latest:
 	docker tag $(REPO)/$(NAME):$(GIT_VERSION) $(REPO)/$(NAME):latest

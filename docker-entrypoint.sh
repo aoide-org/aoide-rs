@@ -12,8 +12,11 @@ AOIDE_HOST=${AOIDE_HOST:-::}
 AOIDE_PORT=${AOIDE_PORT:-8080}
 
 # This path is defined as a VOLUME in the Dockerfile
-AOIDE_DATA="/data"
+AOIDE_DATA="${HOME}/data"
 
 AOIDE_DB_URL="${AOIDE_DB_URL:-file://${AOIDE_DATA}/aoide.sqlite}"
 
-exec /aoide -${AOIDE_VERBOSITY} --listen ${AOIDE_HOST}:${AOIDE_PORT} "${AOIDE_DB_URL}"
+exec "${HOME}/aoide" \
+    -${AOIDE_VERBOSITY} \
+    --listen ${AOIDE_HOST}:${AOIDE_PORT} \
+    "${AOIDE_DB_URL}"
