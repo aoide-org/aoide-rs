@@ -95,15 +95,15 @@
                     "name": "Madonna feat. M.I.A. and Nicki Minaj"
                 },
                 {
-                    "prio": "primary",
+                    "precedence": "primary",
                     "name": "Madonna"
                 },
                 {
-                    "prio": "secondary",
+                    "precedence": "secondary",
                     "name": "M.I.A."
                 },
                 {
-                    "prio": "secondary",
+                    "precedence": "secondary",
                     "name": "Nicki Minaj"
                 },
                 {
