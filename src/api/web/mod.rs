@@ -14,8 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use actix::prelude::*;
-use actix_web::error;
-use actix_web::*;
+
+use actix_web::{error, *};
 
 use diesel::prelude::*;
 use diesel::r2d2::ConnectionManager;
@@ -33,20 +33,13 @@ use serde_json;
 use aoide_core::domain::{collection::*, entity::*, track::*};
 
 use aoide_storage::{
-    storage::{
-        collection::*,
-        serde::{
-            concat_serialized_entities_into_json_array, SerializationFormat, SerializedEntity,
-        },
-        track::*,
+    api::{
+        collection::{CollectionEntityWithStats, CollectionStats, Collections, CollectionsResult},
+        serde::{SerializationFormat, SerializedEntity}, track::{TrackTags, Tracks, TracksResult},
+        LocateTracksParams, Pagination, ReplaceTracksParams, ReplacedTracks, ScoredTagCount,
+        SearchTracksParams, StringField, StringFieldCounts, TagFacetCount,
     },
-    usecases::{
-        api::{
-            LocateTracksParams, Pagination, ReplaceTracksParams, ReplacedTracks, ScoredTagCount,
-            SearchTracksParams, StringField, StringFieldCounts, TagFacetCount,
-        },
-        Collections, CollectionsResult, TrackTags, Tracks, TracksResult,
-    },
+    storage::{collection::CollectionRepository, track::TrackRepository},
 };
 
 pub type SqliteConnectionPool = Pool<ConnectionManager<SqliteConnection>>;
@@ -541,7 +534,7 @@ pub fn on_list_tracks(
         .send(msg)
         .from_err()
         .and_then(|res| match res {
-            Ok(serialized_tracks) => concat_serialized_entities_into_json_array(serialized_tracks),
+            Ok(serialized_tracks) => SerializedEntity::slice_to_json_array(&serialized_tracks),
             Err(e) => Err(e.into()),
         })
         .from_err()
@@ -571,7 +564,7 @@ pub fn on_search_tracks(
         .send(msg)
         .from_err()
         .and_then(|res| match res {
-            Ok(serialized_tracks) => concat_serialized_entities_into_json_array(serialized_tracks),
+            Ok(serialized_tracks) => SerializedEntity::slice_to_json_array(&serialized_tracks),
             Err(e) => Err(e.into()),
         })
         .from_err()
@@ -626,7 +619,7 @@ pub fn on_locate_tracks(
         .send(msg)
         .from_err()
         .and_then(|res| match res {
-            Ok(serialized_tracks) => concat_serialized_entities_into_json_array(serialized_tracks),
+            Ok(serialized_tracks) => SerializedEntity::slice_to_json_array(&serialized_tracks),
             Err(e) => Err(e.into()),
         })
         .from_err()

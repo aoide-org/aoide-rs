@@ -13,7 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use audio::Duration;
 use domain::entity::*;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -31,33 +30,4 @@ impl Collection {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct CollectionTrackStats {
-    pub total_count: usize,
-    pub total_duration: Duration,
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct CollectionStats {
-    pub tracks: Option<CollectionTrackStats>,
-}
-
-impl CollectionStats {
-    pub fn is_empty(&self) -> bool {
-        self.tracks.is_none()
-    }
-}
-
 pub type CollectionEntity = Entity<Collection>;
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct CollectionEntityWithStats {
-    #[serde(flatten)]
-    pub entity: CollectionEntity,
-
-    #[serde(skip_serializing_if = "CollectionStats::is_empty", default)]
-    pub stats: CollectionStats,
-}

@@ -15,13 +15,12 @@
 
 use super::schema::collections;
 
-use chrono::naive::NaiveDateTime;
-use chrono::{DateTime, Utc};
+use chrono::{naive::NaiveDateTime, DateTime, Utc};
 
 use aoide_core::domain::collection::*;
 use aoide_core::domain::entity::{EntityHeader, EntityRevision, EntityUid};
 
-use storage::*;
+use api::entity::StorageId;
 
 #[derive(Debug, Insertable)]
 #[table_name = "collections"]

@@ -13,53 +13,20 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod api;
+use failure::Error;
 
-use failure;
+use api::{
+    collection::CollectionTrackStats, LocateTracksParams, Pagination, ReplaceTracksParams,
+    ReplacedTracks, ScoredTagCount, SearchTracksParams, StringField, StringFieldCounts,
+    TagFacetCount,
+};
 
-use self::api::{LocateTracksParams, Pagination, ReplaceTracksParams, ReplacedTracks,
-                ScoredTagCount, SearchTracksParams, StringField, StringFieldCounts, TagFacetCount};
+use super::serde::{SerializationFormat, SerializedEntity};
 
-use storage::serde::{SerializationFormat, SerializedEntity};
-
-use aoide_core::domain::collection::*;
 use aoide_core::domain::entity::*;
 use aoide_core::domain::track::*;
 
-pub type CollectionsResult<T> = Result<T, failure::Error>;
-
-pub trait Collections {
-    fn create_entity(&self, body: Collection) -> CollectionsResult<CollectionEntity>;
-
-    fn insert_entity(&self, entity: &CollectionEntity) -> CollectionsResult<()>;
-
-    fn update_entity(
-        &self,
-        entity: &CollectionEntity,
-    ) -> CollectionsResult<(EntityRevision, Option<EntityRevision>)>;
-
-    fn delete_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<()>>;
-
-    fn load_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<CollectionEntity>>;
-
-    fn list_entities(&self, pagination: &Pagination) -> CollectionsResult<Vec<CollectionEntity>>;
-
-    fn find_entities_by_name(&self, name: &str) -> CollectionsResult<Vec<CollectionEntity>>;
-
-    fn find_entities_by_name_starting_with(
-        &self,
-        name: &str,
-        pagination: &Pagination,
-    ) -> CollectionsResult<Vec<CollectionEntity>>;
-
-    fn find_entities_by_name_containing(
-        &self,
-        name: &str,
-        pagination: &Pagination,
-    ) -> CollectionsResult<Vec<CollectionEntity>>;
-}
-
-pub type TracksResult<T> = Result<T, failure::Error>;
+pub type TracksResult<T> = Result<T, Error>;
 
 pub trait Tracks {
     fn create_entity(&self, body: Track, format: SerializationFormat) -> TracksResult<TrackEntity>;
@@ -107,7 +74,7 @@ pub trait Tracks {
     fn collection_stats(&self, collection_uid: &EntityUid) -> TracksResult<CollectionTrackStats>;
 }
 
-pub type TrackTagsResult<T> = Result<T, failure::Error>;
+pub type TrackTagsResult<T> = Result<T, Error>;
 
 pub trait TrackTags {
     fn list_tag_facets(

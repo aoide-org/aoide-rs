@@ -25,21 +25,23 @@ use self::schema::*;
 
 use self::util::TrackRepositoryHelper;
 
-use super::*;
+use storage::util::*;
 
-use super::util::*;
-
-use super::serde::{deserialize_with_format, serialize_with_format, SerializationFormat,
-                   SerializedEntity};
+use chrono::{naive::NaiveDateTime, DateTime, Utc};
 
 use diesel;
 use diesel::dsl::*;
 use diesel::prelude::*;
 
-use usecases::{api::*, TrackTags, TrackTagsResult, Tracks, TracksResult};
+use api::{
+    collection::CollectionTrackStats, entity::*,
+    serde::{serialize_with_format, SerializationFormat, SerializedEntity},
+    track::{TrackTags, TrackTagsResult, Tracks, TracksResult}, *,
+};
 
-use aoide_core::{audio::*,
-                 domain::{collection::CollectionTrackStats, entity::*, metadata::*, track::*}};
+use aoide_core::{
+    audio::*, domain::{entity::*, metadata::*, track::*},
+};
 
 ///////////////////////////////////////////////////////////////////////
 /// TrackRepository
@@ -385,9 +387,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                     tracks::uid
                         .eq(uid.as_ref())
                         .and(tracks::rev_ordinal.eq(prev_revision.ordinal() as i64))
-                        .and(
-                            tracks::rev_timestamp.eq(prev_revision.timestamp().naive_utc()),
-                        ),
+                        .and(tracks::rev_timestamp.eq(prev_revision.timestamp().naive_utc())),
                 );
                 let storage_id = self.helper.before_entity_updated_or_removed(&uid)?;
                 let query = diesel::update(target).set(&updatable);
@@ -441,7 +441,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             }
             // Update?
             if let Some(serialized_entity) = located_entities.first() {
-                let entity = deserialize_with_format::<TrackEntity>(serialized_entity)?;
+                let entity = serialized_entity.deserialize::<TrackEntity>()?;
                 let uid = entity.header().uid().clone();
                 if entity.body() == &replacement.track {
                     debug!(
@@ -822,9 +822,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             let (subselect, filter_modifier) = select_track_ids_matching_tag_filter(tag_filter);
             target = match filter_modifier {
                 None => target.filter(tracks::id.eq_any(subselect)),
-                Some(FilterModifier::Complement) => {
-                    target.filter(tracks::id.ne_all(subselect))
-                }
+                Some(FilterModifier::Complement) => target.filter(tracks::id.ne_all(subselect)),
             }
         }
 
@@ -832,9 +830,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             target = match select_track_ids_from_profile_matching_numeric_filter(numeric_filter) {
                 Some((subselect, filter_modifier)) => match filter_modifier {
                     None => target.filter(tracks::id.eq_any(subselect)),
-                    Some(FilterModifier::Complement) => {
-                        target.filter(tracks::id.ne_all(subselect))
-                    }
+                    Some(FilterModifier::Complement) => target.filter(tracks::id.ne_all(subselect)),
                 },
                 None => match numeric_filter.field {
                     NumericField::DurationMs => match numeric_filter.condition.comparator {
@@ -1101,78 +1097,75 @@ impl<'a> Tracks for TrackRepository<'a> {
             let direction = sort_order
                 .direction
                 .unwrap_or_else(|| TrackSort::default_direction(sort_order.field));
-            target =
-                match sort_order.field {
-                    field @ TrackSortField::InCollectionSince => {
-                        if collection_uid.is_some() {
-                            match direction {
-                                SortDirection::Ascending => target
-                                    .then_order_by(aux_tracks_resource::collection_since.asc()),
-                                SortDirection::Descending => target
-                                    .then_order_by(aux_tracks_resource::collection_since.desc()),
+            target = match sort_order.field {
+                field @ TrackSortField::InCollectionSince => {
+                    if collection_uid.is_some() {
+                        match direction {
+                            SortDirection::Ascending => {
+                                target.then_order_by(aux_tracks_resource::collection_since.asc())
                             }
-                        } else {
-                            warn!("Cannot order by {:?} over multiple collections", field);
-                            target
+                            SortDirection::Descending => {
+                                target.then_order_by(aux_tracks_resource::collection_since.desc())
+                            }
                         }
+                    } else {
+                        warn!("Cannot order by {:?} over multiple collections", field);
+                        target
                     }
-                    TrackSortField::LastRevisionedAt => match direction {
-                        SortDirection::Ascending => {
-                            target.then_order_by(tracks::rev_timestamp.asc())
-                        }
-                        SortDirection::Descending => {
-                            target.then_order_by(tracks::rev_timestamp.desc())
-                        }
-                    },
-                    TrackSortField::TrackTitle => match direction {
-                        SortDirection::Ascending => {
-                            target.then_order_by(aux_tracks_overview::track_title.asc())
-                        }
-                        SortDirection::Descending => {
-                            target.then_order_by(aux_tracks_overview::track_title.desc())
-                        }
-                    },
-                    TrackSortField::AlbumTitle => match direction {
-                        SortDirection::Ascending => {
-                            target.then_order_by(aux_tracks_overview::album_title.asc())
-                        }
-                        SortDirection::Descending => {
-                            target.then_order_by(aux_tracks_overview::album_title.desc())
-                        }
-                    },
-                    TrackSortField::ReleasedAt => match direction {
-                        SortDirection::Ascending => {
-                            target.then_order_by(aux_tracks_overview::released_at.asc())
-                        }
-                        SortDirection::Descending => {
-                            target.then_order_by(aux_tracks_overview::released_at.desc())
-                        }
-                    },
-                    TrackSortField::ReleasedBy => match direction {
-                        SortDirection::Ascending => {
-                            target.then_order_by(aux_tracks_overview::released_by.asc())
-                        }
-                        SortDirection::Descending => {
-                            target.then_order_by(aux_tracks_overview::released_by.desc())
-                        }
-                    },
-                    TrackSortField::TrackArtist => match direction {
-                        SortDirection::Ascending => {
-                            target.then_order_by(aux_tracks_summary::track_artist.asc())
-                        }
-                        SortDirection::Descending => {
-                            target.then_order_by(aux_tracks_summary::track_artist.desc())
-                        }
-                    },
-                    TrackSortField::AlbumArtist => match direction {
-                        SortDirection::Ascending => {
-                            target.then_order_by(aux_tracks_summary::album_artist.asc())
-                        }
-                        SortDirection::Descending => {
-                            target.then_order_by(aux_tracks_summary::album_artist.desc())
-                        }
-                    },
                 }
+                TrackSortField::LastRevisionedAt => match direction {
+                    SortDirection::Ascending => target.then_order_by(tracks::rev_timestamp.asc()),
+                    SortDirection::Descending => target.then_order_by(tracks::rev_timestamp.desc()),
+                },
+                TrackSortField::TrackTitle => match direction {
+                    SortDirection::Ascending => {
+                        target.then_order_by(aux_tracks_overview::track_title.asc())
+                    }
+                    SortDirection::Descending => {
+                        target.then_order_by(aux_tracks_overview::track_title.desc())
+                    }
+                },
+                TrackSortField::AlbumTitle => match direction {
+                    SortDirection::Ascending => {
+                        target.then_order_by(aux_tracks_overview::album_title.asc())
+                    }
+                    SortDirection::Descending => {
+                        target.then_order_by(aux_tracks_overview::album_title.desc())
+                    }
+                },
+                TrackSortField::ReleasedAt => match direction {
+                    SortDirection::Ascending => {
+                        target.then_order_by(aux_tracks_overview::released_at.asc())
+                    }
+                    SortDirection::Descending => {
+                        target.then_order_by(aux_tracks_overview::released_at.desc())
+                    }
+                },
+                TrackSortField::ReleasedBy => match direction {
+                    SortDirection::Ascending => {
+                        target.then_order_by(aux_tracks_overview::released_by.asc())
+                    }
+                    SortDirection::Descending => {
+                        target.then_order_by(aux_tracks_overview::released_by.desc())
+                    }
+                },
+                TrackSortField::TrackArtist => match direction {
+                    SortDirection::Ascending => {
+                        target.then_order_by(aux_tracks_summary::track_artist.asc())
+                    }
+                    SortDirection::Descending => {
+                        target.then_order_by(aux_tracks_summary::track_artist.desc())
+                    }
+                },
+                TrackSortField::AlbumArtist => match direction {
+                    SortDirection::Ascending => {
+                        target.then_order_by(aux_tracks_summary::album_artist.asc())
+                    }
+                    SortDirection::Descending => {
+                        target.then_order_by(aux_tracks_summary::album_artist.desc())
+                    }
+                },
+            }
         }
         // Finally order by PK to preserve the relative order of results
         // even if no sorting was requested.

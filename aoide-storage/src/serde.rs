@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use failure;
+use failure::Error;
 
 use mime;
 
@@ -87,7 +87,7 @@ impl Into<mime::Mime> for SerializationFormat {
 
 pub fn concat_serialized_entities_json_array(
     serialized_entities: &[SerializedEntity],
-) -> Result<Vec<u8>, failure::Error> {
+) -> Result<Vec<u8>, Error> {
     let mut json_array = Vec::with_capacity(
         serialized_entities
             .iter()
@@ -112,14 +112,11 @@ pub fn concat_serialized_entities_json_array(
 
 pub fn concat_serialized_entities_into_json_array(
     serialized_entities: Vec<SerializedEntity>,
-) -> Result<Vec<u8>, failure::Error> {
+) -> Result<Vec<u8>, Error> {
     concat_serialized_entities_json_array(&serialized_entities)
 }
 
-pub fn serialize_with_format<T>(
-    entity: &T,
-    format: SerializationFormat,
-) -> Result<Vec<u8>, failure::Error>
+pub fn serialize_with_format<T>(entity: &T, format: SerializationFormat) -> Result<Vec<u8>, Error>
 where
     T: serde::Serialize,
 {
@@ -135,7 +132,7 @@ where
 pub fn deserialize_slice_with_format<'a, T>(
     slice: &'a [u8],
     format: SerializationFormat,
-) -> Result<T, failure::Error>
+) -> Result<T, Error>
 where
     T: serde::Deserialize<'a>,
 {
@@ -148,7 +145,7 @@ where
     Ok(deserialized)
 }
 
-pub fn deserialize_with_format<'a, T>(input: &'a SerializedEntity) -> Result<T, failure::Error>
+pub fn deserialize_with_format<'a, T>(input: &'a SerializedEntity) -> Result<T, Error>
 where
     T: serde::Deserialize<'a>,
 {

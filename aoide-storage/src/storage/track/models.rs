@@ -19,8 +19,7 @@ use chrono::naive::{NaiveDate, NaiveDateTime};
 
 use percent_encoding::percent_decode;
 
-use storage::serde::SerializationFormat;
-use storage::StorageId;
+use api::{entity::StorageId, serde::SerializationFormat};
 
 use aoide_core::audio::{Decibel, Loudness, LUFS};
 use aoide_core::domain::entity::{EntityHeader, EntityRevision};

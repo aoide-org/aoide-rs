@@ -26,9 +26,7 @@ use aoide_core::domain::{
     collection::*, entity::{EntityHeader, EntityRevision, EntityUid},
 };
 
-use storage::*;
-
-use usecases::{api::Pagination, *};
+use api::{collection::*, entity::*, Pagination};
 
 mod models;
 

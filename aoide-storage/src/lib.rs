@@ -56,4 +56,4 @@ extern crate diesel_migrations;
 //
 pub mod storage;
 
-pub mod usecases;
+pub mod api;

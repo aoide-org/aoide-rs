@@ -13,8 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod collection;
+use failure::Error;
 
-pub mod track;
+use aoide_core::domain::entity::EntityUid;
 
-pub mod util;
+pub type StorageId = i64;
+
+pub type EntityStorageResult<T> = Result<T, Error>;
+
+pub trait EntityStorage {
+    fn find_storage_id(&self, uid: &EntityUid) -> EntityStorageResult<Option<StorageId>>;
+}

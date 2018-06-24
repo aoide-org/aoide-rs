@@ -16,7 +16,7 @@
 use diesel;
 use diesel::prelude::*;
 
-use usecases::api::Pagination;
+use api::Pagination;
 
 pub(crate) fn apply_pagination<'a, ST, QS, DB>(
     source: diesel::query_builder::BoxedSelectStatement<'a, ST, QS, DB>,

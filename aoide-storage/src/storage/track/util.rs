@@ -17,12 +17,11 @@ use super::models::*;
 
 use super::schema::*;
 
-use storage::{
-    collection::{schema::collections, CollectionRepository}, EntityStorage, EntityStorageResult,
-    StorageId,
-};
+use storage::collection::{schema::collections, CollectionRepository};
 
-use usecases::Collections;
+use api::{
+    collection::Collections, entity::{EntityStorage, EntityStorageResult, StorageId},
+};
 
 use diesel;
 use diesel::prelude::*;
