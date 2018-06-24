@@ -60,7 +60,7 @@ use log::LevelFilter as LogLevelFilter;
 
 use std::env;
 
-embed_migrations!("aoide-storage/db/migrations/sqlite");
+embed_migrations!("aoide-storage/resources/migrations/sqlite");
 
 fn create_connection_pool(url: &str, max_size: u32) -> Result<SqliteConnectionPool, Error> {
     info!("Creating SQLite connection pool for '{}'", url);

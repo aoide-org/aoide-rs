@@ -15,7 +15,7 @@
 
 use super::*;
 
-embed_migrations!("db/migrations/sqlite");
+embed_migrations!("resources/migrations/sqlite");
 
 fn establish_connection() -> SqliteConnection {
     let connection =

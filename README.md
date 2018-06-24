@@ -71,7 +71,7 @@ cargo install diesel_cli --no-default-features --features "sqlite"
 Database files are created or updated by applying all (pending) migrations:
 
 ```bash
-diesel migration --migration-dir db/migrations/sqlite --database-url <SQLITE_DATABASE_FILE> run
+diesel migration --migration-dir resources/migrations/sqlite --database-url <SQLITE_DATABASE_FILE> run
 ```
 
 By convention use the file extension *.sqlite* for SQLite database files.
@@ -81,7 +81,7 @@ By convention use the file extension *.sqlite* for SQLite database files.
 Modification of the database schema or its contents requires the creation of both *up* (forward) and *down* (backward) migration scripts:
 
 ```bash
-diesel migration --migration-dir db/migrations/sqlite generate <MIGRATION_NAME>
+diesel migration --migration-dir resources/migrations/sqlite generate <MIGRATION_NAME>
 ```
 
 Test your scripts with the migration commands *run* followed by *revert* + *run* or *redo*! Undo the migration with the command *revert*
