@@ -15,21 +15,25 @@
 
 use super::schema::*;
 
-use chrono::naive::{NaiveDate, NaiveDateTime};
+use chrono::{
+    naive::{NaiveDate, NaiveDateTime}, DateTime, Utc,
+};
 
 use percent_encoding::percent_decode;
 
-use api::{entity::StorageId, serde::SerializationFormat};
+use api::{
+    entity::StorageId, serde::{SerializationFormat, SerializedEntity},
+};
 
 use aoide_core::audio::{Decibel, Loudness, LUFS};
-use aoide_core::domain::entity::{EntityHeader, EntityRevision};
+use aoide_core::domain::entity::{EntityHeader, EntityRevision, EntityUid, EntityVersion};
 use aoide_core::domain::metadata::{Comment, Rating, Score, ScoreValue};
 use aoide_core::domain::music::sonic::BeatsPerMinute;
 use aoide_core::domain::music::{ActorRole, Actors, SongFeature, SongProfile, TitleLevel, Titles};
 use aoide_core::domain::track::{RefOrigin, Track, TrackResource};
 
 #[derive(Debug, Insertable)]
-#[table_name = "tracks"]
+#[table_name = "tbl_track"]
 pub struct InsertableTracksEntity<'a> {
     pub uid: &'a [u8],
     pub rev_ordinal: i64,
@@ -59,7 +63,7 @@ impl<'a> InsertableTracksEntity<'a> {
 }
 
 #[derive(Debug, AsChangeset)]
-#[table_name = "tracks"]
+#[table_name = "tbl_track"]
 pub struct UpdatableTracksEntity<'a> {
     pub rev_ordinal: i64,
     pub rev_timestamp: NaiveDateTime,
@@ -86,8 +90,42 @@ impl<'a> UpdatableTracksEntity<'a> {
     }
 }
 
+#[derive(Debug, Queryable, Identifiable)]
+#[table_name = "tbl_track"]
+pub struct QueryableSerializedEntity {
+    pub id: StorageId,
+    pub uid: Vec<u8>,
+    pub rev_ordinal: i64,
+    pub rev_timestamp: NaiveDateTime,
+    pub ser_fmt: i16,
+    pub ser_ver_major: i32,
+    pub ser_ver_minor: i32,
+    pub ser_blob: Vec<u8>,
+}
+
+impl From<QueryableSerializedEntity> for SerializedEntity {
+    fn from(from: QueryableSerializedEntity) -> Self {
+        let uid = EntityUid::from_slice(&from.uid);
+        let revision = EntityRevision::new(
+            from.rev_ordinal as u64,
+            DateTime::from_utc(from.rev_timestamp, Utc),
+        );
+        let header = EntityHeader::new(uid, revision);
+        let format = SerializationFormat::from(from.ser_fmt).unwrap();
+        debug_assert!(from.ser_ver_major >= 0);
+        debug_assert!(from.ser_ver_minor >= 0);
+        let version = EntityVersion::new(from.ser_ver_major as u32, from.ser_ver_minor as u32);
+        SerializedEntity {
+            header,
+            format,
+            version,
+            blob: from.ser_blob,
+        }
+    }
+}
+
 #[derive(Debug, Insertable)]
-#[table_name = "aux_tracks_overview"]
+#[table_name = "aux_track_overview"]
 pub struct InsertableTracksOverview<'a> {
     pub track_id: StorageId,
     pub track_title: Option<&'a str>,
@@ -158,7 +196,7 @@ impl<'a> InsertableTracksOverview<'a> {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "aux_tracks_summary"]
+#[table_name = "aux_track_summary"]
 pub struct InsertableTracksSummary<'a> {
     pub track_id: StorageId,
     pub track_artist: Option<&'a str>,
@@ -228,7 +266,7 @@ impl<'a> InsertableTracksSummary<'a> {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "aux_tracks_resource"]
+#[table_name = "aux_track_resource"]
 pub struct InsertableTracksResource<'a> {
     pub track_id: StorageId,
     pub collection_uid: &'a [u8],
@@ -319,7 +357,7 @@ impl<'a> InsertableTracksResource<'a> {
 }
 
 #[derive(Debug, Clone, Copy, Insertable)]
-#[table_name = "aux_tracks_profile"]
+#[table_name = "aux_track_profile"]
 pub struct InsertableTracksMusic {
     pub track_id: StorageId,
     pub tempo_bpm: BeatsPerMinute,
@@ -373,7 +411,7 @@ impl InsertableTracksMusic {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "aux_tracks_ref"]
+#[table_name = "aux_track_xref"]
 pub struct InsertableTracksRef<'a> {
     pub track_id: StorageId,
     pub origin: i16,
@@ -391,7 +429,7 @@ impl<'a> InsertableTracksRef<'a> {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "aux_tracks_tag_terms"]
+#[table_name = "aux_track_tag_term"]
 pub struct InsertableTracksTagTerm<'a> {
     pub term: &'a str,
 }
@@ -403,7 +441,7 @@ impl<'a> InsertableTracksTagTerm<'a> {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "aux_tracks_tag_facets"]
+#[table_name = "aux_track_tag_facet"]
 pub struct InsertableTracksTagFacet<'a> {
     pub facet: &'a str,
 }
@@ -415,7 +453,7 @@ impl<'a> InsertableTracksTagFacet<'a> {
 }
 
 #[derive(Debug, Clone, Copy, Insertable)]
-#[table_name = "aux_tracks_tag"]
+#[table_name = "aux_track_tag"]
 pub struct InsertableTracksTag {
     pub track_id: StorageId,
     pub term_id: StorageId,
@@ -440,7 +478,7 @@ impl InsertableTracksTag {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "aux_tracks_rating"]
+#[table_name = "aux_track_rating"]
 pub struct InsertableTracksRating<'a> {
     pub track_id: StorageId,
     pub score: ScoreValue,
@@ -458,7 +496,7 @@ impl<'a> InsertableTracksRating<'a> {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "aux_tracks_comment"]
+#[table_name = "aux_track_comment"]
 pub struct InsertableTracksComment<'a> {
     pub track_id: StorageId,
     pub text: &'a str,

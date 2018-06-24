@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::schema::collections;
+use super::schema::tbl_collection;
 
 use chrono::{naive::NaiveDateTime, DateTime, Utc};
 
@@ -23,7 +23,7 @@ use aoide_core::domain::entity::{EntityHeader, EntityRevision, EntityUid};
 use api::entity::StorageId;
 
 #[derive(Debug, Insertable)]
-#[table_name = "collections"]
+#[table_name = "tbl_collection"]
 pub struct InsertableCollectionsEntity<'a> {
     pub uid: &'a [u8],
     pub rev_ordinal: i64,
@@ -45,7 +45,7 @@ impl<'a> InsertableCollectionsEntity<'a> {
 }
 
 #[derive(Debug, AsChangeset)]
-#[table_name = "collections"]
+#[table_name = "tbl_collection"]
 pub struct UpdatableCollectionsEntity<'a> {
     pub rev_ordinal: i64,
     pub rev_timestamp: NaiveDateTime,

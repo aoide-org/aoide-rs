@@ -13,10 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use storage::collection::schema::collections;
+use storage::collection::schema::tbl_collection;
 
 table! {
-    tracks (id) {
+    tbl_track (id) {
         id -> BigInt,
         uid -> Binary,
         rev_ordinal -> BigInt,
@@ -29,7 +29,7 @@ table! {
 }
 
 table! {
-    aux_tracks_resource (id) {
+    aux_track_resource (id) {
         id -> BigInt,
         track_id -> BigInt,
         collection_uid -> Binary,
@@ -51,12 +51,12 @@ table! {
     }
 }
 
-joinable!(aux_tracks_resource -> tracks (track_id));
+joinable!(aux_track_resource -> tbl_track (track_id));
 
-allow_tables_to_appear_in_same_query!(aux_tracks_resource, collections);
+allow_tables_to_appear_in_same_query!(aux_track_resource, tbl_collection);
 
 table! {
-    aux_tracks_overview (id) {
+    aux_track_overview (id) {
         id -> BigInt,
         track_id -> BigInt,
         track_title -> Nullable<Text>,
@@ -79,10 +79,10 @@ table! {
     }
 }
 
-joinable!(aux_tracks_overview -> tracks (track_id));
+joinable!(aux_track_overview -> tbl_track (track_id));
 
 table! {
-    aux_tracks_summary (id) {
+    aux_track_summary (id) {
         id -> BigInt,
         track_id -> BigInt,
         track_artist -> Nullable<Text>,
@@ -101,10 +101,10 @@ table! {
     }
 }
 
-joinable!(aux_tracks_summary -> tracks (track_id));
+joinable!(aux_track_summary -> tbl_track (track_id));
 
 table! {
-    aux_tracks_profile (id) {
+    aux_track_profile (id) {
         id -> BigInt,
         track_id -> BigInt,
         tempo_bpm -> Double,
@@ -122,17 +122,17 @@ table! {
     }
 }
 
-joinable!(aux_tracks_profile -> tracks (track_id));
+joinable!(aux_track_profile -> tbl_track (track_id));
 
 table! {
-    aux_tracks_tag_terms (id) {
+    aux_track_tag_term (id) {
         id -> BigInt,
         term -> Text,
     }
 }
 
 table! {
-    aux_tracks_tag_facets (id) {
+    aux_track_tag_facet (id) {
         // TODO: Change type of id from Nullable<BigInt> to BigInt
         // See also: https://github.com/diesel-rs/diesel/pull/1644
         id -> Nullable<BigInt>,
@@ -141,7 +141,7 @@ table! {
 }
 
 table! {
-    aux_tracks_tag (id) {
+    aux_track_tag (id) {
         id -> BigInt,
         track_id -> BigInt,
         score -> Double,
@@ -150,14 +150,14 @@ table! {
     }
 }
 
-joinable!(aux_tracks_tag -> tracks (track_id));
+joinable!(aux_track_tag -> tbl_track (track_id));
 
-joinable!(aux_tracks_tag -> aux_tracks_tag_terms (term_id));
+joinable!(aux_track_tag -> aux_track_tag_term (term_id));
 
-joinable!(aux_tracks_tag -> aux_tracks_tag_facets (facet_id));
+joinable!(aux_track_tag -> aux_track_tag_facet (facet_id));
 
 table! {
-    aux_tracks_rating (id) {
+    aux_track_rating (id) {
         id -> BigInt,
         track_id -> BigInt,
         score -> Double,
@@ -165,12 +165,12 @@ table! {
     }
 }
 
-joinable!(aux_tracks_rating -> tracks (track_id));
+joinable!(aux_track_rating -> tbl_track (track_id));
 
-allow_tables_to_appear_in_same_query!(aux_tracks_rating, tracks);
+allow_tables_to_appear_in_same_query!(aux_track_rating, tbl_track);
 
 table! {
-    aux_tracks_comment (id) {
+    aux_track_comment (id) {
         id -> BigInt,
         track_id -> BigInt,
         text -> Text,
@@ -178,10 +178,10 @@ table! {
     }
 }
 
-joinable!(aux_tracks_comment -> tracks (track_id));
+joinable!(aux_track_comment -> tbl_track (track_id));
 
 table! {
-    aux_tracks_ref (id) {
+    aux_track_xref (id) {
         id -> BigInt,
         track_id -> BigInt,
         origin -> SmallInt,
@@ -189,22 +189,22 @@ table! {
     }
 }
 
-joinable!(aux_tracks_ref -> tracks (track_id));
+joinable!(aux_track_xref -> tbl_track (track_id));
 
 allow_tables_to_appear_in_same_query!(
-    tracks,
-    aux_tracks_resource,
-    aux_tracks_overview,
-    aux_tracks_summary,
-    aux_tracks_profile,
-    aux_tracks_tag,
-    aux_tracks_tag_terms,
-    aux_tracks_tag_facets,
-    aux_tracks_comment,
+    tbl_track,
+    aux_track_resource,
+    aux_track_overview,
+    aux_track_summary,
+    aux_track_profile,
+    aux_track_tag,
+    aux_track_tag_term,
+    aux_track_tag_facet,
+    aux_track_comment,
 );
 
 table! {
-    pending_tasks (id) {
+    tbl_pending_task (id) {
         id -> BigInt,
         collection_uid -> Binary,
         job_type -> Integer,
@@ -213,12 +213,12 @@ table! {
 }
 
 table! {
-    pending_tasks_tracks (id) {
+    tbl_pending_task_track (id) {
         id -> BigInt,
         task_id -> BigInt,
         track_id -> BigInt,
     }
 }
 
-joinable!(pending_tasks_tracks -> pending_tasks (task_id));
-joinable!(pending_tasks_tracks -> tracks (track_id));
+joinable!(tbl_pending_task_track -> tbl_pending_task (task_id));
+joinable!(tbl_pending_task_track -> tbl_track (track_id));

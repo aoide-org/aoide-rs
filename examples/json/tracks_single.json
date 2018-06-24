@@ -49,12 +49,12 @@
                     }
                 }
             ],
-            "refs": [
+            "xrefs": [
                 "isrc:USUG11200229",
                 "http://musicbrainz.org/track/d878c95a-8a6b-3be6-b6df-7d720a480625"
             ],
             "release": {
-                "refs": [
+                "xrefs": [
                     "asin:B007MPE20U"
                 ],
                 "releasedAt": "2012-03-23T00:00:00.000Z",
@@ -62,7 +62,7 @@
                 "copyright": "℗ 2012 Boy Toy, Inc. Exclusively licensed to Live Nation Worldwide, Inc. Exclusively licensed to Interscope Records"
             },
             "album": {
-                "refs": [
+                "xrefs": [
                     "http://musicbrainz.org/release-group/5436c9f0-3bc4-410b-8f2d-b584779d5b2c"
                 ],
                 "titles": [

@@ -567,22 +567,22 @@ components:
         Optional role that defaults to `artist` if missing
     Album:
       properties:
-        refs:
-          type: array
-          items:
-            $ref: '#/components/schemas/ExternalReference'
         actors:
           type: array
           items:
             $ref: '#/components/schemas/Actor'
-        titles:
-          type: array
-          items:
-            $ref: '#/components/schemas/Title'
         compilation:
           type: boolean
           description: |
             Indicates whether this album is a compilation with various artists.
+        titles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Title'
+        xrefs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExternalReference'
     AudioContent:
       properties:
         duration:
@@ -868,20 +868,20 @@ components:
         Tuple of 2 elements containing a score value for the rating and an optional (= nullable) owner.
     Release:
       properties:
-        refs:
-          type: array
-          items:
-            $ref: '#/components/schemas/ExternalReference'
-        releasedAt:
-          $ref: '#/components/schemas/TimeStamp'
-        releasedBy:
-          type: string
         copyright:
           type: string
         licenses:
           type: array
           items:
             type: string
+        releasedAt:
+          $ref: '#/components/schemas/TimeStamp'
+        releasedBy:
+          type: string
+        xrefs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExternalReference'
     ReplacementMode:
       type: string
       enum:
@@ -1209,10 +1209,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Rating'
-        refs:
-          type: array
-          items:
-            $ref: '#/components/schemas/ExternalReference'
         release:
           $ref: '#/components/schemas/Release'
         resources:
@@ -1229,6 +1225,10 @@ components:
             $ref: '#/components/schemas/Title'
         trackNumbers:
           $ref: '#/components/schemas/IndexCount'
+        xrefs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExternalReference'
     TrackCollection:
       properties:
         uid:

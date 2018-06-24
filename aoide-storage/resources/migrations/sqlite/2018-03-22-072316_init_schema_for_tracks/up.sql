@@ -17,7 +17,7 @@
 -- Collections
 -----------------------------------------------------------------------
 
-CREATE TABLE collections (
+CREATE TABLE tbl_collection (
     id                       INTEGER PRIMARY KEY,
     uid                      BINARY(24) NOT NULL, -- globally unique identifier
     rev_ordinal              INTEGER NOT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE collections (
     UNIQUE (uid)
 );
 
-CREATE INDEX idx_collections_name ON collections (
+CREATE INDEX idx_collections_name ON tbl_collection (
     name
 );
 
@@ -35,7 +35,7 @@ CREATE INDEX idx_collections_name ON collections (
 -- Tracks
 -----------------------------------------------------------------------
 
-CREATE TABLE tracks (
+CREATE TABLE tbl_track (
     id                       INTEGER PRIMARY KEY,
     uid                      BINARY(24) NOT NULL, -- globally unique identifier
     rev_ordinal              INTEGER NOT NULL,
@@ -47,7 +47,7 @@ CREATE TABLE tracks (
     UNIQUE (uid)
 );
 
-CREATE TABLE aux_tracks_resource (
+CREATE TABLE aux_track_resource (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     collection_uid           BINARY(24) NOT NULL,
@@ -66,20 +66,20 @@ CREATE TABLE aux_tracks_resource (
     audio_enc_name           TEXT,              -- encoded by
     audio_enc_settings       TEXT,              -- encoder settings
     color_code               INTEGER,           -- 0xAARRGGBB (hex)
-    FOREIGN KEY(track_id) REFERENCES tracks(id),
+    FOREIGN KEY(track_id) REFERENCES tbl_track(id),
     UNIQUE (collection_uid, track_id),
     UNIQUE (collection_uid, source_uri)
 );
 
-CREATE INDEX idx_tracks_resource_track_id ON aux_tracks_resource (
+CREATE INDEX idx_track_resource_track_id ON aux_track_resource (
     track_id
 );
 
-CREATE INDEX idx_tracks_resource_source_uri ON aux_tracks_resource (
+CREATE INDEX idx_track_resource_source_uri ON aux_track_resource (
     source_uri
 );
 
-CREATE TABLE aux_tracks_overview (
+CREATE TABLE aux_track_overview (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     track_title              TEXT,
@@ -99,11 +99,11 @@ CREATE TABLE aux_tracks_overview (
     movement_count           INTEGER, -- > 0
     lyrics_explicit          TINYINT, -- {0, 1}
     album_compilation        TINYINT, -- {0, 1}
-    FOREIGN KEY(track_id) REFERENCES tracks(id),
+    FOREIGN KEY(track_id) REFERENCES tbl_track(id),
     UNIQUE (track_id)
 );
 
-CREATE TABLE aux_tracks_summary (
+CREATE TABLE aux_track_summary (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     track_artist             TEXT,
@@ -119,11 +119,11 @@ CREATE TABLE aux_tracks_summary (
     album_producer           TEXT,
     ratings_min              REAL, -- [0.0, 1.0]
     ratings_max              REAL, -- [0.0, 1.0]
-    FOREIGN KEY(track_id) REFERENCES tracks(id),
+    FOREIGN KEY(track_id) REFERENCES tbl_track(id),
     UNIQUE (track_id)
 );
 
-CREATE TABLE aux_tracks_profile (
+CREATE TABLE aux_track_profile (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     tempo_bpm                REAL NOT NULL, -- beats per minute (bpm)
@@ -138,75 +138,75 @@ CREATE TABLE aux_tracks_profile (
     popularity_score         REAL, -- [0.0, 1.0]
     valence_score            REAL, -- [0.0, 1.0]
     speechiness_score        REAL, -- [0.0, 1.0]
-    FOREIGN KEY(track_id) REFERENCES tracks(id),
+    FOREIGN KEY(track_id) REFERENCES tbl_track(id),
     UNIQUE (track_id)
 );
 
-CREATE TABLE aux_tracks_tag_terms (
+CREATE TABLE aux_track_tag_term (
     id                       INTEGER PRIMARY KEY,
     term                    TEXT NOT NULL,
     UNIQUE (term)
 );
 
-CREATE TABLE aux_tracks_tag_facets (
+CREATE TABLE aux_track_tag_facet (
     id                       INTEGER PRIMARY KEY,
     facet                    TEXT NOT NULL COLLATE NOCASE,
     UNIQUE (facet)
 );
 
-CREATE TABLE aux_tracks_tag (
+CREATE TABLE aux_track_tag (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     score                    REAL NOT NULL, -- [0.0, 1.0]
     term_id                  INTEGER NOT NULL,
     facet_id                 INTEGER,
-    FOREIGN KEY(track_id) REFERENCES tracks(id),
-    FOREIGN KEY(term_id) REFERENCES aux_tracks_tag_terms(id),
-    FOREIGN KEY(facet_id) REFERENCES aux_tracks_tag_facets(id),
+    FOREIGN KEY(track_id) REFERENCES tbl_track(id),
+    FOREIGN KEY(term_id) REFERENCES aux_track_tag_term(id),
+    FOREIGN KEY(facet_id) REFERENCES aux_track_tag_facet(id),
     UNIQUE (track_id, term_id, facet_id)
 );
 
-CREATE INDEX idx_tracks_tag_term_facet ON aux_tracks_tag(
+CREATE INDEX idx_track_tag_term_facet ON aux_track_tag(
     term_id,
     facet_id
 );
 
-CREATE INDEX idx_tracks_tag_facet ON aux_tracks_tag (
+CREATE INDEX idx_track_tag_facet ON aux_track_tag (
     facet_id
 );
 
-CREATE TABLE aux_tracks_comment (
+CREATE TABLE aux_track_comment (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     text                     CLOB NOT NULL,
     owner                    TEXT,
-    FOREIGN KEY(track_id) REFERENCES tracks(id),
+    FOREIGN KEY(track_id) REFERENCES tbl_track(id),
     UNIQUE (track_id, owner)
 );
 
-CREATE INDEX idx_tracks_comment_owner ON aux_tracks_comment (
+CREATE INDEX idx_track_comment_owner ON aux_track_comment (
     owner
 );
 
-CREATE TABLE aux_tracks_rating (
+CREATE TABLE aux_track_rating (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     score                    REAL NOT NULL, -- [0.0, 1.0]
     owner                    TEXT,
-    FOREIGN KEY(track_id) REFERENCES tracks(id),
+    FOREIGN KEY(track_id) REFERENCES tbl_track(id),
     UNIQUE (track_id, owner)
 );
 
-CREATE INDEX idx_tracks_rating_owner ON aux_tracks_rating (
+CREATE INDEX idx_track_rating_owner ON aux_track_rating (
     owner
 );
 
-CREATE TABLE aux_tracks_ref (
+CREATE TABLE aux_track_xref (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     origin                   TINYINT NOT NULL,
     reference                TEXT NOT NULL,
-    FOREIGN KEY(track_id) REFERENCES tracks(id),
+    FOREIGN KEY(track_id) REFERENCES tbl_track(id),
     UNIQUE (track_id, origin, reference)
 );
 
@@ -214,7 +214,7 @@ CREATE TABLE aux_tracks_ref (
 -- Tasks
 -----------------------------------------------------------------------
 
-CREATE TABLE pending_tasks (
+CREATE TABLE tbl_pending_task (
     -- AUTOINCREMENT: Required for ordered execution of pending tasks
     id                       INTEGER PRIMARY KEY AUTOINCREMENT,
     collection_uid           BINARY(24),
@@ -222,15 +222,15 @@ CREATE TABLE pending_tasks (
     job_params               BLOB NOT NULL
 );
 
-CREATE TABLE pending_tasks_tracks (
+CREATE TABLE tbl_pending_task_track (
     id                       INTEGER PRIMARY KEY,
     task_id                  INTEGER NOT NULL,
     track_id                 INTEGER NOT NULL,
-    FOREIGN KEY(task_id) REFERENCES pending_tasks(id),
-    FOREIGN KEY(track_id) REFERENCES tracks(id),
+    FOREIGN KEY(task_id) REFERENCES tbl_pending_task(id),
+    FOREIGN KEY(track_id) REFERENCES tbl_track(id),
     UNIQUE(task_id, track_id)
 );
 
-CREATE INDEX idx_pending_tasks_tracks_track_id ON pending_tasks_tracks (
+CREATE INDEX idx_pending_task_track_track_id ON tbl_pending_task_track (
     track_id
 );

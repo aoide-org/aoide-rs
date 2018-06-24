@@ -178,8 +178,8 @@ pub struct Actor {
     #[serde(skip_serializing_if = "ActorPrecedence::is_default", default)]
     pub precedence: ActorPrecedence,
 
-    #[serde(rename = "refs", skip_serializing_if = "Vec::is_empty", default)]
-    pub references: Vec<String>, // external URIs
+    #[serde(rename = "xrefs", skip_serializing_if = "Vec::is_empty", default)]
+    pub external_references: Vec<String>,
 }
 
 impl Actor {

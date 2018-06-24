@@ -71,8 +71,11 @@ pub struct AudioContent {
 
 impl AudioContent {
     pub fn is_valid(&self) -> bool {
-        !self.duration.is_empty() && self.channels.is_valid() && self.samplerate.is_valid()
-            && self.bitrate.is_valid() && self.loudness.iter().all(Loudness::is_valid)
+        !self.duration.is_empty()
+            && self.channels.is_valid()
+            && self.samplerate.is_valid()
+            && self.bitrate.is_valid()
+            && self.loudness.iter().all(Loudness::is_valid)
             && self.encoder.as_ref().map_or(true, |e| e.is_valid())
     }
 }
@@ -207,7 +210,8 @@ pub struct TrackResource {
 
 impl TrackResource {
     pub fn is_valid(&self) -> bool {
-        self.collection.is_valid() && self.source.is_valid()
+        self.collection.is_valid()
+            && self.source.is_valid()
             && self.color.iter().all(TrackColor::is_valid)
     }
 }
@@ -219,9 +223,6 @@ impl TrackResource {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ReleaseMetadata {
-    #[serde(rename = "refs", skip_serializing_if = "Vec::is_empty", default)]
-    pub references: Vec<String>, // external URIs
-
     #[serde(skip_serializing_if = "Option::is_none")]
     pub released_at: Option<DateTime<Utc>>,
 
@@ -233,6 +234,9 @@ pub struct ReleaseMetadata {
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub licenses: Vec<String>,
+
+    #[serde(rename = "xrefs", skip_serializing_if = "Vec::is_empty", default)]
+    pub external_references: Vec<String>,
 }
 
 impl ReleaseMetadata {
@@ -248,9 +252,6 @@ impl ReleaseMetadata {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AlbumMetadata {
-    #[serde(rename = "refs", skip_serializing_if = "Vec::is_empty", default)]
-    pub references: Vec<String>, // external URIs
-
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub titles: Vec<Title>,
 
@@ -259,6 +260,9 @@ pub struct AlbumMetadata {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub compilation: Option<bool>,
+
+    #[serde(rename = "xrefs", skip_serializing_if = "Vec::is_empty", default)]
+    pub external_references: Vec<String>,
 }
 
 impl AlbumMetadata {
@@ -455,9 +459,6 @@ pub struct Track {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub resources: Vec<TrackResource>,
 
-    #[serde(rename = "refs", skip_serializing_if = "Vec::is_empty", default)]
-    pub references: Vec<String>, // external URIs
-
     #[serde(skip_serializing_if = "Option::is_none")]
     pub release: Option<ReleaseMetadata>,
 
@@ -499,15 +500,21 @@ pub struct Track {
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub ratings: Vec<Rating>, // no duplicate owners allowed
+
+    #[serde(rename = "xrefs", skip_serializing_if = "Vec::is_empty", default)]
+    pub external_references: Vec<String>,
 }
 
 impl Track {
     pub fn is_valid(&self) -> bool {
-        !self.resources.is_empty() && self.resources.iter().all(TrackResource::is_valid)
+        !self.resources.is_empty()
+            && self.resources.iter().all(TrackResource::is_valid)
             && self.album.iter().all(AlbumMetadata::is_valid)
             && self.release.iter().all(ReleaseMetadata::is_valid)
-            && self.track_numbers.is_valid() && self.disc_numbers.is_valid()
-            && Titles::is_valid(&self.titles) && Actors::is_valid(&self.actors)
+            && self.track_numbers.is_valid()
+            && self.disc_numbers.is_valid()
+            && Titles::is_valid(&self.titles)
+            && Actors::is_valid(&self.actors)
             && self.lyrics.iter().all(Lyrics::is_valid)
             && self.profile.iter().all(SongProfile::is_valid)
             && self.markers.iter().all(|marker| {

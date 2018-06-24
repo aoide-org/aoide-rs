@@ -27,14 +27,12 @@ use self::util::TrackRepositoryHelper;
 
 use storage::util::*;
 
-use chrono::{naive::NaiveDateTime, DateTime, Utc};
-
 use diesel;
 use diesel::dsl::*;
 use diesel::prelude::*;
 
 use api::{
-    collection::CollectionTrackStats, entity::*,
+    collection::CollectionTrackStats,
     serde::{serialize_with_format, SerializationFormat, SerializedEntity},
     track::{TrackTags, TrackTagsResult, Tracks, TracksResult}, *,
 };
@@ -46,40 +44,6 @@ use aoide_core::{
 ///////////////////////////////////////////////////////////////////////
 /// TrackRepository
 ///////////////////////////////////////////////////////////////////////
-
-#[derive(Debug, Queryable, Identifiable)]
-#[table_name = "tracks"]
-pub struct QueryableSerializedEntity {
-    pub id: StorageId,
-    pub uid: Vec<u8>,
-    pub rev_ordinal: i64,
-    pub rev_timestamp: NaiveDateTime,
-    pub ser_fmt: i16,
-    pub ser_ver_major: i32,
-    pub ser_ver_minor: i32,
-    pub ser_blob: Vec<u8>,
-}
-
-impl From<QueryableSerializedEntity> for SerializedEntity {
-    fn from(from: QueryableSerializedEntity) -> Self {
-        let uid = EntityUid::from_slice(&from.uid);
-        let revision = EntityRevision::new(
-            from.rev_ordinal as u64,
-            DateTime::from_utc(from.rev_timestamp, Utc),
-        );
-        let header = EntityHeader::new(uid, revision);
-        let format = SerializationFormat::from(from.ser_fmt).unwrap();
-        debug_assert!(from.ser_ver_major >= 0);
-        debug_assert!(from.ser_ver_minor >= 0);
-        let version = EntityVersion::new(from.ser_ver_major as u32, from.ser_ver_minor as u32);
-        SerializedEntity {
-            header,
-            format,
-            version,
-            blob: from.ser_blob,
-        }
-    }
-}
 
 #[derive(Clone)]
 pub struct TrackRepository<'a> {
@@ -102,7 +66,7 @@ fn select_track_ids_matching_tag_filter<'a, DB>(
     diesel::query_builder::BoxedSelectStatement<
         'a,
         diesel::sql_types::BigInt,
-        aux_tracks_tag::table,
+        aux_track_tag::table,
         DB,
     >,
     Option<FilterModifier>,
@@ -110,18 +74,18 @@ fn select_track_ids_matching_tag_filter<'a, DB>(
 where
     DB: diesel::backend::Backend + 'a,
 {
-    let mut select = aux_tracks_tag::table
-        .select(aux_tracks_tag::track_id)
+    let mut select = aux_track_tag::table
+        .select(aux_track_tag::track_id)
         .into_boxed();
 
     // Filter tag facet
     if tag_filter.facet == TagFilter::no_facet() {
-        select = select.filter(aux_tracks_tag::facet_id.is_null());
+        select = select.filter(aux_track_tag::facet_id.is_null());
     } else if let Some(facet) = tag_filter.facet {
-        let subselect = aux_tracks_tag_facets::table
-            .select(aux_tracks_tag_facets::id)
-            .filter(aux_tracks_tag_facets::facet.eq(facet));
-        select = select.filter(aux_tracks_tag::facet_id.eq_any(subselect));
+        let subselect = aux_track_tag_facet::table
+            .select(aux_track_tag_facet::id)
+            .filter(aux_track_tag_facet::facet.eq(facet));
+        select = select.filter(aux_track_tag::facet_id.eq_any(subselect));
     }
 
     // Filter tag term
@@ -167,30 +131,30 @@ where
         select = match either_eq_or_like {
             EitherEqualOrLike::Equal(eq) => match modifier {
                 None => {
-                    let subselect = aux_tracks_tag_terms::table
-                        .select(aux_tracks_tag_terms::id)
-                        .filter(aux_tracks_tag_terms::term.eq(eq));
-                    select.filter(aux_tracks_tag::term_id.eq_any(subselect))
+                    let subselect = aux_track_tag_term::table
+                        .select(aux_track_tag_term::id)
+                        .filter(aux_track_tag_term::term.eq(eq));
+                    select.filter(aux_track_tag::term_id.eq_any(subselect))
                 }
                 Some(ConditionModifier::Not) => {
-                    let subselect = aux_tracks_tag_terms::table
-                        .select(aux_tracks_tag_terms::id)
-                        .filter(aux_tracks_tag_terms::term.ne(eq));
-                    select.filter(aux_tracks_tag::term_id.eq_any(subselect))
+                    let subselect = aux_track_tag_term::table
+                        .select(aux_track_tag_term::id)
+                        .filter(aux_track_tag_term::term.ne(eq));
+                    select.filter(aux_track_tag::term_id.eq_any(subselect))
                 }
             },
             EitherEqualOrLike::Like(like) => match modifier {
                 None => {
-                    let subselect = aux_tracks_tag_terms::table
-                        .select(aux_tracks_tag_terms::id)
-                        .filter(aux_tracks_tag_terms::term.like(like).escape('\\'));
-                    select.filter(aux_tracks_tag::term_id.eq_any(subselect))
+                    let subselect = aux_track_tag_term::table
+                        .select(aux_track_tag_term::id)
+                        .filter(aux_track_tag_term::term.like(like).escape('\\'));
+                    select.filter(aux_track_tag::term_id.eq_any(subselect))
                 }
                 Some(ConditionModifier::Not) => {
-                    let subselect = aux_tracks_tag_terms::table
-                        .select(aux_tracks_tag_terms::id)
-                        .filter(aux_tracks_tag_terms::term.not_like(like).escape('\\'));
-                    select.filter(aux_tracks_tag::term_id.eq_any(subselect))
+                    let subselect = aux_track_tag_term::table
+                        .select(aux_track_tag_term::id)
+                        .filter(aux_track_tag_term::term.not_like(like).escape('\\'));
+                    select.filter(aux_track_tag::term_id.eq_any(subselect))
                 }
             },
         };
@@ -200,21 +164,21 @@ where
     if let Some(score_condition) = tag_filter.score_condition {
         select = match score_condition.comparator {
             NumericComparator::LessThan => match score_condition.modifier {
-                None => select.filter(aux_tracks_tag::score.lt(score_condition.value)),
+                None => select.filter(aux_track_tag::score.lt(score_condition.value)),
                 Some(ConditionModifier::Not) => {
-                    select.filter(aux_tracks_tag::score.ge(score_condition.value))
+                    select.filter(aux_track_tag::score.ge(score_condition.value))
                 }
             },
             NumericComparator::GreaterThan => match score_condition.modifier {
-                None => select.filter(aux_tracks_tag::score.gt(score_condition.value)),
+                None => select.filter(aux_track_tag::score.gt(score_condition.value)),
                 Some(ConditionModifier::Not) => {
-                    select.filter(aux_tracks_tag::score.le(score_condition.value))
+                    select.filter(aux_track_tag::score.le(score_condition.value))
                 }
             },
             NumericComparator::EqualTo => match score_condition.modifier {
-                None => select.filter(aux_tracks_tag::score.eq(score_condition.value)),
+                None => select.filter(aux_track_tag::score.eq(score_condition.value)),
                 Some(ConditionModifier::Not) => {
-                    select.filter(aux_tracks_tag::score.ne(score_condition.value))
+                    select.filter(aux_track_tag::score.ne(score_condition.value))
                 }
             },
         };
@@ -229,7 +193,7 @@ fn select_track_ids_from_profile_matching_numeric_filter<'a, DB>(
     diesel::query_builder::BoxedSelectStatement<
         'a,
         diesel::sql_types::BigInt,
-        aux_tracks_profile::table,
+        aux_track_profile::table,
         DB,
     >,
     Option<FilterModifier>,
@@ -237,8 +201,8 @@ fn select_track_ids_from_profile_matching_numeric_filter<'a, DB>(
 where
     DB: diesel::backend::Backend + 'a,
 {
-    let mut select = aux_tracks_profile::table
-        .select(aux_tracks_profile::track_id)
+    let mut select = aux_track_profile::table
+        .select(aux_track_profile::track_id)
         .into_boxed();
 
     select =
@@ -246,98 +210,98 @@ where
             NumericField::TempoBpm => match numeric_filter.condition.comparator {
                 NumericComparator::LessThan => match numeric_filter.condition.modifier {
                     None => select
-                        .filter(aux_tracks_profile::tempo_bpm.lt(numeric_filter.condition.value)),
+                        .filter(aux_track_profile::tempo_bpm.lt(numeric_filter.condition.value)),
                     Some(ConditionModifier::Not) => select
-                        .filter(aux_tracks_profile::tempo_bpm.ge(numeric_filter.condition.value)),
+                        .filter(aux_track_profile::tempo_bpm.ge(numeric_filter.condition.value)),
                 },
                 NumericComparator::GreaterThan => match numeric_filter.condition.modifier {
                     None => select
-                        .filter(aux_tracks_profile::tempo_bpm.gt(numeric_filter.condition.value)),
+                        .filter(aux_track_profile::tempo_bpm.gt(numeric_filter.condition.value)),
                     Some(ConditionModifier::Not) => select
-                        .filter(aux_tracks_profile::tempo_bpm.le(numeric_filter.condition.value)),
+                        .filter(aux_track_profile::tempo_bpm.le(numeric_filter.condition.value)),
                 },
                 NumericComparator::EqualTo => match numeric_filter.condition.modifier {
                     None => select
-                        .filter(aux_tracks_profile::tempo_bpm.eq(numeric_filter.condition.value)),
+                        .filter(aux_track_profile::tempo_bpm.eq(numeric_filter.condition.value)),
                     Some(ConditionModifier::Not) => select
-                        .filter(aux_tracks_profile::tempo_bpm.ne(numeric_filter.condition.value)),
+                        .filter(aux_track_profile::tempo_bpm.ne(numeric_filter.condition.value)),
                 },
             },
             NumericField::KeysigCode => match numeric_filter.condition.comparator {
                 NumericComparator::LessThan => match numeric_filter.condition.modifier {
                     None => select.filter(
-                        aux_tracks_profile::keysig_code.lt(numeric_filter.condition.value as i16),
+                        aux_track_profile::keysig_code.lt(numeric_filter.condition.value as i16),
                     ),
                     Some(ConditionModifier::Not) => select.filter(
-                        aux_tracks_profile::keysig_code.ge(numeric_filter.condition.value as i16),
+                        aux_track_profile::keysig_code.ge(numeric_filter.condition.value as i16),
                     ),
                 },
                 NumericComparator::GreaterThan => match numeric_filter.condition.modifier {
                     None => select.filter(
-                        aux_tracks_profile::keysig_code.gt(numeric_filter.condition.value as i16),
+                        aux_track_profile::keysig_code.gt(numeric_filter.condition.value as i16),
                     ),
                     Some(ConditionModifier::Not) => select.filter(
-                        aux_tracks_profile::keysig_code.le(numeric_filter.condition.value as i16),
+                        aux_track_profile::keysig_code.le(numeric_filter.condition.value as i16),
                     ),
                 },
                 NumericComparator::EqualTo => match numeric_filter.condition.modifier {
                     None => select.filter(
-                        aux_tracks_profile::keysig_code.eq(numeric_filter.condition.value as i16),
+                        aux_track_profile::keysig_code.eq(numeric_filter.condition.value as i16),
                     ),
                     Some(ConditionModifier::Not) => select.filter(
-                        aux_tracks_profile::keysig_code.ne(numeric_filter.condition.value as i16),
+                        aux_track_profile::keysig_code.ne(numeric_filter.condition.value as i16),
                     ),
                 },
             },
             NumericField::TimesigUpper => match numeric_filter.condition.comparator {
                 NumericComparator::LessThan => match numeric_filter.condition.modifier {
                     None => select.filter(
-                        aux_tracks_profile::timesig_upper.lt(numeric_filter.condition.value as i16),
+                        aux_track_profile::timesig_upper.lt(numeric_filter.condition.value as i16),
                     ),
                     Some(ConditionModifier::Not) => select.filter(
-                        aux_tracks_profile::timesig_upper.ge(numeric_filter.condition.value as i16),
+                        aux_track_profile::timesig_upper.ge(numeric_filter.condition.value as i16),
                     ),
                 },
                 NumericComparator::GreaterThan => match numeric_filter.condition.modifier {
                     None => select.filter(
-                        aux_tracks_profile::timesig_upper.gt(numeric_filter.condition.value as i16),
+                        aux_track_profile::timesig_upper.gt(numeric_filter.condition.value as i16),
                     ),
                     Some(ConditionModifier::Not) => select.filter(
-                        aux_tracks_profile::timesig_upper.le(numeric_filter.condition.value as i16),
+                        aux_track_profile::timesig_upper.le(numeric_filter.condition.value as i16),
                     ),
                 },
                 NumericComparator::EqualTo => match numeric_filter.condition.modifier {
                     None => select.filter(
-                        aux_tracks_profile::timesig_upper.eq(numeric_filter.condition.value as i16),
+                        aux_track_profile::timesig_upper.eq(numeric_filter.condition.value as i16),
                     ),
                     Some(ConditionModifier::Not) => select.filter(
-                        aux_tracks_profile::timesig_upper.ne(numeric_filter.condition.value as i16),
+                        aux_track_profile::timesig_upper.ne(numeric_filter.condition.value as i16),
                     ),
                 },
             },
             NumericField::TimesigLower => match numeric_filter.condition.comparator {
                 NumericComparator::LessThan => match numeric_filter.condition.modifier {
                     None => select.filter(
-                        aux_tracks_profile::timesig_lower.lt(numeric_filter.condition.value as i16),
+                        aux_track_profile::timesig_lower.lt(numeric_filter.condition.value as i16),
                     ),
                     Some(ConditionModifier::Not) => select.filter(
-                        aux_tracks_profile::timesig_lower.ge(numeric_filter.condition.value as i16),
+                        aux_track_profile::timesig_lower.ge(numeric_filter.condition.value as i16),
                     ),
                 },
                 NumericComparator::GreaterThan => match numeric_filter.condition.modifier {
                     None => select.filter(
-                        aux_tracks_profile::timesig_lower.gt(numeric_filter.condition.value as i16),
+                        aux_track_profile::timesig_lower.gt(numeric_filter.condition.value as i16),
                     ),
                     Some(ConditionModifier::Not) => select.filter(
-                        aux_tracks_profile::timesig_lower.le(numeric_filter.condition.value as i16),
+                        aux_track_profile::timesig_lower.le(numeric_filter.condition.value as i16),
                     ),
                 },
                 NumericComparator::EqualTo => match numeric_filter.condition.modifier {
                     None => select.filter(
-                        aux_tracks_profile::timesig_lower.eq(numeric_filter.condition.value as i16),
+                        aux_track_profile::timesig_lower.eq(numeric_filter.condition.value as i16),
                     ),
                     Some(ConditionModifier::Not) => select.filter(
-                        aux_tracks_profile::timesig_lower.ne(numeric_filter.condition.value as i16),
+                        aux_track_profile::timesig_lower.ne(numeric_filter.condition.value as i16),
                     ),
                 },
             },
@@ -363,7 +327,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         {
             let entity_blob = serialize_with_format(entity, format)?;
             let insertable = InsertableTracksEntity::bind(entity.header(), format, &entity_blob);
-            let query = diesel::insert_into(tracks::table).values(&insertable);
+            let query = diesel::insert_into(tbl_track::table).values(&insertable);
             query.execute(self.connection)?;
         }
         self.helper.after_entity_inserted(&entity)?;
@@ -383,11 +347,11 @@ impl<'a> Tracks for TrackRepository<'a> {
             let entity_blob = serialize_with_format(&updated_entity, format)?;
             {
                 let updatable = UpdatableTracksEntity::bind(&next_revision, format, &entity_blob);
-                let target = tracks::table.filter(
-                    tracks::uid
+                let target = tbl_track::table.filter(
+                    tbl_track::uid
                         .eq(uid.as_ref())
-                        .and(tracks::rev_ordinal.eq(prev_revision.ordinal() as i64))
-                        .and(tracks::rev_timestamp.eq(prev_revision.timestamp().naive_utc())),
+                        .and(tbl_track::rev_ordinal.eq(prev_revision.ordinal() as i64))
+                        .and(tbl_track::rev_timestamp.eq(prev_revision.timestamp().naive_utc())),
                 );
                 let storage_id = self.helper.before_entity_updated_or_removed(&uid)?;
                 let query = diesel::update(target).set(&updatable);
@@ -512,7 +476,7 @@ impl<'a> Tracks for TrackRepository<'a> {
     }
 
     fn delete_entity(&self, uid: &EntityUid) -> TracksResult<Option<()>> {
-        let target = tracks::table.filter(tracks::uid.eq(uid.as_ref()));
+        let target = tbl_track::table.filter(tbl_track::uid.eq(uid.as_ref()));
         let query = diesel::delete(target);
         self.helper.before_entity_updated_or_removed(uid)?;
         let rows_affected: usize = query.execute(self.connection)?;
@@ -526,7 +490,7 @@ impl<'a> Tracks for TrackRepository<'a> {
     }
 
     fn load_entity(&self, uid: &EntityUid) -> TracksResult<Option<SerializedEntity>> {
-        let target = tracks::table.filter(tracks::uid.eq(uid.as_ref()));
+        let target = tbl_track::table.filter(tbl_track::uid.eq(uid.as_ref()));
         let result = target
             .first::<QueryableSerializedEntity>(self.connection)
             .optional()?;
@@ -581,38 +545,38 @@ impl<'a> Tracks for TrackRepository<'a> {
         };
 
         // A subselect has proven to be much more efficient than
-        // joining the aux_tracks_resource table!!
-        let mut track_id_subselect = aux_tracks_resource::table
-            .select(aux_tracks_resource::track_id)
+        // joining the aux_track_resource table!!
+        let mut track_id_subselect = aux_track_resource::table
+            .select(aux_track_resource::track_id)
             .into_boxed();
         if let Some(collection_uid) = collection_uid {
             track_id_subselect = track_id_subselect
-                .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_ref()));
+                .filter(aux_track_resource::collection_uid.eq(collection_uid.as_ref()));
         };
         track_id_subselect = match either_eq_or_like {
             EitherEqualOrLike::Equal(eq) => match modifier {
-                None => track_id_subselect.filter(aux_tracks_resource::source_uri.eq(eq)),
+                None => track_id_subselect.filter(aux_track_resource::source_uri.eq(eq)),
                 Some(ConditionModifier::Not) => {
-                    track_id_subselect.filter(aux_tracks_resource::source_uri.ne(eq))
+                    track_id_subselect.filter(aux_track_resource::source_uri.ne(eq))
                 }
             },
             EitherEqualOrLike::Like(like) => match modifier {
                 None => track_id_subselect
-                    .filter(aux_tracks_resource::source_uri.like(like).escape('\\')),
+                    .filter(aux_track_resource::source_uri.like(like).escape('\\')),
                 Some(ConditionModifier::Not) => track_id_subselect
-                    .filter(aux_tracks_resource::source_uri.not_like(like).escape('\\')),
+                    .filter(aux_track_resource::source_uri.not_like(like).escape('\\')),
             },
         };
 
-        let mut target = tracks::table
-            .select(tracks::all_columns)
-            .order_by(tracks::id) // preserve relative order of results
+        let mut target = tbl_track::table
+            .select(tbl_track::all_columns)
+            .order_by(tbl_track::id) // preserve relative order of results
             .into_boxed();
 
         target = match locate_params.uri_filter.modifier {
-            None => target.or_filter(tracks::id.eq_any(track_id_subselect)),
+            None => target.or_filter(tbl_track::id.eq_any(track_id_subselect)),
             Some(FilterModifier::Complement) => {
-                target.or_filter(tracks::id.ne_all(track_id_subselect))
+                target.or_filter(tbl_track::id.ne_all(track_id_subselect))
             }
         };
 
@@ -637,11 +601,11 @@ impl<'a> Tracks for TrackRepository<'a> {
         // executed efficiently as batch operations. Since search
         // operations are expected to be executed standalone the
         // joins are acceptable in this case.
-        let mut target = tracks::table
-            .select(tracks::all_columns)
-            .inner_join(aux_tracks_resource::table)
-            .inner_join(aux_tracks_overview::table)
-            .inner_join(aux_tracks_summary::table)
+        let mut target = tbl_track::table
+            .select(tbl_track::all_columns)
+            .inner_join(aux_track_resource::table)
+            .inner_join(aux_track_overview::table)
+            .inner_join(aux_track_summary::table)
             .into_boxed();
 
         if let Some(phrase_filter) = search_params.phrase_filter {
@@ -683,12 +647,12 @@ impl<'a> Tracks for TrackRepository<'a> {
                 {
                     target = match phrase_filter.modifier {
                         None => target.or_filter(
-                            aux_tracks_resource::source_uri_decoded
+                            aux_track_resource::source_uri_decoded
                                 .like(like_expr.clone())
                                 .escape('\\'),
                         ),
                         Some(FilterModifier::Complement) => target.or_filter(
-                            aux_tracks_resource::source_uri_decoded
+                            aux_track_resource::source_uri_decoded
                                 .not_like(like_expr.clone())
                                 .escape('\\'),
                         ),
@@ -702,12 +666,12 @@ impl<'a> Tracks for TrackRepository<'a> {
                 {
                     target = match phrase_filter.modifier {
                         None => target.or_filter(
-                            aux_tracks_resource::media_type
+                            aux_track_resource::media_type
                                 .like(like_expr.clone())
                                 .escape('\\'),
                         ),
                         Some(FilterModifier::Complement) => target.or_filter(
-                            aux_tracks_resource::media_type
+                            aux_track_resource::media_type
                                 .not_like(like_expr.clone())
                                 .escape('\\'),
                         ),
@@ -723,12 +687,12 @@ impl<'a> Tracks for TrackRepository<'a> {
                 {
                     target = match phrase_filter.modifier {
                         None => target.or_filter(
-                            aux_tracks_overview::track_title
+                            aux_track_overview::track_title
                                 .like(like_expr.clone())
                                 .escape('\\'),
                         ),
                         Some(FilterModifier::Complement) => target.or_filter(
-                            aux_tracks_overview::track_title
+                            aux_track_overview::track_title
                                 .not_like(like_expr.clone())
                                 .escape('\\'),
                         ),
@@ -742,19 +706,19 @@ impl<'a> Tracks for TrackRepository<'a> {
                 {
                     target = match phrase_filter.modifier {
                         None => target.or_filter(
-                            aux_tracks_overview::album_title
+                            aux_track_overview::album_title
                                 .like(like_expr.clone())
                                 .escape('\\'),
                         ),
                         Some(FilterModifier::Complement) => target.or_filter(
-                            aux_tracks_overview::album_title
+                            aux_track_overview::album_title
                                 .not_like(like_expr.clone())
                                 .escape('\\'),
                         ),
                     };
                 }
 
-                // aux_tracks_summary (join)
+                // aux_track_summary (join)
                 if phrase_filter.fields.is_empty()
                     || phrase_filter
                         .fields
@@ -763,12 +727,12 @@ impl<'a> Tracks for TrackRepository<'a> {
                 {
                     target = match phrase_filter.modifier {
                         None => target.or_filter(
-                            aux_tracks_summary::track_artist
+                            aux_track_summary::track_artist
                                 .like(like_expr.clone())
                                 .escape('\\'),
                         ),
                         Some(FilterModifier::Complement) => target.or_filter(
-                            aux_tracks_summary::track_artist
+                            aux_track_summary::track_artist
                                 .not_like(like_expr.clone())
                                 .escape('\\'),
                         ),
@@ -782,12 +746,12 @@ impl<'a> Tracks for TrackRepository<'a> {
                 {
                     target = match phrase_filter.modifier {
                         None => target.or_filter(
-                            aux_tracks_summary::album_artist
+                            aux_track_summary::album_artist
                                 .like(like_expr.clone())
                                 .escape('\\'),
                         ),
                         Some(FilterModifier::Complement) => target.or_filter(
-                            aux_tracks_summary::album_artist
+                            aux_track_summary::album_artist
                                 .not_like(like_expr.clone())
                                 .escape('\\'),
                         ),
@@ -801,17 +765,13 @@ impl<'a> Tracks for TrackRepository<'a> {
                         .iter()
                         .any(|target| *target == PhraseField::Comments)
                 {
-                    let subselect = aux_tracks_comment::table
-                        .select(aux_tracks_comment::track_id)
-                        .filter(
-                            aux_tracks_comment::text
-                                .like(like_expr.clone())
-                                .escape('\\'),
-                        );
+                    let subselect = aux_track_comment::table
+                        .select(aux_track_comment::track_id)
+                        .filter(aux_track_comment::text.like(like_expr.clone()).escape('\\'));
                     target = match phrase_filter.modifier {
-                        None => target.or_filter(tracks::id.eq_any(subselect)),
+                        None => target.or_filter(tbl_track::id.eq_any(subselect)),
                         Some(FilterModifier::Complement) => {
-                            target.or_filter(tracks::id.ne_all(subselect))
+                            target.or_filter(tbl_track::id.ne_all(subselect))
                         }
                     };
                 }
@@ -821,76 +781,78 @@ impl<'a> Tracks for TrackRepository<'a> {
         for tag_filter in search_params.tag_filters.into_iter() {
             let (subselect, filter_modifier) = select_track_ids_matching_tag_filter(tag_filter);
             target = match filter_modifier {
-                None => target.filter(tracks::id.eq_any(subselect)),
-                Some(FilterModifier::Complement) => target.filter(tracks::id.ne_all(subselect)),
+                None => target.filter(tbl_track::id.eq_any(subselect)),
+                Some(FilterModifier::Complement) => target.filter(tbl_track::id.ne_all(subselect)),
             }
         }
 
         for numeric_filter in search_params.numeric_filters {
             target = match select_track_ids_from_profile_matching_numeric_filter(numeric_filter) {
                 Some((subselect, filter_modifier)) => match filter_modifier {
-                    None => target.filter(tracks::id.eq_any(subselect)),
-                    Some(FilterModifier::Complement) => target.filter(tracks::id.ne_all(subselect)),
+                    None => target.filter(tbl_track::id.eq_any(subselect)),
+                    Some(FilterModifier::Complement) => {
+                        target.filter(tbl_track::id.ne_all(subselect))
+                    }
                 },
                 None => match numeric_filter.field {
                     NumericField::DurationMs => match numeric_filter.condition.comparator {
                         NumericComparator::LessThan => match numeric_filter.condition.modifier {
                             None => match numeric_filter.modifier {
                                 None => target.filter(
-                                    aux_tracks_resource::audio_duration_ms
+                                    aux_track_resource::audio_duration_ms
                                         .lt(numeric_filter.condition.value),
                                 ),
                                 Some(FilterModifier::Complement) => target
-                                    .filter(not(aux_tracks_resource::audio_duration_ms
+                                    .filter(not(aux_track_resource::audio_duration_ms
                                         .lt(numeric_filter.condition.value))),
                             },
                             Some(ConditionModifier::Not) => match numeric_filter.modifier {
                                 None => target.filter(
-                                    aux_tracks_resource::audio_duration_ms
+                                    aux_track_resource::audio_duration_ms
                                         .ge(numeric_filter.condition.value),
                                 ),
                                 Some(FilterModifier::Complement) => target
-                                    .filter(not(aux_tracks_resource::audio_duration_ms
+                                    .filter(not(aux_track_resource::audio_duration_ms
                                         .ge(numeric_filter.condition.value))),
                             },
                         },
                         NumericComparator::GreaterThan => match numeric_filter.condition.modifier {
                             None => match numeric_filter.modifier {
                                 None => target.filter(
-                                    aux_tracks_resource::audio_duration_ms
+                                    aux_track_resource::audio_duration_ms
                                         .gt(numeric_filter.condition.value),
                                 ),
                                 Some(FilterModifier::Complement) => target
-                                    .filter(not(aux_tracks_resource::audio_duration_ms
+                                    .filter(not(aux_track_resource::audio_duration_ms
                                         .gt(numeric_filter.condition.value))),
                             },
                             Some(ConditionModifier::Not) => match numeric_filter.modifier {
                                 None => target.filter(
-                                    aux_tracks_resource::audio_duration_ms
+                                    aux_track_resource::audio_duration_ms
                                         .le(numeric_filter.condition.value),
                                 ),
                                 Some(FilterModifier::Complement) => target
-                                    .filter(not(aux_tracks_resource::audio_duration_ms
+                                    .filter(not(aux_track_resource::audio_duration_ms
                                         .le(numeric_filter.condition.value))),
                             },
                         },
                         NumericComparator::EqualTo => match numeric_filter.condition.modifier {
                             None => match numeric_filter.modifier {
                                 None => target.filter(
-                                    aux_tracks_resource::audio_duration_ms
+                                    aux_track_resource::audio_duration_ms
                                         .eq(numeric_filter.condition.value),
                                 ),
                                 Some(FilterModifier::Complement) => target
-                                    .filter(not(aux_tracks_resource::audio_duration_ms
+                                    .filter(not(aux_track_resource::audio_duration_ms
                                         .eq(numeric_filter.condition.value))),
                             },
                             Some(ConditionModifier::Not) => match numeric_filter.modifier {
                                 None => target.filter(
-                                    aux_tracks_resource::audio_duration_ms
+                                    aux_track_resource::audio_duration_ms
                                         .ne(numeric_filter.condition.value),
                                 ),
                                 Some(FilterModifier::Complement) => target
-                                    .filter(not(aux_tracks_resource::audio_duration_ms
+                                    .filter(not(aux_track_resource::audio_duration_ms
                                         .ne(numeric_filter.condition.value))),
                             },
                         },
@@ -899,60 +861,60 @@ impl<'a> Tracks for TrackRepository<'a> {
                         NumericComparator::LessThan => match numeric_filter.condition.modifier {
                             None => match numeric_filter.modifier {
                                 None => target.filter(
-                                    aux_tracks_resource::audio_samplerate_hz
+                                    aux_track_resource::audio_samplerate_hz
                                         .lt(numeric_filter.condition.value as i32),
                                 ),
                                 Some(FilterModifier::Complement) => target
-                                    .filter(not(aux_tracks_resource::audio_samplerate_hz
+                                    .filter(not(aux_track_resource::audio_samplerate_hz
                                         .lt(numeric_filter.condition.value as i32))),
                             },
                             Some(ConditionModifier::Not) => match numeric_filter.modifier {
                                 None => target.filter(
-                                    aux_tracks_resource::audio_samplerate_hz
+                                    aux_track_resource::audio_samplerate_hz
                                         .ge(numeric_filter.condition.value as i32),
                                 ),
                                 Some(FilterModifier::Complement) => target
-                                    .filter(not(aux_tracks_resource::audio_samplerate_hz
+                                    .filter(not(aux_track_resource::audio_samplerate_hz
                                         .ge(numeric_filter.condition.value as i32))),
                             },
                         },
                         NumericComparator::GreaterThan => match numeric_filter.condition.modifier {
                             None => match numeric_filter.modifier {
                                 None => target.filter(
-                                    aux_tracks_resource::audio_samplerate_hz
+                                    aux_track_resource::audio_samplerate_hz
                                         .gt(numeric_filter.condition.value as i32),
                                 ),
                                 Some(FilterModifier::Complement) => target
-                                    .filter(not(aux_tracks_resource::audio_samplerate_hz
+                                    .filter(not(aux_track_resource::audio_samplerate_hz
                                         .gt(numeric_filter.condition.value as i32))),
                             },
                             Some(ConditionModifier::Not) => match numeric_filter.modifier {
                                 None => target.filter(
-                                    aux_tracks_resource::audio_samplerate_hz
+                                    aux_track_resource::audio_samplerate_hz
                                         .le(numeric_filter.condition.value as i32),
                                 ),
                                 Some(FilterModifier::Complement) => target
-                                    .filter(not(aux_tracks_resource::audio_samplerate_hz
+                                    .filter(not(aux_track_resource::audio_samplerate_hz
                                         .le(numeric_filter.condition.value as i32))),
                             },
                         },
                         NumericComparator::EqualTo => match numeric_filter.condition.modifier {
                             None => match numeric_filter.modifier {
                                 None => target.filter(
-                                    aux_tracks_resource::audio_samplerate_hz
+                                    aux_track_resource::audio_samplerate_hz
                                         .eq(numeric_filter.condition.value as i32),
                                 ),
                                 Some(FilterModifier::Complement) => target
-                                    .filter(not(aux_tracks_resource::audio_samplerate_hz
+                                    .filter(not(aux_track_resource::audio_samplerate_hz
                                         .eq(numeric_filter.condition.value as i32))),
                             },
                             Some(ConditionModifier::Not) => match numeric_filter.modifier {
                                 None => target.filter(
-                                    aux_tracks_resource::audio_samplerate_hz
+                                    aux_track_resource::audio_samplerate_hz
                                         .ne(numeric_filter.condition.value as i32),
                                 ),
                                 Some(FilterModifier::Complement) => target
-                                    .filter(not(aux_tracks_resource::audio_samplerate_hz
+                                    .filter(not(aux_track_resource::audio_samplerate_hz
                                         .ne(numeric_filter.condition.value as i32))),
                             },
                         },
@@ -961,60 +923,60 @@ impl<'a> Tracks for TrackRepository<'a> {
                         NumericComparator::LessThan => match numeric_filter.condition.modifier {
                             None => match numeric_filter.modifier {
                                 None => target.filter(
-                                    aux_tracks_resource::audio_bitrate_bps
+                                    aux_track_resource::audio_bitrate_bps
                                         .lt(numeric_filter.condition.value as i32),
                                 ),
                                 Some(FilterModifier::Complement) => target
-                                    .filter(not(aux_tracks_resource::audio_bitrate_bps
+                                    .filter(not(aux_track_resource::audio_bitrate_bps
                                         .lt(numeric_filter.condition.value as i32))),
                             },
                             Some(ConditionModifier::Not) => match numeric_filter.modifier {
                                 None => target.filter(
-                                    aux_tracks_resource::audio_bitrate_bps
+                                    aux_track_resource::audio_bitrate_bps
                                         .ge(numeric_filter.condition.value as i32),
                                 ),
                                 Some(FilterModifier::Complement) => target
-                                    .filter(not(aux_tracks_resource::audio_bitrate_bps
+                                    .filter(not(aux_track_resource::audio_bitrate_bps
                                         .ge(numeric_filter.condition.value as i32))),
                             },
                         },
                         NumericComparator::GreaterThan => match numeric_filter.condition.modifier {
                             None => match numeric_filter.modifier {
                                 None => target.filter(
-                                    aux_tracks_resource::audio_bitrate_bps
+                                    aux_track_resource::audio_bitrate_bps
                                         .gt(numeric_filter.condition.value as i32),
                                 ),
                                 Some(FilterModifier::Complement) => target
-                                    .filter(not(aux_tracks_resource::audio_bitrate_bps
+                                    .filter(not(aux_track_resource::audio_bitrate_bps
                                         .gt(numeric_filter.condition.value as i32))),
                             },
                             Some(ConditionModifier::Not) => match numeric_filter.modifier {
                                 None => target.filter(
-                                    aux_tracks_resource::audio_bitrate_bps
+                                    aux_track_resource::audio_bitrate_bps
                                         .le(numeric_filter.condition.value as i32),
                                 ),
                                 Some(FilterModifier::Complement) => target
-                                    .filter(not(aux_tracks_resource::audio_bitrate_bps
+                                    .filter(not(aux_track_resource::audio_bitrate_bps
                                         .le(numeric_filter.condition.value as i32))),
                             },
                         },
                         NumericComparator::EqualTo => match numeric_filter.condition.modifier {
                             None => match numeric_filter.modifier {
                                 None => target.filter(
-                                    aux_tracks_resource::audio_bitrate_bps
+                                    aux_track_resource::audio_bitrate_bps
                                         .eq(numeric_filter.condition.value as i32),
                                 ),
                                 Some(FilterModifier::Complement) => target
-                                    .filter(not(aux_tracks_resource::audio_bitrate_bps
+                                    .filter(not(aux_track_resource::audio_bitrate_bps
                                         .eq(numeric_filter.condition.value as i32))),
                             },
                             Some(ConditionModifier::Not) => match numeric_filter.modifier {
                                 None => target.filter(
-                                    aux_tracks_resource::audio_bitrate_bps
+                                    aux_track_resource::audio_bitrate_bps
                                         .ne(numeric_filter.condition.value as i32),
                                 ),
                                 Some(FilterModifier::Complement) => target
-                                    .filter(not(aux_tracks_resource::audio_bitrate_bps
+                                    .filter(not(aux_track_resource::audio_bitrate_bps
                                         .ne(numeric_filter.condition.value as i32))),
                             },
                         },
@@ -1023,60 +985,60 @@ impl<'a> Tracks for TrackRepository<'a> {
                         NumericComparator::LessThan => match numeric_filter.condition.modifier {
                             None => match numeric_filter.modifier {
                                 None => target.filter(
-                                    aux_tracks_resource::audio_channels_count
+                                    aux_track_resource::audio_channels_count
                                         .lt(numeric_filter.condition.value as i16),
                                 ),
                                 Some(FilterModifier::Complement) => target
-                                    .filter(not(aux_tracks_resource::audio_channels_count
+                                    .filter(not(aux_track_resource::audio_channels_count
                                         .lt(numeric_filter.condition.value as i16))),
                             },
                             Some(ConditionModifier::Not) => match numeric_filter.modifier {
                                 None => target.filter(
-                                    aux_tracks_resource::audio_channels_count
+                                    aux_track_resource::audio_channels_count
                                         .ge(numeric_filter.condition.value as i16),
                                 ),
                                 Some(FilterModifier::Complement) => target
-                                    .filter(not(aux_tracks_resource::audio_channels_count
+                                    .filter(not(aux_track_resource::audio_channels_count
                                         .ge(numeric_filter.condition.value as i16))),
                             },
                         },
                         NumericComparator::GreaterThan => match numeric_filter.condition.modifier {
                             None => match numeric_filter.modifier {
                                 None => target.filter(
-                                    aux_tracks_resource::audio_channels_count
+                                    aux_track_resource::audio_channels_count
                                         .gt(numeric_filter.condition.value as i16),
                                 ),
                                 Some(FilterModifier::Complement) => target
-                                    .filter(not(aux_tracks_resource::audio_channels_count
+                                    .filter(not(aux_track_resource::audio_channels_count
                                         .gt(numeric_filter.condition.value as i16))),
                             },
                             Some(ConditionModifier::Not) => match numeric_filter.modifier {
                                 None => target.filter(
-                                    aux_tracks_resource::audio_channels_count
+                                    aux_track_resource::audio_channels_count
                                         .le(numeric_filter.condition.value as i16),
                                 ),
                                 Some(FilterModifier::Complement) => target
-                                    .filter(not(aux_tracks_resource::audio_channels_count
+                                    .filter(not(aux_track_resource::audio_channels_count
                                         .le(numeric_filter.condition.value as i16))),
                             },
                         },
                         NumericComparator::EqualTo => match numeric_filter.condition.modifier {
                             None => match numeric_filter.modifier {
                                 None => target.filter(
-                                    aux_tracks_resource::audio_channels_count
+                                    aux_track_resource::audio_channels_count
                                         .eq(numeric_filter.condition.value as i16),
                                 ),
                                 Some(FilterModifier::Complement) => target
-                                    .filter(not(aux_tracks_resource::audio_channels_count
+                                    .filter(not(aux_track_resource::audio_channels_count
                                         .eq(numeric_filter.condition.value as i16))),
                             },
                             Some(ConditionModifier::Not) => match numeric_filter.modifier {
                                 None => target.filter(
-                                    aux_tracks_resource::audio_channels_count
+                                    aux_track_resource::audio_channels_count
                                         .ne(numeric_filter.condition.value as i16),
                                 ),
                                 Some(FilterModifier::Complement) => target
-                                    .filter(not(aux_tracks_resource::audio_channels_count
+                                    .filter(not(aux_track_resource::audio_channels_count
                                         .ne(numeric_filter.condition.value as i16))),
                             },
                         },
@@ -1090,7 +1052,7 @@ impl<'a> Tracks for TrackRepository<'a> {
 
         // Collection filter
         if let Some(uid) = collection_uid {
-            target = target.filter(aux_tracks_resource::collection_uid.eq(uid.as_ref()));
+            target = target.filter(aux_track_resource::collection_uid.eq(uid.as_ref()));
         };
 
         for sort_order in search_params.ordering {
@@ -1102,10 +1064,10 @@ impl<'a> Tracks for TrackRepository<'a> {
                     if collection_uid.is_some() {
                         match direction {
                             SortDirection::Ascending => {
-                                target.then_order_by(aux_tracks_resource::collection_since.asc())
+                                target.then_order_by(aux_track_resource::collection_since.asc())
                             }
                             SortDirection::Descending => {
-                                target.then_order_by(aux_tracks_resource::collection_since.desc())
+                                target.then_order_by(aux_track_resource::collection_since.desc())
                             }
                         }
                     } else {
@@ -1114,62 +1076,66 @@ impl<'a> Tracks for TrackRepository<'a> {
                     }
                 }
                 TrackSortField::LastRevisionedAt => match direction {
-                    SortDirection::Ascending => target.then_order_by(tracks::rev_timestamp.asc()),
-                    SortDirection::Descending => target.then_order_by(tracks::rev_timestamp.desc()),
+                    SortDirection::Ascending => {
+                        target.then_order_by(tbl_track::rev_timestamp.asc())
+                    }
+                    SortDirection::Descending => {
+                        target.then_order_by(tbl_track::rev_timestamp.desc())
+                    }
                 },
                 TrackSortField::TrackTitle => match direction {
                     SortDirection::Ascending => {
-                        target.then_order_by(aux_tracks_overview::track_title.asc())
+                        target.then_order_by(aux_track_overview::track_title.asc())
                     }
                     SortDirection::Descending => {
-                        target.then_order_by(aux_tracks_overview::track_title.desc())
+                        target.then_order_by(aux_track_overview::track_title.desc())
                     }
                 },
                 TrackSortField::AlbumTitle => match direction {
                     SortDirection::Ascending => {
-                        target.then_order_by(aux_tracks_overview::album_title.asc())
+                        target.then_order_by(aux_track_overview::album_title.asc())
                     }
                     SortDirection::Descending => {
-                        target.then_order_by(aux_tracks_overview::album_title.desc())
+                        target.then_order_by(aux_track_overview::album_title.desc())
                     }
                 },
                 TrackSortField::ReleasedAt => match direction {
                     SortDirection::Ascending => {
-                        target.then_order_by(aux_tracks_overview::released_at.asc())
+                        target.then_order_by(aux_track_overview::released_at.asc())
                     }
                     SortDirection::Descending => {
-                        target.then_order_by(aux_tracks_overview::released_at.desc())
+                        target.then_order_by(aux_track_overview::released_at.desc())
                     }
                 },
                 TrackSortField::ReleasedBy => match direction {
                     SortDirection::Ascending => {
-                        target.then_order_by(aux_tracks_overview::released_by.asc())
+                        target.then_order_by(aux_track_overview::released_by.asc())
                     }
                     SortDirection::Descending => {
-                        target.then_order_by(aux_tracks_overview::released_by.desc())
+                        target.then_order_by(aux_track_overview::released_by.desc())
                     }
                 },
                 TrackSortField::TrackArtist => match direction {
                     SortDirection::Ascending => {
-                        target.then_order_by(aux_tracks_summary::track_artist.asc())
+                        target.then_order_by(aux_track_summary::track_artist.asc())
                     }
                     SortDirection::Descending => {
-                        target.then_order_by(aux_tracks_summary::track_artist.desc())
+                        target.then_order_by(aux_track_summary::track_artist.desc())
                     }
                 },
                 TrackSortField::AlbumArtist => match direction {
                     SortDirection::Ascending => {
-                        target.then_order_by(aux_tracks_summary::album_artist.asc())
+                        target.then_order_by(aux_track_summary::album_artist.asc())
                     }
                     SortDirection::Descending => {
-                        target.then_order_by(aux_tracks_summary::album_artist.desc())
+                        target.then_order_by(aux_track_summary::album_artist.desc())
                     }
                 },
             }
         }
         // Finally order by PK to preserve the relative order of results
         // even if no sorting was requested.
-        target = target.then_order_by(tracks::id);
+        target = target.then_order_by(tbl_track::id);
 
         // Pagination
         target = apply_pagination(target, pagination);
@@ -1186,24 +1152,24 @@ impl<'a> Tracks for TrackRepository<'a> {
         pagination: &Pagination,
     ) -> TracksResult<StringFieldCounts> {
         let track_id_subselect = collection_uid.map(|collection_uid| {
-            aux_tracks_resource::table
-                .select(aux_tracks_resource::track_id)
-                .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_ref()))
+            aux_track_resource::table
+                .select(aux_track_resource::track_id)
+                .filter(aux_track_resource::collection_uid.eq(collection_uid.as_ref()))
         });
         let rows = match field {
             StringField::MediaType => {
-                let mut target = aux_tracks_resource::table
+                let mut target = aux_track_resource::table
                     .select((
-                        aux_tracks_resource::media_type,
+                        aux_track_resource::media_type,
                         sql::<diesel::sql_types::BigInt>("count(*) AS count"),
                     ))
-                    .group_by(aux_tracks_resource::media_type)
+                    .group_by(aux_track_resource::media_type)
                     .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
-                    .then_order_by(aux_tracks_resource::media_type)
+                    .then_order_by(aux_track_resource::media_type)
                     .into_boxed();
                 if let Some(collection_uid) = collection_uid {
                     target = target
-                        .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_ref()));
+                        .filter(aux_track_resource::collection_uid.eq(collection_uid.as_ref()));
                 }
 
                 // Pagination
@@ -1217,18 +1183,17 @@ impl<'a> Tracks for TrackRepository<'a> {
                     .collect()
             }
             StringField::TrackTitle => {
-                let mut target = aux_tracks_overview::table
+                let mut target = aux_track_overview::table
                     .select((
-                        aux_tracks_overview::track_title,
+                        aux_track_overview::track_title,
                         sql::<diesel::sql_types::BigInt>("count(*) AS count"),
                     ))
-                    .group_by(aux_tracks_overview::track_title)
+                    .group_by(aux_track_overview::track_title)
                     .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
-                    .then_order_by(aux_tracks_overview::track_title)
+                    .then_order_by(aux_track_overview::track_title)
                     .into_boxed();
                 if let Some(track_id_subselect) = track_id_subselect {
-                    target =
-                        target.filter(aux_tracks_overview::track_id.eq_any(track_id_subselect));
+                    target = target.filter(aux_track_overview::track_id.eq_any(track_id_subselect));
                 }
 
                 // Pagination
@@ -1237,18 +1202,17 @@ impl<'a> Tracks for TrackRepository<'a> {
                 target.load::<(Option<String>, i64)>(self.connection)?
             }
             StringField::AlbumTitle => {
-                let mut target = aux_tracks_overview::table
+                let mut target = aux_track_overview::table
                     .select((
-                        aux_tracks_overview::album_title,
+                        aux_track_overview::album_title,
                         sql::<diesel::sql_types::BigInt>("count(*) AS count"),
                     ))
-                    .group_by(aux_tracks_overview::album_title)
+                    .group_by(aux_track_overview::album_title)
                     .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
-                    .then_order_by(aux_tracks_overview::album_title)
+                    .then_order_by(aux_track_overview::album_title)
                     .into_boxed();
                 if let Some(track_id_subselect) = track_id_subselect {
-                    target =
-                        target.filter(aux_tracks_overview::track_id.eq_any(track_id_subselect));
+                    target = target.filter(aux_track_overview::track_id.eq_any(track_id_subselect));
                 }
 
                 // Pagination
@@ -1257,17 +1221,17 @@ impl<'a> Tracks for TrackRepository<'a> {
                 target.load::<(Option<String>, i64)>(self.connection)?
             }
             StringField::TrackArtist => {
-                let mut target = aux_tracks_summary::table
+                let mut target = aux_track_summary::table
                     .select((
-                        aux_tracks_summary::track_artist,
+                        aux_track_summary::track_artist,
                         sql::<diesel::sql_types::BigInt>("count(*) AS count"),
                     ))
-                    .group_by(aux_tracks_summary::track_artist)
+                    .group_by(aux_track_summary::track_artist)
                     .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
-                    .then_order_by(aux_tracks_summary::track_artist)
+                    .then_order_by(aux_track_summary::track_artist)
                     .into_boxed();
                 if let Some(track_id_subselect) = track_id_subselect {
-                    target = target.filter(aux_tracks_summary::track_id.eq_any(track_id_subselect));
+                    target = target.filter(aux_track_summary::track_id.eq_any(track_id_subselect));
                 }
 
                 // Pagination
@@ -1276,17 +1240,17 @@ impl<'a> Tracks for TrackRepository<'a> {
                 target.load::<(Option<String>, i64)>(self.connection)?
             }
             StringField::AlbumArtist => {
-                let mut target = aux_tracks_summary::table
+                let mut target = aux_track_summary::table
                     .select((
-                        aux_tracks_summary::album_artist,
+                        aux_track_summary::album_artist,
                         sql::<diesel::sql_types::BigInt>("count(*) AS count"),
                     ))
-                    .group_by(aux_tracks_summary::album_artist)
+                    .group_by(aux_track_summary::album_artist)
                     .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
-                    .then_order_by(aux_tracks_summary::album_artist)
+                    .then_order_by(aux_track_summary::album_artist)
                     .into_boxed();
                 if let Some(track_id_subselect) = track_id_subselect {
-                    target = target.filter(aux_tracks_summary::track_id.eq_any(track_id_subselect));
+                    target = target.filter(aux_track_summary::track_id.eq_any(track_id_subselect));
                 }
 
                 // Pagination
@@ -1306,14 +1270,14 @@ impl<'a> Tracks for TrackRepository<'a> {
     }
 
     fn collection_stats(&self, collection_uid: &EntityUid) -> TracksResult<CollectionTrackStats> {
-        let total_count = aux_tracks_resource::table
+        let total_count = aux_track_resource::table
             .select(diesel::dsl::count_star())
-            .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_ref()))
+            .filter(aux_track_resource::collection_uid.eq(collection_uid.as_ref()))
             .first::<i64>(self.connection)? as usize;
 
-        let total_duration_ms = aux_tracks_resource::table
-            .select(diesel::dsl::sum(aux_tracks_resource::audio_duration_ms))
-            .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_ref()))
+        let total_duration_ms = aux_track_resource::table
+            .select(diesel::dsl::sum(aux_track_resource::audio_duration_ms))
+            .filter(aux_track_resource::collection_uid.eq(collection_uid.as_ref()))
             .first::<Option<f64>>(self.connection)?;
         let total_duration = total_duration_ms
             .map(|ms| Duration { ms })
@@ -1333,13 +1297,13 @@ impl<'a> TrackTags for TrackRepository<'a> {
         facets: Option<&Vec<&str>>,
         pagination: &Pagination,
     ) -> TrackTagsResult<Vec<TagFacetCount>> {
-        let mut target = aux_tracks_tag::table
-            .left_outer_join(aux_tracks_tag_facets::table)
+        let mut target = aux_track_tag::table
+            .left_outer_join(aux_track_tag_facet::table)
             .select((
                 sql::<diesel::sql_types::Nullable<diesel::sql_types::Text>>("facet"),
                 sql::<diesel::sql_types::BigInt>("count(*) AS count"),
             ))
-            .group_by(aux_tracks_tag::facet_id)
+            .group_by(aux_track_tag::facet_id)
             .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
             .into_boxed();
 
@@ -1347,12 +1311,12 @@ impl<'a> TrackTags for TrackRepository<'a> {
         target = match facets {
             Some(facets) => {
                 if facets.is_empty() {
-                    target.filter(aux_tracks_tag::facet_id.is_null())
+                    target.filter(aux_track_tag::facet_id.is_null())
                 } else {
-                    let filtered = target.filter(aux_tracks_tag_facets::facet.eq_any(facets));
+                    let filtered = target.filter(aux_track_tag_facet::facet.eq_any(facets));
                     if facets.iter().any(|facet| facet.is_empty()) {
                         // Empty facets are interpreted as null, just like an empty vector
-                        filtered.or_filter(aux_tracks_tag::facet_id.is_null())
+                        filtered.or_filter(aux_track_tag::facet_id.is_null())
                     } else {
                         filtered
                     }
@@ -1363,10 +1327,10 @@ impl<'a> TrackTags for TrackRepository<'a> {
 
         // Collection filtering
         if let Some(collection_uid) = collection_uid {
-            let track_id_subselect = aux_tracks_resource::table
-                .select(aux_tracks_resource::track_id)
-                .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_ref()));
-            target = target.filter(aux_tracks_tag::track_id.eq_any(track_id_subselect));
+            let track_id_subselect = aux_track_resource::table
+                .select(aux_track_resource::track_id)
+                .filter(aux_track_resource::collection_uid.eq(collection_uid.as_ref()));
+            target = target.filter(aux_track_tag::track_id.eq_any(track_id_subselect));
         }
 
         // Pagination
@@ -1390,17 +1354,17 @@ impl<'a> TrackTags for TrackRepository<'a> {
         facets: Option<&Vec<&str>>,
         pagination: &Pagination,
     ) -> TrackTagsResult<Vec<ScoredTagCount>> {
-        let mut target = aux_tracks_tag::table
-            .left_outer_join(aux_tracks_tag_terms::table)
-            .left_outer_join(aux_tracks_tag_facets::table)
+        let mut target = aux_track_tag::table
+            .left_outer_join(aux_track_tag_term::table)
+            .left_outer_join(aux_track_tag_facet::table)
             .select((
                 sql::<diesel::sql_types::Double>("AVG(score) AS score"),
-                aux_tracks_tag_terms::term,
+                aux_track_tag_term::term,
                 // The joined 'facet' column becomes nullable
                 sql::<diesel::sql_types::Nullable<diesel::sql_types::Text>>("facet"),
                 sql::<diesel::sql_types::BigInt>("COUNT(*) AS count"),
             ))
-            .group_by((aux_tracks_tag::term_id, aux_tracks_tag::facet_id))
+            .group_by((aux_track_tag::term_id, aux_track_tag::facet_id))
             .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
             .into_boxed();
 
@@ -1408,12 +1372,12 @@ impl<'a> TrackTags for TrackRepository<'a> {
         target = match facets {
             Some(facets) => {
                 if facets.is_empty() {
-                    target.filter(aux_tracks_tag::facet_id.is_null())
+                    target.filter(aux_track_tag::facet_id.is_null())
                 } else {
-                    let filtered = target.filter(aux_tracks_tag_facets::facet.eq_any(facets));
+                    let filtered = target.filter(aux_track_tag_facet::facet.eq_any(facets));
                     if facets.iter().any(|facet| facet.is_empty()) {
                         // Empty facets are interpreted as null, just like an empty vector
-                        filtered.or_filter(aux_tracks_tag::facet_id.is_null())
+                        filtered.or_filter(aux_track_tag::facet_id.is_null())
                     } else {
                         filtered
                     }
@@ -1424,10 +1388,10 @@ impl<'a> TrackTags for TrackRepository<'a> {
 
         // Collection filtering
         if let Some(collection_uid) = collection_uid {
-            let track_id_subselect = aux_tracks_resource::table
-                .select(aux_tracks_resource::track_id)
-                .filter(aux_tracks_resource::collection_uid.eq(collection_uid.as_ref()));
-            target = target.filter(aux_tracks_tag::track_id.eq_any(track_id_subselect));
+            let track_id_subselect = aux_track_resource::table
+                .select(aux_track_resource::track_id)
+                .filter(aux_track_resource::collection_uid.eq(collection_uid.as_ref()));
+            target = target.filter(aux_track_tag::track_id.eq_any(track_id_subselect));
         }
 
         // Pagination

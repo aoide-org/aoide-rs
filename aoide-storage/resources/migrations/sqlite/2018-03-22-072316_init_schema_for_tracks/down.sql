@@ -13,19 +13,19 @@
 -- You should have received a copy of the GNU Affero General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-DROP TABLE collections;
+DROP TABLE tbl_collection;
 
-DROP TABLE aux_tracks_resource;
-DROP TABLE aux_tracks_overview;
-DROP TABLE aux_tracks_summary;
-DROP TABLE aux_tracks_profile;
-DROP TABLE aux_tracks_comment;
-DROP TABLE aux_tracks_rating;
-DROP TABLE aux_tracks_tag;
-DROP TABLE aux_tracks_tag_terms;
-DROP TABLE aux_tracks_tag_facets;
-DROP TABLE aux_tracks_ref;
-DROP TABLE tracks;
+DROP TABLE aux_track_resource;
+DROP TABLE aux_track_overview;
+DROP TABLE aux_track_summary;
+DROP TABLE aux_track_profile;
+DROP TABLE aux_track_comment;
+DROP TABLE aux_track_rating;
+DROP TABLE aux_track_tag;
+DROP TABLE aux_track_tag_term;
+DROP TABLE aux_track_tag_facet;
+DROP TABLE aux_track_xref;
+DROP TABLE tbl_track;
 
-DROP TABLE pending_tasks_tracks;
-DROP TABLE pending_tasks;
+DROP TABLE tbl_pending_task_track;
+DROP TABLE tbl_pending_task;
