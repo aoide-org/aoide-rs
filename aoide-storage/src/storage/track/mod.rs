@@ -490,11 +490,12 @@ impl<'a> Tracks for TrackRepository<'a> {
     }
 
     fn load_entity(&self, uid: &EntityUid) -> TracksResult<Option<SerializedEntity>> {
-        let target = tbl_track::table.filter(tbl_track::uid.eq(uid.as_ref()));
-        let result = target
+        tbl_track::table
+            .filter(tbl_track::uid.eq(uid.as_ref()))
             .first::<QueryableSerializedEntity>(self.connection)
-            .optional()?;
-        Ok(result.map(|r| r.into()))
+            .optional()
+            .map(|o| o.map(|o| o.into()))
+            .map_err(|e| e.into())
     }
 
     fn locate_entities(
@@ -583,8 +584,10 @@ impl<'a> Tracks for TrackRepository<'a> {
         // Pagination
         target = apply_pagination(target, pagination);
 
-        let results: Vec<QueryableSerializedEntity> = target.load(self.connection)?;
-        Ok(results.into_iter().map(|r| r.into()).collect())
+        target
+            .load::<QueryableSerializedEntity>(self.connection)
+            .map(|v| v.into_iter().map(|r| r.into()).collect())
+            .map_err(|e| e.into())
     }
 
     fn search_entities(
@@ -1140,9 +1143,10 @@ impl<'a> Tracks for TrackRepository<'a> {
         // Pagination
         target = apply_pagination(target, pagination);
 
-        let results = target.load::<QueryableSerializedEntity>(self.connection)?;
-
-        Ok(results.into_iter().map(|r| r.into()).collect())
+        target
+            .load::<QueryableSerializedEntity>(self.connection)
+            .map(|v| v.into_iter().map(|r| r.into()).collect())
+            .map_err(|e| e.into())
     }
 
     fn list_fields(

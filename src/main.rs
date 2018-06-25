@@ -50,7 +50,6 @@ use actix_web::{error, fs, http, pred, server, HttpResponse};
 use clap::App;
 
 use diesel::prelude::*;
-use diesel::r2d2::ConnectionManager;
 
 use failure::Error;
 
@@ -64,7 +63,7 @@ embed_migrations!("aoide-storage/resources/migrations/sqlite");
 
 fn create_connection_pool(url: &str, max_size: u32) -> Result<SqliteConnectionPool, Error> {
     info!("Creating SQLite connection pool for '{}'", url);
-    let manager = ConnectionManager::new(url);
+    let manager = SqliteConnectionManager::new(url);
     let pool = SqliteConnectionPool::builder()
         .max_size(max_size)
         .build(manager)?;

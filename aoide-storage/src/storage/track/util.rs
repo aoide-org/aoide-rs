@@ -447,11 +447,11 @@ impl<'a> TrackRepositoryHelper<'a> {
 
 impl<'a> EntityStorage for TrackRepositoryHelper<'a> {
     fn find_storage_id(&self, uid: &EntityUid) -> EntityStorageResult<Option<StorageId>> {
-        let result = tbl_track::table
+        tbl_track::table
             .select(tbl_track::id)
             .filter(tbl_track::uid.eq(uid.as_ref()))
             .first::<StorageId>(self.connection)
-            .optional()?;
-        Ok(result)
+            .optional()
+            .map_err(|e| e.into())
     }
 }

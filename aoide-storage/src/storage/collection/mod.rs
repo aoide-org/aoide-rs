@@ -52,12 +52,12 @@ impl<'a> CollectionRepository<'a> {
 
 impl<'a> EntityStorage for CollectionRepository<'a> {
     fn find_storage_id(&self, uid: &EntityUid) -> EntityStorageResult<Option<StorageId>> {
-        let result = tbl_collection::table
+        tbl_collection::table
             .select(tbl_collection::id)
             .filter(tbl_collection::uid.eq(uid.as_ref()))
             .first::<StorageId>(self.connection)
-            .optional()?;
-        Ok(result)
+            .optional()
+            .map_err(|e| e.into())
     }
 }
 
@@ -111,11 +111,12 @@ impl<'a> Collections for CollectionRepository<'a> {
     }
 
     fn load_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<CollectionEntity>> {
-        let target = tbl_collection::table.filter(tbl_collection::uid.eq(uid.as_ref()));
-        let result = target
+        tbl_collection::table
+            .filter(tbl_collection::uid.eq(uid.as_ref()))
             .first::<QueryableCollectionsEntity>(self.connection)
-            .optional()?;
-        Ok(result.map(|r| r.into()))
+            .optional()
+            .map(|o| o.map(|o| o.into()))
+            .map_err(|e| e.into())
     }
 
     fn list_entities(&self, pagination: &Pagination) -> CollectionsResult<Vec<CollectionEntity>> {
@@ -124,18 +125,21 @@ impl<'a> Collections for CollectionRepository<'a> {
             .limit
             .map(|limit| limit as i64)
             .unwrap_or(i64::MAX);
-        let target = tbl_collection::table
+        tbl_collection::table
             .order(tbl_collection::rev_timestamp.desc())
             .offset(offset)
-            .limit(limit);
-        let results = target.load::<QueryableCollectionsEntity>(self.connection)?;
-        Ok(results.into_iter().map(|r| r.into()).collect())
+            .limit(limit)
+            .load::<QueryableCollectionsEntity>(self.connection)
+            .map(|v| v.into_iter().map(|r| r.into()).collect())
+            .map_err(|e| e.into())
     }
 
     fn find_entities_by_name(&self, name: &str) -> CollectionsResult<Vec<CollectionEntity>> {
-        let target = tbl_collection::table.filter(tbl_collection::name.eq(name));
-        let results = target.load::<QueryableCollectionsEntity>(self.connection)?;
-        Ok(results.into_iter().map(|r| r.into()).collect())
+        tbl_collection::table
+            .filter(tbl_collection::name.eq(name))
+            .load::<QueryableCollectionsEntity>(self.connection)
+            .map(|v| v.into_iter().map(|r| r.into()).collect())
+            .map_err(|e| e.into())
     }
 
     fn find_entities_by_name_starting_with(
@@ -148,13 +152,14 @@ impl<'a> Collections for CollectionRepository<'a> {
             .limit
             .map(|limit| limit as i64)
             .unwrap_or(i64::MAX);
-        let target = tbl_collection::table
+        tbl_collection::table
             .filter(tbl_collection::name.like(format!("{}%", name_prefix)))
             .order(tbl_collection::rev_timestamp.desc())
             .offset(offset)
-            .limit(limit);
-        let results = target.load::<QueryableCollectionsEntity>(self.connection)?;
-        Ok(results.into_iter().map(|r| r.into()).collect())
+            .limit(limit)
+            .load::<QueryableCollectionsEntity>(self.connection)
+            .map(|v| v.into_iter().map(|r| r.into()).collect())
+            .map_err(|e| e.into())
     }
 
     fn find_entities_by_name_containing(
@@ -167,12 +172,13 @@ impl<'a> Collections for CollectionRepository<'a> {
             .limit
             .map(|limit| limit as i64)
             .unwrap_or(i64::MAX);
-        let target = tbl_collection::table
+        tbl_collection::table
             .filter(tbl_collection::name.like(format!("%{}%", partial_name)))
             .order(tbl_collection::rev_timestamp.desc())
             .offset(offset)
-            .limit(limit);
-        let results = target.load::<QueryableCollectionsEntity>(self.connection)?;
-        Ok(results.into_iter().map(|r| r.into()).collect())
+            .limit(limit)
+            .load::<QueryableCollectionsEntity>(self.connection)
+            .map(|v| v.into_iter().map(|r| r.into()).collect())
+            .map_err(|e| e.into())
     }
 }

@@ -42,8 +42,9 @@ use aoide_storage::{
     storage::{collection::CollectionRepository, track::TrackRepository},
 };
 
-pub type SqliteConnectionPool = Pool<ConnectionManager<SqliteConnection>>;
-pub type SqlitePooledConnection = PooledConnection<ConnectionManager<SqliteConnection>>;
+pub type SqliteConnectionManager = ConnectionManager<SqliteConnection>;
+pub type SqliteConnectionPool = Pool<SqliteConnectionManager>;
+pub type SqlitePooledConnection = PooledConnection<SqliteConnectionManager>;
 
 pub struct SqliteExecutor {
     connection_pool: SqliteConnectionPool,
@@ -54,13 +55,8 @@ impl SqliteExecutor {
         Self { connection_pool }
     }
 
-    pub fn connection_pool(&self) -> &SqliteConnectionPool {
-        &self.connection_pool
-    }
-
     pub fn pooled_connection(&self) -> Result<SqlitePooledConnection, Error> {
-        let pooled_connection = self.connection_pool.get()?;
-        Ok(pooled_connection)
+        self.connection_pool.get().map_err(|e| e.into())
     }
 }
 
