@@ -45,7 +45,7 @@ use aoide_core::domain::collection::Collection;
 use aoide_storage::storage::track::util::TrackRepositoryHelper;
 
 use actix::prelude::*;
-use actix_web::*;
+use actix_web::{error, http, pred, server, HttpResponse};
 
 use clap::App;
 

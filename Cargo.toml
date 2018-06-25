@@ -20,20 +20,16 @@ aoide-storage = { path = "aoide-storage" }
 aoide-core = { version = "*", path = "aoide-core" }
 aoide-storage = { version = "*", path = "aoide-storage" }
 
-#actix = "*"
-actix = "0.5.*"
-actix-web = "*"
+actix = { git = "https://github.com/actix/actix" }
+actix-web = { git = "https://github.com/actix/actix-web" }
 clap = "*"
 diesel = { version = "*", features = ["r2d2", "sqlite"] }
 diesel_migrations =  { version = "*", features = ["sqlite"] }
 env_logger = "*"
 failure = { version = "*", features = ["std"] }
-# futures: Pinned for Actix Web
+# futures 0.1.x: Version pinned for Actix
 futures = "0.1.*"
-#futures = "*"
-# hype: Pinned for Actix Web
-hyper = "0.11.*"
-#hyper = "*"
+hyper = "*"
 libsqlite3-sys = { version = "*", features = ["bundled"] }
 log = "*"
 mime = "*"

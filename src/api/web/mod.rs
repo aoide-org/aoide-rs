@@ -46,20 +46,20 @@ pub type SqliteConnectionPool = Pool<ConnectionManager<SqliteConnection>>;
 pub type SqlitePooledConnection = PooledConnection<ConnectionManager<SqliteConnection>>;
 
 pub struct SqliteExecutor {
-    pool: SqliteConnectionPool,
+    connection_pool: SqliteConnectionPool,
 }
 
 impl SqliteExecutor {
-    pub fn new(pool: SqliteConnectionPool) -> Self {
-        Self { pool }
+    pub fn new(connection_pool: SqliteConnectionPool) -> Self {
+        Self { connection_pool }
     }
 
-    pub fn pool(&self) -> &SqliteConnectionPool {
-        &self.pool
+    pub fn connection_pool(&self) -> &SqliteConnectionPool {
+        &self.connection_pool
     }
 
     pub fn pooled_connection(&self) -> Result<SqlitePooledConnection, Error> {
-        let pooled_connection = self.pool.get()?;
+        let pooled_connection = self.connection_pool.get()?;
         Ok(pooled_connection)
     }
 }
@@ -69,7 +69,7 @@ impl Actor for SqliteExecutor {
 }
 
 pub struct AppState {
-    pub executor: Addr<Syn, SqliteExecutor>,
+    pub executor: Addr<SqliteExecutor>,
 }
 
 #[derive(Debug)]
