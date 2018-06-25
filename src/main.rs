@@ -45,7 +45,7 @@ use aoide_core::domain::collection::Collection;
 use aoide_storage::storage::track::util::TrackRepositoryHelper;
 
 use actix::prelude::*;
-use actix_web::{error, http, pred, server, HttpResponse};
+use actix_web::{error, fs, http, pred, server, HttpResponse};
 
 use clap::App;
 
@@ -153,6 +153,7 @@ pub fn main() -> Result<(), Error> {
             })
             .middleware(actix_web::middleware::Logger::default()) // enable logger
             .prefix("/")
+            .handler("/", fs::StaticFiles::new("./resources/").index_file("openapi.yaml"))
             .resource("/tracks", |r| {
                 r.method(http::Method::GET).with_async(on_list_tracks);
                 r.method(http::Method::POST).with_async_config(on_create_track,
