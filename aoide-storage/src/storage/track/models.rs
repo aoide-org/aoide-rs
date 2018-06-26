@@ -319,7 +319,7 @@ impl<'a> InsertableTracksResource<'a> {
                 .source
                 .audio_content
                 .as_ref()
-                .map(|audio| audio.channels.count as i16),
+                .map(|audio| *audio.channels.count as i16),
             audio_samplerate_hz: track_resource
                 .source
                 .audio_content

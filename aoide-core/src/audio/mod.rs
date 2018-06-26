@@ -78,10 +78,35 @@ impl fmt::Display for DurationMs {
 /// Channels
 ///////////////////////////////////////////////////////////////////////
 
-pub type ChannelCount = u16;
+pub type ChannelCountValue = u16;
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct ChannelCount(ChannelCountValue);
+
+impl ChannelCount {
+    pub const MIN: Self = ChannelCount(1);
+    pub const MAX: Self = ChannelCount(u16::MAX);
+
+    pub fn new(count: ChannelCountValue) -> Self {
+        ChannelCount(count)
+    }
+
+    pub fn is_valid(&self) -> bool {
+        debug_assert!(self <= &Self::MAX);
+        self >= &Self::MIN
+    }
+}
+
+impl Deref for ChannelCount {
+    type Target = ChannelCountValue;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "lowercase")]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum ChannelLayout {
     Mono,
 
@@ -103,9 +128,9 @@ pub struct Channels {
 impl ChannelLayout {
     pub fn channel_count(&self) -> ChannelCount {
         match *self {
-            ChannelLayout::Mono => 1,
-            ChannelLayout::DualMono => 2,
-            ChannelLayout::Stereo => 2,
+            ChannelLayout::Mono => ChannelCount::new(1),
+            ChannelLayout::DualMono => ChannelCount::new(2),
+            ChannelLayout::Stereo => ChannelCount::new(2),
         }
     }
 
@@ -118,10 +143,6 @@ impl ChannelLayout {
 }
 
 impl Channels {
-    pub const COUNT_MIN: ChannelCount = 1;
-
-    pub const COUNT_MAX: ChannelCount = u16::MAX;
-
     pub fn count(count: ChannelCount) -> Self {
         Self {
             count,
@@ -137,7 +158,7 @@ impl Channels {
     }
 
     pub fn default_layout(count: ChannelCount) -> Option<ChannelLayout> {
-        match count {
+        match *count {
             1 => Some(ChannelLayout::Mono),
             2 => Some(ChannelLayout::Stereo),
             _ => None,
@@ -145,13 +166,9 @@ impl Channels {
     }
 
     pub fn is_valid(&self) -> bool {
-        if self.count < Self::COUNT_MIN {
-            false
-        } else {
-            match self.layout {
-                None => true,
-                Some(layout) => layout.channel_count() == self.count,
-            }
+        self.count.is_valid() && match self.layout {
+            None => true,
+            Some(layout) => layout.channel_count() == self.count,
         }
     }
 }

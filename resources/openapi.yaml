@@ -605,12 +605,23 @@ components:
     Channels:
       properties:
         count:
-          type: integer
-          format: int32
-          minimum: 1
-          example: 2
+          $ref: '#/components/schemas/ChannelCount'
+        layout:
+          $ref: '#/components/schemas/ChannelLayout'
       required:
         - count
+    ChannelCount:
+      type: integer
+      format: int32
+      minimum: 1
+      example: 2
+    ChannelLayout:
+      type: string
+      enum:
+        - mono
+        - dual-mono
+        - stereo
+      example: 'stereo'
     Collection:
       properties:
         name:

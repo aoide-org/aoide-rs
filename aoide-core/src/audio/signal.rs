@@ -108,14 +108,10 @@ impl PcmSignal {
 
     pub fn bit_rate(&self, bits_per_sample: BitsPerSample) -> Option<BitRate> {
         if self.is_valid() {
-            match self.channel_layout.channel_count() {
-                channel_count => {
-                    let bps = channel_count as BitsPerSecond
-                        * self.sample_rate.hz as BitsPerSecond
-                        * bits_per_sample as BitsPerSecond;
-                    Some(BitRate { bps: bps })
-                }
-            }
+            let bps = *self.channel_layout.channel_count() as BitsPerSecond
+                * self.sample_rate.hz as BitsPerSecond
+                * bits_per_sample as BitsPerSecond;
+            Some(BitRate { bps: bps })
         } else {
             None
         }
