@@ -96,14 +96,14 @@ impl SamplePosition {
 /// SampleLength
 ///////////////////////////////////////////////////////////////////////
 
-pub type SampleLengthType = f64;
+pub type NumberOfSamples = f64;
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct SampleLength(pub SampleLengthType);
+pub struct SampleLength(pub NumberOfSamples);
 
 impl Deref for SampleLength {
-    type Target = SampleLengthType;
+    type Target = NumberOfSamples;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -157,31 +157,38 @@ pub type SamplesPerSecond = u32;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct SampleRate {
-    pub hz: SamplesPerSecond,
-}
+pub struct SampleRateHz(SamplesPerSecond);
 
-impl SampleRate {
+impl SampleRateHz {
     pub const UNIT_OF_MEASURE: &'static str = "Hz";
 
-    pub const MAX: Self = SampleRate { hz: u32::MAX };
+    pub const MIN: Self = SampleRateHz(1);
+    pub const MAX: Self = SampleRateHz(u32::MAX);
 
-    pub const COMPACT_DISC: Self = SampleRate { hz: 44_100 };
-    pub const STUDIO_48KHZ: Self = SampleRate { hz: 48_000 };
-    pub const STUDIO_96KHZ: Self = SampleRate { hz: 96_000 };
-    pub const STUDIO_192KHZ: Self = SampleRate { hz: 192_000 };
+    pub const COMPACT_DISC: Self = SampleRateHz(44_100);
+    pub const STUDIO_48KHZ: Self = SampleRateHz(48_000);
+    pub const STUDIO_96KHZ: Self = SampleRateHz(96_000);
+    pub const STUDIO_192KHZ: Self = SampleRateHz(192_000);
 
-    pub fn hz(hz: SamplesPerSecond) -> Self {
-        Self { hz }
+    pub fn new(hz: SamplesPerSecond) -> Self {
+        SampleRateHz(hz)
     }
 
     pub fn is_valid(&self) -> bool {
-        self.hz > 0
+        self >= &Self::MIN
     }
 }
 
-impl fmt::Display for SampleRate {
+impl Deref for SampleRateHz {
+    type Target = SamplesPerSecond;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl fmt::Display for SampleRateHz {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", self.hz, SampleRate::UNIT_OF_MEASURE)
+        write!(f, "{} {}", **self, SampleRateHz::UNIT_OF_MEASURE)
     }
 }

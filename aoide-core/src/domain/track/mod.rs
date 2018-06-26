@@ -54,13 +54,13 @@ impl AudioEncoder {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AudioContent {
-    pub duration_ms: DurationMs,
-
     pub channels: Channels,
 
-    pub samplerate: SampleRate,
+    pub duration_ms: DurationMs,
 
-    pub bitrate: BitRate,
+    pub samplerate_hz: SampleRateHz,
+
+    pub bitrate_bps: BitRateBps,
 
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub loudness: Option<Loudness>,
@@ -71,10 +71,10 @@ pub struct AudioContent {
 
 impl AudioContent {
     pub fn is_valid(&self) -> bool {
-        !self.duration_ms.is_empty()
-            && self.channels.is_valid()
-            && self.samplerate.is_valid()
-            && self.bitrate.is_valid()
+        self.channels.is_valid()
+            && !self.duration_ms.is_empty()
+            && self.samplerate_hz.is_valid()
+            && self.bitrate_bps.is_valid()
             && self.loudness.iter().all(Loudness::is_valid)
             && self.encoder.as_ref().map_or(true, |e| e.is_valid())
     }

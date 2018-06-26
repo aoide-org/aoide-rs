@@ -29,29 +29,34 @@ pub type BitsPerSecond = u32;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct BitRate {
-    pub bps: BitsPerSecond,
-}
+pub struct BitRateBps(BitsPerSecond);
 
-impl BitRate {
+impl BitRateBps {
     pub const UNIT_OF_MEASURE: &'static str = "bps";
 
-    pub const MIN: Self = BitRate { bps: u32::MIN };
+    pub const MIN: Self = BitRateBps(1);
+    pub const MAX: Self = BitRateBps(u32::MAX);
 
-    pub const MAX: Self = BitRate { bps: u32::MAX };
-
-    pub fn bps(bps: BitsPerSecond) -> Self {
-        Self { bps }
+    pub fn new(bps: BitsPerSecond) -> Self {
+        BitRateBps(bps)
     }
 
     pub fn is_valid(&self) -> bool {
-        *self > BitRate::default()
+        self >= &Self::MIN
     }
 }
 
-impl fmt::Display for BitRate {
+impl Deref for BitRateBps {
+    type Target = SamplesPerSecond;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl fmt::Display for BitRateBps {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", self.bps, BitRate::UNIT_OF_MEASURE)
+        write!(f, "{} {}", **self, BitRateBps::UNIT_OF_MEASURE)
     }
 }
 
@@ -74,9 +79,9 @@ impl Latency {
 
     pub fn from_sample_duration_and_rate(
         sample_duration: SampleLength,
-        sample_rate: SampleRate,
+        samplerate_hz: SampleRateHz,
     ) -> Latency {
-        let ms = (*sample_duration * Self::UNITS_PER_SECOND) / (sample_rate.hz as f64);
+        let ms = (*sample_duration * Self::UNITS_PER_SECOND) / (*samplerate_hz as f64);
         Latency { ms }
     }
 }
@@ -98,20 +103,20 @@ pub struct PcmSignal {
 
     pub sample_layout: SampleLayout,
 
-    pub sample_rate: SampleRate,
+    pub samplerate_hz: SampleRateHz,
 }
 
 impl PcmSignal {
     pub fn is_valid(&self) -> bool {
-        self.sample_rate.is_valid()
+        self.samplerate_hz.is_valid()
     }
 
-    pub fn bit_rate(&self, bits_per_sample: BitsPerSample) -> Option<BitRate> {
+    pub fn bit_rate(&self, bits_per_sample: BitsPerSample) -> Option<BitRateBps> {
         if self.is_valid() {
             let bps = *self.channel_layout.channel_count() as BitsPerSecond
-                * self.sample_rate.hz as BitsPerSecond
+                * *self.samplerate_hz as BitsPerSecond
                 * bits_per_sample as BitsPerSecond;
-            Some(BitRate { bps: bps })
+            Some(BitRateBps::new(bps))
         } else {
             None
         }

@@ -324,12 +324,12 @@ impl<'a> InsertableTracksResource<'a> {
                 .source
                 .audio_content
                 .as_ref()
-                .map(|audio| audio.samplerate.hz as i32),
+                .map(|audio| *audio.samplerate_hz as i32),
             audio_bitrate_bps: track_resource
                 .source
                 .audio_content
                 .as_ref()
-                .map(|audio| audio.bitrate.bps as i32),
+                .map(|audio| *audio.bitrate_bps as i32),
             audio_loudness_db: track_resource
                 .source
                 .audio_content

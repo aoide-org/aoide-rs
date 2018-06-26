@@ -589,19 +589,17 @@ components:
           $ref: '#/components/schemas/Channels'
         duration_ms:
           $ref: '#/components/schemas/DurationMs'
-        samplerate:
-          $ref: '#/components/schemas/SampleRate'
-        bitrate:
-          $ref: '#/components/schemas/BitRate'
-    BitRate:
-      properties:
-        bps:
-          type: integer
-          format: int32
-          minimum: 1
-          example: 256000
-      required:
-        - bps
+        samplerate_hz:
+          $ref: '#/components/schemas/SampleRateHz'
+        bitrate_bps:
+          $ref: '#/components/schemas/BitRateBps'
+    BitRateBps:
+      type: integer
+      format: int32
+      minimum: 1
+      example: 256000
+      description: |
+        The bit rate in bits per second (bps).
     Channels:
       properties:
         count:
@@ -935,15 +933,11 @@ components:
           type: array
           items:
             type: string
-    SampleRate:
-      required:
-        - hz
-      properties:
-        hz:
-          type: integer
-          format: int32
-          minimum: 1
-          example: 44100
+    SampleRateHz:
+      type: integer
+      format: int32
+      minimum: 1
+      example: 44100
       description: |
         The sample rate in Hertz (Hz).
     ScoredSongFeature:

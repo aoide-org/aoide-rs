@@ -25,16 +25,13 @@
                         },
                         "mediaType": "audio/mpeg",
                         "audioContent": {
-                            "durationMs": 202821,
                             "channels": {
-                                "count": 2
+                                "count": 2,
+                                "layout": "stereo"
                             },
-                            "samplerate": {
-                                "hz": 44100
-                            },
-                            "bitrate": {
-                                "bps": 320000
-                            },
+                            "durationMs": 202821,
+                            "samplerateHz": 44100,
+                            "bitrateBps": 320000,
                             "loudness": {
                                 "ebur128lufs": {
                                     "db": -9.55269

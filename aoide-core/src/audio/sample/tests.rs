@@ -17,23 +17,44 @@ use super::*;
 
 #[test]
 fn sample_rate_default() {
-    assert_eq!(SampleRate::default().hz, 0);
+    assert!(!SampleRateHz::default().is_valid());
 }
 
 #[test]
 fn sample_rate_is_valid() {
-    assert!(!SampleRate::default().is_valid());
-    assert!(SampleRate::MAX.is_valid());
-    assert!(SampleRate::COMPACT_DISC.is_valid());
-    assert!(SampleRate::STUDIO_48KHZ.is_valid());
-    assert!(SampleRate::STUDIO_96KHZ.is_valid());
-    assert!(SampleRate::STUDIO_192KHZ.is_valid());
+    assert!(SampleRateHz::MIN.is_valid());
+    assert!(SampleRateHz::MAX.is_valid());
+    assert!(SampleRateHz::COMPACT_DISC.is_valid());
+    assert!(SampleRateHz::STUDIO_48KHZ.is_valid());
+    assert!(SampleRateHz::STUDIO_96KHZ.is_valid());
+    assert!(SampleRateHz::STUDIO_192KHZ.is_valid());
 }
 
 #[test]
 fn sample_rate_to_string() {
-    assert_eq!("44100 Hz", SampleRate::COMPACT_DISC.to_string());
-    assert_eq!("48000 Hz", SampleRate::STUDIO_48KHZ.to_string());
-    assert_eq!("96000 Hz", SampleRate::STUDIO_96KHZ.to_string());
-    assert_eq!("192000 Hz", SampleRate::STUDIO_192KHZ.to_string());
+    assert!(
+        SampleRateHz::default()
+            .to_string()
+            .ends_with(SampleRateHz::UNIT_OF_MEASURE)
+    );
+    assert!(
+        SampleRateHz::COMPACT_DISC
+            .to_string()
+            .ends_with(SampleRateHz::UNIT_OF_MEASURE)
+    );
+    assert!(
+        SampleRateHz::STUDIO_48KHZ
+            .to_string()
+            .ends_with(SampleRateHz::UNIT_OF_MEASURE)
+    );
+    assert!(
+        SampleRateHz::STUDIO_96KHZ
+            .to_string()
+            .ends_with(SampleRateHz::UNIT_OF_MEASURE)
+    );
+    assert!(
+        SampleRateHz::STUDIO_192KHZ
+            .to_string()
+            .ends_with(SampleRateHz::UNIT_OF_MEASURE)
+    );
 }
