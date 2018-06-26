@@ -90,3 +90,12 @@ fn duration_to_string() {
             .ends_with(DurationMs::UNIT_OF_MEASURE)
     );
 }
+
+#[test]
+fn loudness_to_string() {
+    assert!(
+        Loudness::EbuR128(LufsDb::default())
+            .to_string()
+            .ends_with(LufsDb::UNIT_OF_MEASURE)
+    );
+}

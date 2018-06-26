@@ -25,7 +25,7 @@ use api::{
     entity::StorageId, serde::{SerializationFormat, SerializedEntity},
 };
 
-use aoide_core::audio::{Decibel, Loudness, LUFS};
+use aoide_core::audio::{Decibel, Loudness};
 use aoide_core::domain::entity::{EntityHeader, EntityRevision, EntityUid, EntityVersion};
 use aoide_core::domain::metadata::{Comment, Rating, Score, ScoreValue};
 use aoide_core::domain::music::notation::BeatsPerMinute;
@@ -336,7 +336,7 @@ impl<'a> InsertableTracksResource<'a> {
                 .as_ref()
                 .and_then(|audio| audio.loudness)
                 .and_then(|loudness| match loudness {
-                    Loudness::EBUR128LUFS(LUFS { db }) => Some(db),
+                    Loudness::EbuR128(lufs_db) => Some(*lufs_db),
                 }),
             audio_enc_name: track_resource
                 .source

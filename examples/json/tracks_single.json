@@ -33,9 +33,7 @@
                             "samplerateHz": 44100,
                             "bitrateBps": 320000,
                             "loudness": {
-                                "ebur128lufs": {
-                                    "db": -9.55269
-                                }
+                                "ebuR128LufsDb": -9.55269
                             }
                         }
                     },
