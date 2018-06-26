@@ -12,12 +12,12 @@ CARGO_VERSION=$(shell grep version Cargo.toml | awk -F"\"" '{print $$2}' | head 
 build:
 	mkdir -p "$(BUILD_CARGO_CACHE)"
 	docker pull docker.io/alpine
-	docker pull docker.io/clux/muslrust
+	docker pull docker.io/clux/muslrust:stable
 	docker run --rm \
 		-v "$(BUILD_CARGO_CACHE)":/root/.cargo:Z \
 		-v "$$PWD":/volume:Z \
 		-w /volume \
-		-it clux/muslrust \
+		-it clux/muslrust:stable \
 		cargo build --release
 	docker build \
 		-t $(REPO)/$(NAME):$(GIT_VERSION) \
