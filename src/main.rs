@@ -152,7 +152,7 @@ pub fn main() -> Result<(), Error> {
             })
             .middleware(actix_web::middleware::Logger::default()) // enable logger
             .prefix("/")
-            .handler("/", fs::StaticFiles::new("./resources/").index_file("openapi.yaml"))
+            .handler("/", fs::StaticFiles::new("./resources/").index_file("index.html"))
             .resource("/tracks", |r| {
                 r.method(http::Method::GET).with_async(on_list_tracks);
                 r.method(http::Method::POST).with_async_config(on_create_track,
