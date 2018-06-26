@@ -253,55 +253,55 @@ where
                     ),
                 },
             },
-            NumericField::TimesigUpper => match numeric_filter.condition.comparator {
+            NumericField::TimesigTop => match numeric_filter.condition.comparator {
                 NumericComparator::LessThan => match numeric_filter.condition.modifier {
                     None => select.filter(
-                        aux_track_profile::timesig_upper.lt(numeric_filter.condition.value as i16),
+                        aux_track_profile::timesig_top.lt(numeric_filter.condition.value as i16),
                     ),
                     Some(ConditionModifier::Not) => select.filter(
-                        aux_track_profile::timesig_upper.ge(numeric_filter.condition.value as i16),
+                        aux_track_profile::timesig_top.ge(numeric_filter.condition.value as i16),
                     ),
                 },
                 NumericComparator::GreaterThan => match numeric_filter.condition.modifier {
                     None => select.filter(
-                        aux_track_profile::timesig_upper.gt(numeric_filter.condition.value as i16),
+                        aux_track_profile::timesig_top.gt(numeric_filter.condition.value as i16),
                     ),
                     Some(ConditionModifier::Not) => select.filter(
-                        aux_track_profile::timesig_upper.le(numeric_filter.condition.value as i16),
+                        aux_track_profile::timesig_top.le(numeric_filter.condition.value as i16),
                     ),
                 },
                 NumericComparator::EqualTo => match numeric_filter.condition.modifier {
                     None => select.filter(
-                        aux_track_profile::timesig_upper.eq(numeric_filter.condition.value as i16),
+                        aux_track_profile::timesig_top.eq(numeric_filter.condition.value as i16),
                     ),
                     Some(ConditionModifier::Not) => select.filter(
-                        aux_track_profile::timesig_upper.ne(numeric_filter.condition.value as i16),
+                        aux_track_profile::timesig_top.ne(numeric_filter.condition.value as i16),
                     ),
                 },
             },
-            NumericField::TimesigLower => match numeric_filter.condition.comparator {
+            NumericField::TimesigBottom => match numeric_filter.condition.comparator {
                 NumericComparator::LessThan => match numeric_filter.condition.modifier {
                     None => select.filter(
-                        aux_track_profile::timesig_lower.lt(numeric_filter.condition.value as i16),
+                        aux_track_profile::timesig_bottom.lt(numeric_filter.condition.value as i16),
                     ),
                     Some(ConditionModifier::Not) => select.filter(
-                        aux_track_profile::timesig_lower.ge(numeric_filter.condition.value as i16),
+                        aux_track_profile::timesig_bottom.ge(numeric_filter.condition.value as i16),
                     ),
                 },
                 NumericComparator::GreaterThan => match numeric_filter.condition.modifier {
                     None => select.filter(
-                        aux_track_profile::timesig_lower.gt(numeric_filter.condition.value as i16),
+                        aux_track_profile::timesig_bottom.gt(numeric_filter.condition.value as i16),
                     ),
                     Some(ConditionModifier::Not) => select.filter(
-                        aux_track_profile::timesig_lower.le(numeric_filter.condition.value as i16),
+                        aux_track_profile::timesig_bottom.le(numeric_filter.condition.value as i16),
                     ),
                 },
                 NumericComparator::EqualTo => match numeric_filter.condition.modifier {
                     None => select.filter(
-                        aux_track_profile::timesig_lower.eq(numeric_filter.condition.value as i16),
+                        aux_track_profile::timesig_bottom.eq(numeric_filter.condition.value as i16),
                     ),
                     Some(ConditionModifier::Not) => select.filter(
-                        aux_track_profile::timesig_lower.ne(numeric_filter.condition.value as i16),
+                        aux_track_profile::timesig_bottom.ne(numeric_filter.condition.value as i16),
                     ),
                 },
             },

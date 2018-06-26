@@ -130,8 +130,8 @@ pub enum NumericField {
     BitrateBps,
     TempoBpm,
     KeysigCode,
-    TimesigUpper,
-    TimesigLower,
+    TimesigTop,
+    TimesigBottom,
 }
 
 pub type NumericValue = f64;

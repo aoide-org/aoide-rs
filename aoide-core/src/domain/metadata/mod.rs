@@ -217,7 +217,8 @@ impl Rating {
         let count = ratings
             .iter()
             .filter(|rating| {
-                owner.is_none() || rating.owner().is_none()
+                owner.is_none()
+                    || rating.owner().is_none()
                     || rating.owner().as_ref().map(|owner| owner.as_str()) == owner
             })
             .count();
@@ -226,7 +227,8 @@ impl Rating {
             ratings
                 .iter()
                 .filter(|rating| {
-                    owner.is_none() || rating.owner().is_none()
+                    owner.is_none()
+                        || rating.owner().is_none()
                         || rating.owner().as_ref().map(|owner| owner.as_str()) == owner
                 })
                 .for_each(|rating| {

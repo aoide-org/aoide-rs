@@ -314,42 +314,42 @@ impl From<EngineKeySignature> for KeySignature {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Default, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct TimeSignature(u8, u8);
+pub struct TimeSignature(u16, u16);
 
 impl TimeSignature {
     pub fn is_default(&self) -> bool {
         *self == Self::default()
     }
 
-    pub fn new(upper: u8, lower: u8) -> Self {
-        TimeSignature(upper, lower)
+    pub fn new(top: u16, bottom: u16) -> Self {
+        TimeSignature(top, bottom)
     }
 
-    // number of beats in each measure or bar, 0 = default/undefined
-    pub fn upper(&self) -> u8 {
+    // number of beats in each measure unit or bar, 0 = default/undefined
+    pub fn top(&self) -> u16 {
         self.0
     }
 
-    pub fn beats_per_bar(&self) -> u8 {
-        self.upper()
+    pub fn beats_per_measure(&self) -> u16 {
+        self.top()
     }
 
     // 0 = default/undefined
-    pub fn lower(&self) -> u8 {
+    pub fn bottom(&self) -> u16 {
         self.1
     }
 
-    pub fn beat_unit(&self) -> u8 {
-        self.lower()
+    pub fn measure_unit(&self) -> u16 {
+        self.bottom()
     }
 
     pub fn is_valid(&self) -> bool {
-        (self.upper() > 0) && (self.lower() > 0)
+        (self.top() > 0) && (self.bottom() > 0)
     }
 }
 
 impl fmt::Display for TimeSignature {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}/{}", self.upper(), self.lower())
+        write!(f, "{}/{}", self.top(), self.bottom())
     }
 }

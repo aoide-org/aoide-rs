@@ -28,7 +28,7 @@ use api::{
 use aoide_core::audio::{Decibel, Loudness, LUFS};
 use aoide_core::domain::entity::{EntityHeader, EntityRevision, EntityUid, EntityVersion};
 use aoide_core::domain::metadata::{Comment, Rating, Score, ScoreValue};
-use aoide_core::domain::music::sonic::BeatsPerMinute;
+use aoide_core::domain::music::notation::BeatsPerMinute;
 use aoide_core::domain::music::{ActorRole, Actors, SongFeature, SongProfile, TitleLevel, Titles};
 use aoide_core::domain::track::{RefOrigin, Track, TrackResource};
 
@@ -361,8 +361,8 @@ impl<'a> InsertableTracksResource<'a> {
 pub struct InsertableTracksMusic {
     pub track_id: StorageId,
     pub tempo_bpm: BeatsPerMinute,
-    pub timesig_upper: i16,
-    pub timesig_lower: i16,
+    pub timesig_top: i16,
+    pub timesig_bottom: i16,
     pub keysig_code: i16,
     pub acousticness_score: Option<ScoreValue>,
     pub danceability_score: Option<ScoreValue>,
@@ -379,8 +379,8 @@ impl InsertableTracksMusic {
         Self {
             track_id,
             tempo_bpm: profile.tempo.bpm,
-            timesig_upper: profile.time_signature.upper() as i16,
-            timesig_lower: profile.time_signature.lower() as i16,
+            timesig_top: profile.time_signature.top() as i16,
+            timesig_bottom: profile.time_signature.bottom() as i16,
             keysig_code: profile.key_signature.code as i16,
             acousticness_score: profile
                 .feature(SongFeature::Acousticness)

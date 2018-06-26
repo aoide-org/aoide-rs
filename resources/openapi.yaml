@@ -813,8 +813,8 @@ components:
         - keysig-code
         - samplerate-hz
         - tempo-bpm
-        - timesig-upper
-        - timesig-lower
+        - timesig-top
+        - timesig-bottom
     NumericFilter:
       properties:
         modifier:
@@ -1124,24 +1124,24 @@ components:
       maxLength: 2
       items:
         oneOf:
-          - $ref: '#/components/schemas/TimeSignatureUpper'
-          - $ref: '#/components/schemas/TimeSignatureLower'
+          - $ref: '#/components/schemas/TimeSignatureTop'
+          - $ref: '#/components/schemas/TimeSignatureBottom'
       description: |
-        Tuple of 2 elements containing the upper and lower values of the time signature.
-    TimeSignatureUpper:
+        Tuple of 2 elements containing the top and bottom values of the time signature.
+    TimeSignatureTop:
       type: integer
       format: i32
       minimum: 0
       example: 3
       description: |
-        The upper number of the time signature that denotes the number of beats in each measure or bar.
-    TimeSignatureLower:
+        The top number of the time signature that denotes the number of beats in each measure or bar.
+    TimeSignatureBottom:
       type: integer
       format: i32
       minimum: 0
       example: 4
       description: |
-        The lower number of the time signature that denotes which type of note is getting the beat.
+        The bottom number of the time signature that denotes which type of note is getting the beat.
     TimeStamp:
       type: string
       format: date-time

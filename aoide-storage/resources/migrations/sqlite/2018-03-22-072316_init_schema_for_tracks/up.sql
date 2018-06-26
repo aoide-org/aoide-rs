@@ -127,8 +127,8 @@ CREATE TABLE aux_track_profile (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     tempo_bpm                REAL NOT NULL, -- beats per minute (bpm)
-    timesig_upper            TINYINT NOT NULL, -- >= 0
-    timesig_lower            TINYINT NOT NULL, -- >= 0
+    timesig_top              TINYINT NOT NULL, -- >= 0
+    timesig_bottom           TINYINT NOT NULL, -- >= 0
     keysig_code              TINYINT NOT NULL, -- {(0), 1, ..., 24}
     acousticness_score       REAL, -- [0.0, 1.0]
     danceability_score       REAL, -- [0.0, 1.0]

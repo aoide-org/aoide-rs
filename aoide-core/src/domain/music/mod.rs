@@ -13,12 +13,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod sonic;
+pub mod notation;
 
 #[cfg(test)]
 mod tests;
 
-use self::sonic::*;
+use self::notation::*;
 
 use domain::metadata::Score;
 
