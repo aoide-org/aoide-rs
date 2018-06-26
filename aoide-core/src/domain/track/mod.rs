@@ -25,7 +25,15 @@ use domain::music::*;
 
 use chrono::{DateTime, Utc};
 
+use failure;
+
+use serde::de;
+use serde::de::Visitor as SerdeDeserializeVisitor;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
 use std::fmt;
+use std::ops::Deref;
+use std::str::FromStr;
 
 ///////////////////////////////////////////////////////////////////////
 /// AudioEncoder
@@ -138,59 +146,106 @@ impl TrackCollection {
     }
 }
 
-pub type TrackColorCode = u32; // 0xAARRGGBB
+pub type ColorCodeValue = u32; // 0xAARRGGBB
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct TrackColor {
-    pub code: TrackColorCode,
-}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ColorCode(ColorCodeValue);
 
-impl TrackColor {
-    pub const ALPHA_MASK: TrackColorCode = 0xff000000;
-    pub const RED_MASK: TrackColorCode = 0x00ff0000;
-    pub const GREEN_MASK: TrackColorCode = 0x0000ff00;
-    pub const BLUE_MASK: TrackColorCode = 0x000000ff;
+impl ColorCode {
+    const STRING_PREFIX: &'static str = "#";
+    const STRING_LEN: usize = 9;
 
-    pub const BLACK: Self = Self {
-        code: Self::ALPHA_MASK,
-    };
-    pub const RED: Self = Self {
-        code: Self::ALPHA_MASK | Self::RED_MASK,
-    };
-    pub const GREEN: Self = Self {
-        code: Self::ALPHA_MASK | Self::GREEN_MASK,
-    };
-    pub const BLUE: Self = Self {
-        code: Self::ALPHA_MASK | Self::BLUE_MASK,
-    };
-    pub const YELLOW: Self = Self {
-        code: Self::ALPHA_MASK | Self::RED_MASK | Self::GREEN_MASK,
-    };
-    pub const MAGENTA: Self = Self {
-        code: Self::ALPHA_MASK | Self::RED_MASK | Self::BLUE_MASK,
-    };
-    pub const CYAN: Self = Self {
-        code: Self::ALPHA_MASK | Self::GREEN_MASK | Self::BLUE_MASK,
-    };
-    pub const WHITE: Self = Self {
-        code: Self::ALPHA_MASK | Self::RED_MASK | Self::GREEN_MASK | Self::BLUE_MASK,
-    };
+    pub const ALPHA_MASK: ColorCodeValue = 0xff000000;
+    pub const RED_MASK: ColorCodeValue = 0x00ff0000;
+    pub const GREEN_MASK: ColorCodeValue = 0x0000ff00;
+    pub const BLUE_MASK: ColorCodeValue = 0x000000ff;
+
+    pub const BLACK: Self = ColorCode(Self::ALPHA_MASK);
+    pub const RED: Self = ColorCode(Self::ALPHA_MASK | Self::RED_MASK);
+    pub const GREEN: Self = ColorCode(Self::ALPHA_MASK | Self::GREEN_MASK);
+    pub const BLUE: Self = ColorCode(Self::ALPHA_MASK | Self::BLUE_MASK);
+    pub const YELLOW: Self = ColorCode(Self::ALPHA_MASK | Self::RED_MASK | Self::GREEN_MASK);
+    pub const MAGENTA: Self = ColorCode(Self::ALPHA_MASK | Self::RED_MASK | Self::BLUE_MASK);
+    pub const CYAN: Self = ColorCode(Self::ALPHA_MASK | Self::GREEN_MASK | Self::BLUE_MASK);
+    pub const WHITE: Self =
+        ColorCode(Self::ALPHA_MASK | Self::RED_MASK | Self::GREEN_MASK | Self::BLUE_MASK);
 
     pub fn is_valid(&self) -> bool {
         true
     }
 
-    pub fn into_opaque(&self) -> Self {
-        Self {
-            code: self.code | Self::ALPHA_MASK,
-        }
+    pub fn to_opaque(&self) -> Self {
+        ColorCode(self.0 | Self::ALPHA_MASK)
     }
 
-    pub fn into_transparent(&self) -> Self {
-        Self {
-            code: self.code & !Self::ALPHA_MASK,
+    pub fn to_transparent(&self) -> Self {
+        ColorCode(self.0 & !Self::ALPHA_MASK)
+    }
+}
+
+impl Deref for ColorCode {
+    type Target = ColorCodeValue;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl fmt::Display for ColorCode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}{:08X}", Self::STRING_PREFIX, **self)
+    }
+}
+
+impl FromStr for ColorCode {
+    type Err = failure::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.len() == Self::STRING_LEN {
+            let (prefix, hex_code) = s.split_at(1);
+            if prefix == Self::STRING_PREFIX {
+                return u32::from_str_radix(&hex_code, 16)
+                    .map(|v| ColorCode(v))
+                    .map_err(|e| e.into());
+            }
         }
+        Err(format_err!("Invalid color code '{}'", s))
+    }
+}
+
+impl Serialize for ColorCode {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct ColorCodeDeserializeVisitor;
+
+impl<'de> SerdeDeserializeVisitor<'de> for ColorCodeDeserializeVisitor {
+    type Value = ColorCode;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("a color code string '#AARRGGBB'")
+    }
+
+    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        ColorCode::from_str(value).map_err(|e| E::custom(e.to_string()))
+    }
+}
+
+impl<'de> Deserialize<'de> for ColorCode {
+    fn deserialize<D>(deserializer: D) -> Result<ColorCode, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_str(ColorCodeDeserializeVisitor)
     }
 }
 
@@ -202,7 +257,7 @@ pub struct TrackResource {
     pub source: TrackSource,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub color: Option<TrackColor>,
+    pub color_code: Option<ColorCode>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub play_counter: Option<usize>,
@@ -212,7 +267,7 @@ impl TrackResource {
     pub fn is_valid(&self) -> bool {
         self.collection.is_valid()
             && self.source.is_valid()
-            && self.color.iter().all(TrackColor::is_valid)
+            && self.color_code.iter().all(ColorCode::is_valid)
     }
 }
 
@@ -352,7 +407,7 @@ pub struct TrackMarker {
     pub number: Option<i32>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub color: Option<TrackColor>,
+    pub color_code: Option<ColorCode>,
 }
 
 impl TrackMarker {
@@ -364,7 +419,9 @@ impl TrackMarker {
     }
 
     pub fn is_valid(&self) -> bool {
-        self.offset_ms.is_valid() && self.length_ms.is_valid() && match self.mark {
+        self.offset_ms.is_valid()
+            && self.length_ms.is_valid()
+            && self.color_code.iter().all(ColorCode::is_valid) && match self.mark {
             TrackMark::LoadCue | TrackMark::HotCue => self.length_ms.is_empty(), // not available
             TrackMark::Sample | TrackMark::Loop => !self.length_ms.is_empty(),   // mandatory
             _ => true, // optional, i.e. no restrictions on length

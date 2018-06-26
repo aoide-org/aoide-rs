@@ -587,12 +587,16 @@ components:
       properties:
         channels:
           $ref: '#/components/schemas/Channels'
-        duration_ms:
+        durationMs:
           $ref: '#/components/schemas/DurationMs'
-        samplerate_hz:
+        samplerateHz:
           $ref: '#/components/schemas/SampleRateHz'
-        bitrate_bps:
+        bitrateBps:
           $ref: '#/components/schemas/BitRateBps'
+        loudness:
+          $ref: '#/components/schemas/Loudness'
+        encoder:
+          $ref: '#/components/schemas/Encoder'
     BitRateBps:
       type: integer
       format: int32
@@ -619,7 +623,7 @@ components:
         - mono
         - dual-mono
         - stereo
-      example: 'stereo'
+      example: stereo
     Collection:
       properties:
         name:
@@ -661,19 +665,13 @@ components:
       required:
         - header
         - body
-    Color:
-      required:
-        - code
-      properties:
-        code:
-          $ref: '#/components/schemas/ColorCode'
     ColorCode:
-      description: |
-        A hexadecimal color code `#AARRGGBB` with 8 bits per channel.
       type: string
       minLength: 9
       maxLength: 9
       example: '#FF808080'
+      description: |
+        A hexadecimal color code `#AARRGGBB` with 8 bits per channel.
     Comment:
       type: array
       minLength: 2
@@ -682,8 +680,9 @@ components:
         oneOf:
           - $ref: '#/components/schemas/CommentText'
           - $ref: '#/components/schemas/MetadataOwner'
-      description: |
-        Tuple of 2 elements containing a text and an optional (= nullable) owner.
+      description: >
+        Tuple of 2 elements containing a text and an optional (= nullable)
+        owner.
     CommentText:
       type: string
     ConditionModifier:
@@ -694,6 +693,12 @@ components:
       type: number
       minimum: 0
       example: 210387.576
+    Encoder:
+      properties:
+        name:
+          type: string
+        settings:
+          type: string
     EntityUid:
       type: string
       minLength: 32
@@ -771,6 +776,19 @@ components:
       properties:
         uri:
           $ref: '#/components/schemas/StringCondition'
+    Loudness:
+      properties:
+        ebuR128LufsDb:
+          $ref: '#/components/schemas/LufsDb'
+      required:
+        - ebuR128LufsDb
+      description: |
+        Loudness according to EBU R128.
+    LufsDb:
+      type: number
+      example: -4.5761
+      description: |
+        Loudness Units relative to Full Scale (LUFS) measured in decibel (dB).
     Lyrics:
       properties:
         text:
@@ -869,8 +887,9 @@ components:
         oneOf:
           - $ref: '#/components/schemas/ScoreValue'
           - $ref: '#/components/schemas/MetadataOwner'
-      description: |
-        Tuple of 2 elements containing a score value for the rating and an optional (= nullable) owner.
+      description: >
+        Tuple of 2 elements containing a score value for the rating and an
+        optional (= nullable) owner.
     Release:
       properties:
         copyright:
@@ -1127,22 +1146,25 @@ components:
         oneOf:
           - $ref: '#/components/schemas/TimeSignatureTop'
           - $ref: '#/components/schemas/TimeSignatureBottom'
-      description: |
-        Tuple of 2 elements containing the top and bottom values of the time signature.
+      description: >
+        Tuple of 2 elements containing the top and bottom values of the time
+        signature.
     TimeSignatureTop:
       type: integer
       format: i32
       minimum: 0
       example: 3
-      description: |
-        The top number of the time signature that denotes the number of beats in each measure or bar.
+      description: >
+        The top number of the time signature that denotes the number of beats in
+        each measure or bar.
     TimeSignatureBottom:
       type: integer
       format: i32
       minimum: 0
       example: 4
-      description: |
-        The bottom number of the time signature that denotes which type of note is getting the beat.
+      description: >
+        The bottom number of the time signature that denotes which type of note
+        is getting the beat.
     TimeStamp:
       type: string
       format: date-time
@@ -1266,15 +1288,23 @@ components:
         - mix-out
         - sample
         - loop
-      description: |
-          * `load-cue` - default start point when loading a track, only one per track
-          * `hot-cue` - jump point
-          * `fade-in` - only one per track
-          * `fade-out` - only one per track
-          * `mix-in`
-          * `mix-out`
-          * `sample`
-          * `loop`
+      description: >
+        * `load-cue` - default start point when loading a track, only one per
+        track
+
+        * `hot-cue` - jump point
+
+        * `fade-in` - only one per track
+
+        * `fade-out` - only one per track
+
+        * `mix-in`
+
+        * `mix-out`
+
+        * `sample`
+
+        * `loop`
     TrackMarker:
       properties:
         mark:
@@ -1287,13 +1317,14 @@ components:
           type: integer
         label:
           type: string
-        color:
-          $ref: '#/components/schemas/Color'
+        colorCode:
+          $ref: '#/components/schemas/ColorCode'
       required:
         - mark
         - offset
-      description: |
-        Marker to identify a point (no length or length = 0) or section (length > 0) within a track for different purposes:
+      description: >
+        Marker to identify a point (no length or length = 0) or section (length
+        > 0) within a track for different purposes:
           * Cueing - jump points without a length
           * Fading - short sections for automatic playback transitions, only one in/out per track
           * Mixing - long sections for manual transitions with beat matching
@@ -1317,8 +1348,8 @@ components:
           $ref: '#/components/schemas/TrackCollection'
         source:
           $ref: '#/components/schemas/TrackSource'
-        color:
-          $ref: '#/components/schemas/Color'
+        colorCode:
+          $ref: '#/components/schemas/ColorCode'
         playCounter:
           type: integer
           minimum: 0

@@ -37,9 +37,7 @@
                             }
                         }
                     },
-                    "color": {
-                        "code": 16711680
-                    }
+                    "colorCode": "#FF808080"
                 }
             ],
             "xrefs": [

@@ -48,7 +48,7 @@ fn serialize_json() {
             since: Utc::now(),
         },
         source,
-        color: Some(TrackColor::RED),
+        color_code: Some(ColorCode::RED),
         play_counter: None,
     }];
     let tags = vec![

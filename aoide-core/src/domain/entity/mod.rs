@@ -149,10 +149,7 @@ impl<'de> SerdeDeserializeVisitor<'de> for EntityUidDeserializeVisitor {
     where
         E: de::Error,
     {
-        match EntityUid::decode_from_str(value) {
-            Ok(result) => Ok(result),
-            Err(e) => Err(E::custom(e.to_string())),
-        }
+        EntityUid::decode_from_str(value).map_err(|e| E::custom(e.to_string()))
     }
 }
 

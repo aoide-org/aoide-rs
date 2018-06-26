@@ -351,7 +351,9 @@ impl<'a> InsertableTracksResource<'a> {
                 .and_then(|audio| audio.encoder.as_ref())
                 .and_then(|enc| enc.settings.as_ref())
                 .map(|settings| settings.as_str()),
-            color_code: track_resource.color.map(|color| color.code as i32),
+            color_code: track_resource
+                .color_code
+                .map(|color_code| *color_code as i32),
         }
     }
 }
