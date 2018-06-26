@@ -585,10 +585,10 @@ components:
             $ref: '#/components/schemas/ExternalReference'
     AudioContent:
       properties:
-        duration:
-          $ref: '#/components/schemas/Duration'
         channels:
           $ref: '#/components/schemas/Channels'
+        duration_ms:
+          $ref: '#/components/schemas/DurationMs'
         samplerate:
           $ref: '#/components/schemas/SampleRate'
         bitrate:
@@ -627,11 +627,11 @@ components:
       properties:
         totalCount:
           $ref: '#/components/schemas/TotalCount'
-        totalDuration:
-          $ref: '#/components/schemas/Duration'
+        totalDurationMs:
+          $ref: '#/components/schemas/DurationMs'
       required:
         - totalCount
-        - totalDuration
+        - totalDurationMs
     CollectionEntity:
       properties:
         header:
@@ -681,14 +681,10 @@ components:
       type: string
       enum:
         - not
-    Duration:
-      required:
-        - ms
-      properties:
-        ms:
-          type: number
-          minimum: 0
-          example: 210387.576
+    DurationMs:
+      type: number
+      minimum: 0
+      example: 210387.576
     EntityUid:
       type: string
       minLength: 32
@@ -1278,10 +1274,10 @@ components:
       properties:
         mark:
           $ref: '#/components/schemas/TrackMark'
-        offset:
-          $ref: '#/components/schemas/Duration'
-        length:
-          $ref: '#/components/schemas/Duration'
+        offsetMs:
+          $ref: '#/components/schemas/DurationMs'
+        lengthMs:
+          $ref: '#/components/schemas/DurationMs'
         number:
           type: integer
         label:

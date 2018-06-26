@@ -56,3 +56,17 @@ fn channel_count_default_layout() {
     assert_eq!(Some(ChannelLayout::Stereo), Channels::default_layout(2));
     assert_eq!(None, Channels::default_layout(3));
 }
+
+#[test]
+fn duration_default() {
+    assert_eq!(DurationMs::EMPTY, DurationMs::default());
+}
+
+#[test]
+fn duration_to_string() {
+    assert!(
+        DurationMs::default()
+            .to_string()
+            .ends_with(DurationMs::UNIT_OF_MEASURE)
+    );
+}

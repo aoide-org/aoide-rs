@@ -25,9 +25,7 @@
                         },
                         "mediaType": "audio/mpeg",
                         "audioContent": {
-                            "duration": {
-                                "ms": 202821
-                            },
+                            "durationMs": 202821,
                             "channels": {
                                 "count": 2
                             },

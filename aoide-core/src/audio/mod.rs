@@ -20,6 +20,8 @@ pub mod signal;
 mod tests;
 
 use std::fmt;
+use std::ops::Deref;
+use std::time::Duration;
 use std::u16;
 
 ///////////////////////////////////////////////////////////////////////
@@ -30,19 +32,15 @@ pub type DurationValue = f64;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Duration {
-    pub ms: DurationValue,
-}
+pub struct DurationMs(DurationValue);
 
-impl Duration {
+impl DurationMs {
     pub const UNIT_OF_MEASURE: &'static str = "ms";
 
-    pub const EMPTY: Duration = Duration {
-        ms: 0 as DurationValue,
-    };
+    pub const EMPTY: DurationMs = DurationMs(0 as DurationValue);
 
-    pub fn ms(ms: DurationValue) -> Self {
-        Self { ms }
+    pub fn new(ms: DurationValue) -> Self {
+        DurationMs(ms)
     }
 
     pub fn is_valid(&self) -> bool {
@@ -54,9 +52,25 @@ impl Duration {
     }
 }
 
-impl fmt::Display for Duration {
+impl From<Duration> for DurationMs {
+    fn from(duration: Duration) -> Self {
+        let secs = duration.as_secs() as DurationValue;
+        let subsec_nanos = duration.subsec_nanos() as DurationValue;
+        Self::new(secs * 1_000 as DurationValue + subsec_nanos / 1_000_000 as DurationValue)
+    }
+}
+
+impl Deref for DurationMs {
+    type Target = DurationValue;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl fmt::Display for DurationMs {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", self.ms, Duration::UNIT_OF_MEASURE)
+        write!(f, "{} {}", **self, DurationMs::UNIT_OF_MEASURE)
     }
 }
 

@@ -17,7 +17,7 @@ use failure::Error;
 
 use api::Pagination;
 
-use aoide_core::audio::Duration;
+use aoide_core::audio::DurationMs;
 use aoide_core::domain::collection::*;
 use aoide_core::domain::entity::*;
 
@@ -58,7 +58,7 @@ pub trait Collections {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct CollectionTrackStats {
     pub total_count: usize,
-    pub total_duration: Duration,
+    pub total_duration_ms: DurationMs,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]

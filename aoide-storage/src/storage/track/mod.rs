@@ -1279,17 +1279,17 @@ impl<'a> Tracks for TrackRepository<'a> {
             .filter(aux_track_resource::collection_uid.eq(collection_uid.as_ref()))
             .first::<i64>(self.connection)? as usize;
 
-        let total_duration_ms = aux_track_resource::table
+        let sum_duration_ms = aux_track_resource::table
             .select(diesel::dsl::sum(aux_track_resource::audio_duration_ms))
             .filter(aux_track_resource::collection_uid.eq(collection_uid.as_ref()))
             .first::<Option<f64>>(self.connection)?;
-        let total_duration = total_duration_ms
-            .map(|ms| Duration { ms })
-            .unwrap_or(Duration::EMPTY);
+        let total_duration_ms = sum_duration_ms
+            .map(|sum| DurationMs::new(sum))
+            .unwrap_or(DurationMs::EMPTY);
 
         Ok(CollectionTrackStats {
             total_count,
-            total_duration,
+            total_duration_ms,
         })
     }
 }

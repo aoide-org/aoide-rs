@@ -54,7 +54,7 @@ impl AudioEncoder {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AudioContent {
-    pub duration: Duration,
+    pub duration_ms: DurationMs,
 
     pub channels: Channels,
 
@@ -71,7 +71,7 @@ pub struct AudioContent {
 
 impl AudioContent {
     pub fn is_valid(&self) -> bool {
-        !self.duration.is_empty()
+        !self.duration_ms.is_empty()
             && self.channels.is_valid()
             && self.samplerate.is_valid()
             && self.bitrate.is_valid()
@@ -340,10 +340,10 @@ pub enum TrackMark {
 pub struct TrackMarker {
     pub mark: TrackMark,
 
-    pub offset: Duration,
+    pub offset_ms: DurationMs,
 
-    #[serde(skip_serializing_if = "Duration::is_empty", default)]
-    pub length: Duration,
+    #[serde(skip_serializing_if = "DurationMs::is_empty", default)]
+    pub length_ms: DurationMs,
 
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub label: String,
@@ -364,9 +364,9 @@ impl TrackMarker {
     }
 
     pub fn is_valid(&self) -> bool {
-        self.offset.is_valid() && self.length.is_valid() && match self.mark {
-            TrackMark::LoadCue | TrackMark::HotCue => self.length.is_empty(), // not available
-            TrackMark::Sample | TrackMark::Loop => !self.length.is_empty(),   // mandatory
+        self.offset_ms.is_valid() && self.length_ms.is_valid() && match self.mark {
+            TrackMark::LoadCue | TrackMark::HotCue => self.length_ms.is_empty(), // not available
+            TrackMark::Sample | TrackMark::Loop => !self.length_ms.is_empty(),   // mandatory
             _ => true, // optional, i.e. no restrictions on length
         }
     }
