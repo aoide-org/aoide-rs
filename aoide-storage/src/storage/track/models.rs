@@ -277,8 +277,8 @@ pub struct InsertableTracksResource<'a> {
     pub source_sync_rev_ordinal: Option<i64>,
     pub source_sync_rev_timestamp: Option<NaiveDateTime>,
     pub media_type: &'a str,
-    pub audio_duration_ms: Option<f64>,
     pub audio_channels_count: Option<i16>,
+    pub audio_duration_ms: Option<f64>,
     pub audio_samplerate_hz: Option<i32>,
     pub audio_bitrate_bps: Option<i32>,
     pub audio_loudness_db: Option<Decibel>,
@@ -310,33 +310,33 @@ impl<'a> InsertableTracksResource<'a> {
                 .synchronization
                 .map(|sync| sync.revision.timestamp().naive_utc()),
             media_type: track_resource.source.media_type.as_str(),
-            audio_duration_ms: track_resource
-                .source
-                .audio_content
-                .as_ref()
-                .map(|audio| *audio.duration_ms),
             audio_channels_count: track_resource
                 .source
                 .audio_content
                 .as_ref()
                 .map(|audio| *audio.channels.count as i16),
+            audio_duration_ms: track_resource
+                .source
+                .audio_content
+                .as_ref()
+                .map(|audio| audio.duration.ms()),
             audio_samplerate_hz: track_resource
                 .source
                 .audio_content
                 .as_ref()
-                .map(|audio| *audio.samplerate_hz as i32),
+                .map(|audio| audio.sample_rate.hz() as i32),
             audio_bitrate_bps: track_resource
                 .source
                 .audio_content
                 .as_ref()
-                .map(|audio| *audio.bitrate_bps as i32),
+                .map(|audio| audio.bit_rate.bps() as i32),
             audio_loudness_db: track_resource
                 .source
                 .audio_content
                 .as_ref()
                 .and_then(|audio| audio.loudness)
                 .and_then(|loudness| match loudness {
-                    Loudness::EbuR128(lufs_db) => Some(*lufs_db),
+                    Loudness::EbuR128(lufs) => Some(lufs.db()),
                 }),
             audio_enc_name: track_resource
                 .source
@@ -380,7 +380,7 @@ impl InsertableTracksMusic {
     pub fn bind(track_id: StorageId, profile: &SongProfile) -> Self {
         Self {
             track_id,
-            tempo_bpm: profile.tempo.bpm,
+            tempo_bpm: *profile.tempo_bpm,
             timesig_top: profile.time_signature.top() as i16,
             timesig_bottom: profile.time_signature.bottom() as i16,
             keysig_code: profile.key_signature.code as i16,

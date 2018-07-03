@@ -589,9 +589,9 @@ components:
           $ref: '#/components/schemas/Channels'
         durationMs:
           $ref: '#/components/schemas/DurationMs'
-        samplerateHz:
+        sampleRateHz:
           $ref: '#/components/schemas/SampleRateHz'
-        bitrateBps:
+        bitRateBps:
           $ref: '#/components/schemas/BitRateBps'
         loudness:
           $ref: '#/components/schemas/Loudness'
@@ -640,11 +640,11 @@ components:
       properties:
         totalCount:
           $ref: '#/components/schemas/TotalCount'
-        totalDurationMs:
+        totalDuration:
           $ref: '#/components/schemas/DurationMs'
       required:
         - totalCount
-        - totalDurationMs
+        - totalDuration
     CollectionEntity:
       properties:
         header:
@@ -830,14 +830,14 @@ components:
     NumericField:
       type: string
       enum:
-        - bitrate-bps
+        - bit-rate-bps
         - channels-count
         - duration-ms
-        - keysig-code
-        - samplerate-hz
+        - key-sig-code
+        - sample-rate-hz
         - tempo-bpm
-        - timesig-top
-        - timesig-bottom
+        - time-sig-top
+        - time-sig-bottom
     NumericFilter:
       properties:
         modifier:

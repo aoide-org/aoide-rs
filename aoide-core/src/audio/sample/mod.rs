@@ -156,7 +156,6 @@ impl SampleRange {
 pub type SamplesPerSecond = u32;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SampleRateHz(SamplesPerSecond);
 
 impl SampleRateHz {
@@ -170,8 +169,12 @@ impl SampleRateHz {
     pub const STUDIO_96KHZ: Self = SampleRateHz(96_000);
     pub const STUDIO_192KHZ: Self = SampleRateHz(192_000);
 
-    pub fn new(hz: SamplesPerSecond) -> Self {
+    pub fn from_hz(hz: SamplesPerSecond) -> Self {
         SampleRateHz(hz)
+    }
+
+    pub fn hz(&self) -> SamplesPerSecond {
+        self.0
     }
 
     pub fn is_valid(&self) -> bool {
@@ -179,16 +182,8 @@ impl SampleRateHz {
     }
 }
 
-impl Deref for SampleRateHz {
-    type Target = SamplesPerSecond;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
 impl fmt::Display for SampleRateHz {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", **self, SampleRateHz::UNIT_OF_MEASURE)
+        write!(f, "{} {}", self.hz(), SampleRateHz::UNIT_OF_MEASURE)
     }
 }

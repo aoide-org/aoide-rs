@@ -28,19 +28,22 @@ use std::u16;
 /// Duration
 ///////////////////////////////////////////////////////////////////////
 
-pub type DurationValue = f64;
+pub type DurationInMilliseconds = f64;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct DurationMs(DurationValue);
+pub struct DurationMs(DurationInMilliseconds);
 
 impl DurationMs {
     pub const UNIT_OF_MEASURE: &'static str = "ms";
 
-    pub const EMPTY: DurationMs = DurationMs(0 as DurationValue);
+    pub const EMPTY: DurationMs = DurationMs(0 as DurationInMilliseconds);
 
-    pub fn new(ms: DurationValue) -> Self {
+    pub fn from_ms(ms: DurationInMilliseconds) -> Self {
         DurationMs(ms)
+    }
+
+    pub fn ms(&self) -> DurationInMilliseconds {
+        self.0
     }
 
     pub fn is_valid(&self) -> bool {
@@ -54,23 +57,18 @@ impl DurationMs {
 
 impl From<Duration> for DurationMs {
     fn from(duration: Duration) -> Self {
-        let secs = duration.as_secs() as DurationValue;
-        let subsec_nanos = duration.subsec_nanos() as DurationValue;
-        Self::new(secs * 1_000 as DurationValue + subsec_nanos / 1_000_000 as DurationValue)
-    }
-}
-
-impl Deref for DurationMs {
-    type Target = DurationValue;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+        let secs = duration.as_secs() as DurationInMilliseconds;
+        let subsec_nanos = duration.subsec_nanos() as DurationInMilliseconds;
+        Self::from_ms(
+            secs * 1_000 as DurationInMilliseconds
+                + subsec_nanos / 1_000_000 as DurationInMilliseconds,
+        )
     }
 }
 
 impl fmt::Display for DurationMs {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", **self, DurationMs::UNIT_OF_MEASURE)
+        write!(f, "{} {}", self.ms(), DurationMs::UNIT_OF_MEASURE)
     }
 }
 
@@ -92,8 +90,8 @@ impl ChannelCount {
     }
 
     pub fn is_valid(&self) -> bool {
-        debug_assert!(self <= &Self::MAX);
-        self >= &Self::MIN
+        debug_assert!(*self <= Self::MAX);
+        *self >= Self::MIN
     }
 }
 
@@ -180,22 +178,17 @@ impl Channels {
 pub type Decibel = f64;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LufsDb(Decibel);
 
 impl LufsDb {
     pub const UNIT_OF_MEASURE: &'static str = "dB";
 
-    pub fn new(db: Decibel) -> Self {
+    pub fn from_db(db: Decibel) -> Self {
         LufsDb(db)
     }
-}
 
-impl Deref for LufsDb {
-    type Target = Decibel;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+    pub fn db(&self) -> Decibel {
+        self.0
     }
 }
 
@@ -214,7 +207,7 @@ impl Loudness {
 impl fmt::Display for Loudness {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            &Loudness::EbuR128(lufs_db) => write!(f, "{} {}", *lufs_db, LufsDb::UNIT_OF_MEASURE),
+            &Loudness::EbuR128(lufs) => write!(f, "{} {}", lufs.db(), LufsDb::UNIT_OF_MEASURE),
         }
     }
 }

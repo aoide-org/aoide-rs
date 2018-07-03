@@ -227,7 +227,7 @@ where
                         .filter(aux_track_profile::tempo_bpm.ne(numeric_filter.condition.value)),
                 },
             },
-            NumericField::KeysigCode => match numeric_filter.condition.comparator {
+            NumericField::KeySigCode => match numeric_filter.condition.comparator {
                 NumericComparator::LessThan => match numeric_filter.condition.modifier {
                     None => select.filter(
                         aux_track_profile::keysig_code.lt(numeric_filter.condition.value as i16),
@@ -253,7 +253,7 @@ where
                     ),
                 },
             },
-            NumericField::TimesigTop => match numeric_filter.condition.comparator {
+            NumericField::TimeSigTop => match numeric_filter.condition.comparator {
                 NumericComparator::LessThan => match numeric_filter.condition.modifier {
                     None => select.filter(
                         aux_track_profile::timesig_top.lt(numeric_filter.condition.value as i16),
@@ -279,7 +279,7 @@ where
                     ),
                 },
             },
-            NumericField::TimesigBottom => match numeric_filter.condition.comparator {
+            NumericField::TimeSigBottom => match numeric_filter.condition.comparator {
                 NumericComparator::LessThan => match numeric_filter.condition.modifier {
                     None => select.filter(
                         aux_track_profile::timesig_bottom.lt(numeric_filter.condition.value as i16),
@@ -860,7 +860,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                             },
                         },
                     },
-                    NumericField::SamplerateHz => match numeric_filter.condition.comparator {
+                    NumericField::SampleRateHz => match numeric_filter.condition.comparator {
                         NumericComparator::LessThan => match numeric_filter.condition.modifier {
                             None => match numeric_filter.modifier {
                                 None => target.filter(
@@ -922,7 +922,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                             },
                         },
                     },
-                    NumericField::BitrateBps => match numeric_filter.condition.comparator {
+                    NumericField::BitRateBps => match numeric_filter.condition.comparator {
                         NumericComparator::LessThan => match numeric_filter.condition.modifier {
                             None => match numeric_filter.modifier {
                                 None => target.filter(
@@ -1283,13 +1283,13 @@ impl<'a> Tracks for TrackRepository<'a> {
             .select(diesel::dsl::sum(aux_track_resource::audio_duration_ms))
             .filter(aux_track_resource::collection_uid.eq(collection_uid.as_ref()))
             .first::<Option<f64>>(self.connection)?;
-        let total_duration_ms = sum_duration_ms
-            .map(|sum| DurationMs::new(sum))
+        let total_duration = sum_duration_ms
+            .map(|ms| DurationMs::from_ms(ms))
             .unwrap_or(DurationMs::EMPTY);
 
         Ok(CollectionTrackStats {
             total_count,
-            total_duration_ms,
+            total_duration,
         })
     }
 }

@@ -18,6 +18,7 @@ mod tests;
 
 use std::f64;
 use std::fmt;
+use std::ops::Deref;
 
 ///////////////////////////////////////////////////////////////////////
 /// Tempo
@@ -26,21 +27,16 @@ use std::fmt;
 pub type BeatsPerMinute = f64;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Tempo {
-    pub bpm: BeatsPerMinute,
-}
+pub struct TempoBpm(BeatsPerMinute);
 
-impl Tempo {
+impl TempoBpm {
     pub const UNIT_OF_MEASURE: &'static str = "bpm";
 
-    pub const MIN: Self = Self {
-        bpm: f64::MIN_POSITIVE,
-    };
-    pub const MAX: Self = Self { bpm: f64::MAX };
+    pub const MIN: Self = TempoBpm(f64::MIN_POSITIVE);
+    pub const MAX: Self = TempoBpm(f64::MAX);
 
-    pub fn bpm(bpm: BeatsPerMinute) -> Self {
-        Self { bpm }
+    pub fn new(bpm: BeatsPerMinute) -> Self {
+        TempoBpm(bpm)
     }
 
     pub fn is_default(&self) -> bool {
@@ -48,13 +44,21 @@ impl Tempo {
     }
 
     pub fn is_valid(&self) -> bool {
-        *self > Self::default()
+        *self >= Self::MIN && *self <= Self::MAX
     }
 }
 
-impl fmt::Display for Tempo {
+impl Deref for TempoBpm {
+    type Target = BeatsPerMinute;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl fmt::Display for TempoBpm {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", self.bpm, Tempo::UNIT_OF_MEASURE)
+        write!(f, "{} {}", **self, TempoBpm::UNIT_OF_MEASURE)
     }
 }
 

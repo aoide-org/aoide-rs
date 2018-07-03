@@ -58,7 +58,7 @@ pub trait Collections {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct CollectionTrackStats {
     pub total_count: usize,
-    pub total_duration_ms: DurationMs,
+    pub total_duration: DurationMs,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]

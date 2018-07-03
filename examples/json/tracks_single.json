@@ -30,8 +30,8 @@
                                 "layout": "stereo"
                             },
                             "durationMs": 202821,
-                            "samplerateHz": 44100,
-                            "bitrateBps": 320000,
+                            "sampleRateHz": 44100,
+                            "bitRateBps": 320000,
                             "loudness": {
                                 "ebuR128LufsDb": -9.55269
                             }
@@ -110,9 +110,7 @@
                 "explicit": true
             },
             "profile": {
-                "tempo": {
-                    "bpm": 145.0
-                },
+                "tempoBpm": 145.0,
                 "timesig": [
                     4,
                     4

@@ -37,26 +37,22 @@ impl BitRateBps {
     pub const MIN: Self = BitRateBps(1);
     pub const MAX: Self = BitRateBps(u32::MAX);
 
-    pub fn new(bps: BitsPerSecond) -> Self {
+    pub fn from_bps(bps: BitsPerSecond) -> Self {
         BitRateBps(bps)
     }
 
-    pub fn is_valid(&self) -> bool {
-        self >= &Self::MIN
+    pub fn bps(&self) -> BitsPerSecond {
+        self.0
     }
-}
 
-impl Deref for BitRateBps {
-    type Target = SamplesPerSecond;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+    pub fn is_valid(&self) -> bool {
+        *self >= Self::MIN
     }
 }
 
 impl fmt::Display for BitRateBps {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", **self, BitRateBps::UNIT_OF_MEASURE)
+        write!(f, "{} {}", self.bps(), Self::UNIT_OF_MEASURE)
     }
 }
 
@@ -68,27 +64,34 @@ pub type LatencyInMilliseconds = f64;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Latency {
-    pub ms: LatencyInMilliseconds,
-}
+pub struct LatencyMs(LatencyInMilliseconds);
 
-impl Latency {
+impl LatencyMs {
     pub const UNIT_OF_MEASURE: &'static str = "ms";
 
-    const UNITS_PER_SECOND: f64 = 1000 as f64;
+    const UNITS_PER_SECOND: LatencyInMilliseconds = 1_000 as LatencyInMilliseconds;
+
+    pub fn from_ms(ms: LatencyInMilliseconds) -> Self {
+        LatencyMs(ms)
+    }
 
     pub fn from_sample_duration_and_rate(
-        sample_duration: SampleLength,
-        samplerate_hz: SampleRateHz,
-    ) -> Latency {
-        let ms = (*sample_duration * Self::UNITS_PER_SECOND) / (*samplerate_hz as f64);
-        Latency { ms }
+        sample_length: SampleLength,
+        sample_rate: SampleRateHz,
+    ) -> LatencyMs {
+        Self::from_ms(
+            (*sample_length * Self::UNITS_PER_SECOND) / (sample_rate.hz() as LatencyInMilliseconds),
+        )
+    }
+
+    pub fn ms(&self) -> LatencyInMilliseconds {
+        self.0
     }
 }
 
-impl fmt::Display for Latency {
+impl fmt::Display for LatencyMs {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", self.ms, Latency::UNIT_OF_MEASURE)
+        write!(f, "{} {}", self.ms(), LatencyMs::UNIT_OF_MEASURE)
     }
 }
 
@@ -103,20 +106,20 @@ pub struct PcmSignal {
 
     pub sample_layout: SampleLayout,
 
-    pub samplerate_hz: SampleRateHz,
+    pub sample_rate: SampleRateHz,
 }
 
 impl PcmSignal {
     pub fn is_valid(&self) -> bool {
-        self.samplerate_hz.is_valid()
+        self.sample_rate.is_valid()
     }
 
-    pub fn bit_rate(&self, bits_per_sample: BitsPerSample) -> Option<BitRateBps> {
+    pub fn bitrate(&self, bits_per_sample: BitsPerSample) -> Option<BitRateBps> {
         if self.is_valid() {
             let bps = *self.channel_layout.channel_count() as BitsPerSecond
-                * *self.samplerate_hz as BitsPerSecond
+                * self.sample_rate.hz() as BitsPerSecond
                 * bits_per_sample as BitsPerSecond;
-            Some(BitRateBps::new(bps))
+            Some(BitRateBps::from_bps(bps))
         } else {
             None
         }

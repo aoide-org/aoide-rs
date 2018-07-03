@@ -124,14 +124,14 @@ impl TagFilter {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum NumericField {
+    BitRateBps,
     ChannelsCount,
     DurationMs,
-    SamplerateHz,
-    BitrateBps,
+    KeySigCode,
+    SampleRateHz,
     TempoBpm,
-    KeysigCode,
-    TimesigTop,
-    TimesigBottom,
+    TimeSigBottom,
+    TimeSigTop,
 }
 
 pub type NumericValue = f64;

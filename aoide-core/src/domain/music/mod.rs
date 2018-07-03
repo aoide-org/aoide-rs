@@ -296,8 +296,8 @@ impl ScoredSongFeature {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SongProfile {
-    #[serde(skip_serializing_if = "Tempo::is_default", default)]
-    pub tempo: Tempo,
+    #[serde(skip_serializing_if = "TempoBpm::is_default", default)]
+    pub tempo_bpm: TempoBpm,
 
     #[serde(rename = "timesig", skip_serializing_if = "TimeSignature::is_default", default)]
     pub time_signature: TimeSignature,
@@ -311,7 +311,7 @@ pub struct SongProfile {
 
 impl SongProfile {
     pub fn is_valid(&self) -> bool {
-        (self.tempo.is_valid() || self.tempo.is_default())
+        (self.tempo_bpm.is_default() || self.tempo_bpm.is_valid())
             && (self.time_signature.is_valid() || self.time_signature.is_default())
             && (self.key_signature.is_valid() || self.key_signature.is_default())
             && self.features.iter().all(ScoredSongFeature::is_valid)
