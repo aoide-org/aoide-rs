@@ -20,8 +20,8 @@ aoide-storage = { path = "aoide-storage" }
 aoide-core = { version = "*", path = "aoide-core" }
 aoide-storage = { version = "*", path = "aoide-storage" }
 
-actix = { git = "https://github.com/actix/actix" }
-actix-web = { git = "https://github.com/actix/actix-web" }
+actix = "0.5.*"
+actix-web = "0.6.*"
 clap = "*"
 diesel = { version = "*", features = ["r2d2", "sqlite"] }
 diesel_migrations =  { version = "*", features = ["sqlite"] }

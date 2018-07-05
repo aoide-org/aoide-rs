@@ -65,7 +65,7 @@ impl Actor for SqliteExecutor {
 }
 
 pub struct AppState {
-    pub executor: Addr<SqliteExecutor>,
+    pub executor: Addr<Syn, SqliteExecutor>,
 }
 
 #[derive(Debug)]
