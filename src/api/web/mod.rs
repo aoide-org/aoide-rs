@@ -20,7 +20,7 @@ use actix_web::{error, *};
 use diesel::prelude::*;
 use diesel::r2d2::ConnectionManager;
 
-use failure::Error;
+use failure::{Error, Fail};
 
 use futures::future::Future;
 
@@ -98,6 +98,7 @@ pub fn on_create_collection(
     state
         .executor
         .send(msg)
+        .map_err(|err| err.compat())
         .from_err()
         .and_then(|res| match res {
             Ok(collection) => Ok(HttpResponse::Created().json(collection.header())),
@@ -139,6 +140,7 @@ pub fn on_update_collection(
     state
         .executor
         .send(msg)
+        .map_err(|err| err.compat())
         .from_err()
         .and_then(move |res| match res {
             Ok((_, Some(next_revision))) => {
@@ -183,6 +185,7 @@ pub fn on_delete_collection(
     state
         .executor
         .send(msg)
+        .map_err(|err| err.compat())
         .from_err()
         .and_then(|res| match res {
             Ok(Some(())) => Ok(HttpResponse::NoContent().into()),
@@ -262,6 +265,7 @@ pub fn on_load_collection(
     state
         .executor
         .send(msg)
+        .map_err(|err| err.compat())
         .from_err()
         .and_then(|res| match res {
             Ok(Some(collection)) => Ok(HttpResponse::Ok().json(collection)),
@@ -301,6 +305,7 @@ pub fn on_list_collections(
     state
         .executor
         .send(msg)
+        .map_err(|err| err.compat())
         .from_err()
         .and_then(|res| match res {
             Ok(collections) => Ok(HttpResponse::Ok().json(collections)),
@@ -341,6 +346,7 @@ pub fn on_create_track(
     state
         .executor
         .send(msg)
+        .map_err(|err| err.compat())
         .from_err()
         .and_then(|res| match res {
             Ok(track) => Ok(HttpResponse::Created().json(track.header())),
@@ -384,6 +390,7 @@ pub fn on_update_track(
     state
         .executor
         .send(msg)
+        .map_err(|err| err.compat())
         .from_err()
         .and_then(move |res| match res {
             Ok((_, Some(next_revision))) => {
@@ -428,6 +435,7 @@ pub fn on_delete_track(
     state
         .executor
         .send(msg)
+        .map_err(|err| err.compat())
         .from_err()
         .and_then(|res| match res {
             Ok(Some(())) => Ok(HttpResponse::NoContent().into()),
@@ -467,6 +475,7 @@ pub fn on_load_track(
     state
         .executor
         .send(msg)
+        .map_err(|err| err.compat())
         .from_err()
         .and_then(|res| match res {
             Ok(Some(serialized_track)) => {
@@ -528,6 +537,7 @@ pub fn on_list_tracks(
     state
         .executor
         .send(msg)
+        .map_err(|err| err.compat())
         .from_err()
         .and_then(|res| match res {
             Ok(serialized_tracks) => SerializedEntity::slice_to_json_array(&serialized_tracks),
@@ -558,6 +568,7 @@ pub fn on_search_tracks(
     state
         .executor
         .send(msg)
+        .map_err(|err| err.compat())
         .from_err()
         .and_then(|res| match res {
             Ok(serialized_tracks) => SerializedEntity::slice_to_json_array(&serialized_tracks),
@@ -613,6 +624,7 @@ pub fn on_locate_tracks(
     state
         .executor
         .send(msg)
+        .map_err(|err| err.compat())
         .from_err()
         .and_then(|res| match res {
             Ok(serialized_tracks) => SerializedEntity::slice_to_json_array(&serialized_tracks),
@@ -667,6 +679,7 @@ pub fn on_replace_tracks(
     state
         .executor
         .send(msg)
+        .map_err(|err| err.compat())
         .from_err()
         .and_then(|res| match res {
             Ok(res) => Ok(HttpResponse::Ok().json(res)),
@@ -753,6 +766,7 @@ pub fn on_list_tracks_fields(
     state
         .executor
         .send(msg)
+        .map_err(|err| err.compat())
         .from_err()
         .and_then(|res| match res {
             Ok(tags) => Ok(HttpResponse::Ok().json(tags)),
@@ -829,6 +843,7 @@ pub fn on_list_tracks_tags(
     state
         .executor
         .send(msg)
+        .map_err(|err| err.compat())
         .from_err()
         .and_then(|res| match res {
             Ok(tags) => Ok(HttpResponse::Ok().json(tags)),
@@ -882,6 +897,7 @@ pub fn on_list_tracks_tags_facets(
     state
         .executor
         .send(msg)
+        .map_err(|err| err.compat())
         .from_err()
         .and_then(|res| match res {
             Ok(tags) => Ok(HttpResponse::Ok().json(tags)),

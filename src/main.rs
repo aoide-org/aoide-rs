@@ -112,47 +112,13 @@ fn init_env_logger(log_level_filter: LogLevelFilter) {
     logger_builder.init();
 }
 
-pub fn main() -> Result<(), Error> {
-    let arg_matches = ArgMatches::new(
-        App::new(env!("CARGO_PKG_NAME"))
-            .author(env!("CARGO_PKG_AUTHORS"))
-            .version(env!("CARGO_PKG_VERSION"))
-            .about(env!("CARGO_PKG_DESCRIPTION")),
-    );
-
-    init_env_logger(arg_matches.log_level_filter());
-
-    let database_url = arg_matches.database_url();
-    info!("Database URL: {}", database_url);
-
-    let listen_addr = arg_matches.listen_addr();
-    info!("Network listen address: {}", listen_addr);
-
-    // Workaround: Use a pool of size 1 to avoid 'database is locked'
-    // errors due to multi-threading.
-    let connection_pool =
-        create_connection_pool(database_url, 1).expect("Failed to create database connection pool");
-
-    if arg_matches.skip_database_maintenance() {
-        info!("Skipping database maintenance");
-    } else {
-        migrate_database_schema(&connection_pool).unwrap();
-        cleanup_database_storage(&connection_pool).unwrap();
-        repair_database_storage(&connection_pool).unwrap();
-    }
-
-    info!("Creating actor system");
-    let sys = actix::System::new(env!("CARGO_PKG_NAME"));
-
-    info!("Registering route handlers");
-    let addr = SyncArbiter::start(3, move || SqliteExecutor::new(connection_pool.clone()));
-    server::new(move || {
-        actix_web::App::with_state(AppState {
-                executor: addr.clone(),
+fn web_app(executor: &Addr<SqliteExecutor>) -> actix_web::App<AppState> {
+    actix_web::App::with_state(AppState {
+                executor: executor.clone(),
             })
             .middleware(actix_web::middleware::Logger::default()) // enable logger
             .prefix("/")
-            .handler("/", fs::StaticFiles::new("./resources/").index_file("index.html"))
+            .handler("/", fs::StaticFiles::new("./resources/").expect("Missing resources folder").index_file("index.html"))
             .resource("/tracks", |r| {
                 r.method(http::Method::GET).with_async(on_list_tracks);
                 r.method(http::Method::POST).with_async_config(on_create_track,
@@ -237,8 +203,51 @@ pub fn main() -> Result<(), Error> {
                 r.route().filter(pred::Not(pred::Get())).f(
                     |_req| HttpResponse::MethodNotAllowed());
             })
-    }).bind(listen_addr)
-        .unwrap()
+}
+
+pub fn main() -> Result<(), Error> {
+    let arg_matches = ArgMatches::new(
+        App::new(env!("CARGO_PKG_NAME"))
+            .author(env!("CARGO_PKG_AUTHORS"))
+            .version(env!("CARGO_PKG_VERSION"))
+            .about(env!("CARGO_PKG_DESCRIPTION")),
+    );
+
+    init_env_logger(arg_matches.log_level_filter());
+
+    let database_url = arg_matches.database_url();
+    info!("Database URL: {}", database_url);
+
+    let listen_addr = arg_matches.listen_addr();
+    info!("Network listen address: {}", listen_addr);
+
+    // Workaround: Use a pool of size 1 to avoid 'database is locked'
+    // errors due to multi-threading.
+    let connection_pool =
+        create_connection_pool(database_url, 1).expect("Failed to create database connection pool");
+
+    if arg_matches.skip_database_maintenance() {
+        info!("Skipping database maintenance");
+    } else {
+        migrate_database_schema(&connection_pool).unwrap();
+        cleanup_database_storage(&connection_pool).unwrap();
+        repair_database_storage(&connection_pool).unwrap();
+    }
+
+    let sys_name = env!("CARGO_PKG_NAME");
+    info!("Creating actor system '{}'", sys_name);
+    let sys = actix::System::new(env!("CARGO_PKG_NAME"));
+
+    let num_worker_threads = 3;
+    info!("Starting {} executor worker threads", num_worker_threads);
+    let executor = SyncArbiter::start(num_worker_threads, move || {
+        SqliteExecutor::new(connection_pool.clone())
+    });
+
+    info!("Registering route handlers");
+    server::HttpServer::new(move || web_app(&executor))
+        .bind(listen_addr)
+        .expect(&format!("Failed to bind listen address '{}'", listen_addr))
         .start();
 
     info!("Running actor system");
