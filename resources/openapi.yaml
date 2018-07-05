@@ -747,16 +747,12 @@ components:
         Identifies the number of the current item and the number of total items.
         Both values are optional and might be `null`.
     KeySignature:
-      properties:
-        code:
-          type: integer
-          minimum: 0
-          maximum: 24
-          example: 1
-      required:
-        - code
+      type: integer
+      minimum: 0
+      maximum: 24
+      example: 1
       description: |
-        The key signature is denoted by a code:
+        The key signature is denoted by a code with one of the following values:
           * 0 = unknown/invalid
           * 1 = C maj
           * 2 = A min
@@ -1029,11 +1025,11 @@ components:
         - valence
     SongProfile:
       properties:
-        tempo:
-          $ref: '#/components/schemas/Tempo'
-        timesig:
+        tempoBpm:
+          $ref: '#/components/schemas/TempoBpm'
+        timeSig:
           $ref: '#/components/schemas/TimeSignature'
-        keysig:
+        keySig:
           $ref: '#/components/schemas/KeySignature'
         features:
           type: array
@@ -1128,16 +1124,12 @@ components:
       example: Hip Hop/Rap
       description: |
         Non-empty string that defines the textual content of the tag.
-    Tempo:
-      properties:
-        bpm:
-          type: number
-          minimum: 0
-          example: 110.67
-      required:
-        - bpm
+    TempoBpm:
+      type: number
+      minimum: 0
+      example: 110.67
       description: |
-        The tempo measured in `beats per minute`.
+        The tempo measured in `beats per minute` (bpm).
     TimeSignature:
       type: array
       minLength: 2

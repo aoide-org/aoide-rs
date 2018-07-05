@@ -18,7 +18,6 @@ mod tests;
 
 use std::f64;
 use std::fmt;
-use std::ops::Deref;
 
 ///////////////////////////////////////////////////////////////////////
 /// Tempo
@@ -35,8 +34,12 @@ impl TempoBpm {
     pub const MIN: Self = TempoBpm(f64::MIN_POSITIVE);
     pub const MAX: Self = TempoBpm(f64::MAX);
 
-    pub fn new(bpm: BeatsPerMinute) -> Self {
+    pub fn from_bpm(bpm: BeatsPerMinute) -> Self {
         TempoBpm(bpm)
+    }
+
+    pub fn bpm(&self) -> BeatsPerMinute {
+        self.0
     }
 
     pub fn is_default(&self) -> bool {
@@ -48,17 +51,9 @@ impl TempoBpm {
     }
 }
 
-impl Deref for TempoBpm {
-    type Target = BeatsPerMinute;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
 impl fmt::Display for TempoBpm {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", **self, TempoBpm::UNIT_OF_MEASURE)
+        write!(f, "{} {}", self.bpm(), TempoBpm::UNIT_OF_MEASURE)
     }
 }
 
@@ -79,10 +74,7 @@ pub enum KeyMode {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct KeySignature {
-    // 0=unknown/invalid, 1=C, 2=a, 3=G, 4=e, ..., 23=F, 24=d
-    pub code: KeyCode,
-}
+pub struct KeySignature(KeyCode);
 
 impl KeySignature {
     pub const MIN_CODE: KeyCode = 1;
@@ -92,9 +84,21 @@ impl KeySignature {
         code >= KeySignature::MIN_CODE && code <= KeySignature::MAX_CODE
     }
 
-    pub fn new(code: KeyCode) -> Self {
+    pub fn from_code(code: KeyCode) -> Self {
         debug_assert!(Self::is_valid_code(code));
-        Self { code }
+        KeySignature(code)
+    }
+
+    pub fn code(&self) -> KeyCode {
+        self.0
+    }
+
+    pub fn mode(&self) -> KeyMode {
+        match self.code() % 2 {
+            0 => KeyMode::Minor,
+            1 => KeyMode::Major,
+            _ => unreachable!(),
+        }
     }
 
     pub fn is_default(&self) -> bool {
@@ -102,25 +106,13 @@ impl KeySignature {
     }
 
     pub fn is_valid(&self) -> bool {
-        Self::is_valid_code(self.code)
-    }
-
-    pub fn mode(&self) -> KeyMode {
-        match self.code % 2 {
-            0 => KeyMode::Minor,
-            1 => KeyMode::Major,
-            _ => unreachable!(),
-        }
-    }
-
-    pub fn open_key(&self) -> (KeyCode, KeyMode) {
-        (1 + (self.code - 1) / 2, self.mode())
+        Self::is_valid_code(self.code())
     }
 }
 
 impl fmt::Display for KeySignature {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.code)
+        write!(f, "{}", self.code())
     }
 }
 
@@ -129,11 +121,7 @@ impl fmt::Display for KeySignature {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct OpenKeySignature {
-    #[serde(rename = "keysig")]
-    key_signature: KeySignature,
-}
+pub struct OpenKeySignature(KeySignature);
 
 impl OpenKeySignature {
     pub const MIN_CODE: KeyCode = 1;
@@ -145,37 +133,37 @@ impl OpenKeySignature {
 
     pub fn new(code: KeyCode, mode: KeyMode) -> Self {
         debug_assert!(Self::is_valid_code(code));
-        let key_signature = KeySignature {
-            code: 2 * code - match mode {
+        let key_sig = KeySignature::from_code(
+            2 * code - match mode {
                 KeyMode::Major => 1,
                 KeyMode::Minor => 0,
             },
-        };
-        Self { key_signature }
+        );
+        OpenKeySignature(key_sig)
     }
 
     pub fn is_valid(&self) -> bool {
-        self.key_signature.is_valid()
+        self.0.is_valid()
     }
 
     pub fn code(&self) -> KeyCode {
-        1 + (self.key_signature.code - 1) / 2
+        1 + (self.0.code() - 1) / 2
     }
 
     pub fn mode(&self) -> KeyMode {
-        self.key_signature.mode()
+        self.0.mode()
     }
 }
 
 impl From<KeySignature> for OpenKeySignature {
-    fn from(key_signature: KeySignature) -> Self {
-        Self { key_signature }
+    fn from(key_sig: KeySignature) -> OpenKeySignature {
+        OpenKeySignature(key_sig)
     }
 }
 
 impl From<OpenKeySignature> for KeySignature {
     fn from(from: OpenKeySignature) -> Self {
-        from.key_signature
+        from.0
     }
 }
 
@@ -198,11 +186,7 @@ impl fmt::Display for OpenKeySignature {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct LancelotKeySignature {
-    #[serde(rename = "keysig")]
-    key_signature: KeySignature,
-}
+pub struct LancelotKeySignature(KeySignature);
 
 impl LancelotKeySignature {
     pub const MIN_CODE: KeyCode = 1;
@@ -214,37 +198,37 @@ impl LancelotKeySignature {
 
     pub fn new(code: KeyCode, mode: KeyMode) -> Self {
         debug_assert!(Self::is_valid_code(code));
-        let key_signature = KeySignature {
-            code: ((code * 2 + 9) % 24) + match mode {
+        let key_sig = KeySignature::from_code(
+            ((code * 2 + 9) % 24) + match mode {
                 KeyMode::Major => 0,
                 KeyMode::Minor => 1,
             },
-        };
-        Self { key_signature }
+        );
+        LancelotKeySignature(key_sig)
     }
 
     pub fn is_valid(&self) -> bool {
-        self.key_signature.is_valid()
+        self.0.is_valid()
     }
 
     pub fn code(&self) -> KeyCode {
-        1 + ((self.key_signature.code + 13) / 2) % 12
+        1 + ((self.0.code() + 13) / 2) % 12
     }
 
     pub fn mode(&self) -> KeyMode {
-        self.key_signature.mode()
+        self.0.mode()
     }
 }
 
 impl From<KeySignature> for LancelotKeySignature {
-    fn from(key_signature: KeySignature) -> Self {
-        Self { key_signature }
+    fn from(key_sig: KeySignature) -> Self {
+        LancelotKeySignature(key_sig)
     }
 }
 
 impl From<LancelotKeySignature> for KeySignature {
     fn from(from: LancelotKeySignature) -> Self {
-        from.key_signature
+        from.0
     }
 }
 
@@ -267,11 +251,7 @@ impl fmt::Display for LancelotKeySignature {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct EngineKeySignature {
-    #[serde(rename = "keysig")]
-    key_signature: KeySignature,
-}
+pub struct EngineKeySignature(KeySignature);
 
 impl EngineKeySignature {
     pub const MIN_CODE: KeyCode = 1;
@@ -281,20 +261,17 @@ impl EngineKeySignature {
         code >= KeySignature::MIN_CODE && code <= KeySignature::MAX_CODE
     }
 
-    pub fn new(code: KeyCode) -> Self {
+    pub fn from_code(code: KeyCode) -> Self {
         debug_assert!(Self::is_valid_code(code));
-        let key_signature = KeySignature {
-            code: code % 24 + 1,
-        };
-        Self { key_signature }
+        EngineKeySignature(KeySignature::from_code(code % 24 + 1))
     }
 
     pub fn is_valid(&self) -> bool {
-        self.key_signature.is_valid()
+        self.0.is_valid()
     }
 
     pub fn code(&self) -> KeyCode {
-        match self.key_signature.code {
+        match self.0.code() {
             1 => 24,
             code => code - 1,
         }
@@ -302,14 +279,14 @@ impl EngineKeySignature {
 }
 
 impl From<KeySignature> for EngineKeySignature {
-    fn from(key_signature: KeySignature) -> Self {
-        Self { key_signature }
+    fn from(key_sig: KeySignature) -> Self {
+        EngineKeySignature(key_sig)
     }
 }
 
 impl From<EngineKeySignature> for KeySignature {
     fn from(from: EngineKeySignature) -> Self {
-        from.key_signature
+        from.0
     }
 }
 

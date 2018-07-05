@@ -296,14 +296,14 @@ impl ScoredSongFeature {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SongProfile {
-    #[serde(skip_serializing_if = "TempoBpm::is_default", default)]
-    pub tempo_bpm: TempoBpm,
+    #[serde(rename = "tempoBpm", skip_serializing_if = "TempoBpm::is_default", default)]
+    pub tempo: TempoBpm,
 
-    #[serde(rename = "timesig", skip_serializing_if = "TimeSignature::is_default", default)]
-    pub time_signature: TimeSignature,
+    #[serde(rename = "timeSig", skip_serializing_if = "TimeSignature::is_default", default)]
+    pub time_sig: TimeSignature,
 
-    #[serde(rename = "keysig", skip_serializing_if = "KeySignature::is_default", default)]
-    pub key_signature: KeySignature,
+    #[serde(rename = "keySig", skip_serializing_if = "KeySignature::is_default", default)]
+    pub key_sig: KeySignature,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub features: Vec<ScoredSongFeature>, // no duplicate features allowed
@@ -311,9 +311,9 @@ pub struct SongProfile {
 
 impl SongProfile {
     pub fn is_valid(&self) -> bool {
-        (self.tempo_bpm.is_default() || self.tempo_bpm.is_valid())
-            && (self.time_signature.is_valid() || self.time_signature.is_default())
-            && (self.key_signature.is_valid() || self.key_signature.is_default())
+        (self.tempo.is_default() || self.tempo.is_valid())
+            && (self.time_sig.is_valid() || self.time_sig.is_default())
+            && (self.key_sig.is_valid() || self.key_sig.is_default())
             && self.features.iter().all(ScoredSongFeature::is_valid)
             && self.features.iter().all(|feature_score| {
                 feature_score.is_valid() && self.is_feature_unique(feature_score.feature())

@@ -111,13 +111,11 @@
             },
             "profile": {
                 "tempoBpm": 145.0,
-                "timesig": [
+                "timeSig": [
                     4,
                     4
                 ],
-                "keysig": {
-                    "code": 11
-                },
+                "keySig": 11,
                 "features": [
                     [
                         0.92,
