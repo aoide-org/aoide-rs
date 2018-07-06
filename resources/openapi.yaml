@@ -665,7 +665,7 @@ components:
       required:
         - header
         - body
-    ColorCode:
+    Color:
       type: string
       minLength: 9
       maxLength: 9
@@ -1309,8 +1309,8 @@ components:
           type: integer
         label:
           type: string
-        colorCode:
-          $ref: '#/components/schemas/ColorCode'
+        color:
+          $ref: '#/components/schemas/Color'
       required:
         - mark
         - offset
@@ -1340,9 +1340,9 @@ components:
           $ref: '#/components/schemas/TrackCollection'
         source:
           $ref: '#/components/schemas/TrackSource'
-        colorCode:
-          $ref: '#/components/schemas/ColorCode'
-        playCounter:
+        color:
+          $ref: '#/components/schemas/Color'
+        playCount:
           type: integer
           minimum: 0
     TrackSortField:

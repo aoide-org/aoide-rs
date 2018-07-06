@@ -48,8 +48,8 @@ fn serialize_json() {
             since: Utc::now(),
         },
         source,
-        color_code: Some(ColorCode::RED),
-        play_counter: None,
+        color: Some(ColorArgb::RED),
+        play_count: None,
     }];
     let tags = vec![
         ScoredTag::new_term_faceted(0.8, "1980s", TrackTagging::FACET_STYLE),

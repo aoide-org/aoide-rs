@@ -37,7 +37,8 @@
                             }
                         }
                     },
-                    "colorCode": "#FF808080"
+                    "color": "#FF808080",
+                    "playCount": 7
                 }
             ],
             "xrefs": [
