@@ -36,8 +36,8 @@ use aoide_storage::{
     api::{
         collection::{CollectionEntityWithStats, CollectionStats, Collections, CollectionsResult},
         serde::{SerializationFormat, SerializedEntity}, track::{TrackTags, Tracks, TracksResult},
-        LocateTracksParams, Pagination, ReplaceTracksParams, ReplacedTracks, ScoredTagCount,
-        SearchTracksParams, StringField, StringFieldCounts, TagFacetCount,
+        LocateTracksBody, Pagination, ReplaceTracksBody, ReplacedTracks, ScoredTagCount,
+        SearchTracksBody, StringField, StringFieldCounts, TagFacetCount,
     },
     storage::{collection::CollectionRepository, track::TrackRepository},
 };
@@ -501,7 +501,7 @@ pub struct TracksQueryParams {
 pub struct SearchTracksMessage {
     pub collection_uid: Option<EntityUid>,
     pub pagination: Pagination,
-    pub params: SearchTracksParams,
+    pub params: SearchTracksBody,
 }
 
 pub type SearchTracksResult = TracksResult<Vec<SerializedEntity>>;
@@ -557,7 +557,7 @@ pub fn on_search_tracks(
         State<AppState>,
         Query<TracksQueryParams>,
         Query<Pagination>,
-        Json<SearchTracksParams>,
+        Json<SearchTracksBody>,
     ),
 ) -> FutureResponse<HttpResponse> {
     let msg = SearchTracksMessage {
@@ -587,7 +587,7 @@ pub fn on_search_tracks(
 pub struct LocateTracksMessage {
     pub collection_uid: Option<EntityUid>,
     pub pagination: Pagination,
-    pub params: LocateTracksParams,
+    pub params: LocateTracksBody,
 }
 
 pub type LocateTracksResult = TracksResult<Vec<SerializedEntity>>;
@@ -613,7 +613,7 @@ pub fn on_locate_tracks(
         State<AppState>,
         Query<TracksQueryParams>,
         Query<Pagination>,
-        Json<LocateTracksParams>,
+        Json<LocateTracksBody>,
     ),
 ) -> FutureResponse<HttpResponse> {
     let msg = LocateTracksMessage {
@@ -642,7 +642,7 @@ pub fn on_locate_tracks(
 #[derive(Debug)]
 pub struct ReplaceTracksMessage {
     pub collection_uid: Option<EntityUid>,
-    pub params: ReplaceTracksParams,
+    pub params: ReplaceTracksBody,
     pub format: SerializationFormat,
 }
 
@@ -668,7 +668,7 @@ pub fn on_replace_tracks(
     (state, query_tracks, body): (
         State<AppState>,
         Query<TracksQueryParams>,
-        Json<ReplaceTracksParams>,
+        Json<ReplaceTracksBody>,
     ),
 ) -> FutureResponse<HttpResponse> {
     let msg = ReplaceTracksMessage {

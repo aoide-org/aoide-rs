@@ -370,7 +370,7 @@ impl<'a> Tracks for TrackRepository<'a> {
     fn replace_entities(
         &self,
         collection_uid: Option<&EntityUid>,
-        replace_params: ReplaceTracksParams,
+        replace_params: ReplaceTracksBody,
         format: SerializationFormat,
     ) -> TracksResult<ReplacedTracks> {
         let mut results = ReplacedTracks::default();
@@ -383,7 +383,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                 },
                 modifier: None,
             };
-            let locate_params = LocateTracksParams { uri_filter };
+            let locate_params = LocateTracksBody { uri_filter };
             let located_entities =
                 self.locate_entities(collection_uid, &Pagination::default(), locate_params)?;
             // Ambiguous?
@@ -502,7 +502,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         &self,
         collection_uid: Option<&EntityUid>,
         pagination: &Pagination,
-        locate_params: LocateTracksParams,
+        locate_params: LocateTracksBody,
     ) -> TracksResult<Vec<SerializedEntity>> {
         // URI filter
         let uri_condition = locate_params.uri_filter.condition;
@@ -594,7 +594,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         &self,
         collection_uid: Option<&EntityUid>,
         pagination: &Pagination,
-        search_params: SearchTracksParams,
+        search_params: SearchTracksBody,
     ) -> TracksResult<Vec<SerializedEntity>> {
         // TODO: Joins are very expensive and should only be used
         // when the results need to be ordered. For filtering
