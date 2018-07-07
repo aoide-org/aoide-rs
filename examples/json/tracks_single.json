@@ -32,9 +32,11 @@
                             "durationMs": 202821,
                             "sampleRateHz": 44100,
                             "bitRateBps": 320000,
-                            "loudness": {
-                                "ebuR128LufsDb": -9.55269
-                            }
+                            "loudness": [
+                                {
+                                    "ebuR128LufsDb": -9.55269
+                                }
+                            ]
                         }
                     },
                     "color": "#FF808080",

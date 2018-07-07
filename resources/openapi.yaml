@@ -773,6 +773,20 @@ components:
         uri:
           $ref: '#/components/schemas/StringCondition'
     Loudness:
+      type: array
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/LoudnessCustom'
+          - $ref: '#/components/schemas/LoudnessEbuR128'
+    LoudnessCustom:
+      properties:
+        customLufsDb:
+          $ref: '#/components/schemas/LufsDb'
+      required:
+        - customLufsDb
+      description: |
+        Custom loudness measurement.
+    LoudnessEbuR128:
       properties:
         ebuR128LufsDb:
           $ref: '#/components/schemas/LufsDb'

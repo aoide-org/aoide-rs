@@ -25,7 +25,6 @@ use api::{
     entity::StorageId, serde::{SerializationFormat, SerializedEntity},
 };
 
-use aoide_core::audio::{Decibel, Loudness};
 use aoide_core::domain::entity::{EntityHeader, EntityRevision, EntityUid, EntityVersion};
 use aoide_core::domain::metadata::{Comment, Rating, Score, ScoreValue};
 use aoide_core::domain::music::notation::BeatsPerMinute;
@@ -281,7 +280,6 @@ pub struct InsertableTracksResource<'a> {
     pub audio_duration_ms: Option<f64>,
     pub audio_samplerate_hz: Option<i32>,
     pub audio_bitrate_bps: Option<i32>,
-    pub audio_loudness_db: Option<Decibel>,
     pub audio_enc_name: Option<&'a str>,
     pub audio_enc_settings: Option<&'a str>,
     pub color_code: Option<i32>,
@@ -330,14 +328,6 @@ impl<'a> InsertableTracksResource<'a> {
                 .audio_content
                 .as_ref()
                 .map(|audio| audio.bit_rate.bps() as i32),
-            audio_loudness_db: track_resource
-                .source
-                .audio_content
-                .as_ref()
-                .and_then(|audio| audio.loudness)
-                .and_then(|loudness| match loudness {
-                    Loudness::EbuR128(lufs) => Some(lufs.db()),
-                }),
             audio_enc_name: track_resource
                 .source
                 .audio_content

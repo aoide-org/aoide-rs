@@ -72,8 +72,8 @@ pub struct AudioContent {
     #[serde(rename = "bitRateBps")]
     pub bit_rate: BitRateBps,
 
-    #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub loudness: Option<Loudness>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub loudness: Vec<Loudness>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub encoder: Option<AudioEncoder>,

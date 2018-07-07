@@ -44,7 +44,6 @@ table! {
         audio_channels_count -> Nullable<SmallInt>,
         audio_samplerate_hz -> Nullable<Integer>,
         audio_bitrate_bps -> Nullable<Integer>,
-        audio_loudness_db -> Nullable<Double>,
         audio_enc_name -> Nullable<Text>,
         audio_enc_settings -> Nullable<Text>,
         color_code -> Nullable<Integer>,
