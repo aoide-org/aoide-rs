@@ -181,7 +181,7 @@ pub type Decibel = f64;
 pub struct LufsDb(Decibel);
 
 impl LufsDb {
-    pub const UNIT_OF_MEASURE: &'static str = "dB";
+    pub const UNIT_OF_MEASURE: &'static str = "LUFS dB";
 
     pub fn from_db(db: Decibel) -> Self {
         LufsDb(db)
@@ -194,6 +194,9 @@ impl LufsDb {
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub enum Loudness {
+    #[serde(rename = "customLufsDb")]
+    Custom(LufsDb),
+
     #[serde(rename = "ebuR128LufsDb")]
     EbuR128(LufsDb),
 }
@@ -207,7 +210,10 @@ impl Loudness {
 impl fmt::Display for Loudness {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            &Loudness::EbuR128(lufs) => write!(f, "{} {}", lufs.db(), LufsDb::UNIT_OF_MEASURE),
+            &Loudness::Custom(lufs) => write!(f, "{} {}", lufs.db(), LufsDb::UNIT_OF_MEASURE),
+            &Loudness::EbuR128(lufs) => {
+                write!(f, "EBU R128 {} {}", lufs.db(), LufsDb::UNIT_OF_MEASURE)
+            }
         }
     }
 }

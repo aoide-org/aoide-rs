@@ -393,9 +393,10 @@ pub enum TrackMark {
 pub struct TrackMarker {
     pub mark: TrackMark,
 
+    #[serde(rename = "offsetMs")]
     pub offset: DurationMs,
 
-    #[serde(skip_serializing_if = "DurationMs::is_empty", default)]
+    #[serde(rename = "lengthMs", skip_serializing_if = "DurationMs::is_empty", default)]
     pub length: DurationMs,
 
     #[serde(skip_serializing_if = "String::is_empty", default)]
