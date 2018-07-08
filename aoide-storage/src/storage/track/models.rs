@@ -27,7 +27,7 @@ use api::{
 
 use aoide_core::domain::entity::{EntityHeader, EntityRevision, EntityUid, EntityVersion};
 use aoide_core::domain::metadata::{Comment, Rating, Score, ScoreValue};
-use aoide_core::domain::music::notation::BeatsPerMinute;
+use aoide_core::domain::music::notation::Beats;
 use aoide_core::domain::music::{ActorRole, Actors, SongFeature, SongProfile, TitleLevel, Titles};
 use aoide_core::domain::track::{RefOrigin, Track, TrackResource};
 
@@ -350,7 +350,7 @@ impl<'a> InsertableTracksResource<'a> {
 #[table_name = "aux_track_profile"]
 pub struct InsertableTracksMusic {
     pub track_id: StorageId,
-    pub tempo_bpm: BeatsPerMinute,
+    pub tempo_bpm: Beats,
     pub time_sig_top: i16,
     pub time_sig_bottom: i16,
     pub key_sig_code: i16,

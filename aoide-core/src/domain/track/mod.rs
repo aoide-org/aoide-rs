@@ -21,6 +21,7 @@ use audio::signal::*;
 use audio::*;
 use domain::entity::*;
 use domain::metadata::*;
+use domain::music::notation::*;
 use domain::music::*;
 
 use chrono::{DateTime, Utc};
@@ -388,16 +389,50 @@ pub enum TrackMark {
     Loop,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct TrackMarkerOffset {
+    #[serde(rename = "ms", skip_serializing_if = "DurationMs::is_empty", default)]
+    pub duration: DurationMs,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub samples: Option<SamplePosition>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub beats: Option<Beats>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct TrackMarkerLength {
+    #[serde(rename = "ms")]
+    pub duration: DurationMs,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub samples: Option<SampleLength>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub beats: Option<Beats>,
+}
+
+impl TrackMarkerLength {
+    pub fn is_valid(&self) -> bool {
+        self.duration.is_valid()
+            && !self.duration.is_empty()
+            && self.samples.unwrap_or(SampleLength(0.0)) > SampleLength(0.0)
+            && self.beats.unwrap_or(0.0) > 0.0
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackMarker {
     pub mark: TrackMark,
 
-    #[serde(rename = "offsetMs")]
-    pub offset: DurationMs,
+    pub offset: TrackMarkerOffset,
 
-    #[serde(rename = "lengthMs", skip_serializing_if = "DurationMs::is_empty", default)]
-    pub length: DurationMs,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub length: Option<TrackMarkerLength>,
 
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub label: String,
@@ -418,12 +453,15 @@ impl TrackMarker {
     }
 
     pub fn is_valid(&self) -> bool {
-        self.offset.is_valid()
-            && self.length.is_valid()
+        self.offset.duration.is_valid()
+            && self.length.iter().all(|length| length.duration.is_valid())
             && self.color.iter().all(ColorArgb::is_valid) && match self.mark {
-            TrackMark::LoadCue | TrackMark::HotCue => self.length.is_empty(), // not available
-            TrackMark::Sample | TrackMark::Loop => !self.length.is_empty(),   // mandatory
-            _ => true, // optional, i.e. no restrictions on length
+            TrackMark::LoadCue | TrackMark::HotCue => self.length.is_none(), // not available
+            TrackMark::Sample | TrackMark::Loop => {
+                // mandatory
+                self.length.is_some() && self.length.iter().all(TrackMarkerLength::is_valid)
+            }
+            _ => self.length.iter().all(TrackMarkerLength::is_valid), // optional
         }
     }
 }

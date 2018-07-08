@@ -1311,14 +1311,38 @@ components:
         * `sample`
 
         * `loop`
+    TrackMarkerOffset:
+      properties:
+        ms:
+          $ref: '#/components/schemas/DurationMs'
+        samples:
+          type: number
+          minimum: 0
+        beats:
+          type: number
+          minimum: 0
+      required:
+        - ms
+    TrackMarkerLength:
+      properties:
+        ms:
+          $ref: '#/components/schemas/DurationMs'
+        samples:
+          type: number
+          minimum: 0
+        beats:
+          type: number
+          minimum: 0
+      required:
+        - ms
     TrackMarker:
       properties:
         mark:
           $ref: '#/components/schemas/TrackMark'
         offsetMs:
-          $ref: '#/components/schemas/DurationMs'
+          $ref: '#/components/schemas/TrackMarkerOffset'
         lengthMs:
-          $ref: '#/components/schemas/DurationMs'
+          $ref: '#/components/schemas/TrackMarkerLength'
         number:
           type: integer
         label:

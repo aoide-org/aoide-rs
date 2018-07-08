@@ -23,10 +23,10 @@ use std::fmt;
 /// Tempo
 ///////////////////////////////////////////////////////////////////////
 
-pub type BeatsPerMinute = f64;
+pub type Beats = f64;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub struct TempoBpm(BeatsPerMinute);
+pub struct TempoBpm(Beats);
 
 impl TempoBpm {
     pub const UNIT_OF_MEASURE: &'static str = "bpm";
@@ -34,11 +34,11 @@ impl TempoBpm {
     pub const MIN: Self = TempoBpm(f64::MIN_POSITIVE);
     pub const MAX: Self = TempoBpm(f64::MAX);
 
-    pub fn from_bpm(bpm: BeatsPerMinute) -> Self {
+    pub fn from_bpm(bpm: Beats) -> Self {
         TempoBpm(bpm)
     }
 
-    pub fn bpm(&self) -> BeatsPerMinute {
+    pub fn bpm(&self) -> Beats {
         self.0
     }
 
