@@ -257,7 +257,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LocateTracksBody'
+              $ref: '#/components/schemas/LocateTracksParams'
       responses:
         '200':
           description: |
@@ -287,7 +287,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ReplaceTracksBody'
+              $ref: '#/components/schemas/ReplaceTracksParams'
       responses:
         '200':
           description: |
@@ -318,7 +318,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SearchTracksBody'
+              $ref: '#/components/schemas/SearchTracksParams'
       responses:
         '200':
           description: |
@@ -768,7 +768,7 @@ components:
       example: eng
       description: |
         A language code according to ISO 639-1/2/3.
-    LocateTracksBody:
+    LocateTracksParams:
       properties:
         uri:
           $ref: '#/components/schemas/StringCondition'
@@ -925,7 +925,7 @@ components:
         Operational mode for resolving conflicts during replacement
           * `update-only` - only update existing entities and discard new entities that need to be created
           * `update-or-create` - create a new entity if no existing entity could be found/located
-    ReplaceTracksBody:
+    ReplaceTracksParams:
       properties:
         mode:
           $ref: '#/components/schemas/ReplacementMode'
@@ -1010,7 +1010,7 @@ components:
       example: 0.83
       description: |
         Normalized score value between 0 and 1.
-    SearchTracksBody:
+    SearchTracksParams:
       properties:
         phraseFilter:
           $ref: '#/components/schemas/PhraseFilter'

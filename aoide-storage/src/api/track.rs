@@ -16,8 +16,8 @@
 use failure::Error;
 
 use api::{
-    collection::CollectionTrackStats, LocateTracksBody, Pagination, ReplaceTracksBody,
-    ReplacedTracks, ScoredTagCount, SearchTracksBody, StringField, StringFieldCounts,
+    collection::CollectionTrackStats, LocateTracksParams, Pagination, ReplaceTracksParams,
+    ReplacedTracks, ScoredTagCount, SearchTracksParams, StringField, StringFieldCounts,
     TagFacetCount,
 };
 
@@ -42,7 +42,7 @@ pub trait Tracks {
     fn replace_entities(
         &self,
         collection_uid: Option<&EntityUid>,
-        replace_params: ReplaceTracksBody,
+        replace_params: ReplaceTracksParams,
         format: SerializationFormat,
     ) -> TracksResult<ReplacedTracks>;
 
@@ -54,14 +54,14 @@ pub trait Tracks {
         &self,
         collection_uid: Option<&EntityUid>,
         pagination: &Pagination,
-        locate_params: LocateTracksBody,
+        locate_params: LocateTracksParams,
     ) -> TracksResult<Vec<SerializedEntity>>;
 
     fn search_entities(
         &self,
         collection_uid: Option<&EntityUid>,
         pagination: &Pagination,
-        search_params: SearchTracksBody,
+        search_params: SearchTracksParams,
     ) -> TracksResult<Vec<SerializedEntity>>;
 
     fn list_fields(

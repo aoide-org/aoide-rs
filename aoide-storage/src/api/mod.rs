@@ -206,7 +206,7 @@ pub struct UriFilter {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct LocateTracksBody {
+pub struct LocateTracksParams {
     #[serde(rename = "uri")]
     pub uri_filter: UriFilter,
 }
@@ -231,7 +231,7 @@ pub struct TrackReplacement {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct ReplaceTracksBody {
+pub struct ReplaceTracksParams {
     pub mode: ReplaceMode,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
@@ -293,7 +293,7 @@ impl TrackSort {
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct SearchTracksBody {
+pub struct SearchTracksParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub phrase_filter: Option<PhraseFilter>,
 
