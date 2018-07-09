@@ -1339,9 +1339,9 @@ components:
       properties:
         mark:
           $ref: '#/components/schemas/TrackMark'
-        offsetMs:
+        offset:
           $ref: '#/components/schemas/TrackMarkerOffset'
-        lengthMs:
+        length:
           $ref: '#/components/schemas/TrackMarkerLength'
         number:
           type: integer
@@ -1353,7 +1353,7 @@ components:
         - mark
         - offset
       description: >
-        Marker to identify a point (no length or length = 0) or section (length
+        Marker to identify a point (no length) or section (length
         > 0) within a track for different purposes:
           * Cueing - jump points without a length
           * Fading - short sections for automatic playback transitions, only one in/out per track
