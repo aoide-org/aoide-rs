@@ -4,7 +4,7 @@ NAME=aoide-rs
 BUILD_CARGO_CACHE=/tmp/cargo-cache
 
 RUN_DATA_DIR=/tmp
-RUN_HTTP_PORT=8081
+RUN_HTTP_PORT=8080
 
 GIT_VERSION=$(shell git rev-parse HEAD)
 CARGO_VERSION=$(shell grep version Cargo.toml | awk -F"\"" '{print $$2}' | head -n 1)
