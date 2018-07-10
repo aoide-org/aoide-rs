@@ -27,14 +27,15 @@ use self::util::TrackRepositoryHelper;
 
 use storage::util::*;
 
+use chrono::NaiveDate;
+
 use diesel;
 use diesel::dsl::*;
 use diesel::prelude::*;
 
 use api::{
-    collection::CollectionTrackStats,
-    serde::{serialize_with_format, SerializationFormat, SerializedEntity},
-    track::{TrackTags, TrackTagsResult, Tracks, TracksResult}, *,
+    album::*, collection::CollectionTrackStats,
+    serde::{serialize_with_format, SerializationFormat, SerializedEntity}, track::*, *,
 };
 
 use aoide_core::{
@@ -1411,6 +1412,79 @@ impl<'a> TrackTags for TrackRepository<'a> {
             });
         }
 
+        Ok(result)
+    }
+}
+
+impl<'a> Albums for TrackRepository<'a> {
+    fn list_albums(
+        &self,
+        collection_uid: Option<&EntityUid>,
+        pagination: &Pagination,
+    ) -> AlbumsResult<Vec<AlbumSummary>> {
+        let mut target = aux_track_summary::table
+            .inner_join(aux_track_overview::table)
+            .select((
+                aux_track_summary::album_artist,
+                aux_track_overview::album_title,
+                sql::<diesel::sql_types::Date>("MIN(released_at) AS min_released_at").nullable(),
+                sql::<diesel::sql_types::Date>("MAX(released_at) AS max_released_at").nullable(),
+                sql::<diesel::sql_types::BigInt>("COUNT(*) AS total_tracks"),
+            ))
+            .group_by((
+                aux_track_summary::album_artist,
+                aux_track_overview::album_title,
+            ))
+            .order_by((
+                aux_track_summary::album_artist,
+                sql::<diesel::sql_types::Date>("max_released_at").desc(),
+                aux_track_overview::album_title,
+            ))
+            .into_boxed();
+
+        // Collection filtering
+        if let Some(collection_uid) = collection_uid {
+            let track_id_subselect = aux_track_resource::table
+                .select(aux_track_resource::track_id)
+                .filter(aux_track_resource::collection_uid.eq(collection_uid.as_ref()));
+            target = target.filter(aux_track_summary::track_id.eq_any(track_id_subselect));
+        }
+
+        // Pagination
+        target = apply_pagination(target, pagination);
+
+        let rows = target.load::<(
+            Option<String>,
+            Option<String>,
+            Option<NaiveDate>,
+            Option<NaiveDate>,
+            i64,
+        )>(self.connection)?;
+
+        let mut result = Vec::with_capacity(rows.len());
+        for row in rows.into_iter() {
+            let artist = row.0;
+            let title = row.1;
+            let min_released_at = row.2;
+            let max_released_at = row.3;
+            let released_between = match (min_released_at, max_released_at) {
+                (Some(min), Some(max)) => Some(NaiveDateRange { min, max }),
+                (_, _) => {
+                    debug_assert!(min_released_at.is_none());
+                    debug_assert!(max_released_at.is_none());
+                    None
+                }
+            };
+            debug_assert!(row.4 > 0);
+            let total_tracks = row.4 as usize;
+            let album_summary = AlbumSummary {
+                artist,
+                title,
+                released_between,
+                total_tracks,
+            };
+            result.push(album_summary);
+        }
         Ok(result)
     }
 }

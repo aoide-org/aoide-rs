@@ -420,6 +420,30 @@ paths:
           $ref: '#/components/responses/404NotFound'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+  /albums:
+    get:
+      summary: List summary of albums
+      description: |
+        List a summary of all albums ordered by artist and release date.
+      operationId: listAlbums
+      tags:
+        - Albums
+      parameters:
+        - $ref: '#/components/parameters/collectionUidParam'
+        - $ref: '#/components/parameters/paginationOffset'
+        - $ref: '#/components/parameters/paginationLimit'
+      responses:
+        '200':
+          description: |
+            Album summaries.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AlbumSummary'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
 components:
   responses:
     201Created:
@@ -583,6 +607,25 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ExternalReference'
+    AlbumSummary:
+      properties:
+        artist:
+          type: string
+          example: "The album title"
+        title:
+          type: string
+          example: "The album artist"
+        releasedBetween:
+          $ref: '#/components/schemas/DateRange'
+        total_tracks:
+          type: integer
+          format: int64
+          minimum: 1
+          example: 11
+      required:
+        - total_tracks
+      description: |
+        Summary of an album.
     AudioContent:
       properties:
         channels:
@@ -689,6 +732,19 @@ components:
       type: string
       enum:
         - not
+    DateRange:
+      properties:
+        min:
+          type: string
+          format: date
+          example: "1983-08-06"
+        max:
+          type: string
+          format: date
+          example: "1983-09-30"
+      required:
+        - min
+        - max
     DurationMs:
       type: number
       minimum: 0
@@ -1353,8 +1409,8 @@ components:
         - mark
         - offset
       description: >
-        Marker to identify a point (no length) or section (length
-        > 0) within a track for different purposes:
+        Marker to identify a point (no length) or section (length > 0) within a
+        track for different purposes:
           * Cueing - jump points without a length
           * Fading - short sections for automatic playback transitions, only one in/out per track
           * Mixing - long sections for manual transitions with beat matching

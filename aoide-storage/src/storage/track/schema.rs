@@ -101,6 +101,7 @@ table! {
 }
 
 joinable!(aux_track_summary -> tbl_track (track_id));
+joinable!(aux_track_summary -> aux_track_overview (track_id));
 
 table! {
     aux_track_profile (id) {

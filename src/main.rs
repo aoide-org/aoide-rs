@@ -192,6 +192,9 @@ fn web_app(executor: &Addr<Syn, SqliteExecutor>) -> actix_web::App<AppState> {
                     */
                 r.method(http::Method::DELETE).with_async(on_delete_track);
             })
+            .resource("/albums", |r| {
+                r.method(http::Method::GET).with_async(on_list_albums);
+            })
             .resource("/collections", |r| {
                 r.method(http::Method::GET).with_async(on_list_collections);
                 r.method(http::Method::POST).with_async(on_create_collection);

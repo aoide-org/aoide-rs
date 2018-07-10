@@ -34,6 +34,7 @@ use aoide_core::domain::{collection::*, entity::*, track::*};
 
 use aoide_storage::{
     api::{
+        album::{AlbumSummary, Albums, AlbumsResult},
         collection::{CollectionEntityWithStats, CollectionStats, Collections, CollectionsResult},
         serde::{SerializationFormat, SerializedEntity}, track::{TrackTags, Tracks, TracksResult},
         LocateTracksParams, Pagination, ReplaceTracksParams, ReplacedTracks, ScoredTagCount,
@@ -892,6 +893,53 @@ pub fn on_list_tracks_tags_facets(
     let msg = ListTracksTagsFacetsMessage {
         collection_uid: query_tracks.into_inner().collection_uid,
         query_params: query_with.into_inner(),
+        pagination: query_pagination.into_inner(),
+    };
+    state
+        .executor
+        .send(msg)
+        .map_err(|err| err.compat())
+        .from_err()
+        .and_then(|res| match res {
+            Ok(tags) => Ok(HttpResponse::Ok().json(tags)),
+            Err(e) => Err(e.into()),
+        })
+        .responder()
+}
+
+#[derive(Debug, Default)]
+struct ListAlbumsMessage {
+    pub collection_uid: Option<EntityUid>,
+    pub pagination: Pagination,
+}
+
+pub type ListAlbumsResult = AlbumsResult<Vec<AlbumSummary>>;
+
+impl Message for ListAlbumsMessage {
+    type Result = ListAlbumsResult;
+}
+
+impl Handler<ListAlbumsMessage> for SqliteExecutor {
+    type Result = ListAlbumsResult;
+
+    fn handle(&mut self, msg: ListAlbumsMessage, _: &mut Self::Context) -> Self::Result {
+        let connection = &*self.pooled_connection()?;
+        let repository = TrackRepository::new(connection);
+        connection.transaction::<_, Error, _>(|| {
+            repository.list_albums(msg.collection_uid.as_ref(), &msg.pagination)
+        })
+    }
+}
+
+pub fn on_list_albums(
+    (state, query_tracks, query_pagination): (
+        State<AppState>,
+        Query<TracksQueryParams>,
+        Query<Pagination>,
+    ),
+) -> FutureResponse<HttpResponse> {
+    let msg = ListAlbumsMessage {
+        collection_uid: query_tracks.into_inner().collection_uid,
         pagination: query_pagination.into_inner(),
     };
     state
