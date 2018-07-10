@@ -20,6 +20,7 @@ RUN addgroup -S $APP_GROUP -g $APP_GID && \
 WORKDIR $APP_HOME
 
 # TODO (if available): Add flag --chown=$APP_USER:$APP_GROUP
+# TODO: Remove hard-coded target "x86_64-unknown-linux-musl"
 COPY [ \
     "target/x86_64-unknown-linux-musl/release/aoide", \
     "docker-entrypoint.sh", \

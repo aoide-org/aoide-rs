@@ -9,6 +9,7 @@ RUN_HTTP_PORT=8080
 GIT_VERSION=$(shell git rev-parse HEAD)
 CARGO_VERSION=$(shell grep version Cargo.toml | awk -F"\"" '{print $$2}' | head -n 1)
 
+# TODO: Remove hard-coded target "x86_64-unknown-linux-musl"
 build:
 	mkdir -p "$(BUILD_CARGO_CACHE)"
 	docker pull docker.io/alpine
@@ -18,7 +19,7 @@ build:
 		-v "$$PWD":/volume:Z \
 		-w /volume \
 		-it clux/muslrust:stable \
-		cargo build --release
+		cargo build --release && strip target/x86_64-unknown-linux-musl/release/aoide
 	docker build \
 		-t $(REPO)/$(NAME):$(GIT_VERSION) \
 		.
