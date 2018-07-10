@@ -37,3 +37,6 @@ serde = "*"
 serde_json = "*"
 
 [dev-dependencies]
+
+[profile.release]
+lto = true
