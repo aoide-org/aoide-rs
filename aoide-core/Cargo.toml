@@ -2,6 +2,7 @@
 name = "aoide-core"
 version = "0.0.1"
 authors = [ "Uwe Klotz <uwe.klotz@gmail>" ]
+license = "AGPL-3.0"
 publish = false
 
 [dependencies]
