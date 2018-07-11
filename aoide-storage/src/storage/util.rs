@@ -16,6 +16,8 @@
 use diesel;
 use diesel::prelude::*;
 
+use std::i64;
+
 use api::Pagination;
 
 pub(crate) fn apply_pagination<'a, ST, QS, DB>(
@@ -28,9 +30,13 @@ where
 {
     let mut target = source;
     if let Some(offset) = pagination.offset {
-        target = target.offset(offset as i64);
-    };
-    if let Some(limit) = pagination.limit {
+        // SQLite: OFFSET can only be used in conjunction with LIMIT
+        let limit = pagination
+            .limit
+            .map(|limit| limit as i64)
+            .unwrap_or(i64::MAX);
+        target = target.offset(offset as i64).limit(limit);
+    } else if let Some(limit) = pagination.limit {
         target = target.limit(limit as i64);
     };
     target

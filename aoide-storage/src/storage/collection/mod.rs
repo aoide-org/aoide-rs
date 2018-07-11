@@ -17,8 +17,6 @@ use self::models::*;
 
 use self::schema::*;
 
-use std::i64;
-
 use diesel;
 use diesel::prelude::*;
 
@@ -27,6 +25,8 @@ use aoide_core::domain::{
 };
 
 use api::{collection::*, entity::*, Pagination};
+
+use storage::util::*;
 
 mod models;
 
@@ -120,15 +120,14 @@ impl<'a> Collections for CollectionRepository<'a> {
     }
 
     fn list_entities(&self, pagination: &Pagination) -> CollectionsResult<Vec<CollectionEntity>> {
-        let offset = pagination.offset.map(|offset| offset as i64).unwrap_or(0);
-        let limit = pagination
-            .limit
-            .map(|limit| limit as i64)
-            .unwrap_or(i64::MAX);
-        tbl_collection::table
+        let mut target = tbl_collection::table
             .order(tbl_collection::rev_timestamp.desc())
-            .offset(offset)
-            .limit(limit)
+            .into_boxed();
+
+        // Pagination
+        target = apply_pagination(target, pagination);
+
+        target
             .load::<QueryableCollectionsEntity>(self.connection)
             .map(|v| v.into_iter().map(|r| r.into()).collect())
             .map_err(|e| e.into())
@@ -147,16 +146,15 @@ impl<'a> Collections for CollectionRepository<'a> {
         name_prefix: &str,
         pagination: &Pagination,
     ) -> CollectionsResult<Vec<CollectionEntity>> {
-        let offset = pagination.offset.map(|offset| offset as i64).unwrap_or(0);
-        let limit = pagination
-            .limit
-            .map(|limit| limit as i64)
-            .unwrap_or(i64::MAX);
-        tbl_collection::table
+        let mut target = tbl_collection::table
             .filter(tbl_collection::name.like(format!("{}%", name_prefix)))
             .order(tbl_collection::rev_timestamp.desc())
-            .offset(offset)
-            .limit(limit)
+            .into_boxed();
+
+        // Pagination
+        target = apply_pagination(target, pagination);
+
+        target
             .load::<QueryableCollectionsEntity>(self.connection)
             .map(|v| v.into_iter().map(|r| r.into()).collect())
             .map_err(|e| e.into())
@@ -167,16 +165,15 @@ impl<'a> Collections for CollectionRepository<'a> {
         partial_name: &str,
         pagination: &Pagination,
     ) -> CollectionsResult<Vec<CollectionEntity>> {
-        let offset = pagination.offset.map(|offset| offset as i64).unwrap_or(0);
-        let limit = pagination
-            .limit
-            .map(|limit| limit as i64)
-            .unwrap_or(i64::MAX);
-        tbl_collection::table
+        let mut target = tbl_collection::table
             .filter(tbl_collection::name.like(format!("%{}%", partial_name)))
             .order(tbl_collection::rev_timestamp.desc())
-            .offset(offset)
-            .limit(limit)
+            .into_boxed();
+
+        // Pagination
+        target = apply_pagination(target, pagination);
+
+        target
             .load::<QueryableCollectionsEntity>(self.connection)
             .map(|v| v.into_iter().map(|r| r.into()).collect())
             .map_err(|e| e.into())
