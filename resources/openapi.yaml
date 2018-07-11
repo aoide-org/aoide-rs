@@ -836,25 +836,25 @@ components:
           - $ref: '#/components/schemas/LoudnessEbuR128'
     LoudnessCustom:
       properties:
-        customLufsDb:
-          $ref: '#/components/schemas/LufsDb'
+        customLufs:
+          $ref: '#/components/schemas/Lufs'
       required:
-        - customLufsDb
+        - customLufs
       description: |
-        Custom loudness measurement.
+        Custom loudness measurement in LUFS.
     LoudnessEbuR128:
       properties:
-        ebuR128LufsDb:
-          $ref: '#/components/schemas/LufsDb'
+        ebuR128Lufs:
+          $ref: '#/components/schemas/Lufs'
       required:
-        - ebuR128LufsDb
+        - ebuR128Lufs
       description: |
-        Loudness according to EBU R128.
-    LufsDb:
+        Loudness according to EBU R128 measured in LUFS.
+    Lufs:
       type: number
-      example: -4.5761
+      example: -13.4239
       description: |
-        Loudness Units relative to Full Scale (LUFS) measured in decibel (dB).
+        Loudness Units relative to Full Scale (LUFS) with 1 LU = 1 dB.
     Lyrics:
       properties:
         text:

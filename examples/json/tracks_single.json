@@ -34,7 +34,7 @@
                             "bitRateBps": 320000,
                             "loudness": [
                                 {
-                                    "ebuR128LufsDb": -9.55269
+                                    "ebuR128Lufs": -8.4473
                                 }
                             ]
                         }

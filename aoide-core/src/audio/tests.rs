@@ -94,8 +94,8 @@ fn duration_to_string() {
 #[test]
 fn loudness_to_string() {
     assert!(
-        Loudness::EbuR128(LufsDb::default())
+        Loudness::EbuR128(Lufs::default())
             .to_string()
-            .ends_with(LufsDb::UNIT_OF_MEASURE)
+            .ends_with(Lufs::UNIT_OF_MEASURE)
     );
 }

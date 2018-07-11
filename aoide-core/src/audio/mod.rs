@@ -178,13 +178,14 @@ impl Channels {
 pub type Decibel = f64;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub struct LufsDb(Decibel);
+pub struct Lufs(Decibel);
 
-impl LufsDb {
-    pub const UNIT_OF_MEASURE: &'static str = "LUFS dB";
+// Loudness Units relative to Full Scale (LUFS) with 1 LU = 1 dB.
+impl Lufs {
+    pub const UNIT_OF_MEASURE: &'static str = "LUFS";
 
     pub fn from_db(db: Decibel) -> Self {
-        LufsDb(db)
+        Lufs(db)
     }
 
     pub fn db(&self) -> Decibel {
@@ -194,11 +195,11 @@ impl LufsDb {
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub enum Loudness {
-    #[serde(rename = "customLufsDb")]
-    Custom(LufsDb),
+    #[serde(rename = "customLufs")]
+    Custom(Lufs),
 
-    #[serde(rename = "ebuR128LufsDb")]
-    EbuR128(LufsDb),
+    #[serde(rename = "ebuR128Lufs")]
+    EbuR128(Lufs),
 }
 
 impl Loudness {
@@ -210,9 +211,9 @@ impl Loudness {
 impl fmt::Display for Loudness {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            &Loudness::Custom(lufs) => write!(f, "{} {}", lufs.db(), LufsDb::UNIT_OF_MEASURE),
+            &Loudness::Custom(lufs) => write!(f, "{} {}", lufs.db(), Lufs::UNIT_OF_MEASURE),
             &Loudness::EbuR128(lufs) => {
-                write!(f, "EBU R128 {} {}", lufs.db(), LufsDb::UNIT_OF_MEASURE)
+                write!(f, "EBU R128 {} {}", lufs.db(), Lufs::UNIT_OF_MEASURE)
             }
         }
     }
