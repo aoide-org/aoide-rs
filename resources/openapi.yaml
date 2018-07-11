@@ -611,12 +611,12 @@ components:
       properties:
         artist:
           type: string
-          example: "The album title"
+          example: The album title
         title:
           type: string
-          example: "The album artist"
-        releasedBetween:
-          $ref: '#/components/schemas/DateRange'
+          example: The album artist
+        releasedAt:
+          $ref: '#/components/schemas/ReleasedAtDateRange'
         total_tracks:
           type: integer
           format: int64
@@ -732,19 +732,21 @@ components:
       type: string
       enum:
         - not
-    DateRange:
+    ReleasedAtDateRange:
       properties:
-        min:
+        earliest:
           type: string
           format: date
-          example: "1983-08-06"
-        max:
+          example: '1983-08-06'
+        latest:
           type: string
           format: date
-          example: "1983-09-30"
+          example: '1983-09-30'
       required:
-        - min
-        - max
+        - earliest
+        - latest
+      description: >
+        This range captures both the earliest and the latest date for a set of tracks, e.g. the tracks of an album might have been released at different dates.
     DurationMs:
       type: number
       minimum: 0
@@ -800,8 +802,7 @@ components:
         type: integer
         minimum: 0
       description: |
-        Identifies the number of the current item and the number of total items.
-        Both values are optional and might be `null`.
+        Identifies the number of the current item and the number of total items. Both values are optional and might be `null`.
     KeySignature:
       type: integer
       minimum: 0
@@ -939,10 +940,7 @@ components:
           type: string
           example: michael jackson
           description: |
-            Tokenized by whitespace, concatenated with wildcards, and filtered
-            using case-insensitive "contains" semantics against each of the
-            selected fields, e.g. "la bell" or "tt ll" both match "Patti
-            LaBelle".
+            Tokenized by whitespace, concatenated with wildcards, and filtered using case-insensitive "contains" semantics against each of the selected fields, e.g. "la bell" or "tt ll" both match "Patti LaBelle".
       required:
         - phrase
     Rating:
@@ -1057,8 +1055,7 @@ components:
         - tag
         - count
       description: |
-        Tag with an average score across all occurrences and the total number of
-        occurrences.
+        Tag with an average score across all occurrences and the total number of occurrences.
     ScoreValue:
       type: number
       minimum: 0

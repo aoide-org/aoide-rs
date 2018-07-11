@@ -1467,8 +1467,8 @@ impl<'a> Albums for TrackRepository<'a> {
             let title = row.1;
             let min_released_at = row.2;
             let max_released_at = row.3;
-            let released_between = match (min_released_at, max_released_at) {
-                (Some(min), Some(max)) => Some(NaiveDateRange { min, max }),
+            let released_at = match (min_released_at, max_released_at) {
+                (Some(earliest), Some(latest)) => Some(ReleasedAtDateRange { earliest, latest }),
                 (_, _) => {
                     debug_assert!(min_released_at.is_none());
                     debug_assert!(max_released_at.is_none());
@@ -1480,7 +1480,7 @@ impl<'a> Albums for TrackRepository<'a> {
             let album_summary = AlbumSummary {
                 artist,
                 title,
-                released_between,
+                released_at,
                 total_tracks,
             };
             result.push(album_summary);

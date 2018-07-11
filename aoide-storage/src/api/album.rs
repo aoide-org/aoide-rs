@@ -23,9 +23,9 @@ use api::Pagination;
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct NaiveDateRange {
-    pub min: NaiveDate,
-    pub max: NaiveDate,
+pub struct ReleasedAtDateRange {
+    pub earliest: NaiveDate,
+    pub latest: NaiveDate,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -38,7 +38,7 @@ pub struct AlbumSummary {
     pub title: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub released_between: Option<NaiveDateRange>,
+    pub released_at: Option<ReleasedAtDateRange>,
 
     pub total_tracks: usize,
 }
