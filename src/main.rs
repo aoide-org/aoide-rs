@@ -38,7 +38,7 @@ extern crate failure;
 extern crate log;
 
 use aoide::api::cli::*;
-use aoide::api::web::*;
+use aoide::api::web::{albums::*, collections::*, tracks::*, *};
 
 use aoide_core::domain::collection::Collection;
 

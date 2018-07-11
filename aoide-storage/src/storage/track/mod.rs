@@ -400,7 +400,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             }
             if !replacement.track.is_valid() {
                 warn!(
-                    "Replacing track although it is not valid: {:?}",
+                    "Accepting replacement track even though it is not valid: {:?}",
                     replacement.track
                 );
                 // ...ignore issues and continue
