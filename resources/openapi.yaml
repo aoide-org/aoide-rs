@@ -3,7 +3,7 @@ info:
   version: 0.0.1
   title: aoide
   license:
-    name: AGPLv3
+    name: AGPL-3.0
 servers:
   - url: 'http://aoide.org'
 paths:
@@ -746,7 +746,9 @@ components:
         - earliest
         - latest
       description: >
-        This range captures both the earliest and the latest date for a set of tracks, e.g. the tracks of an album might have been released at different dates.
+        This range captures both the earliest and the latest date for a set of
+        tracks, e.g. the tracks of an album might have been released at
+        different dates.
     DurationMs:
       type: number
       minimum: 0
@@ -801,8 +803,9 @@ components:
       items:
         type: integer
         minimum: 0
-      description: |
-        Identifies the number of the current item and the number of total items. Both values are optional and might be `null`.
+      description: >
+        Identifies the number of the current item and the number of total items.
+        Both values are optional and might be `null`.
     KeySignature:
       type: integer
       minimum: 0
@@ -833,29 +836,23 @@ components:
       type: array
       items:
         oneOf:
-          - $ref: '#/components/schemas/LoudnessCustom'
-          - $ref: '#/components/schemas/LoudnessEbuR128'
-    LoudnessCustom:
+          - $ref: '#/components/schemas/LoudnessEbuR128Gain'
+    LoudnessEbuR128Gain:
       properties:
-        customLufs:
-          $ref: '#/components/schemas/Lufs'
+        ebu-r128-lufs:
+          $ref: '#/components/schemas/LoudnessLufs'
       required:
-        - customLufs
+        - ebu-r128-lufs
       description: |
-        Custom loudness measurement in LUFS.
-    LoudnessEbuR128:
-      properties:
-        ebuR128Lufs:
-          $ref: '#/components/schemas/Lufs'
-      required:
-        - ebuR128Lufs
-      description: |
-        Loudness according to EBU R128 measured in LUFS.
-    Lufs:
+        Loudness measured according to EBU R128 / ITU-R BS.1770-3 in LUFS.
+        EBU R128 proposes a target level of -23 LUFS while the ReplayGain v2
+        specification (RG2) proposes -18 LUFS for achieving similar perceptive
+        results compared to ReplayGain v1 (RG1).
+    LoudnessLufs:
       type: number
       example: -13.4239
       description: |
-        Loudness Units relative to Full Scale (LUFS) with 1 LU = 1 dB.
+        Loudness is measured in "Loudness Units relative to Full Scale" (LUFS) with 1 LU = 1 dB.
     Lyrics:
       properties:
         text:
@@ -939,8 +936,11 @@ components:
         phrase:
           type: string
           example: michael jackson
-          description: |
-            Tokenized by whitespace, concatenated with wildcards, and filtered using case-insensitive "contains" semantics against each of the selected fields, e.g. "la bell" or "tt ll" both match "Patti LaBelle".
+          description: >
+            Tokenized by whitespace, concatenated with wildcards, and filtered
+            using case-insensitive "contains" semantics against each of the
+            selected fields, e.g. "la bell" or "tt ll" both match "Patti
+            LaBelle".
       required:
         - phrase
     Rating:
@@ -1054,8 +1054,9 @@ components:
       required:
         - tag
         - count
-      description: |
-        Tag with an average score across all occurrences and the total number of occurrences.
+      description: >
+        Tag with an average score across all occurrences and the total number of
+        occurrences.
     ScoreValue:
       type: number
       minimum: 0

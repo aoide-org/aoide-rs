@@ -175,30 +175,35 @@ impl Channels {
 /// Loudness
 ///////////////////////////////////////////////////////////////////////
 
-pub type Decibel = f64;
+pub type LufsValue = f64;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub struct Lufs(Decibel);
+pub struct Lufs(LufsValue);
 
-// Loudness Units relative to Full Scale (LUFS) with 1 LU = 1 dB.
+// Loudness is measured in "Loudness Units relative to Full Scale" (LUFS) with 1 LU = 1 dB.
 impl Lufs {
     pub const UNIT_OF_MEASURE: &'static str = "LUFS";
 
-    pub fn from_db(db: Decibel) -> Self {
-        Lufs(db)
-    }
-
-    pub fn db(&self) -> Decibel {
-        self.0
+    pub fn new(value: LufsValue) -> Self {
+        Lufs(value)
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+impl Deref for Lufs {
+    type Target = LufsValue;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum Loudness {
-    #[serde(rename = "custom-lufs")]
-    Custom(Lufs),
-
+    // Loudness measured according to EBU R128 / ITU-R BS.1770-3 in LUFS.
+    // EBU R128 proposes a target level of -23 LUFS while the ReplayGain v2
+    // specification (RG2) proposes -18 LUFS for achieving similar perceptive
+    // results compared to ReplayGain v1 (RG1).
     #[serde(rename = "ebu-r128-lufs")]
     EbuR128(Lufs),
 }
@@ -212,10 +217,7 @@ impl Loudness {
 impl fmt::Display for Loudness {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            &Loudness::Custom(lufs) => write!(f, "{} {}", lufs.db(), Lufs::UNIT_OF_MEASURE),
-            &Loudness::EbuR128(lufs) => {
-                write!(f, "EBU R128 {} {}", lufs.db(), Lufs::UNIT_OF_MEASURE)
-            }
+            &Loudness::EbuR128(lufs) => write!(f, "EBU R128 {} {}", *lufs, Lufs::UNIT_OF_MEASURE),
         }
     }
 }
