@@ -25,7 +25,7 @@ use std::u32;
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "lowercase")]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum SampleLayout {
     // Samples grouped by channel
     // Example for stereo signal with channels L+R: [LLLL|RRRR]
@@ -47,7 +47,7 @@ impl fmt::Display for SampleLayout {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "lowercase")]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum SampleFormat {
     Float32,
 }

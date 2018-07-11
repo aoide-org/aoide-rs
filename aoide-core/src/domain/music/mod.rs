@@ -27,7 +27,7 @@ use domain::metadata::Score;
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "lowercase")]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum TitleLevel {
     Main = 0, // default
     Sub = 1,
@@ -110,7 +110,7 @@ impl Titles {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "lowercase")]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum ActorRole {
     Artist = 0, // default
     Arranger = 1,
@@ -144,7 +144,7 @@ impl Default for ActorRole {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "lowercase")]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum ActorPrecedence {
     Summary = 0, // default
     Primary = 1,
@@ -255,7 +255,7 @@ impl Lyrics {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "lowercase")]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum SongFeature {
     Acousticness,
     Danceability,

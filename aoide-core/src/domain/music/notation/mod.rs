@@ -64,7 +64,7 @@ impl fmt::Display for TempoBpm {
 pub type KeyCode = u8;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "lowercase")]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum KeyMode {
     #[serde(rename = "maj")]
     Major,

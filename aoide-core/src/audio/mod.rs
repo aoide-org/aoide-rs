@@ -194,11 +194,12 @@ impl Lufs {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum Loudness {
-    #[serde(rename = "customLufs")]
+    #[serde(rename = "custom-lufs")]
     Custom(Lufs),
 
-    #[serde(rename = "ebuR128Lufs")]
+    #[serde(rename = "ebu-r128-lufs")]
     EbuR128(Lufs),
 }
 
