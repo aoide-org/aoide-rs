@@ -126,7 +126,7 @@ The Docker container is not supposed to store any persistent state. Instead the 
 
 ## API
 
-### Command line
+### Command Line
 
 The server is configured at startup with various command line parameters.
 
@@ -155,9 +155,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
-## One more thing
+## One more thing...
 
-*Aoide* - the muse of voice and song.
+*Ἀοιδή* - the muse of voice and song in Greek mythology.
 
 > There are only two hard things in Computer Science: cache invalidation and naming things.
 >
@@ -179,7 +179,7 @@ See also: [TwoHardThings](https://martinfowler.com/bliki/TwoHardThings.html)
 cargo install diesel_cli --no-default-features --features "sqlite"
 ```
 
-#### Create or update an SQLite database file
+#### Create or update an SQLite Database File
 
 Database files are created or updated by applying all (pending) migrations:
 
@@ -189,7 +189,7 @@ diesel migration --migration-dir resources/migrations/sqlite --database-url <SQL
 
 By convention use the file extension *.sqlite* for SQLite database files.
 
-#### Add a new SQLite database migration
+#### Add a new SQLite Database Migration
 
 Modification of the database schema or its contents requires the creation of both *up* (forward) and *down* (backward) migration scripts:
 
