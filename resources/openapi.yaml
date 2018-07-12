@@ -481,7 +481,9 @@ components:
         format: int64
         minimum: 0
       description: |
-        Maximum number of items to return or unlimited if missing.
+        Maximum number of items to return or unlimited if missing. When this parameter
+        is specified its value is evaluated and applied, i.e. a value of 0 will result
+        in an empty set of returned items.
     collectionUidParam:
       name: collectionUid
       in: query
