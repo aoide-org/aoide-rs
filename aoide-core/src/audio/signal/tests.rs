@@ -58,3 +58,12 @@ fn sample_rate_to_string() {
             .ends_with(SampleRateHz::UNIT_OF_MEASURE)
     );
 }
+
+#[test]
+fn loudness_to_string() {
+    assert!(
+        Loudness::ItuBs1770(Lufs::default())
+            .to_string()
+            .ends_with(Lufs::UNIT_OF_MEASURE)
+    );
+}

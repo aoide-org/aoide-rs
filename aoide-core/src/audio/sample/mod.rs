@@ -13,12 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#[cfg(test)]
-mod tests;
-
 use std::fmt;
 use std::ops::Deref;
-use std::u32;
 
 ///////////////////////////////////////////////////////////////////////
 /// SampleLayout
@@ -146,44 +142,5 @@ impl SampleRange {
 
     pub fn end(&self) -> SamplePosition {
         SamplePosition(*self.pos + *self.len)
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-/// SampleRate
-///////////////////////////////////////////////////////////////////////
-
-pub type SamplesPerSecond = u32;
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct SampleRateHz(SamplesPerSecond);
-
-impl SampleRateHz {
-    pub const UNIT_OF_MEASURE: &'static str = "Hz";
-
-    pub const MIN: Self = SampleRateHz(1);
-    pub const MAX: Self = SampleRateHz(u32::MAX);
-
-    pub const COMPACT_DISC: Self = SampleRateHz(44_100);
-    pub const STUDIO_48KHZ: Self = SampleRateHz(48_000);
-    pub const STUDIO_96KHZ: Self = SampleRateHz(96_000);
-    pub const STUDIO_192KHZ: Self = SampleRateHz(192_000);
-
-    pub fn from_hz(hz: SamplesPerSecond) -> Self {
-        SampleRateHz(hz)
-    }
-
-    pub fn hz(&self) -> SamplesPerSecond {
-        self.0
-    }
-
-    pub fn is_valid(&self) -> bool {
-        self >= &Self::MIN
-    }
-}
-
-impl fmt::Display for SampleRateHz {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", self.hz(), SampleRateHz::UNIT_OF_MEASURE)
     }
 }
