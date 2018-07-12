@@ -836,18 +836,20 @@ components:
       type: array
       items:
         oneOf:
-          - $ref: '#/components/schemas/LoudnessEbuR128Gain'
-    LoudnessEbuR128Gain:
+          - $ref: '#/components/schemas/LoudnessItuBs1770Lufs'
+      description: |
+        Metrics for measuring the loudness of an audio signal.
+    LoudnessItuBs1770Lufs:
       properties:
-        ebu-r128-lufs:
+        itu-bs1770-lufs:
           $ref: '#/components/schemas/LoudnessLufs'
       required:
-        - ebu-r128-lufs
+        - itu-bs1770-lufs
       description: |
-        Loudness measured according to EBU R128 / ITU-R BS.1770-3 in LUFS.
-        EBU R128 proposes a target level of -23 LUFS while the ReplayGain v2
-        specification (RG2) proposes -18 LUFS for achieving similar perceptive
-        results compared to ReplayGain v1 (RG1).
+        Loudness measured according to ITU-R BS.1770 in LUFS. EBU R128 proposes
+        a target level of -23 LUFS while the ReplayGain v2 specification (RG2)
+        proposes -18 LUFS for achieving similar perceptive results compared to
+        ReplayGain v1 (RG1).
     LoudnessLufs:
       type: number
       example: -13.4239

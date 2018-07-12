@@ -34,7 +34,7 @@
                             "bitRateBps": 320000,
                             "loudness": [
                                 {
-                                    "ebu-r128-lufs": -8.44731
+                                    "itu-bs1770-lufs": -8.44731
                                 }
                             ]
                         }

@@ -200,12 +200,13 @@ impl Deref for Lufs {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum Loudness {
-    // Loudness measured according to EBU R128 / ITU-R BS.1770-3 in LUFS.
-    // EBU R128 proposes a target level of -23 LUFS while the ReplayGain v2
-    // specification (RG2) proposes -18 LUFS for achieving similar perceptive
-    // results compared to ReplayGain v1 (RG1).
-    #[serde(rename = "ebu-r128-lufs")]
-    EbuR128(Lufs),
+    // Loudness measured according to ITU-R BS.1770 in LUFS.
+    // EBU R128 proposes a target level of -23 LUFS while the
+    // ReplayGain v2 specification (RG2) proposes -18 LUFS for
+    // achieving similar perceptive results compared to
+    // ReplayGain v1 (RG1).
+    #[serde(rename = "itu-bs1770-lufs")]
+    ItuBs1770(Lufs),
 }
 
 impl Loudness {
@@ -217,7 +218,9 @@ impl Loudness {
 impl fmt::Display for Loudness {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            &Loudness::EbuR128(lufs) => write!(f, "EBU R128 {} {}", *lufs, Lufs::UNIT_OF_MEASURE),
+            &Loudness::ItuBs1770(lufs) => {
+                write!(f, "ITU-R BS.1770 {} {}", *lufs, Lufs::UNIT_OF_MEASURE)
+            }
         }
     }
 }
