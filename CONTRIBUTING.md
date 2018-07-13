@@ -51,7 +51,13 @@ To run `rustfmt`, use this command:
 cargo fmt
 ```
 
+You can configure a git pre-commit hook (see [Customizing Git - Git Hooks](githooks))
+to make sure you only commit properly formatted code. This [hook](hook) emits an
+error when code is not formatted according to `rustfmt` and tests fail.
+
 [rustfmt]: https://github.com/rust-lang-nursery/rustfmt/
+[githooks]: https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks
+[hook]: https://gist.github.com/zofrex/4a5084c49e4aadd0a3fa0edda14b1fa8
 
 ### Follow the API Guidelines
 
