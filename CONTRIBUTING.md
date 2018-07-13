@@ -53,7 +53,7 @@ cargo fmt
 
 You can configure a git pre-commit hook (see [Customizing Git - Git Hooks](githooks))
 to make sure you only commit properly formatted code. This [hook](hook) emits an
-error when code is not formatted according to `rustfmt` and tests fail.
+error when code is not formatted according to `rustfmt` or tests fail.
 
 [rustfmt]: https://github.com/rust-lang-nursery/rustfmt/
 [githooks]: https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks
