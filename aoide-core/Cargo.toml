@@ -12,7 +12,8 @@ failure = "*"
 log = "*"
 mime = "*"
 rand = "*"
-ring = "*"
+# TODO: Update version after 3rd party crates have been updated
+ring = "0.12.*"
 serde = { version = "*", features = ["derive"] }
 serde_json = "*"
 
