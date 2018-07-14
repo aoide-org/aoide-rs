@@ -16,7 +16,6 @@ log = "*"
 mime = "*"
 percent-encoding = "*"
 rand = "*"
-ring = "*"
 rmp-serde = "*"
 serde = { version = "*", features = ["derive"] }
 serde_cbor = "*"
