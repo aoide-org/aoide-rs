@@ -73,7 +73,8 @@ pub enum StringComparator {
     StartsWith, // head
     EndsWith,   // tail
     Contains,   // part
-    Matches,    // all
+    Matches,    // all (case-insensitive)
+    Equals,     // all (case-sensitive)
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

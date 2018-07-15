@@ -93,7 +93,7 @@ where
     if let Some(term_condition) = tag_filter.term_condition {
         let (either_eq_or_like, modifier) = match term_condition.comparator {
             // Equal comparison
-            StringComparator::Matches => (
+            StringComparator::Equals => (
                 EitherEqualOrLike::Equal(term_condition.value),
                 term_condition.modifier,
             ),
@@ -121,6 +121,16 @@ where
             StringComparator::Contains => (
                 EitherEqualOrLike::Like(format!(
                     "%{}%",
+                    term_condition
+                        .value
+                        .replace('\\', "\\\\")
+                        .replace('%', "\\%")
+                )),
+                term_condition.modifier,
+            ),
+            StringComparator::Matches => (
+                EitherEqualOrLike::Like(format!(
+                    "{}",
                     term_condition
                         .value
                         .replace('\\', "\\\\")
@@ -379,7 +389,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         for replacement in replace_params.replacements.into_iter() {
             let uri_filter = UriFilter {
                 condition: StringCondition {
-                    comparator: StringComparator::Matches,
+                    comparator: StringComparator::Equals,
                     value: replacement.uri.clone(),
                     modifier: None,
                 },
@@ -510,7 +520,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         let uri_condition = locate_params.uri_filter.condition;
         let (either_eq_or_like, modifier) = match uri_condition.comparator {
             // Equal comparison
-            StringComparator::Matches => (
+            StringComparator::Equals => (
                 EitherEqualOrLike::Equal(uri_condition.value),
                 uri_condition.modifier,
             ),
@@ -538,6 +548,16 @@ impl<'a> Tracks for TrackRepository<'a> {
             StringComparator::Contains => (
                 EitherEqualOrLike::Like(format!(
                     "%{}%",
+                    uri_condition
+                        .value
+                        .replace('\\', "\\\\")
+                        .replace('%', "\\%")
+                )),
+                uri_condition.modifier,
+            ),
+            StringComparator::Matches => (
+                EitherEqualOrLike::Like(format!(
+                    "{}",
                     uri_condition
                         .value
                         .replace('\\', "\\\\")
