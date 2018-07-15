@@ -920,14 +920,14 @@ components:
         - album-artist
         - album-title
         - comments
+        - media-source
         - media-type
-        - source
         - track-artist
         - track-title
       description: |
-        Selectable track fields, including
+        Selectable fields, including
           * `comments` - all comments, i.e. independent of the owner
-          * `source` - percent-decoded URI
+          * `media-source` - percent-decoded URI
           * ...and more...
     PhraseFilter:
       properties:
@@ -1150,9 +1150,14 @@ components:
       enum:
         - album-artist
         - album-title
+        - media-source
         - media-type
         - track-artist
         - track-title
+      description: |
+        Selectable fields, including
+          * `media-source` - percent-decoded URI
+          * ...and more...
     StringFieldCount:
       properties:
         field:

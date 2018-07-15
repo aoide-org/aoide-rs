@@ -173,9 +173,9 @@ pub struct NumericFilter {
 pub enum PhraseField {
     AlbumArtist,
     AlbumTitle,
-    Comments, // all comments, i.e. independent of owner
+    Comments,    // all comments, i.e. independent of owner
+    MediaSource, // percent-decoded URI
     MediaType,
-    Source, // percent-decoded URI
     TrackArtist,
     TrackTitle,
 }
@@ -312,11 +312,12 @@ pub struct SearchTracksParams {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum StringField {
-    MediaType,
-    TrackTitle,
-    AlbumTitle,
-    TrackArtist,
     AlbumArtist,
+    AlbumTitle,
+    MediaSource,
+    MediaType,
+    TrackArtist,
+    TrackTitle,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

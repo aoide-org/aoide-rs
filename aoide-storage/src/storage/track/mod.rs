@@ -648,7 +648,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                     || phrase_filter
                         .fields
                         .iter()
-                        .any(|target| *target == PhraseField::Source)
+                        .any(|target| *target == PhraseField::MediaSource)
                 {
                     target = match phrase_filter.modifier {
                         None => target.or_filter(
@@ -1163,43 +1163,18 @@ impl<'a> Tracks for TrackRepository<'a> {
                 .filter(aux_track_resource::collection_uid.eq(collection_uid.as_ref()))
         });
         let rows = match field {
-            StringField::MediaType => {
-                let mut target = aux_track_resource::table
+            StringField::AlbumArtist => {
+                let mut target = aux_track_summary::table
                     .select((
-                        aux_track_resource::media_type,
+                        aux_track_summary::album_artist,
                         sql::<diesel::sql_types::BigInt>("count(*) AS count"),
                     ))
-                    .group_by(aux_track_resource::media_type)
+                    .group_by(aux_track_summary::album_artist)
                     .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
-                    .then_order_by(aux_track_resource::media_type)
-                    .into_boxed();
-                if let Some(collection_uid) = collection_uid {
-                    target = target
-                        .filter(aux_track_resource::collection_uid.eq(collection_uid.as_ref()));
-                }
-
-                // Pagination
-                target = apply_pagination(target, pagination);
-
-                let rows = target.load::<(String, i64)>(self.connection)?;
-                // TODO: Remove this transformation and select media_type
-                // as a nullable column?!
-                rows.into_iter()
-                    .map(|(media_type, count)| (Some(media_type), count))
-                    .collect()
-            }
-            StringField::TrackTitle => {
-                let mut target = aux_track_overview::table
-                    .select((
-                        aux_track_overview::track_title,
-                        sql::<diesel::sql_types::BigInt>("count(*) AS count"),
-                    ))
-                    .group_by(aux_track_overview::track_title)
-                    .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
-                    .then_order_by(aux_track_overview::track_title)
+                    .then_order_by(aux_track_summary::album_artist)
                     .into_boxed();
                 if let Some(track_id_subselect) = track_id_subselect {
-                    target = target.filter(aux_track_overview::track_id.eq_any(track_id_subselect));
+                    target = target.filter(aux_track_summary::track_id.eq_any(track_id_subselect));
                 }
 
                 // Pagination
@@ -1226,6 +1201,56 @@ impl<'a> Tracks for TrackRepository<'a> {
 
                 target.load::<(Option<String>, i64)>(self.connection)?
             }
+            StringField::MediaSource => {
+                let mut target = aux_track_resource::table
+                    .select((
+                        aux_track_resource::source_uri_decoded,
+                        sql::<diesel::sql_types::BigInt>("count(*) AS count"),
+                    ))
+                    .group_by(aux_track_resource::source_uri_decoded)
+                    .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
+                    .then_order_by(aux_track_resource::source_uri_decoded)
+                    .into_boxed();
+                if let Some(collection_uid) = collection_uid {
+                    target = target
+                        .filter(aux_track_resource::collection_uid.eq(collection_uid.as_ref()));
+                }
+
+                // Pagination
+                target = apply_pagination(target, pagination);
+
+                let rows = target.load::<(String, i64)>(self.connection)?;
+                // TODO: Remove this transformation and select source_uri_decoded
+                // as a nullable column?!
+                rows.into_iter()
+                    .map(|(source_uri_decoded, count)| (Some(source_uri_decoded), count))
+                    .collect()
+            }
+            StringField::MediaType => {
+                let mut target = aux_track_resource::table
+                    .select((
+                        aux_track_resource::media_type,
+                        sql::<diesel::sql_types::BigInt>("count(*) AS count"),
+                    ))
+                    .group_by(aux_track_resource::media_type)
+                    .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
+                    .then_order_by(aux_track_resource::media_type)
+                    .into_boxed();
+                if let Some(collection_uid) = collection_uid {
+                    target = target
+                        .filter(aux_track_resource::collection_uid.eq(collection_uid.as_ref()));
+                }
+
+                // Pagination
+                target = apply_pagination(target, pagination);
+
+                let rows = target.load::<(String, i64)>(self.connection)?;
+                // TODO: Remove this transformation and select media_type
+                // as a nullable column?!
+                rows.into_iter()
+                    .map(|(media_type, count)| (Some(media_type), count))
+                    .collect()
+            }
             StringField::TrackArtist => {
                 let mut target = aux_track_summary::table
                     .select((
@@ -1245,18 +1270,18 @@ impl<'a> Tracks for TrackRepository<'a> {
 
                 target.load::<(Option<String>, i64)>(self.connection)?
             }
-            StringField::AlbumArtist => {
-                let mut target = aux_track_summary::table
+            StringField::TrackTitle => {
+                let mut target = aux_track_overview::table
                     .select((
-                        aux_track_summary::album_artist,
+                        aux_track_overview::track_title,
                         sql::<diesel::sql_types::BigInt>("count(*) AS count"),
                     ))
-                    .group_by(aux_track_summary::album_artist)
+                    .group_by(aux_track_overview::track_title)
                     .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
-                    .then_order_by(aux_track_summary::album_artist)
+                    .then_order_by(aux_track_overview::track_title)
                     .into_boxed();
                 if let Some(track_id_subselect) = track_id_subselect {
-                    target = target.filter(aux_track_summary::track_id.eq_any(track_id_subselect));
+                    target = target.filter(aux_track_overview::track_id.eq_any(track_id_subselect));
                 }
 
                 // Pagination
