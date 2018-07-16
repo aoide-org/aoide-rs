@@ -141,7 +141,7 @@ impl<'a> TrackRepositoryHelper<'a> {
     }
 
     fn insert_resource(&self, track_id: StorageId, track: &Track) -> Result<(), Error> {
-        for resource in track.resources.iter() {
+        for resource in &track.resources {
             let insertable = InsertableTracksResource::bind(track_id, resource);
             let query = diesel::insert_into(aux_track_resource::table).values(&insertable);
             query.execute(self.connection)?;
@@ -192,13 +192,13 @@ impl<'a> TrackRepositoryHelper<'a> {
     }
 
     fn insert_xref(&self, track_id: StorageId, track: &Track) -> Result<(), Error> {
-        for track_xref in track.external_references.iter() {
+        for track_xref in &track.external_references {
             let insertable = InsertableTracksRef::bind(track_id, RefOrigin::Track, &track_xref);
             let query = diesel::replace_into(aux_track_xref::table).values(&insertable);
             query.execute(self.connection)?;
         }
-        for actor in track.actors.iter() {
-            for actor_xref in actor.external_references.iter() {
+        for actor in &track.actors {
+            for actor_xref in &actor.external_references {
                 let insertable =
                     InsertableTracksRef::bind(track_id, RefOrigin::TrackActor, &actor_xref);
                 let query = diesel::replace_into(aux_track_xref::table).values(&insertable);
@@ -206,13 +206,13 @@ impl<'a> TrackRepositoryHelper<'a> {
             }
         }
         if let Some(album) = track.album.as_ref() {
-            for album_xref in album.external_references.iter() {
+            for album_xref in &album.external_references {
                 let insertable = InsertableTracksRef::bind(track_id, RefOrigin::Album, &album_xref);
                 let query = diesel::replace_into(aux_track_xref::table).values(&insertable);
                 query.execute(self.connection)?;
             }
-            for actor in album.actors.iter() {
-                for actor_xref in actor.external_references.iter() {
+            for actor in &album.actors {
+                for actor_xref in &actor.external_references {
                     let insertable =
                         InsertableTracksRef::bind(track_id, RefOrigin::AlbumActor, &actor_xref);
                     let query = diesel::replace_into(aux_track_xref::table).values(&insertable);
@@ -221,7 +221,7 @@ impl<'a> TrackRepositoryHelper<'a> {
             }
         }
         if let Some(release) = track.release.as_ref() {
-            for release_xref in release.external_references.iter() {
+            for release_xref in &release.external_references {
                 let insertable =
                     InsertableTracksRef::bind(track_id, RefOrigin::Release, &release_xref);
                 let query = diesel::replace_into(aux_track_xref::table).values(&insertable);
@@ -277,7 +277,7 @@ impl<'a> TrackRepositoryHelper<'a> {
 
     fn get_or_add_tag_facet(&self, facet: &str) -> Result<StorageId, Error> {
         debug_assert!(!facet.is_empty());
-        debug_assert!(facet == &facet.to_lowercase());
+        debug_assert!(facet == facet.to_lowercase());
         loop {
             // TODO: End the expression with ".optional()?"" after removing Nullable from aux_track_tag_facet::id in schema
             // See also: https://github.com/diesel-rs/diesel/pull/1644
@@ -300,7 +300,7 @@ impl<'a> TrackRepositoryHelper<'a> {
     }
 
     fn insert_tag(&self, track_id: StorageId, track: &Track) -> Result<(), Error> {
-        for tag in track.tags.iter() {
+        for tag in &track.tags {
             let term_id = self.get_or_add_tag_term(tag.term())?;
             let facet_id = match tag.facet() {
                 Some(facet) => Some(self.get_or_add_tag_facet(facet)?),
@@ -332,7 +332,7 @@ impl<'a> TrackRepositoryHelper<'a> {
     }
 
     fn insert_comment(&self, track_id: StorageId, track: &Track) -> Result<(), Error> {
-        for comment in track.comments.iter() {
+        for comment in &track.comments {
             let insertable = InsertableTracksComment::bind(track_id, comment);
             let query = diesel::insert_into(aux_track_comment::table).values(&insertable);
             query.execute(self.connection)?;
@@ -357,7 +357,7 @@ impl<'a> TrackRepositoryHelper<'a> {
     }
 
     fn insert_rating(&self, track_id: StorageId, track: &Track) -> Result<(), Error> {
-        for rating in track.ratings.iter() {
+        for rating in &track.ratings {
             let insertable = InsertableTracksRating::bind(track_id, rating);
             let query = diesel::insert_into(aux_track_rating::table).values(&insertable);
             query.execute(self.connection)?;

@@ -271,7 +271,7 @@ pub fn main() -> Result<(), Error> {
     info!("Registering route handlers");
     server::HttpServer::new(move || web_app(&executor))
         .bind(listen_addr)
-        .expect(&format!("Failed to bind listen address '{}'", listen_addr))
+        .unwrap_or_else(|_| panic!("Failed to bind listen address '{}'", listen_addr))
         .start();
 
     info!("Running actor system");

@@ -78,7 +78,7 @@ impl<'a> Collections for CollectionRepository<'a> {
         &self,
         entity: &CollectionEntity,
     ) -> CollectionsResult<(EntityRevision, Option<EntityRevision>)> {
-        let prev_revision = entity.header().revision().clone();
+        let prev_revision = *entity.header().revision();
         let next_revision = prev_revision.next();
         {
             let updatable = UpdatableCollectionsEntity::bind(&next_revision, &entity.body());
@@ -91,7 +91,7 @@ impl<'a> Collections for CollectionRepository<'a> {
             let query = diesel::update(target).set(&updatable);
             let rows_affected: usize = query.execute(self.connection)?;
             debug_assert!(rows_affected <= 1);
-            if rows_affected <= 0 {
+            if rows_affected < 1 {
                 return Ok((prev_revision, None));
             }
         }
@@ -103,7 +103,7 @@ impl<'a> Collections for CollectionRepository<'a> {
         let query = diesel::delete(target);
         let rows_affected: usize = query.execute(self.connection)?;
         debug_assert!(rows_affected <= 1);
-        if rows_affected <= 0 {
+        if rows_affected < 1 {
             Ok(None)
         } else {
             Ok(Some(()))

@@ -54,6 +54,7 @@ extern crate diesel_migrations;
 /// Public Modules
 ///////////////////////////////////////////////////////////////////////
 //
+#[cfg_attr(feature = "cargo-clippy", allow(proc_macro_derive_resolution_fallback))]
 pub mod storage;
 
 pub mod api;

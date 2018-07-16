@@ -132,13 +132,12 @@ where
                 term_condition.modifier,
             ),
             StringComparator::Matches => (
-                EitherEqualOrLike::Like(format!(
-                    "{}",
+                EitherEqualOrLike::Like(
                     term_condition
                         .value
                         .replace('\\', "\\\\")
-                        .replace('%', "\\%")
-                )),
+                        .replace('%', "\\%"),
+                ),
                 term_condition.modifier,
             ),
         };
@@ -354,10 +353,10 @@ impl<'a> Tracks for TrackRepository<'a> {
         entity: TrackEntity,
         format: SerializationFormat,
     ) -> TracksResult<(EntityRevision, Option<EntityRevision>)> {
-        let prev_revision = entity.header().revision().clone();
+        let prev_revision = *entity.header().revision();
         let next_revision = prev_revision.next();
         {
-            let uid = entity.header().uid().clone();
+            let uid = *entity.header().uid();
             let updated_entity = entity.replace_header_revision(next_revision);
             let entity_blob = serialize_with_format(&updated_entity, format)?;
             {
@@ -372,7 +371,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                 let query = diesel::update(target).set(&updatable);
                 let rows_affected: usize = query.execute(self.connection)?;
                 debug_assert!(rows_affected <= 1);
-                if rows_affected <= 0 {
+                if rows_affected < 1 {
                     return Ok((prev_revision, None));
                 }
                 self.helper
@@ -389,7 +388,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         format: SerializationFormat,
     ) -> TracksResult<ReplacedTracks> {
         let mut results = ReplacedTracks::default();
-        for replacement in replace_params.replacements.into_iter() {
+        for replacement in replace_params.replacements {
             let uri_filter = UriFilter {
                 condition: StringCondition {
                     comparator: StringComparator::Equals,
@@ -421,7 +420,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             // Update?
             if let Some(serialized_entity) = located_entities.first() {
                 let entity = serialized_entity.deserialize::<TrackEntity>()?;
-                let uid = entity.header().uid().clone();
+                let uid = *entity.header().uid();
                 if entity.body() == &replacement.track {
                     debug!(
                         "Track '{}' is unchanged and does not need to be updated",
@@ -497,7 +496,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         let rows_affected: usize = query.execute(self.connection)?;
         debug_assert!(rows_affected <= 1);
         debug_assert!(rows_affected <= 1);
-        if rows_affected <= 0 {
+        if rows_affected < 1 {
             Ok(None)
         } else {
             Ok(Some(()))
@@ -559,13 +558,12 @@ impl<'a> Tracks for TrackRepository<'a> {
                 uri_condition.modifier,
             ),
             StringComparator::Matches => (
-                EitherEqualOrLike::Like(format!(
-                    "{}",
+                EitherEqualOrLike::Like(
                     uri_condition
                         .value
                         .replace('\\', "\\\\")
-                        .replace('%', "\\%")
-                )),
+                        .replace('%', "\\%"),
+                ),
                 uri_condition.modifier,
             ),
         };
@@ -807,7 +805,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             }
         }
 
-        for tag_filter in search_params.tag_filters.into_iter() {
+        for tag_filter in search_params.tag_filters {
             let (subselect, filter_modifier) = select_track_ids_matching_tag_filter(tag_filter);
             target = match filter_modifier {
                 None => target.filter(tbl_track::id.eq_any(subselect)),
@@ -1315,7 +1313,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             }
         };
         let mut counts = Vec::with_capacity(rows.len());
-        for row in rows.into_iter() {
+        for row in rows {
             let value = row.0;
             debug_assert!(row.1 > 0);
             let count = row.1 as usize;
@@ -1335,7 +1333,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             .filter(aux_track_resource::collection_uid.eq(collection_uid.as_ref()))
             .first::<Option<f64>>(self.connection)?;
         let total_duration = sum_duration_ms
-            .map(|ms| DurationMs::from_ms(ms))
+            .map(DurationMs::from_ms)
             .unwrap_or(DurationMs::EMPTY);
 
         Ok(CollectionTrackStats {
@@ -1393,7 +1391,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
 
         let rows = target.load::<(Option<String>, i64)>(self.connection)?;
         let mut result = Vec::with_capacity(rows.len());
-        for row in rows.into_iter() {
+        for row in rows {
             result.push(TagFacetCount {
                 facet: row.0,
                 count: row.1 as usize,
@@ -1454,7 +1452,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
 
         let rows = target.load::<(f64, String, Option<String>, i64)>(self.connection)?;
         let mut result = Vec::with_capacity(rows.len());
-        for row in rows.into_iter() {
+        for row in rows {
             result.push(ScoredTagCount {
                 tag: ScoredTag::new(row.0, row.1, row.2),
                 count: row.3 as usize,
@@ -1511,7 +1509,7 @@ impl<'a> Albums for TrackRepository<'a> {
         )>(self.connection)?;
 
         let mut result = Vec::with_capacity(rows.len());
-        for row in rows.into_iter() {
+        for row in rows {
             let artist = row.0;
             let title = row.1;
             let min_released_at = row.2;

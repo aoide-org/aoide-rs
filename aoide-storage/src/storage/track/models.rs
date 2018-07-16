@@ -371,7 +371,7 @@ impl InsertableTracksMusic {
             tempo_bpm: profile.tempo.bpm(),
             time_sig_top: profile.time_sig.top() as i16,
             time_sig_bottom: profile.time_sig.bottom() as i16,
-            key_sig_code: profile.key_sig.code() as i16,
+            key_sig_code: i16::from(profile.key_sig.code()),
             acousticness_score: profile
                 .feature(SongFeature::Acousticness)
                 .map(|feature_score| *feature_score.score()),

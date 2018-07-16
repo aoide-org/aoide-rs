@@ -126,18 +126,18 @@ impl SerializedEntity {
                     acc + item.blob.len()
                 }),
         );
-        json_array.extend_from_slice("[".as_bytes());
+        json_array.extend_from_slice(b"[");
         for (i, item) in serialized_entities.iter().enumerate() {
             if item.format != SerializationFormat::JSON {
                 let e = format_err!("Unsupported serialization format while loading multiple entities: expected = {:?}, actual = {:?}", SerializationFormat::JSON, item.format);
                 return Err(e);
             }
             if i > 0 {
-                json_array.extend_from_slice(",".as_bytes());
+                json_array.extend_from_slice(b",");
             }
             json_array.extend_from_slice(&item.blob);
         }
-        json_array.extend_from_slice("]".as_bytes());
+        json_array.extend_from_slice(b"]");
         Ok(json_array)
     }
 

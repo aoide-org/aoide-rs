@@ -425,7 +425,7 @@ impl Handler<ListTracksFieldsMessage> for SqliteExecutor {
         let connection = &*self.pooled_connection()?;
         let repository = TrackRepository::new(connection);
         connection.transaction::<_, Error, _>(|| {
-            for field in msg.with_fields.into_iter() {
+            for field in msg.with_fields {
                 let result =
                     repository.list_fields(msg.collection_uid.as_ref(), field, msg.pagination)?;
                 results.push(result);
@@ -443,7 +443,7 @@ pub struct TracksWithStringFieldsQueryParams {
 }
 
 impl TracksWithStringFieldsQueryParams {
-    pub fn with_fields<'a>(&'a self) -> Vec<StringField> {
+    pub fn with_fields(&self) -> Vec<StringField> {
         let mut result = Vec::new();
         if let Some(ref field_list) = self.with {
             result = field_list
