@@ -42,7 +42,7 @@ impl DurationMs {
         DurationMs(ms)
     }
 
-    pub fn ms(&self) -> DurationInMilliseconds {
+    pub fn ms(self) -> DurationInMilliseconds {
         self.0
     }
 
@@ -58,10 +58,10 @@ impl DurationMs {
 impl From<Duration> for DurationMs {
     fn from(duration: Duration) -> Self {
         let secs = duration.as_secs() as DurationInMilliseconds;
-        let subsec_nanos = duration.subsec_nanos() as DurationInMilliseconds;
+        let subsec_nanos = DurationInMilliseconds::from(duration.subsec_nanos());
         Self::from_ms(
-            secs * 1_000 as DurationInMilliseconds
-                + subsec_nanos / 1_000_000 as DurationInMilliseconds,
+            secs * DurationInMilliseconds::from(1_000)
+                + subsec_nanos / DurationInMilliseconds::from(1_000_000),
         )
     }
 }

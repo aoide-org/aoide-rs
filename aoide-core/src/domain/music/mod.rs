@@ -100,7 +100,7 @@ impl Titles {
             .nth(0)
     }
 
-    pub fn main_title<'a>(titles: &'a [Title]) -> Option<&'a Title> {
+    pub fn main_title(titles: &[Title]) -> Option<&Title> {
         Self::title(titles, TitleLevel::Main, None)
     }
 }
@@ -199,11 +199,7 @@ impl Actors {
         // - at least one summary entry exists if more than one primary entry exists for disambiguation
     }
 
-    pub fn actor<'a>(
-        actors: &'a [Actor],
-        role: ActorRole,
-        precedence: ActorPrecedence,
-    ) -> Option<&'a Actor> {
+    pub fn actor(actors: &[Actor], role: ActorRole, precedence: ActorPrecedence) -> Option<&Actor> {
         debug_assert!(
             actors
                 .iter()
@@ -217,7 +213,7 @@ impl Actors {
     }
 
     // The singular summary actor or if none exists then the singular primary actor
-    pub fn main_actor<'a>(actors: &'a [Actor], role: ActorRole) -> Option<&'a Actor> {
+    pub fn main_actor(actors: &[Actor], role: ActorRole) -> Option<&Actor> {
         Self::actor(actors, role, ActorPrecedence::Summary)
             .or_else(|| Self::actor(actors, role, ActorPrecedence::Primary))
     }

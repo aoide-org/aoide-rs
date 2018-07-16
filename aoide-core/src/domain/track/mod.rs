@@ -158,10 +158,10 @@ impl ColorArgb {
     const STRING_PREFIX: &'static str = "#";
     const STRING_LEN: usize = 9;
 
-    pub const ALPHA_MASK: ColorCode = 0xff000000;
-    pub const RED_MASK: ColorCode = 0x00ff0000;
-    pub const GREEN_MASK: ColorCode = 0x0000ff00;
-    pub const BLUE_MASK: ColorCode = 0x000000ff;
+    pub const ALPHA_MASK: ColorCode = 0xff00_0000;
+    pub const RED_MASK: ColorCode = 0x00ff_0000;
+    pub const GREEN_MASK: ColorCode = 0x0000_ff00;
+    pub const BLUE_MASK: ColorCode = 0x0000_00ff;
 
     pub const BLACK: Self = ColorArgb(Self::ALPHA_MASK);
     pub const RED: Self = ColorArgb(Self::ALPHA_MASK | Self::RED_MASK);
@@ -173,20 +173,20 @@ impl ColorArgb {
     pub const WHITE: Self =
         ColorArgb(Self::ALPHA_MASK | Self::RED_MASK | Self::GREEN_MASK | Self::BLUE_MASK);
 
-    pub fn code(&self) -> ColorCode {
+    pub fn code(self) -> ColorCode {
         self.0
+    }
+
+    pub fn opaque(self) -> Self {
+        ColorArgb(self.code() | Self::ALPHA_MASK)
+    }
+
+    pub fn transparent(self) -> Self {
+        ColorArgb(self.code() & !Self::ALPHA_MASK)
     }
 
     pub fn is_valid(&self) -> bool {
         true
-    }
-
-    pub fn to_opaque(&self) -> Self {
-        ColorArgb(self.code() | Self::ALPHA_MASK)
-    }
-
-    pub fn to_transparent(&self) -> Self {
-        ColorArgb(self.code() & !Self::ALPHA_MASK)
     }
 }
 
@@ -204,7 +204,7 @@ impl FromStr for ColorArgb {
             let (prefix, hex_code) = s.split_at(1);
             if prefix == Self::STRING_PREFIX {
                 return u32::from_str_radix(&hex_code, 16)
-                    .map(|v| ColorArgb(v))
+                    .map(ColorArgb)
                     .map_err(|e| e.into());
             }
         }
@@ -641,11 +641,11 @@ impl Track {
         self.resource(collection_uid).is_some()
     }
 
-    pub fn main_actor<'a>(&'a self, role: ActorRole) -> Option<&'a Actor> {
+    pub fn main_actor(&self, role: ActorRole) -> Option<&Actor> {
         Actors::main_actor(&self.actors, role)
     }
 
-    pub fn album_main_actor<'a>(&'a self, role: ActorRole) -> Option<&'a Actor> {
+    pub fn album_main_actor(&self, role: ActorRole) -> Option<&Actor> {
         self.album
             .as_ref()
             .and_then(|album| Actors::main_actor(&album.actors, role))

@@ -176,10 +176,10 @@ impl fmt::Display for EntityUid {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct EntityUidGenerator;
 
-fn digest_timestamp<T: TimeZone>(
-    digest_ctx: &mut digest::Context,
-    dt: DateTime<T>,
-) -> &mut digest::Context {
+fn digest_timestamp<'a, T: TimeZone>(
+    digest_ctx: &'a mut digest::Context,
+    dt: &'a DateTime<T>,
+) -> &'a mut digest::Context {
     let mut buf_timestamp = [dt.timestamp(); 1];
     buf_timestamp.to_le();
     digest_ctx.update(buf_timestamp.as_byte_slice_mut());
@@ -193,7 +193,7 @@ impl EntityUidGenerator {
     pub fn generate_uid() -> EntityUid {
         let mut digest_ctx = digest::Context::new(&digest::SHA256);
         // 12 bytes from current timestamp
-        digest_timestamp(&mut digest_ctx, Utc::now());
+        digest_timestamp(&mut digest_ctx, &Utc::now());
         // 16 random bytes
         let mut buf_random = [0u8, 16];
         thread_rng().fill_bytes(&mut buf_random);
@@ -224,25 +224,25 @@ impl EntityVersion {
         EntityVersion { major, minor }
     }
 
-    pub fn next_major(&self) -> Self {
+    pub fn next_major(self) -> Self {
         EntityVersion {
             major: self.major + 1,
             minor: 0,
         }
     }
 
-    pub fn next_minor(&self) -> Self {
+    pub fn next_minor(self) -> Self {
         EntityVersion {
             major: self.major,
             minor: self.minor + 1,
         }
     }
 
-    pub fn major(&self) -> EntityVersionNumber {
+    pub fn major(self) -> EntityVersionNumber {
         self.major
     }
 
-    pub fn minor(&self) -> EntityVersionNumber {
+    pub fn minor(self) -> EntityVersionNumber {
         self.minor
     }
 }

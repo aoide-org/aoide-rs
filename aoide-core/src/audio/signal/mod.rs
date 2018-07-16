@@ -41,7 +41,7 @@ impl BitRateBps {
         BitRateBps(bps)
     }
 
-    pub fn bps(&self) -> BitsPerSecond {
+    pub fn bps(self) -> BitsPerSecond {
         self.0
     }
 
@@ -80,12 +80,12 @@ impl SampleRateHz {
         SampleRateHz(hz)
     }
 
-    pub fn hz(&self) -> SamplesPerSecond {
+    pub fn hz(self) -> SamplesPerSecond {
         self.0
     }
 
     pub fn is_valid(&self) -> bool {
-        self >= &Self::MIN
+        *self >= Self::MIN
     }
 }
 
@@ -116,9 +116,9 @@ impl PcmSignal {
 
     pub fn bitrate(&self, bits_per_sample: BitsPerSample) -> Option<BitRateBps> {
         if self.is_valid() {
-            let bps = *self.channel_layout.channel_count() as BitsPerSecond
-                * self.sample_rate.hz() as BitsPerSecond
-                * bits_per_sample as BitsPerSecond;
+            let bps = BitsPerSecond::from(*self.channel_layout.channel_count())
+                * self.sample_rate.hz()
+                * BitsPerSecond::from(bits_per_sample);
             Some(BitRateBps::from_bps(bps))
         } else {
             None
@@ -150,11 +150,12 @@ impl LatencyMs {
         sample_rate: SampleRateHz,
     ) -> LatencyMs {
         Self::from_ms(
-            (*sample_length * Self::UNITS_PER_SECOND) / (sample_rate.hz() as LatencyInMilliseconds),
+            (*sample_length * Self::UNITS_PER_SECOND)
+                / LatencyInMilliseconds::from(sample_rate.hz()),
         )
     }
 
-    pub fn ms(&self) -> LatencyInMilliseconds {
+    pub fn ms(self) -> LatencyInMilliseconds {
         self.0
     }
 }
@@ -211,8 +212,8 @@ impl Loudness {
 
 impl fmt::Display for Loudness {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            &Loudness::ItuBs1770(lufs) => {
+        match *self {
+            Loudness::ItuBs1770(lufs) => {
                 write!(f, "ITU-R BS.1770 {} {}", *lufs, Lufs::UNIT_OF_MEASURE)
             }
         }

@@ -38,7 +38,7 @@ impl TempoBpm {
         TempoBpm(bpm)
     }
 
-    pub fn bpm(&self) -> Beats {
+    pub fn bpm(self) -> Beats {
         self.0
     }
 
@@ -89,11 +89,11 @@ impl KeySignature {
         KeySignature(code)
     }
 
-    pub fn code(&self) -> KeyCode {
+    pub fn code(self) -> KeyCode {
         self.0
     }
 
-    pub fn mode(&self) -> KeyMode {
+    pub fn mode(self) -> KeyMode {
         match self.code() % 2 {
             0 => KeyMode::Minor,
             1 => KeyMode::Major,
@@ -146,11 +146,11 @@ impl OpenKeySignature {
         self.0.is_valid()
     }
 
-    pub fn code(&self) -> KeyCode {
+    pub fn code(self) -> KeyCode {
         1 + (self.0.code() - 1) / 2
     }
 
-    pub fn mode(&self) -> KeyMode {
+    pub fn mode(self) -> KeyMode {
         self.0.mode()
     }
 }
@@ -211,11 +211,11 @@ impl LancelotKeySignature {
         self.0.is_valid()
     }
 
-    pub fn code(&self) -> KeyCode {
+    pub fn code(self) -> KeyCode {
         1 + ((self.0.code() + 13) / 2) % 12
     }
 
-    pub fn mode(&self) -> KeyMode {
+    pub fn mode(self) -> KeyMode {
         self.0.mode()
     }
 }
@@ -270,7 +270,7 @@ impl EngineKeySignature {
         self.0.is_valid()
     }
 
-    pub fn code(&self) -> KeyCode {
+    pub fn code(self) -> KeyCode {
         match self.0.code() {
             1 => 24,
             code => code - 1,
@@ -307,20 +307,20 @@ impl TimeSignature {
     }
 
     // number of beats in each measure unit or bar, 0 = default/undefined
-    pub fn top(&self) -> u16 {
+    pub fn top(self) -> u16 {
         self.0
     }
 
-    pub fn beats_per_measure(&self) -> u16 {
+    pub fn beats_per_measure(self) -> u16 {
         self.top()
     }
 
     // 0 = default/undefined
-    pub fn bottom(&self) -> u16 {
+    pub fn bottom(self) -> u16 {
         self.1
     }
 
-    pub fn measure_unit(&self) -> u16 {
+    pub fn measure_unit(self) -> u16 {
         self.bottom()
     }
 

@@ -63,12 +63,12 @@ impl Score {
         (*self >= Self::MIN) && (*self <= Self::MAX)
     }
 
-    pub fn is_min(&self) -> bool {
-        *self <= Self::MIN
+    pub fn is_min(self) -> bool {
+        self <= Self::MIN
     }
 
-    pub fn is_max(&self) -> bool {
-        *self >= Self::MAX
+    pub fn is_max(self) -> bool {
+        self >= Self::MAX
     }
 }
 
@@ -78,7 +78,7 @@ impl fmt::Display for Score {
         write!(
             f,
             "{:.1}%",
-            (self.0 * (1000 as ScoreValue)).round() / (10 as ScoreValue)
+            (self.0 * ScoreValue::from(1_000)).round() / ScoreValue::from(10)
         )
     }
 }
@@ -135,11 +135,11 @@ impl ScoredTag {
         self.0
     }
 
-    pub fn term<'a>(&'a self) -> &'a String {
+    pub fn term(&self) -> &String {
         &self.1
     }
 
-    pub fn facet<'a>(&'a self) -> &'a Option<String> {
+    pub fn facet(&self) -> &Option<String> {
         &self.2
     }
 
@@ -183,7 +183,7 @@ impl Rating {
         self.0
     }
 
-    pub fn owner<'a>(&'a self) -> &'a Option<String> {
+    pub fn owner(&self) -> &Option<String> {
         &self.1
     }
 
@@ -206,11 +206,11 @@ impl Rating {
     }
 
     pub fn rating_from_stars(stars: u8, max_stars: u8) -> Score {
-        Score((stars.min(max_stars) as ScoreValue) / (max_stars as ScoreValue))
+        Score(ScoreValue::from(stars.min(max_stars)) / ScoreValue::from(max_stars))
     }
 
     pub fn star_rating(&self, max_stars: u8) -> u8 {
-        ((*self.score() * (max_stars as ScoreValue)).ceil() as u8).min(max_stars)
+        ((*self.score() * ScoreValue::from(max_stars)).ceil() as u8).min(max_stars)
     }
 
     pub fn minmax<'a>(ratings: &[Self], owner: Option<&'a str>) -> Option<(Score, Score)> {
@@ -263,11 +263,11 @@ impl Comment {
         Comment(text.into(), Some(owner.into()))
     }
 
-    pub fn text<'a>(&'a self) -> &'a String {
+    pub fn text(&self) -> &String {
         &self.0
     }
 
-    pub fn owner<'a>(&'a self) -> &'a Option<String> {
+    pub fn owner(&self) -> &Option<String> {
         &self.1
     }
 

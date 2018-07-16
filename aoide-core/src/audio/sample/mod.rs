@@ -84,7 +84,7 @@ impl SamplePosition {
     }
 
     pub fn is_integer(self) -> bool {
-        self.trunc() == *self
+        (self.trunc() - *self).abs() == 0.0
     }
 }
 
@@ -112,7 +112,7 @@ impl SampleLength {
     }
 
     pub fn is_integer(self) -> bool {
-        self.trunc() == *self
+        (self.trunc() - *self).abs() == 0.0
     }
 }
 
