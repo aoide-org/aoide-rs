@@ -14,6 +14,17 @@ of a bug.
 
 ## Writing Code
 
+### Follow the API Guidelines
+
+All code written in Rust should follow the [Rust API Guidelines].
+
+Use existing code as a template, but do **not** copy it blindly. Remember
+that code, even when written by the most experienced contributor long ago,
+might not comply with the current version of the guide. When in doubt
+don't hesitate to ask for help or advice.
+
+[Rust API Guidelines]: https://rust-lang-nursery.github.io/api-guidelines/
+
 ### Use the `stable` Toolchain
 
 Use the `rustup override` command to make sure that you are using the `stable`
@@ -59,16 +70,31 @@ error when code is not formatted according to `rustfmt` or tests fail.
 [githooks]: https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks
 [hook]: https://gist.github.com/zofrex/4a5084c49e4aadd0a3fa0edda14b1fa8
 
-### Follow the API Guidelines
+### Check the Coding Style
 
-All code written in Rust should follow the [Rust API Guidelines].
+You should regularly check your coding style with [Clippy] avoid common
+pitfalls and get the most out of Rust. This might not work as expected
+at any time until [Clippy] finally becomes available in the stable toolchain.
 
-Use existing code as a template, but do **not** copy it blindly. Remember
-that code, even when written by the most experienced contributor long ago,
-might not comply with the current version of the guide. When in doubt
-don't hesitate to ask for help or advice.
+First update your `nightly` toolchain:
 
-[Rust API Guidelines]: https://rust-lang-nursery.github.io/api-guidelines/
+```sh
+rustup update nightly
+```
+
+Then install the most recent version of [Clippy]:
+
+```sh
+rustup component add clippy-preview --toolchain=nightly
+```
+
+To check the coding style, use this command:
+
+```sh
+cargo +nightly clippy
+```
+
+[Clippy]: https://github.com/rust-lang-nursery/rust-clippy/
 
 ### Committing Changes
 
