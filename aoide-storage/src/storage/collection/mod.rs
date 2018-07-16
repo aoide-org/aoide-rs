@@ -119,7 +119,7 @@ impl<'a> Collections for CollectionRepository<'a> {
             .map_err(|e| e.into())
     }
 
-    fn list_entities(&self, pagination: &Pagination) -> CollectionsResult<Vec<CollectionEntity>> {
+    fn list_entities(&self, pagination: Pagination) -> CollectionsResult<Vec<CollectionEntity>> {
         let mut target = tbl_collection::table
             .order(tbl_collection::rev_timestamp.desc())
             .into_boxed();
@@ -144,7 +144,7 @@ impl<'a> Collections for CollectionRepository<'a> {
     fn find_entities_by_name_starting_with(
         &self,
         name_prefix: &str,
-        pagination: &Pagination,
+        pagination: Pagination,
     ) -> CollectionsResult<Vec<CollectionEntity>> {
         let mut target = tbl_collection::table
             .filter(tbl_collection::name.like(format!("{}%", name_prefix)))
@@ -163,7 +163,7 @@ impl<'a> Collections for CollectionRepository<'a> {
     fn find_entities_by_name_containing(
         &self,
         partial_name: &str,
-        pagination: &Pagination,
+        pagination: Pagination,
     ) -> CollectionsResult<Vec<CollectionEntity>> {
         let mut target = tbl_collection::table
             .filter(tbl_collection::name.like(format!("%{}%", partial_name)))

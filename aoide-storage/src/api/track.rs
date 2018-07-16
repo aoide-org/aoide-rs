@@ -53,14 +53,14 @@ pub trait Tracks {
     fn locate_entities(
         &self,
         collection_uid: Option<&EntityUid>,
-        pagination: &Pagination,
+        pagination: Pagination,
         locate_params: LocateTracksParams,
     ) -> TracksResult<Vec<SerializedEntity>>;
 
     fn search_entities(
         &self,
         collection_uid: Option<&EntityUid>,
-        pagination: &Pagination,
+        pagination: Pagination,
         search_params: SearchTracksParams,
     ) -> TracksResult<Vec<SerializedEntity>>;
 
@@ -68,7 +68,7 @@ pub trait Tracks {
         &self,
         collection_uid: Option<&EntityUid>,
         field: StringField,
-        pagination: &Pagination,
+        pagination: Pagination,
     ) -> TracksResult<StringFieldCounts>;
 
     fn collection_stats(&self, collection_uid: &EntityUid) -> TracksResult<CollectionTrackStats>;
@@ -81,13 +81,13 @@ pub trait TrackTags {
         &self,
         collection_uid: Option<&EntityUid>,
         facets: Option<&Vec<&str>>,
-        pagination: &Pagination,
+        pagination: Pagination,
     ) -> TrackTagsResult<Vec<TagFacetCount>>;
 
     fn list_tags(
         &self,
         collection_uid: Option<&EntityUid>,
         facets: Option<&Vec<&str>>,
-        pagination: &Pagination,
+        pagination: Pagination,
     ) -> TrackTagsResult<Vec<ScoredTagCount>>;
 }

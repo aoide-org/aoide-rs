@@ -60,7 +60,7 @@ impl Handler<ListAlbumsMessage> for SqliteExecutor {
         let connection = &*self.pooled_connection()?;
         let repository = TrackRepository::new(connection);
         connection.transaction::<_, Error, _>(|| {
-            repository.list_albums(msg.collection_uid.as_ref(), &msg.pagination)
+            repository.list_albums(msg.collection_uid.as_ref(), msg.pagination)
         })
     }
 }

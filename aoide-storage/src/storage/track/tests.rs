@@ -87,7 +87,7 @@ fn search_distinct_with_multiple_sources() {
     let search_all_count = track_repo
         .search_entities(
             None,
-            &Default::default(),
+            Default::default(),
             SearchTracksParams {
                 ..Default::default()
             },
@@ -98,7 +98,7 @@ fn search_distinct_with_multiple_sources() {
     let search_testfile_count = track_repo
         .search_entities(
             None,
-            &Default::default(),
+            Default::default(),
             SearchTracksParams {
                 phrase_filter: Some(PhraseFilter {
                     modifier: None,
@@ -114,7 +114,7 @@ fn search_distinct_with_multiple_sources() {
     let search_testfile1_count = track_repo
         .search_entities(
             None,
-            &Default::default(),
+            Default::default(),
             SearchTracksParams {
                 phrase_filter: Some(PhraseFilter {
                     modifier: None,
@@ -130,7 +130,7 @@ fn search_distinct_with_multiple_sources() {
     let search_testfile2_count = track_repo
         .search_entities(
             None,
-            &Default::default(),
+            Default::default(),
             SearchTracksParams {
                 phrase_filter: Some(PhraseFilter {
                     modifier: None,
@@ -146,7 +146,7 @@ fn search_distinct_with_multiple_sources() {
     let search_testfile3_count = track_repo
         .search_entities(
             None,
-            &Default::default(),
+            Default::default(),
             SearchTracksParams {
                 phrase_filter: Some(PhraseFilter {
                     modifier: None,

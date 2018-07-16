@@ -37,20 +37,20 @@ pub trait Collections {
 
     fn load_entity(&self, uid: &EntityUid) -> CollectionsResult<Option<CollectionEntity>>;
 
-    fn list_entities(&self, pagination: &Pagination) -> CollectionsResult<Vec<CollectionEntity>>;
+    fn list_entities(&self, pagination: Pagination) -> CollectionsResult<Vec<CollectionEntity>>;
 
     fn find_entities_by_name(&self, name: &str) -> CollectionsResult<Vec<CollectionEntity>>;
 
     fn find_entities_by_name_starting_with(
         &self,
         name: &str,
-        pagination: &Pagination,
+        pagination: Pagination,
     ) -> CollectionsResult<Vec<CollectionEntity>>;
 
     fn find_entities_by_name_containing(
         &self,
         name: &str,
-        pagination: &Pagination,
+        pagination: Pagination,
     ) -> CollectionsResult<Vec<CollectionEntity>>;
 }
 

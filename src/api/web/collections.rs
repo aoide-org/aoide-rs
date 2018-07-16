@@ -243,7 +243,7 @@ impl Handler<ListCollectionsMessage> for SqliteExecutor {
     fn handle(&mut self, msg: ListCollectionsMessage, _: &mut Self::Context) -> Self::Result {
         let connection = &*self.pooled_connection()?;
         let repository = CollectionRepository::new(connection);
-        connection.transaction::<_, Error, _>(|| repository.list_entities(&msg.pagination))
+        connection.transaction::<_, Error, _>(|| repository.list_entities(msg.pagination))
     }
 }
 

@@ -49,6 +49,6 @@ pub trait Albums {
     fn list_albums(
         &self,
         collection_uid: Option<&EntityUid>,
-        pagination: &Pagination,
+        pagination: Pagination,
     ) -> AlbumsResult<Vec<AlbumSummary>>;
 }

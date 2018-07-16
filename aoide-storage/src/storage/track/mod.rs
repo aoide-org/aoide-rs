@@ -400,7 +400,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             };
             let locate_params = LocateTracksParams { uri_filter };
             let located_entities =
-                self.locate_entities(collection_uid, &Pagination::default(), locate_params)?;
+                self.locate_entities(collection_uid, Pagination::default(), locate_params)?;
             // Ambiguous?
             if located_entities.len() > 1 {
                 assert!(collection_uid.is_none());
@@ -516,7 +516,7 @@ impl<'a> Tracks for TrackRepository<'a> {
     fn locate_entities(
         &self,
         collection_uid: Option<&EntityUid>,
-        pagination: &Pagination,
+        pagination: Pagination,
         locate_params: LocateTracksParams,
     ) -> TracksResult<Vec<SerializedEntity>> {
         // URI filter
@@ -618,7 +618,7 @@ impl<'a> Tracks for TrackRepository<'a> {
     fn search_entities(
         &self,
         collection_uid: Option<&EntityUid>,
-        pagination: &Pagination,
+        pagination: Pagination,
         search_params: SearchTracksParams,
     ) -> TracksResult<Vec<SerializedEntity>> {
         // TODO: Joins are very expensive and should only be used
@@ -1179,7 +1179,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         &self,
         collection_uid: Option<&EntityUid>,
         field: StringField,
-        pagination: &Pagination,
+        pagination: Pagination,
     ) -> TracksResult<StringFieldCounts> {
         let track_id_subselect = collection_uid.map(|collection_uid| {
             aux_track_resource::table
@@ -1350,7 +1350,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
         &self,
         collection_uid: Option<&EntityUid>,
         facets: Option<&Vec<&str>>,
-        pagination: &Pagination,
+        pagination: Pagination,
     ) -> TrackTagsResult<Vec<TagFacetCount>> {
         let mut target = aux_track_tag::table
             .left_outer_join(aux_track_tag_facet::table)
@@ -1407,7 +1407,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
         &self,
         collection_uid: Option<&EntityUid>,
         facets: Option<&Vec<&str>>,
-        pagination: &Pagination,
+        pagination: Pagination,
     ) -> TrackTagsResult<Vec<ScoredTagCount>> {
         let mut target = aux_track_tag::table
             .left_outer_join(aux_track_tag_term::table)
@@ -1469,7 +1469,7 @@ impl<'a> Albums for TrackRepository<'a> {
     fn list_albums(
         &self,
         collection_uid: Option<&EntityUid>,
-        pagination: &Pagination,
+        pagination: Pagination,
     ) -> AlbumsResult<Vec<AlbumSummary>> {
         let mut target = aux_track_summary::table
             .inner_join(aux_track_overview::table)

@@ -243,7 +243,7 @@ impl Handler<SearchTracksMessage> for SqliteExecutor {
         let connection = &*self.pooled_connection()?;
         let repository = TrackRepository::new(connection);
         connection.transaction::<_, Error, _>(|| {
-            repository.search_entities(msg.collection_uid.as_ref(), &msg.pagination, msg.params)
+            repository.search_entities(msg.collection_uid.as_ref(), msg.pagination, msg.params)
         })
     }
 }
@@ -329,7 +329,7 @@ impl Handler<LocateTracksMessage> for SqliteExecutor {
         let connection = &*self.pooled_connection()?;
         let repository = TrackRepository::new(connection);
         connection.transaction::<_, Error, _>(|| {
-            repository.locate_entities(msg.collection_uid.as_ref(), &msg.pagination, msg.params)
+            repository.locate_entities(msg.collection_uid.as_ref(), msg.pagination, msg.params)
         })
     }
 }
@@ -437,7 +437,7 @@ impl Handler<ListTracksFieldsMessage> for SqliteExecutor {
         connection.transaction::<_, Error, _>(|| {
             for field in msg.with_fields.into_iter() {
                 let result =
-                    repository.list_fields(msg.collection_uid.as_ref(), field, &msg.pagination)?;
+                    repository.list_fields(msg.collection_uid.as_ref(), field, msg.pagination)?;
                 results.push(result);
             }
             Ok(results)
@@ -547,7 +547,7 @@ impl Handler<ListTracksTagsMessage> for SqliteExecutor {
             repository.list_tags(
                 msg.collection_uid.as_ref(),
                 msg.query_params.with_facets().as_ref(),
-                &msg.pagination,
+                msg.pagination,
             )
         })
     }
@@ -601,7 +601,7 @@ impl Handler<ListTracksTagsFacetsMessage> for SqliteExecutor {
             repository.list_tag_facets(
                 msg.collection_uid.as_ref(),
                 msg.query_params.with_facets().as_ref(),
-                &msg.pagination,
+                msg.pagination,
             )
         })
     }
