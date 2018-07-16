@@ -19,7 +19,7 @@ use actix_web::{error, *};
 
 use diesel::prelude::*;
 
-use failure::{Error, Fail};
+use failure::Error;
 
 use futures::future::Future;
 
@@ -65,12 +65,10 @@ pub fn on_create_collection(
     state
         .executor
         .send(msg)
+        .flatten()
         .map_err(|err| err.compat())
         .from_err()
-        .and_then(|res| match res {
-            Ok(collection) => Ok(HttpResponse::Created().json(collection.header())),
-            Err(e) => Err(e.into()),
-        })
+        .and_then(|res| Ok(HttpResponse::Created().json(res.header())))
         .responder()
 }
 
@@ -107,17 +105,17 @@ pub fn on_update_collection(
     state
         .executor
         .send(msg)
+        .flatten()
         .map_err(|err| err.compat())
         .from_err()
         .and_then(move |res| match res {
-            Ok((_, Some(next_revision))) => {
+            (_, Some(next_revision)) => {
                 let next_header = EntityHeader::new(uid, next_revision);
                 Ok(HttpResponse::Ok().json(next_header))
             }
-            Ok((_, None)) => Err(error::ErrorBadRequest(format_err!(
+            (_, None) => Err(error::ErrorBadRequest(format_err!(
                 "Inexistent entity or revision conflict"
             ))),
-            Err(e) => Err(e.into()),
         })
         .responder()
 }
@@ -152,12 +150,12 @@ pub fn on_delete_collection(
     state
         .executor
         .send(msg)
+        .flatten()
         .map_err(|err| err.compat())
         .from_err()
         .and_then(|res| match res {
-            Ok(Some(())) => Ok(HttpResponse::NoContent().into()),
-            Ok(None) => Ok(HttpResponse::NotFound().into()),
-            Err(e) => Err(e.into()),
+            Some(_) => Ok(HttpResponse::NoContent().into()),
+            None => Ok(HttpResponse::NotFound().into()),
         })
         .responder()
 }
@@ -216,12 +214,12 @@ pub fn on_load_collection(
     state
         .executor
         .send(msg)
+        .flatten()
         .map_err(|err| err.compat())
         .from_err()
         .and_then(|res| match res {
-            Ok(Some(collection)) => Ok(HttpResponse::Ok().json(collection)),
-            Ok(None) => Ok(HttpResponse::NotFound().into()),
-            Err(e) => Err(e.into()),
+            Some(collection) => Ok(HttpResponse::Ok().json(collection)),
+            None => Ok(HttpResponse::NotFound().into()),
         })
         .responder()
 }
@@ -256,11 +254,9 @@ pub fn on_list_collections(
     state
         .executor
         .send(msg)
+        .flatten()
         .map_err(|err| err.compat())
         .from_err()
-        .and_then(|res| match res {
-            Ok(collections) => Ok(HttpResponse::Ok().json(collections)),
-            Err(e) => Err(e.into()),
-        })
+        .and_then(|res| Ok(HttpResponse::Ok().json(res)))
         .responder()
 }

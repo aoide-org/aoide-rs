@@ -19,7 +19,7 @@ use actix_web::{error, *};
 
 use diesel::prelude::*;
 
-use failure::{Error, Fail};
+use failure::Error;
 
 use futures::future::Future;
 
@@ -79,12 +79,10 @@ pub fn on_create_track(
     state
         .executor
         .send(msg)
+        .flatten()
         .map_err(|err| err.compat())
         .from_err()
-        .and_then(|res| match res {
-            Ok(track) => Ok(HttpResponse::Created().json(track.header())),
-            Err(e) => Err(e.into()),
-        })
+        .and_then(|res| Ok(HttpResponse::Created().json(res.header())))
         .responder()
 }
 
@@ -123,17 +121,17 @@ pub fn on_update_track(
     state
         .executor
         .send(msg)
+        .flatten()
         .map_err(|err| err.compat())
         .from_err()
         .and_then(move |res| match res {
-            Ok((_, Some(next_revision))) => {
+            (_, Some(next_revision)) => {
                 let next_header = EntityHeader::new(uid, next_revision);
                 Ok(HttpResponse::Ok().json(next_header))
             }
-            Ok((_, None)) => Err(error::ErrorBadRequest(format_err!(
+            (_, None) => Err(error::ErrorBadRequest(format_err!(
                 "Inexistent entity or revision conflict"
             ))),
-            Err(e) => Err(e.into()),
         })
         .responder()
 }
@@ -168,12 +166,12 @@ pub fn on_delete_track(
     state
         .executor
         .send(msg)
+        .flatten()
         .map_err(|err| err.compat())
         .from_err()
         .and_then(|res| match res {
-            Ok(Some(())) => Ok(HttpResponse::NoContent().into()),
-            Ok(None) => Ok(HttpResponse::NotFound().into()),
-            Err(e) => Err(e.into()),
+            Some(_) => Ok(HttpResponse::NoContent().into()),
+            None => Ok(HttpResponse::NotFound().into()),
         })
         .responder()
 }
@@ -208,17 +206,17 @@ pub fn on_load_track(
     state
         .executor
         .send(msg)
+        .flatten()
         .map_err(|err| err.compat())
         .from_err()
         .and_then(|res| match res {
-            Ok(Some(serialized_track)) => {
+            Some(serialized_track) => {
                 let mime_type: mime::Mime = serialized_track.format.into();
                 Ok(HttpResponse::Ok()
                     .content_type(mime_type.to_string().as_str())
                     .body(serialized_track.blob))
             }
-            Ok(None) => Ok(HttpResponse::NotFound().into()),
-            Err(e) => Err(e.into()),
+            None => Ok(HttpResponse::NotFound().into()),
         })
         .responder()
 }
@@ -263,12 +261,10 @@ pub fn on_list_tracks(
     state
         .executor
         .send(msg)
+        .flatten()
         .map_err(|err| err.compat())
         .from_err()
-        .and_then(|res| match res {
-            Ok(serialized_tracks) => SerializedEntity::slice_to_json_array(&serialized_tracks),
-            Err(e) => Err(e.into()),
-        })
+        .and_then(|serialized_tracks| SerializedEntity::slice_to_json_array(&serialized_tracks))
         .from_err()
         .and_then(|json| {
             Ok(HttpResponse::Ok()
@@ -294,12 +290,10 @@ pub fn on_search_tracks(
     state
         .executor
         .send(msg)
+        .flatten()
         .map_err(|err| err.compat())
         .from_err()
-        .and_then(|res| match res {
-            Ok(serialized_tracks) => SerializedEntity::slice_to_json_array(&serialized_tracks),
-            Err(e) => Err(e.into()),
-        })
+        .and_then(|serialized_tracks| SerializedEntity::slice_to_json_array(&serialized_tracks))
         .from_err()
         .and_then(|json| {
             Ok(HttpResponse::Ok()
@@ -350,12 +344,10 @@ pub fn on_locate_tracks(
     state
         .executor
         .send(msg)
+        .flatten()
         .map_err(|err| err.compat())
         .from_err()
-        .and_then(|res| match res {
-            Ok(serialized_tracks) => SerializedEntity::slice_to_json_array(&serialized_tracks),
-            Err(e) => Err(e.into()),
-        })
+        .and_then(|serialized_tracks| SerializedEntity::slice_to_json_array(&serialized_tracks))
         .from_err()
         .and_then(|json| {
             Ok(HttpResponse::Ok()
@@ -405,12 +397,10 @@ pub fn on_replace_tracks(
     state
         .executor
         .send(msg)
+        .flatten()
         .map_err(|err| err.compat())
         .from_err()
-        .and_then(|res| match res {
-            Ok(res) => Ok(HttpResponse::Ok().json(res)),
-            Err(e) => Err(e.into()),
-        })
+        .and_then(|res| Ok(HttpResponse::Ok().json(res)))
         .responder()
 }
 
@@ -492,12 +482,10 @@ pub fn on_list_tracks_fields(
     state
         .executor
         .send(msg)
+        .flatten()
         .map_err(|err| err.compat())
         .from_err()
-        .and_then(|res| match res {
-            Ok(tags) => Ok(HttpResponse::Ok().json(tags)),
-            Err(e) => Err(e.into()),
-        })
+        .and_then(|res| Ok(HttpResponse::Ok().json(res)))
         .responder()
 }
 
@@ -569,12 +557,10 @@ pub fn on_list_tracks_tags(
     state
         .executor
         .send(msg)
+        .flatten()
         .map_err(|err| err.compat())
         .from_err()
-        .and_then(|res| match res {
-            Ok(tags) => Ok(HttpResponse::Ok().json(tags)),
-            Err(e) => Err(e.into()),
-        })
+        .and_then(|res| Ok(HttpResponse::Ok().json(res)))
         .responder()
 }
 
@@ -623,11 +609,9 @@ pub fn on_list_tracks_tags_facets(
     state
         .executor
         .send(msg)
+        .flatten()
         .map_err(|err| err.compat())
         .from_err()
-        .and_then(|res| match res {
-            Ok(tags) => Ok(HttpResponse::Ok().json(tags)),
-            Err(e) => Err(e.into()),
-        })
+        .and_then(|res| Ok(HttpResponse::Ok().json(res)))
         .responder()
 }
