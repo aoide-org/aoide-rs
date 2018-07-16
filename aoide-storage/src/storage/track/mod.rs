@@ -42,6 +42,9 @@ use aoide_core::{
     audio::*, domain::{entity::*, metadata::*, track::*},
 };
 
+#[cfg(test)]
+mod tests;
+
 ///////////////////////////////////////////////////////////////////////
 /// TrackRepository
 ///////////////////////////////////////////////////////////////////////
@@ -628,6 +631,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         // joins are acceptable in this case.
         let mut target = tbl_track::table
             .select(tbl_track::all_columns)
+            .distinct()
             .inner_join(aux_track_resource::table)
             .inner_join(aux_track_overview::table)
             .inner_join(aux_track_summary::table)
