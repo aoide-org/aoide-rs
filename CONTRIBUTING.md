@@ -92,17 +92,17 @@ Try *really* hard to follow [The seven rules of a great Git commit message]:
 
 [The seven rules of a great Git commit message]: https://chris.beams.io/posts/git-commit/
 
-## Submitting a Pull Request (PR)
+## Submitting a Merge Request (MR)
 
-If you are considering to submit a pull request, make sure that there's an issue
+If you are considering to submit a merge request, make sure that there's an issue
 filed for the work you'd like to do. There might be some discussion required!
-Filing an issue first helps to ensure that the work you put into your pull
-request is acceptable for all participants of the project and will get merged :)
+Filing an issue first helps to ensure that the work you put into your merge
+request is acceptable for all participants of the project and will get merged. :)
 
-Before you submit your pull request, check that you have completed all of the
+Before you submit your merge request, check that you have completed all of the
 steps and followed the rules mentioned above in *Writing Code*. Finally link
-the issue that your pull request is responding to in the descriptive text of
-the PR.
+the issue that your merge request is responding to in the descriptive text of
+the MR.
 
 ## Conduct
 
