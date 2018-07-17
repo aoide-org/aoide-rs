@@ -29,7 +29,7 @@ use aoide_core::domain::entity::{EntityHeader, EntityRevision, EntityUid, Entity
 use aoide_core::domain::metadata::{Comment, Rating, Score, ScoreValue};
 use aoide_core::domain::music::notation::Beats;
 use aoide_core::domain::music::{ActorRole, Actors, SongFeature, SongProfile, TitleLevel, Titles};
-use aoide_core::domain::track::{RefOrigin, Track, TrackResource};
+use aoide_core::domain::track::{RefOrigin, Track, TrackCollection, TrackSource};
 
 #[derive(Debug, Insertable)]
 #[table_name = "tbl_track"]
@@ -265,83 +265,88 @@ impl<'a> InsertableTracksSummary<'a> {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "aux_track_resource"]
-pub struct InsertableTracksResource<'a> {
+#[table_name = "aux_track_source"]
+pub struct InsertableTracksSource<'a> {
     pub track_id: StorageId,
-    pub collection_uid: &'a [u8],
-    pub collection_since: NaiveDateTime,
-    pub source_uri: &'a str,
-    pub source_uri_decoded: String,
-    pub source_sync_when: Option<NaiveDateTime>,
-    pub source_sync_rev_ordinal: Option<i64>,
-    pub source_sync_rev_timestamp: Option<NaiveDateTime>,
-    pub media_type: &'a str,
+    pub content_uri: &'a str,
+    pub content_uri_decoded: String,
+    pub content_type: &'a str,
     pub audio_channels_count: Option<i16>,
     pub audio_duration_ms: Option<f64>,
     pub audio_samplerate_hz: Option<i32>,
     pub audio_bitrate_bps: Option<i32>,
     pub audio_enc_name: Option<&'a str>,
     pub audio_enc_settings: Option<&'a str>,
-    pub color_code: Option<i32>,
+    pub metadata_sync_when: Option<NaiveDateTime>,
+    pub metadata_sync_rev_ordinal: Option<i64>,
+    pub metadata_sync_rev_timestamp: Option<NaiveDateTime>,
 }
 
-impl<'a> InsertableTracksResource<'a> {
-    pub fn bind(track_id: StorageId, track_resource: &'a TrackResource) -> Self {
+impl<'a> InsertableTracksSource<'a> {
+    pub fn bind(track_id: StorageId, track_source: &'a TrackSource) -> Self {
         Self {
             track_id,
-            collection_uid: track_resource.collection.uid.as_ref(),
-            collection_since: track_resource.collection.since.naive_utc(),
-            source_uri: track_resource.source.uri.as_str(),
-            source_uri_decoded: percent_decode(track_resource.source.uri.as_bytes())
+            content_uri: track_source.content_uri.as_str(),
+            content_uri_decoded: percent_decode(track_source.content_uri.as_bytes())
                 .decode_utf8_lossy()
                 .into(),
-            source_sync_when: track_resource
-                .source
-                .synchronization
-                .map(|sync| sync.when.naive_utc()),
-            source_sync_rev_ordinal: track_resource
-                .source
-                .synchronization
-                .map(|sync| sync.revision.ordinal() as i64),
-            source_sync_rev_timestamp: track_resource
-                .source
-                .synchronization
-                .map(|sync| sync.revision.timestamp().naive_utc()),
-            media_type: track_resource.source.media_type.as_str(),
-            audio_channels_count: track_resource
-                .source
+            content_type: track_source.content_type.as_str(),
+            audio_channels_count: track_source
                 .audio_content
                 .as_ref()
                 .map(|audio| *audio.channels.count as i16),
-            audio_duration_ms: track_resource
-                .source
+            audio_duration_ms: track_source
                 .audio_content
                 .as_ref()
                 .map(|audio| audio.duration.ms()),
-            audio_samplerate_hz: track_resource
-                .source
+            audio_samplerate_hz: track_source
                 .audio_content
                 .as_ref()
                 .map(|audio| audio.sample_rate.hz() as i32),
-            audio_bitrate_bps: track_resource
-                .source
+            audio_bitrate_bps: track_source
                 .audio_content
                 .as_ref()
                 .map(|audio| audio.bit_rate.bps() as i32),
-            audio_enc_name: track_resource
-                .source
+            audio_enc_name: track_source
                 .audio_content
                 .as_ref()
                 .and_then(|audio| audio.encoder.as_ref())
                 .map(|enc| enc.name.as_str()),
-            audio_enc_settings: track_resource
-                .source
+            audio_enc_settings: track_source
                 .audio_content
                 .as_ref()
                 .and_then(|audio| audio.encoder.as_ref())
                 .and_then(|enc| enc.settings.as_ref())
                 .map(|settings| settings.as_str()),
-            color_code: track_resource.color.map(|color| color.code() as i32),
+            metadata_sync_when: track_source.metadata_sync.map(|sync| sync.when.naive_utc()),
+            metadata_sync_rev_ordinal: track_source
+                .metadata_sync
+                .map(|sync| sync.revision.ordinal() as i64),
+            metadata_sync_rev_timestamp: track_source
+                .metadata_sync
+                .map(|sync| sync.revision.timestamp().naive_utc()),
+        }
+    }
+}
+
+#[derive(Debug, Insertable)]
+#[table_name = "aux_track_collection"]
+pub struct InsertableTracksCollection<'a> {
+    pub track_id: StorageId,
+    pub uid: &'a [u8],
+    pub since: NaiveDateTime,
+    pub color_code: Option<i32>,
+    pub play_count: Option<i32>,
+}
+
+impl<'a> InsertableTracksCollection<'a> {
+    pub fn bind(track_id: StorageId, track_collection: &'a TrackCollection) -> Self {
+        Self {
+            track_id,
+            uid: track_collection.uid.as_ref(),
+            since: track_collection.since.naive_utc(),
+            color_code: track_collection.color.map(|color| color.code() as i32),
+            play_count: track_collection.play_count.map(|count| count as i32),
         }
     }
 }

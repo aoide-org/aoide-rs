@@ -107,16 +107,19 @@ pub struct TrackSynchronization {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackSource {
     #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub uri: String,
+    pub content_uri: String,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub synchronization: Option<TrackSynchronization>, // most recent metadata import/export
-
+    // The content_type uniquely identifies a TrackSource of
+    // a Track, i.e. no duplicate content types are allowed
+    // among the track sources of each track.
     #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub media_type: String,
+    pub content_type: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub audio_content: Option<AudioContent>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metadata_sync: Option<TrackSynchronization>, // most recent metadata import/export
 }
 
 impl TrackSource {
@@ -128,26 +131,29 @@ impl TrackSource {
         // "file:///path/to/local/file.txt"
         // Crate url: Doesn't care about reserved characters, e.g. parses
         // "file:///path to local/file.txt" successfully
-        !self.uri.is_empty() && !self.media_type.is_empty()
+        !self.content_uri.is_empty() && !self.content_type.is_empty()
+    }
+
+    pub fn filter_slice_by_content_type<'a>(
+        sources: &'a [TrackSource],
+        content_type: &str,
+    ) -> Option<&'a TrackSource> {
+        debug_assert!(
+            sources
+                .iter()
+                .filter(|source| source.content_type == content_type)
+                .count() <= 1
+        );
+        sources
+            .iter()
+            .filter(|source| source.content_type == content_type)
+            .nth(0)
     }
 }
 
 ///////////////////////////////////////////////////////////////////////
-/// TrackResource
+/// ColorArgb
 ///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct TrackCollection {
-    pub uid: EntityUid,
-
-    pub since: DateTime<Utc>,
-}
-
-impl TrackCollection {
-    pub fn is_valid(&self) -> bool {
-        self.uid.is_valid()
-    }
-}
 
 pub type ColorCode = u32;
 
@@ -248,12 +254,15 @@ impl<'de> Deserialize<'de> for ColorArgb {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct TrackResource {
-    pub collection: TrackCollection,
+///////////////////////////////////////////////////////////////////////
+/// TrackCollection
+///////////////////////////////////////////////////////////////////////
 
-    pub source: TrackSource,
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct TrackCollection {
+    pub uid: EntityUid,
+
+    pub since: DateTime<Utc>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub color: Option<ColorArgb>,
@@ -262,11 +271,25 @@ pub struct TrackResource {
     pub play_count: Option<usize>,
 }
 
-impl TrackResource {
+impl TrackCollection {
     pub fn is_valid(&self) -> bool {
-        self.collection.is_valid()
-            && self.source.is_valid()
-            && self.color.iter().all(ColorArgb::is_valid)
+        self.uid.is_valid() && self.color.iter().all(ColorArgb::is_valid)
+    }
+
+    pub fn filter_slice_by_uid<'a>(
+        collections: &'a [TrackCollection],
+        collection_uid: &EntityUid,
+    ) -> Option<&'a TrackCollection> {
+        debug_assert!(
+            collections
+                .iter()
+                .filter(|collection| &collection.uid == collection_uid)
+                .count() <= 1
+        );
+        collections
+            .iter()
+            .filter(|collection| &collection.uid == collection_uid)
+            .nth(0)
     }
 }
 
@@ -551,7 +574,10 @@ impl TrackLock {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Track {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub resources: Vec<TrackResource>,
+    pub collections: Vec<TrackCollection>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub sources: Vec<TrackSource>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub release: Option<ReleaseMetadata>,
@@ -601,10 +627,11 @@ pub struct Track {
 
 impl Track {
     pub fn is_valid(&self) -> bool {
-        !self.resources.is_empty()
-            && self.resources.iter().all(TrackResource::is_valid)
-            && self.album.iter().all(AlbumMetadata::is_valid)
+        !self.sources.is_empty()
+            && self.sources.iter().all(TrackSource::is_valid)
+            && self.collections.iter().all(TrackCollection::is_valid)
             && self.release.iter().all(ReleaseMetadata::is_valid)
+            && self.album.iter().all(AlbumMetadata::is_valid)
             && self.track_numbers.is_valid()
             && self.disc_numbers.is_valid()
             && Titles::is_valid(&self.titles)
@@ -624,21 +651,15 @@ impl Track {
             && self.comments.iter().all(Comment::is_valid)
     }
 
-    pub fn resource<'a>(&'a self, collection_uid: &EntityUid) -> Option<&'a TrackResource> {
-        debug_assert!(
-            self.resources
-                .iter()
-                .filter(|resource| &resource.collection.uid == collection_uid)
-                .count() <= 1
-        );
-        self.resources
+    pub fn collection<'a>(&'a self, collection_uid: &EntityUid) -> Option<&'a TrackCollection> {
+        self.collections
             .iter()
-            .filter(|resource| &resource.collection.uid == collection_uid)
+            .filter(|collection| &collection.uid == collection_uid)
             .nth(0)
     }
 
     pub fn has_collection(&self, collection_uid: &EntityUid) -> bool {
-        self.resource(collection_uid).is_some()
+        self.collection(collection_uid).is_some()
     }
 
     pub fn main_actor(&self, role: ActorRole) -> Option<&Actor> {

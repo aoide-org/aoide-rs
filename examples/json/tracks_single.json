@@ -8,39 +8,39 @@
             ]
         },
         "body": {
-            "resources": [
+            "collections": [
                 {
-                    "collection": {
-                        "uid": "myMXwslBoXkTDQ0olhq1QsiHRWWL4yj1",
-                        "since": "2018-05-01T13:27:56.3751483Z"
-                    },
-                    "source": {
-                        "uri": "file::///home/music/collection/test.mp3",
-                        "synchronization": {
-                            "when": "2018-05-01T13:27:56.3751483Z",
-                            "revision": [
-                                23,
-                                "2018-03-22T17:10:55.488760124Z"
-                            ]
-                        },
-                        "mediaType": "audio/mpeg",
-                        "audioContent": {
-                            "channels": {
-                                "count": 2,
-                                "layout": "stereo"
-                            },
-                            "durationMs": 202821,
-                            "sampleRateHz": 44100,
-                            "bitRateBps": 320000,
-                            "loudness": [
-                                {
-                                    "itu-bs1770-lufs": -8.44731
-                                }
-                            ]
-                        }
-                    },
+                    "uid": "myMXwslBoXkTDQ0olhq1QsiHRWWL4yj1",
+                    "since": "2018-05-01T13:27:56.3751483Z",
                     "color": "#FF808080",
                     "playCount": 7
+                }
+            ],
+            "sources": [
+                {
+                    "contentUri": "file::///home/music/collection/test.mp3",
+                    "contentType": "audio/mpeg",
+                    "audioContent": {
+                        "channels": {
+                            "count": 2,
+                            "layout": "stereo"
+                        },
+                        "durationMs": 202821,
+                        "sampleRateHz": 44100,
+                        "bitRateBps": 320000,
+                        "loudness": [
+                            {
+                                "itu-bs1770-lufs": -8.44731
+                            }
+                        ]
+                    },
+                    "metadataSync": {
+                        "when": "2018-05-01T13:27:56.3751483Z",
+                        "revision": [
+                            23,
+                            "2018-03-22T17:10:55.488760124Z"
+                        ]
+                    }
                 }
             ],
             "xrefs": [

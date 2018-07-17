@@ -50,12 +50,11 @@ impl<'a> TrackRepositoryHelper<'a> {
         &self,
         collection_prototype: &Collection,
     ) -> Result<Vec<CollectionEntity>, Error> {
-        let orphaned_collection_uids = aux_track_resource::table
-            .select(aux_track_resource::collection_uid)
+        let orphaned_collection_uids = aux_track_collection::table
+            .select(aux_track_collection::uid)
             .distinct()
             .filter(
-                aux_track_resource::collection_uid
-                    .ne_all(tbl_collection::table.select(tbl_collection::uid)),
+                aux_track_collection::uid.ne_all(tbl_collection::table.select(tbl_collection::uid)),
             )
             .load::<Vec<u8>>(self.connection)?;
         let mut recreated_collections = Vec::with_capacity(orphaned_collection_uids.len());
@@ -123,27 +122,52 @@ impl<'a> TrackRepositoryHelper<'a> {
         Ok(())
     }
 
-    fn cleanup_resource(&self) -> Result<(), Error> {
-        let query =
-            diesel::delete(aux_track_resource::table.filter(
-                aux_track_resource::track_id.ne_all(tbl_track::table.select(tbl_track::id)),
-            ));
-        query.execute(self.connection)?;
-        Ok(())
-    }
-
-    fn delete_resource(&self, track_id: StorageId) -> Result<(), Error> {
+    fn cleanup_source(&self) -> Result<(), Error> {
         let query = diesel::delete(
-            aux_track_resource::table.filter(aux_track_resource::track_id.eq(track_id)),
+            aux_track_source::table
+                .filter(aux_track_source::track_id.ne_all(tbl_track::table.select(tbl_track::id))),
         );
         query.execute(self.connection)?;
         Ok(())
     }
 
-    fn insert_resource(&self, track_id: StorageId, track: &Track) -> Result<(), Error> {
-        for resource in &track.resources {
-            let insertable = InsertableTracksResource::bind(track_id, resource);
-            let query = diesel::insert_into(aux_track_resource::table).values(&insertable);
+    fn delete_source(&self, track_id: StorageId) -> Result<(), Error> {
+        let query =
+            diesel::delete(aux_track_source::table.filter(aux_track_source::track_id.eq(track_id)));
+        query.execute(self.connection)?;
+        Ok(())
+    }
+
+    fn insert_source(&self, track_id: StorageId, track: &Track) -> Result<(), Error> {
+        for source in &track.sources {
+            let insertable = InsertableTracksSource::bind(track_id, source);
+            let query = diesel::insert_into(aux_track_source::table).values(&insertable);
+            query.execute(self.connection)?;
+        }
+        Ok(())
+    }
+
+    fn cleanup_collection(&self) -> Result<(), Error> {
+        let query =
+            diesel::delete(aux_track_collection::table.filter(
+                aux_track_collection::track_id.ne_all(tbl_track::table.select(tbl_track::id)),
+            ));
+        query.execute(self.connection)?;
+        Ok(())
+    }
+
+    fn delete_collection(&self, track_id: StorageId) -> Result<(), Error> {
+        let query = diesel::delete(
+            aux_track_collection::table.filter(aux_track_collection::track_id.eq(track_id)),
+        );
+        query.execute(self.connection)?;
+        Ok(())
+    }
+
+    fn insert_collection(&self, track_id: StorageId, track: &Track) -> Result<(), Error> {
+        for collection in &track.collections {
+            let insertable = InsertableTracksCollection::bind(track_id, collection);
+            let query = diesel::insert_into(aux_track_collection::table).values(&insertable);
             query.execute(self.connection)?;
         }
         Ok(())
@@ -368,7 +392,8 @@ impl<'a> TrackRepositoryHelper<'a> {
     pub fn cleanup(&self) -> Result<(), Error> {
         self.cleanup_overview()?;
         self.cleanup_summary()?;
-        self.cleanup_resource()?;
+        self.cleanup_source()?;
+        self.cleanup_collection()?;
         self.cleanup_profile()?;
         self.cleanup_xref()?;
         self.cleanup_tag()?;
@@ -380,7 +405,8 @@ impl<'a> TrackRepositoryHelper<'a> {
     fn on_insert(&self, storage_id: StorageId, track: &Track) -> Result<(), Error> {
         self.insert_overview(storage_id, track)?;
         self.insert_summary(storage_id, track)?;
-        self.insert_resource(storage_id, track)?;
+        self.insert_source(storage_id, track)?;
+        self.insert_collection(storage_id, track)?;
         self.insert_profile(storage_id, track)?;
         self.insert_xref(storage_id, track)?;
         self.insert_tag(storage_id, track)?;
@@ -392,7 +418,8 @@ impl<'a> TrackRepositoryHelper<'a> {
     fn on_delete(&self, storage_id: StorageId) -> Result<(), Error> {
         self.delete_overview(storage_id)?;
         self.delete_summary(storage_id)?;
-        self.delete_resource(storage_id)?;
+        self.delete_source(storage_id)?;
+        self.delete_collection(storage_id)?;
         self.delete_profile(storage_id)?;
         self.delete_xref(storage_id)?;
         self.delete_tag(storage_id)?;

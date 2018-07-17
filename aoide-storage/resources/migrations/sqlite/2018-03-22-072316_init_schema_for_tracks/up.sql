@@ -47,37 +47,6 @@ CREATE TABLE tbl_track (
     UNIQUE (uid)
 );
 
-CREATE TABLE aux_track_resource (
-    id                       INTEGER PRIMARY KEY,
-    track_id                 INTEGER NOT NULL,
-    collection_uid           BINARY(24) NOT NULL,
-    collection_since         DATETIME NOT NULL,
-    source_uri               TEXT NOT NULL,     -- RFC 3986
-    source_uri_decoded       TEXT NOT NULL,
-    source_sync_when         DATETIME,          -- most recent metadata synchronization
-    source_sync_rev_ordinal  INTEGER,           -- most recent metadata synchronization
-    source_sync_rev_timestamp DATETIME,         -- most recent metadata synchronization
-    media_type               TEXT NOT NULL,     -- RFC 6838
-    audio_channels_count     INTEGER,           -- number of channels
-    audio_duration_ms        REAL,              -- milliseconds
-    audio_samplerate_hz      INTEGER,           -- Hz
-    audio_bitrate_bps        INTEGER,           -- bits per second (bps)
-    audio_enc_name           TEXT,              -- encoded by
-    audio_enc_settings       TEXT,              -- encoder settings
-    color_code               INTEGER,           -- 0xAARRGGBB (hex)
-    FOREIGN KEY(track_id) REFERENCES tbl_track(id),
-    UNIQUE (collection_uid, track_id),
-    UNIQUE (collection_uid, source_uri)
-);
-
-CREATE INDEX idx_track_resource_track_id ON aux_track_resource (
-    track_id
-);
-
-CREATE INDEX idx_track_resource_source_uri ON aux_track_resource (
-    source_uri
-);
-
 CREATE TABLE aux_track_overview (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
@@ -122,6 +91,45 @@ CREATE TABLE aux_track_summary (
     UNIQUE (track_id)
 );
 
+CREATE TABLE aux_track_collection (
+    id                       INTEGER PRIMARY KEY,
+    track_id                 INTEGER NOT NULL,
+    uid                      BINARY(24) NOT NULL,
+    since                    DATETIME NOT NULL,
+    color_code               INTEGER,           -- 0xAARRGGBB (hex)
+    play_count               INTEGER,
+    FOREIGN KEY(track_id) REFERENCES tbl_track(id),
+    UNIQUE (uid, track_id)
+);
+
+CREATE INDEX idx_track_collection_track_id ON aux_track_collection (
+    track_id
+);
+
+CREATE TABLE aux_track_source (
+    id                       INTEGER PRIMARY KEY,
+    track_id                 INTEGER NOT NULL,
+    content_uri              TEXT NOT NULL,     -- RFC 3986
+    content_uri_decoded      TEXT NOT NULL,     -- percent-decoded URI
+    content_type             TEXT NOT NULL,     -- RFC 6838
+    audio_channels_count     INTEGER,           -- number of channels
+    audio_duration_ms        REAL,              -- milliseconds
+    audio_samplerate_hz      INTEGER,           -- Hz
+    audio_bitrate_bps        INTEGER,           -- bits per second (bps)
+    audio_enc_name           TEXT,              -- encoded by
+    audio_enc_settings       TEXT,              -- encoder settings
+    metadata_sync_when       DATETIME,          -- most recent metadata synchronization
+    metadata_sync_rev_ordinal INTEGER,          -- most recent metadata synchronization
+    metadata_sync_rev_timestamp DATETIME,       -- most recent metadata synchronization
+    FOREIGN KEY(track_id) REFERENCES tbl_track(id),
+    UNIQUE (content_uri, track_id),
+    UNIQUE (content_type, track_id)             -- at most one URI per content type
+);
+
+CREATE INDEX idx_track_source_track_id ON aux_track_source (
+    track_id
+);
+
 CREATE TABLE aux_track_profile (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
@@ -143,7 +151,7 @@ CREATE TABLE aux_track_profile (
 
 CREATE TABLE aux_track_tag_term (
     id                       INTEGER PRIMARY KEY,
-    term                    TEXT NOT NULL,
+    term                     TEXT NOT NULL,
     UNIQUE (term)
 );
 
@@ -180,11 +188,11 @@ CREATE TABLE aux_track_comment (
     text                     CLOB NOT NULL,
     owner                    TEXT,
     FOREIGN KEY(track_id) REFERENCES tbl_track(id),
-    UNIQUE (track_id, owner)
+    UNIQUE (owner, track_id)
 );
 
-CREATE INDEX idx_track_comment_owner ON aux_track_comment (
-    owner
+CREATE INDEX idx_track_comment_track_id ON aux_track_comment (
+    track_id
 );
 
 CREATE TABLE aux_track_rating (
@@ -193,11 +201,11 @@ CREATE TABLE aux_track_rating (
     score                    REAL NOT NULL, -- [0.0, 1.0]
     owner                    TEXT,
     FOREIGN KEY(track_id) REFERENCES tbl_track(id),
-    UNIQUE (track_id, owner)
+    UNIQUE (owner, track_id)
 );
 
-CREATE INDEX idx_track_rating_owner ON aux_track_rating (
-    owner
+CREATE INDEX idx_track_rating_track_id ON aux_track_rating (
+    track_id
 );
 
 CREATE TABLE aux_track_xref (
@@ -206,7 +214,16 @@ CREATE TABLE aux_track_xref (
     origin                   TINYINT NOT NULL,
     reference                TEXT NOT NULL,
     FOREIGN KEY(track_id) REFERENCES tbl_track(id),
-    UNIQUE (track_id, origin, reference)
+    UNIQUE (reference, origin, track_id)
+);
+
+CREATE INDEX idx_track_xref_origin_track_id ON aux_track_xref (
+    origin,
+    track_id
+);
+
+CREATE INDEX idx_track_xref_track_id ON aux_track_xref (
+    track_id
 );
 
 -----------------------------------------------------------------------

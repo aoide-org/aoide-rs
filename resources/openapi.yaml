@@ -5,7 +5,7 @@ info:
   description: Music library management service.
   license:
     name: AGPL-3.0-or-later
-    url: https://www.gnu.org/licenses/agpl-3.0.html
+    url: 'https://www.gnu.org/licenses/agpl-3.0.html'
 paths:
   /collections:
     get:
@@ -480,9 +480,13 @@ components:
         type: integer
         format: int64
         minimum: 0
-      description: |
-        Maximum number of items to return or unlimited if missing. When this parameter
-        is specified its value is evaluated and applied, i.e. a value of 0 will result
+      description: >
+        Maximum number of items to return or unlimited if missing. When this
+        parameter
+
+        is specified its value is evaluated and applied, i.e. a value of 0 will
+        result
+
         in an empty set of returned items.
     collectionUidParam:
       name: collectionUid
@@ -524,12 +528,13 @@ components:
       required: false
       schema:
         type: string
-      example: 'media-type,track-artist,album-title'
+      example: 'source-type,track-artist,album-title'
       description: |
         Comma-separated list of field selectors:
           * `album-artist`
           * `album-title`
-          * `media-type`
+          * `source-uri` - percent-decoded URI
+          * `source-type` - media (MIME) type
           * `track-artist`
           * `track-title`
     withTagFacetList:
@@ -685,11 +690,8 @@ components:
       properties:
         totalCount:
           $ref: '#/components/schemas/TotalCount'
-        totalDuration:
-          $ref: '#/components/schemas/DurationMs'
       required:
         - totalCount
-        - totalDuration
     CollectionEntity:
       properties:
         header:
@@ -855,8 +857,9 @@ components:
     LoudnessLufs:
       type: number
       example: -13.4239
-      description: |
-        Loudness is measured in "Loudness Units relative to Full Scale" (LUFS) with 1 LU = 1 dB.
+      description: >
+        Loudness is measured in "Loudness Units relative to Full Scale" (LUFS)
+        with 1 LU = 1 dB.
     Lyrics:
       properties:
         text:
@@ -920,14 +923,15 @@ components:
         - album-artist
         - album-title
         - comments
-        - media-source
-        - media-type
+        - source-uri
+        - source-type
         - track-artist
         - track-title
       description: |
         Selectable fields, including
           * `comments` - all comments, i.e. independent of the owner
-          * `media-source` - percent-decoded URI
+          * `source-uri` - percent-decoded URI
+          * `source-type` - media (MIME) type
           * ...and more...
     PhraseFilter:
       properties:
@@ -1156,13 +1160,14 @@ components:
       enum:
         - album-artist
         - album-title
-        - media-source
-        - media-type
+        - source-uri
+        - source-type
         - track-artist
         - track-title
       description: |
         Selectable fields, including
-          * `media-source` - percent-decoded URI
+          * `source-uri` - percent-decoded URI
+          * `source-type` - media (MIME) type
           * ...and more...
     StringFieldCount:
       properties:
@@ -1283,6 +1288,10 @@ components:
             $ref: '#/components/schemas/Actor'
         album:
           $ref: '#/components/schemas/Album'
+        collections:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrackCollection'
         comments:
           type: array
           items:
@@ -1309,10 +1318,10 @@ components:
             $ref: '#/components/schemas/Rating'
         release:
           $ref: '#/components/schemas/Release'
-        resources:
+        sources:
           type: array
           items:
-            $ref: '#/components/schemas/TrackResource'
+            $ref: '#/components/schemas/TrackSource'
         tags:
           type: array
           items:
@@ -1333,6 +1342,11 @@ components:
           $ref: '#/components/schemas/EntityUid'
         since:
           $ref: '#/components/schemas/TimeStamp'
+        color:
+          $ref: '#/components/schemas/Color'
+        playCount:
+          type: integer
+          minimum: 0
       required:
         - uid
         - since
@@ -1441,17 +1455,6 @@ components:
       description: |
         The URI is used for looking up the existing track (if any) that gets
         replaced.
-    TrackResource:
-      properties:
-        collection:
-          $ref: '#/components/schemas/TrackCollection'
-        source:
-          $ref: '#/components/schemas/TrackSource'
-        color:
-          $ref: '#/components/schemas/Color'
-        playCount:
-          type: integer
-          minimum: 0
     TrackSortField:
       type: string
       enum:
@@ -1471,14 +1474,14 @@ components:
           $ref: '#/components/schemas/SortDirection'
     TrackSource:
       properties:
-        uri:
+        contentUri:
           $ref: '#/components/schemas/Uri'
-        synchronization:
-          $ref: '#/components/schemas/TrackSynchronization'
-        mediaType:
+        contentType:
           $ref: '#/components/schemas/MediaType'
         audioContent:
           $ref: '#/components/schemas/AudioContent'
+        metadataSync:
+          $ref: '#/components/schemas/TrackSynchronization'
     TrackSynchronization:
       properties:
         revision:

@@ -34,23 +34,20 @@ fn serialize_json() {
     )];
     let uri = "subfolder/test.mp3";
     let source = TrackSource {
-        uri: uri.to_string(),
-        synchronization: Some(TrackSynchronization {
+        content_uri: uri.to_string(),
+        content_type: mime_guess::guess_mime_type(uri).to_string(),
+        audio_content: None,
+        metadata_sync: Some(TrackSynchronization {
             when: Utc::now(),
             revision: EntityRevision::initial(),
         }),
-        media_type: mime_guess::guess_mime_type(uri).to_string(),
-        audio_content: None,
     };
-    let resources = vec![TrackResource {
-        collection: TrackCollection {
-            uid: EntityUidGenerator::generate_uid(),
-            since: Utc::now(),
-        },
-        source,
+    let collection = TrackCollection {
+        uid: EntityUidGenerator::generate_uid(),
+        since: Utc::now(),
         color: Some(ColorArgb::RED),
         play_count: None,
-    }];
+    };
     let tags = vec![
         ScoredTag::new_term_faceted(0.8, "1980s", TrackTagging::FACET_STYLE),
         ScoredTag::new_term_faceted(0.3, "1990s", "style"),
@@ -58,7 +55,8 @@ fn serialize_json() {
         ScoredTag::new_term(1.0, "Non-faceted tag"),
     ];
     let body = Track {
-        resources,
+        sources: vec![source],
+        collections: vec![collection],
         profile: Some(profile),
         tags,
         comments,

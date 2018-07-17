@@ -15,14 +15,6 @@
 
 use super::*;
 
-use chrono::Utc;
-
-use api::collection::Collections;
-
-use storage::collection::CollectionRepository;
-
-use aoide_core::domain::collection::Collection;
-
 embed_migrations!("resources/migrations/sqlite");
 
 fn establish_connection() -> SqliteConnection {
@@ -35,56 +27,27 @@ fn establish_connection() -> SqliteConnection {
 #[test]
 fn search_distinct_with_multiple_sources() {
     let connection = establish_connection();
-    let collection_repo = CollectionRepository::new(&connection);
-    let collection1 = collection_repo
-        .create_entity(Collection {
-            name: "Collection 1".into(),
-            description: None,
-        })
-        .unwrap();
-    let collection2 = collection_repo
-        .create_entity(Collection {
-            name: "Collection 2".into(),
-            description: None,
-        })
-        .unwrap();
-    let track_repo = TrackRepository::new(&connection);
-    let track_res1 = TrackResource {
-        collection: TrackCollection {
-            uid: *collection1.header().uid(),
-            since: Utc::now(),
-        },
-        source: TrackSource {
-            uri: "testfile1.mp3".into(),
-            media_type: "audio/mpeg".into(),
-            ..Default::default()
-        },
-        color: None,
-        play_count: None,
+    let repository = TrackRepository::new(&connection);
+    let track_src1 = TrackSource {
+        content_uri: "testfile1.mp3".into(),
+        content_type: "audio/mpeg".into(),
+        ..Default::default()
     };
-    let track_res2 = TrackResource {
-        collection: TrackCollection {
-            uid: *collection2.header().uid(),
-            since: Utc::now(),
-        },
-        source: TrackSource {
-            uri: "testfile2.flac".into(),
-            media_type: "audio/flac".into(),
-            ..Default::default()
-        },
-        color: None,
-        play_count: None,
+    let track_src2 = TrackSource {
+        content_uri: "testfile2.flac".into(),
+        content_type: "audio/flac".into(),
+        ..Default::default()
     };
-    let _track = track_repo
+    let _track = repository
         .create_entity(
             Track {
-                resources: vec![track_res1, track_res2],
+                sources: vec![track_src1, track_src2],
                 ..Default::default()
             },
             SerializationFormat::JSON,
         )
         .unwrap();
-    let search_all_count = track_repo
+    let search_all_count = repository
         .search_entities(
             None,
             Default::default(),
@@ -95,14 +58,14 @@ fn search_distinct_with_multiple_sources() {
         .unwrap()
         .len();
     assert_eq!(1, search_all_count);
-    let search_testfile_count = track_repo
+    let search_testfile_count = repository
         .search_entities(
             None,
             Default::default(),
             SearchTracksParams {
                 phrase_filter: Some(PhraseFilter {
                     modifier: None,
-                    fields: vec![PhraseField::MediaSource],
+                    fields: vec![PhraseField::SourceUri],
                     phrase: "testfile".into(),
                 }),
                 ..Default::default()
@@ -111,14 +74,14 @@ fn search_distinct_with_multiple_sources() {
         .unwrap()
         .len();
     assert_eq!(1, search_testfile_count);
-    let search_testfile1_count = track_repo
+    let search_testfile1_count = repository
         .search_entities(
             None,
             Default::default(),
             SearchTracksParams {
                 phrase_filter: Some(PhraseFilter {
                     modifier: None,
-                    fields: vec![PhraseField::MediaSource],
+                    fields: vec![PhraseField::SourceUri],
                     phrase: "testfile1".into(),
                 }),
                 ..Default::default()
@@ -127,14 +90,14 @@ fn search_distinct_with_multiple_sources() {
         .unwrap()
         .len();
     assert_eq!(1, search_testfile1_count);
-    let search_testfile2_count = track_repo
+    let search_testfile2_count = repository
         .search_entities(
             None,
             Default::default(),
             SearchTracksParams {
                 phrase_filter: Some(PhraseFilter {
                     modifier: None,
-                    fields: vec![PhraseField::MediaSource],
+                    fields: vec![PhraseField::SourceUri],
                     phrase: "testfile2".into(),
                 }),
                 ..Default::default()
@@ -143,14 +106,14 @@ fn search_distinct_with_multiple_sources() {
         .unwrap()
         .len();
     assert_eq!(1, search_testfile2_count);
-    let search_testfile3_count = track_repo
+    let search_testfile3_count = repository
         .search_entities(
             None,
             Default::default(),
             SearchTracksParams {
                 phrase_filter: Some(PhraseFilter {
                     modifier: None,
-                    fields: vec![PhraseField::MediaSource],
+                    fields: vec![PhraseField::SourceUri],
                     phrase: "testfile3".into(),
                 }),
                 ..Default::default()

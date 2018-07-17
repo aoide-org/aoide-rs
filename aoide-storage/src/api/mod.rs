@@ -174,9 +174,9 @@ pub struct NumericFilter {
 pub enum PhraseField {
     AlbumArtist,
     AlbumTitle,
-    Comments,    // all comments, i.e. independent of owner
-    MediaSource, // percent-decoded URI
-    MediaType,
+    Comments,  // all comments, i.e. independent of owner
+    SourceUri, // percent-decoded URI
+    SourceType,
     TrackArtist,
     TrackTitle,
 }
@@ -315,8 +315,8 @@ pub struct SearchTracksParams {
 pub enum StringField {
     AlbumArtist,
     AlbumTitle,
-    MediaSource,
-    MediaType,
+    SourceUri,
+    SourceType,
     TrackArtist,
     TrackTitle,
 }

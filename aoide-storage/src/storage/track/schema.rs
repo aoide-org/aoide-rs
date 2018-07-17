@@ -29,30 +29,40 @@ table! {
 }
 
 table! {
-    aux_track_resource (id) {
+    aux_track_source (id) {
         id -> BigInt,
         track_id -> BigInt,
-        collection_uid -> Binary,
-        collection_since -> Timestamp,
-        source_uri -> Text,
-        source_uri_decoded -> Text,
-        source_sync_when -> Nullable<Timestamp>,
-        source_sync_rev_ordinal -> Nullable<BigInt>,
-        source_sync_rev_timestamp -> Nullable<Timestamp>,
-        media_type -> Text,
+        content_uri -> Text,
+        content_uri_decoded -> Text,
+        content_type -> Text,
         audio_duration_ms -> Nullable<Double>,
         audio_channels_count -> Nullable<SmallInt>,
         audio_samplerate_hz -> Nullable<Integer>,
         audio_bitrate_bps -> Nullable<Integer>,
         audio_enc_name -> Nullable<Text>,
         audio_enc_settings -> Nullable<Text>,
-        color_code -> Nullable<Integer>,
+        metadata_sync_when -> Nullable<Timestamp>,
+        metadata_sync_rev_ordinal -> Nullable<BigInt>,
+        metadata_sync_rev_timestamp -> Nullable<Timestamp>,
     }
 }
 
-joinable!(aux_track_resource -> tbl_track (track_id));
+joinable!(aux_track_source -> tbl_track (track_id));
 
-allow_tables_to_appear_in_same_query!(aux_track_resource, tbl_collection);
+table! {
+    aux_track_collection (id) {
+        id -> BigInt,
+        track_id -> BigInt,
+        uid -> Binary,
+        since -> Timestamp,
+        color_code -> Nullable<Integer>,
+        play_count -> Nullable<Integer>,
+    }
+}
+
+joinable!(aux_track_collection -> tbl_track (track_id));
+
+allow_tables_to_appear_in_same_query!(aux_track_collection, tbl_collection);
 
 table! {
     aux_track_overview (id) {
@@ -193,7 +203,8 @@ joinable!(aux_track_xref -> tbl_track (track_id));
 
 allow_tables_to_appear_in_same_query!(
     tbl_track,
-    aux_track_resource,
+    aux_track_source,
+    aux_track_collection,
     aux_track_overview,
     aux_track_summary,
     aux_track_profile,
