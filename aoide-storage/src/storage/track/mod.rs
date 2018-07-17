@@ -400,7 +400,6 @@ impl<'a> Tracks for TrackRepository<'a> {
                 self.locate_entities(collection_uid, Pagination::default(), locate_params)?;
             // Ambiguous?
             if located_entities.len() > 1 {
-                assert!(collection_uid.is_none());
                 warn!("Found multiple tracks with URI '{}'", replacement.uri);
                 results.rejected.push(replacement.uri);
                 continue;
