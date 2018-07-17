@@ -538,8 +538,14 @@ impl<'a> Tracks for TrackRepository<'a> {
             ),
         };
 
+        let mut target = tbl_track::table
+            .select(tbl_track::all_columns)
+            .distinct()
+            .order_by(tbl_track::id) // preserve relative order of results
+            .into_boxed();
+
         // A subselect has proven to be much more efficient than
-        // joining the aux_track_source table!!
+        // joining the aux_track_source table for filtering by URI!
         let mut track_id_subselect = aux_track_source::table
             .select(aux_track_source::track_id)
             .into_boxed();
@@ -558,13 +564,6 @@ impl<'a> Tracks for TrackRepository<'a> {
                     .filter(aux_track_source::content_uri.not_like(like).escape('\\')),
             },
         };
-
-        let mut target = tbl_track::table
-            .select(tbl_track::all_columns)
-            .distinct()
-            .order_by(tbl_track::id) // preserve relative order of results
-            .into_boxed();
-
         target = match locate_params.uri_filter.modifier {
             None => target.or_filter(tbl_track::id.eq_any(track_id_subselect)),
             Some(FilterModifier::Complement) => {
@@ -573,6 +572,10 @@ impl<'a> Tracks for TrackRepository<'a> {
         };
 
         // Collection filtering
+        // TODO: The second subselect that has been introduced when splitting
+        // aux_track_resource into aux_track_collection and aux_track_source
+        // slows down the query substantially although all columns are properly
+        // indexed! How could this be to optimized?
         if let Some(collection_uid) = collection_uid {
             let track_id_subselect = aux_track_collection::table
                 .select(aux_track_collection::track_id)
