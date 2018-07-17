@@ -27,7 +27,7 @@ CREATE TABLE tbl_collection (
     UNIQUE (uid)
 );
 
-CREATE INDEX idx_collections_name ON tbl_collection (
+CREATE INDEX idx_collection_name ON tbl_collection (
     name
 );
 
