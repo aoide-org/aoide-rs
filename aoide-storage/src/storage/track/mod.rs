@@ -561,6 +561,7 @@ impl<'a> Tracks for TrackRepository<'a> {
 
         let mut target = tbl_track::table
             .select(tbl_track::all_columns)
+            .distinct()
             .order_by(tbl_track::id) // preserve relative order of results
             .into_boxed();
 
