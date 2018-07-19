@@ -564,9 +564,9 @@ impl<'a> Tracks for TrackRepository<'a> {
             },
         };
         target = match locate_params.uri_filter.modifier {
-            None => target.or_filter(tbl_track::id.eq_any(track_id_subselect)),
+            None => target.filter(tbl_track::id.eq_any(track_id_subselect)),
             Some(FilterModifier::Complement) => {
-                target.or_filter(tbl_track::id.ne_all(track_id_subselect))
+                target.filter(tbl_track::id.ne_all(track_id_subselect))
             }
         };
 
