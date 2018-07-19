@@ -29,6 +29,21 @@ table! {
 }
 
 table! {
+    aux_track_collection (id) {
+        id -> BigInt,
+        track_id -> BigInt,
+        uid -> Binary,
+        since -> Timestamp,
+        color_code -> Nullable<Integer>,
+        play_count -> Nullable<Integer>,
+    }
+}
+
+joinable!(aux_track_collection -> tbl_track (track_id));
+
+allow_tables_to_appear_in_same_query!(aux_track_collection, tbl_collection);
+
+table! {
     aux_track_source (id) {
         id -> BigInt,
         track_id -> BigInt,
@@ -48,21 +63,6 @@ table! {
 }
 
 joinable!(aux_track_source -> tbl_track (track_id));
-
-table! {
-    aux_track_collection (id) {
-        id -> BigInt,
-        track_id -> BigInt,
-        uid -> Binary,
-        since -> Timestamp,
-        color_code -> Nullable<Integer>,
-        play_count -> Nullable<Integer>,
-    }
-}
-
-joinable!(aux_track_collection -> tbl_track (track_id));
-
-allow_tables_to_appear_in_same_query!(aux_track_collection, tbl_collection);
 
 table! {
     aux_track_overview (id) {
