@@ -396,10 +396,51 @@ impl<'a> Tracks for TrackRepository<'a> {
                 modifier: None,
             };
             let locate_params = LocateTracksParams { uri_filter };
-            let located_entities =
-                self.locate_entities(collection_uid, Pagination::default(), locate_params)?;
+            // Workaround for performance regression:
+            // * Locate entities for any collection
+            // * Post-filtering of located entities by collection (see below)
+            // See also: https://gitlab.com/uklotzde/aoide-rs/issues/12
+            let located_entities = self.locate_entities(
+                /*collection_uid*/ None,
+                Pagination::default(),
+                locate_params,
+            )?;
+            let deserialized_entities: Vec<TrackEntity> = located_entities.iter().fold(
+                Vec::with_capacity(located_entities.len()),
+                |mut acc, item| {
+                    match item.deserialize() {
+                        Ok(deserialized) => {
+                            acc.push(deserialized);
+                        }
+                        Err(e) => warn!("Failed to deserialize track entity: {}", e),
+                    }
+                    acc
+                },
+            );
+            if deserialized_entities.len() < located_entities.len() {
+                warn!(
+                    "Failed to deserialize {} track(s) with URI '{}'",
+                    located_entities.len() - deserialized_entities.len(),
+                    replacement.uri
+                );
+                results.rejected.push(replacement.uri);
+                continue;
+            }
+            // Workaround for performance regression:
+            // * Post-filtering of located entities by collection (see above)
+            // See also: https://gitlab.com/uklotzde/aoide-rs/issues/12
+            let deserialized_entities: Vec<TrackEntity> = deserialized_entities
+                .into_iter()
+                .filter(|entity| match collection_uid {
+                    Some(collection_uid) => TrackCollection::filter_slice_by_uid(
+                        &entity.body().collections,
+                        collection_uid,
+                    ).is_some(),
+                    None => true,
+                })
+                .collect();
             // Ambiguous?
-            if located_entities.len() > 1 {
+            if deserialized_entities.len() > 1 {
                 warn!("Found multiple tracks with URI '{}'", replacement.uri);
                 results.rejected.push(replacement.uri);
                 continue;
@@ -412,8 +453,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                 // ...ignore issues and continue
             }
             // Update?
-            if let Some(serialized_entity) = located_entities.first() {
-                let entity = serialized_entity.deserialize::<TrackEntity>()?;
+            if let Some(entity) = deserialized_entities.into_iter().next() {
                 let uid = *entity.header().uid();
                 if entity.body() == &replacement.track {
                     debug!(
