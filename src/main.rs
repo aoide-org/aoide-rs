@@ -118,7 +118,6 @@ fn web_app(executor: &Addr<SqliteExecutor>) -> actix_web::App<AppState> {
             })
             .middleware(actix_web::middleware::Logger::default()) // enable logger
             .prefix("/")
-            .handler("/", fs::StaticFiles::new("./resources/").expect("Missing resources folder").index_file("index.html"))
             .resource("/tracks", |r| {
                 r.method(http::Method::GET).with_async(on_list_tracks);
                 r.method(http::Method::POST).with_async_config(on_create_track,
@@ -201,6 +200,7 @@ fn web_app(executor: &Addr<SqliteExecutor>) -> actix_web::App<AppState> {
                     });
                 r.method(http::Method::DELETE).with_async(on_delete_collection);
             })
+            .handler("/", fs::StaticFiles::new("./resources/").expect("Missing resources folder").index_file("index.html"))
             .default_resource(|r| {
                 r.method(http::Method::GET).f(|_req| HttpResponse::NotFound());
                 r.route().filter(pred::Not(pred::Get())).f(
