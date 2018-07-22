@@ -112,17 +112,15 @@ fn init_env_logger(log_level_filter: LogLevelFilter) {
     logger_builder.init();
 }
 
-fn web_app(executor: &Addr<Syn, SqliteExecutor>) -> actix_web::App<AppState> {
+fn web_app(executor: &Addr<SqliteExecutor>) -> actix_web::App<AppState> {
     actix_web::App::with_state(AppState {
                 executor: executor.clone(),
             })
             .middleware(actix_web::middleware::Logger::default()) // enable logger
             .prefix("/")
-            .handler("/", fs::StaticFiles::new("./resources/")/*.expect("Missing resources folder")*/.index_file("index.html"))
+            .handler("/", fs::StaticFiles::new("./resources/").expect("Missing resources folder").index_file("index.html"))
             .resource("/tracks", |r| {
                 r.method(http::Method::GET).with_async(on_list_tracks);
-                r.method(http::Method::POST).with_async(on_create_track);
-                /* TODO: Upgrade Actix Web
                 r.method(http::Method::POST).with_async_config(on_create_track,
                     |(_, cfg_body)| { cfg_body.error_handler(|err, _req| {
                         let err_msg = format!("{}", err);
@@ -130,11 +128,8 @@ fn web_app(executor: &Addr<Syn, SqliteExecutor>) -> actix_web::App<AppState> {
                             err, HttpResponse::BadRequest().body(err_msg)).into()
                         });
                     });
-                    */
             })
             .resource("/tracks/search", |r| {
-                r.method(http::Method::POST).with_async(on_search_tracks);
-                /* TODO: Upgrade Actix Web
                 r.method(http::Method::POST).with_async_config(on_search_tracks,
                     |(_, _, _, cfg_body)| { cfg_body.error_handler(|err, _req| {
                         let err_msg = format!("{}", err);
@@ -142,7 +137,6 @@ fn web_app(executor: &Addr<Syn, SqliteExecutor>) -> actix_web::App<AppState> {
                             err, HttpResponse::BadRequest().body(err_msg)).into()
                         });
                     });
-                    */
             })
             .resource("/tracks/fields", |r| {
                 r.method(http::Method::GET).with_async(on_list_tracks_fields);
@@ -154,8 +148,6 @@ fn web_app(executor: &Addr<Syn, SqliteExecutor>) -> actix_web::App<AppState> {
                 r.method(http::Method::GET).with_async(on_list_tracks_tags_facets);
             })
             .resource("/tracks/replace", |r| {
-                r.method(http::Method::POST).with_async(on_replace_tracks);
-                /* TODO: Upgrade Actix Web
                 r.method(http::Method::POST).with_async_config(on_replace_tracks,
                     // Limit maximum body size to 1 MB (Default: 256 KB)
                     |(_, _, cfg_body)| { cfg_body.limit(1024 * 1024).error_handler(|err, _req| {
@@ -164,11 +156,8 @@ fn web_app(executor: &Addr<Syn, SqliteExecutor>) -> actix_web::App<AppState> {
                             err, HttpResponse::BadRequest().body(err_msg)).into()
                         });
                     });
-                    */
             })
             .resource("/tracks/locate", |r| {
-                r.method(http::Method::POST).with_async(on_locate_tracks);
-                /* TODO: Upgrade Actix Web
                 r.method(http::Method::POST).with_async_config(on_locate_tracks,
                     |(_, _, _, cfg_body)| { cfg_body.error_handler(|err, _req| {
                         let err_msg = format!("{}", err);
@@ -176,12 +165,9 @@ fn web_app(executor: &Addr<Syn, SqliteExecutor>) -> actix_web::App<AppState> {
                             err, HttpResponse::BadRequest().body(err_msg)).into()
                         });
                     });
-                    */
             })
             .resource("/tracks/{uid}", |r| {
                 r.method(http::Method::GET).with_async(on_load_track);
-                r.method(http::Method::PUT).with_async(on_update_track);
-                /* TODO: Upgrade Actix Web
                 r.method(http::Method::PUT).with_async_config(on_update_track,
                     |(_, _, cfg_body)| { cfg_body.error_handler(|err, _req| {
                         let err_msg = format!("{}", err);
@@ -189,7 +175,6 @@ fn web_app(executor: &Addr<Syn, SqliteExecutor>) -> actix_web::App<AppState> {
                             err, HttpResponse::BadRequest().body(err_msg)).into()
                         });
                     });
-                    */
                 r.method(http::Method::DELETE).with_async(on_delete_track);
             })
             .resource("/albums", |r| {
@@ -197,8 +182,6 @@ fn web_app(executor: &Addr<Syn, SqliteExecutor>) -> actix_web::App<AppState> {
             })
             .resource("/collections", |r| {
                 r.method(http::Method::GET).with_async(on_list_collections);
-                r.method(http::Method::POST).with_async(on_create_collection);
-                /* TODO: Upgrade Actix Web
                 r.method(http::Method::POST).with_async_config(on_create_collection,
                     |(_, cfg_body)| { cfg_body.error_handler(|err, _req| {
                         let err_msg = format!("{}", err);
@@ -206,12 +189,9 @@ fn web_app(executor: &Addr<Syn, SqliteExecutor>) -> actix_web::App<AppState> {
                             err, HttpResponse::BadRequest().body(err_msg)).into()
                         });
                     });
-                    */
             })
             .resource("/collections/{uid}", |r| {
                 r.method(http::Method::GET).with_async(on_load_collection);
-                r.method(http::Method::PUT).with_async(on_update_collection);
-                /* TODO: Upgrade Actix Web
                 r.method(http::Method::PUT).with_async_config(on_update_collection,
                     |(_, _, cfg_body)| { cfg_body.error_handler(|err, _req| {
                         let err_msg = format!("{}", err);
@@ -219,7 +199,6 @@ fn web_app(executor: &Addr<Syn, SqliteExecutor>) -> actix_web::App<AppState> {
                             err, HttpResponse::BadRequest().body(err_msg)).into()
                         });
                     });
-                    */
                 r.method(http::Method::DELETE).with_async(on_delete_collection);
             })
             .default_resource(|r| {
