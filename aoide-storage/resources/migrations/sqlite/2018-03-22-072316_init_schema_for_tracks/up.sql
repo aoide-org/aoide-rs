@@ -19,7 +19,7 @@
 
 CREATE TABLE tbl_collection (
     id                       INTEGER PRIMARY KEY,
-    uid                      BINARY(24) NOT NULL, -- globally unique identifier
+    uid                      BLOB NOT NULL, -- 24-byte globally unique identifier
     rev_ordinal              INTEGER NOT NULL,
     rev_timestamp            DATETIME NOT NULL, -- with implicit time zone (UTC)
     name                     TEXT NOT NULL,     -- display name
@@ -37,7 +37,7 @@ CREATE INDEX idx_collection_name ON tbl_collection (
 
 CREATE TABLE tbl_track (
     id                       INTEGER PRIMARY KEY,
-    uid                      BINARY(24) NOT NULL, -- globally unique identifier
+    uid                      BLOB NOT NULL, -- 24-byte globally unique identifier
     rev_ordinal              INTEGER NOT NULL,
     rev_timestamp            DATETIME NOT NULL, -- with implicit time zone (UTC)
     ser_fmt                  INTEGER NOT NULL,  -- serialization format: 1 = JSON, 2 = BSON, 3 = CBOR, 4 = Bincode, ...
@@ -94,7 +94,7 @@ CREATE TABLE aux_track_summary (
 CREATE TABLE aux_track_collection (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
-    uid                      BINARY(24) NOT NULL,
+    uid                      BLOB NOT NULL, -- 24-byte globally unique identifier
     since                    DATETIME NOT NULL,
     color_code               INTEGER,           -- 0xAARRGGBB (hex)
     play_count               INTEGER,
@@ -233,7 +233,7 @@ CREATE INDEX idx_track_xref_track_id ON aux_track_xref (
 CREATE TABLE tbl_pending_task (
     -- AUTOINCREMENT: Required for ordered execution of pending tasks
     id                       INTEGER PRIMARY KEY AUTOINCREMENT,
-    collection_uid           BINARY(24),
+    collection_uid           BLOB, -- 24-byte globally unique identifier
     job_type                 INTEGER NOT NULL,
     job_params               BLOB NOT NULL
 );
