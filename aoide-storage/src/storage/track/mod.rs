@@ -426,12 +426,11 @@ impl<'a> Tracks for TrackRepository<'a> {
                 let replaced_entity = entity.replace_body(replacement.track);
                 match self.update_entity(replaced_entity, format)? {
                     (_, None) => {
-                        let msg = format!(
+                        warn!(
                             "Failed to update track '{}' due to internal race condition",
                             uid
                         );
-                        //warn!(msg);
-                        results.rejected.push(msg);
+                        results.rejected.push(replacement.uri);
                     }
                     (_, Some(next_revision)) => {
                         let header = EntityHeader::new(uid, next_revision);
