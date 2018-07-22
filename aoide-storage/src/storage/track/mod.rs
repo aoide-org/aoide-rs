@@ -574,6 +574,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         // aux_track_resource into aux_track_collection and aux_track_source
         // slows down the query substantially although all columns are properly
         // indexed! How could this be to optimized?
+        // See also: https://gitlab.com/uklotzde/aoide-rs/issues/12
         if let Some(collection_uid) = collection_uid {
             let track_id_subselect = aux_track_collection::table
                 .select(aux_track_collection::track_id)
