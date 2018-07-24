@@ -19,7 +19,7 @@
 
 CREATE TABLE tbl_collection (
     id                       INTEGER PRIMARY KEY,
-    uid                      BLOB NOT NULL, -- 24-byte globally unique identifier
+    uid                      BINARY(24) NOT NULL,
     rev_ordinal              INTEGER NOT NULL,
     rev_timestamp            DATETIME NOT NULL, -- with implicit time zone (UTC)
     name                     TEXT NOT NULL,     -- display name
@@ -37,7 +37,7 @@ CREATE INDEX idx_collection_name ON tbl_collection (
 
 CREATE TABLE tbl_track (
     id                       INTEGER PRIMARY KEY,
-    uid                      BLOB NOT NULL, -- 24-byte globally unique identifier
+    uid                      BINARY(24) NOT NULL,
     rev_ordinal              INTEGER NOT NULL,
     rev_timestamp            DATETIME NOT NULL, -- with implicit time zone (UTC)
     ser_fmt                  INTEGER NOT NULL,  -- serialization format: 1 = JSON, 2 = BSON, 3 = CBOR, 4 = Bincode, ...
@@ -94,7 +94,7 @@ CREATE TABLE aux_track_summary (
 CREATE TABLE aux_track_collection (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
-    collection_uid           BLOB NOT NULL, -- 24-byte globally unique identifier
+    collection_uid           BINARY(24) NOT NULL,
     since                    DATETIME NOT NULL,
     color_code               INTEGER,           -- 0xAARRGGBB (hex)
     play_count               INTEGER,
