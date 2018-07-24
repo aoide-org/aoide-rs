@@ -84,8 +84,8 @@ fn cleanup_database_storage(connection_pool: &SqliteConnectionPool) -> Result<()
     connection.transaction::<_, Error, _>(|| helper.cleanup())
 }
 
-fn repair_database_storage(connection_pool: &SqliteConnectionPool) -> Result<(), Error> {
-    info!("Repairing database storage");
+fn restore_database_storage(connection_pool: &SqliteConnectionPool) -> Result<(), Error> {
+    info!("Restoring database storage");
     let collection_prototype = Collection {
         name: "Missing Collection".into(),
         description: Some("Recreated by aoide".into()),
@@ -230,11 +230,11 @@ pub fn main() -> Result<(), Error> {
         create_connection_pool(database_url, 1).expect("Failed to create database connection pool");
 
     if arg_matches.skip_database_maintenance() {
-        info!("Skipping database maintenance");
+        info!("Skipping database maintenance tasks");
     } else {
-        migrate_database_schema(&connection_pool).unwrap();
-        cleanup_database_storage(&connection_pool).unwrap();
-        repair_database_storage(&connection_pool).unwrap();
+        migrate_database_schema(&connection_pool).expect("Failed to migrate database schema");
+        cleanup_database_storage(&connection_pool).expect("Failed to cleanup database storage");
+        restore_database_storage(&connection_pool).expect("Failed to restore database storage");
     }
 
     let sys_name = env!("CARGO_PKG_NAME");
