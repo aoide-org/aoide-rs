@@ -396,10 +396,51 @@ impl<'a> Tracks for TrackRepository<'a> {
                 modifier: None,
             };
             let locate_params = LocateTracksParams { uri_filter };
-            let located_entities =
-                self.locate_entities(collection_uid, Pagination::default(), locate_params)?;
+            // Workaround for performance regression:
+            // * Locate entities for any collection
+            // * Post-filtering of located entities by collection (see below)
+            // See also: https://gitlab.com/uklotzde/aoide-rs/issues/12
+            let located_entities = self.locate_entities(
+                /*collection_uid*/ None,
+                Pagination::default(),
+                locate_params,
+            )?;
+            let deserialized_entities: Vec<TrackEntity> = located_entities.iter().fold(
+                Vec::with_capacity(located_entities.len()),
+                |mut acc, item| {
+                    match item.deserialize() {
+                        Ok(deserialized) => {
+                            acc.push(deserialized);
+                        }
+                        Err(e) => warn!("Failed to deserialize track entity: {}", e),
+                    }
+                    acc
+                },
+            );
+            if deserialized_entities.len() < located_entities.len() {
+                warn!(
+                    "Failed to deserialize {} track(s) with URI '{}'",
+                    located_entities.len() - deserialized_entities.len(),
+                    replacement.uri
+                );
+                results.rejected.push(replacement.uri);
+                continue;
+            }
+            // Workaround for performance regression:
+            // * Post-filtering of located entities by collection (see above)
+            // See also: https://gitlab.com/uklotzde/aoide-rs/issues/12
+            let deserialized_entities: Vec<TrackEntity> = deserialized_entities
+                .into_iter()
+                .filter(|entity| match collection_uid {
+                    Some(collection_uid) => TrackCollection::filter_slice_by_uid(
+                        &entity.body().collections,
+                        collection_uid,
+                    ).is_some(),
+                    None => true,
+                })
+                .collect();
             // Ambiguous?
-            if located_entities.len() > 1 {
+            if deserialized_entities.len() > 1 {
                 warn!("Found multiple tracks with URI '{}'", replacement.uri);
                 results.rejected.push(replacement.uri);
                 continue;
@@ -412,19 +453,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                 // ...ignore semantic issues and continue
             }
             // Update?
-            if let Some(entity) = located_entities.into_iter().next() {
-                // Update!
-                let entity = match entity.deserialize::<TrackEntity>() {
-                    Ok(entity) => entity,
-                    Err(e) => {
-                        warn!(
-                            "Failed to deserialize track entity with URI '{}': {}",
-                            replacement.uri, e
-                        );
-                        results.rejected.push(replacement.uri);
-                        continue;
-                    }
-                };
+            if let Some(entity) = deserialized_entities.into_iter().next() {
                 let uid = *entity.header().uid();
                 if entity.body() == &replacement.track {
                     debug!(
@@ -582,6 +611,11 @@ impl<'a> Tracks for TrackRepository<'a> {
         };
 
         // Collection filtering
+        // TODO: The second subselect that has been introduced when splitting
+        // aux_track_resource into aux_track_collection and aux_track_source
+        // slows down the query substantially although all columns are properly
+        // indexed! How could this be to optimized?
+        // See also: https://gitlab.com/uklotzde/aoide-rs/issues/12
         if let Some(collection_uid) = collection_uid {
             let track_id_subselect = aux_track_collection::table
                 .select(aux_track_collection::track_id)
