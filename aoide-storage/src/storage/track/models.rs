@@ -333,7 +333,7 @@ impl<'a> InsertableTracksSource<'a> {
 #[table_name = "aux_track_collection"]
 pub struct InsertableTracksCollection<'a> {
     pub track_id: StorageId,
-    pub uid: &'a [u8],
+    pub collection_uid: &'a [u8],
     pub since: NaiveDateTime,
     pub color_code: Option<i32>,
     pub play_count: Option<i32>,
@@ -343,7 +343,7 @@ impl<'a> InsertableTracksCollection<'a> {
     pub fn bind(track_id: StorageId, track_collection: &'a TrackCollection) -> Self {
         Self {
             track_id,
-            uid: track_collection.uid.as_ref(),
+            collection_uid: track_collection.uid.as_ref(),
             since: track_collection.since.naive_utc(),
             color_code: track_collection.color.map(|color| color.code() as i32),
             play_count: track_collection.play_count.map(|count| count as i32),

@@ -396,51 +396,10 @@ impl<'a> Tracks for TrackRepository<'a> {
                 modifier: None,
             };
             let locate_params = LocateTracksParams { uri_filter };
-            // Workaround for performance regression:
-            // * Locate entities for any collection
-            // * Post-filtering of located entities by collection (see below)
-            // See also: https://gitlab.com/uklotzde/aoide-rs/issues/12
-            let located_entities = self.locate_entities(
-                /*collection_uid*/ None,
-                Pagination::default(),
-                locate_params,
-            )?;
-            let deserialized_entities: Vec<TrackEntity> = located_entities.iter().fold(
-                Vec::with_capacity(located_entities.len()),
-                |mut acc, item| {
-                    match item.deserialize() {
-                        Ok(deserialized) => {
-                            acc.push(deserialized);
-                        }
-                        Err(e) => warn!("Failed to deserialize track entity: {}", e),
-                    }
-                    acc
-                },
-            );
-            if deserialized_entities.len() < located_entities.len() {
-                warn!(
-                    "Failed to deserialize {} track(s) with URI '{}'",
-                    located_entities.len() - deserialized_entities.len(),
-                    replacement.uri
-                );
-                results.rejected.push(replacement.uri);
-                continue;
-            }
-            // Workaround for performance regression:
-            // * Post-filtering of located entities by collection (see above)
-            // See also: https://gitlab.com/uklotzde/aoide-rs/issues/12
-            let deserialized_entities: Vec<TrackEntity> = deserialized_entities
-                .into_iter()
-                .filter(|entity| match collection_uid {
-                    Some(collection_uid) => TrackCollection::filter_slice_by_uid(
-                        &entity.body().collections,
-                        collection_uid,
-                    ).is_some(),
-                    None => true,
-                })
-                .collect();
+            let located_entities =
+                self.locate_entities(collection_uid, Pagination::default(), locate_params)?;
             // Ambiguous?
-            if deserialized_entities.len() > 1 {
+            if located_entities.len() > 1 {
                 warn!("Found multiple tracks with URI '{}'", replacement.uri);
                 results.rejected.push(replacement.uri);
                 continue;
@@ -450,10 +409,22 @@ impl<'a> Tracks for TrackRepository<'a> {
                     "Accepting replacement track even though it is not valid: {:?}",
                     replacement.track
                 );
-                // ...ignore issues and continue
+                // ...ignore semantic issues and continue
             }
             // Update?
-            if let Some(entity) = deserialized_entities.into_iter().next() {
+            if let Some(entity) = located_entities.into_iter().next() {
+                // Update!
+                let entity = match entity.deserialize::<TrackEntity>() {
+                    Ok(entity) => entity,
+                    Err(e) => {
+                        warn!(
+                            "Failed to deserialize track entity with URI '{}': {}",
+                            replacement.uri, e
+                        );
+                        results.rejected.push(replacement.uri);
+                        continue;
+                    }
+                };
                 let uid = *entity.header().uid();
                 if entity.body() == &replacement.track {
                     debug!(
@@ -477,23 +448,24 @@ impl<'a> Tracks for TrackRepository<'a> {
                         results.updated.push(header);
                     }
                 };
-                continue;
+            } else {
+                // Create?
+                match replace_params.mode {
+                    ReplaceMode::UpdateOnly => {
+                        info!(
+                            "Track with URI '{}' does not exist and needs to be created",
+                            replacement.uri
+                        );
+                        results.discarded.push(replacement.uri);
+                        continue;
+                    }
+                    ReplaceMode::UpdateOrCreate => {
+                        // Create!
+                        let entity = self.create_entity(replacement.track, format)?;
+                        results.created.push(*entity.header())
+                    }
+                };
             }
-            // Create?
-            match replace_params.mode {
-                ReplaceMode::UpdateOnly => {
-                    info!(
-                        "Track with URI '{}' does not exist and needs to be created",
-                        replacement.uri
-                    );
-                    results.discarded.push(replacement.uri);
-                    continue;
-                }
-                ReplaceMode::UpdateOrCreate => {
-                    let entity = self.create_entity(replacement.track, format)?;
-                    results.created.push(*entity.header())
-                }
-            };
         }
         Ok(results)
     }
@@ -610,15 +582,10 @@ impl<'a> Tracks for TrackRepository<'a> {
         };
 
         // Collection filtering
-        // TODO: The second subselect that has been introduced when splitting
-        // aux_track_resource into aux_track_collection and aux_track_source
-        // slows down the query substantially although all columns are properly
-        // indexed! How could this be to optimized?
-        // See also: https://gitlab.com/uklotzde/aoide-rs/issues/12
         if let Some(collection_uid) = collection_uid {
             let track_id_subselect = aux_track_collection::table
                 .select(aux_track_collection::track_id)
-                .filter(aux_track_collection::uid.eq(collection_uid.as_ref()));
+                .filter(aux_track_collection::collection_uid.eq(collection_uid.as_ref()));
             target = target.filter(tbl_track::id.eq_any(track_id_subselect));
         }
 
@@ -1098,7 +1065,7 @@ impl<'a> Tracks for TrackRepository<'a> {
 
         // Collection filter
         if let Some(uid) = collection_uid {
-            target = target.filter(aux_track_collection::uid.eq(uid.as_ref()));
+            target = target.filter(aux_track_collection::collection_uid.eq(uid.as_ref()));
         };
 
         for sort_order in search_params.ordering {
@@ -1201,7 +1168,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         let track_id_subselect = collection_uid.map(|collection_uid| {
             aux_track_collection::table
                 .select(aux_track_collection::track_id)
-                .filter(aux_track_collection::uid.eq(collection_uid.as_ref()))
+                .filter(aux_track_collection::collection_uid.eq(collection_uid.as_ref()))
         });
         let rows = match field {
             StringField::AlbumArtist => {
@@ -1257,7 +1224,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                 if let Some(collection_uid) = collection_uid {
                     let track_id_subselect = aux_track_collection::table
                         .select(aux_track_collection::track_id)
-                        .filter(aux_track_collection::uid.eq(collection_uid.as_ref()));
+                        .filter(aux_track_collection::collection_uid.eq(collection_uid.as_ref()));
                     target = target.filter(aux_track_source::track_id.eq_any(track_id_subselect));
                 }
 
@@ -1286,7 +1253,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                 if let Some(collection_uid) = collection_uid {
                     let track_id_subselect = aux_track_collection::table
                         .select(aux_track_collection::track_id)
-                        .filter(aux_track_collection::uid.eq(collection_uid.as_ref()));
+                        .filter(aux_track_collection::collection_uid.eq(collection_uid.as_ref()));
                     target = target.filter(aux_track_source::track_id.eq_any(track_id_subselect));
                 }
 
@@ -1352,7 +1319,7 @@ impl<'a> Tracks for TrackRepository<'a> {
     fn collection_stats(&self, collection_uid: &EntityUid) -> TracksResult<CollectionTrackStats> {
         let total_count = aux_track_collection::table
             .select(diesel::dsl::count_star())
-            .filter(aux_track_collection::uid.eq(collection_uid.as_ref()))
+            .filter(aux_track_collection::collection_uid.eq(collection_uid.as_ref()))
             .first::<i64>(self.connection)? as usize;
 
         Ok(CollectionTrackStats { total_count })
@@ -1398,7 +1365,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
         if let Some(collection_uid) = collection_uid {
             let track_id_subselect = aux_track_collection::table
                 .select(aux_track_collection::track_id)
-                .filter(aux_track_collection::uid.eq(collection_uid.as_ref()));
+                .filter(aux_track_collection::collection_uid.eq(collection_uid.as_ref()));
             target = target.filter(aux_track_tag::track_id.eq_any(track_id_subselect));
         }
 
@@ -1459,7 +1426,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
         if let Some(collection_uid) = collection_uid {
             let track_id_subselect = aux_track_collection::table
                 .select(aux_track_collection::track_id)
-                .filter(aux_track_collection::uid.eq(collection_uid.as_ref()));
+                .filter(aux_track_collection::collection_uid.eq(collection_uid.as_ref()));
             target = target.filter(aux_track_tag::track_id.eq_any(track_id_subselect));
         }
 
@@ -1509,7 +1476,7 @@ impl<'a> Albums for TrackRepository<'a> {
         if let Some(collection_uid) = collection_uid {
             let track_id_subselect = aux_track_collection::table
                 .select(aux_track_collection::track_id)
-                .filter(aux_track_collection::uid.eq(collection_uid.as_ref()));
+                .filter(aux_track_collection::collection_uid.eq(collection_uid.as_ref()));
             target = target.filter(aux_track_summary::track_id.eq_any(track_id_subselect));
         }
 

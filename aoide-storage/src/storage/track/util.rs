@@ -51,10 +51,11 @@ impl<'a> TrackRepositoryHelper<'a> {
         collection_prototype: &Collection,
     ) -> Result<Vec<CollectionEntity>, Error> {
         let orphaned_collection_uids = aux_track_collection::table
-            .select(aux_track_collection::uid)
+            .select(aux_track_collection::collection_uid)
             .distinct()
             .filter(
-                aux_track_collection::uid.ne_all(tbl_collection::table.select(tbl_collection::uid)),
+                aux_track_collection::collection_uid
+                    .ne_all(tbl_collection::table.select(tbl_collection::uid)),
             )
             .load::<Vec<u8>>(self.connection)?;
         let mut recreated_collections = Vec::with_capacity(orphaned_collection_uids.len());

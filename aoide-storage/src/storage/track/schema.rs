@@ -32,7 +32,7 @@ table! {
     aux_track_collection (id) {
         id -> BigInt,
         track_id -> BigInt,
-        uid -> Binary,
+        collection_uid -> Binary,
         since -> Timestamp,
         color_code -> Nullable<Integer>,
         play_count -> Nullable<Integer>,

@@ -94,16 +94,20 @@ CREATE TABLE aux_track_summary (
 CREATE TABLE aux_track_collection (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
-    uid                      BLOB NOT NULL, -- 24-byte globally unique identifier
+    collection_uid           BLOB NOT NULL, -- 24-byte globally unique identifier
     since                    DATETIME NOT NULL,
     color_code               INTEGER,           -- 0xAARRGGBB (hex)
     play_count               INTEGER,
     FOREIGN KEY(track_id) REFERENCES tbl_track(id),
-    UNIQUE (uid, track_id)
+    UNIQUE (track_id, collection_uid)
 );
 
-CREATE INDEX idx_track_collection_track_id ON aux_track_collection (
-    track_id
+-- Index with a mutation of the unique constraint to optimize
+-- the performance of subselects, joins, and filtering. See also:
+-- https://gitlab.com/uklotzde/aoide-rs/issues/12
+-- https://www.sqlite.org/queryplanner.html
+CREATE INDEX idx_track_collection_collection_uid_track ON aux_track_collection (
+    collection_uid, track_id
 );
 
 CREATE TABLE aux_track_source (
@@ -122,12 +126,24 @@ CREATE TABLE aux_track_source (
     metadata_sync_rev_ordinal INTEGER,          -- most recent metadata synchronization
     metadata_sync_rev_timestamp DATETIME,       -- most recent metadata synchronization
     FOREIGN KEY(track_id) REFERENCES tbl_track(id),
-    UNIQUE (content_uri, track_id),
-    UNIQUE (content_type, track_id)             -- at most one URI per content type
+    UNIQUE (track_id, content_uri),
+    UNIQUE (track_id, content_type)             -- at most one URI per content type
 );
 
-CREATE INDEX idx_track_source_track_id ON aux_track_source (
-    track_id
+-- Index with a mutation of the unique constraint to optimize
+-- the performance of subselects, joins, and filtering. See also:
+-- https://gitlab.com/uklotzde/aoide-rs/issues/12
+-- https://www.sqlite.org/queryplanner.html
+CREATE INDEX idx_track_source_content_uri_track ON aux_track_source (
+    content_uri, track_id
+);
+
+-- Index with a mutation of the unique constraint to optimize
+-- the performance of subselects, joins, and filtering. See also:
+-- https://gitlab.com/uklotzde/aoide-rs/issues/12
+-- https://www.sqlite.org/queryplanner.html
+CREATE INDEX idx_track_source_content_type_track ON aux_track_source (
+    content_type, track_id
 );
 
 CREATE TABLE aux_track_profile (
@@ -173,13 +189,34 @@ CREATE TABLE aux_track_tag (
     UNIQUE (track_id, term_id, facet_id)
 );
 
-CREATE INDEX idx_track_tag_term_facet ON aux_track_tag(
-    term_id,
-    facet_id
+-- Index with a mutation of the unique constraint to optimize
+-- the performance of subselects, joins, and filtering. See also:
+-- https://gitlab.com/uklotzde/aoide-rs/issues/12
+-- https://www.sqlite.org/queryplanner.html
+CREATE INDEX idx_track_tag_track_facet_term ON aux_track_tag(
+    track_id,
+    facet_id,
+    term_id
 );
 
-CREATE INDEX idx_track_tag_facet ON aux_track_tag (
-    facet_id
+-- Index with a mutation of the unique constraint to optimize
+-- the performance of subselects, joins, and filtering. See also:
+-- https://gitlab.com/uklotzde/aoide-rs/issues/12
+-- https://www.sqlite.org/queryplanner.html
+CREATE INDEX idx_track_tag_term_facet_track ON aux_track_tag(
+    term_id,
+    facet_id,
+    track_id
+);
+
+-- Index with a mutation of the unique constraint to optimize
+-- the performance of subselects, joins, and filtering. See also:
+-- https://gitlab.com/uklotzde/aoide-rs/issues/12
+-- https://www.sqlite.org/queryplanner.html
+CREATE INDEX idx_track_tag_facet_term_track ON aux_track_tag (
+    facet_id,
+    term_id,
+    track_id
 );
 
 CREATE TABLE aux_track_comment (
@@ -188,12 +225,10 @@ CREATE TABLE aux_track_comment (
     text                     CLOB NOT NULL,
     owner                    TEXT,
     FOREIGN KEY(track_id) REFERENCES tbl_track(id),
-    UNIQUE (owner, track_id)
+    UNIQUE (track_id, owner)
 );
 
-CREATE INDEX idx_track_comment_track_id ON aux_track_comment (
-    track_id
-);
+-- TODO: Create additional indexes on aux_track_comment when actually needed!
 
 CREATE TABLE aux_track_rating (
     id                       INTEGER PRIMARY KEY,
@@ -201,12 +236,10 @@ CREATE TABLE aux_track_rating (
     score                    REAL NOT NULL, -- [0.0, 1.0]
     owner                    TEXT,
     FOREIGN KEY(track_id) REFERENCES tbl_track(id),
-    UNIQUE (owner, track_id)
+    UNIQUE (track_id, owner)
 );
 
-CREATE INDEX idx_track_rating_track_id ON aux_track_rating (
-    track_id
-);
+-- TODO: Create additional indexes on aux_track_rating when actually needed!
 
 CREATE TABLE aux_track_xref (
     id                       INTEGER PRIMARY KEY,
@@ -214,17 +247,10 @@ CREATE TABLE aux_track_xref (
     origin                   TINYINT NOT NULL,
     reference                TEXT NOT NULL,
     FOREIGN KEY(track_id) REFERENCES tbl_track(id),
-    UNIQUE (reference, origin, track_id)
+    UNIQUE (track_id, origin, reference)
 );
 
-CREATE INDEX idx_track_xref_origin_track_id ON aux_track_xref (
-    origin,
-    track_id
-);
-
-CREATE INDEX idx_track_xref_track_id ON aux_track_xref (
-    track_id
-);
+-- TODO: Create additional indexes on aux_track_xref when actually needed!
 
 -----------------------------------------------------------------------
 -- Tasks
@@ -247,6 +273,10 @@ CREATE TABLE tbl_pending_task_track (
     UNIQUE(task_id, track_id)
 );
 
-CREATE INDEX idx_pending_task_track_track_id ON tbl_pending_task_track (
-    track_id
+-- Index with a mutation of the unique constraint to optimize
+-- the performance of subselects, joins, and filtering. See also:
+-- https://gitlab.com/uklotzde/aoide-rs/issues/12
+-- https://www.sqlite.org/queryplanner.html
+CREATE INDEX idx_pending_task_track ON tbl_pending_task_track (
+    track_id, task_id
 );
