@@ -50,6 +50,7 @@ use actix_web::{error, fs, http, pred, server, HttpResponse};
 use clap::App;
 
 use diesel::prelude::*;
+use diesel::sql_query;
 
 use failure::Error;
 
@@ -68,6 +69,15 @@ fn create_connection_pool(url: &str, max_size: u32) -> Result<SqliteConnectionPo
         .max_size(max_size)
         .build(manager)?;
     Ok(pool)
+}
+
+fn initialize_database(connection_pool: &SqliteConnectionPool) -> Result<(), Error> {
+    info!("Initializing database");
+    let connection = &*connection_pool.get()?;
+    sql_query("PRAGMA automatic_index=0;").execute(connection)?;
+    sql_query("PRAGMA foreign_keys=1;").execute(connection)?;
+    sql_query("PRAGMA encoding='UTF-8';").execute(connection)?;
+    Ok(())
 }
 
 fn migrate_database_schema(connection_pool: &SqliteConnectionPool) -> Result<(), Error> {
@@ -229,6 +239,7 @@ pub fn main() -> Result<(), Error> {
     let connection_pool =
         create_connection_pool(database_url, 1).expect("Failed to create database connection pool");
 
+    initialize_database(&connection_pool).expect("Failed to initialize database");
     if arg_matches.skip_database_maintenance() {
         info!("Skipping database maintenance tasks");
     } else {
