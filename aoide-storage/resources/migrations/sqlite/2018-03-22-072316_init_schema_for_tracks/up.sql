@@ -189,35 +189,7 @@ CREATE TABLE aux_track_tag (
     UNIQUE (track_id, term_id, facet_id)
 );
 
--- Index with a mutation of the unique constraint to optimize
--- the performance of subselects, joins, and filtering. See also:
--- https://gitlab.com/uklotzde/aoide-rs/issues/12
--- https://www.sqlite.org/queryplanner.html
-CREATE INDEX idx_track_tag_track_facet_term ON aux_track_tag(
-    track_id,
-    facet_id,
-    term_id
-);
-
--- Index with a mutation of the unique constraint to optimize
--- the performance of subselects, joins, and filtering. See also:
--- https://gitlab.com/uklotzde/aoide-rs/issues/12
--- https://www.sqlite.org/queryplanner.html
-CREATE INDEX idx_track_tag_term_facet_track ON aux_track_tag(
-    term_id,
-    facet_id,
-    track_id
-);
-
--- Index with a mutation of the unique constraint to optimize
--- the performance of subselects, joins, and filtering. See also:
--- https://gitlab.com/uklotzde/aoide-rs/issues/12
--- https://www.sqlite.org/queryplanner.html
-CREATE INDEX idx_track_tag_facet_term_track ON aux_track_tag (
-    facet_id,
-    term_id,
-    track_id
-);
+-- TODO: Create additional indexes on aux_track_tag when actually needed!
 
 CREATE TABLE aux_track_comment (
     id                       INTEGER PRIMARY KEY,
