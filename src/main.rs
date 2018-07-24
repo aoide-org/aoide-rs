@@ -107,6 +107,13 @@ fn restore_database_storage(connection_pool: &SqliteConnectionPool) -> Result<()
     Ok(())
 }
 
+fn optimize_database_storage(connection_pool: &SqliteConnectionPool) -> Result<(), Error> {
+    info!("Optimizing database storage");
+    let connection = &*connection_pool.get()?;
+    sql_query("PRAGMA optimize;").execute(connection)?;
+    Ok(())
+}
+
 fn init_env_logger(log_level_filter: LogLevelFilter) {
     let mut logger_builder = LoggerBuilder::new();
 
@@ -238,14 +245,17 @@ pub fn main() -> Result<(), Error> {
     // errors due to multi-threading.
     let connection_pool =
         create_connection_pool(database_url, 1).expect("Failed to create database connection pool");
+    let main_connection_pool = connection_pool.clone();
 
-    initialize_database(&connection_pool).expect("Failed to initialize database");
+    initialize_database(&main_connection_pool).expect("Failed to initialize database");
     if arg_matches.skip_database_maintenance() {
         info!("Skipping database maintenance tasks");
     } else {
-        migrate_database_schema(&connection_pool).expect("Failed to migrate database schema");
-        cleanup_database_storage(&connection_pool).expect("Failed to cleanup database storage");
-        restore_database_storage(&connection_pool).expect("Failed to restore database storage");
+        migrate_database_schema(&main_connection_pool).expect("Failed to migrate database schema");
+        cleanup_database_storage(&main_connection_pool)
+            .expect("Failed to cleanup database storage");
+        restore_database_storage(&main_connection_pool)
+            .expect("Failed to restore database storage");
     }
 
     let sys_name = env!("CARGO_PKG_NAME");
@@ -267,6 +277,8 @@ pub fn main() -> Result<(), Error> {
     info!("Running actor system");
     let _ = sys.run();
     info!("Stopped actor system");
+
+    optimize_database_storage(&main_connection_pool).expect("Failed to optimize database storage");
 
     info!("Exiting");
     Ok(())
