@@ -39,8 +39,6 @@ extern crate log;
 
 extern crate mime;
 
-extern crate r2d2;
-
 #[macro_use]
 extern crate serde;
 
