@@ -4,6 +4,7 @@ version = "0.0.1"
 authors = [ "Uwe Klotz <uwe.klotz@gmail>", "et al." ]
 license = "AGPL-3.0-or-later"
 description = "Backend services for curating and enjoying your music"
+keywords = ["music", "library", "management"]
 publish = false
 
 [workspace]
@@ -33,7 +34,6 @@ hyper = "*"
 libsqlite3-sys = { version = "*", features = ["bundled"] }
 log = "*"
 mime = "*"
-r2d2 = "*"
 serde = "*"
 serde_json = "*"
 
