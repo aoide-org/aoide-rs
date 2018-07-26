@@ -10,18 +10,17 @@ publish = false
 [workspace]
 members = [
   "./",
-  "aoide-core",
-  "aoide-storage",
+  "core",
+  "storage",
 ]
 
 [patch.crates-io]
-aoide-core = { path = "aoide-core" }
-aoide-storage = { path = "aoide-storage" }
+aoide-core = { path = "core" }
+aoide-storage = { path = "storage" }
 
 [dependencies]
-aoide-core = { version = "*", path = "aoide-core" }
-aoide-storage = { version = "*", path = "aoide-storage" }
-
+aoide-core = "*"
+aoide-storage = "*"
 actix = "*"
 actix-web = "*"
 clap = "*"
