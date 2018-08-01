@@ -393,6 +393,16 @@ trait TrackSearchFilter {
     fn apply_to_query<'a>(&'a self, query: TrackSearchBoxedQuery<'a>) -> TrackSearchBoxedQuery<'a>;
 }
 
+impl TrackSearchFilter for TagFilter {
+    fn apply_to_query<'a>(&'a self, query: TrackSearchBoxedQuery<'a>) -> TrackSearchBoxedQuery<'a> {
+        let (subselect, filter_modifier) = select_track_ids_matching_tag_filter(&self);
+        match filter_modifier {
+            None => query.filter(tbl_track::id.eq_any(subselect)),
+            Some(FilterModifier::Complement) => query.filter(tbl_track::id.ne_all(subselect)),
+        }
+    }
+}
+
 impl<'a> Tracks for TrackRepository<'a> {
     fn create_entity(&self, body: Track, format: SerializationFormat) -> TracksResult<TrackEntity> {
         let entity = TrackEntity::new(EntityHeader::initial(), body);
@@ -890,12 +900,8 @@ impl<'a> Tracks for TrackRepository<'a> {
             }
         }
 
-        for tag_filter in search_params.tag_filters {
-            let (subselect, filter_modifier) = select_track_ids_matching_tag_filter(tag_filter);
-            target = match filter_modifier {
-                None => target.filter(tbl_track::id.eq_any(subselect)),
-                Some(FilterModifier::Complement) => target.filter(tbl_track::id.ne_all(subselect)),
-            }
+        for tag_filter in &search_params.tag_filters {
+            target = tag_filter.apply_to_query(target);
         }
 
         for numeric_filter in search_params.numeric_filters {
