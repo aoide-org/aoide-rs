@@ -519,7 +519,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             .first::<QueryableSerializedEntity>(self.connection)
             .optional()
             .map(|o| o.map(|o| o.into()))
-            .map_err(|e| e.into())
+            .map_err(Into::into)
     }
 
     fn locate_entities(
@@ -629,7 +629,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         target
             .load::<QueryableSerializedEntity>(self.connection)
             .map(|v| v.into_iter().map(|r| r.into()).collect())
-            .map_err(|e| e.into())
+            .map_err(Into::into)
     }
 
     fn search_entities(
@@ -1190,7 +1190,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         target
             .load::<QueryableSerializedEntity>(self.connection)
             .map(|v| v.into_iter().map(|r| r.into()).collect())
-            .map_err(|e| e.into())
+            .map_err(Into::into)
     }
 
     fn list_fields(

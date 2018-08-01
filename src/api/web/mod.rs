@@ -40,7 +40,7 @@ impl SqliteExecutor {
     }
 
     pub fn pooled_connection(&self) -> Result<SqlitePooledConnection, Error> {
-        self.connection_pool.get().map_err(|e| e.into())
+        self.connection_pool.get().map_err(Into::into)
     }
 }
 

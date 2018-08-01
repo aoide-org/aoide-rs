@@ -480,6 +480,6 @@ impl<'a> EntityStorage for TrackRepositoryHelper<'a> {
             .filter(tbl_track::uid.eq(uid.as_ref()))
             .first::<StorageId>(self.connection)
             .optional()
-            .map_err(|e| e.into())
+            .map_err(Into::into)
     }
 }

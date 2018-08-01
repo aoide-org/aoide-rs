@@ -211,7 +211,7 @@ impl FromStr for ColorArgb {
             if prefix == Self::STRING_PREFIX {
                 return u32::from_str_radix(&hex_code, 16)
                     .map(ColorArgb)
-                    .map_err(|e| e.into());
+                    .map_err(Into::into);
             }
         }
         Err(format_err!("Invalid color code '{}'", s))

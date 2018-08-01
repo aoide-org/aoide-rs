@@ -57,7 +57,7 @@ impl<'a> EntityStorage for CollectionRepository<'a> {
             .filter(tbl_collection::uid.eq(uid.as_ref()))
             .first::<StorageId>(self.connection)
             .optional()
-            .map_err(|e| e.into())
+            .map_err(Into::into)
     }
 }
 
@@ -116,12 +116,12 @@ impl<'a> Collections for CollectionRepository<'a> {
             .first::<QueryableCollectionsEntity>(self.connection)
             .optional()
             .map(|o| o.map(|o| o.into()))
-            .map_err(|e| e.into())
+            .map_err(Into::into)
     }
 
     fn list_entities(&self, pagination: Pagination) -> CollectionsResult<Vec<CollectionEntity>> {
         let mut target = tbl_collection::table
-            .order(tbl_collection::rev_timestamp.desc())
+            .then_order_by(tbl_collection::rev_timestamp.desc())
             .into_boxed();
 
         // Pagination
@@ -130,7 +130,7 @@ impl<'a> Collections for CollectionRepository<'a> {
         target
             .load::<QueryableCollectionsEntity>(self.connection)
             .map(|v| v.into_iter().map(|r| r.into()).collect())
-            .map_err(|e| e.into())
+            .map_err(Into::into)
     }
 
     fn find_entities_by_name(&self, name: &str) -> CollectionsResult<Vec<CollectionEntity>> {
@@ -138,7 +138,7 @@ impl<'a> Collections for CollectionRepository<'a> {
             .filter(tbl_collection::name.eq(name))
             .load::<QueryableCollectionsEntity>(self.connection)
             .map(|v| v.into_iter().map(|r| r.into()).collect())
-            .map_err(|e| e.into())
+            .map_err(Into::into)
     }
 
     fn find_entities_by_name_starting_with(
@@ -148,7 +148,7 @@ impl<'a> Collections for CollectionRepository<'a> {
     ) -> CollectionsResult<Vec<CollectionEntity>> {
         let mut target = tbl_collection::table
             .filter(tbl_collection::name.like(format!("{}%", name_prefix)))
-            .order(tbl_collection::rev_timestamp.desc())
+            .then_order_by(tbl_collection::rev_timestamp.desc())
             .into_boxed();
 
         // Pagination
@@ -157,7 +157,7 @@ impl<'a> Collections for CollectionRepository<'a> {
         target
             .load::<QueryableCollectionsEntity>(self.connection)
             .map(|v| v.into_iter().map(|r| r.into()).collect())
-            .map_err(|e| e.into())
+            .map_err(Into::into)
     }
 
     fn find_entities_by_name_containing(
@@ -167,7 +167,7 @@ impl<'a> Collections for CollectionRepository<'a> {
     ) -> CollectionsResult<Vec<CollectionEntity>> {
         let mut target = tbl_collection::table
             .filter(tbl_collection::name.like(format!("%{}%", partial_name)))
-            .order(tbl_collection::rev_timestamp.desc())
+            .then_order_by(tbl_collection::rev_timestamp.desc())
             .into_boxed();
 
         // Pagination
@@ -176,6 +176,6 @@ impl<'a> Collections for CollectionRepository<'a> {
         target
             .load::<QueryableCollectionsEntity>(self.connection)
             .map(|v| v.into_iter().map(|r| r.into()).collect())
-            .map_err(|e| e.into())
+            .map_err(Into::into)
     }
 }
