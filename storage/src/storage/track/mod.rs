@@ -328,6 +328,71 @@ enum EitherEqualOrLike {
     Like(String),
 }
 
+// TODO: How can we remove this ugly type alias definition?
+type TrackSearchBoxedQuery<'a> = diesel::query_builder::BoxedSelectStatement<
+    'a,
+    (
+        diesel::sql_types::BigInt,
+        diesel::sql_types::Binary,
+        diesel::sql_types::BigInt,
+        diesel::sql_types::Timestamp,
+        diesel::sql_types::SmallInt,
+        diesel::sql_types::Integer,
+        diesel::sql_types::Integer,
+        diesel::sql_types::Binary,
+    ),
+    diesel::query_source::joins::JoinOn<
+        diesel::query_source::joins::Join<
+            diesel::query_source::joins::JoinOn<
+                diesel::query_source::joins::Join<
+                    diesel::query_source::joins::JoinOn<
+                        diesel::query_source::joins::Join<
+                            diesel::query_source::joins::JoinOn<
+                                diesel::query_source::joins::Join<
+                                    tbl_track::table,
+                                    aux_track_overview::table,
+                                    diesel::query_source::joins::Inner,
+                                >,
+                                diesel::expression::operators::Eq<
+                                    diesel::expression::nullable::Nullable<
+                                        aux_track_overview::columns::track_id,
+                                    >,
+                                    diesel::expression::nullable::Nullable<tbl_track::columns::id>,
+                                >,
+                            >,
+                            aux_track_summary::table,
+                            diesel::query_source::joins::Inner,
+                        >,
+                        diesel::expression::operators::Eq<
+                            diesel::expression::nullable::Nullable<
+                                aux_track_summary::columns::track_id,
+                            >,
+                            diesel::expression::nullable::Nullable<tbl_track::columns::id>,
+                        >,
+                    >,
+                    aux_track_source::table,
+                    diesel::query_source::joins::LeftOuter,
+                >,
+                diesel::expression::operators::Eq<
+                    diesel::expression::nullable::Nullable<aux_track_source::columns::track_id>,
+                    diesel::expression::nullable::Nullable<tbl_track::columns::id>,
+                >,
+            >,
+            aux_track_collection::table,
+            diesel::query_source::joins::LeftOuter,
+        >,
+        diesel::expression::operators::Eq<
+            diesel::expression::nullable::Nullable<aux_track_collection::columns::track_id>,
+            diesel::expression::nullable::Nullable<tbl_track::columns::id>,
+        >,
+    >,
+    diesel::sqlite::Sqlite,
+>;
+
+trait TrackSearchFilter {
+    fn apply_to_query<'a>(&'a self, query: TrackSearchBoxedQuery<'a>) -> TrackSearchBoxedQuery<'a>;
+}
+
 impl<'a> Tracks for TrackRepository<'a> {
     fn create_entity(&self, body: Track, format: SerializationFormat) -> TracksResult<TrackEntity> {
         let entity = TrackEntity::new(EntityHeader::initial(), body);
