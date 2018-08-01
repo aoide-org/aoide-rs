@@ -63,7 +63,7 @@ impl<'a> TrackRepository<'a> {
 }
 
 fn select_track_ids_matching_tag_filter<'a, DB>(
-    tag_filter: TagFilter,
+    tag_filter: &'a TagFilter,
 ) -> (
     diesel::query_builder::BoxedSelectStatement<
         'a,
@@ -83,7 +83,7 @@ where
     // Filter tag facet
     if tag_filter.facet == TagFilter::no_facet() {
         select = select.filter(aux_track_tag::facet_id.is_null());
-    } else if let Some(facet) = tag_filter.facet {
+    } else if let Some(ref facet) = tag_filter.facet {
         let subselect = aux_track_tag_facet::table
             .select(aux_track_tag_facet::id)
             .filter(aux_track_tag_facet::facet.eq(facet));
@@ -91,11 +91,11 @@ where
     }
 
     // Filter tag term
-    if let Some(term_condition) = tag_filter.term_condition {
+    if let Some(ref term_condition) = tag_filter.term_condition {
         let (either_eq_or_like, modifier) = match term_condition.comparator {
             // Equal comparison
             StringComparator::Equals => (
-                EitherEqualOrLike::Equal(term_condition.value),
+                EitherEqualOrLike::Equal(term_condition.value.clone()),
                 term_condition.modifier,
             ),
             // Like comparison: Escape wildcard character with backslash (see below)
