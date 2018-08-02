@@ -63,7 +63,7 @@ impl<'a> TrackRepository<'a> {
 }
 
 fn select_track_ids_matching_tag_filter<'a, DB>(
-    tag_filter: TagFilter,
+    tag_filter: &'a TagFilter,
 ) -> (
     diesel::query_builder::BoxedSelectStatement<
         'a,
@@ -83,7 +83,7 @@ where
     // Filter tag facet
     if tag_filter.facet == TagFilter::no_facet() {
         select = select.filter(aux_track_tag::facet_id.is_null());
-    } else if let Some(facet) = tag_filter.facet {
+    } else if let Some(ref facet) = tag_filter.facet {
         let subselect = aux_track_tag_facet::table
             .select(aux_track_tag_facet::id)
             .filter(aux_track_tag_facet::facet.eq(facet));
@@ -91,11 +91,11 @@ where
     }
 
     // Filter tag term
-    if let Some(term_condition) = tag_filter.term_condition {
+    if let Some(ref term_condition) = tag_filter.term_condition {
         let (either_eq_or_like, modifier) = match term_condition.comparator {
             // Equal comparison
             StringComparator::Equals => (
-                EitherEqualOrLike::Equal(term_condition.value),
+                EitherEqualOrLike::Equal(term_condition.value.clone()),
                 term_condition.modifier,
             ),
             // Like comparison: Escape wildcard character with backslash (see below)
@@ -326,6 +326,81 @@ where
 enum EitherEqualOrLike {
     Equal(String),
     Like(String),
+}
+
+// TODO: How can we remove this ugly type alias definition?
+type TrackSearchBoxedQuery<'a> = diesel::query_builder::BoxedSelectStatement<
+    'a,
+    (
+        diesel::sql_types::BigInt,
+        diesel::sql_types::Binary,
+        diesel::sql_types::BigInt,
+        diesel::sql_types::Timestamp,
+        diesel::sql_types::SmallInt,
+        diesel::sql_types::Integer,
+        diesel::sql_types::Integer,
+        diesel::sql_types::Binary,
+    ),
+    diesel::query_source::joins::JoinOn<
+        diesel::query_source::joins::Join<
+            diesel::query_source::joins::JoinOn<
+                diesel::query_source::joins::Join<
+                    diesel::query_source::joins::JoinOn<
+                        diesel::query_source::joins::Join<
+                            diesel::query_source::joins::JoinOn<
+                                diesel::query_source::joins::Join<
+                                    tbl_track::table,
+                                    aux_track_overview::table,
+                                    diesel::query_source::joins::Inner,
+                                >,
+                                diesel::expression::operators::Eq<
+                                    diesel::expression::nullable::Nullable<
+                                        aux_track_overview::columns::track_id,
+                                    >,
+                                    diesel::expression::nullable::Nullable<tbl_track::columns::id>,
+                                >,
+                            >,
+                            aux_track_summary::table,
+                            diesel::query_source::joins::Inner,
+                        >,
+                        diesel::expression::operators::Eq<
+                            diesel::expression::nullable::Nullable<
+                                aux_track_summary::columns::track_id,
+                            >,
+                            diesel::expression::nullable::Nullable<tbl_track::columns::id>,
+                        >,
+                    >,
+                    aux_track_source::table,
+                    diesel::query_source::joins::LeftOuter,
+                >,
+                diesel::expression::operators::Eq<
+                    diesel::expression::nullable::Nullable<aux_track_source::columns::track_id>,
+                    diesel::expression::nullable::Nullable<tbl_track::columns::id>,
+                >,
+            >,
+            aux_track_collection::table,
+            diesel::query_source::joins::LeftOuter,
+        >,
+        diesel::expression::operators::Eq<
+            diesel::expression::nullable::Nullable<aux_track_collection::columns::track_id>,
+            diesel::expression::nullable::Nullable<tbl_track::columns::id>,
+        >,
+    >,
+    diesel::sqlite::Sqlite,
+>;
+
+trait TrackSearchFilter {
+    fn apply_to_query<'a>(&'a self, query: TrackSearchBoxedQuery<'a>) -> TrackSearchBoxedQuery<'a>;
+}
+
+impl TrackSearchFilter for TagFilter {
+    fn apply_to_query<'a>(&'a self, query: TrackSearchBoxedQuery<'a>) -> TrackSearchBoxedQuery<'a> {
+        let (subselect, filter_modifier) = select_track_ids_matching_tag_filter(&self);
+        match filter_modifier {
+            None => query.filter(tbl_track::id.eq_any(subselect)),
+            Some(FilterModifier::Complement) => query.filter(tbl_track::id.ne_all(subselect)),
+        }
+    }
 }
 
 impl<'a> Tracks for TrackRepository<'a> {
@@ -825,12 +900,8 @@ impl<'a> Tracks for TrackRepository<'a> {
             }
         }
 
-        for tag_filter in search_params.tag_filters {
-            let (subselect, filter_modifier) = select_track_ids_matching_tag_filter(tag_filter);
-            target = match filter_modifier {
-                None => target.filter(tbl_track::id.eq_any(subselect)),
-                Some(FilterModifier::Complement) => target.filter(tbl_track::id.ne_all(subselect)),
-            }
+        for tag_filter in &search_params.tag_filters {
+            target = tag_filter.apply_to_query(target);
         }
 
         for numeric_filter in search_params.numeric_filters {
