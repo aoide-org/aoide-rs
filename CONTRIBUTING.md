@@ -116,7 +116,13 @@ Try *really* hard to follow [The seven rules of a great Git commit message]:
 6. Wrap the body at 72 characters
 7. Use the body to explain what and why vs. how
 
+The [Atom editor] has built-in syntax highlighting for git commit messages. You 
+may use it to help your commit messages comply with the rules above. Check out
+[how to configure Atom to be your Git commit editor].
+
 [The seven rules of a great Git commit message]: https://chris.beams.io/posts/git-commit/
+[Atom editor]: https://www.atom.io
+[how to configure Atom to be your Git commit editor]: http://blog.atom.io/2014/03/13/git-integration.html#commit-editor
 
 ## Submitting a Merge Request (MR)
 
