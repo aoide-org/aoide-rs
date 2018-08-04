@@ -31,7 +31,8 @@ use aoide_core::domain::{entity::*, track::*};
 
 use aoide_storage::{
     api::{
-        serde::{SerializationFormat, SerializedEntity}, track::{TrackTags, Tracks, TracksResult},
+        serde::{SerializationFormat, SerializedEntity},
+        track::{TrackTags, Tracks, TracksResult},
         LocateTracksParams, Pagination, ReplaceTracksParams, ReplacedTracks, ScoredTagCount,
         SearchTracksParams, StringField, StringFieldCounts, TagFacetCount,
     },

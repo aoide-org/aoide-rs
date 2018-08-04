@@ -49,18 +49,24 @@ fn channels_is_valid() {
     assert!(Channels::layout(ChannelLayout::Stereo).is_valid());
     assert!(Channels::count(ChannelCount::MIN).is_valid());
     assert!(Channels::count(ChannelCount::MAX).is_valid());
-    assert!(!Channels {
-        count: ChannelCount::new(1),
-        layout: Some(ChannelLayout::DualMono),
-    }.is_valid());
-    assert!(!Channels {
-        count: ChannelCount::new(2),
-        layout: Some(ChannelLayout::Mono),
-    }.is_valid());
-    assert!(!Channels {
-        count: ChannelCount::new(3),
-        layout: Some(ChannelLayout::Stereo),
-    }.is_valid());
+    assert!(
+        !Channels {
+            count: ChannelCount::new(1),
+            layout: Some(ChannelLayout::DualMono),
+        }.is_valid()
+    );
+    assert!(
+        !Channels {
+            count: ChannelCount::new(2),
+            layout: Some(ChannelLayout::Mono),
+        }.is_valid()
+    );
+    assert!(
+        !Channels {
+            count: ChannelCount::new(3),
+            layout: Some(ChannelLayout::Stereo),
+        }.is_valid()
+    );
 }
 
 #[test]

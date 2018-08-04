@@ -21,7 +21,8 @@ use diesel;
 use diesel::prelude::*;
 
 use aoide_core::domain::{
-    collection::*, entity::{EntityHeader, EntityRevision, EntityUid},
+    collection::*,
+    entity::{EntityHeader, EntityRevision, EntityUid},
 };
 
 use api::{collection::*, entity::*, Pagination};

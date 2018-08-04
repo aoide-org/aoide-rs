@@ -20,7 +20,8 @@ use super::schema::*;
 use storage::collection::{schema::tbl_collection, CollectionRepository};
 
 use api::{
-    collection::Collections, entity::{EntityStorage, EntityStorageResult, StorageId},
+    collection::Collections,
+    entity::{EntityStorage, EntityStorageResult, StorageId},
 };
 
 use diesel;
@@ -29,7 +30,9 @@ use diesel::prelude::*;
 use failure::Error;
 
 use aoide_core::domain::{
-    collection::{Collection, CollectionEntity}, entity::*, track::*,
+    collection::{Collection, CollectionEntity},
+    entity::*,
+    track::*,
 };
 
 ///////////////////////////////////////////////////////////////////////

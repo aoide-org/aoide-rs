@@ -34,8 +34,11 @@ use diesel::dsl::*;
 use diesel::prelude::*;
 
 use api::{
-    album::*, collection::CollectionTrackStats,
-    serde::{serialize_with_format, SerializationFormat, SerializedEntity}, track::*, *,
+    album::*,
+    collection::CollectionTrackStats,
+    serde::{serialize_with_format, SerializationFormat, SerializedEntity},
+    track::*,
+    *,
 };
 
 use aoide_core::domain::{entity::*, metadata::*, track::*};

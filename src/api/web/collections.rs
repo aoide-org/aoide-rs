@@ -28,7 +28,8 @@ use aoide_core::domain::{collection::*, entity::*};
 use aoide_storage::{
     api::{
         collection::{CollectionEntityWithStats, CollectionStats, Collections, CollectionsResult},
-        track::Tracks, Pagination,
+        track::Tracks,
+        Pagination,
     },
     storage::{collection::CollectionRepository, track::TrackRepository},
 };

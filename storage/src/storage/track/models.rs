@@ -16,13 +16,15 @@
 use super::schema::*;
 
 use chrono::{
-    naive::{NaiveDate, NaiveDateTime}, DateTime, Utc,
+    naive::{NaiveDate, NaiveDateTime},
+    DateTime, Utc,
 };
 
 use percent_encoding::percent_decode;
 
 use api::{
-    entity::StorageId, serde::{SerializationFormat, SerializedEntity},
+    entity::StorageId,
+    serde::{SerializationFormat, SerializedEntity},
 };
 
 use aoide_core::domain::entity::{EntityHeader, EntityRevision, EntityUid, EntityVersion};

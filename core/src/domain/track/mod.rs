@@ -641,7 +641,8 @@ impl Track {
             && self.markers.iter().all(|marker| {
                 marker.is_valid()
                     && (!TrackMarker::is_singular(marker.mark)
-                        || self.markers
+                        || self
+                            .markers
                             .iter()
                             .filter(|marker2| marker.mark == marker2.mark)
                             .count() <= 1)

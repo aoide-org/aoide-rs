@@ -27,7 +27,8 @@ use aoide_core::domain::entity::*;
 
 use aoide_storage::{
     api::{
-        album::{AlbumSummary, Albums, AlbumsResult}, Pagination,
+        album::{AlbumSummary, Albums, AlbumsResult},
+        Pagination,
     },
     storage::track::TrackRepository,
 };
