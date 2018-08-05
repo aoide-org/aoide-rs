@@ -17,7 +17,7 @@ mod models;
 
 mod schema;
 
-mod track_search_filter;
+mod track_search_query_transform;
 
 pub mod util;
 
@@ -25,7 +25,7 @@ use self::models::*;
 
 use self::schema::*;
 
-use self::track_search_filter::TrackSearchFilter;
+use self::track_search_query_transform::TrackSearchQueryTransform;
 
 use self::util::TrackRepositoryHelper;
 

@@ -61,7 +61,7 @@ type TrackSearchBoxedQuery<'a> = diesel::query_builder::BoxedSelectStatement<
     diesel::sqlite::Sqlite,
 >;
 
-pub trait TrackSearchFilter {
+pub trait TrackSearchQueryTransform {
     fn apply_to_query<'a>(
         &'a self,
         query: TrackSearchBoxedQuery<'a>,
@@ -69,7 +69,7 @@ pub trait TrackSearchFilter {
     ) -> TrackSearchBoxedQuery<'a>;
 }
 
-impl TrackSearchFilter for PhraseFilter {
+impl TrackSearchQueryTransform for PhraseFilter {
     fn apply_to_query<'a>(
         &'a self,
         mut query: TrackSearchBoxedQuery<'a>,
@@ -243,7 +243,7 @@ impl TrackSearchFilter for PhraseFilter {
     }
 }
 
-impl TrackSearchFilter for NumericFilter {
+impl TrackSearchQueryTransform for NumericFilter {
     fn apply_to_query<'a>(
         &'a self,
         query: TrackSearchBoxedQuery<'a>,
@@ -499,7 +499,7 @@ impl TrackSearchFilter for NumericFilter {
     }
 }
 
-impl TrackSearchFilter for TagFilter {
+impl TrackSearchQueryTransform for TagFilter {
     fn apply_to_query<'a>(
         &'a self,
         query: TrackSearchBoxedQuery<'a>,
@@ -513,7 +513,7 @@ impl TrackSearchFilter for TagFilter {
     }
 }
 
-impl TrackSearchFilter for TrackSort {
+impl TrackSearchQueryTransform for TrackSort {
     fn apply_to_query<'a>(
         &'a self,
         query: TrackSearchBoxedQuery<'a>,
