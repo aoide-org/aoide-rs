@@ -296,17 +296,11 @@ impl TrackSort {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub enum TrackSearchFilter {
+// TODO: extend to an arbitrary tree
+pub enum TrackSearchFilterPredicate {
     PhraseFilter(PhraseFilter),
     NumericFilter(NumericFilter),
     TagFilter(TagFilter),
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
-// TODO: extend to an arbitrary tree
-pub enum TrackSearchFilterPredicate {
-    Filter(Box<TrackSearchFilter>),
     And(Vec<TrackSearchFilterPredicate>),
     Or(Vec<TrackSearchFilterPredicate>),
 }

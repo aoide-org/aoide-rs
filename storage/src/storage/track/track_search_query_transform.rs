@@ -1112,20 +1112,6 @@ impl AsTrackSearchQueryExpression for TagFilter {
     }
 }
 
-impl AsTrackSearchQueryExpression for TrackSearchFilter {
-    fn predicate<'a>(
-        &'a self,
-        collection_uid: Option<&EntityUid>,
-    ) -> TrackSearchBoxedExpression<'a> {
-        use api::TrackSearchFilter::*;
-        match self {
-            PhraseFilter(filter) => filter.predicate(collection_uid),
-            NumericFilter(filter) => filter.predicate(collection_uid),
-            TagFilter(filter) => filter.predicate(collection_uid),
-        }
-    }
-}
-
 impl AsTrackSearchQueryExpression for TrackSearchFilterPredicate {
     fn predicate<'a>(
         &'a self,
@@ -1133,7 +1119,9 @@ impl AsTrackSearchQueryExpression for TrackSearchFilterPredicate {
     ) -> TrackSearchBoxedExpression<'a> {
         use api::TrackSearchFilterPredicate::*;
         match self {
-            Filter(any_filter) => any_filter.predicate(collection_uid),
+            PhraseFilter(filter) => filter.predicate(collection_uid),
+            NumericFilter(filter) => filter.predicate(collection_uid),
+            TagFilter(filter) => filter.predicate(collection_uid),
             And(predicate_vec) => if let Some(first_predicate) = predicate_vec.first() {
                 let mut expression = first_predicate.predicate(collection_uid);
                 for predicate in predicate_vec {
