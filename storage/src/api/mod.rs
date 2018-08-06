@@ -307,14 +307,8 @@ pub enum TrackSearchFilter {
 // TODO: extend to an arbitrary tree
 pub enum TrackSearchFilterPredicate {
     Filter(Box<TrackSearchFilter>),
-    And(
-        Box<TrackSearchFilterPredicate>,
-        Box<TrackSearchFilterPredicate>,
-    ),
-    Or(
-        Box<TrackSearchFilterPredicate>,
-        Box<TrackSearchFilterPredicate>,
-    ),
+    And(Vec<TrackSearchFilterPredicate>),
+    Or(Vec<TrackSearchFilterPredicate>),
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]

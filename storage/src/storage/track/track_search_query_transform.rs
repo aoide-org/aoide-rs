@@ -112,6 +112,11 @@ type TrackSearchBoxedExpression<'a> = Box<
         + 'a,
 >;
 
+// TODO: replace with "False"
+fn dummy_expression() -> TrackSearchBoxedExpression<'static> {
+    Box::new(tbl_track::id.is_null().and(tbl_track::id.is_not_null()))
+}
+
 pub trait AsTrackSearchQueryExpression {
     fn predicate<'a>(
         &'a self,
@@ -682,9 +687,7 @@ impl AsTrackSearchQueryExpression for PhraseFilter {
             String::new()
         };
 
-        // TODO: replace with "False"
-        let mut expression: TrackSearchBoxedExpression =
-            Box::new(tbl_track::id.is_null().and(tbl_track::id.is_not_null()));
+        let mut expression = dummy_expression();
 
         if !like_expr.is_empty() {
             // aux_track_source (join)
@@ -1131,16 +1134,24 @@ impl AsTrackSearchQueryExpression for TrackSearchFilterPredicate {
         use api::TrackSearchFilterPredicate::*;
         match self {
             Filter(any_filter) => any_filter.predicate(collection_uid),
-            And(left_predicate, right_predicate) => Box::new(
-                left_predicate
-                    .predicate(collection_uid)
-                    .and(right_predicate.predicate(collection_uid)),
-            ),
-            Or(left_predicate, right_predicate) => Box::new(
-                left_predicate
-                    .predicate(collection_uid)
-                    .or(right_predicate.predicate(collection_uid)),
-            ),
+            And(predicate_vec) => if let Some(first_predicate) = predicate_vec.first() {
+                let mut expression = first_predicate.predicate(collection_uid);
+                for predicate in predicate_vec {
+                    expression = Box::new(expression.and(predicate.predicate(collection_uid)));
+                }
+                expression
+            } else {
+                dummy_expression()
+            },
+            Or(predicate_vec) => if let Some(first_predicate) = predicate_vec.first() {
+                let mut expression = first_predicate.predicate(collection_uid);
+                for predicate in predicate_vec {
+                    expression = Box::new(expression.or(predicate.predicate(collection_uid)));
+                }
+                expression
+            } else {
+                dummy_expression()
+            },
         }
     }
 }
