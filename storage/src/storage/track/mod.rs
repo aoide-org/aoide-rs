@@ -674,6 +674,10 @@ impl<'a> Tracks for TrackRepository<'a> {
             target = numeric_filter.apply_to_query(target, collection_uid);
         }
 
+        if let Some(ref filter) = search_params.filter {
+            target = filter.apply_to_query(target, collection_uid);
+        }
+
         // Collection filter
         if let Some(uid) = collection_uid {
             target = target.filter(aux_track_collection::collection_uid.eq(uid.as_ref()));

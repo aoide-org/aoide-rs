@@ -294,9 +294,35 @@ impl TrackSort {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub enum TrackSearchFilter {
+    PhraseFilter(PhraseFilter),
+    NumericFilter(NumericFilter),
+    TagFilter(TagFilter),
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+// TODO: extend to an arbitrary tree
+pub enum TrackSearchFilterPredicate {
+    Filter(Box<TrackSearchFilter>),
+    And(
+        Box<TrackSearchFilterPredicate>,
+        Box<TrackSearchFilterPredicate>,
+    ),
+    Or(
+        Box<TrackSearchFilterPredicate>,
+        Box<TrackSearchFilterPredicate>,
+    ),
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SearchTracksParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub filter: Option<TrackSearchFilterPredicate>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub phrase_filter: Option<PhraseFilter>,
 
