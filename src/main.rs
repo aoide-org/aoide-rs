@@ -138,7 +138,7 @@ fn web_app(executor: &Addr<SqliteExecutor>) -> actix_web::App<AppState> {
             .resource("/tracks", |r| {
                 r.method(http::Method::GET).with_async(on_list_tracks);
                 r.method(http::Method::POST).with_async_config(on_create_track,
-                    |(_, cfg_body)| { cfg_body.error_handler(|err, _req| {
+                    |((_, cfg_body),)| { cfg_body.error_handler(|err, _req| {
                         let err_msg = format!("{}", err);
                         error::InternalError::from_response(
                             err, HttpResponse::BadRequest().body(err_msg)).into()
@@ -147,7 +147,7 @@ fn web_app(executor: &Addr<SqliteExecutor>) -> actix_web::App<AppState> {
             })
             .resource("/tracks/search", |r| {
                 r.method(http::Method::POST).with_async_config(on_search_tracks,
-                    |(_, _, _, cfg_body)| { cfg_body.error_handler(|err, _req| {
+                    |((_, _, _, cfg_body),)| { cfg_body.error_handler(|err, _req| {
                         let err_msg = format!("{}", err);
                         error::InternalError::from_response(
                             err, HttpResponse::BadRequest().body(err_msg)).into()
@@ -166,7 +166,7 @@ fn web_app(executor: &Addr<SqliteExecutor>) -> actix_web::App<AppState> {
             .resource("/tracks/replace", |r| {
                 r.method(http::Method::POST).with_async_config(on_replace_tracks,
                     // Limit maximum body size to 1 MB (Default: 256 KB)
-                    |(_, _, cfg_body)| { cfg_body.limit(1024 * 1024).error_handler(|err, _req| {
+                    |((_, _, cfg_body),)| { cfg_body.limit(1024 * 1024).error_handler(|err, _req| {
                         let err_msg = format!("{}", err);
                         error::InternalError::from_response(
                             err, HttpResponse::BadRequest().body(err_msg)).into()
@@ -175,7 +175,7 @@ fn web_app(executor: &Addr<SqliteExecutor>) -> actix_web::App<AppState> {
             })
             .resource("/tracks/locate", |r| {
                 r.method(http::Method::POST).with_async_config(on_locate_tracks,
-                    |(_, _, _, cfg_body)| { cfg_body.error_handler(|err, _req| {
+                    |((_, _, _, cfg_body),)| { cfg_body.error_handler(|err, _req| {
                         let err_msg = format!("{}", err);
                         error::InternalError::from_response(
                             err, HttpResponse::BadRequest().body(err_msg)).into()
@@ -185,7 +185,7 @@ fn web_app(executor: &Addr<SqliteExecutor>) -> actix_web::App<AppState> {
             .resource("/tracks/{uid}", |r| {
                 r.method(http::Method::GET).with_async(on_load_track);
                 r.method(http::Method::PUT).with_async_config(on_update_track,
-                    |(_, _, cfg_body)| { cfg_body.error_handler(|err, _req| {
+                    |((_, _, cfg_body),)| { cfg_body.error_handler(|err, _req| {
                         let err_msg = format!("{}", err);
                         error::InternalError::from_response(
                             err, HttpResponse::BadRequest().body(err_msg)).into()
@@ -199,7 +199,7 @@ fn web_app(executor: &Addr<SqliteExecutor>) -> actix_web::App<AppState> {
             .resource("/collections", |r| {
                 r.method(http::Method::GET).with_async(on_list_collections);
                 r.method(http::Method::POST).with_async_config(on_create_collection,
-                    |(_, cfg_body)| { cfg_body.error_handler(|err, _req| {
+                    |((_, cfg_body),)| { cfg_body.error_handler(|err, _req| {
                         let err_msg = format!("{}", err);
                         error::InternalError::from_response(
                             err, HttpResponse::BadRequest().body(err_msg)).into()
@@ -209,7 +209,7 @@ fn web_app(executor: &Addr<SqliteExecutor>) -> actix_web::App<AppState> {
             .resource("/collections/{uid}", |r| {
                 r.method(http::Method::GET).with_async(on_load_collection);
                 r.method(http::Method::PUT).with_async_config(on_update_collection,
-                    |(_, _, cfg_body)| { cfg_body.error_handler(|err, _req| {
+                    |((_, _, cfg_body),)| { cfg_body.error_handler(|err, _req| {
                         let err_msg = format!("{}", err);
                         error::InternalError::from_response(
                             err, HttpResponse::BadRequest().body(err_msg)).into()
