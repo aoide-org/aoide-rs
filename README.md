@@ -59,7 +59,7 @@ cargo build --bin aoide
 During development it is handy to build and run the executable in a single step:
 
 ```bash
-cargo run --bin aoide -- -vv --listen localhost:8081 /tmp/aoide.sqlite
+cargo run --bin aoide -- -vv --listen localhost:7878 /tmp/aoide.sqlite
 ```
 
 In this example the following command line parameters are passed through to the executable:
@@ -67,7 +67,7 @@ In this example the following command line parameters are passed through to the 
 | Parameter | Description |
 | ----------|-------------|
 |-vv        | Log level INFO |
-|--listen localhost:8080 | Listen on localhost:8080 for incoming HTTP requests |
+|--listen [::1]:7878 | Listen on IPv6 loopback device at port 7878 for incoming HTTP requests |
 |/tmp/aoide.sqlite | Open or create the SQLite database file and perform any necessary maintenance tasks |
 
 Use _--help_ for a list and description of all available command line parameters:
@@ -75,6 +75,10 @@ Use _--help_ for a list and description of all available command line parameters
 ```bash
 cargo run --bin aoide -- --help
 ```
+
+#### ICYW
+
+On a 3x4 numeric key pad 7878 = RUST.
 
 ### Tests
 
