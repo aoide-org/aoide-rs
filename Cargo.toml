@@ -30,7 +30,6 @@ env_logger = "*"
 failure = { version = "*", features = ["std"] }
 futures = "*"
 hyper = "*"
-libsqlite3-sys = { version = "*", features = ["bundled"] }
 log = "*"
 mime = "*"
 serde = "*"
