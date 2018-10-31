@@ -47,8 +47,6 @@ extern crate serde_json;
 /// Public Modules
 ///////////////////////////////////////////////////////////////////////
 //
-#[cfg_attr(feature = "cargo-clippy", allow(trivially_copy_pass_by_ref))]
-pub mod audio;
 
 #[cfg_attr(feature = "cargo-clippy", allow(trivially_copy_pass_by_ref))]
 pub mod domain;

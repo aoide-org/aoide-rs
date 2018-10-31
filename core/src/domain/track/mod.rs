@@ -16,9 +16,9 @@
 #[cfg(test)]
 mod tests;
 
-use audio::sample::*;
-use audio::signal::*;
-use audio::*;
+use domain::audio::sample::*;
+use domain::audio::signal::*;
+use domain::audio::*;
 use domain::entity::*;
 use domain::metadata::*;
 use domain::music::notation::*;
@@ -142,7 +142,8 @@ impl TrackSource {
             sources
                 .iter()
                 .filter(|source| source.content_type == content_type)
-                .count() <= 1
+                .count()
+                <= 1
         );
         sources
             .iter()
@@ -284,7 +285,8 @@ impl TrackCollection {
             collections
                 .iter()
                 .filter(|collection| &collection.uid == collection_uid)
-                .count() <= 1
+                .count()
+                <= 1
         );
         collections
             .iter()
@@ -312,7 +314,11 @@ pub struct ReleaseMetadata {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub licenses: Vec<String>,
 
-    #[serde(rename = "xrefs", skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(
+        rename = "xrefs",
+        skip_serializing_if = "Vec::is_empty",
+        default
+    )]
     pub external_references: Vec<String>,
 }
 
@@ -338,7 +344,11 @@ pub struct AlbumMetadata {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub compilation: Option<bool>,
 
-    #[serde(rename = "xrefs", skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(
+        rename = "xrefs",
+        skip_serializing_if = "Vec::is_empty",
+        default
+    )]
     pub external_references: Vec<String>,
 }
 
@@ -415,7 +425,11 @@ pub enum TrackMark {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackMarkerOffset {
-    #[serde(rename = "ms", skip_serializing_if = "DurationMs::is_empty", default)]
+    #[serde(
+        rename = "ms",
+        skip_serializing_if = "DurationMs::is_empty",
+        default
+    )]
     pub duration: DurationMs,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -478,14 +492,15 @@ impl TrackMarker {
     pub fn is_valid(&self) -> bool {
         self.offset.duration.is_valid()
             && self.length.iter().all(|length| length.duration.is_valid())
-            && self.color.iter().all(ColorArgb::is_valid) && match self.mark {
-            TrackMark::LoadCue | TrackMark::HotCue => self.length.is_none(), // not available
-            TrackMark::Sample | TrackMark::Loop => {
-                // mandatory
-                self.length.is_some() && self.length.iter().all(TrackMarkerLength::is_valid)
+            && self.color.iter().all(ColorArgb::is_valid)
+            && match self.mark {
+                TrackMark::LoadCue | TrackMark::HotCue => self.length.is_none(), // not available
+                TrackMark::Sample | TrackMark::Loop => {
+                    // mandatory
+                    self.length.is_some() && self.length.iter().all(TrackMarkerLength::is_valid)
+                }
+                _ => self.length.iter().all(TrackMarkerLength::is_valid), // optional
             }
-            _ => self.length.iter().all(TrackMarkerLength::is_valid), // optional
-        }
     }
 }
 
@@ -621,7 +636,11 @@ pub struct Track {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub ratings: Vec<Rating>, // no duplicate owners allowed
 
-    #[serde(rename = "xrefs", skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(
+        rename = "xrefs",
+        skip_serializing_if = "Vec::is_empty",
+        default
+    )]
     pub external_references: Vec<String>,
 }
 
@@ -645,8 +664,10 @@ impl Track {
                             .markers
                             .iter()
                             .filter(|marker2| marker.mark == marker2.mark)
-                            .count() <= 1)
-            }) && self.locks.iter().all(TrackLock::is_valid)
+                            .count()
+                            <= 1)
+            })
+            && self.locks.iter().all(TrackLock::is_valid)
             && self.tags.iter().all(ScoredTag::is_valid)
             && self.ratings.iter().all(Rating::is_valid)
             && self.comments.iter().all(Comment::is_valid)
