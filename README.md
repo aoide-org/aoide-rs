@@ -100,20 +100,28 @@ Follow the instructions in _Development_ for building a dynamically linked execu
 
 A statically linked executable for the host architecture can be built with the help of [clux/muslrustclux/muslrust](https://github.com/clux/muslrust) and the corresponding Docker image.
 
-```bash
-make build
-```
-
 > On Fedora the `docker` command must be executed as _root_ and  you might need to add `sudo` for executing the `make` command. Since the build needs write access for the target directory you might also need to relocate that, e.g. by copying it recursively to _/tmp_ and starting the build with `sudo make build` there.
 
-The resulting self-contained executable can be found in _target/x86_64-unknown-linux-musl/release/aoide_ and has been packaged into a slim runtime Docker image based on [Alpine Linux](https://hub.docker.com/_/alpine/).
+##### Update the Docker image
+
+```bash
+make -f Makefile.clux-muslrust pull
+```
+
+##### Build the application
+
+```bash
+make -f Makefile.clux-muslrust build
+```
+
+The resulting self-contained executable can be found in _bin/x86_64-unknown-linux-musl/_.
 
 #### Run
 
 Various parameters for running the dockerized executable can be customized in the Makefile. A Docker container from this image is created and started with the following command:
 
 ```bash
-make run
+make -f Makefile.clux-muslrust run
 ```
 
 The `run` target uses the variables `RUN_HTTP_PORT` and `RUN_DATA_DIR` defined in the Makefile for configuring communication and persistent storage of the container. Use the corresponding `docker` command as a template and starting point for your custom startup configuration.
@@ -121,7 +129,7 @@ The `run` target uses the variables `RUN_HTTP_PORT` and `RUN_DATA_DIR` defined i
 To stop and ultimately remove the Docker container use the following command:
 
 ```bash
-make stop
+make -f Makefile.clux-muslrust stop
 ```
 
 #### Volumes
