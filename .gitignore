@@ -1,4 +1,5 @@
-# Build directory (or a symbolic link to it)
+# Build directories (or a symbolic link to it)
+/bin
 /target
 
 # Backup files
@@ -6,3 +7,6 @@
 
 # SQLite database files
 **/*.sqlite
+
+# IntelliJ IDEA
+/.idea
