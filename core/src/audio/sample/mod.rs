@@ -15,7 +15,7 @@
 
 use super::*;
 
-use std::{fmt, ops::Deref};
+use std::fmt;
 
 ///////////////////////////////////////////////////////////////////////
 /// SampleLayout
@@ -71,21 +71,27 @@ pub type SamplePositionType = f64;
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SamplePosition(pub SamplePositionType);
 
-impl Deref for SamplePosition {
-    type Target = SamplePositionType;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+impl From<SamplePositionType> for SamplePosition {
+    fn from(from: SamplePositionType) -> Self {
+        Self(from)
     }
 }
 
-impl SamplePosition {
-    pub fn is_valid(self) -> bool {
-        self.is_finite()
+impl From<SamplePosition> for SamplePositionType {
+    fn from(from: SamplePosition) -> Self {
+        from.0
     }
+}
 
-    pub fn is_integer(self) -> bool {
-        (self.trunc() - *self).abs() == 0.0
+impl IsValid for SamplePosition {
+    fn is_valid(&self) -> bool {
+        self.0.is_finite()
+    }
+}
+
+impl IsInteger for SamplePosition {
+    fn is_integer(&self) -> bool {
+        self.0.is_integer()
     }
 }
 
@@ -99,21 +105,27 @@ pub type NumberOfSamples = f64;
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SampleLength(pub NumberOfSamples);
 
-impl Deref for SampleLength {
-    type Target = NumberOfSamples;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+impl From<NumberOfSamples> for SampleLength {
+    fn from(from: NumberOfSamples) -> Self {
+        Self(from)
     }
 }
 
-impl SampleLength {
-    pub fn is_valid(self) -> bool {
-        self.is_finite() && self.is_sign_positive()
+impl From<SampleLength> for NumberOfSamples {
+    fn from(from: SampleLength) -> Self {
+        from.0
     }
+}
 
-    pub fn is_integer(self) -> bool {
-        (self.trunc() - *self).abs() == 0.0
+impl IsValid for SampleLength {
+    fn is_valid(&self) -> bool {
+        self.0.is_finite() && self.0.is_sign_positive()
+    }
+}
+
+impl IsInteger for SampleLength {
+    fn is_integer(&self) -> bool {
+        self.0.is_integer()
     }
 }
 
@@ -124,24 +136,45 @@ impl SampleLength {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SampleRange {
-    pub pos: SamplePosition,
-    pub len: SampleLength,
+    pub start: SamplePosition,
+    pub end: SamplePosition,
 }
 
 impl SampleRange {
-    pub fn is_valid(&self) -> bool {
-        self.pos.is_valid() && self.len.is_valid()
+    pub fn reverse(self) -> Self {
+        Self {
+            start: self.end,
+            end: self.start,
+        }
     }
 
-    pub fn is_integer(&self) -> bool {
-        self.pos.is_integer() && self.len.is_integer()
+    pub fn is_forward(&self) -> bool {
+        self.start < self.end
     }
 
-    pub fn start(&self) -> SamplePosition {
-        self.pos
+    pub fn is_backward(&self) -> bool {
+        self.start > self.end
     }
 
-    pub fn end(&self) -> SamplePosition {
-        SamplePosition(*self.pos + *self.len)
+    pub fn length(&self) -> SampleLength {
+        SampleLength((self.end.0 - self.start.0).abs())
+    }
+}
+
+impl IsValid for SampleRange {
+    fn is_valid(&self) -> bool {
+        self.start.is_valid() && self.end.is_valid()
+    }
+}
+
+impl IsEmpty for SampleRange {
+    fn is_empty(&self) -> bool {
+        self.start == self.end
+    }
+}
+
+impl IsInteger for SampleRange {
+    fn is_integer(&self) -> bool {
+        self.start.is_integer() && self.end.is_integer()
     }
 }

@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use super::*;
+
 use std::{f64, fmt};
 
 ///////////////////////////////////////////////////////////////////////
@@ -29,34 +31,31 @@ mod tests;
 pub type Beats = f64;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub struct TempoBpm(Beats);
+pub struct TempoBpm(pub Beats);
 
 impl TempoBpm {
-    pub const UNIT_OF_MEASURE: &'static str = "bpm";
-
-    pub const MIN: Self = TempoBpm(f64::MIN_POSITIVE);
-    pub const MAX: Self = TempoBpm(f64::MAX);
-
-    pub fn from_bpm(bpm: Beats) -> Self {
-        TempoBpm(bpm)
+    pub const fn unit_of_measure() -> &'static str {
+        "bpm"
     }
 
-    pub fn bpm(self) -> Beats {
-        self.0
+    pub const fn min() -> Self {
+        Self(f64::MIN_POSITIVE)
     }
 
-    pub fn is_default(&self) -> bool {
-        *self == Self::default()
+    pub const fn max() -> Self {
+        Self(f64::MAX)
     }
+}
 
-    pub fn is_valid(&self) -> bool {
-        *self >= Self::MIN && *self <= Self::MAX
+impl IsValid for TempoBpm {
+    fn is_valid(&self) -> bool {
+        *self >= Self::min() && *self <= Self::max()
     }
 }
 
 impl fmt::Display for TempoBpm {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", self.bpm(), TempoBpm::UNIT_OF_MEASURE)
+        write!(f, "{} {}", self.0, TempoBpm::unit_of_measure())
     }
 }
 
@@ -80,11 +79,15 @@ pub enum KeyMode {
 pub struct KeySignature(KeyCode);
 
 impl KeySignature {
-    pub const MIN_CODE: KeyCode = 1;
-    pub const MAX_CODE: KeyCode = 24;
+    pub const fn min_code() -> KeyCode {
+        1
+    }
+    pub const fn max_code() -> KeyCode {
+        24
+    }
 
     pub fn is_valid_code(code: KeyCode) -> bool {
-        code >= KeySignature::MIN_CODE && code <= KeySignature::MAX_CODE
+        code >= KeySignature::min_code() && code <= KeySignature::max_code()
     }
 
     pub fn from_code(code: KeyCode) -> Self {
@@ -103,12 +106,10 @@ impl KeySignature {
             _ => unreachable!(),
         }
     }
+}
 
-    pub fn is_default(&self) -> bool {
-        *self == Self::default()
-    }
-
-    pub fn is_valid(&self) -> bool {
+impl IsValid for KeySignature {
+    fn is_valid(&self) -> bool {
         Self::is_valid_code(self.code())
     }
 }
@@ -127,11 +128,15 @@ impl fmt::Display for KeySignature {
 pub struct OpenKeySignature(KeySignature);
 
 impl OpenKeySignature {
-    pub const MIN_CODE: KeyCode = 1;
-    pub const MAX_CODE: KeyCode = 12;
+    pub const fn min_code() -> KeyCode {
+        1
+    }
+    pub const fn max_code() -> KeyCode {
+        12
+    }
 
     pub fn is_valid_code(code: KeyCode) -> bool {
-        code >= KeySignature::MIN_CODE && code <= KeySignature::MAX_CODE
+        code >= KeySignature::min_code() && code <= KeySignature::max_code()
     }
 
     pub fn new(code: KeyCode, mode: KeyMode) -> Self {
@@ -144,10 +149,6 @@ impl OpenKeySignature {
                 },
         );
         OpenKeySignature(key_sig)
-    }
-
-    pub fn is_valid(&self) -> bool {
-        self.0.is_valid()
     }
 
     pub fn code(self) -> KeyCode {
@@ -168,6 +169,12 @@ impl From<KeySignature> for OpenKeySignature {
 impl From<OpenKeySignature> for KeySignature {
     fn from(from: OpenKeySignature) -> Self {
         from.0
+    }
+}
+
+impl IsValid for OpenKeySignature {
+    fn is_valid(&self) -> bool {
+        self.0.is_valid()
     }
 }
 
@@ -193,11 +200,15 @@ impl fmt::Display for OpenKeySignature {
 pub struct LancelotKeySignature(KeySignature);
 
 impl LancelotKeySignature {
-    pub const MIN_CODE: KeyCode = 1;
-    pub const MAX_CODE: KeyCode = 12;
+    pub const fn min_code() -> KeyCode {
+        1
+    }
+    pub const fn max_code() -> KeyCode {
+        12
+    }
 
     pub fn is_valid_code(code: KeyCode) -> bool {
-        code >= KeySignature::MIN_CODE && code <= KeySignature::MAX_CODE
+        code >= KeySignature::min_code() && code <= KeySignature::max_code()
     }
 
     pub fn new(code: KeyCode, mode: KeyMode) -> Self {
@@ -210,10 +221,6 @@ impl LancelotKeySignature {
                 },
         );
         LancelotKeySignature(key_sig)
-    }
-
-    pub fn is_valid(&self) -> bool {
-        self.0.is_valid()
     }
 
     pub fn code(self) -> KeyCode {
@@ -234,6 +241,12 @@ impl From<KeySignature> for LancelotKeySignature {
 impl From<LancelotKeySignature> for KeySignature {
     fn from(from: LancelotKeySignature) -> Self {
         from.0
+    }
+}
+
+impl IsValid for LancelotKeySignature {
+    fn is_valid(&self) -> bool {
+        self.0.is_valid()
     }
 }
 
@@ -259,20 +272,20 @@ impl fmt::Display for LancelotKeySignature {
 pub struct EngineKeySignature(KeySignature);
 
 impl EngineKeySignature {
-    pub const MIN_CODE: KeyCode = 1;
-    pub const MAX_CODE: KeyCode = 24;
+    pub const fn min_code() -> KeyCode {
+        1
+    }
+    pub const fn max_code() -> KeyCode {
+        24
+    }
 
     pub fn is_valid_code(code: KeyCode) -> bool {
-        code >= KeySignature::MIN_CODE && code <= KeySignature::MAX_CODE
+        code >= KeySignature::min_code() && code <= KeySignature::max_code()
     }
 
     pub fn from_code(code: KeyCode) -> Self {
         debug_assert!(Self::is_valid_code(code));
         EngineKeySignature(KeySignature::from_code(code % 24 + 1))
-    }
-
-    pub fn is_valid(&self) -> bool {
-        self.0.is_valid()
     }
 
     pub fn code(self) -> KeyCode {
@@ -295,6 +308,12 @@ impl From<EngineKeySignature> for KeySignature {
     }
 }
 
+impl IsValid for EngineKeySignature {
+    fn is_valid(&self) -> bool {
+        self.0.is_valid()
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////
 /// TimeSignature
 ///////////////////////////////////////////////////////////////////////
@@ -303,10 +322,6 @@ impl From<EngineKeySignature> for KeySignature {
 pub struct TimeSignature(u16, u16);
 
 impl TimeSignature {
-    pub fn is_default(&self) -> bool {
-        *self == Self::default()
-    }
-
     pub fn new(top: u16, bottom: u16) -> Self {
         TimeSignature(top, bottom)
     }
@@ -328,8 +343,10 @@ impl TimeSignature {
     pub fn measure_unit(self) -> u16 {
         self.bottom()
     }
+}
 
-    pub fn is_valid(&self) -> bool {
+impl IsValid for TimeSignature {
+    fn is_valid(&self) -> bool {
         (self.top() > 0) && (self.bottom() > 0)
     }
 }

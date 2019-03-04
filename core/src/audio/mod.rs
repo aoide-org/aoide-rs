@@ -15,7 +15,7 @@
 
 use super::*;
 
-use std::{fmt, ops::Deref, time::Duration, u16};
+use std::{fmt, time::Duration, u16};
 
 ///////////////////////////////////////////////////////////////////////
 /// Modules
@@ -34,27 +34,27 @@ mod tests;
 pub type DurationInMilliseconds = f64;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub struct DurationMs(DurationInMilliseconds);
+pub struct DurationMs(pub DurationInMilliseconds);
 
 impl DurationMs {
-    pub const UNIT_OF_MEASURE: &'static str = "ms";
-
-    pub const EMPTY: DurationMs = DurationMs(0 as DurationInMilliseconds);
-
-    pub fn from_ms(ms: DurationInMilliseconds) -> Self {
-        DurationMs(ms)
+    pub const fn unit_of_measure() -> &'static str {
+        "ms"
     }
 
-    pub fn ms(self) -> DurationInMilliseconds {
-        self.0
+    pub const fn empty() -> Self {
+        Self(0f64)
     }
+}
 
-    pub fn is_valid(&self) -> bool {
-        *self >= Self::EMPTY
+impl IsValid for DurationMs {
+    fn is_valid(&self) -> bool {
+        *self >= Self::empty()
     }
+}
 
-    pub fn is_empty(&self) -> bool {
-        *self <= Self::EMPTY
+impl IsEmpty for DurationMs {
+    fn is_empty(&self) -> bool {
+        *self <= Self::empty()
     }
 }
 
@@ -62,7 +62,7 @@ impl From<Duration> for DurationMs {
     fn from(duration: Duration) -> Self {
         let secs = duration.as_secs() as DurationInMilliseconds;
         let subsec_nanos = DurationInMilliseconds::from(duration.subsec_nanos());
-        Self::from_ms(
+        Self(
             secs * DurationInMilliseconds::from(1_000)
                 + subsec_nanos / DurationInMilliseconds::from(1_000_000),
         )
@@ -71,7 +71,7 @@ impl From<Duration> for DurationMs {
 
 impl fmt::Display for DurationMs {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", self.ms(), DurationMs::UNIT_OF_MEASURE)
+        write!(f, "{} {}", self.0, DurationMs::unit_of_measure())
     }
 }
 
@@ -79,30 +79,41 @@ impl fmt::Display for DurationMs {
 /// Channels
 ///////////////////////////////////////////////////////////////////////
 
-pub type ChannelCountValue = u16;
+type ChannelCountValue = u16;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct ChannelCount(ChannelCountValue);
+pub struct ChannelCount(pub ChannelCountValue);
 
 impl ChannelCount {
-    pub const MIN: Self = ChannelCount(1);
-    pub const MAX: Self = ChannelCount(u16::MAX);
-
-    pub fn new(count: ChannelCountValue) -> Self {
-        ChannelCount(count)
+    pub const fn zero() -> Self {
+        Self(0)
     }
 
-    pub fn is_valid(&self) -> bool {
-        debug_assert!(*self <= Self::MAX);
-        *self >= Self::MIN
+    pub const fn min() -> Self {
+        Self(1)
+    }
+
+    pub const fn max() -> Self {
+        Self(u16::MAX)
     }
 }
 
-impl Deref for ChannelCount {
-    type Target = ChannelCountValue;
+impl IsValid for ChannelCount {
+    fn is_valid(&self) -> bool {
+        debug_assert!(*self <= Self::max());
+        *self >= Self::min()
+    }
+}
 
-    fn deref(&self) -> &Self::Target {
-        &self.0
+impl From<ChannelCountValue> for ChannelCount {
+    fn from(from: ChannelCountValue) -> Self {
+        Self(from)
+    }
+}
+
+impl From<ChannelCount> for ChannelCountValue {
+    fn from(from: ChannelCount) -> Self {
+        from.0
     }
 }
 
@@ -127,18 +138,18 @@ pub struct Channels {
 }
 
 impl ChannelLayout {
-    pub fn channel_count(&self) -> ChannelCount {
-        match *self {
-            ChannelLayout::Mono => ChannelCount::new(1),
-            ChannelLayout::DualMono => ChannelCount::new(2),
-            ChannelLayout::Stereo => ChannelCount::new(2),
+    pub fn channel_count(self) -> ChannelCount {
+        match self {
+            ChannelLayout::Mono => ChannelCount(1),
+            ChannelLayout::DualMono => ChannelCount(2),
+            ChannelLayout::Stereo => ChannelCount(2),
         }
     }
 
-    pub fn channels(&self) -> Channels {
+    pub fn channels(self) -> Channels {
         Channels {
             count: self.channel_count(),
-            layout: Some(*self),
+            layout: Some(self),
         }
     }
 }
@@ -159,18 +170,20 @@ impl Channels {
     }
 
     pub fn default_layout(count: ChannelCount) -> Option<ChannelLayout> {
-        match *count {
-            1 => Some(ChannelLayout::Mono),
-            2 => Some(ChannelLayout::Stereo),
+        match count {
+            ChannelCount(1) => Some(ChannelLayout::Mono),
+            ChannelCount(2) => Some(ChannelLayout::Stereo),
             _ => None,
         }
     }
+}
 
-    pub fn is_valid(&self) -> bool {
+impl IsValid for Channels {
+    fn is_valid(&self) -> bool {
         self.count.is_valid()
-            && match self.layout {
-                None => true,
-                Some(layout) => layout.channel_count() == self.count,
-            }
+            && self
+                .layout
+                .map(|layout| layout.channel_count() == self.count)
+                .unwrap_or(true)
     }
 }

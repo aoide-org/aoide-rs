@@ -299,19 +299,19 @@ impl<'a> InsertableTracksSource<'a> {
             audio_channels_count: track_source
                 .audio_content
                 .as_ref()
-                .map(|audio| *audio.channels.count as i16),
+                .map(|audio| audio.channels.count.0 as i16),
             audio_duration_ms: track_source
                 .audio_content
                 .as_ref()
-                .map(|audio| audio.duration.ms()),
+                .map(|audio| audio.duration.0),
             audio_samplerate_hz: track_source
                 .audio_content
                 .as_ref()
-                .map(|audio| audio.sample_rate.hz() as i32),
+                .map(|audio| audio.sample_rate.0 as i32),
             audio_bitrate_bps: track_source
                 .audio_content
                 .as_ref()
-                .map(|audio| audio.bit_rate.bps() as i32),
+                .map(|audio| audio.bit_rate.0 as i32),
             audio_enc_name: track_source
                 .audio_content
                 .as_ref()
@@ -378,34 +378,34 @@ impl InsertableTracksMusic {
     pub fn bind(track_id: StorageId, profile: &SongProfile) -> Self {
         Self {
             track_id,
-            tempo_bpm: profile.tempo.bpm(),
+            tempo_bpm: profile.tempo.0,
             time_sig_top: profile.time_sig.top() as i16,
             time_sig_bottom: profile.time_sig.bottom() as i16,
             key_sig_code: i16::from(profile.key_sig.code()),
             acousticness_score: profile
                 .feature(SongFeature::Acousticness)
-                .map(|feature_score| *feature_score.score()),
+                .map(|feature_score| feature_score.score().0),
             danceability_score: profile
                 .feature(SongFeature::Danceability)
-                .map(|feature_score| *feature_score.score()),
+                .map(|feature_score| feature_score.score().0),
             energy_score: profile
                 .feature(SongFeature::Energy)
-                .map(|feature_score| *feature_score.score()),
+                .map(|feature_score| feature_score.score().0),
             instrumentalness_score: profile
                 .feature(SongFeature::Instrumentalness)
-                .map(|feature_score| *feature_score.score()),
+                .map(|feature_score| feature_score.score().0),
             liveness_score: profile
                 .feature(SongFeature::Liveness)
-                .map(|feature_score| *feature_score.score()),
+                .map(|feature_score| feature_score.score().0),
             popularity_score: profile
                 .feature(SongFeature::Popularity)
-                .map(|feature_score| *feature_score.score()),
+                .map(|feature_score| feature_score.score().0),
             speechiness_score: profile
                 .feature(SongFeature::Speechiness)
-                .map(|feature_score| *feature_score.score()),
+                .map(|feature_score| feature_score.score().0),
             valence_score: profile
                 .feature(SongFeature::Valence)
-                .map(|feature_score| *feature_score.score()),
+                .map(|feature_score| feature_score.score().0),
         }
     }
 }
@@ -472,7 +472,7 @@ impl InsertableTracksTag {
             track_id,
             term_id,
             facet_id,
-            score: *score,
+            score: score.0,
         }
     }
 }
@@ -489,7 +489,7 @@ impl<'a> InsertableTracksRating<'a> {
     pub fn bind(track_id: StorageId, rating: &'a Rating) -> Self {
         Self {
             track_id,
-            score: *rating.score(),
+            score: rating.score().0,
             owner: rating.owner().as_ref().map(|owner| owner.as_str()),
         }
     }

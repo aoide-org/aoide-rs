@@ -15,34 +15,51 @@
 
 ///////////////////////////////////////////////////////////////////////
 
-#![deny(missing_debug_implementations, missing_copy_implementations)]
-
-use serde::{Deserialize, Serialize};
-
-///////////////////////////////////////////////////////////////////////
-/// Modules
-///////////////////////////////////////////////////////////////////////
-pub mod prelude {
-    pub use super::audio::{sample::*, signal::*, *};
-    pub use super::entity::*;
-    pub use super::util::*;
+pub trait IsValid {
+    fn is_valid(&self) -> bool;
 }
 
-pub mod audio;
+pub trait IsInteger {
+    fn is_integer(&self) -> bool;
+}
 
-pub mod collection;
+impl IsInteger for f64 {
+    fn is_integer(&self) -> bool {
+        (self.trunc() - self).abs() == 0f64
+    }
+}
 
-pub mod entity;
+impl IsInteger for f32 {
+    fn is_integer(&self) -> bool {
+        (self.trunc() - self).abs() == 0f32
+    }
+}
 
-#[allow(clippy::trivially_copy_pass_by_ref)]
-pub mod metadata;
+pub trait IsEmpty {
+    fn is_empty(&self) -> bool;
+}
 
-#[allow(clippy::trivially_copy_pass_by_ref)]
-pub mod music;
+impl IsEmpty for std::time::Duration {
+    fn is_empty(&self) -> bool {
+        *self == std::time::Duration::from_secs(0)
+    }
+}
 
-#[allow(clippy::trivially_copy_pass_by_ref)]
-pub mod track;
+impl IsEmpty for chrono::Duration {
+    fn is_empty(&self) -> bool {
+        self.is_zero()
+    }
+}
 
-pub mod util;
+pub trait IsDefault {
+    fn is_default(&self) -> bool;
+}
 
-pub(crate) use util::*;
+impl<T> IsDefault for T
+where
+    T: Default + PartialEq,
+{
+    fn is_default(&self) -> bool {
+        self == &Default::default()
+    }
+}

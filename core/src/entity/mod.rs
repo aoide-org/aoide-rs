@@ -49,10 +49,6 @@ impl EntityUid {
     const STR_LEN: usize = (Self::SLICE_LEN * 4) / 3;
     const STR_ENCODING: base64::Config = base64::URL_SAFE_NO_PAD;
 
-    pub fn is_valid(&self) -> bool {
-        self != &Self::default()
-    }
-
     pub fn copy_from_slice(&mut self, slice: &[u8]) {
         assert!(slice.len() == Self::SLICE_LEN);
         self.as_mut().copy_from_slice(&slice[0..Self::SLICE_LEN]);
@@ -107,6 +103,12 @@ impl EntityUid {
         base64::encode_config_buf(self.as_ref(), Self::STR_ENCODING, &mut encoded);
         debug_assert!(encoded.len() == Self::STR_LEN);
         encoded
+    }
+}
+
+impl IsValid for EntityUid {
+    fn is_valid(&self) -> bool {
+        self != &Self::default()
     }
 }
 
@@ -273,21 +275,25 @@ impl EntityRevision {
         EntityRevision(ordinal.into(), timestamp.into())
     }
 
+    pub const fn initial_ordinal() -> EntityRevisionOrdinal {
+        1
+    }
+
     pub fn initial() -> Self {
-        EntityRevision(1 as EntityRevisionOrdinal, Utc::now())
+        EntityRevision(Self::initial_ordinal(), Utc::now())
     }
 
     pub fn next(&self) -> Self {
         debug_assert!(self.is_valid());
-        EntityRevision(self.0 + 1, Utc::now())
-    }
-
-    pub fn is_valid(&self) -> bool {
-        self.ordinal() > 0
+        self.0
+            .checked_add(1)
+            .map(|ordinal| EntityRevision(ordinal, Utc::now()))
+            // TODO: Return `Option<Self>`
+            .unwrap()
     }
 
     pub fn is_initial(&self) -> bool {
-        self.ordinal() == 1
+        self.ordinal() == Self::initial_ordinal()
     }
 
     pub fn ordinal(&self) -> EntityRevisionOrdinal {
@@ -305,6 +311,12 @@ impl Default for EntityRevision {
             0 as EntityRevisionOrdinal,
             DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(0, 0), Utc),
         )
+    }
+}
+
+impl IsValid for EntityRevision {
+    fn is_valid(&self) -> bool {
+        self.ordinal() >= Self::initial_ordinal()
     }
 }
 

@@ -13,6 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#[cfg(test)]
+mod tests;
+
 use super::*;
 
 use crate::audio::sample::*;
@@ -31,30 +34,32 @@ pub type BitsPerSecond = u32;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct BitRateBps(BitsPerSecond);
+pub struct BitRateBps(pub BitsPerSecond);
 
 impl BitRateBps {
-    pub const UNIT_OF_MEASURE: &'static str = "bps";
-
-    pub const MIN: Self = BitRateBps(1);
-    pub const MAX: Self = BitRateBps(u32::MAX);
-
-    pub fn from_bps(bps: BitsPerSecond) -> Self {
-        BitRateBps(bps)
+    pub const fn unit_of_measure() -> &'static str {
+        "bps"
     }
 
-    pub fn bps(self) -> BitsPerSecond {
-        self.0
+    pub const fn min() -> Self {
+        Self(1)
     }
 
-    pub fn is_valid(&self) -> bool {
-        *self >= Self::MIN
+    pub const fn max() -> Self {
+        Self(u32::MAX)
+    }
+}
+
+impl IsValid for BitRateBps {
+    fn is_valid(&self) -> bool {
+        debug_assert!(*self <= Self::max());
+        *self >= Self::min()
     }
 }
 
 impl fmt::Display for BitRateBps {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", self.bps(), Self::UNIT_OF_MEASURE)
+        write!(f, "{} {}", self.0, Self::unit_of_measure())
     }
 }
 
@@ -65,35 +70,48 @@ impl fmt::Display for BitRateBps {
 pub type SamplesPerSecond = u32;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct SampleRateHz(SamplesPerSecond);
+pub struct SampleRateHz(pub SamplesPerSecond);
 
 impl SampleRateHz {
-    pub const UNIT_OF_MEASURE: &'static str = "Hz";
-
-    pub const MIN: Self = SampleRateHz(1);
-    pub const MAX: Self = SampleRateHz(u32::MAX);
-
-    pub const COMPACT_DISC: Self = SampleRateHz(44_100);
-    pub const STUDIO_48KHZ: Self = SampleRateHz(48_000);
-    pub const STUDIO_96KHZ: Self = SampleRateHz(96_000);
-    pub const STUDIO_192KHZ: Self = SampleRateHz(192_000);
-
-    pub fn from_hz(hz: SamplesPerSecond) -> Self {
-        SampleRateHz(hz)
+    pub const fn unit_of_measure() -> &'static str {
+        "Hz"
     }
 
-    pub fn hz(self) -> SamplesPerSecond {
-        self.0
+    pub const fn min() -> Self {
+        Self(1)
     }
 
-    pub fn is_valid(&self) -> bool {
-        *self >= Self::MIN
+    pub const fn max() -> Self {
+        Self(u32::MAX)
+    }
+
+    pub const fn of_compact_disc() -> Self {
+        Self(44_100)
+    }
+
+    pub const fn of_studio_48k() -> Self {
+        Self(48_000)
+    }
+
+    pub const fn of_studio_96k() -> Self {
+        Self(96_000)
+    }
+
+    pub const fn of_studio_192k() -> Self {
+        Self(192_000)
+    }
+}
+
+impl IsValid for SampleRateHz {
+    fn is_valid(&self) -> bool {
+        debug_assert!(*self <= Self::max());
+        *self >= Self::min()
     }
 }
 
 impl fmt::Display for SampleRateHz {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", self.hz(), SampleRateHz::UNIT_OF_MEASURE)
+        write!(f, "{} {}", self.0, Self::unit_of_measure())
     }
 }
 
@@ -112,19 +130,18 @@ pub struct PcmSignal {
 }
 
 impl PcmSignal {
-    pub fn is_valid(&self) -> bool {
-        self.sample_rate.is_valid()
+    pub fn bitrate(self, bits_per_sample: BitsPerSample) -> BitRateBps {
+        debug_assert!(self.is_valid());
+        let bps = BitsPerSecond::from(self.channel_layout.channel_count().0)
+            * self.sample_rate.0
+            * BitsPerSecond::from(bits_per_sample);
+        BitRateBps(bps)
     }
+}
 
-    pub fn bitrate(&self, bits_per_sample: BitsPerSample) -> Option<BitRateBps> {
-        if self.is_valid() {
-            let bps = BitsPerSecond::from(*self.channel_layout.channel_count())
-                * self.sample_rate.hz()
-                * BitsPerSecond::from(bits_per_sample);
-            Some(BitRateBps::from_bps(bps))
-        } else {
-            None
-        }
+impl IsValid for PcmSignal {
+    fn is_valid(&self) -> bool {
+        self.sample_rate.is_valid()
     }
 }
 
@@ -136,35 +153,40 @@ pub type LatencyInMilliseconds = f64;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct LatencyMs(LatencyInMilliseconds);
+pub struct LatencyMs(pub LatencyInMilliseconds);
 
 impl LatencyMs {
-    pub const UNIT_OF_MEASURE: &'static str = "ms";
-
-    const UNITS_PER_SECOND: LatencyInMilliseconds = 1_000 as LatencyInMilliseconds;
-
-    pub fn from_ms(ms: LatencyInMilliseconds) -> Self {
-        LatencyMs(ms)
+    pub const fn unit_of_measure() -> &'static str {
+        "ms"
     }
 
-    pub fn from_sample_duration_and_rate(
-        sample_length: SampleLength,
-        sample_rate: SampleRateHz,
-    ) -> LatencyMs {
-        Self::from_ms(
-            (*sample_length * Self::UNITS_PER_SECOND)
-                / LatencyInMilliseconds::from(sample_rate.hz()),
+    const fn units_per_second() -> LatencyInMilliseconds {
+        1_000.0
+    }
+
+    pub const fn min() -> Self {
+        Self(0.0)
+    }
+
+    pub fn from_samples(sample_length: SampleLength, sample_rate: SampleRateHz) -> LatencyMs {
+        debug_assert!(sample_length.is_valid());
+        debug_assert!(sample_rate.is_valid());
+        Self(
+            (sample_length.0 * Self::units_per_second())
+                / LatencyInMilliseconds::from(sample_rate.0),
         )
     }
+}
 
-    pub fn ms(self) -> LatencyInMilliseconds {
-        self.0
+impl IsValid for LatencyMs {
+    fn is_valid(&self) -> bool {
+        *self >= Self::min()
     }
 }
 
 impl fmt::Display for LatencyMs {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", self.ms(), LatencyMs::UNIT_OF_MEASURE)
+        write!(f, "{} {}", self.0, LatencyMs::unit_of_measure())
     }
 }
 
@@ -175,22 +197,24 @@ impl fmt::Display for LatencyMs {
 pub type LufsValue = f64;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub struct Lufs(LufsValue);
+pub struct Lufs(pub LufsValue);
 
 // Loudness is measured in "Loudness Units relative to Full Scale" (LUFS) with 1 LU = 1 dB.
 impl Lufs {
-    pub const UNIT_OF_MEASURE: &'static str = "LUFS";
-
-    pub fn new(value: LufsValue) -> Self {
-        Lufs(value)
+    pub const fn unit_of_measure() -> &'static str {
+        "LUFS"
     }
 }
 
-impl Deref for Lufs {
-    type Target = LufsValue;
+impl IsValid for Lufs {
+    fn is_valid(&self) -> bool {
+        !self.0.is_nan()
+    }
+}
 
-    fn deref(&self) -> &Self::Target {
-        &self.0
+impl fmt::Display for Lufs {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} {}", self.0, Lufs::unit_of_measure())
     }
 }
 
@@ -206,18 +230,20 @@ pub enum Loudness {
     ItuBs1770(Lufs),
 }
 
-impl Loudness {
-    pub fn is_valid(&self) -> bool {
-        true
+impl IsValid for Loudness {
+    fn is_valid(&self) -> bool {
+        use Loudness::*;
+        match self {
+            ItuBs1770(lufs) => lufs.is_valid(),
+        }
     }
 }
 
 impl fmt::Display for Loudness {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Loudness::ItuBs1770(lufs) => {
-                write!(f, "ITU-R BS.1770 {} {}", *lufs, Lufs::UNIT_OF_MEASURE)
-            }
+        use Loudness::*;
+        match self {
+            ItuBs1770(lufs) => write!(f, "ITU-R BS.1770 {}", lufs),
         }
     }
 }

@@ -19,23 +19,23 @@ use super::*;
 
 #[test]
 fn score_valid() {
-    assert!(Score::MIN.is_valid());
-    assert!(Score::MAX.is_valid());
-    assert!(Score::MIN.is_min());
-    assert!(!Score::MAX.is_min());
-    assert!(!Score::MIN.is_max());
-    assert!(Score::MAX.is_max());
-    assert!(Score(*Score::MIN + *Score::MAX).is_valid());
-    assert!(!Score(*Score::MIN - *Score::MAX).is_valid());
-    assert!(Score(*Score::MIN - *Score::MAX).is_min());
-    assert!(!Score(*Score::MAX + *Score::MAX).is_valid());
-    assert!(Score(*Score::MAX + *Score::MAX).is_max());
+    assert!(Score::min().is_valid());
+    assert!(Score::max().is_valid());
+    assert!(Score::min().is_min());
+    assert!(!Score::max().is_min());
+    assert!(!Score::min().is_max());
+    assert!(Score::max().is_max());
+    assert!(Score(Score::min().0 + Score::max().0).is_valid());
+    assert!(!Score(Score::min().0 - Score::max().0).is_valid());
+    assert!(Score(Score::min().0 - Score::max().0).is_min());
+    assert!(!Score(Score::max().0 + Score::max().0).is_valid());
+    assert!(Score(Score::max().0 + Score::max().0).is_max());
 }
 
 #[test]
 fn score_display() {
-    assert_eq!("0.0%", format!("{}", Score::MIN));
-    assert_eq!("100.0%", format!("{}", Score::MAX));
+    assert_eq!("0.0%", format!("{}", Score::min()));
+    assert_eq!("100.0%", format!("{}", Score::max()));
     assert_eq!("90.1%", format!("{}", Score(0.9012345)));
     assert_eq!("90.2%", format!("{}", Score(0.9015)));
 }

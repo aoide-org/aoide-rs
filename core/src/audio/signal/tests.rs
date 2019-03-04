@@ -24,12 +24,12 @@ fn sample_rate_default() {
 
 #[test]
 fn sample_rate_is_valid() {
-    assert!(SampleRateHz::MIN.is_valid());
-    assert!(SampleRateHz::MAX.is_valid());
-    assert!(SampleRateHz::COMPACT_DISC.is_valid());
-    assert!(SampleRateHz::STUDIO_48KHZ.is_valid());
-    assert!(SampleRateHz::STUDIO_96KHZ.is_valid());
-    assert!(SampleRateHz::STUDIO_192KHZ.is_valid());
+    assert!(SampleRateHz::min().is_valid());
+    assert!(SampleRateHz::max().is_valid());
+    assert!(SampleRateHz::of_compact_disc().is_valid());
+    assert!(SampleRateHz::of_studio_48k().is_valid());
+    assert!(SampleRateHz::of_studio_96k().is_valid());
+    assert!(SampleRateHz::of_studio_192k().is_valid());
 }
 
 #[test]
@@ -37,35 +37,35 @@ fn sample_rate_to_string() {
     assert!(
         SampleRateHz::default()
             .to_string()
-            .ends_with(SampleRateHz::UNIT_OF_MEASURE)
+            .ends_with(SampleRateHz::unit_of_measure())
     );
     assert!(
-        SampleRateHz::COMPACT_DISC
+        SampleRateHz::of_compact_disc()
             .to_string()
-            .ends_with(SampleRateHz::UNIT_OF_MEASURE)
+            .ends_with(SampleRateHz::unit_of_measure())
     );
     assert!(
-        SampleRateHz::STUDIO_48KHZ
+        SampleRateHz::of_studio_48k()
             .to_string()
-            .ends_with(SampleRateHz::UNIT_OF_MEASURE)
+            .ends_with(SampleRateHz::unit_of_measure())
     );
     assert!(
-        SampleRateHz::STUDIO_96KHZ
+        SampleRateHz::of_studio_96k()
             .to_string()
-            .ends_with(SampleRateHz::UNIT_OF_MEASURE)
+            .ends_with(SampleRateHz::unit_of_measure())
     );
     assert!(
-        SampleRateHz::STUDIO_192KHZ
+        SampleRateHz::of_studio_192k()
             .to_string()
-            .ends_with(SampleRateHz::UNIT_OF_MEASURE)
+            .ends_with(SampleRateHz::unit_of_measure())
     );
 }
 
 #[test]
 fn loudness_to_string() {
     assert!(
-        Loudness::ItuBs1770(Lufs::default())
+        Loudness::ItuBs1770(Default::default())
             .to_string()
-            .ends_with(Lufs::UNIT_OF_MEASURE)
+            .ends_with(Lufs::unit_of_measure())
     );
 }

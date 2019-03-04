@@ -15,7 +15,7 @@
 
 use super::*;
 
-use crate::core::{entity::EntityHeader, metadata::ScoredTag, track::Track};
+use crate::core::{entity::EntityHeader, metadata::ScoredTag, prelude::*, track::Track};
 
 ///////////////////////////////////////////////////////////////////////
 /// Modules

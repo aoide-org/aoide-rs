@@ -24,18 +24,15 @@ fn channel_count_default() {
 
 #[test]
 fn channel_count_minmax() {
-    assert!(ChannelCount::MIN.is_valid());
-    assert!(ChannelCount::MAX.is_valid());
+    assert!(ChannelCount::min().is_valid());
+    assert!(ChannelCount::max().is_valid());
 }
 
 #[test]
 fn channel_layout_channel_count() {
-    assert_eq!(ChannelLayout::Mono.channel_count(), ChannelCount::new(1));
-    assert_eq!(
-        ChannelLayout::DualMono.channel_count(),
-        ChannelCount::new(2)
-    );
-    assert_eq!(ChannelLayout::Stereo.channel_count(), ChannelCount::new(2));
+    assert_eq!(ChannelCount(1), ChannelLayout::Mono.channel_count());
+    assert_eq!(ChannelCount(2), ChannelLayout::DualMono.channel_count());
+    assert_eq!(ChannelCount(2), ChannelLayout::Stereo.channel_count());
 }
 
 #[test]
@@ -49,20 +46,20 @@ fn channels_is_valid() {
     assert!(Channels::layout(ChannelLayout::Mono).is_valid());
     assert!(Channels::layout(ChannelLayout::DualMono).is_valid());
     assert!(Channels::layout(ChannelLayout::Stereo).is_valid());
-    assert!(Channels::count(ChannelCount::MIN).is_valid());
-    assert!(Channels::count(ChannelCount::MAX).is_valid());
+    assert!(Channels::count(ChannelCount::min()).is_valid());
+    assert!(Channels::count(ChannelCount::max()).is_valid());
     assert!(!Channels {
-        count: ChannelCount::new(1),
+        count: ChannelCount(1),
         layout: Some(ChannelLayout::DualMono),
     }
     .is_valid());
     assert!(!Channels {
-        count: ChannelCount::new(2),
+        count: ChannelCount(2),
         layout: Some(ChannelLayout::Mono),
     }
     .is_valid());
     assert!(!Channels {
-        count: ChannelCount::new(3),
+        count: ChannelCount(3),
         layout: Some(ChannelLayout::Stereo),
     }
     .is_valid());
@@ -73,23 +70,23 @@ fn channel_count_default_layout() {
     assert_eq!(None, Channels::default_layout(ChannelCount::default()));
     assert_eq!(
         Some(ChannelLayout::Mono),
-        Channels::default_layout(ChannelCount::new(1))
+        Channels::default_layout(ChannelCount(1))
     );
     assert_eq!(
         Some(ChannelLayout::Stereo),
-        Channels::default_layout(ChannelCount::new(2))
+        Channels::default_layout(ChannelCount(2))
     );
-    assert_eq!(None, Channels::default_layout(ChannelCount::new(3)));
+    assert_eq!(None, Channels::default_layout(ChannelCount(3)));
 }
 
 #[test]
 fn duration_default() {
-    assert_eq!(DurationMs::EMPTY, DurationMs::default());
+    assert_eq!(DurationMs::empty(), DurationMs::default());
 }
 
 #[test]
 fn duration_to_string() {
     assert!(DurationMs::default()
         .to_string()
-        .ends_with(DurationMs::UNIT_OF_MEASURE));
+        .ends_with(DurationMs::unit_of_measure()));
 }

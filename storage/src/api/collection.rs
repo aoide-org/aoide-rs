@@ -17,7 +17,7 @@ use super::*;
 
 use crate::api::Pagination;
 
-use crate::core::{collection::*, entity::*};
+use crate::core::collection::*;
 
 use failure::Error;
 
@@ -68,18 +68,12 @@ pub struct CollectionStats {
     pub tracks: Option<CollectionTrackStats>,
 }
 
-impl CollectionStats {
-    pub fn is_empty(&self) -> bool {
-        self.tracks.is_none()
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct CollectionEntityWithStats {
     #[serde(flatten)]
     pub entity: CollectionEntity,
 
-    #[serde(skip_serializing_if = "CollectionStats::is_empty", default)]
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
     pub stats: CollectionStats,
 }

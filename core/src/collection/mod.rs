@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use super::*;
+
 use crate::entity::*;
 
 ///////////////////////////////////////////////////////////////////////
@@ -26,8 +28,8 @@ pub struct Collection {
     pub description: Option<String>,
 }
 
-impl Collection {
-    pub fn is_valid(&self) -> bool {
+impl IsValid for Collection {
+    fn is_valid(&self) -> bool {
         !self.name.is_empty()
     }
 }

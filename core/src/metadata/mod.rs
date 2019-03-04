@@ -13,7 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{fmt, ops::Deref};
+use super::*;
+
+use std::fmt;
 
 ///////////////////////////////////////////////////////////////////////
 /// Modules
@@ -44,33 +46,27 @@ impl From<Score> for ScoreValue {
     }
 }
 
-impl Deref for Score {
-    type Target = ScoreValue;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
 impl Score {
-    pub const MIN: Self = Score(0 as ScoreValue);
-
-    pub const MAX: Self = Score(1 as ScoreValue);
-
-    pub fn new<S: Into<ScoreValue>>(score_value: S) -> Self {
-        score_value.into().min(*Self::MAX).max(*Self::MIN).into()
+    pub const fn min() -> Self {
+        Self(0.0)
     }
 
-    pub fn is_valid(&self) -> bool {
-        (*self >= Self::MIN) && (*self <= Self::MAX)
+    pub const fn max() -> Self {
+        Self(1.0)
     }
 
     pub fn is_min(self) -> bool {
-        self <= Self::MIN
+        self <= Self::min()
     }
 
     pub fn is_max(self) -> bool {
-        self >= Self::MAX
+        self >= Self::max()
+    }
+}
+
+impl IsValid for Score {
+    fn is_valid(&self) -> bool {
+        (*self >= Self::min()) && (*self <= Self::max())
     }
 }
 
@@ -97,12 +93,12 @@ pub struct ScoredTag(
 );
 
 impl ScoredTag {
-    pub fn default_score() -> Score {
-        Score::MAX
+    pub const fn default_score() -> Score {
+        Score::max()
     }
 
-    pub fn is_default_score(score: &Score) -> bool {
-        *score == Self::default_score()
+    pub fn is_default_score(score: Score) -> bool {
+        score == Self::default_score()
     }
 
     pub fn new<S: Into<Score>, T: Into<String>, F: Into<String>>(
@@ -148,8 +144,10 @@ impl ScoredTag {
     pub fn is_faceted(&self) -> bool {
         self.facet().is_some()
     }
+}
 
-    pub fn is_valid(&self) -> bool {
+impl IsValid for ScoredTag {
+    fn is_valid(&self) -> bool {
         if !self.score().is_valid() || self.term().is_empty() {
             false
         } else if let Some(ref facet) = self.facet().as_ref() {
@@ -189,16 +187,6 @@ impl Rating {
         &self.1
     }
 
-    pub fn is_valid(&self) -> bool {
-        if !self.score().is_valid() {
-            false
-        } else if let Some(ref owner) = self.owner().as_ref() {
-            !owner.is_empty()
-        } else {
-            true
-        }
-    }
-
     pub fn is_anonymous(&self) -> bool {
         self.owner().is_none()
     }
@@ -212,7 +200,7 @@ impl Rating {
     }
 
     pub fn star_rating(&self, max_stars: u8) -> u8 {
-        ((*self.score() * ScoreValue::from(max_stars)).ceil() as u8).min(max_stars)
+        ((self.score().0 * ScoreValue::from(max_stars)).ceil() as u8).min(max_stars)
     }
 
     pub fn minmax<'a>(ratings: &[Self], owner: Option<&'a str>) -> Option<(Score, Score)> {
@@ -225,7 +213,7 @@ impl Rating {
             })
             .count();
         if count > 0 {
-            let (mut score_min, mut score_max) = (*Score::MAX, *Score::MIN);
+            let (mut score_min, mut score_max) = (Score::max().0, Score::min().0);
             ratings
                 .iter()
                 .filter(|rating| {
@@ -234,12 +222,24 @@ impl Rating {
                         || rating.owner().as_ref().map(|owner| owner.as_str()) == owner
                 })
                 .for_each(|rating| {
-                    score_min = score_min.min(*rating.score());
-                    score_max = score_max.max(*rating.score());
+                    score_min = score_min.min(rating.score().0);
+                    score_max = score_max.max(rating.score().0);
                 });
             Some((score_min.into(), score_max.into()))
         } else {
             None
+        }
+    }
+}
+
+impl IsValid for Rating {
+    fn is_valid(&self) -> bool {
+        if !self.score().is_valid() {
+            false
+        } else if let Some(ref owner) = self.owner().as_ref() {
+            !owner.is_empty()
+        } else {
+            true
         }
     }
 }
@@ -273,19 +273,21 @@ impl Comment {
         &self.1
     }
 
-    pub fn is_valid(&self) -> bool {
-        if let Some(ref owner) = self.owner().as_ref() {
-            !owner.is_empty()
-        } else {
-            true
-        }
-    }
-
     pub fn is_anonymous(&self) -> bool {
         self.owner().is_none()
     }
 
     pub fn is_owned(&self) -> bool {
         self.owner().is_some()
+    }
+}
+
+impl IsValid for Comment {
+    fn is_valid(&self) -> bool {
+        if let Some(owner) = self.owner().as_ref() {
+            !owner.is_empty()
+        } else {
+            true
+        }
     }
 }

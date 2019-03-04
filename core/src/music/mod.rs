@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use self::notation::*;
+use super::*;
 
 use crate::metadata::Score;
 
@@ -21,6 +21,8 @@ use crate::metadata::Score;
 /// Modules
 ///////////////////////////////////////////////////////////////////////
 pub mod notation;
+
+use self::notation::*;
 
 #[cfg(test)]
 mod tests;
@@ -47,12 +49,6 @@ impl Default for TitleLevel {
     }
 }
 
-impl TitleLevel {
-    pub fn is_default(&self) -> bool {
-        *self == Self::default()
-    }
-}
-
 ///////////////////////////////////////////////////////////////////////
 /// Title
 ///////////////////////////////////////////////////////////////////////
@@ -62,15 +58,15 @@ impl TitleLevel {
 pub struct Title {
     pub name: String,
 
-    #[serde(skip_serializing_if = "TitleLevel::is_default", default)]
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
     pub level: TitleLevel,
 
     #[serde(rename = "lang", skip_serializing_if = "Option::is_none")]
     pub language: Option<String>,
 }
 
-impl Title {
-    pub fn is_valid(&self) -> bool {
+impl IsValid for Title {
+    fn is_valid(&self) -> bool {
         !self.name.is_empty()
     }
 }
@@ -131,12 +127,6 @@ pub enum ActorRole {
     Writer = 12,
 }
 
-impl ActorRole {
-    pub fn is_default(&self) -> bool {
-        *self == Self::default()
-    }
-}
-
 impl Default for ActorRole {
     fn default() -> ActorRole {
         ActorRole::Artist
@@ -155,12 +145,6 @@ pub enum ActorPrecedence {
     Secondary = 2,
 }
 
-impl ActorPrecedence {
-    pub fn is_default(&self) -> bool {
-        *self == Self::default()
-    }
-}
-
 impl Default for ActorPrecedence {
     fn default() -> ActorPrecedence {
         ActorPrecedence::Summary
@@ -176,18 +160,18 @@ impl Default for ActorPrecedence {
 pub struct Actor {
     pub name: String,
 
-    #[serde(skip_serializing_if = "ActorRole::is_default", default)]
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
     pub role: ActorRole,
 
-    #[serde(skip_serializing_if = "ActorPrecedence::is_default", default)]
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
     pub precedence: ActorPrecedence,
 
     #[serde(rename = "xrefs", skip_serializing_if = "Vec::is_empty", default)]
     pub external_references: Vec<String>,
 }
 
-impl Actor {
-    pub fn is_valid(&self) -> bool {
+impl IsValid for Actor {
+    fn is_valid(&self) -> bool {
         !self.name.is_empty()
     }
 }
@@ -241,12 +225,8 @@ pub struct Lyrics {
     pub explicit: Option<bool>,
 }
 
-impl Lyrics {
-    pub fn is_empty(&self) -> bool {
-        self.explicit.is_none() && self.text.is_empty()
-    }
-
-    pub fn is_valid(&self) -> bool {
+impl IsValid for Lyrics {
+    fn is_valid(&self) -> bool {
         true
     }
 }
@@ -284,8 +264,10 @@ impl ScoredSongFeature {
     pub fn feature(&self) -> SongFeature {
         self.1
     }
+}
 
-    pub fn is_valid(&self) -> bool {
+impl IsValid for ScoredSongFeature {
+    fn is_valid(&self) -> bool {
         self.score().is_valid()
     }
 }
@@ -299,21 +281,21 @@ impl ScoredSongFeature {
 pub struct SongProfile {
     #[serde(
         rename = "tempoBpm",
-        skip_serializing_if = "TempoBpm::is_default",
+        skip_serializing_if = "IsDefault::is_default",
         default
     )]
     pub tempo: TempoBpm,
 
     #[serde(
         rename = "timeSig",
-        skip_serializing_if = "TimeSignature::is_default",
+        skip_serializing_if = "IsDefault::is_default",
         default
     )]
     pub time_sig: TimeSignature,
 
     #[serde(
         rename = "keySig",
-        skip_serializing_if = "KeySignature::is_default",
+        skip_serializing_if = "IsDefault::is_default",
         default
     )]
     pub key_sig: KeySignature,
@@ -323,16 +305,6 @@ pub struct SongProfile {
 }
 
 impl SongProfile {
-    pub fn is_valid(&self) -> bool {
-        (self.tempo.is_default() || self.tempo.is_valid())
-            && (self.time_sig.is_valid() || self.time_sig.is_default())
-            && (self.key_sig.is_valid() || self.key_sig.is_default())
-            && self.features.iter().all(ScoredSongFeature::is_valid)
-            && self.features.iter().all(|feature_score| {
-                feature_score.is_valid() && self.is_feature_unique(feature_score.feature())
-            })
-    }
-
     pub fn has_feature(&self, feature: SongFeature) -> bool {
         self.features
             .iter()
@@ -353,5 +325,17 @@ impl SongProfile {
             .iter()
             .filter(|feature_score| feature_score.feature() == feature)
             .nth(0)
+    }
+}
+
+impl IsValid for SongProfile {
+    fn is_valid(&self) -> bool {
+        (self.tempo.is_default() || self.tempo.is_valid())
+            && (self.time_sig.is_valid() || self.time_sig.is_default())
+            && (self.key_sig.is_valid() || self.key_sig.is_default())
+            && self.features.iter().all(ScoredSongFeature::is_valid)
+            && self.features.iter().all(|feature_score| {
+                feature_score.is_valid() && self.is_feature_unique(feature_score.feature())
+            })
     }
 }

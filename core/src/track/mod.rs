@@ -13,13 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
-
 use crate::{
-    audio::{sample::*, signal::*, *},
-    entity::*,
     metadata::*,
     music::{notation::*, *},
+    prelude::*,
 };
 
 use chrono::{DateTime, Utc};
@@ -54,8 +51,8 @@ pub struct AudioEncoder {
     pub settings: Option<String>,
 }
 
-impl AudioEncoder {
-    pub fn is_valid(&self) -> bool {
+impl IsValid for AudioEncoder {
+    fn is_valid(&self) -> bool {
         !self.name.is_empty()
     }
 }
@@ -85,8 +82,8 @@ pub struct AudioContent {
     pub encoder: Option<AudioEncoder>,
 }
 
-impl AudioContent {
-    pub fn is_valid(&self) -> bool {
+impl IsValid for AudioContent {
+    fn is_valid(&self) -> bool {
         self.channels.is_valid()
             && !self.duration.is_empty()
             && self.sample_rate.is_valid()
@@ -128,17 +125,6 @@ pub struct TrackSource {
 }
 
 impl TrackSource {
-    pub fn is_valid(&self) -> bool {
-        // TODO: Validate the URI
-        // Currently (2018-05-28) there is no crate that is able to do this.
-        // Crate http/hyper: Fail to recognize absolute file paths with the
-        // scheme "file" and without an authority, e.g. parsing fails for
-        // "file:///path/to/local/file.txt"
-        // Crate url: Doesn't care about reserved characters, e.g. parses
-        // "file:///path to local/file.txt" successfully
-        !self.content_uri.is_empty() && !self.content_type.is_empty()
-    }
-
     pub fn filter_slice_by_content_type<'a>(
         sources: &'a [TrackSource],
         content_type: &str,
@@ -157,6 +143,19 @@ impl TrackSource {
     }
 }
 
+impl IsValid for TrackSource {
+    fn is_valid(&self) -> bool {
+        // TODO: Validate the URI
+        // Currently (2018-05-28) there is no crate that is able to do this.
+        // Crate http/hyper: Fail to recognize absolute file paths with the
+        // scheme "file" and without an authority, e.g. parsing fails for
+        // "file:///path/to/local/file.txt"
+        // Crate url: Doesn't care about reserved characters, e.g. parses
+        // "file:///path to local/file.txt" successfully
+        !self.content_uri.is_empty() && !self.content_type.is_empty()
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////
 /// ColorArgb
 ///////////////////////////////////////////////////////////////////////
@@ -170,10 +169,10 @@ impl ColorArgb {
     const STRING_PREFIX: &'static str = "#";
     const STRING_LEN: usize = 9;
 
-    pub const ALPHA_MASK: ColorCode = 0xff00_0000;
-    pub const RED_MASK: ColorCode = 0x00ff_0000;
-    pub const GREEN_MASK: ColorCode = 0x0000_ff00;
-    pub const BLUE_MASK: ColorCode = 0x0000_00ff;
+    pub const ALPHA_MASK: ColorCode = 0xff_00_00_00;
+    pub const RED_MASK: ColorCode = 0x00_ff_00_00;
+    pub const GREEN_MASK: ColorCode = 0x00_00_ff_00;
+    pub const BLUE_MASK: ColorCode = 0x00_00_00_ff;
 
     pub const BLACK: Self = ColorArgb(Self::ALPHA_MASK);
     pub const RED: Self = ColorArgb(Self::ALPHA_MASK | Self::RED_MASK);
@@ -189,15 +188,17 @@ impl ColorArgb {
         self.0
     }
 
-    pub fn opaque(self) -> Self {
+    pub fn to_opaque(self) -> Self {
         ColorArgb(self.code() | Self::ALPHA_MASK)
     }
 
-    pub fn transparent(self) -> Self {
+    pub fn to_transparent(self) -> Self {
         ColorArgb(self.code() & !Self::ALPHA_MASK)
     }
+}
 
-    pub fn is_valid(&self) -> bool {
+impl IsValid for ColorArgb {
+    fn is_valid(&self) -> bool {
         true
     }
 }
@@ -278,10 +279,6 @@ pub struct TrackCollection {
 }
 
 impl TrackCollection {
-    pub fn is_valid(&self) -> bool {
-        self.uid.is_valid() && self.color.iter().all(ColorArgb::is_valid)
-    }
-
     pub fn filter_slice_by_uid<'a>(
         collections: &'a [TrackCollection],
         collection_uid: &EntityUid,
@@ -297,6 +294,12 @@ impl TrackCollection {
             .iter()
             .filter(|collection| &collection.uid == collection_uid)
             .nth(0)
+    }
+}
+
+impl IsValid for TrackCollection {
+    fn is_valid(&self) -> bool {
+        self.uid.is_valid() && self.color.iter().all(ColorArgb::is_valid)
     }
 }
 
@@ -323,8 +326,8 @@ pub struct ReleaseMetadata {
     pub external_references: Vec<String>,
 }
 
-impl ReleaseMetadata {
-    pub fn is_valid(&self) -> bool {
+impl IsValid for ReleaseMetadata {
+    fn is_valid(&self) -> bool {
         true
     }
 }
@@ -349,8 +352,8 @@ pub struct AlbumMetadata {
     pub external_references: Vec<String>,
 }
 
-impl AlbumMetadata {
-    pub fn is_valid(&self) -> bool {
+impl IsValid for AlbumMetadata {
+    fn is_valid(&self) -> bool {
         Titles::is_valid(&self.titles) && Actors::is_valid(&self.actors)
     }
 }
@@ -371,12 +374,10 @@ impl IndexCount {
     pub fn count(&self) -> Option<u32> {
         self.1
     }
+}
 
-    pub fn is_empty(&self) -> bool {
-        self.index().is_none() && self.count().is_none()
-    }
-
-    pub fn is_valid(&self) -> bool {
+impl IsValid for IndexCount {
+    fn is_valid(&self) -> bool {
         match (self.index(), self.count()) {
             (None, None) => true,
             (Some(index), None) => index > 0,
@@ -445,8 +446,14 @@ pub struct TrackMarkerLength {
     pub beats: Option<Beats>,
 }
 
-impl TrackMarkerLength {
-    pub fn is_valid(&self) -> bool {
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub enum TrackMarkerModifier {
+    Reverse,
+}
+
+impl IsValid for TrackMarkerLength {
+    fn is_valid(&self) -> bool {
         self.duration.is_valid()
             && !self.duration.is_empty()
             && self.samples.unwrap_or(SampleLength(0.0)) > SampleLength(0.0)
@@ -463,6 +470,9 @@ pub struct TrackMarker {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub length: Option<TrackMarkerLength>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modifier: Option<TrackMarkerModifier>,
 
     #[serde(skip_serializing_if = "String::is_empty", default)]
     pub label: String,
@@ -481,8 +491,10 @@ impl TrackMarker {
             _ => false,
         }
     }
+}
 
-    pub fn is_valid(&self) -> bool {
+impl IsValid for TrackMarker {
+    fn is_valid(&self) -> bool {
         self.offset.duration.is_valid()
             && self.length.iter().all(|length| length.duration.is_valid())
             && self.color.iter().all(ColorArgb::is_valid)
@@ -568,8 +580,8 @@ pub enum TrackLock {
     TimeSig,
 }
 
-impl TrackLock {
-    pub fn is_valid(&self) -> bool {
+impl IsValid for TrackLock {
+    fn is_valid(&self) -> bool {
         true
     }
 }
@@ -593,13 +605,13 @@ pub struct Track {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub album: Option<AlbumMetadata>,
 
-    #[serde(skip_serializing_if = "IndexCount::is_empty", default)]
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
     pub track_numbers: IndexCount,
 
-    #[serde(skip_serializing_if = "IndexCount::is_empty", default)]
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
     pub disc_numbers: IndexCount,
 
-    #[serde(skip_serializing_if = "IndexCount::is_empty", default)]
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
     pub movement_numbers: IndexCount,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
@@ -634,7 +646,30 @@ pub struct Track {
 }
 
 impl Track {
-    pub fn is_valid(&self) -> bool {
+    pub fn collection<'a>(&'a self, collection_uid: &EntityUid) -> Option<&'a TrackCollection> {
+        self.collections
+            .iter()
+            .filter(|collection| &collection.uid == collection_uid)
+            .nth(0)
+    }
+
+    pub fn has_collection(&self, collection_uid: &EntityUid) -> bool {
+        self.collection(collection_uid).is_some()
+    }
+
+    pub fn main_actor(&self, role: ActorRole) -> Option<&Actor> {
+        Actors::main_actor(&self.actors, role)
+    }
+
+    pub fn album_main_actor(&self, role: ActorRole) -> Option<&Actor> {
+        self.album
+            .as_ref()
+            .and_then(|album| Actors::main_actor(&album.actors, role))
+    }
+}
+
+impl IsValid for Track {
+    fn is_valid(&self) -> bool {
         !self.sources.is_empty()
             && self.sources.iter().all(TrackSource::is_valid)
             && self.collections.iter().all(TrackCollection::is_valid)
@@ -660,27 +695,6 @@ impl Track {
             && self.tags.iter().all(ScoredTag::is_valid)
             && self.ratings.iter().all(Rating::is_valid)
             && self.comments.iter().all(Comment::is_valid)
-    }
-
-    pub fn collection<'a>(&'a self, collection_uid: &EntityUid) -> Option<&'a TrackCollection> {
-        self.collections
-            .iter()
-            .filter(|collection| &collection.uid == collection_uid)
-            .nth(0)
-    }
-
-    pub fn has_collection(&self, collection_uid: &EntityUid) -> bool {
-        self.collection(collection_uid).is_some()
-    }
-
-    pub fn main_actor(&self, role: ActorRole) -> Option<&Actor> {
-        Actors::main_actor(&self.actors, role)
-    }
-
-    pub fn album_main_actor(&self, role: ActorRole) -> Option<&Actor> {
-        self.album
-            .as_ref()
-            .and_then(|album| Actors::main_actor(&album.actors, role))
     }
 }
 
