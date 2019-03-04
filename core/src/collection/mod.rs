@@ -13,9 +13,23 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod audio;
-pub mod collection;
-pub mod entity;
-pub mod metadata;
-pub mod music;
-pub mod track;
+use crate::entity::*;
+
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct Collection {
+    pub name: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+}
+
+impl Collection {
+    pub fn is_valid(&self) -> bool {
+        !self.name.is_empty()
+    }
+}
+
+pub type CollectionEntity = Entity<Collection>;

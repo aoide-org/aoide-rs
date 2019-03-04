@@ -15,6 +15,8 @@
 
 use super::*;
 
+///////////////////////////////////////////////////////////////////////
+
 #[test]
 fn default_tag_filter() {
     assert_eq!(TagFilter::any_score(), TagFilter::default().score_condition);

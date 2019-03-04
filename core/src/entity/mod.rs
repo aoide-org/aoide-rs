@@ -13,28 +13,29 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#[cfg(test)]
-mod tests;
+use super::*;
 
 use base64;
 
 use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
 
-use failure;
-
 use rand::{thread_rng, AsByteSliceMut, RngCore};
 
 use ring::digest;
 
-use serde::de;
-use serde::de::Visitor as SerdeDeserializeVisitor;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{
+    de::{self, Visitor as SerdeDeserializeVisitor},
+    Deserialize, Deserializer, Serialize, Serializer,
+};
 
-use std::fmt;
+use std::{fmt, mem, str};
 
-use std::mem;
+///////////////////////////////////////////////////////////////////////
+/// Modules
+///////////////////////////////////////////////////////////////////////
 
-use std::str;
+#[cfg(test)]
+mod tests;
 
 ///////////////////////////////////////////////////////////////////////
 /// EntityUid
@@ -64,7 +65,7 @@ impl EntityUid {
     }
 
     pub fn decode_str(mut self, encoded: &str) -> Result<Self, failure::Error> {
-        ensure!(
+        failure::ensure!(
             encoded.len() == Self::STR_LEN,
             "Wrong encoded string slice length: expected = {}, actual = {}",
             Self::STR_LEN,
@@ -76,7 +77,7 @@ impl EntityUid {
     }
 
     pub fn encode_slice(&self, encoded: &mut [u8]) -> Result<(), failure::Error> {
-        ensure!(
+        failure::ensure!(
             encoded.len() == Self::STR_LEN,
             "Wrong encoded string slice length: expected = {}, actual = {}",
             Self::STR_LEN,

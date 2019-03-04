@@ -13,9 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::core::entity::EntityUid;
+
 use failure::Error;
 
-use aoide_core::domain::entity::EntityUid;
+///////////////////////////////////////////////////////////////////////
 
 pub type StorageId = i64;
 

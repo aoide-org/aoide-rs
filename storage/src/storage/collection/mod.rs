@@ -13,28 +13,29 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use self::models::*;
+use super::*;
 
-use self::schema::*;
+use self::{models::*, schema::*};
 
-use diesel;
-use diesel::prelude::*;
+use crate::{
+    api::{collection::*, entity::*, Pagination},
+    storage::util::*,
+};
 
-use aoide_core::domain::{
+use crate::core::{
     collection::*,
     entity::{EntityHeader, EntityRevision, EntityUid},
 };
 
-use api::{collection::*, entity::*, Pagination};
-
-use storage::util::*;
-
+///////////////////////////////////////////////////////////////////////
+/// Modules
+///////////////////////////////////////////////////////////////////////
 mod models;
+
+pub mod schema;
 
 #[cfg(test)]
 mod tests;
-
-pub mod schema;
 
 ///////////////////////////////////////////////////////////////////////
 /// CollectionRepository

@@ -13,11 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::{f64, fmt};
+
+///////////////////////////////////////////////////////////////////////
+/// Modules
+///////////////////////////////////////////////////////////////////////
+
 #[cfg(test)]
 mod tests;
-
-use std::f64;
-use std::fmt;
 
 ///////////////////////////////////////////////////////////////////////
 /// Tempo
@@ -134,10 +137,11 @@ impl OpenKeySignature {
     pub fn new(code: KeyCode, mode: KeyMode) -> Self {
         debug_assert!(Self::is_valid_code(code));
         let key_sig = KeySignature::from_code(
-            2 * code - match mode {
-                KeyMode::Major => 1,
-                KeyMode::Minor => 0,
-            },
+            2 * code
+                - match mode {
+                    KeyMode::Major => 1,
+                    KeyMode::Minor => 0,
+                },
         );
         OpenKeySignature(key_sig)
     }
@@ -199,10 +203,11 @@ impl LancelotKeySignature {
     pub fn new(code: KeyCode, mode: KeyMode) -> Self {
         debug_assert!(Self::is_valid_code(code));
         let key_sig = KeySignature::from_code(
-            ((code * 2 + 9) % 24) + match mode {
-                KeyMode::Major => 0,
-                KeyMode::Minor => 1,
-            },
+            ((code * 2 + 9) % 24)
+                + match mode {
+                    KeyMode::Major => 0,
+                    KeyMode::Minor => 1,
+                },
         );
         LancelotKeySignature(key_sig)
     }

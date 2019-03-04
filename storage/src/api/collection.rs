@@ -13,12 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use super::*;
+
+use crate::api::Pagination;
+
+use crate::core::{collection::*, entity::*};
+
 use failure::Error;
 
-use api::Pagination;
-
-use aoide_core::domain::collection::*;
-use aoide_core::domain::entity::*;
+///////////////////////////////////////////////////////////////////////
 
 pub type CollectionsResult<T> = Result<T, Error>;
 

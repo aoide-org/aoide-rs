@@ -13,7 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use storage::collection::schema::tbl_collection;
+use crate::storage::collection::schema::tbl_collection;
+
+///////////////////////////////////////////////////////////////////////
 
 table! {
     tbl_track (id) {

@@ -13,6 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use super::*;
+
+use crate::core::{entity::EntityHeader, metadata::ScoredTag, track::Track};
+
+///////////////////////////////////////////////////////////////////////
+/// Modules
+///////////////////////////////////////////////////////////////////////
 pub mod album;
 
 pub mod collection;
@@ -23,10 +30,10 @@ pub mod serde;
 
 pub mod track;
 
+///////////////////////////////////////////////////////////////////////
+
 #[cfg(test)]
 mod tests;
-
-use aoide_core::domain::{entity::EntityHeader, metadata::ScoredTag, track::Track};
 
 pub type PaginationOffset = u64;
 

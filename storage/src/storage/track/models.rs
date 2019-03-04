@@ -13,7 +13,19 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::schema::*;
+use super::*;
+
+use crate::api::{
+    entity::StorageId,
+    serde::{SerializationFormat, SerializedEntity},
+};
+
+use crate::core::{
+    entity::{EntityHeader, EntityRevision, EntityUid, EntityVersion},
+    metadata::{Comment, Rating, Score, ScoreValue},
+    music::{notation::Beats, ActorRole, Actors, SongFeature, SongProfile, TitleLevel, Titles},
+    track::{RefOrigin, Track, TrackCollection, TrackSource},
+};
 
 use chrono::{
     naive::{NaiveDate, NaiveDateTime},
@@ -22,16 +34,7 @@ use chrono::{
 
 use percent_encoding::percent_decode;
 
-use api::{
-    entity::StorageId,
-    serde::{SerializationFormat, SerializedEntity},
-};
-
-use aoide_core::domain::entity::{EntityHeader, EntityRevision, EntityUid, EntityVersion};
-use aoide_core::domain::metadata::{Comment, Rating, Score, ScoreValue};
-use aoide_core::domain::music::notation::Beats;
-use aoide_core::domain::music::{ActorRole, Actors, SongFeature, SongProfile, TitleLevel, Titles};
-use aoide_core::domain::track::{RefOrigin, Track, TrackCollection, TrackSource};
+///////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Insertable)]
 #[table_name = "tbl_track"]

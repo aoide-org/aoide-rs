@@ -13,14 +13,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use self::notation::*;
+
+use crate::metadata::Score;
+
+///////////////////////////////////////////////////////////////////////
+/// Modules
+///////////////////////////////////////////////////////////////////////
 pub mod notation;
 
 #[cfg(test)]
 mod tests;
-
-use self::notation::*;
-
-use domain::metadata::Score;
 
 ///////////////////////////////////////////////////////////////////////
 /// TitleLevel
@@ -90,7 +93,8 @@ impl Titles {
                 .iter()
                 .filter(|title| title.level == level
                     && title.language.as_ref().map(|v| v.as_str()) == language)
-                .count() <= 1
+                .count()
+                <= 1
         );
         titles
             .iter()
@@ -204,7 +208,8 @@ impl Actors {
             actors
                 .iter()
                 .filter(|actor| actor.role == role && actor.precedence == precedence)
-                .count() <= 1
+                .count()
+                <= 1
         );
         actors
             .iter()
@@ -292,13 +297,25 @@ impl ScoredSongFeature {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SongProfile {
-    #[serde(rename = "tempoBpm", skip_serializing_if = "TempoBpm::is_default", default)]
+    #[serde(
+        rename = "tempoBpm",
+        skip_serializing_if = "TempoBpm::is_default",
+        default
+    )]
     pub tempo: TempoBpm,
 
-    #[serde(rename = "timeSig", skip_serializing_if = "TimeSignature::is_default", default)]
+    #[serde(
+        rename = "timeSig",
+        skip_serializing_if = "TimeSignature::is_default",
+        default
+    )]
     pub time_sig: TimeSignature,
 
-    #[serde(rename = "keySig", skip_serializing_if = "KeySignature::is_default", default)]
+    #[serde(
+        rename = "keySig",
+        skip_serializing_if = "KeySignature::is_default",
+        default
+    )]
     pub key_sig: KeySignature,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
@@ -326,7 +343,8 @@ impl SongProfile {
         self.features
             .iter()
             .filter(|feature_score| feature_score.feature() == feature)
-            .count() <= 1
+            .count()
+            <= 1
     }
 
     pub fn feature(&self, feature: SongFeature) -> Option<&ScoredSongFeature> {

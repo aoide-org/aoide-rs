@@ -13,6 +13,33 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use super::*;
+
+use self::{
+    models::*, schema::*, track_search_query_transform::TrackSearchQueryTransform,
+    util::TrackRepositoryHelper,
+};
+
+use crate::{
+    api::{
+        album::*,
+        collection::CollectionTrackStats,
+        serde::{serialize_with_format, SerializationFormat, SerializedEntity},
+        track::*,
+        *,
+    },
+    storage::util::*,
+};
+
+use crate::core::{entity::*, metadata::*, track::*};
+
+use chrono::NaiveDate;
+
+use diesel::dsl::*;
+
+///////////////////////////////////////////////////////////////////////
+/// Modules
+///////////////////////////////////////////////////////////////////////
 mod models;
 
 mod schema;
@@ -20,32 +47,6 @@ mod schema;
 mod track_search_query_transform;
 
 pub mod util;
-
-use self::models::*;
-
-use self::schema::*;
-
-use self::track_search_query_transform::TrackSearchQueryTransform;
-
-use self::util::TrackRepositoryHelper;
-
-use storage::util::*;
-
-use chrono::NaiveDate;
-
-use diesel;
-use diesel::dsl::*;
-use diesel::prelude::*;
-
-use api::{
-    album::*,
-    collection::CollectionTrackStats,
-    serde::{serialize_with_format, SerializationFormat, SerializedEntity},
-    track::*,
-    *,
-};
-
-use aoide_core::domain::{entity::*, metadata::*, track::*};
 
 #[cfg(test)]
 mod tests;
@@ -419,13 +420,13 @@ impl<'a> Tracks for TrackRepository<'a> {
                         Ok(deserialized) => {
                             acc.push(deserialized);
                         }
-                        Err(e) => warn!("Failed to deserialize track entity: {}", e),
+                        Err(e) => log::warn!("Failed to deserialize track entity: {}", e),
                     }
                     acc
                 },
             );
             if deserialized_entities.len() < located_entities.len() {
-                warn!(
+                log::warn!(
                     "Failed to deserialize {} track(s) with URI '{}'",
                     located_entities.len() - deserialized_entities.len(),
                     replacement.uri
@@ -442,18 +443,19 @@ impl<'a> Tracks for TrackRepository<'a> {
                     Some(collection_uid) => TrackCollection::filter_slice_by_uid(
                         &entity.body().collections,
                         collection_uid,
-                    ).is_some(),
+                    )
+                    .is_some(),
                     None => true,
                 })
                 .collect();
             // Ambiguous?
             if deserialized_entities.len() > 1 {
-                warn!("Found multiple tracks with URI '{}'", replacement.uri);
+                log::warn!("Found multiple tracks with URI '{}'", replacement.uri);
                 results.rejected.push(replacement.uri);
                 continue;
             }
             if !replacement.track.is_valid() {
-                warn!(
+                log::warn!(
                     "Accepting replacement track even though it is not valid: {:?}",
                     replacement.track
                 );
@@ -463,7 +465,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             if let Some(entity) = deserialized_entities.into_iter().next() {
                 let uid = *entity.header().uid();
                 if entity.body() == &replacement.track {
-                    debug!(
+                    log::debug!(
                         "Track '{}' is unchanged and does not need to be updated",
                         uid
                     );
@@ -473,7 +475,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                 let replaced_entity = entity.replace_body(replacement.track);
                 match self.update_entity(replaced_entity, format)? {
                     (_, None) => {
-                        warn!(
+                        log::warn!(
                             "Failed to update track '{}' due to internal race condition",
                             uid
                         );
@@ -488,7 +490,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                 // Create?
                 match replace_params.mode {
                     ReplaceMode::UpdateOnly => {
-                        info!(
+                        log::info!(
                             "Track with URI '{}' does not exist and needs to be created",
                             replacement.uri
                         );

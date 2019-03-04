@@ -13,16 +13,19 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use super::*;
+
+use std::{fmt, ops::Deref, time::Duration, u16};
+
+///////////////////////////////////////////////////////////////////////
+/// Modules
+///////////////////////////////////////////////////////////////////////
 pub mod sample;
+
 pub mod signal;
 
 #[cfg(test)]
 mod tests;
-
-use std::fmt;
-use std::ops::Deref;
-use std::time::Duration;
-use std::u16;
 
 ///////////////////////////////////////////////////////////////////////
 /// Duration
@@ -164,9 +167,10 @@ impl Channels {
     }
 
     pub fn is_valid(&self) -> bool {
-        self.count.is_valid() && match self.layout {
-            None => true,
-            Some(layout) => layout.channel_count() == self.count,
-        }
+        self.count.is_valid()
+            && match self.layout {
+                None => true,
+                Some(layout) => layout.channel_count() == self.count,
+            }
     }
 }

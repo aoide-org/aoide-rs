@@ -15,6 +15,8 @@
 
 use super::*;
 
+///////////////////////////////////////////////////////////////////////
+
 #[test]
 fn default_time_sig() {
     assert!(!TimeSignature::default().is_valid());

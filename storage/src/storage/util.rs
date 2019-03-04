@@ -13,12 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use super::*;
+
+use crate::api::Pagination;
+
 use diesel;
-use diesel::prelude::*;
 
 use std::i64;
 
-use api::Pagination;
+///////////////////////////////////////////////////////////////////////
 
 pub(crate) fn apply_pagination<'a, ST, QS, DB>(
     source: diesel::query_builder::BoxedSelectStatement<'a, ST, QS, DB>,

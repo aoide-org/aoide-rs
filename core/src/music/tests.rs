@@ -15,6 +15,8 @@
 
 use super::*;
 
+///////////////////////////////////////////////////////////////////////
+
 #[test]
 fn actors() {
     let summary_artist_name = "Madonna feat. M.I.A. and Nicki Minaj";
@@ -96,7 +98,8 @@ fn actors() {
         ActorPrecedence::Summary,
         ActorPrecedence::Primary,
         ActorPrecedence::Secondary,
-    ].iter()
+    ]
+    .iter()
     {
         assert_eq!(None, Actors::actor(&actors, ActorRole::Conductor, *prio));
     }

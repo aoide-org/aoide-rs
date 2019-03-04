@@ -13,18 +13,19 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use failure::Error;
+use super::serde::{SerializationFormat, SerializedEntity};
 
-use api::{
+use crate::api::{
     collection::CollectionTrackStats, LocateTracksParams, Pagination, ReplaceTracksParams,
     ReplacedTracks, ScoredTagCount, SearchTracksParams, StringField, StringFieldCounts,
     TagFacetCount,
 };
 
-use super::serde::{SerializationFormat, SerializedEntity};
+use crate::core::{entity::*, track::*};
 
-use aoide_core::domain::entity::*;
-use aoide_core::domain::track::*;
+use failure::Error;
+
+///////////////////////////////////////////////////////////////////////
 
 pub type TracksResult<T> = Result<T, Error>;
 

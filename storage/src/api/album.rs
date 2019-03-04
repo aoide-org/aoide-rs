@@ -13,13 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::domain::entity::*;
+use super::*;
+
+use crate::{api::Pagination, core::entity::*};
 
 use chrono::NaiveDate;
-
 use failure::Error;
 
-use api::Pagination;
+///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]

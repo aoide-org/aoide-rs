@@ -13,18 +13,29 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use super::*;
+
 use actix::prelude::*;
 
-use diesel::prelude::*;
-use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
+use actix_web::{FutureResponse, HttpResponse, Json, Path, Query, State};
+
+use diesel::{
+    prelude::*,
+    r2d2::{ConnectionManager, Pool, PooledConnection},
+};
 
 use failure::Error;
 
+///////////////////////////////////////////////////////////////////////
+/// Modules
+///////////////////////////////////////////////////////////////////////
 pub mod albums;
 
 pub mod collections;
 
 pub mod tracks;
+
+///////////////////////////////////////////////////////////////////////
 
 pub type SqliteConnectionManager = ConnectionManager<SqliteConnection>;
 pub type SqliteConnectionPool = Pool<SqliteConnectionManager>;

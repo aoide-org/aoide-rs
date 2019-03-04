@@ -15,6 +15,8 @@
 
 use super::*;
 
+///////////////////////////////////////////////////////////////////////
+
 #[test]
 fn default_uid() {
     assert!(!EntityUid::default().is_valid());

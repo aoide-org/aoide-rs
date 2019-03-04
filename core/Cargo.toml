@@ -4,6 +4,7 @@ version = "0.0.1"
 authors = [ "Uwe Klotz <uwe.klotz@gmail>", "et al." ]
 license = "AGPL-3.0-or-later"
 publish = false
+edition = "2018"
 
 [dependencies]
 base64 = "*"
@@ -11,10 +12,11 @@ chrono = { version = "*", features = ["serde"] }
 failure = "*"
 log = "*"
 mime = "*"
+num-traits = "*"
 rand = "*"
 ring = "*"
 serde = { version = "*", features = ["derive"] }
-serde_json = "*"
 
 [dev-dependencies]
 mime_guess = "*"
+serde_json = "*"

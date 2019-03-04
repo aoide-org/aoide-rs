@@ -13,19 +13,21 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use super::*;
+
+use crate::core::entity::{EntityHeader, EntityVersion};
+
 use failure::Error;
 
 use mime;
 
 use rmp_serde;
 
-use serde;
-
 use serde_cbor;
 
 use serde_json;
 
-use aoide_core::domain::entity::{EntityHeader, EntityVersion};
+///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SerializationFormat {
@@ -85,7 +87,7 @@ where
         SerializationFormat::JSON => serde_json::to_vec(entity)?,
         SerializationFormat::CBOR => serde_cbor::to_vec(entity)?,
         SerializationFormat::MessagePack => rmp_serde::to_vec(entity)?,
-        //_ => return Err(format_err!("Unsupported format for serialization: {:?}", format))
+        //_ => return Err(failure::format_err!("Unsupported format for serialization: {:?}", format))
     };
     Ok(blob)
 }
@@ -101,7 +103,7 @@ where
         SerializationFormat::JSON => serde_json::from_slice::<T>(slice)?,
         SerializationFormat::CBOR => serde_cbor::from_slice::<T>(slice)?,
         SerializationFormat::MessagePack => rmp_serde::from_slice::<T>(slice)?,
-        //_ => return Err(format_err!("Unsupported format for deserialization: {:?}", format))
+        //_ => return Err(failure::format_err!("Unsupported format for deserialization: {:?}", format))
     };
     Ok(deserialized)
 }
@@ -129,7 +131,7 @@ impl SerializedEntity {
         json_array.extend_from_slice(b"[");
         for (i, item) in serialized_entities.iter().enumerate() {
             if item.format != SerializationFormat::JSON {
-                let e = format_err!("Unsupported serialization format while loading multiple entities: expected = {:?}, actual = {:?}", SerializationFormat::JSON, item.format);
+                let e = failure::format_err!("Unsupported serialization format while loading multiple entities: expected = {:?}, actual = {:?}", SerializationFormat::JSON, item.format);
                 return Err(e);
             }
             if i > 0 {

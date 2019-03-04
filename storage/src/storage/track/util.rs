@@ -13,27 +13,20 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::models::*;
+use super::*;
 
-use super::schema::*;
-
-use storage::collection::{schema::tbl_collection, CollectionRepository};
-
-use api::{
-    collection::Collections,
-    entity::{EntityStorage, EntityStorageResult, StorageId},
+use crate::{
+    api::{
+        collection::Collections,
+        entity::{EntityStorage, EntityStorageResult, StorageId},
+    },
+    core::collection::{Collection, CollectionEntity},
+    storage::collection::{schema::tbl_collection, CollectionRepository},
 };
 
 use diesel;
-use diesel::prelude::*;
 
 use failure::Error;
-
-use aoide_core::domain::{
-    collection::{Collection, CollectionEntity},
-    entity::*,
-    track::*,
-};
 
 ///////////////////////////////////////////////////////////////////////
 /// TrackRepositoryHelper
@@ -66,7 +59,7 @@ impl<'a> TrackRepositoryHelper<'a> {
             let collection_repo = CollectionRepository::new(self.connection);
             for collection_uid in orphaned_collection_uids {
                 let uid = EntityUid::from_slice(&collection_uid);
-                info!("Recreating missing collection '{}'", uid.to_string());
+                log::info!("Recreating missing collection '{}'", uid.to_string());
                 let collection_entity = CollectionEntity::new(
                     EntityHeader::initial_with_uid(uid),
                     collection_prototype.clone(),
@@ -264,15 +257,18 @@ impl<'a> TrackRepositoryHelper<'a> {
         diesel::delete(
             aux_track_tag::table
                 .filter(aux_track_tag::track_id.ne_all(tbl_track::table.select(tbl_track::id))),
-        ).execute(self.connection)?;
+        )
+        .execute(self.connection)?;
         // Orphaned tag terms
         diesel::delete(aux_track_tag_term::table.filter(
             aux_track_tag_term::id.ne_all(aux_track_tag::table.select(aux_track_tag::term_id)),
-        )).execute(self.connection)?;
+        ))
+        .execute(self.connection)?;
         // Orphaned tag facets
         diesel::delete(aux_track_tag_facet::table.filter(
             aux_track_tag_facet::id.ne_all(aux_track_tag::table.select(aux_track_tag::facet_id)),
-        )).execute(self.connection)?;
+        ))
+        .execute(self.connection)?;
         Ok(())
     }
 
@@ -445,7 +441,7 @@ impl<'a> TrackRepositoryHelper<'a> {
                 self.on_refresh(storage_id, entity.body())?;
                 Ok(storage_id)
             }
-            None => Err(format_err!("Entity not found: {}", uid)),
+            None => Err(failure::format_err!("Entity not found: {}", uid)),
         }
     }
 
@@ -456,7 +452,7 @@ impl<'a> TrackRepositoryHelper<'a> {
                 self.on_insert(storage_id, entity.body())?;
                 Ok(storage_id)
             }
-            None => Err(format_err!("Entity not found: {}", uid)),
+            None => Err(failure::format_err!("Entity not found: {}", uid)),
         }
     }
 
@@ -466,7 +462,7 @@ impl<'a> TrackRepositoryHelper<'a> {
                 self.on_delete(storage_id)?;
                 Ok(storage_id)
             }
-            None => Err(format_err!("Entity not found: {}", uid)),
+            None => Err(failure::format_err!("Entity not found: {}", uid)),
         }
     }
 

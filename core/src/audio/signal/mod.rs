@@ -13,11 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use domain::audio::sample::*;
-use domain::audio::*;
+use super::*;
 
-use std::fmt;
-use std::u32;
+use crate::audio::sample::*;
+
+use std::{fmt, u32};
+
+///////////////////////////////////////////////////////////////////////
 
 pub type BitsPerSample = u8;
 

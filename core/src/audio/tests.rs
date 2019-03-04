@@ -15,6 +15,8 @@
 
 use super::*;
 
+///////////////////////////////////////////////////////////////////////
+
 #[test]
 fn channel_count_default() {
     assert!(!ChannelCount::default().is_valid());
@@ -49,24 +51,21 @@ fn channels_is_valid() {
     assert!(Channels::layout(ChannelLayout::Stereo).is_valid());
     assert!(Channels::count(ChannelCount::MIN).is_valid());
     assert!(Channels::count(ChannelCount::MAX).is_valid());
-    assert!(
-        !Channels {
-            count: ChannelCount::new(1),
-            layout: Some(ChannelLayout::DualMono),
-        }.is_valid()
-    );
-    assert!(
-        !Channels {
-            count: ChannelCount::new(2),
-            layout: Some(ChannelLayout::Mono),
-        }.is_valid()
-    );
-    assert!(
-        !Channels {
-            count: ChannelCount::new(3),
-            layout: Some(ChannelLayout::Stereo),
-        }.is_valid()
-    );
+    assert!(!Channels {
+        count: ChannelCount::new(1),
+        layout: Some(ChannelLayout::DualMono),
+    }
+    .is_valid());
+    assert!(!Channels {
+        count: ChannelCount::new(2),
+        layout: Some(ChannelLayout::Mono),
+    }
+    .is_valid());
+    assert!(!Channels {
+        count: ChannelCount::new(3),
+        layout: Some(ChannelLayout::Stereo),
+    }
+    .is_valid());
 }
 
 #[test]
@@ -90,9 +89,7 @@ fn duration_default() {
 
 #[test]
 fn duration_to_string() {
-    assert!(
-        DurationMs::default()
-            .to_string()
-            .ends_with(DurationMs::UNIT_OF_MEASURE)
-    );
+    assert!(DurationMs::default()
+        .to_string()
+        .ends_with(DurationMs::UNIT_OF_MEASURE));
 }

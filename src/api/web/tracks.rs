@@ -13,21 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use actix::prelude::*;
+use super::*;
 
-use actix_web::{error, *};
-
-use diesel::prelude::*;
-
-use failure::Error;
-
-use futures::future::Future;
-
-use mime;
-
-use serde_json;
-
-use aoide_core::domain::{entity::*, track::*};
+use crate::core::{entity::*, track::*};
 
 use aoide_storage::{
     api::{
@@ -39,7 +27,11 @@ use aoide_storage::{
     storage::track::TrackRepository,
 };
 
-use super::{AppState, SqliteExecutor};
+use actix_web::AsyncResponder;
+
+use futures::future::Future;
+
+///////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -130,7 +122,7 @@ pub fn on_update_track(
                 let next_header = EntityHeader::new(uid, next_revision);
                 Ok(HttpResponse::Ok().json(next_header))
             }
-            (_, None) => Err(error::ErrorBadRequest(format_err!(
+            (_, None) => Err(actix_web::error::ErrorBadRequest(failure::format_err!(
                 "Inexistent entity or revision conflict"
             ))),
         })
@@ -455,9 +447,10 @@ impl TracksWithStringFieldsQueryParams {
             debug_assert!(result.len() <= field_list.split(',').count());
             let unrecognized_field_count = field_list.split(',').count() - result.len();
             if unrecognized_field_count > 0 {
-                warn!(
+                log::warn!(
                     "{} unrecognized field selector(s) in '{}'",
-                    unrecognized_field_count, field_list
+                    unrecognized_field_count,
+                    field_list
                 );
             }
             result.sort();

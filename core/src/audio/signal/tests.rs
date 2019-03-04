@@ -15,6 +15,8 @@
 
 use super::*;
 
+///////////////////////////////////////////////////////////////////////
+
 #[test]
 fn sample_rate_default() {
     assert!(!SampleRateHz::default().is_valid());

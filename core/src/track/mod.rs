@@ -13,27 +13,32 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#[cfg(test)]
-mod tests;
+use super::*;
 
-use domain::audio::sample::*;
-use domain::audio::signal::*;
-use domain::audio::*;
-use domain::entity::*;
-use domain::metadata::*;
-use domain::music::notation::*;
-use domain::music::*;
+use crate::{
+    audio::{sample::*, signal::*, *},
+    entity::*,
+    metadata::*,
+    music::{notation::*, *},
+};
 
 use chrono::{DateTime, Utc};
 
 use failure;
 
-use serde::de;
-use serde::de::Visitor as SerdeDeserializeVisitor;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{
+    de::{self, Visitor as SerdeDeserializeVisitor},
+    Deserialize, Deserializer, Serialize, Serializer,
+};
 
-use std::fmt;
-use std::str::FromStr;
+use std::{fmt, str::FromStr};
+
+///////////////////////////////////////////////////////////////////////
+/// Modules
+///////////////////////////////////////////////////////////////////////
+
+#[cfg(test)]
+mod tests;
 
 ///////////////////////////////////////////////////////////////////////
 /// AudioEncoder
@@ -215,7 +220,7 @@ impl FromStr for ColorArgb {
                     .map_err(Into::into);
             }
         }
-        Err(format_err!("Invalid color code '{}'", s))
+        Err(failure::format_err!("Invalid color code '{}'", s))
     }
 }
 
@@ -314,11 +319,7 @@ pub struct ReleaseMetadata {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub licenses: Vec<String>,
 
-    #[serde(
-        rename = "xrefs",
-        skip_serializing_if = "Vec::is_empty",
-        default
-    )]
+    #[serde(rename = "xrefs", skip_serializing_if = "Vec::is_empty", default)]
     pub external_references: Vec<String>,
 }
 
@@ -344,11 +345,7 @@ pub struct AlbumMetadata {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub compilation: Option<bool>,
 
-    #[serde(
-        rename = "xrefs",
-        skip_serializing_if = "Vec::is_empty",
-        default
-    )]
+    #[serde(rename = "xrefs", skip_serializing_if = "Vec::is_empty", default)]
     pub external_references: Vec<String>,
 }
 
@@ -425,11 +422,7 @@ pub enum TrackMark {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackMarkerOffset {
-    #[serde(
-        rename = "ms",
-        skip_serializing_if = "DurationMs::is_empty",
-        default
-    )]
+    #[serde(rename = "ms", skip_serializing_if = "DurationMs::is_empty", default)]
     pub duration: DurationMs,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -636,11 +629,7 @@ pub struct Track {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub ratings: Vec<Rating>, // no duplicate owners allowed
 
-    #[serde(
-        rename = "xrefs",
-        skip_serializing_if = "Vec::is_empty",
-        default
-    )]
+    #[serde(rename = "xrefs", skip_serializing_if = "Vec::is_empty", default)]
     pub external_references: Vec<String>,
 }
 

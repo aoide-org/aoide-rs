@@ -13,40 +13,34 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+///////////////////////////////////////////////////////////////////////
+
 #![deny(missing_debug_implementations, missing_copy_implementations)]
 
-///////////////////////////////////////////////////////////////////////
-/// External Crates
-///////////////////////////////////////////////////////////////////////
-//
-extern crate base64;
+use serde::{Deserialize, Serialize};
 
-extern crate chrono;
-
-#[macro_use]
-extern crate failure;
-
-extern crate log;
-
-extern crate mime;
-
-extern crate rand;
-
-extern crate ring;
-
+// The following workaround is need to avoid cluttering the code with
+// #[cfg_attr(feature = "serde", serde(<untagged>))] to specify custom
+// serde attributes.
 #[macro_use]
 extern crate serde;
 
-#[cfg(test)]
-extern crate mime_guess;
-
-#[cfg(test)]
-extern crate serde_json;
-
 ///////////////////////////////////////////////////////////////////////
-/// Public Modules
+/// Modules
 ///////////////////////////////////////////////////////////////////////
-//
 
 #[allow(clippy::trivially_copy_pass_by_ref)]
-pub mod domain;
+pub mod audio;
+
+pub mod collection;
+
+pub mod entity;
+
+#[allow(clippy::trivially_copy_pass_by_ref)]
+pub mod metadata;
+
+#[allow(clippy::trivially_copy_pass_by_ref)]
+pub mod music;
+
+#[allow(clippy::trivially_copy_pass_by_ref)]
+pub mod track;

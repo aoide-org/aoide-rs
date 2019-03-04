@@ -13,10 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use clap;
-use clap::{App, Arg};
+use clap::{self, App, Arg};
 
 use log::LevelFilter as LogLevelFilter;
+
+///////////////////////////////////////////////////////////////////////
 
 const VERBOSITY_ARG: &str = "VERBOSITY";
 
@@ -38,26 +39,27 @@ impl<'a> ArgMatches<'a> {
                     .help("Sets the database URL")
                     .default_value(DATABASE_URL_DEFAULT)
                     .index(1),
-            ).arg(
-                    Arg::with_name(LISTEN_ADDR_ARG)
-                        .short("l")
-                        .long("listen")
-                        .default_value(LISTEN_ADDR_DEFAULT)
-                        .help("Sets the network listen address"),
-                )
-                .arg(
-                    Arg::with_name(SKIP_DATABASE_MAINTENANCE_ARG)
-                        .long("skipDatabaseMaintenance")
-                        .help("Skips database schema migration and maintenance tasks on startup"),
-                )
-                .arg(
-                    Arg::with_name(VERBOSITY_ARG)
-                        .short("v")
-                        .long("verbose")
-                        .multiple(true)
-                        .help("Sets the level of verbosity (= number of occurrences)"),
-                )
-                .get_matches(),
+            )
+            .arg(
+                Arg::with_name(LISTEN_ADDR_ARG)
+                    .short("l")
+                    .long("listen")
+                    .default_value(LISTEN_ADDR_DEFAULT)
+                    .help("Sets the network listen address"),
+            )
+            .arg(
+                Arg::with_name(SKIP_DATABASE_MAINTENANCE_ARG)
+                    .long("skipDatabaseMaintenance")
+                    .help("Skips database schema migration and maintenance tasks on startup"),
+            )
+            .arg(
+                Arg::with_name(VERBOSITY_ARG)
+                    .short("v")
+                    .long("verbose")
+                    .multiple(true)
+                    .help("Sets the level of verbosity (= number of occurrences)"),
+            )
+            .get_matches(),
         )
     }
 

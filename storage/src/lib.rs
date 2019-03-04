@@ -13,47 +13,27 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-// missing_debug_implementations
 #![deny(missing_copy_implementations)]
+#![recursion_limit = "128"]
 
-///////////////////////////////////////////////////////////////////////
-/// External Crates
-///////////////////////////////////////////////////////////////////////
-//
-extern crate aoide_core;
-
+// The following workaround is need to avoid cluttering the code with
+// #[cfg_attr(feature = "diesel", ...)] to specify custom diesel
+// attributes.
 #[macro_use]
 extern crate diesel;
 
-extern crate chrono;
-
-#[macro_use]
-extern crate failure;
-
-#[macro_use]
-extern crate log;
-
-extern crate mime;
-
-extern crate percent_encoding;
-
-extern crate rmp_serde;
-
-#[macro_use]
-extern crate serde;
-
-extern crate serde_cbor;
-
-extern crate serde_json;
-
+// Workaround for using the embed_migrations!() macro in tests.
 #[cfg(test)]
 #[macro_use]
 extern crate diesel_migrations;
 
+use serde::{Deserialize, Serialize};
+
 ///////////////////////////////////////////////////////////////////////
-/// Public Modules
+/// Modules
 ///////////////////////////////////////////////////////////////////////
-//
+pub mod api;
+
 pub mod storage;
 
-pub mod api;
+pub use aoide_core as core;

@@ -13,17 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use actix::prelude::*;
+use super::*;
 
-use actix_web::{error, *};
-
-use diesel::prelude::*;
-
-use failure::Error;
-
-use futures::future::Future;
-
-use aoide_core::domain::{collection::*, entity::*};
+use crate::core::{collection::*, entity::*};
 
 use aoide_storage::{
     api::{
@@ -34,7 +26,11 @@ use aoide_storage::{
     storage::{collection::CollectionRepository, track::TrackRepository},
 };
 
-use super::{AppState, SqliteExecutor, WithTokensQueryParams};
+use actix_web::AsyncResponder;
+
+use futures::future::Future;
+
+///////////////////////////////////////////////////////////////////////
 
 #[derive(Debug)]
 pub struct CreateCollectionMessage {
@@ -114,7 +110,7 @@ pub fn on_update_collection(
                 let next_header = EntityHeader::new(uid, next_revision);
                 Ok(HttpResponse::Ok().json(next_header))
             }
-            (_, None) => Err(error::ErrorBadRequest(format_err!(
+            (_, None) => Err(actix_web::error::ErrorBadRequest(failure::format_err!(
                 "Inexistent entity or revision conflict"
             ))),
         })

@@ -13,14 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::schema::tbl_collection;
+use super::{schema::tbl_collection, *};
+
+use crate::api::entity::StorageId;
+
+use crate::core::entity::{EntityHeader, EntityRevision, EntityUid};
 
 use chrono::{naive::NaiveDateTime, DateTime, Utc};
 
-use aoide_core::domain::collection::*;
-use aoide_core::domain::entity::{EntityHeader, EntityRevision, EntityUid};
-
-use api::entity::StorageId;
+///////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Insertable)]
 #[table_name = "tbl_collection"]

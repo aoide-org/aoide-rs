@@ -6,6 +6,7 @@ license = "AGPL-3.0-or-later"
 description = "Backend services for curating and enjoying your music"
 keywords = ["music", "library", "management"]
 publish = false
+edition = "2018"
 
 [workspace]
 members = [

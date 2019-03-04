@@ -13,39 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-///////////////////////////////////////////////////////////////////////
-/// External Crates
-///////////////////////////////////////////////////////////////////////
-///
-extern crate aoide_core;
+extern crate aoide_core as core;
 
-extern crate aoide_storage;
-
-extern crate actix;
-
-extern crate actix_web;
-
-extern crate clap;
-
-extern crate diesel;
-
-#[macro_use]
-extern crate failure;
-
-extern crate futures;
-
-#[macro_use]
-extern crate log;
-
-extern crate mime;
-
-#[macro_use]
-extern crate serde;
-
-extern crate serde_json;
+use serde::{Deserialize, Serialize};
 
 ///////////////////////////////////////////////////////////////////////
 /// Modules
 ///////////////////////////////////////////////////////////////////////
-///
 pub mod api;
