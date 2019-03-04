@@ -5,9 +5,6 @@ authors = [ "Uwe Klotz <uwe.klotz@gmail>", "et al." ]
 license = "AGPL-3.0-or-later"
 publish = false
 
-[patch.crates-io]
-aoide-core = { path = "../core" }
-
 [dependencies]
 aoide-core = "*"
 base64 = "*"
