@@ -12,7 +12,6 @@ chrono = { version = "*", features = ["serde"] }
 failure = "*"
 log = "*"
 mime = "*"
-num-traits = "*"
 rand = "*"
 ring = "*"
 serde = { version = "*", features = ["derive"] }
