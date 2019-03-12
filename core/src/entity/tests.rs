@@ -28,7 +28,7 @@ fn default_uid() {
 
 #[test]
 fn generate_uid() {
-    assert!(EntityUidGenerator::generate_uid().is_valid());
+    assert!(EntityUid::random().is_valid());
 }
 
 #[test]
@@ -60,8 +60,14 @@ fn header_without_uid() {
 }
 
 #[test]
-fn header_with_uid() {
-    let header = EntityHeader::initial_with_uid(EntityUidGenerator::generate_uid());
-    assert!(header.is_valid());
-    assert!(header.revision().is_initial());
+fn should_generate_unique_initial_headers() {
+    let header1 = EntityHeader::initial();
+    let header2 = EntityHeader::initial();
+    assert!(header1.is_valid());
+    assert!(header1.revision().is_initial());
+    assert!(header2.is_valid());
+    assert!(header2.revision().is_initial());
+    assert_ne!(header1.uid(), header2.uid());
+    assert_eq!(header1.revision().ordinal(), header2.revision().ordinal());
+    assert!(header1.revision().timestamp() <= header2.revision().timestamp());
 }

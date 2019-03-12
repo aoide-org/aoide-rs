@@ -17,11 +17,9 @@ use super::*;
 
 use base64;
 
-use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
+use chrono::{DateTime, NaiveDateTime, Utc};
 
-use rand::{thread_rng, AsByteSliceMut, RngCore};
-
-use ring::digest;
+use rand::{thread_rng, RngCore};
 
 use serde::{
     de::{self, Visitor as SerdeDeserializeVisitor},
@@ -48,6 +46,13 @@ impl EntityUid {
     const SLICE_LEN: usize = mem::size_of::<Self>();
     const STR_LEN: usize = (Self::SLICE_LEN * 4) / 3;
     const STR_ENCODING: base64::Config = base64::URL_SAFE_NO_PAD;
+
+    pub fn random() -> Self {
+        // Generate 24 random bytes
+        let mut buf = [0u8; 24];
+        thread_rng().fill_bytes(&mut buf);
+        Self(buf)
+    }
 
     pub fn copy_from_slice(&mut self, slice: &[u8]) {
         assert!(slice.len() == Self::SLICE_LEN);
@@ -173,42 +178,6 @@ impl fmt::Display for EntityUid {
 }
 
 ///////////////////////////////////////////////////////////////////////
-/// EntityUidGenerator
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Copy, Debug, Default)]
-pub struct EntityUidGenerator;
-
-fn digest_timestamp<'a, T: TimeZone>(
-    digest_ctx: &'a mut digest::Context,
-    dt: &'a DateTime<T>,
-) -> &'a mut digest::Context {
-    let mut buf_timestamp = [dt.timestamp(); 1];
-    buf_timestamp.to_le();
-    digest_ctx.update(buf_timestamp.as_byte_slice_mut());
-    let mut buf_subsec = [dt.timestamp_subsec_nanos(); 1];
-    buf_subsec.to_le();
-    digest_ctx.update(buf_subsec.as_byte_slice_mut());
-    digest_ctx
-}
-
-impl EntityUidGenerator {
-    pub fn generate_uid() -> EntityUid {
-        let mut digest_ctx = digest::Context::new(&digest::SHA256);
-        // 12 bytes from current timestamp
-        digest_timestamp(&mut digest_ctx, &Utc::now());
-        // 16 random bytes
-        let mut buf_random = [0u8, 16];
-        thread_rng().fill_bytes(&mut buf_random);
-        digest_ctx.update(&buf_random);
-        // Calculate SHA256 of generated 32 bytes -> 32 bytes
-        let digest = digest_ctx.finish();
-        // Use only the first 24 bytes
-        EntityUid::from_slice(&digest.as_ref()[0..EntityUid::SLICE_LEN])
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
 /// EntityVersion
 ///////////////////////////////////////////////////////////////////////
 
@@ -268,15 +237,15 @@ pub type EntityRevisionTimestamp = DateTime<Utc>;
 pub struct EntityRevision(EntityRevisionOrdinal, EntityRevisionTimestamp);
 
 impl EntityRevision {
+    const fn initial_ordinal() -> EntityRevisionOrdinal {
+        1
+    }
+
     pub fn new<I1: Into<EntityRevisionOrdinal>, I2: Into<EntityRevisionTimestamp>>(
         ordinal: I1,
         timestamp: I2,
     ) -> Self {
         EntityRevision(ordinal.into(), timestamp.into())
-    }
-
-    pub const fn initial_ordinal() -> EntityRevisionOrdinal {
-        1
     }
 
     pub fn initial() -> Self {
@@ -288,7 +257,7 @@ impl EntityRevision {
         self.0
             .checked_add(1)
             .map(|ordinal| EntityRevision(ordinal, Utc::now()))
-            // TODO: Return `Option<Self>`
+            // TODO: Return `Option<Self>`?
             .unwrap()
     }
 
@@ -347,7 +316,7 @@ impl EntityHeader {
     }
 
     pub fn initial() -> Self {
-        Self::initial_with_uid(EntityUidGenerator::generate_uid())
+        Self::initial_with_uid(EntityUid::random())
     }
 
     pub fn initial_with_uid<T: Into<EntityUid>>(uid: T) -> Self {

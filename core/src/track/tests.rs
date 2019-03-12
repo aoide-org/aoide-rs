@@ -45,7 +45,7 @@ fn serialize_json() {
         }),
     };
     let collection = TrackCollection {
-        uid: EntityUidGenerator::generate_uid(),
+        uid: EntityUid::random(),
         since: Utc::now(),
         color: Some(ColorArgb::RED),
         play_count: None,
@@ -64,8 +64,7 @@ fn serialize_json() {
         comments,
         ..Default::default()
     };
-    let uid = EntityUidGenerator::generate_uid();
-    let header = EntityHeader::initial_with_uid(uid);
+    let header = EntityHeader::initial();
     let entity = TrackEntity::new(header, body);
     let entity_json = serde_json::to_string(&entity).unwrap();
     assert_ne!("{}", entity_json);

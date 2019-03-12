@@ -13,7 +13,6 @@ failure = "*"
 log = "*"
 mime = "*"
 rand = "*"
-ring = "*"
 serde = { version = "*", features = ["derive"] }
 
 [dev-dependencies]
