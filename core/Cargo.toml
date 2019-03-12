@@ -19,3 +19,9 @@ serde = { version = "*", features = ["derive"] }
 [dev-dependencies]
 mime_guess = "*"
 serde_json = "*"
+criterion = "*"
+uuid = { version = "*", features = ["v4"] }
+
+[[bench]]
+name = "entity_uid_benchmark"
+harness = false
