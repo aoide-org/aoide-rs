@@ -36,7 +36,7 @@ fn serialize_json() {
     )];
     let uri = "subfolder/test.mp3";
     let source = TrackSource {
-        content_uri: uri.to_string(),
+        uri: uri.to_string(),
         content_type: mime_guess::guess_mime_type(uri).to_string(),
         audio_content: None,
         metadata_sync: Some(TrackSynchronization {

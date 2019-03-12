@@ -393,7 +393,7 @@ paths:
         List frequencies of values for selected (string) fields. The results are
         grouped by field and pagination is applied separately for each field.
         Field values are listed in descending order of their total count.
-        Optionally the results can be restricted to a single collection. 
+        Optionally the results can be restricted to a single collection.
       operationId: listFields
       tags:
         - Track Fields
@@ -1474,7 +1474,7 @@ components:
           $ref: '#/components/schemas/SortDirection'
     TrackSource:
       properties:
-        contentUri:
+        uri:
           $ref: '#/components/schemas/Uri'
         contentType:
           $ref: '#/components/schemas/MediaType'

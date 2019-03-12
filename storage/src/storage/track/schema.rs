@@ -49,8 +49,8 @@ table! {
     aux_track_source (id) {
         id -> BigInt,
         track_id -> BigInt,
-        content_uri -> Text,
-        content_uri_decoded -> Text,
+        uri -> Text,
+        uri_decoded -> Text,
         content_type -> Text,
         audio_duration_ms -> Nullable<Double>,
         audio_channels_count -> Nullable<SmallInt>,

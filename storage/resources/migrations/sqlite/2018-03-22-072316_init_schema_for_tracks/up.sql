@@ -113,8 +113,8 @@ CREATE INDEX idx_track_collection_collection_uid_track ON aux_track_collection (
 CREATE TABLE aux_track_source (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
-    content_uri              TEXT NOT NULL,     -- RFC 3986
-    content_uri_decoded      TEXT NOT NULL,     -- percent-decoded URI
+    uri                      TEXT NOT NULL,     -- RFC 3986
+    uri_decoded              TEXT NOT NULL,     -- percent-decoded URI
     content_type             TEXT NOT NULL,     -- RFC 6838
     audio_channels_count     INTEGER,           -- number of channels
     audio_duration_ms        REAL,              -- milliseconds
@@ -126,7 +126,7 @@ CREATE TABLE aux_track_source (
     metadata_sync_rev_ordinal INTEGER,          -- most recent metadata synchronization
     metadata_sync_rev_timestamp DATETIME,       -- most recent metadata synchronization
     FOREIGN KEY(track_id) REFERENCES tbl_track(id),
-    UNIQUE (track_id, content_uri),
+    UNIQUE (track_id, uri),
     UNIQUE (track_id, content_type)             -- at most one URI per content type
 );
 
@@ -134,8 +134,8 @@ CREATE TABLE aux_track_source (
 -- the performance of subselects, joins, and filtering. See also:
 -- https://gitlab.com/uklotzde/aoide-rs/issues/12
 -- https://www.sqlite.org/queryplanner.html
-CREATE INDEX idx_track_source_content_uri_track ON aux_track_source (
-    content_uri, track_id
+CREATE INDEX idx_track_source_uri_track ON aux_track_source (
+    uri, track_id
 );
 
 -- Index with a mutation of the unique constraint to optimize

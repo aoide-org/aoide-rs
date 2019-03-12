@@ -190,12 +190,12 @@ impl TrackSearchQueryTransform for PhraseFilter {
             {
                 query = match self.modifier {
                     None => query.or_filter(
-                        aux_track_source::content_uri_decoded
+                        aux_track_source::uri_decoded
                             .like(like_expr.clone())
                             .escape('\\'),
                     ),
                     Some(FilterModifier::Complement) => query.or_filter(
-                        aux_track_source::content_uri_decoded
+                        aux_track_source::uri_decoded
                             .not_like(like_expr.clone())
                             .escape('\\'),
                     ),
@@ -718,12 +718,12 @@ impl AsTrackSearchQueryExpression for PhraseFilter {
             {
                 expression = match self.modifier {
                     None => Box::new(
-                        expression.or(aux_track_source::content_uri_decoded
+                        expression.or(aux_track_source::uri_decoded
                             .like(like_expr.clone())
                             .escape('\\')),
                     ),
                     Some(FilterModifier::Complement) => Box::new(
-                        expression.or(aux_track_source::content_uri_decoded
+                        expression.or(aux_track_source::uri_decoded
                             .not_like(like_expr.clone())
                             .escape('\\')),
                     ),

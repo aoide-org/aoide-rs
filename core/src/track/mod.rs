@@ -109,7 +109,7 @@ pub struct TrackSynchronization {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackSource {
     #[serde(skip_serializing_if = "String::is_empty", default)]
-    pub content_uri: String,
+    pub uri: String,
 
     // The content_type uniquely identifies a TrackSource of
     // a Track, i.e. no duplicate content types are allowed
@@ -152,7 +152,7 @@ impl IsValid for TrackSource {
         // "file:///path/to/local/file.txt"
         // Crate url: Doesn't care about reserved characters, e.g. parses
         // "file:///path to local/file.txt" successfully
-        !self.content_uri.is_empty() && !self.content_type.is_empty()
+        !self.uri.is_empty() && !self.content_type.is_empty()
     }
 }
 

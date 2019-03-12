@@ -599,17 +599,16 @@ impl<'a> Tracks for TrackRepository<'a> {
             .into_boxed();
         track_id_subselect = match either_eq_or_like {
             EitherEqualOrLike::Equal(eq) => match modifier {
-                None => track_id_subselect.filter(aux_track_source::content_uri.eq(eq)),
+                None => track_id_subselect.filter(aux_track_source::uri.eq(eq)),
                 Some(ConditionModifier::Not) => {
-                    track_id_subselect.filter(aux_track_source::content_uri.ne(eq))
+                    track_id_subselect.filter(aux_track_source::uri.ne(eq))
                 }
             },
             EitherEqualOrLike::Like(like) => match modifier {
-                None => {
-                    track_id_subselect.filter(aux_track_source::content_uri.like(like).escape('\\'))
+                None => track_id_subselect.filter(aux_track_source::uri.like(like).escape('\\')),
+                Some(ConditionModifier::Not) => {
+                    track_id_subselect.filter(aux_track_source::uri.not_like(like).escape('\\'))
                 }
-                Some(ConditionModifier::Not) => track_id_subselect
-                    .filter(aux_track_source::content_uri.not_like(like).escape('\\')),
             },
         };
         target = match locate_params.uri_filter.modifier {
@@ -754,12 +753,12 @@ impl<'a> Tracks for TrackRepository<'a> {
             StringField::SourceUri => {
                 let mut target = aux_track_source::table
                     .select((
-                        aux_track_source::content_uri_decoded,
+                        aux_track_source::uri_decoded,
                         sql::<diesel::sql_types::BigInt>("count(*) AS count"),
                     ))
-                    .group_by(aux_track_source::content_uri_decoded)
+                    .group_by(aux_track_source::uri_decoded)
                     .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
-                    .then_order_by(aux_track_source::content_uri_decoded)
+                    .then_order_by(aux_track_source::uri_decoded)
                     .into_boxed();
 
                 // Collection filtering

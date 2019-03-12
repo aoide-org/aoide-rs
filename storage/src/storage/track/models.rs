@@ -273,8 +273,8 @@ impl<'a> InsertableTracksSummary<'a> {
 #[table_name = "aux_track_source"]
 pub struct InsertableTracksSource<'a> {
     pub track_id: StorageId,
-    pub content_uri: &'a str,
-    pub content_uri_decoded: String,
+    pub uri: &'a str,
+    pub uri_decoded: String,
     pub content_type: &'a str,
     pub audio_channels_count: Option<i16>,
     pub audio_duration_ms: Option<f64>,
@@ -291,8 +291,8 @@ impl<'a> InsertableTracksSource<'a> {
     pub fn bind(track_id: StorageId, track_source: &'a TrackSource) -> Self {
         Self {
             track_id,
-            content_uri: track_source.content_uri.as_str(),
-            content_uri_decoded: percent_decode(track_source.content_uri.as_bytes())
+            uri: track_source.uri.as_str(),
+            uri_decoded: percent_decode(track_source.uri.as_bytes())
                 .decode_utf8_lossy()
                 .into(),
             content_type: track_source.content_type.as_str(),

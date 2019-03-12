@@ -31,12 +31,12 @@ fn search_distinct_with_multiple_sources() {
     let connection = establish_connection();
     let repository = TrackRepository::new(&connection);
     let track_src1 = TrackSource {
-        content_uri: "testfile1.mp3".into(),
+        uri: "testfile1.mp3".into(),
         content_type: "audio/mpeg".into(),
         ..Default::default()
     };
     let track_src2 = TrackSource {
-        content_uri: "testfile2.flac".into(),
+        uri: "testfile2.flac".into(),
         content_type: "audio/flac".into(),
         ..Default::default()
     };
