@@ -456,8 +456,11 @@ impl IsValid for TrackMarkerLength {
     fn is_valid(&self) -> bool {
         self.duration.is_valid()
             && !self.duration.is_empty()
-            && self.samples.unwrap_or(SampleLength(0.0)) > SampleLength(0.0)
-            && self.beats.unwrap_or(0.0) > 0.0
+            && self
+                .samples
+                .map(|samples| samples > SampleLength(0.0))
+                .unwrap_or(true)
+            && self.beats.map(|beats| beats > 0.0).unwrap_or(true)
     }
 }
 
@@ -675,8 +678,9 @@ impl IsValid for Track {
             && self.collections.iter().all(TrackCollection::is_valid)
             && self.release.iter().all(ReleaseMetadata::is_valid)
             && self.album.iter().all(AlbumMetadata::is_valid)
-            && self.track_numbers.is_valid()
-            && self.disc_numbers.is_valid()
+            && (self.track_numbers.is_valid() || self.track_numbers.is_default())
+            && (self.disc_numbers.is_valid() || self.disc_numbers.is_default())
+            && (self.movement_numbers.is_valid() || self.movement_numbers.is_default())
             && Titles::is_valid(&self.titles)
             && Actors::is_valid(&self.actors)
             && self.lyrics.iter().all(Lyrics::is_valid)

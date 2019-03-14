@@ -330,7 +330,7 @@ impl SongProfile {
 
 impl IsValid for SongProfile {
     fn is_valid(&self) -> bool {
-        (self.tempo.is_default() || self.tempo.is_valid())
+        (self.tempo.is_valid() || self.tempo.is_default())
             && (self.time_sig.is_valid() || self.time_sig.is_default())
             && (self.key_sig.is_valid() || self.key_sig.is_default())
             && self.features.iter().all(ScoredSongFeature::is_valid)
