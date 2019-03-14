@@ -32,6 +32,32 @@ fn generate_uid() {
 }
 
 #[test]
+fn should_encode_decode_uid() {
+    let uid = EntityUid::random();
+    let encoded = uid.encode_to_string();
+    let decoded = EntityUid::decode_from_str(&encoded).unwrap();
+    assert_eq!(uid, decoded);
+}
+
+#[test]
+fn should_fail_to_decode_too_long_string() {
+    let uid = EntityUid::random();
+    let mut encoded = uid.encode_to_string();
+    while encoded.len() <= EntityUid::MAX_STR_LEN {
+        encoded.push(char::from(EntityUid::BASE58_ALPHABET[57]));
+    }
+    assert!(EntityUid::decode_from_str(&encoded).is_err());
+}
+
+#[test]
+fn should_fail_to_decode_too_short_string() {
+    let uid = EntityUid::random();
+    let mut encoded = uid.encode_to_string();
+    encoded.truncate(EntityUid::MIN_STR_LEN - 1);
+    assert!(EntityUid::decode_from_str(&encoded).is_err());
+}
+
+#[test]
 fn revision_sequence() {
     let initial = EntityRevision::initial();
     assert!(initial.is_valid());

@@ -15,9 +15,9 @@
 
 use super::*;
 
-use base64;
-
 use chrono::{DateTime, NaiveDateTime, Utc};
+
+use failure::bail;
 
 use rand::{thread_rng, RngCore};
 
@@ -43,18 +43,20 @@ mod tests;
 pub struct EntityUid([u8; 24]);
 
 impl EntityUid {
-    const SLICE_LEN: usize = mem::size_of::<Self>();
-    const STR_LEN: usize = (Self::SLICE_LEN * 4) / 3;
-    const STR_ENCODING: base64::Config = base64::URL_SAFE_NO_PAD;
+    pub const SLICE_LEN: usize = mem::size_of::<Self>();
+    pub const MIN_STR_LEN: usize = 32;
+    pub const MAX_STR_LEN: usize = 33;
+    pub const BASE58_ALPHABET: &'static [u8; 58] = bs58::alphabet::BITCOIN;
 
     pub fn random() -> Self {
         // Generate 24 random bytes
-        let mut buf = [0u8; 24];
-        thread_rng().fill_bytes(&mut buf);
-        Self(buf)
+        let mut new = Self::default();
+        thread_rng().fill_bytes(&mut new.0);
+        new
     }
 
     pub fn copy_from_slice(&mut self, slice: &[u8]) {
+        assert!(self.0.len() == Self::SLICE_LEN);
         assert!(slice.len() == Self::SLICE_LEN);
         self.as_mut().copy_from_slice(&slice[0..Self::SLICE_LEN]);
     }
@@ -66,48 +68,27 @@ impl EntityUid {
     }
 
     pub fn decode_str(mut self, encoded: &str) -> Result<Self, failure::Error> {
-        failure::ensure!(
-            encoded.len() == Self::STR_LEN,
-            "Wrong encoded string slice length: expected = {}, actual = {}",
-            Self::STR_LEN,
-            encoded.len()
-        );
-        let decoded_len = base64::decode_config_slice(encoded, Self::STR_ENCODING, self.as_mut())?;
-        debug_assert!(decoded_len == Self::SLICE_LEN);
+        let decoded_len =
+            bs58::decode::decode_into(encoded.as_bytes(), &mut self.0, Self::BASE58_ALPHABET)?;
+        if decoded_len != self.0.len() {
+            bail!(
+                "Failed to decode '{}': expected bytes = {}, decoded bytes = {}",
+                encoded,
+                self.0.len(),
+                decoded_len
+            );
+        }
         Ok(self)
-    }
-
-    pub fn encode_slice(&self, encoded: &mut [u8]) -> Result<(), failure::Error> {
-        failure::ensure!(
-            encoded.len() == Self::STR_LEN,
-            "Wrong encoded string slice length: expected = {}, actual = {}",
-            Self::STR_LEN,
-            encoded.len()
-        );
-        let encoded_len = base64::encode_config_slice(self.as_ref(), Self::STR_ENCODING, encoded);
-        debug_assert!(encoded_len == Self::STR_LEN);
-        Ok(())
-    }
-
-    pub fn encode_str(&self, encoded: &mut str) -> Result<(), failure::Error> {
-        unsafe { self.encode_slice(&mut encoded.as_bytes_mut()) }
     }
 
     pub fn decode_from_str(encoded: &str) -> Result<Self, failure::Error> {
         Self::default().decode_str(encoded)
     }
 
-    pub fn encode_to_slice(&self) -> [u8; Self::STR_LEN] {
-        let mut encoded = [0u8; Self::STR_LEN];
-        self.encode_slice(&mut encoded).unwrap();
-        encoded
-    }
-
     pub fn encode_to_string(&self) -> String {
-        let mut encoded = String::with_capacity(Self::STR_LEN);
-        base64::encode_config_buf(self.as_ref(), Self::STR_ENCODING, &mut encoded);
-        debug_assert!(encoded.len() == Self::STR_LEN);
-        encoded
+        bs58::encode(self.0)
+            .with_alphabet(Self::BASE58_ALPHABET)
+            .into_string()
     }
 }
 
@@ -135,8 +116,9 @@ impl Serialize for EntityUid {
     where
         S: Serializer,
     {
-        let encoded = self.encode_to_slice();
-        unsafe { serializer.serialize_str(str::from_utf8_unchecked(&encoded)) }
+        // TODO: Avoid creating a temporary string
+        let encoded = self.encode_to_string();
+        serializer.serialize_str(&encoded)
     }
 }
 
@@ -147,10 +129,7 @@ impl<'de> SerdeDeserializeVisitor<'de> for EntityUidDeserializeVisitor {
     type Value = EntityUid;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_fmt(format_args!(
-            "an URL-safe Base64 encoded string of length {}",
-            EntityUid::STR_LEN
-        ))
+        formatter.write_fmt(format_args!("a base58 encoded string"))
     }
 
     fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
@@ -172,8 +151,7 @@ impl<'de> Deserialize<'de> for EntityUid {
 
 impl fmt::Display for EntityUid {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let encoded = self.encode_to_slice();
-        unsafe { write!(f, "{}", str::from_utf8_unchecked(&encoded)) }
+        write!(f, "{}", self.encode_to_string())
     }
 }
 

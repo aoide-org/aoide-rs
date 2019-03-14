@@ -7,7 +7,7 @@ publish = false
 edition = "2018"
 
 [dependencies]
-base64 = "*"
+bs58 = "*"
 chrono = { version = "*", features = ["serde"] }
 failure = "*"
 log = "*"
