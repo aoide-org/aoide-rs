@@ -331,9 +331,18 @@ impl<'a> TrackRepositoryHelper<'a> {
                 None => None,
             };
             let insertable = InsertableTracksTag::bind(track_id, term_id, facet_id, tag.score());
-            diesel::insert_into(aux_track_tag::table)
+            match diesel::insert_into(aux_track_tag::table)
                 .values(&insertable)
-                .execute(self.connection)?;
+                .execute(self.connection)
+            {
+                Err(err) => log::error!(
+                    "Failed to insert tag {:?} of track {}: {}",
+                    tag,
+                    track_id,
+                    err
+                ),
+                Ok(count) => debug_assert!(count == 1),
+            }
         }
         Ok(())
     }
