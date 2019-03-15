@@ -15,7 +15,7 @@
 
 use super::*;
 
-use chrono::{DateTime, NaiveDateTime, Utc};
+use crate::time::TickInstant;
 
 use failure::bail;
 
@@ -209,17 +209,17 @@ impl fmt::Display for EntityVersion {
 
 pub type EntityRevisionOrdinal = u64;
 
-pub type EntityRevisionTimestamp = DateTime<Utc>;
+pub type EntityRevisionInstant = TickInstant;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct EntityRevision(EntityRevisionOrdinal, EntityRevisionTimestamp);
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct EntityRevision(EntityRevisionOrdinal, EntityRevisionInstant);
 
 impl EntityRevision {
     const fn initial_ordinal() -> EntityRevisionOrdinal {
         1
     }
 
-    pub fn new<I1: Into<EntityRevisionOrdinal>, I2: Into<EntityRevisionTimestamp>>(
+    pub fn new<I1: Into<EntityRevisionOrdinal>, I2: Into<EntityRevisionInstant>>(
         ordinal: I1,
         timestamp: I2,
     ) -> Self {
@@ -227,14 +227,14 @@ impl EntityRevision {
     }
 
     pub fn initial() -> Self {
-        EntityRevision(Self::initial_ordinal(), Utc::now())
+        EntityRevision(Self::initial_ordinal(), TickInstant::now())
     }
 
     pub fn next(&self) -> Self {
         debug_assert!(self.is_valid());
         self.0
             .checked_add(1)
-            .map(|ordinal| EntityRevision(ordinal, Utc::now()))
+            .map(|ordinal| EntityRevision(ordinal, TickInstant::now()))
             // TODO: Return `Option<Self>`?
             .unwrap()
     }
@@ -247,17 +247,8 @@ impl EntityRevision {
         self.0
     }
 
-    pub fn timestamp(&self) -> EntityRevisionTimestamp {
+    pub fn instant(&self) -> EntityRevisionInstant {
         self.1
-    }
-}
-
-impl Default for EntityRevision {
-    fn default() -> EntityRevision {
-        EntityRevision::new(
-            0 as EntityRevisionOrdinal,
-            DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(0, 0), Utc),
-        )
     }
 }
 
@@ -269,7 +260,7 @@ impl IsValid for EntityRevision {
 
 impl fmt::Display for EntityRevision {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}@{}", self.ordinal(), self.timestamp())
+        write!(f, "{}@{}", self.ordinal(), self.instant())
     }
 }
 

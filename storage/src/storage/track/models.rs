@@ -21,16 +21,12 @@ use crate::api::{
 };
 
 use crate::core::{
-    entity::{EntityHeader, EntityRevision, EntityUid, EntityVersion},
     metadata::{Comment, Rating, Score, ScoreValue},
     music::{notation::Beats, ActorRole, Actors, SongFeature, SongProfile, TitleLevel, Titles},
     track::{RefOrigin, Track, TrackCollection, TrackSource},
 };
 
-use chrono::{
-    naive::{NaiveDate, NaiveDateTime},
-    DateTime, Utc,
-};
+use chrono::naive::{NaiveDate, NaiveDateTime};
 
 use percent_encoding::percent_decode;
 
@@ -41,7 +37,7 @@ use percent_encoding::percent_decode;
 pub struct InsertableTracksEntity<'a> {
     pub uid: &'a [u8],
     pub rev_ordinal: i64,
-    pub rev_timestamp: NaiveDateTime,
+    pub rev_instant: TickType,
     pub ser_fmt: i16,
     pub ser_ver_major: i32,
     pub ser_ver_minor: i32,
@@ -57,7 +53,7 @@ impl<'a> InsertableTracksEntity<'a> {
         Self {
             uid: header.uid().as_ref(),
             rev_ordinal: header.revision().ordinal() as i64,
-            rev_timestamp: header.revision().timestamp().naive_utc(),
+            rev_instant: (header.revision().instant().0).0,
             ser_fmt: ser_fmt as i16,
             ser_ver_major: 0, // TODO
             ser_ver_minor: 0, // TODO
@@ -70,7 +66,7 @@ impl<'a> InsertableTracksEntity<'a> {
 #[table_name = "tbl_track"]
 pub struct UpdatableTracksEntity<'a> {
     pub rev_ordinal: i64,
-    pub rev_timestamp: NaiveDateTime,
+    pub rev_instant: TickType,
     pub ser_fmt: i16,
     pub ser_ver_major: i32,
     pub ser_ver_minor: i32,
@@ -85,7 +81,7 @@ impl<'a> UpdatableTracksEntity<'a> {
     ) -> Self {
         Self {
             rev_ordinal: next_revision.ordinal() as i64,
-            rev_timestamp: next_revision.timestamp().naive_utc(),
+            rev_instant: (next_revision.instant().0).0,
             ser_fmt: ser_fmt as i16,
             ser_ver_major: 0, // TODO
             ser_ver_minor: 0, // TODO
@@ -100,7 +96,7 @@ pub struct QueryableSerializedEntity {
     pub id: StorageId,
     pub uid: Vec<u8>,
     pub rev_ordinal: i64,
-    pub rev_timestamp: NaiveDateTime,
+    pub rev_instant: TickType,
     pub ser_fmt: i16,
     pub ser_ver_major: i32,
     pub ser_ver_minor: i32,
@@ -112,7 +108,7 @@ impl From<QueryableSerializedEntity> for SerializedEntity {
         let uid = EntityUid::from_slice(&from.uid);
         let revision = EntityRevision::new(
             from.rev_ordinal as u64,
-            DateTime::from_utc(from.rev_timestamp, Utc),
+            TickInstant(Ticks(from.rev_instant)),
         );
         let header = EntityHeader::new(uid, revision);
         let format = SerializationFormat::from(from.ser_fmt).unwrap();
@@ -284,7 +280,7 @@ pub struct InsertableTracksSource<'a> {
     pub audio_enc_settings: Option<&'a str>,
     pub metadata_sync_when: Option<NaiveDateTime>,
     pub metadata_sync_rev_ordinal: Option<i64>,
-    pub metadata_sync_rev_timestamp: Option<NaiveDateTime>,
+    pub metadata_sync_rev_instant: Option<TickType>,
 }
 
 impl<'a> InsertableTracksSource<'a> {
@@ -327,9 +323,9 @@ impl<'a> InsertableTracksSource<'a> {
             metadata_sync_rev_ordinal: track_source
                 .metadata_sync
                 .map(|sync| sync.revision.ordinal() as i64),
-            metadata_sync_rev_timestamp: track_source
+            metadata_sync_rev_instant: track_source
                 .metadata_sync
-                .map(|sync| sync.revision.timestamp().naive_utc()),
+                .map(|sync| (sync.revision.instant().0).0),
         }
     }
 }

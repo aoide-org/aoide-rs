@@ -17,10 +17,6 @@ use super::{schema::tbl_collection, *};
 
 use crate::api::entity::StorageId;
 
-use crate::core::entity::{EntityHeader, EntityRevision, EntityUid};
-
-use chrono::{naive::NaiveDateTime, DateTime, Utc};
-
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Insertable)]
@@ -28,7 +24,7 @@ use chrono::{naive::NaiveDateTime, DateTime, Utc};
 pub struct InsertableCollectionsEntity<'a> {
     pub uid: &'a [u8],
     pub rev_ordinal: i64,
-    pub rev_timestamp: NaiveDateTime,
+    pub rev_instant: TickType,
     pub name: &'a str,
     pub description: Option<&'a str>,
 }
@@ -38,7 +34,7 @@ impl<'a> InsertableCollectionsEntity<'a> {
         Self {
             uid: entity.header().uid().as_ref(),
             rev_ordinal: entity.header().revision().ordinal() as i64,
-            rev_timestamp: entity.header().revision().timestamp().naive_utc(),
+            rev_instant: (entity.header().revision().instant().0).0,
             name: &entity.body().name,
             description: entity.body().description.as_ref().map(|s| s.as_str()),
         }
@@ -49,7 +45,7 @@ impl<'a> InsertableCollectionsEntity<'a> {
 #[table_name = "tbl_collection"]
 pub struct UpdatableCollectionsEntity<'a> {
     pub rev_ordinal: i64,
-    pub rev_timestamp: NaiveDateTime,
+    pub rev_instant: TickType,
     pub name: &'a str,
     pub description: Option<&'a str>,
 }
@@ -58,7 +54,7 @@ impl<'a> UpdatableCollectionsEntity<'a> {
     pub fn bind(next_revision: &EntityRevision, body: &'a Collection) -> Self {
         Self {
             rev_ordinal: next_revision.ordinal() as i64,
-            rev_timestamp: next_revision.timestamp().naive_utc(),
+            rev_instant: (next_revision.instant().0).0,
             name: &body.name,
             description: body.description.as_ref().map(|s| s.as_str()),
         }
@@ -70,7 +66,7 @@ pub struct QueryableCollectionsEntity {
     pub id: StorageId,
     pub uid: Vec<u8>,
     pub rev_ordinal: i64,
-    pub rev_timestamp: NaiveDateTime,
+    pub rev_instant: TickType,
     pub name: String,
     pub description: Option<String>,
 }
@@ -80,7 +76,7 @@ impl From<QueryableCollectionsEntity> for CollectionEntity {
         let uid = EntityUid::from_slice(&from.uid);
         let revision = EntityRevision::new(
             from.rev_ordinal as u64,
-            DateTime::from_utc(from.rev_timestamp, Utc),
+            TickInstant(Ticks(from.rev_instant)),
         );
         let header = EntityHeader::new(uid, revision);
         let body = Collection {

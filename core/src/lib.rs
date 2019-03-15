@@ -25,6 +25,7 @@ use serde::{Deserialize, Serialize};
 pub mod prelude {
     pub use super::audio::{sample::*, signal::*, *};
     pub use super::entity::*;
+    pub use super::time::*;
     pub use super::util::*;
 }
 
@@ -34,11 +35,12 @@ pub mod collection;
 
 pub mod entity;
 
-#[allow(clippy::trivially_copy_pass_by_ref)]
 pub mod metadata;
 
 #[allow(clippy::trivially_copy_pass_by_ref)]
 pub mod music;
+
+pub mod time;
 
 #[allow(clippy::trivially_copy_pass_by_ref)]
 pub mod track;

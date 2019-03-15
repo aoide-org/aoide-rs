@@ -68,14 +68,14 @@ fn revision_sequence() {
     assert!(!next.is_initial());
     assert!(initial < next);
     assert!(initial.ordinal() < next.ordinal());
-    assert!(initial.timestamp() <= next.timestamp());
+    assert!(initial.instant() <= next.instant());
 
     let nextnext = next.next();
     assert!(nextnext.is_valid());
     assert!(!nextnext.is_initial());
     assert!(next < nextnext);
     assert!(next.ordinal() < nextnext.ordinal());
-    assert!(next.timestamp() <= nextnext.timestamp());
+    assert!(next.instant() <= nextnext.instant());
 }
 
 #[test]
@@ -95,5 +95,5 @@ fn should_generate_unique_initial_headers() {
     assert!(header2.revision().is_initial());
     assert_ne!(header1.uid(), header2.uid());
     assert_eq!(header1.revision().ordinal(), header2.revision().ordinal());
-    assert!(header1.revision().timestamp() <= header2.revision().timestamp());
+    assert!(header1.revision().instant() <= header2.revision().instant());
 }

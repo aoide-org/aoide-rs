@@ -371,7 +371,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                     tbl_track::uid
                         .eq(uid.as_ref())
                         .and(tbl_track::rev_ordinal.eq(prev_revision.ordinal() as i64))
-                        .and(tbl_track::rev_timestamp.eq(prev_revision.timestamp().naive_utc())),
+                        .and(tbl_track::rev_instant.eq((prev_revision.instant().0).0)),
                 );
                 let storage_id = self.helper.before_entity_updated_or_removed(&uid)?;
                 let query = diesel::update(target).set(&updatable);

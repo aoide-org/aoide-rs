@@ -22,7 +22,7 @@ table! {
         id -> BigInt,
         uid -> Binary,
         rev_ordinal -> BigInt,
-        rev_timestamp -> Timestamp,
+        rev_instant -> BigInt,
         ser_fmt -> SmallInt,
         ser_ver_major -> Integer,
         ser_ver_minor -> Integer,
@@ -60,7 +60,7 @@ table! {
         audio_enc_settings -> Nullable<Text>,
         metadata_sync_when -> Nullable<Timestamp>,
         metadata_sync_rev_ordinal -> Nullable<BigInt>,
-        metadata_sync_rev_timestamp -> Nullable<Timestamp>,
+        metadata_sync_rev_instant -> Nullable<BigInt>,
     }
 }
 

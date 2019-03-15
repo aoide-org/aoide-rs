@@ -24,7 +24,7 @@ type TrackSearchBoxedQuery<'a> = diesel::query_builder::BoxedSelectStatement<
         diesel::sql_types::BigInt,
         diesel::sql_types::Binary,
         diesel::sql_types::BigInt,
-        diesel::sql_types::Timestamp,
+        diesel::sql_types::BigInt,
         diesel::sql_types::SmallInt,
         diesel::sql_types::Integer,
         diesel::sql_types::Integer,
@@ -621,8 +621,8 @@ impl TrackSearchQueryTransform for TrackSort {
                 }
             }
             TrackSortField::LastRevisionedAt => match direction {
-                SortDirection::Ascending => query.then_order_by(tbl_track::rev_timestamp.asc()),
-                SortDirection::Descending => query.then_order_by(tbl_track::rev_timestamp.desc()),
+                SortDirection::Ascending => query.then_order_by(tbl_track::rev_instant.asc()),
+                SortDirection::Descending => query.then_order_by(tbl_track::rev_instant.desc()),
             },
             TrackSortField::TrackTitle => match direction {
                 SortDirection::Ascending => {

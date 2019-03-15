@@ -21,7 +21,7 @@ CREATE TABLE tbl_collection (
     id                       INTEGER PRIMARY KEY,
     uid                      BINARY(24) NOT NULL,
     rev_ordinal              INTEGER NOT NULL,
-    rev_timestamp            DATETIME NOT NULL, -- with implicit time zone (UTC)
+    rev_instant            DATETIME NOT NULL, -- with implicit time zone (UTC)
     name                     TEXT NOT NULL,     -- display name
     description              TEXT,
     UNIQUE (uid)
@@ -39,7 +39,7 @@ CREATE TABLE tbl_track (
     id                       INTEGER PRIMARY KEY,
     uid                      BINARY(24) NOT NULL,
     rev_ordinal              INTEGER NOT NULL,
-    rev_timestamp            DATETIME NOT NULL, -- with implicit time zone (UTC)
+    rev_instant            DATETIME NOT NULL, -- with implicit time zone (UTC)
     ser_fmt                  INTEGER NOT NULL,  -- serialization format: 1 = JSON, 2 = BSON, 3 = CBOR, 4 = Bincode, ...
     ser_ver_major            INTEGER NOT NULL,  -- serialization version for data migration - breaking changes
     ser_ver_minor            INTEGER NOT NULL,  -- serialization version for data migration - backward-compatible changes
@@ -124,7 +124,7 @@ CREATE TABLE aux_track_source (
     audio_enc_settings       TEXT,              -- encoder settings
     metadata_sync_when       DATETIME,          -- most recent metadata synchronization
     metadata_sync_rev_ordinal INTEGER,          -- most recent metadata synchronization
-    metadata_sync_rev_timestamp DATETIME,       -- most recent metadata synchronization
+    metadata_sync_rev_instant DATETIME,       -- most recent metadata synchronization
     FOREIGN KEY(track_id) REFERENCES tbl_track(id),
     UNIQUE (track_id, uri),
     UNIQUE (track_id, content_type)             -- at most one URI per content type

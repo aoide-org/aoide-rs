@@ -18,7 +18,7 @@ table! {
         id -> BigInt,
         uid -> Binary,
         rev_ordinal -> BigInt,
-        rev_timestamp -> Timestamp,
+        rev_instant -> BigInt,
         name -> Text,
         description -> Nullable<Text>,
     }
