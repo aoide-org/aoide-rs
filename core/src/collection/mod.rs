@@ -17,14 +17,12 @@ use super::*;
 
 use crate::entity::*;
 
-///////////////////////////////////////////////////////////////////////
-
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Collection {
     pub name: String,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "desc", skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
 }
 

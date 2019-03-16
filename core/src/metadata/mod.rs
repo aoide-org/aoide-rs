@@ -15,14 +15,10 @@
 
 use super::*;
 
-use std::fmt;
+pub mod actor;
+pub mod title;
 
-///////////////////////////////////////////////////////////////////////
-/// Modules
-///////////////////////////////////////////////////////////////////////
-
-#[cfg(test)]
-mod tests;
+use std::{fmt, str::FromStr};
 
 ///////////////////////////////////////////////////////////////////////
 /// Scoring
@@ -32,18 +28,10 @@ pub type ScoreValue = f64;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Score(pub ScoreValue);
+pub struct Score(ScoreValue);
 
-impl From<ScoreValue> for Score {
-    fn from(from: ScoreValue) -> Self {
-        Score(from)
-    }
-}
-
-impl From<Score> for ScoreValue {
-    fn from(from: Score) -> Self {
-        from.0
-    }
+pub trait Scored {
+    fn score(&self) -> Score;
 }
 
 impl Score {
@@ -55,29 +43,176 @@ impl Score {
         Self(1.0)
     }
 
-    pub fn is_min(self) -> bool {
-        self <= Self::min()
+    pub const fn new(score: ScoreValue) -> Self {
+        Self(score)
     }
 
-    pub fn is_max(self) -> bool {
-        self >= Self::max()
+    // Convert to percentage value with a single decimal digit
+    pub fn to_percentage(self) -> ScoreValue {
+        debug_assert!(self.is_valid());
+        (self.0 * ScoreValue::from(1_000)).round() / ScoreValue::from(10)
+    }
+
+    // Convert to an integer permille value
+    pub fn to_permille(self) -> u16 {
+        debug_assert!(self.is_valid());
+        (self.0 * ScoreValue::from(1_000)).round() as u16
+    }
+}
+
+impl From<Score> for ScoreValue {
+    fn from(from: Score) -> Self {
+        from.0
+    }
+}
+
+impl From<ScoreValue> for Score {
+    fn from(from: ScoreValue) -> Self {
+        let new = Self::new(from);
+        debug_assert!(new.is_valid());
+        new
     }
 }
 
 impl IsValid for Score {
     fn is_valid(&self) -> bool {
-        (*self >= Self::min()) && (*self <= Self::max())
+        *self >= Self::min() && *self <= Self::max()
     }
 }
 
 impl fmt::Display for Score {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         debug_assert!(self.is_valid());
-        write!(
-            f,
-            "{:.1}%",
-            (self.0 * ScoreValue::from(1_000)).round() / ScoreValue::from(10)
-        )
+        write!(f, "{:.1}%", self.to_percentage())
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+/// Label
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct Label(String);
+
+pub trait Labeled {
+    fn label(&self) -> &Label;
+}
+
+impl Label {
+    pub const fn new(label: String) -> Self {
+        Self(label)
+    }
+}
+
+impl AsRef<String> for Label {
+    fn as_ref(&self) -> &String {
+        &self.0
+    }
+}
+
+impl From<Label> for String {
+    fn from(from: Label) -> Self {
+        from.0
+    }
+}
+
+impl From<String> for Label {
+    fn from(from: String) -> Self {
+        let new = Self::new(from);
+        debug_assert!(new.is_valid());
+        new
+    }
+}
+
+impl IsValid for Label {
+    fn is_valid(&self) -> bool {
+        !self.0.is_empty() && self.0.trim().len() == self.0.len()
+    }
+}
+
+impl FromStr for Label {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let label = s.trim().to_string();
+        Ok(Self(label))
+    }
+}
+
+impl fmt::Display for Label {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+/// Facet
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct Facet(String);
+
+pub trait Faceted {
+    fn facet(&self) -> &Facet;
+}
+
+impl Facet {
+    pub const fn new(label: String) -> Self {
+        Self(label)
+    }
+}
+
+impl AsRef<String> for Facet {
+    fn as_ref(&self) -> &String {
+        &self.0
+    }
+}
+
+impl From<Facet> for String {
+    fn from(from: Facet) -> Self {
+        from.0
+    }
+}
+
+impl From<String> for Facet {
+    fn from(from: String) -> Self {
+        let new = Self::new(from);
+        debug_assert!(new.is_valid());
+        new
+    }
+}
+
+impl FromStr for Facet {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s = s.trim();
+        let mut facet = String::with_capacity(s.len());
+        for c in s.chars() {
+            let lc = if c.is_whitespace() {
+                '_'.to_lowercase()
+            } else {
+                c.to_lowercase()
+            };
+            for c in lc {
+                facet.push(c)
+            }
+        }
+        Ok(Self(facet))
+    }
+}
+
+impl IsValid for Facet {
+    fn is_valid(&self) -> bool {
+        !self.0.is_empty()
+            && !self.0.chars().any(char::is_whitespace)
+            && !self.0.chars().any(char::is_uppercase)
+    }
+}
+
+impl fmt::Display for Facet {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
@@ -86,208 +221,100 @@ impl fmt::Display for Score {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
-pub struct ScoredTag(
-    /*score*/ Score,
-    /*term*/ String,
-    /*facet*/ Option<String>, // lowercase / case-insensitive
-);
+pub struct Tag(Label, Score);
 
-impl ScoredTag {
+impl Tag {
     pub const fn default_score() -> Score {
         Score::max()
     }
 
-    pub fn is_default_score(score: Score) -> bool {
-        score == Self::default_score()
+    pub const fn new(label: Label, score: Score) -> Self {
+        Self(label, score)
     }
 
-    pub fn new<S: Into<Score>, T: Into<String>, F: Into<String>>(
-        score: S,
-        term: T,
-        facet: Option<F>,
-    ) -> Self {
-        let score = score.into();
-        let term = term.into();
-        let facet = facet.map(F::into);
-        debug_assert!(match facet {
-            None => true,
-            Some(ref facet) => facet == &facet.to_lowercase(),
-        });
-        ScoredTag(score, term, facet)
-    }
-
-    pub fn new_term<S: Into<Score>, T: Into<String>>(score: S, term: T) -> Self {
-        let facet: Option<String> = None;
-        Self::new(score, term, facet)
-    }
-
-    pub fn new_term_faceted<S: Into<Score>, T: Into<String>, F: Into<String>>(
-        score: S,
-        term: T,
-        facet: F,
-    ) -> Self {
-        Self::new(score, term, Some(facet))
-    }
-
-    pub fn score(&self) -> Score {
-        self.0
-    }
-
-    pub fn term(&self) -> &String {
-        &self.1
-    }
-
-    pub fn facet(&self) -> &Option<String> {
-        &self.2
-    }
-
-    pub fn is_faceted(&self) -> bool {
-        self.facet().is_some()
+    pub const fn new_label(label: Label) -> Self {
+        Self(label, Self::default_score())
     }
 }
 
-impl IsValid for ScoredTag {
-    fn is_valid(&self) -> bool {
-        if !self.score().is_valid() || self.term().is_empty() {
-            false
-        } else if let Some(ref facet) = self.facet().as_ref() {
-            !facet.is_empty() && !facet.contains(char::is_uppercase)
-        } else {
-            true
-        }
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-/// Rating
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Rating(/*score*/ Score, /*owner*/ Option<String>);
-
-impl Rating {
-    pub fn new<S: Into<Score>, O: Into<String>>(score: S, owner: Option<O>) -> Self {
-        Rating(score.into(), owner.map(O::into))
-    }
-
-    pub fn new_anonymous<S: Into<Score>>(score: S) -> Self {
-        Rating(score.into(), None)
-    }
-
-    pub fn new_owned<S: Into<Score>, O: Into<String>>(score: S, owner: O) -> Self {
-        Rating(score.into(), Some(owner.into()))
-    }
-
-    pub fn score(&self) -> Score {
-        self.0
-    }
-
-    pub fn owner(&self) -> &Option<String> {
-        &self.1
-    }
-
-    pub fn is_anonymous(&self) -> bool {
-        self.owner().is_none()
-    }
-
-    pub fn is_owned(&self) -> bool {
-        self.owner().is_some()
-    }
-
-    pub fn rating_from_stars(stars: u8, max_stars: u8) -> Score {
-        Score(ScoreValue::from(stars.min(max_stars)) / ScoreValue::from(max_stars))
-    }
-
-    pub fn star_rating(&self, max_stars: u8) -> u8 {
-        ((self.score().0 * ScoreValue::from(max_stars)).ceil() as u8).min(max_stars)
-    }
-
-    pub fn minmax<'a>(ratings: &[Self], owner: Option<&'a str>) -> Option<(Score, Score)> {
-        let count = ratings
-            .iter()
-            .filter(|rating| {
-                owner.is_none()
-                    || rating.owner().is_none()
-                    || rating.owner().as_ref().map(|owner| owner.as_str()) == owner
-            })
-            .count();
-        if count > 0 {
-            let (mut score_min, mut score_max) = (Score::max().0, Score::min().0);
-            ratings
-                .iter()
-                .filter(|rating| {
-                    owner.is_none()
-                        || rating.owner().is_none()
-                        || rating.owner().as_ref().map(|owner| owner.as_str()) == owner
-                })
-                .for_each(|rating| {
-                    score_min = score_min.min(rating.score().0);
-                    score_max = score_max.max(rating.score().0);
-                });
-            Some((score_min.into(), score_max.into()))
-        } else {
-            None
-        }
-    }
-}
-
-impl IsValid for Rating {
-    fn is_valid(&self) -> bool {
-        if !self.score().is_valid() {
-            false
-        } else if let Some(ref owner) = self.owner().as_ref() {
-            !owner.is_empty()
-        } else {
-            true
-        }
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-/// Comment
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Comment(/*text*/ String, /*owner*/ Option<String>);
-
-impl Comment {
-    pub fn new<T: Into<String>, O: Into<String>>(text: T, owner: Option<O>) -> Self {
-        Comment(text.into(), owner.map(O::into))
-    }
-
-    pub fn new_anonymous<T: Into<String>>(text: T) -> Self {
-        Comment(text.into(), None)
-    }
-
-    pub fn new_owned<T: Into<String>, O: Into<String>>(text: T, owner: O) -> Self {
-        Comment(text.into(), Some(owner.into()))
-    }
-
-    pub fn text(&self) -> &String {
+impl Labeled for Tag {
+    fn label(&self) -> &Label {
         &self.0
     }
+}
 
-    pub fn owner(&self) -> &Option<String> {
+impl Scored for Tag {
+    fn score(&self) -> Score {
+        self.1
+    }
+}
+
+impl IsValid for Tag {
+    fn is_valid(&self) -> bool {
+        self.label().is_valid() && self.score().is_valid()
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Tags;
+
+impl Tags {
+    pub fn is_valid(slice: &[Tag]) -> bool {
+        // TODO: Check for duplicate labels
+        slice.iter().all(IsValid::is_valid)
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+/// FacetedTag
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
+pub struct FacetedTag(Facet, Label, Score);
+
+impl FacetedTag {
+    pub const fn new(facet: Facet, label: Label, score: Score) -> Self {
+        Self(facet, label, score)
+    }
+}
+
+impl Faceted for FacetedTag {
+    fn facet(&self) -> &Facet {
+        &self.0
+    }
+}
+
+impl Labeled for FacetedTag {
+    fn label(&self) -> &Label {
         &self.1
     }
+}
 
-    pub fn is_anonymous(&self) -> bool {
-        self.owner().is_none()
-    }
-
-    pub fn is_owned(&self) -> bool {
-        self.owner().is_some()
+impl Scored for FacetedTag {
+    fn score(&self) -> Score {
+        self.2
     }
 }
 
-impl IsValid for Comment {
+impl IsValid for FacetedTag {
     fn is_valid(&self) -> bool {
-        if let Some(owner) = self.owner().as_ref() {
-            !owner.is_empty()
-        } else {
-            true
-        }
+        self.facet().is_valid() && self.label().is_valid() && self.score().is_valid()
     }
 }
+
+#[derive(Debug, Clone, Copy)]
+pub struct FacetedTags;
+
+impl FacetedTags {
+    pub fn is_valid(slice: &[FacetedTag]) -> bool {
+        // TODO: Check for duplicate labels per facet
+        slice.iter().all(IsValid::is_valid)
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+/// Tests
+///////////////////////////////////////////////////////////////////////
+
+#[cfg(test)]
+mod tests;

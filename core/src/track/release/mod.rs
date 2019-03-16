@@ -15,41 +15,30 @@
 
 use super::*;
 
-use crate::api::Pagination;
-
-use chrono::NaiveDate;
-use failure::Error;
+use chrono::{DateTime, Utc};
 
 ///////////////////////////////////////////////////////////////////////
+/// ReleaseMetadata
+///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct ReleasedAtDateRange {
-    pub earliest: NaiveDate,
-    pub latest: NaiveDate,
+pub struct ReleaseMetadata {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub released_at: Option<DateTime<Utc>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub released_by: Option<String>, // record label
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub copyright: Option<String>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub licenses: Vec<String>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct AlbumSummary {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub artist: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub title: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub released_at: Option<ReleasedAtDateRange>,
-
-    pub total_tracks: usize,
-}
-
-pub type AlbumsResult<T> = Result<T, Error>;
-
-pub trait Albums {
-    fn list_albums(
-        &self,
-        collection_uid: Option<&EntityUid>,
-        pagination: Pagination,
-    ) -> AlbumsResult<Vec<AlbumSummary>>;
+impl IsValid for ReleaseMetadata {
+    fn is_valid(&self) -> bool {
+        true
+    }
 }

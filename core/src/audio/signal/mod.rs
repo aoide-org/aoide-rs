@@ -13,12 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#[cfg(test)]
-mod tests;
-
 use super::*;
-
-use crate::audio::sample::*;
 
 use std::{fmt, u32};
 
@@ -186,7 +181,7 @@ impl IsValid for LatencyMs {
 
 impl fmt::Display for LatencyMs {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", self.0, LatencyMs::unit_of_measure())
+        write!(f, "{} {}", self.0, Self::unit_of_measure())
     }
 }
 
@@ -197,53 +192,34 @@ impl fmt::Display for LatencyMs {
 pub type LufsValue = f64;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub struct Lufs(pub LufsValue);
+pub struct LoudnessLufs(pub LufsValue);
 
-// Loudness is measured in "Loudness Units relative to Full Scale" (LUFS) with 1 LU = 1 dB.
-impl Lufs {
+// Loudness is measured according to ITU-R BS.1770 in "Loudness Units
+// relative to Full Scale" (LUFS) with 1 LU = 1 dB.
+// EBU R128 proposes a target level of -23 LUFS while the ReplayGain v2
+// specification (RG2) proposes -18 LUFS for achieving similar perceptive
+// results compared to ReplayGain v1 (RG1).
+impl LoudnessLufs {
     pub const fn unit_of_measure() -> &'static str {
         "LUFS"
     }
 }
 
-impl IsValid for Lufs {
+impl IsValid for LoudnessLufs {
     fn is_valid(&self) -> bool {
         !self.0.is_nan()
     }
 }
 
-impl fmt::Display for Lufs {
+impl fmt::Display for LoudnessLufs {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", self.0, Lufs::unit_of_measure())
+        write!(f, "{} {}", self.0, Self::unit_of_measure())
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub enum Loudness {
-    // Loudness measured according to ITU-R BS.1770 in LUFS.
-    // EBU R128 proposes a target level of -23 LUFS while the
-    // ReplayGain v2 specification (RG2) proposes -18 LUFS for
-    // achieving similar perceptive results compared to
-    // ReplayGain v1 (RG1).
-    #[serde(rename = "itu-bs1770-lufs")]
-    ItuBs1770(Lufs),
-}
+///////////////////////////////////////////////////////////////////////
+/// Tests
+///////////////////////////////////////////////////////////////////////
 
-impl IsValid for Loudness {
-    fn is_valid(&self) -> bool {
-        use Loudness::*;
-        match self {
-            ItuBs1770(lufs) => lufs.is_valid(),
-        }
-    }
-}
-
-impl fmt::Display for Loudness {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use Loudness::*;
-        match self {
-            ItuBs1770(lufs) => write!(f, "ITU-R BS.1770 {}", lufs),
-        }
-    }
-}
+#[cfg(test)]
+mod tests;

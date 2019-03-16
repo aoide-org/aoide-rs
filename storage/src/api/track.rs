@@ -13,15 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use super::*;
+
 use super::serde::{SerializationFormat, SerializedEntity};
 
 use crate::api::{
-    collection::CollectionTrackStats, LocateTracksParams, Pagination, ReplaceTracksParams,
-    ReplacedTracks, ScoredTagCount, SearchTracksParams, StringField, StringFieldCounts,
-    TagFacetCount,
+    collection::CollectionTrackStats, FacetCount, LocateTracksParams, Pagination,
+    ReplaceTracksParams, ReplacedTracks, SearchTracksParams, StringField, StringFieldCounts,
+    TagCount,
 };
-
-use crate::core::{entity::*, track::*};
 
 use failure::Error;
 
@@ -83,12 +83,12 @@ pub trait TrackTags {
         collection_uid: Option<&EntityUid>,
         facets: Option<&Vec<&str>>,
         pagination: Pagination,
-    ) -> TrackTagsResult<Vec<TagFacetCount>>;
+    ) -> TrackTagsResult<Vec<FacetCount>>;
 
     fn list_tags(
         &self,
         collection_uid: Option<&EntityUid>,
         facets: Option<&Vec<&str>>,
         pagination: Pagination,
-    ) -> TrackTagsResult<Vec<ScoredTagCount>>;
+    ) -> TrackTagsResult<Vec<TagCount>>;
 }

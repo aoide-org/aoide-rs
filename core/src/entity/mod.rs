@@ -15,7 +15,7 @@
 
 use super::*;
 
-use crate::time::TickInstant;
+use crate::clock::TickInstant;
 
 use failure::bail;
 
@@ -23,17 +23,10 @@ use rand::{thread_rng, RngCore};
 
 use serde::{
     de::{self, Visitor as SerdeDeserializeVisitor},
-    Deserialize, Deserializer, Serialize, Serializer,
+    Deserializer, Serializer,
 };
 
 use std::{fmt, mem, str};
-
-///////////////////////////////////////////////////////////////////////
-/// Modules
-///////////////////////////////////////////////////////////////////////
-
-#[cfg(test)]
-mod tests;
 
 ///////////////////////////////////////////////////////////////////////
 /// EntityUid
@@ -164,8 +157,10 @@ pub type EntityVersionNumber = u32;
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityVersion {
+    #[serde(rename = "maj")]
     major: EntityVersionNumber,
 
+    #[serde(rename = "min")]
     minor: EntityVersionNumber,
 }
 
@@ -273,6 +268,7 @@ impl fmt::Display for EntityRevision {
 pub struct EntityHeader {
     uid: EntityUid,
 
+    #[serde(rename = "rev")]
     revision: EntityRevision,
 }
 
@@ -315,6 +311,7 @@ impl EntityHeader {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Entity<T> {
+    #[serde(rename = "hdr")]
     header: EntityHeader,
 
     body: T,
@@ -352,3 +349,10 @@ impl<T> Entity<T> {
         }
     }
 }
+
+///////////////////////////////////////////////////////////////////////
+/// Tests
+///////////////////////////////////////////////////////////////////////
+
+#[cfg(test)]
+mod tests;

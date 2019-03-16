@@ -15,8 +15,6 @@
 
 use super::*;
 
-use crate::core::{collection::*, entity::*};
-
 use aoide_storage::{
     api::{
         collection::{CollectionEntityWithStats, CollectionStats, Collections, CollectionsResult},

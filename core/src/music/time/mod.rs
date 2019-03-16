@@ -1,0 +1,103 @@
+// aoide.org - Copyright (C) 2018-2019 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+use super::*;
+
+use std::{f64, fmt};
+
+///////////////////////////////////////////////////////////////////////
+/// Tempo
+///////////////////////////////////////////////////////////////////////
+
+pub type Beats = f64;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub struct TempoBpm(pub Beats);
+
+impl TempoBpm {
+    pub const fn unit_of_measure() -> &'static str {
+        "bpm"
+    }
+
+    pub const fn min() -> Self {
+        Self(f64::MIN_POSITIVE)
+    }
+
+    pub const fn max() -> Self {
+        Self(f64::MAX)
+    }
+}
+
+impl IsValid for TempoBpm {
+    fn is_valid(&self) -> bool {
+        *self >= Self::min() && *self <= Self::max()
+    }
+}
+
+impl fmt::Display for TempoBpm {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} {}", self.0, Self::unit_of_measure())
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+/// TimeSignature
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Copy, Default, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct TimeSignature(u16, u16);
+
+impl TimeSignature {
+    pub fn new(top: u16, bottom: u16) -> Self {
+        TimeSignature(top, bottom)
+    }
+
+    // number of beats in each measure unit or bar, 0 = default/undefined
+    pub fn top(self) -> u16 {
+        self.0
+    }
+
+    pub fn beats_per_measure(self) -> u16 {
+        self.top()
+    }
+
+    // beat value (the note that counts as one beat), 0 = default/undefined
+    pub fn bottom(self) -> u16 {
+        self.1
+    }
+
+    pub fn measure_unit(self) -> u16 {
+        self.bottom()
+    }
+}
+
+impl IsValid for TimeSignature {
+    fn is_valid(&self) -> bool {
+        (self.top() > 0) && (self.bottom() > 0)
+    }
+}
+
+impl fmt::Display for TimeSignature {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}/{}", self.top(), self.bottom())
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+/// Tests
+///////////////////////////////////////////////////////////////////////
+
+#[cfg(test)]
+mod tests;

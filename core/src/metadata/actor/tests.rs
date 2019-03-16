@@ -15,8 +15,6 @@
 
 use super::*;
 
-///////////////////////////////////////////////////////////////////////
-
 #[test]
 fn actors() {
     let summary_artist_name = "Madonna feat. M.I.A. and Nicki Minaj";

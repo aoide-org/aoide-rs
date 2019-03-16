@@ -15,24 +15,15 @@
 
 use super::*;
 
+mod models;
+pub mod schema;
+
 use self::{models::*, schema::*};
 
 use crate::{
     api::{collection::*, entity::*, Pagination},
     storage::util::*,
 };
-
-use crate::core::{collection::*, prelude::*};
-
-///////////////////////////////////////////////////////////////////////
-/// Modules
-///////////////////////////////////////////////////////////////////////
-mod models;
-
-pub mod schema;
-
-#[cfg(test)]
-mod tests;
 
 ///////////////////////////////////////////////////////////////////////
 /// CollectionRepository
@@ -84,8 +75,8 @@ impl<'a> Collections for CollectionRepository<'a> {
             let target = tbl_collection::table.filter(
                 tbl_collection::uid
                     .eq(entity.header().uid().as_ref())
-                    .and(tbl_collection::rev_ordinal.eq(prev_revision.ordinal() as i64))
-                    .and(tbl_collection::rev_instant.eq((prev_revision.instant().0).0)),
+                    .and(tbl_collection::rev_no.eq(prev_revision.ordinal() as i64))
+                    .and(tbl_collection::rev_ts.eq((prev_revision.instant().0).0)),
             );
             let query = diesel::update(target).set(&updatable);
             let rows_affected: usize = query.execute(self.connection)?;
@@ -120,7 +111,7 @@ impl<'a> Collections for CollectionRepository<'a> {
 
     fn list_entities(&self, pagination: Pagination) -> CollectionsResult<Vec<CollectionEntity>> {
         let mut target = tbl_collection::table
-            .then_order_by(tbl_collection::rev_instant.desc())
+            .then_order_by(tbl_collection::rev_ts.desc())
             .into_boxed();
 
         // Pagination
@@ -147,7 +138,7 @@ impl<'a> Collections for CollectionRepository<'a> {
     ) -> CollectionsResult<Vec<CollectionEntity>> {
         let mut target = tbl_collection::table
             .filter(tbl_collection::name.like(format!("{}%", name_prefix)))
-            .then_order_by(tbl_collection::rev_instant.desc())
+            .then_order_by(tbl_collection::rev_ts.desc())
             .into_boxed();
 
         // Pagination
@@ -166,7 +157,7 @@ impl<'a> Collections for CollectionRepository<'a> {
     ) -> CollectionsResult<Vec<CollectionEntity>> {
         let mut target = tbl_collection::table
             .filter(tbl_collection::name.like(format!("%{}%", partial_name)))
-            .then_order_by(tbl_collection::rev_instant.desc())
+            .then_order_by(tbl_collection::rev_ts.desc())
             .into_boxed();
 
         // Pagination
@@ -178,3 +169,10 @@ impl<'a> Collections for CollectionRepository<'a> {
             .map_err(Into::into)
     }
 }
+
+///////////////////////////////////////////////////////////////////////
+/// Tests
+///////////////////////////////////////////////////////////////////////
+
+#[cfg(test)]
+mod tests;

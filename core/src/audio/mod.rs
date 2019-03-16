@@ -15,17 +15,40 @@
 
 use super::*;
 
-use std::{fmt, time::Duration, u16};
-
-///////////////////////////////////////////////////////////////////////
-/// Modules
-///////////////////////////////////////////////////////////////////////
+pub mod channel;
 pub mod sample;
-
 pub mod signal;
 
-#[cfg(test)]
-mod tests;
+use self::{channel::*, sample::*, signal::*};
+
+use std::{fmt, time::Duration};
+
+///////////////////////////////////////////////////////////////////////
+/// Position
+///////////////////////////////////////////////////////////////////////
+
+pub type PositionInMilliseconds = f64;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+pub struct PositionMs(pub PositionInMilliseconds);
+
+impl PositionMs {
+    pub const fn unit_of_measure() -> &'static str {
+        "ms"
+    }
+}
+
+impl IsValid for PositionMs {
+    fn is_valid(&self) -> bool {
+        self.0.is_finite()
+    }
+}
+
+impl fmt::Display for PositionMs {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:+} {}", self.0, Self::unit_of_measure())
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////
 /// Duration
@@ -71,119 +94,71 @@ impl From<Duration> for DurationMs {
 
 impl fmt::Display for DurationMs {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", self.0, DurationMs::unit_of_measure())
+        write!(f, "{} {}", self.0, Self::unit_of_measure())
     }
 }
 
 ///////////////////////////////////////////////////////////////////////
-/// Channels
+/// AudioEncoder
 ///////////////////////////////////////////////////////////////////////
 
-type ChannelCountValue = u16;
-
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct ChannelCount(pub ChannelCountValue);
-
-impl ChannelCount {
-    pub const fn zero() -> Self {
-        Self(0)
-    }
-
-    pub const fn min() -> Self {
-        Self(1)
-    }
-
-    pub const fn max() -> Self {
-        Self(u16::MAX)
-    }
-}
-
-impl IsValid for ChannelCount {
-    fn is_valid(&self) -> bool {
-        debug_assert!(*self <= Self::max());
-        *self >= Self::min()
-    }
-}
-
-impl From<ChannelCountValue> for ChannelCount {
-    fn from(from: ChannelCountValue) -> Self {
-        Self(from)
-    }
-}
-
-impl From<ChannelCount> for ChannelCountValue {
-    fn from(from: ChannelCount) -> Self {
-        from.0
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub enum ChannelLayout {
-    Mono,
-
-    DualMono,
-
-    Stereo,
-    // ...to be continued
-}
-
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Channels {
-    pub count: ChannelCount,
+pub struct AudioEncoder {
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    pub name: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub layout: Option<ChannelLayout>,
+    pub settings: Option<String>,
 }
 
-impl ChannelLayout {
-    pub fn channel_count(self) -> ChannelCount {
-        match self {
-            ChannelLayout::Mono => ChannelCount(1),
-            ChannelLayout::DualMono => ChannelCount(2),
-            ChannelLayout::Stereo => ChannelCount(2),
-        }
-    }
-
-    pub fn channels(self) -> Channels {
-        Channels {
-            count: self.channel_count(),
-            layout: Some(self),
-        }
-    }
-}
-
-impl Channels {
-    pub fn count(count: ChannelCount) -> Self {
-        Self {
-            count,
-            layout: None,
-        }
-    }
-
-    pub fn layout(layout: ChannelLayout) -> Self {
-        Self {
-            count: layout.channel_count(),
-            layout: Some(layout),
-        }
-    }
-
-    pub fn default_layout(count: ChannelCount) -> Option<ChannelLayout> {
-        match count {
-            ChannelCount(1) => Some(ChannelLayout::Mono),
-            ChannelCount(2) => Some(ChannelLayout::Stereo),
-            _ => None,
-        }
-    }
-}
-
-impl IsValid for Channels {
+impl IsValid for AudioEncoder {
     fn is_valid(&self) -> bool {
-        self.count.is_valid()
-            && self
-                .layout
-                .map(|layout| layout.channel_count() == self.count)
-                .unwrap_or(true)
+        !self.name.is_empty()
     }
 }
+
+///////////////////////////////////////////////////////////////////////
+/// AudioContent
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct AudioContent {
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    pub channel_count: ChannelCount,
+
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    pub duration: DurationMs,
+
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    pub sample_rate: SampleRateHz,
+
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    pub bit_rate: BitRateBps,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loudness: Option<LoudnessLufs>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub encoder: Option<AudioEncoder>,
+}
+
+impl IsValid for AudioContent {
+    fn is_valid(&self) -> bool {
+        self.channel_count.is_valid()
+            && self.duration.is_valid()
+            && !self.duration.is_empty()
+            && self.sample_rate.is_valid()
+            && self.bit_rate.is_valid()
+            && self.loudness.iter().all(IsValid::is_valid)
+            && self.encoder.iter().all(IsValid::is_valid)
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+/// Tests
+///////////////////////////////////////////////////////////////////////
+
+#[cfg(test)]
+mod tests;

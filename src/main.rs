@@ -18,7 +18,7 @@ extern crate diesel_migrations;
 
 use aoide::api::{
     cli::*,
-    web::{albums::*, collections::*, tracks::*, *},
+    web::{collections::*, tracks::*, *},
 };
 
 use aoide_core::collection::Collection;
@@ -148,10 +148,6 @@ fn web_app(executor: &Addr<SqliteExecutor>) -> actix_web::App<AppState> {
             },
         );
     })
-    .resource("/tracks/fields", |r| {
-        r.method(http::Method::GET)
-            .with_async(on_list_tracks_fields);
-    })
     .resource("/tracks/tags", |r| {
         r.method(http::Method::GET).with_async(on_list_tracks_tags);
     })
@@ -204,9 +200,6 @@ fn web_app(executor: &Addr<SqliteExecutor>) -> actix_web::App<AppState> {
                 });
             });
         r.method(http::Method::DELETE).with_async(on_delete_track);
-    })
-    .resource("/albums", |r| {
-        r.method(http::Method::GET).with_async(on_list_albums);
     })
     .resource("/collections", |r| {
         r.method(http::Method::GET).with_async(on_list_collections);

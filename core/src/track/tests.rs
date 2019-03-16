@@ -13,13 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+/*
 use super::*;
 
 use mime_guess;
-
 use serde_json;
-
-///////////////////////////////////////////////////////////////////////
 
 #[test]
 fn serialize_json() {
@@ -51,10 +49,10 @@ fn serialize_json() {
         play_count: None,
     };
     let tags = vec![
-        ScoredTag::new_term_faceted(0.8, "1980s", TrackTagging::FACET_STYLE),
-        ScoredTag::new_term_faceted(0.3, "1990s", "style"),
-        ScoredTag::new_term_faceted(0.6, "Filler", TrackTagging::FACET_SESSION),
-        ScoredTag::new_term(1.0, "Non-faceted tag"),
+        Tag::new_label_faceted(0.8, "1980s", TrackTagging::FACET_STYLE),
+        Tag::new_label_faceted(0.3, "1990s", "style"),
+        Tag::new_label_faceted(0.6, "Filler", TrackTagging::FACET_SESSION),
+        Tag::new_term(1.0, "Non-faceted tag"),
     ];
     let body = Track {
         sources: vec![source],
@@ -95,3 +93,4 @@ fn star_rating() {
         }
     }
 }
+*/

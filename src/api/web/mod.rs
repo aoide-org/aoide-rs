@@ -15,7 +15,7 @@
 
 use super::*;
 
-use actix::prelude::*;
+use actix::prelude::{Actor as ActixActor, *};
 
 use actix_web::{FutureResponse, HttpResponse, Json, Path, Query, State};
 
@@ -26,16 +26,8 @@ use diesel::{
 
 use failure::Error;
 
-///////////////////////////////////////////////////////////////////////
-/// Modules
-///////////////////////////////////////////////////////////////////////
-pub mod albums;
-
 pub mod collections;
-
 pub mod tracks;
-
-///////////////////////////////////////////////////////////////////////
 
 pub type SqliteConnectionManager = ConnectionManager<SqliteConnection>;
 pub type SqliteConnectionPool = Pool<SqliteConnectionManager>;
@@ -55,7 +47,7 @@ impl SqliteExecutor {
     }
 }
 
-impl Actor for SqliteExecutor {
+impl ActixActor for SqliteExecutor {
     type Context = SyncContext<Self>;
 }
 

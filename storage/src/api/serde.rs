@@ -15,8 +15,6 @@
 
 use super::*;
 
-use crate::core::entity::{EntityHeader, EntityVersion};
-
 use failure::Error;
 
 use mime;

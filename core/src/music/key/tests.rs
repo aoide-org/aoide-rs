@@ -15,13 +15,6 @@
 
 use super::*;
 
-///////////////////////////////////////////////////////////////////////
-
-#[test]
-fn default_time_sig() {
-    assert!(!TimeSignature::default().is_valid());
-}
-
 #[test]
 fn default_key_sig() {
     assert!(!KeySignature::default().is_valid());

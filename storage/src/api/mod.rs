@@ -15,25 +15,10 @@
 
 use super::*;
 
-use crate::core::{entity::EntityHeader, metadata::ScoredTag, prelude::*, track::Track};
-
-///////////////////////////////////////////////////////////////////////
-/// Modules
-///////////////////////////////////////////////////////////////////////
-pub mod album;
-
 pub mod collection;
-
 pub mod entity;
-
 pub mod serde;
-
 pub mod track;
-
-///////////////////////////////////////////////////////////////////////
-
-#[cfg(test)]
-mod tests;
 
 pub type PaginationOffset = u64;
 
@@ -106,11 +91,11 @@ pub struct TagFilter {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub facet: Option<String>,
 
-    #[serde(rename = "term", skip_serializing_if = "Option::is_none")]
-    pub term_condition: Option<StringCondition>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label: Option<StringCondition>,
 
-    #[serde(rename = "score", skip_serializing_if = "Option::is_none")]
-    pub score_condition: Option<NumericCondition>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub score: Option<NumericCondition>,
 }
 
 impl TagFilter {
@@ -131,17 +116,29 @@ impl TagFilter {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub enum StringField {
+    SourceUri, // percent-decoded URI
+    ContentType,
+    TrackTitle,
+    TrackArtist,
+    TrackComposer,
+    AlbumTitle,
+    AlbumArtist,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub enum NumericField {
-    BitRateBps,
-    ChannelsCount,
-    DurationMs,
-    KeySigCode,
-    SampleRateHz,
-    TempoBpm,
-    TimeSigBottom,
-    TimeSigTop,
+    ReleaseYear,
+    BitRate,
+    ChannelCount,
+    Duration,
+    SampleRate,
+    Loudness,
+    MusicTempo,
+    MusicKey,
 }
 
 pub type NumericValue = f64;
@@ -176,18 +173,6 @@ pub struct NumericFilter {
     pub condition: NumericCondition,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub enum PhraseField {
-    AlbumArtist,
-    AlbumTitle,
-    Comments,  // all comments, i.e. independent of owner
-    SourceUri, // percent-decoded URI
-    SourceType,
-    TrackArtist,
-    TrackTitle,
-}
-
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PhraseFilter {
@@ -196,7 +181,7 @@ pub struct PhraseFilter {
 
     // Empty == All
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub fields: Vec<PhraseField>,
+    pub fields: Vec<StringField>,
 
     // Tokenized by whitespace, concatenated with wildcards,
     // and filtered using case-insensitive "contains" semantics
@@ -259,16 +244,16 @@ pub struct ReplacedTracks {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub enum TrackSortField {
-    AlbumArtist,
-    AlbumTitle,
     InCollectionSince, // = recently added (only if searching in a single collection)
     LastRevisionedAt,  // = recently modified (created or updated)
-    ReleasedAt,
-    ReleasedBy,
-    TrackArtist,
     TrackTitle,
+    TrackArtist,
+    AlbumTitle,
+    AlbumArtist,
+    ReleaseYear,
+    MusicTempo,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -302,7 +287,7 @@ impl TrackSort {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 // TODO: extend to an arbitrary tree
 pub enum TrackSearchFilterPredicate {
     PhraseFilter(PhraseFilter),
@@ -331,17 +316,6 @@ pub struct SearchTracksParams {
     pub ordering: Vec<TrackSort>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub enum StringField {
-    AlbumArtist,
-    AlbumTitle,
-    SourceUri,
-    SourceType,
-    TrackArtist,
-    TrackTitle,
-}
-
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct StringCount {
@@ -358,14 +332,22 @@ pub struct StringFieldCounts {
 
 #[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct TagFacetCount {
-    pub facet: Option<String>,
+pub struct FacetCount {
+    pub facet: Option<Facet>,
     pub count: usize,
 }
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct ScoredTagCount {
-    pub tag: ScoredTag,
+pub struct TagCount {
+    pub tag: Tag, // with avg. score
+    pub facet: Option<Facet>,
     pub count: usize,
 }
+
+///////////////////////////////////////////////////////////////////////
+/// Tests
+///////////////////////////////////////////////////////////////////////
+
+#[cfg(test)]
+mod tests;

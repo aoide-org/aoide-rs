@@ -15,18 +15,11 @@
 
 DROP TABLE tbl_collection;
 
-DROP TABLE aux_track_collection;
-DROP TABLE aux_track_comment;
-DROP TABLE aux_track_overview;
-DROP TABLE aux_track_profile;
-DROP TABLE aux_track_rating;
-DROP TABLE aux_track_source;
-DROP TABLE aux_track_summary;
-DROP TABLE aux_track_tag;
-DROP TABLE aux_track_tag_facet;
-DROP TABLE aux_track_tag_term;
-DROP TABLE aux_track_xref;
 DROP TABLE tbl_track;
+DROP TABLE aux_track_collection;
+DROP TABLE aux_track_source;
+DROP TABLE aux_track_brief;
+DROP TABLE aux_track_tag;
 
-DROP TABLE tbl_pending_task_track;
-DROP TABLE tbl_pending_task;
+DROP TABLE aux_tag_label;
+DROP TABLE aux_tag_facet;

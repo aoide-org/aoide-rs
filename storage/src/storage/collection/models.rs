@@ -23,20 +23,20 @@ use crate::api::entity::StorageId;
 #[table_name = "tbl_collection"]
 pub struct InsertableCollectionsEntity<'a> {
     pub uid: &'a [u8],
-    pub rev_ordinal: i64,
-    pub rev_instant: TickType,
+    pub rev_no: i64,
+    pub rev_ts: TickType,
     pub name: &'a str,
-    pub description: Option<&'a str>,
+    pub desc: Option<&'a str>,
 }
 
 impl<'a> InsertableCollectionsEntity<'a> {
     pub fn bind(entity: &'a CollectionEntity) -> Self {
         Self {
             uid: entity.header().uid().as_ref(),
-            rev_ordinal: entity.header().revision().ordinal() as i64,
-            rev_instant: (entity.header().revision().instant().0).0,
+            rev_no: entity.header().revision().ordinal() as i64,
+            rev_ts: (entity.header().revision().instant().0).0,
             name: &entity.body().name,
-            description: entity.body().description.as_ref().map(|s| s.as_str()),
+            desc: entity.body().description.as_ref().map(|s| s.as_str()),
         }
     }
 }
@@ -44,19 +44,19 @@ impl<'a> InsertableCollectionsEntity<'a> {
 #[derive(Debug, AsChangeset)]
 #[table_name = "tbl_collection"]
 pub struct UpdatableCollectionsEntity<'a> {
-    pub rev_ordinal: i64,
-    pub rev_instant: TickType,
+    pub rev_no: i64,
+    pub rev_ts: TickType,
     pub name: &'a str,
-    pub description: Option<&'a str>,
+    pub desc: Option<&'a str>,
 }
 
 impl<'a> UpdatableCollectionsEntity<'a> {
     pub fn bind(next_revision: &EntityRevision, body: &'a Collection) -> Self {
         Self {
-            rev_ordinal: next_revision.ordinal() as i64,
-            rev_instant: (next_revision.instant().0).0,
+            rev_no: next_revision.ordinal() as i64,
+            rev_ts: (next_revision.instant().0).0,
             name: &body.name,
-            description: body.description.as_ref().map(|s| s.as_str()),
+            desc: body.description.as_ref().map(|s| s.as_str()),
         }
     }
 }
@@ -65,23 +65,20 @@ impl<'a> UpdatableCollectionsEntity<'a> {
 pub struct QueryableCollectionsEntity {
     pub id: StorageId,
     pub uid: Vec<u8>,
-    pub rev_ordinal: i64,
-    pub rev_instant: TickType,
+    pub rev_no: i64,
+    pub rev_ts: TickType,
     pub name: String,
-    pub description: Option<String>,
+    pub desc: Option<String>,
 }
 
 impl From<QueryableCollectionsEntity> for CollectionEntity {
     fn from(from: QueryableCollectionsEntity) -> Self {
         let uid = EntityUid::from_slice(&from.uid);
-        let revision = EntityRevision::new(
-            from.rev_ordinal as u64,
-            TickInstant(Ticks(from.rev_instant)),
-        );
+        let revision = EntityRevision::new(from.rev_no as u64, TickInstant(Ticks(from.rev_ts)));
         let header = EntityHeader::new(uid, revision);
         let body = Collection {
             name: from.name,
-            description: from.description,
+            description: from.desc,
         };
         Self::new(header, body)
     }

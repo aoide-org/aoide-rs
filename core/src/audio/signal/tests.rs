@@ -34,38 +34,26 @@ fn sample_rate_is_valid() {
 
 #[test]
 fn sample_rate_to_string() {
-    assert!(
-        SampleRateHz::default()
-            .to_string()
-            .ends_with(SampleRateHz::unit_of_measure())
-    );
-    assert!(
-        SampleRateHz::of_compact_disc()
-            .to_string()
-            .ends_with(SampleRateHz::unit_of_measure())
-    );
-    assert!(
-        SampleRateHz::of_studio_48k()
-            .to_string()
-            .ends_with(SampleRateHz::unit_of_measure())
-    );
-    assert!(
-        SampleRateHz::of_studio_96k()
-            .to_string()
-            .ends_with(SampleRateHz::unit_of_measure())
-    );
-    assert!(
-        SampleRateHz::of_studio_192k()
-            .to_string()
-            .ends_with(SampleRateHz::unit_of_measure())
-    );
+    assert!(SampleRateHz::default()
+        .to_string()
+        .ends_with(SampleRateHz::unit_of_measure()));
+    assert!(SampleRateHz::of_compact_disc()
+        .to_string()
+        .ends_with(SampleRateHz::unit_of_measure()));
+    assert!(SampleRateHz::of_studio_48k()
+        .to_string()
+        .ends_with(SampleRateHz::unit_of_measure()));
+    assert!(SampleRateHz::of_studio_96k()
+        .to_string()
+        .ends_with(SampleRateHz::unit_of_measure()));
+    assert!(SampleRateHz::of_studio_192k()
+        .to_string()
+        .ends_with(SampleRateHz::unit_of_measure()));
 }
 
 #[test]
 fn loudness_to_string() {
-    assert!(
-        Loudness::ItuBs1770(Default::default())
-            .to_string()
-            .ends_with(Lufs::unit_of_measure())
-    );
+    assert!(LoudnessLufs(-1.234)
+        .to_string()
+        .ends_with(LoudnessLufs::unit_of_measure()));
 }

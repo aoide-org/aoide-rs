@@ -15,6 +15,11 @@
 
 use super::*;
 
+mod models;
+mod schema;
+mod track_search_query_transform;
+pub mod util;
+
 use self::{
     models::*, schema::*, track_search_query_transform::TrackSearchQueryTransform,
     util::TrackRepositoryHelper,
@@ -22,7 +27,6 @@ use self::{
 
 use crate::{
     api::{
-        album::*,
         collection::CollectionTrackStats,
         serde::{serialize_with_format, SerializationFormat, SerializedEntity},
         track::*,
@@ -31,25 +35,7 @@ use crate::{
     storage::util::*,
 };
 
-use crate::core::{entity::*, metadata::*, prelude::*, track::*};
-
-use chrono::NaiveDate;
-
 use diesel::dsl::*;
-
-///////////////////////////////////////////////////////////////////////
-/// Modules
-///////////////////////////////////////////////////////////////////////
-mod models;
-
-mod schema;
-
-mod track_search_query_transform;
-
-pub mod util;
-
-#[cfg(test)]
-mod tests;
 
 ///////////////////////////////////////////////////////////////////////
 /// TrackRepository
@@ -92,243 +78,98 @@ where
     if tag_filter.facet == TagFilter::no_facet() {
         select = select.filter(aux_track_tag::facet_id.is_null());
     } else if let Some(ref facet) = tag_filter.facet {
-        let subselect = aux_track_tag_facet::table
-            .select(aux_track_tag_facet::id)
-            .filter(aux_track_tag_facet::facet.eq(facet));
-        select = select.filter(aux_track_tag::facet_id.eq_any(subselect));
+        let subselect = aux_tag_facet::table
+            .select(aux_tag_facet::id)
+            .filter(aux_tag_facet::facet.eq(facet));
+        select = select.filter(aux_track_tag::facet_id.eq_any(subselect.nullable()));
     }
 
     // Filter tag term
-    if let Some(ref term_condition) = tag_filter.term_condition {
-        let (either_eq_or_like, modifier) = match term_condition.comparator {
+    if let Some(ref label) = tag_filter.label {
+        let (either_eq_or_like, modifier) = match label.comparator {
             // Equal comparison
             StringComparator::Equals => (
-                EitherEqualOrLike::Equal(term_condition.value.clone()),
-                term_condition.modifier,
+                EitherEqualOrLike::Equal(label.value.clone()),
+                label.modifier,
             ),
             // Like comparison: Escape wildcard character with backslash (see below)
             StringComparator::StartsWith => (
                 EitherEqualOrLike::Like(format!(
                     "{}%",
-                    term_condition
-                        .value
-                        .replace('\\', "\\\\")
-                        .replace('%', "\\%")
+                    label.value.replace('\\', "\\\\").replace('%', "\\%")
                 )),
-                term_condition.modifier,
+                label.modifier,
             ),
             StringComparator::EndsWith => (
                 EitherEqualOrLike::Like(format!(
                     "%{}",
-                    term_condition
-                        .value
-                        .replace('\\', "\\\\")
-                        .replace('%', "\\%")
+                    label.value.replace('\\', "\\\\").replace('%', "\\%")
                 )),
-                term_condition.modifier,
+                label.modifier,
             ),
             StringComparator::Contains => (
                 EitherEqualOrLike::Like(format!(
                     "%{}%",
-                    term_condition
-                        .value
-                        .replace('\\', "\\\\")
-                        .replace('%', "\\%")
+                    label.value.replace('\\', "\\\\").replace('%', "\\%")
                 )),
-                term_condition.modifier,
+                label.modifier,
             ),
             StringComparator::Matches => (
-                EitherEqualOrLike::Like(
-                    term_condition
-                        .value
-                        .replace('\\', "\\\\")
-                        .replace('%', "\\%"),
-                ),
-                term_condition.modifier,
+                EitherEqualOrLike::Like(label.value.replace('\\', "\\\\").replace('%', "\\%")),
+                label.modifier,
             ),
         };
         select = match either_eq_or_like {
             EitherEqualOrLike::Equal(eq) => match modifier {
                 None => {
-                    let subselect = aux_track_tag_term::table
-                        .select(aux_track_tag_term::id)
-                        .filter(aux_track_tag_term::term.eq(eq));
-                    select.filter(aux_track_tag::term_id.eq_any(subselect))
+                    let subselect = aux_tag_label::table
+                        .select(aux_tag_label::id)
+                        .filter(aux_tag_label::label.eq(eq));
+                    select.filter(aux_track_tag::label_id.eq_any(subselect))
                 }
                 Some(ConditionModifier::Not) => {
-                    let subselect = aux_track_tag_term::table
-                        .select(aux_track_tag_term::id)
-                        .filter(aux_track_tag_term::term.ne(eq));
-                    select.filter(aux_track_tag::term_id.eq_any(subselect))
+                    let subselect = aux_tag_label::table
+                        .select(aux_tag_label::id)
+                        .filter(aux_tag_label::label.ne(eq));
+                    select.filter(aux_track_tag::label_id.eq_any(subselect))
                 }
             },
             EitherEqualOrLike::Like(like) => match modifier {
                 None => {
-                    let subselect = aux_track_tag_term::table
-                        .select(aux_track_tag_term::id)
-                        .filter(aux_track_tag_term::term.like(like).escape('\\'));
-                    select.filter(aux_track_tag::term_id.eq_any(subselect))
+                    let subselect = aux_tag_label::table
+                        .select(aux_tag_label::id)
+                        .filter(aux_tag_label::label.like(like).escape('\\'));
+                    select.filter(aux_track_tag::label_id.eq_any(subselect))
                 }
                 Some(ConditionModifier::Not) => {
-                    let subselect = aux_track_tag_term::table
-                        .select(aux_track_tag_term::id)
-                        .filter(aux_track_tag_term::term.not_like(like).escape('\\'));
-                    select.filter(aux_track_tag::term_id.eq_any(subselect))
+                    let subselect = aux_tag_label::table
+                        .select(aux_tag_label::id)
+                        .filter(aux_tag_label::label.not_like(like).escape('\\'));
+                    select.filter(aux_track_tag::label_id.eq_any(subselect))
                 }
             },
         };
     }
 
     // Filter tag score
-    if let Some(score_condition) = tag_filter.score_condition {
-        select = match score_condition.comparator {
-            NumericComparator::LessThan => match score_condition.modifier {
-                None => select.filter(aux_track_tag::score.lt(score_condition.value)),
-                Some(ConditionModifier::Not) => {
-                    select.filter(aux_track_tag::score.ge(score_condition.value))
-                }
+    if let Some(score) = tag_filter.score {
+        select = match score.comparator {
+            NumericComparator::LessThan => match score.modifier {
+                None => select.filter(aux_track_tag::score.lt(score.value)),
+                Some(ConditionModifier::Not) => select.filter(aux_track_tag::score.ge(score.value)),
             },
-            NumericComparator::GreaterThan => match score_condition.modifier {
-                None => select.filter(aux_track_tag::score.gt(score_condition.value)),
-                Some(ConditionModifier::Not) => {
-                    select.filter(aux_track_tag::score.le(score_condition.value))
-                }
+            NumericComparator::GreaterThan => match score.modifier {
+                None => select.filter(aux_track_tag::score.gt(score.value)),
+                Some(ConditionModifier::Not) => select.filter(aux_track_tag::score.le(score.value)),
             },
-            NumericComparator::EqualTo => match score_condition.modifier {
-                None => select.filter(aux_track_tag::score.eq(score_condition.value)),
-                Some(ConditionModifier::Not) => {
-                    select.filter(aux_track_tag::score.ne(score_condition.value))
-                }
+            NumericComparator::EqualTo => match score.modifier {
+                None => select.filter(aux_track_tag::score.eq(score.value)),
+                Some(ConditionModifier::Not) => select.filter(aux_track_tag::score.ne(score.value)),
             },
         };
     }
 
     (select, tag_filter.modifier)
-}
-
-fn select_track_ids_from_profile_matching_numeric_filter<'a, DB>(
-    numeric_filter: &NumericFilter,
-) -> Option<(
-    diesel::query_builder::BoxedSelectStatement<
-        'a,
-        diesel::sql_types::BigInt,
-        aux_track_profile::table,
-        DB,
-    >,
-    Option<FilterModifier>,
-)>
-where
-    DB: diesel::backend::Backend + 'a,
-{
-    let mut select = aux_track_profile::table
-        .select(aux_track_profile::track_id)
-        .into_boxed();
-
-    select = match numeric_filter.field {
-        NumericField::TempoBpm => {
-            match numeric_filter.condition.comparator {
-                NumericComparator::LessThan => match numeric_filter.condition.modifier {
-                    None => select
-                        .filter(aux_track_profile::tempo_bpm.lt(numeric_filter.condition.value)),
-                    Some(ConditionModifier::Not) => select
-                        .filter(aux_track_profile::tempo_bpm.ge(numeric_filter.condition.value)),
-                },
-                NumericComparator::GreaterThan => match numeric_filter.condition.modifier {
-                    None => select
-                        .filter(aux_track_profile::tempo_bpm.gt(numeric_filter.condition.value)),
-                    Some(ConditionModifier::Not) => select
-                        .filter(aux_track_profile::tempo_bpm.le(numeric_filter.condition.value)),
-                },
-                NumericComparator::EqualTo => match numeric_filter.condition.modifier {
-                    None => select
-                        .filter(aux_track_profile::tempo_bpm.eq(numeric_filter.condition.value)),
-                    Some(ConditionModifier::Not) => select
-                        .filter(aux_track_profile::tempo_bpm.ne(numeric_filter.condition.value)),
-                },
-            }
-        }
-        NumericField::KeySigCode => match numeric_filter.condition.comparator {
-            NumericComparator::LessThan => match numeric_filter.condition.modifier {
-                None => select.filter(
-                    aux_track_profile::key_sig_code.lt(numeric_filter.condition.value as i16),
-                ),
-                Some(ConditionModifier::Not) => select.filter(
-                    aux_track_profile::key_sig_code.ge(numeric_filter.condition.value as i16),
-                ),
-            },
-            NumericComparator::GreaterThan => match numeric_filter.condition.modifier {
-                None => select.filter(
-                    aux_track_profile::key_sig_code.gt(numeric_filter.condition.value as i16),
-                ),
-                Some(ConditionModifier::Not) => select.filter(
-                    aux_track_profile::key_sig_code.le(numeric_filter.condition.value as i16),
-                ),
-            },
-            NumericComparator::EqualTo => match numeric_filter.condition.modifier {
-                None => select.filter(
-                    aux_track_profile::key_sig_code.eq(numeric_filter.condition.value as i16),
-                ),
-                Some(ConditionModifier::Not) => select.filter(
-                    aux_track_profile::key_sig_code.ne(numeric_filter.condition.value as i16),
-                ),
-            },
-        },
-        NumericField::TimeSigTop => match numeric_filter.condition.comparator {
-            NumericComparator::LessThan => match numeric_filter.condition.modifier {
-                None => select.filter(
-                    aux_track_profile::time_sig_top.lt(numeric_filter.condition.value as i16),
-                ),
-                Some(ConditionModifier::Not) => select.filter(
-                    aux_track_profile::time_sig_top.ge(numeric_filter.condition.value as i16),
-                ),
-            },
-            NumericComparator::GreaterThan => match numeric_filter.condition.modifier {
-                None => select.filter(
-                    aux_track_profile::time_sig_top.gt(numeric_filter.condition.value as i16),
-                ),
-                Some(ConditionModifier::Not) => select.filter(
-                    aux_track_profile::time_sig_top.le(numeric_filter.condition.value as i16),
-                ),
-            },
-            NumericComparator::EqualTo => match numeric_filter.condition.modifier {
-                None => select.filter(
-                    aux_track_profile::time_sig_top.eq(numeric_filter.condition.value as i16),
-                ),
-                Some(ConditionModifier::Not) => select.filter(
-                    aux_track_profile::time_sig_top.ne(numeric_filter.condition.value as i16),
-                ),
-            },
-        },
-        NumericField::TimeSigBottom => match numeric_filter.condition.comparator {
-            NumericComparator::LessThan => match numeric_filter.condition.modifier {
-                None => select.filter(
-                    aux_track_profile::time_sig_bottom.lt(numeric_filter.condition.value as i16),
-                ),
-                Some(ConditionModifier::Not) => select.filter(
-                    aux_track_profile::time_sig_bottom.ge(numeric_filter.condition.value as i16),
-                ),
-            },
-            NumericComparator::GreaterThan => match numeric_filter.condition.modifier {
-                None => select.filter(
-                    aux_track_profile::time_sig_bottom.gt(numeric_filter.condition.value as i16),
-                ),
-                Some(ConditionModifier::Not) => select.filter(
-                    aux_track_profile::time_sig_bottom.le(numeric_filter.condition.value as i16),
-                ),
-            },
-            NumericComparator::EqualTo => match numeric_filter.condition.modifier {
-                None => select.filter(
-                    aux_track_profile::time_sig_bottom.eq(numeric_filter.condition.value as i16),
-                ),
-                Some(ConditionModifier::Not) => select.filter(
-                    aux_track_profile::time_sig_bottom.ne(numeric_filter.condition.value as i16),
-                ),
-            },
-        },
-        _ => return None,
-    };
-
-    Some((select, numeric_filter.modifier))
 }
 
 enum EitherEqualOrLike {
@@ -370,8 +211,8 @@ impl<'a> Tracks for TrackRepository<'a> {
                 let target = tbl_track::table.filter(
                     tbl_track::uid
                         .eq(uid.as_ref())
-                        .and(tbl_track::rev_ordinal.eq(prev_revision.ordinal() as i64))
-                        .and(tbl_track::rev_instant.eq((prev_revision.instant().0).0)),
+                        .and(tbl_track::rev_no.eq(prev_revision.ordinal() as i64))
+                        .and(tbl_track::rev_ts.eq((prev_revision.instant().0).0)),
                 );
                 let storage_id = self.helper.before_entity_updated_or_removed(&uid)?;
                 let query = diesel::update(target).set(&updatable);
@@ -657,8 +498,7 @@ impl<'a> Tracks for TrackRepository<'a> {
         let mut target = tbl_track::table
             .select(tbl_track::all_columns)
             .distinct()
-            .inner_join(aux_track_overview::table)
-            .inner_join(aux_track_summary::table)
+            .inner_join(aux_track_brief::table)
             .left_outer_join(aux_track_source::table)
             .left_outer_join(aux_track_collection::table)
             .into_boxed();
@@ -712,48 +552,10 @@ impl<'a> Tracks for TrackRepository<'a> {
                 .filter(aux_track_collection::collection_uid.eq(collection_uid.as_ref()))
         });
         let rows = match field {
-            StringField::AlbumArtist => {
-                let mut target = aux_track_summary::table
-                    .select((
-                        aux_track_summary::album_artist,
-                        sql::<diesel::sql_types::BigInt>("count(*) AS count"),
-                    ))
-                    .group_by(aux_track_summary::album_artist)
-                    .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
-                    .then_order_by(aux_track_summary::album_artist)
-                    .into_boxed();
-                if let Some(track_id_subselect) = track_id_subselect {
-                    target = target.filter(aux_track_summary::track_id.eq_any(track_id_subselect));
-                }
-
-                // Pagination
-                target = apply_pagination(target, pagination);
-
-                target.load::<(Option<String>, i64)>(self.connection)?
-            }
-            StringField::AlbumTitle => {
-                let mut target = aux_track_overview::table
-                    .select((
-                        aux_track_overview::album_title,
-                        sql::<diesel::sql_types::BigInt>("count(*) AS count"),
-                    ))
-                    .group_by(aux_track_overview::album_title)
-                    .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
-                    .then_order_by(aux_track_overview::album_title)
-                    .into_boxed();
-                if let Some(track_id_subselect) = track_id_subselect {
-                    target = target.filter(aux_track_overview::track_id.eq_any(track_id_subselect));
-                }
-
-                // Pagination
-                target = apply_pagination(target, pagination);
-
-                target.load::<(Option<String>, i64)>(self.connection)?
-            }
             StringField::SourceUri => {
                 let mut target = aux_track_source::table
                     .select((
-                        aux_track_source::uri_decoded,
+                        aux_track_source::uri_decoded.nullable(),
                         sql::<diesel::sql_types::BigInt>("count(*) AS count"),
                     ))
                     .group_by(aux_track_source::uri_decoded)
@@ -761,28 +563,19 @@ impl<'a> Tracks for TrackRepository<'a> {
                     .then_order_by(aux_track_source::uri_decoded)
                     .into_boxed();
 
-                // Collection filtering
-                if let Some(collection_uid) = collection_uid {
-                    let track_id_subselect = aux_track_collection::table
-                        .select(aux_track_collection::track_id)
-                        .filter(aux_track_collection::collection_uid.eq(collection_uid.as_ref()));
+                if let Some(track_id_subselect) = track_id_subselect {
                     target = target.filter(aux_track_source::track_id.eq_any(track_id_subselect));
                 }
 
                 // Pagination
                 target = apply_pagination(target, pagination);
 
-                let rows = target.load::<(String, i64)>(self.connection)?;
-                // TODO: Remove this transformation and select source_uri_decoded
-                // as a nullable column?!
-                rows.into_iter()
-                    .map(|(source_uri_decoded, count)| (Some(source_uri_decoded), count))
-                    .collect()
+                target.load::<(Option<String>, i64)>(self.connection)?
             }
-            StringField::SourceType => {
+            StringField::ContentType => {
                 let mut target = aux_track_source::table
                     .select((
-                        aux_track_source::content_type,
+                        aux_track_source::content_type.nullable(),
                         sql::<diesel::sql_types::BigInt>("count(*) AS count"),
                     ))
                     .group_by(aux_track_source::content_type)
@@ -790,36 +583,8 @@ impl<'a> Tracks for TrackRepository<'a> {
                     .then_order_by(aux_track_source::content_type)
                     .into_boxed();
 
-                // Collection filtering
-                if let Some(collection_uid) = collection_uid {
-                    let track_id_subselect = aux_track_collection::table
-                        .select(aux_track_collection::track_id)
-                        .filter(aux_track_collection::collection_uid.eq(collection_uid.as_ref()));
-                    target = target.filter(aux_track_source::track_id.eq_any(track_id_subselect));
-                }
-
-                // Pagination
-                target = apply_pagination(target, pagination);
-
-                let rows = target.load::<(String, i64)>(self.connection)?;
-                // TODO: Remove this transformation and select content_type
-                // as a nullable column?!
-                rows.into_iter()
-                    .map(|(content_type, count)| (Some(content_type), count))
-                    .collect()
-            }
-            StringField::TrackArtist => {
-                let mut target = aux_track_summary::table
-                    .select((
-                        aux_track_summary::track_artist,
-                        sql::<diesel::sql_types::BigInt>("count(*) AS count"),
-                    ))
-                    .group_by(aux_track_summary::track_artist)
-                    .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
-                    .then_order_by(aux_track_summary::track_artist)
-                    .into_boxed();
                 if let Some(track_id_subselect) = track_id_subselect {
-                    target = target.filter(aux_track_summary::track_id.eq_any(track_id_subselect));
+                    target = target.filter(aux_track_source::track_id.eq_any(track_id_subselect));
                 }
 
                 // Pagination
@@ -828,17 +593,98 @@ impl<'a> Tracks for TrackRepository<'a> {
                 target.load::<(Option<String>, i64)>(self.connection)?
             }
             StringField::TrackTitle => {
-                let mut target = aux_track_overview::table
+                let mut target = aux_track_brief::table
                     .select((
-                        aux_track_overview::track_title,
+                        aux_track_brief::track_title.nullable(),
                         sql::<diesel::sql_types::BigInt>("count(*) AS count"),
                     ))
-                    .group_by(aux_track_overview::track_title)
+                    .group_by(aux_track_brief::track_title)
                     .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
-                    .then_order_by(aux_track_overview::track_title)
+                    .then_order_by(aux_track_brief::track_title)
                     .into_boxed();
+
                 if let Some(track_id_subselect) = track_id_subselect {
-                    target = target.filter(aux_track_overview::track_id.eq_any(track_id_subselect));
+                    target = target.filter(aux_track_brief::track_id.eq_any(track_id_subselect));
+                }
+
+                // Pagination
+                target = apply_pagination(target, pagination);
+
+                target.load::<(Option<String>, i64)>(self.connection)?
+            }
+            StringField::TrackArtist => {
+                let mut target = aux_track_brief::table
+                    .select((
+                        aux_track_brief::track_artist.nullable(),
+                        sql::<diesel::sql_types::BigInt>("count(*) AS count"),
+                    ))
+                    .group_by(aux_track_brief::track_artist)
+                    .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
+                    .then_order_by(aux_track_brief::track_artist)
+                    .into_boxed();
+
+                if let Some(track_id_subselect) = track_id_subselect {
+                    target = target.filter(aux_track_brief::track_id.eq_any(track_id_subselect));
+                }
+
+                // Pagination
+                target = apply_pagination(target, pagination);
+
+                target.load::<(Option<String>, i64)>(self.connection)?
+            }
+            StringField::TrackComposer => {
+                let mut target = aux_track_brief::table
+                    .select((
+                        aux_track_brief::track_composer.nullable(),
+                        sql::<diesel::sql_types::BigInt>("count(*) AS count"),
+                    ))
+                    .group_by(aux_track_brief::track_composer)
+                    .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
+                    .then_order_by(aux_track_brief::track_composer)
+                    .into_boxed();
+
+                if let Some(track_id_subselect) = track_id_subselect {
+                    target = target.filter(aux_track_brief::track_id.eq_any(track_id_subselect));
+                }
+
+                // Pagination
+                target = apply_pagination(target, pagination);
+
+                target.load::<(Option<String>, i64)>(self.connection)?
+            }
+            StringField::AlbumTitle => {
+                let mut target = aux_track_brief::table
+                    .select((
+                        aux_track_brief::album_title.nullable(),
+                        sql::<diesel::sql_types::BigInt>("count(*) AS count"),
+                    ))
+                    .group_by(aux_track_brief::album_title)
+                    .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
+                    .then_order_by(aux_track_brief::album_title)
+                    .into_boxed();
+
+                if let Some(track_id_subselect) = track_id_subselect {
+                    target = target.filter(aux_track_brief::track_id.eq_any(track_id_subselect));
+                }
+
+                // Pagination
+                target = apply_pagination(target, pagination);
+
+                target.load::<(Option<String>, i64)>(self.connection)?
+            }
+            StringField::AlbumArtist => {
+                let mut target = aux_track_brief::table
+                    .select((
+                        aux_track_brief::album_artist.nullable(),
+                        sql::<diesel::sql_types::BigInt>("count(*) AS count"),
+                    ))
+                    .group_by(aux_track_brief::album_artist)
+                    .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
+                    .then_order_by(aux_track_brief::album_artist)
+                    .into_boxed();
+
+                if let Some(track_id_subselect) = track_id_subselect {
+                    target = target.filter(aux_track_brief::track_id.eq_any(track_id_subselect));
                 }
 
                 // Pagination
@@ -873,9 +719,9 @@ impl<'a> TrackTags for TrackRepository<'a> {
         collection_uid: Option<&EntityUid>,
         facets: Option<&Vec<&str>>,
         pagination: Pagination,
-    ) -> TrackTagsResult<Vec<TagFacetCount>> {
+    ) -> TrackTagsResult<Vec<FacetCount>> {
         let mut target = aux_track_tag::table
-            .left_outer_join(aux_track_tag_facet::table)
+            .left_outer_join(aux_tag_facet::table)
             .select((
                 sql::<diesel::sql_types::Nullable<diesel::sql_types::Text>>("facet"),
                 sql::<diesel::sql_types::BigInt>("count(*) AS count"),
@@ -890,7 +736,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
                 if facets.is_empty() {
                     target.filter(aux_track_tag::facet_id.is_null())
                 } else {
-                    let filtered = target.filter(aux_track_tag_facet::facet.eq_any(facets));
+                    let filtered = target.filter(aux_tag_facet::facet.eq_any(facets));
                     if facets.iter().any(|facet| facet.is_empty()) {
                         // Empty facets are interpreted as null, just like an empty vector
                         filtered.or_filter(aux_track_tag::facet_id.is_null())
@@ -916,8 +762,8 @@ impl<'a> TrackTags for TrackRepository<'a> {
         let rows = target.load::<(Option<String>, i64)>(self.connection)?;
         let mut result = Vec::with_capacity(rows.len());
         for row in rows {
-            result.push(TagFacetCount {
-                facet: row.0,
+            result.push(FacetCount {
+                facet: row.0.map(Into::into),
                 count: row.1 as usize,
             });
         }
@@ -930,18 +776,18 @@ impl<'a> TrackTags for TrackRepository<'a> {
         collection_uid: Option<&EntityUid>,
         facets: Option<&Vec<&str>>,
         pagination: Pagination,
-    ) -> TrackTagsResult<Vec<ScoredTagCount>> {
+    ) -> TrackTagsResult<Vec<TagCount>> {
         let mut target = aux_track_tag::table
-            .left_outer_join(aux_track_tag_term::table)
-            .left_outer_join(aux_track_tag_facet::table)
+            .left_outer_join(aux_tag_label::table)
+            .left_outer_join(aux_tag_facet::table)
             .select((
                 sql::<diesel::sql_types::Double>("AVG(score) AS score"),
-                aux_track_tag_term::term,
+                aux_tag_label::label,
                 // The joined 'facet' column becomes nullable
                 sql::<diesel::sql_types::Nullable<diesel::sql_types::Text>>("facet"),
                 sql::<diesel::sql_types::BigInt>("COUNT(*) AS count"),
             ))
-            .group_by((aux_track_tag::term_id, aux_track_tag::facet_id))
+            .group_by((aux_track_tag::label_id, aux_track_tag::facet_id))
             .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
             .into_boxed();
 
@@ -951,7 +797,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
                 if facets.is_empty() {
                     target.filter(aux_track_tag::facet_id.is_null())
                 } else {
-                    let filtered = target.filter(aux_track_tag_facet::facet.eq_any(facets));
+                    let filtered = target.filter(aux_tag_facet::facet.eq_any(facets));
                     if facets.iter().any(|facet| facet.is_empty()) {
                         // Empty facets are interpreted as null, just like an empty vector
                         filtered.or_filter(aux_track_tag::facet_id.is_null())
@@ -977,8 +823,9 @@ impl<'a> TrackTags for TrackRepository<'a> {
         let rows = target.load::<(f64, String, Option<String>, i64)>(self.connection)?;
         let mut result = Vec::with_capacity(rows.len());
         for row in rows {
-            result.push(ScoredTagCount {
-                tag: ScoredTag::new(row.0, row.1, row.2),
+            result.push(TagCount {
+                tag: Tag::new(row.1.into(), row.0.into()),
+                facet: row.2.map(Into::into),
                 count: row.3 as usize,
             });
         }
@@ -987,75 +834,9 @@ impl<'a> TrackTags for TrackRepository<'a> {
     }
 }
 
-impl<'a> Albums for TrackRepository<'a> {
-    fn list_albums(
-        &self,
-        collection_uid: Option<&EntityUid>,
-        pagination: Pagination,
-    ) -> AlbumsResult<Vec<AlbumSummary>> {
-        let mut target = aux_track_summary::table
-            .inner_join(aux_track_overview::table)
-            .select((
-                aux_track_summary::album_artist,
-                aux_track_overview::album_title,
-                sql::<diesel::sql_types::Date>("MIN(released_at) AS min_released_at").nullable(),
-                sql::<diesel::sql_types::Date>("MAX(released_at) AS max_released_at").nullable(),
-                sql::<diesel::sql_types::BigInt>("COUNT(*) AS total_tracks"),
-            ))
-            .group_by((
-                aux_track_summary::album_artist,
-                aux_track_overview::album_title,
-            ))
-            .order_by((
-                aux_track_summary::album_artist,
-                sql::<diesel::sql_types::Date>("max_released_at").desc(),
-                aux_track_overview::album_title,
-            ))
-            .into_boxed();
+///////////////////////////////////////////////////////////////////////
+/// Tests
+///////////////////////////////////////////////////////////////////////
 
-        // Collection filtering
-        if let Some(collection_uid) = collection_uid {
-            let track_id_subselect = aux_track_collection::table
-                .select(aux_track_collection::track_id)
-                .filter(aux_track_collection::collection_uid.eq(collection_uid.as_ref()));
-            target = target.filter(aux_track_summary::track_id.eq_any(track_id_subselect));
-        }
-
-        // Pagination
-        target = apply_pagination(target, pagination);
-
-        let rows = target.load::<(
-            Option<String>,
-            Option<String>,
-            Option<NaiveDate>,
-            Option<NaiveDate>,
-            i64,
-        )>(self.connection)?;
-
-        let mut result = Vec::with_capacity(rows.len());
-        for row in rows {
-            let artist = row.0;
-            let title = row.1;
-            let min_released_at = row.2;
-            let max_released_at = row.3;
-            let released_at = match (min_released_at, max_released_at) {
-                (Some(earliest), Some(latest)) => Some(ReleasedAtDateRange { earliest, latest }),
-                (_, _) => {
-                    debug_assert!(min_released_at.is_none());
-                    debug_assert!(max_released_at.is_none());
-                    None
-                }
-            };
-            debug_assert!(row.4 > 0);
-            let total_tracks = row.4 as usize;
-            let album_summary = AlbumSummary {
-                artist,
-                title,
-                released_at,
-                total_tracks,
-            };
-            result.push(album_summary);
-        }
-        Ok(result)
-    }
-}
+#[cfg(test)]
+mod tests;

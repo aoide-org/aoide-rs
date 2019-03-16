@@ -17,9 +17,9 @@ table! {
     tbl_collection (id) {
         id -> BigInt,
         uid -> Binary,
-        rev_ordinal -> BigInt,
-        rev_instant -> BigInt,
+        rev_no -> BigInt,
+        rev_ts -> BigInt,
         name -> Text,
-        description -> Nullable<Text>,
+        desc -> Nullable<Text>,
     }
 }

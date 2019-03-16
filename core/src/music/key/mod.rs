@@ -15,58 +15,12 @@
 
 use super::*;
 
-use std::{f64, fmt};
-
-///////////////////////////////////////////////////////////////////////
-/// Modules
-///////////////////////////////////////////////////////////////////////
-
-#[cfg(test)]
-mod tests;
-
-///////////////////////////////////////////////////////////////////////
-/// Tempo
-///////////////////////////////////////////////////////////////////////
-
-pub type Beats = f64;
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub struct TempoBpm(pub Beats);
-
-impl TempoBpm {
-    pub const fn unit_of_measure() -> &'static str {
-        "bpm"
-    }
-
-    pub const fn min() -> Self {
-        Self(f64::MIN_POSITIVE)
-    }
-
-    pub const fn max() -> Self {
-        Self(f64::MAX)
-    }
-}
-
-impl IsValid for TempoBpm {
-    fn is_valid(&self) -> bool {
-        *self >= Self::min() && *self <= Self::max()
-    }
-}
-
-impl fmt::Display for TempoBpm {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", self.0, TempoBpm::unit_of_measure())
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-/// KeySignature
-///////////////////////////////////////////////////////////////////////
+use std::fmt;
 
 pub type KeyCode = u8;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+#[serde(deny_unknown_fields, rename_all = "lowercase")]
 pub enum KeyMode {
     #[serde(rename = "maj")]
     Major,
@@ -315,44 +269,8 @@ impl IsValid for EngineKeySignature {
 }
 
 ///////////////////////////////////////////////////////////////////////
-/// TimeSignature
+/// Tests
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Default, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct TimeSignature(u16, u16);
-
-impl TimeSignature {
-    pub fn new(top: u16, bottom: u16) -> Self {
-        TimeSignature(top, bottom)
-    }
-
-    // number of beats in each measure unit or bar, 0 = default/undefined
-    pub fn top(self) -> u16 {
-        self.0
-    }
-
-    pub fn beats_per_measure(self) -> u16 {
-        self.top()
-    }
-
-    // 0 = default/undefined
-    pub fn bottom(self) -> u16 {
-        self.1
-    }
-
-    pub fn measure_unit(self) -> u16 {
-        self.bottom()
-    }
-}
-
-impl IsValid for TimeSignature {
-    fn is_valid(&self) -> bool {
-        (self.top() > 0) && (self.bottom() > 0)
-    }
-}
-
-impl fmt::Display for TimeSignature {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}/{}", self.top(), self.bottom())
-    }
-}
+#[cfg(test)]
+mod tests;

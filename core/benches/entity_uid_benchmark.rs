@@ -1,6 +1,6 @@
 use aoide_core::prelude::*;
 
-use criterion::{Criterion, ParameterizedBenchmark, criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main, Criterion, ParameterizedBenchmark};
 use uuid::Uuid;
 
 fn random_uuid(n: u64) {
@@ -31,7 +31,18 @@ fn generate_entity_uid(n: u64) {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    c.bench("EntityUid vs Uuid", ParameterizedBenchmark::new("random_uuid", |b, i| b.iter(|| random_uuid(*i)), vec![10_000]).with_function("random_entity_uid", |b, i| b.iter(|| random_entity_uid(*i))).with_function("generate_entity_uid", |b, i| b.iter(|| generate_entity_uid(*i))));
+    c.bench(
+        "EntityUid vs Uuid",
+        ParameterizedBenchmark::new(
+            "random_uuid",
+            |b, i| b.iter(|| random_uuid(*i)),
+            vec![10_000],
+        )
+        .with_function("random_entity_uid", |b, i| b.iter(|| random_entity_uid(*i)))
+        .with_function("generate_entity_uid", |b, i| {
+            b.iter(|| generate_entity_uid(*i))
+        }),
+    );
 }
 
 criterion_group!(benches, criterion_benchmark);

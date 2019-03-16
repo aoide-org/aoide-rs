@@ -15,8 +15,6 @@
 
 use super::*;
 
-///////////////////////////////////////////////////////////////////////
-
 embed_migrations!("resources/migrations/sqlite");
 
 fn establish_connection() -> SqliteConnection {

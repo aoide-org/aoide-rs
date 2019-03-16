@@ -21,15 +21,9 @@ use super::*;
 fn score_valid() {
     assert!(Score::min().is_valid());
     assert!(Score::max().is_valid());
-    assert!(Score::min().is_min());
-    assert!(!Score::max().is_min());
-    assert!(!Score::min().is_max());
-    assert!(Score::max().is_max());
-    assert!(Score(Score::min().0 + Score::max().0).is_valid());
-    assert!(!Score(Score::min().0 - Score::max().0).is_valid());
-    assert!(Score(Score::min().0 - Score::max().0).is_min());
-    assert!(!Score(Score::max().0 + Score::max().0).is_valid());
-    assert!(Score(Score::max().0 + Score::max().0).is_max());
+    assert!(Score::new(Score::min().0 + Score::max().0).is_valid());
+    assert!(!Score::new(Score::min().0 - Score::max().0).is_valid());
+    assert!(!Score::new(Score::max().0 + Score::max().0).is_valid());
 }
 
 #[test]
@@ -41,38 +35,30 @@ fn score_display() {
 }
 
 #[test]
-fn minmax_rating() {
-    let owner1 = "a";
-    let owner2 = "b";
-    let owner3 = "c";
-    let owner4 = "d";
-    let ratings = vec![
-        Rating::new_owned(0.5, owner1),
-        Rating::new_anonymous(0.4),
-        Rating::new_owned(0.8, owner2),
-        Rating::new_owned(0.1, owner3),
-    ];
-    assert_eq!(None, Rating::minmax(&vec![], None));
-    assert_eq!(None, Rating::minmax(&vec![], Some(owner1)));
-    assert_eq!(None, Rating::minmax(&vec![], Some(owner4)));
+fn parse_label() {
     assert_eq!(
-        Some((0.1.into(), 0.8.into())),
-        Rating::minmax(&ratings, None)
-    ); // all ratings
+        Ok(Label::new("A Label".into())),
+        "\tA Label  ".parse::<Label>()
+    );
+}
+
+#[test]
+fn label_is_valid() {
+    assert!(Label::new("A Term".into()).is_valid());
+    assert!(!Label::new("\tA Term  ".into()).is_valid());
+}
+
+#[test]
+fn parse_facet() {
     assert_eq!(
-        Some((0.4.into(), 0.5.into())),
-        Rating::minmax(&ratings, Some(owner1))
-    ); // anonymous and own rating
-    assert_eq!(
-        Some((0.4.into(), 0.8.into())),
-        Rating::minmax(&ratings, Some(owner2))
-    ); // anonymous and own rating
-    assert_eq!(
-        Some((0.1.into(), 0.4.into())),
-        Rating::minmax(&ratings, Some(owner3))
-    ); // anonymous and own rating
-    assert_eq!(
-        Some((0.4.into(), 0.4.into())),
-        Rating::minmax(&ratings, Some(owner4))
-    ); // only anonymous rating
+        Ok(Facet::new("a_facet".into())),
+        "\tA Facet  ".parse::<Facet>()
+    );
+}
+
+#[test]
+fn facet_is_valid() {
+    assert!(Facet::new("a_facet".into()).is_valid());
+    assert!(!Facet::new("a facet".into()).is_valid());
+    assert!(!Facet::new("\tA facet  ".into()).is_valid());
 }

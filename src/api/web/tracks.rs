@@ -15,14 +15,12 @@
 
 use super::*;
 
-use crate::core::{entity::*, track::*};
-
 use aoide_storage::{
     api::{
         serde::{SerializationFormat, SerializedEntity},
         track::{TrackTags, Tracks, TracksResult},
-        LocateTracksParams, Pagination, ReplaceTracksParams, ReplacedTracks, ScoredTagCount,
-        SearchTracksParams, StringField, StringFieldCounts, TagFacetCount,
+        FacetCount, LocateTracksParams, Pagination, ReplaceTracksParams, ReplacedTracks,
+        SearchTracksParams, TagCount,
     },
     storage::track::TrackRepository,
 };
@@ -397,104 +395,24 @@ pub fn on_replace_tracks(
         .responder()
 }
 
-#[derive(Debug, Default)]
-struct ListTracksFieldsMessage {
-    pub collection_uid: Option<EntityUid>,
-    pub with_fields: Vec<StringField>,
-    pub pagination: Pagination,
-}
-
-pub type ListTracksFieldsResult = TracksResult<Vec<StringFieldCounts>>;
-
-impl Message for ListTracksFieldsMessage {
-    type Result = ListTracksFieldsResult;
-}
-
-impl Handler<ListTracksFieldsMessage> for SqliteExecutor {
-    type Result = ListTracksFieldsResult;
-
-    fn handle(&mut self, msg: ListTracksFieldsMessage, _: &mut Self::Context) -> Self::Result {
-        let mut results: Vec<StringFieldCounts> = Vec::with_capacity(msg.with_fields.len());
-        let connection = &*self.pooled_connection()?;
-        let repository = TrackRepository::new(connection);
-        connection.transaction::<_, Error, _>(|| {
-            for field in msg.with_fields {
-                let result =
-                    repository.list_fields(msg.collection_uid.as_ref(), field, msg.pagination)?;
-                results.push(result);
-            }
-            Ok(results)
-        })
-    }
-}
-
-#[derive(Debug, Default, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TracksWithStringFieldsQueryParams {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    with: Option<String>,
-}
-
-impl TracksWithStringFieldsQueryParams {
-    pub fn with_fields(&self) -> Vec<StringField> {
-        let mut result = Vec::new();
-        if let Some(ref field_list) = self.with {
-            result = field_list
-                .split(',')
-                .map(|field_str| serde_json::from_str(&format!("\"{}\"", field_str)))
-                .filter_map(|from_str| from_str.ok())
-                .collect();
-            debug_assert!(result.len() <= field_list.split(',').count());
-            let unrecognized_field_count = field_list.split(',').count() - result.len();
-            if unrecognized_field_count > 0 {
-                log::warn!(
-                    "{} unrecognized field selector(s) in '{}'",
-                    unrecognized_field_count,
-                    field_list
-                );
-            }
-            result.sort();
-            result.dedup();
-        }
-        result
-    }
-}
-
-pub fn on_list_tracks_fields(
-    (state, query_tracks, query_with, query_pagination): (
-        State<AppState>,
-        Query<TracksQueryParams>,
-        Query<TracksWithStringFieldsQueryParams>,
-        Query<Pagination>,
-    ),
-) -> FutureResponse<HttpResponse> {
-    let msg = ListTracksFieldsMessage {
-        collection_uid: query_tracks.into_inner().collection_uid,
-        with_fields: query_with.into_inner().with_fields(),
-        pagination: query_pagination.into_inner(),
-    };
-    state
-        .executor
-        .send(msg)
-        .flatten()
-        .map_err(|err| err.compat())
-        .from_err()
-        .and_then(|res| Ok(HttpResponse::Ok().json(res)))
-        .responder()
-}
-
 #[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TracksWithTagFacetsQueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]
-    with: Option<String>,
+    facets: Option<String>,
 }
 
 impl TracksWithTagFacetsQueryParams {
     pub fn with_facets<'a>(&'a self) -> Option<Vec<&'a str>> {
-        self.with
+        self.facets
             .as_ref()
-            .map(|facet_list| facet_list.split(',').collect::<Vec<&'a str>>())
+            .map(|facet_list| {
+                facet_list
+                    .split(',')
+                    .map(str::trim)
+                    .filter(|facet| !facet.is_empty())
+                    .collect::<Vec<&'a str>>()
+            })
             .map(|mut facets| {
                 facets.sort();
                 facets
@@ -513,7 +431,7 @@ struct ListTracksTagsMessage {
     pub pagination: Pagination,
 }
 
-pub type ListTracksTagsResult = TracksResult<Vec<ScoredTagCount>>;
+pub type ListTracksTagsResult = TracksResult<Vec<TagCount>>;
 
 impl Message for ListTracksTagsMessage {
     type Result = ListTracksTagsResult;
@@ -565,7 +483,7 @@ struct ListTracksTagsFacetsMessage {
     pub pagination: Pagination,
 }
 
-pub type ListTracksTagsFacetsResult = TracksResult<Vec<TagFacetCount>>;
+pub type ListTracksTagsFacetsResult = TracksResult<Vec<FacetCount>>;
 
 impl Message for ListTracksTagsFacetsMessage {
     type Result = ListTracksTagsFacetsResult;

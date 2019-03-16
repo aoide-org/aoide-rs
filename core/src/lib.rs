@@ -23,28 +23,22 @@ use serde::{Deserialize, Serialize};
 /// Modules
 ///////////////////////////////////////////////////////////////////////
 pub mod prelude {
-    pub use super::audio::{sample::*, signal::*, *};
+    pub use super::audio::{channel::*, sample::*, signal::*, *};
+    pub use super::collection::*;
     pub use super::entity::*;
-    pub use super::time::*;
-    pub use super::util::*;
+    pub use super::metadata::{actor::*, title::*, *};
+    pub use super::music::{key::*, time::*, *};
+    pub use super::track::{album::*, collection::*, marker::*, release::*, source::*, *};
+    pub use super::util::{clock::*, color::*, *};
 }
 
 pub mod audio;
-
 pub mod collection;
-
 pub mod entity;
-
 pub mod metadata;
-
-#[allow(clippy::trivially_copy_pass_by_ref)]
 pub mod music;
-
-pub mod time;
-
-#[allow(clippy::trivially_copy_pass_by_ref)]
 pub mod track;
-
 pub mod util;
 
+// Import common traits
 pub(crate) use util::*;

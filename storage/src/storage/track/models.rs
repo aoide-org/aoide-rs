@@ -20,13 +20,7 @@ use crate::api::{
     serde::{SerializationFormat, SerializedEntity},
 };
 
-use crate::core::{
-    metadata::{Comment, Rating, Score, ScoreValue},
-    music::{notation::Beats, ActorRole, Actors, SongFeature, SongProfile, TitleLevel, Titles},
-    track::{RefOrigin, Track, TrackCollection, TrackSource},
-};
-
-use chrono::naive::{NaiveDate, NaiveDateTime};
+use chrono::{naive::NaiveDateTime, Datelike};
 
 use percent_encoding::percent_decode;
 
@@ -36,11 +30,11 @@ use percent_encoding::percent_decode;
 #[table_name = "tbl_track"]
 pub struct InsertableTracksEntity<'a> {
     pub uid: &'a [u8],
-    pub rev_ordinal: i64,
-    pub rev_instant: TickType,
+    pub rev_no: i64,
+    pub rev_ts: TickType,
     pub ser_fmt: i16,
-    pub ser_ver_major: i32,
-    pub ser_ver_minor: i32,
+    pub ser_vmaj: i32,
+    pub ser_vmin: i32,
     pub ser_blob: &'a [u8],
 }
 
@@ -52,11 +46,11 @@ impl<'a> InsertableTracksEntity<'a> {
     ) -> Self {
         Self {
             uid: header.uid().as_ref(),
-            rev_ordinal: header.revision().ordinal() as i64,
-            rev_instant: (header.revision().instant().0).0,
+            rev_no: header.revision().ordinal() as i64,
+            rev_ts: (header.revision().instant().0).0,
             ser_fmt: ser_fmt as i16,
-            ser_ver_major: 0, // TODO
-            ser_ver_minor: 0, // TODO
+            ser_vmaj: 0, // TODO
+            ser_vmin: 0, // TODO
             ser_blob,
         }
     }
@@ -65,11 +59,11 @@ impl<'a> InsertableTracksEntity<'a> {
 #[derive(Debug, AsChangeset)]
 #[table_name = "tbl_track"]
 pub struct UpdatableTracksEntity<'a> {
-    pub rev_ordinal: i64,
-    pub rev_instant: TickType,
+    pub rev_no: i64,
+    pub rev_ts: TickType,
     pub ser_fmt: i16,
-    pub ser_ver_major: i32,
-    pub ser_ver_minor: i32,
+    pub ser_vmaj: i32,
+    pub ser_vmin: i32,
     pub ser_blob: &'a [u8],
 }
 
@@ -80,11 +74,11 @@ impl<'a> UpdatableTracksEntity<'a> {
         ser_blob: &'a [u8],
     ) -> Self {
         Self {
-            rev_ordinal: next_revision.ordinal() as i64,
-            rev_instant: (next_revision.instant().0).0,
+            rev_no: next_revision.ordinal() as i64,
+            rev_ts: (next_revision.instant().0).0,
             ser_fmt: ser_fmt as i16,
-            ser_ver_major: 0, // TODO
-            ser_ver_minor: 0, // TODO
+            ser_vmaj: 0, // TODO
+            ser_vmin: 0, // TODO
             ser_blob,
         }
     }
@@ -95,237 +89,28 @@ impl<'a> UpdatableTracksEntity<'a> {
 pub struct QueryableSerializedEntity {
     pub id: StorageId,
     pub uid: Vec<u8>,
-    pub rev_ordinal: i64,
-    pub rev_instant: TickType,
+    pub rev_no: i64,
+    pub rev_ts: TickType,
     pub ser_fmt: i16,
-    pub ser_ver_major: i32,
-    pub ser_ver_minor: i32,
+    pub ser_vmaj: i32,
+    pub ser_vmin: i32,
     pub ser_blob: Vec<u8>,
 }
 
 impl From<QueryableSerializedEntity> for SerializedEntity {
     fn from(from: QueryableSerializedEntity) -> Self {
         let uid = EntityUid::from_slice(&from.uid);
-        let revision = EntityRevision::new(
-            from.rev_ordinal as u64,
-            TickInstant(Ticks(from.rev_instant)),
-        );
+        let revision = EntityRevision::new(from.rev_no as u64, TickInstant(Ticks(from.rev_ts)));
         let header = EntityHeader::new(uid, revision);
         let format = SerializationFormat::from(from.ser_fmt).unwrap();
-        debug_assert!(from.ser_ver_major >= 0);
-        debug_assert!(from.ser_ver_minor >= 0);
-        let version = EntityVersion::new(from.ser_ver_major as u32, from.ser_ver_minor as u32);
+        debug_assert!(from.ser_vmaj >= 0);
+        debug_assert!(from.ser_vmin >= 0);
+        let version = EntityVersion::new(from.ser_vmaj as u32, from.ser_vmin as u32);
         SerializedEntity {
             header,
             format,
             version,
             blob: from.ser_blob,
-        }
-    }
-}
-
-#[derive(Debug, Insertable)]
-#[table_name = "aux_track_overview"]
-pub struct InsertableTracksOverview<'a> {
-    pub track_id: StorageId,
-    pub track_title: Option<&'a str>,
-    pub track_subtitle: Option<&'a str>,
-    pub track_work: Option<&'a str>,
-    pub track_movement: Option<&'a str>,
-    pub album_title: Option<&'a str>,
-    pub album_subtitle: Option<&'a str>,
-    pub released_at: Option<NaiveDate>,
-    pub released_by: Option<&'a str>,
-    pub release_copyright: Option<&'a str>,
-    pub track_index: Option<i32>,
-    pub track_count: Option<i32>,
-    pub disc_index: Option<i32>,
-    pub disc_count: Option<i32>,
-    pub movement_index: Option<i32>,
-    pub movement_count: Option<i32>,
-    pub lyrics_explicit: Option<bool>,
-    pub album_compilation: Option<bool>,
-}
-
-impl<'a> InsertableTracksOverview<'a> {
-    pub fn bind(track_id: StorageId, track: &'a Track) -> Self {
-        Self {
-            track_id,
-            track_title: Titles::main_title(&track.titles).map(|title| title.name.as_str()),
-            track_subtitle: Titles::title(&track.titles, TitleLevel::Sub, None)
-                .map(|title| title.name.as_str()),
-            track_work: Titles::title(&track.titles, TitleLevel::Work, None)
-                .map(|title| title.name.as_str()),
-            track_movement: Titles::title(&track.titles, TitleLevel::Movement, None)
-                .map(|title| title.name.as_str()),
-            album_title: track
-                .album
-                .as_ref()
-                .and_then(|album| Titles::main_title(&album.titles))
-                .map(|title| title.name.as_str()),
-            album_subtitle: track
-                .album
-                .as_ref()
-                .and_then(|album| Titles::title(&album.titles, TitleLevel::Sub, None))
-                .map(|title| title.name.as_str()),
-            released_at: track
-                .release
-                .as_ref()
-                .and_then(|release| release.released_at)
-                .map(|released_at| released_at.date().naive_utc()),
-            released_by: track
-                .release
-                .as_ref()
-                .and_then(|release| release.released_by.as_ref())
-                .map(|released_by| released_by.as_str()),
-            release_copyright: track
-                .release
-                .as_ref()
-                .and_then(|release| release.copyright.as_ref())
-                .map(|copyright| copyright.as_str()),
-            track_index: track.track_numbers.index().map(|index| index as i32),
-            track_count: track.track_numbers.count().map(|count| count as i32),
-            disc_index: track.disc_numbers.index().map(|index| index as i32),
-            disc_count: track.disc_numbers.count().map(|count| count as i32),
-            movement_index: track.movement_numbers.index().map(|index| index as i32),
-            movement_count: track.movement_numbers.count().map(|count| count as i32),
-            lyrics_explicit: track.lyrics.as_ref().and_then(|lyrics| lyrics.explicit),
-            album_compilation: track.album.as_ref().and_then(|album| album.compilation),
-        }
-    }
-}
-
-#[derive(Debug, Insertable)]
-#[table_name = "aux_track_summary"]
-pub struct InsertableTracksSummary<'a> {
-    pub track_id: StorageId,
-    pub track_artist: Option<&'a str>,
-    pub track_composer: Option<&'a str>,
-    pub track_conductor: Option<&'a str>,
-    pub track_performer: Option<&'a str>,
-    pub track_producer: Option<&'a str>,
-    pub track_remixer: Option<&'a str>,
-    pub album_artist: Option<&'a str>,
-    pub album_composer: Option<&'a str>,
-    pub album_conductor: Option<&'a str>,
-    pub album_performer: Option<&'a str>,
-    pub album_producer: Option<&'a str>,
-    pub ratings_min: Option<ScoreValue>,
-    pub ratings_max: Option<ScoreValue>,
-}
-
-impl<'a> InsertableTracksSummary<'a> {
-    pub fn bind(track_id: StorageId, track: &'a Track) -> Self {
-        let (ratings_min, ratings_max) = match Rating::minmax(&track.ratings, None) {
-            Some((Score(min), Score(max))) => (Some(min), Some(max)),
-            None => (None, None),
-        };
-        Self {
-            track_id,
-            track_artist: Actors::main_actor(&track.actors, ActorRole::Artist)
-                .map(|actor| actor.name.as_str()),
-            track_composer: Actors::main_actor(&track.actors, ActorRole::Composer)
-                .map(|actor| actor.name.as_str()),
-            track_conductor: Actors::main_actor(&track.actors, ActorRole::Conductor)
-                .map(|actor| actor.name.as_str()),
-            track_performer: Actors::main_actor(&track.actors, ActorRole::Performer)
-                .map(|actor| actor.name.as_str()),
-            track_producer: Actors::main_actor(&track.actors, ActorRole::Producer)
-                .map(|actor| actor.name.as_str()),
-            track_remixer: Actors::main_actor(&track.actors, ActorRole::Remixer)
-                .map(|actor| actor.name.as_str()),
-            album_artist: track
-                .album
-                .as_ref()
-                .and_then(|album| Actors::main_actor(&album.actors, ActorRole::Artist))
-                .map(|actor| actor.name.as_str()),
-            album_composer: track
-                .album
-                .as_ref()
-                .and_then(|album| Actors::main_actor(&album.actors, ActorRole::Composer))
-                .map(|actor| actor.name.as_str()),
-            album_conductor: track
-                .album
-                .as_ref()
-                .and_then(|album| Actors::main_actor(&album.actors, ActorRole::Conductor))
-                .map(|actor| actor.name.as_str()),
-            album_performer: track
-                .album
-                .as_ref()
-                .and_then(|album| Actors::main_actor(&album.actors, ActorRole::Performer))
-                .map(|actor| actor.name.as_str()),
-            album_producer: track
-                .album
-                .as_ref()
-                .and_then(|album| Actors::main_actor(&album.actors, ActorRole::Producer))
-                .map(|actor| actor.name.as_str()),
-            ratings_min,
-            ratings_max,
-        }
-    }
-}
-
-#[derive(Debug, Insertable)]
-#[table_name = "aux_track_source"]
-pub struct InsertableTracksSource<'a> {
-    pub track_id: StorageId,
-    pub uri: &'a str,
-    pub uri_decoded: String,
-    pub content_type: &'a str,
-    pub audio_channels_count: Option<i16>,
-    pub audio_duration_ms: Option<f64>,
-    pub audio_samplerate_hz: Option<i32>,
-    pub audio_bitrate_bps: Option<i32>,
-    pub audio_enc_name: Option<&'a str>,
-    pub audio_enc_settings: Option<&'a str>,
-    pub metadata_sync_when: Option<NaiveDateTime>,
-    pub metadata_sync_rev_ordinal: Option<i64>,
-    pub metadata_sync_rev_instant: Option<TickType>,
-}
-
-impl<'a> InsertableTracksSource<'a> {
-    pub fn bind(track_id: StorageId, track_source: &'a TrackSource) -> Self {
-        Self {
-            track_id,
-            uri: track_source.uri.as_str(),
-            uri_decoded: percent_decode(track_source.uri.as_bytes())
-                .decode_utf8_lossy()
-                .into(),
-            content_type: track_source.content_type.as_str(),
-            audio_channels_count: track_source
-                .audio_content
-                .as_ref()
-                .map(|audio| audio.channels.count.0 as i16),
-            audio_duration_ms: track_source
-                .audio_content
-                .as_ref()
-                .map(|audio| audio.duration.0),
-            audio_samplerate_hz: track_source
-                .audio_content
-                .as_ref()
-                .map(|audio| audio.sample_rate.0 as i32),
-            audio_bitrate_bps: track_source
-                .audio_content
-                .as_ref()
-                .map(|audio| audio.bit_rate.0 as i32),
-            audio_enc_name: track_source
-                .audio_content
-                .as_ref()
-                .and_then(|audio| audio.encoder.as_ref())
-                .map(|enc| enc.name.as_str()),
-            audio_enc_settings: track_source
-                .audio_content
-                .as_ref()
-                .and_then(|audio| audio.encoder.as_ref())
-                .and_then(|enc| enc.settings.as_ref())
-                .map(|settings| settings.as_str()),
-            metadata_sync_when: track_source.metadata_sync.map(|sync| sync.when.naive_utc()),
-            metadata_sync_rev_ordinal: track_source
-                .metadata_sync
-                .map(|sync| sync.revision.ordinal() as i64),
-            metadata_sync_rev_instant: track_source
-                .metadata_sync
-                .map(|sync| (sync.revision.instant().0).0),
         }
     }
 }
@@ -352,99 +137,152 @@ impl<'a> InsertableTracksCollection<'a> {
     }
 }
 
-#[derive(Debug, Clone, Copy, Insertable)]
-#[table_name = "aux_track_profile"]
-pub struct InsertableTracksMusic {
+#[derive(Debug, Insertable)]
+#[table_name = "aux_track_source"]
+pub struct InsertableTracksSource<'a> {
     pub track_id: StorageId,
-    pub tempo_bpm: Beats,
-    pub time_sig_top: i16,
-    pub time_sig_bottom: i16,
-    pub key_sig_code: i16,
-    pub acousticness_score: Option<ScoreValue>,
-    pub danceability_score: Option<ScoreValue>,
-    pub energy_score: Option<ScoreValue>,
-    pub instrumentalness_score: Option<ScoreValue>,
-    pub liveness_score: Option<ScoreValue>,
-    pub popularity_score: Option<ScoreValue>,
-    pub speechiness_score: Option<ScoreValue>,
-    pub valence_score: Option<ScoreValue>,
+    pub uri: &'a str,
+    pub uri_decoded: String,
+    pub content_type: &'a str,
+    pub audio_channel_count: Option<i16>,
+    pub audio_duration: Option<f64>,
+    pub audio_samplerate: Option<i32>,
+    pub audio_bitrate: Option<i32>,
+    pub audio_loudness: Option<f64>,
+    pub audio_enc_name: Option<&'a str>,
+    pub audio_enc_settings: Option<&'a str>,
 }
 
-impl InsertableTracksMusic {
-    pub fn bind(track_id: StorageId, profile: &SongProfile) -> Self {
+impl<'a> InsertableTracksSource<'a> {
+    pub fn bind(track_id: StorageId, track_source: &'a TrackSource) -> Self {
         Self {
             track_id,
-            tempo_bpm: profile.tempo.0,
-            time_sig_top: profile.time_sig.top() as i16,
-            time_sig_bottom: profile.time_sig.bottom() as i16,
-            key_sig_code: i16::from(profile.key_sig.code()),
-            acousticness_score: profile
-                .feature(SongFeature::Acousticness)
-                .map(|feature_score| feature_score.score().0),
-            danceability_score: profile
-                .feature(SongFeature::Danceability)
-                .map(|feature_score| feature_score.score().0),
-            energy_score: profile
-                .feature(SongFeature::Energy)
-                .map(|feature_score| feature_score.score().0),
-            instrumentalness_score: profile
-                .feature(SongFeature::Instrumentalness)
-                .map(|feature_score| feature_score.score().0),
-            liveness_score: profile
-                .feature(SongFeature::Liveness)
-                .map(|feature_score| feature_score.score().0),
-            popularity_score: profile
-                .feature(SongFeature::Popularity)
-                .map(|feature_score| feature_score.score().0),
-            speechiness_score: profile
-                .feature(SongFeature::Speechiness)
-                .map(|feature_score| feature_score.score().0),
-            valence_score: profile
-                .feature(SongFeature::Valence)
-                .map(|feature_score| feature_score.score().0),
+            uri: track_source.uri.as_str(),
+            uri_decoded: percent_decode(track_source.uri.as_bytes())
+                .decode_utf8_lossy()
+                .into(),
+            content_type: track_source.content_type.as_str(),
+            audio_channel_count: track_source
+                .audio_content
+                .as_ref()
+                .map(|audio| audio.channel_count.0 as i16),
+            audio_duration: track_source
+                .audio_content
+                .as_ref()
+                .map(|audio| audio.duration.0),
+            audio_samplerate: track_source
+                .audio_content
+                .as_ref()
+                .map(|audio| audio.sample_rate.0 as i32),
+            audio_bitrate: track_source
+                .audio_content
+                .as_ref()
+                .map(|audio| audio.bit_rate.0 as i32),
+            audio_loudness: track_source
+                .audio_content
+                .as_ref()
+                .and_then(|audio| audio.loudness)
+                .map(|loudness| loudness.0),
+            audio_enc_name: track_source
+                .audio_content
+                .as_ref()
+                .and_then(|audio| audio.encoder.as_ref())
+                .map(|enc| enc.name.as_str()),
+            audio_enc_settings: track_source
+                .audio_content
+                .as_ref()
+                .and_then(|audio| audio.encoder.as_ref())
+                .and_then(|enc| enc.settings.as_ref())
+                .map(|settings| settings.as_str()),
         }
     }
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "aux_track_xref"]
-pub struct InsertableTracksRef<'a> {
+#[table_name = "aux_track_brief"]
+pub struct InsertableTracksBrief<'a> {
     pub track_id: StorageId,
-    pub origin: i16,
-    pub reference: &'a str,
+    pub track_title: Option<&'a str>,
+    pub track_artist: Option<&'a str>,
+    pub track_composer: Option<&'a str>,
+    pub album_title: Option<&'a str>,
+    pub album_artist: Option<&'a str>,
+    pub release_year: Option<i32>,
+    pub track_index: Option<i32>,
+    pub track_count: Option<i32>,
+    pub disc_index: Option<i32>,
+    pub disc_count: Option<i32>,
+    pub music_tempo: Option<Beats>,
+    pub music_key: Option<i16>,
 }
 
-impl<'a> InsertableTracksRef<'a> {
-    pub fn bind(track_id: StorageId, origin: RefOrigin, reference: &'a str) -> Self {
+impl<'a> InsertableTracksBrief<'a> {
+    pub fn bind(track_id: StorageId, track: &'a Track) -> Self {
         Self {
             track_id,
-            origin: origin as i16,
-            reference,
+            track_title: Titles::main_title(&track.titles).map(|title| title.name.as_str()),
+            track_artist: Actors::main_actor(&track.actors, ActorRole::Artist)
+                .map(|actor| actor.name.as_str()),
+            track_composer: Actors::main_actor(&track.actors, ActorRole::Composer)
+                .map(|actor| actor.name.as_str()),
+            album_title: track
+                .album
+                .as_ref()
+                .and_then(|album| Titles::main_title(&album.titles))
+                .map(|title| title.name.as_str()),
+            album_artist: track
+                .album
+                .as_ref()
+                .and_then(|album| Actors::main_actor(&album.actors, ActorRole::Artist))
+                .map(|actor| actor.name.as_str()),
+            release_year: track
+                .release
+                .as_ref()
+                .and_then(|release| release.released_at)
+                .map(|released_at| released_at.date().naive_utc().year()),
+            track_index: track.track_numbers.index().map(|index| index as i32),
+            track_count: track.track_numbers.count().map(|count| count as i32),
+            disc_index: track.disc_numbers.index().map(|index| index as i32),
+            disc_count: track.disc_numbers.count().map(|count| count as i32),
+            music_tempo: if track.music.tempo.is_valid() {
+                Some(track.music.tempo.0)
+            } else {
+                None
+            },
+            music_key: if track.music.key.is_valid() {
+                Some(i16::from(track.music.key.code()))
+            } else {
+                None
+            },
         }
     }
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "aux_track_tag_term"]
-pub struct InsertableTracksTagTerm<'a> {
-    pub term: &'a str,
+#[table_name = "aux_tag_label"]
+pub struct InsertableTagLabel<'a> {
+    pub label: &'a str,
 }
 
-impl<'a> InsertableTracksTagTerm<'a> {
-    pub fn bind(term: &'a str) -> Self {
-        Self { term }
+impl<'a> InsertableTagLabel<'a> {
+    pub fn bind(label: &'a Label) -> Self {
+        Self {
+            label: label.as_ref(),
+        }
     }
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "aux_track_tag_facet"]
-pub struct InsertableTracksTagFacet<'a> {
+#[table_name = "aux_tag_facet"]
+pub struct InsertableTagFacet<'a> {
     pub facet: &'a str,
 }
 
-impl<'a> InsertableTracksTagFacet<'a> {
-    pub fn bind(facet: &'a str) -> Self {
-        Self { facet }
+impl<'a> InsertableTagFacet<'a> {
+    pub fn bind(facet: &'a Facet) -> Self {
+        Self {
+            facet: facet.as_ref(),
+        }
     }
 }
 
@@ -452,59 +290,23 @@ impl<'a> InsertableTracksTagFacet<'a> {
 #[table_name = "aux_track_tag"]
 pub struct InsertableTracksTag {
     pub track_id: StorageId,
-    pub term_id: StorageId,
     pub facet_id: Option<StorageId>,
+    pub label_id: StorageId,
     pub score: ScoreValue,
 }
 
 impl InsertableTracksTag {
     pub fn bind(
         track_id: StorageId,
-        term_id: StorageId,
         facet_id: Option<StorageId>,
+        label_id: StorageId,
         score: Score,
     ) -> Self {
         Self {
             track_id,
-            term_id,
             facet_id,
-            score: score.0,
-        }
-    }
-}
-
-#[derive(Debug, Insertable)]
-#[table_name = "aux_track_rating"]
-pub struct InsertableTracksRating<'a> {
-    pub track_id: StorageId,
-    pub score: ScoreValue,
-    pub owner: Option<&'a str>,
-}
-
-impl<'a> InsertableTracksRating<'a> {
-    pub fn bind(track_id: StorageId, rating: &'a Rating) -> Self {
-        Self {
-            track_id,
-            score: rating.score().0,
-            owner: rating.owner().as_ref().map(|owner| owner.as_str()),
-        }
-    }
-}
-
-#[derive(Debug, Insertable)]
-#[table_name = "aux_track_comment"]
-pub struct InsertableTracksComment<'a> {
-    pub track_id: StorageId,
-    pub text: &'a str,
-    pub owner: Option<&'a str>,
-}
-
-impl<'a> InsertableTracksComment<'a> {
-    pub fn bind(track_id: StorageId, comment: &'a Comment) -> Self {
-        Self {
-            track_id,
-            text: comment.text().as_str(),
-            owner: comment.owner().as_ref().map(|owner| owner.as_str()),
+            label_id,
+            score: score.into(),
         }
     }
 }
