@@ -113,8 +113,8 @@ fn dummy_false_expression() -> TrackSearchBoxedExpression<'static> {
     Box::new(tbl_track::id.is_null())
 }
 
-pub trait AsTrackSearchQueryExpression {
-    fn predicate<'a>(
+pub trait TrackSearchBoxedExpressionBuilder {
+    fn build_expression<'a>(
         &'a self,
         collection_uid: Option<&EntityUid>,
     ) -> TrackSearchBoxedExpression<'a>;
@@ -173,15 +173,11 @@ impl TrackSearchQueryTransform for PhraseFilter {
                             .like(like_expr.clone())
                             .escape('\\'),
                     ),
-                    Some(FilterModifier::Complement) => {
-                        log::info!("### PhraseFilter: NOT LIKE");
-
-                        query.or_filter(
-                            aux_track_source::uri_decoded
-                                .not_like(like_expr.clone())
-                                .escape('\\'),
-                        )
-                    }
+                    Some(FilterModifier::Complement) => query.or_filter(
+                        aux_track_source::uri_decoded
+                            .not_like(like_expr.clone())
+                            .escape('\\'),
+                    ),
                 };
             }
             if self.fields.is_empty()
@@ -743,7 +739,7 @@ impl TrackSearchQueryTransform for TagFilter {
     }
 }
 
-impl TrackSearchQueryTransform for TrackSort {
+impl TrackSearchQueryTransform for TrackSortOrder {
     fn apply_to_query<'a>(
         &'a self,
         query: TrackSearchBoxedQuery<'a>,
@@ -751,7 +747,7 @@ impl TrackSearchQueryTransform for TrackSort {
     ) -> TrackSearchBoxedQuery<'a> {
         let direction = self
             .direction
-            .unwrap_or_else(|| TrackSort::default_direction(self.field));
+            .unwrap_or_else(|| TrackSortOrder::default_direction(self.field));
         match self.field {
             field @ TrackSortField::InCollectionSince => {
                 if collection_uid.is_some() {
@@ -818,8 +814,8 @@ impl TrackSearchQueryTransform for TrackSort {
     }
 }
 
-impl AsTrackSearchQueryExpression for PhraseFilter {
-    fn predicate<'a>(
+impl TrackSearchBoxedExpressionBuilder for PhraseFilter {
+    fn build_expression<'a>(
         &'a self,
         _collection_uid: Option<&EntityUid>,
     ) -> TrackSearchBoxedExpression<'a> {
@@ -993,8 +989,8 @@ impl AsTrackSearchQueryExpression for PhraseFilter {
     }
 }
 
-impl AsTrackSearchQueryExpression for NumericFilter {
-    fn predicate<'a>(
+impl TrackSearchBoxedExpressionBuilder for NumericFilter {
+    fn build_expression<'a>(
         &'a self,
         _collection_uid: Option<&EntityUid>,
     ) -> TrackSearchBoxedExpression<'a> {
@@ -1411,8 +1407,8 @@ impl AsTrackSearchQueryExpression for NumericFilter {
     }
 }
 
-impl AsTrackSearchQueryExpression for TagFilter {
-    fn predicate<'a>(
+impl TrackSearchBoxedExpressionBuilder for TagFilter {
+    fn build_expression<'a>(
         &'a self,
         _collection_uid: Option<&EntityUid>,
     ) -> TrackSearchBoxedExpression<'a> {
@@ -1424,36 +1420,36 @@ impl AsTrackSearchQueryExpression for TagFilter {
     }
 }
 
-impl AsTrackSearchQueryExpression for TrackSearchFilterPredicate {
-    fn predicate<'a>(
+impl TrackSearchBoxedExpressionBuilder for TrackSearchFilter {
+    fn build_expression<'a>(
         &'a self,
         collection_uid: Option<&EntityUid>,
     ) -> TrackSearchBoxedExpression<'a> {
-        use api::TrackSearchFilterPredicate::*;
+        use crate::api::TrackSearchFilter::*;
         match self {
-            PhraseFilter(filter) => filter.predicate(collection_uid),
-            NumericFilter(filter) => filter.predicate(collection_uid),
-            TagFilter(filter) => filter.predicate(collection_uid),
-            And(predicates) => predicates
+            Phrase(filter) => filter.build_expression(collection_uid),
+            Numeric(filter) => filter.build_expression(collection_uid),
+            Tag(filter) => filter.build_expression(collection_uid),
+            All(filters) => filters
                 .iter()
-                .fold(dummy_true_expression(), |expr, pred| {
-                    Box::new(expr.and(pred.predicate(collection_uid)))
+                .fold(dummy_true_expression(), |expr, filter| {
+                    Box::new(expr.and(filter.build_expression(collection_uid)))
                 }),
-            Or(predicates) => predicates
+            Any(filters) => filters
                 .iter()
-                .fold(dummy_false_expression(), |expr, pred| {
-                    Box::new(expr.or(pred.predicate(collection_uid)))
+                .fold(dummy_false_expression(), |expr, filter| {
+                    Box::new(expr.or(filter.build_expression(collection_uid)))
                 }),
         }
     }
 }
 
-impl TrackSearchQueryTransform for TrackSearchFilterPredicate {
+impl TrackSearchQueryTransform for TrackSearchFilter {
     fn apply_to_query<'a>(
         &'a self,
         query: TrackSearchBoxedQuery<'a>,
         collection_uid: Option<&EntityUid>,
     ) -> TrackSearchBoxedQuery<'a> {
-        query.filter(self.predicate(collection_uid))
+        query.filter(self.build_expression(collection_uid))
     }
 }

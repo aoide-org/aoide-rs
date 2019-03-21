@@ -173,7 +173,7 @@ pub struct NumericFilter {
     pub condition: NumericCondition,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PhraseFilter {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -262,20 +262,20 @@ pub enum SortDirection {
     #[serde(rename = "asc")]
     Ascending,
 
-    #[serde(rename = "desc")]
+    #[serde(rename = "dsc")]
     Descending,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct TrackSort {
+pub struct TrackSortOrder {
     pub field: TrackSortField,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub direction: Option<SortDirection>,
 }
 
-impl TrackSort {
+impl TrackSortOrder {
     pub fn default_direction(field: TrackSortField) -> SortDirection {
         match field {
             TrackSortField::InCollectionSince | TrackSortField::LastRevisionedAt => {
@@ -287,33 +287,28 @@ impl TrackSort {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-// TODO: extend to an arbitrary tree
-pub enum TrackSearchFilterPredicate {
-    PhraseFilter(PhraseFilter),
-    NumericFilter(NumericFilter),
-    TagFilter(TagFilter),
-    And(Vec<TrackSearchFilterPredicate>),
-    Or(Vec<TrackSearchFilterPredicate>),
+#[serde(
+    deny_unknown_fields,
+    tag = "type",
+    content = "filter",
+    rename_all = "camelCase"
+)]
+pub enum TrackSearchFilter {
+    Phrase(PhraseFilter),
+    Numeric(NumericFilter),
+    Tag(TagFilter),
+    All(Vec<TrackSearchFilter>),
+    Any(Vec<TrackSearchFilter>),
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SearchTracksParams {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub filter: Option<TrackSearchFilterPredicate>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub phrase_filter: Option<PhraseFilter>,
+    pub filter: Option<TrackSearchFilter>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub numeric_filters: Vec<NumericFilter>,
-
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub tag_filters: Vec<TagFilter>,
-
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub ordering: Vec<TrackSort>,
+    pub ordering: Vec<TrackSortOrder>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

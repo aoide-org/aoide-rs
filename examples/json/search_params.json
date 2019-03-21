@@ -1,0 +1,92 @@
+{
+    "filter": {
+        "type": "all",
+        "filter": [
+            {
+                "type": "any",
+                "filter": [
+                    {
+                        "type": "tag",
+                        "filter": {
+                            "facet": "genre",
+                            "label": {
+                                "comparator": "contains",
+                                "value": "r&b/soul"
+                            },
+                            "score": {
+                                "comparator": "greater-than",
+                                "value": 0.8
+                            }
+                        }
+                    },
+                    {
+                        "type": "tag",
+                        "filter": {
+                            "facet": "genre",
+                            "label": {
+                                "comparator": "contains",
+                                "value": "rap"
+                            },
+                            "score": {
+                                "comparator": "greater-than",
+                                "value": 0.8
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                "type": "any",
+                "filter": [
+                    {
+                        "type": "tag",
+                        "filter": {
+                            "facet": "event",
+                            "label": {
+                                "comparator": "matches",
+                                "value": "bday"
+                            }
+                        }
+                    },
+                    {
+                        "type": "tag",
+                        "filter": {
+                            "facet": "event",
+                            "label": {
+                                "comparator": "matches",
+                                "value": "xmas"
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                "type": "tag",
+                "filter": {
+                    "facet": "epoch",
+                    "label": {
+                        "comparator": "matches",
+                        "value": "2000s"
+                    }
+                }
+            },
+            {
+                "type": "numeric",
+                "filter": {
+                    "field": "musicTempo",
+                    "condition": {
+                        "modifier": "not",
+                        "comparator": "greater-than",
+                        "value": 60
+                    }
+                }
+            }
+        ]
+    },
+    "ordering": [
+        {
+            "field": "lastRevisionedAt",
+            "direction": "dsc"
+        }
+    ]
+}

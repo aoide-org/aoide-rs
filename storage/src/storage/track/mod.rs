@@ -237,12 +237,12 @@ impl<'a> Tracks for TrackRepository<'a> {
         let mut results = ReplacedTracks::default();
         for replacement in replace_params.replacements {
             let uri_filter = UriFilter {
+                modifier: None,
                 condition: StringCondition {
                     comparator: StringComparator::Equals,
                     value: replacement.uri.clone(),
                     modifier: None,
                 },
-                modifier: None,
             };
             let locate_params = LocateTracksParams { uri_filter };
             // Workaround for performance regression:
@@ -502,18 +502,6 @@ impl<'a> Tracks for TrackRepository<'a> {
             .left_outer_join(aux_track_source::table)
             .left_outer_join(aux_track_collection::table)
             .into_boxed();
-
-        if let Some(ref phrase_filter) = search_params.phrase_filter {
-            target = phrase_filter.apply_to_query(target, collection_uid);
-        }
-
-        for tag_filter in &search_params.tag_filters {
-            target = tag_filter.apply_to_query(target, collection_uid);
-        }
-
-        for numeric_filter in &search_params.numeric_filters {
-            target = numeric_filter.apply_to_query(target, collection_uid);
-        }
 
         if let Some(ref filter) = search_params.filter {
             target = filter.apply_to_query(target, collection_uid);
