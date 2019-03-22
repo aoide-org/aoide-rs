@@ -77,7 +77,7 @@
                     "condition": {
                         "modifier": "not",
                         "comparator": "greater-than",
-                        "value": 60
+                        "value": 80
                     }
                 }
             }

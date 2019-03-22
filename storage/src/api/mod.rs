@@ -165,9 +165,6 @@ pub struct NumericCondition {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct NumericFilter {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub modifier: Option<FilterModifier>,
-
     pub field: NumericField,
 
     pub condition: NumericCondition,

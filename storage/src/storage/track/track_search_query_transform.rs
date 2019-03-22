@@ -307,417 +307,193 @@ impl TrackSearchQueryTransform for NumericFilter {
         _: Option<&EntityUid>,
     ) -> TrackSearchBoxedQuery<'a> {
         match self.field {
-            NumericField::ReleaseYear => match self.condition.comparator {
-                NumericComparator::LessThan => match self.condition.modifier {
-                    None => match self.modifier {
-                        None => query
-                            .filter(aux_track_brief::release_year.lt(self.condition.value as i32)),
-                        Some(FilterModifier::Complement) => query.filter(not(
-                            aux_track_brief::release_year.lt(self.condition.value as i32),
-                        )),
-                    },
-                    Some(ConditionModifier::Not) => match self.modifier {
-                        None => query
-                            .filter(aux_track_brief::release_year.ge(self.condition.value as i32)),
-                        Some(FilterModifier::Complement) => query.filter(not(
-                            aux_track_brief::release_year.ge(self.condition.value as i32),
-                        )),
-                    },
-                },
-                NumericComparator::GreaterThan => match self.condition.modifier {
-                    None => match self.modifier {
-                        None => query
-                            .filter(aux_track_brief::release_year.gt(self.condition.value as i32)),
-                        Some(FilterModifier::Complement) => query.filter(not(
-                            aux_track_brief::release_year.gt(self.condition.value as i32),
-                        )),
-                    },
-                    Some(ConditionModifier::Not) => match self.modifier {
-                        None => query
-                            .filter(aux_track_brief::release_year.le(self.condition.value as i32)),
-                        Some(FilterModifier::Complement) => query.filter(not(
-                            aux_track_brief::release_year.le(self.condition.value as i32),
-                        )),
-                    },
-                },
-                NumericComparator::EqualTo => match self.condition.modifier {
-                    None => match self.modifier {
-                        None => query
-                            .filter(aux_track_brief::release_year.eq(self.condition.value as i32)),
-                        Some(FilterModifier::Complement) => query.filter(not(
-                            aux_track_brief::release_year.eq(self.condition.value as i32),
-                        )),
-                    },
-                    Some(ConditionModifier::Not) => match self.modifier {
-                        None => query
-                            .filter(aux_track_brief::release_year.ne(self.condition.value as i32)),
-                        Some(FilterModifier::Complement) => query.filter(not(
-                            aux_track_brief::release_year.ne(self.condition.value as i32),
-                        )),
-                    },
-                },
-            },
-            NumericField::Duration => {
+            NumericField::ReleaseYear => {
                 match self.condition.comparator {
                     NumericComparator::LessThan => match self.condition.modifier {
-                        None => match self.modifier {
-                            None => query
-                                .filter(aux_track_source::audio_duration.lt(self.condition.value)),
-                            Some(FilterModifier::Complement) => query.filter(not(
-                                aux_track_source::audio_duration.lt(self.condition.value),
-                            )),
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => query
-                                .filter(aux_track_source::audio_duration.ge(self.condition.value)),
-                            Some(FilterModifier::Complement) => query.filter(not(
-                                aux_track_source::audio_duration.ge(self.condition.value),
-                            )),
-                        },
+                        None => query
+                            .filter(aux_track_brief::release_year.lt(self.condition.value as i32)),
+                        Some(ConditionModifier::Not) => query
+                            .filter(aux_track_brief::release_year.ge(self.condition.value as i32)),
                     },
                     NumericComparator::GreaterThan => match self.condition.modifier {
-                        None => match self.modifier {
-                            None => query
-                                .filter(aux_track_source::audio_duration.gt(self.condition.value)),
-                            Some(FilterModifier::Complement) => query.filter(not(
-                                aux_track_source::audio_duration.gt(self.condition.value),
-                            )),
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => query
-                                .filter(aux_track_source::audio_duration.le(self.condition.value)),
-                            Some(FilterModifier::Complement) => query.filter(not(
-                                aux_track_source::audio_duration.le(self.condition.value),
-                            )),
-                        },
+                        None => query
+                            .filter(aux_track_brief::release_year.gt(self.condition.value as i32)),
+                        Some(ConditionModifier::Not) => query
+                            .filter(aux_track_brief::release_year.le(self.condition.value as i32)),
                     },
                     NumericComparator::EqualTo => match self.condition.modifier {
-                        None => match self.modifier {
-                            None => query
-                                .filter(aux_track_source::audio_duration.eq(self.condition.value)),
-                            Some(FilterModifier::Complement) => query.filter(not(
-                                aux_track_source::audio_duration.eq(self.condition.value),
-                            )),
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => query
-                                .filter(aux_track_source::audio_duration.ne(self.condition.value)),
-                            Some(FilterModifier::Complement) => query.filter(not(
-                                aux_track_source::audio_duration.ne(self.condition.value),
-                            )),
-                        },
+                        None => query
+                            .filter(aux_track_brief::release_year.eq(self.condition.value as i32)),
+                        Some(ConditionModifier::Not) => query
+                            .filter(aux_track_brief::release_year.ne(self.condition.value as i32)),
                     },
                 }
             }
+            NumericField::Duration => match self.condition.comparator {
+                NumericComparator::LessThan => match self.condition.modifier {
+                    None => query.filter(aux_track_source::audio_duration.lt(self.condition.value)),
+                    Some(ConditionModifier::Not) => {
+                        query.filter(aux_track_source::audio_duration.ge(self.condition.value))
+                    }
+                },
+                NumericComparator::GreaterThan => match self.condition.modifier {
+                    None => query.filter(aux_track_source::audio_duration.gt(self.condition.value)),
+                    Some(ConditionModifier::Not) => {
+                        query.filter(aux_track_source::audio_duration.le(self.condition.value))
+                    }
+                },
+                NumericComparator::EqualTo => match self.condition.modifier {
+                    None => query.filter(aux_track_source::audio_duration.eq(self.condition.value)),
+                    Some(ConditionModifier::Not) => {
+                        query.filter(aux_track_source::audio_duration.ne(self.condition.value))
+                    }
+                },
+            },
             NumericField::SampleRate => {
-                // TODO: Check range!
+                // TODO: Check value range!
                 let condition_value = self.condition.value as i32;
                 match self.condition.comparator {
-                    NumericComparator::LessThan => {
-                        match self.condition.modifier {
-                            None => match self.modifier {
-                                None => query
-                                    .filter(aux_track_source::audio_samplerate.lt(condition_value)),
-                                Some(FilterModifier::Complement) => query.filter(not(
-                                    aux_track_source::audio_samplerate.lt(condition_value),
-                                )),
-                            },
-                            Some(ConditionModifier::Not) => match self.modifier {
-                                None => query
-                                    .filter(aux_track_source::audio_samplerate.ge(condition_value)),
-                                Some(FilterModifier::Complement) => query.filter(not(
-                                    aux_track_source::audio_samplerate.ge(condition_value),
-                                )),
-                            },
+                    NumericComparator::LessThan => match self.condition.modifier {
+                        None => {
+                            query.filter(aux_track_source::audio_samplerate.lt(condition_value))
                         }
-                    }
-                    NumericComparator::GreaterThan => {
-                        match self.condition.modifier {
-                            None => match self.modifier {
-                                None => query
-                                    .filter(aux_track_source::audio_samplerate.gt(condition_value)),
-                                Some(FilterModifier::Complement) => query.filter(not(
-                                    aux_track_source::audio_samplerate.gt(condition_value),
-                                )),
-                            },
-                            Some(ConditionModifier::Not) => match self.modifier {
-                                None => query
-                                    .filter(aux_track_source::audio_samplerate.le(condition_value)),
-                                Some(FilterModifier::Complement) => query.filter(not(
-                                    aux_track_source::audio_samplerate.le(condition_value),
-                                )),
-                            },
+                        Some(ConditionModifier::Not) => {
+                            query.filter(aux_track_source::audio_samplerate.ge(condition_value))
                         }
-                    }
-                    NumericComparator::EqualTo => {
-                        match self.condition.modifier {
-                            None => match self.modifier {
-                                None => query
-                                    .filter(aux_track_source::audio_samplerate.eq(condition_value)),
-                                Some(FilterModifier::Complement) => query.filter(not(
-                                    aux_track_source::audio_samplerate.eq(condition_value),
-                                )),
-                            },
-                            Some(ConditionModifier::Not) => match self.modifier {
-                                None => query
-                                    .filter(aux_track_source::audio_samplerate.ne(condition_value)),
-                                Some(FilterModifier::Complement) => query.filter(not(
-                                    aux_track_source::audio_samplerate.ne(condition_value),
-                                )),
-                            },
+                    },
+                    NumericComparator::GreaterThan => match self.condition.modifier {
+                        None => {
+                            query.filter(aux_track_source::audio_samplerate.gt(condition_value))
                         }
-                    }
+                        Some(ConditionModifier::Not) => {
+                            query.filter(aux_track_source::audio_samplerate.le(condition_value))
+                        }
+                    },
+                    NumericComparator::EqualTo => match self.condition.modifier {
+                        None => {
+                            query.filter(aux_track_source::audio_samplerate.eq(condition_value))
+                        }
+                        Some(ConditionModifier::Not) => {
+                            query.filter(aux_track_source::audio_samplerate.ne(condition_value))
+                        }
+                    },
                 }
             }
             NumericField::BitRate => {
-                // TODO: Check range!
+                // TODO: Check value range!
                 let condition_value = self.condition.value as i32;
                 match self.condition.comparator {
                     NumericComparator::LessThan => match self.condition.modifier {
-                        None => match self.modifier {
-                            None => {
-                                query.filter(aux_track_source::audio_bitrate.lt(condition_value))
-                            }
-                            Some(FilterModifier::Complement) => query
-                                .filter(not(aux_track_source::audio_bitrate.lt(condition_value))),
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => {
-                                query.filter(aux_track_source::audio_bitrate.ge(condition_value))
-                            }
-                            Some(FilterModifier::Complement) => query
-                                .filter(not(aux_track_source::audio_bitrate.ge(condition_value))),
-                        },
+                        None => query.filter(aux_track_source::audio_bitrate.lt(condition_value)),
+                        Some(ConditionModifier::Not) => {
+                            query.filter(aux_track_source::audio_bitrate.ge(condition_value))
+                        }
                     },
                     NumericComparator::GreaterThan => match self.condition.modifier {
-                        None => match self.modifier {
-                            None => {
-                                query.filter(aux_track_source::audio_bitrate.gt(condition_value))
-                            }
-                            Some(FilterModifier::Complement) => query
-                                .filter(not(aux_track_source::audio_bitrate.gt(condition_value))),
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => {
-                                query.filter(aux_track_source::audio_bitrate.le(condition_value))
-                            }
-                            Some(FilterModifier::Complement) => query
-                                .filter(not(aux_track_source::audio_bitrate.le(condition_value))),
-                        },
+                        None => query.filter(aux_track_source::audio_bitrate.gt(condition_value)),
+                        Some(ConditionModifier::Not) => {
+                            query.filter(aux_track_source::audio_bitrate.le(condition_value))
+                        }
                     },
                     NumericComparator::EqualTo => match self.condition.modifier {
-                        None => match self.modifier {
-                            None => {
-                                query.filter(aux_track_source::audio_bitrate.eq(condition_value))
-                            }
-                            Some(FilterModifier::Complement) => query
-                                .filter(not(aux_track_source::audio_bitrate.eq(condition_value))),
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => {
-                                query.filter(aux_track_source::audio_bitrate.ne(condition_value))
-                            }
-                            Some(FilterModifier::Complement) => query
-                                .filter(not(aux_track_source::audio_bitrate.ne(condition_value))),
-                        },
+                        None => query.filter(aux_track_source::audio_bitrate.eq(condition_value)),
+                        Some(ConditionModifier::Not) => {
+                            query.filter(aux_track_source::audio_bitrate.ne(condition_value))
+                        }
                     },
                 }
             }
             NumericField::ChannelCount => {
-                // TODO: Check range!
+                // TODO: Check value range!
                 let condition_value = self.condition.value as i16;
                 match self.condition.comparator {
-                    NumericComparator::LessThan => match self.condition.modifier {
-                        None => match self.modifier {
+                    NumericComparator::LessThan => {
+                        match self.condition.modifier {
                             None => query
                                 .filter(aux_track_source::audio_channel_count.lt(condition_value)),
-                            Some(FilterModifier::Complement) => query.filter(not(
-                                aux_track_source::audio_channel_count.lt(condition_value),
-                            )),
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => query
+                            Some(ConditionModifier::Not) => query
                                 .filter(aux_track_source::audio_channel_count.ge(condition_value)),
-                            Some(FilterModifier::Complement) => query.filter(not(
-                                aux_track_source::audio_channel_count.ge(condition_value),
-                            )),
-                        },
-                    },
-                    NumericComparator::GreaterThan => match self.condition.modifier {
-                        None => match self.modifier {
+                        }
+                    }
+                    NumericComparator::GreaterThan => {
+                        match self.condition.modifier {
                             None => query
                                 .filter(aux_track_source::audio_channel_count.gt(condition_value)),
-                            Some(FilterModifier::Complement) => query.filter(not(
-                                aux_track_source::audio_channel_count.gt(condition_value),
-                            )),
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => query
+                            Some(ConditionModifier::Not) => query
                                 .filter(aux_track_source::audio_channel_count.le(condition_value)),
-                            Some(FilterModifier::Complement) => query.filter(not(
-                                aux_track_source::audio_channel_count.le(condition_value),
-                            )),
-                        },
-                    },
-                    NumericComparator::EqualTo => match self.condition.modifier {
-                        None => match self.modifier {
+                        }
+                    }
+                    NumericComparator::EqualTo => {
+                        match self.condition.modifier {
                             None => query
                                 .filter(aux_track_source::audio_channel_count.eq(condition_value)),
-                            Some(FilterModifier::Complement) => query.filter(not(
-                                aux_track_source::audio_channel_count.eq(condition_value),
-                            )),
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => query
+                            Some(ConditionModifier::Not) => query
                                 .filter(aux_track_source::audio_channel_count.ne(condition_value)),
-                            Some(FilterModifier::Complement) => query.filter(not(
-                                aux_track_source::audio_channel_count.ne(condition_value),
-                            )),
-                        },
-                    },
+                        }
+                    }
                 }
             }
-            NumericField::Loudness => {
-                match self.condition.comparator {
-                    NumericComparator::LessThan => match self.condition.modifier {
-                        None => match self.modifier {
-                            None => query
-                                .filter(aux_track_source::audio_loudness.lt(self.condition.value)),
-                            Some(FilterModifier::Complement) => query.filter(not(
-                                aux_track_source::audio_loudness.lt(self.condition.value),
-                            )),
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => query
-                                .filter(aux_track_source::audio_loudness.ge(self.condition.value)),
-                            Some(FilterModifier::Complement) => query.filter(not(
-                                aux_track_source::audio_loudness.ge(self.condition.value),
-                            )),
-                        },
-                    },
-                    NumericComparator::GreaterThan => match self.condition.modifier {
-                        None => match self.modifier {
-                            None => query
-                                .filter(aux_track_source::audio_loudness.gt(self.condition.value)),
-                            Some(FilterModifier::Complement) => query.filter(not(
-                                aux_track_source::audio_loudness.gt(self.condition.value),
-                            )),
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => query
-                                .filter(aux_track_source::audio_loudness.le(self.condition.value)),
-                            Some(FilterModifier::Complement) => query.filter(not(
-                                aux_track_source::audio_loudness.le(self.condition.value),
-                            )),
-                        },
-                    },
-                    NumericComparator::EqualTo => match self.condition.modifier {
-                        None => match self.modifier {
-                            None => query
-                                .filter(aux_track_source::audio_loudness.eq(self.condition.value)),
-                            Some(FilterModifier::Complement) => query.filter(not(
-                                aux_track_source::audio_loudness.eq(self.condition.value),
-                            )),
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => query
-                                .filter(aux_track_source::audio_loudness.ne(self.condition.value)),
-                            Some(FilterModifier::Complement) => query.filter(not(
-                                aux_track_source::audio_loudness.ne(self.condition.value),
-                            )),
-                        },
-                    },
-                }
-            }
-            NumericField::MusicTempo => match self.condition.comparator {
+            NumericField::Loudness => match self.condition.comparator {
                 NumericComparator::LessThan => match self.condition.modifier {
-                    None => match self.modifier {
-                        None => query.filter(aux_track_brief::music_tempo.lt(self.condition.value)),
-                        Some(FilterModifier::Complement) => {
-                            query.filter(not(aux_track_brief::music_tempo.lt(self.condition.value)))
-                        }
-                    },
-                    Some(ConditionModifier::Not) => match self.modifier {
-                        None => query.filter(aux_track_brief::music_tempo.ge(self.condition.value)),
-                        Some(FilterModifier::Complement) => {
-                            query.filter(not(aux_track_brief::music_tempo.ge(self.condition.value)))
-                        }
-                    },
+                    None => query.filter(aux_track_source::audio_loudness.lt(self.condition.value)),
+                    Some(ConditionModifier::Not) => {
+                        query.filter(aux_track_source::audio_loudness.ge(self.condition.value))
+                    }
                 },
                 NumericComparator::GreaterThan => match self.condition.modifier {
-                    None => match self.modifier {
-                        None => query.filter(aux_track_brief::music_tempo.gt(self.condition.value)),
-                        Some(FilterModifier::Complement) => {
-                            query.filter(not(aux_track_brief::music_tempo.gt(self.condition.value)))
-                        }
-                    },
-                    Some(ConditionModifier::Not) => match self.modifier {
-                        None => query.filter(aux_track_brief::music_tempo.le(self.condition.value)),
-                        Some(FilterModifier::Complement) => {
-                            query.filter(not(aux_track_brief::music_tempo.le(self.condition.value)))
-                        }
-                    },
+                    None => query.filter(aux_track_source::audio_loudness.gt(self.condition.value)),
+                    Some(ConditionModifier::Not) => {
+                        query.filter(aux_track_source::audio_loudness.le(self.condition.value))
+                    }
                 },
                 NumericComparator::EqualTo => match self.condition.modifier {
-                    None => match self.modifier {
-                        None => query.filter(aux_track_brief::music_tempo.eq(self.condition.value)),
-                        Some(FilterModifier::Complement) => {
-                            query.filter(not(aux_track_brief::music_tempo.eq(self.condition.value)))
-                        }
-                    },
-                    Some(ConditionModifier::Not) => match self.modifier {
-                        None => query.filter(aux_track_brief::music_tempo.ne(self.condition.value)),
-                        Some(FilterModifier::Complement) => {
-                            query.filter(not(aux_track_brief::music_tempo.ne(self.condition.value)))
-                        }
-                    },
+                    None => query.filter(aux_track_source::audio_loudness.eq(self.condition.value)),
+                    Some(ConditionModifier::Not) => {
+                        query.filter(aux_track_source::audio_loudness.ne(self.condition.value))
+                    }
+                },
+            },
+            NumericField::MusicTempo => match self.condition.comparator {
+                NumericComparator::LessThan => match self.condition.modifier {
+                    None => query.filter(aux_track_brief::music_tempo.lt(self.condition.value)),
+                    Some(ConditionModifier::Not) => {
+                        query.filter(aux_track_brief::music_tempo.ge(self.condition.value))
+                    }
+                },
+                NumericComparator::GreaterThan => match self.condition.modifier {
+                    None => query.filter(aux_track_brief::music_tempo.gt(self.condition.value)),
+                    Some(ConditionModifier::Not) => {
+                        query.filter(aux_track_brief::music_tempo.le(self.condition.value))
+                    }
+                },
+                NumericComparator::EqualTo => match self.condition.modifier {
+                    None => query.filter(aux_track_brief::music_tempo.eq(self.condition.value)),
+                    Some(ConditionModifier::Not) => {
+                        query.filter(aux_track_brief::music_tempo.ne(self.condition.value))
+                    }
                 },
             },
             NumericField::MusicKey => {
-                // TODO: Check range!
+                // TODO: Check value range!
                 let condition_value = self.condition.value as i16;
                 match self.condition.comparator {
                     NumericComparator::LessThan => match self.condition.modifier {
-                        None => match self.modifier {
-                            None => query.filter(aux_track_brief::music_key.lt(condition_value)),
-                            Some(FilterModifier::Complement) => {
-                                query.filter(not(aux_track_brief::music_key.lt(condition_value)))
-                            }
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => query.filter(aux_track_brief::music_key.ge(condition_value)),
-                            Some(FilterModifier::Complement) => {
-                                query.filter(not(aux_track_brief::music_key.ge(condition_value)))
-                            }
-                        },
+                        None => query.filter(aux_track_brief::music_key.lt(condition_value)),
+                        Some(ConditionModifier::Not) => {
+                            query.filter(aux_track_brief::music_key.ge(condition_value))
+                        }
                     },
                     NumericComparator::GreaterThan => match self.condition.modifier {
-                        None => match self.modifier {
-                            None => query.filter(aux_track_brief::music_key.gt(condition_value)),
-                            Some(FilterModifier::Complement) => {
-                                query.filter(not(aux_track_brief::music_key.gt(condition_value)))
-                            }
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => query.filter(aux_track_brief::music_key.le(condition_value)),
-                            Some(FilterModifier::Complement) => {
-                                query.filter(not(aux_track_brief::music_key.le(condition_value)))
-                            }
-                        },
+                        None => query.filter(aux_track_brief::music_key.gt(condition_value)),
+                        Some(ConditionModifier::Not) => {
+                            query.filter(aux_track_brief::music_key.le(condition_value))
+                        }
                     },
                     NumericComparator::EqualTo => match self.condition.modifier {
-                        None => match self.modifier {
-                            None => query.filter(aux_track_brief::music_key.eq(condition_value)),
-                            Some(FilterModifier::Complement) => {
-                                query.filter(not(aux_track_brief::music_key.eq(condition_value)))
-                            }
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => query.filter(aux_track_brief::music_key.ne(condition_value)),
-                            Some(FilterModifier::Complement) => {
-                                query.filter(not(aux_track_brief::music_key.ne(condition_value)))
-                            }
-                        },
+                        None => query.filter(aux_track_brief::music_key.eq(condition_value)),
+                        Some(ConditionModifier::Not) => {
+                            query.filter(aux_track_brief::music_key.ne(condition_value))
+                        }
                     },
                 }
             }
@@ -994,415 +770,183 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
         &'a self,
         _collection_uid: Option<&EntityUid>,
     ) -> TrackSearchBoxedExpression<'a> {
-        let expression: TrackSearchBoxedExpression<'a> = match self.field {
+        match self.field {
             NumericField::ReleaseYear => match self.condition.comparator {
                 NumericComparator::LessThan => match self.condition.modifier {
-                    None => match self.modifier {
-                        None => {
-                            Box::new(aux_track_brief::release_year.lt(self.condition.value as i32))
-                        }
-                        Some(FilterModifier::Complement) => Box::new(not(
-                            aux_track_brief::release_year.lt(self.condition.value as i32),
-                        )),
-                    },
-                    Some(ConditionModifier::Not) => match self.modifier {
-                        None => {
-                            Box::new(aux_track_brief::release_year.ge(self.condition.value as i32))
-                        }
-                        Some(FilterModifier::Complement) => Box::new(not(
-                            aux_track_brief::release_year.ge(self.condition.value as i32),
-                        )),
-                    },
+                    None => Box::new(aux_track_brief::release_year.lt(self.condition.value as i32)),
+                    Some(ConditionModifier::Not) => {
+                        Box::new(aux_track_brief::release_year.ge(self.condition.value as i32))
+                    }
                 },
                 NumericComparator::GreaterThan => match self.condition.modifier {
-                    None => match self.modifier {
-                        None => {
-                            Box::new(aux_track_brief::release_year.gt(self.condition.value as i32))
-                        }
-                        Some(FilterModifier::Complement) => Box::new(not(
-                            aux_track_brief::release_year.gt(self.condition.value as i32),
-                        )),
-                    },
-                    Some(ConditionModifier::Not) => match self.modifier {
-                        None => {
-                            Box::new(aux_track_brief::release_year.le(self.condition.value as i32))
-                        }
-                        Some(FilterModifier::Complement) => Box::new(not(
-                            aux_track_brief::release_year.le(self.condition.value as i32),
-                        )),
-                    },
+                    None => Box::new(aux_track_brief::release_year.gt(self.condition.value as i32)),
+                    Some(ConditionModifier::Not) => {
+                        Box::new(aux_track_brief::release_year.le(self.condition.value as i32))
+                    }
                 },
                 NumericComparator::EqualTo => match self.condition.modifier {
-                    None => match self.modifier {
-                        None => {
-                            Box::new(aux_track_brief::release_year.eq(self.condition.value as i32))
-                        }
-                        Some(FilterModifier::Complement) => Box::new(not(
-                            aux_track_brief::release_year.eq(self.condition.value as i32),
-                        )),
-                    },
-                    Some(ConditionModifier::Not) => match self.modifier {
-                        None => {
-                            Box::new(aux_track_brief::release_year.ne(self.condition.value as i32))
-                        }
-                        Some(FilterModifier::Complement) => Box::new(not(
-                            aux_track_brief::release_year.ne(self.condition.value as i32),
-                        )),
-                    },
+                    None => Box::new(aux_track_brief::release_year.eq(self.condition.value as i32)),
+                    Some(ConditionModifier::Not) => {
+                        Box::new(aux_track_brief::release_year.ne(self.condition.value as i32))
+                    }
                 },
             },
             NumericField::Duration => match self.condition.comparator {
                 NumericComparator::LessThan => match self.condition.modifier {
-                    None => match self.modifier {
-                        None => Box::new(aux_track_source::audio_duration.lt(self.condition.value)),
-                        Some(FilterModifier::Complement) => Box::new(not(
-                            aux_track_source::audio_duration.lt(self.condition.value),
-                        )),
-                    },
-                    Some(ConditionModifier::Not) => match self.modifier {
-                        None => Box::new(aux_track_source::audio_duration.ge(self.condition.value)),
-                        Some(FilterModifier::Complement) => Box::new(not(
-                            aux_track_source::audio_duration.ge(self.condition.value),
-                        )),
-                    },
+                    None => Box::new(aux_track_source::audio_duration.lt(self.condition.value)),
+                    Some(ConditionModifier::Not) => {
+                        Box::new(aux_track_source::audio_duration.ge(self.condition.value))
+                    }
                 },
                 NumericComparator::GreaterThan => match self.condition.modifier {
-                    None => match self.modifier {
-                        None => Box::new(aux_track_source::audio_duration.gt(self.condition.value)),
-                        Some(FilterModifier::Complement) => Box::new(not(
-                            aux_track_source::audio_duration.gt(self.condition.value),
-                        )),
-                    },
-                    Some(ConditionModifier::Not) => match self.modifier {
-                        None => Box::new(aux_track_source::audio_duration.le(self.condition.value)),
-                        Some(FilterModifier::Complement) => Box::new(not(
-                            aux_track_source::audio_duration.le(self.condition.value),
-                        )),
-                    },
+                    None => Box::new(aux_track_source::audio_duration.gt(self.condition.value)),
+                    Some(ConditionModifier::Not) => {
+                        Box::new(aux_track_source::audio_duration.le(self.condition.value))
+                    }
                 },
                 NumericComparator::EqualTo => match self.condition.modifier {
-                    None => match self.modifier {
-                        None => Box::new(aux_track_source::audio_duration.eq(self.condition.value)),
-                        Some(FilterModifier::Complement) => Box::new(not(
-                            aux_track_source::audio_duration.eq(self.condition.value),
-                        )),
-                    },
-                    Some(ConditionModifier::Not) => match self.modifier {
-                        None => Box::new(aux_track_source::audio_duration.ne(self.condition.value)),
-                        Some(FilterModifier::Complement) => Box::new(not(
-                            aux_track_source::audio_duration.ne(self.condition.value),
-                        )),
-                    },
+                    None => Box::new(aux_track_source::audio_duration.eq(self.condition.value)),
+                    Some(ConditionModifier::Not) => {
+                        Box::new(aux_track_source::audio_duration.ne(self.condition.value))
+                    }
                 },
             },
             NumericField::SampleRate => {
-                // TODO: Check range!
+                // TODO: Check value range!
                 let condition_value = self.condition.value as i32;
                 match self.condition.comparator {
                     NumericComparator::LessThan => match self.condition.modifier {
-                        None => match self.modifier {
-                            None => {
-                                Box::new(aux_track_source::audio_samplerate.lt(condition_value))
-                            }
-                            Some(FilterModifier::Complement) => Box::new(not(
-                                aux_track_source::audio_samplerate.lt(condition_value),
-                            )),
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => {
-                                Box::new(aux_track_source::audio_samplerate.ge(condition_value))
-                            }
-                            Some(FilterModifier::Complement) => Box::new(not(
-                                aux_track_source::audio_samplerate.ge(condition_value),
-                            )),
-                        },
+                        None => Box::new(aux_track_source::audio_samplerate.lt(condition_value)),
+                        Some(ConditionModifier::Not) => {
+                            Box::new(aux_track_source::audio_samplerate.ge(condition_value))
+                        }
                     },
                     NumericComparator::GreaterThan => match self.condition.modifier {
-                        None => match self.modifier {
-                            None => {
-                                Box::new(aux_track_source::audio_samplerate.gt(condition_value))
-                            }
-                            Some(FilterModifier::Complement) => Box::new(not(
-                                aux_track_source::audio_samplerate.gt(condition_value),
-                            )),
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => {
-                                Box::new(aux_track_source::audio_samplerate.le(condition_value))
-                            }
-                            Some(FilterModifier::Complement) => Box::new(not(
-                                aux_track_source::audio_samplerate.le(condition_value),
-                            )),
-                        },
+                        None => Box::new(aux_track_source::audio_samplerate.gt(condition_value)),
+                        Some(ConditionModifier::Not) => {
+                            Box::new(aux_track_source::audio_samplerate.le(condition_value))
+                        }
                     },
                     NumericComparator::EqualTo => match self.condition.modifier {
-                        None => match self.modifier {
-                            None => {
-                                Box::new(aux_track_source::audio_samplerate.eq(condition_value))
-                            }
-                            Some(FilterModifier::Complement) => Box::new(not(
-                                aux_track_source::audio_samplerate.eq(condition_value),
-                            )),
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => {
-                                Box::new(aux_track_source::audio_samplerate.ne(condition_value))
-                            }
-                            Some(FilterModifier::Complement) => Box::new(not(
-                                aux_track_source::audio_samplerate.ne(condition_value),
-                            )),
-                        },
+                        None => Box::new(aux_track_source::audio_samplerate.eq(condition_value)),
+                        Some(ConditionModifier::Not) => {
+                            Box::new(aux_track_source::audio_samplerate.ne(condition_value))
+                        }
                     },
                 }
             }
             NumericField::BitRate => {
-                // TODO: Check range!
+                // TODO: Check value range!
                 let condition_value = self.condition.value as i32;
                 match self.condition.comparator {
                     NumericComparator::LessThan => match self.condition.modifier {
-                        None => match self.modifier {
-                            None => Box::new(aux_track_source::audio_bitrate.lt(condition_value)),
-                            Some(FilterModifier::Complement) => {
-                                Box::new(not(aux_track_source::audio_bitrate.lt(condition_value)))
-                            }
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => Box::new(aux_track_source::audio_bitrate.ge(condition_value)),
-                            Some(FilterModifier::Complement) => {
-                                Box::new(not(aux_track_source::audio_bitrate.ge(condition_value)))
-                            }
-                        },
+                        None => Box::new(aux_track_source::audio_bitrate.lt(condition_value)),
+                        Some(ConditionModifier::Not) => {
+                            Box::new(aux_track_source::audio_bitrate.ge(condition_value))
+                        }
                     },
                     NumericComparator::GreaterThan => match self.condition.modifier {
-                        None => match self.modifier {
-                            None => Box::new(aux_track_source::audio_bitrate.gt(condition_value)),
-                            Some(FilterModifier::Complement) => {
-                                Box::new(not(aux_track_source::audio_bitrate.gt(condition_value)))
-                            }
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => Box::new(aux_track_source::audio_bitrate.le(condition_value)),
-                            Some(FilterModifier::Complement) => {
-                                Box::new(not(aux_track_source::audio_bitrate.le(condition_value)))
-                            }
-                        },
+                        None => Box::new(aux_track_source::audio_bitrate.gt(condition_value)),
+                        Some(ConditionModifier::Not) => {
+                            Box::new(aux_track_source::audio_bitrate.le(condition_value))
+                        }
                     },
                     NumericComparator::EqualTo => match self.condition.modifier {
-                        None => match self.modifier {
-                            None => Box::new(aux_track_source::audio_bitrate.eq(condition_value)),
-                            Some(FilterModifier::Complement) => {
-                                Box::new(not(aux_track_source::audio_bitrate.eq(condition_value)))
-                            }
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => Box::new(aux_track_source::audio_bitrate.ne(condition_value)),
-                            Some(FilterModifier::Complement) => {
-                                Box::new(not(aux_track_source::audio_bitrate.ne(condition_value)))
-                            }
-                        },
+                        None => Box::new(aux_track_source::audio_bitrate.eq(condition_value)),
+                        Some(ConditionModifier::Not) => {
+                            Box::new(aux_track_source::audio_bitrate.ne(condition_value))
+                        }
                     },
                 }
             }
             NumericField::ChannelCount => {
-                // TODO: Check range!
+                // TODO: Check value range!
                 let condition_value = self.condition.value as i16;
                 match self.condition.comparator {
                     NumericComparator::LessThan => match self.condition.modifier {
-                        None => match self.modifier {
-                            None => {
-                                Box::new(aux_track_source::audio_channel_count.lt(condition_value))
-                            }
-                            Some(FilterModifier::Complement) => Box::new(not(
-                                aux_track_source::audio_channel_count.lt(condition_value),
-                            )),
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => {
-                                Box::new(aux_track_source::audio_channel_count.ge(condition_value))
-                            }
-                            Some(FilterModifier::Complement) => Box::new(not(
-                                aux_track_source::audio_channel_count.ge(condition_value),
-                            )),
-                        },
+                        None => Box::new(aux_track_source::audio_channel_count.lt(condition_value)),
+                        Some(ConditionModifier::Not) => {
+                            Box::new(aux_track_source::audio_channel_count.ge(condition_value))
+                        }
                     },
                     NumericComparator::GreaterThan => match self.condition.modifier {
-                        None => match self.modifier {
-                            None => {
-                                Box::new(aux_track_source::audio_channel_count.gt(condition_value))
-                            }
-                            Some(FilterModifier::Complement) => Box::new(not(
-                                aux_track_source::audio_channel_count.gt(condition_value),
-                            )),
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => {
-                                Box::new(aux_track_source::audio_channel_count.le(condition_value))
-                            }
-                            Some(FilterModifier::Complement) => Box::new(not(
-                                aux_track_source::audio_channel_count.le(condition_value),
-                            )),
-                        },
+                        None => Box::new(aux_track_source::audio_channel_count.gt(condition_value)),
+                        Some(ConditionModifier::Not) => {
+                            Box::new(aux_track_source::audio_channel_count.le(condition_value))
+                        }
                     },
                     NumericComparator::EqualTo => match self.condition.modifier {
-                        None => match self.modifier {
-                            None => {
-                                Box::new(aux_track_source::audio_channel_count.eq(condition_value))
-                            }
-                            Some(FilterModifier::Complement) => Box::new(not(
-                                aux_track_source::audio_channel_count.eq(condition_value),
-                            )),
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => {
-                                Box::new(aux_track_source::audio_channel_count.ne(condition_value))
-                            }
-                            Some(FilterModifier::Complement) => Box::new(not(
-                                aux_track_source::audio_channel_count.ne(condition_value),
-                            )),
-                        },
+                        None => Box::new(aux_track_source::audio_channel_count.eq(condition_value)),
+                        Some(ConditionModifier::Not) => {
+                            Box::new(aux_track_source::audio_channel_count.ne(condition_value))
+                        }
                     },
                 }
             }
             NumericField::Loudness => match self.condition.comparator {
                 NumericComparator::LessThan => match self.condition.modifier {
-                    None => match self.modifier {
-                        None => Box::new(aux_track_source::audio_loudness.lt(self.condition.value)),
-                        Some(FilterModifier::Complement) => Box::new(not(
-                            aux_track_source::audio_loudness.lt(self.condition.value),
-                        )),
-                    },
-                    Some(ConditionModifier::Not) => match self.modifier {
-                        None => Box::new(aux_track_source::audio_loudness.ge(self.condition.value)),
-                        Some(FilterModifier::Complement) => Box::new(not(
-                            aux_track_source::audio_loudness.ge(self.condition.value),
-                        )),
-                    },
+                    None => Box::new(aux_track_source::audio_loudness.lt(self.condition.value)),
+                    Some(ConditionModifier::Not) => {
+                        Box::new(aux_track_source::audio_loudness.ge(self.condition.value))
+                    }
                 },
                 NumericComparator::GreaterThan => match self.condition.modifier {
-                    None => match self.modifier {
-                        None => Box::new(aux_track_source::audio_loudness.gt(self.condition.value)),
-                        Some(FilterModifier::Complement) => Box::new(not(
-                            aux_track_source::audio_loudness.gt(self.condition.value),
-                        )),
-                    },
-                    Some(ConditionModifier::Not) => match self.modifier {
-                        None => Box::new(aux_track_source::audio_loudness.le(self.condition.value)),
-                        Some(FilterModifier::Complement) => Box::new(not(
-                            aux_track_source::audio_loudness.le(self.condition.value),
-                        )),
-                    },
+                    None => Box::new(aux_track_source::audio_loudness.gt(self.condition.value)),
+                    Some(ConditionModifier::Not) => {
+                        Box::new(aux_track_source::audio_loudness.le(self.condition.value))
+                    }
                 },
                 NumericComparator::EqualTo => match self.condition.modifier {
-                    None => match self.modifier {
-                        None => Box::new(aux_track_source::audio_loudness.eq(self.condition.value)),
-                        Some(FilterModifier::Complement) => Box::new(not(
-                            aux_track_source::audio_loudness.eq(self.condition.value),
-                        )),
-                    },
-                    Some(ConditionModifier::Not) => match self.modifier {
-                        None => Box::new(aux_track_source::audio_loudness.ne(self.condition.value)),
-                        Some(FilterModifier::Complement) => Box::new(not(
-                            aux_track_source::audio_loudness.ne(self.condition.value),
-                        )),
-                    },
+                    None => Box::new(aux_track_source::audio_loudness.eq(self.condition.value)),
+                    Some(ConditionModifier::Not) => {
+                        Box::new(aux_track_source::audio_loudness.ne(self.condition.value))
+                    }
                 },
             },
             NumericField::MusicTempo => match self.condition.comparator {
                 NumericComparator::LessThan => match self.condition.modifier {
-                    None => match self.modifier {
-                        None => Box::new(aux_track_brief::music_tempo.lt(self.condition.value)),
-                        Some(FilterModifier::Complement) => {
-                            Box::new(not(aux_track_brief::music_tempo.lt(self.condition.value)))
-                        }
-                    },
-                    Some(ConditionModifier::Not) => match self.modifier {
-                        None => Box::new(aux_track_brief::music_tempo.ge(self.condition.value)),
-                        Some(FilterModifier::Complement) => {
-                            Box::new(not(aux_track_brief::music_tempo.ge(self.condition.value)))
-                        }
-                    },
+                    None => Box::new(aux_track_brief::music_tempo.lt(self.condition.value)),
+                    Some(ConditionModifier::Not) => {
+                        Box::new(aux_track_brief::music_tempo.ge(self.condition.value))
+                    }
                 },
                 NumericComparator::GreaterThan => match self.condition.modifier {
-                    None => match self.modifier {
-                        None => Box::new(aux_track_brief::music_tempo.gt(self.condition.value)),
-                        Some(FilterModifier::Complement) => {
-                            Box::new(not(aux_track_brief::music_tempo.gt(self.condition.value)))
-                        }
-                    },
-                    Some(ConditionModifier::Not) => match self.modifier {
-                        None => Box::new(aux_track_brief::music_tempo.le(self.condition.value)),
-                        Some(FilterModifier::Complement) => {
-                            Box::new(not(aux_track_brief::music_tempo.le(self.condition.value)))
-                        }
-                    },
+                    None => Box::new(aux_track_brief::music_tempo.gt(self.condition.value)),
+                    Some(ConditionModifier::Not) => {
+                        Box::new(aux_track_brief::music_tempo.le(self.condition.value))
+                    }
                 },
                 NumericComparator::EqualTo => match self.condition.modifier {
-                    None => match self.modifier {
-                        None => Box::new(aux_track_brief::music_tempo.eq(self.condition.value)),
-                        Some(FilterModifier::Complement) => {
-                            Box::new(not(aux_track_brief::music_tempo.eq(self.condition.value)))
-                        }
-                    },
-                    Some(ConditionModifier::Not) => match self.modifier {
-                        None => Box::new(aux_track_brief::music_tempo.ne(self.condition.value)),
-                        Some(FilterModifier::Complement) => {
-                            Box::new(not(aux_track_brief::music_tempo.ne(self.condition.value)))
-                        }
-                    },
+                    None => Box::new(aux_track_brief::music_tempo.eq(self.condition.value)),
+                    Some(ConditionModifier::Not) => {
+                        Box::new(aux_track_brief::music_tempo.ne(self.condition.value))
+                    }
                 },
             },
             NumericField::MusicKey => {
-                // TODO: Check range!
+                // TODO: Check value range!
                 let condition_value = self.condition.value as i16;
                 match self.condition.comparator {
                     NumericComparator::LessThan => match self.condition.modifier {
-                        None => match self.modifier {
-                            None => Box::new(aux_track_brief::music_key.lt(condition_value)),
-                            Some(FilterModifier::Complement) => {
-                                Box::new(not(aux_track_brief::music_key.lt(condition_value)))
-                            }
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => Box::new(aux_track_brief::music_key.ge(condition_value)),
-                            Some(FilterModifier::Complement) => {
-                                Box::new(not(aux_track_brief::music_key.ge(condition_value)))
-                            }
-                        },
+                        None => Box::new(aux_track_brief::music_key.lt(condition_value)),
+                        Some(ConditionModifier::Not) => {
+                            Box::new(aux_track_brief::music_key.ge(condition_value))
+                        }
                     },
                     NumericComparator::GreaterThan => match self.condition.modifier {
-                        None => match self.modifier {
-                            None => Box::new(aux_track_brief::music_key.gt(condition_value)),
-                            Some(FilterModifier::Complement) => {
-                                Box::new(not(aux_track_brief::music_key.gt(condition_value)))
-                            }
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => Box::new(aux_track_brief::music_key.le(condition_value)),
-                            Some(FilterModifier::Complement) => {
-                                Box::new(not(aux_track_brief::music_key.le(condition_value)))
-                            }
-                        },
+                        None => Box::new(aux_track_brief::music_key.gt(condition_value)),
+                        Some(ConditionModifier::Not) => {
+                            Box::new(aux_track_brief::music_key.le(condition_value))
+                        }
                     },
                     NumericComparator::EqualTo => match self.condition.modifier {
-                        None => match self.modifier {
-                            None => Box::new(aux_track_brief::music_key.eq(condition_value)),
-                            Some(FilterModifier::Complement) => {
-                                Box::new(not(aux_track_brief::music_key.eq(condition_value)))
-                            }
-                        },
-                        Some(ConditionModifier::Not) => match self.modifier {
-                            None => Box::new(aux_track_brief::music_key.ne(condition_value)),
-                            Some(FilterModifier::Complement) => {
-                                Box::new(not(aux_track_brief::music_key.ne(condition_value)))
-                            }
-                        },
+                        None => Box::new(aux_track_brief::music_key.eq(condition_value)),
+                        Some(ConditionModifier::Not) => {
+                            Box::new(aux_track_brief::music_key.ne(condition_value))
+                        }
                     },
                 }
             }
-        };
-        match self.modifier {
-            None => expression,
-            Some(FilterModifier::Complement) => Box::new(diesel::dsl::not(expression)),
         }
     }
 }
