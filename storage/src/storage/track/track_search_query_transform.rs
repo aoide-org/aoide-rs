@@ -984,6 +984,7 @@ impl TrackSearchBoxedExpressionBuilder for TrackSearchFilter {
                 .fold(dummy_false_expression(), |expr, filter| {
                     Box::new(expr.or(filter.build_expression(collection_uid)))
                 }),
+            Not(filter) => Box::new(diesel::dsl::not(filter.build_expression(collection_uid))),
         }
     }
 }

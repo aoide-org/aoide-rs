@@ -28,8 +28,9 @@
                                 "value": "rap"
                             },
                             "score": {
-                                "comparator": "greater-than",
-                                "value": 0.8
+                                "modifier": "not",
+                                "comparator": "less-than",
+                                "value": 0.7
                             }
                         }
                     }
@@ -71,13 +72,15 @@
                 }
             },
             {
-                "type": "numeric",
+                "type": "not",
                 "filter": {
-                    "field": "musicTempo",
-                    "condition": {
-                        "modifier": "not",
-                        "comparator": "greater-than",
-                        "value": 80
+                    "type": "numeric",
+                    "filter": {
+                        "field": "musicTempo",
+                        "condition": {
+                            "comparator": "greater-than",
+                            "value": 80
+                        }
                     }
                 }
             }

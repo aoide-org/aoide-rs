@@ -897,6 +897,7 @@ components:
         - $ref: "#/components/schemas/TrackSearchTagFilterNode"
         - $ref: "#/components/schemas/TrackSearchAllFilterNode"
         - $ref: "#/components/schemas/TrackSearchAnyFilterNode"
+        - $ref: "#/components/schemas/TrackSearchNotFilterNode"
       discriminator:
         propertyName: type
       required:
@@ -943,6 +944,15 @@ components:
             $ref: "#/components/schemas/TrackSearchFilterNode"
       required:
         - type
+    TrackSearchNotFilterNode:
+      properties:
+        type:
+          type: string
+        filter:
+          $ref: "#/components/schemas/TrackSearchFilterNode"
+      required:
+        - type
+        - filter
     SearchTracksParams:
       properties:
         filter:

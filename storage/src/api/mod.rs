@@ -296,6 +296,7 @@ pub enum TrackSearchFilter {
     Tag(TagFilter),
     All(Vec<TrackSearchFilter>),
     Any(Vec<TrackSearchFilter>),
+    Not(Box<TrackSearchFilter>),
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
