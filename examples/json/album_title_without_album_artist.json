@@ -1,0 +1,32 @@
+{
+    "filter": {
+        "type": "all",
+        "filter": [
+            {
+                "type": "not",
+                "filter": {
+                    "type": "phrase",
+                    "filter": {
+                        "fields": [
+                            "albumTitle"
+                        ],
+                        "condition": {
+                            "comparator": "empty"
+                        }
+                    }
+                }
+            },
+            {
+                "type": "phrase",
+                "filter": {
+                    "fields": [
+                        "albumArtist"
+                    ],
+                    "condition": {
+                        "comparator": "empty"
+                    }
+                }
+            }
+        ]
+    }
+}

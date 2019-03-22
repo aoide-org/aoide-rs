@@ -770,6 +770,7 @@ components:
       type: string
       enum:
         - like
+        - empty
     PhraseCondition:
       properties:
         comparator:
@@ -784,7 +785,6 @@ components:
             match "Patti LaBelle".
       required:
         - comparator
-        - value
     PhraseFilter:
       properties:
         fields:

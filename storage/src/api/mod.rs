@@ -178,6 +178,7 @@ pub enum PhraseComparator {
     // against each of the selected fields, e.g. "la bell" or
     // "tt ll" both match "Patti LaBelle"
     Like,
+    Empty,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -185,7 +186,7 @@ pub enum PhraseComparator {
 pub struct PhraseCondition {
     pub comparator: PhraseComparator,
 
-    pub value: String,
+    pub value: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
