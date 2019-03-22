@@ -245,15 +245,8 @@ impl<'a> Tracks for TrackRepository<'a> {
                 },
             };
             let locate_params = LocateTracksParams { uri_filter };
-            // Workaround for performance regression:
-            // * Locate entities for any collection
-            // * Post-filtering of located entities by collection (see below)
-            // See also: https://gitlab.com/uklotzde/aoide-rs/issues/12
-            let located_entities = self.locate_entities(
-                /*collection_uid*/ None,
-                Pagination::default(),
-                locate_params,
-            )?;
+            let located_entities =
+                self.locate_entities(collection_uid, Pagination::default(), locate_params)?;
             let deserialized_entities: Vec<TrackEntity> = located_entities.iter().fold(
                 Vec::with_capacity(located_entities.len()),
                 |mut acc, item| {
@@ -275,26 +268,13 @@ impl<'a> Tracks for TrackRepository<'a> {
                 results.rejected.push(replacement.uri);
                 continue;
             }
-            // Workaround for performance regression:
-            // * Post-filtering of located entities by collection (see above)
-            // See also: https://gitlab.com/uklotzde/aoide-rs/issues/12
-            let deserialized_entities: Vec<TrackEntity> = deserialized_entities
-                .into_iter()
-                .filter(|entity| match collection_uid {
-                    Some(collection_uid) => TrackCollection::filter_slice_by_uid(
-                        &entity.body().collections,
-                        collection_uid,
-                    )
-                    .is_some(),
-                    None => true,
-                })
-                .collect();
             // Ambiguous?
             if deserialized_entities.len() > 1 {
                 log::warn!("Found multiple tracks with URI '{}'", replacement.uri);
                 results.rejected.push(replacement.uri);
                 continue;
             }
+            // Valid?
             if !replacement.track.is_valid() {
                 log::warn!(
                     "Accepting replacement track even though it is not valid: {:?}",
