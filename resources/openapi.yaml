@@ -736,9 +736,6 @@ components:
       description: |
         Numeric comparison operators.
     NumericCondition:
-      required:
-        - comparator
-        - value
       properties:
         modifier:
           $ref: "#/components/schemas/ConditionModifier"
@@ -746,6 +743,9 @@ components:
           $ref: "#/components/schemas/NumericComparator"
         value:
           type: number
+      required:
+        - comparator
+        - value
     NumericField:
       type: string
       enum:
@@ -766,25 +766,36 @@ components:
       required:
         - field
         - condition
+    PhraseComparator:
+      type: string
+      enum:
+        - like
+    PhraseCondition:
+      properties:
+        comparator:
+          $ref: "#/components/schemas/PhraseComparator"
+        value:
+          type: string
+          example: michael jackson
+          description: >
+            Tokenized by whitespace, concatenated with wildcards, and
+            filtered using case-insensitive "contains" semantics against
+            each of the selected fields, e.g. "la bell" or "tt ll" both
+            match "Patti LaBelle".
+      required:
+        - comparator
+        - value
     PhraseFilter:
       properties:
-        modifier:
-          $ref: "#/components/schemas/FilterModifier"
         fields:
           type: array
           items:
             $ref: "#/components/schemas/StringField"
-        phrase:
-          type: string
-          example: michael jackson
-          description: >
-            Tokenized by whitespace, concatenated with wildcards, and filtered
-            using case-insensitive "contains" semantics against each of the
-            selected fields, e.g. "la bell" or "tt ll" both match "Patti
-            LaBelle".
+        condition:
+          $ref: "#/components/schemas/PhraseCondition"
       required:
         - fields
-        - phrase
+        - condition
     Release:
       properties:
         copyright:

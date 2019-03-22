@@ -143,7 +143,7 @@ pub enum NumericField {
 
 pub type NumericValue = f64;
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum NumericComparator {
     LessThan,
@@ -170,21 +170,33 @@ pub struct NumericFilter {
     pub condition: NumericCondition,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct PhraseFilter {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub modifier: Option<FilterModifier>,
-
-    // Empty == All
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub fields: Vec<StringField>,
-
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub enum PhraseComparator {
     // Tokenized by whitespace, concatenated with wildcards,
     // and filtered using case-insensitive "contains" semantics
     // against each of the selected fields, e.g. "la bell" or
     // "tt ll" both match "Patti LaBelle"
-    pub phrase: String,
+    Like,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct PhraseCondition {
+    pub comparator: PhraseComparator,
+
+    pub value: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct PhraseFilter {
+    // Empty == All available string fields are considered
+    // Disjunction, i.e. a match in one of the fields is sufficient
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub fields: Vec<StringField>,
+
+    pub condition: PhraseCondition,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
