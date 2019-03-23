@@ -10,9 +10,7 @@
                         "fields": [
                             "albumTitle"
                         ],
-                        "condition": {
-                            "comparator": "empty"
-                        }
+                        "text": ""
                     }
                 }
             },
@@ -22,9 +20,7 @@
                     "fields": [
                         "albumArtist"
                     ],
-                    "condition": {
-                        "comparator": "empty"
-                    }
+                    "text": ""
                 }
             }
         ]

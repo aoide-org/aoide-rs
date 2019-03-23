@@ -208,218 +208,175 @@ impl TrackSearchBoxedExpressionBuilder for PhraseFilter {
         &'a self,
         _collection_uid: Option<&EntityUid>,
     ) -> TrackSearchBoxedExpression<'a> {
-        match self.condition.comparator {
-            PhraseComparator::Like => {
-                // Escape wildcard character with backslash (see below)
-                let escaped = self
-                    .condition
-                    .value
-                    .as_ref()
-                    .map(|s| s.replace('\\', "\\\\").replace('%', "\\%"))
-                    .unwrap_or_default();
-                let escaped_and_tokenized =
-                    escaped.split_whitespace().filter(|token| !token.is_empty());
-                let escaped_and_tokenized_len = escaped_and_tokenized
-                    .clone()
-                    .fold(0, |len, token| len + token.len());
-                // TODO: Use Rc<String> to avoid cloning strings?
-                let like_expr = if escaped_and_tokenized_len > 0 {
-                    let mut like_expr = escaped_and_tokenized.fold(
-                        String::with_capacity(1 + escaped_and_tokenized_len + 1), // leading/trailing '%'
-                        |mut like_expr, part| {
-                            // Prepend wildcard character before each part
-                            like_expr.push('%');
-                            like_expr.push_str(part);
-                            like_expr
-                        },
-                    );
-                    // Append final wildcard character after last part
+        // Escape wildcard character with backslash (see below)
+        let escaped = self.text.replace('\\', "\\\\").replace('%', "\\%");
+        let escaped_and_tokenized = escaped.split_whitespace().filter(|token| !token.is_empty());
+        let escaped_and_tokenized_len = escaped_and_tokenized
+            .clone()
+            .fold(0, |len, token| len + token.len());
+        // TODO: Use Rc<String> to avoid cloning strings?
+        let like_expr = if escaped_and_tokenized_len > 0 {
+            let mut like_expr = escaped_and_tokenized.fold(
+                String::with_capacity(1 + escaped_and_tokenized_len + 1), // leading/trailing '%'
+                |mut like_expr, part| {
+                    // Prepend wildcard character before each part
                     like_expr.push('%');
+                    like_expr.push_str(part);
                     like_expr
-                } else {
-                    // unused
-                    String::new()
-                };
+                },
+            );
+            // Append final wildcard character after last part
+            like_expr.push('%');
+            like_expr
+        } else {
+            // unused
+            String::new()
+        };
 
-                let mut or_expression = dummy_false_expression();
-                // aux_track_source (join)
-                if self.fields.is_empty()
-                    || self
-                        .fields
-                        .iter()
-                        .any(|target| *target == StringField::SourceUri)
-                {
-                    or_expression = Box::new(
-                        or_expression.or(aux_track_source::uri_decoded
-                            .like(like_expr.clone())
-                            .escape('\\')),
-                    );
-                }
-                if self.fields.is_empty()
-                    || self
-                        .fields
-                        .iter()
-                        .any(|target| *target == StringField::ContentType)
-                {
-                    or_expression = Box::new(
-                        or_expression.or(aux_track_source::content_type
-                            .like(like_expr.clone())
-                            .escape('\\')),
-                    );
-                }
-                // aux_track_brief (join)
-                if self.fields.is_empty()
-                    || self
-                        .fields
-                        .iter()
-                        .any(|target| *target == StringField::TrackTitle)
-                {
-                    or_expression = Box::new(
-                        or_expression.or(aux_track_brief::track_title
-                            .like(like_expr.clone())
-                            .escape('\\')),
-                    );
-                }
-                if self.fields.is_empty()
-                    || self
-                        .fields
-                        .iter()
-                        .any(|target| *target == StringField::TrackArtist)
-                {
-                    or_expression = Box::new(
-                        or_expression.or(aux_track_brief::track_artist
-                            .like(like_expr.clone())
-                            .escape('\\')),
-                    );
-                }
-                if self.fields.is_empty()
-                    || self
-                        .fields
-                        .iter()
-                        .any(|target| *target == StringField::TrackComposer)
-                {
-                    or_expression = Box::new(
-                        or_expression.or(aux_track_brief::track_composer
-                            .like(like_expr.clone())
-                            .escape('\\')),
-                    );
-                }
-                if self.fields.is_empty()
-                    || self
-                        .fields
-                        .iter()
-                        .any(|target| *target == StringField::AlbumTitle)
-                {
-                    or_expression = Box::new(
-                        or_expression.or(aux_track_brief::album_title
-                            .like(like_expr.clone())
-                            .escape('\\')),
-                    );
-                }
-                if self.fields.is_empty()
-                    || self
-                        .fields
-                        .iter()
-                        .any(|target| *target == StringField::AlbumArtist)
-                {
-                    or_expression = Box::new(
-                        or_expression.or(aux_track_brief::album_artist
-                            .like(like_expr.clone())
-                            .escape('\\')),
-                    );
-                }
-                or_expression
-            }
-            PhraseComparator::Empty => {
-                let mut or_expression = dummy_false_expression();
-                if self.fields.is_empty()
-                    || self
-                        .fields
-                        .iter()
-                        .any(|target| *target == StringField::SourceUri)
-                {
-                    or_expression = Box::new(
-                        or_expression
-                            .or(aux_track_source::uri_decoded.is_null())
-                            .or(aux_track_source::uri_decoded.eq(String::default())),
-                    );
-                }
-                if self.fields.is_empty()
-                    || self
-                        .fields
-                        .iter()
-                        .any(|target| *target == StringField::ContentType)
-                {
-                    or_expression = Box::new(
-                        or_expression
-                            .or(aux_track_source::content_type.is_null())
-                            .or(aux_track_source::content_type.eq(String::default())),
-                    );
-                }
-                // aux_track_brief (join)
-                if self.fields.is_empty()
-                    || self
-                        .fields
-                        .iter()
-                        .any(|target| *target == StringField::TrackTitle)
-                {
-                    or_expression = Box::new(
-                        or_expression
-                            .or(aux_track_brief::track_title.is_null())
-                            .or(aux_track_brief::track_title.eq(String::default())),
-                    );
-                }
-                if self.fields.is_empty()
-                    || self
-                        .fields
-                        .iter()
-                        .any(|target| *target == StringField::TrackArtist)
-                {
-                    or_expression = Box::new(
-                        or_expression
-                            .or(aux_track_brief::track_artist.is_null())
-                            .or(aux_track_brief::track_artist.eq(String::default())),
-                    );
-                }
-                if self.fields.is_empty()
-                    || self
-                        .fields
-                        .iter()
-                        .any(|target| *target == StringField::TrackComposer)
-                {
-                    or_expression = Box::new(
-                        or_expression
-                            .or(aux_track_brief::track_composer.is_null())
-                            .or(aux_track_brief::track_composer.eq(String::default())),
-                    );
-                }
-                if self.fields.is_empty()
-                    || self
-                        .fields
-                        .iter()
-                        .any(|target| *target == StringField::AlbumTitle)
-                {
-                    or_expression = Box::new(
-                        or_expression
-                            .or(aux_track_brief::album_title.is_null())
-                            .or(aux_track_brief::album_title.eq(String::default())),
-                    );
-                }
-                if self.fields.is_empty()
-                    || self
-                        .fields
-                        .iter()
-                        .any(|target| *target == StringField::AlbumArtist)
-                {
-                    or_expression = Box::new(
-                        or_expression
-                            .or(aux_track_brief::album_artist.is_null())
-                            .or(aux_track_brief::album_artist.eq(String::default())),
-                    );
-                }
-                or_expression
-            }
+        let mut or_expression = dummy_false_expression();
+        // aux_track_source (join)
+        if self.fields.is_empty()
+            || self
+                .fields
+                .iter()
+                .any(|target| *target == StringField::SourceUri)
+        {
+            or_expression = if like_expr.is_empty() {
+                Box::new(
+                    or_expression
+                        .or(aux_track_source::uri_decoded.is_null())
+                        .or(aux_track_source::uri_decoded.eq(String::default())),
+                )
+            } else {
+                Box::new(
+                    or_expression.or(aux_track_source::uri_decoded
+                        .like(like_expr.clone())
+                        .escape('\\')),
+                )
+            };
         }
+        if self.fields.is_empty()
+            || self
+                .fields
+                .iter()
+                .any(|target| *target == StringField::ContentType)
+        {
+            or_expression = if like_expr.is_empty() {
+                Box::new(
+                    or_expression
+                        .or(aux_track_source::uri_decoded.is_null())
+                        .or(aux_track_source::uri_decoded.eq(String::default())),
+                )
+            } else {
+                Box::new(
+                    or_expression.or(aux_track_source::uri_decoded
+                        .like(like_expr.clone())
+                        .escape('\\')),
+                )
+            };
+        }
+        // aux_track_brief (join)
+        if self.fields.is_empty()
+            || self
+                .fields
+                .iter()
+                .any(|target| *target == StringField::TrackTitle)
+        {
+            or_expression = if like_expr.is_empty() {
+                Box::new(
+                    or_expression
+                        .or(aux_track_brief::track_title.is_null())
+                        .or(aux_track_brief::track_title.eq(String::default())),
+                )
+            } else {
+                Box::new(
+                    or_expression.or(aux_track_brief::track_title
+                        .like(like_expr.clone())
+                        .escape('\\')),
+                )
+            };
+        }
+        if self.fields.is_empty()
+            || self
+                .fields
+                .iter()
+                .any(|target| *target == StringField::TrackArtist)
+        {
+            or_expression = if like_expr.is_empty() {
+                Box::new(
+                    or_expression
+                        .or(aux_track_brief::track_artist.is_null())
+                        .or(aux_track_brief::track_artist.eq(String::default())),
+                )
+            } else {
+                Box::new(
+                    or_expression.or(aux_track_brief::track_artist
+                        .like(like_expr.clone())
+                        .escape('\\')),
+                )
+            };
+        }
+        if self.fields.is_empty()
+            || self
+                .fields
+                .iter()
+                .any(|target| *target == StringField::TrackComposer)
+        {
+            or_expression = if like_expr.is_empty() {
+                Box::new(
+                    or_expression
+                        .or(aux_track_brief::track_composer.is_null())
+                        .or(aux_track_brief::track_composer.eq(String::default())),
+                )
+            } else {
+                Box::new(
+                    or_expression.or(aux_track_brief::track_composer
+                        .like(like_expr.clone())
+                        .escape('\\')),
+                )
+            };
+        }
+        if self.fields.is_empty()
+            || self
+                .fields
+                .iter()
+                .any(|target| *target == StringField::AlbumTitle)
+        {
+            or_expression = if like_expr.is_empty() {
+                Box::new(
+                    or_expression
+                        .or(aux_track_brief::album_title.is_null())
+                        .or(aux_track_brief::album_title.eq(String::default())),
+                )
+            } else {
+                Box::new(
+                    or_expression.or(aux_track_brief::album_title
+                        .like(like_expr.clone())
+                        .escape('\\')),
+                )
+            };
+        }
+        if self.fields.is_empty()
+            || self
+                .fields
+                .iter()
+                .any(|target| *target == StringField::AlbumArtist)
+        {
+            or_expression = if like_expr.is_empty() {
+                Box::new(
+                    or_expression
+                        .or(aux_track_brief::album_artist.is_null())
+                        .or(aux_track_brief::album_artist.eq(String::default())),
+                )
+            } else {
+                Box::new(
+                    or_expression.or(aux_track_brief::album_artist
+                        .like(like_expr.clone())
+                        .escape('\\')),
+                )
+            };
+        }
+        or_expression
     }
 }
 

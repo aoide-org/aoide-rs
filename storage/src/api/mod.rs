@@ -170,25 +170,6 @@ pub struct NumericFilter {
     pub condition: NumericCondition,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub enum PhraseComparator {
-    // Tokenized by whitespace, concatenated with wildcards,
-    // and filtered using case-insensitive "contains" semantics
-    // against each of the selected fields, e.g. "la bell" or
-    // "tt ll" both match "Patti LaBelle"
-    Like,
-    Empty,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct PhraseCondition {
-    pub comparator: PhraseComparator,
-
-    pub value: Option<String>,
-}
-
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PhraseFilter {
@@ -197,7 +178,13 @@ pub struct PhraseFilter {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub fields: Vec<StringField>,
 
-    pub condition: PhraseCondition,
+    // Tokenized by whitespace, concatenated with wildcards,
+    // and filtered using case-insensitive "contains" semantics
+    // against each of the selected fields, e.g. "la bell" or
+    // "tt ll" both match "Patti LaBelle".
+    // An empty string matches both empty and missing/null
+    // fields.
+    pub text: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
