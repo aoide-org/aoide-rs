@@ -17,11 +17,13 @@ use super::*;
 
 mod models;
 mod schema;
-mod track_search_query_transform;
+mod search;
 pub mod util;
 
 use self::{
-    models::*, schema::*, track_search_query_transform::TrackSearchQueryTransform,
+    models::*,
+    schema::*,
+    search::{TrackSearchBoxedExpressionBuilder, TrackSearchQueryTransform},
     util::TrackRepositoryHelper,
 };
 
@@ -484,7 +486,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             .into_boxed();
 
         if let Some(ref filter) = search_params.filter {
-            target = filter.apply_to_query(target, collection_uid);
+            target = target.filter(filter.build_expression(collection_uid));
         }
 
         // Collection filter
