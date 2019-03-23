@@ -209,19 +209,20 @@ impl TrackSearchBoxedExpressionBuilder for PhraseFilter {
         _collection_uid: Option<&EntityUid>,
     ) -> TrackSearchBoxedExpression<'a> {
         // Escape wildcard character with backslash (see below)
-        let escaped = self.text.replace('\\', "\\\\").replace('%', "\\%");
-        let escaped_and_tokenized = escaped.split_whitespace().filter(|token| !token.is_empty());
-        let escaped_and_tokenized_len = escaped_and_tokenized
-            .clone()
-            .fold(0, |len, token| len + token.len());
+        let escaped_terms: Vec<_> = self
+            .terms
+            .iter()
+            .map(|t| t.replace('\\', "\\\\").replace('%', "\\%"))
+            .collect();
+        let escaped_terms_str_len = escaped_terms.iter().fold(0, |len, term| len + term.len());
         // TODO: Use Rc<String> to avoid cloning strings?
-        let like_expr = if escaped_and_tokenized_len > 0 {
-            let mut like_expr = escaped_and_tokenized.fold(
-                String::with_capacity(1 + escaped_and_tokenized_len + 1), // leading/trailing '%'
-                |mut like_expr, part| {
+        let like_expr = if escaped_terms_str_len > 0 {
+            let mut like_expr = escaped_terms.iter().fold(
+                String::with_capacity(escaped_terms_str_len + escaped_terms.len() + 1),
+                |mut like_expr, term| {
                     // Prepend wildcard character before each part
                     like_expr.push('%');
-                    like_expr.push_str(part);
+                    like_expr.push_str(term);
                     like_expr
                 },
             );

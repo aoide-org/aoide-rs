@@ -793,20 +793,21 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/StringField'
-        text:
-          type: string
-          example: michael jackson
+        terms:
+          type: array
+          items:
+            type: string
           description: >
-            Tokenized by whitespace, concatenated with wildcards, and filtered
-            using case-insensitive "contains" semantics against each of the
-            selected fields, e.g. "la bell" or "tt ll" both match "Patti
-            LaBelle". An empty string matches both empty and missing/null
+            The terms are concatenated with wildcards, and filtered
+            using case-insensitive "contains" semantics for each of the
+            selected fields, e.g. "Pa la bell" or "tt ll" both match "Patti
+            LaBelle". An empty array matches both empty and missing/null
             fields.
       required:
         - fields
-        - text
+        - terms
       description: |
-        Filters for a given phrase in any of the enumerated string fields.
+        Matches a sequence of terms on any of the given string fields.
         A match for at least one of the fields is sufficient.
     Release:
       properties:

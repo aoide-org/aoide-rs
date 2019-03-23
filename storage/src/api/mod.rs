@@ -197,13 +197,12 @@ pub struct PhraseFilter {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub fields: Vec<StringField>,
 
-    // Tokenized by whitespace, concatenated with wildcards,
-    // and filtered using case-insensitive "contains" semantics
-    // against each of the selected fields, e.g. "la bell" or
-    // "tt ll" both match "Patti LaBelle".
-    // An empty string matches both empty and missing/null
-    // fields.
-    pub text: String,
+    // Concatenated with wildcards and filtered using
+    // case-insensitive "contains" semantics against each
+    // of the selected fields, e.g. ["pa", "la", "bell"]
+    // ["tt, ll"] will both match "Patti LaBelle". An empty
+    // argument matches empty as well as missing/null fields.
+    pub terms: Vec<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
