@@ -1009,32 +1009,46 @@ components:
         Direction for sorting results.
           * `asc` - ascending
           * `dsc` - descending
-    StringComparator:
-      type: string
-      enum:
-        - starts-with
-        - ends-with
-        - contains
-        - matches
-        - equals
-      description: |
-        Comparison operators for strings.
-          * `starts-with` - matches the head of the string, case-insensitive
-          * `ends-with` - matches the tail of the string, case-insensitive
-          * `contains` - matches the middle of the string with arbitrary head/tail, case-insensitive
-          * `matches` - matches the whole string, case-insensitive
-          * `equals` - exact match, case-sensitive
+    StringMatcher:
+      oneOf:
+        - $ref: '#/components/schemas/StringMatcherStartsWith'
+        - $ref: '#/components/schemas/StringMatcherEndsWith'
+        - $ref: '#/components/schemas/StringMatcherContains'
+        - $ref: '#/components/schemas/StringMatcherMatches'
+        - $ref: '#/components/schemas/StringMatcherEquals'
+    StringMatcherStartsWith:
+      properties:
+        startsWith:
+          type: string
+      description: Matches the head of a string (case-insensitive)
+    StringMatcherEndsWith:
+      properties:
+        endsWith:
+          type: string
+      description: Matches the tail of a string (case-insensitive)
+    StringMatcherContains:
+      properties:
+        contains:
+          type: string
+      description: Matches the middle of the string with arbitrary head/tail (case-insensitive)
+    StringMatcherMatches:
+      properties:
+        matches:
+          type: string
+      description: Matches the whole string (case-insensitive)
+    StringMatcherEquals:
+      properties:
+        equals:
+          type: string
+      description: Exact match (case-sensitive)
     StringCondition:
       properties:
         modifier:
           $ref: '#/components/schemas/ConditionModifier'
-        comparator:
-          $ref: '#/components/schemas/StringComparator'
-        value:
-          type: string
+        matcher:
+          $ref: '#/components/schemas/StringMatcher'
       required:
-        - comparator
-        - value
+        - matcher
     StringTotalCount:
       properties:
         value:

@@ -88,36 +88,35 @@ where
 
     // Filter tag term
     if let Some(ref label) = tag_filter.label {
-        let (either_eq_or_like, modifier) = match label.comparator {
+        let (either_eq_or_like, modifier) = match label.matcher {
             // Equal comparison
-            StringComparator::Equals => (
-                EitherEqualOrLike::Equal(label.value.clone()),
-                label.modifier,
-            ),
+            StringMatcher::Equals(ref value) => {
+                (EitherEqualOrLike::Equal(value.clone()), label.modifier)
+            }
             // Like comparison: Escape wildcard character with backslash (see below)
-            StringComparator::StartsWith => (
+            StringMatcher::StartsWith(ref value) => (
                 EitherEqualOrLike::Like(format!(
                     "{}%",
-                    label.value.replace('\\', "\\\\").replace('%', "\\%")
+                    value.replace('\\', "\\\\").replace('%', "\\%")
                 )),
                 label.modifier,
             ),
-            StringComparator::EndsWith => (
+            StringMatcher::EndsWith(ref value) => (
                 EitherEqualOrLike::Like(format!(
                     "%{}",
-                    label.value.replace('\\', "\\\\").replace('%', "\\%")
+                    value.replace('\\', "\\\\").replace('%', "\\%")
                 )),
                 label.modifier,
             ),
-            StringComparator::Contains => (
+            StringMatcher::Contains(ref value) => (
                 EitherEqualOrLike::Like(format!(
                     "%{}%",
-                    label.value.replace('\\', "\\\\").replace('%', "\\%")
+                    value.replace('\\', "\\\\").replace('%', "\\%")
                 )),
                 label.modifier,
             ),
-            StringComparator::Matches => (
-                EitherEqualOrLike::Like(label.value.replace('\\', "\\\\").replace('%', "\\%")),
+            StringMatcher::Matches(ref value) => (
+                EitherEqualOrLike::Like(value.replace('\\', "\\\\").replace('%', "\\%")),
                 label.modifier,
             ),
         };
@@ -249,8 +248,7 @@ impl<'a> Tracks for TrackRepository<'a> {
             let uri_filter = UriFilter {
                 modifier: None,
                 condition: StringCondition {
-                    comparator: StringComparator::Equals,
-                    value: replacement.uri.clone(),
+                    matcher: StringMatcher::Equals(replacement.uri.clone()),
                     modifier: None,
                 },
             };
@@ -370,50 +368,35 @@ impl<'a> Tracks for TrackRepository<'a> {
     ) -> TracksResult<Vec<SerializedEntity>> {
         // URI filter
         let uri_condition = locate_params.uri_filter.condition;
-        let (either_eq_or_like, modifier) = match uri_condition.comparator {
+        let (either_eq_or_like, modifier) = match uri_condition.matcher {
             // Equal comparison
-            StringComparator::Equals => (
-                EitherEqualOrLike::Equal(uri_condition.value),
-                uri_condition.modifier,
-            ),
+            StringMatcher::Equals(value) => {
+                (EitherEqualOrLike::Equal(value), uri_condition.modifier)
+            }
             // Like comparison: Escape wildcard character with backslash (see below)
-            StringComparator::StartsWith => (
+            StringMatcher::StartsWith(ref value) => (
                 EitherEqualOrLike::Like(format!(
                     "{}%",
-                    uri_condition
-                        .value
-                        .replace('\\', "\\\\")
-                        .replace('%', "\\%")
+                    value.replace('\\', "\\\\").replace('%', "\\%")
                 )),
                 uri_condition.modifier,
             ),
-            StringComparator::EndsWith => (
+            StringMatcher::EndsWith(ref value) => (
                 EitherEqualOrLike::Like(format!(
                     "%{}",
-                    uri_condition
-                        .value
-                        .replace('\\', "\\\\")
-                        .replace('%', "\\%")
+                    value.replace('\\', "\\\\").replace('%', "\\%")
                 )),
                 uri_condition.modifier,
             ),
-            StringComparator::Contains => (
+            StringMatcher::Contains(ref value) => (
                 EitherEqualOrLike::Like(format!(
                     "%{}%",
-                    uri_condition
-                        .value
-                        .replace('\\', "\\\\")
-                        .replace('%', "\\%")
+                    value.replace('\\', "\\\\").replace('%', "\\%")
                 )),
                 uri_condition.modifier,
             ),
-            StringComparator::Matches => (
-                EitherEqualOrLike::Like(
-                    uri_condition
-                        .value
-                        .replace('\\', "\\\\")
-                        .replace('%', "\\%"),
-                ),
+            StringMatcher::Matches(ref value) => (
+                EitherEqualOrLike::Like(value.replace('\\', "\\\\").replace('%', "\\%")),
                 uri_condition.modifier,
             ),
         };

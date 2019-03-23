@@ -59,14 +59,14 @@ pub enum FilterModifier {
     Complement,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub enum StringComparator {
-    StartsWith, // head
-    EndsWith,   // tail
-    Contains,   // part
-    Matches,    // all (case-insensitive)
-    Equals,     // all (case-sensitive)
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub enum StringMatcher {
+    StartsWith(String), // head
+    EndsWith(String),   // tail
+    Contains(String),   // part
+    Matches(String),    // all (case-insensitive)
+    Equals(String),     // all (case-sensitive)
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -75,9 +75,7 @@ pub struct StringCondition {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub modifier: Option<ConditionModifier>,
 
-    pub comparator: StringComparator,
-
-    pub value: String,
+    pub matcher: StringMatcher,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]

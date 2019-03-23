@@ -10,8 +10,9 @@
                         "filter": {
                             "facet": "genre",
                             "label": {
-                                "comparator": "contains",
-                                "value": "r&b/soul"
+                                "matcher": {
+                                    "equals": "R&B/Soul"
+                                }
                             },
                             "score": {
                                 "gt": 0.8
@@ -23,8 +24,10 @@
                         "filter": {
                             "facet": "genre",
                             "label": {
-                                "comparator": "contains",
-                                "value": "rap"
+                                "modifier": "not",
+                                "matcher": {
+                                    "contains": "rap"
+                                }
                             },
                             "score": {
                                 "lt": 0.7
@@ -41,8 +44,9 @@
                         "filter": {
                             "facet": "event",
                             "label": {
-                                "comparator": "matches",
-                                "value": "bday"
+                                "matcher": {
+                                    "matches": "bday"
+                                }
                             }
                         }
                     },
@@ -51,8 +55,9 @@
                         "filter": {
                             "facet": "event",
                             "label": {
-                                "comparator": "matches",
-                                "value": "xmas"
+                                "matcher": {
+                                    "matches": "xmas"
+                                }
                             }
                         }
                     }
@@ -63,8 +68,9 @@
                 "filter": {
                     "facet": "epoch",
                     "label": {
-                        "comparator": "matches",
-                        "value": "2000s"
+                        "matcher": {
+                            "startsWith": "20"
+                        }
                     }
                 }
             },
