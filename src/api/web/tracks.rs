@@ -71,7 +71,7 @@ pub fn on_create_track(
         .executor
         .send(msg)
         .flatten()
-        .map_err(|err| err.compat())
+        .map_err(Error::compat)
         .from_err()
         .and_then(|res| Ok(HttpResponse::Created().json(res.header())))
         .responder()
@@ -113,7 +113,7 @@ pub fn on_update_track(
         .executor
         .send(msg)
         .flatten()
-        .map_err(|err| err.compat())
+        .map_err(Error::compat)
         .from_err()
         .and_then(move |res| match res {
             (_, Some(next_revision)) => {
@@ -158,7 +158,7 @@ pub fn on_delete_track(
         .executor
         .send(msg)
         .flatten()
-        .map_err(|err| err.compat())
+        .map_err(Error::compat)
         .from_err()
         .and_then(|res| match res {
             Some(_) => Ok(HttpResponse::NoContent().into()),
@@ -198,7 +198,7 @@ pub fn on_load_track(
         .executor
         .send(msg)
         .flatten()
-        .map_err(|err| err.compat())
+        .map_err(Error::compat)
         .from_err()
         .and_then(|res| match res {
             Some(serialized_track) => {
@@ -253,7 +253,7 @@ pub fn on_list_tracks(
         .executor
         .send(msg)
         .flatten()
-        .map_err(|err| err.compat())
+        .map_err(Error::compat)
         .from_err()
         .and_then(|serialized_tracks| SerializedEntity::slice_to_json_array(&serialized_tracks))
         .from_err()
@@ -282,7 +282,7 @@ pub fn on_search_tracks(
         .executor
         .send(msg)
         .flatten()
-        .map_err(|err| err.compat())
+        .map_err(Error::compat)
         .from_err()
         .and_then(|serialized_tracks| SerializedEntity::slice_to_json_array(&serialized_tracks))
         .from_err()
@@ -336,7 +336,7 @@ pub fn on_locate_tracks(
         .executor
         .send(msg)
         .flatten()
-        .map_err(|err| err.compat())
+        .map_err(Error::compat)
         .from_err()
         .and_then(|serialized_tracks| SerializedEntity::slice_to_json_array(&serialized_tracks))
         .from_err()
@@ -389,7 +389,7 @@ pub fn on_replace_tracks(
         .executor
         .send(msg)
         .flatten()
-        .map_err(|err| err.compat())
+        .map_err(Error::compat)
         .from_err()
         .and_then(|res| Ok(HttpResponse::Ok().json(res)))
         .responder()
@@ -470,7 +470,7 @@ pub fn on_list_tracks_tags(
         .executor
         .send(msg)
         .flatten()
-        .map_err(|err| err.compat())
+        .map_err(Error::compat)
         .from_err()
         .and_then(|res| Ok(HttpResponse::Ok().json(res)))
         .responder()
@@ -522,7 +522,7 @@ pub fn on_list_tracks_tags_facets(
         .executor
         .send(msg)
         .flatten()
-        .map_err(|err| err.compat())
+        .map_err(Error::compat)
         .from_err()
         .and_then(|res| Ok(HttpResponse::Ok().json(res)))
         .responder()

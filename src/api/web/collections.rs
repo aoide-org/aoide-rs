@@ -61,7 +61,7 @@ pub fn on_create_collection(
         .executor
         .send(msg)
         .flatten()
-        .map_err(|err| err.compat())
+        .map_err(Error::compat)
         .from_err()
         .and_then(|res| Ok(HttpResponse::Created().json(res.header())))
         .responder()
@@ -101,7 +101,7 @@ pub fn on_update_collection(
         .executor
         .send(msg)
         .flatten()
-        .map_err(|err| err.compat())
+        .map_err(Error::compat)
         .from_err()
         .and_then(move |res| match res {
             (_, Some(next_revision)) => {
@@ -146,7 +146,7 @@ pub fn on_delete_collection(
         .executor
         .send(msg)
         .flatten()
-        .map_err(|err| err.compat())
+        .map_err(Error::compat)
         .from_err()
         .and_then(|res| match res {
             Some(_) => Ok(HttpResponse::NoContent().into()),
@@ -210,7 +210,7 @@ pub fn on_load_collection(
         .executor
         .send(msg)
         .flatten()
-        .map_err(|err| err.compat())
+        .map_err(Error::compat)
         .from_err()
         .and_then(|res| match res {
             Some(collection) => Ok(HttpResponse::Ok().json(collection)),
@@ -250,7 +250,7 @@ pub fn on_list_collections(
         .executor
         .send(msg)
         .flatten()
-        .map_err(|err| err.compat())
+        .map_err(Error::compat)
         .from_err()
         .and_then(|res| Ok(HttpResponse::Ok().json(res)))
         .responder()

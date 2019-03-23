@@ -36,7 +36,7 @@ impl<'a> InsertableCollectionsEntity<'a> {
             rev_no: entity.header().revision().ordinal() as i64,
             rev_ts: (entity.header().revision().instant().0).0,
             name: &entity.body().name,
-            desc: entity.body().description.as_ref().map(|s| s.as_str()),
+            desc: entity.body().description.as_ref().map(String::as_str),
         }
     }
 }
@@ -56,7 +56,7 @@ impl<'a> UpdatableCollectionsEntity<'a> {
             rev_no: next_revision.ordinal() as i64,
             rev_ts: (next_revision.instant().0).0,
             name: &body.name,
-            desc: body.description.as_ref().map(|s| s.as_str()),
+            desc: body.description.as_ref().map(String::as_str),
         }
     }
 }

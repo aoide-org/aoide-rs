@@ -105,7 +105,7 @@ impl<'a> Collections for CollectionRepository<'a> {
             .filter(tbl_collection::uid.eq(uid.as_ref()))
             .first::<QueryableCollectionsEntity>(self.connection)
             .optional()
-            .map(|o| o.map(|o| o.into()))
+            .map(|o| o.map(Into::into))
             .map_err(Into::into)
     }
 
@@ -119,7 +119,7 @@ impl<'a> Collections for CollectionRepository<'a> {
 
         target
             .load::<QueryableCollectionsEntity>(self.connection)
-            .map(|v| v.into_iter().map(|r| r.into()).collect())
+            .map(|v| v.into_iter().map(Into::into).collect())
             .map_err(Into::into)
     }
 
@@ -127,7 +127,7 @@ impl<'a> Collections for CollectionRepository<'a> {
         tbl_collection::table
             .filter(tbl_collection::name.eq(name))
             .load::<QueryableCollectionsEntity>(self.connection)
-            .map(|v| v.into_iter().map(|r| r.into()).collect())
+            .map(|v| v.into_iter().map(Into::into).collect())
             .map_err(Into::into)
     }
 
@@ -146,7 +146,7 @@ impl<'a> Collections for CollectionRepository<'a> {
 
         target
             .load::<QueryableCollectionsEntity>(self.connection)
-            .map(|v| v.into_iter().map(|r| r.into()).collect())
+            .map(|v| v.into_iter().map(Into::into).collect())
             .map_err(Into::into)
     }
 
@@ -165,7 +165,7 @@ impl<'a> Collections for CollectionRepository<'a> {
 
         target
             .load::<QueryableCollectionsEntity>(self.connection)
-            .map(|v| v.into_iter().map(|r| r.into()).collect())
+            .map(|v| v.into_iter().map(Into::into).collect())
             .map_err(Into::into)
     }
 }

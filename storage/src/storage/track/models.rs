@@ -193,7 +193,7 @@ impl<'a> InsertableTracksSource<'a> {
                 .as_ref()
                 .and_then(|audio| audio.encoder.as_ref())
                 .and_then(|enc| enc.settings.as_ref())
-                .map(|settings| settings.as_str()),
+                .map(String::as_str),
         }
     }
 }
