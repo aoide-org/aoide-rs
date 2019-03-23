@@ -793,6 +793,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/StringField'
+          description: If no fields are specified all available string fields
+            are matched.
         terms:
           type: array
           items:
@@ -804,7 +806,6 @@ components:
             LaBelle". An empty array matches both empty and missing/null
             fields.
       required:
-        - fields
         - terms
       description: |
         Matches a sequence of terms on any of the given string fields.
