@@ -438,7 +438,7 @@ components:
 
         in an empty set of returned items.
     collectionUidParam:
-      name: collection
+      name: collectionUid
       in: query
       required: false
       schema:
