@@ -38,14 +38,14 @@ use std::fmt;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct IndexCount(/*index*/ Option<u32>, /*count*/ Option<u32>);
+pub struct IndexCount(/*index*/ Option<u16>, /*count*/ Option<u16>);
 
 impl IndexCount {
-    pub fn index(&self) -> Option<u32> {
+    pub fn index(self) -> Option<u16> {
         self.0
     }
 
-    pub fn count(&self) -> Option<u32> {
+    pub fn count(self) -> Option<u16> {
         self.1
     }
 }

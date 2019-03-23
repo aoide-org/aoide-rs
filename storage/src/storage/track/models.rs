@@ -207,11 +207,11 @@ pub struct InsertableTracksBrief<'a> {
     pub track_composer: Option<&'a str>,
     pub album_title: Option<&'a str>,
     pub album_artist: Option<&'a str>,
-    pub release_year: Option<i32>,
-    pub track_index: Option<i32>,
-    pub track_count: Option<i32>,
-    pub disc_index: Option<i32>,
-    pub disc_count: Option<i32>,
+    pub release_year: Option<i16>,
+    pub track_index: Option<i16>,
+    pub track_count: Option<i16>,
+    pub disc_index: Option<i16>,
+    pub disc_count: Option<i16>,
     pub music_tempo: Option<Beats>,
     pub music_key: Option<i16>,
 }
@@ -239,11 +239,11 @@ impl<'a> InsertableTracksBrief<'a> {
                 .release
                 .as_ref()
                 .and_then(|release| release.released_at)
-                .map(|released_at| released_at.date().naive_utc().year()),
-            track_index: track.track_numbers.index().map(|index| index as i32),
-            track_count: track.track_numbers.count().map(|count| count as i32),
-            disc_index: track.disc_numbers.index().map(|index| index as i32),
-            disc_count: track.disc_numbers.count().map(|count| count as i32),
+                .map(|released_at| released_at.date().naive_utc().year() as i16),
+            track_index: track.track_numbers.index().map(|index| index as i16),
+            track_count: track.track_numbers.count().map(|count| count as i16),
+            disc_index: track.disc_numbers.index().map(|index| index as i16),
+            disc_count: track.disc_numbers.count().map(|count| count as i16),
             music_tempo: if track.music.tempo.is_valid() {
                 Some(track.music.tempo.0)
             } else {

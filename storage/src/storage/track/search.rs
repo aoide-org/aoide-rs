@@ -386,7 +386,7 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
         _collection_uid: Option<&EntityUid>,
     ) -> TrackSearchBoxedExpression<'a> {
         match self.field {
-            NumericField::Duration => match self.value {
+            NumericField::AudioDuration => match self.value {
                 NumericPredicate::LessThan(value) => {
                     Box::new(aux_track_source::audio_duration.lt(value))
                 }
@@ -414,7 +414,7 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
                     }
                 }
             },
-            NumericField::SampleRate => match self.value {
+            NumericField::AudioSampleRate => match self.value {
                 // TODO: Check and limit/clamp value range when converting from f64 to i32
                 NumericPredicate::LessThan(value) => {
                     Box::new(aux_track_source::audio_samplerate.lt(value as i32))
@@ -443,7 +443,7 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
                     }
                 }
             },
-            NumericField::BitRate => match self.value {
+            NumericField::AudioBitRate => match self.value {
                 // TODO: Check and limit/clamp value range when converting from f64 to i32
                 NumericPredicate::LessThan(value) => {
                     Box::new(aux_track_source::audio_bitrate.lt(value as i32))
@@ -472,7 +472,7 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
                     }
                 }
             },
-            NumericField::ChannelCount => match self.value {
+            NumericField::AudioChannelCount => match self.value {
                 // TODO: Check and limit/clamp value range when converting from f64 to i16
                 NumericPredicate::LessThan(value) => {
                     Box::new(aux_track_source::audio_channel_count.lt(value as i16))
@@ -501,7 +501,7 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
                     }
                 }
             },
-            NumericField::Loudness => match self.value {
+            NumericField::AudioLoudness => match self.value {
                 NumericPredicate::LessThan(value) => {
                     Box::new(aux_track_source::audio_loudness.lt(value))
                 }
@@ -532,27 +532,27 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
             NumericField::ReleaseYear => match self.value {
                 // TODO: Check and limit/clamp value range when converting from f64 to i32
                 NumericPredicate::LessThan(value) => {
-                    Box::new(aux_track_brief::release_year.lt(value as i32))
+                    Box::new(aux_track_brief::release_year.lt(value as i16))
                 }
                 NumericPredicate::LessOrEqual(value) => {
-                    Box::new(aux_track_brief::release_year.le(value as i32))
+                    Box::new(aux_track_brief::release_year.le(value as i16))
                 }
                 NumericPredicate::GreaterThan(value) => {
-                    Box::new(aux_track_brief::release_year.gt(value as i32))
+                    Box::new(aux_track_brief::release_year.gt(value as i16))
                 }
                 NumericPredicate::GreaterOrEqual(value) => {
-                    Box::new(aux_track_brief::release_year.gt(value as i32))
+                    Box::new(aux_track_brief::release_year.gt(value as i16))
                 }
                 NumericPredicate::Equal(value) => {
                     if let Some(value) = value {
-                        Box::new(aux_track_brief::release_year.eq(value as i32))
+                        Box::new(aux_track_brief::release_year.eq(value as i16))
                     } else {
                         Box::new(aux_track_brief::release_year.is_null())
                     }
                 }
                 NumericPredicate::NotEqual(value) => {
                     if let Some(value) = value {
-                        Box::new(aux_track_brief::release_year.ne(value as i32))
+                        Box::new(aux_track_brief::release_year.ne(value as i16))
                     } else {
                         Box::new(aux_track_brief::release_year.is_not_null())
                     }
