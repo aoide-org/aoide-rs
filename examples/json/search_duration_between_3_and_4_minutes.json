@@ -1,0 +1,22 @@
+{
+    "filter": {
+        "all": [
+            {
+                "numeric": {
+                    "field": "audioDuration",
+                    "value": {
+                        "ge": 180000
+                    }
+                }
+            },
+            {
+                "numeric": {
+                    "field": "audioDuration",
+                    "value": {
+                        "le": 240000
+                    }
+                }
+            }
+        ]
+    }
+}
