@@ -129,14 +129,14 @@ pub enum StringField {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub enum NumericField {
-    ReleaseYear,
-    BitRate,
-    ChannelCount,
-    Duration,
-    SampleRate,
-    Loudness,
+    AudioBitRate,
+    AudioChannelCount,
+    AudioDuration,
+    AudioSampleRate,
+    AudioLoudness,
     MusicTempo,
     MusicKey,
+    ReleaseYear,
 }
 
 pub type NumericValue = f64;

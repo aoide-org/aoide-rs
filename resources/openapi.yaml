@@ -778,14 +778,14 @@ components:
     NumericField:
       type: string
       enum:
-        - releaseYear
-        - bitRate
-        - channelCount
-        - duration
-        - loudness
-        - sampleRate
+        - audioBitRate
+        - audioChannelCount
+        - audioDuration
+        - audioLoudness
+        - audioSampleRate
         - musicTempo
         - musicKey
+        - releaseYear
     NumericFilter:
       properties:
         field:
