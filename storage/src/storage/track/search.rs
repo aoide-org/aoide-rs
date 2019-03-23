@@ -105,12 +105,12 @@ type TrackSearchBoxedExpression<'a> = Box<
 
 // TODO: replace with "True"
 fn dummy_true_expression() -> TrackSearchBoxedExpression<'static> {
-    Box::new(tbl_track::id.is_not_null())
+    Box::new(tbl_track::id.is_not_null()) // always true
 }
 
 // TODO: replace with "False"
 fn dummy_false_expression() -> TrackSearchBoxedExpression<'static> {
-    Box::new(tbl_track::id.is_null())
+    Box::new(tbl_track::id.is_null()) // always false
 }
 
 pub trait TrackSearchBoxedExpressionBuilder {

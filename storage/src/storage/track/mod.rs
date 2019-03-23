@@ -684,7 +684,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
         let mut target = aux_track_tag::table
             .left_outer_join(aux_tag_facet::table)
             .select((
-                sql::<diesel::sql_types::Nullable<diesel::sql_types::Text>>("facet"),
+                aux_tag_facet::facet.nullable(),
                 sql::<diesel::sql_types::BigInt>("count(*) AS count"),
             ))
             .group_by(aux_track_tag::facet_id)
@@ -744,8 +744,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
             .select((
                 sql::<diesel::sql_types::Double>("AVG(score) AS score"),
                 aux_tag_label::label,
-                // The joined 'facet' column becomes nullable
-                sql::<diesel::sql_types::Nullable<diesel::sql_types::Text>>("facet"),
+                aux_tag_facet::facet.nullable(),
                 sql::<diesel::sql_types::BigInt>("COUNT(*) AS count"),
             ))
             .group_by((aux_track_tag::label_id, aux_track_tag::facet_id))
