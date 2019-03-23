@@ -155,19 +155,27 @@ where
 
     // Filter tag score
     if let Some(score) = tag_filter.score {
-        select = match score.comparator {
-            NumericComparator::LessThan => match score.modifier {
-                None => select.filter(aux_track_tag::score.lt(score.value)),
-                Some(ConditionModifier::Not) => select.filter(aux_track_tag::score.ge(score.value)),
-            },
-            NumericComparator::GreaterThan => match score.modifier {
-                None => select.filter(aux_track_tag::score.gt(score.value)),
-                Some(ConditionModifier::Not) => select.filter(aux_track_tag::score.le(score.value)),
-            },
-            NumericComparator::EqualTo => match score.modifier {
-                None => select.filter(aux_track_tag::score.eq(score.value)),
-                Some(ConditionModifier::Not) => select.filter(aux_track_tag::score.ne(score.value)),
-            },
+        select = match score {
+            NumericPredicate::LessThan(value) => select.filter(aux_track_tag::score.lt(value)),
+            NumericPredicate::GreaterOrEqual(value) => {
+                select.filter(aux_track_tag::score.ge(value))
+            }
+            NumericPredicate::GreaterThan(value) => select.filter(aux_track_tag::score.gt(value)),
+            NumericPredicate::LessOrEqual(value) => select.filter(aux_track_tag::score.le(value)),
+            NumericPredicate::Equal(value) => {
+                if let Some(value) = value {
+                    select.filter(aux_track_tag::score.eq(value))
+                } else {
+                    select.filter(aux_track_tag::score.is_null())
+                }
+            }
+            NumericPredicate::NotEqual(value) => {
+                if let Some(value) = value {
+                    select.filter(aux_track_tag::score.ne(value))
+                } else {
+                    select.filter(aux_track_tag::score.is_not_null())
+                }
+            }
         };
     }
 

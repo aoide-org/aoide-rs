@@ -386,182 +386,235 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
         _collection_uid: Option<&EntityUid>,
     ) -> TrackSearchBoxedExpression<'a> {
         match self.field {
-            NumericField::ReleaseYear => match self.condition.comparator {
-                NumericComparator::LessThan => match self.condition.modifier {
-                    None => Box::new(aux_track_brief::release_year.lt(self.condition.value as i32)),
-                    Some(ConditionModifier::Not) => {
-                        Box::new(aux_track_brief::release_year.ge(self.condition.value as i32))
-                    }
-                },
-                NumericComparator::GreaterThan => match self.condition.modifier {
-                    None => Box::new(aux_track_brief::release_year.gt(self.condition.value as i32)),
-                    Some(ConditionModifier::Not) => {
-                        Box::new(aux_track_brief::release_year.le(self.condition.value as i32))
-                    }
-                },
-                NumericComparator::EqualTo => match self.condition.modifier {
-                    None => Box::new(aux_track_brief::release_year.eq(self.condition.value as i32)),
-                    Some(ConditionModifier::Not) => {
-                        Box::new(aux_track_brief::release_year.ne(self.condition.value as i32))
-                    }
-                },
-            },
-            NumericField::Duration => match self.condition.comparator {
-                NumericComparator::LessThan => match self.condition.modifier {
-                    None => Box::new(aux_track_source::audio_duration.lt(self.condition.value)),
-                    Some(ConditionModifier::Not) => {
-                        Box::new(aux_track_source::audio_duration.ge(self.condition.value))
-                    }
-                },
-                NumericComparator::GreaterThan => match self.condition.modifier {
-                    None => Box::new(aux_track_source::audio_duration.gt(self.condition.value)),
-                    Some(ConditionModifier::Not) => {
-                        Box::new(aux_track_source::audio_duration.le(self.condition.value))
-                    }
-                },
-                NumericComparator::EqualTo => match self.condition.modifier {
-                    None => Box::new(aux_track_source::audio_duration.eq(self.condition.value)),
-                    Some(ConditionModifier::Not) => {
-                        Box::new(aux_track_source::audio_duration.ne(self.condition.value))
-                    }
-                },
-            },
-            NumericField::SampleRate => {
-                // TODO: Check value range!
-                let condition_value = self.condition.value as i32;
-                match self.condition.comparator {
-                    NumericComparator::LessThan => match self.condition.modifier {
-                        None => Box::new(aux_track_source::audio_samplerate.lt(condition_value)),
-                        Some(ConditionModifier::Not) => {
-                            Box::new(aux_track_source::audio_samplerate.ge(condition_value))
-                        }
-                    },
-                    NumericComparator::GreaterThan => match self.condition.modifier {
-                        None => Box::new(aux_track_source::audio_samplerate.gt(condition_value)),
-                        Some(ConditionModifier::Not) => {
-                            Box::new(aux_track_source::audio_samplerate.le(condition_value))
-                        }
-                    },
-                    NumericComparator::EqualTo => match self.condition.modifier {
-                        None => Box::new(aux_track_source::audio_samplerate.eq(condition_value)),
-                        Some(ConditionModifier::Not) => {
-                            Box::new(aux_track_source::audio_samplerate.ne(condition_value))
-                        }
-                    },
+            NumericField::Duration => match self.value {
+                NumericPredicate::LessThan(value) => {
+                    Box::new(aux_track_source::audio_duration.lt(value))
                 }
-            }
-            NumericField::BitRate => {
-                // TODO: Check value range!
-                let condition_value = self.condition.value as i32;
-                match self.condition.comparator {
-                    NumericComparator::LessThan => match self.condition.modifier {
-                        None => Box::new(aux_track_source::audio_bitrate.lt(condition_value)),
-                        Some(ConditionModifier::Not) => {
-                            Box::new(aux_track_source::audio_bitrate.ge(condition_value))
-                        }
-                    },
-                    NumericComparator::GreaterThan => match self.condition.modifier {
-                        None => Box::new(aux_track_source::audio_bitrate.gt(condition_value)),
-                        Some(ConditionModifier::Not) => {
-                            Box::new(aux_track_source::audio_bitrate.le(condition_value))
-                        }
-                    },
-                    NumericComparator::EqualTo => match self.condition.modifier {
-                        None => Box::new(aux_track_source::audio_bitrate.eq(condition_value)),
-                        Some(ConditionModifier::Not) => {
-                            Box::new(aux_track_source::audio_bitrate.ne(condition_value))
-                        }
-                    },
+                NumericPredicate::LessOrEqual(value) => {
+                    Box::new(aux_track_source::audio_duration.le(value))
                 }
-            }
-            NumericField::ChannelCount => {
-                // TODO: Check value range!
-                let condition_value = self.condition.value as i16;
-                match self.condition.comparator {
-                    NumericComparator::LessThan => match self.condition.modifier {
-                        None => Box::new(aux_track_source::audio_channel_count.lt(condition_value)),
-                        Some(ConditionModifier::Not) => {
-                            Box::new(aux_track_source::audio_channel_count.ge(condition_value))
-                        }
-                    },
-                    NumericComparator::GreaterThan => match self.condition.modifier {
-                        None => Box::new(aux_track_source::audio_channel_count.gt(condition_value)),
-                        Some(ConditionModifier::Not) => {
-                            Box::new(aux_track_source::audio_channel_count.le(condition_value))
-                        }
-                    },
-                    NumericComparator::EqualTo => match self.condition.modifier {
-                        None => Box::new(aux_track_source::audio_channel_count.eq(condition_value)),
-                        Some(ConditionModifier::Not) => {
-                            Box::new(aux_track_source::audio_channel_count.ne(condition_value))
-                        }
-                    },
+                NumericPredicate::GreaterThan(value) => {
+                    Box::new(aux_track_source::audio_duration.gt(value))
                 }
-            }
-            NumericField::Loudness => match self.condition.comparator {
-                NumericComparator::LessThan => match self.condition.modifier {
-                    None => Box::new(aux_track_source::audio_loudness.lt(self.condition.value)),
-                    Some(ConditionModifier::Not) => {
-                        Box::new(aux_track_source::audio_loudness.ge(self.condition.value))
+                NumericPredicate::GreaterOrEqual(value) => {
+                    Box::new(aux_track_source::audio_duration.gt(value))
+                }
+                NumericPredicate::Equal(value) => {
+                    if let Some(value) = value {
+                        Box::new(aux_track_source::audio_duration.eq(value))
+                    } else {
+                        Box::new(aux_track_source::audio_duration.is_null())
                     }
-                },
-                NumericComparator::GreaterThan => match self.condition.modifier {
-                    None => Box::new(aux_track_source::audio_loudness.gt(self.condition.value)),
-                    Some(ConditionModifier::Not) => {
-                        Box::new(aux_track_source::audio_loudness.le(self.condition.value))
+                }
+                NumericPredicate::NotEqual(value) => {
+                    if let Some(value) = value {
+                        Box::new(aux_track_source::audio_duration.ne(value))
+                    } else {
+                        Box::new(aux_track_source::audio_duration.is_not_null())
                     }
-                },
-                NumericComparator::EqualTo => match self.condition.modifier {
-                    None => Box::new(aux_track_source::audio_loudness.eq(self.condition.value)),
-                    Some(ConditionModifier::Not) => {
-                        Box::new(aux_track_source::audio_loudness.ne(self.condition.value))
-                    }
-                },
+                }
             },
-            NumericField::MusicTempo => match self.condition.comparator {
-                NumericComparator::LessThan => match self.condition.modifier {
-                    None => Box::new(aux_track_brief::music_tempo.lt(self.condition.value)),
-                    Some(ConditionModifier::Not) => {
-                        Box::new(aux_track_brief::music_tempo.ge(self.condition.value))
-                    }
-                },
-                NumericComparator::GreaterThan => match self.condition.modifier {
-                    None => Box::new(aux_track_brief::music_tempo.gt(self.condition.value)),
-                    Some(ConditionModifier::Not) => {
-                        Box::new(aux_track_brief::music_tempo.le(self.condition.value))
-                    }
-                },
-                NumericComparator::EqualTo => match self.condition.modifier {
-                    None => Box::new(aux_track_brief::music_tempo.eq(self.condition.value)),
-                    Some(ConditionModifier::Not) => {
-                        Box::new(aux_track_brief::music_tempo.ne(self.condition.value))
-                    }
-                },
-            },
-            NumericField::MusicKey => {
-                // TODO: Check value range!
-                let condition_value = self.condition.value as i16;
-                match self.condition.comparator {
-                    NumericComparator::LessThan => match self.condition.modifier {
-                        None => Box::new(aux_track_brief::music_key.lt(condition_value)),
-                        Some(ConditionModifier::Not) => {
-                            Box::new(aux_track_brief::music_key.ge(condition_value))
-                        }
-                    },
-                    NumericComparator::GreaterThan => match self.condition.modifier {
-                        None => Box::new(aux_track_brief::music_key.gt(condition_value)),
-                        Some(ConditionModifier::Not) => {
-                            Box::new(aux_track_brief::music_key.le(condition_value))
-                        }
-                    },
-                    NumericComparator::EqualTo => match self.condition.modifier {
-                        None => Box::new(aux_track_brief::music_key.eq(condition_value)),
-                        Some(ConditionModifier::Not) => {
-                            Box::new(aux_track_brief::music_key.ne(condition_value))
-                        }
-                    },
+            NumericField::SampleRate => match self.value {
+                // TODO: Check and limit/clamp value range when converting from f64 to i32
+                NumericPredicate::LessThan(value) => {
+                    Box::new(aux_track_source::audio_samplerate.lt(value as i32))
                 }
-            }
+                NumericPredicate::LessOrEqual(value) => {
+                    Box::new(aux_track_source::audio_samplerate.le(value as i32))
+                }
+                NumericPredicate::GreaterThan(value) => {
+                    Box::new(aux_track_source::audio_samplerate.gt(value as i32))
+                }
+                NumericPredicate::GreaterOrEqual(value) => {
+                    Box::new(aux_track_source::audio_samplerate.gt(value as i32))
+                }
+                NumericPredicate::Equal(value) => {
+                    if let Some(value) = value {
+                        Box::new(aux_track_source::audio_samplerate.eq(value as i32))
+                    } else {
+                        Box::new(aux_track_source::audio_samplerate.is_null())
+                    }
+                }
+                NumericPredicate::NotEqual(value) => {
+                    if let Some(value) = value {
+                        Box::new(aux_track_source::audio_samplerate.ne(value as i32))
+                    } else {
+                        Box::new(aux_track_source::audio_samplerate.is_not_null())
+                    }
+                }
+            },
+            NumericField::BitRate => match self.value {
+                // TODO: Check and limit/clamp value range when converting from f64 to i32
+                NumericPredicate::LessThan(value) => {
+                    Box::new(aux_track_source::audio_bitrate.lt(value as i32))
+                }
+                NumericPredicate::LessOrEqual(value) => {
+                    Box::new(aux_track_source::audio_bitrate.le(value as i32))
+                }
+                NumericPredicate::GreaterThan(value) => {
+                    Box::new(aux_track_source::audio_bitrate.gt(value as i32))
+                }
+                NumericPredicate::GreaterOrEqual(value) => {
+                    Box::new(aux_track_source::audio_bitrate.gt(value as i32))
+                }
+                NumericPredicate::Equal(value) => {
+                    if let Some(value) = value {
+                        Box::new(aux_track_source::audio_bitrate.eq(value as i32))
+                    } else {
+                        Box::new(aux_track_source::audio_bitrate.is_null())
+                    }
+                }
+                NumericPredicate::NotEqual(value) => {
+                    if let Some(value) = value {
+                        Box::new(aux_track_source::audio_bitrate.ne(value as i32))
+                    } else {
+                        Box::new(aux_track_source::audio_bitrate.is_not_null())
+                    }
+                }
+            },
+            NumericField::ChannelCount => match self.value {
+                // TODO: Check and limit/clamp value range when converting from f64 to i16
+                NumericPredicate::LessThan(value) => {
+                    Box::new(aux_track_source::audio_channel_count.lt(value as i16))
+                }
+                NumericPredicate::LessOrEqual(value) => {
+                    Box::new(aux_track_source::audio_channel_count.le(value as i16))
+                }
+                NumericPredicate::GreaterThan(value) => {
+                    Box::new(aux_track_source::audio_channel_count.gt(value as i16))
+                }
+                NumericPredicate::GreaterOrEqual(value) => {
+                    Box::new(aux_track_source::audio_channel_count.gt(value as i16))
+                }
+                NumericPredicate::Equal(value) => {
+                    if let Some(value) = value {
+                        Box::new(aux_track_source::audio_channel_count.eq(value as i16))
+                    } else {
+                        Box::new(aux_track_source::audio_channel_count.is_null())
+                    }
+                }
+                NumericPredicate::NotEqual(value) => {
+                    if let Some(value) = value {
+                        Box::new(aux_track_source::audio_channel_count.ne(value as i16))
+                    } else {
+                        Box::new(aux_track_source::audio_channel_count.is_not_null())
+                    }
+                }
+            },
+            NumericField::Loudness => match self.value {
+                NumericPredicate::LessThan(value) => {
+                    Box::new(aux_track_source::audio_loudness.lt(value))
+                }
+                NumericPredicate::LessOrEqual(value) => {
+                    Box::new(aux_track_source::audio_loudness.le(value))
+                }
+                NumericPredicate::GreaterThan(value) => {
+                    Box::new(aux_track_source::audio_loudness.gt(value))
+                }
+                NumericPredicate::GreaterOrEqual(value) => {
+                    Box::new(aux_track_source::audio_loudness.gt(value))
+                }
+                NumericPredicate::Equal(value) => {
+                    if let Some(value) = value {
+                        Box::new(aux_track_source::audio_loudness.eq(value))
+                    } else {
+                        Box::new(aux_track_source::audio_loudness.is_null())
+                    }
+                }
+                NumericPredicate::NotEqual(value) => {
+                    if let Some(value) = value {
+                        Box::new(aux_track_source::audio_loudness.ne(value))
+                    } else {
+                        Box::new(aux_track_source::audio_loudness.is_not_null())
+                    }
+                }
+            },
+            NumericField::ReleaseYear => match self.value {
+                // TODO: Check and limit/clamp value range when converting from f64 to i32
+                NumericPredicate::LessThan(value) => {
+                    Box::new(aux_track_brief::release_year.lt(value as i32))
+                }
+                NumericPredicate::LessOrEqual(value) => {
+                    Box::new(aux_track_brief::release_year.le(value as i32))
+                }
+                NumericPredicate::GreaterThan(value) => {
+                    Box::new(aux_track_brief::release_year.gt(value as i32))
+                }
+                NumericPredicate::GreaterOrEqual(value) => {
+                    Box::new(aux_track_brief::release_year.gt(value as i32))
+                }
+                NumericPredicate::Equal(value) => {
+                    if let Some(value) = value {
+                        Box::new(aux_track_brief::release_year.eq(value as i32))
+                    } else {
+                        Box::new(aux_track_brief::release_year.is_null())
+                    }
+                }
+                NumericPredicate::NotEqual(value) => {
+                    if let Some(value) = value {
+                        Box::new(aux_track_brief::release_year.ne(value as i32))
+                    } else {
+                        Box::new(aux_track_brief::release_year.is_not_null())
+                    }
+                }
+            },
+            NumericField::MusicTempo => match self.value {
+                NumericPredicate::LessThan(value) => {
+                    Box::new(aux_track_brief::music_tempo.lt(value))
+                }
+                NumericPredicate::LessOrEqual(value) => {
+                    Box::new(aux_track_brief::music_tempo.le(value))
+                }
+                NumericPredicate::GreaterThan(value) => {
+                    Box::new(aux_track_brief::music_tempo.gt(value))
+                }
+                NumericPredicate::GreaterOrEqual(value) => {
+                    Box::new(aux_track_brief::music_tempo.gt(value))
+                }
+                NumericPredicate::Equal(value) => {
+                    if let Some(value) = value {
+                        Box::new(aux_track_brief::music_tempo.eq(value))
+                    } else {
+                        Box::new(aux_track_brief::music_tempo.is_null())
+                    }
+                }
+                NumericPredicate::NotEqual(value) => {
+                    if let Some(value) = value {
+                        Box::new(aux_track_brief::music_tempo.ne(value))
+                    } else {
+                        Box::new(aux_track_brief::music_tempo.is_not_null())
+                    }
+                }
+            },
+            NumericField::MusicKey => match self.value {
+                // TODO: Check and limit/clamp value range when converting from f64 to i16
+                NumericPredicate::LessThan(value) => {
+                    Box::new(aux_track_brief::music_key.lt(value as i16))
+                }
+                NumericPredicate::LessOrEqual(value) => {
+                    Box::new(aux_track_brief::music_key.le(value as i16))
+                }
+                NumericPredicate::GreaterThan(value) => {
+                    Box::new(aux_track_brief::music_key.gt(value as i16))
+                }
+                NumericPredicate::GreaterOrEqual(value) => {
+                    Box::new(aux_track_brief::music_key.gt(value as i16))
+                }
+                NumericPredicate::Equal(value) => {
+                    if let Some(value) = value {
+                        Box::new(aux_track_brief::music_key.eq(value as i16))
+                    } else {
+                        Box::new(aux_track_brief::music_key.is_null())
+                    }
+                }
+                NumericPredicate::NotEqual(value) => {
+                    if let Some(value) = value {
+                        Box::new(aux_track_brief::music_key.ne(value as i16))
+                    } else {
+                        Box::new(aux_track_brief::music_key.is_not_null())
+                    }
+                }
+            },
         }
     }
 }

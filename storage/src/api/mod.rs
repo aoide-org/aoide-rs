@@ -95,7 +95,7 @@ pub struct TagFilter {
     pub label: Option<StringCondition>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub score: Option<NumericCondition>,
+    pub score: Option<NumericPredicate>,
 }
 
 impl TagFilter {
@@ -111,7 +111,7 @@ impl TagFilter {
         None
     }
 
-    pub fn any_score() -> Option<NumericCondition> {
+    pub fn any_score() -> Option<NumericPredicate> {
         None
     }
 }
@@ -143,23 +143,21 @@ pub enum NumericField {
 
 pub type NumericValue = f64;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub enum NumericComparator {
-    LessThan,
-    GreaterThan,
-    EqualTo,
-}
-
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct NumericCondition {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub modifier: Option<ConditionModifier>,
-
-    pub comparator: NumericComparator,
-
-    pub value: NumericValue,
+#[serde(deny_unknown_fields)]
+pub enum NumericPredicate {
+    #[serde(rename = "lt")]
+    LessThan(NumericValue),
+    #[serde(rename = "le")]
+    LessOrEqual(NumericValue),
+    #[serde(rename = "gt")]
+    GreaterThan(NumericValue),
+    #[serde(rename = "ge")]
+    GreaterOrEqual(NumericValue),
+    #[serde(rename = "eq")]
+    Equal(Option<NumericValue>),
+    #[serde(rename = "ne")]
+    NotEqual(Option<NumericValue>),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -167,7 +165,7 @@ pub struct NumericCondition {
 pub struct NumericFilter {
     pub field: NumericField,
 
-    pub condition: NumericCondition,
+    pub value: NumericPredicate,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

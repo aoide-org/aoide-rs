@@ -735,17 +735,46 @@ components:
         - equal-to
       description: |
         Numeric comparison operators.
-    NumericCondition:
+    NumericPredicateLessThan:
       properties:
-        modifier:
-          $ref: '#/components/schemas/ConditionModifier'
-        comparator:
-          $ref: '#/components/schemas/NumericComparator'
-        value:
+        lt:
           type: number
       required:
-        - comparator
-        - value
+        - lt
+    NumericPredicateLessOrEqual:
+      properties:
+        le:
+          type: number
+      required:
+        - le
+    NumericPredicateGreaterThan:
+      properties:
+        gt:
+          type: number
+      required:
+        - gt
+    NumericPredicateGreaterOrEqual:
+      properties:
+        ge:
+          type: number
+      required:
+        - ge
+    NumericPredicateEqual:
+      properties:
+        eq:
+          type: number
+    NumericPredicateNotEqual:
+      properties:
+        ne:
+          type: number
+    NumericPredicate:
+      oneOf:
+        - $ref: '#/components/schemas/NumericPredicateLessThan'
+        - $ref: '#/components/schemas/NumericPredicateLessOrEqual'
+        - $ref: '#/components/schemas/NumericPredicateGreaterThan'
+        - $ref: '#/components/schemas/NumericPredicateGreaterOrEqual'
+        - $ref: '#/components/schemas/NumericPredicateEqual'
+        - $ref: '#/components/schemas/NumericPredicateNotEqual'
     NumericField:
       type: string
       enum:
@@ -761,11 +790,11 @@ components:
       properties:
         field:
           $ref: '#/components/schemas/NumericField'
-        condition:
-          $ref: '#/components/schemas/NumericCondition'
+        value:
+          $ref: '#/components/schemas/NumericPredicate'
       required:
         - field
-        - condition
+        - value
     PhraseFilter:
       properties:
         fields:
@@ -1066,7 +1095,7 @@ components:
         label:
           $ref: '#/components/schemas/StringCondition'
         score:
-          $ref: '#/components/schemas/NumericCondition'
+          $ref: '#/components/schemas/NumericPredicate'
     TagLabel:
       type: string
       minLength: 1
