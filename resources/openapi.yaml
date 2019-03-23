@@ -929,61 +929,46 @@ components:
         - $ref: '#/components/schemas/TrackSearchAllFilterNode'
         - $ref: '#/components/schemas/TrackSearchAnyFilterNode'
         - $ref: '#/components/schemas/TrackSearchNotFilterNode'
-      discriminator:
-        propertyName: type
-      required:
-        - type
     TrackSearchPhraseFilterNode:
       properties:
-        type:
-          type: string
-        filter:
+        phrase:
           $ref: '#/components/schemas/PhraseFilter'
       required:
-        - type
+        - phrase
     TrackSearchNumericFilterNode:
       properties:
-        type:
-          type: string
-        filter:
+        numeric:
           $ref: '#/components/schemas/NumericFilter'
+      required:
+        - numeric
     TrackSearchTagFilterNode:
       properties:
-        type:
-          type: string
-        filter:
+        tag:
           $ref: '#/components/schemas/TagFilter'
       required:
-        - type
+        - tag
     TrackSearchAllFilterNode:
       properties:
-        type:
-          type: string
-        filter:
+        all:
           type: array
           items:
             $ref: '#/components/schemas/TrackSearchFilterNode'
       required:
-        - type
+        - all
     TrackSearchAnyFilterNode:
       properties:
-        type:
-          type: string
-        filter:
+        any:
           type: array
           items:
             $ref: '#/components/schemas/TrackSearchFilterNode'
       required:
-        - type
+        - any
     TrackSearchNotFilterNode:
       properties:
-        type:
-          type: string
-        filter:
+        not:
           $ref: '#/components/schemas/TrackSearchFilterNode'
       required:
-        - type
-        - filter
+        - not
     SearchTracksParams:
       properties:
         filter:

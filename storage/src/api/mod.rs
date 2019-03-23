@@ -280,12 +280,7 @@ impl TrackSortOrder {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(
-    deny_unknown_fields,
-    tag = "type",
-    content = "filter",
-    rename_all = "camelCase"
-)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub enum TrackSearchFilter {
     Phrase(PhraseFilter),
     Numeric(NumericFilter),

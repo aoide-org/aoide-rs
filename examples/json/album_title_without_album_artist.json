@@ -1,12 +1,9 @@
 {
     "filter": {
-        "type": "all",
-        "filter": [
+        "all": [
             {
-                "type": "not",
-                "filter": {
-                    "type": "phrase",
-                    "filter": {
+                "not": {
+                    "phrase": {
                         "fields": [
                             "albumTitle"
                         ],
@@ -15,8 +12,7 @@
                 }
             },
             {
-                "type": "phrase",
-                "filter": {
+                "phrase": {
                     "fields": [
                         "albumArtist"
                     ],

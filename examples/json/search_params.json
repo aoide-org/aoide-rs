@@ -1,13 +1,10 @@
 {
     "filter": {
-        "type": "all",
-        "filter": [
+        "all": [
             {
-                "type": "any",
-                "filter": [
+                "any": [
                     {
-                        "type": "tag",
-                        "filter": {
+                        "tag": {
                             "facet": "genre",
                             "label": {
                                 "matcher": {
@@ -20,8 +17,7 @@
                         }
                     },
                     {
-                        "type": "tag",
-                        "filter": {
+                        "tag": {
                             "facet": "genre",
                             "label": {
                                 "modifier": "not",
@@ -37,11 +33,9 @@
                 ]
             },
             {
-                "type": "any",
-                "filter": [
+                "any": [
                     {
-                        "type": "tag",
-                        "filter": {
+                        "tag": {
                             "facet": "event",
                             "label": {
                                 "matcher": {
@@ -51,8 +45,7 @@
                         }
                     },
                     {
-                        "type": "tag",
-                        "filter": {
+                        "tag": {
                             "facet": "event",
                             "label": {
                                 "matcher": {
@@ -64,8 +57,7 @@
                 ]
             },
             {
-                "type": "tag",
-                "filter": {
+                "tag": {
                     "facet": "epoch",
                     "label": {
                         "matcher": {
@@ -75,10 +67,8 @@
                 }
             },
             {
-                "type": "not",
-                "filter": {
-                    "type": "numeric",
-                    "filter": {
+                "not": {
+                    "numeric": {
                         "field": "musicTempo",
                         "value": {
                             "gt": 80
