@@ -46,6 +46,6 @@ impl AlbumMetadata {
 
 impl IsValid for AlbumMetadata {
     fn is_valid(&self) -> bool {
-        Titles::is_valid(&self.titles) && Actors::is_valid(&self.actors)
+        Titles::all_valid(&self.titles) && Actors::all_valid(&self.actors)
     }
 }

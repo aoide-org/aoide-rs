@@ -48,7 +48,7 @@ fn actors() {
         },
     ];
 
-    assert!(Actors::is_valid(&actors));
+    assert!(Actors::all_valid(&actors));
 
     // Artist(s)
     assert_eq!(

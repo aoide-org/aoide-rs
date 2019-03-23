@@ -1247,7 +1247,7 @@ components:
         - tempo
         - key
         - timing
-    TrackMark:
+    TrackMarkerType:
       type: string
       enum:
         - load-cue
@@ -1271,8 +1271,8 @@ components:
         * `sample`
     TrackMarker:
       properties:
-        mark:
-          $ref: '#/components/schemas/TrackMark'
+        type:
+          $ref: '#/components/schemas/TrackMarkerType'
         start:
           $ref: '#/components/schemas/PositionMs'
         end:

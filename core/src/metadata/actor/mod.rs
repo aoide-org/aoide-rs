@@ -87,7 +87,7 @@ impl IsValid for Actor {
 pub struct Actors;
 
 impl Actors {
-    pub fn is_valid(actors: &[Actor]) -> bool {
+    pub fn all_valid(actors: &[Actor]) -> bool {
         actors.iter().all(|actor| actor.is_valid())
         // TODO:
         // - at most one summary entry exists for each role

@@ -171,7 +171,7 @@ impl IsValid for TrackLock {
 struct TrackLocks;
 
 impl TrackLocks {
-    pub fn is_valid(slice: &[TrackLock]) -> bool {
+    pub fn all_valid(slice: &[TrackLock]) -> bool {
         slice.iter().all(IsValid::is_valid)
     }
 }
@@ -222,7 +222,7 @@ pub struct Track {
     pub ftags: Vec<FacetedTag>, // no duplicate terms per facet allowed
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub markers: Vec<TrackMarker>,
+    pub markers: Vec<TrackMarkers>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub locks: Vec<TrackLock>,
@@ -277,12 +277,12 @@ impl IsValid for Track {
             && (self.disc_numbers.is_valid() || self.disc_numbers.is_default())
             && (self.movement_numbers.is_valid() || self.movement_numbers.is_default())
             && self.music.is_valid()
-            && Titles::is_valid(&self.titles)
-            && Actors::is_valid(&self.actors)
-            && Tags::is_valid(&self.tags)
-            && FacetedTags::is_valid(&self.ftags)
-            && TrackMarkers::is_valid(&self.markers)
-            && TrackLocks::is_valid(&self.locks)
+            && Titles::all_valid(&self.titles)
+            && Actors::all_valid(&self.actors)
+            && Tags::all_valid(&self.tags)
+            && FacetedTags::all_valid(&self.ftags)
+            && TrackMarkers::all_valid(&self.markers)
+            && TrackLocks::all_valid(&self.locks)
     }
 }
 

@@ -259,7 +259,7 @@ impl IsValid for Tag {
 pub struct Tags;
 
 impl Tags {
-    pub fn is_valid(slice: &[Tag]) -> bool {
+    pub fn all_valid(slice: &[Tag]) -> bool {
         // TODO: Check for duplicate labels
         slice.iter().all(IsValid::is_valid)
     }
@@ -306,7 +306,7 @@ impl IsValid for FacetedTag {
 pub struct FacetedTags;
 
 impl FacetedTags {
-    pub fn is_valid(slice: &[FacetedTag]) -> bool {
+    pub fn all_valid(slice: &[FacetedTag]) -> bool {
         // TODO: Check for duplicate labels per facet
         slice.iter().all(IsValid::is_valid)
     }

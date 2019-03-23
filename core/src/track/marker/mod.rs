@@ -17,6 +17,8 @@ use super::*;
 
 use crate::{audio::PositionMs, util::color::*};
 
+use std::ops::{Deref, DerefMut};
+
 ///////////////////////////////////////////////////////////////////////
 /// TrackMarker
 ///////////////////////////////////////////////////////////////////////
@@ -44,23 +46,10 @@ use crate::{audio::PositionMs, util::color::*};
 /// |outro   |none/some |none/some|start<end     |0..1         |
 /// |loop    |some      |some     |start<>end    |*            |
 /// |sample  |some      |some     |start<>end    |*            |
-///
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub enum TrackMark {
-    LoadCue,
-    HotCue,
-    Intro,
-    Outro,
-    Loop,
-    Sample,
-}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackMarker {
-    pub mark: TrackMark,
-
     #[serde(skip_serializing_if = "Option::is_none")]
     pub start: Option<PositionMs>,
 
@@ -85,22 +74,94 @@ pub struct TrackMarker {
     pub ftags: Vec<FacetedTag>, // no duplicate terms per facet allowed
 }
 
-impl IsValid for TrackMarker {
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+pub enum TrackMarkerType {
+    LoadCue,
+    HotCue,
+    Intro,
+    Outro,
+    Loop,
+    Sample,
+}
+
+impl TrackMarkerType {
+    pub fn is_singular(&self) -> bool {
+        match self {
+            TrackMarkerType::LoadCue | TrackMarkerType::Intro | TrackMarkerType::Outro => true, // cardinality = 0..1
+            _ => false, // cardinality = *
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, tag = "type", rename_all = "kebab-case")]
+pub enum TrackMarkers {
+    LoadCue(TrackMarker),
+    HotCue(TrackMarker),
+    Intro(TrackMarker),
+    Outro(TrackMarker),
+    Loop(TrackMarker),
+    Sample(TrackMarker),
+}
+
+impl From<&TrackMarkers> for TrackMarkerType {
+    fn from(from: &TrackMarkers) -> Self {
+        match from {
+            TrackMarkers::LoadCue(_) => TrackMarkerType::LoadCue,
+            TrackMarkers::HotCue(_) => TrackMarkerType::HotCue,
+            TrackMarkers::Intro(_) => TrackMarkerType::Intro,
+            TrackMarkers::Outro(_) => TrackMarkerType::Outro,
+            TrackMarkers::Loop(_) => TrackMarkerType::Loop,
+            TrackMarkers::Sample(_) => TrackMarkerType::Sample,
+        }
+    }
+}
+
+impl Deref for TrackMarkers {
+    type Target = TrackMarker;
+
+    fn deref(&self) -> &TrackMarker {
+        match self {
+            TrackMarkers::LoadCue(inner) => inner,
+            TrackMarkers::HotCue(inner) => inner,
+            TrackMarkers::Intro(inner) => inner,
+            TrackMarkers::Outro(inner) => inner,
+            TrackMarkers::Loop(inner) => inner,
+            TrackMarkers::Sample(inner) => inner,
+        }
+    }
+}
+
+impl DerefMut for TrackMarkers {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        match self {
+            TrackMarkers::LoadCue(inner) => inner,
+            TrackMarkers::HotCue(inner) => inner,
+            TrackMarkers::Intro(inner) => inner,
+            TrackMarkers::Outro(inner) => inner,
+            TrackMarkers::Loop(inner) => inner,
+            TrackMarkers::Sample(inner) => inner,
+        }
+    }
+}
+
+impl IsValid for TrackMarkers {
     fn is_valid(&self) -> bool {
         self.start.iter().all(IsValid::is_valid)
             && self.end.iter().all(IsValid::is_valid)
             && self.label.iter().all(|label| !label.trim().is_empty())
             && self.color.iter().all(ColorArgb::is_valid)
-            && match self.mark {
-                TrackMark::LoadCue | TrackMark::HotCue => self.end.is_none(), // not available
-                TrackMark::Intro | TrackMark::Outro => {
+            && match TrackMarkerType::from(self) {
+                TrackMarkerType::LoadCue | TrackMarkerType::HotCue => self.end.is_none(), // not available
+                TrackMarkerType::Intro | TrackMarkerType::Outro => {
                     if let (Some(start), Some(end)) = (self.start, self.end) {
                         start < end
                     } else {
                         true
                     }
                 }
-                TrackMark::Loop | TrackMark::Sample => {
+                TrackMarkerType::Loop | TrackMarkerType::Sample => {
                     if let (Some(start), Some(end)) = (self.start, self.end) {
                         start != end
                     } else {
@@ -111,26 +172,23 @@ impl IsValid for TrackMarker {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct TrackMarkers;
-
 impl TrackMarkers {
-    // Some markers may only be defined once per track.
-    pub fn is_singular(mark: TrackMark) -> bool {
-        match mark {
-            TrackMark::LoadCue | TrackMark::Intro | TrackMark::Outro => true, // cardinality = 0..1
-            _ => false,                                                       // cardinality = *
-        }
+    pub fn r#type(&self) -> TrackMarkerType {
+        self.into()
     }
 
-    pub fn count_marks(slice: &[TrackMarker], mark: TrackMark) -> usize {
-        slice.iter().filter(|marker| marker.mark == mark).count()
+    pub fn count_by_type(markers: &[TrackMarkers], marker_type: TrackMarkerType) -> usize {
+        markers
+            .iter()
+            .filter(|marker| marker.r#type() == marker_type)
+            .count()
     }
 
-    pub fn is_valid(slice: &[TrackMarker]) -> bool {
-        slice.iter().all(|marker| {
+    pub fn all_valid(markers: &[TrackMarkers]) -> bool {
+        markers.iter().all(|marker| {
             marker.is_valid()
-                && (!Self::is_singular(marker.mark) || Self::count_marks(slice, marker.mark) <= 1)
+                && (!marker.r#type().is_singular()
+                    || Self::count_by_type(markers, marker.r#type()) <= 1)
         })
     }
 }

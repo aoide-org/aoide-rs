@@ -63,7 +63,7 @@ impl IsValid for Title {
 pub struct Titles;
 
 impl Titles {
-    pub fn is_valid(titles: &[Title]) -> bool {
+    pub fn all_valid(titles: &[Title]) -> bool {
         Self::main_title(titles).is_some() && titles.iter().all(IsValid::is_valid)
     }
 
