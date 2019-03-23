@@ -700,18 +700,10 @@ components:
       example: eng
       description: |
         A language code according to ISO 639-1/2/3.
-    UriFilter:
-      properties:
-        modifier:
-          $ref: '#/components/schemas/FilterModifier'
-        condition:
-          $ref: '#/components/schemas/StringCondition'
-      required:
-        - condition
     LocateTracksParams:
       properties:
         uri:
-          $ref: '#/components/schemas/UriFilter'
+          $ref: '#/components/schemas/StringPredicate'
     LoudnessLufs:
       type: number
       example: -13.4239
@@ -994,46 +986,68 @@ components:
         Direction for sorting results.
           * `asc` - ascending
           * `dsc` - descending
-    StringMatcher:
+    StringPredicate:
       oneOf:
-        - $ref: '#/components/schemas/StringMatcherStartsWith'
-        - $ref: '#/components/schemas/StringMatcherEndsWith'
-        - $ref: '#/components/schemas/StringMatcherContains'
-        - $ref: '#/components/schemas/StringMatcherMatches'
-        - $ref: '#/components/schemas/StringMatcherEquals'
-    StringMatcherStartsWith:
+        - $ref: '#/components/schemas/StringPredicateStartsWith'
+        - $ref: '#/components/schemas/StringPredicateStartsNotWith'
+        - $ref: '#/components/schemas/StringPredicateEndsWith'
+        - $ref: '#/components/schemas/StringPredicateEndsNotWith'
+        - $ref: '#/components/schemas/StringPredicateContains'
+        - $ref: '#/components/schemas/StringPredicateContainsNot'
+        - $ref: '#/components/schemas/StringPredicateMatches'
+        - $ref: '#/components/schemas/StringPredicateMatchesNot'
+        - $ref: '#/components/schemas/StringPredicateEquals'
+        - $ref: '#/components/schemas/StringPredicateEqualsNot'
+    StringPredicateStartsWith:
       properties:
         startsWith:
           type: string
       description: Matches the head of a string (case-insensitive)
-    StringMatcherEndsWith:
+    StringPredicateStartsNotWith:
+      properties:
+        startsNotWith:
+          type: string
+      description: Mismatches the head of a string (case-insensitive)
+    StringPredicateEndsWith:
       properties:
         endsWith:
           type: string
       description: Matches the tail of a string (case-insensitive)
-    StringMatcherContains:
+    StringPredicateEndsNotWith:
+      properties:
+        endsNotWith:
+          type: string
+      description: Mismatches the tail of a string (case-insensitive)
+    StringPredicateContains:
       properties:
         contains:
           type: string
       description: Matches the middle of the string with arbitrary head/tail (case-insensitive)
-    StringMatcherMatches:
+    StringPredicateContainsNot:
+      properties:
+        containsNot:
+          type: string
+      description: Mismatches the middle of the string with arbitrary head/tail (case-insensitive)
+    StringPredicateMatches:
       properties:
         matches:
           type: string
       description: Matches the whole string (case-insensitive)
-    StringMatcherEquals:
+    StringPredicateMatchesNot:
+      properties:
+        matchesNot:
+          type: string
+      description: Mismatches the whole string (case-insensitive)
+    StringPredicateEquals:
       properties:
         equals:
           type: string
       description: Exact match (case-sensitive)
-    StringCondition:
+    StringPredicateEqualsNot:
       properties:
-        modifier:
-          $ref: '#/components/schemas/ConditionModifier'
-        matcher:
-          $ref: '#/components/schemas/StringMatcher'
-      required:
-        - matcher
+        equals:
+          type: string
+      description: Exact mismatch (case-sensitive)
     StringTotalCount:
       properties:
         value:
@@ -1092,7 +1106,7 @@ components:
         facet:
           $ref: '#/components/schemas/TagFacet'
         label:
-          $ref: '#/components/schemas/StringCondition'
+          $ref: '#/components/schemas/StringPredicate'
         score:
           $ref: '#/components/schemas/NumericPredicate'
     TagLabel:

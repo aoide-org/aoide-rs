@@ -59,23 +59,46 @@ pub enum FilterModifier {
     Complement,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub enum StringMatcher {
-    StartsWith(String), // head
-    EndsWith(String),   // tail
-    Contains(String),   // part
-    Matches(String),    // all (case-insensitive)
-    Equals(String),     // all (case-sensitive)
+pub enum StringCompare {
+    StartsWith, // head
+    EndsWith,   // tail
+    Contains,   // part
+    Matches,    // all (case-insensitive)
+    Equals,     // all (case-sensitive)
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct StringCondition {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub modifier: Option<ConditionModifier>,
+pub enum StringPredicate {
+    StartsWith(String),
+    StartsNotWith(String),
+    EndsWith(String),
+    EndsNotWith(String),
+    Contains(String),
+    ContainsNot(String),
+    Matches(String),
+    MatchesNot(String),
+    Equals(String),
+    EqualsNot(String),
+}
 
-    pub matcher: StringMatcher,
+impl<'a> From<&'a StringPredicate> for (StringCompare, &'a String, bool) {
+    fn from(from: &'a StringPredicate) -> (StringCompare, &'a String, bool) {
+        match from {
+            StringPredicate::StartsWith(s) => (StringCompare::StartsWith, s, true),
+            StringPredicate::StartsNotWith(s) => (StringCompare::StartsWith, s, false),
+            StringPredicate::EndsWith(s) => (StringCompare::EndsWith, s, true),
+            StringPredicate::EndsNotWith(s) => (StringCompare::EndsWith, s, false),
+            StringPredicate::Contains(s) => (StringCompare::Contains, s, true),
+            StringPredicate::ContainsNot(s) => (StringCompare::Contains, s, false),
+            StringPredicate::Matches(s) => (StringCompare::Matches, s, true),
+            StringPredicate::MatchesNot(s) => (StringCompare::Matches, s, false),
+            StringPredicate::Equals(s) => (StringCompare::Equals, s, true),
+            StringPredicate::EqualsNot(s) => (StringCompare::Equals, s, false),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -90,7 +113,7 @@ pub struct TagFilter {
     pub facet: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub label: Option<StringCondition>,
+    pub label: Option<StringPredicate>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub score: Option<NumericPredicate>,
@@ -105,7 +128,7 @@ impl TagFilter {
         Some(String::default())
     }
 
-    pub fn any_term() -> Option<StringCondition> {
+    pub fn any_term() -> Option<StringPredicate> {
         None
     }
 
@@ -185,18 +208,8 @@ pub struct PhraseFilter {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct UriFilter {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub modifier: Option<FilterModifier>,
-
-    pub condition: StringCondition,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LocateTracksParams {
-    #[serde(rename = "uri")]
-    pub uri_filter: UriFilter,
+    pub uri: StringPredicate,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

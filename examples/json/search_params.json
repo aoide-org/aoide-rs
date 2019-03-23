@@ -7,9 +7,7 @@
                         "tag": {
                             "facet": "genre",
                             "label": {
-                                "matcher": {
-                                    "equals": "R&B/Soul"
-                                }
+                                "equals": "R&B/Soul"
                             },
                             "score": {
                                 "gt": 0.8
@@ -20,10 +18,7 @@
                         "tag": {
                             "facet": "genre",
                             "label": {
-                                "modifier": "not",
-                                "matcher": {
-                                    "contains": "rap"
-                                }
+                                "containsNot": "rap"
                             },
                             "score": {
                                 "lt": 0.7
@@ -38,9 +33,7 @@
                         "tag": {
                             "facet": "event",
                             "label": {
-                                "matcher": {
-                                    "matches": "bday"
-                                }
+                                "matches": "bday"
                             }
                         }
                     },
@@ -48,9 +41,7 @@
                         "tag": {
                             "facet": "event",
                             "label": {
-                                "matcher": {
-                                    "matches": "xmas"
-                                }
+                                "matches": "xmas"
                             }
                         }
                     }
@@ -60,9 +51,7 @@
                 "tag": {
                     "facet": "epoch",
                     "label": {
-                        "matcher": {
-                            "startsWith": "20"
-                        }
+                        "startsNotWith": "19"
                     }
                 }
             },

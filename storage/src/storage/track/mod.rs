@@ -88,67 +88,54 @@ where
 
     // Filter tag term
     if let Some(ref label) = tag_filter.label {
-        let (either_eq_or_like, modifier) = match label.matcher {
-            // Equal comparison
-            StringMatcher::Equals(ref value) => {
-                (EitherEqualOrLike::Equal(value.clone()), label.modifier)
-            }
+        let (cmp, val, dir) = label.into();
+        let either_eq_or_like = match cmp {
+            // Equal comparison without escape characters
+            StringCompare::Equals => EitherEqualOrLike::Equal(val.to_owned()),
             // Like comparison: Escape wildcard character with backslash (see below)
-            StringMatcher::StartsWith(ref value) => (
-                EitherEqualOrLike::Like(format!(
-                    "{}%",
-                    value.replace('\\', "\\\\").replace('%', "\\%")
-                )),
-                label.modifier,
-            ),
-            StringMatcher::EndsWith(ref value) => (
-                EitherEqualOrLike::Like(format!(
-                    "%{}",
-                    value.replace('\\', "\\\\").replace('%', "\\%")
-                )),
-                label.modifier,
-            ),
-            StringMatcher::Contains(ref value) => (
-                EitherEqualOrLike::Like(format!(
-                    "%{}%",
-                    value.replace('\\', "\\\\").replace('%', "\\%")
-                )),
-                label.modifier,
-            ),
-            StringMatcher::Matches(ref value) => (
-                EitherEqualOrLike::Like(value.replace('\\', "\\\\").replace('%', "\\%")),
-                label.modifier,
-            ),
+            StringCompare::StartsWith => EitherEqualOrLike::Like(format!(
+                "{}%",
+                val.replace('\\', "\\\\").replace('%', "\\%")
+            )),
+            StringCompare::EndsWith => EitherEqualOrLike::Like(format!(
+                "%{}",
+                val.replace('\\', "\\\\").replace('%', "\\%")
+            )),
+            StringCompare::Contains => EitherEqualOrLike::Like(format!(
+                "%{}%",
+                val.replace('\\', "\\\\").replace('%', "\\%")
+            )),
+            StringCompare::Matches => {
+                EitherEqualOrLike::Like(val.replace('\\', "\\\\").replace('%', "\\%"))
+            }
         };
         select = match either_eq_or_like {
-            EitherEqualOrLike::Equal(eq) => match modifier {
-                None => {
+            EitherEqualOrLike::Equal(eq) => {
+                if dir {
                     let subselect = aux_tag_label::table
                         .select(aux_tag_label::id)
                         .filter(aux_tag_label::label.eq(eq));
                     select.filter(aux_track_tag::label_id.eq_any(subselect))
-                }
-                Some(ConditionModifier::Not) => {
+                } else {
                     let subselect = aux_tag_label::table
                         .select(aux_tag_label::id)
                         .filter(aux_tag_label::label.ne(eq));
                     select.filter(aux_track_tag::label_id.eq_any(subselect))
                 }
-            },
-            EitherEqualOrLike::Like(like) => match modifier {
-                None => {
+            }
+            EitherEqualOrLike::Like(like) => {
+                if dir {
                     let subselect = aux_tag_label::table
                         .select(aux_tag_label::id)
                         .filter(aux_tag_label::label.like(like).escape('\\'));
                     select.filter(aux_track_tag::label_id.eq_any(subselect))
-                }
-                Some(ConditionModifier::Not) => {
+                } else {
                     let subselect = aux_tag_label::table
                         .select(aux_tag_label::id)
                         .filter(aux_tag_label::label.not_like(like).escape('\\'));
                     select.filter(aux_track_tag::label_id.eq_any(subselect))
                 }
-            },
+            }
         };
     }
 
@@ -245,14 +232,8 @@ impl<'a> Tracks for TrackRepository<'a> {
     ) -> TracksResult<ReplacedTracks> {
         let mut results = ReplacedTracks::default();
         for replacement in replace_params.replacements {
-            let uri_filter = UriFilter {
-                modifier: None,
-                condition: StringCondition {
-                    matcher: StringMatcher::Equals(replacement.uri.clone()),
-                    modifier: None,
-                },
-            };
-            let locate_params = LocateTracksParams { uri_filter };
+            let uri = StringPredicate::Equals(replacement.uri.clone());
+            let locate_params = LocateTracksParams { uri };
             let located_entities =
                 self.locate_entities(collection_uid, Pagination::default(), locate_params)?;
             let deserialized_entities: Vec<TrackEntity> = located_entities.iter().fold(
@@ -367,38 +348,26 @@ impl<'a> Tracks for TrackRepository<'a> {
         locate_params: LocateTracksParams,
     ) -> TracksResult<Vec<SerializedEntity>> {
         // URI filter
-        let uri_condition = locate_params.uri_filter.condition;
-        let (either_eq_or_like, modifier) = match uri_condition.matcher {
-            // Equal comparison
-            StringMatcher::Equals(value) => {
-                (EitherEqualOrLike::Equal(value), uri_condition.modifier)
-            }
+        let (cmp, val, dir) = (&locate_params.uri).into();
+        let either_eq_or_like = match cmp {
+            // Equal comparison without escape characters
+            StringCompare::Equals => EitherEqualOrLike::Equal(val.to_owned()),
             // Like comparison: Escape wildcard character with backslash (see below)
-            StringMatcher::StartsWith(ref value) => (
-                EitherEqualOrLike::Like(format!(
-                    "{}%",
-                    value.replace('\\', "\\\\").replace('%', "\\%")
-                )),
-                uri_condition.modifier,
-            ),
-            StringMatcher::EndsWith(ref value) => (
-                EitherEqualOrLike::Like(format!(
-                    "%{}",
-                    value.replace('\\', "\\\\").replace('%', "\\%")
-                )),
-                uri_condition.modifier,
-            ),
-            StringMatcher::Contains(ref value) => (
-                EitherEqualOrLike::Like(format!(
-                    "%{}%",
-                    value.replace('\\', "\\\\").replace('%', "\\%")
-                )),
-                uri_condition.modifier,
-            ),
-            StringMatcher::Matches(ref value) => (
-                EitherEqualOrLike::Like(value.replace('\\', "\\\\").replace('%', "\\%")),
-                uri_condition.modifier,
-            ),
+            StringCompare::StartsWith => EitherEqualOrLike::Like(format!(
+                "{}%",
+                val.replace('\\', "\\\\").replace('%', "\\%")
+            )),
+            StringCompare::EndsWith => EitherEqualOrLike::Like(format!(
+                "%{}",
+                val.replace('\\', "\\\\").replace('%', "\\%")
+            )),
+            StringCompare::Contains => EitherEqualOrLike::Like(format!(
+                "%{}%",
+                val.replace('\\', "\\\\").replace('%', "\\%")
+            )),
+            StringCompare::Matches => {
+                EitherEqualOrLike::Like(val.replace('\\', "\\\\").replace('%', "\\%"))
+            }
         };
 
         let mut target = tbl_track::table
@@ -412,32 +381,28 @@ impl<'a> Tracks for TrackRepository<'a> {
             .select(aux_track_source::track_id)
             .into_boxed();
         track_id_subselect = match either_eq_or_like {
-            EitherEqualOrLike::Equal(eq) => match modifier {
-                None => track_id_subselect.filter(aux_track_source::uri.eq(eq)),
-                Some(ConditionModifier::Not) => {
+            EitherEqualOrLike::Equal(eq) => {
+                if dir {
+                    track_id_subselect.filter(aux_track_source::uri.eq(eq))
+                } else {
                     track_id_subselect.filter(aux_track_source::uri.ne(eq))
                 }
-            },
-            EitherEqualOrLike::Like(like) => match modifier {
-                None => track_id_subselect.filter(aux_track_source::uri.like(like).escape('\\')),
-                Some(ConditionModifier::Not) => {
+            }
+            EitherEqualOrLike::Like(like) => {
+                if dir {
+                    track_id_subselect.filter(aux_track_source::uri.like(like).escape('\\'))
+                } else {
                     track_id_subselect.filter(aux_track_source::uri.not_like(like).escape('\\'))
                 }
-            },
-        };
-        target = match locate_params.uri_filter.modifier {
-            None => target.filter(tbl_track::id.eq_any(track_id_subselect)),
-            Some(FilterModifier::Complement) => {
-                target.filter(tbl_track::id.ne_all(track_id_subselect))
             }
+        };
+        target = if dir {
+            target.filter(tbl_track::id.eq_any(track_id_subselect))
+        } else {
+            target.filter(tbl_track::id.ne_all(track_id_subselect))
         };
 
         // Collection filtering
-        // TODO: The second subselect that has been introduced when splitting
-        // aux_track_resource into aux_track_collection and aux_track_source
-        // slows down the query substantially although all columns are properly
-        // indexed! How could this be to optimized?
-        // See also: https://gitlab.com/uklotzde/aoide-rs/issues/12
         if let Some(collection_uid) = collection_uid {
             let track_id_subselect = aux_track_collection::table
                 .select(aux_track_collection::track_id)
