@@ -1,0 +1,41 @@
+{
+    "filter": {
+        "all": [
+            {
+                "tag": {
+                    "label": {
+                        "matches": "top40"
+                    }
+                }
+            },
+            {
+                "any": [
+                    {
+                        "tag": {
+                            "facet": "genre",
+                            "label": {
+                                "contains": "pop"
+                            }
+                        }
+                    },
+                    {
+                        "tag": {
+                            "facet": "genre",
+                            "label": {
+                                "contains": "rock"
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                "tag": {
+                    "facet": "rating",
+                    "score": {
+                        "ge": 0.8
+                    }
+                }
+            }
+        ]
+    }
+}
