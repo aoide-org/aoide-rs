@@ -546,8 +546,8 @@ components:
             Indicates whether this album is a compilation with various artists.
     AudioContent:
       properties:
-        channelCount:
-          $ref: '#/components/schemas/ChannelCount'
+        channels:
+          $ref: '#/components/schemas/Channels'
         duration:
           $ref: '#/components/schemas/DurationMs'
         sampleRate:
@@ -565,11 +565,25 @@ components:
       example: 256000
       description: |
         The bit rate in bits per second (bps).
+    Channels:
+      properties:
+        count:
+          $ref: '#/components/schemas/ChannelCount'
+        layout:
+          $ref: '#/components/schemas/ChannelLayout'
+      required:
+        - count
     ChannelCount:
       type: integer
       minimum: 0
       maximum: 65535
       example: 2
+    ChannelLayout:
+      type: string
+      enum:
+        - mono
+        - dual-mono
+        - stereo
     Collection:
       properties:
         name:
