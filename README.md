@@ -210,19 +210,3 @@ diesel migration --migration-dir resources/migrations/sqlite generate <MIGRATION
 ```
 
 Test your scripts with the migration commands *run* followed by *revert* + *run* or *redo*! Undo the migration with the command *revert*
-
-### JSON Import/Export
-
-Read and parse (no import yet) JSON example files into domain model objects.
-
-A file with a single track that demonstrates most of the capabilities of the domain model:
-
-```bash
-cargo run --bin parse_json examples/json/tracks_single.json
-```
-
-A file with a single track and only the minimum set of fields:
-
-```bash
-cargo run --bin parse_json examples/json/tracks_minimum.json
-```
