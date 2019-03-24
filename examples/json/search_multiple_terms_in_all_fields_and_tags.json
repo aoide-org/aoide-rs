@@ -1,0 +1,60 @@
+{
+    "filter": {
+        "all": [
+            {
+                "any": [
+                    {
+                        "phrase": {
+                            "terms": [
+                                "michael"
+                            ]
+                        }
+                    },
+                    {
+                        "tag": {
+                            "label": {
+                                "contains": "michael"
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                "any": [
+                    {
+                        "phrase": {
+                            "terms": [
+                                "jackson"
+                            ]
+                        }
+                    },
+                    {
+                        "tag": {
+                            "label": {
+                                "contains": "jackson"
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                "any": [
+                    {
+                        "phrase": {
+                            "terms": [
+                                "thriller"
+                            ]
+                        }
+                    },
+                    {
+                        "tag": {
+                            "label": {
+                                "contains": "thriller"
+                            }
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+}
