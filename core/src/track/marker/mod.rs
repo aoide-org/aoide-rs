@@ -86,7 +86,7 @@ pub enum TrackMarkerType {
 }
 
 impl TrackMarkerType {
-    pub fn is_singular(&self) -> bool {
+    pub fn is_singular(self) -> bool {
         match self {
             TrackMarkerType::LoadCue | TrackMarkerType::Intro | TrackMarkerType::Outro => true, // cardinality = 0..1
             _ => false, // cardinality = *
