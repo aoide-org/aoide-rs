@@ -76,17 +76,21 @@ where
         .select(aux_track_tag::track_id)
         .into_boxed();
 
-    // Filter tag facet
-    if tag_filter.facet == TagFilter::no_facet() {
-        select = select.filter(aux_track_tag::facet_id.is_null());
-    } else if let Some(ref facet) = tag_filter.facet {
-        let subselect = aux_tag_facet::table
-            .select(aux_tag_facet::id)
-            .filter(aux_tag_facet::facet.eq(facet));
-        select = select.filter(aux_track_tag::facet_id.eq_any(subselect.nullable()));
+    // Filter facet(s)
+    if let Some(ref facets) = tag_filter.facets {
+        if facets.is_empty() {
+            // unfaceted tags without a facet
+            select = select.filter(aux_track_tag::facet_id.is_null());
+        } else {
+            // tags with any of the given facets
+            let subselect = aux_tag_facet::table
+                .select(aux_tag_facet::id)
+                .filter(aux_tag_facet::facet.eq_any(facets));
+            select = select.filter(aux_track_tag::facet_id.eq_any(subselect.nullable()));
+        }
     }
 
-    // Filter tag term
+    // Filter labels
     if let Some(ref label) = tag_filter.label {
         let (cmp, val, dir) = label.into();
         let either_eq_or_like = match cmp {

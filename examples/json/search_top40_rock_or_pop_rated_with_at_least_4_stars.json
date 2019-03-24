@@ -12,7 +12,9 @@
                 "any": [
                     {
                         "tag": {
-                            "facet": "genre",
+                            "facets": [
+                                "genre"
+                            ],
                             "label": {
                                 "contains": "pop"
                             }
@@ -20,7 +22,9 @@
                     },
                     {
                         "tag": {
-                            "facet": "genre",
+                            "facets": [
+                                "genre"
+                            ],
                             "label": {
                                 "contains": "rock"
                             }
@@ -30,7 +34,9 @@
             },
             {
                 "tag": {
-                    "facet": "rating",
+                    "facets": [
+                        "rating"
+                    ],
                     "score": {
                         "ge": 0.8
                     }

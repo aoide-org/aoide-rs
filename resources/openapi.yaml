@@ -1105,8 +1105,15 @@ components:
       properties:
         modifier:
           $ref: '#/components/schemas/FilterModifier'
-        facet:
-          $ref: '#/components/schemas/TagFacet'
+        facets:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagFacet'
+          description: >
+            A non-empty array will match any of the given facets.
+            An empty array will only match unfaceted tags, i.e. tags
+            without a facet. A missing/null array will match any tags,
+            both with or without a facet.
         label:
           $ref: '#/components/schemas/StringPredicate'
         score:

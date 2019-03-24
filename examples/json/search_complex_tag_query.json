@@ -5,7 +5,9 @@
                 "any": [
                     {
                         "tag": {
-                            "facet": "genre",
+                            "facets": [
+                                "genre"
+                            ],
                             "label": {
                                 "equals": "R&B/Soul"
                             },
@@ -16,7 +18,9 @@
                     },
                     {
                         "tag": {
-                            "facet": "genre",
+                            "facets": [
+                                "genre"
+                            ],
                             "label": {
                                 "containsNot": "rap"
                             },
@@ -31,7 +35,9 @@
                 "any": [
                     {
                         "tag": {
-                            "facet": "event",
+                            "facets": [
+                                "event"
+                            ],
                             "label": {
                                 "matches": "bday"
                             }
@@ -39,7 +45,9 @@
                     },
                     {
                         "tag": {
-                            "facet": "event",
+                            "facets": [
+                                "event"
+                            ],
                             "label": {
                                 "matches": "xmas"
                             }
@@ -49,7 +57,9 @@
             },
             {
                 "tag": {
-                    "facet": "epoch",
+                    "facets": [
+                        "epoch"
+                    ],
                     "label": {
                         "startsNotWith": "19"
                     }

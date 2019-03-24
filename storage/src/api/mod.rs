@@ -107,10 +107,10 @@ pub struct TagFilter {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub modifier: Option<FilterModifier>,
 
-    // Facets are always matched with equals. Use an empty string
-    // for matching tags without a facet.
+    // Facets are always matched with equals. Use an empty vector
+    // for matching only tags without a facet.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub facet: Option<String>,
+    pub facets: Option<Vec<String>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<StringPredicate>,
@@ -120,12 +120,12 @@ pub struct TagFilter {
 }
 
 impl TagFilter {
-    pub fn any_facet() -> Option<String> {
+    pub fn any_facet() -> Option<Vec<String>> {
         None
     }
 
-    pub fn no_facet() -> Option<String> {
-        Some(String::default())
+    pub fn no_facet() -> Option<Vec<String>> {
+        Some(Vec::default())
     }
 
     pub fn any_term() -> Option<StringPredicate> {
