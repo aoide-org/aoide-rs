@@ -126,7 +126,7 @@ impl IsValid for AudioEncoder {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AudioContent {
     #[serde(skip_serializing_if = "IsDefault::is_default", default)]
-    pub channel_count: ChannelCount,
+    pub channels: Channels,
 
     #[serde(skip_serializing_if = "IsDefault::is_default", default)]
     pub duration: DurationMs,
@@ -146,7 +146,7 @@ pub struct AudioContent {
 
 impl IsValid for AudioContent {
     fn is_valid(&self) -> bool {
-        self.channel_count.is_valid()
+        self.channels.is_valid()
             && self.duration.is_valid()
             && !self.duration.is_empty()
             && self.sample_rate.is_valid()

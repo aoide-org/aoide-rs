@@ -165,7 +165,7 @@ impl<'a> InsertableTracksSource<'a> {
             audio_channel_count: track_source
                 .audio_content
                 .as_ref()
-                .map(|audio| audio.channel_count.0 as i16),
+                .map(|audio| audio.channels.count.0 as i16),
             audio_duration: track_source
                 .audio_content
                 .as_ref()
