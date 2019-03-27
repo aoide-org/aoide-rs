@@ -464,18 +464,16 @@ impl<'a> Tracks for TrackRepository<'a> {
         // Pagination
         target = apply_pagination(target, pagination);
 
-        target
-            .load::<QueryableSerializedEntity>(self.connection)
-            .map(|v| v.into_iter().map(Into::into).collect())
-            .map_err(Into::into)
+        let res = target.load::<QueryableSerializedEntity>(self.connection)?;
+        Ok(res.into_iter().map(Into::into).collect())
     }
 
-    fn list_fields(
+    fn list_field_strings(
         &self,
         collection_uid: Option<&EntityUid>,
         field: StringField,
         pagination: Pagination,
-    ) -> TracksResult<StringFieldCounts> {
+    ) -> TracksResult<FieldStrings> {
         let track_id_subselect = collection_uid.map(|collection_uid| {
             aux_track_collection::table
                 .select(aux_track_collection::track_id)
@@ -630,7 +628,93 @@ impl<'a> Tracks for TrackRepository<'a> {
             let count = row.1 as usize;
             counts.push(StringCount { value, count });
         }
-        Ok(StringFieldCounts { field, counts })
+        Ok(FieldStrings { field, counts })
+    }
+
+    fn count_album_tracks(
+        &self,
+        collection_uid: Option<&EntityUid>,
+        params: &CountAlbumTracksParams,
+        pagination: Pagination,
+    ) -> TracksResult<Vec<AlbumTracksCount>> {
+        let mut target = aux_track_brief::table
+            .select((
+                aux_track_brief::album_title,
+                aux_track_brief::album_artist,
+                aux_track_brief::release_year,
+                sql::<diesel::sql_types::BigInt>("COUNT(*) AS count"),
+            ))
+            .group_by((
+                aux_track_brief::album_title,
+                aux_track_brief::album_artist,
+                aux_track_brief::release_year,
+            ))
+            .into_boxed();
+
+        if let Some(collection_uid) = collection_uid {
+            let track_id_subselect = aux_track_collection::table
+                .select(aux_track_collection::track_id)
+                .filter(aux_track_collection::collection_uid.eq(collection_uid.as_ref()));
+            target = target.filter(aux_track_brief::track_id.eq_any(track_id_subselect));
+        }
+
+        if let Some(min_release_year) = params.min_release_year {
+            target = target.filter(aux_track_brief::release_year.ge(min_release_year));
+        }
+        if let Some(max_release_year) = params.max_release_year {
+            target = target.filter(aux_track_brief::release_year.le(max_release_year));
+        }
+
+        for &TrackSortOrder { field, direction } in &params.ordering {
+            let direction = direction.unwrap_or_else(|| TrackSortOrder::default_direction(field));
+            match field {
+                TrackSortField::AlbumTitle => match direction {
+                    SortDirection::Ascending => {
+                        target = target.then_order_by(aux_track_brief::album_title.asc());
+                    }
+                    SortDirection::Descending => {
+                        target = target.then_order_by(aux_track_brief::album_title.desc())
+                    }
+                },
+                TrackSortField::AlbumArtist => match direction {
+                    SortDirection::Ascending => {
+                        target = target.then_order_by(aux_track_brief::track_artist.asc());
+                    }
+                    SortDirection::Descending => {
+                        target = target.then_order_by(aux_track_brief::album_artist.desc());
+                    }
+                },
+                TrackSortField::ReleaseYear => match direction {
+                    SortDirection::Ascending => {
+                        target = target.then_order_by(aux_track_brief::release_year.asc());
+                    }
+                    SortDirection::Descending => {
+                        target = target.then_order_by(aux_track_brief::release_year.desc());
+                    }
+                },
+                field => log::warn!(
+                    "Ignoring sort order by field {:?} for listing albums",
+                    field
+                ),
+            }
+        }
+        target = target.then_order_by(sql::<diesel::sql_types::BigInt>("count").desc());
+
+        // Pagination
+        target = apply_pagination(target, pagination);
+
+        let res =
+            target.load::<(Option<String>, Option<String>, Option<i16>, i64)>(self.connection)?;
+
+        Ok(res
+            .into_iter()
+            .map(|row| AlbumTracksCount {
+                title: row.0,
+                artist: row.1,
+                release_year: row.2,
+                tracks_count: row.3 as usize,
+            })
+            .collect())
     }
 
     fn collection_stats(&self, collection_uid: &EntityUid) -> TracksResult<CollectionTrackStats> {

@@ -271,7 +271,7 @@ pub enum SortDirection {
     Descending,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackSortOrder {
     pub field: TrackSortField,
@@ -312,6 +312,19 @@ pub struct SearchTracksParams {
     pub ordering: Vec<TrackSortOrder>,
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct CountAlbumTracksParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_release_year: Option<i16>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_release_year: Option<i16>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub ordering: Vec<TrackSortOrder>,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct StringCount {
@@ -321,7 +334,7 @@ pub struct StringCount {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct StringFieldCounts {
+pub struct FieldStrings {
     pub field: StringField,
     pub counts: Vec<StringCount>,
 }

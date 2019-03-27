@@ -18,9 +18,9 @@ use super::*;
 use super::serde::{SerializationFormat, SerializedEntity};
 
 use crate::api::{
-    collection::CollectionTrackStats, FacetCount, LocateTracksParams, Pagination,
-    ReplaceTracksParams, ReplacedTracks, SearchTracksParams, StringField, StringFieldCounts,
-    TagCount,
+    collection::CollectionTrackStats, CountAlbumTracksParams, FacetCount, FieldStrings,
+    LocateTracksParams, Pagination, ReplaceTracksParams, ReplacedTracks, SearchTracksParams,
+    StringField, TagCount,
 };
 
 use failure::Error;
@@ -65,12 +65,19 @@ pub trait Tracks {
         search_params: SearchTracksParams,
     ) -> TracksResult<Vec<SerializedEntity>>;
 
-    fn list_fields(
+    fn list_field_strings(
         &self,
         collection_uid: Option<&EntityUid>,
         field: StringField,
         pagination: Pagination,
-    ) -> TracksResult<StringFieldCounts>;
+    ) -> TracksResult<FieldStrings>;
+
+    fn count_album_tracks(
+        &self,
+        collection_uid: Option<&EntityUid>,
+        params: &CountAlbumTracksParams,
+        pagination: Pagination,
+    ) -> TracksResult<Vec<AlbumTracksCount>>;
 
     fn collection_stats(&self, collection_uid: &EntityUid) -> TracksResult<CollectionTrackStats>;
 }

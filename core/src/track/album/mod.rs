@@ -49,3 +49,18 @@ impl IsValid for AlbumMetadata {
         Titles::all_valid(&self.titles) && Actors::all_valid(&self.actors)
     }
 }
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct AlbumTracksCount {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub artist: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_year: Option<i16>,
+
+    pub tracks_count: usize,
+}

@@ -19,8 +19,8 @@ use aoide_storage::{
     api::{
         serde::{SerializationFormat, SerializedEntity},
         track::{TrackTags, Tracks, TracksResult},
-        FacetCount, LocateTracksParams, Pagination, ReplaceTracksParams, ReplacedTracks,
-        SearchTracksParams, TagCount,
+        CountAlbumTracksParams, FacetCount, LocateTracksParams, Pagination, ReplaceTracksParams,
+        ReplacedTracks, SearchTracksParams, TagCount,
     },
     storage::track::TrackRepository,
 };
@@ -384,6 +384,54 @@ pub fn on_replace_tracks(
         collection_uid: query_tracks.into_inner().collection_uid,
         params: body.into_inner(),
         format: SerializationFormat::JSON,
+    };
+    state
+        .executor
+        .send(msg)
+        .flatten()
+        .map_err(Error::compat)
+        .from_err()
+        .and_then(|res| Ok(HttpResponse::Ok().json(res)))
+        .responder()
+}
+
+#[derive(Debug, Default)]
+struct CountAlbumTracksMessage {
+    pub collection_uid: Option<EntityUid>,
+    pub params: CountAlbumTracksParams,
+    pub pagination: Pagination,
+}
+
+pub type CountAlbumTracksResult = TracksResult<Vec<AlbumTracksCount>>;
+
+impl Message for CountAlbumTracksMessage {
+    type Result = CountAlbumTracksResult;
+}
+
+impl Handler<CountAlbumTracksMessage> for SqliteExecutor {
+    type Result = CountAlbumTracksResult;
+
+    fn handle(&mut self, msg: CountAlbumTracksMessage, _: &mut Self::Context) -> Self::Result {
+        let connection = &*self.pooled_connection()?;
+        let repository = TrackRepository::new(connection);
+        connection.transaction::<_, Error, _>(|| {
+            repository.count_album_tracks(msg.collection_uid.as_ref(), &msg.params, msg.pagination)
+        })
+    }
+}
+
+pub fn on_count_album_tracks(
+    (state, query_tracks, query_pagination, body): (
+        State<AppState>,
+        Query<TracksQueryParams>,
+        Query<Pagination>,
+        Json<CountAlbumTracksParams>,
+    ),
+) -> FutureResponse<HttpResponse> {
+    let msg = CountAlbumTracksMessage {
+        collection_uid: query_tracks.into_inner().collection_uid,
+        params: body.into_inner(),
+        pagination: query_pagination.into_inner(),
     };
     state
         .executor

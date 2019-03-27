@@ -393,6 +393,36 @@ paths:
                   $ref: '#/components/schemas/FacetCount'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+  /tracks/albums/count:
+    post:
+      summary: Count tracks per album
+      description: >
+        List albums (title, artist, year) together with their corresponding number of tracks.
+      operationId: countAlbumTracks
+      tags:
+        - Album Tracks
+      parameters:
+        - $ref: '#/components/parameters/collectionUidParam'
+        - $ref: '#/components/parameters/paginationOffset'
+        - $ref: '#/components/parameters/paginationLimit'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CountAlbumTracksParams'
+      responses:
+        '200':
+          description: |
+            Album track statistics.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AlbumTracksCount'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
 components:
   responses:
     201Created:
@@ -488,8 +518,7 @@ components:
     Actor:
       properties:
         name:
-          type: string
-          minLength: 1
+          $ref: '#/components/schemas/ActorName'
         role:
           $ref: '#/components/schemas/ActorRole'
         precedence:
@@ -501,6 +530,10 @@ components:
           * summary = 'Michael Jackson'
           * summary = 'Bill Medley & Jennifer Warnes', primary = 'Bill Medley', primary = 'Jennifer Warnes'
           * summary = 'Nick Jonas ft. Anne-Marie & Mike Posner', primary = 'Nick Jonas', secondary = 'Anne-Marie', secondary = 'Mike Posner'
+    ActorName:
+      type: string
+      minLength: 1
+      example: The Beatles
     ActorPrecedence:
       type: string
       enum:
@@ -622,6 +655,14 @@ components:
       required:
         - hdr
         - body
+    Year:
+      type: integer
+      format: int32
+      minimum: -32768
+      maximum: 32767
+      example: 2019
+      description: |
+        A year number.
     Color:
       type: string
       minLength: 9
@@ -929,6 +970,18 @@ components:
       example: 0.83
       description: |
         Normalized score value between 0 and 1.
+    AlbumTracksCount:
+      properties:
+        title:
+          $ref: '#/components/schemas/TitleName'
+        artist:
+          $ref: '#/components/schemas/ActorName'
+        releaseYear:
+          $ref: '#/components/schemas/Year'
+        tracksCount:
+          $ref: '#/components/schemas/TotalCount'
+      required:
+        - count
     TrackSearchFilterNode:
       oneOf:
         - $ref: '#/components/schemas/TrackSearchPhraseFilterNode'
@@ -985,6 +1038,19 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TrackSortOrder'
+    CountAlbumTracksParams:
+      properties:
+        minReleaseYear:
+          $ref: '#/components/schemas/Year'
+        maxReleaseYear:
+          $ref: '#/components/schemas/Year'
+        ordering:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrackSortOrder'
+      description: >
+        Albums can be filtered by release year (inclusive).
+        Results can be ordered by album title, album artist, and release year.
     TrackMusic:
       properties:
         tempo:
@@ -1178,15 +1244,17 @@ components:
     Title:
       properties:
         name:
-          type: string
-          minLength: 1
-          example: Yellow Submarine
+          $ref: '#/components/schemas/TitleName'
         level:
           $ref: '#/components/schemas/TitleLevel'
         lang:
           $ref: '#/components/schemas/LanguageCode'
       required:
         - name
+    TitleName:
+      type: string
+      minLength: 1
+      example: Yellow Submarine
     TitleLevel:
       type: string
       enum:
