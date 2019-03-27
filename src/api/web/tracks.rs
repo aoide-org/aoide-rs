@@ -18,9 +18,9 @@ use super::*;
 use aoide_storage::{
     api::{
         serde::{SerializationFormat, SerializedEntity},
-        track::{TrackTags, Tracks, TracksResult},
-        CountAlbumTracksParams, FacetCount, LocateTracksParams, Pagination, ReplaceTracksParams,
-        ReplacedTracks, SearchTracksParams, TagCount,
+        track::{TrackAlbums, TrackTags, Tracks, TracksResult},
+        CountAlbumTracksParams, CountTagsParams, FacetCount, LocateTracksParams, Pagination,
+        ReplaceTracksParams, ReplacedTracks, SearchTracksParams, TagCount,
     },
     storage::track::TrackRepository,
 };
@@ -275,8 +275,8 @@ pub fn on_search_tracks(
 ) -> FutureResponse<HttpResponse> {
     let msg = SearchTracksMessage {
         collection_uid: query_tracks.into_inner().collection_uid,
-        pagination: query_pagination.into_inner(),
         params: body.into_inner(),
+        pagination: query_pagination.into_inner(),
     };
     state
         .executor
@@ -329,8 +329,8 @@ pub fn on_locate_tracks(
 ) -> FutureResponse<HttpResponse> {
     let msg = LocateTracksMessage {
         collection_uid: query_tracks.into_inner().collection_uid,
-        pagination: query_pagination.into_inner(),
         params: body.into_inner(),
+        pagination: query_pagination.into_inner(),
     };
     state
         .executor
@@ -415,12 +415,12 @@ impl Handler<CountAlbumTracksMessage> for SqliteExecutor {
         let connection = &*self.pooled_connection()?;
         let repository = TrackRepository::new(connection);
         connection.transaction::<_, Error, _>(|| {
-            repository.count_album_tracks(msg.collection_uid.as_ref(), &msg.params, msg.pagination)
+            repository.count_albums(msg.collection_uid.as_ref(), &msg.params, msg.pagination)
         })
     }
 }
 
-pub fn on_count_album_tracks(
+pub fn on_count_track_albums(
     (state, query_tracks, query_pagination, body): (
         State<AppState>,
         Query<TracksQueryParams>,
@@ -443,75 +443,60 @@ pub fn on_count_album_tracks(
         .responder()
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TracksWithTagFacetsQueryParams {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    facets: Option<String>,
-}
-
-impl TracksWithTagFacetsQueryParams {
-    pub fn with_facets<'a>(&'a self) -> Option<Vec<&'a str>> {
-        self.facets
-            .as_ref()
-            .map(|facet_list| {
-                facet_list
-                    .split(',')
-                    .map(str::trim)
-                    .filter(|facet| !facet.is_empty())
-                    .collect::<Vec<&'a str>>()
-            })
-            .map(|mut facets| {
-                facets.sort();
-                facets
-            })
-            .map(|mut facets| {
-                facets.dedup();
-                facets
-            })
-    }
-}
-
 #[derive(Debug, Default)]
-struct ListTracksTagsMessage {
+struct CountTrackTagsMessage {
     pub collection_uid: Option<EntityUid>,
-    pub query_params: TracksWithTagFacetsQueryParams,
     pub pagination: Pagination,
+    pub params: CountTagsParams,
 }
 
-pub type ListTracksTagsResult = TracksResult<Vec<TagCount>>;
+pub type CountTrackTagsResult = TracksResult<Vec<TagCount>>;
 
-impl Message for ListTracksTagsMessage {
-    type Result = ListTracksTagsResult;
+impl Message for CountTrackTagsMessage {
+    type Result = CountTrackTagsResult;
 }
 
-impl Handler<ListTracksTagsMessage> for SqliteExecutor {
-    type Result = ListTracksTagsResult;
+impl Handler<CountTrackTagsMessage> for SqliteExecutor {
+    type Result = CountTrackTagsResult;
 
-    fn handle(&mut self, msg: ListTracksTagsMessage, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: CountTrackTagsMessage, _: &mut Self::Context) -> Self::Result {
         let connection = &*self.pooled_connection()?;
         let repository = TrackRepository::new(connection);
+        let collection_uid = msg.collection_uid;
+        let pagination = msg.pagination;
+        let facets = msg.params.facets.map(|mut facets| {
+            facets.sort();
+            facets.dedup();
+            facets
+        });
+        let facets = facets.as_ref().map(|facets| {
+            facets
+                .iter()
+                .map(AsRef::as_ref)
+                .map(String::as_str)
+                .collect()
+        });
         connection.transaction::<_, Error, _>(|| {
-            repository.list_tags(
-                msg.collection_uid.as_ref(),
-                msg.query_params.with_facets().as_ref(),
-                msg.pagination,
+            repository.count_tags(
+                collection_uid.as_ref(),
+                facets.as_ref().map(Vec::as_slice),
+                pagination,
             )
         })
     }
 }
 
-pub fn on_list_tracks_tags(
-    (state, query_tracks, query_with, query_pagination): (
+pub fn on_count_track_tags(
+    (state, query_tracks, query_pagination, body): (
         State<AppState>,
         Query<TracksQueryParams>,
-        Query<TracksWithTagFacetsQueryParams>,
         Query<Pagination>,
+        Json<CountTagsParams>,
     ),
 ) -> FutureResponse<HttpResponse> {
-    let msg = ListTracksTagsMessage {
+    let msg = CountTrackTagsMessage {
         collection_uid: query_tracks.into_inner().collection_uid,
-        query_params: query_with.into_inner(),
+        params: body.into_inner(),
         pagination: query_pagination.into_inner(),
     };
     state
@@ -525,45 +510,59 @@ pub fn on_list_tracks_tags(
 }
 
 #[derive(Debug, Default)]
-struct ListTracksTagsFacetsMessage {
+struct CountTrackFacetsMessage {
     pub collection_uid: Option<EntityUid>,
-    pub query_params: TracksWithTagFacetsQueryParams,
     pub pagination: Pagination,
+    pub params: CountTagsParams,
 }
 
-pub type ListTracksTagsFacetsResult = TracksResult<Vec<FacetCount>>;
+pub type CountTrackFacetsResult = TracksResult<Vec<FacetCount>>;
 
-impl Message for ListTracksTagsFacetsMessage {
-    type Result = ListTracksTagsFacetsResult;
+impl Message for CountTrackFacetsMessage {
+    type Result = CountTrackFacetsResult;
 }
 
-impl Handler<ListTracksTagsFacetsMessage> for SqliteExecutor {
-    type Result = ListTracksTagsFacetsResult;
+impl Handler<CountTrackFacetsMessage> for SqliteExecutor {
+    type Result = CountTrackFacetsResult;
 
-    fn handle(&mut self, msg: ListTracksTagsFacetsMessage, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: CountTrackFacetsMessage, _: &mut Self::Context) -> Self::Result {
         let connection = &*self.pooled_connection()?;
         let repository = TrackRepository::new(connection);
+        let collection_uid = msg.collection_uid;
+        let pagination = msg.pagination;
+        let facets = msg.params.facets.map(|mut facets| {
+            facets.sort();
+            facets.dedup();
+            facets
+        });
+        let facets = facets.as_ref().map(|facets| {
+            facets
+                .iter()
+                .map(AsRef::as_ref)
+                .map(String::as_str)
+                .collect()
+        });
         connection.transaction::<_, Error, _>(|| {
-            repository.list_tag_facets(
-                msg.collection_uid.as_ref(),
-                msg.query_params.with_facets().as_ref(),
-                msg.pagination,
+            repository.count_facets(
+                collection_uid.as_ref(),
+                facets.as_ref().map(Vec::as_slice),
+                pagination,
             )
         })
     }
 }
 
-pub fn on_list_tracks_tags_facets(
-    (state, query_tracks, query_with, query_pagination): (
+pub fn on_count_track_facets(
+    (state, query_tracks, query_pagination, body): (
         State<AppState>,
         Query<TracksQueryParams>,
-        Query<TracksWithTagFacetsQueryParams>,
         Query<Pagination>,
+        Json<CountTagsParams>,
     ),
 ) -> FutureResponse<HttpResponse> {
-    let msg = ListTracksTagsFacetsMessage {
+    let msg = CountTrackFacetsMessage {
         collection_uid: query_tracks.into_inner().collection_uid,
-        query_params: query_with.into_inner(),
+        params: body.into_inner(),
         pagination: query_pagination.into_inner(),
     };
     state

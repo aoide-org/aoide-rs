@@ -631,12 +631,23 @@ impl<'a> Tracks for TrackRepository<'a> {
         Ok(FieldStrings { field, counts })
     }
 
-    fn count_album_tracks(
+    fn collection_stats(&self, collection_uid: &EntityUid) -> TracksResult<CollectionTrackStats> {
+        let total_count = aux_track_collection::table
+            .select(diesel::dsl::count_star())
+            .filter(aux_track_collection::collection_uid.eq(collection_uid.as_ref()))
+            .first::<i64>(self.connection)? as usize;
+
+        Ok(CollectionTrackStats { total_count })
+    }
+}
+
+impl<'a> TrackAlbums for TrackRepository<'a> {
+    fn count_albums(
         &self,
         collection_uid: Option<&EntityUid>,
         params: &CountAlbumTracksParams,
         pagination: Pagination,
-    ) -> TracksResult<Vec<AlbumTracksCount>> {
+    ) -> TrackAlbumsResult<Vec<AlbumTracksCount>> {
         let mut target = aux_track_brief::table
             .select((
                 aux_track_brief::album_title,
@@ -716,22 +727,13 @@ impl<'a> Tracks for TrackRepository<'a> {
             })
             .collect())
     }
-
-    fn collection_stats(&self, collection_uid: &EntityUid) -> TracksResult<CollectionTrackStats> {
-        let total_count = aux_track_collection::table
-            .select(diesel::dsl::count_star())
-            .filter(aux_track_collection::collection_uid.eq(collection_uid.as_ref()))
-            .first::<i64>(self.connection)? as usize;
-
-        Ok(CollectionTrackStats { total_count })
-    }
 }
 
 impl<'a> TrackTags for TrackRepository<'a> {
-    fn list_tag_facets(
+    fn count_facets(
         &self,
         collection_uid: Option<&EntityUid>,
-        facets: Option<&Vec<&str>>,
+        facets: Option<&[&str]>,
         pagination: Pagination,
     ) -> TrackTagsResult<Vec<FacetCount>> {
         let mut target = aux_track_tag::table
@@ -785,10 +787,10 @@ impl<'a> TrackTags for TrackRepository<'a> {
         Ok(result)
     }
 
-    fn list_tags(
+    fn count_tags(
         &self,
         collection_uid: Option<&EntityUid>,
-        facets: Option<&Vec<&str>>,
+        facets: Option<&[&str]>,
         pagination: Pagination,
     ) -> TrackTagsResult<Vec<TagCount>> {
         let mut target = aux_track_tag::table

@@ -72,30 +72,34 @@ pub trait Tracks {
         pagination: Pagination,
     ) -> TracksResult<FieldStrings>;
 
-    fn count_album_tracks(
+    fn collection_stats(&self, collection_uid: &EntityUid) -> TracksResult<CollectionTrackStats>;
+}
+
+pub type TrackAlbumsResult<T> = Result<T, Error>;
+
+pub trait TrackAlbums {
+    fn count_albums(
         &self,
         collection_uid: Option<&EntityUid>,
         params: &CountAlbumTracksParams,
         pagination: Pagination,
     ) -> TracksResult<Vec<AlbumTracksCount>>;
-
-    fn collection_stats(&self, collection_uid: &EntityUid) -> TracksResult<CollectionTrackStats>;
 }
 
 pub type TrackTagsResult<T> = Result<T, Error>;
 
 pub trait TrackTags {
-    fn list_tag_facets(
+    fn count_facets(
         &self,
         collection_uid: Option<&EntityUid>,
-        facets: Option<&Vec<&str>>,
+        facets: Option<&[&str]>,
         pagination: Pagination,
     ) -> TrackTagsResult<Vec<FacetCount>>;
 
-    fn list_tags(
+    fn count_tags(
         &self,
         collection_uid: Option<&EntityUid>,
-        facets: Option<&Vec<&str>>,
+        facets: Option<&[&str]>,
         pagination: Pagination,
     ) -> TrackTagsResult<Vec<TagCount>>;
 }

@@ -148,9 +148,9 @@ fn web_app(executor: &Addr<SqliteExecutor>) -> actix_web::App<AppState> {
             },
         );
     })
-    .resource("/tracks/albums/count", |r| {
+    .resource("/tracks/count/albums", |r| {
         r.method(http::Method::POST).with_async_config(
-            on_count_album_tracks,
+            on_count_track_albums,
             |((_, _, _, cfg_body),)| {
                 cfg_body.error_handler(|err, _req| {
                     let err_msg = format!("{}", err);
@@ -163,12 +163,35 @@ fn web_app(executor: &Addr<SqliteExecutor>) -> actix_web::App<AppState> {
             },
         );
     })
-    .resource("/tracks/tags", |r| {
-        r.method(http::Method::GET).with_async(on_list_tracks_tags);
+    .resource("/tracks/count/facets", |r| {
+        r.method(http::Method::POST).with_async_config(
+            on_count_track_facets,
+            |((_, _, _, cfg_body),)| {
+                cfg_body.error_handler(|err, _req| {
+                    let err_msg = format!("{}", err);
+                    actix_web::error::InternalError::from_response(
+                        err,
+                        HttpResponse::BadRequest().body(err_msg),
+                    )
+                    .into()
+                });
+            },
+        );
     })
-    .resource("/tracks/tags/facets", |r| {
-        r.method(http::Method::GET)
-            .with_async(on_list_tracks_tags_facets);
+    .resource("/tracks/count/tags", |r| {
+        r.method(http::Method::POST).with_async_config(
+            on_count_track_tags,
+            |((_, _, _, cfg_body),)| {
+                cfg_body.error_handler(|err, _req| {
+                    let err_msg = format!("{}", err);
+                    actix_web::error::InternalError::from_response(
+                        err,
+                        HttpResponse::BadRequest().body(err_msg),
+                    )
+                    .into()
+                });
+            },
+        );
     })
     .resource("/tracks/replace", |r| {
         r.method(http::Method::POST).with_async_config(

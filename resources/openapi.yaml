@@ -334,73 +334,14 @@ paths:
                   $ref: '#/components/schemas/TrackEntity'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /tracks/tags:
-    get:
-      summary: List tags
-      description: >
-        List term frequencies of tag labels for selected (or all) facets.
-        Results are
-
-        provided as tags with an average score, listed in descending order of
-
-        their total count. Optionally the evaluation can be restricted to a
-
-        single collection.
-      operationId: listTagFrequencies
-      tags:
-        - Track Tags
-      parameters:
-        - $ref: '#/components/parameters/collectionUidParam'
-        - $ref: '#/components/parameters/tagFacetListQuery'
-        - $ref: '#/components/parameters/paginationOffset'
-        - $ref: '#/components/parameters/paginationLimit'
-      responses:
-        '200':
-          description: |
-            Tag frequencies.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/TagCount'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-  /tracks/tags/facets:
-    get:
-      summary: List tag facets
-      description: |
-        List frequencies for selected (or all) tag facets in descending order of
-        their total count. Optionally the evaluation can be restricted to a
-        single collection.
-      operationId: listTagFacets
-      tags:
-        - Track Tags
-      parameters:
-        - $ref: '#/components/parameters/collectionUidParam'
-        - $ref: '#/components/parameters/tagFacetListQuery'
-        - $ref: '#/components/parameters/paginationOffset'
-        - $ref: '#/components/parameters/paginationLimit'
-      responses:
-        '200':
-          description: |
-            Tag facet frequencies.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/FacetCount'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-  /tracks/albums/count:
+  /tracks/count/albums:
     post:
       summary: Count tracks per album
       description: >
         List albums (title, artist, year) together with their corresponding number of tracks.
-      operationId: countAlbumTracks
+      operationId: countAlbumsOfTracks
       tags:
-        - Album Tracks
+        - Tracks
       parameters:
         - $ref: '#/components/parameters/collectionUidParam'
         - $ref: '#/components/parameters/paginationOffset'
@@ -421,6 +362,75 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/AlbumTracksCount'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /tracks/count/facets:
+    post:
+      summary: Count tracks per (tag) facet
+      description: |
+        List frequencies for selected (or all) tag facets in descending order of
+        their total count. Optionally the evaluation can be restricted to a
+        single collection.
+      operationId: countTagFacetsOfTracks
+      tags:
+        - Tracks
+      parameters:
+        - $ref: '#/components/parameters/collectionUidParam'
+        - $ref: '#/components/parameters/paginationOffset'
+        - $ref: '#/components/parameters/paginationLimit'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CountTagsParams'
+      responses:
+        '200':
+          description: |
+            Tag facet frequencies.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FacetCount'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /tracks/count/tags:
+    post:
+      summary: Count tracks per tag
+      description: >
+        List term frequencies of tag labels for selected (or all) facets.
+        Results are
+
+        provided as tags with an average score, listed in descending order of
+
+        their total count. Optionally the evaluation can be restricted to a
+
+        single collection.
+      operationId: countTagsOfTracks
+      tags:
+        - Tracks
+      parameters:
+        - $ref: '#/components/parameters/collectionUidParam'
+        - $ref: '#/components/parameters/paginationOffset'
+        - $ref: '#/components/parameters/paginationLimit'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CountTagsParams'
+      responses:
+        '200':
+          description: |
+            Tag frequencies.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TagCount'
         '500':
           $ref: '#/components/responses/500InternalServerError'
 components:
@@ -501,19 +511,6 @@ components:
       description: |
         Comma-separated list of boolean options:
           * `track-stats` - Include track statistics
-    tagFacetListQuery:
-      name: facets
-      in: query
-      required: false
-      schema:
-        type: string
-      example: ',genre,mood'
-      description: |
-        Comma-separated list of case-insensitive strings for selecting a subset
-        of tags by any of the given facets (alternation). An empty list or a
-        list containing an empty item (= leading/trainling comma or 2 subsequent
-        commas) selects all tags without a facet (= null). If this parameter is
-        missing all tags are selected.
   schemas:
     Actor:
       properties:
@@ -1051,6 +1048,18 @@ components:
       description: >
         Albums can be filtered by release year (inclusive).
         Results can be ordered by album title, album artist, and release year.
+    CountTagsParams:
+      properties:
+        facets:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrackFacet'
+          description: |
+            Selects a subset of tags per facet. An empty list or a
+            list containing an empty facet selects all non-faceted
+            tags. If this parameter is missing all tags are selected
+            regardless of their facet.
+          example: ['genre', '']
     TrackMusic:
       properties:
         tempo:

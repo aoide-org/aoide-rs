@@ -325,6 +325,13 @@ pub struct CountAlbumTracksParams {
     pub ordering: Vec<TrackSortOrder>,
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct CountTagsParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub facets: Option<Vec<Facet>>,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct StringCount {
