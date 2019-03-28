@@ -291,7 +291,7 @@ impl<'a> InsertableTagFacet<'a> {
 pub struct InsertableTracksTag {
     pub track_id: StorageId,
     pub facet_id: Option<StorageId>,
-    pub label_id: StorageId,
+    pub label_id: Option<StorageId>,
     pub score: ScoreValue,
 }
 
@@ -299,7 +299,7 @@ impl InsertableTracksTag {
     pub fn bind(
         track_id: StorageId,
         facet_id: Option<StorageId>,
-        label_id: StorageId,
+        label_id: Option<StorageId>,
         score: Score,
     ) -> Self {
         Self {

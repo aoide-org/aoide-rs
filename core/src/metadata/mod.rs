@@ -95,7 +95,7 @@ impl fmt::Display for Score {
 pub struct Label(String);
 
 pub trait Labeled {
-    fn label(&self) -> &Label;
+    fn label(&self) -> Option<&Label>;
 }
 
 impl Label {
@@ -238,8 +238,8 @@ impl Tag {
 }
 
 impl Labeled for Tag {
-    fn label(&self) -> &Label {
-        &self.0
+    fn label(&self) -> Option<&Label> {
+        Some(&self.0)
     }
 }
 
@@ -251,7 +251,7 @@ impl Scored for Tag {
 
 impl IsValid for Tag {
     fn is_valid(&self) -> bool {
-        self.label().is_valid() && self.score().is_valid()
+        self.label().map(IsValid::is_valid).unwrap_or(false) && self.score().is_valid()
     }
 }
 
@@ -270,10 +270,10 @@ impl Tags {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
-pub struct FacetedTag(Facet, Label, Score);
+pub struct FacetedTag(Facet, Option<Label>, Score);
 
 impl FacetedTag {
-    pub const fn new(facet: Facet, label: Label, score: Score) -> Self {
+    pub const fn new(facet: Facet, label: Option<Label>, score: Score) -> Self {
         Self(facet, label, score)
     }
 }
@@ -285,8 +285,8 @@ impl Faceted for FacetedTag {
 }
 
 impl Labeled for FacetedTag {
-    fn label(&self) -> &Label {
-        &self.1
+    fn label(&self) -> Option<&Label> {
+        self.1.as_ref()
     }
 }
 
@@ -298,7 +298,9 @@ impl Scored for FacetedTag {
 
 impl IsValid for FacetedTag {
     fn is_valid(&self) -> bool {
-        self.facet().is_valid() && self.label().is_valid() && self.score().is_valid()
+        self.facet().is_valid()
+            && self.label().map(IsValid::is_valid).unwrap_or(true)
+            && self.score().is_valid()
     }
 }
 

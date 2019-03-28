@@ -104,7 +104,7 @@ table! {
         id -> BigInt,
         track_id -> BigInt,
         facet_id -> Nullable<BigInt>,
-        label_id -> BigInt,
+        label_id -> Nullable<BigInt>,
         score -> Double,
     }
 }

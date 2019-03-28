@@ -327,7 +327,17 @@ pub struct CountAlbumTracksParams {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct CountTagsParams {
+pub struct CountTagAvgScoresParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub facets: Option<Vec<Facet>>,
+
+    #[serde(skip_serializing_if = "std::ops::Not::not", default)]
+    pub include_non_faceted_tags: bool,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct CountTagFacetsParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub facets: Option<Vec<Facet>>,
 }
@@ -348,16 +358,22 @@ pub struct FieldStrings {
 
 #[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct FacetCount {
-    pub facet: Option<Facet>,
+pub struct TagFacetCount {
+    pub facet: Facet,
     pub count: usize,
 }
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct TagCount {
-    pub tag: Tag, // with avg. score
+pub struct TagAvgScoreCount {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub facet: Option<Facet>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label: Option<Label>,
+
+    pub avg_score: Score,
+
     pub count: usize,
 }
 

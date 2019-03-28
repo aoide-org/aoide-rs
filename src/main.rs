@@ -148,7 +148,7 @@ fn web_app(executor: &Addr<SqliteExecutor>) -> actix_web::App<AppState> {
             },
         );
     })
-    .resource("/tracks/count/albums", |r| {
+    .resource("/tracks/albums/count", |r| {
         r.method(http::Method::POST).with_async_config(
             on_count_track_albums,
             |((_, _, _, cfg_body),)| {
@@ -163,7 +163,7 @@ fn web_app(executor: &Addr<SqliteExecutor>) -> actix_web::App<AppState> {
             },
         );
     })
-    .resource("/tracks/count/facets", |r| {
+    .resource("/tracks/tags/facets/count", |r| {
         r.method(http::Method::POST).with_async_config(
             on_count_track_facets,
             |((_, _, _, cfg_body),)| {
@@ -178,9 +178,9 @@ fn web_app(executor: &Addr<SqliteExecutor>) -> actix_web::App<AppState> {
             },
         );
     })
-    .resource("/tracks/count/tags", |r| {
+    .resource("/tracks/tags/avg-scores/count", |r| {
         r.method(http::Method::POST).with_async_config(
-            on_count_track_tags,
+            on_count_tag_avg_scores,
             |((_, _, _, cfg_body),)| {
                 cfg_body.error_handler(|err, _req| {
                     let err_msg = format!("{}", err);

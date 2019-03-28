@@ -135,7 +135,7 @@ CREATE TABLE aux_track_tag (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     facet_id                 INTEGER,
-    label_id                 INTEGER NOT NULL,
+    label_id                 INTEGER,
     score                    REAL NOT NULL, -- [0.0, 1.0]
     FOREIGN KEY(track_id) REFERENCES tbl_track(id),
     FOREIGN KEY(facet_id) REFERENCES aux_tag_facet(id),

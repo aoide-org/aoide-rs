@@ -19,8 +19,9 @@ use aoide_storage::{
     api::{
         serde::{SerializationFormat, SerializedEntity},
         track::{TrackAlbums, TrackTags, Tracks, TracksResult},
-        CountAlbumTracksParams, CountTagsParams, FacetCount, LocateTracksParams, Pagination,
-        ReplaceTracksParams, ReplacedTracks, SearchTracksParams, TagCount,
+        CountAlbumTracksParams, CountTagAvgScoresParams, CountTagFacetsParams, LocateTracksParams,
+        Pagination, ReplaceTracksParams, ReplacedTracks, SearchTracksParams, TagAvgScoreCount,
+        TagFacetCount,
     },
     storage::track::TrackRepository,
 };
@@ -444,26 +445,31 @@ pub fn on_count_track_albums(
 }
 
 #[derive(Debug, Default)]
-struct CountTrackTagsMessage {
+struct CountTrackTagAvgScoresMessage {
     pub collection_uid: Option<EntityUid>,
     pub pagination: Pagination,
-    pub params: CountTagsParams,
+    pub params: CountTagAvgScoresParams,
 }
 
-pub type CountTrackTagsResult = TracksResult<Vec<TagCount>>;
+pub type CountTrackTagAvgScoresResult = TracksResult<Vec<TagAvgScoreCount>>;
 
-impl Message for CountTrackTagsMessage {
-    type Result = CountTrackTagsResult;
+impl Message for CountTrackTagAvgScoresMessage {
+    type Result = CountTrackTagAvgScoresResult;
 }
 
-impl Handler<CountTrackTagsMessage> for SqliteExecutor {
-    type Result = CountTrackTagsResult;
+impl Handler<CountTrackTagAvgScoresMessage> for SqliteExecutor {
+    type Result = CountTrackTagAvgScoresResult;
 
-    fn handle(&mut self, msg: CountTrackTagsMessage, _: &mut Self::Context) -> Self::Result {
+    fn handle(
+        &mut self,
+        msg: CountTrackTagAvgScoresMessage,
+        _: &mut Self::Context,
+    ) -> Self::Result {
         let connection = &*self.pooled_connection()?;
         let repository = TrackRepository::new(connection);
         let collection_uid = msg.collection_uid;
         let pagination = msg.pagination;
+        let include_non_faceted_tags = msg.params.include_non_faceted_tags;
         let facets = msg.params.facets.map(|mut facets| {
             facets.sort();
             facets.dedup();
@@ -477,24 +483,25 @@ impl Handler<CountTrackTagsMessage> for SqliteExecutor {
                 .collect()
         });
         connection.transaction::<_, Error, _>(|| {
-            repository.count_tags(
+            repository.count_tag_avg_scores(
                 collection_uid.as_ref(),
                 facets.as_ref().map(Vec::as_slice),
+                include_non_faceted_tags,
                 pagination,
             )
         })
     }
 }
 
-pub fn on_count_track_tags(
+pub fn on_count_tag_avg_scores(
     (state, query_tracks, query_pagination, body): (
         State<AppState>,
         Query<TracksQueryParams>,
         Query<Pagination>,
-        Json<CountTagsParams>,
+        Json<CountTagAvgScoresParams>,
     ),
 ) -> FutureResponse<HttpResponse> {
-    let msg = CountTrackTagsMessage {
+    let msg = CountTrackTagAvgScoresMessage {
         collection_uid: query_tracks.into_inner().collection_uid,
         params: body.into_inner(),
         pagination: query_pagination.into_inner(),
@@ -510,22 +517,22 @@ pub fn on_count_track_tags(
 }
 
 #[derive(Debug, Default)]
-struct CountTrackFacetsMessage {
+struct CountTrackTagFacetsMessage {
     pub collection_uid: Option<EntityUid>,
     pub pagination: Pagination,
-    pub params: CountTagsParams,
+    pub params: CountTagFacetsParams,
 }
 
-pub type CountTrackFacetsResult = TracksResult<Vec<FacetCount>>;
+pub type CountTrackTagFacetsResult = TracksResult<Vec<TagFacetCount>>;
 
-impl Message for CountTrackFacetsMessage {
-    type Result = CountTrackFacetsResult;
+impl Message for CountTrackTagFacetsMessage {
+    type Result = CountTrackTagFacetsResult;
 }
 
-impl Handler<CountTrackFacetsMessage> for SqliteExecutor {
-    type Result = CountTrackFacetsResult;
+impl Handler<CountTrackTagFacetsMessage> for SqliteExecutor {
+    type Result = CountTrackTagFacetsResult;
 
-    fn handle(&mut self, msg: CountTrackFacetsMessage, _: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: CountTrackTagFacetsMessage, _: &mut Self::Context) -> Self::Result {
         let connection = &*self.pooled_connection()?;
         let repository = TrackRepository::new(connection);
         let collection_uid = msg.collection_uid;
@@ -543,7 +550,7 @@ impl Handler<CountTrackFacetsMessage> for SqliteExecutor {
                 .collect()
         });
         connection.transaction::<_, Error, _>(|| {
-            repository.count_facets(
+            repository.count_tag_facets(
                 collection_uid.as_ref(),
                 facets.as_ref().map(Vec::as_slice),
                 pagination,
@@ -557,10 +564,10 @@ pub fn on_count_track_facets(
         State<AppState>,
         Query<TracksQueryParams>,
         Query<Pagination>,
-        Json<CountTagsParams>,
+        Json<CountTagFacetsParams>,
     ),
 ) -> FutureResponse<HttpResponse> {
-    let msg = CountTrackFacetsMessage {
+    let msg = CountTrackTagFacetsMessage {
         collection_uid: query_tracks.into_inner().collection_uid,
         params: body.into_inner(),
         pagination: query_pagination.into_inner(),

@@ -119,12 +119,12 @@ where
                     let subselect = aux_tag_label::table
                         .select(aux_tag_label::id)
                         .filter(aux_tag_label::label.eq(eq));
-                    select.filter(aux_track_tag::label_id.eq_any(subselect))
+                    select.filter(aux_track_tag::label_id.eq_any(subselect.nullable()))
                 } else {
                     let subselect = aux_tag_label::table
                         .select(aux_tag_label::id)
                         .filter(aux_tag_label::label.ne(eq));
-                    select.filter(aux_track_tag::label_id.eq_any(subselect))
+                    select.filter(aux_track_tag::label_id.eq_any(subselect.nullable()))
                 }
             }
             EitherEqualOrLike::Like(like) => {
@@ -132,12 +132,12 @@ where
                     let subselect = aux_tag_label::table
                         .select(aux_tag_label::id)
                         .filter(aux_tag_label::label.like(like).escape('\\'));
-                    select.filter(aux_track_tag::label_id.eq_any(subselect))
+                    select.filter(aux_track_tag::label_id.eq_any(subselect.nullable()))
                 } else {
                     let subselect = aux_tag_label::table
                         .select(aux_tag_label::id)
                         .filter(aux_tag_label::label.not_like(like).escape('\\'));
-                    select.filter(aux_track_tag::label_id.eq_any(subselect))
+                    select.filter(aux_track_tag::label_id.eq_any(subselect.nullable()))
                 }
             }
         };
@@ -730,16 +730,16 @@ impl<'a> TrackAlbums for TrackRepository<'a> {
 }
 
 impl<'a> TrackTags for TrackRepository<'a> {
-    fn count_facets(
+    fn count_tag_facets(
         &self,
         collection_uid: Option<&EntityUid>,
         facets: Option<&[&str]>,
         pagination: Pagination,
-    ) -> TrackTagsResult<Vec<FacetCount>> {
+    ) -> TrackTagsResult<Vec<TagFacetCount>> {
         let mut target = aux_track_tag::table
-            .left_outer_join(aux_tag_facet::table)
+            .inner_join(aux_tag_facet::table)
             .select((
-                aux_tag_facet::facet.nullable(),
+                aux_tag_facet::facet,
                 sql::<diesel::sql_types::BigInt>("count(*) AS count"),
             ))
             .group_by(aux_track_tag::facet_id)
@@ -747,22 +747,9 @@ impl<'a> TrackTags for TrackRepository<'a> {
             .into_boxed();
 
         // Facet Filtering
-        target = match facets {
-            Some(facets) => {
-                if facets.is_empty() {
-                    target.filter(aux_track_tag::facet_id.is_null())
-                } else {
-                    let filtered = target.filter(aux_tag_facet::facet.eq_any(facets));
-                    if facets.iter().any(|facet| facet.is_empty()) {
-                        // Empty facets are interpreted as null, just like an empty vector
-                        filtered.or_filter(aux_track_tag::facet_id.is_null())
-                    } else {
-                        filtered
-                    }
-                }
-            }
-            None => target,
-        };
+        if let Some(facets) = facets {
+            target = target.filter(aux_tag_facet::facet.eq_any(facets));
+        }
 
         // Collection filtering
         if let Some(collection_uid) = collection_uid {
@@ -775,11 +762,11 @@ impl<'a> TrackTags for TrackRepository<'a> {
         // Pagination
         target = apply_pagination(target, pagination);
 
-        let rows = target.load::<(Option<String>, i64)>(self.connection)?;
+        let rows = target.load::<(String, i64)>(self.connection)?;
         let mut result = Vec::with_capacity(rows.len());
         for row in rows {
-            result.push(FacetCount {
-                facet: row.0.map(Into::into),
+            result.push(TagFacetCount {
+                facet: row.0.into(),
                 count: row.1 as usize,
             });
         }
@@ -787,42 +774,43 @@ impl<'a> TrackTags for TrackRepository<'a> {
         Ok(result)
     }
 
-    fn count_tags(
+    fn count_tag_avg_scores(
         &self,
         collection_uid: Option<&EntityUid>,
         facets: Option<&[&str]>,
+        include_non_faceted_tags: bool,
         pagination: Pagination,
-    ) -> TrackTagsResult<Vec<TagCount>> {
+    ) -> TrackTagsResult<Vec<TagAvgScoreCount>> {
         let mut target = aux_track_tag::table
-            .left_outer_join(aux_tag_label::table)
             .left_outer_join(aux_tag_facet::table)
+            .left_outer_join(aux_tag_label::table)
             .select((
-                sql::<diesel::sql_types::Double>("AVG(score) AS score"),
-                aux_tag_label::label,
                 aux_tag_facet::facet.nullable(),
+                aux_tag_label::label.nullable(),
+                sql::<diesel::sql_types::Double>("AVG(score) AS avg_score"),
                 sql::<diesel::sql_types::BigInt>("COUNT(*) AS count"),
             ))
-            .group_by((aux_track_tag::label_id, aux_track_tag::facet_id))
+            .group_by((aux_track_tag::facet_id, aux_track_tag::label_id))
             .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
             .into_boxed();
 
         // Facet Filtering
-        target = match facets {
-            Some(facets) => {
-                if facets.is_empty() {
-                    target.filter(aux_track_tag::facet_id.is_null())
-                } else {
-                    let filtered = target.filter(aux_tag_facet::facet.eq_any(facets));
-                    if facets.iter().any(|facet| facet.is_empty()) {
-                        // Empty facets are interpreted as null, just like an empty vector
-                        filtered.or_filter(aux_track_tag::facet_id.is_null())
-                    } else {
-                        filtered
-                    }
-                }
+        if let Some(facets) = facets {
+            if include_non_faceted_tags {
+                target = target.filter(
+                    aux_tag_facet::facet
+                        .eq_any(facets)
+                        .or(aux_tag_facet::facet.is_null()),
+                );
+            } else {
+                target = target.filter(aux_tag_facet::facet.eq_any(facets));
             }
-            None => target,
-        };
+        } else {
+            // Include all faceted tags
+            if !include_non_faceted_tags {
+                target = target.filter(aux_track_tag::facet_id.is_not_null());
+            }
+        }
 
         // Collection filtering
         if let Some(collection_uid) = collection_uid {
@@ -835,12 +823,13 @@ impl<'a> TrackTags for TrackRepository<'a> {
         // Pagination
         target = apply_pagination(target, pagination);
 
-        let rows = target.load::<(f64, String, Option<String>, i64)>(self.connection)?;
+        let rows = target.load::<(Option<String>, Option<String>, f64, i64)>(self.connection)?;
         let mut result = Vec::with_capacity(rows.len());
         for row in rows {
-            result.push(TagCount {
-                tag: Tag::new(row.1.into(), row.0.into()),
-                facet: row.2.map(Into::into),
+            result.push(TagAvgScoreCount {
+                facet: row.0.map(Into::into),
+                label: row.1.map(Into::into),
+                avg_score: row.2.into(),
                 count: row.3 as usize,
             });
         }

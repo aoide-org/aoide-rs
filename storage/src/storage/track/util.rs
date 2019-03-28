@@ -152,9 +152,13 @@ impl<'a> TrackRepositoryHelper<'a> {
         )
         .execute(self.connection)?;
         // Orphaned tag terms
-        diesel::delete(aux_tag_label::table.filter(
-            aux_tag_label::id.ne_all(aux_track_tag::table.select(aux_track_tag::label_id)),
-        ))
+        diesel::delete(
+            aux_tag_label::table.filter(
+                aux_tag_label::id
+                    .nullable()
+                    .ne_all(aux_track_tag::table.select(aux_track_tag::label_id)),
+            ),
+        )
         .execute(self.connection)?;
         // Orphaned tag facets
         diesel::delete(
@@ -220,24 +224,31 @@ impl<'a> TrackRepositoryHelper<'a> {
 
     fn insert_tags(&self, track_id: StorageId, track: &Track) -> Result<(), Error> {
         for tag in &track.tags {
-            let label_id = self.resolve_tag_label(tag.label())?;
-            let insertable = InsertableTracksTag::bind(track_id, None, label_id, tag.score());
-            match diesel::insert_into(aux_track_tag::table)
-                .values(&insertable)
-                .execute(self.connection)
-            {
-                Err(err) => log::error!(
-                    "Failed to insert tag {:?} for track {}: {}",
-                    tag,
-                    track_id,
-                    err
-                ),
-                Ok(count) => debug_assert!(count == 1),
+            if let Some(label) = tag.label() {
+                let label_id = self.resolve_tag_label(label)?;
+                let insertable =
+                    InsertableTracksTag::bind(track_id, None, Some(label_id), tag.score());
+                match diesel::insert_into(aux_track_tag::table)
+                    .values(&insertable)
+                    .execute(self.connection)
+                {
+                    Err(err) => log::error!(
+                        "Failed to insert tag {:?} for track {}: {}",
+                        tag,
+                        track_id,
+                        err
+                    ),
+                    Ok(count) => debug_assert!(count == 1),
+                }
             }
         }
         for ftag in &track.ftags {
             let facet_id = self.resolve_tag_facet(ftag.facet())?;
-            let label_id = self.resolve_tag_label(ftag.label())?;
+            let label_id = if let Some(label) = ftag.label() {
+                Some(self.resolve_tag_label(label)?)
+            } else {
+                None
+            };
             let insertable =
                 InsertableTracksTag::bind(track_id, Some(facet_id), label_id, ftag.score());
             match diesel::insert_into(aux_track_tag::table)

@@ -1,6 +1,6 @@
 openapi: 3.0.2
 info:
-  version: 0.0.1
+  version: 0.0.2
   title: aoide
   description: Music library management service.
   license:
@@ -334,7 +334,7 @@ paths:
                   $ref: '#/components/schemas/TrackEntity'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /tracks/count/albums:
+  /tracks/albums/count:
     post:
       summary: Count tracks per album
       description: >
@@ -364,13 +364,12 @@ paths:
                   $ref: '#/components/schemas/AlbumTracksCount'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /tracks/count/facets:
+  /tracks/tags/facets/count:
     post:
-      summary: Count tracks per (tag) facet
+      summary: Count tracks per facet
       description: |
-        List frequencies for selected (or all) tag facets in descending order of
-        their total count. Optionally the evaluation can be restricted to a
-        single collection.
+        Count the number of occurrences of tag facets. Optionally
+        the evaluation can be restricted to a single collection.
       operationId: countTagFacetsOfTracks
       tags:
         - Tracks
@@ -383,7 +382,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CountTagsParams'
+              $ref: '#/components/schemas/CountTagFacetsParams'
       responses:
         '200':
           description: |
@@ -393,21 +392,16 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/FacetCount'
+                  $ref: '#/components/schemas/TagFacetCount'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /tracks/count/tags:
+  /tracks/tags/avg-scores/count:
     post:
-      summary: Count tracks per tag
-      description: >
-        List term frequencies of tag labels for selected (or all) facets.
-        Results are
-
-        provided as tags with an average score, listed in descending order of
-
-        their total count. Optionally the evaluation can be restricted to a
-
-        single collection.
+      summary: Count tracks and compute avg. score per tag
+      description: |
+        Count the number of occurrences and avg. score of tags
+        discriminated by their facet and label. Optionally the
+        evaluation can be restricted to a single collection.
       operationId: countTagsOfTracks
       tags:
         - Tracks
@@ -420,7 +414,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CountTagsParams'
+              $ref: '#/components/schemas/CountTagAvgScoresParams'
       responses:
         '200':
           description: |
@@ -430,7 +424,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/TagCount'
+                  $ref: '#/components/schemas/TagAvgScoreCount'
         '500':
           $ref: '#/components/responses/500InternalServerError'
 components:
@@ -948,7 +942,7 @@ components:
           - $ref: '#/components/schemas/ScoreValue'
       description: |
         Tuple of 3 elements containing a facet, a label, and a score value.
-    TagCount:
+    TagAvgScoreCount:
       properties:
         tag:
           $ref: '#/components/schemas/Tag'
@@ -1048,18 +1042,35 @@ components:
       description: >
         Albums can be filtered by release year (inclusive).
         Results can be ordered by album title, album artist, and release year.
-    CountTagsParams:
+    CountTagAvgScoresParams:
       properties:
         facets:
           type: array
           items:
-            $ref: '#/components/schemas/TrackFacet'
+            $ref: '#/components/schemas/TagFacet'
           description: |
-            Selects a subset of tags per facet. An empty list or a
-            list containing an empty facet selects all non-faceted
-            tags. If this parameter is missing all tags are selected
-            regardless of their facet.
-          example: ['genre', '']
+            Selects a subset of tags per facet. An empty array excludes
+            all faceted tags whereas a missing/null array includes all
+            faceted tags!
+          example: ['genre', 'comment']
+        includeNonFacetedTags:
+          type: boolean
+          default: false
+          description: |
+            Applies the query to all non-faceted tags with no facet
+            and just a label. Each distinct label will be scored and
+            counted.
+    CountTagFacetsParams:
+      properties:
+        facets:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagFacet'
+          description: |
+            Selects a subset of tags per facet. An empty array excludes
+            all faceted tags whereas a missing/null array includes all
+            faceted tags!
+          example: ['genre', 'comment']
     TrackMusic:
       properties:
         tempo:
@@ -1179,8 +1190,9 @@ components:
       minLength: 1
       example: genre
       description: |
-        Non-empty, lowercase, string that defines the (optional) facet of tag.
-    FacetCount:
+        Non-empty, lowercase, string that defines the facet of tag.
+        Facets must also not contain any whitespace characters.
+    TagFacetCount:
       properties:
         facet:
           $ref: '#/components/schemas/TagFacet'
