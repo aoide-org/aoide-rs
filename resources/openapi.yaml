@@ -351,7 +351,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CountAlbumTracksParams'
+              $ref: '#/components/schemas/CountTrackAlbumsParams'
       responses:
         '200':
           description: |
@@ -361,7 +361,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/AlbumTracksCount'
+                  $ref: '#/components/schemas/TrackAlbumCount'
         '500':
           $ref: '#/components/responses/500InternalServerError'
   /tracks/tags/facets/count:
@@ -961,7 +961,7 @@ components:
       example: 0.83
       description: |
         Normalized score value between 0 and 1.
-    AlbumTracksCount:
+    TrackAlbumCount:
       properties:
         title:
           $ref: '#/components/schemas/TitleName'
@@ -969,7 +969,7 @@ components:
           $ref: '#/components/schemas/ActorName'
         releaseYear:
           $ref: '#/components/schemas/Year'
-        tracksCount:
+        count:
           $ref: '#/components/schemas/TotalCount'
       required:
         - count
@@ -1029,7 +1029,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TrackSortOrder'
-    CountAlbumTracksParams:
+    CountTrackAlbumsParams:
       properties:
         minReleaseYear:
           $ref: '#/components/schemas/Year'

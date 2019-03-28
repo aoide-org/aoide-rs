@@ -52,7 +52,7 @@ impl IsValid for AlbumMetadata {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct AlbumTracksCount {
+pub struct TrackAlbumCount {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
 
@@ -62,5 +62,5 @@ pub struct AlbumTracksCount {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub release_year: Option<i16>,
 
-    pub tracks_count: usize,
+    pub count: usize,
 }

@@ -314,7 +314,7 @@ pub struct SearchTracksParams {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct CountAlbumTracksParams {
+pub struct CountTrackAlbumsParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub min_release_year: Option<i16>,
 

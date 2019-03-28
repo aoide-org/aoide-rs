@@ -645,9 +645,9 @@ impl<'a> TrackAlbums for TrackRepository<'a> {
     fn count_albums(
         &self,
         collection_uid: Option<&EntityUid>,
-        params: &CountAlbumTracksParams,
+        params: &CountTrackAlbumsParams,
         pagination: Pagination,
-    ) -> TrackAlbumsResult<Vec<AlbumTracksCount>> {
+    ) -> TrackAlbumsResult<Vec<TrackAlbumCount>> {
         let mut target = aux_track_brief::table
             .select((
                 aux_track_brief::album_title,
@@ -719,11 +719,11 @@ impl<'a> TrackAlbums for TrackRepository<'a> {
 
         Ok(res
             .into_iter()
-            .map(|row| AlbumTracksCount {
+            .map(|row| TrackAlbumCount {
                 title: row.0,
                 artist: row.1,
                 release_year: row.2,
-                tracks_count: row.3 as usize,
+                count: row.3 as usize,
             })
             .collect())
     }
