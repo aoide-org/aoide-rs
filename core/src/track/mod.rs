@@ -85,10 +85,10 @@ lazy_static! {
     // "Dinner", "Festival", "Party", "Soundcheck", "Top40", "Workout", ...
     pub static ref FACET_CROWD: Facet = Facet::new("crowd".into());
 
-    // Decades like "1980s", "2000s", ..., or other time-related feature
+    // Decades like "1980s", "2000s", ..., or other time-based properties
     pub static ref FACET_EPOCH: Facet = Facet::new("epoch".into());
 
-    // "Birthday"/"Bday", "Xmas"/"Holiday"/"Christmas", "Summer", "Vacation", "Wedding", "Workout"...
+    // "Birthday"/"Bday", "Xmas"/"Holiday"/"Christmas", "Summer", "Vacation", "Wedding", ...
     pub static ref FACET_EVENT: Facet = Facet::new("event".into());
 
     // "Pop", "Dance", "Electronic", "R&B/Soul", "Hip Hop/Rap", ...
@@ -109,18 +109,21 @@ lazy_static! {
     // "Bar", "Beach", "Dinner", "Club", "Lounge", ...
     pub static ref FACET_VENUE: Facet = Facet::new("venue".into());
 
-    // Facet with proposed terms that score certain musical features
-    // resulting in a song profile:
+    // Select a subset of a collection, i.e. a virtual "crate".
+    // Examples: "DJ", "Mobile", ...
+    pub static ref FACET_CRATE: Facet = Facet::new("crate".into());
+
+    // Facets for various musical features. These tags are only scored,
+    // but should not be labeled.
     // See also: [Spotify Audio Features](https://developer.spotify.com/documentation/web-api/reference/tracks/get-audio-features/)
-    pub static ref FACET_PROFILE: Facet = Facet::new("profile".into());
-    pub static ref LABEL_ENERGY: Label = Label::new("Energy".into());
-    pub static ref LABEL_DANCEABILITY: Label = Label::new("Danceability".into());
-    pub static ref LABEL_VALENCE: Label = Label::new("Valence".into()); // aka "Happiness"
-    pub static ref LABEL_ACOUSTICNESS: Label = Label::new("Acousticness".into());
-    pub static ref LABEL_INSTRUMENTALNESS: Label = Label::new("Instrumentalness".into());
-    pub static ref LABEL_LIVENESS: Label = Label::new("Liveness".into());
-    pub static ref LABEL_SPEECHINESS: Label = Label::new("Speechiness".into());
-    pub static ref LABEL_POPULARITY: Label = Label::new("Popularity".into());
+    pub static ref FACET_ENERGY: Label = Label::new("energy".into());
+    pub static ref FACET_DANCEABILITY: Label = Label::new("danceability".into());
+    pub static ref FACET_VALENCE: Label = Label::new("valence".into()); // a measure for happiness
+    pub static ref FACET_ACOUSTICNESS: Label = Label::new("acousticness".into());
+    pub static ref FACET_INSTRUMENTALNESS: Label = Label::new("instrumentalness".into());
+    pub static ref FACET_LIVENESS: Label = Label::new("liveness".into());
+    pub static ref FACET_SPEECHINESS: Label = Label::new("speechiness".into());
+    pub static ref FACET_POPULARITY: Label = Label::new("popularity".into());
 }
 
 ///////////////////////////////////////////////////////////////////////
