@@ -19,8 +19,8 @@ use aoide_storage::{
     api::{
         serde::{SerializationFormat, SerializedEntity},
         track::{TrackAlbums, TrackTags, Tracks, TracksResult},
-        CountTagAvgScoresParams, CountTagFacetsParams, CountTrackAlbumsParams, LocateTracksParams,
-        Pagination, ReplaceTracksParams, ReplacedTracks, SearchTracksParams, TagAvgScoreCount,
+        CountTagFacetsParams, CountTagsParams, CountTrackAlbumsParams, LocateTracksParams,
+        Pagination, ReplaceTracksParams, ReplacedTracks, SearchTracksParams, TagCount,
         TagFacetCount,
     },
     storage::track::TrackRepository,
@@ -445,26 +445,22 @@ pub fn on_count_track_albums(
 }
 
 #[derive(Debug, Default)]
-struct CountTrackTagAvgScoresMessage {
+struct CountTrackTagsMessage {
     pub collection_uid: Option<EntityUid>,
     pub pagination: Pagination,
-    pub params: CountTagAvgScoresParams,
+    pub params: CountTagsParams,
 }
 
-pub type CountTrackTagAvgScoresResult = TracksResult<Vec<TagAvgScoreCount>>;
+pub type CountTrackTagsResult = TracksResult<Vec<TagCount>>;
 
-impl Message for CountTrackTagAvgScoresMessage {
-    type Result = CountTrackTagAvgScoresResult;
+impl Message for CountTrackTagsMessage {
+    type Result = CountTrackTagsResult;
 }
 
-impl Handler<CountTrackTagAvgScoresMessage> for SqliteExecutor {
-    type Result = CountTrackTagAvgScoresResult;
+impl Handler<CountTrackTagsMessage> for SqliteExecutor {
+    type Result = CountTrackTagsResult;
 
-    fn handle(
-        &mut self,
-        msg: CountTrackTagAvgScoresMessage,
-        _: &mut Self::Context,
-    ) -> Self::Result {
+    fn handle(&mut self, msg: CountTrackTagsMessage, _: &mut Self::Context) -> Self::Result {
         let connection = &*self.pooled_connection()?;
         let repository = TrackRepository::new(connection);
         let collection_uid = msg.collection_uid;
@@ -483,7 +479,7 @@ impl Handler<CountTrackTagAvgScoresMessage> for SqliteExecutor {
                 .collect()
         });
         connection.transaction::<_, Error, _>(|| {
-            repository.count_tag_avg_scores(
+            repository.count_tags(
                 collection_uid.as_ref(),
                 facets.as_ref().map(Vec::as_slice),
                 include_non_faceted_tags,
@@ -493,15 +489,15 @@ impl Handler<CountTrackTagAvgScoresMessage> for SqliteExecutor {
     }
 }
 
-pub fn on_count_tag_avg_scores(
+pub fn on_count_track_tags(
     (state, query_tracks, query_pagination, body): (
         State<AppState>,
         Query<TracksQueryParams>,
         Query<Pagination>,
-        Json<CountTagAvgScoresParams>,
+        Json<CountTagsParams>,
     ),
 ) -> FutureResponse<HttpResponse> {
-    let msg = CountTrackTagAvgScoresMessage {
+    let msg = CountTrackTagsMessage {
         collection_uid: query_tracks.into_inner().collection_uid,
         params: body.into_inner(),
         pagination: query_pagination.into_inner(),

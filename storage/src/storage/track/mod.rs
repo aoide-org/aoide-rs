@@ -774,13 +774,13 @@ impl<'a> TrackTags for TrackRepository<'a> {
         Ok(result)
     }
 
-    fn count_tag_avg_scores(
+    fn count_tags(
         &self,
         collection_uid: Option<&EntityUid>,
         facets: Option<&[&str]>,
         include_non_faceted_tags: bool,
         pagination: Pagination,
-    ) -> TrackTagsResult<Vec<TagAvgScoreCount>> {
+    ) -> TrackTagsResult<Vec<TagCount>> {
         let mut target = aux_track_tag::table
             .left_outer_join(aux_tag_facet::table)
             .left_outer_join(aux_tag_label::table)
@@ -826,7 +826,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
         let rows = target.load::<(Option<String>, Option<String>, f64, i64)>(self.connection)?;
         let mut result = Vec::with_capacity(rows.len());
         for row in rows {
-            result.push(TagAvgScoreCount {
+            result.push(TagCount {
                 facet: row.0.map(Into::into),
                 label: row.1.map(Into::into),
                 avg_score: row.2.into(),

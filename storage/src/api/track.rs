@@ -19,8 +19,8 @@ use super::serde::{SerializationFormat, SerializedEntity};
 
 use crate::api::{
     collection::CollectionTrackStats, CountTrackAlbumsParams, FieldStrings, LocateTracksParams,
-    Pagination, ReplaceTracksParams, ReplacedTracks, SearchTracksParams, StringField,
-    TagAvgScoreCount, TagFacetCount,
+    Pagination, ReplaceTracksParams, ReplacedTracks, SearchTracksParams, StringField, TagCount,
+    TagFacetCount,
 };
 
 use failure::Error;
@@ -96,11 +96,11 @@ pub trait TrackTags {
         pagination: Pagination,
     ) -> TrackTagsResult<Vec<TagFacetCount>>;
 
-    fn count_tag_avg_scores(
+    fn count_tags(
         &self,
         collection_uid: Option<&EntityUid>,
         facets: Option<&[&str]>,
         include_non_faceted_tags: bool,
         pagination: Pagination,
-    ) -> TrackTagsResult<Vec<TagAvgScoreCount>>;
+    ) -> TrackTagsResult<Vec<TagCount>>;
 }

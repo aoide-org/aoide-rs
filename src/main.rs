@@ -178,9 +178,9 @@ fn web_app(executor: &Addr<SqliteExecutor>) -> actix_web::App<AppState> {
             },
         );
     })
-    .resource("/tracks/tags/avg-scores/count", |r| {
+    .resource("/tracks/tags/count", |r| {
         r.method(http::Method::POST).with_async_config(
-            on_count_tag_avg_scores,
+            on_count_track_tags,
             |((_, _, _, cfg_body),)| {
                 cfg_body.error_handler(|err, _req| {
                     let err_msg = format!("{}", err);

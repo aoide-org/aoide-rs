@@ -364,9 +364,41 @@ paths:
                   $ref: '#/components/schemas/TrackAlbumCount'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+  /tracks/tags/count:
+    post:
+      summary: Count tracks per tag
+      description: |
+        Count the number of occurrences and avg. score of tags
+        discriminated by their facet and label. Optionally the
+        evaluation can be restricted to a single collection.
+      operationId: countTagsOfTracks
+      tags:
+        - Tracks
+      parameters:
+        - $ref: '#/components/parameters/collectionUidParam'
+        - $ref: '#/components/parameters/paginationOffset'
+        - $ref: '#/components/parameters/paginationLimit'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CountTagsParams'
+      responses:
+        '200':
+          description: |
+            Tag frequencies.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TagCount'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
   /tracks/tags/facets/count:
     post:
-      summary: Count tracks per facet
+      summary: Count tracks per tag facet
       description: |
         Count the number of occurrences of tag facets. Optionally
         the evaluation can be restricted to a single collection.
@@ -393,38 +425,6 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/TagFacetCount'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-  /tracks/tags/avg-scores/count:
-    post:
-      summary: Count tracks and compute avg. score per tag
-      description: |
-        Count the number of occurrences and avg. score of tags
-        discriminated by their facet and label. Optionally the
-        evaluation can be restricted to a single collection.
-      operationId: countTagsOfTracks
-      tags:
-        - Tracks
-      parameters:
-        - $ref: '#/components/parameters/collectionUidParam'
-        - $ref: '#/components/parameters/paginationOffset'
-        - $ref: '#/components/parameters/paginationLimit'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CountTagAvgScoresParams'
-      responses:
-        '200':
-          description: |
-            Tag frequencies.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/TagAvgScoreCount'
         '500':
           $ref: '#/components/responses/500InternalServerError'
 components:
@@ -921,7 +921,7 @@ components:
       example: 44100
       description: |
         The sample rate in Hertz (Hz).
-    Tag:
+    PlainTag:
       type: array
       minLength: 2
       maxLength: 2
@@ -941,19 +941,23 @@ components:
           - $ref: '#/components/schemas/TagLabel'
           - $ref: '#/components/schemas/ScoreValue'
       description: |
-        Tuple of 3 elements containing a facet, a label, and a score value.
-    TagAvgScoreCount:
+        Tuple of 3 elements containing a facet, an optional/nullable label, and a score value.
+    TagCount:
       properties:
-        tag:
-          $ref: '#/components/schemas/Tag'
+        facet:
+          $ref: '#/components/schemas/TagFacet'
+        label:
+          $ref: '#/components/schemas/TagLabel'
+        avgScore:
+          $ref: '#/components/schemas/ScoreValue'
         count:
           $ref: '#/components/schemas/TotalCount'
       required:
-        - tag
+        - avgScore
         - count
       description: >
-        Tag with an average score across all occurrences and the total number of
-        occurrences.
+        Selective tag properties (facet, label) with an average score among
+        all occurrences and the total number of occurrences.
     ScoreValue:
       type: number
       minimum: 0
@@ -972,6 +976,7 @@ components:
         count:
           $ref: '#/components/schemas/TotalCount'
       required:
+        - title
         - count
     TrackSearchFilterNode:
       oneOf:
@@ -1042,7 +1047,7 @@ components:
       description: >
         Albums can be filtered by release year (inclusive).
         Results can be ordered by album title, album artist, and release year.
-    CountTagAvgScoresParams:
+    CountTagsParams:
       properties:
         facets:
           type: array
@@ -1199,9 +1204,10 @@ components:
         count:
           $ref: '#/components/schemas/TotalCount'
       required:
+        - facet
         - count
       description: |
-        Optional tag facet with the total number of occurrences.
+        Tag facet with the total number of occurrences.
     TagFilter:
       properties:
         modifier:
@@ -1296,6 +1302,16 @@ components:
       example: 1746
       description: |
         Total number of occurrences.
+    Tags:
+      properties:
+        plain:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlainTag'
+        faceted:
+          type: array
+          items:
+            $ref: '#/components/schemas/FacetedTag'
     Track:
       properties:
         collections:
@@ -1326,6 +1342,8 @@ components:
           $ref: '#/components/schemas/IndexCount'
         music:
           $ref: '#/components/schemas/TrackMusic'
+        tags:
+          $ref: '#/components/schemas/Tags'
         markers:
           type: array
           items:
@@ -1334,14 +1352,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TrackLock'
-        tags:
-          type: array
-          items:
-            $ref: '#/components/schemas/Tag'
-        ftags:
-          type: array
-          items:
-            $ref: '#/components/schemas/FacetedTag'
     TrackCollection:
       properties:
         uid:
@@ -1411,15 +1421,9 @@ components:
         color:
           $ref: '#/components/schemas/Color'
         tags:
-          type: array
-          items:
-            $ref: '#/components/schemas/Tag'
-        ftags:
-          type: array
-          items:
-            $ref: '#/components/schemas/FacetedTag'
+          $ref: '#/components/schemas/Tags'
       required:
-        - mark
+        - type
       description: >
         Marker to identify points (either start or end) or sections (both start
         and end) within a track
