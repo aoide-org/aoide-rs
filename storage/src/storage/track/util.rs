@@ -223,7 +223,7 @@ impl<'a> TrackRepositoryHelper<'a> {
     }
 
     fn insert_tags(&self, track_id: StorageId, track: &Track) -> Result<(), Error> {
-        for tag in &track.tags {
+        for tag in &track.tags.plain {
             if let Some(label) = tag.label() {
                 let label_id = self.resolve_tag_label(label)?;
                 let insertable =
@@ -233,7 +233,7 @@ impl<'a> TrackRepositoryHelper<'a> {
                     .execute(self.connection)
                 {
                     Err(err) => log::error!(
-                        "Failed to insert tag {:?} for track {}: {}",
+                        "Failed to insert plain tag {:?} for track {}: {}",
                         tag,
                         track_id,
                         err
@@ -242,22 +242,22 @@ impl<'a> TrackRepositoryHelper<'a> {
                 }
             }
         }
-        for ftag in &track.ftags {
-            let facet_id = self.resolve_tag_facet(ftag.facet())?;
-            let label_id = if let Some(label) = ftag.label() {
+        for tag in &track.tags.faceted {
+            let facet_id = self.resolve_tag_facet(tag.facet())?;
+            let label_id = if let Some(label) = tag.label() {
                 Some(self.resolve_tag_label(label)?)
             } else {
                 None
             };
             let insertable =
-                InsertableTracksTag::bind(track_id, Some(facet_id), label_id, ftag.score());
+                InsertableTracksTag::bind(track_id, Some(facet_id), label_id, tag.score());
             match diesel::insert_into(aux_track_tag::table)
                 .values(&insertable)
                 .execute(self.connection)
             {
                 Err(err) => log::error!(
                     "Failed to insert faceted tag {:?} for track {}: {}",
-                    ftag,
+                    tag,
                     track_id,
                     err
                 ),

@@ -217,13 +217,13 @@ impl fmt::Display for Facet {
 }
 
 ///////////////////////////////////////////////////////////////////////
-/// Tag
+/// PlainTag
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Tag(Label, Score);
+pub struct PlainTag(Label, Score);
 
-impl Tag {
+impl PlainTag {
     pub const fn default_score() -> Score {
         Score::max()
     }
@@ -237,29 +237,29 @@ impl Tag {
     }
 }
 
-impl Labeled for Tag {
+impl Labeled for PlainTag {
     fn label(&self) -> Option<&Label> {
         Some(&self.0)
     }
 }
 
-impl Scored for Tag {
+impl Scored for PlainTag {
     fn score(&self) -> Score {
         self.1
     }
 }
 
-impl IsValid for Tag {
+impl IsValid for PlainTag {
     fn is_valid(&self) -> bool {
         self.label().map(IsValid::is_valid).unwrap_or(false) && self.score().is_valid()
     }
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Tags;
+pub struct PlainTags;
 
-impl Tags {
-    pub fn all_valid(slice: &[Tag]) -> bool {
+impl PlainTags {
+    pub fn all_valid(slice: &[PlainTag]) -> bool {
         // TODO: Check for duplicate labels
         slice.iter().all(IsValid::is_valid)
     }
@@ -311,6 +311,21 @@ impl FacetedTags {
     pub fn all_valid(slice: &[FacetedTag]) -> bool {
         // TODO: Check for duplicate labels per facet
         slice.iter().all(IsValid::is_valid)
+    }
+}
+
+#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Tags {
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub plain: Vec<PlainTag>, // no duplicate labels allowed
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub faceted: Vec<FacetedTag>, // no duplicate labels per facet allowed
+}
+
+impl IsValid for Tags {
+    fn is_valid(&self) -> bool {
+        PlainTags::all_valid(&self.plain) && FacetedTags::all_valid(&self.faceted)
     }
 }
 

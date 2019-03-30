@@ -65,13 +65,8 @@ pub struct TrackMarker {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub color: Option<ColorArgb>,
 
-    /// Simple tags
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub tags: Vec<Tag>, // no duplicate terms allowed
-
-    /// Faceted tags
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub ftags: Vec<FacetedTag>, // no duplicate terms per facet allowed
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    pub tags: Tags,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -152,6 +147,7 @@ impl IsValid for TrackMarkers {
             && self.end.iter().all(IsValid::is_valid)
             && self.label.iter().all(|label| !label.trim().is_empty())
             && self.color.iter().all(ColorArgb::is_valid)
+            && self.tags.is_valid()
             && match TrackMarkerType::from(self) {
                 TrackMarkerType::LoadCue | TrackMarkerType::HotCue => self.end.is_none(), // not available
                 TrackMarkerType::Intro | TrackMarkerType::Outro => {

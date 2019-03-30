@@ -216,13 +216,8 @@ pub struct Track {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub actors: Vec<Actor>,
 
-    /// Simple tags
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub tags: Vec<Tag>, // no duplicate terms allowed
-
-    /// Faceted tags
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub ftags: Vec<FacetedTag>, // no duplicate terms per facet allowed
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    pub tags: Tags,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub markers: Vec<TrackMarkers>,
@@ -261,7 +256,7 @@ impl Track {
 
     /*
     pub const fn genres(&self) -> Vec<&FacetedTag> {
-        self.ftags
+        self.tags.faceted
             .iter()
             .filter(|f| f == &*FACET_GENRE)
             .collect()
@@ -282,8 +277,7 @@ impl IsValid for Track {
             && self.music.is_valid()
             && Titles::all_valid(&self.titles)
             && Actors::all_valid(&self.actors)
-            && Tags::all_valid(&self.tags)
-            && FacetedTags::all_valid(&self.ftags)
+            && self.tags.is_valid()
             && TrackMarkers::all_valid(&self.markers)
             && TrackLocks::all_valid(&self.locks)
     }
