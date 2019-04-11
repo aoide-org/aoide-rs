@@ -247,7 +247,7 @@ impl Track {
     }
 
     pub fn main_album_title(&self) -> Option<&Title> {
-        self.album.as_ref().and_then(|album| album.main_title())
+        self.album.as_ref().and_then(AlbumMetadata::main_title)
     }
 
     pub fn main_album_actor(&self, role: ActorRole) -> Option<&Actor> {

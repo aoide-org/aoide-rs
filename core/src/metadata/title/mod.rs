@@ -76,14 +76,14 @@ impl Titles {
             titles
                 .iter()
                 .filter(|title| title.level == level
-                    && title.language.as_ref().map(|v| v.as_str()) == language)
+                    && title.language.as_ref().map(String::as_str) == language)
                 .count()
                 <= 1
         );
         titles
             .iter()
             .filter(|title| {
-                title.level == level && title.language.as_ref().map(|v| v.as_str()) == language
+                title.level == level && title.language.as_ref().map(String::as_str) == language
             })
             .nth(0)
     }

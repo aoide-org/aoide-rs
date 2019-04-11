@@ -88,7 +88,7 @@ pub struct Actors;
 
 impl Actors {
     pub fn all_valid(actors: &[Actor]) -> bool {
-        actors.iter().all(|actor| actor.is_valid())
+        actors.iter().all(IsValid::is_valid)
         // TODO:
         // - at most one summary entry exists for each role
         // - at least one summary entry exists if more than one primary entry exists for disambiguation
