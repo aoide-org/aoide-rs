@@ -398,7 +398,7 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
                     Box::new(aux_track_source::audio_duration.gt(value))
                 }
                 NumericPredicate::GreaterOrEqual(value) => {
-                    Box::new(aux_track_source::audio_duration.gt(value))
+                    Box::new(aux_track_source::audio_duration.ge(value))
                 }
                 NumericPredicate::Equal(value) => {
                     if let Some(value) = value {
@@ -427,7 +427,7 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
                     Box::new(aux_track_source::audio_samplerate.gt(value as i32))
                 }
                 NumericPredicate::GreaterOrEqual(value) => {
-                    Box::new(aux_track_source::audio_samplerate.gt(value as i32))
+                    Box::new(aux_track_source::audio_samplerate.ge(value as i32))
                 }
                 NumericPredicate::Equal(value) => {
                     if let Some(value) = value {
@@ -456,7 +456,7 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
                     Box::new(aux_track_source::audio_bitrate.gt(value as i32))
                 }
                 NumericPredicate::GreaterOrEqual(value) => {
-                    Box::new(aux_track_source::audio_bitrate.gt(value as i32))
+                    Box::new(aux_track_source::audio_bitrate.ge(value as i32))
                 }
                 NumericPredicate::Equal(value) => {
                     if let Some(value) = value {
@@ -485,7 +485,7 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
                     Box::new(aux_track_source::audio_channel_count.gt(value as i16))
                 }
                 NumericPredicate::GreaterOrEqual(value) => {
-                    Box::new(aux_track_source::audio_channel_count.gt(value as i16))
+                    Box::new(aux_track_source::audio_channel_count.ge(value as i16))
                 }
                 NumericPredicate::Equal(value) => {
                     if let Some(value) = value {
@@ -513,7 +513,7 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
                     Box::new(aux_track_source::audio_loudness.gt(value))
                 }
                 NumericPredicate::GreaterOrEqual(value) => {
-                    Box::new(aux_track_source::audio_loudness.gt(value))
+                    Box::new(aux_track_source::audio_loudness.ge(value))
                 }
                 NumericPredicate::Equal(value) => {
                     if let Some(value) = value {
@@ -542,7 +542,7 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
                     Box::new(aux_track_brief::release_year.gt(value as i16))
                 }
                 NumericPredicate::GreaterOrEqual(value) => {
-                    Box::new(aux_track_brief::release_year.gt(value as i16))
+                    Box::new(aux_track_brief::release_year.ge(value as i16))
                 }
                 NumericPredicate::Equal(value) => {
                     if let Some(value) = value {
@@ -570,7 +570,7 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
                     Box::new(aux_track_brief::music_tempo.gt(value))
                 }
                 NumericPredicate::GreaterOrEqual(value) => {
-                    Box::new(aux_track_brief::music_tempo.gt(value))
+                    Box::new(aux_track_brief::music_tempo.ge(value))
                 }
                 NumericPredicate::Equal(value) => {
                     if let Some(value) = value {
@@ -599,7 +599,7 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
                     Box::new(aux_track_brief::music_key.gt(value as i16))
                 }
                 NumericPredicate::GreaterOrEqual(value) => {
-                    Box::new(aux_track_brief::music_key.gt(value as i16))
+                    Box::new(aux_track_brief::music_key.ge(value as i16))
                 }
                 NumericPredicate::Equal(value) => {
                     if let Some(value) = value {
