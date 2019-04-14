@@ -8,7 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added missing database indexes to improve serach performance
+
 ### Changed
+
+- Fixed GreaterOrEqual numeric filtering
 
 ### Removed
 
