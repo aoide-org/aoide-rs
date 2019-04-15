@@ -15,9 +15,9 @@
 
 use super::*;
 
-use crate::{audio::PositionMs, util::color::*};
+use crate::{audio::PositionMs, util::color::*, music::{key::*, time::*}};
 
-use std::ops::{Deref, DerefMut};
+use std::{f64, ops::{Deref, DerefMut}};
 
 ///////////////////////////////////////////////////////////////////////
 /// PositionMarker
@@ -186,6 +186,121 @@ impl PositionMarker {
                 && (!marker.r#type().is_singular()
                     || Self::count_by_type(markers, marker.r#type()) <= 1)
         })
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct BeatMarker {
+    pub start: PositionMs,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end: Option<PositionMs>,
+
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    pub tempo: TempoBpm,
+
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    pub timing: TimeSignature,
+}
+
+impl BeatMarker {
+    pub fn all_valid(markers: &[BeatMarker]) -> bool {
+        let mut min_pos = PositionMs(f64::NEG_INFINITY);
+        for marker in markers {
+            if !marker.is_valid() {
+                return false;
+            }
+            // Ordered and non-overlapping
+            if min_pos > marker.start {
+                return false;
+            }
+            min_pos = marker.start;
+            if let Some(end) = marker.end {
+                if min_pos > end {
+                    return false;
+                }
+                min_pos = end;
+            }
+        }
+        true
+    }
+
+    pub fn uniform_tempo(markers: &[BeatMarker]) -> Option<TempoBpm> {
+        let mut tempo = None;
+        for marker in markers {
+            if !marker.tempo.is_default() {
+                if let Some(tempo) = tempo {
+                    if marker.tempo != tempo {
+                        return None;
+                    }
+                }
+                tempo = Some(marker.tempo);
+            }
+        }
+        tempo
+    }
+}
+
+impl IsValid for BeatMarker {
+    fn is_valid(&self) -> bool {
+        !(self.tempo.is_default() && self.timing.is_default())
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct KeyMarker {
+    pub start: PositionMs,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end: Option<PositionMs>,
+
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    pub key: KeySignature,
+}
+
+impl KeyMarker {
+    pub fn all_valid(markers: &[KeyMarker]) -> bool {
+        let mut min_pos = PositionMs(f64::NEG_INFINITY);
+        for marker in markers {
+            if !marker.is_valid() {
+                return false;
+            }
+            // Ordered and non-overlapping
+            if min_pos > marker.start {
+                return false;
+            }
+            min_pos = marker.start;
+            if let Some(end) = marker.end {
+                if min_pos > end {
+                    return false;
+                }
+                min_pos = end;
+            }
+        }
+        true
+    }
+
+    pub fn uniform_key(markers: &[KeyMarker]) -> Option<KeySignature> {
+        let mut key = None;
+        for marker in markers {
+            if !marker.key.is_default() {
+                if let Some(key) = key {
+                    if marker.key != key {
+                        return None;
+                    }
+                }
+                key = Some(marker.key);
+            }
+        }
+        key
+    }
+}
+
+impl IsValid for KeyMarker {
+    fn is_valid(&self) -> bool {
+        !self.key.is_default()
     }
 }
 

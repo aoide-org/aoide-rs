@@ -244,16 +244,8 @@ impl<'a> InsertableTracksBrief<'a> {
             track_count: track.track_numbers.count().map(|count| count as i16),
             disc_index: track.disc_numbers.index().map(|index| index as i16),
             disc_count: track.disc_numbers.count().map(|count| count as i16),
-            music_tempo: if track.music.tempo.is_valid() {
-                Some(track.music.tempo.0)
-            } else {
-                None
-            },
-            music_key: if track.music.key.is_valid() {
-                Some(i16::from(track.music.key.code()))
-            } else {
-                None
-            },
+            music_tempo: BeatMarker::uniform_tempo(&track.beat_markers).map(|tempo| tempo.0),
+            music_key: KeyMarker::uniform_key(&track.key_markers).map(|key| i16::from(key.code())),
         }
     }
 }

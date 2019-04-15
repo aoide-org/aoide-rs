@@ -26,7 +26,6 @@ use self::{album::*, collection::*, marker::*, release::*, source::*};
 use crate::{
     entity::*,
     metadata::{actor::*, title::*, *},
-    music::{key::*, time::*},
 };
 
 use lazy_static::lazy_static;
@@ -127,31 +126,6 @@ lazy_static! {
 }
 
 ///////////////////////////////////////////////////////////////////////
-/// TrackMusic
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct TrackMusic {
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
-    pub tempo: TempoBpm,
-
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
-    pub key: KeySignature,
-
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
-    pub timing: TimeSignature,
-}
-
-impl IsValid for TrackMusic {
-    fn is_valid(&self) -> bool {
-        (self.tempo.is_valid() || self.tempo.is_default())
-            && (self.key.is_valid() || self.key.is_default())
-            && (self.timing.is_valid() || self.timing.is_default())
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
 /// TrackLock
 ///////////////////////////////////////////////////////////////////////
 
@@ -207,9 +181,6 @@ pub struct Track {
     #[serde(skip_serializing_if = "IsDefault::is_default", default)]
     pub movement_numbers: IndexCount,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
-    pub music: TrackMusic,
-
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub titles: Vec<Title>,
 
@@ -221,6 +192,12 @@ pub struct Track {
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub position_markers: Vec<PositionMarker>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub beat_markers: Vec<BeatMarker>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub key_markers: Vec<KeyMarker>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub locks: Vec<TrackLock>,
@@ -274,11 +251,12 @@ impl IsValid for Track {
             && (self.track_numbers.is_valid() || self.track_numbers.is_default())
             && (self.disc_numbers.is_valid() || self.disc_numbers.is_default())
             && (self.movement_numbers.is_valid() || self.movement_numbers.is_default())
-            && self.music.is_valid()
             && Titles::all_valid(&self.titles)
             && Actors::all_valid(&self.actors)
             && self.tags.is_valid()
             && PositionMarker::all_valid(&self.position_markers)
+            && BeatMarker::all_valid(&self.beat_markers)
+            && KeyMarker::all_valid(&self.key_markers)
             && TrackLocks::all_valid(&self.locks)
     }
 }
