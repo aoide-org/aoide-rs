@@ -220,7 +220,7 @@ pub struct Track {
     pub tags: Tags,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub markers: Vec<TrackMarkers>,
+    pub position_markers: Vec<PositionMarker>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub locks: Vec<TrackLock>,
@@ -278,7 +278,7 @@ impl IsValid for Track {
             && Titles::all_valid(&self.titles)
             && Actors::all_valid(&self.actors)
             && self.tags.is_valid()
-            && TrackMarkers::all_valid(&self.markers)
+            && PositionMarker::all_valid(&self.position_markers)
             && TrackLocks::all_valid(&self.locks)
     }
 }

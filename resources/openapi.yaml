@@ -1344,10 +1344,10 @@ components:
           $ref: '#/components/schemas/TrackMusic'
         tags:
           $ref: '#/components/schemas/Tags'
-        markers:
+        positionMarkers:
           type: array
           items:
-            $ref: '#/components/schemas/TrackMarker'
+            $ref: '#/components/schemas/PositionMarker'
         locks:
           type: array
           items:
@@ -1383,7 +1383,7 @@ components:
         - tempo
         - key
         - timing
-    TrackMarkerType:
+    PositionMarkerType:
       type: string
       enum:
         - load-cue
@@ -1405,10 +1405,10 @@ components:
         * `loop`
 
         * `sample`
-    TrackMarker:
+    PositionMarker:
       properties:
         type:
-          $ref: '#/components/schemas/TrackMarkerType'
+          $ref: '#/components/schemas/PositionMarkerType'
         start:
           $ref: '#/components/schemas/PositionMs'
         end:
