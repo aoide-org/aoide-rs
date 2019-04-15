@@ -22,8 +22,8 @@ aoide-storage = { path = "storage" }
 [dependencies]
 aoide-core = "*"
 aoide-storage = "*"
-actix = "*"
-actix-web = "*"
+actix = "0.7"
+actix-web = "0.7"
 clap = "*"
 diesel = { version = "*", features = ["r2d2", "sqlite"] }
 diesel_migrations =  { version = "*", features = ["sqlite"] }
