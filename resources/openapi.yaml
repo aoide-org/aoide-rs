@@ -1076,14 +1076,6 @@ components:
             all faceted tags whereas a missing/null array includes all
             faceted tags!
           example: ['genre', 'comment']
-    TrackMusic:
-      properties:
-        tempo:
-          $ref: '#/components/schemas/TempoBpm'
-        key:
-          $ref: '#/components/schemas/KeyCode'
-        timing:
-          $ref: '#/components/schemas/TimeSignature'
     SortDirection:
       type: string
       enum:
@@ -1340,14 +1332,24 @@ components:
           $ref: '#/components/schemas/IndexCount'
         movementNumbers:
           $ref: '#/components/schemas/IndexCount'
-        music:
-          $ref: '#/components/schemas/TrackMusic'
         tags:
           $ref: '#/components/schemas/Tags'
         positionMarkers:
           type: array
           items:
             $ref: '#/components/schemas/PositionMarker'
+        beatMarkers:
+          type: array
+          items:
+            $ref: '#/components/schemas/BeatMarker'
+          description: |
+            All beat markers must be sorted by their non-overlapping positions.
+        keyMarkers:
+          type: array
+          items:
+            $ref: '#/components/schemas/KeyMarker'
+          description: |
+            All key markers must be sorted by their non-overlapping positions.
         locks:
           type: array
           items:
@@ -1427,6 +1429,38 @@ components:
       description: >
         Marker to identify points (either start or end) or sections (both start
         and end) within a track
+    BeatMarker:
+      properties:
+        start:
+          $ref: '#/components/schemas/PositionMs'
+        end:
+          $ref: '#/components/schemas/PositionMs'
+        tempo:
+          $ref: '#/components/schemas/TempoBpm'
+        timing:
+          $ref: '#/components/schemas/TimeSignature'
+      required:
+        - start
+      description: >
+        Section of a beat grid with uniform tempo and timiming). Either
+        tempo or timing is required. If the end position is missing the
+        section ends with the start of the following marker or at the
+        end of the track.
+    KeyMarker:
+      properties:
+        start:
+          $ref: '#/components/schemas/PositionMs'
+        end:
+          $ref: '#/components/schemas/PositionMs'
+        key:
+          $ref: '#/components/schemas/KeyCode'
+      required:
+        - start
+        - key
+      description: >
+        Section with a uniform musical key signature. If the end position
+        is missing the section ends with the start of the following marker
+        or at the end of the track.
     TrackReplacement:
       properties:
         uri:
