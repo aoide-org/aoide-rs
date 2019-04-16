@@ -13,6 +13,7 @@ failure = "*"
 lazy_static = "*"
 log = "*"
 mime = "*"
+num-traits = "*"
 rand = "*"
 serde = { version = "*", features = ["derive"] }
 

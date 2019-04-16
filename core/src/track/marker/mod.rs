@@ -15,9 +15,18 @@
 
 use super::*;
 
-use crate::{audio::PositionMs, util::color::*, music::{key::*, time::*}};
+use crate::{
+    audio::PositionMs,
+    music::{key::*, time::*},
+    util::color::*,
+};
 
-use std::{f64, ops::{Deref, DerefMut}};
+use num_traits::identities::Zero;
+
+use std::{
+    f64,
+    ops::{Deref, DerefMut},
+};
 
 ///////////////////////////////////////////////////////////////////////
 /// PositionMarker
@@ -83,7 +92,9 @@ pub enum PositionMarkerType {
 impl PositionMarkerType {
     pub fn is_singular(self) -> bool {
         match self {
-            PositionMarkerType::LoadCue | PositionMarkerType::Intro | PositionMarkerType::Outro => true, // cardinality = 0..1
+            PositionMarkerType::LoadCue | PositionMarkerType::Intro | PositionMarkerType::Outro => {
+                true
+            } // cardinality = 0..1
             _ => false, // cardinality = *
         }
     }
@@ -202,6 +213,10 @@ pub struct BeatMarker {
 
     #[serde(skip_serializing_if = "IsDefault::is_default", default)]
     pub timing: TimeSignature,
+
+    /// The beat 1..n (with n = `timing.beats_per_measure()`) in a bar or 0 if unknown
+    #[serde(skip_serializing_if = "num_traits::identities::Zero::is_zero", default)]
+    pub beat: BeatNumber,
 }
 
 impl BeatMarker {
@@ -245,6 +260,11 @@ impl BeatMarker {
 impl IsValid for BeatMarker {
     fn is_valid(&self) -> bool {
         !(self.tempo.is_default() && self.timing.is_default())
+            && (self.tempo.is_default() || self.tempo.is_valid())
+            && (self.timing.is_default() || self.timing.is_valid())
+            && (self.timing.is_default()
+                || self.beat.is_zero()
+                || (self.beat <= self.timing.beats_per_measure()))
     }
 }
 

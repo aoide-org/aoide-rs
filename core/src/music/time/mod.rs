@@ -56,29 +56,31 @@ impl fmt::Display for TempoBpm {
 /// TimeSignature
 ///////////////////////////////////////////////////////////////////////
 
+pub type BeatNumber = u16;
+
 #[derive(Clone, Copy, Default, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct TimeSignature(u16, u16);
+pub struct TimeSignature(BeatNumber, BeatNumber);
 
 impl TimeSignature {
-    pub fn new(top: u16, bottom: u16) -> Self {
+    pub fn new(top: BeatNumber, bottom: BeatNumber) -> Self {
         TimeSignature(top, bottom)
     }
 
     // number of beats in each measure unit or bar, 0 = default/undefined
-    pub fn top(self) -> u16 {
+    pub fn top(self) -> BeatNumber {
         self.0
     }
 
-    pub fn beats_per_measure(self) -> u16 {
+    pub fn beats_per_measure(self) -> BeatNumber {
         self.top()
     }
 
     // beat value (the note that counts as one beat), 0 = default/undefined
-    pub fn bottom(self) -> u16 {
+    pub fn bottom(self) -> BeatNumber {
         self.1
     }
 
-    pub fn measure_unit(self) -> u16 {
+    pub fn measure_unit(self) -> BeatNumber {
         self.bottom()
     }
 }

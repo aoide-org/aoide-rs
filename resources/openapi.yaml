@@ -726,12 +726,11 @@ components:
         Both values are optional and might be `null`.
     KeyCode:
       type: integer
-      minimum: 0
+      minimum: 1
       maximum: 24
       example: 1
       description: |
         The key signature is denoted by a code with one of the following values:
-          * 0 = unknown/invalid
           * 1 = C maj
           * 2 = A min
           * 3 = G maj
@@ -1240,9 +1239,16 @@ components:
       description: >
         Tuple of 2 elements containing the top and bottom values of the time
         signature.
+    BeatNumber:
+      type: integer
+      minimum: 1
+      maximum: 65535
+      example: 1
+      description: >
+        The beat 1..n in a bar.
     TimeSignatureTop:
       type: integer
-      minimum: 0
+      minimum: 1
       maximum: 65535
       example: 3
       description: >
@@ -1250,7 +1256,7 @@ components:
         each measure or bar.
     TimeSignatureBottom:
       type: integer
-      minimum: 0
+      minimum: 1
       maximum: 65535
       example: 4
       description: >
@@ -1438,13 +1444,15 @@ components:
           $ref: '#/components/schemas/TempoBpm'
         timing:
           $ref: '#/components/schemas/TimeSignature'
+        beat:
+          $ref: '#/components/schemas/BeatNumber'
       required:
         - start
       description: >
         Section of a beat grid with uniform tempo and timiming). Either
         tempo or timing is required. If the end position is missing the
         section ends with the start of the following marker or at the
-        end of the track.
+        end of the track. The beat number must fit into the time signature.
     KeyMarker:
       properties:
         start:
