@@ -133,9 +133,8 @@ lazy_static! {
 #[serde(deny_unknown_fields, rename_all = "lowercase")]
 pub enum TrackLock {
     Loudness,
-    Tempo,
-    Key,
-    Timing,
+    Beats,
+    Keys,
 }
 
 impl IsValid for TrackLock {

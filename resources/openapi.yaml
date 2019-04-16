@@ -1382,9 +1382,8 @@ components:
       type: string
       enum:
         - loudness
-        - tempo
-        - key
-        - timing
+        - beats
+        - keys
     PositionMarkerType:
       type: string
       enum:
