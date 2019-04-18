@@ -36,19 +36,20 @@ We will use time-based measurements for encoding positions and durations in
 digital audio streams to avoid dependencies on the actual encoding (sample rate,
 number of channels) of the data.
 
-Values will be encoded as floating-point numbers with millisecond precision.
+Values will be encoded as floating-point numbers using milliseconds as the unit.
 
 ## Consequences
 
-A common representation for positions and durations are seconds as a floating-point
-number. When importing or exporting data one has to convert between seconds and
-milliseconds by multiplying/dividing by 1000.
+Seconds as a floating-point number are a commonly used for positions and durations.
+When importing or exporting data one has to convert between seconds and milliseconds
+by multiplying/dividing by 1000.
 
-For an internal floating point representation the actual unit doesn't really matter,
-not considering slight rounding errors caused by binary vs. decimal floating-point
-encoding. If the number of decimal places is fixed in the textual representation
-then the integer part of the millisecond value still provides a decent precision
-that might be sufficient for many use case.
+Since the internal representation uses floating-point the actual unit doesn't really
+matter, not considering slight rounding errors caused by binary vs. decimal
+floating-point encoding. But if the number of decimal places of the textual
+representation is limited or fixed then using milliseconds provides a higher
+precision.
 
 Using integers with millisecond precision (e.g. for track durations) will improve
-the readability in JSON and is more compact.
+the readability in JSON and is more compact. Floating-point numbers in JSON do not
+require a decimal point.
