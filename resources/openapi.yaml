@@ -1397,6 +1397,7 @@ components:
         - hot-cue
         - intro
         - outro
+        - phrase
         - loop
         - sample
       description: >
@@ -1405,13 +1406,15 @@ components:
 
         * `hot-cue` - jump point
 
-        * `intro` - only one per track
+        * `intro` - only one per track (forward only)
 
-        * `outro` - only one per track
+        * `outro` - only one per track (forward only)
 
-        * `loop`
+        * `phrase` - custom sections in the track (forward only)
 
-        * `sample`
+        * `loop` - sections that are played as loops (forward or backward)
+
+        * `sample` - sections that are played as samples (forward or backward)
     PositionMarker:
       properties:
         type:

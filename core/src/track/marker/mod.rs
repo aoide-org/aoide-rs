@@ -47,14 +47,15 @@ use std::{
 ///
 /// The following restrictions apply to the different types of track markers:
 ///
-/// | Mark   | Start    | End     | Constraints  | Cardinality |
-/// |--------|----------|---------|--------------|-------------|
-/// |load-cue|some      |none     |              |0..1         |
-/// |hot-cue |some      |none     |              |*            |
-/// |intro   |none/some |none/some|start<end     |0..1         |
-/// |outro   |none/some |none/some|start<end     |0..1         |
-/// |loop    |some      |some     |start<>end    |*            |
-/// |sample  |some      |some     |start<>end    |*            |
+/// | Mark   | Start    | End     | Constraints  | Direction | Cardinality |
+/// |--------|----------|---------|--------------|-----------|-------------|
+/// |load-cue|some      |none     |              |           |0..1         |
+/// |hot-cue |some      |none     |              |           |*            |
+/// |intro   |none/some |none/some|start<end     | fwd       |0..1         |
+/// |outro   |none/some |none/some|start<end     | fwd       |0..1         |
+/// |phrase  |some      |some     |start<end     | fwd       |*            |
+/// |loop    |some      |some     |start<>end    | fwd/bwd   |*            |
+/// |sample  |some      |some     |start<>end    | fwd/bwd   |*            |
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -85,6 +86,7 @@ pub enum PositionMarkerType {
     HotCue,
     Intro,
     Outro,
+    Phrase,
     Loop,
     Sample,
 }
@@ -107,6 +109,7 @@ pub enum PositionMarker {
     HotCue(PositionMarkerData),
     Intro(PositionMarkerData),
     Outro(PositionMarkerData),
+    Phrase(PositionMarkerData),
     Loop(PositionMarkerData),
     Sample(PositionMarkerData),
 }
@@ -118,6 +121,7 @@ impl From<&PositionMarker> for PositionMarkerType {
             PositionMarker::HotCue(_) => PositionMarkerType::HotCue,
             PositionMarker::Intro(_) => PositionMarkerType::Intro,
             PositionMarker::Outro(_) => PositionMarkerType::Outro,
+            PositionMarker::Phrase(_) => PositionMarkerType::Phrase,
             PositionMarker::Loop(_) => PositionMarkerType::Loop,
             PositionMarker::Sample(_) => PositionMarkerType::Sample,
         }
@@ -133,6 +137,7 @@ impl Deref for PositionMarker {
             PositionMarker::HotCue(data) => data,
             PositionMarker::Intro(data) => data,
             PositionMarker::Outro(data) => data,
+            PositionMarker::Phrase(data) => data,
             PositionMarker::Loop(data) => data,
             PositionMarker::Sample(data) => data,
         }
@@ -146,6 +151,7 @@ impl DerefMut for PositionMarker {
             PositionMarker::HotCue(data) => data,
             PositionMarker::Intro(data) => data,
             PositionMarker::Outro(data) => data,
+            PositionMarker::Phrase(data) => data,
             PositionMarker::Loop(data) => data,
             PositionMarker::Sample(data) => data,
         }
@@ -161,7 +167,9 @@ impl IsValid for PositionMarker {
             && self.tags.is_valid()
             && match PositionMarkerType::from(self) {
                 PositionMarkerType::LoadCue | PositionMarkerType::HotCue => self.end.is_none(), // not available
-                PositionMarkerType::Intro | PositionMarkerType::Outro => {
+                PositionMarkerType::Intro
+                | PositionMarkerType::Outro
+                | PositionMarkerType::Phrase => {
                     if let (Some(start), Some(end)) = (self.start, self.end) {
                         start < end
                     } else {
