@@ -51,7 +51,7 @@ use std::{
 /// |hot-cue |point      |some      |none     |              |           |*            |
 /// |intro   |point/range|none/some |none/some|start<end     | fwd       |0..1         |
 /// |outro   |point/range|none/some |none/some|start<end     | fwd       |0..1         |
-/// |phrase  |point/range|none/some |none/some|start<end     | fwd       |*            |
+/// |section |point/range|none/some |none/some|start<end     | fwd       |*            |
 /// |loop    |range      |some      |some     |start<>end    | fwd/bkwd  |*            |
 /// |sample  |range      |some      |some     |start<>end    | fwd/bkwd  |*            |
 
@@ -84,7 +84,7 @@ pub enum PositionMarkerType {
     HotCue,
     Intro,
     Outro,
-    Phrase,
+    Section,
     Loop,
     Sample,
 }
@@ -107,7 +107,7 @@ pub enum PositionMarker {
     HotCue(PositionMarkerData),
     Intro(PositionMarkerData),
     Outro(PositionMarkerData),
-    Phrase(PositionMarkerData),
+    Section(PositionMarkerData),
     Loop(PositionMarkerData),
     Sample(PositionMarkerData),
 }
@@ -119,7 +119,7 @@ impl From<&PositionMarker> for PositionMarkerType {
             PositionMarker::HotCue(_) => PositionMarkerType::HotCue,
             PositionMarker::Intro(_) => PositionMarkerType::Intro,
             PositionMarker::Outro(_) => PositionMarkerType::Outro,
-            PositionMarker::Phrase(_) => PositionMarkerType::Phrase,
+            PositionMarker::Section(_) => PositionMarkerType::Section,
             PositionMarker::Loop(_) => PositionMarkerType::Loop,
             PositionMarker::Sample(_) => PositionMarkerType::Sample,
         }
@@ -135,7 +135,7 @@ impl Deref for PositionMarker {
             PositionMarker::HotCue(data) => data,
             PositionMarker::Intro(data) => data,
             PositionMarker::Outro(data) => data,
-            PositionMarker::Phrase(data) => data,
+            PositionMarker::Section(data) => data,
             PositionMarker::Loop(data) => data,
             PositionMarker::Sample(data) => data,
         }
@@ -149,7 +149,7 @@ impl DerefMut for PositionMarker {
             PositionMarker::HotCue(data) => data,
             PositionMarker::Intro(data) => data,
             PositionMarker::Outro(data) => data,
-            PositionMarker::Phrase(data) => data,
+            PositionMarker::Section(data) => data,
             PositionMarker::Loop(data) => data,
             PositionMarker::Sample(data) => data,
         }
@@ -167,7 +167,7 @@ impl IsValid for PositionMarker {
                 PositionMarkerType::LoadCue | PositionMarkerType::HotCue => self.end.is_none(), // not available
                 PositionMarkerType::Intro
                 | PositionMarkerType::Outro
-                | PositionMarkerType::Phrase => {
+                | PositionMarkerType::Section => {
                     if let (Some(start), Some(end)) = (self.start, self.end) {
                         start < end
                     } else {

@@ -1397,20 +1397,19 @@ components:
         - hot-cue
         - intro
         - outro
-        - phrase
+        - section
         - loop
         - sample
       description: >
-        * `load-cue` - default start point when loading a track, only one per
-        track
+        * `load-cue` - singular start/cue point that marks the initial position when loading a track
 
-        * `hot-cue` - jump point
+        * `hot-cue` - custom start/cue points in a track
 
-        * `intro` - only one per track (forward only)
+        * `intro` - singular intro section (or point) of a track (forward only)
 
-        * `outro` - only one per track (forward only)
+        * `outro` - singular outro section (or point) of a track (forward only)
 
-        * `phrase` - custom sections in the track (forward only)
+        * `section` - custom sections (or points) without predefined semantics (forward only)
 
         * `loop` - sections that are played as loops (forward or backward)
 
