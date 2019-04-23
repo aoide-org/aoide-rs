@@ -32,30 +32,28 @@ use std::{
 /// PositionMarker
 ///////////////////////////////////////////////////////////////////////
 
-/// Position markers identify distinctive points or sections within the
-/// audio stream.
+/// Position markers identify distinctive points or ranges/sections
+/// within the audio stream.
 ///
-/// Points as well as the starting points of sections are identified
-/// by an _offset_ measured from the start of the track. Negative
-/// offsets denote points before the start of the track.
+/// Points as well as the boundary points of ranges are measured from
+/// the start of the track.
 ///
-/// Sections are denoted by a non-zero _extent_ relative to their
-/// _offset_, i.e. an _offset from the offset_. Negative extents
-/// denote sections that are traversed in reverse playback direction.
+/// Both _loop_ and _sample_ markers allow to set _start_ > _end_ for
+/// reversing the playback direction.
 ///
 /// # Position marker rules
 ///
-/// The following restrictions apply to the different types of track markers:
+/// The following restrictions apply to the different types of position markers:
 ///
-/// | Mark   | Start    | End     | Constraints  | Direction | Cardinality |
-/// |--------|----------|---------|--------------|-----------|-------------|
-/// |load-cue|some      |none     |              |           |0..1         |
-/// |hot-cue |some      |none     |              |           |*            |
-/// |intro   |none/some |none/some|start<end     | fwd       |0..1         |
-/// |outro   |none/some |none/some|start<end     | fwd       |0..1         |
-/// |phrase  |some      |some     |start<end     | fwd       |*            |
-/// |loop    |some      |some     |start<>end    | fwd/bwd   |*            |
-/// |sample  |some      |some     |start<>end    | fwd/bwd   |*            |
+/// | Type   | Extent    | Start    | End     | Constraints  | Direction | Cardinality |
+/// |--------|-----------|----------|---------|--------------|-----------|-------------|
+/// |load-cue|point      |some      |none     |              |           |0..1         |
+/// |hot-cue |point      |some      |none     |              |           |*            |
+/// |intro   |point/range|none/some |none/some|start<end     | fwd       |0..1         |
+/// |outro   |point/range|none/some |none/some|start<end     | fwd       |0..1         |
+/// |phrase  |point/range|none/some |none/some|start<end     | fwd       |*            |
+/// |loop    |range      |some      |some     |start<>end    | fwd/bkwd  |*            |
+/// |sample  |range      |some      |some     |start<>end    | fwd/bkwd  |*            |
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
