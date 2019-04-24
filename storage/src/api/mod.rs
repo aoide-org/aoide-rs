@@ -137,6 +137,16 @@ impl TagFilter {
     }
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct MarkerFilter {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modifier: Option<FilterModifier>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label: Option<StringPredicate>,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub enum StringField {
@@ -297,6 +307,7 @@ pub enum TrackSearchFilter {
     Phrase(PhraseFilter),
     Numeric(NumericFilter),
     Tag(TagFilter),
+    Marker(MarkerFilter),
     All(Vec<TrackSearchFilter>),
     Any(Vec<TrackSearchFilter>),
     Not(Box<TrackSearchFilter>),

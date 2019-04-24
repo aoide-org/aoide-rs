@@ -113,6 +113,24 @@ joinable!(aux_track_tag -> tbl_track (track_id));
 joinable!(aux_track_tag -> aux_tag_label (label_id));
 joinable!(aux_track_tag -> aux_tag_facet (facet_id));
 
+table! {
+    aux_marker_label (id) {
+        id -> BigInt,
+        label -> Text,
+    }
+}
+
+table! {
+    aux_track_marker (id) {
+        id -> BigInt,
+        track_id -> BigInt,
+        label_id -> BigInt,
+    }
+}
+
+joinable!(aux_track_marker -> tbl_track (track_id));
+joinable!(aux_track_marker -> aux_marker_label (label_id));
+
 allow_tables_to_appear_in_same_query!(
     tbl_track,
     aux_track_collection,
@@ -121,4 +139,6 @@ allow_tables_to_appear_in_same_query!(
     aux_track_tag,
     aux_tag_label,
     aux_tag_facet,
+    aux_track_marker,
+    aux_marker_label,
 );

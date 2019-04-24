@@ -633,6 +633,19 @@ impl TrackSearchBoxedExpressionBuilder for TagFilter {
     }
 }
 
+impl TrackSearchBoxedExpressionBuilder for MarkerFilter {
+    fn build_expression<'a>(
+        &'a self,
+        _collection_uid: Option<&EntityUid>,
+    ) -> TrackSearchBoxedExpression<'a> {
+        let (subselect, filter_modifier) = select_track_ids_matching_marker_filter(&self);
+        match filter_modifier {
+            None => Box::new(tbl_track::id.eq_any(subselect)),
+            Some(FilterModifier::Complement) => Box::new(tbl_track::id.ne_all(subselect)),
+        }
+    }
+}
+
 impl TrackSearchBoxedExpressionBuilder for TrackSearchFilter {
     fn build_expression<'a>(
         &'a self,
@@ -643,6 +656,7 @@ impl TrackSearchBoxedExpressionBuilder for TrackSearchFilter {
             Phrase(filter) => filter.build_expression(collection_uid),
             Numeric(filter) => filter.build_expression(collection_uid),
             Tag(filter) => filter.build_expression(collection_uid),
+            Marker(filter) => filter.build_expression(collection_uid),
             All(filters) => filters
                 .iter()
                 .fold(dummy_true_expression(), |expr, filter| {

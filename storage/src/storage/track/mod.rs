@@ -172,6 +172,80 @@ where
     (select, tag_filter.modifier)
 }
 
+fn select_track_ids_matching_marker_filter<'a, DB>(
+    marker_filter: &'a MarkerFilter,
+) -> (
+    diesel::query_builder::BoxedSelectStatement<
+        'a,
+        diesel::sql_types::BigInt,
+        aux_track_marker::table,
+        DB,
+    >,
+    Option<FilterModifier>,
+)
+where
+    DB: diesel::backend::Backend + 'a,
+{
+    let mut select = aux_track_marker::table
+        .select(aux_track_marker::track_id)
+        .into_boxed();
+
+    // Filter labels
+    if let Some(ref label) = marker_filter.label {
+        let (cmp, val, dir) = label.into();
+        let either_eq_or_like = match cmp {
+            // Equal comparison without escape characters
+            StringCompare::Equals => EitherEqualOrLike::Equal(val.to_owned()),
+            // Like comparison: Escape wildcard character with backslash (see below)
+            StringCompare::StartsWith => EitherEqualOrLike::Like(format!(
+                "{}%",
+                val.replace('\\', "\\\\").replace('%', "\\%")
+            )),
+            StringCompare::EndsWith => EitherEqualOrLike::Like(format!(
+                "%{}",
+                val.replace('\\', "\\\\").replace('%', "\\%")
+            )),
+            StringCompare::Contains => EitherEqualOrLike::Like(format!(
+                "%{}%",
+                val.replace('\\', "\\\\").replace('%', "\\%")
+            )),
+            StringCompare::Matches => {
+                EitherEqualOrLike::Like(val.replace('\\', "\\\\").replace('%', "\\%"))
+            }
+        };
+        select = match either_eq_or_like {
+            EitherEqualOrLike::Equal(eq) => {
+                if dir {
+                    let subselect = aux_marker_label::table
+                        .select(aux_marker_label::id)
+                        .filter(aux_marker_label::label.eq(eq));
+                    select.filter(aux_track_marker::label_id.eq_any(subselect))
+                } else {
+                    let subselect = aux_marker_label::table
+                        .select(aux_marker_label::id)
+                        .filter(aux_marker_label::label.ne(eq));
+                    select.filter(aux_track_marker::label_id.eq_any(subselect))
+                }
+            }
+            EitherEqualOrLike::Like(like) => {
+                if dir {
+                    let subselect = aux_marker_label::table
+                        .select(aux_marker_label::id)
+                        .filter(aux_marker_label::label.like(like).escape('\\'));
+                    select.filter(aux_track_marker::label_id.eq_any(subselect))
+                } else {
+                    let subselect = aux_marker_label::table
+                        .select(aux_marker_label::id)
+                        .filter(aux_marker_label::label.not_like(like).escape('\\'));
+                    select.filter(aux_track_marker::label_id.eq_any(subselect))
+                }
+            }
+        };
+    }
+
+    (select, marker_filter.modifier)
+}
+
 enum EitherEqualOrLike {
     Equal(String),
     Like(String),

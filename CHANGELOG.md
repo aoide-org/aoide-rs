@@ -9,11 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added missing database indexes to improve serach performance
+- Added support for marking custom positions (points/sections) in a track
+- Added filter for searching tracks by the labels of their position markers
+- Added beat markers
+- Added key markers
 
 ### Changed
 
 - Fixed GreaterOrEqual numeric filtering
-- Renamed "markers" as "positionMarkers"
+- Track: Renamed "markers" as "positionMarkers"
 
 ### Removed
 

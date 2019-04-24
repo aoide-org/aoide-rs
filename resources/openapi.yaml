@@ -982,6 +982,7 @@ components:
         - $ref: '#/components/schemas/TrackSearchPhraseFilterNode'
         - $ref: '#/components/schemas/TrackSearchNumericFilterNode'
         - $ref: '#/components/schemas/TrackSearchTagFilterNode'
+        - $ref: '#/components/schemas/TrackSearchMarkerFilterNode'
         - $ref: '#/components/schemas/TrackSearchAllFilterNode'
         - $ref: '#/components/schemas/TrackSearchAnyFilterNode'
         - $ref: '#/components/schemas/TrackSearchNotFilterNode'
@@ -1001,6 +1002,12 @@ components:
       properties:
         tag:
           $ref: '#/components/schemas/TagFilter'
+      required:
+        - tag
+    TrackSearchMarkerFilterNode:
+      properties:
+        tag:
+          $ref: '#/components/schemas/MarkerFilter'
       required:
         - tag
     TrackSearchAllFilterNode:
@@ -1216,6 +1223,12 @@ components:
           $ref: '#/components/schemas/StringPredicate'
         score:
           $ref: '#/components/schemas/NumericPredicate'
+    MarkerFilter:
+      properties:
+        modifier:
+          $ref: '#/components/schemas/FilterModifier'
+        label:
+          $ref: '#/components/schemas/StringPredicate'
     TagLabel:
       type: string
       minLength: 1

@@ -267,8 +267,76 @@ impl<'a> TrackRepositoryHelper<'a> {
         Ok(())
     }
 
+    fn cleanup_markers(&self) -> Result<(), Error> {
+        // Orphaned markers
+        diesel::delete(
+            aux_track_marker::table
+                .filter(aux_track_marker::track_id.ne_all(tbl_track::table.select(tbl_track::id))),
+        )
+        .execute(self.connection)?;
+        // Orphaned markers labels
+        diesel::delete(aux_marker_label::table.filter(
+            aux_marker_label::id.ne_all(aux_track_marker::table.select(aux_track_marker::label_id)),
+        ))
+        .execute(self.connection)?;
+        Ok(())
+    }
+
+    fn delete_markers(&self, track_id: StorageId) -> Result<(), Error> {
+        diesel::delete(aux_track_marker::table.filter(aux_track_marker::track_id.eq(track_id)))
+            .execute(self.connection)?;
+        Ok(())
+    }
+
+    fn resolve_marker_label(&self, label: &str) -> Result<StorageId, Error> {
+        loop {
+            match aux_marker_label::table
+                .select(aux_marker_label::id)
+                .filter(aux_marker_label::label.eq(label))
+                .first(self.connection)
+                .optional()?
+            {
+                Some(id) => return Ok(id),
+                None => {
+                    log::debug!("Inserting new marker label '{}'", label);
+                    let insertable = InsertableMarkerLabel::bind(label);
+                    diesel::insert_or_ignore_into(aux_marker_label::table)
+                        .values(&insertable)
+                        .execute(self.connection)?;
+                    // and retry to lookup the id...
+                }
+            }
+        }
+    }
+
+    fn insert_markers(&self, track_id: StorageId, track: &Track) -> Result<(), Error> {
+        for marker in &track.position_markers {
+            let data: &PositionMarkerData = &*marker;
+            if let Some(ref label) = data.label {
+                let label_id = self.resolve_marker_label(&label)?;
+                let insertable = InsertableTracksMarker::bind(track_id, label_id);
+                // The same label might be used for multiple markers of
+                // the same track.
+                match diesel::insert_or_ignore_into(aux_track_marker::table)
+                    .values(&insertable)
+                    .execute(self.connection)
+                {
+                    Err(err) => log::error!(
+                        "Failed to insert marker {:?} for track {}: {}",
+                        marker,
+                        track_id,
+                        err
+                    ),
+                    Ok(count) => debug_assert!(count <= 1),
+                }
+            }
+        }
+        Ok(())
+    }
+
     pub fn cleanup(&self) -> Result<(), Error> {
         self.cleanup_tags()?;
+        self.cleanup_markers()?;
         self.cleanup_brief()?;
         self.cleanup_source()?;
         self.cleanup_collection()?;
@@ -279,12 +347,14 @@ impl<'a> TrackRepositoryHelper<'a> {
         self.insert_collection(storage_id, track)?;
         self.insert_source(storage_id, track)?;
         self.insert_brief(storage_id, track)?;
+        self.insert_markers(storage_id, track)?;
         self.insert_tags(storage_id, track)?;
         Ok(())
     }
 
     fn on_delete(&self, storage_id: StorageId) -> Result<(), Error> {
         self.delete_tags(storage_id)?;
+        self.delete_markers(storage_id)?;
         self.delete_brief(storage_id)?;
         self.delete_source(storage_id)?;
         self.delete_collection(storage_id)?;

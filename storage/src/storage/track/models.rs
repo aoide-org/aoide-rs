@@ -302,3 +302,28 @@ impl InsertableTracksTag {
         }
     }
 }
+
+#[derive(Debug, Insertable)]
+#[table_name = "aux_marker_label"]
+pub struct InsertableMarkerLabel<'a> {
+    pub label: &'a str,
+}
+
+impl<'a> InsertableMarkerLabel<'a> {
+    pub fn bind(label: &'a str) -> Self {
+        Self { label }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Insertable)]
+#[table_name = "aux_track_marker"]
+pub struct InsertableTracksMarker {
+    pub track_id: StorageId,
+    pub label_id: StorageId,
+}
+
+impl InsertableTracksMarker {
+    pub fn bind(track_id: StorageId, label_id: StorageId) -> Self {
+        Self { track_id, label_id }
+    }
+}
