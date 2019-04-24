@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Removed
+
+## [0.0.3] - 2019-04-24
+
+### Added
+
 - Added missing database indexes to improve serach performance
 - Added support for marking custom positions (points/sections) in a track
 - Added filter for searching tracks by the labels of their position markers
@@ -49,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial public release
 
-[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.0.2...development
+[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.0.3...development
+[0.0.3]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.3
 [0.0.2]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.2
 [0.0.1]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.1
