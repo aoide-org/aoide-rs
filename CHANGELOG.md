@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- Removed support for assigning tags to track/position markers that
+  were not searchable. The single label that can be assigned to a position
+  marker should be sufficient and is supported for searching.
+
 ## [0.0.2] - 2019-03-31
 
 ### Added

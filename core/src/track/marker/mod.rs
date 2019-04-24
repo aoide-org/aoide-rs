@@ -72,9 +72,6 @@ pub struct PositionMarkerData {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub color: Option<ColorArgb>,
-
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
-    pub tags: Tags,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -162,7 +159,6 @@ impl IsValid for PositionMarker {
             && self.end.iter().all(IsValid::is_valid)
             && self.label.iter().all(|label| !label.trim().is_empty())
             && self.color.iter().all(ColorArgb::is_valid)
-            && self.tags.is_valid()
             && match PositionMarkerType::from(self) {
                 PositionMarkerType::LoadCue | PositionMarkerType::HotCue => self.end.is_none(), // not available
                 PositionMarkerType::Intro
