@@ -1,6 +1,6 @@
 [package]
 name = "aoide-storage"
-version = "0.0.2"
+version = "0.0.4"
 authors = [ "Uwe Klotz <uwe.klotz@gmail>", "et al." ]
 license = "AGPL-3.0-or-later"
 publish = false

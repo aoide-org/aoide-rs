@@ -23,10 +23,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "aoide"
-version = "0.0.2-dev"
+version = "0.0.4"
 dependencies = [
- "aoide-core 0.0.2",
- "aoide-storage 0.0.2",
+ "aoide-core 0.0.4",
+ "aoide-storage 0.0.4",
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "diesel 1.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "diesel_migrations 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -44,7 +44,7 @@ dependencies = [
 
 [[package]]
 name = "aoide-core"
-version = "0.0.2"
+version = "0.0.4"
 dependencies = [
  "bs58 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -63,9 +63,9 @@ dependencies = [
 
 [[package]]
 name = "aoide-storage"
-version = "0.0.2"
+version = "0.0.4"
 dependencies = [
- "aoide-core 0.0.2",
+ "aoide-core 0.0.4",
  "chrono 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "diesel 1.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "diesel_migrations 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
