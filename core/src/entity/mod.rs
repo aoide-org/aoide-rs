@@ -148,6 +148,14 @@ impl fmt::Display for EntityUid {
     }
 }
 
+impl std::str::FromStr for EntityUid {
+    type Err = failure::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        EntityUid::decode_from_str(s)
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////
 /// EntityVersion
 ///////////////////////////////////////////////////////////////////////

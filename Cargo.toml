@@ -22,8 +22,6 @@ aoide-storage = { path = "storage" }
 [dependencies]
 aoide-core = "*"
 aoide-storage = "*"
-actix = "0.7"
-actix-web = "0.7"
 clap = "*"
 diesel = { version = "*", features = ["r2d2", "sqlite"] }
 diesel_migrations =  { version = "*", features = ["sqlite"] }
@@ -31,12 +29,15 @@ env_logger = "*"
 failure = { version = "*", features = ["std"] }
 futures = "*"
 hyper = "*"
-log = "*"
-mime = "*"
+log = "^0.4"
+mime = "^0.3"
 serde = "*"
 serde_json = "*"
+warp = "*"
 
 [dev-dependencies]
+serde_urlencoded = "*"
 
 [profile.release]
 lto = true
+codegen-units = 1

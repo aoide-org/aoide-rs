@@ -25,10 +25,6 @@ use aoide_core::collection::Collection;
 
 use aoide_storage::storage::track::util::TrackRepositoryHelper;
 
-use actix::prelude::*;
-
-use actix_web::{fs, http, pred, server, HttpResponse};
-
 use clap::App;
 
 use diesel::{prelude::*, sql_query};
@@ -40,6 +36,9 @@ use env_logger::Builder as LoggerBuilder;
 use log::LevelFilter as LogLevelFilter;
 
 use std::env;
+use std::net::SocketAddr;
+
+use warp::Filter;
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -113,179 +112,6 @@ fn init_env_logger(log_level_filter: LogLevelFilter) {
     logger_builder.init();
 }
 
-fn web_app(executor: &Addr<SqliteExecutor>) -> actix_web::App<AppState> {
-    actix_web::App::with_state(AppState {
-        executor: executor.clone(),
-    })
-    .middleware(actix_web::middleware::Logger::default()) // enable logger
-    .prefix("/")
-    .resource("/tracks", |r| {
-        r.method(http::Method::GET).with_async(on_list_tracks);
-        r.method(http::Method::POST)
-            .with_async_config(on_create_track, |((_, cfg_body),)| {
-                cfg_body.error_handler(|err, _req| {
-                    let err_msg = format!("{}", err);
-                    actix_web::error::InternalError::from_response(
-                        err,
-                        HttpResponse::BadRequest().body(err_msg),
-                    )
-                    .into()
-                });
-            });
-    })
-    .resource("/tracks/search", |r| {
-        r.method(http::Method::POST).with_async_config(
-            on_search_tracks,
-            |((_, _, _, cfg_body),)| {
-                cfg_body.error_handler(|err, _req| {
-                    let err_msg = format!("{}", err);
-                    actix_web::error::InternalError::from_response(
-                        err,
-                        HttpResponse::BadRequest().body(err_msg),
-                    )
-                    .into()
-                });
-            },
-        );
-    })
-    .resource("/tracks/albums/count", |r| {
-        r.method(http::Method::POST).with_async_config(
-            on_count_track_albums,
-            |((_, _, _, cfg_body),)| {
-                cfg_body.error_handler(|err, _req| {
-                    let err_msg = format!("{}", err);
-                    actix_web::error::InternalError::from_response(
-                        err,
-                        HttpResponse::BadRequest().body(err_msg),
-                    )
-                    .into()
-                });
-            },
-        );
-    })
-    .resource("/tracks/tags/facets/count", |r| {
-        r.method(http::Method::POST).with_async_config(
-            on_count_track_facets,
-            |((_, _, _, cfg_body),)| {
-                cfg_body.error_handler(|err, _req| {
-                    let err_msg = format!("{}", err);
-                    actix_web::error::InternalError::from_response(
-                        err,
-                        HttpResponse::BadRequest().body(err_msg),
-                    )
-                    .into()
-                });
-            },
-        );
-    })
-    .resource("/tracks/tags/count", |r| {
-        r.method(http::Method::POST).with_async_config(
-            on_count_track_tags,
-            |((_, _, _, cfg_body),)| {
-                cfg_body.error_handler(|err, _req| {
-                    let err_msg = format!("{}", err);
-                    actix_web::error::InternalError::from_response(
-                        err,
-                        HttpResponse::BadRequest().body(err_msg),
-                    )
-                    .into()
-                });
-            },
-        );
-    })
-    .resource("/tracks/replace", |r| {
-        r.method(http::Method::POST).with_async_config(
-            on_replace_tracks,
-            // Limit maximum body size to 1 MB (Default: 256 KB)
-            |((_, _, cfg_body),)| {
-                cfg_body.limit(1024 * 1024).error_handler(|err, _req| {
-                    let err_msg = format!("{}", err);
-                    actix_web::error::InternalError::from_response(
-                        err,
-                        HttpResponse::BadRequest().body(err_msg),
-                    )
-                    .into()
-                });
-            },
-        );
-    })
-    .resource("/tracks/locate", |r| {
-        r.method(http::Method::POST).with_async_config(
-            on_locate_tracks,
-            |((_, _, _, cfg_body),)| {
-                cfg_body.error_handler(|err, _req| {
-                    let err_msg = format!("{}", err);
-                    actix_web::error::InternalError::from_response(
-                        err,
-                        HttpResponse::BadRequest().body(err_msg),
-                    )
-                    .into()
-                });
-            },
-        );
-    })
-    .resource("/tracks/{uid}", |r| {
-        r.method(http::Method::GET).with_async(on_load_track);
-        r.method(http::Method::PUT)
-            .with_async_config(on_update_track, |((_, _, cfg_body),)| {
-                cfg_body.error_handler(|err, _req| {
-                    let err_msg = format!("{}", err);
-                    actix_web::error::InternalError::from_response(
-                        err,
-                        HttpResponse::BadRequest().body(err_msg),
-                    )
-                    .into()
-                });
-            });
-        r.method(http::Method::DELETE).with_async(on_delete_track);
-    })
-    .resource("/collections", |r| {
-        r.method(http::Method::GET).with_async(on_list_collections);
-        r.method(http::Method::POST)
-            .with_async_config(on_create_collection, |((_, cfg_body),)| {
-                cfg_body.error_handler(|err, _req| {
-                    let err_msg = format!("{}", err);
-                    actix_web::error::InternalError::from_response(
-                        err,
-                        HttpResponse::BadRequest().body(err_msg),
-                    )
-                    .into()
-                });
-            });
-    })
-    .resource("/collections/{uid}", |r| {
-        r.method(http::Method::GET).with_async(on_load_collection);
-        r.method(http::Method::PUT).with_async_config(
-            on_update_collection,
-            |((_, _, cfg_body),)| {
-                cfg_body.error_handler(|err, _req| {
-                    let err_msg = format!("{}", err);
-                    actix_web::error::InternalError::from_response(
-                        err,
-                        HttpResponse::BadRequest().body(err_msg),
-                    )
-                    .into()
-                });
-            },
-        );
-        r.method(http::Method::DELETE)
-            .with_async(on_delete_collection);
-    })
-    .handler(
-        "/",
-        fs::StaticFiles::new("./resources/")
-            .expect("Missing resources folder")
-            .index_file("index.html"),
-    )
-    .default_resource(|r| {
-        r.method(http::Method::GET)
-            .f(|_req| HttpResponse::NotFound());
-        r.route()
-            .filter(pred::Not(pred::Get()))
-            .f(|_req| HttpResponse::MethodNotAllowed());
-    })
-}
-
 pub fn main() -> Result<(), Error> {
     let arg_matches = ArgMatches::new(
         App::new(env!("CARGO_PKG_NAME"))
@@ -299,47 +125,217 @@ pub fn main() -> Result<(), Error> {
     let database_url = arg_matches.database_url();
     log::info!("Database URL: {}", database_url);
 
-    let listen_addr = arg_matches.listen_addr();
+    let listen_addr = arg_matches
+        .listen_addr()
+        .parse::<SocketAddr>()
+        .map_err(|err| {
+            log::error!("Invalid listen address: {}", arg_matches.listen_addr());
+            err
+        })?;
     log::info!("Network listen address: {}", listen_addr);
 
     // Workaround: Use a pool of size 1 to avoid 'database is locked'
     // errors due to multi-threading.
     let connection_pool =
         create_connection_pool(database_url, 1).expect("Failed to create database connection pool");
-    let main_connection_pool = connection_pool.clone();
 
-    initialize_database(&main_connection_pool).expect("Failed to initialize database");
+    initialize_database(&connection_pool).expect("Failed to initialize database");
     if arg_matches.skip_database_maintenance() {
         log::info!("Skipping database maintenance tasks");
     } else {
-        migrate_database_schema(&main_connection_pool).expect("Failed to migrate database schema");
-        cleanup_database_storage(&main_connection_pool)
-            .expect("Failed to cleanup database storage");
-        restore_database_storage(&main_connection_pool)
-            .expect("Failed to restore database storage");
+        migrate_database_schema(&connection_pool).expect("Failed to migrate database schema");
+        cleanup_database_storage(&connection_pool).expect("Failed to cleanup database storage");
+        restore_database_storage(&connection_pool).expect("Failed to restore database storage");
     }
 
-    let sys_name = env!("CARGO_PKG_NAME");
-    log::info!("Creating actor system '{}'", sys_name);
-    let sys = actix::System::new(env!("CARGO_PKG_NAME"));
+    let sqlite_exec = SqliteExecutor::new(connection_pool.clone());
 
-    let num_worker_threads = 3;
-    log::info!("Starting {} executor worker threads", num_worker_threads);
-    let executor = SyncArbiter::start(num_worker_threads, move || {
-        SqliteExecutor::new(connection_pool.clone())
-    });
+    log::info!("Creating service routes");
 
-    log::info!("Registering route handlers");
-    server::HttpServer::new(move || web_app(&executor))
-        .bind(listen_addr)
-        .unwrap_or_else(|_| panic!("Failed to bind listen address '{}'", listen_addr))
-        .start();
+    let pooled_connection = warp::any()
+        .map({ move || sqlite_exec.pooled_connection() })
+        .and_then(|res: Result<_, _>| res.map_err(warp::reject::custom));
 
-    log::info!("Running actor system");
-    let _ = sys.run();
-    log::info!("Stopped actor system");
+    let collections = warp::path("collections");
+    let collections_create = warp::post2()
+        .and(collections.and(warp::path::end()))
+        .and(warp::body::json())
+        .and(pooled_connection.clone())
+        .and_then(|body, pooled_connection| {
+            CollectionsHandler::new(pooled_connection).handle_create(body)
+        });
+    let collections_update = warp::put2()
+        .and(
+            collections
+                .and(warp::path::param::<aoide_core::entity::EntityUid>())
+                .and(warp::path::end()),
+        )
+        .and(warp::body::json())
+        .and(pooled_connection.clone())
+        .and_then(|query, body, pooled_connection| {
+            CollectionsHandler::new(pooled_connection).handle_update(query, body)
+        });
+    let collections_delete = warp::delete2()
+        .and(
+            collections
+                .and(warp::path::param::<aoide_core::entity::EntityUid>())
+                .and(warp::path::end()),
+        )
+        .and(pooled_connection.clone())
+        .and_then(|uid, pooled_connection| {
+            CollectionsHandler::new(pooled_connection).handle_delete(uid)
+        });
+    let collections_list = warp::get2()
+        .and(collections.and(warp::path::end()))
+        .and(warp::query())
+        .and(pooled_connection.clone())
+        .and_then(|query, pooled_connection| {
+            CollectionsHandler::new(pooled_connection).handle_list(query)
+        });
+    let collections_load = warp::get2()
+        .and(
+            collections
+                .and(warp::path::param::<aoide_core::entity::EntityUid>())
+                .and(warp::path::end()),
+        )
+        .and(warp::query())
+        .and(pooled_connection.clone())
+        .and_then(|uid, query, pooled_connection| {
+            CollectionsHandler::new(pooled_connection).handle_load(uid, query)
+        });
 
-    optimize_database_storage(&main_connection_pool).expect("Failed to optimize database storage");
+    let tracks = warp::path("tracks");
+    let tracks_create = warp::post2()
+        .and(tracks.and(warp::path::end()))
+        .and(warp::body::json())
+        .and(pooled_connection.clone())
+        .and_then(|body, pooled_connection| {
+            TracksHandler::new(pooled_connection).handle_create(body)
+        });
+    let tracks_update = warp::put2()
+        .and(
+            tracks
+                .and(warp::path::param::<aoide_core::entity::EntityUid>())
+                .and(warp::path::end()),
+        )
+        .and(warp::body::json())
+        .and(pooled_connection.clone())
+        .and_then(|uid, body, pooled_connection| {
+            TracksHandler::new(pooled_connection).handle_update(uid, body)
+        });
+    let tracks_delete = warp::delete2()
+        .and(
+            tracks
+                .and(warp::path::param::<aoide_core::entity::EntityUid>())
+                .and(warp::path::end()),
+        )
+        .and(pooled_connection.clone())
+        .and_then(|uid, pooled_connection| {
+            TracksHandler::new(pooled_connection).handle_delete(uid)
+        });
+    let tracks_load = warp::get2()
+        .and(
+            tracks
+                .and(warp::path::param::<aoide_core::entity::EntityUid>())
+                .and(warp::path::end()),
+        )
+        .and(pooled_connection.clone())
+        .and_then(|uid, pooled_connection| TracksHandler::new(pooled_connection).handle_load(uid));
+    let tracks_list = warp::get2()
+        .and(tracks.and(warp::path::end()))
+        .and(warp::query())
+        .and(pooled_connection.clone())
+        .and_then(|query, pooled_connection| {
+            TracksHandler::new(pooled_connection).handle_list(query)
+        });
+    let tracks_search = warp::post2()
+        .and(tracks.and(warp::path("search")).and(warp::path::end()))
+        .and(warp::query())
+        .and(warp::body::json())
+        .and(pooled_connection.clone())
+        .and_then(|query, body, pooled_connection| {
+            TracksHandler::new(pooled_connection).handle_search(query, body)
+        });
+    let tracks_locate = warp::post2()
+        .and(tracks.and(warp::path("locate")).and(warp::path::end()))
+        .and(warp::query())
+        .and(warp::body::json())
+        .and(pooled_connection.clone())
+        .and_then(|query, body, pooled_connection| {
+            TracksHandler::new(pooled_connection).handle_locate(query, body)
+        });
+    let tracks_replace = warp::post2()
+        .and(tracks.and(warp::path("replace")).and(warp::path::end()))
+        .and(warp::query())
+        .and(warp::body::json())
+        .and(pooled_connection.clone())
+        .and_then(|query, body, pooled_connection| {
+            TracksHandler::new(pooled_connection).handle_replace(query, body)
+        });
+    let tracks_albums_count = warp::post2()
+        .and(
+            tracks
+                .and(warp::path("albums"))
+                .and(warp::path("count"))
+                .and(warp::path::end()),
+        )
+        .and(warp::query())
+        .and(warp::body::json())
+        .and(pooled_connection.clone())
+        .and_then(|query, body, pooled_connection| {
+            TracksHandler::new(pooled_connection).handle_albums_count(query, body)
+        });
+    let tracks_tags_count = warp::post2()
+        .and(
+            tracks
+                .and(warp::path("tags"))
+                .and(warp::path("count"))
+                .and(warp::path::end()),
+        )
+        .and(warp::query())
+        .and(warp::body::json())
+        .and(pooled_connection.clone())
+        .and_then(|query, body, pooled_connection| {
+            TracksHandler::new(pooled_connection).handle_tags_count(query, body)
+        });
+    let tracks_tags_facets_count = warp::post2()
+        .and(
+            tracks
+                .and(warp::path("tags"))
+                .and(warp::path("facets"))
+                .and(warp::path("count"))
+                .and(warp::path::end()),
+        )
+        .and(warp::query())
+        .and(warp::body::json())
+        .and(pooled_connection.clone())
+        .and_then(|query, body, pooled_connection| {
+            TracksHandler::new(pooled_connection).handle_tags_facets_count(query, body)
+        });
+
+    log::info!("Running service...");
+    warp::serve(
+        tracks_search
+            .or(tracks_replace)
+            .or(tracks_list)
+            .or(tracks_locate)
+            .or(tracks_create)
+            .or(tracks_update)
+            .or(tracks_delete)
+            .or(tracks_load)
+            .or(tracks_albums_count)
+            .or(tracks_tags_count)
+            .or(tracks_tags_facets_count)
+            .or(collections_list)
+            .or(collections_load)
+            .or(collections_create)
+            .or(collections_update)
+            .or(collections_delete),
+    )
+    .run(listen_addr);
+    log::info!("Stopped service");
+
+    optimize_database_storage(&connection_pool).expect("Failed to optimize database storage");
 
     log::info!("Exiting");
     Ok(())

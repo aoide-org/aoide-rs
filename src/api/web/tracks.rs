@@ -20,560 +20,423 @@ use aoide_storage::{
         serde::{SerializationFormat, SerializedEntity},
         track::{TrackAlbums, TrackTags, Tracks, TracksResult},
         CountTagFacetsParams, CountTagsParams, CountTrackAlbumsParams, LocateTracksParams,
-        Pagination, ReplaceTracksParams, ReplacedTracks, SearchTracksParams, TagCount,
-        TagFacetCount,
+        Pagination, PaginationLimit, PaginationOffset, ReplaceTracksParams, ReplacedTracks,
+        SearchTracksParams, TagCount, TagFacetCount,
     },
     storage::track::TrackRepository,
 };
 
-use actix_web::AsyncResponder;
-
-use futures::future::Future;
+use futures::future::{self, Future};
 
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TracksQueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub collection_uid: Option<EntityUid>,
+
+    // Flatting of Pagination does not work as expected:
+    // https://github.com/serde-rs/serde/issues/1183
+    // Workaround: Inline all parameters manually
+    //#[serde(flatten)]
+    //pub pagination: Pagination,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub offset: Option<PaginationOffset>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<PaginationLimit>,
 }
 
-#[derive(Debug)]
-pub struct CreateTrackMessage {
-    pub track: Track,
-}
-
-pub type CreateTrackResult = TracksResult<TrackEntity>;
-
-impl Message for CreateTrackMessage {
-    type Result = CreateTrackResult;
-}
-
-impl Handler<CreateTrackMessage> for SqliteExecutor {
-    type Result = CreateTrackResult;
-
-    fn handle(&mut self, msg: CreateTrackMessage, _: &mut Self::Context) -> Self::Result {
-        let connection = &*self.pooled_connection()?;
-        let repository = TrackRepository::new(connection);
-        connection.transaction::<_, Error, _>(|| {
-            repository.create_entity(msg.track, SerializationFormat::JSON)
-        })
+impl TracksQueryParams {
+    pub fn pagination(&self) -> Pagination {
+        Pagination {
+            offset: self.offset,
+            limit: self.limit,
+        }
     }
 }
 
-pub fn on_create_track(
-    (state, body): (State<AppState>, Json<Track>),
-) -> FutureResponse<HttpResponse> {
-    let msg = CreateTrackMessage {
-        track: body.into_inner(),
-    };
-    state
-        .executor
-        .send(msg)
-        .flatten()
-        .map_err(Error::compat)
-        .from_err()
-        .and_then(|res| Ok(HttpResponse::Created().json(res.header())))
-        .responder()
+fn reply_with_json_content(reply: impl warp::Reply) -> impl warp::Reply {
+    warp::reply::with_header(reply, "Content-Type", "application/json")
 }
 
-#[derive(Debug)]
-pub struct UpdateTrackMessage {
-    pub track: TrackEntity,
+pub struct TracksHandler {
+    db: SqlitePooledConnection,
 }
 
-pub type UpdateTrackResult = TracksResult<(EntityRevision, Option<EntityRevision>)>;
+impl TracksHandler {
+    pub fn new(db: SqlitePooledConnection) -> Self {
+        Self { db }
+    }
 
-impl Message for UpdateTrackMessage {
-    type Result = UpdateTrackResult;
-}
+    pub fn handle_create(
+        &self,
+        new_track: Track,
+    ) -> Result<impl warp::Reply, warp::reject::Rejection> {
+        create_track(&self.db, new_track, SerializationFormat::JSON)
+            .map_err(warp::reject::custom)
+            .map(|val| {
+                warp::reply::with_status(warp::reply::json(&val), warp::http::StatusCode::CREATED)
+            })
+    }
 
-impl Handler<UpdateTrackMessage> for SqliteExecutor {
-    type Result = UpdateTrackResult;
+    pub fn handle_update(
+        &self,
+        uid: EntityUid,
+        track: TrackEntity,
+    ) -> Result<impl warp::Reply, warp::reject::Rejection> {
+        if uid != *track.header().uid() {
+            return Err(warp::reject::custom(failure::format_err!(
+                "Mismatching UIDs: {} <> {}",
+                uid,
+                track.header().uid(),
+            )));
+        }
+        update_track(&self.db, track, SerializationFormat::JSON)
+            .and_then(move |res| match res {
+                (_, Some(next_revision)) => {
+                    let next_header = aoide_core::entity::EntityHeader::new(uid, next_revision);
+                    Ok(warp::reply::json(&next_header))
+                }
+                (_, None) => Err(failure::format_err!(
+                    "Inexistent entity or revision conflict"
+                )),
+            })
+            .map_err(warp::reject::custom)
+    }
 
-    fn handle(&mut self, msg: UpdateTrackMessage, _: &mut Self::Context) -> Self::Result {
-        let connection = &*self.pooled_connection()?;
-        let repository = TrackRepository::new(connection);
-        connection.transaction::<_, Error, _>(|| {
-            repository.update_entity(msg.track, SerializationFormat::JSON)
-        })
+    pub fn handle_delete(
+        &self,
+        uid: EntityUid,
+    ) -> Result<impl warp::Reply, warp::reject::Rejection> {
+        delete_track(&self.db, &uid)
+            .map_err(warp::reject::custom)
+            .map(|res| {
+                warp::reply::with_status(
+                    warp::reply(),
+                    res.map(|()| warp::http::StatusCode::NO_CONTENT)
+                        .unwrap_or(warp::http::StatusCode::NOT_FOUND),
+                )
+            })
+    }
+
+    pub fn handle_load(&self, uid: EntityUid) -> Result<impl warp::Reply, warp::reject::Rejection> {
+        load_track(&self.db, &uid)
+            .map_err(warp::reject::custom)
+            .and_then(|res| match res {
+                Some(val) => {
+                    let mime_type: mime::Mime = val.format.into();
+                    let body: Vec<u8> = val.blob;
+                    Ok(warp::reply::with_header(
+                        body,
+                        "Content-Type",
+                        mime_type.to_string().as_str(),
+                    ))
+                }
+                None => Err(warp::reject::not_found()),
+            })
+    }
+
+    pub fn handle_list(
+        &self,
+        query_params: TracksQueryParams,
+    ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
+        list_tracks(&self.db, &query_params)
+            .and_then(|reply| {
+                aoide_storage::api::serde::SerializedEntity::slice_to_json_array(&reply)
+            })
+            .map(reply_with_json_content)
+            .map_err(warp::reject::custom)
+    }
+
+    pub fn handle_search(
+        &self,
+        query_params: TracksQueryParams,
+        search_params: SearchTracksParams,
+    ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
+        search_tracks(&self.db, query_params, search_params)
+            .and_then(|reply| {
+                aoide_storage::api::serde::SerializedEntity::slice_to_json_array(&reply)
+            })
+            .map(reply_with_json_content)
+            .map_err(warp::reject::custom)
+    }
+
+    pub fn handle_locate(
+        &self,
+        query_params: TracksQueryParams,
+        locate_params: LocateTracksParams,
+    ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
+        locate_tracks(&self.db, query_params, locate_params)
+            .and_then(|reply| {
+                aoide_storage::api::serde::SerializedEntity::slice_to_json_array(&reply)
+            })
+            .map(reply_with_json_content)
+            .map_err(warp::reject::custom)
+    }
+
+    pub fn handle_replace(
+        &self,
+        query_params: TracksQueryParams,
+        replace_params: ReplaceTracksParams,
+    ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
+        replace_tracks(
+            &self.db,
+            query_params,
+            replace_params,
+            SerializationFormat::JSON,
+        )
+        .map(|val| warp::reply::json(&val))
+        .map_err(warp::reject::custom)
+    }
+
+    pub fn handle_albums_count(
+        &self,
+        query_params: TracksQueryParams,
+        count_params: CountTrackAlbumsParams,
+    ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
+        count_albums(&self.db, query_params, &count_params)
+            .map(|val| warp::reply::json(&val))
+            .map_err(warp::reject::custom)
+    }
+
+    pub fn handle_tags_count(
+        &self,
+        query_params: TracksQueryParams,
+        count_params: CountTagsParams,
+    ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
+        count_tags(&self.db, query_params, count_params)
+            .map(|val| warp::reply::json(&val))
+            .map_err(warp::reject::custom)
+    }
+
+    pub fn handle_tags_facets_count(
+        &self,
+        query_params: TracksQueryParams,
+        count_params: CountTagFacetsParams,
+    ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
+        count_tag_facets(&self.db, query_params, count_params)
+            .map(|val| warp::reply::json(&val))
+            .map_err(warp::reject::custom)
     }
 }
 
-pub fn on_update_track(
-    (state, path_uid, body): (State<AppState>, Path<EntityUid>, Json<TrackEntity>),
-) -> FutureResponse<HttpResponse> {
-    let uid = path_uid.into_inner();
-    let msg = UpdateTrackMessage {
-        track: body.into_inner(),
-    };
-    // TODO: Handle UID mismatch
-    assert!(uid == *msg.track.header().uid());
-    state
-        .executor
-        .send(msg)
-        .flatten()
-        .map_err(Error::compat)
-        .from_err()
-        .and_then(move |res| match res {
-            (_, Some(next_revision)) => {
-                let next_header = EntityHeader::new(uid, next_revision);
-                Ok(HttpResponse::Ok().json(next_header))
-            }
-            (_, None) => Err(actix_web::error::ErrorBadRequest(failure::format_err!(
-                "Inexistent entity or revision conflict"
-            ))),
-        })
-        .responder()
+fn create_track(
+    db: &SqlitePooledConnection,
+    new_track: Track,
+    format: SerializationFormat,
+) -> TracksResult<TrackEntity> {
+    let repository = TrackRepository::new(&*db);
+    db.transaction::<_, Error, _>(|| repository.create_entity(new_track, format))
 }
 
-#[derive(Debug)]
-pub struct DeleteTrackMessage {
-    pub uid: EntityUid,
+fn update_track(
+    db: &SqlitePooledConnection,
+    track: TrackEntity,
+    format: SerializationFormat,
+) -> TracksResult<(EntityRevision, Option<EntityRevision>)> {
+    let repository = TrackRepository::new(&*db);
+    db.transaction::<_, Error, _>(|| repository.update_entity(track, format))
 }
 
-pub type DeleteTrackResult = TracksResult<Option<()>>;
-
-impl Message for DeleteTrackMessage {
-    type Result = DeleteTrackResult;
+fn delete_track(db: &SqlitePooledConnection, uid: &EntityUid) -> TracksResult<Option<()>> {
+    let repository = TrackRepository::new(&*db);
+    db.transaction::<_, Error, _>(|| repository.delete_entity(uid))
 }
 
-impl Handler<DeleteTrackMessage> for SqliteExecutor {
-    type Result = DeleteTrackResult;
+fn load_track(
+    pooled_connection: &SqlitePooledConnection,
+    uid: &EntityUid,
+) -> TracksResult<Option<SerializedEntity>> {
+    let repository = TrackRepository::new(&*pooled_connection);
+    pooled_connection.transaction::<_, Error, _>(|| repository.load_entity(uid))
+}
 
-    fn handle(&mut self, msg: DeleteTrackMessage, _: &mut Self::Context) -> Self::Result {
-        let connection = &*self.pooled_connection()?;
-        let repository = TrackRepository::new(connection);
-        connection.transaction::<_, Error, _>(|| repository.delete_entity(&msg.uid))
+fn list_tracks(
+    pooled_connection: &SqlitePooledConnection,
+    query: &TracksQueryParams,
+) -> impl Future<Item = Vec<SerializedEntity>, Error = Error> {
+    let repository = TrackRepository::new(&*pooled_connection);
+    future::result(pooled_connection.transaction::<_, Error, _>(|| {
+        repository.search_entities(
+            query.collection_uid.as_ref(),
+            query.pagination(),
+            Default::default(),
+        )
+    }))
+}
+
+fn search_tracks(
+    pooled_connection: &SqlitePooledConnection,
+    query: TracksQueryParams,
+    params: SearchTracksParams,
+) -> impl Future<Item = Vec<SerializedEntity>, Error = Error> {
+    let repository = TrackRepository::new(&*pooled_connection);
+    future::result(pooled_connection.transaction::<_, Error, _>(|| {
+        repository.search_entities(query.collection_uid.as_ref(), query.pagination(), params)
+    }))
+}
+
+fn locate_tracks(
+    pooled_connection: &SqlitePooledConnection,
+    query: TracksQueryParams,
+    params: LocateTracksParams,
+) -> impl Future<Item = Vec<SerializedEntity>, Error = Error> {
+    let repository = TrackRepository::new(&*pooled_connection);
+    future::result(pooled_connection.transaction::<_, Error, _>(|| {
+        repository.locate_entities(query.collection_uid.as_ref(), query.pagination(), params)
+    }))
+}
+
+fn replace_tracks(
+    pooled_connection: &SqlitePooledConnection,
+    query: TracksQueryParams,
+    params: ReplaceTracksParams,
+    format: SerializationFormat,
+) -> impl Future<Item = ReplacedTracks, Error = Error> {
+    debug_assert!(query.offset.is_none()); // unused
+    debug_assert!(query.limit.is_none()); // unused
+    let repository = TrackRepository::new(&*pooled_connection);
+    future::result(pooled_connection.transaction::<_, Error, _>(|| {
+        repository.replace_entities(query.collection_uid.as_ref(), params, format)
+    }))
+}
+
+fn count_albums(
+    pooled_connection: &SqlitePooledConnection,
+    query: TracksQueryParams,
+    params: &CountTrackAlbumsParams,
+) -> impl Future<Item = Vec<TrackAlbumCount>, Error = Error> {
+    let repository = TrackRepository::new(&*pooled_connection);
+    future::result(pooled_connection.transaction::<_, Error, _>(|| {
+        repository.count_albums(query.collection_uid.as_ref(), params, query.pagination())
+    }))
+}
+
+fn count_tags(
+    pooled_connection: &SqlitePooledConnection,
+    query: TracksQueryParams,
+    params: CountTagsParams,
+) -> impl Future<Item = Vec<TagCount>, Error = Error> {
+    let include_non_faceted_tags = params.include_non_faceted_tags;
+    let facets = params.facets.map(|mut facets| {
+        facets.sort();
+        facets.dedup();
+        facets
+    });
+    let facets = facets.as_ref().map(|facets| {
+        facets
+            .iter()
+            .map(AsRef::as_ref)
+            .map(String::as_str)
+            .collect()
+    });
+    let repository = TrackRepository::new(&*pooled_connection);
+    future::result(pooled_connection.transaction::<_, Error, _>(|| {
+        repository.count_tags(
+            query.collection_uid.as_ref(),
+            facets.as_ref().map(Vec::as_slice),
+            include_non_faceted_tags,
+            query.pagination(),
+        )
+    }))
+}
+
+fn count_tag_facets(
+    pooled_connection: &SqlitePooledConnection,
+    query: TracksQueryParams,
+    params: CountTagFacetsParams,
+) -> impl Future<Item = Vec<TagFacetCount>, Error = Error> {
+    let facets = params.facets.map(|mut facets| {
+        facets.sort();
+        facets.dedup();
+        facets
+    });
+    let facets = facets.as_ref().map(|facets| {
+        facets
+            .iter()
+            .map(AsRef::as_ref)
+            .map(String::as_str)
+            .collect()
+    });
+    let repository = TrackRepository::new(&*pooled_connection);
+    future::result(pooled_connection.transaction::<_, Error, _>(|| {
+        repository.count_tag_facets(
+            query.collection_uid.as_ref(),
+            facets.as_ref().map(Vec::as_slice),
+            query.pagination(),
+        )
+    }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn urlencode_tracks_query_params() {
+        let collection_uid =
+            EntityUid::decode_from_str("DNGwV8sS9XS2GAxfEvgW2NMFxDHwi81CC").unwrap();
+
+        let query = TracksQueryParams {
+            collection_uid: Some(collection_uid),
+            offset: Some(0),
+            limit: Some(2),
+        };
+        let query_urlencoded = "collectionUid=DNGwV8sS9XS2GAxfEvgW2NMFxDHwi81CC&offset=0&limit=2";
+        assert_eq!(
+            query_urlencoded,
+            serde_urlencoded::to_string(&query).unwrap()
+        );
+        assert_eq!(
+            query,
+            serde_urlencoded::from_str::<TracksQueryParams>(query_urlencoded).unwrap()
+        );
+
+        let query = TracksQueryParams {
+            collection_uid: Some(collection_uid),
+            offset: None,
+            limit: Some(2),
+        };
+        let query_urlencoded = "collectionUid=DNGwV8sS9XS2GAxfEvgW2NMFxDHwi81CC&limit=2";
+        assert_eq!(
+            query_urlencoded,
+            serde_urlencoded::to_string(&query).unwrap()
+        );
+        assert_eq!(
+            query,
+            serde_urlencoded::from_str::<TracksQueryParams>(query_urlencoded).unwrap()
+        );
+
+        let query = TracksQueryParams {
+            collection_uid: Some(collection_uid),
+            offset: None,
+            limit: None,
+        };
+        let query_urlencoded = "collectionUid=DNGwV8sS9XS2GAxfEvgW2NMFxDHwi81CC";
+        assert_eq!(
+            query_urlencoded,
+            serde_urlencoded::to_string(&query).unwrap()
+        );
+        assert_eq!(
+            query,
+            serde_urlencoded::from_str::<TracksQueryParams>(query_urlencoded).unwrap()
+        );
+
+        let query = TracksQueryParams {
+            collection_uid: None,
+            offset: Some(1),
+            limit: None,
+        };
+        let query_urlencoded = "offset=1";
+        assert_eq!(
+            query_urlencoded,
+            serde_urlencoded::to_string(&query).unwrap()
+        );
+        assert_eq!(
+            query,
+            serde_urlencoded::from_str::<TracksQueryParams>(query_urlencoded).unwrap()
+        );
     }
-}
-
-pub fn on_delete_track(
-    (state, path_uid): (State<AppState>, Path<EntityUid>),
-) -> FutureResponse<HttpResponse> {
-    let msg = DeleteTrackMessage {
-        uid: path_uid.into_inner(),
-    };
-    state
-        .executor
-        .send(msg)
-        .flatten()
-        .map_err(Error::compat)
-        .from_err()
-        .and_then(|res| match res {
-            Some(_) => Ok(HttpResponse::NoContent().into()),
-            None => Ok(HttpResponse::NotFound().into()),
-        })
-        .responder()
-}
-
-#[derive(Debug)]
-pub struct LoadTrackMessage {
-    pub uid: EntityUid,
-}
-
-pub type LoadTrackResult = TracksResult<Option<SerializedEntity>>;
-
-impl Message for LoadTrackMessage {
-    type Result = LoadTrackResult;
-}
-
-impl Handler<LoadTrackMessage> for SqliteExecutor {
-    type Result = LoadTrackResult;
-
-    fn handle(&mut self, msg: LoadTrackMessage, _: &mut Self::Context) -> Self::Result {
-        let connection = &*self.pooled_connection()?;
-        let repository = TrackRepository::new(connection);
-        connection.transaction::<_, Error, _>(|| repository.load_entity(&msg.uid))
-    }
-}
-
-pub fn on_load_track(
-    (state, path_uid): (State<AppState>, Path<EntityUid>),
-) -> FutureResponse<HttpResponse> {
-    let msg = LoadTrackMessage {
-        uid: path_uid.into_inner(),
-    };
-    state
-        .executor
-        .send(msg)
-        .flatten()
-        .map_err(Error::compat)
-        .from_err()
-        .and_then(|res| match res {
-            Some(serialized_track) => {
-                let mime_type: mime::Mime = serialized_track.format.into();
-                Ok(HttpResponse::Ok()
-                    .content_type(mime_type.to_string().as_str())
-                    .body(serialized_track.blob))
-            }
-            None => Ok(HttpResponse::NotFound().into()),
-        })
-        .responder()
-}
-
-#[derive(Debug, Default)]
-pub struct SearchTracksMessage {
-    pub collection_uid: Option<EntityUid>,
-    pub pagination: Pagination,
-    pub params: SearchTracksParams,
-}
-
-pub type SearchTracksResult = TracksResult<Vec<SerializedEntity>>;
-
-impl Message for SearchTracksMessage {
-    type Result = SearchTracksResult;
-}
-
-impl Handler<SearchTracksMessage> for SqliteExecutor {
-    type Result = SearchTracksResult;
-
-    fn handle(&mut self, msg: SearchTracksMessage, _: &mut Self::Context) -> Self::Result {
-        let connection = &*self.pooled_connection()?;
-        let repository = TrackRepository::new(connection);
-        connection.transaction::<_, Error, _>(|| {
-            repository.search_entities(msg.collection_uid.as_ref(), msg.pagination, msg.params)
-        })
-    }
-}
-
-pub fn on_list_tracks(
-    (state, query_tracks, query_pagination): (
-        State<AppState>,
-        Query<TracksQueryParams>,
-        Query<Pagination>,
-    ),
-) -> FutureResponse<HttpResponse> {
-    let msg = SearchTracksMessage {
-        collection_uid: query_tracks.into_inner().collection_uid,
-        pagination: query_pagination.into_inner(),
-        ..Default::default()
-    };
-    state
-        .executor
-        .send(msg)
-        .flatten()
-        .map_err(Error::compat)
-        .from_err()
-        .and_then(|serialized_tracks| SerializedEntity::slice_to_json_array(&serialized_tracks))
-        .from_err()
-        .and_then(|json| {
-            Ok(HttpResponse::Ok()
-                .content_type(mime::APPLICATION_JSON.to_string().as_str())
-                .body(json))
-        })
-        .responder()
-}
-
-pub fn on_search_tracks(
-    (state, query_tracks, query_pagination, body): (
-        State<AppState>,
-        Query<TracksQueryParams>,
-        Query<Pagination>,
-        Json<SearchTracksParams>,
-    ),
-) -> FutureResponse<HttpResponse> {
-    let msg = SearchTracksMessage {
-        collection_uid: query_tracks.into_inner().collection_uid,
-        params: body.into_inner(),
-        pagination: query_pagination.into_inner(),
-    };
-    state
-        .executor
-        .send(msg)
-        .flatten()
-        .map_err(Error::compat)
-        .from_err()
-        .and_then(|serialized_tracks| SerializedEntity::slice_to_json_array(&serialized_tracks))
-        .from_err()
-        .and_then(|json| {
-            Ok(HttpResponse::Ok()
-                .content_type(mime::APPLICATION_JSON.to_string().as_str())
-                .body(json))
-        })
-        .responder()
-}
-
-#[derive(Debug)]
-pub struct LocateTracksMessage {
-    pub collection_uid: Option<EntityUid>,
-    pub pagination: Pagination,
-    pub params: LocateTracksParams,
-}
-
-pub type LocateTracksResult = TracksResult<Vec<SerializedEntity>>;
-
-impl Message for LocateTracksMessage {
-    type Result = LocateTracksResult;
-}
-
-impl Handler<LocateTracksMessage> for SqliteExecutor {
-    type Result = LocateTracksResult;
-
-    fn handle(&mut self, msg: LocateTracksMessage, _: &mut Self::Context) -> Self::Result {
-        let connection = &*self.pooled_connection()?;
-        let repository = TrackRepository::new(connection);
-        connection.transaction::<_, Error, _>(|| {
-            repository.locate_entities(msg.collection_uid.as_ref(), msg.pagination, msg.params)
-        })
-    }
-}
-
-pub fn on_locate_tracks(
-    (state, query_tracks, query_pagination, body): (
-        State<AppState>,
-        Query<TracksQueryParams>,
-        Query<Pagination>,
-        Json<LocateTracksParams>,
-    ),
-) -> FutureResponse<HttpResponse> {
-    let msg = LocateTracksMessage {
-        collection_uid: query_tracks.into_inner().collection_uid,
-        params: body.into_inner(),
-        pagination: query_pagination.into_inner(),
-    };
-    state
-        .executor
-        .send(msg)
-        .flatten()
-        .map_err(Error::compat)
-        .from_err()
-        .and_then(|serialized_tracks| SerializedEntity::slice_to_json_array(&serialized_tracks))
-        .from_err()
-        .and_then(|json| {
-            Ok(HttpResponse::Ok()
-                .content_type(mime::APPLICATION_JSON.to_string().as_str())
-                .body(json))
-        })
-        .responder()
-}
-
-#[derive(Debug)]
-pub struct ReplaceTracksMessage {
-    pub collection_uid: Option<EntityUid>,
-    pub params: ReplaceTracksParams,
-    pub format: SerializationFormat,
-}
-
-pub type ReplaceTracksResult = TracksResult<ReplacedTracks>;
-
-impl Message for ReplaceTracksMessage {
-    type Result = ReplaceTracksResult;
-}
-
-impl Handler<ReplaceTracksMessage> for SqliteExecutor {
-    type Result = ReplaceTracksResult;
-
-    fn handle(&mut self, msg: ReplaceTracksMessage, _: &mut Self::Context) -> Self::Result {
-        let connection = &*self.pooled_connection()?;
-        let repository = TrackRepository::new(connection);
-        connection.transaction::<_, Error, _>(|| {
-            repository.replace_entities(msg.collection_uid.as_ref(), msg.params, msg.format)
-        })
-    }
-}
-
-pub fn on_replace_tracks(
-    (state, query_tracks, body): (
-        State<AppState>,
-        Query<TracksQueryParams>,
-        Json<ReplaceTracksParams>,
-    ),
-) -> FutureResponse<HttpResponse> {
-    let msg = ReplaceTracksMessage {
-        collection_uid: query_tracks.into_inner().collection_uid,
-        params: body.into_inner(),
-        format: SerializationFormat::JSON,
-    };
-    state
-        .executor
-        .send(msg)
-        .flatten()
-        .map_err(Error::compat)
-        .from_err()
-        .and_then(|res| Ok(HttpResponse::Ok().json(res)))
-        .responder()
-}
-
-#[derive(Debug, Default)]
-struct CountTrackAlbumsMessage {
-    pub collection_uid: Option<EntityUid>,
-    pub params: CountTrackAlbumsParams,
-    pub pagination: Pagination,
-}
-
-pub type CountTrackAlbumsResult = TracksResult<Vec<TrackAlbumCount>>;
-
-impl Message for CountTrackAlbumsMessage {
-    type Result = CountTrackAlbumsResult;
-}
-
-impl Handler<CountTrackAlbumsMessage> for SqliteExecutor {
-    type Result = CountTrackAlbumsResult;
-
-    fn handle(&mut self, msg: CountTrackAlbumsMessage, _: &mut Self::Context) -> Self::Result {
-        let connection = &*self.pooled_connection()?;
-        let repository = TrackRepository::new(connection);
-        connection.transaction::<_, Error, _>(|| {
-            repository.count_albums(msg.collection_uid.as_ref(), &msg.params, msg.pagination)
-        })
-    }
-}
-
-pub fn on_count_track_albums(
-    (state, query_tracks, query_pagination, body): (
-        State<AppState>,
-        Query<TracksQueryParams>,
-        Query<Pagination>,
-        Json<CountTrackAlbumsParams>,
-    ),
-) -> FutureResponse<HttpResponse> {
-    let msg = CountTrackAlbumsMessage {
-        collection_uid: query_tracks.into_inner().collection_uid,
-        params: body.into_inner(),
-        pagination: query_pagination.into_inner(),
-    };
-    state
-        .executor
-        .send(msg)
-        .flatten()
-        .map_err(Error::compat)
-        .from_err()
-        .and_then(|res| Ok(HttpResponse::Ok().json(res)))
-        .responder()
-}
-
-#[derive(Debug, Default)]
-struct CountTrackTagsMessage {
-    pub collection_uid: Option<EntityUid>,
-    pub pagination: Pagination,
-    pub params: CountTagsParams,
-}
-
-pub type CountTrackTagsResult = TracksResult<Vec<TagCount>>;
-
-impl Message for CountTrackTagsMessage {
-    type Result = CountTrackTagsResult;
-}
-
-impl Handler<CountTrackTagsMessage> for SqliteExecutor {
-    type Result = CountTrackTagsResult;
-
-    fn handle(&mut self, msg: CountTrackTagsMessage, _: &mut Self::Context) -> Self::Result {
-        let connection = &*self.pooled_connection()?;
-        let repository = TrackRepository::new(connection);
-        let collection_uid = msg.collection_uid;
-        let pagination = msg.pagination;
-        let include_non_faceted_tags = msg.params.include_non_faceted_tags;
-        let facets = msg.params.facets.map(|mut facets| {
-            facets.sort();
-            facets.dedup();
-            facets
-        });
-        let facets = facets.as_ref().map(|facets| {
-            facets
-                .iter()
-                .map(AsRef::as_ref)
-                .map(String::as_str)
-                .collect()
-        });
-        connection.transaction::<_, Error, _>(|| {
-            repository.count_tags(
-                collection_uid.as_ref(),
-                facets.as_ref().map(Vec::as_slice),
-                include_non_faceted_tags,
-                pagination,
-            )
-        })
-    }
-}
-
-pub fn on_count_track_tags(
-    (state, query_tracks, query_pagination, body): (
-        State<AppState>,
-        Query<TracksQueryParams>,
-        Query<Pagination>,
-        Json<CountTagsParams>,
-    ),
-) -> FutureResponse<HttpResponse> {
-    let msg = CountTrackTagsMessage {
-        collection_uid: query_tracks.into_inner().collection_uid,
-        params: body.into_inner(),
-        pagination: query_pagination.into_inner(),
-    };
-    state
-        .executor
-        .send(msg)
-        .flatten()
-        .map_err(Error::compat)
-        .from_err()
-        .and_then(|res| Ok(HttpResponse::Ok().json(res)))
-        .responder()
-}
-
-#[derive(Debug, Default)]
-struct CountTrackTagFacetsMessage {
-    pub collection_uid: Option<EntityUid>,
-    pub pagination: Pagination,
-    pub params: CountTagFacetsParams,
-}
-
-pub type CountTrackTagFacetsResult = TracksResult<Vec<TagFacetCount>>;
-
-impl Message for CountTrackTagFacetsMessage {
-    type Result = CountTrackTagFacetsResult;
-}
-
-impl Handler<CountTrackTagFacetsMessage> for SqliteExecutor {
-    type Result = CountTrackTagFacetsResult;
-
-    fn handle(&mut self, msg: CountTrackTagFacetsMessage, _: &mut Self::Context) -> Self::Result {
-        let connection = &*self.pooled_connection()?;
-        let repository = TrackRepository::new(connection);
-        let collection_uid = msg.collection_uid;
-        let pagination = msg.pagination;
-        let facets = msg.params.facets.map(|mut facets| {
-            facets.sort();
-            facets.dedup();
-            facets
-        });
-        let facets = facets.as_ref().map(|facets| {
-            facets
-                .iter()
-                .map(AsRef::as_ref)
-                .map(String::as_str)
-                .collect()
-        });
-        connection.transaction::<_, Error, _>(|| {
-            repository.count_tag_facets(
-                collection_uid.as_ref(),
-                facets.as_ref().map(Vec::as_slice),
-                pagination,
-            )
-        })
-    }
-}
-
-pub fn on_count_track_facets(
-    (state, query_tracks, query_pagination, body): (
-        State<AppState>,
-        Query<TracksQueryParams>,
-        Query<Pagination>,
-        Json<CountTagFacetsParams>,
-    ),
-) -> FutureResponse<HttpResponse> {
-    let msg = CountTrackTagFacetsMessage {
-        collection_uid: query_tracks.into_inner().collection_uid,
-        params: body.into_inner(),
-        pagination: query_pagination.into_inner(),
-    };
-    state
-        .executor
-        .send(msg)
-        .flatten()
-        .map_err(Error::compat)
-        .from_err()
-        .and_then(|res| Ok(HttpResponse::Ok().json(res)))
-        .responder()
 }

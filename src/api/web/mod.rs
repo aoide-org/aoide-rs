@@ -15,10 +15,6 @@
 
 use super::*;
 
-use actix::prelude::{Actor as ActixActor, *};
-
-use actix_web::{FutureResponse, HttpResponse, Json, Path, Query, State};
-
 use diesel::{
     prelude::*,
     r2d2::{ConnectionManager, Pool, PooledConnection},
@@ -33,6 +29,7 @@ pub type SqliteConnectionManager = ConnectionManager<SqliteConnection>;
 pub type SqliteConnectionPool = Pool<SqliteConnectionManager>;
 pub type SqlitePooledConnection = PooledConnection<SqliteConnectionManager>;
 
+#[derive(Clone)]
 pub struct SqliteExecutor {
     connection_pool: SqliteConnectionPool,
 }
@@ -45,14 +42,6 @@ impl SqliteExecutor {
     pub fn pooled_connection(&self) -> Result<SqlitePooledConnection, Error> {
         self.connection_pool.get().map_err(Into::into)
     }
-}
-
-impl ActixActor for SqliteExecutor {
-    type Context = SyncContext<Self>;
-}
-
-pub struct AppState {
-    pub executor: Addr<SqliteExecutor>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]

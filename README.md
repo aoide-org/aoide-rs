@@ -32,7 +32,7 @@ A list of projects which we depend on directly.
 
 ### Communication
 
-[Actix (Web)](https://actix.rs) for the REST API and internal messaging/scheduling
+[Warp](https://github.com/seanmonstar/warp) for the REST API and internal messaging/scheduling
 
 ### Serialization
 

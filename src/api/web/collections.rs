@@ -24,234 +24,146 @@ use aoide_storage::{
     storage::{collection::CollectionRepository, track::TrackRepository},
 };
 
-use actix_web::AsyncResponder;
-
-use futures::future::Future;
-
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug)]
-pub struct CreateCollectionMessage {
-    pub collection: Collection,
+pub struct CollectionsHandler {
+    db: SqlitePooledConnection,
 }
 
-pub type CreateCollectionResult = CollectionsResult<CollectionEntity>;
+impl CollectionsHandler {
+    pub fn new(db: SqlitePooledConnection) -> Self {
+        Self { db }
+    }
 
-impl Message for CreateCollectionMessage {
-    type Result = CreateCollectionResult;
-}
+    pub fn handle_create(
+        &self,
+        new_collection: Collection,
+    ) -> Result<impl warp::Reply, warp::reject::Rejection> {
+        create_collection(&self.db, new_collection)
+            .map_err(warp::reject::custom)
+            .map(|val| {
+                warp::reply::with_status(warp::reply::json(&val), warp::http::StatusCode::CREATED)
+            })
+    }
 
-impl Handler<CreateCollectionMessage> for SqliteExecutor {
-    type Result = CreateCollectionResult;
+    pub fn handle_update(
+        &self,
+        uid: EntityUid,
+        collection: CollectionEntity,
+    ) -> Result<impl warp::Reply, warp::reject::Rejection> {
+        if uid != *collection.header().uid() {
+            return Err(warp::reject::custom(failure::format_err!(
+                "Mismatching UIDs: {} <> {}",
+                uid,
+                collection.header().uid(),
+            )));
+        }
+        update_collection(&self.db, &collection)
+            .and_then(move |res| match res {
+                (_, Some(next_revision)) => {
+                    let next_header = aoide_core::entity::EntityHeader::new(uid, next_revision);
+                    Ok(warp::reply::json(&next_header))
+                }
+                (_, None) => Err(failure::format_err!(
+                    "Inexistent entity or revision conflict"
+                )),
+            })
+            .map_err(warp::reject::custom)
+    }
 
-    fn handle(&mut self, msg: CreateCollectionMessage, _: &mut Self::Context) -> Self::Result {
-        let connection = &*self.pooled_connection()?;
-        let repository = CollectionRepository::new(connection);
-        connection.transaction::<_, Error, _>(|| repository.create_entity(msg.collection))
+    pub fn handle_delete(
+        &self,
+        uid: EntityUid,
+    ) -> Result<impl warp::Reply, warp::reject::Rejection> {
+        delete_collection(&self.db, &uid)
+            .map_err(warp::reject::custom)
+            .map(|res| {
+                warp::reply::with_status(
+                    warp::reply(),
+                    res.map(|()| warp::http::StatusCode::NO_CONTENT)
+                        .unwrap_or(warp::http::StatusCode::NOT_FOUND),
+                )
+            })
+    }
+
+    pub fn handle_load(
+        &self,
+        uid: EntityUid,
+        params: WithTokensQueryParams,
+    ) -> Result<impl warp::Reply, warp::reject::Rejection> {
+        load_collection(&self.db, &uid, params.try_with_token("track-stats"))
+            .map_err(warp::reject::custom)
+            .and_then(|res| match res {
+                Some(val) => Ok(warp::reply::json(&val)),
+                None => Err(warp::reject::not_found()),
+            })
+    }
+
+    pub fn handle_list(
+        &self,
+        pagination: Pagination,
+    ) -> Result<impl warp::Reply, warp::reject::Rejection> {
+        list_collections(&self.db, pagination)
+            .map_err(warp::reject::custom)
+            .map(|val| warp::reply::json(&val))
     }
 }
 
-pub fn on_create_collection(
-    (state, body): (State<AppState>, Json<Collection>),
-) -> FutureResponse<HttpResponse> {
-    let msg = CreateCollectionMessage {
-        collection: body.into_inner(),
-    };
-    state
-        .executor
-        .send(msg)
-        .flatten()
-        .map_err(Error::compat)
-        .from_err()
-        .and_then(|res| Ok(HttpResponse::Created().json(res.header())))
-        .responder()
+fn create_collection(
+    db: &SqlitePooledConnection,
+    new_collection: Collection,
+) -> CollectionsResult<CollectionEntity> {
+    let repository = CollectionRepository::new(&*db);
+    db.transaction::<_, Error, _>(|| repository.create_entity(new_collection))
 }
 
-#[derive(Debug)]
-pub struct UpdateCollectionMessage {
-    pub collection: CollectionEntity,
+fn update_collection(
+    db: &SqlitePooledConnection,
+    collection: &CollectionEntity,
+) -> CollectionsResult<(EntityRevision, Option<EntityRevision>)> {
+    let repository = CollectionRepository::new(&*db);
+    db.transaction::<_, Error, _>(|| repository.update_entity(collection))
 }
 
-pub type UpdateCollectionResult = CollectionsResult<(EntityRevision, Option<EntityRevision>)>;
-
-impl Message for UpdateCollectionMessage {
-    type Result = UpdateCollectionResult;
+fn delete_collection(
+    db: &SqlitePooledConnection,
+    uid: &EntityUid,
+) -> CollectionsResult<Option<()>> {
+    let repository = CollectionRepository::new(&*db);
+    db.transaction::<_, Error, _>(|| repository.delete_entity(uid))
 }
 
-impl Handler<UpdateCollectionMessage> for SqliteExecutor {
-    type Result = UpdateCollectionResult;
-
-    fn handle(&mut self, msg: UpdateCollectionMessage, _: &mut Self::Context) -> Self::Result {
-        let connection = &*self.pooled_connection()?;
-        let repository = CollectionRepository::new(connection);
-        connection.transaction::<_, Error, _>(|| repository.update_entity(&msg.collection))
-    }
-}
-
-pub fn on_update_collection(
-    (state, path, body): (State<AppState>, Path<EntityUid>, Json<CollectionEntity>),
-) -> FutureResponse<HttpResponse> {
-    let msg = UpdateCollectionMessage {
-        collection: body.into_inner(),
-    };
-    // TODO: Handle UID mismatch
-    let uid = path.into_inner();
-    assert!(uid == *msg.collection.header().uid());
-    state
-        .executor
-        .send(msg)
-        .flatten()
-        .map_err(Error::compat)
-        .from_err()
-        .and_then(move |res| match res {
-            (_, Some(next_revision)) => {
-                let next_header = EntityHeader::new(uid, next_revision);
-                Ok(HttpResponse::Ok().json(next_header))
-            }
-            (_, None) => Err(actix_web::error::ErrorBadRequest(failure::format_err!(
-                "Inexistent entity or revision conflict"
-            ))),
-        })
-        .responder()
-}
-
-#[derive(Debug)]
-pub struct DeleteCollectionMessage {
-    pub uid: EntityUid,
-}
-
-pub type DeleteCollectionResult = CollectionsResult<Option<()>>;
-
-impl Message for DeleteCollectionMessage {
-    type Result = DeleteCollectionResult;
-}
-
-impl Handler<DeleteCollectionMessage> for SqliteExecutor {
-    type Result = DeleteCollectionResult;
-
-    fn handle(&mut self, msg: DeleteCollectionMessage, _: &mut Self::Context) -> Self::Result {
-        let connection = &*self.pooled_connection()?;
-        let repository = CollectionRepository::new(connection);
-        connection.transaction::<_, Error, _>(|| repository.delete_entity(&msg.uid))
-    }
-}
-
-pub fn on_delete_collection(
-    (state, path): (State<AppState>, Path<EntityUid>),
-) -> FutureResponse<HttpResponse> {
-    let msg = DeleteCollectionMessage {
-        uid: path.into_inner(),
-    };
-    state
-        .executor
-        .send(msg)
-        .flatten()
-        .map_err(Error::compat)
-        .from_err()
-        .and_then(|res| match res {
-            Some(_) => Ok(HttpResponse::NoContent().into()),
-            None => Ok(HttpResponse::NotFound().into()),
-        })
-        .responder()
-}
-
-#[derive(Debug)]
-pub struct LoadCollectionMessage {
-    pub uid: EntityUid,
-    pub with_track_stats: bool,
-}
-
-pub type LoadCollectionResult = CollectionsResult<Option<CollectionEntityWithStats>>;
-
-impl Message for LoadCollectionMessage {
-    type Result = LoadCollectionResult;
-}
-
-impl Handler<LoadCollectionMessage> for SqliteExecutor {
-    type Result = LoadCollectionResult;
-
-    fn handle(&mut self, msg: LoadCollectionMessage, _: &mut Self::Context) -> Self::Result {
-        let connection = &*self.pooled_connection()?;
-        let repository = CollectionRepository::new(connection);
-        connection.transaction::<_, Error, _>(|| {
-            let entity = repository.load_entity(&msg.uid)?;
-            if let Some(entity) = entity {
-                let track_stats = if msg.with_track_stats {
-                    let track_repo = TrackRepository::new(connection);
-                    Some(track_repo.collection_stats(&msg.uid)?)
-                } else {
-                    None
-                };
-                Ok(Some(CollectionEntityWithStats {
-                    entity,
-                    stats: CollectionStats {
-                        tracks: track_stats,
-                    },
-                }))
+fn load_collection(
+    db: &SqlitePooledConnection,
+    uid: &EntityUid,
+    with_track_stats: bool,
+) -> CollectionsResult<Option<CollectionEntityWithStats>> {
+    let repository = CollectionRepository::new(&*db);
+    db.transaction::<_, Error, _>(|| {
+        let entity = repository.load_entity(uid)?;
+        if let Some(entity) = entity {
+            let track_stats = if with_track_stats {
+                let track_repo = TrackRepository::new(&*db);
+                Some(track_repo.collection_stats(uid)?)
             } else {
-                Ok(None)
-            }
-        })
-    }
+                None
+            };
+            Ok(Some(CollectionEntityWithStats {
+                entity,
+                stats: CollectionStats {
+                    tracks: track_stats,
+                },
+            }))
+        } else {
+            Ok(None)
+        }
+    })
 }
 
-pub fn on_load_collection(
-    (state, path_uid, query_with): (
-        State<AppState>,
-        Path<EntityUid>,
-        Query<WithTokensQueryParams>,
-    ),
-) -> FutureResponse<HttpResponse> {
-    let msg = LoadCollectionMessage {
-        uid: path_uid.into_inner(),
-        with_track_stats: query_with.into_inner().try_with_token("track-stats"),
-    };
-    state
-        .executor
-        .send(msg)
-        .flatten()
-        .map_err(Error::compat)
-        .from_err()
-        .and_then(|res| match res {
-            Some(collection) => Ok(HttpResponse::Ok().json(collection)),
-            None => Ok(HttpResponse::NotFound().into()),
-        })
-        .responder()
-}
-
-#[derive(Debug)]
-pub struct ListCollectionsMessage {
-    pub pagination: Pagination,
-}
-
-pub type ListCollectionsResult = CollectionsResult<Vec<CollectionEntity>>;
-
-impl Message for ListCollectionsMessage {
-    type Result = ListCollectionsResult;
-}
-
-impl Handler<ListCollectionsMessage> for SqliteExecutor {
-    type Result = ListCollectionsResult;
-
-    fn handle(&mut self, msg: ListCollectionsMessage, _: &mut Self::Context) -> Self::Result {
-        let connection = &*self.pooled_connection()?;
-        let repository = CollectionRepository::new(connection);
-        connection.transaction::<_, Error, _>(|| repository.list_entities(msg.pagination))
-    }
-}
-
-pub fn on_list_collections(
-    (state, query_pagination): (State<AppState>, Query<Pagination>),
-) -> FutureResponse<HttpResponse> {
-    let msg = ListCollectionsMessage {
-        pagination: query_pagination.into_inner(),
-    };
-    state
-        .executor
-        .send(msg)
-        .flatten()
-        .map_err(Error::compat)
-        .from_err()
-        .and_then(|res| Ok(HttpResponse::Ok().json(res)))
-        .responder()
+pub fn list_collections(
+    pooled_connection: &SqlitePooledConnection,
+    pagination: Pagination,
+) -> CollectionsResult<Vec<CollectionEntity>> {
+    let repository = CollectionRepository::new(&*pooled_connection);
+    pooled_connection.transaction::<_, Error, _>(|| repository.list_entities(pagination))
 }
