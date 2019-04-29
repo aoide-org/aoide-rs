@@ -26,12 +26,6 @@ COPY [ \
     "docker-entrypoint.sh", \
     "./" ]
 
-# TODO (if available): Add flag --chown=$APP_USER:$APP_GROUP
-COPY [ \
-    "resources/index.html", \
-    "resources/openapi.yaml", \
-    "./resources/" ]
-
 VOLUME [ \
     "./data" ]
 

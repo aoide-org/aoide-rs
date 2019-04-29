@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#![recursion_limit = "128"]
+
 #[macro_use]
 extern crate diesel_migrations;
 
@@ -41,6 +43,9 @@ use std::net::SocketAddr;
 use warp::Filter;
 
 ///////////////////////////////////////////////////////////////////////
+
+static INDEX_HTML: &str = include_str!("../resources/index.html");
+static OPENAPI_YAML: &str = include_str!("../resources/openapi.yaml");
 
 diesel_migrations::embed_migrations!("storage/resources/migrations/sqlite");
 
@@ -156,7 +161,9 @@ pub fn main() -> Result<(), Error> {
         .map({ move || sqlite_exec.pooled_connection() })
         .and_then(|res: Result<_, _>| res.map_err(warp::reject::custom));
 
+    // Resource /collections
     let collections = warp::path("collections");
+    let collections_uid = collections.and(warp::path::param::<aoide_core::entity::EntityUid>());
     let collections_create = warp::post2()
         .and(collections.and(warp::path::end()))
         .and(warp::body::json())
@@ -165,22 +172,14 @@ pub fn main() -> Result<(), Error> {
             CollectionsHandler::new(pooled_connection).handle_create(body)
         });
     let collections_update = warp::put2()
-        .and(
-            collections
-                .and(warp::path::param::<aoide_core::entity::EntityUid>())
-                .and(warp::path::end()),
-        )
+        .and(collections_uid.and(warp::path::end()))
         .and(warp::body::json())
         .and(pooled_connection.clone())
         .and_then(|query, body, pooled_connection| {
             CollectionsHandler::new(pooled_connection).handle_update(query, body)
         });
     let collections_delete = warp::delete2()
-        .and(
-            collections
-                .and(warp::path::param::<aoide_core::entity::EntityUid>())
-                .and(warp::path::end()),
-        )
+        .and(collections_uid.and(warp::path::end()))
         .and(pooled_connection.clone())
         .and_then(|uid, pooled_connection| {
             CollectionsHandler::new(pooled_connection).handle_delete(uid)
@@ -193,18 +192,21 @@ pub fn main() -> Result<(), Error> {
             CollectionsHandler::new(pooled_connection).handle_list(query)
         });
     let collections_load = warp::get2()
-        .and(
-            collections
-                .and(warp::path::param::<aoide_core::entity::EntityUid>())
-                .and(warp::path::end()),
-        )
+        .and(collections_uid.and(warp::path::end()))
         .and(warp::query())
         .and(pooled_connection.clone())
         .and_then(|uid, query, pooled_connection| {
             CollectionsHandler::new(pooled_connection).handle_load(uid, query)
         });
+    let collections_resources = collections_list
+        .or(collections_load)
+        .or(collections_create)
+        .or(collections_update)
+        .or(collections_delete);
 
+    // Resource /tracks
     let tracks = warp::path("tracks");
+    let tracks_uid = tracks.and(warp::path::param::<aoide_core::entity::EntityUid>());
     let tracks_create = warp::post2()
         .and(tracks.and(warp::path::end()))
         .and(warp::body::json())
@@ -213,32 +215,20 @@ pub fn main() -> Result<(), Error> {
             TracksHandler::new(pooled_connection).handle_create(body)
         });
     let tracks_update = warp::put2()
-        .and(
-            tracks
-                .and(warp::path::param::<aoide_core::entity::EntityUid>())
-                .and(warp::path::end()),
-        )
+        .and(tracks_uid.and(warp::path::end()))
         .and(warp::body::json())
         .and(pooled_connection.clone())
         .and_then(|uid, body, pooled_connection| {
             TracksHandler::new(pooled_connection).handle_update(uid, body)
         });
     let tracks_delete = warp::delete2()
-        .and(
-            tracks
-                .and(warp::path::param::<aoide_core::entity::EntityUid>())
-                .and(warp::path::end()),
-        )
+        .and(tracks_uid.and(warp::path::end()))
         .and(pooled_connection.clone())
         .and_then(|uid, pooled_connection| {
             TracksHandler::new(pooled_connection).handle_delete(uid)
         });
     let tracks_load = warp::get2()
-        .and(
-            tracks
-                .and(warp::path::param::<aoide_core::entity::EntityUid>())
-                .and(warp::path::end()),
-        )
+        .and(tracks_uid.and(warp::path::end()))
         .and(pooled_connection.clone())
         .and_then(|uid, pooled_connection| TracksHandler::new(pooled_connection).handle_load(uid));
     let tracks_list = warp::get2()
@@ -312,25 +302,29 @@ pub fn main() -> Result<(), Error> {
         .and_then(|query, body, pooled_connection| {
             TracksHandler::new(pooled_connection).handle_tags_facets_count(query, body)
         });
+    let tracks_resources = tracks_search
+        .or(tracks_replace)
+        .or(tracks_list)
+        .or(tracks_locate)
+        .or(tracks_create)
+        .or(tracks_update)
+        .or(tracks_delete)
+        .or(tracks_load)
+        .or(tracks_albums_count)
+        .or(tracks_tags_count)
+        .or(tracks_tags_facets_count);
+
+    // Static content
+    let index_html = warp::path::end().map(|| warp::reply::html(INDEX_HTML));
+    let openapi_yaml = warp::path("openapi.yaml")
+        .map(|| warp::reply::with_header(OPENAPI_YAML, "Content-Type", "text/yaml"));
+    let static_resources = index_html.or(openapi_yaml);
 
     log::info!("Running service...");
     warp::serve(
-        tracks_search
-            .or(tracks_replace)
-            .or(tracks_list)
-            .or(tracks_locate)
-            .or(tracks_create)
-            .or(tracks_update)
-            .or(tracks_delete)
-            .or(tracks_load)
-            .or(tracks_albums_count)
-            .or(tracks_tags_count)
-            .or(tracks_tags_facets_count)
-            .or(collections_list)
-            .or(collections_load)
-            .or(collections_create)
-            .or(collections_update)
-            .or(collections_delete),
+        tracks_resources
+            .or(collections_resources)
+            .or(static_resources),
     )
     .run(listen_addr);
     log::info!("Stopped service");
