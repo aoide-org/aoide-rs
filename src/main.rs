@@ -316,8 +316,13 @@ pub fn main() -> Result<(), Error> {
 
     // Static content
     let index_html = warp::path::end().map(|| warp::reply::html(INDEX_HTML));
-    let openapi_yaml = warp::path("openapi.yaml")
-        .map(|| warp::reply::with_header(OPENAPI_YAML, "Content-Type", "text/yaml"));
+    let openapi_yaml = warp::path("openapi.yaml").map(|| {
+        warp::reply::with_header(
+            OPENAPI_YAML,
+            "Content-Type",
+            "application/x-yaml;charset=utf-8",
+        )
+    });
     let static_resources = index_html.or(openapi_yaml);
 
     log::info!("Running service...");
