@@ -9,7 +9,7 @@ AOIDE_HOST=${AOIDE_HOST:-::}
 
 # The default port is EXPOSEDd in the Dockerfile and should
 # should not be changed.
-AOIDE_PORT=${AOIDE_PORT:-8080}
+AOIDE_PORT=${AOIDE_PORT:-7878}
 
 # This path is defined as a VOLUME in the Dockerfile
 AOIDE_DATA="${HOME}/data"
