@@ -10,9 +10,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Replaced web framework Actix Web with Warp
+### Removed
+
+## [0.0.4] - 2019-05-11
+
+### Added
+
+- Web framework [Warp](https://github.com/seanmonstar/warp)
+
+### Changed
+
+- Embedded all static resources in executable
+- Change default port of Docker image from 8080 to 7878
+- Fixed IPv6 wildcard address in Docker entrypoint script
+- Fixed inconsistent version numbers across projects and documents
 
 ### Removed
+
+- Web framework [Actix Web](https://github.com/actix/actix-web)
 
 ## [0.0.3] - 2019-04-24
 
@@ -59,7 +74,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial public release
 
-[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.0.3...development
+[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.0.4...development
+[0.0.4]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.4
 [0.0.3]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.3
 [0.0.2]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.2
 [0.0.1]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.1
