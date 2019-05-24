@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Embedded all static resources in executable
-- Change default port of Docker image from 8080 to 7878
+- Changed default port of Docker image from 8080 to 7878
 - Fixed IPv6 wildcard address in Docker entrypoint script
 - Fixed inconsistent version numbers across projects and documents
 

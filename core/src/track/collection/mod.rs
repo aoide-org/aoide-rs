@@ -20,7 +20,7 @@ use crate::{entity::EntityUid, util::color::*};
 use chrono::{DateTime, Utc};
 
 ///////////////////////////////////////////////////////////////////////
-/// TrackCollection
+// TrackCollection
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
