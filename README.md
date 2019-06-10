@@ -9,8 +9,8 @@ A web service for managing and exploring music collections.
 The domain model is centered around the concept of individual *tracks* with detailed metadata:
 
 - Multiple independent sources (URI) and data formats (MP3, AAC, FLAC, ...) per track
-- Track and album titles on different levels (main title, subtitle, classical work, classical movement)
-- Track and album actors with different roles (artist, composer, performer, ...)
+- Both track and album titles on different levels (main title, subtitle, classical work, classical movement)
+- Both track and album actors with different roles (artist, composer, performer, ...)
 - Release (date, label, ...) and licensing information
 - Various audio und musical properties
 - Position, beat, and key markers for live performance and mixing
