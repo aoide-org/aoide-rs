@@ -74,16 +74,21 @@ cargo build --bin aoide
 During development it is handy to build and run the executable in a single step:
 
 ```bash
-cargo run --bin aoide -- -vv --listen [::1]:7878 /tmp/aoide.sqlite
+cargo run --bin aoide -- -vv --listen [::1]:0 /tmp/aoide.sqlite
 ```
 
 In this example the following command line parameters are passed through to the executable:
 
-| Parameter | Description |
-| ----------|-------------|
-|-vv        | Log level INFO |
-|--listen [::1]:7878 | Listen on IPv6 loopback device at port 7878 for incoming HTTP requests |
+| Parameter        | Description |
+| -----------------|-------------|
+|-vv               | Log level INFO |
+|--listen [::1]:0  | Listen on IPv6 loopback device and bind to an ephemeral port for incoming HTTP requests |
 |/tmp/aoide.sqlite | Open or create the SQLite database file and perform any necessary maintenance tasks |
+
+The actual socket address with the bound (ephemeral) port will be printed on the first line to *stdout*
+where the client can pick it up for connecting. You may also bind the service to some predefined port.
+
+Logs messages are printed to *stderr*.
 
 Use _--help_ for a list and description of all available command line parameters:
 
@@ -92,10 +97,6 @@ cargo run --bin aoide -- --help
 ```
 
 > Use `cargo run --release ...` to build and run an optimized release build!
-
-#### ICYW
-
-On a 3x4 numeric key pad 7878 = RUST.
 
 ### Tests
 

@@ -3,7 +3,7 @@ name = "aoide"
 version = "0.0.4"
 authors = [ "Uwe Klotz <uwe.klotz@gmail>", "et al." ]
 license = "AGPL-3.0-or-later"
-description = "Backend services for curating and enjoying your music"
+description = "A web service for managing and exploring music collections"
 keywords = ["music", "library", "management"]
 publish = false
 edition = "2018"
@@ -22,6 +22,7 @@ aoide-storage = { path = "storage" }
 [dependencies]
 aoide-core = "*"
 aoide-storage = "*"
+chrono = "*"
 clap = "*"
 diesel = { version = "*", features = ["r2d2", "sqlite"] }
 diesel_migrations =  { version = "*", features = ["sqlite"] }
@@ -33,6 +34,7 @@ log = "^0.4"
 mime = "^0.3"
 serde = "*"
 serde_json = "*"
+tokio = "0.1"
 warp = "*"
 
 [dev-dependencies]

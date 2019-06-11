@@ -22,25 +22,20 @@ use aoide::api::{
     cli::*,
     web::{collections::*, tracks::*, *},
 };
-
 use aoide_core::collection::Collection;
-
 use aoide_storage::storage::track::util::TrackRepositoryHelper;
 
 use clap::App;
-
 use diesel::{prelude::*, sql_query};
-
-use failure::Error;
-
 use env_logger::Builder as LoggerBuilder;
-
+use failure::Error;
+use futures::{future, Future, Stream};
 use log::LevelFilter as LogLevelFilter;
-
-use std::env;
-use std::net::SocketAddr;
-
-use warp::Filter;
+use std::{env, net::SocketAddr};
+use warp::{
+    http::StatusCode,
+    Filter,
+};
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -118,6 +113,8 @@ fn init_env_logger(log_level_filter: LogLevelFilter) {
 }
 
 pub fn main() -> Result<(), Error> {
+    let started_at = chrono::Utc::now();
+
     let arg_matches = ArgMatches::new(
         App::new(env!("CARGO_PKG_NAME"))
             .author(env!("CARGO_PKG_AUTHORS"))
@@ -161,7 +158,38 @@ pub fn main() -> Result<(), Error> {
         .map({ move || sqlite_exec.pooled_connection() })
         .and_then(|res: Result<_, _>| res.map_err(warp::reject::custom));
 
-    // Resource /collections
+    // POST /shutdown
+    let (server_shutdown_tx, server_shutdown_rx) = futures::sync::mpsc::unbounded::<()>();
+    let shutdown_filter = warp::post2()
+        .and(warp::path("shutdown"))
+        .and(warp::path::end())
+        .map(move || {
+            server_shutdown_tx
+                .unbounded_send(())
+                .map(|()| StatusCode::ACCEPTED)
+                .or_else(|_| {
+                    log::warn!("Failed to forward shutdown request");
+                    Ok(StatusCode::BAD_GATEWAY)
+                })
+        });
+
+    // GET /about
+    let about_filter = warp::get2()
+        .and(warp::path("about"))
+        .and(warp::path::end())
+        .map(move || {
+            warp::reply::json(&serde_json::json!({
+            "name": env!("CARGO_PKG_NAME"),
+            "description": env!("CARGO_PKG_DESCRIPTION"),
+            "version": env!("CARGO_PKG_VERSION"),
+            "authors": env!("CARGO_PKG_AUTHORS"),
+            "instance": {
+                "startedAt": started_at,
+                }
+            }))
+        });
+
+    // /collections
     let collections = warp::path("collections");
     let collections_uid = collections.and(warp::path::param::<aoide_core::entity::EntityUid>());
     let collections_create = warp::post2()
@@ -204,7 +232,7 @@ pub fn main() -> Result<(), Error> {
         .or(collections_update)
         .or(collections_delete);
 
-    // Resource /tracks
+    // /tracks
     let tracks = warp::path("tracks");
     let tracks_uid = tracks.and(warp::path::param::<aoide_core::entity::EntityUid>());
     let tracks_create = warp::post2()
@@ -325,14 +353,36 @@ pub fn main() -> Result<(), Error> {
     });
     let static_resources = index_html.or(openapi_yaml);
 
-    log::info!("Running service...");
-    warp::serve(
+    log::info!("Initializing server");
+    let server = warp::serve(
         tracks_resources
             .or(collections_resources)
-            .or(static_resources),
-    )
-    .run(listen_addr);
-    log::info!("Stopped service");
+            .or(static_resources)
+            .or(shutdown_filter)
+            .or(about_filter),
+    );
+    let (socket_addr, server_listener) = server.bind_with_graceful_shutdown(
+        listen_addr,
+        server_shutdown_rx.into_future().map(|_| {
+            log::info!("Shutting down server");
+        }),
+    );
+    // Write the actual socket address (might use an ephemeral port)
+    println!("{}", socket_addr);
+
+    log::info!("Starting");
+    let main_task = future::lazy(move || {
+        log::info!("Running...");
+        server_listener.map(drop).map_err(drop).then(|res| {
+            match res {
+                Ok(()) => log::info!("Finished"),
+                Err(()) => log::error!("Aborted"),
+            };
+            res
+        })
+    });
+    tokio::run(main_task);
+    log::info!("Stopped");
 
     optimize_database_storage(&connection_pool).expect("Failed to optimize database storage");
 
