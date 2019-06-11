@@ -105,7 +105,7 @@ fn optimize_database_storage(connection_pool: &SqliteConnectionPool) -> Result<(
 fn init_env_logger(log_level_filter: LogLevelFilter) {
     let mut logger_builder = LoggerBuilder::new();
 
-    println!("Setting log level filter to {}", log_level_filter);
+    eprintln!("Setting log level filter to {}", log_level_filter);
     logger_builder.filter(None, log_level_filter);
 
     if env::var("RUST_LOG").is_ok() {
