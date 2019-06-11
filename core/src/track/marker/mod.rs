@@ -45,15 +45,16 @@ use std::{
 ///
 /// The following restrictions apply to the different types of position markers:
 ///
-/// | Type   | Extent    | Start    | End     | Constraints  | Direction | Cardinality |
-/// |--------|-----------|----------|---------|--------------|-----------|-------------|
-/// |load-cue|point      |some      |none     |              |           |0..1         |
-/// |hot-cue |point      |some      |none     |              |           |*            |
-/// |intro   |point/range|none/some |none/some|start<end     | fwd       |0..1         |
-/// |outro   |point/range|none/some |none/some|start<end     | fwd       |0..1         |
-/// |section |point/range|none/some |none/some|start<end     | fwd       |*            |
-/// |loop    |range      |some      |some     |start<>end    | fwd/bkwd  |*            |
-/// |sample  |range      |some      |some     |start<>end    | fwd/bkwd  |*            |
+/// | Type    | Extent    | Start    | End     | Constraints  | Direction | Cardinality |
+/// |---------|-----------|----------|---------|--------------|-----------|-------------|
+/// |load-cue |point      |some      |none     |              |           |0..1         |
+/// |hot-cue  |point      |some      |none     |              |           |*            |
+/// |auto-crop|range      |some      |some     |start<end     | fwd       |0..1         |
+/// |intro    |point/range|none/some |none/some|start<end     | fwd       |0..1         |
+/// |outro    |point/range|none/some |none/some|start<end     | fwd       |0..1         |
+/// |section  |point/range|none/some |none/some|start<end     | fwd       |*            |
+/// |loop     |range      |some      |some     |start<>end    | fwd/bkwd  |*            |
+/// |sample   |range      |some      |some     |start<>end    | fwd/bkwd  |*            |
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -77,21 +78,38 @@ pub struct PositionMarkerData {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum PositionMarkerType {
+    /// Initial position after loading the track
     LoadCue,
+
+    /// Custom jump point within the track for quick navigation
     HotCue,
+
+    /// The audible range between the first and last sound (implicit and inaccessible for the user)
+    AutoCrop,
+
+    /// Starting point, endpoint, or range of the track's intro part
     Intro,
+
+    /// Starting point, endpoint, or range of the track's outro part
     Outro,
+
+    /// Custom starting point, endpoint or range within the track, e.g. to label and color musical phrases
     Section,
+
+    /// Range that could be played in a loop, either forward or backward
     Loop,
+
+    /// Range that could be played as a sample, either forward or backward
     Sample,
 }
 
 impl PositionMarkerType {
     pub fn is_singular(self) -> bool {
         match self {
-            PositionMarkerType::LoadCue | PositionMarkerType::Intro | PositionMarkerType::Outro => {
-                true
-            } // cardinality = 0..1
+            PositionMarkerType::LoadCue
+            | PositionMarkerType::AutoCrop
+            | PositionMarkerType::Intro
+            | PositionMarkerType::Outro => true, // cardinality = 0..1
             _ => false, // cardinality = *
         }
     }
@@ -102,6 +120,7 @@ impl PositionMarkerType {
 pub enum PositionMarker {
     LoadCue(PositionMarkerData),
     HotCue(PositionMarkerData),
+    AutoCrop(PositionMarkerData),
     Intro(PositionMarkerData),
     Outro(PositionMarkerData),
     Section(PositionMarkerData),
@@ -114,6 +133,7 @@ impl From<&PositionMarker> for PositionMarkerType {
         match from {
             PositionMarker::LoadCue(_) => PositionMarkerType::LoadCue,
             PositionMarker::HotCue(_) => PositionMarkerType::HotCue,
+            PositionMarker::AutoCrop(_) => PositionMarkerType::AutoCrop,
             PositionMarker::Intro(_) => PositionMarkerType::Intro,
             PositionMarker::Outro(_) => PositionMarkerType::Outro,
             PositionMarker::Section(_) => PositionMarkerType::Section,
@@ -130,6 +150,7 @@ impl Deref for PositionMarker {
         match self {
             PositionMarker::LoadCue(data) => data,
             PositionMarker::HotCue(data) => data,
+            PositionMarker::AutoCrop(data) => data,
             PositionMarker::Intro(data) => data,
             PositionMarker::Outro(data) => data,
             PositionMarker::Section(data) => data,
@@ -144,6 +165,7 @@ impl DerefMut for PositionMarker {
         match self {
             PositionMarker::LoadCue(data) => data,
             PositionMarker::HotCue(data) => data,
+            PositionMarker::AutoCrop(data) => data,
             PositionMarker::Intro(data) => data,
             PositionMarker::Outro(data) => data,
             PositionMarker::Section(data) => data,
@@ -161,7 +183,8 @@ impl IsValid for PositionMarker {
             && self.color.iter().all(ColorArgb::is_valid)
             && match PositionMarkerType::from(self) {
                 PositionMarkerType::LoadCue | PositionMarkerType::HotCue => self.end.is_none(), // not available
-                PositionMarkerType::Intro
+                PositionMarkerType::AutoCrop
+                | PositionMarkerType::Intro
                 | PositionMarkerType::Outro
                 | PositionMarkerType::Section => {
                     if let (Some(start), Some(end)) = (self.start, self.end) {
