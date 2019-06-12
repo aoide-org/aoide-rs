@@ -1406,7 +1406,7 @@ components:
     PositionMarkerType:
       type: string
       enum:
-        - load-cue
+        - cue
         - hot-cue
         - intro
         - outro
@@ -1414,7 +1414,7 @@ components:
         - loop
         - sample
       description: >
-        * `load-cue` - singular start/cue point that marks the initial position when loading a track
+        * `cue` - singular start/cue point that marks the initial position when loading a track
 
         * `hot-cue` - custom start/cue points in a track
 

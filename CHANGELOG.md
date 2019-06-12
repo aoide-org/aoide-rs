@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Renamed *LoadCue* to just *Cue*
+
 ### Removed
 
 ## [0.0.4] - 2019-05-11

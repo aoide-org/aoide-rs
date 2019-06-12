@@ -47,7 +47,7 @@ use std::{
 ///
 /// | Type    | Extent    | Start    | End     | Constraints  | Direction | Cardinality |
 /// |---------|-----------|----------|---------|--------------|-----------|-------------|
-/// |load-cue |point      |some      |none     |              |           |0..1         |
+/// |cue      |point      |some      |none     |              |           |0..1         |
 /// |hot-cue  |point      |some      |none     |              |           |*            |
 /// |auto-crop|range      |some      |some     |start<end     | fwd       |0..1         |
 /// |intro    |point/range|none/some |none/some|start<end     | fwd       |0..1         |
@@ -78,8 +78,8 @@ pub struct PositionMarkerData {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum PositionMarkerType {
-    /// Initial position after loading the track
-    LoadCue,
+    /// The main cue point, e.g. used for as the initial position after loading the track
+    Cue,
 
     /// Custom jump point within the track for quick navigation
     HotCue,
@@ -106,7 +106,7 @@ pub enum PositionMarkerType {
 impl PositionMarkerType {
     pub fn is_singular(self) -> bool {
         match self {
-            PositionMarkerType::LoadCue
+            PositionMarkerType::Cue
             | PositionMarkerType::AutoCrop
             | PositionMarkerType::Intro
             | PositionMarkerType::Outro => true, // cardinality = 0..1
@@ -118,7 +118,7 @@ impl PositionMarkerType {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, tag = "type", rename_all = "kebab-case")]
 pub enum PositionMarker {
-    LoadCue(PositionMarkerData),
+    Cue(PositionMarkerData),
     HotCue(PositionMarkerData),
     AutoCrop(PositionMarkerData),
     Intro(PositionMarkerData),
@@ -131,7 +131,7 @@ pub enum PositionMarker {
 impl From<&PositionMarker> for PositionMarkerType {
     fn from(from: &PositionMarker) -> Self {
         match from {
-            PositionMarker::LoadCue(_) => PositionMarkerType::LoadCue,
+            PositionMarker::Cue(_) => PositionMarkerType::Cue,
             PositionMarker::HotCue(_) => PositionMarkerType::HotCue,
             PositionMarker::AutoCrop(_) => PositionMarkerType::AutoCrop,
             PositionMarker::Intro(_) => PositionMarkerType::Intro,
@@ -148,7 +148,7 @@ impl Deref for PositionMarker {
 
     fn deref(&self) -> &Self::Target {
         match self {
-            PositionMarker::LoadCue(data) => data,
+            PositionMarker::Cue(data) => data,
             PositionMarker::HotCue(data) => data,
             PositionMarker::AutoCrop(data) => data,
             PositionMarker::Intro(data) => data,
@@ -163,7 +163,7 @@ impl Deref for PositionMarker {
 impl DerefMut for PositionMarker {
     fn deref_mut(&mut self) -> &mut Self::Target {
         match self {
-            PositionMarker::LoadCue(data) => data,
+            PositionMarker::Cue(data) => data,
             PositionMarker::HotCue(data) => data,
             PositionMarker::AutoCrop(data) => data,
             PositionMarker::Intro(data) => data,
@@ -182,7 +182,7 @@ impl IsValid for PositionMarker {
             && self.label.iter().all(|label| !label.trim().is_empty())
             && self.color.iter().all(ColorArgb::is_valid)
             && match PositionMarkerType::from(self) {
-                PositionMarkerType::LoadCue | PositionMarkerType::HotCue => self.end.is_none(), // not available
+                PositionMarkerType::Cue | PositionMarkerType::HotCue => self.end.is_none(), // not available
                 PositionMarkerType::AutoCrop
                 | PositionMarkerType::Intro
                 | PositionMarkerType::Outro
