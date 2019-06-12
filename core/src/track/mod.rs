@@ -238,6 +238,10 @@ impl Track {
             .collect()
     }
     */
+
+    pub fn purge_source_by_uri(&mut self, uri: &str) {
+        self.sources.retain(|source| source.uri != uri);
+    }
 }
 
 impl IsValid for Track {

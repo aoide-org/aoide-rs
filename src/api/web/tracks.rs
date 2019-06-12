@@ -21,7 +21,7 @@ use aoide_storage::{
         track::{TrackAlbums, TrackTags, Tracks, TracksResult},
         CountTagFacetsParams, CountTagsParams, CountTrackAlbumsParams, LocateTracksParams,
         Pagination, PaginationLimit, PaginationOffset, ReplaceTracksParams, ReplacedTracks,
-        SearchTracksParams, TagCount, TagFacetCount,
+        SearchTracksParams, StringPredicate, TagCount, TagFacetCount,
     },
     storage::track::TrackRepository,
 };
@@ -190,6 +190,16 @@ impl TracksHandler {
         .map_err(warp::reject::custom)
     }
 
+    pub fn handle_purge<I: AsRef<str>>(
+        &self,
+        query_params: TracksQueryParams,
+        source_uris: impl IntoIterator<Item = I>,
+    ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
+        purge_tracks(&self.db, query_params.collection_uid, source_uris)
+            .map(|()| StatusCode::NO_CONTENT)
+            .map_err(warp::reject::custom)
+    }
+
     pub fn handle_albums_count(
         &self,
         query_params: TracksQueryParams,
@@ -299,6 +309,53 @@ fn replace_tracks(
     let repository = TrackRepository::new(&*pooled_connection);
     future::result(pooled_connection.transaction::<_, Error, _>(|| {
         repository.replace_entities(query.collection_uid.as_ref(), params, format)
+    }))
+}
+
+fn purge_tracks<I: AsRef<str>>(
+    pooled_connection: &SqlitePooledConnection,
+    collection_uid: Option<EntityUid>,
+    source_uris: impl IntoIterator<Item = I>,
+) -> impl Future<Item = (), Error = Error> {
+    let repository = TrackRepository::new(&*pooled_connection);
+    future::result(pooled_connection.transaction::<_, Error, _>(|| {
+        for source_uri in source_uris {
+            let locate_params = LocateTracksParams {
+                uri: StringPredicate::Equals(source_uri.as_ref().to_string()),
+            };
+            let tracks = repository.locate_entities(
+                collection_uid.as_ref(),
+                Default::default(),
+                locate_params,
+            )?;
+            log::debug!(
+                "Found {} track(s) with source {}",
+                tracks.len(),
+                source_uri.as_ref()
+            );
+            for track in tracks {
+                let format = track.format;
+                let mut track: TrackEntity = track.deserialize()?;
+                track.body_mut().purge_source_by_uri(source_uri.as_ref());
+                if track.body().sources.is_empty() {
+                    log::debug!(
+                        "Deleting track {} after removing last source {}",
+                        track.header().uid(),
+                        source_uri.as_ref()
+                    );
+                    repository.delete_entity(track.header().uid())?;
+                } else {
+                    log::debug!(
+                        "Updating track {} after removing source {}",
+                        track.header().uid(),
+                        source_uri.as_ref(),
+                    );
+                    let updated = repository.update_entity(track, format)?;
+                    debug_assert!(updated.1.is_some());
+                }
+            }
+        }
+        Ok(())
     }))
 }
 

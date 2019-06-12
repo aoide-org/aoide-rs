@@ -270,6 +270,14 @@ pub fn main() -> Result<(), Error> {
         .and_then(|query, body, pooled_connection| {
             TracksHandler::new(pooled_connection).handle_replace(query, body)
         });
+    let tracks_purge = warp::post2()
+        .and(tracks.and(warp::path("purge")).and(warp::path::end()))
+        .and(warp::query())
+        .and(warp::body::json())
+        .and(pooled_connection.clone())
+        .and_then(|query, source_uris: Vec<String>, pooled_connection| {
+            TracksHandler::new(pooled_connection).handle_purge(query, source_uris.into_iter())
+        });
     let tracks_albums_count = warp::post2()
         .and(
             tracks
@@ -312,6 +320,7 @@ pub fn main() -> Result<(), Error> {
         });
     let tracks_resources = tracks_search
         .or(tracks_replace)
+        .or(tracks_purge)
         .or(tracks_list)
         .or(tracks_locate)
         .or(tracks_create)

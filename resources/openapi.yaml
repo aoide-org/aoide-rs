@@ -303,6 +303,30 @@ paths:
                   $ref: '#/components/schemas/ReplacedTracks'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+  /tracks/purge:
+    post:
+      summary: Purge track sources and tracks by URI
+      description: |
+        Purge all track sources that equal one of the given URIs.
+        If the purged source was the last source of a track the
+        entire track is deleted.
+      operationId: purgeTrackSources
+      tags:
+        - Tracks
+      parameters:
+        - $ref: '#/components/parameters/collectionUidParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurgeTracksParams'
+      responses:
+        '204':
+          description: |
+            Track sources and tracks have been purged.
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
   /tracks/search:
     post:
       summary: Search tracks
@@ -855,6 +879,10 @@ components:
       description: |
         Matches a sequence of terms on any of the given string fields.
         A match for at least one of the fields is sufficient.
+    PurgeTracksParams:
+      type: array
+      items:
+        $ref: '#/components/schemas/Uri'
     Release:
       properties:
         copyright:
