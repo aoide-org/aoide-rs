@@ -9,13 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added *AutoCrop* position marker type
-- Added /about route (GET) for health checks and monitoring
-- Added /shutdown route (POST) for graceful shutdown
+- Added /about (GET) for health checks and monitoring
+- Added /shutdown (POST) for graceful shutdown
 - Print socket address to *stdout* for connecting clients through an ephemeral port
 
 ### Changed
 
-- Renamed *LoadCue* to just *Cue*
+- Renamed *LoadCue* position marker to just *Cue*
 
 ### Removed
 

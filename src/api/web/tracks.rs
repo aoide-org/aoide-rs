@@ -27,6 +27,7 @@ use aoide_storage::{
 };
 
 use futures::future::{self, Future};
+use warp::http::StatusCode;
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -76,9 +77,7 @@ impl TracksHandler {
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         create_track(&self.db, new_track, SerializationFormat::JSON)
             .map_err(warp::reject::custom)
-            .map(|val| {
-                warp::reply::with_status(warp::reply::json(&val), warp::http::StatusCode::CREATED)
-            })
+            .map(|val| warp::reply::with_status(warp::reply::json(&val), StatusCode::CREATED))
     }
 
     pub fn handle_update(
@@ -115,8 +114,8 @@ impl TracksHandler {
             .map(|res| {
                 warp::reply::with_status(
                     warp::reply(),
-                    res.map(|()| warp::http::StatusCode::NO_CONTENT)
-                        .unwrap_or(warp::http::StatusCode::NOT_FOUND),
+                    res.map(|()| StatusCode::NO_CONTENT)
+                        .unwrap_or(StatusCode::NOT_FOUND),
                 )
             })
     }

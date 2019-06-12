@@ -32,10 +32,7 @@ use failure::Error;
 use futures::{future, Future, Stream};
 use log::LevelFilter as LogLevelFilter;
 use std::{env, net::SocketAddr};
-use warp::{
-    http::StatusCode,
-    Filter,
-};
+use warp::{http::StatusCode, Filter};
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -105,7 +102,7 @@ fn init_env_logger(log_level_filter: LogLevelFilter) {
 
     if env::var("RUST_LOG").is_ok() {
         let rust_log_var = &env::var("RUST_LOG").unwrap();
-        println!("Parsing RUST_LOG={}", rust_log_var);
+        eprintln!("Parsing RUST_LOG={}", rust_log_var);
         logger_builder.parse_filters(rust_log_var);
     }
 
