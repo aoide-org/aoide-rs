@@ -13,9 +13,21 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use env_logger::Builder as LoggerBuilder;
+use log::LevelFilter as LogLevelFilter;
+use std::env;
 
-///////////////////////////////////////////////////////////////////////
-// Modules
-///////////////////////////////////////////////////////////////////////
-pub mod web;
+pub fn init_logger(log_level_filter: LogLevelFilter) {
+    let mut logger_builder = LoggerBuilder::new();
+
+    eprintln!("Setting log level filter to {}", log_level_filter);
+    logger_builder.filter(None, log_level_filter);
+
+    if env::var("RUST_LOG").is_ok() {
+        let rust_log_var = &env::var("RUST_LOG").unwrap();
+        eprintln!("Parsing RUST_LOG={}", rust_log_var);
+        logger_builder.parse_filters(rust_log_var);
+    }
+
+    logger_builder.init();
+}

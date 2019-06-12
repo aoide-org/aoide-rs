@@ -15,29 +15,27 @@
 
 #![recursion_limit = "128"]
 
-#[macro_use]
-extern crate diesel_migrations;
+mod cli;
+mod env;
 
-use aoide::api::{
-    cli::*,
-    web::{collections::*, tracks::*, *},
-};
+use aoide::api::web::{collections::*, tracks::*, *};
 use aoide_core::collection::Collection;
 use aoide_storage::storage::track::util::TrackRepositoryHelper;
 
 use clap::App;
 use diesel::{prelude::*, sql_query};
-use env_logger::Builder as LoggerBuilder;
 use failure::Error;
 use futures::{future, Future, Stream};
-use log::LevelFilter as LogLevelFilter;
-use std::{env, net::SocketAddr};
+use std::net::SocketAddr;
 use warp::{http::StatusCode, Filter};
+
+#[macro_use]
+extern crate diesel_migrations;
 
 ///////////////////////////////////////////////////////////////////////
 
-static INDEX_HTML: &str = include_str!("../resources/index.html");
-static OPENAPI_YAML: &str = include_str!("../resources/openapi.yaml");
+static INDEX_HTML: &str = include_str!("../../../resources/index.html");
+static OPENAPI_YAML: &str = include_str!("../../../resources/openapi.yaml");
 
 diesel_migrations::embed_migrations!("storage/resources/migrations/sqlite");
 
@@ -94,32 +92,17 @@ fn optimize_database_storage(connection_pool: &SqliteConnectionPool) -> Result<(
     Ok(())
 }
 
-fn init_env_logger(log_level_filter: LogLevelFilter) {
-    let mut logger_builder = LoggerBuilder::new();
-
-    eprintln!("Setting log level filter to {}", log_level_filter);
-    logger_builder.filter(None, log_level_filter);
-
-    if env::var("RUST_LOG").is_ok() {
-        let rust_log_var = &env::var("RUST_LOG").unwrap();
-        eprintln!("Parsing RUST_LOG={}", rust_log_var);
-        logger_builder.parse_filters(rust_log_var);
-    }
-
-    logger_builder.init();
-}
-
 pub fn main() -> Result<(), Error> {
     let started_at = chrono::Utc::now();
 
-    let arg_matches = ArgMatches::new(
+    let arg_matches = cli::ArgMatches::new(
         App::new(env!("CARGO_PKG_NAME"))
             .author(env!("CARGO_PKG_AUTHORS"))
             .version(env!("CARGO_PKG_VERSION"))
             .about(env!("CARGO_PKG_DESCRIPTION")),
     );
 
-    init_env_logger(arg_matches.log_level_filter());
+    env::init_logger(arg_matches.log_level_filter());
 
     let database_url = arg_matches.database_url();
     log::info!("Database URL: {}", database_url);
