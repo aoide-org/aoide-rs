@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Removed
+
+## [0.0.5] - 2019-06-12
+
+### Added
+
 - Added *AutoCrop* position marker type
 - Added /about (GET) for health checks and monitoring
 - Added /shutdown (POST) for graceful shutdown
@@ -82,7 +90,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial public release
 
-[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.0.4...development
+[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.0.5...development
+[0.0.5]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.5
 [0.0.4]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.4
 [0.0.3]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.3
 [0.0.2]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.2
