@@ -451,6 +451,21 @@ paths:
                   $ref: '#/components/schemas/TagFacetCount'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+  /shutdown:
+    post:
+      summary: Shut down gracefully
+      operationId: shutdown
+      tags:
+        - Shutdown
+      responses:
+        '202':
+          description: |
+            Shutdown has been initiated.
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+        '502':
+          description: |
+            Failed to forward the request.
 components:
   responses:
     201Created:
