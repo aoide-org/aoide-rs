@@ -12,6 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.0.7] - 2019-06-14
+
+### Changed
+
+- Fix clux-muslrust build
+- Update version numbers
+
 ## [0.0.6] - 2019-06-14
 
 ### Added
@@ -21,8 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Purge tracks by either exact source URI or by prefix
-
-### Removed
 
 ## [0.0.5] - 2019-06-12
 
@@ -37,8 +42,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Renamed *LoadCue* position marker to just *Cue*
-
-### Removed
 
 ## [0.0.4] - 2019-05-11
 
@@ -102,9 +105,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial public release
 
-[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.0.6...development
+[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.0.7...development
+[0.0.7]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.7
 [0.0.6]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.6
 [0.0.5]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.5
 [0.0.4]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.4
 [0.0.3]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.3
-[0.0.2]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.2

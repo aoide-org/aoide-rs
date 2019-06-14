@@ -1,6 +1,6 @@
 openapi: 3.0.2
 info:
-  version: 0.0.5
+  version: 0.0.7
   title: aoide
   description: Music library management service.
   license:
