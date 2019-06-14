@@ -21,7 +21,7 @@ use aoide_storage::{
         track::{TrackAlbums, TrackTags, Tracks, TracksResult},
         CountTagFacetsParams, CountTagsParams, CountTrackAlbumsParams, LocateTracksParams,
         Pagination, PaginationLimit, PaginationOffset, ReplaceTracksParams, ReplacedTracks,
-        SearchTracksParams, StringPredicate, TagCount, TagFacetCount,
+        SearchTracksParams, StringPredicate, TagCount, TagFacetCount, UriPredicate,
     },
     storage::track::TrackRepository,
 };
@@ -190,12 +190,12 @@ impl TracksHandler {
         .map_err(warp::reject::custom)
     }
 
-    pub fn handle_purge<I: AsRef<str>>(
+    pub fn handle_purge(
         &self,
         query_params: TracksQueryParams,
-        source_uris: impl IntoIterator<Item = I>,
+        uri_predicates: impl IntoIterator<Item = UriPredicate>,
     ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
-        purge_tracks(&self.db, query_params.collection_uid, source_uris)
+        purge_tracks(&self.db, query_params.collection_uid, uri_predicates)
             .map(|()| StatusCode::NO_CONTENT)
             .map_err(warp::reject::custom)
     }
@@ -312,16 +312,21 @@ fn replace_tracks(
     }))
 }
 
-fn purge_tracks<I: AsRef<str>>(
+fn purge_tracks(
     pooled_connection: &SqlitePooledConnection,
     collection_uid: Option<EntityUid>,
-    source_uris: impl IntoIterator<Item = I>,
+    uri_predicates: impl IntoIterator<Item = UriPredicate>,
 ) -> impl Future<Item = (), Error = Error> {
     let repository = TrackRepository::new(&*pooled_connection);
     future::result(pooled_connection.transaction::<_, Error, _>(|| {
-        for source_uri in source_uris {
-            let locate_params = LocateTracksParams {
-                uri: StringPredicate::Equals(source_uri.as_ref().to_string()),
+        for uri_predicate in uri_predicates {
+            let locate_params = match &uri_predicate {
+                UriPredicate::Prefix(uri_prefix) => LocateTracksParams {
+                    uri: StringPredicate::StartsWith(uri_prefix.to_owned()),
+                },
+                UriPredicate::Exact(uri) => LocateTracksParams {
+                    uri: StringPredicate::Equals(uri.to_owned()),
+                },
             };
             let tracks = repository.locate_entities(
                 collection_uid.as_ref(),
@@ -329,26 +334,29 @@ fn purge_tracks<I: AsRef<str>>(
                 locate_params,
             )?;
             log::debug!(
-                "Found {} track(s) with source {}",
+                "Found {} track(s) that match {:?}",
                 tracks.len(),
-                source_uri.as_ref()
+                uri_predicate,
             );
             for track in tracks {
                 let format = track.format;
                 let mut track: TrackEntity = track.deserialize()?;
-                track.body_mut().purge_source_by_uri(source_uri.as_ref());
+                match &uri_predicate {
+                    UriPredicate::Prefix(ref uri_prefix) => {
+                        track.body_mut().purge_source_by_uri_prefix(uri_prefix)
+                    }
+                    UriPredicate::Exact(ref uri) => track.body_mut().purge_source_by_uri(uri),
+                };
                 if track.body().sources.is_empty() {
                     log::debug!(
-                        "Deleting track {} after removing last source {}",
+                        "Deleting track {} after removing last source",
                         track.header().uid(),
-                        source_uri.as_ref()
                     );
                     repository.delete_entity(track.header().uid())?;
                 } else {
                     log::debug!(
-                        "Updating track {} after removing source {}",
+                        "Updating track {} after removing source",
                         track.header().uid(),
-                        source_uri.as_ref(),
                     );
                     let updated = repository.update_entity(track, format)?;
                     debug_assert!(updated.1.is_some());

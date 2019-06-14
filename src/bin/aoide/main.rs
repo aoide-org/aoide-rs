@@ -20,7 +20,7 @@ mod env;
 
 use aoide::api::web::{collections::*, tracks::*, *};
 use aoide_core::collection::Collection;
-use aoide_storage::storage::track::util::TrackRepositoryHelper;
+use aoide_storage::{api::UriPredicate, storage::track::util::TrackRepositoryHelper};
 
 use clap::App;
 use diesel::{prelude::*, sql_query};
@@ -275,8 +275,8 @@ pub fn main() -> Result<(), Error> {
         .and(warp::query())
         .and(warp::body::json())
         .and(pooled_connection.clone())
-        .and_then(|query, source_uris: Vec<String>, pooled_connection| {
-            TracksHandler::new(pooled_connection).handle_purge(query, source_uris.into_iter())
+        .and_then(|query, uri_predicates: Vec<UriPredicate>, pooled_connection| {
+            TracksHandler::new(pooled_connection).handle_purge(query, uri_predicates.into_iter())
         });
     let tracks_albums_count = warp::post2()
         .and(

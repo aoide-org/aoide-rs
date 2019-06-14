@@ -242,6 +242,11 @@ impl Track {
     pub fn purge_source_by_uri(&mut self, uri: &str) {
         self.sources.retain(|source| source.uri != uri);
     }
+
+    pub fn purge_source_by_uri_prefix(&mut self, uri_prefix: &str) {
+        self.sources
+            .retain(|source| !source.uri.starts_with(uri_prefix));
+    }
 }
 
 impl IsValid for Track {

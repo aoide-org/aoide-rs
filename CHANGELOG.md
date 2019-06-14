@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Purge tracks by either exact source URI or by prefix
+
 ### Removed
 
 ## [0.0.5] - 2019-06-12

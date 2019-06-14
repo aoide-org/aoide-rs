@@ -897,7 +897,7 @@ components:
     PurgeTracksParams:
       type: array
       items:
-        $ref: '#/components/schemas/Uri'
+        $ref: '#/components/schemas/UriPredicate'
     Release:
       properties:
         copyright:
@@ -1568,3 +1568,17 @@ components:
         file:///home/user/Music/album%20artist/album%20title/01%20the%20first%20track.mp3
       description: |
         A percent-encoded URI.
+    UriPredicate:
+      oneOf:
+        - $ref: '#/components/schemas/UriPredicatePrefix'
+        - $ref: '#/components/schemas/UriPredicateExact'
+    UriPredicatePrefix:
+      properties:
+        prefix:
+          type: string
+      description: Matches the head of an URI (case-sensitive)
+    UriPredicateExact:
+      properties:
+        exact:
+          type: string
+      description: Matches a single URI (case-sensitive)

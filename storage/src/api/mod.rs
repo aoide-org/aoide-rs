@@ -84,6 +84,13 @@ pub enum StringPredicate {
     EqualsNot(String),
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub enum UriPredicate {
+    Prefix(String),
+    Exact(String),
+}
+
 impl<'a> From<&'a StringPredicate> for (StringCompare, &'a String, bool) {
     fn from(from: &'a StringPredicate) -> (StringCompare, &'a String, bool) {
         match from {
@@ -215,7 +222,7 @@ pub struct PhraseFilter {
     pub terms: Vec<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LocateTracksParams {
     pub uri: StringPredicate,
