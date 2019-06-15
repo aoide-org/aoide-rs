@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Delay printing of endpoint address until server is (almost) listening
+
 ### Removed
 
 ## [0.0.7] - 2019-06-14

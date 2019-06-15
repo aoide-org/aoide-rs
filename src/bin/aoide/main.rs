@@ -356,12 +356,12 @@ pub fn main() -> Result<(), Error> {
             log::info!("Shutting down server");
         }),
     );
-    // Write the actual socket address (might use an ephemeral port)
-    println!("{}", socket_addr);
-
     log::info!("Starting");
     let main_task = future::lazy(move || {
         log::info!("Running...");
+        // Write the actual socket address (might use an ephemeral port)
+        // now that the server actually starts listening in just a moment!
+        println!("{}", socket_addr);
         server_listener.map(drop).map_err(drop).then(|res| {
             match res {
                 Ok(()) => log::info!("Finished"),
