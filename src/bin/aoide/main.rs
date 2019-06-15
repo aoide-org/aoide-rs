@@ -26,13 +26,16 @@ use clap::App;
 use diesel::{prelude::*, sql_query};
 use failure::Error;
 use futures::{future, Future, Stream};
-use std::net::SocketAddr;
+use std::{net::SocketAddr, time::{Instant, Duration}};
+use tokio::timer::Delay;
 use warp::{http::StatusCode, Filter};
 
 #[macro_use]
 extern crate diesel_migrations;
 
 ///////////////////////////////////////////////////////////////////////
+
+const SERVER_LISTENING_DELAY: Duration = Duration::from_secs(1);
 
 static INDEX_HTML: &str = include_str!("../../../resources/index.html");
 static OPENAPI_YAML: &str = include_str!("../../../resources/openapi.yaml");
@@ -358,17 +361,22 @@ pub fn main() -> Result<(), Error> {
     );
     log::info!("Starting");
     let main_task = future::lazy(move || {
-        log::info!("Running...");
-        // Write the actual socket address (might use an ephemeral port)
-        // now that the server actually starts listening in just a moment!
-        println!("{}", socket_addr);
-        server_listener.map(drop).map_err(drop).then(|res| {
-            match res {
-                Ok(()) => log::info!("Finished"),
-                Err(()) => log::error!("Aborted"),
-            };
-            res
-        })
+        // Give the server some time for starting up before announcing the
+        // actual endpoint address, i.e. when using an ephemeral port.
+        Delay::new(Instant::now() + SERVER_LISTENING_DELAY).map(move |()| {
+            // stderr
+            log::info!("Listening on {}...", socket_addr);
+            // stdout
+            println!("{}", socket_addr);
+        }).map_err(drop).join(
+            server_listener.map(drop).map_err(drop).then(|res| {
+                match res {
+                    Ok(()) => log::info!("Finished"),
+                    Err(()) => log::error!("Aborted"),
+                };
+                res
+            })
+        ).map(drop)
     });
     tokio::run(main_task);
     log::info!("Stopped");
