@@ -248,7 +248,22 @@ impl Track {
             .retain(|source| !source.uri.starts_with(uri_prefix));
     }
 
-    pub fn relocate_source_by_uri_prefix(&mut self, old_uri_prefix: &str, new_uri_prefix: &str) -> usize {
+    pub fn relocate_source_by_uri(&mut self, old_uri: &str, new_uri: &str) -> usize {
+        let mut relocation_count = 0;
+        for mut source in &mut self.sources {
+            if source.uri == old_uri {
+                source.uri = new_uri.to_owned();
+                relocation_count += 1;
+            }
+        }
+        relocation_count
+    }
+
+    pub fn relocate_source_by_uri_prefix(
+        &mut self,
+        old_uri_prefix: &str,
+        new_uri_prefix: &str,
+    ) -> usize {
         let mut relocation_count = 0;
         for mut source in &mut self.sources {
             if source.uri.starts_with(old_uri_prefix) {

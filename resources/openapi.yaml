@@ -1611,7 +1611,7 @@ components:
       description: Matches a single URI (case-sensitive)
     UriRelocation:
       properties:
-        old_prefix:
-          type: string
-        new_prefix:
+        predicate:
+          $ref: '#/components/schemas/UriPredicate'
+        replacement:
           type: string

@@ -115,8 +115,8 @@ pub enum UriPredicate {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct UriRelocation {
-    pub old_prefix: String,
-    pub new_prefix: String,
+    pub predicate: UriPredicate,
+    pub replacement: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]

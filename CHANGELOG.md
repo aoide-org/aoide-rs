@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Support both prefix and exact match for relocating tracks
+
 ### Removed
 
 ## [0.0.8] - 2019-06-16
