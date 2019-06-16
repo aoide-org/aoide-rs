@@ -21,7 +21,7 @@ use aoide_storage::{
         track::{TrackAlbums, TrackTags, Tracks, TracksResult},
         CountTagFacetsParams, CountTagsParams, CountTrackAlbumsParams, LocateTracksParams,
         Pagination, PaginationLimit, PaginationOffset, ReplaceTracksParams, ReplacedTracks,
-        SearchTracksParams, StringPredicate, TagCount, TagFacetCount, UriPredicate,
+        SearchTracksParams, StringPredicate, TagCount, TagFacetCount, UriPredicate,UriRelocation,
     },
     storage::track::TrackRepository,
 };
@@ -200,6 +200,20 @@ impl TracksHandler {
             .map_err(warp::reject::custom)
     }
 
+    pub fn handle_relocate(
+        &self,
+        query_params: TracksQueryParams,
+        uri_relocations: impl IntoIterator<Item = UriRelocation>,
+    ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
+        relocate_tracks(
+            &self.db,
+            query_params.collection_uid,
+            uri_relocations,
+        )
+        .map(|()| StatusCode::NO_CONTENT)
+        .map_err(warp::reject::custom)
+    }
+
     pub fn handle_albums_count(
         &self,
         query_params: TracksQueryParams,
@@ -334,7 +348,7 @@ fn purge_tracks(
                 locate_params,
             )?;
             log::debug!(
-                "Found {} track(s) that match {:?}",
+                "Found {} track(s) that match {:?} as candidates for purging",
                 tracks.len(),
                 uri_predicate,
             );
@@ -357,6 +371,48 @@ fn purge_tracks(
                     log::debug!(
                         "Updating track {} after removing source",
                         track.header().uid(),
+                    );
+                    let updated = repository.update_entity(track, format)?;
+                    debug_assert!(updated.1.is_some());
+                }
+            }
+        }
+        Ok(())
+    }))
+}
+
+fn relocate_tracks(
+    pooled_connection: &SqlitePooledConnection,
+    collection_uid: Option<EntityUid>,
+    uri_relocations: impl IntoIterator<Item = UriRelocation>,
+) -> impl Future<Item = (), Error = Error> {
+    let repository = TrackRepository::new(&*pooled_connection);
+    future::result(pooled_connection.transaction::<_, Error, _>(|| {
+        for uri_relocation in uri_relocations {
+            let locate_params = LocateTracksParams {
+                uri: StringPredicate::StartsWith(uri_relocation.old_prefix.clone()),
+            };
+            let tracks = repository.locate_entities(
+                collection_uid.as_ref(),
+                Default::default(),
+                locate_params,
+            )?;
+            log::debug!(
+                "Found {} track(s) that match {} as candidates for relocating",
+                tracks.len(),
+                uri_relocation.old_prefix,
+            );
+            for track in tracks {
+                let format = track.format;
+                let mut track: TrackEntity = track.deserialize()?;
+                let relocation_count = track
+                    .body_mut()
+                    .relocate_source_by_uri_prefix(&uri_relocation.old_prefix, &uri_relocation.new_prefix);
+                if relocation_count > 0 {
+                    log::debug!(
+                        "Updating track {} after relocating {} source(s)",
+                        track.header().uid(),
+                        relocation_count,
                     );
                     let updated = repository.update_entity(track, format)?;
                     debug_assert!(updated.1.is_some());

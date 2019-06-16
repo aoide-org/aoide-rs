@@ -20,13 +20,19 @@ mod env;
 
 use aoide::api::web::{collections::*, tracks::*, *};
 use aoide_core::collection::Collection;
-use aoide_storage::{api::UriPredicate, storage::track::util::TrackRepositoryHelper};
+use aoide_storage::{
+    api::{UriPredicate, UriRelocation},
+    storage::track::util::TrackRepositoryHelper,
+};
 
 use clap::App;
 use diesel::{prelude::*, sql_query};
 use failure::Error;
 use futures::{future, Future, Stream};
-use std::{net::SocketAddr, time::{Instant, Duration}};
+use std::{
+    net::SocketAddr,
+    time::{Duration, Instant},
+};
 use tokio::timer::Delay;
 use warp::{http::StatusCode, Filter};
 
@@ -278,9 +284,23 @@ pub fn main() -> Result<(), Error> {
         .and(warp::query())
         .and(warp::body::json())
         .and(pooled_connection.clone())
-        .and_then(|query, uri_predicates: Vec<UriPredicate>, pooled_connection| {
-            TracksHandler::new(pooled_connection).handle_purge(query, uri_predicates.into_iter())
-        });
+        .and_then(
+            |query, uri_predicates: Vec<UriPredicate>, pooled_connection| {
+                TracksHandler::new(pooled_connection)
+                    .handle_purge(query, uri_predicates.into_iter())
+            },
+        );
+    let tracks_relocate = warp::post2()
+        .and(tracks.and(warp::path("relocate")).and(warp::path::end()))
+        .and(warp::query())
+        .and(warp::body::json())
+        .and(pooled_connection.clone())
+        .and_then(
+            |query, uri_relocations: Vec<UriRelocation>, pooled_connection| {
+                TracksHandler::new(pooled_connection)
+                    .handle_relocate(query, uri_relocations.into_iter())
+            },
+        );
     let tracks_albums_count = warp::post2()
         .and(
             tracks
@@ -323,6 +343,7 @@ pub fn main() -> Result<(), Error> {
         });
     let tracks_resources = tracks_search
         .or(tracks_replace)
+        .or(tracks_relocate)
         .or(tracks_purge)
         .or(tracks_list)
         .or(tracks_locate)
@@ -363,20 +384,22 @@ pub fn main() -> Result<(), Error> {
     let main_task = future::lazy(move || {
         // Give the server some time for starting up before announcing the
         // actual endpoint address, i.e. when using an ephemeral port.
-        Delay::new(Instant::now() + SERVER_LISTENING_DELAY).map(move |()| {
-            // stderr
-            log::info!("Listening on {}...", socket_addr);
-            // stdout
-            println!("{}", socket_addr);
-        }).map_err(drop).join(
-            server_listener.map(drop).map_err(drop).then(|res| {
+        Delay::new(Instant::now() + SERVER_LISTENING_DELAY)
+            .map(move |()| {
+                // stderr
+                log::info!("Listening on {}...", socket_addr);
+                // stdout
+                println!("{}", socket_addr);
+            })
+            .map_err(drop)
+            .join(server_listener.map(drop).map_err(drop).then(|res| {
                 match res {
                     Ok(()) => log::info!("Finished"),
                     Err(()) => log::error!("Aborted"),
                 };
                 res
-            })
-        ).map(drop)
+            }))
+            .map(drop)
     });
     tokio::run(main_task);
     log::info!("Stopped");

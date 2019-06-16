@@ -247,6 +247,23 @@ impl Track {
         self.sources
             .retain(|source| !source.uri.starts_with(uri_prefix));
     }
+
+    pub fn relocate_source_by_uri_prefix(&mut self, old_uri_prefix: &str, new_uri_prefix: &str) -> usize {
+        let mut relocation_count = 0;
+        for mut source in &mut self.sources {
+            if source.uri.starts_with(old_uri_prefix) {
+                let mut new_uri = String::with_capacity(
+                    new_uri_prefix.len() + (source.uri.len() - old_uri_prefix.len()),
+                );
+                new_uri.push_str(new_uri_prefix);
+                new_uri.push_str(&source.uri[old_uri_prefix.len()..]);
+                log::debug!("Replacing source URI: {} -> {}", source.uri, new_uri);
+                source.uri = new_uri;
+                relocation_count += 1;
+            }
+        }
+        relocation_count
+    }
 }
 
 impl IsValid for Track {

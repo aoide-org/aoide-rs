@@ -1,6 +1,6 @@
 openapi: 3.0.2
 info:
-  version: 0.0.7
+  version: 0.0.8
   title: aoide
   description: Music library management service.
   license:
@@ -325,6 +325,29 @@ paths:
         '204':
           description: |
             Track sources and tracks have been purged.
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /tracks/relocate:
+    post:
+      summary: Relocate track sources and tracks by their URI prefixes
+      description: |
+        Relocate all track sources that equal one of the given URI prefixes.
+        Old URI prefixes are replaced by the given new URI prefixes.
+      operationId: relocateTrackSources
+      tags:
+        - Tracks
+      parameters:
+        - $ref: '#/components/parameters/collectionUidParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RelocateTracksParams'
+      responses:
+        '204':
+          description: |
+            Track sources have been relocated.
         '500':
           $ref: '#/components/responses/500InternalServerError'
   /tracks/search:
@@ -898,6 +921,10 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/UriPredicate'
+    RelocateTracksParams:
+      type: array
+      items:
+        $ref: '#/components/schemas/UriRelocation'
     Release:
       properties:
         copyright:
@@ -1582,3 +1609,9 @@ components:
         exact:
           type: string
       description: Matches a single URI (case-sensitive)
+    UriRelocation:
+      properties:
+        old_prefix:
+          type: string
+        new_prefix:
+          type: string

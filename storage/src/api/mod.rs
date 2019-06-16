@@ -62,16 +62,18 @@ pub enum FilterModifier {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub enum StringCompare {
-    StartsWith, // head
-    EndsWith,   // tail
-    Contains,   // part
+    StartsWith, // head (case-insensitive)
+    EndsWith,   // tail (case-insensitive)
+    Contains,   // part (case-insensitive)
     Matches,    // all (case-insensitive)
     Equals,     // all (case-sensitive)
 }
 
+/// Predicates for matching strings
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub enum StringPredicate {
+    // Case-sensitive comparison
     StartsWith(String),
     StartsNotWith(String),
     EndsWith(String),
@@ -80,15 +82,9 @@ pub enum StringPredicate {
     ContainsNot(String),
     Matches(String),
     MatchesNot(String),
+    // Case-sensitive comparison
     Equals(String),
     EqualsNot(String),
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub enum UriPredicate {
-    Prefix(String),
-    Exact(String),
 }
 
 impl<'a> From<&'a StringPredicate> for (StringCompare, &'a String, bool) {
@@ -106,6 +102,21 @@ impl<'a> From<&'a StringPredicate> for (StringCompare, &'a String, bool) {
             StringPredicate::EqualsNot(s) => (StringCompare::Equals, s, false),
         }
     }
+}
+
+/// Predicates for matching URI strings (case-sensitive)
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub enum UriPredicate {
+    Prefix(String),
+    Exact(String),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct UriRelocation {
+    pub old_prefix: String,
+    pub new_prefix: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]

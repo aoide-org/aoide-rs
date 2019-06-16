@@ -10,9 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Delay printing of endpoint address until server is (almost) listening
-
 ### Removed
+
+## [0.0.8] - 2019-06-16
+
+### Added
+
+- Added /tracks/relocate (POST) to relocate track sources by their URI prefix
+
+### Changed
+
+- Delay advertising of endpoint address until server is listening
 
 ## [0.0.7] - 2019-06-14
 
@@ -107,9 +115,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial public release
 
-[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.0.7...development
+[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.0.8...development
+[0.0.8]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.8
 [0.0.7]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.7
 [0.0.6]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.6
 [0.0.5]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.5
 [0.0.4]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.4
-[0.0.3]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.3
