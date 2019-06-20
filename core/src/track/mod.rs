@@ -239,24 +239,30 @@ impl Track {
     }
     */
 
-    pub fn purge_source_by_uri(&mut self, uri: &str) {
+    pub fn purge_source_by_uri(&mut self, uri: &str) -> usize {
+        let len_before = self.sources.len();
         self.sources.retain(|source| source.uri != uri);
+        debug_assert!(self.sources.len() <= len_before);
+        len_before - self.sources.len()
     }
 
-    pub fn purge_source_by_uri_prefix(&mut self, uri_prefix: &str) {
+    pub fn purge_source_by_uri_prefix(&mut self, uri_prefix: &str) -> usize {
+        let len_before = self.sources.len();
         self.sources
             .retain(|source| !source.uri.starts_with(uri_prefix));
+        debug_assert!(self.sources.len() <= len_before);
+        len_before - self.sources.len()
     }
 
     pub fn relocate_source_by_uri(&mut self, old_uri: &str, new_uri: &str) -> usize {
-        let mut relocation_count = 0;
+        let mut relocated = 0;
         for mut source in &mut self.sources {
             if source.uri == old_uri {
                 source.uri = new_uri.to_owned();
-                relocation_count += 1;
+                relocated += 1;
             }
         }
-        relocation_count
+        relocated
     }
 
     pub fn relocate_source_by_uri_prefix(
@@ -264,7 +270,7 @@ impl Track {
         old_uri_prefix: &str,
         new_uri_prefix: &str,
     ) -> usize {
-        let mut relocation_count = 0;
+        let mut relocated = 0;
         for mut source in &mut self.sources {
             if source.uri.starts_with(old_uri_prefix) {
                 let mut new_uri = String::with_capacity(
@@ -274,10 +280,10 @@ impl Track {
                 new_uri.push_str(&source.uri[old_uri_prefix.len()..]);
                 log::debug!("Replacing source URI: {} -> {}", source.uri, new_uri);
                 source.uri = new_uri;
-                relocation_count += 1;
+                relocated += 1;
             }
         }
-        relocation_count
+        relocated
     }
 }
 

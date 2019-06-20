@@ -392,13 +392,13 @@ pub fn main() -> Result<(), Error> {
                 println!("{}", socket_addr);
             })
             .map_err(drop)
-            .join(server_listener.map(drop).map_err(drop).then(|res| {
-                match res {
-                    Ok(()) => log::info!("Finished"),
-                    Err(()) => log::error!("Aborted"),
-                };
-                res
-            }))
+            .join(
+                server_listener
+                    .map(drop)
+                    .map_err(drop)
+                    .map(|()| log::info!("Finished"))
+                    .map_err(|()| log::error!("Aborted")),
+            )
             .map(drop)
     });
     tokio::run(main_task);

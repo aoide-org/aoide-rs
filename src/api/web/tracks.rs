@@ -351,25 +351,32 @@ fn purge_tracks(
             for track in tracks {
                 let format = track.format;
                 let mut track: TrackEntity = track.deserialize()?;
-                match &uri_predicate {
+                let purged = match &uri_predicate {
                     UriPredicate::Prefix(ref uri_prefix) => {
                         track.body_mut().purge_source_by_uri_prefix(uri_prefix)
                     }
                     UriPredicate::Exact(ref uri) => track.body_mut().purge_source_by_uri(uri),
                 };
-                if track.body().sources.is_empty() {
-                    log::debug!(
-                        "Deleting track {} after removing last source",
-                        track.header().uid(),
-                    );
-                    repository.delete_entity(track.header().uid())?;
+                if purged > 0 {
+                    if track.body().sources.is_empty() {
+                        log::debug!(
+                            "Deleting track {} after purging all (= {}) sources",
+                            track.header().uid(),
+                            purged,
+                        );
+                        repository.delete_entity(track.header().uid())?;
+                    } else {
+                        log::debug!(
+                            "Updating track {} after purging {} of {} source(s)",
+                            track.header().uid(),
+                            purged,
+                            purged + track.body().sources.len(),
+                        );
+                        let updated = repository.update_entity(track, format)?;
+                        debug_assert!(updated.1.is_some());
+                    }
                 } else {
-                    log::debug!(
-                        "Updating track {} after removing source",
-                        track.header().uid(),
-                    );
-                    let updated = repository.update_entity(track, format)?;
-                    debug_assert!(updated.1.is_some());
+                    log::debug!("No sources purged from track {}", track.header().uid());
                 }
             }
         }
@@ -406,7 +413,7 @@ fn relocate_tracks(
             for track in tracks {
                 let format = track.format;
                 let mut track: TrackEntity = track.deserialize()?;
-                let relocation_count = match &uri_relocation.predicate {
+                let relocated = match &uri_relocation.predicate {
                     UriPredicate::Prefix(uri_prefix) => track
                         .body_mut()
                         .relocate_source_by_uri_prefix(uri_prefix, &uri_relocation.replacement),
@@ -414,14 +421,16 @@ fn relocate_tracks(
                         .body_mut()
                         .relocate_source_by_uri(uri, &uri_relocation.replacement),
                 };
-                if relocation_count > 0 {
+                if relocated > 0 {
                     log::debug!(
                         "Updating track {} after relocating {} source(s)",
                         track.header().uid(),
-                        relocation_count,
+                        relocated,
                     );
                     let updated = repository.update_entity(track, format)?;
                     debug_assert!(updated.1.is_some());
+                } else {
+                    log::debug!("No sources relocated for track {}", track.header().uid());
                 }
             }
         }

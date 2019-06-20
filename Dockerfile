@@ -29,7 +29,7 @@ COPY [ \
 VOLUME [ \
     "./data" ]
 
-EXPOSE 8080
+EXPOSE 7878
 
 USER $APP_USER
 
