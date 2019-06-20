@@ -63,7 +63,7 @@ stop:
 	(docker rm -f $(PROJECT_NAME) 2> /dev/null) || true
 
 run: stop
-	docker run --rm -d -p $(RUN_HTTP_PORT):7878 -v "$(RUN_DATA_DIR)":"${HOME_DIR}/data":Z --user ${USER_NAME} --name=$(PROJECT_NAME) -t $(PROJECT_REPO)/$(PROJECT_NAME):$(GIT_VERSION)
+	docker run --rm -d -p $(RUN_HTTP_PORT):7878 -v "$(RUN_DATA_DIR)":"${HOME_DIR}/data" --user ${USER_NAME} --name=$(PROJECT_NAME) -t $(PROJECT_REPO)/$(PROJECT_NAME):$(GIT_VERSION)
 
 tag-latest:
 	docker tag $(PROJECT_REPO)/$(PROJECT_NAME):$(GIT_VERSION) $(PROJECT_REPO)/$(PROJECT_NAME):latest
