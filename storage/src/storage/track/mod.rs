@@ -743,6 +743,8 @@ impl<'a> TrackAlbums for TrackRepository<'a> {
             target = target.filter(aux_track_brief::track_id.eq_any(track_id_subselect));
         }
 
+        target = target.filter(aux_track_brief::album_title.is_not_null());
+        target = target.filter(aux_track_brief::album_artist.is_not_null());
         if let Some(min_release_year) = params.min_release_year {
             target = target.filter(aux_track_brief::release_year.ge(min_release_year));
         }
