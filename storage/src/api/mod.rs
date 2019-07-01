@@ -185,9 +185,10 @@ pub enum NumericField {
     AudioDuration,
     AudioSampleRate,
     AudioLoudness,
+    TrackIndex,
+    ReleaseYear,
     MusicTempo,
     MusicKey,
-    ReleaseYear,
 }
 
 pub type NumericValue = f64;
@@ -283,6 +284,7 @@ pub enum TrackSortField {
     LastRevisionedAt,  // = recently modified (created or updated)
     TrackTitle,
     TrackArtist,
+    TrackIndex,
     AlbumTitle,
     AlbumArtist,
     ReleaseYear,

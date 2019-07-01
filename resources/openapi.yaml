@@ -882,9 +882,10 @@ components:
         - audioDuration
         - audioLoudness
         - audioSampleRate
+        - trackIndex
+        - releaseYear
         - musicTempo
         - musicKey
-        - releaseYear
     NumericFilter:
       properties:
         field:
@@ -1570,6 +1571,7 @@ components:
         - lastRevisionedAt
         - trackTitle
         - trackArtist
+        - trackIndex
         - albumTitle
         - albumArtist
         - releaseYear

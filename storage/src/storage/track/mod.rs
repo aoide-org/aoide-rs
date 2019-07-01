@@ -755,6 +755,14 @@ impl<'a> TrackAlbums for TrackRepository<'a> {
         for &TrackSortOrder { field, direction } in &params.ordering {
             let direction = direction.unwrap_or_else(|| TrackSortOrder::default_direction(field));
             match field {
+                TrackSortField::TrackIndex => match direction {
+                    SortDirection::Ascending => {
+                        target = target.then_order_by(aux_track_brief::track_index.asc());
+                    }
+                    SortDirection::Descending => {
+                        target = target.then_order_by(aux_track_brief::track_index.desc());
+                    }
+                },
                 TrackSortField::AlbumTitle => match direction {
                     SortDirection::Ascending => {
                         target = target.then_order_by(aux_track_brief::album_title.asc());
