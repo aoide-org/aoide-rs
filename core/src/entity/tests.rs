@@ -19,7 +19,7 @@ use super::*;
 
 #[test]
 fn default_uid() {
-    assert!(!EntityUid::default().is_valid());
+    assert!(!EntityUid::default().validate().is_ok());
     assert_eq!(
         EntityUid::default().as_ref().len(),
         mem::size_of::<EntityUid>()
@@ -28,7 +28,7 @@ fn default_uid() {
 
 #[test]
 fn generate_uid() {
-    assert!(EntityUid::random().is_valid());
+    assert!(EntityUid::random().validate().is_ok());
 }
 
 #[test]
@@ -60,18 +60,18 @@ fn should_fail_to_decode_too_short_string() {
 #[test]
 fn revision_sequence() {
     let initial = EntityRevision::initial();
-    assert!(initial.is_valid());
+    assert!(initial.validate().is_ok());
     assert!(initial.is_initial());
 
     let next = initial.next();
-    assert!(next.is_valid());
+    assert!(next.validate().is_ok());
     assert!(!next.is_initial());
     assert!(initial < next);
     assert!(initial.ordinal() < next.ordinal());
     assert!(initial.instant() <= next.instant());
 
     let nextnext = next.next();
-    assert!(nextnext.is_valid());
+    assert!(nextnext.validate().is_ok());
     assert!(!nextnext.is_initial());
     assert!(next < nextnext);
     assert!(next.ordinal() < nextnext.ordinal());
@@ -81,7 +81,7 @@ fn revision_sequence() {
 #[test]
 fn header_without_uid() {
     let header = EntityHeader::initial_with_uid(EntityUid::default());
-    assert!(!header.is_valid());
+    assert!(!header.validate().is_ok());
     assert!(header.revision().is_initial());
 }
 
@@ -89,9 +89,9 @@ fn header_without_uid() {
 fn should_generate_unique_initial_headers() {
     let header1 = EntityHeader::initial();
     let header2 = EntityHeader::initial();
-    assert!(header1.is_valid());
+    assert!(header1.validate().is_ok());
     assert!(header1.revision().is_initial());
-    assert!(header2.is_valid());
+    assert!(header2.validate().is_ok());
     assert!(header2.revision().is_initial());
     assert_ne!(header1.uid(), header2.uid());
     assert_eq!(header1.revision().ordinal(), header2.revision().ordinal());

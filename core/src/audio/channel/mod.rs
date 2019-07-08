@@ -40,10 +40,17 @@ impl ChannelCount {
     }
 }
 
-impl IsValid for ChannelCount {
-    fn is_valid(&self) -> bool {
-        debug_assert!(*self <= Self::max());
-        *self >= Self::min()
+impl Validate for ChannelCount {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        let mut errors = ValidationErrors::new();
+        if *self < Self::min() || *self > Self::max() {
+            errors.add("number of channels", ValidationError::new("invalid value"));
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 }
 
@@ -95,9 +102,11 @@ impl ChannelLayout {
 // Channels
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize, Validate)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[validate(schema(function = "post_validate_channels"))]
 pub struct Channels {
+    #[validate]
     pub count: ChannelCount,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -128,14 +137,18 @@ impl Channels {
     }
 }
 
-impl IsValid for Channels {
-    fn is_valid(&self) -> bool {
-        self.count.is_valid()
-            && self
-                .layout
-                .iter()
-                .all(|layout| layout.channel_count() == self.count)
+#[allow(clippy::trivially_copy_pass_by_ref)]
+fn post_validate_channels(channels: &Channels) -> Result<(), ValidationError> {
+    if !channels
+        .layout
+        .iter()
+        .all(|layout| layout.channel_count() == channels.count)
+    {
+        return Err(ValidationError::new(
+            "channel layout mismatches channel count",
+        ));
     }
+    Ok(())
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -143,4 +156,19 @@ impl IsValid for Channels {
 ///////////////////////////////////////////////////////////////////////
 
 #[cfg(test)]
-mod tests;
+mod tests {
+    use super::*;
+
+    #[test]
+    fn validate_channels() {
+        let mut channels = Channels {
+            count: ChannelCount(1),
+            layout: Some(ChannelLayout::DualMono),
+        };
+        assert!(channels.validate().is_err());
+        channels.count = channels.layout.unwrap().channel_count();
+        assert!(channels.validate().is_ok());
+        channels.layout = None;
+        assert!(channels.validate().is_ok());
+    }
+}

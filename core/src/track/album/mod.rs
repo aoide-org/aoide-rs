@@ -21,13 +21,15 @@ use crate::metadata::{actor::*, title::*};
 // AlbumMetadata
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, Validate)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AlbumMetadata {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[validate(length(min = 1), custom = "Titles::validate_main_title")]
     pub titles: Vec<Title>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[validate(custom = "Actors::validate_main_actor")]
     pub actors: Vec<Actor>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -44,12 +46,6 @@ impl AlbumMetadata {
     }
 }
 
-impl IsValid for AlbumMetadata {
-    fn is_valid(&self) -> bool {
-        Titles::all_valid(&self.titles) && Actors::all_valid(&self.actors)
-    }
-}
-
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackAlbumCount {
@@ -63,4 +59,56 @@ pub struct TrackAlbumCount {
     pub release_year: Option<i16>,
 
     pub count: usize,
+}
+
+///////////////////////////////////////////////////////////////////////
+// Tests
+///////////////////////////////////////////////////////////////////////
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn validate_main_title() {
+        let mut album = AlbumMetadata {
+            titles: vec![Title {
+                name: "main".to_string(),
+                level: TitleLevel::Main,
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        assert!(album.validate().is_ok());
+        album.titles = vec![Title {
+            name: "sub".to_string(),
+            level: TitleLevel::Sub,
+            ..Default::default()
+        }];
+        assert!(album.validate().is_err());
+    }
+
+    #[test]
+    fn validate_main_actor() {
+        let mut album = AlbumMetadata {
+            titles: vec![Title {
+                name: "main".to_string(),
+                level: TitleLevel::Main,
+                ..Default::default()
+            }],
+            actors: vec![Actor {
+                name: "artist".to_string(),
+                role: ActorRole::Artist,
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        assert!(album.validate().is_ok());
+        album.actors = vec![Actor {
+            name: "composer".to_string(),
+            role: ActorRole::Composer,
+            ..Default::default()
+        }];
+        assert!(album.validate().is_err());
+    }
 }

@@ -63,12 +63,6 @@ impl ColorArgb {
     }
 }
 
-impl IsValid for ColorArgb {
-    fn is_valid(&self) -> bool {
-        true
-    }
-}
-
 impl fmt::Display for ColorArgb {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}{:08X}", Self::STRING_PREFIX, self.code())

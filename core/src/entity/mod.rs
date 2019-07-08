@@ -85,9 +85,17 @@ impl EntityUid {
     }
 }
 
-impl IsValid for EntityUid {
-    fn is_valid(&self) -> bool {
-        self != &Self::default()
+impl Validate for EntityUid {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        let mut errors = ValidationErrors::new();
+        if self == &Self::default() {
+            errors.add("uid", ValidationError::new("default value"));
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 }
 
@@ -234,7 +242,7 @@ impl EntityRevision {
     }
 
     pub fn next(&self) -> Self {
-        debug_assert!(self.is_valid());
+        debug_assert!(self.validate().is_ok());
         self.0
             .checked_add(1)
             .map(|ordinal| EntityRevision(ordinal, TickInstant::now()))
@@ -255,9 +263,17 @@ impl EntityRevision {
     }
 }
 
-impl IsValid for EntityRevision {
-    fn is_valid(&self) -> bool {
-        self.ordinal() >= Self::initial_ordinal()
+impl Validate for EntityRevision {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        let mut errors = ValidationErrors::new();
+        if self.ordinal() < Self::initial_ordinal() {
+            errors.add("ordinal", ValidationError::new("invalid value"));
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 }
 
@@ -271,12 +287,16 @@ impl fmt::Display for EntityRevision {
 // EntityHeader
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Validate,
+)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityHeader {
+    #[validate]
     uid: EntityUid,
 
     #[serde(rename = "rev")]
+    #[validate]
     revision: EntityRevision,
 }
 
@@ -299,10 +319,6 @@ impl EntityHeader {
         }
     }
 
-    pub fn is_valid(&self) -> bool {
-        self.uid.is_valid() && self.revision.is_valid()
-    }
-
     pub fn uid(&self) -> &EntityUid {
         &self.uid
     }
@@ -316,16 +332,21 @@ impl EntityHeader {
 // Entity
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Validate)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Entity<T> {
+pub struct Entity<T: Validate> {
     #[serde(rename = "hdr")]
+    #[validate]
     header: EntityHeader,
 
+    #[validate]
     body: T,
 }
 
-impl<T> Entity<T> {
+impl<T> Entity<T>
+where
+    T: Validate,
+{
     pub fn new(header: EntityHeader, body: T) -> Self {
         Self { header, body }
     }

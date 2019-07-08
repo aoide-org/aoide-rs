@@ -15,7 +15,7 @@ fn random_uuid(n: u64) {
 fn random_entity_uid(n: u64) {
     for _ in 0..n {
         let entity_uid = EntityUid::random();
-        assert!(entity_uid.is_valid());
+        assert!(entity_uid.validate().is_ok());
         let encoded = entity_uid.encode_to_string();
         assert!(!encoded.is_empty());
     }
@@ -24,7 +24,7 @@ fn random_entity_uid(n: u64) {
 fn generate_entity_uid(n: u64) {
     for _ in 0..n {
         let entity_uid = EntityUidGenerator::generate_uid();
-        assert!(entity_uid.is_valid());
+        assert!(entity_uid.validate().is_ok());
         let encoded = entity_uid.encode_to_string();
         assert!(!encoded.is_empty());
     }

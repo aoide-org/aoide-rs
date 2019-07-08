@@ -62,9 +62,17 @@ impl KeySignature {
     }
 }
 
-impl IsValid for KeySignature {
-    fn is_valid(&self) -> bool {
-        Self::is_valid_code(self.code())
+impl Validate for KeySignature {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        let mut errors = ValidationErrors::new();
+        if !Self::is_valid_code(self.code()) {
+            errors.add("key code", ValidationError::new("invalid value"));
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 }
 
@@ -123,12 +131,6 @@ impl From<KeySignature> for OpenKeySignature {
 impl From<OpenKeySignature> for KeySignature {
     fn from(from: OpenKeySignature) -> Self {
         from.0
-    }
-}
-
-impl IsValid for OpenKeySignature {
-    fn is_valid(&self) -> bool {
-        self.0.is_valid()
     }
 }
 
@@ -198,12 +200,6 @@ impl From<LancelotKeySignature> for KeySignature {
     }
 }
 
-impl IsValid for LancelotKeySignature {
-    fn is_valid(&self) -> bool {
-        self.0.is_valid()
-    }
-}
-
 impl fmt::Display for LancelotKeySignature {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
@@ -259,12 +255,6 @@ impl From<KeySignature> for EngineKeySignature {
 impl From<EngineKeySignature> for KeySignature {
     fn from(from: EngineKeySignature) -> Self {
         from.0
-    }
-}
-
-impl IsValid for EngineKeySignature {
-    fn is_valid(&self) -> bool {
-        self.0.is_valid()
     }
 }
 

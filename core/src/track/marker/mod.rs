@@ -56,16 +56,19 @@ use std::{
 /// |loop     |range      |some      |some     |start<>end    | fwd/bkwd  |*            |
 /// |sample   |range      |some      |some     |start<>end    | fwd/bkwd  |*            |
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, Validate)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PositionMarkerData {
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[validate]
     pub start: Option<PositionMs>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[validate]
     pub end: Option<PositionMs>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[validate(length(min = 1))]
     pub label: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -73,6 +76,38 @@ pub struct PositionMarkerData {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub color: Option<ColorArgb>,
+}
+
+impl PositionMarkerData {
+    fn validate_range_by_type(&self, r#type: PositionMarkerType) -> Result<(), ValidationError> {
+        match r#type {
+            PositionMarkerType::Cue | PositionMarkerType::HotCue => {
+                if self.end.is_some() {
+                    return Err(ValidationError::new("range instead of point"));
+                }
+            }
+            PositionMarkerType::AutoCrop
+            | PositionMarkerType::Intro
+            | PositionMarkerType::Outro
+            | PositionMarkerType::Section => {
+                if let (Some(start), Some(end)) = (self.start, self.end) {
+                    if start >= end {
+                        return Err(ValidationError::new("empty"));
+                    }
+                }
+            }
+            PositionMarkerType::Loop | PositionMarkerType::Sample => {
+                if let (Some(start), Some(end)) = (self.start, self.end) {
+                    if start == end {
+                        return Err(ValidationError::new("empty"));
+                    }
+                } else {
+                    return Err(ValidationError::new("unbounded"));
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -128,6 +163,22 @@ pub enum PositionMarker {
     Sample(PositionMarkerData),
 }
 
+impl Validate for PositionMarker {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        let res = self.data().validate();
+        if let Err(err) = self.data().validate_range_by_type(self.r#type()) {
+            let mut errors = if let Err(errors) = res {
+                errors
+            } else {
+                ValidationErrors::new()
+            };
+            errors.add("range", err);
+            return Err(errors);
+        }
+        res
+    }
+}
+
 impl From<&PositionMarker> for PositionMarkerType {
     fn from(from: &PositionMarker) -> Self {
         match from {
@@ -175,62 +226,55 @@ impl DerefMut for PositionMarker {
     }
 }
 
-impl IsValid for PositionMarker {
-    fn is_valid(&self) -> bool {
-        self.start.iter().all(IsValid::is_valid)
-            && self.end.iter().all(IsValid::is_valid)
-            && self.label.iter().all(|label| !label.trim().is_empty())
-            && self.color.iter().all(ColorArgb::is_valid)
-            && match PositionMarkerType::from(self) {
-                PositionMarkerType::Cue | PositionMarkerType::HotCue => self.end.is_none(), // not available
-                PositionMarkerType::AutoCrop
-                | PositionMarkerType::Intro
-                | PositionMarkerType::Outro
-                | PositionMarkerType::Section => {
-                    if let (Some(start), Some(end)) = (self.start, self.end) {
-                        start < end
-                    } else {
-                        true
-                    }
-                }
-                PositionMarkerType::Loop | PositionMarkerType::Sample => {
-                    if let (Some(start), Some(end)) = (self.start, self.end) {
-                        start != end
-                    } else {
-                        false
-                    }
-                }
-            }
-    }
-}
-
 impl PositionMarker {
     pub fn r#type(&self) -> PositionMarkerType {
         self.into()
     }
 
-    pub fn count_by_type(markers: &[PositionMarker], marker_type: PositionMarkerType) -> usize {
+    pub fn data(&self) -> &PositionMarkerData {
+        &*self
+    }
+
+    pub fn count_by_type(markers: &[PositionMarker], r#type: PositionMarkerType) -> usize {
         markers
             .iter()
-            .filter(|marker| marker.r#type() == marker_type)
+            .filter(|marker| marker.r#type() == r#type)
             .count()
     }
 
-    pub fn all_valid(markers: &[PositionMarker]) -> bool {
-        markers.iter().all(|marker| {
-            marker.is_valid()
-                && (!marker.r#type().is_singular()
-                    || Self::count_by_type(markers, marker.r#type()) <= 1)
-        })
+    fn validate_cardinality_by_type(
+        markers: &[PositionMarker],
+        r#type: PositionMarkerType,
+    ) -> Result<(), ValidationError> {
+        if r#type.is_singular() && Self::count_by_type(markers, r#type) > 1 {
+            return Err(ValidationError::new("more than one"));
+        }
+        Ok(())
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub fn validate_position_marker_cardinalities(
+    markers: &[PositionMarker],
+) -> Result<(), ValidationError> {
+    for marker in markers {
+        PositionMarker::validate_cardinality_by_type(markers, marker.r#type())?;
+    }
+    Ok(())
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Validate)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[validate(
+    schema(function = "validate_beat_marker_direction"),
+    schema(function = "validate_beat_marker_tempo_or_timing"),
+    schema(function = "validate_beat_marker_beat_number")
+)]
 pub struct BeatMarker {
+    #[validate]
     pub start: PositionMs,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[validate]
     pub end: Option<PositionMs>,
 
     #[serde(skip_serializing_if = "IsDefault::is_default", default)]
@@ -244,28 +288,49 @@ pub struct BeatMarker {
     pub beat: BeatNumber,
 }
 
-impl BeatMarker {
-    pub fn all_valid(markers: &[BeatMarker]) -> bool {
-        let mut min_pos = PositionMs(f64::NEG_INFINITY);
-        for marker in markers {
-            if !marker.is_valid() {
-                return false;
-            }
-            // Ordered and non-overlapping
-            if min_pos > marker.start {
-                return false;
-            }
-            min_pos = marker.start;
-            if let Some(end) = marker.end {
-                if min_pos > end {
-                    return false;
-                }
-                min_pos = end;
-            }
+pub fn validate_beat_marker_direction(marker: &BeatMarker) -> Result<(), ValidationError> {
+    if let Some(end) = marker.end {
+        if marker.start > end {
+            return Err(ValidationError::new("invalid range direction"));
         }
-        true
     }
+    Ok(())
+}
 
+pub fn validate_beat_marker_tempo_or_timing(marker: &BeatMarker) -> Result<(), ValidationError> {
+    if marker.tempo.is_default() {
+        if marker.timing.is_default() {
+            return Err(ValidationError::new("missing tempo or timing"));
+        }
+    } else if let Err(_errors) = marker.tempo.validate() {
+        return Err(ValidationError::new("invalid tempo"));
+    }
+    Ok(())
+}
+
+pub fn validate_beat_marker_beat_number(marker: &BeatMarker) -> Result<(), ValidationError> {
+    if !marker.timing.is_default()
+        && !marker.beat.is_zero()
+        && marker.beat > marker.timing.beats_per_measure()
+    {
+        return Err(ValidationError::new("beat number exceeds beats per bar"));
+    }
+    Ok(())
+}
+
+pub fn validate_beat_marker_ranges(markers: &[BeatMarker]) -> Result<(), ValidationError> {
+    let mut min_pos = PositionMs(f64::NEG_INFINITY);
+    for marker in markers {
+        // Ordered and non-overlapping
+        if min_pos > marker.start {
+            return Err(ValidationError::new("overlapping ranges"));
+        }
+        min_pos = marker.start;
+    }
+    Ok(())
+}
+
+impl BeatMarker {
     pub fn uniform_tempo(markers: &[BeatMarker]) -> Option<TempoBpm> {
         let mut tempo = None;
         for marker in markers {
@@ -282,51 +347,43 @@ impl BeatMarker {
     }
 }
 
-impl IsValid for BeatMarker {
-    fn is_valid(&self) -> bool {
-        !(self.tempo.is_default() && self.timing.is_default())
-            && (self.tempo.is_default() || self.tempo.is_valid())
-            && (self.timing.is_default() || self.timing.is_valid())
-            && (self.timing.is_default()
-                || self.beat.is_zero()
-                || (self.beat <= self.timing.beats_per_measure()))
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Validate)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct KeyMarker {
+    #[validate]
     pub start: PositionMs,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[validate]
     pub end: Option<PositionMs>,
 
     #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[validate]
     pub key: KeySignature,
 }
 
-impl KeyMarker {
-    pub fn all_valid(markers: &[KeyMarker]) -> bool {
-        let mut min_pos = PositionMs(f64::NEG_INFINITY);
-        for marker in markers {
-            if !marker.is_valid() {
-                return false;
-            }
-            // Ordered and non-overlapping
-            if min_pos > marker.start {
-                return false;
-            }
-            min_pos = marker.start;
-            if let Some(end) = marker.end {
-                if min_pos > end {
-                    return false;
-                }
-                min_pos = end;
-            }
+pub fn validate_key_marker_schema(marker: &KeyMarker) -> Result<(), ValidationError> {
+    if let Some(end) = marker.end {
+        if marker.start > end {
+            return Err(ValidationError::new("invalid range direction"));
         }
-        true
     }
+    Ok(())
+}
 
+pub fn validate_key_marker_ranges(markers: &[KeyMarker]) -> Result<(), ValidationError> {
+    let mut min_pos = PositionMs(f64::NEG_INFINITY);
+    for marker in markers {
+        // Ordered and non-overlapping
+        if min_pos > marker.start {
+            return Err(ValidationError::new("overlapping ranges"));
+        }
+        min_pos = marker.start;
+    }
+    Ok(())
+}
+
+impl KeyMarker {
     pub fn uniform_key(markers: &[KeyMarker]) -> Option<KeySignature> {
         let mut key = None;
         for marker in markers {
@@ -340,12 +397,6 @@ impl KeyMarker {
             }
         }
         key
-    }
-}
-
-impl IsValid for KeyMarker {
-    fn is_valid(&self) -> bool {
-        !self.key.is_default()
     }
 }
 

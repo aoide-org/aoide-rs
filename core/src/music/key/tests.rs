@@ -17,9 +17,7 @@ use super::*;
 
 #[test]
 fn default_key_sig() {
-    assert!(!KeySignature::default().is_valid());
-    assert!(!OpenKeySignature::default().is_valid());
-    assert!(!LancelotKeySignature::default().is_valid());
+    assert!(KeySignature::default().validate().is_err());
 }
 
 #[test]

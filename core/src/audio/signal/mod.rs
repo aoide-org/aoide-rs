@@ -45,10 +45,20 @@ impl BitRateBps {
     }
 }
 
-impl IsValid for BitRateBps {
-    fn is_valid(&self) -> bool {
-        debug_assert!(*self <= Self::max());
-        *self >= Self::min()
+impl Validate for BitRateBps {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        let mut errors = ValidationErrors::new();
+        if !(*self >= Self::min() && *self <= Self::max()) {
+            errors.add(
+                Self::unit_of_measure(),
+                ValidationError::new("invalid value"),
+            );
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 }
 
@@ -97,10 +107,20 @@ impl SampleRateHz {
     }
 }
 
-impl IsValid for SampleRateHz {
-    fn is_valid(&self) -> bool {
-        debug_assert!(*self <= Self::max());
-        *self >= Self::min()
+impl Validate for SampleRateHz {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        let mut errors = ValidationErrors::new();
+        if !(*self >= Self::min() && *self <= Self::max()) {
+            errors.add(
+                Self::unit_of_measure(),
+                ValidationError::new("invalid value"),
+            );
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 }
 
@@ -114,29 +134,24 @@ impl fmt::Display for SampleRateHz {
 // PcmSignal
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Validate)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PcmSignal {
     pub channel_layout: ChannelLayout,
 
     pub sample_layout: SampleLayout,
 
+    #[validate]
     pub sample_rate: SampleRateHz,
 }
 
 impl PcmSignal {
     pub fn bitrate(self, bits_per_sample: BitsPerSample) -> BitRateBps {
-        debug_assert!(self.is_valid());
+        debug_assert!(self.validate().is_ok());
         let bps = BitsPerSecond::from(self.channel_layout.channel_count().0)
             * self.sample_rate.0
             * BitsPerSecond::from(bits_per_sample);
         BitRateBps(bps)
-    }
-}
-
-impl IsValid for PcmSignal {
-    fn is_valid(&self) -> bool {
-        self.sample_rate.is_valid()
     }
 }
 
@@ -164,8 +179,8 @@ impl LatencyMs {
     }
 
     pub fn from_samples(sample_length: SampleLength, sample_rate: SampleRateHz) -> LatencyMs {
-        debug_assert!(sample_length.is_valid());
-        debug_assert!(sample_rate.is_valid());
+        debug_assert!(sample_length.validate().is_ok());
+        debug_assert!(sample_rate.validate().is_ok());
         Self(
             (sample_length.0 * Self::units_per_second())
                 / LatencyInMilliseconds::from(sample_rate.0),
@@ -173,9 +188,20 @@ impl LatencyMs {
     }
 }
 
-impl IsValid for LatencyMs {
-    fn is_valid(&self) -> bool {
-        *self >= Self::min()
+impl Validate for LatencyMs {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        let mut errors = ValidationErrors::new();
+        if !self.0.is_finite() || *self < Self::min() {
+            errors.add(
+                Self::unit_of_measure(),
+                ValidationError::new("invalid value"),
+            );
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 }
 
@@ -205,9 +231,20 @@ impl LoudnessLufs {
     }
 }
 
-impl IsValid for LoudnessLufs {
-    fn is_valid(&self) -> bool {
-        !self.0.is_nan()
+impl Validate for LoudnessLufs {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        let mut errors = ValidationErrors::new();
+        if !self.0.is_finite() {
+            errors.add(
+                Self::unit_of_measure(),
+                ValidationError::new("invalid value"),
+            );
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 }
 

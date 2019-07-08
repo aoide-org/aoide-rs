@@ -49,13 +49,29 @@ impl IndexCount {
     }
 }
 
-impl IsValid for IndexCount {
-    fn is_valid(&self) -> bool {
-        match (self.index(), self.count()) {
-            (None, None) => true,
-            (Some(index), None) => index > 0,
-            (None, Some(count)) => count > 0,
-            (Some(index), Some(count)) => index > 0 && index <= count,
+impl Validate for IndexCount {
+    #[allow(clippy::absurd_extreme_comparisons)]
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        let mut errors = ValidationErrors::new();
+        if let Some(index) = self.index() {
+            if index <= 0 {
+                errors.add("index", ValidationError::new("invalid value"));
+            } else if let Some(count) = self.count() {
+                if count <= 0 {
+                    errors.add("count", ValidationError::new("invalid value"));
+                } else if index > count {
+                    errors.add("index", ValidationError::new("value exceeds count"));
+                }
+            }
+        } else if let Some(count) = self.count() {
+            if count <= 0 {
+                errors.add("count", ValidationError::new("invalid value"));
+            }
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
         }
     }
 }
@@ -140,65 +156,63 @@ pub enum TrackLock {
     Keys,
 }
 
-impl IsValid for TrackLock {
-    fn is_valid(&self) -> bool {
-        true
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-struct TrackLocks;
-
-impl TrackLocks {
-    pub fn all_valid(slice: &[TrackLock]) -> bool {
-        slice.iter().all(IsValid::is_valid)
-    }
-}
-
 ///////////////////////////////////////////////////////////////////////
 // Track
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, Validate)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Track {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[validate]
     pub collections: Vec<TrackCollection>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[validate(length(min = 1))]
     pub sources: Vec<TrackSource>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[validate]
     pub release: Option<ReleaseMetadata>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[validate]
     pub album: Option<AlbumMetadata>,
 
     #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[validate]
     pub track_numbers: IndexCount,
 
     #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[validate]
     pub disc_numbers: IndexCount,
 
     #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[validate]
     pub movement_numbers: IndexCount,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[validate(length(min = 1), custom = "Titles::validate_main_title")]
     pub titles: Vec<Title>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[validate(custom = "Actors::validate_main_actor")]
     pub actors: Vec<Actor>,
 
     #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[validate]
     pub tags: Tags,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[validate(custom = "validate_position_marker_cardinalities")]
     pub position_markers: Vec<PositionMarker>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[validate(custom = "validate_beat_marker_ranges")]
     pub beat_markers: Vec<BeatMarker>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[validate(custom = "validate_key_marker_ranges")]
     pub key_markers: Vec<KeyMarker>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
@@ -287,26 +301,6 @@ impl Track {
             }
         }
         relocated
-    }
-}
-
-impl IsValid for Track {
-    fn is_valid(&self) -> bool {
-        !self.sources.is_empty()
-            && self.sources.iter().all(IsValid::is_valid)
-            && self.collections.iter().all(IsValid::is_valid)
-            && self.release.iter().all(IsValid::is_valid)
-            && self.album.iter().all(IsValid::is_valid)
-            && (self.track_numbers.is_valid() || self.track_numbers.is_default())
-            && (self.disc_numbers.is_valid() || self.disc_numbers.is_default())
-            && (self.movement_numbers.is_valid() || self.movement_numbers.is_default())
-            && Titles::all_valid(&self.titles)
-            && Actors::all_valid(&self.actors)
-            && self.tags.is_valid()
-            && PositionMarker::all_valid(&self.position_markers)
-            && BeatMarker::all_valid(&self.beat_markers)
-            && KeyMarker::all_valid(&self.key_markers)
-            && TrackLocks::all_valid(&self.locks)
     }
 }
 

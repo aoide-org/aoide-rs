@@ -39,7 +39,6 @@ fn actors() {
             name: primary_producer_name.into(),
             role: ActorRole::Producer,
             precedence: ActorPrecedence::Primary,
-            ..Default::default()
         },
         Actor {
             name: "Nicki Minaj".into(),
@@ -48,7 +47,7 @@ fn actors() {
         },
     ];
 
-    assert!(Actors::all_valid(&actors));
+    assert!(Actors::validate_main_actor(&actors).is_ok());
 
     // Artist(s)
     assert_eq!(

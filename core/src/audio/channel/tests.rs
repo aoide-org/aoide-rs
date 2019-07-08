@@ -17,13 +17,13 @@ use super::*;
 
 #[test]
 fn channel_count_default() {
-    assert!(!ChannelCount::default().is_valid());
+    assert!(!ChannelCount::default().validate().is_ok());
 }
 
 #[test]
 fn channel_count_minmax() {
-    assert!(ChannelCount::min().is_valid());
-    assert!(ChannelCount::max().is_valid());
+    assert!(ChannelCount::min().validate().is_ok());
+    assert!(ChannelCount::max().validate().is_ok());
 }
 
 #[test]
@@ -39,28 +39,28 @@ fn channels_default() {
 }
 
 #[test]
-fn channels_is_valid() {
-    assert!(!Channels::default().is_valid());
-    assert!(Channels::layout(ChannelLayout::Mono).is_valid());
-    assert!(Channels::layout(ChannelLayout::DualMono).is_valid());
-    assert!(Channels::layout(ChannelLayout::Stereo).is_valid());
-    assert!(Channels::count(ChannelCount::min()).is_valid());
-    assert!(Channels::count(ChannelCount::max()).is_valid());
+fn channels_validate().is_ok() {
+    assert!(!Channels::default().validate().is_ok());
+    assert!(Channels::layout(ChannelLayout::Mono).validate().is_ok());
+    assert!(Channels::layout(ChannelLayout::DualMono).validate().is_ok());
+    assert!(Channels::layout(ChannelLayout::Stereo).validate().is_ok());
+    assert!(Channels::count(ChannelCount::min()).validate().is_ok());
+    assert!(Channels::count(ChannelCount::max()).validate().is_ok());
     assert!(!Channels {
         count: ChannelCount(1),
         layout: Some(ChannelLayout::DualMono),
     }
-    .is_valid());
+    .validate().is_ok());
     assert!(!Channels {
         count: ChannelCount(2),
         layout: Some(ChannelLayout::Mono),
     }
-    .is_valid());
+    .validate().is_ok());
     assert!(!Channels {
         count: ChannelCount(3),
         layout: Some(ChannelLayout::Stereo),
     }
-    .is_valid());
+    .validate().is_ok());
 }
 
 #[test]

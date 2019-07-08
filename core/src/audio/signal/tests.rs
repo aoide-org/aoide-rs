@@ -19,17 +19,17 @@ use super::*;
 
 #[test]
 fn sample_rate_default() {
-    assert!(!SampleRateHz::default().is_valid());
+    assert!(SampleRateHz::default().validate().is_err());
 }
 
 #[test]
-fn sample_rate_is_valid() {
-    assert!(SampleRateHz::min().is_valid());
-    assert!(SampleRateHz::max().is_valid());
-    assert!(SampleRateHz::of_compact_disc().is_valid());
-    assert!(SampleRateHz::of_studio_48k().is_valid());
-    assert!(SampleRateHz::of_studio_96k().is_valid());
-    assert!(SampleRateHz::of_studio_192k().is_valid());
+fn validate_sample_rate() {
+    assert!(SampleRateHz::min().validate().is_ok());
+    assert!(SampleRateHz::max().validate().is_ok());
+    assert!(SampleRateHz::of_compact_disc().validate().is_ok());
+    assert!(SampleRateHz::of_studio_48k().validate().is_ok());
+    assert!(SampleRateHz::of_studio_96k().validate().is_ok());
+    assert!(SampleRateHz::of_studio_192k().validate().is_ok());
 }
 
 #[test]

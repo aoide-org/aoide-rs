@@ -49,14 +49,28 @@ impl Score {
 
     // Convert to percentage value with a single decimal digit
     pub fn to_percentage(self) -> ScoreValue {
-        debug_assert!(self.is_valid());
+        debug_assert!(self.validate().is_ok());
         (self.0 * ScoreValue::from(1_000)).round() / ScoreValue::from(10)
     }
 
     // Convert to an integer permille value
     pub fn to_permille(self) -> u16 {
-        debug_assert!(self.is_valid());
+        debug_assert!(self.validate().is_ok());
         (self.0 * ScoreValue::from(1_000)).round() as u16
+    }
+}
+
+impl Validate for Score {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        let mut errors = ValidationErrors::new();
+        if !(*self >= Self::min() && *self <= Self::max()) {
+            errors.add("score", ValidationError::new("invalid value"));
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 }
 
@@ -69,20 +83,14 @@ impl From<Score> for ScoreValue {
 impl From<ScoreValue> for Score {
     fn from(from: ScoreValue) -> Self {
         let new = Self::new(from);
-        debug_assert!(new.is_valid());
+        debug_assert!(new.validate().is_ok());
         new
-    }
-}
-
-impl IsValid for Score {
-    fn is_valid(&self) -> bool {
-        *self >= Self::min() && *self <= Self::max()
     }
 }
 
 impl fmt::Display for Score {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        debug_assert!(self.is_valid());
+        debug_assert!(self.validate().is_ok());
         write!(f, "{:.1}%", self.to_percentage())
     }
 }
@@ -104,6 +112,26 @@ impl Label {
     }
 }
 
+impl Validate for Label {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        let mut errors = ValidationErrors::new();
+        if self.0.is_empty() {
+            errors.add("label", ValidationError::new("is empty"));
+        }
+        if self.0.trim().len() != self.0.len() {
+            errors.add(
+                "label",
+                ValidationError::new("contains leading or trailing whitespace characters"),
+            );
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+}
+
 impl AsRef<String> for Label {
     fn as_ref(&self) -> &String {
         &self.0
@@ -119,14 +147,8 @@ impl From<Label> for String {
 impl From<String> for Label {
     fn from(from: String) -> Self {
         let new = Self::new(from);
-        debug_assert!(new.is_valid());
+        debug_assert!(new.validate().is_ok());
         new
-    }
-}
-
-impl IsValid for Label {
-    fn is_valid(&self) -> bool {
-        !self.0.is_empty() && self.0.trim().len() == self.0.len()
     }
 }
 
@@ -162,6 +184,32 @@ impl Facet {
     }
 }
 
+impl Validate for Facet {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        let mut errors = ValidationErrors::new();
+        if self.0.is_empty() {
+            errors.add("facet", ValidationError::new("is empty"));
+        }
+        if self.0.chars().any(char::is_whitespace) {
+            errors.add(
+                "facet",
+                ValidationError::new("contains whitespace character(s)"),
+            );
+        }
+        if self.0.chars().any(char::is_uppercase) {
+            errors.add(
+                "facet",
+                ValidationError::new("contains uppercase character(s)"),
+            );
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+}
+
 impl AsRef<String> for Facet {
     fn as_ref(&self) -> &String {
         &self.0
@@ -177,7 +225,7 @@ impl From<Facet> for String {
 impl From<String> for Facet {
     fn from(from: String) -> Self {
         let new = Self::new(from);
-        debug_assert!(new.is_valid());
+        debug_assert!(new.validate().is_ok());
         new
     }
 }
@@ -199,14 +247,6 @@ impl FromStr for Facet {
             }
         }
         Ok(Self(facet))
-    }
-}
-
-impl IsValid for Facet {
-    fn is_valid(&self) -> bool {
-        !self.0.is_empty()
-            && !self.0.chars().any(char::is_whitespace)
-            && !self.0.chars().any(char::is_uppercase)
     }
 }
 
@@ -237,6 +277,13 @@ impl PlainTag {
     }
 }
 
+impl Validate for PlainTag {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        let res = ValidationErrors::merge(Ok(()), "plain tag", self.0.validate());
+        ValidationErrors::merge(res, "plain tag", self.1.validate())
+    }
+}
+
 impl Labeled for PlainTag {
     fn label(&self) -> Option<&Label> {
         Some(&self.0)
@@ -246,22 +293,6 @@ impl Labeled for PlainTag {
 impl Scored for PlainTag {
     fn score(&self) -> Score {
         self.1
-    }
-}
-
-impl IsValid for PlainTag {
-    fn is_valid(&self) -> bool {
-        self.label().map(IsValid::is_valid).unwrap_or(false) && self.score().is_valid()
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct PlainTags;
-
-impl PlainTags {
-    pub fn all_valid(slice: &[PlainTag]) -> bool {
-        // TODO: Check for duplicate labels
-        slice.iter().all(IsValid::is_valid)
     }
 }
 
@@ -296,37 +327,26 @@ impl Scored for FacetedTag {
     }
 }
 
-impl IsValid for FacetedTag {
-    fn is_valid(&self) -> bool {
-        self.facet().is_valid()
-            && self.label().map(IsValid::is_valid).unwrap_or(true)
-            && self.score().is_valid()
+impl Validate for FacetedTag {
+    // TODO: Check for duplicate labels per facet
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        let mut res = ValidationErrors::merge(Ok(()), "faceted tag", self.0.validate());
+        if let Some(ref label) = self.1 {
+            res = ValidationErrors::merge(res, "faceted tag", label.validate());
+        }
+        ValidationErrors::merge(res, "faceted tag", self.2.validate())
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct FacetedTags;
-
-impl FacetedTags {
-    pub fn all_valid(slice: &[FacetedTag]) -> bool {
-        // TODO: Check for duplicate labels per facet
-        slice.iter().all(IsValid::is_valid)
-    }
-}
-
-#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize, Validate)]
 pub struct Tags {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[validate]
     pub plain: Vec<PlainTag>, // no duplicate labels allowed
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[validate]
     pub faceted: Vec<FacetedTag>, // no duplicate labels per facet allowed
-}
-
-impl IsValid for Tags {
-    fn is_valid(&self) -> bool {
-        PlainTags::all_valid(&self.plain) && FacetedTags::all_valid(&self.faceted)
-    }
 }
 
 ///////////////////////////////////////////////////////////////////////

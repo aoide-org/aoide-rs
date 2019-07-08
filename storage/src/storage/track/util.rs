@@ -179,7 +179,7 @@ impl<'a> TrackRepositoryHelper<'a> {
     }
 
     fn resolve_tag_label(&self, label: &Label) -> Result<StorageId, Error> {
-        debug_assert!(label.is_valid());
+        debug_assert!(label.validate().is_ok());
         loop {
             match aux_tag_label::table
                 .select(aux_tag_label::id)
@@ -201,7 +201,7 @@ impl<'a> TrackRepositoryHelper<'a> {
     }
 
     fn resolve_tag_facet(&self, facet: &Facet) -> Result<StorageId, Error> {
-        debug_assert!(facet.is_valid());
+        debug_assert!(facet.validate().is_ok());
         loop {
             match aux_tag_facet::table
                 .select(aux_tag_facet::id)

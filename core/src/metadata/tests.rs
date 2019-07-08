@@ -19,19 +19,25 @@ use super::*;
 
 #[test]
 fn score_valid() {
-    assert!(Score::min().is_valid());
-    assert!(Score::max().is_valid());
-    assert!(Score::new(Score::min().0 + Score::max().0).is_valid());
-    assert!(!Score::new(Score::min().0 - Score::max().0).is_valid());
-    assert!(!Score::new(Score::max().0 + Score::max().0).is_valid());
+    assert!(Score::min().validate().is_ok());
+    assert!(Score::max().validate().is_ok());
+    assert!(Score::new(Score::min().0 + Score::max().0)
+        .validate()
+        .is_ok());
+    assert!(!Score::new(Score::min().0 - Score::max().0)
+        .validate()
+        .is_ok());
+    assert!(!Score::new(Score::max().0 + Score::max().0)
+        .validate()
+        .is_ok());
 }
 
 #[test]
 fn score_display() {
     assert_eq!("0.0%", format!("{}", Score::min()));
     assert_eq!("100.0%", format!("{}", Score::max()));
-    assert_eq!("90.1%", format!("{}", Score(0.9012345)));
-    assert_eq!("90.2%", format!("{}", Score(0.9015)));
+    assert_eq!("90.1%", format!("{}", Score(0.901_234_5)));
+    assert_eq!("90.2%", format!("{}", Score(0.901_5)));
 }
 
 #[test]
@@ -43,9 +49,9 @@ fn parse_label() {
 }
 
 #[test]
-fn label_is_valid() {
-    assert!(Label::new("A Term".into()).is_valid());
-    assert!(!Label::new("\tA Term  ".into()).is_valid());
+fn validate_label() {
+    assert!(Label::new("A Term".into()).validate().is_ok());
+    assert!(Label::new("\tA Term  ".into()).validate().is_err());
 }
 
 #[test]
@@ -57,8 +63,8 @@ fn parse_facet() {
 }
 
 #[test]
-fn facet_is_valid() {
-    assert!(Facet::new("a_facet".into()).is_valid());
-    assert!(!Facet::new("a facet".into()).is_valid());
-    assert!(!Facet::new("\tA facet  ".into()).is_valid());
+fn validate_facet() {
+    assert!(Facet::new("a_facet".into()).validate().is_ok());
+    assert!(Facet::new("a facet".into()).validate().is_err());
+    assert!(Facet::new("\tA facet  ".into()).validate().is_err());
 }

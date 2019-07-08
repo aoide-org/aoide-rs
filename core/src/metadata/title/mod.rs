@@ -41,30 +41,29 @@ impl Default for TitleLevel {
 // Title
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, Validate)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Title {
+    #[validate(length(min = 1))]
     pub name: String,
 
     #[serde(skip_serializing_if = "IsDefault::is_default", default)]
     pub level: TitleLevel,
 
     #[serde(rename = "lang", skip_serializing_if = "Option::is_none")]
+    #[validate(length(min = 1))]
     pub language: Option<String>,
-}
-
-impl IsValid for Title {
-    fn is_valid(&self) -> bool {
-        !self.name.is_empty()
-    }
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct Titles;
 
 impl Titles {
-    pub fn all_valid(titles: &[Title]) -> bool {
-        Self::main_title(titles).is_some() && titles.iter().all(IsValid::is_valid)
+    pub fn validate_main_title(titles: &[Title]) -> Result<(), ValidationError> {
+        if !titles.is_empty() && Self::main_title(titles).is_none() {
+            return Err(ValidationError::new("missing main title"));
+        }
+        Ok(())
     }
 
     pub fn title<'a>(

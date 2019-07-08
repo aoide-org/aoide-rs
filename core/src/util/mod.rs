@@ -18,10 +18,6 @@ use super::*;
 pub mod clock;
 pub mod color;
 
-pub trait IsValid {
-    fn is_valid(&self) -> bool;
-}
-
 pub trait IsInteger {
     fn is_integer(&self) -> bool;
 }

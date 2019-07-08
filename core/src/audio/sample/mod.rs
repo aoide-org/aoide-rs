@@ -71,6 +71,20 @@ pub type SamplePositionType = f64;
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SamplePosition(pub SamplePositionType);
 
+impl Validate for SamplePosition {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        let mut errors = ValidationErrors::new();
+        if !self.0.is_finite() {
+            errors.add("sample position", ValidationError::new("invalid value"));
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+}
+
 impl From<SamplePositionType> for SamplePosition {
     fn from(from: SamplePositionType) -> Self {
         Self(from)
@@ -80,12 +94,6 @@ impl From<SamplePositionType> for SamplePosition {
 impl From<SamplePosition> for SamplePositionType {
     fn from(from: SamplePosition) -> Self {
         from.0
-    }
-}
-
-impl IsValid for SamplePosition {
-    fn is_valid(&self) -> bool {
-        self.0.is_finite()
     }
 }
 
@@ -105,6 +113,20 @@ pub type NumberOfSamples = f64;
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SampleLength(pub NumberOfSamples);
 
+impl Validate for SampleLength {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        let mut errors = ValidationErrors::new();
+        if !(self.0.is_finite() && self.0.is_sign_positive()) {
+            errors.add("number of samples", ValidationError::new("invalid value"));
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+}
+
 impl From<NumberOfSamples> for SampleLength {
     fn from(from: NumberOfSamples) -> Self {
         Self(from)
@@ -114,12 +136,6 @@ impl From<NumberOfSamples> for SampleLength {
 impl From<SampleLength> for NumberOfSamples {
     fn from(from: SampleLength) -> Self {
         from.0
-    }
-}
-
-impl IsValid for SampleLength {
-    fn is_valid(&self) -> bool {
-        self.0.is_finite() && self.0.is_sign_positive()
     }
 }
 
@@ -133,10 +149,13 @@ impl IsInteger for SampleLength {
 // SampleRange
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Validate)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SampleRange {
+    #[validate]
     pub start: SamplePosition,
+
+    #[validate]
     pub end: SamplePosition,
 }
 
@@ -158,12 +177,6 @@ impl SampleRange {
 
     pub fn length(&self) -> SampleLength {
         SampleLength((self.end.0 - self.start.0).abs())
-    }
-}
-
-impl IsValid for SampleRange {
-    fn is_valid(&self) -> bool {
-        self.start.is_valid() && self.end.is_valid()
     }
 }
 

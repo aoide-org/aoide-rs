@@ -172,9 +172,7 @@ impl TrackSearchQueryTransform for TrackSortOrder {
                 }
             },
             TrackSortField::TrackIndex => match direction {
-                SortDirection::Ascending => {
-                    query.then_order_by(aux_track_brief::track_index.asc())
-                }
+                SortDirection::Ascending => query.then_order_by(aux_track_brief::track_index.asc()),
                 SortDirection::Descending => {
                     query.then_order_by(aux_track_brief::track_index.desc())
                 }

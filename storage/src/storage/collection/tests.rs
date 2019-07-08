@@ -15,6 +15,8 @@
 
 use super::*;
 
+use validator::Validate;
+
 embed_migrations!("resources/migrations/sqlite");
 
 fn establish_connection() -> SqliteConnection {
@@ -35,7 +37,7 @@ fn create_entity() {
         })
         .unwrap();
     println!("Created entity: {:?}", entity);
-    assert!(entity.header().is_valid());
+    assert!(entity.header().validate().is_ok());
 }
 
 #[test]
@@ -49,8 +51,8 @@ fn update_entity() {
         })
         .unwrap();
     println!("Created entity: {:?}", entity);
-    assert!(entity.header().is_valid());
-    let prev_revision = entity.header().revision().clone();
+    assert!(entity.header().validate().is_ok());
+    let prev_revision = *entity.header().revision();
     entity.body_mut().name = "Renamed Collection".into();
     let (prev_revision2, next_revision) = repository.update_entity(&entity).unwrap();
     println!("Updated entity: {:?}", entity);
@@ -70,7 +72,7 @@ fn delete_entity() {
         })
         .unwrap();
     println!("Created entity: {:?}", entity);
-    assert!(entity.header().is_valid());
+    assert!(entity.header().validate().is_ok());
     assert_eq!(
         Some(()),
         repository.delete_entity(&entity.header().uid()).unwrap()

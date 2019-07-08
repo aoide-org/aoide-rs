@@ -39,6 +39,8 @@ use crate::{
 
 use diesel::dsl::*;
 
+use validator::Validate;
+
 ///////////////////////////////////////////////////////////////////////
 // TrackRepository
 ///////////////////////////////////////////////////////////////////////
@@ -342,12 +344,14 @@ impl<'a> Tracks for TrackRepository<'a> {
                 continue;
             }
             // Valid?
-            if !replacement.track.is_valid() {
+            if let Err(validation_errors) = replacement.track.validate() {
+                debug_assert!(!validation_errors.is_empty());
+                log::warn!("Validation errors: {}", validation_errors);
                 log::warn!(
-                    "Accepting replacement track even though it is not valid: {:?}",
+                    "Accepting replacement track despite validation errors: {:?}",
                     replacement.track
                 );
-                // ...ignore semantic issues and continue
+                // ...ignore validation errors and continue
             }
             // Update?
             if let Some(entity) = deserialized_entities.into_iter().next() {

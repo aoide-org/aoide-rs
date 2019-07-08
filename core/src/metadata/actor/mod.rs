@@ -65,9 +65,10 @@ impl Default for ActorPrecedence {
 // Actor
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, Validate)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Actor {
+    #[validate(length(min = 1))]
     pub name: String,
 
     #[serde(skip_serializing_if = "IsDefault::is_default", default)]
@@ -77,21 +78,18 @@ pub struct Actor {
     pub precedence: ActorPrecedence,
 }
 
-impl IsValid for Actor {
-    fn is_valid(&self) -> bool {
-        !self.name.is_empty()
-    }
-}
-
 #[derive(Debug, Clone, Copy)]
 pub struct Actors;
 
 impl Actors {
-    pub fn all_valid(actors: &[Actor]) -> bool {
-        actors.iter().all(IsValid::is_valid)
-        // TODO:
-        // - at most one summary entry exists for each role
-        // - at least one summary entry exists if more than one primary entry exists for disambiguation
+    // TODO: Validate that
+    // - at most one summary entry exists for each role
+    // - at least one summary entry exists if more than one primary entry exists for disambiguation
+    pub fn validate_main_actor(actors: &[Actor]) -> Result<(), ValidationError> {
+        if !actors.is_empty() && Self::main_actor(actors, ActorRole::Artist).is_none() {
+            return Err(ValidationError::new("missing main actor"));
+        }
+        Ok(())
     }
 
     pub fn actor(actors: &[Actor], role: ActorRole, precedence: ActorPrecedence) -> Option<&Actor> {

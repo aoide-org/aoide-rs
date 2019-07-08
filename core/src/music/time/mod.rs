@@ -40,9 +40,20 @@ impl TempoBpm {
     }
 }
 
-impl IsValid for TempoBpm {
-    fn is_valid(&self) -> bool {
-        *self >= Self::min() && *self <= Self::max()
+impl Validate for TempoBpm {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        let mut errors = ValidationErrors::new();
+        if !(*self >= Self::min() && *self <= Self::max()) {
+            errors.add(
+                Self::unit_of_measure(),
+                ValidationError::new("invalid value"),
+            );
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 }
 
@@ -85,9 +96,20 @@ impl TimeSignature {
     }
 }
 
-impl IsValid for TimeSignature {
-    fn is_valid(&self) -> bool {
-        (self.top() > 0) && (self.bottom() > 0)
+impl Validate for TimeSignature {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        let mut errors = ValidationErrors::new();
+        if self.top() < 1 {
+            errors.add("top", ValidationError::new("invalid value"));
+        }
+        if self.bottom() < 1 {
+            errors.add("bottom", ValidationError::new("invalid value"));
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 }
 

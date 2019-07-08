@@ -19,6 +19,7 @@ rmp-serde = "*"
 serde = { version = "*", features = ["derive"] }
 serde_cbor = "*"
 serde_json = "*"
+validator = "*"
 
 [dev-dependencies]
 diesel_migrations =  { version = "*", features = ["sqlite"] }

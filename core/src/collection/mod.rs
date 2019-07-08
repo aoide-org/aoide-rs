@@ -17,19 +17,14 @@ use super::*;
 
 use crate::entity::*;
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Validate)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Collection {
+    #[validate(length(min = 1))]
     pub name: String,
 
     #[serde(rename = "desc", skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-}
-
-impl IsValid for Collection {
-    fn is_valid(&self) -> bool {
-        !self.name.is_empty()
-    }
 }
 
 pub type CollectionEntity = Entity<Collection>;

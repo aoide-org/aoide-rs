@@ -38,9 +38,20 @@ impl PositionMs {
     }
 }
 
-impl IsValid for PositionMs {
-    fn is_valid(&self) -> bool {
-        self.0.is_finite()
+impl Validate for PositionMs {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        let mut errors = ValidationErrors::new();
+        if !self.0.is_finite() {
+            errors.add(
+                Self::unit_of_measure(),
+                ValidationError::new("invalid value"),
+            );
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 }
 
@@ -69,9 +80,20 @@ impl DurationMs {
     }
 }
 
-impl IsValid for DurationMs {
-    fn is_valid(&self) -> bool {
-        *self >= Self::empty()
+impl Validate for DurationMs {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        let mut errors = ValidationErrors::new();
+        if !(self.0.is_finite() && *self >= Self::empty()) {
+            errors.add(
+                Self::unit_of_measure(),
+                ValidationError::new("invalid value"),
+            );
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 }
 
@@ -102,58 +124,47 @@ impl fmt::Display for DurationMs {
 // AudioEncoder
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, Validate)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AudioEncoder {
     #[serde(skip_serializing_if = "String::is_empty", default)]
+    #[validate(length(min = 1))]
     pub name: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub settings: Option<String>,
 }
 
-impl IsValid for AudioEncoder {
-    fn is_valid(&self) -> bool {
-        !self.name.is_empty()
-    }
-}
-
 ///////////////////////////////////////////////////////////////////////
 // AudioContent
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, Validate)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AudioContent {
     #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[validate]
     pub channels: Channels,
 
     #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[validate]
     pub duration: DurationMs,
 
     #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[validate]
     pub sample_rate: SampleRateHz,
 
     #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[validate]
     pub bit_rate: BitRateBps,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[validate]
     pub loudness: Option<LoudnessLufs>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[validate]
     pub encoder: Option<AudioEncoder>,
-}
-
-impl IsValid for AudioContent {
-    fn is_valid(&self) -> bool {
-        self.channels.is_valid()
-            && self.duration.is_valid()
-            && !self.duration.is_empty()
-            && self.sample_rate.is_valid()
-            && self.bit_rate.is_valid()
-            && self.loudness.iter().all(IsValid::is_valid)
-            && self.encoder.iter().all(IsValid::is_valid)
-    }
 }
 
 ///////////////////////////////////////////////////////////////////////

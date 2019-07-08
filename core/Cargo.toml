@@ -16,6 +16,8 @@ mime = "*"
 num-traits = "*"
 rand = "*"
 serde = { version = "*", features = ["derive"] }
+validator = "*"
+validator_derive = "*"
 
 [dev-dependencies]
 mime_guess = "*"

@@ -23,8 +23,9 @@ use chrono::{DateTime, Utc};
 // TrackCollection
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Validate)]
 pub struct TrackCollection {
+    #[validate]
     pub uid: EntityUid,
 
     pub since: DateTime<Utc>,
@@ -52,11 +53,5 @@ impl TrackCollection {
             .iter()
             .filter(|collection| &collection.uid == collection_uid)
             .nth(0)
-    }
-}
-
-impl IsValid for TrackCollection {
-    fn is_valid(&self) -> bool {
-        self.uid.is_valid() && self.color.iter().all(IsValid::is_valid)
     }
 }
