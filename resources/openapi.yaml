@@ -883,6 +883,7 @@ components:
         - audioLoudness
         - audioSampleRate
         - trackIndex
+        - trackCount
         - releaseYear
         - musicTempo
         - musicKey
@@ -1572,6 +1573,7 @@ components:
         - trackTitle
         - trackArtist
         - trackIndex
+        - trackCount
         - albumTitle
         - albumArtist
         - releaseYear

@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Support track index (number) for filtering and sorting
+- Support track index (= track number) and count (= number of tracks) for filtering and sorting
 
 ### Changed
 

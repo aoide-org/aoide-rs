@@ -767,6 +767,14 @@ impl<'a> TrackAlbums for TrackRepository<'a> {
                         target = target.then_order_by(aux_track_brief::track_index.desc());
                     }
                 },
+                TrackSortField::TrackCount => match direction {
+                    SortDirection::Ascending => {
+                        target = target.then_order_by(aux_track_brief::track_count.asc());
+                    }
+                    SortDirection::Descending => {
+                        target = target.then_order_by(aux_track_brief::track_count.desc());
+                    }
+                },
                 TrackSortField::AlbumTitle => match direction {
                     SortDirection::Ascending => {
                         target = target.then_order_by(aux_track_brief::album_title.asc());

@@ -177,6 +177,12 @@ impl TrackSearchQueryTransform for TrackSortOrder {
                     query.then_order_by(aux_track_brief::track_index.desc())
                 }
             },
+            TrackSortField::TrackCount => match direction {
+                SortDirection::Ascending => query.then_order_by(aux_track_brief::track_count.asc()),
+                SortDirection::Descending => {
+                    query.then_order_by(aux_track_brief::track_count.desc())
+                }
+            },
             TrackSortField::AlbumTitle => match direction {
                 SortDirection::Ascending => query.then_order_by(aux_track_brief::album_title.asc()),
                 SortDirection::Descending => {
@@ -562,6 +568,35 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
                         Box::new(aux_track_brief::track_index.ne(value as i16))
                     } else {
                         Box::new(aux_track_brief::track_index.is_not_null())
+                    }
+                }
+            },
+            NumericField::TrackCount => match self.value {
+                // TODO: Check and limit/clamp value range when converting from f64 to i16
+                NumericPredicate::LessThan(value) => {
+                    Box::new(aux_track_brief::track_count.lt(value as i16))
+                }
+                NumericPredicate::LessOrEqual(value) => {
+                    Box::new(aux_track_brief::track_count.le(value as i16))
+                }
+                NumericPredicate::GreaterThan(value) => {
+                    Box::new(aux_track_brief::track_count.gt(value as i16))
+                }
+                NumericPredicate::GreaterOrEqual(value) => {
+                    Box::new(aux_track_brief::track_count.ge(value as i16))
+                }
+                NumericPredicate::Equal(value) => {
+                    if let Some(value) = value {
+                        Box::new(aux_track_brief::track_count.eq(value as i16))
+                    } else {
+                        Box::new(aux_track_brief::track_count.is_null())
+                    }
+                }
+                NumericPredicate::NotEqual(value) => {
+                    if let Some(value) = value {
+                        Box::new(aux_track_brief::track_count.ne(value as i16))
+                    } else {
+                        Box::new(aux_track_brief::track_count.is_not_null())
                     }
                 }
             },
