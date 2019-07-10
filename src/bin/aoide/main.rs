@@ -128,7 +128,7 @@ pub fn main() -> Result<(), Error> {
     // Workaround: Use a pool of size 1 to avoid 'database is locked'
     // errors due to multi-threading.
     let connection_pool =
-        create_connection_pool(database_url, 1).expect("Failed to create database connection pool");
+        create_connection_pool(&database_url, 1).expect("Failed to create database connection pool");
 
     initialize_database(&connection_pool).expect("Failed to initialize database");
     if arg_matches.skip_database_maintenance() {

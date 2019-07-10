@@ -17,9 +17,13 @@ use clap::{self, App, Arg};
 
 use log::LevelFilter as LogLevelFilter;
 
+use std::env;
+
 ///////////////////////////////////////////////////////////////////////
 
 const VERBOSITY_ARG: &str = "VERBOSITY";
+const LOG_LEVEL_ENV: &str = "LOG_LEVEL";
+const LOG_LEVEL_FILTER_DEFAULT: LogLevelFilter = LogLevelFilter::Info;
 
 const DATABASE_URL_ARG: &str = "DATABASE_URL";
 const DATABASE_URL_DEFAULT: &str = ":memory:";
@@ -27,7 +31,7 @@ const DATABASE_URL_DEFAULT: &str = ":memory:";
 const SKIP_DATABASE_MAINTENANCE_ARG: &str = "SKIP_DATABASE_MAINTENANCE";
 
 const LISTEN_ADDR_ARG: &str = "LISTEN_ADDR";
-const LISTEN_ADDR_DEFAULT: &str = "localhost:8080";
+const LISTEN_ADDR_DEFAULT: &str = "[::]:8080";
 
 pub struct ArgMatches<'a>(clap::ArgMatches<'a>);
 
@@ -36,7 +40,7 @@ impl<'a> ArgMatches<'a> {
         ArgMatches(
             app.arg(
                 Arg::with_name(DATABASE_URL_ARG)
-                    .help("Sets the database URL")
+                    .help("Sets the database URL [DATABASE_URL]")
                     .default_value(DATABASE_URL_DEFAULT)
                     .index(1),
             )
@@ -45,7 +49,7 @@ impl<'a> ArgMatches<'a> {
                     .short("l")
                     .long("listen")
                     .default_value(LISTEN_ADDR_DEFAULT)
-                    .help("Sets the network listen address"),
+                    .help("Sets the network listen address [LISTEN_ADDR]"),
             )
             .arg(
                 Arg::with_name(SKIP_DATABASE_MAINTENANCE_ARG)
@@ -57,31 +61,59 @@ impl<'a> ArgMatches<'a> {
                     .short("v")
                     .long("verbose")
                     .multiple(true)
-                    .help("Sets the level of verbosity (= number of occurrences)"),
+                    .help("Sets the level of verbosity (= number of occurrences) [LOG_LEVEL: error/warn/info/debug/trace]"),
             )
             .get_matches(),
         )
     }
 
     pub fn log_level_filter(&self) -> LogLevelFilter {
-        match self.0.occurrences_of(VERBOSITY_ARG) {
-            0 => LogLevelFilter::Error,
-            1 => LogLevelFilter::Warn,
-            2 => LogLevelFilter::Info,
-            3 => LogLevelFilter::Debug,
-            _ => LogLevelFilter::Trace,
+        if self.0.is_present(VERBOSITY_ARG) {
+            match self.0.occurrences_of(VERBOSITY_ARG) {
+                0 => LogLevelFilter::Error,
+                1 => LogLevelFilter::Warn,
+                2 => LogLevelFilter::Info,
+                3 => LogLevelFilter::Debug,
+                _ => LogLevelFilter::Trace,
+            }
+        } else if let Ok(level) = env::var(LOG_LEVEL_ENV) {
+            match level.to_lowercase().trim() {
+                "error" => LogLevelFilter::Error,
+                "warn" => LogLevelFilter::Warn,
+                "info" => LogLevelFilter::Info,
+                "debug" => LogLevelFilter::Debug,
+                "trace" => LogLevelFilter::Trace,
+                _ => {
+                    if !level.is_empty() {
+                        eprintln!("Invalid log level: '{}'", level);
+                    }
+                    LOG_LEVEL_FILTER_DEFAULT
+                }
+            }
+        } else {
+            LOG_LEVEL_FILTER_DEFAULT
         }
     }
 
-    pub fn database_url(&self) -> &str {
-        self.0.value_of(DATABASE_URL_ARG).unwrap()
+    pub fn database_url(&self) -> String {
+        let value = if self.0.is_present(DATABASE_URL_ARG) {
+            self.0.value_of(DATABASE_URL_ARG).map(Into::into)
+        } else {
+            env::var(DATABASE_URL_ARG).ok()
+        };
+        value.unwrap_or_else(|| DATABASE_URL_DEFAULT.to_string())
     }
 
     pub fn skip_database_maintenance(&self) -> bool {
         self.0.is_present(SKIP_DATABASE_MAINTENANCE_ARG)
     }
 
-    pub fn listen_addr(&self) -> &str {
-        self.0.value_of(LISTEN_ADDR_ARG).unwrap()
+    pub fn listen_addr(&self) -> String {
+        let value = if self.0.is_present(LISTEN_ADDR_ARG) {
+            self.0.value_of(LISTEN_ADDR_ARG).map(Into::into)
+        } else {
+            env::var(LISTEN_ADDR_ARG).ok()
+        };
+        value.unwrap_or_else(|| LISTEN_ADDR_DEFAULT.to_string())
     }
 }

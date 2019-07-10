@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Support track index (= track number) and count (= number of tracks) for filtering and sorting
+- Evaluate environment variables if corresponding command-line arguments are missing: LOG_LEVEL, LISTEN_ADDR, DATABASE_URL
 
 ### Changed
 
