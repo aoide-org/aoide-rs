@@ -117,48 +117,29 @@ for the host system.
 
 #### Build
 
-A statically linked executable for the host architecture can be built with the help of
-[clux/muslrustclux/muslrust](https://github.com/clux/muslrust) and the corresponding
-Docker image.
-
-##### Update the Docker image
-
-```bash
-make -f Makefile.clux-muslrust pull
+```sh
+docker build -t aoide:latest .
 ```
 
-##### Build the application
-
-```bash
-make -f Makefile.clux-muslrust build
-```
-
-The resulting self-contained executable can be found in _bin/x86_64-unknown-linux-musl/_.
+The final image is created `FROM scratch` and does not provide any user environment or shell.
+It contains just the statically linked executable that can be extracted with `docker cp`.
 
 #### Run
 
-Various parameters for running the dockerized executable can be customized in the Makefile.
-A Docker container from this image is created and started with the following command:
+The container exposes the internal port 8080 for publishing to the host. The volume that
+hosts the SQLite database is mounted at /data.
 
-```bash
-make -f Makefile.clux-muslrust run
+Example:
+
+```sh
+docker run --rm \
+    -e RUST_LOG=info \
+    -p 7878:8080 \
+    -v .:/data:Z \
+    aoide:latest
 ```
 
-The `run` target uses the variables `RUN_HTTP_PORT` and `RUN_DATA_DIR` defined in the Makefile
-for configuring communication and persistent storage of the container. Use the corresponding
-`docker` command as a template and starting point for your custom startup configuration.
-
-To stop and ultimately remove the Docker container use the following command:
-
-```bash
-make -f Makefile.clux-muslrust stop
-```
-
-#### Volumes
-
-The Docker container is not supposed to store any persistent state. Instead the SQLite
-database file should be placed in a directory on the host that is mapped as a
-[Volume](https://docs.docker.com/storage/volumes) into the container at _/aoide/data_.
+This will start the instance with the the database file stored in the current working directory.
 
 ## API
 

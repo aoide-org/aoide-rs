@@ -1,39 +1,139 @@
-FROM alpine:latest
+# aoide.org - Copyright (C) 2018-2019 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https:#www.gnu.org/licenses/>.
 
-RUN apk --no-cache add \
-    ca-certificates
+# Dockerfile for creating a statically-linked Rust application using Docker's
+# multi-stage build feature. This also leverages the docker build cache to
+# avoid re-downloading dependencies if they have not changed between builds.
 
-ARG APP_USER=aoide
-ARG APP_GROUP=aoide
 
-# Both UID and GID should match with their corresponding
-# twins on the host system for read/write access of files
-# in the data volume, e.g. the SQLite database.
-ARG APP_UID=1000
-ARG APP_GID=1000
+###############################################################################
+# Define global ARGs for all stages
 
-ARG APP_HOME=/aoide
+ARG WORKDIR_ROOT=/usr/src
 
-RUN addgroup -S $APP_GROUP -g $APP_GID && \
-    adduser  -S $APP_USER -G aoide -u $APP_UID -h $APP_HOME
+ARG PROJECT_NAME=aoide
 
-WORKDIR $APP_HOME
+ARG BUILD_TARGET=x86_64-unknown-linux-musl
 
-# TODO (if available): Add flag --chown=$APP_USER:$APP_GROUP
-# TODO: Remove hard-coded target "x86_64-unknown-linux-musl"
+ARG BUILD_MODE=release
+
+ARG BUILD_BIN=aoide
+
+
+###############################################################################
+# 1st Build Stage
+FROM clux/muslrust:stable AS build
+
+# Import global ARGs
+ARG WORKDIR_ROOT
+ARG PROJECT_NAME
+ARG BUILD_TARGET
+ARG BUILD_MODE
+ARG BUILD_BIN
+
+WORKDIR ${WORKDIR_ROOT}
+
+# Docker build cache: Create and build an empty dummy project with all
+# external dependencies to avoid redownloading them on subsequent builds
+# if unchanged.
+RUN USER=root cargo new --bin ${PROJECT_NAME}
+WORKDIR ${WORKDIR_ROOT}/${PROJECT_NAME}
+RUN mkdir -p "./src/bin/${BUILD_BIN}" \
+    && \
+    mv ./src/main.rs "./src/bin/${BUILD_BIN}" \
+    && \
+    USER=root cargo new --lib ${PROJECT_NAME}-core \
+    && \
+    mv ${PROJECT_NAME}-core core \
+    && \
+    USER=root cargo new --lib ${PROJECT_NAME}-storage \
+    && \
+    mv ${PROJECT_NAME}-storage storage
 COPY [ \
-    "bin/x86_64-unknown-linux-musl/aoide", \
-    "docker-entrypoint.sh", \
+    "Cargo.toml", \
+    "Cargo.lock", \
     "./" ]
+COPY [ \
+    "core/Cargo.toml", \
+    "./core/" ]
+COPY [ \
+    "./core/benches", \
+    "./core/benches/" ]
+COPY [ \
+    "storage/Cargo.toml", \
+    "./storage/" ]
 
-VOLUME [ \
-    "./data" ]
+# Build the dummy project(s), then delete all build artefacts that must(!) not be cached
+RUN cargo build --${BUILD_MODE} --target ${BUILD_TARGET} --all \
+    && \
+    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/${PROJECT_NAME}* \
+    && \
+    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/${PROJECT_NAME}* \
+    && \
+    rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/${PROJECT_NAME}*
 
-EXPOSE 7878
+# Copy all project (re-)sources that are required for building
+COPY [ \
+    "./src", \
+    "./src/" ]
+COPY [ \
+    "./resources", \
+    "./resources/" ]
+COPY [ \
+    "./core/src", \
+    "./core/src/" ]
+COPY [ \
+    "./storage/src", \
+    "./storage/src/" ]
+COPY [ \
+    "./storage/resources", \
+    "./storage/resources/" ]
 
-USER $APP_USER
+# Test and build the actual project
+RUN cargo test --${BUILD_MODE} --target ${BUILD_TARGET} --all \
+    && \
+    cargo build --${BUILD_MODE} --target ${BUILD_TARGET} --bin ${BUILD_BIN} \
+    && \
+    strip ./target/${BUILD_TARGET}/${BUILD_MODE}/${BUILD_BIN}
 
-# A shell script is needed to evaluate arguments in form of
-# environment variables at runtime. This is the reason why
-# we cannot use "FROM scratch" for this image.
-ENTRYPOINT [ "./docker-entrypoint.sh" ]
+
+###############################################################################
+# 2nd Build Stage
+FROM scratch
+
+# Import global ARGs
+ARG WORKDIR_ROOT
+ARG PROJECT_NAME
+ARG BUILD_TARGET
+ARG BUILD_MODE
+ARG BUILD_BIN
+
+ARG DATA_VOLUME="/data"
+
+ARG EXPOSE_PORT=8080
+
+# Copy the statically-linked executable into the minimal scratch image
+COPY --from=build [ \
+    "${WORKDIR_ROOT}/${PROJECT_NAME}/target/${BUILD_TARGET}/${BUILD_MODE}/${BUILD_BIN}", \
+    "./entrypoint" ]
+
+VOLUME [ ${DATA_VOLUME} ]
+
+EXPOSE ${EXPOSE_PORT}
+
+# Wire the exposed port
+ENV ENDPOINT_PORT ${EXPOSE_PORT}
+
+ENTRYPOINT [ "./entrypoint" ]

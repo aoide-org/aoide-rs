@@ -1,15 +1,36 @@
-# Official language image. Look for the different tagged releases at:
-# https://hub.docker.com/r/library/rust/tags/
-image: "rust:latest"
+image: docker:18
 
-# Optional: Install a C compiler, cmake and git into the container.
-# You will often need this when you (or any of your dependencies) depends on C code.
+stages:
+  - build
+
+services:
+  - docker:dind
+
+variables:
+  GIT_DEPTH: 1
+  DOCKER_DRIVER: overlay2
+
 before_script:
-  - apt-get update -yqq
-  - apt-get install -yqq --no-install-recommends build-essential
+  - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
 
-# Use cargo to build and test the project
-test:cargo:
+build-tags:
+  stage: build
   script:
-    - rustc --version && cargo --version        # Print version info for debugging
-    - cargo test --all --verbose -- --nocapture # --nocapture: Print test output
+    - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_BEFORE_SHA || true
+    - docker pull $CI_REGISTRY_IMAGE:latest-build || true
+    - docker build --cache-from $CI_REGISTRY_IMAGE:$CI_COMMIT_BEFORE_SHA --cache-from $CI_REGISTRY_IMAGE:latest-build --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG --tag $CI_REGISTRY_IMAGE:latest-build .
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
+    - docker push $CI_REGISTRY_IMAGE:latest-build
+  only:
+    - tags
+
+build:
+  stage: build
+  script:
+    - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_BEFORE_SHA || true
+    - docker docker pull $CI_REGISTRY_IMAGE:latest-build || true
+    - docker build --cache-from $CI_REGISTRY_IMAGE:$CI_COMMIT_BEFORE_SHA --cache-from $CI_REGISTRY_IMAGE:latest-build --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA --tag $CI_REGISTRY_IMAGE:latest-build .
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    - docker push $CI_REGISTRY_IMAGE:latest-build
+  except:
+    - tags
