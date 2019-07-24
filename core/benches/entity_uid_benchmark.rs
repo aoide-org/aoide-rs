@@ -2,6 +2,7 @@ use aoide_core::prelude::*;
 
 use criterion::{criterion_group, criterion_main, Criterion, ParameterizedBenchmark};
 use uuid::Uuid;
+use validator::Validate;
 
 fn random_uuid(n: u64) {
     for _ in 0..n {
@@ -23,7 +24,7 @@ fn random_entity_uid(n: u64) {
 
 fn generate_entity_uid(n: u64) {
     for _ in 0..n {
-        let entity_uid = EntityUidGenerator::generate_uid();
+        let entity_uid = EntityUid::random();
         assert!(entity_uid.validate().is_ok());
         let encoded = entity_uid.encode_to_string();
         assert!(!encoded.is_empty());
