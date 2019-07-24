@@ -260,7 +260,7 @@ impl fmt::Display for Facet {
 // PlainTag
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PlainTag(Label, Score);
 
 impl PlainTag {
@@ -300,41 +300,61 @@ impl Scored for PlainTag {
 // FacetedTag
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
-pub struct FacetedTag(Facet, Option<Label>, Score);
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum FacetedTag {
+    Unlabeled(Facet, Score),
+    Labeled(Facet, Score, Label),
+}
 
 impl FacetedTag {
-    pub const fn new(facet: Facet, label: Option<Label>, score: Score) -> Self {
-        Self(facet, label, score)
+    pub fn new(facet: Facet, label: Option<Label>, score: Score) -> Self {
+        use FacetedTag::*;
+        if let Some(label) = label {
+            Labeled(facet, score, label)
+        } else {
+            Unlabeled(facet, score)
+        }
     }
 }
 
 impl Faceted for FacetedTag {
     fn facet(&self) -> &Facet {
-        &self.0
+        use FacetedTag::*;
+        match self {
+            Unlabeled(facet, _) => facet,
+            Labeled(facet, _, _) => facet,
+        }
     }
 }
 
 impl Labeled for FacetedTag {
     fn label(&self) -> Option<&Label> {
-        self.1.as_ref()
+        use FacetedTag::*;
+        match self {
+            Unlabeled(_, _) => None,
+            Labeled(_, _, label) => Some(label),
+        }
     }
 }
 
 impl Scored for FacetedTag {
     fn score(&self) -> Score {
-        self.2
+        use FacetedTag::*;
+        match self {
+            Unlabeled(_, score) => *score,
+            Labeled(_, score, _) => *score,
+        }
     }
 }
 
 impl Validate for FacetedTag {
     // TODO: Check for duplicate labels per facet
     fn validate(&self) -> Result<(), ValidationErrors> {
-        let mut res = ValidationErrors::merge(Ok(()), "faceted tag", self.0.validate());
-        if let Some(ref label) = self.1 {
+        let mut res = ValidationErrors::merge(Ok(()), "faceted tag", self.facet().validate());
+        if let Some(ref label) = self.label() {
             res = ValidationErrors::merge(res, "faceted tag", label.validate());
         }
-        ValidationErrors::merge(res, "faceted tag", self.2.validate())
+        ValidationErrors::merge(res, "faceted tag", self.score().validate())
     }
 }
 
