@@ -38,6 +38,14 @@ impl ChannelCount {
     pub const fn max() -> Self {
         Self(u16::MAX)
     }
+
+    pub fn default_layout(self) -> Option<ChannelLayout> {
+        match self {
+            ChannelCount(1) => Some(ChannelLayout::Mono),
+            ChannelCount(2) => Some(ChannelLayout::Stereo),
+            _ => None,
+        }
+    }
 }
 
 impl Validate for ChannelCount {
@@ -89,12 +97,11 @@ impl ChannelLayout {
             ChannelLayout::Stereo => ChannelCount(2),
         }
     }
+}
 
-    pub fn channels(self) -> Channels {
-        Channels {
-            count: self.channel_count(),
-            layout: Some(self),
-        }
+impl Validate for ChannelLayout {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        Ok(())
     }
 }
 
@@ -102,53 +109,49 @@ impl ChannelLayout {
 // Channels
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize, Validate)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-#[validate(schema(function = "post_validate_channels"))]
-pub struct Channels {
-    #[validate]
-    pub count: ChannelCount,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub layout: Option<ChannelLayout>,
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Channels {
+    Count(ChannelCount),
+    Layout(ChannelLayout),
 }
 
 impl Channels {
-    pub fn count(count: ChannelCount) -> Self {
-        Self {
-            count,
-            layout: None,
-        }
-    }
-
-    pub fn layout(layout: ChannelLayout) -> Self {
-        Self {
-            count: layout.channel_count(),
-            layout: Some(layout),
-        }
-    }
-
-    pub fn default_layout(count: ChannelCount) -> Option<ChannelLayout> {
-        match count {
-            ChannelCount(1) => Some(ChannelLayout::Mono),
-            ChannelCount(2) => Some(ChannelLayout::Stereo),
-            _ => None,
+    pub fn count(self) -> ChannelCount {
+        use Channels::*;
+        match self {
+            Count(count) => count,
+            Layout(layout) => layout.channel_count(),
         }
     }
 }
 
-#[allow(clippy::trivially_copy_pass_by_ref)]
-fn post_validate_channels(channels: &Channels) -> Result<(), ValidationError> {
-    if !channels
-        .layout
-        .iter()
-        .all(|layout| layout.channel_count() == channels.count)
-    {
-        return Err(ValidationError::new(
-            "channel layout mismatches channel count",
-        ));
+impl Default for Channels {
+    fn default() -> Self {
+        Channels::Count(ChannelCount::zero())
     }
-    Ok(())
+}
+
+impl From<ChannelCount> for Channels {
+    fn from(count: ChannelCount) -> Self {
+        Channels::Count(count)
+    }
+}
+
+impl From<ChannelLayout> for Channels {
+    fn from(layout: ChannelLayout) -> Self {
+        Channels::Layout(layout)
+    }
+}
+
+impl Validate for Channels {
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        use Channels::*;
+        match self {
+            Count(count) => count.validate(),
+            Layout(layout) => layout.validate(),
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -156,19 +159,4 @@ fn post_validate_channels(channels: &Channels) -> Result<(), ValidationError> {
 ///////////////////////////////////////////////////////////////////////
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn validate_channels() {
-        let mut channels = Channels {
-            count: ChannelCount(1),
-            layout: Some(ChannelLayout::DualMono),
-        };
-        assert!(channels.validate().is_err());
-        channels.count = channels.layout.unwrap().channel_count();
-        assert!(channels.validate().is_ok());
-        channels.layout = None;
-        assert!(channels.validate().is_ok());
-    }
-}
+mod tests;

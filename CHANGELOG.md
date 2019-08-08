@@ -6,15 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**This release breaks backward compatibiity with existing versions! Existing databases need to be rebuilt.**
+
 ### Added
 
 - Support track index (= track number) and count (= number of tracks) for filtering and sorting
 - Evaluate environment variables if corresponding command-line arguments are missing: LOG_LEVEL, LISTEN_ADDR, DATABASE_URL
+- New multi-stage Docker build image
 
 ### Changed
 
 - Improve semantic validation and reporting
-- New multi-stage Docker build image
+- Shorten property names in JSON schema to save space
+- Use separate routes/resources for calculating album and tag statistics
+- Allow to sort tag count results by various fields
 
 ### Removed
 

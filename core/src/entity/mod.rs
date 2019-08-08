@@ -332,50 +332,46 @@ impl EntityHeader {
 // Entity
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Validate)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Entity<T: Validate> {
-    #[serde(rename = "hdr")]
-    #[validate]
-    header: EntityHeader,
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Entity<B: Validate>(EntityHeader, B);
 
-    #[validate]
-    body: T,
-}
-
-impl<T> Entity<T>
+impl<B> Entity<B>
 where
-    T: Validate,
+    B: Validate,
 {
-    pub fn new(header: EntityHeader, body: T) -> Self {
-        Self { header, body }
+    pub fn new(header: EntityHeader, body: B) -> Self {
+        Entity(header, body)
     }
 
     pub fn header(&self) -> &EntityHeader {
-        &self.header
+        &self.0
     }
 
-    pub fn body(&self) -> &T {
-        &self.body
+    pub fn body(&self) -> &B {
+        &self.1
     }
 
-    pub fn body_mut(&mut self) -> &mut T {
-        &mut self.body
+    pub fn body_mut(&mut self) -> &mut B {
+        &mut self.1
     }
 
     pub fn replace_header_revision(self, revision: EntityRevision) -> Self {
-        let header = EntityHeader::new(*self.header.uid(), revision);
-        Self {
-            header,
-            body: self.body,
-        }
+        let header = EntityHeader::new(*self.0.uid(), revision);
+        Entity(header, self.1)
     }
 
-    pub fn replace_body(self, body: T) -> Self {
-        Self {
-            header: self.header,
-            body,
-        }
+    pub fn replace_body(self, body: B) -> Self {
+        Entity(self.0, body)
+    }
+}
+
+impl<B> Validate for Entity<B>
+where
+    B: Validate,
+{
+    fn validate(&self) -> Result<(), ValidationErrors> {
+        let res = ValidationErrors::merge(Ok(()), "header", self.0.validate());
+        ValidationErrors::merge(res, "body", self.1.validate())
     }
 }
 

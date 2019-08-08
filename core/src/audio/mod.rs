@@ -127,11 +127,11 @@ impl fmt::Display for DurationMs {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, Validate)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AudioEncoder {
-    #[serde(skip_serializing_if = "String::is_empty", default)]
+    #[serde(rename = "n", skip_serializing_if = "String::is_empty", default)]
     #[validate(length(min = 1))]
     pub name: String,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "s", skip_serializing_if = "Option::is_none")]
     pub settings: Option<String>,
 }
 
@@ -142,27 +142,27 @@ pub struct AudioEncoder {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, Validate)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AudioContent {
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(rename = "ch", skip_serializing_if = "IsDefault::is_default", default)]
     #[validate]
     pub channels: Channels,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(rename = "ms", skip_serializing_if = "IsDefault::is_default", default)]
     #[validate]
     pub duration: DurationMs,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(rename = "hz", skip_serializing_if = "IsDefault::is_default", default)]
     #[validate]
     pub sample_rate: SampleRateHz,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(rename = "bps", skip_serializing_if = "IsDefault::is_default", default)]
     #[validate]
     pub bit_rate: BitRateBps,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "lufs", skip_serializing_if = "Option::is_none")]
     #[validate]
     pub loudness: Option<LoudnessLufs>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "enc", skip_serializing_if = "Option::is_none")]
     #[validate]
     pub encoder: Option<AudioEncoder>,
 }

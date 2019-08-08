@@ -48,7 +48,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Collection'
+              $ref: '#/components/schemas/CollectionEntityBody'
       responses:
         '201':
           description: |
@@ -381,14 +381,14 @@ paths:
                   $ref: '#/components/schemas/TrackEntity'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /tracks/albums/count:
+  /albums/count-tracks:
     post:
       summary: Count tracks per album
       description: >
-        List albums (title, artist, year) together with their corresponding number of tracks.
-      operationId: countAlbumsOfTracks
+        List albums (title, (main) artist, release year) together with their corresponding number of tracks.
+      operationId: countTracksByAlbum
       tags:
-        - Tracks
+        - Albums
       parameters:
         - $ref: '#/components/parameters/collectionUidParam'
         - $ref: '#/components/parameters/paginationOffset'
@@ -398,7 +398,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CountTrackAlbumsParams'
+              $ref: '#/components/schemas/CountTracksByAlbumParams'
       responses:
         '200':
           description: |
@@ -408,19 +408,19 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/TrackAlbumCount'
+                  $ref: '#/components/schemas/AlbumTracksCount'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /tracks/tags/count:
+  /tags/count-tracks:
     post:
       summary: Count tracks per tag
       description: |
         Count the number of occurrences and avg. score of tags
         discriminated by their facet and label. Optionally the
         evaluation can be restricted to a single collection.
-      operationId: countTagsOfTracks
+      operationId: countTracksByTag
       tags:
-        - Tracks
+        - Tags
       parameters:
         - $ref: '#/components/parameters/collectionUidParam'
         - $ref: '#/components/parameters/paginationOffset'
@@ -430,7 +430,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CountTagsParams'
+              $ref: '#/components/schemas/CountTracksByTagParams'
       responses:
         '200':
           description: |
@@ -443,15 +443,15 @@ paths:
                   $ref: '#/components/schemas/TagCount'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /tracks/tags/facets/count:
+  /tags/facets/count-tracks:
     post:
       summary: Count tracks per tag facet
       description: |
         Count the number of occurrences of tag facets. Optionally
         the evaluation can be restricted to a single collection.
-      operationId: countTagFacetsOfTracks
+      operationId: countTracksByTagFacet
       tags:
-        - Tracks
+        - Tags
       parameters:
         - $ref: '#/components/parameters/collectionUidParam'
         - $ref: '#/components/parameters/paginationOffset'
@@ -461,7 +461,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CountTagFacetsParams'
+              $ref: '#/components/schemas/CountTracksByTagFacetParams'
       responses:
         '200':
           description: |
@@ -570,14 +570,12 @@ components:
   schemas:
     Actor:
       properties:
-        name:
+        n:
           $ref: '#/components/schemas/ActorName'
-        role:
+        r:
           $ref: '#/components/schemas/ActorRole'
-        precedence:
+        p:
           $ref: '#/components/schemas/ActorPrecedence'
-      required:
-        - name
       description: |
         Some actor naming examples:
           * summary = 'Michael Jackson'
@@ -587,17 +585,19 @@ components:
       type: string
       minLength: 1
       example: The Beatles
+    ArtistName:
+      oneOf:
+        - $ref: '#/components/schemas/ActorName'
+      example: The Beatles
     ActorPrecedence:
-      type: string
-      enum:
-        - summary
-        - primary
-        - secondary
+      type: integer
+      minimum: 0
+      maximum: 2
       description: |
-        Optional precedence that defaults to `summary` if missing:
-          * `summary` - the default display string
-          * `primary` - primary actor(s)
-          * `secondary` - secondary actor(s)
+        Optional precedence that defaults to 0 if missing:
+          * 0: the default display string (summary)
+          * 1: primary actor(s)
+          * 2: secondary actor(s)
     ActorRole:
       type: string
       enum:
@@ -618,31 +618,31 @@ components:
         Optional role that defaults to `artist` if missing
     Album:
       properties:
-        titles:
+        tit:
           type: array
           items:
             $ref: '#/components/schemas/Title'
-        actors:
+        act:
           type: array
           items:
             $ref: '#/components/schemas/Actor'
-        compilation:
+        cpl:
           type: boolean
           description: |
             Indicates whether this album is a compilation with various artists.
     AudioContent:
       properties:
-        channels:
+        ch:
           $ref: '#/components/schemas/Channels'
-        duration:
+        ms:
           $ref: '#/components/schemas/DurationMs'
-        sampleRate:
+        hz:
           $ref: '#/components/schemas/SampleRateHz'
-        bitRate:
+        bps:
           $ref: '#/components/schemas/BitRateBps'
-        loudness:
+        lufs:
           $ref: '#/components/schemas/LoudnessLufs'
-        encoder:
+        enc:
           $ref: '#/components/schemas/Encoder'
     BitRateBps:
       type: integer
@@ -670,14 +670,17 @@ components:
         - mono
         - dual-mono
         - stereo
-    Collection:
+    CollectionEntityBody:
       properties:
-        name:
+        n:
+          description: Name
           type: string
-        desc:
+          minLength: 1
+        d:
+          description: Description
           type: string
       required:
-        - name
+        - n
     CollectionStats:
       properties:
         tracks:
@@ -689,25 +692,20 @@ components:
       required:
         - totalCount
     CollectionEntity:
-      properties:
-        hdr:
-          $ref: '#/components/schemas/EntityHeader'
-        body:
-          $ref: '#/components/schemas/Collection'
-      required:
-        - header
-        - body
+      description: Entity header and body
+      type: array
+      minLength: 2
+      maxLength: 2
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/EntityHeader'
+          - $ref: '#/components/schemas/CollectionEntityBody'
     CollectionEntityWithStats:
       properties:
-        hdr:
-          $ref: '#/components/schemas/EntityHeader'
-        body:
-          $ref: '#/components/schemas/Collection'
+        entity:
+          $ref: '#/components/schemas/CollectionEntity'
         stats:
           $ref: '#/components/schemas/CollectionStats'
-      required:
-        - hdr
-        - body
     Year:
       type: integer
       format: int32
@@ -716,6 +714,10 @@ components:
       example: 2019
       description: |
         A year number.
+    ReleaseYear:
+      oneOf:
+        - $ref: '#/components/schemas/Year'
+      example: 2019
     Color:
       type: string
       minLength: 9
@@ -723,10 +725,6 @@ components:
       example: '#FF808080'
       description: |
         A hexadecimal color code `#AARRGGBB` with 8 bits per channel.
-    ConditionModifier:
-      type: string
-      enum:
-        - not
     DurationMs:
       type: number
       minimum: 0
@@ -736,9 +734,12 @@ components:
       example: 210387.576
     Encoder:
       properties:
-        name:
+        n:
+          description: Name
           type: string
-        settings:
+          minLength: 1
+        s:
+          description: Settings
           type: string
     EntityUid:
       type: string
@@ -776,17 +777,31 @@ components:
       enum:
         - complement
     IndexCount:
-      type: array
-      minItems: 2
-      maxItems: 2
-      items:
-        type: integer
-        format: int32
-        minimum: 0
-      description: >
-        Identifies the number of the current item and the number of total items.
-        Both values are optional and might be `null`.
-    KeyCode:
+      oneOf:
+        - type: integer
+          format: int32
+          minimum: 0
+          description: >
+            Identifies the number of the current item.
+        - type: array
+          minItems: 2
+          maxItems: 2
+          items:
+            type: integer
+            format: int32
+            minimum: 0
+          description: >
+            Identifies the number of the current item (index = 1st) and the number of total items (count = 2nd).
+    TrackNumbers:
+      oneOf:
+        - $ref: '#/components/schemas/IndexCount'
+    DiscNumbers:
+      oneOf:
+        - $ref: '#/components/schemas/IndexCount'
+    MovementNumbers:
+      oneOf:
+        - $ref: '#/components/schemas/IndexCount'
+    KeySignature:
       type: integer
       minimum: 1
       maximum: 24
@@ -826,14 +841,6 @@ components:
       example: audio/mpeg
       description: |
         A media type string according to RFC 6838.
-    NumericComparator:
-      type: string
-      enum:
-        - less-than
-        - greater-than
-        - equal-to
-      description: |
-        Numeric comparison operators.
     NumericPredicateLessThan:
       properties:
         lt:
@@ -929,16 +936,19 @@ components:
         $ref: '#/components/schemas/UriRelocation'
     Release:
       properties:
-        copyright:
+        at:
+          $ref: '#/components/schemas/ReleasedAtTimeStamp'
+        by:
+          description: Released by
           type: string
-        licenses:
+        cpy:
+          description: Copyright
+          type: string
+        lic:
+          description: Licenses
           type: array
           items:
             type: string
-        releasedAt:
-          $ref: '#/components/schemas/TimeStamp'
-        releasedBy:
-          type: string
     ReplacementMode:
       type: string
       enum:
@@ -1004,28 +1014,28 @@ components:
         Tuple of 2 elements containing a label and a score.
     FacetedTag:
       type: array
-      minLength: 3
+      minLength: 2
       maxLength: 3
       items:
         oneOf:
           - $ref: '#/components/schemas/TagFacet'
-          - $ref: '#/components/schemas/TagLabel'
           - $ref: '#/components/schemas/ScoreValue'
+          - $ref: '#/components/schemas/TagLabel'
       description: |
-        Tuple of 3 elements containing a facet, an optional/nullable label, and a score value.
+        Tuple of 2/3 elements containing a facet, a score value, and an optional/nullable label.
     TagCount:
       properties:
-        facet:
+        fct:
           $ref: '#/components/schemas/TagFacet'
-        label:
+        lbl:
           $ref: '#/components/schemas/TagLabel'
-        avgScore:
+        avg:
           $ref: '#/components/schemas/ScoreValue'
-        count:
+        cnt:
           $ref: '#/components/schemas/TotalCount'
       required:
-        - avgScore
-        - count
+        - avg
+        - cnt
       description: >
         Selective tag properties (facet, label) with an average score among
         all occurrences and the total number of occurrences.
@@ -1036,15 +1046,15 @@ components:
       example: 0.83
       description: |
         Normalized score value between 0 and 1.
-    TrackAlbumCount:
+    AlbumTracksCount:
       properties:
-        title:
+        tit:
           $ref: '#/components/schemas/TitleName'
-        artist:
-          $ref: '#/components/schemas/ActorName'
-        releaseYear:
-          $ref: '#/components/schemas/Year'
-        count:
+        art:
+          $ref: '#/components/schemas/ArtistName'
+        rly:
+          $ref: '#/components/schemas/ReleaseYear'
+        cnt:
           $ref: '#/components/schemas/TotalCount'
       required:
         - title
@@ -1112,12 +1122,12 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TrackSortOrder'
-    CountTrackAlbumsParams:
+    CountTracksByAlbumParams:
       properties:
         minReleaseYear:
-          $ref: '#/components/schemas/Year'
+          $ref: '#/components/schemas/ReleaseYear'
         maxReleaseYear:
-          $ref: '#/components/schemas/Year'
+          $ref: '#/components/schemas/ReleaseYear'
         ordering:
           type: array
           items:
@@ -1125,17 +1135,10 @@ components:
       description: >
         Albums can be filtered by release year (inclusive).
         Results can be ordered by album title, album artist, and release year.
-    CountTagsParams:
+    CountTracksByTagParams:
       properties:
         facets:
-          type: array
-          items:
-            $ref: '#/components/schemas/TagFacet'
-          description: |
-            Selects a subset of tags per facet. An empty array excludes
-            all faceted tags whereas a missing/null array includes all
-            faceted tags!
-          example: ['genre', 'comment']
+          $ref: '#/components/schemas/TagFacetFilter'
         includeNonFacetedTags:
           type: boolean
           default: false
@@ -1143,17 +1146,22 @@ components:
             Applies the query to all non-faceted tags with no facet
             and just a label. Each distinct label will be scored and
             counted.
-    CountTagFacetsParams:
+        ordering:
+          type: array
+          description: |
+            Results can be sorted by all available fields.
+          items:
+            $ref: '#/components/schemas/TagSortOrder'
+    CountTracksByTagFacetParams:
       properties:
         facets:
+          $ref: '#/components/schemas/TagFacetFilter'
+        ordering:
           type: array
-          items:
-            $ref: '#/components/schemas/TagFacet'
           description: |
-            Selects a subset of tags per facet. An empty array excludes
-            all faceted tags whereas a missing/null array includes all
-            faceted tags!
-          example: ['genre', 'comment']
+            Results can be sorted by facet or count. All other fields are ignored.
+          items:
+            $ref: '#/components/schemas/TagSortOrder'
     SortDirection:
       type: string
       enum:
@@ -1225,15 +1233,6 @@ components:
         equals:
           type: string
       description: Exact mismatch (case-sensitive)
-    StringTotalCount:
-      properties:
-        value:
-          type: string
-        count:
-          $ref: '#/components/schemas/TotalCount'
-      required:
-        - value
-        - count
     StringField:
       type: string
       enum:
@@ -1249,17 +1248,6 @@ components:
           * `uri` - percent-decoded URI
           * `contentType` - media (MIME) type
           * ...
-    StringFieldCount:
-      properties:
-        field:
-          $ref: '#/components/schemas/StringField'
-        counts:
-          type: array
-          items:
-            $ref: '#/components/schemas/StringTotalCount'
-      required:
-        - field
-        - counts
     TagFacet:
       type: string
       minLength: 1
@@ -1268,14 +1256,13 @@ components:
         Non-empty, lowercase, string that defines the facet of tag.
         Facets must also not contain any whitespace characters.
     TagFacetCount:
-      properties:
-        facet:
-          $ref: '#/components/schemas/TagFacet'
-        count:
-          $ref: '#/components/schemas/TotalCount'
-      required:
-        - facet
-        - count
+      type: array
+      minLength: 2
+      maxLength: 2
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/TagFacet'
+          - $ref: '#/components/schemas/TotalCount'
       description: |
         Tag facet with the total number of occurrences.
     TagFilter:
@@ -1295,6 +1282,15 @@ components:
           $ref: '#/components/schemas/StringPredicate'
         score:
           $ref: '#/components/schemas/NumericPredicate'
+    TagFacetFilter:
+      type: array
+      items:
+        $ref: '#/components/schemas/TagFacet'
+      description: |
+        Selects a subset of tags per facet. An empty array **excludes**
+        all faceted tags whereas a missing/null array **includes** all
+        faceted tags.
+      example: ['genre', 'comment']
     MarkerFilter:
       properties:
         modifier:
@@ -1351,16 +1347,22 @@ components:
       type: string
       format: date-time
       example: '2018-06-10T12:19:50.758Z'
+    SinceTimeStamp:
+      oneOf:
+        - $ref: '#/components/schemas/TimeStamp'
+    ReleasedAtTimeStamp:
+      oneOf:
+        - $ref: '#/components/schemas/TimeStamp'
     Title:
       properties:
-        name:
+        n:
           $ref: '#/components/schemas/TitleName'
-        level:
+        v:
           $ref: '#/components/schemas/TitleLevel'
-        lang:
+        l:
           $ref: '#/components/schemas/LanguageCode'
       required:
-        - name
+        - n
     TitleName:
       type: string
       minLength: 1
@@ -1387,73 +1389,82 @@ components:
         Total number of occurrences.
     Tags:
       properties:
-        plain:
+        p:
+          description: Plain tags
           type: array
           items:
             $ref: '#/components/schemas/PlainTag'
-        faceted:
+        f:
+          description: Faceted tags
           type: array
           items:
             $ref: '#/components/schemas/FacetedTag'
-    Track:
+    TrackEntityBody:
       properties:
-        collections:
+        col:
           type: array
+          description: Collections
           items:
             $ref: '#/components/schemas/TrackCollection'
-        sources:
+        src:
           type: array
+          description: Sources
           items:
             $ref: '#/components/schemas/TrackSource'
-        titles:
+        tit:
           type: array
+          description: Titles
           items:
             $ref: '#/components/schemas/Title'
-        actors:
+        act:
           type: array
+          description: Actors
           items:
             $ref: '#/components/schemas/Actor'
-        album:
+        alb:
           $ref: '#/components/schemas/Album'
-        release:
+        rel:
           $ref: '#/components/schemas/Release'
-        discNumbers:
-          $ref: '#/components/schemas/IndexCount'
-        trackNumbers:
-          $ref: '#/components/schemas/IndexCount'
-        movementNumbers:
-          $ref: '#/components/schemas/IndexCount'
-        tags:
+        dsn:
+          $ref: '#/components/schemas/DiscNumbers'
+        trn:
+          $ref: '#/components/schemas/TrackNumbers'
+        mvn:
+          $ref: '#/components/schemas/MovementNumbers'
+        tag:
           $ref: '#/components/schemas/Tags'
-        positionMarkers:
+        pmk:
           type: array
+          description: Position markers
           items:
             $ref: '#/components/schemas/PositionMarker'
-        beatMarkers:
+        bmk:
           type: array
+          description: |
+            Beat markers, sorted by their non-overlapping positions
           items:
             $ref: '#/components/schemas/BeatMarker'
-          description: |
-            All beat markers must be sorted by their non-overlapping positions.
-        keyMarkers:
+        kmk:
           type: array
           items:
             $ref: '#/components/schemas/KeyMarker'
           description: |
-            All key markers must be sorted by their non-overlapping positions.
-        locks:
+            Key markers, sorted by their non-overlapping positions
+        lck:
           type: array
+          description: Locks
           items:
             $ref: '#/components/schemas/TrackLock'
     TrackCollection:
       properties:
         uid:
           $ref: '#/components/schemas/EntityUid'
-        since:
-          $ref: '#/components/schemas/TimeStamp'
-        color:
+        s:
+          $ref: '#/components/schemas/SinceTimeStamp'
+        c:
           $ref: '#/components/schemas/Color'
-        playCount:
+        p:
+          description: Play count
           type: integer
           format: int64
           minimum: 0
@@ -1461,14 +1472,14 @@ components:
         - uid
         - since
     TrackEntity:
-      properties:
-        hdr:
-          $ref: '#/components/schemas/EntityHeader'
-        body:
-          $ref: '#/components/schemas/Track'
-      required:
-        - header
-        - body
+      description: Entity header and body
+      type: array
+      minLength: 2
+      maxLength: 2
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/EntityHeader'
+          - $ref: '#/components/schemas/TrackEntityBody'
     TrackLock:
       type: string
       enum:
@@ -1501,38 +1512,38 @@ components:
         * `sample` - sections that are played as samples (forward or backward)
     PositionMarker:
       properties:
-        type:
+        t:
           $ref: '#/components/schemas/PositionMarkerType'
-        start:
+        s:
           $ref: '#/components/schemas/PositionMs'
-        end:
+        e:
           $ref: '#/components/schemas/PositionMs'
-        number:
+        n:
           type: integer
           format: int32
-        label:
+        l:
           type: string
-        color:
+        c:
           $ref: '#/components/schemas/Color'
       required:
-        - type
+        - t
       description: >
         Marker to identify points (either start or end) or sections (both start
         and end) within a track
     BeatMarker:
       properties:
-        start:
+        s:
           $ref: '#/components/schemas/PositionMs'
-        end:
+        e:
           $ref: '#/components/schemas/PositionMs'
-        tempo:
+        tm:
           $ref: '#/components/schemas/TempoBpm'
-        timing:
+        ts:
           $ref: '#/components/schemas/TimeSignature'
-        beat:
+        bn:
           $ref: '#/components/schemas/BeatNumber'
       required:
-        - start
+        - s
       description: >
         Section of a beat grid with uniform tempo and timiming). Either
         tempo or timing is required. If the end position is missing the
@@ -1540,15 +1551,15 @@ components:
         end of the track. The beat number must fit into the time signature.
     KeyMarker:
       properties:
-        start:
+        s:
           $ref: '#/components/schemas/PositionMs'
-        end:
+        e:
           $ref: '#/components/schemas/PositionMs'
-        key:
-          $ref: '#/components/schemas/KeyCode'
+        ks:
+          $ref: '#/components/schemas/KeySignature'
       required:
-        - start
-        - key
+        - s
+        - k
       description: >
         Section with a uniform musical key signature. If the end position
         is missing the section ends with the start of the following marker
@@ -1558,13 +1569,26 @@ components:
         uri:
           $ref: '#/components/schemas/Uri'
         track:
-          $ref: '#/components/schemas/Track'
+          $ref: '#/components/schemas/TrackEntityBody'
       required:
         - uri
         - track
       description: |
         The URI is used for looking up the existing track (if any) that gets
         replaced.
+    TagSortField:
+      type: string
+      enum:
+        - facet
+        - label
+        - score
+        - count
+    TagSortOrder:
+      properties:
+        field:
+          $ref: '#/components/schemas/TagSortField'
+        direction:
+          $ref: '#/components/schemas/SortDirection'
     TrackSortField:
       type: string
       enum:

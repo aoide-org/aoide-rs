@@ -37,49 +37,28 @@ fn channel_layout_channel_count() {
 
 #[test]
 fn channels_default() {
-    assert_eq!(ChannelCount::default(), Channels::default().count);
+    assert_eq!(ChannelCount::default(), Channels::default().count());
 }
 
 #[test]
 fn validate_channels() {
     assert!(Channels::default().validate().is_err());
-    assert!(Channels::layout(ChannelLayout::Mono).validate().is_ok());
-    assert!(Channels::layout(ChannelLayout::DualMono).validate().is_ok());
-    assert!(Channels::layout(ChannelLayout::Stereo).validate().is_ok());
-    assert!(Channels::count(ChannelCount::min()).validate().is_ok());
-    assert!(Channels::count(ChannelCount::max()).validate().is_ok());
-    assert!(!Channels {
-        count: ChannelCount(1),
-        layout: Some(ChannelLayout::DualMono),
-    }
-    .validate()
-    .is_ok());
-    assert!(!Channels {
-        count: ChannelCount(2),
-        layout: Some(ChannelLayout::Mono),
-    }
-    .validate()
-    .is_ok());
-    assert!(!Channels {
-        count: ChannelCount(3),
-        layout: Some(ChannelLayout::Stereo),
-    }
-    .validate()
-    .is_ok());
+    assert!(Channels::Layout(ChannelLayout::Mono).validate().is_ok());
+    assert!(Channels::Layout(ChannelLayout::DualMono).validate().is_ok());
+    assert!(Channels::Layout(ChannelLayout::Stereo).validate().is_ok());
+    assert!(Channels::Count(ChannelCount::min()).validate().is_ok());
+    assert!(Channels::Count(ChannelCount::max()).validate().is_ok());
 }
 
 #[test]
 fn channel_count_default_layout() {
-    assert_eq!(None, Channels::default_layout(ChannelCount::default()));
-    assert_eq!(
-        Some(ChannelLayout::Mono),
-        Channels::default_layout(ChannelCount(1))
-    );
+    assert_eq!(None, ChannelCount::default().default_layout());
+    assert_eq!(Some(ChannelLayout::Mono), ChannelCount(1).default_layout());
     assert_eq!(
         Some(ChannelLayout::Stereo),
-        Channels::default_layout(ChannelCount(2))
+        ChannelCount(2).default_layout()
     );
-    assert_eq!(None, Channels::default_layout(ChannelCount(3)));
+    assert_eq!(None, ChannelCount::default_layout(ChannelCount(3)));
 }
 
 #[test]

@@ -69,7 +69,6 @@ pub struct CollectionStats {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct CollectionEntityWithStats {
-    #[serde(flatten)]
     pub entity: CollectionEntity,
 
     #[serde(skip_serializing_if = "IsDefault::is_default", default)]

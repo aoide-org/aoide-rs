@@ -18,12 +18,13 @@ use super::*;
 use crate::entity::*;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Validate)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
 pub struct Collection {
+    #[serde(rename = "n")]
     #[validate(length(min = 1))]
     pub name: String,
 
-    #[serde(rename = "desc", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "d", skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
 }
 

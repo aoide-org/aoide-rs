@@ -13,84 +13,23 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-/*
 use super::*;
 
-use mime_guess;
-use serde_json;
-
 #[test]
-fn serialize_json() {
-    let features = vec![
-        ScoredSongFeature::new(0.1, SongFeature::Energy),
-        ScoredSongFeature::new(0.9, SongFeature::Popularity),
-    ];
-    let profile = SongProfile {
-        features,
-        ..Default::default()
-    };
-    let comments = vec![Comment::new_anonymous(
-        "Some anonymous notes about this track",
-    )];
-    let uri = "subfolder/test.mp3";
-    let source = TrackSource {
-        uri: uri.to_string(),
-        content_type: mime_guess::guess_mime_type(uri).to_string(),
-        audio_content: None,
-        metadata_sync: Some(TrackSynchronization {
-            when: Utc::now(),
-            revision: EntityRevision::initial(),
-        }),
-    };
-    let collection = TrackCollection {
-        uid: EntityUid::random(),
-        since: Utc::now(),
-        color: Some(ColorArgb::RED),
-        play_count: None,
-    };
-    let tags = vec![
-        Tag::new_label_faceted(0.8, "1980s", TrackTagging::FACET_STYLE),
-        Tag::new_label_faceted(0.3, "1990s", "style"),
-        Tag::new_label_faceted(0.6, "Filler", TrackTagging::FACET_SESSION),
-        Tag::new_term(1.0, "Non-faceted tag"),
-    ];
-    let body = Track {
-        sources: vec![source],
-        collections: vec![collection],
-        profile: Some(profile),
-        tags,
-        comments,
-        ..Default::default()
-    };
-    let header = EntityHeader::initial();
-    let entity = TrackEntity::new(header, body);
-    let entity_json = serde_json::to_string(&entity).unwrap();
-    assert_ne!("{}", entity_json);
-    println!("Track Entity (JSON): {}", entity_json);
-}
+fn deserialize_index_count() {
+    let index_only = "1";
+    let index_only: IndexCount = serde_json::from_str(&index_only).unwrap();
+    assert_eq!(IndexCount::Index(1), index_only);
 
-#[test]
-fn star_rating() {
-    assert_eq!(0, Rating::new_anonymous(0.0).star_rating(5));
-    assert_eq!(1, Rating::new_anonymous(0.01).star_rating(5));
-    assert_eq!(1, Rating::new_anonymous(0.2).star_rating(5));
-    assert_eq!(2, Rating::new_anonymous(0.21).star_rating(5));
-    assert_eq!(2, Rating::new_anonymous(0.4).star_rating(5));
-    assert_eq!(3, Rating::new_anonymous(0.41).star_rating(5));
-    assert_eq!(3, Rating::new_anonymous(0.6).star_rating(5));
-    assert_eq!(4, Rating::new_anonymous(0.61).star_rating(5));
-    assert_eq!(4, Rating::new_anonymous(0.8).star_rating(5));
-    assert_eq!(5, Rating::new_anonymous(0.81).star_rating(5));
-    assert_eq!(5, Rating::new_anonymous(0.99).star_rating(5));
-    assert_eq!(5, Rating::new_anonymous(1.0).star_rating(5));
-    for max_stars in 4..10 {
-        for stars in 0..max_stars {
-            assert_eq!(
-                stars,
-                Rating::new_anonymous(Rating::rating_from_stars(stars, max_stars))
-                    .star_rating(max_stars)
-            );
-        }
-    }
+    let index_count = "[1,0]";
+    let index_count: IndexCount = serde_json::from_str(&index_count).unwrap();
+    assert_eq!(IndexCount::IndexAndCount(1, 0), index_count);
+
+    let index_count = "[7,12]";
+    let index_count: IndexCount = serde_json::from_str(&index_count).unwrap();
+    assert_eq!(IndexCount::IndexAndCount(7, 12), index_count);
+
+    let index_count = "[0,12]";
+    let index_count: IndexCount = serde_json::from_str(&index_count).unwrap();
+    assert_eq!(IndexCount::IndexAndCount(0, 12), index_count);
 }
-*/

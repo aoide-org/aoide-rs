@@ -165,7 +165,7 @@ impl<'a> InsertableTracksSource<'a> {
             audio_channel_count: track_source
                 .audio_content
                 .as_ref()
-                .map(|audio| audio.channels.count.0 as i16),
+                .map(|audio| audio.channels.count().0 as i16),
             audio_duration: track_source
                 .audio_content
                 .as_ref()
@@ -240,10 +240,22 @@ impl<'a> InsertableTracksBrief<'a> {
                 .as_ref()
                 .and_then(|release| release.released_at)
                 .map(|released_at| released_at.date().naive_utc().year() as i16),
-            track_index: track.track_numbers.index().map(|index| index as i16),
-            track_count: track.track_numbers.count().map(|count| count as i16),
-            disc_index: track.disc_numbers.index().map(|index| index as i16),
-            disc_count: track.disc_numbers.count().map(|count| count as i16),
+            track_index: track
+                .track_numbers
+                .map(IndexCount::index)
+                .map(|idx| idx as i16),
+            track_count: track
+                .track_numbers
+                .and_then(IndexCount::count)
+                .map(|cnt| cnt as i16),
+            disc_index: track
+                .disc_numbers
+                .map(IndexCount::index)
+                .map(|idx| idx as i16),
+            disc_count: track
+                .disc_numbers
+                .and_then(IndexCount::count)
+                .map(|cnt| cnt as i16),
             music_tempo: BeatMarker::uniform_tempo(&track.beat_markers).map(|tempo| tempo.0),
             music_key: KeyMarker::uniform_key(&track.key_markers).map(|key| i16::from(key.code())),
         }

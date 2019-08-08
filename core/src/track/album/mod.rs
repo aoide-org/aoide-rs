@@ -22,17 +22,17 @@ use crate::metadata::{actor::*, title::*};
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, Validate)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
 pub struct AlbumMetadata {
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(rename = "tit", skip_serializing_if = "Vec::is_empty", default)]
     #[validate(length(min = 1), custom = "Titles::validate_main_title")]
     pub titles: Vec<Title>,
 
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(rename = "act", skip_serializing_if = "Vec::is_empty", default)]
     #[validate(custom = "Actors::validate_main_actor")]
     pub actors: Vec<Actor>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "cpl", skip_serializing_if = "Option::is_none")]
     pub compilation: Option<bool>,
 }
 
@@ -48,16 +48,17 @@ impl AlbumMetadata {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct TrackAlbumCount {
-    #[serde(skip_serializing_if = "Option::is_none")]
+pub struct AlbumTracksCount {
+    #[serde(rename = "tit", skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "art", skip_serializing_if = "Option::is_none")]
     pub artist: Option<String>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "rly", skip_serializing_if = "Option::is_none")]
     pub release_year: Option<i16>,
 
+    #[serde(rename = "cnt")]
     pub count: usize,
 }
 

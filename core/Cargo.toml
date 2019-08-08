@@ -16,6 +16,7 @@ mime = "*"
 num-traits = "*"
 rand = "*"
 serde = { version = "*", features = ["derive"] }
+serde_repr = "*"
 validator = "*"
 validator_derive = "*"
 

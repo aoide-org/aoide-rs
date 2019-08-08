@@ -18,7 +18,7 @@ use super::*;
 use super::serde::{SerializationFormat, SerializedEntity};
 
 use crate::api::{
-    collection::CollectionTrackStats, CountTrackAlbumsParams, FieldStrings, LocateTracksParams,
+    collection::CollectionTrackStats, CountTracksByAlbumParams, FieldStrings, LocateTracksParams,
     Pagination, ReplaceTracksParams, ReplacedTracks, SearchTracksParams, StringField, TagCount,
     TagFacetCount,
 };
@@ -78,29 +78,28 @@ pub trait Tracks {
 pub type TrackAlbumsResult<T> = Result<T, Error>;
 
 pub trait TrackAlbums {
-    fn count_albums(
+    fn count_tracks_by_album(
         &self,
         collection_uid: Option<&EntityUid>,
-        params: &CountTrackAlbumsParams,
+        params: &CountTracksByAlbumParams,
         pagination: Pagination,
-    ) -> TracksResult<Vec<TrackAlbumCount>>;
+    ) -> TracksResult<Vec<AlbumTracksCount>>;
 }
 
 pub type TrackTagsResult<T> = Result<T, Error>;
 
 pub trait TrackTags {
-    fn count_tag_facets(
+    fn count_tracks_by_tag_facet(
         &self,
         collection_uid: Option<&EntityUid>,
-        facets: Option<&[&str]>,
+        params: &CountTracksByTagFacetParams,
         pagination: Pagination,
     ) -> TrackTagsResult<Vec<TagFacetCount>>;
 
-    fn count_tags(
+    fn count_tracks_by_tag(
         &self,
         collection_uid: Option<&EntityUid>,
-        facets: Option<&[&str]>,
-        include_non_faceted_tags: bool,
+        params: &CountTracksByTagParams,
         pagination: Pagination,
     ) -> TrackTagsResult<Vec<TagCount>>;
 }

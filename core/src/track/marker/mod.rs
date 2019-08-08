@@ -59,22 +59,22 @@ use std::{
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, Validate)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PositionMarkerData {
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "s", skip_serializing_if = "Option::is_none")]
     #[validate]
     pub start: Option<PositionMs>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "e", skip_serializing_if = "Option::is_none")]
     #[validate]
     pub end: Option<PositionMs>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "l", skip_serializing_if = "Option::is_none")]
     #[validate(length(min = 1))]
     pub label: Option<String>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "n", skip_serializing_if = "Option::is_none")]
     pub number: Option<i32>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "c", skip_serializing_if = "Option::is_none")]
     pub color: Option<ColorArgb>,
 }
 
@@ -151,7 +151,7 @@ impl PositionMarkerType {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, tag = "type", rename_all = "kebab-case")]
+#[serde(deny_unknown_fields, tag = "t", rename_all = "kebab-case")]
 pub enum PositionMarker {
     Cue(PositionMarkerData),
     HotCue(PositionMarkerData),
@@ -270,21 +270,26 @@ pub fn validate_position_marker_cardinalities(
     schema(function = "validate_beat_marker_beat_number")
 )]
 pub struct BeatMarker {
+    #[serde(rename = "s")]
     #[validate]
     pub start: PositionMs,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "e", skip_serializing_if = "Option::is_none")]
     #[validate]
     pub end: Option<PositionMs>,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(rename = "b", skip_serializing_if = "IsDefault::is_default", default)]
     pub tempo: TempoBpm,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(rename = "t", skip_serializing_if = "IsDefault::is_default", default)]
     pub timing: TimeSignature,
 
     /// The beat 1..n (with n = `timing.beats_per_measure()`) in a bar or 0 if unknown
-    #[serde(skip_serializing_if = "num_traits::identities::Zero::is_zero", default)]
+    #[serde(
+        rename = "n",
+        skip_serializing_if = "num_traits::identities::Zero::is_zero",
+        default
+    )]
     pub beat: BeatNumber,
 }
 
@@ -350,14 +355,15 @@ impl BeatMarker {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Validate)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct KeyMarker {
+    #[serde(rename = "s")]
     #[validate]
     pub start: PositionMs,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "e", skip_serializing_if = "Option::is_none")]
     #[validate]
     pub end: Option<PositionMs>,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(rename = "k", skip_serializing_if = "IsDefault::is_default", default)]
     #[validate]
     pub key: KeySignature,
 }

@@ -19,3 +19,14 @@ use super::*;
 fn default_time_sig() {
     assert!(TimeSignature::default().validate().is_err());
 }
+
+#[test]
+fn new_time_sig() {
+    assert!(TimeSignature::new(0, 0).validate().is_err());
+    assert!(TimeSignature::new(0, 1).validate().is_err());
+    assert!(TimeSignature::new(1, 0).validate().is_err());
+    assert!(TimeSignature::new(1, 1).validate().is_ok());
+    assert!(TimeSignature::new(3, 4).validate().is_ok());
+    assert!(TimeSignature::new(4, 4).validate().is_ok());
+    assert!(TimeSignature::new(4, 3).validate().is_ok());
+}

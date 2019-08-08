@@ -19,9 +19,10 @@ use aoide_storage::{
     api::{
         serde::{SerializationFormat, SerializedEntity},
         track::{TrackAlbums, TrackTags, Tracks, TracksResult},
-        CountTagFacetsParams, CountTagsParams, CountTrackAlbumsParams, LocateTracksParams,
-        Pagination, PaginationLimit, PaginationOffset, ReplaceTracksParams, ReplacedTracks,
-        SearchTracksParams, StringPredicate, TagCount, TagFacetCount, UriPredicate, UriRelocation,
+        CountTracksByAlbumParams, CountTracksByTagFacetParams, CountTracksByTagParams,
+        LocateTracksParams, Pagination, PaginationLimit, PaginationOffset, ReplaceTracksParams,
+        ReplacedTracks, SearchTracksParams, StringPredicate, TagCount, TagFacetCount, UriPredicate,
+        UriRelocation,
     },
     storage::track::TrackRepository,
 };
@@ -210,32 +211,32 @@ impl TracksHandler {
             .map_err(warp::reject::custom)
     }
 
-    pub fn handle_albums_count(
+    pub fn handle_albums_count_tracks(
         &self,
         query_params: TracksQueryParams,
-        count_params: CountTrackAlbumsParams,
+        count_params: CountTracksByAlbumParams,
     ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
-        count_albums(&self.db, query_params, &count_params)
+        count_tracks_by_album(&self.db, query_params, &count_params)
             .map(|val| warp::reply::json(&val))
             .map_err(warp::reject::custom)
     }
 
-    pub fn handle_tags_count(
+    pub fn handle_tags_count_tracks(
         &self,
         query_params: TracksQueryParams,
-        count_params: CountTagsParams,
+        count_params: CountTracksByTagParams,
     ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
-        count_tags(&self.db, query_params, count_params)
+        count_tracks_by_tag(&self.db, query_params, count_params)
             .map(|val| warp::reply::json(&val))
             .map_err(warp::reject::custom)
     }
 
-    pub fn handle_tags_facets_count(
+    pub fn handle_tags_facets_count_tracks(
         &self,
         query_params: TracksQueryParams,
-        count_params: CountTagFacetsParams,
+        count_params: CountTracksByTagFacetParams,
     ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
-        count_tag_facets(&self.db, query_params, count_params)
+        count_tracks_by_tag_facet(&self.db, query_params, count_params)
             .map(|val| warp::reply::json(&val))
             .map_err(warp::reject::custom)
     }
@@ -438,68 +439,42 @@ fn relocate_tracks(
     }))
 }
 
-fn count_albums(
+fn count_tracks_by_album(
     pooled_connection: &SqlitePooledConnection,
     query: TracksQueryParams,
-    params: &CountTrackAlbumsParams,
-) -> impl Future<Item = Vec<TrackAlbumCount>, Error = Error> {
+    params: &CountTracksByAlbumParams,
+) -> impl Future<Item = Vec<AlbumTracksCount>, Error = Error> {
     let repository = TrackRepository::new(&*pooled_connection);
     future::result(pooled_connection.transaction::<_, Error, _>(|| {
-        repository.count_albums(query.collection_uid.as_ref(), params, query.pagination())
+        repository.count_tracks_by_album(query.collection_uid.as_ref(), params, query.pagination())
     }))
 }
 
-fn count_tags(
+fn count_tracks_by_tag(
     pooled_connection: &SqlitePooledConnection,
     query: TracksQueryParams,
-    params: CountTagsParams,
+    params: CountTracksByTagParams,
 ) -> impl Future<Item = Vec<TagCount>, Error = Error> {
-    let include_non_faceted_tags = params.include_non_faceted_tags;
-    let facets = params.facets.map(|mut facets| {
-        facets.sort();
-        facets.dedup();
-        facets
-    });
-    let facets = facets.as_ref().map(|facets| {
-        facets
-            .iter()
-            .map(AsRef::as_ref)
-            .map(String::as_str)
-            .collect()
-    });
     let repository = TrackRepository::new(&*pooled_connection);
     future::result(pooled_connection.transaction::<_, Error, _>(|| {
-        repository.count_tags(
+        repository.count_tracks_by_tag(
             query.collection_uid.as_ref(),
-            facets.as_ref().map(Vec::as_slice),
-            include_non_faceted_tags,
+            &params.dedup_facets(),
             query.pagination(),
         )
     }))
 }
 
-fn count_tag_facets(
+fn count_tracks_by_tag_facet(
     pooled_connection: &SqlitePooledConnection,
     query: TracksQueryParams,
-    params: CountTagFacetsParams,
+    params: CountTracksByTagFacetParams,
 ) -> impl Future<Item = Vec<TagFacetCount>, Error = Error> {
-    let facets = params.facets.map(|mut facets| {
-        facets.sort();
-        facets.dedup();
-        facets
-    });
-    let facets = facets.as_ref().map(|facets| {
-        facets
-            .iter()
-            .map(AsRef::as_ref)
-            .map(String::as_str)
-            .collect()
-    });
     let repository = TrackRepository::new(&*pooled_connection);
     future::result(pooled_connection.transaction::<_, Error, _>(|| {
-        repository.count_tag_facets(
+        repository.count_tracks_by_tag_facet(
             query.collection_uid.as_ref(),
-            facets.as_ref().map(Vec::as_slice),
+            &params.dedup_facets(),
             query.pagination(),
         )
     }))

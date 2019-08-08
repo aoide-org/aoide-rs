@@ -15,6 +15,8 @@
 
 use super::*;
 
+use serde_repr::*;
+
 ///////////////////////////////////////////////////////////////////////
 // ActorRole
 ///////////////////////////////////////////////////////////////////////
@@ -47,8 +49,9 @@ impl Default for ActorRole {
 // ActorPrecedence
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize_repr, Deserialize_repr)]
 #[serde(deny_unknown_fields, rename_all = "lowercase")]
+#[repr(u8)]
 pub enum ActorPrecedence {
     Summary = 0, // default
     Primary = 1,
@@ -66,15 +69,16 @@ impl Default for ActorPrecedence {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, Validate)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
 pub struct Actor {
     #[validate(length(min = 1))]
+    #[serde(rename = "n")]
     pub name: String,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(rename = "r", skip_serializing_if = "IsDefault::is_default", default)]
     pub role: ActorRole,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(rename = "p", skip_serializing_if = "IsDefault::is_default", default)]
     pub precedence: ActorPrecedence,
 }
 

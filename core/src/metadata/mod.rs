@@ -268,12 +268,12 @@ impl PlainTag {
         Score::max()
     }
 
-    pub const fn new(label: Label, score: Score) -> Self {
-        Self(label, score)
+    pub fn new(label: impl Into<Label>, score: impl Into<Score>) -> Self {
+        Self(label.into(), score.into())
     }
 
-    pub const fn new_label(label: Label) -> Self {
-        Self(label, Self::default_score())
+    pub fn new_label(label: impl Into<Label>) -> Self {
+        Self(label.into(), Self::default_score())
     }
 }
 
@@ -301,19 +301,30 @@ impl Scored for PlainTag {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
 pub enum FacetedTag {
     Unlabeled(Facet, Score),
     Labeled(Facet, Score, Label),
 }
 
 impl FacetedTag {
-    pub fn new(facet: Facet, label: Option<Label>, score: Score) -> Self {
+    pub const fn default_score() -> Score {
+        Score::max()
+    }
+
+    pub fn new(facet: impl Into<Facet>, label: impl Into<Label>, score: impl Into<Score>) -> Self {
         use FacetedTag::*;
-        if let Some(label) = label {
-            Labeled(facet, score, label)
-        } else {
-            Unlabeled(facet, score)
-        }
+        Labeled(facet.into(), score.into(), label.into())
+    }
+
+    pub fn new_label(facet: impl Into<Facet>, label: impl Into<Label>) -> Self {
+        use FacetedTag::*;
+        Labeled(facet.into(), Self::default_score(), label.into())
+    }
+
+    pub fn new_score(facet: impl Into<Facet>, score: impl Into<Score>) -> Self {
+        use FacetedTag::*;
+        Unlabeled(facet.into(), score.into())
     }
 }
 
@@ -360,11 +371,11 @@ impl Validate for FacetedTag {
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize, Validate)]
 pub struct Tags {
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(rename = "p", skip_serializing_if = "Vec::is_empty", default)]
     #[validate]
     pub plain: Vec<PlainTag>, // no duplicate labels allowed
 
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(rename = "f", skip_serializing_if = "Vec::is_empty", default)]
     #[validate]
     pub faceted: Vec<FacetedTag>, // no duplicate labels per facet allowed
 }

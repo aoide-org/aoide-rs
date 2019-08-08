@@ -42,16 +42,17 @@ impl Default for TitleLevel {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, Validate)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
 pub struct Title {
+    #[serde(rename = "n")]
     #[validate(length(min = 1))]
     pub name: String,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(rename = "v", skip_serializing_if = "IsDefault::is_default", default)]
     pub level: TitleLevel,
 
-    #[serde(rename = "lang", skip_serializing_if = "Option::is_none")]
-    #[validate(length(min = 1))]
+    #[serde(rename = "l", skip_serializing_if = "Option::is_none")]
+    #[validate(length(min = 2))]
     pub language: Option<String>,
 }
 

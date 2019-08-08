@@ -68,3 +68,27 @@ fn validate_facet() {
     assert!(Facet::new("a facet".into()).validate().is_err());
     assert!(Facet::new("\tA facet  ".into()).validate().is_err());
 }
+
+#[test]
+fn deserialize_plain_tag() {
+    let tag = "[\"label\", 0.5]";
+    let tag: PlainTag = serde_json::from_str(&tag).unwrap();
+    assert_eq!(PlainTag::new("label".to_string(), 0.5), tag);
+}
+
+#[test]
+fn deserialize_faceted_tag() {
+    let tag = "[\"facet\", 1, \"label\"]";
+    let tag: FacetedTag = serde_json::from_str(&tag).unwrap();
+    assert_eq!(
+        FacetedTag::new("facet".to_string(), "label".to_string(), 1.0),
+        tag
+    );
+}
+
+#[test]
+fn deserialize_faceted_tag_unlabeled() {
+    let tag = "[\"facet\", 0.75]";
+    let tag: FacetedTag = serde_json::from_str(&tag).unwrap();
+    assert_eq!(FacetedTag::new_score("facet".to_string(), 0.75), tag);
+}

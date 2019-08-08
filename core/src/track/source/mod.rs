@@ -31,12 +31,12 @@ pub struct TrackSource {
     // The content_type uniquely identifies a TrackSource of
     // a Track, i.e. no duplicate content types are allowed
     // among the track sources of each track.
-    #[serde(skip_serializing_if = "String::is_empty", default)]
+    #[serde(rename = "t", skip_serializing_if = "String::is_empty", default)]
     // TODO: Validate MIME type
     #[validate(length(min = 1))]
     pub content_type: String,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "a", skip_serializing_if = "Option::is_none")]
     #[validate]
     pub audio_content: Option<AudioContent>,
 }

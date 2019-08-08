@@ -35,17 +35,28 @@ use std::fmt;
 // IndexCount
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct IndexCount(/*index*/ Option<u16>, /*count*/ Option<u16>);
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum IndexCount {
+    Index(u16),
+    IndexAndCount(u16, u16),
+}
 
 impl IndexCount {
-    pub fn index(self) -> Option<u16> {
-        self.0
+    pub fn index(self) -> u16 {
+        use IndexCount::*;
+        match self {
+            Index(idx) => idx,
+            IndexAndCount(idx, _) => idx,
+        }
     }
 
     pub fn count(self) -> Option<u16> {
-        self.1
+        use IndexCount::*;
+        match self {
+            Index(_) => None,
+            IndexAndCount(_, cnt) => Some(cnt),
+        }
     }
 }
 
@@ -53,19 +64,14 @@ impl Validate for IndexCount {
     #[allow(clippy::absurd_extreme_comparisons)]
     fn validate(&self) -> Result<(), ValidationErrors> {
         let mut errors = ValidationErrors::new();
-        if let Some(index) = self.index() {
-            if index <= 0 {
-                errors.add("index", ValidationError::new("invalid value"));
-            } else if let Some(count) = self.count() {
-                if count <= 0 {
-                    errors.add("count", ValidationError::new("invalid value"));
-                } else if index > count {
-                    errors.add("index", ValidationError::new("value exceeds count"));
-                }
-            }
-        } else if let Some(count) = self.count() {
+        if self.index() <= 0 {
+            errors.add("index", ValidationError::new("invalid value"));
+        }
+        if let Some(count) = self.count() {
             if count <= 0 {
                 errors.add("count", ValidationError::new("invalid value"));
+            } else if self.index() > count {
+                errors.add("index", ValidationError::new("value exceeds count"));
             }
         }
         if errors.is_empty() {
@@ -78,11 +84,10 @@ impl Validate for IndexCount {
 
 impl fmt::Display for IndexCount {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match (self.index(), self.count()) {
-            (None, None) => write!(f, ""),
-            (Some(index), None) => write!(f, "{}", index),
-            (None, Some(count)) => write!(f, "/{}", count),
-            (Some(index), Some(count)) => write!(f, "{}/{}", index, count),
+        use IndexCount::*;
+        match self {
+            Index(idx) => write!(f, "{}", idx),
+            IndexAndCount(idx, cnt) => write!(f, "{}/{}", idx, cnt),
         }
     }
 }
@@ -163,59 +168,59 @@ pub enum TrackLock {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, Validate)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Track {
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(rename = "col", skip_serializing_if = "Vec::is_empty", default)]
     #[validate]
     pub collections: Vec<TrackCollection>,
 
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(rename = "src", skip_serializing_if = "Vec::is_empty", default)]
     #[validate(length(min = 1))]
     pub sources: Vec<TrackSource>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "rel", skip_serializing_if = "Option::is_none")]
     #[validate]
     pub release: Option<ReleaseMetadata>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "alb", skip_serializing_if = "Option::is_none")]
     #[validate]
     pub album: Option<AlbumMetadata>,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(rename = "dsn", skip_serializing_if = "Option::is_none")]
     #[validate]
-    pub track_numbers: IndexCount,
+    pub disc_numbers: Option<IndexCount>,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(rename = "trn", skip_serializing_if = "Option::is_none")]
     #[validate]
-    pub disc_numbers: IndexCount,
+    pub track_numbers: Option<IndexCount>,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(rename = "mvn", skip_serializing_if = "Option::is_none")]
     #[validate]
-    pub movement_numbers: IndexCount,
+    pub movement_numbers: Option<IndexCount>,
 
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(rename = "tit", skip_serializing_if = "Vec::is_empty", default)]
     #[validate(length(min = 1), custom = "Titles::validate_main_title")]
     pub titles: Vec<Title>,
 
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(rename = "act", skip_serializing_if = "Vec::is_empty", default)]
     #[validate(custom = "Actors::validate_main_actor")]
     pub actors: Vec<Actor>,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(rename = "tag", skip_serializing_if = "IsDefault::is_default", default)]
     #[validate]
     pub tags: Tags,
 
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(rename = "pmk", skip_serializing_if = "Vec::is_empty", default)]
     #[validate(custom = "validate_position_marker_cardinalities")]
     pub position_markers: Vec<PositionMarker>,
 
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(rename = "bmk", skip_serializing_if = "Vec::is_empty", default)]
     #[validate(custom = "validate_beat_marker_ranges")]
     pub beat_markers: Vec<BeatMarker>,
 
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(rename = "kmk", skip_serializing_if = "Vec::is_empty", default)]
     #[validate(custom = "validate_key_marker_ranges")]
     pub key_markers: Vec<KeyMarker>,
 
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(rename = "lck", skip_serializing_if = "Vec::is_empty", default)]
     pub locks: Vec<TrackLock>,
 }
 

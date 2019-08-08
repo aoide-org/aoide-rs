@@ -49,12 +49,6 @@ impl Pagination {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
-pub enum ConditionModifier {
-    Not,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum FilterModifier {
     Complement,
 }
@@ -294,6 +288,15 @@ pub enum TrackSortField {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub enum TagSortField {
+    Facet,
+    Label,
+    Score,
+    Count,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum SortDirection {
     #[serde(rename = "asc")]
@@ -323,6 +326,24 @@ impl TrackSortOrder {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct TagSortOrder {
+    pub field: TagSortField,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub direction: Option<SortDirection>,
+}
+
+impl TagSortOrder {
+    pub fn default_direction(field: TagSortField) -> SortDirection {
+        match field {
+            TagSortField::Score | TagSortField::Count => SortDirection::Descending,
+            _ => SortDirection::Ascending,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub enum TrackSearchFilter {
@@ -347,7 +368,7 @@ pub struct SearchTracksParams {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct CountTrackAlbumsParams {
+pub struct CountTracksByAlbumParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub min_release_year: Option<i16>,
 
@@ -358,55 +379,126 @@ pub struct CountTrackAlbumsParams {
     pub ordering: Vec<TrackSortOrder>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+// TODO: Replace with #[serde(default_expr = "true")] if available
+// See also: https://github.com/serde-rs/serde/pull/1490
+fn expr_true() -> bool {
+    true
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct CountTagsParams {
+pub struct CountTracksByTagParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub facets: Option<Vec<Facet>>,
 
-    #[serde(skip_serializing_if = "std::ops::Not::not", default)]
+    #[serde(skip_serializing_if = "std::ops::Not::not", default = "expr_true")]
     pub include_non_faceted_tags: bool,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub ordering: Vec<TagSortOrder>,
+}
+
+impl CountTracksByTagParams {
+    pub fn dedup_facets(self) -> Self {
+        let facets = self.facets.map(|mut facets| {
+            facets.sort();
+            facets.dedup();
+            facets
+        });
+        Self { facets, ..self }
+    }
+}
+
+impl Default for CountTracksByTagParams {
+    fn default() -> Self {
+        Self {
+            facets: Default::default(),
+            include_non_faceted_tags: true,
+            ordering: Default::default(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct CountTagFacetsParams {
+pub struct CountTracksByTagFacetParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub facets: Option<Vec<Facet>>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub ordering: Vec<TagSortOrder>,
+}
+
+impl CountTracksByTagFacetParams {
+    pub fn dedup_facets(self) -> Self {
+        let facets = self.facets.map(|mut facets| {
+            facets.sort();
+            facets.dedup();
+            facets
+        });
+        Self { facets, ..self }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct StringCount {
+    #[serde(rename = "val")]
     pub value: Option<String>,
+
+    #[serde(rename = "cnt")]
     pub count: usize,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct FieldStrings {
-    pub field: StringField,
-    pub counts: Vec<StringCount>,
+#[serde(deny_unknown_fields)]
+pub struct FieldStrings(StringField, Vec<StringCount>);
+
+impl FieldStrings {
+    pub const fn new(field: StringField, counts: Vec<StringCount>) -> Self {
+        FieldStrings(field, counts)
+    }
+
+    pub fn field(&self) -> &StringField {
+        &self.0
+    }
+
+    pub fn counts(&self) -> &Vec<StringCount> {
+        &self.1
+    }
 }
 
 #[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct TagFacetCount {
-    pub facet: Facet,
-    pub count: usize,
+pub struct TagFacetCount(Facet, usize);
+
+impl TagFacetCount {
+    pub const fn new(facet: Facet, count: usize) -> Self {
+        Self(facet, count)
+    }
+
+    pub fn facet(&self) -> &Facet {
+        &self.0
+    }
+
+    pub fn count(&self) -> usize {
+        self.1
+    }
 }
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TagCount {
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "fct", skip_serializing_if = "Option::is_none")]
     pub facet: Option<Facet>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "lbl", skip_serializing_if = "Option::is_none")]
     pub label: Option<Label>,
 
+    #[serde(rename = "avg")]
     pub avg_score: Score,
 
+    #[serde(rename = "cnt")]
     pub count: usize,
 }
 

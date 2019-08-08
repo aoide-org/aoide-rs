@@ -24,18 +24,18 @@ use chrono::{DateTime, Utc};
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, Validate)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ReleaseMetadata {
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "at", skip_serializing_if = "Option::is_none")]
     pub released_at: Option<DateTime<Utc>>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "by", skip_serializing_if = "Option::is_none")]
     #[validate(length(min = 1))]
     pub released_by: Option<String>, // record label
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "cpy", skip_serializing_if = "Option::is_none")]
     #[validate(length(min = 1))]
     pub copyright: Option<String>,
 
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(rename = "lic", skip_serializing_if = "Vec::is_empty", default)]
     // TODO: Validate that each license is not empty
     pub licenses: Vec<String>,
 }

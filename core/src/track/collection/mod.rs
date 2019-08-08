@@ -28,11 +28,14 @@ pub struct TrackCollection {
     #[validate]
     pub uid: EntityUid,
 
+    #[serde(rename = "s")]
     pub since: DateTime<Utc>,
 
+    #[serde(rename = "c")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub color: Option<ColorArgb>,
 
+    #[serde(rename = "p")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub play_count: Option<usize>,
 }

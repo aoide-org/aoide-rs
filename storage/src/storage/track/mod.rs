@@ -348,7 +348,7 @@ impl<'a> Tracks for TrackRepository<'a> {
                 debug_assert!(!validation_errors.is_empty());
                 log::warn!("Validation errors: {}", validation_errors);
                 log::warn!(
-                    "Accepting replacement track despite validation errors: {:?}",
+                    "Accepting replacement track with validation errors: {:?}",
                     replacement.track
                 );
                 // ...ignore validation errors and continue
@@ -699,14 +699,16 @@ impl<'a> Tracks for TrackRepository<'a> {
                 target.load::<(Option<String>, i64)>(self.connection)?
             }
         };
-        let mut counts = Vec::with_capacity(rows.len());
-        for row in rows {
-            let value = row.0;
-            debug_assert!(row.1 > 0);
-            let count = row.1 as usize;
-            counts.push(StringCount { value, count });
-        }
-        Ok(FieldStrings { field, counts })
+        let counts = rows
+            .into_iter()
+            .map(|row| {
+                let value = row.0;
+                debug_assert!(row.1 > 0);
+                let count = row.1 as usize;
+                StringCount { value, count }
+            })
+            .collect();
+        Ok(FieldStrings::new(field, counts))
     }
 
     fn collection_stats(&self, collection_uid: &EntityUid) -> TracksResult<CollectionTrackStats> {
@@ -720,12 +722,12 @@ impl<'a> Tracks for TrackRepository<'a> {
 }
 
 impl<'a> TrackAlbums for TrackRepository<'a> {
-    fn count_albums(
+    fn count_tracks_by_album(
         &self,
         collection_uid: Option<&EntityUid>,
-        params: &CountTrackAlbumsParams,
+        params: &CountTracksByAlbumParams,
         pagination: Pagination,
-    ) -> TrackAlbumsResult<Vec<TrackAlbumCount>> {
+    ) -> TrackAlbumsResult<Vec<AlbumTracksCount>> {
         let mut target = aux_track_brief::table
             .select((
                 aux_track_brief::album_title,
@@ -759,22 +761,6 @@ impl<'a> TrackAlbums for TrackRepository<'a> {
         for &TrackSortOrder { field, direction } in &params.ordering {
             let direction = direction.unwrap_or_else(|| TrackSortOrder::default_direction(field));
             match field {
-                TrackSortField::TrackIndex => match direction {
-                    SortDirection::Ascending => {
-                        target = target.then_order_by(aux_track_brief::track_index.asc());
-                    }
-                    SortDirection::Descending => {
-                        target = target.then_order_by(aux_track_brief::track_index.desc());
-                    }
-                },
-                TrackSortField::TrackCount => match direction {
-                    SortDirection::Ascending => {
-                        target = target.then_order_by(aux_track_brief::track_count.asc());
-                    }
-                    SortDirection::Descending => {
-                        target = target.then_order_by(aux_track_brief::track_count.desc());
-                    }
-                },
                 TrackSortField::AlbumTitle => match direction {
                     SortDirection::Ascending => {
                         target = target.then_order_by(aux_track_brief::album_title.asc());
@@ -800,7 +786,7 @@ impl<'a> TrackAlbums for TrackRepository<'a> {
                     }
                 },
                 field => log::warn!(
-                    "Ignoring sort order by field {:?} for listing albums",
+                    "Ignoring sort order by field {:?} when counting tracks by albums",
                     field
                 ),
             }
@@ -815,7 +801,7 @@ impl<'a> TrackAlbums for TrackRepository<'a> {
 
         Ok(res
             .into_iter()
-            .map(|row| TrackAlbumCount {
+            .map(|row| AlbumTracksCount {
                 title: row.0,
                 artist: row.1,
                 release_year: row.2,
@@ -826,10 +812,10 @@ impl<'a> TrackAlbums for TrackRepository<'a> {
 }
 
 impl<'a> TrackTags for TrackRepository<'a> {
-    fn count_tag_facets(
+    fn count_tracks_by_tag_facet(
         &self,
         collection_uid: Option<&EntityUid>,
-        facets: Option<&[&str]>,
+        params: &CountTracksByTagFacetParams,
         pagination: Pagination,
     ) -> TrackTagsResult<Vec<TagFacetCount>> {
         let mut target = aux_track_tag::table
@@ -839,12 +825,13 @@ impl<'a> TrackTags for TrackRepository<'a> {
                 sql::<diesel::sql_types::BigInt>("count(*) AS count"),
             ))
             .group_by(aux_track_tag::facet_id)
-            .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
             .into_boxed();
 
-        // Facet Filtering
-        if let Some(facets) = facets {
-            target = target.filter(aux_tag_facet::facet.eq_any(facets));
+        // Facet filtering
+        if let Some(ref facets) = params.facets {
+            target = target.filter(
+                aux_tag_facet::facet.eq_any(facets.iter().map(AsRef::as_ref).map(String::as_str)),
+            );
         }
 
         // Collection filtering
@@ -855,26 +842,56 @@ impl<'a> TrackTags for TrackRepository<'a> {
             target = target.filter(aux_track_tag::track_id.eq_any(track_id_subselect));
         }
 
+        if params.ordering.is_empty() {
+            target = target.then_order_by(sql::<diesel::sql_types::BigInt>("count").desc());
+        } else {
+            for &TagSortOrder { field, direction } in &params.ordering {
+                let direction = direction.unwrap_or_else(|| TagSortOrder::default_direction(field));
+                match field {
+                    TagSortField::Facet => {
+                        let col = aux_tag_facet::facet;
+                        match direction {
+                            SortDirection::Ascending => {
+                                target = target.then_order_by(col.asc());
+                            }
+                            SortDirection::Descending => {
+                                target = target.then_order_by(col.desc());
+                            }
+                        }
+                    }
+                    TagSortField::Count => {
+                        let col = sql::<diesel::sql_types::BigInt>("count");
+                        match direction {
+                            SortDirection::Ascending => {
+                                target = target.then_order_by(col.desc());
+                            }
+                            SortDirection::Descending => {
+                                target = target.then_order_by(col.desc());
+                            }
+                        }
+                    }
+                    field => log::warn!(
+                        "Ignoring sort order by field {:?} when counting tracks by tag facet",
+                        field
+                    ),
+                }
+            }
+        }
+
         // Pagination
         target = apply_pagination(target, pagination);
 
         let rows = target.load::<(String, i64)>(self.connection)?;
-        let mut result = Vec::with_capacity(rows.len());
-        for row in rows {
-            result.push(TagFacetCount {
-                facet: row.0.into(),
-                count: row.1 as usize,
-            });
-        }
-
-        Ok(result)
+        Ok(rows
+            .into_iter()
+            .map(|row| TagFacetCount::new(row.0.into(), row.1 as usize))
+            .collect())
     }
 
-    fn count_tags(
+    fn count_tracks_by_tag(
         &self,
         collection_uid: Option<&EntityUid>,
-        facets: Option<&[&str]>,
-        include_non_faceted_tags: bool,
+        params: &CountTracksByTagParams,
         pagination: Pagination,
     ) -> TrackTagsResult<Vec<TagCount>> {
         let mut target = aux_track_tag::table
@@ -890,20 +907,21 @@ impl<'a> TrackTags for TrackRepository<'a> {
             .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
             .into_boxed();
 
-        // Facet Filtering
-        if let Some(facets) = facets {
-            if include_non_faceted_tags {
-                target = target.filter(
+        // Facet filtering
+        if let Some(ref facets) = params.facets {
+            let facets = facets.iter().map(AsRef::as_ref).map(String::as_str);
+            target = if params.include_non_faceted_tags {
+                target.filter(
                     aux_tag_facet::facet
                         .eq_any(facets)
                         .or(aux_tag_facet::facet.is_null()),
-                );
+                )
             } else {
-                target = target.filter(aux_tag_facet::facet.eq_any(facets));
-            }
+                target.filter(aux_tag_facet::facet.eq_any(facets))
+            };
         } else {
             // Include all faceted tags
-            if !include_non_faceted_tags {
+            if !params.include_non_faceted_tags {
                 target = target.filter(aux_track_tag::facet_id.is_not_null());
             }
         }
@@ -916,21 +934,73 @@ impl<'a> TrackTags for TrackRepository<'a> {
             target = target.filter(aux_track_tag::track_id.eq_any(track_id_subselect));
         }
 
+        if params.ordering.is_empty() {
+            target = target.then_order_by(sql::<diesel::sql_types::BigInt>("count").desc());
+        } else {
+            for &TagSortOrder { field, direction } in &params.ordering {
+                let direction = direction.unwrap_or_else(|| TagSortOrder::default_direction(field));
+                match field {
+                    TagSortField::Facet => {
+                        let col = aux_tag_facet::facet;
+                        match direction {
+                            SortDirection::Ascending => {
+                                target = target.then_order_by(col.asc());
+                            }
+                            SortDirection::Descending => {
+                                target = target.then_order_by(col.desc());
+                            }
+                        }
+                    }
+                    TagSortField::Label => {
+                        let col = aux_tag_label::label;
+                        match direction {
+                            SortDirection::Ascending => {
+                                target = target.then_order_by(col.asc());
+                            }
+                            SortDirection::Descending => {
+                                target = target.then_order_by(col.desc());
+                            }
+                        }
+                    }
+                    TagSortField::Score => {
+                        let col = sql::<diesel::sql_types::Double>("avg_score");
+                        match direction {
+                            SortDirection::Ascending => {
+                                target = target.then_order_by(col.desc());
+                            }
+                            SortDirection::Descending => {
+                                target = target.then_order_by(col.desc());
+                            }
+                        }
+                    }
+                    TagSortField::Count => {
+                        let col = sql::<diesel::sql_types::BigInt>("count");
+                        match direction {
+                            SortDirection::Ascending => {
+                                target = target.then_order_by(col.desc());
+                            }
+                            SortDirection::Descending => {
+                                target = target.then_order_by(col.desc());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Pagination
         target = apply_pagination(target, pagination);
 
         let rows = target.load::<(Option<String>, Option<String>, f64, i64)>(self.connection)?;
-        let mut result = Vec::with_capacity(rows.len());
-        for row in rows {
-            result.push(TagCount {
+        Ok(rows
+            .into_iter()
+            .map(|row| TagCount {
                 facet: row.0.map(Into::into),
                 label: row.1.map(Into::into),
                 avg_score: row.2.into(),
                 count: row.3 as usize,
-            });
-        }
-
-        Ok(result)
+            })
+            .collect())
     }
 }
 
