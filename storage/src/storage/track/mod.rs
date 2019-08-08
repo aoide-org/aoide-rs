@@ -842,6 +842,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
             target = target.filter(aux_track_tag::track_id.eq_any(track_id_subselect));
         }
 
+        // Ordering
         if params.ordering.is_empty() {
             target = target.then_order_by(sql::<diesel::sql_types::BigInt>("count").desc());
         } else {
@@ -904,7 +905,6 @@ impl<'a> TrackTags for TrackRepository<'a> {
                 sql::<diesel::sql_types::BigInt>("COUNT(*) AS count"),
             ))
             .group_by((aux_track_tag::facet_id, aux_track_tag::label_id))
-            .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
             .into_boxed();
 
         // Facet filtering
@@ -934,6 +934,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
             target = target.filter(aux_track_tag::track_id.eq_any(track_id_subselect));
         }
 
+        // Ordering
         if params.ordering.is_empty() {
             target = target.then_order_by(sql::<diesel::sql_types::BigInt>("count").desc());
         } else {
