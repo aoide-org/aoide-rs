@@ -1584,11 +1584,13 @@ components:
         - score
         - count
     TagSortOrder:
-      properties:
-        field:
-          $ref: '#/components/schemas/TagSortField'
-        direction:
-          $ref: '#/components/schemas/SortDirection'
+      type: array
+      minLength: 2
+      maxLength: 2
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/TagSortField'
+          - $ref: '#/components/schemas/SortDirection'
     TrackSortField:
       type: string
       enum:
@@ -1603,11 +1605,13 @@ components:
         - releaseYear
         - musicTempo
     TrackSortOrder:
-      properties:
-        field:
-          $ref: '#/components/schemas/TrackSortField'
-        direction:
-          $ref: '#/components/schemas/SortDirection'
+      type: array
+      minLength: 2
+      maxLength: 2
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/TrackSortField'
+          - $ref: '#/components/schemas/SortDirection'
     TrackSource:
       properties:
         uri:

@@ -297,7 +297,6 @@ pub enum TagSortField {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum SortDirection {
     #[serde(rename = "asc")]
     Ascending,
@@ -307,40 +306,36 @@ pub enum SortDirection {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct TrackSortOrder {
-    pub field: TrackSortField,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub direction: Option<SortDirection>,
-}
+pub struct TrackSortOrder(TrackSortField, SortDirection);
 
 impl TrackSortOrder {
-    pub fn default_direction(field: TrackSortField) -> SortDirection {
-        match field {
-            TrackSortField::InCollectionSince | TrackSortField::LastRevisionedAt => {
-                SortDirection::Descending
-            }
-            _ => SortDirection::Ascending,
-        }
+    pub const fn new(field: TrackSortField, direction: SortDirection) -> Self {
+        Self(field, direction)
+    }
+
+    pub fn field(&self) -> TrackSortField {
+        self.0
+    }
+
+    pub fn direction(&self) -> SortDirection {
+        self.1
     }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct TagSortOrder {
-    pub field: TagSortField,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub direction: Option<SortDirection>,
-}
+pub struct TagSortOrder(TagSortField, SortDirection);
 
 impl TagSortOrder {
-    pub fn default_direction(field: TagSortField) -> SortDirection {
-        match field {
-            TagSortField::Score | TagSortField::Count => SortDirection::Descending,
-            _ => SortDirection::Ascending,
-        }
+    pub const fn new(field: TagSortField, direction: SortDirection) -> Self {
+        Self(field, direction)
+    }
+
+    pub fn field(&self) -> TagSortField {
+        self.0
+    }
+
+    pub fn direction(&self) -> SortDirection {
+        self.1
     }
 }
 

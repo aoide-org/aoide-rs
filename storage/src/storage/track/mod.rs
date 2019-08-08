@@ -758,30 +758,32 @@ impl<'a> TrackAlbums for TrackRepository<'a> {
             target = target.filter(aux_track_brief::release_year.le(max_release_year));
         }
 
-        for &TrackSortOrder { field, direction } in &params.ordering {
-            let direction = direction.unwrap_or_else(|| TrackSortOrder::default_direction(field));
-            match field {
-                TrackSortField::AlbumTitle => match direction {
-                    SortDirection::Ascending => {
+        for sort_order in &params.ordering {
+            let direction = sort_order.direction();
+            use TrackSortField::*;
+            use SortDirection::*;
+            match sort_order.field() {
+                AlbumTitle => match direction {
+                    Ascending => {
                         target = target.then_order_by(aux_track_brief::album_title.asc());
                     }
-                    SortDirection::Descending => {
+                    Descending => {
                         target = target.then_order_by(aux_track_brief::album_title.desc())
                     }
                 },
-                TrackSortField::AlbumArtist => match direction {
-                    SortDirection::Ascending => {
+                AlbumArtist => match direction {
+                    Ascending => {
                         target = target.then_order_by(aux_track_brief::track_artist.asc());
                     }
-                    SortDirection::Descending => {
+                    Descending => {
                         target = target.then_order_by(aux_track_brief::album_artist.desc());
                     }
                 },
-                TrackSortField::ReleaseYear => match direction {
-                    SortDirection::Ascending => {
+                ReleaseYear => match direction {
+                    Ascending => {
                         target = target.then_order_by(aux_track_brief::release_year.asc());
                     }
-                    SortDirection::Descending => {
+                    Descending => {
                         target = target.then_order_by(aux_track_brief::release_year.desc());
                     }
                 },
@@ -846,27 +848,29 @@ impl<'a> TrackTags for TrackRepository<'a> {
         if params.ordering.is_empty() {
             target = target.then_order_by(sql::<diesel::sql_types::BigInt>("count").desc());
         } else {
-            for &TagSortOrder { field, direction } in &params.ordering {
-                let direction = direction.unwrap_or_else(|| TagSortOrder::default_direction(field));
-                match field {
-                    TagSortField::Facet => {
+            for sort_order in &params.ordering {
+                let direction = sort_order.direction();
+                use TagSortField::*;
+                use SortDirection::*;
+                match sort_order.field() {
+                    Facet => {
                         let col = aux_tag_facet::facet;
                         match direction {
-                            SortDirection::Ascending => {
+                            Ascending => {
                                 target = target.then_order_by(col.asc());
                             }
-                            SortDirection::Descending => {
+                            Descending => {
                                 target = target.then_order_by(col.desc());
                             }
                         }
                     }
-                    TagSortField::Count => {
+                    Count => {
                         let col = sql::<diesel::sql_types::BigInt>("count");
                         match direction {
-                            SortDirection::Ascending => {
+                            Ascending => {
                                 target = target.then_order_by(col.desc());
                             }
-                            SortDirection::Descending => {
+                            Descending => {
                                 target = target.then_order_by(col.desc());
                             }
                         }
@@ -938,49 +942,51 @@ impl<'a> TrackTags for TrackRepository<'a> {
         if params.ordering.is_empty() {
             target = target.then_order_by(sql::<diesel::sql_types::BigInt>("count").desc());
         } else {
-            for &TagSortOrder { field, direction } in &params.ordering {
-                let direction = direction.unwrap_or_else(|| TagSortOrder::default_direction(field));
-                match field {
-                    TagSortField::Facet => {
+            for sort_order in &params.ordering {
+                let direction = sort_order.direction();
+                use TagSortField::*;
+                use SortDirection::*;
+                match sort_order.field() {
+                    Facet => {
                         let col = aux_tag_facet::facet;
                         match direction {
-                            SortDirection::Ascending => {
+                            Ascending => {
                                 target = target.then_order_by(col.asc());
                             }
-                            SortDirection::Descending => {
+                            Descending => {
                                 target = target.then_order_by(col.desc());
                             }
                         }
                     }
-                    TagSortField::Label => {
+                    Label => {
                         let col = aux_tag_label::label;
                         match direction {
-                            SortDirection::Ascending => {
+                            Ascending => {
                                 target = target.then_order_by(col.asc());
                             }
-                            SortDirection::Descending => {
+                            Descending => {
                                 target = target.then_order_by(col.desc());
                             }
                         }
                     }
-                    TagSortField::Score => {
+                    Score => {
                         let col = sql::<diesel::sql_types::Double>("avg_score");
                         match direction {
-                            SortDirection::Ascending => {
+                            Ascending => {
                                 target = target.then_order_by(col.desc());
                             }
-                            SortDirection::Descending => {
+                            Descending => {
                                 target = target.then_order_by(col.desc());
                             }
                         }
                     }
-                    TagSortField::Count => {
+                    Count => {
                         let col = sql::<diesel::sql_types::BigInt>("count");
                         match direction {
-                            SortDirection::Ascending => {
+                            Ascending => {
                                 target = target.then_order_by(col.desc());
                             }
-                            SortDirection::Descending => {
+                            Descending => {
                                 target = target.then_order_by(col.desc());
                             }
                         }

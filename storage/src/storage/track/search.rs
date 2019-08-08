@@ -135,9 +135,8 @@ impl TrackSearchQueryTransform for TrackSortOrder {
         collection_uid: Option<&EntityUid>,
     ) -> TrackSearchBoxedQuery<'a> {
         let direction = self
-            .direction
-            .unwrap_or_else(|| TrackSortOrder::default_direction(self.field));
-        match self.field {
+            .direction();
+        match self.field() {
             field @ TrackSortField::InCollectionSince => {
                 if collection_uid.is_some() {
                     match direction {
