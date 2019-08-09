@@ -313,11 +313,11 @@ impl TrackSortOrder {
         Self(field, direction)
     }
 
-    pub fn field(&self) -> TrackSortField {
+    pub fn field(self) -> TrackSortField {
         self.0
     }
 
-    pub fn direction(&self) -> SortDirection {
+    pub fn direction(self) -> SortDirection {
         self.1
     }
 }
@@ -330,11 +330,11 @@ impl TagSortOrder {
         Self(field, direction)
     }
 
-    pub fn field(&self) -> TagSortField {
+    pub fn field(self) -> TagSortField {
         self.0
     }
 
-    pub fn direction(&self) -> SortDirection {
+    pub fn direction(self) -> SortDirection {
         self.1
     }
 }
@@ -374,43 +374,33 @@ pub struct CountTracksByAlbumParams {
     pub ordering: Vec<TrackSortOrder>,
 }
 
-// TODO: Replace with #[serde(default_expr = "true")] if available
-// See also: https://github.com/serde-rs/serde/pull/1490
-fn expr_true() -> bool {
-    true
+fn dedup_facets(facets: &mut Vec<Facet>) {
+    facets.sort();
+    facets.dedup();
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct CountTracksByTagParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub facets: Option<Vec<Facet>>,
 
-    #[serde(skip_serializing_if = "std::ops::Not::not", default = "expr_true")]
-    pub include_non_faceted_tags: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_non_faceted_tags: Option<bool>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub ordering: Vec<TagSortOrder>,
 }
 
 impl CountTracksByTagParams {
-    pub fn dedup_facets(self) -> Self {
-        let facets = self.facets.map(|mut facets| {
-            facets.sort();
-            facets.dedup();
-            facets
-        });
-        Self { facets, ..self }
-    }
-}
-
-impl Default for CountTracksByTagParams {
-    fn default() -> Self {
-        Self {
-            facets: Default::default(),
-            include_non_faceted_tags: true,
-            ordering: Default::default(),
+    pub fn dedup_facets(&mut self) {
+        if let Some(ref mut facets) = self.facets {
+            dedup_facets(facets);
         }
+    }
+
+    pub fn include_non_faceted_tags(&self) -> bool {
+        self.include_non_faceted_tags.unwrap_or(true)
     }
 }
 
@@ -425,13 +415,10 @@ pub struct CountTracksByTagFacetParams {
 }
 
 impl CountTracksByTagFacetParams {
-    pub fn dedup_facets(self) -> Self {
-        let facets = self.facets.map(|mut facets| {
-            facets.sort();
-            facets.dedup();
-            facets
-        });
-        Self { facets, ..self }
+    pub fn dedup_facets(&mut self) {
+        if let Some(ref mut facets) = self.facets {
+            dedup_facets(facets);
+        }
     }
 }
 

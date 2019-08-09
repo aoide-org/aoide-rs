@@ -914,7 +914,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
         // Facet filtering
         if let Some(ref facets) = params.facets {
             let facets = facets.iter().map(AsRef::as_ref).map(String::as_str);
-            target = if params.include_non_faceted_tags {
+            target = if params.include_non_faceted_tags() {
                 target.filter(
                     aux_tag_facet::facet
                         .eq_any(facets)
@@ -925,7 +925,7 @@ impl<'a> TrackTags for TrackRepository<'a> {
             };
         } else {
             // Include all faceted tags
-            if !params.include_non_faceted_tags {
+            if !params.include_non_faceted_tags() {
                 target = target.filter(aux_track_tag::facet_id.is_not_null());
             }
         }

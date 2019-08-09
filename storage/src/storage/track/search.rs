@@ -397,28 +397,30 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
         &'a self,
         _collection_uid: Option<&EntityUid>,
     ) -> TrackSearchBoxedExpression<'a> {
+        use NumericField::*;
+        use NumericPredicate::*;
         match self.field {
-            NumericField::AudioDuration => match self.value {
-                NumericPredicate::LessThan(value) => {
+            AudioDuration => match self.value {
+                LessThan(value) => {
                     Box::new(aux_track_source::audio_duration.lt(value))
                 }
-                NumericPredicate::LessOrEqual(value) => {
+                LessOrEqual(value) => {
                     Box::new(aux_track_source::audio_duration.le(value))
                 }
-                NumericPredicate::GreaterThan(value) => {
+                GreaterThan(value) => {
                     Box::new(aux_track_source::audio_duration.gt(value))
                 }
-                NumericPredicate::GreaterOrEqual(value) => {
+                GreaterOrEqual(value) => {
                     Box::new(aux_track_source::audio_duration.ge(value))
                 }
-                NumericPredicate::Equal(value) => {
+                Equal(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_source::audio_duration.eq(value))
                     } else {
                         Box::new(aux_track_source::audio_duration.is_null())
                     }
                 }
-                NumericPredicate::NotEqual(value) => {
+                NotEqual(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_source::audio_duration.ne(value))
                     } else {
@@ -426,28 +428,28 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
                     }
                 }
             },
-            NumericField::AudioSampleRate => match self.value {
+            AudioSampleRate => match self.value {
                 // TODO: Check and limit/clamp value range when converting from f64 to i32
-                NumericPredicate::LessThan(value) => {
+                LessThan(value) => {
                     Box::new(aux_track_source::audio_samplerate.lt(value as i32))
                 }
-                NumericPredicate::LessOrEqual(value) => {
+                LessOrEqual(value) => {
                     Box::new(aux_track_source::audio_samplerate.le(value as i32))
                 }
-                NumericPredicate::GreaterThan(value) => {
+                GreaterThan(value) => {
                     Box::new(aux_track_source::audio_samplerate.gt(value as i32))
                 }
-                NumericPredicate::GreaterOrEqual(value) => {
+                GreaterOrEqual(value) => {
                     Box::new(aux_track_source::audio_samplerate.ge(value as i32))
                 }
-                NumericPredicate::Equal(value) => {
+                Equal(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_source::audio_samplerate.eq(value as i32))
                     } else {
                         Box::new(aux_track_source::audio_samplerate.is_null())
                     }
                 }
-                NumericPredicate::NotEqual(value) => {
+                NotEqual(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_source::audio_samplerate.ne(value as i32))
                     } else {
@@ -455,28 +457,28 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
                     }
                 }
             },
-            NumericField::AudioBitRate => match self.value {
+            AudioBitRate => match self.value {
                 // TODO: Check and limit/clamp value range when converting from f64 to i32
-                NumericPredicate::LessThan(value) => {
+                LessThan(value) => {
                     Box::new(aux_track_source::audio_bitrate.lt(value as i32))
                 }
-                NumericPredicate::LessOrEqual(value) => {
+                LessOrEqual(value) => {
                     Box::new(aux_track_source::audio_bitrate.le(value as i32))
                 }
-                NumericPredicate::GreaterThan(value) => {
+                GreaterThan(value) => {
                     Box::new(aux_track_source::audio_bitrate.gt(value as i32))
                 }
-                NumericPredicate::GreaterOrEqual(value) => {
+                GreaterOrEqual(value) => {
                     Box::new(aux_track_source::audio_bitrate.ge(value as i32))
                 }
-                NumericPredicate::Equal(value) => {
+                Equal(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_source::audio_bitrate.eq(value as i32))
                     } else {
                         Box::new(aux_track_source::audio_bitrate.is_null())
                     }
                 }
-                NumericPredicate::NotEqual(value) => {
+                NotEqual(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_source::audio_bitrate.ne(value as i32))
                     } else {
@@ -484,28 +486,28 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
                     }
                 }
             },
-            NumericField::AudioChannelCount => match self.value {
+            AudioChannelCount => match self.value {
                 // TODO: Check and limit/clamp value range when converting from f64 to i16
-                NumericPredicate::LessThan(value) => {
+                LessThan(value) => {
                     Box::new(aux_track_source::audio_channel_count.lt(value as i16))
                 }
-                NumericPredicate::LessOrEqual(value) => {
+                LessOrEqual(value) => {
                     Box::new(aux_track_source::audio_channel_count.le(value as i16))
                 }
-                NumericPredicate::GreaterThan(value) => {
+                GreaterThan(value) => {
                     Box::new(aux_track_source::audio_channel_count.gt(value as i16))
                 }
-                NumericPredicate::GreaterOrEqual(value) => {
+                GreaterOrEqual(value) => {
                     Box::new(aux_track_source::audio_channel_count.ge(value as i16))
                 }
-                NumericPredicate::Equal(value) => {
+                Equal(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_source::audio_channel_count.eq(value as i16))
                     } else {
                         Box::new(aux_track_source::audio_channel_count.is_null())
                     }
                 }
-                NumericPredicate::NotEqual(value) => {
+                NotEqual(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_source::audio_channel_count.ne(value as i16))
                     } else {
@@ -513,27 +515,27 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
                     }
                 }
             },
-            NumericField::AudioLoudness => match self.value {
-                NumericPredicate::LessThan(value) => {
+            AudioLoudness => match self.value {
+                LessThan(value) => {
                     Box::new(aux_track_source::audio_loudness.lt(value))
                 }
-                NumericPredicate::LessOrEqual(value) => {
+                LessOrEqual(value) => {
                     Box::new(aux_track_source::audio_loudness.le(value))
                 }
-                NumericPredicate::GreaterThan(value) => {
+                GreaterThan(value) => {
                     Box::new(aux_track_source::audio_loudness.gt(value))
                 }
-                NumericPredicate::GreaterOrEqual(value) => {
+                GreaterOrEqual(value) => {
                     Box::new(aux_track_source::audio_loudness.ge(value))
                 }
-                NumericPredicate::Equal(value) => {
+                Equal(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_source::audio_loudness.eq(value))
                     } else {
                         Box::new(aux_track_source::audio_loudness.is_null())
                     }
                 }
-                NumericPredicate::NotEqual(value) => {
+                NotEqual(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_source::audio_loudness.ne(value))
                     } else {
@@ -541,28 +543,28 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
                     }
                 }
             },
-            NumericField::TrackIndex => match self.value {
+            TrackIndex => match self.value {
                 // TODO: Check and limit/clamp value range when converting from f64 to i16
-                NumericPredicate::LessThan(value) => {
+                LessThan(value) => {
                     Box::new(aux_track_brief::track_index.lt(value as i16))
                 }
-                NumericPredicate::LessOrEqual(value) => {
+                LessOrEqual(value) => {
                     Box::new(aux_track_brief::track_index.le(value as i16))
                 }
-                NumericPredicate::GreaterThan(value) => {
+                GreaterThan(value) => {
                     Box::new(aux_track_brief::track_index.gt(value as i16))
                 }
-                NumericPredicate::GreaterOrEqual(value) => {
+                GreaterOrEqual(value) => {
                     Box::new(aux_track_brief::track_index.ge(value as i16))
                 }
-                NumericPredicate::Equal(value) => {
+                Equal(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_brief::track_index.eq(value as i16))
                     } else {
                         Box::new(aux_track_brief::track_index.is_null())
                     }
                 }
-                NumericPredicate::NotEqual(value) => {
+                NotEqual(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_brief::track_index.ne(value as i16))
                     } else {
@@ -570,28 +572,28 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
                     }
                 }
             },
-            NumericField::TrackCount => match self.value {
+            TrackCount => match self.value {
                 // TODO: Check and limit/clamp value range when converting from f64 to i16
-                NumericPredicate::LessThan(value) => {
+                LessThan(value) => {
                     Box::new(aux_track_brief::track_count.lt(value as i16))
                 }
-                NumericPredicate::LessOrEqual(value) => {
+                LessOrEqual(value) => {
                     Box::new(aux_track_brief::track_count.le(value as i16))
                 }
-                NumericPredicate::GreaterThan(value) => {
+                GreaterThan(value) => {
                     Box::new(aux_track_brief::track_count.gt(value as i16))
                 }
-                NumericPredicate::GreaterOrEqual(value) => {
+                GreaterOrEqual(value) => {
                     Box::new(aux_track_brief::track_count.ge(value as i16))
                 }
-                NumericPredicate::Equal(value) => {
+                Equal(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_brief::track_count.eq(value as i16))
                     } else {
                         Box::new(aux_track_brief::track_count.is_null())
                     }
                 }
-                NumericPredicate::NotEqual(value) => {
+                NotEqual(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_brief::track_count.ne(value as i16))
                     } else {
@@ -599,28 +601,28 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
                     }
                 }
             },
-            NumericField::ReleaseYear => match self.value {
+            ReleaseYear => match self.value {
                 // TODO: Check and limit/clamp value range when converting from f64 to i32
-                NumericPredicate::LessThan(value) => {
+                LessThan(value) => {
                     Box::new(aux_track_brief::release_year.lt(value as i16))
                 }
-                NumericPredicate::LessOrEqual(value) => {
+                LessOrEqual(value) => {
                     Box::new(aux_track_brief::release_year.le(value as i16))
                 }
-                NumericPredicate::GreaterThan(value) => {
+                GreaterThan(value) => {
                     Box::new(aux_track_brief::release_year.gt(value as i16))
                 }
-                NumericPredicate::GreaterOrEqual(value) => {
+                GreaterOrEqual(value) => {
                     Box::new(aux_track_brief::release_year.ge(value as i16))
                 }
-                NumericPredicate::Equal(value) => {
+                Equal(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_brief::release_year.eq(value as i16))
                     } else {
                         Box::new(aux_track_brief::release_year.is_null())
                     }
                 }
-                NumericPredicate::NotEqual(value) => {
+                NotEqual(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_brief::release_year.ne(value as i16))
                     } else {
@@ -628,27 +630,27 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
                     }
                 }
             },
-            NumericField::MusicTempo => match self.value {
-                NumericPredicate::LessThan(value) => {
+            MusicTempo => match self.value {
+                LessThan(value) => {
                     Box::new(aux_track_brief::music_tempo.lt(value))
                 }
-                NumericPredicate::LessOrEqual(value) => {
+                LessOrEqual(value) => {
                     Box::new(aux_track_brief::music_tempo.le(value))
                 }
-                NumericPredicate::GreaterThan(value) => {
+                GreaterThan(value) => {
                     Box::new(aux_track_brief::music_tempo.gt(value))
                 }
-                NumericPredicate::GreaterOrEqual(value) => {
+                GreaterOrEqual(value) => {
                     Box::new(aux_track_brief::music_tempo.ge(value))
                 }
-                NumericPredicate::Equal(value) => {
+                Equal(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_brief::music_tempo.eq(value))
                     } else {
                         Box::new(aux_track_brief::music_tempo.is_null())
                     }
                 }
-                NumericPredicate::NotEqual(value) => {
+                NotEqual(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_brief::music_tempo.ne(value))
                     } else {
@@ -656,28 +658,28 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
                     }
                 }
             },
-            NumericField::MusicKey => match self.value {
+            MusicKey => match self.value {
                 // TODO: Check and limit/clamp value range when converting from f64 to i16
-                NumericPredicate::LessThan(value) => {
+                LessThan(value) => {
                     Box::new(aux_track_brief::music_key.lt(value as i16))
                 }
-                NumericPredicate::LessOrEqual(value) => {
+                LessOrEqual(value) => {
                     Box::new(aux_track_brief::music_key.le(value as i16))
                 }
-                NumericPredicate::GreaterThan(value) => {
+                GreaterThan(value) => {
                     Box::new(aux_track_brief::music_key.gt(value as i16))
                 }
-                NumericPredicate::GreaterOrEqual(value) => {
+                GreaterOrEqual(value) => {
                     Box::new(aux_track_brief::music_key.ge(value as i16))
                 }
-                NumericPredicate::Equal(value) => {
+                Equal(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_brief::music_key.eq(value as i16))
                     } else {
                         Box::new(aux_track_brief::music_key.is_null())
                     }
                 }
-                NumericPredicate::NotEqual(value) => {
+                NotEqual(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_brief::music_key.ne(value as i16))
                     } else {

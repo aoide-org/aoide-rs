@@ -29,15 +29,15 @@ fn default_tag_filter() {
 fn deserialize_count_tracks_by_tag_params() {
     let params: CountTracksByTagParams = serde_json::from_str("{}").unwrap();
     assert!(params.facets.is_none());
-    assert!(params.include_non_faceted_tags);
+    assert!(params.include_non_faceted_tags());
 
     let params: CountTracksByTagParams = serde_json::from_str("{\"facets\":null}").unwrap();
     assert!(params.facets.is_none());
-    assert!(params.include_non_faceted_tags);
+    assert!(params.include_non_faceted_tags());
 
     let params: CountTracksByTagParams = serde_json::from_str("{\"facets\":[]}").unwrap();
     assert_eq!(Some(vec![]), params.facets);
-    assert!(params.include_non_faceted_tags);
+    assert!(params.include_non_faceted_tags());
 
     let params: CountTracksByTagParams = serde_json::from_str(
         "{\"facets\":[\"facet1\",\"facet2\"],\"includeNonFacetedTags\":false}",
@@ -50,5 +50,5 @@ fn deserialize_count_tracks_by_tag_params() {
         ]),
         params.facets
     );
-    assert!(!params.include_non_faceted_tags);
+    assert!(!params.include_non_faceted_tags());
 }

@@ -453,13 +453,14 @@ fn count_tracks_by_album(
 fn count_tracks_by_tag(
     pooled_connection: &SqlitePooledConnection,
     query: TracksQueryParams,
-    params: CountTracksByTagParams,
+    mut params: CountTracksByTagParams,
 ) -> impl Future<Item = Vec<TagCount>, Error = Error> {
+    params.dedup_facets();
     let repository = TrackRepository::new(&*pooled_connection);
     future::result(pooled_connection.transaction::<_, Error, _>(|| {
         repository.count_tracks_by_tag(
             query.collection_uid.as_ref(),
-            &params.dedup_facets(),
+            &params,
             query.pagination(),
         )
     }))
@@ -468,13 +469,14 @@ fn count_tracks_by_tag(
 fn count_tracks_by_tag_facet(
     pooled_connection: &SqlitePooledConnection,
     query: TracksQueryParams,
-    params: CountTracksByTagFacetParams,
+    mut params: CountTracksByTagFacetParams,
 ) -> impl Future<Item = Vec<TagFacetCount>, Error = Error> {
+    params.dedup_facets();
     let repository = TrackRepository::new(&*pooled_connection);
     future::result(pooled_connection.transaction::<_, Error, _>(|| {
         repository.count_tracks_by_tag_facet(
             query.collection_uid.as_ref(),
-            &params.dedup_facets(),
+            &params,
             query.pagination(),
         )
     }))
