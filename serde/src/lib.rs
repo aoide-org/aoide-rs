@@ -19,6 +19,6 @@
 
 use serde::{Deserialize, Serialize};
 
-use validator::{Validate};
+use aoide_core::validate::Validate;
 
 pub mod tag;

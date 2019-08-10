@@ -17,9 +17,7 @@
 
 #![deny(missing_debug_implementations, missing_copy_implementations)]
 
-use validator::{Validate, ValidationError, ValidationErrors};
-
-#[macro_use]
-extern crate validator_derive;
-
 pub mod tag;
+pub mod validate;
+
+use validate::{Error as ValidationError, Validate, Violation};

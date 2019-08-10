@@ -7,7 +7,3 @@ publish = false
 edition = "2018"
 
 [dependencies]
-# TODO: Replace validation with a lightweight solution that does
-# not depend on serde!
-validator = { version = "*", default-features = false }
-validator_derive = "*"

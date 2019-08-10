@@ -9,7 +9,6 @@ edition = "2018"
 [dependencies]
 aoide-core = "*"
 serde = { version = "*", features = ["derive"] }
-validator = "*"
 
 [dev-dependencies]
 serde_json = "*"

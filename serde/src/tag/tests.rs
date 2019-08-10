@@ -61,10 +61,7 @@ fn deserialize_tag_facet_label() {
     let label = CoreLabel::from("label");
     let json = format!("[\"{}\",\"{}\"]", facet, label);
     let tag: FacetedTag = serde_json::from_str(&json).unwrap();
-    assert_eq!(
-        FacetedTag::FacetLabel(facet.into(), label.into()),
-        tag
-    );
+    assert_eq!(FacetedTag::FacetLabel(facet.into(), label.into()), tag);
     assert_eq!(json, serde_json::to_string(&Tag::from(tag)).unwrap());
 }
 

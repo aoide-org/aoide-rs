@@ -59,16 +59,13 @@ impl Score {
 }
 
 impl Validate for Score {
-    fn validate(&self) -> Result<(), ValidationErrors> {
-        let mut errors = ValidationErrors::new();
+    type Error = ValidationError<()>;
+
+    fn validate(&self) -> Result<(), Vec<Self::Error>> {
         if !(*self >= Self::min() && *self <= Self::max()) {
-            errors.add("score", ValidationError::new("invalid value"));
+            return Err(vec![Self::Error::new((), Violation::OutOfBounds)]);
         }
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
+        Ok(())
     }
 }
 
@@ -109,16 +106,15 @@ impl Label {
 }
 
 impl Validate for Label {
-    fn validate(&self) -> Result<(), ValidationErrors> {
-        let mut errors = ValidationErrors::new();
+    type Error = ValidationError<()>;
+
+    fn validate(&self) -> Result<(), Vec<Self::Error>> {
+        let mut errors = vec![];
         if self.0.is_empty() {
-            errors.add("label", ValidationError::new("is empty"));
+            errors.push(Self::Error::new((), Violation::Empty));
         }
         if self.0.trim().len() != self.0.len() {
-            errors.add(
-                "label",
-                ValidationError::new("contains leading or trailing whitespace characters"),
-            );
+            errors.push(Self::Error::new((), Violation::Invalid));
         }
         if errors.is_empty() {
             Ok(())
@@ -179,25 +175,22 @@ impl Facet {
     pub const fn new(label: String) -> Self {
         Self(label)
     }
+
+    fn is_invalid_char(c: char) -> bool {
+        c.is_whitespace() || c.is_uppercase()
+    }
 }
 
 impl Validate for Facet {
-    fn validate(&self) -> Result<(), ValidationErrors> {
-        let mut errors = ValidationErrors::new();
+    type Error = ValidationError<()>;
+
+    fn validate(&self) -> Result<(), Vec<Self::Error>> {
+        let mut errors = vec![];
         if self.0.is_empty() {
-            errors.add("facet", ValidationError::new("is empty"));
+            errors.push(Self::Error::new((), Violation::Empty));
         }
-        if self.0.chars().any(char::is_whitespace) {
-            errors.add(
-                "facet",
-                ValidationError::new("contains whitespace character(s)"),
-            );
-        }
-        if self.0.chars().any(char::is_uppercase) {
-            errors.add(
-                "facet",
-                ValidationError::new("contains uppercase character(s)"),
-            );
+        if self.0.chars().any(Facet::is_invalid_char) {
+            errors.push(Self::Error::new((), Violation::Invalid));
         }
         if errors.is_empty() {
             Ok(())
@@ -254,12 +247,66 @@ impl fmt::Display for Facet {
 // Tag
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, PartialEq, Validate)]
-#[validate(schema(function = "validate_tag_facet_label"))]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Tag {
     pub facet: Option<Facet>,
     pub label: Option<Label>,
     pub score: Score,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TagValidationAspect {
+    Facet,
+    Label,
+    Score,
+    FacetOrLabel,
+}
+
+impl Validate for Tag {
+    type Error = ValidationError<TagValidationAspect>;
+
+    fn validate(&self) -> Result<(), Vec<Self::Error>> {
+        let mut errors = vec![];
+        if let Some(ref facet) = self.facet {
+            if let Err(mut facet_errors) = facet.validate().map_err(|errors| {
+                errors
+                    .into_iter()
+                    .map(|e| e.map_aspect(TagValidationAspect::Facet))
+                    .collect()
+            }) {
+                errors.append(&mut facet_errors)
+            }
+        }
+        if let Some(ref label) = self.label {
+            if let Err(mut label_errors) = label.validate().map_err(|errors| {
+                errors
+                    .into_iter()
+                    .map(|e| e.map_aspect(TagValidationAspect::Label))
+                    .collect()
+            }) {
+                errors.append(&mut label_errors)
+            }
+        }
+        if let Err(mut score_errors) = self.score.validate().map_err(|errors| {
+            errors
+                .into_iter()
+                .map(|e| e.map_aspect(TagValidationAspect::Score))
+                .collect()
+        }) {
+            errors.append(&mut score_errors)
+        }
+        if self.facet.is_none() && self.label.is_none() {
+            errors.push(Self::Error::new(
+                TagValidationAspect::FacetOrLabel,
+                Violation::Missing,
+            ))
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
 }
 
 impl Tag {
@@ -268,12 +315,14 @@ impl Tag {
     }
 }
 
+/*
 fn validate_tag_facet_label(tag: &Tag) -> Result<(), ValidationError> {
     if tag.facet.is_none() && tag.label.is_none() {
         return Err(ValidationError::new("both facet and label are missing"));
     }
     Ok(())
 }
+*/
 
 impl Default for Tag {
     fn default() -> Self {
