@@ -54,9 +54,9 @@ RUN mkdir -p "./src/bin/${BUILD_BIN}" \
     && \
     mv ./src/main.rs "./src/bin/${BUILD_BIN}" \
     && \
-    USER=root cargo new --lib ${PROJECT_NAME}-core \
+    USER=root cargo new --lib ${PROJECT_NAME}-domain \
     && \
-    mv ${PROJECT_NAME}-core core \
+    mv ${PROJECT_NAME}-domain domain \
     && \
     USER=root cargo new --lib ${PROJECT_NAME}-storage \
     && \
@@ -66,11 +66,11 @@ COPY [ \
     "Cargo.lock", \
     "./" ]
 COPY [ \
-    "core/Cargo.toml", \
-    "./core/" ]
+    "domain/Cargo.toml", \
+    "./domain/" ]
 COPY [ \
-    "./core/benches", \
-    "./core/benches/" ]
+    "./domain/benches", \
+    "./domain/benches/" ]
 COPY [ \
     "storage/Cargo.toml", \
     "./storage/" ]
@@ -92,8 +92,8 @@ COPY [ \
     "./resources", \
     "./resources/" ]
 COPY [ \
-    "./core/src", \
-    "./core/src/" ]
+    "./domain/src", \
+    "./domain/src/" ]
 COPY [ \
     "./storage/src", \
     "./storage/src/" ]
