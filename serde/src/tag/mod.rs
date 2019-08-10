@@ -37,6 +37,12 @@ impl From<CoreFacet> for Facet {
     }
 }
 
+impl AsRef<CoreFacet> for Facet {
+    fn as_ref(&self) -> &CoreFacet {
+        &self.0
+    }
+}
+
 impl Serialize for Facet {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -89,6 +95,12 @@ impl From<CoreLabel> for Label {
     }
 }
 
+impl AsRef<CoreLabel> for Label {
+    fn as_ref(&self) -> &CoreLabel {
+        &self.0
+    }
+}
+
 impl Serialize for Label {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -138,6 +150,12 @@ impl Score {
 impl From<CoreScore> for Score {
     fn from(from: CoreScore) -> Self {
         Self(from)
+    }
+}
+
+impl AsRef<CoreScore> for Score {
+    fn as_ref(&self) -> &CoreScore {
+        &self.0
     }
 }
 

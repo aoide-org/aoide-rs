@@ -59,11 +59,11 @@ impl Score {
 }
 
 impl Validate for Score {
-    type Error = ValidationError<()>;
+    type Aspect = ();
 
-    fn validate(&self) -> Result<(), Vec<Self::Error>> {
+    fn validate(&self) -> ValidationResult<Self::Aspect> {
         if !(*self >= Self::min() && *self <= Self::max()) {
-            return Err(vec![Self::Error::new((), Violation::OutOfBounds)]);
+            return Err(ValidationErrors::error((), Violation::OutOfBounds));
         }
         Ok(())
     }
@@ -106,21 +106,17 @@ impl Label {
 }
 
 impl Validate for Label {
-    type Error = ValidationError<()>;
+    type Aspect = ();
 
-    fn validate(&self) -> Result<(), Vec<Self::Error>> {
-        let mut errors = vec![];
+    fn validate(&self) -> ValidationResult<Self::Aspect> {
+        let mut errors = ValidationErrors::default();
         if self.0.is_empty() {
-            errors.push(Self::Error::new((), Violation::Empty));
+            errors.add_error((), Violation::Empty);
         }
         if self.0.trim().len() != self.0.len() {
-            errors.push(Self::Error::new((), Violation::Invalid));
+            errors.add_error((), Violation::Invalid);
         }
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
+        errors.into_result()
     }
 }
 
@@ -182,21 +178,17 @@ impl Facet {
 }
 
 impl Validate for Facet {
-    type Error = ValidationError<()>;
+    type Aspect = ();
 
-    fn validate(&self) -> Result<(), Vec<Self::Error>> {
-        let mut errors = vec![];
+    fn validate(&self) -> ValidationResult<Self::Aspect> {
+        let mut errors = ValidationErrors::default();
         if self.0.is_empty() {
-            errors.push(Self::Error::new((), Violation::Empty));
+            errors.add_error((), Violation::Empty);
         }
         if self.0.chars().any(Facet::is_invalid_char) {
-            errors.push(Self::Error::new((), Violation::Invalid));
+            errors.add_error((), Violation::Invalid);
         }
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
+        errors.into_result()
     }
 }
 
@@ -263,49 +255,21 @@ pub enum TagValidationAspect {
 }
 
 impl Validate for Tag {
-    type Error = ValidationError<TagValidationAspect>;
+    type Aspect = TagValidationAspect;
 
-    fn validate(&self) -> Result<(), Vec<Self::Error>> {
-        let mut errors = vec![];
+    fn validate(&self) -> ValidationResult<Self::Aspect> {
+        let mut errors = ValidationErrors::default();
         if let Some(ref facet) = self.facet {
-            if let Err(mut facet_errors) = facet.validate().map_err(|errors| {
-                errors
-                    .into_iter()
-                    .map(|e| e.map_aspect(TagValidationAspect::Facet))
-                    .collect()
-            }) {
-                errors.append(&mut facet_errors)
-            }
+            errors.map_and_merge_result(facet.validate(), |()| TagValidationAspect::Facet);
         }
         if let Some(ref label) = self.label {
-            if let Err(mut label_errors) = label.validate().map_err(|errors| {
-                errors
-                    .into_iter()
-                    .map(|e| e.map_aspect(TagValidationAspect::Label))
-                    .collect()
-            }) {
-                errors.append(&mut label_errors)
-            }
+            errors.map_and_merge_result(label.validate(), |()| TagValidationAspect::Label);
         }
-        if let Err(mut score_errors) = self.score.validate().map_err(|errors| {
-            errors
-                .into_iter()
-                .map(|e| e.map_aspect(TagValidationAspect::Score))
-                .collect()
-        }) {
-            errors.append(&mut score_errors)
-        }
+        errors.map_and_merge_result(self.score.validate(), |()| TagValidationAspect::Score);
         if self.facet.is_none() && self.label.is_none() {
-            errors.push(Self::Error::new(
-                TagValidationAspect::FacetOrLabel,
-                Violation::Missing,
-            ))
+            errors.add_error(TagValidationAspect::FacetOrLabel, Violation::Missing)
         }
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
+        errors.into_result()
     }
 }
 
@@ -314,15 +278,6 @@ impl Tag {
         Score::max()
     }
 }
-
-/*
-fn validate_tag_facet_label(tag: &Tag) -> Result<(), ValidationError> {
-    if tag.facet.is_none() && tag.label.is_none() {
-        return Err(ValidationError::new("both facet and label are missing"));
-    }
-    Ok(())
-}
-*/
 
 impl Default for Tag {
     fn default() -> Self {

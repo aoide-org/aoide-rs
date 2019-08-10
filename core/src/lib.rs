@@ -20,4 +20,4 @@
 pub mod tag;
 pub mod validate;
 
-use validate::{Error as ValidationError, Validate, Violation};
+use validate::{Errors as ValidationErrors, Result as ValidationResult, Validate, Violation};
