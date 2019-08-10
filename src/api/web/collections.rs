@@ -61,7 +61,7 @@ impl CollectionsHandler {
         update_collection(&self.db, &collection)
             .and_then(move |res| match res {
                 (_, Some(next_revision)) => {
-                    let next_header = aoide_core::entity::EntityHeader::new(uid, next_revision);
+                    let next_header = aoide_domain::entity::EntityHeader::new(uid, next_revision);
                     Ok(warp::reply::json(&next_header))
                 }
                 (_, None) => Err(failure::format_err!(

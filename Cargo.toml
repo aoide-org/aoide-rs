@@ -11,16 +11,16 @@ edition = "2018"
 [workspace]
 members = [
   "./",
-  "core",
+  "domain",
   "storage",
 ]
 
 [patch.crates-io]
-aoide-core = { path = "core" }
+aoide-domain = { path = "domain" }
 aoide-storage = { path = "storage" }
 
 [dependencies]
-aoide-core = "*"
+aoide-domain = "*"
 aoide-storage = "*"
 chrono = "*"
 clap = "*"

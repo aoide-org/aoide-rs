@@ -19,7 +19,7 @@ mod cli;
 mod env;
 
 use aoide::api::web::{collections::*, tracks::*, *};
-use aoide_core::collection::Collection;
+use aoide_domain::collection::Collection;
 use aoide_storage::{
     api::{UriPredicate, UriRelocation},
     storage::track::util::TrackRepositoryHelper,
@@ -180,7 +180,7 @@ pub fn main() -> Result<(), Error> {
 
     // /collections
     let collections = warp::path("collections");
-    let collections_uid = collections.and(warp::path::param::<aoide_core::entity::EntityUid>());
+    let collections_uid = collections.and(warp::path::param::<aoide_domain::entity::EntityUid>());
     let collections_create = warp::post2()
         .and(collections)
         .and(warp::path::end())
@@ -228,7 +228,7 @@ pub fn main() -> Result<(), Error> {
 
     // /tracks
     let tracks = warp::path("tracks");
-    let tracks_uid = tracks.and(warp::path::param::<aoide_core::entity::EntityUid>());
+    let tracks_uid = tracks.and(warp::path::param::<aoide_domain::entity::EntityUid>());
     let tracks_create = warp::post2()
         .and(tracks)
         .and(warp::path::end())

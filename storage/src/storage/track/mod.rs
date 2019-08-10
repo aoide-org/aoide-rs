@@ -760,8 +760,8 @@ impl<'a> TrackAlbums for TrackRepository<'a> {
 
         for sort_order in &params.ordering {
             let direction = sort_order.direction();
-            use TrackSortField::*;
             use SortDirection::*;
+            use TrackSortField::*;
             match sort_order.field() {
                 AlbumTitle => match direction {
                     Ascending => {
@@ -850,8 +850,8 @@ impl<'a> TrackTags for TrackRepository<'a> {
         } else {
             for sort_order in &params.ordering {
                 let direction = sort_order.direction();
-                use TagSortField::*;
                 use SortDirection::*;
+                use TagSortField::*;
                 match sort_order.field() {
                     Facet => {
                         let col = aux_tag_facet::facet;
@@ -944,8 +944,8 @@ impl<'a> TrackTags for TrackRepository<'a> {
         } else {
             for sort_order in &params.ordering {
                 let direction = sort_order.direction();
-                use TagSortField::*;
                 use SortDirection::*;
+                use TagSortField::*;
                 match sort_order.field() {
                     Facet => {
                         let col = aux_tag_facet::facet;

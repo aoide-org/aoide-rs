@@ -1,4 +1,4 @@
-use aoide_core::prelude::*;
+use aoide_domain::prelude::*;
 
 use criterion::{criterion_group, criterion_main, Criterion, ParameterizedBenchmark};
 use uuid::Uuid;

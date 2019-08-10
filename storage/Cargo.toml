@@ -7,7 +7,7 @@ publish = false
 edition = "2018"
 
 [dependencies]
-aoide-core = "*"
+aoide-domain = "*"
 chrono = { version = "*", features = ["serde"] }
 diesel = { version = "*", features = ["chrono", "sqlite"] }
 failure = "*"

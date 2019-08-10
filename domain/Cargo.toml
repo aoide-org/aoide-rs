@@ -1,5 +1,5 @@
 [package]
-name = "aoide-core"
+name = "aoide-domain"
 version = "0.0.9"
 authors = [ "Uwe Klotz <uwe.klotz@gmail>", "et al." ]
 license = "AGPL-3.0-or-later"

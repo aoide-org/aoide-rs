@@ -134,8 +134,7 @@ impl TrackSearchQueryTransform for TrackSortOrder {
         query: TrackSearchBoxedQuery<'a>,
         collection_uid: Option<&EntityUid>,
     ) -> TrackSearchBoxedQuery<'a> {
-        let direction = self
-            .direction();
+        let direction = self.direction();
         match self.field() {
             field @ TrackSortField::InCollectionSince => {
                 if collection_uid.is_some() {
@@ -401,18 +400,10 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
         use NumericPredicate::*;
         match self.field {
             AudioDuration => match self.value {
-                LessThan(value) => {
-                    Box::new(aux_track_source::audio_duration.lt(value))
-                }
-                LessOrEqual(value) => {
-                    Box::new(aux_track_source::audio_duration.le(value))
-                }
-                GreaterThan(value) => {
-                    Box::new(aux_track_source::audio_duration.gt(value))
-                }
-                GreaterOrEqual(value) => {
-                    Box::new(aux_track_source::audio_duration.ge(value))
-                }
+                LessThan(value) => Box::new(aux_track_source::audio_duration.lt(value)),
+                LessOrEqual(value) => Box::new(aux_track_source::audio_duration.le(value)),
+                GreaterThan(value) => Box::new(aux_track_source::audio_duration.gt(value)),
+                GreaterOrEqual(value) => Box::new(aux_track_source::audio_duration.ge(value)),
                 Equal(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_source::audio_duration.eq(value))
@@ -430,15 +421,9 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
             },
             AudioSampleRate => match self.value {
                 // TODO: Check and limit/clamp value range when converting from f64 to i32
-                LessThan(value) => {
-                    Box::new(aux_track_source::audio_samplerate.lt(value as i32))
-                }
-                LessOrEqual(value) => {
-                    Box::new(aux_track_source::audio_samplerate.le(value as i32))
-                }
-                GreaterThan(value) => {
-                    Box::new(aux_track_source::audio_samplerate.gt(value as i32))
-                }
+                LessThan(value) => Box::new(aux_track_source::audio_samplerate.lt(value as i32)),
+                LessOrEqual(value) => Box::new(aux_track_source::audio_samplerate.le(value as i32)),
+                GreaterThan(value) => Box::new(aux_track_source::audio_samplerate.gt(value as i32)),
                 GreaterOrEqual(value) => {
                     Box::new(aux_track_source::audio_samplerate.ge(value as i32))
                 }
@@ -459,18 +444,10 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
             },
             AudioBitRate => match self.value {
                 // TODO: Check and limit/clamp value range when converting from f64 to i32
-                LessThan(value) => {
-                    Box::new(aux_track_source::audio_bitrate.lt(value as i32))
-                }
-                LessOrEqual(value) => {
-                    Box::new(aux_track_source::audio_bitrate.le(value as i32))
-                }
-                GreaterThan(value) => {
-                    Box::new(aux_track_source::audio_bitrate.gt(value as i32))
-                }
-                GreaterOrEqual(value) => {
-                    Box::new(aux_track_source::audio_bitrate.ge(value as i32))
-                }
+                LessThan(value) => Box::new(aux_track_source::audio_bitrate.lt(value as i32)),
+                LessOrEqual(value) => Box::new(aux_track_source::audio_bitrate.le(value as i32)),
+                GreaterThan(value) => Box::new(aux_track_source::audio_bitrate.gt(value as i32)),
+                GreaterOrEqual(value) => Box::new(aux_track_source::audio_bitrate.ge(value as i32)),
                 Equal(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_source::audio_bitrate.eq(value as i32))
@@ -488,9 +465,7 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
             },
             AudioChannelCount => match self.value {
                 // TODO: Check and limit/clamp value range when converting from f64 to i16
-                LessThan(value) => {
-                    Box::new(aux_track_source::audio_channel_count.lt(value as i16))
-                }
+                LessThan(value) => Box::new(aux_track_source::audio_channel_count.lt(value as i16)),
                 LessOrEqual(value) => {
                     Box::new(aux_track_source::audio_channel_count.le(value as i16))
                 }
@@ -516,18 +491,10 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
                 }
             },
             AudioLoudness => match self.value {
-                LessThan(value) => {
-                    Box::new(aux_track_source::audio_loudness.lt(value))
-                }
-                LessOrEqual(value) => {
-                    Box::new(aux_track_source::audio_loudness.le(value))
-                }
-                GreaterThan(value) => {
-                    Box::new(aux_track_source::audio_loudness.gt(value))
-                }
-                GreaterOrEqual(value) => {
-                    Box::new(aux_track_source::audio_loudness.ge(value))
-                }
+                LessThan(value) => Box::new(aux_track_source::audio_loudness.lt(value)),
+                LessOrEqual(value) => Box::new(aux_track_source::audio_loudness.le(value)),
+                GreaterThan(value) => Box::new(aux_track_source::audio_loudness.gt(value)),
+                GreaterOrEqual(value) => Box::new(aux_track_source::audio_loudness.ge(value)),
                 Equal(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_source::audio_loudness.eq(value))
@@ -545,18 +512,10 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
             },
             TrackIndex => match self.value {
                 // TODO: Check and limit/clamp value range when converting from f64 to i16
-                LessThan(value) => {
-                    Box::new(aux_track_brief::track_index.lt(value as i16))
-                }
-                LessOrEqual(value) => {
-                    Box::new(aux_track_brief::track_index.le(value as i16))
-                }
-                GreaterThan(value) => {
-                    Box::new(aux_track_brief::track_index.gt(value as i16))
-                }
-                GreaterOrEqual(value) => {
-                    Box::new(aux_track_brief::track_index.ge(value as i16))
-                }
+                LessThan(value) => Box::new(aux_track_brief::track_index.lt(value as i16)),
+                LessOrEqual(value) => Box::new(aux_track_brief::track_index.le(value as i16)),
+                GreaterThan(value) => Box::new(aux_track_brief::track_index.gt(value as i16)),
+                GreaterOrEqual(value) => Box::new(aux_track_brief::track_index.ge(value as i16)),
                 Equal(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_brief::track_index.eq(value as i16))
@@ -574,18 +533,10 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
             },
             TrackCount => match self.value {
                 // TODO: Check and limit/clamp value range when converting from f64 to i16
-                LessThan(value) => {
-                    Box::new(aux_track_brief::track_count.lt(value as i16))
-                }
-                LessOrEqual(value) => {
-                    Box::new(aux_track_brief::track_count.le(value as i16))
-                }
-                GreaterThan(value) => {
-                    Box::new(aux_track_brief::track_count.gt(value as i16))
-                }
-                GreaterOrEqual(value) => {
-                    Box::new(aux_track_brief::track_count.ge(value as i16))
-                }
+                LessThan(value) => Box::new(aux_track_brief::track_count.lt(value as i16)),
+                LessOrEqual(value) => Box::new(aux_track_brief::track_count.le(value as i16)),
+                GreaterThan(value) => Box::new(aux_track_brief::track_count.gt(value as i16)),
+                GreaterOrEqual(value) => Box::new(aux_track_brief::track_count.ge(value as i16)),
                 Equal(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_brief::track_count.eq(value as i16))
@@ -603,18 +554,10 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
             },
             ReleaseYear => match self.value {
                 // TODO: Check and limit/clamp value range when converting from f64 to i32
-                LessThan(value) => {
-                    Box::new(aux_track_brief::release_year.lt(value as i16))
-                }
-                LessOrEqual(value) => {
-                    Box::new(aux_track_brief::release_year.le(value as i16))
-                }
-                GreaterThan(value) => {
-                    Box::new(aux_track_brief::release_year.gt(value as i16))
-                }
-                GreaterOrEqual(value) => {
-                    Box::new(aux_track_brief::release_year.ge(value as i16))
-                }
+                LessThan(value) => Box::new(aux_track_brief::release_year.lt(value as i16)),
+                LessOrEqual(value) => Box::new(aux_track_brief::release_year.le(value as i16)),
+                GreaterThan(value) => Box::new(aux_track_brief::release_year.gt(value as i16)),
+                GreaterOrEqual(value) => Box::new(aux_track_brief::release_year.ge(value as i16)),
                 Equal(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_brief::release_year.eq(value as i16))
@@ -631,18 +574,10 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
                 }
             },
             MusicTempo => match self.value {
-                LessThan(value) => {
-                    Box::new(aux_track_brief::music_tempo.lt(value))
-                }
-                LessOrEqual(value) => {
-                    Box::new(aux_track_brief::music_tempo.le(value))
-                }
-                GreaterThan(value) => {
-                    Box::new(aux_track_brief::music_tempo.gt(value))
-                }
-                GreaterOrEqual(value) => {
-                    Box::new(aux_track_brief::music_tempo.ge(value))
-                }
+                LessThan(value) => Box::new(aux_track_brief::music_tempo.lt(value)),
+                LessOrEqual(value) => Box::new(aux_track_brief::music_tempo.le(value)),
+                GreaterThan(value) => Box::new(aux_track_brief::music_tempo.gt(value)),
+                GreaterOrEqual(value) => Box::new(aux_track_brief::music_tempo.ge(value)),
                 Equal(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_brief::music_tempo.eq(value))
@@ -660,18 +595,10 @@ impl TrackSearchBoxedExpressionBuilder for NumericFilter {
             },
             MusicKey => match self.value {
                 // TODO: Check and limit/clamp value range when converting from f64 to i16
-                LessThan(value) => {
-                    Box::new(aux_track_brief::music_key.lt(value as i16))
-                }
-                LessOrEqual(value) => {
-                    Box::new(aux_track_brief::music_key.le(value as i16))
-                }
-                GreaterThan(value) => {
-                    Box::new(aux_track_brief::music_key.gt(value as i16))
-                }
-                GreaterOrEqual(value) => {
-                    Box::new(aux_track_brief::music_key.ge(value as i16))
-                }
+                LessThan(value) => Box::new(aux_track_brief::music_key.lt(value as i16)),
+                LessOrEqual(value) => Box::new(aux_track_brief::music_key.le(value as i16)),
+                GreaterThan(value) => Box::new(aux_track_brief::music_key.gt(value as i16)),
+                GreaterOrEqual(value) => Box::new(aux_track_brief::music_key.ge(value as i16)),
                 Equal(value) => {
                     if let Some(value) = value {
                         Box::new(aux_track_brief::music_key.eq(value as i16))

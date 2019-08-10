@@ -29,7 +29,7 @@ extern crate diesel_migrations;
 
 use serde::{Deserialize, Serialize};
 
-use aoide_core::prelude::*;
+use aoide_domain::prelude::*;
 
 pub mod api;
 pub mod storage;

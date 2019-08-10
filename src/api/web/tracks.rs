@@ -96,7 +96,7 @@ impl TracksHandler {
         update_track(&self.db, track, SerializationFormat::JSON)
             .and_then(move |res| match res {
                 (_, Some(next_revision)) => {
-                    let next_header = aoide_core::entity::EntityHeader::new(uid, next_revision);
+                    let next_header = aoide_domain::entity::EntityHeader::new(uid, next_revision);
                     Ok(warp::reply::json(&next_header))
                 }
                 (_, None) => Err(failure::format_err!(
@@ -458,11 +458,7 @@ fn count_tracks_by_tag(
     params.dedup_facets();
     let repository = TrackRepository::new(&*pooled_connection);
     future::result(pooled_connection.transaction::<_, Error, _>(|| {
-        repository.count_tracks_by_tag(
-            query.collection_uid.as_ref(),
-            &params,
-            query.pagination(),
-        )
+        repository.count_tracks_by_tag(query.collection_uid.as_ref(), &params, query.pagination())
     }))
 }
 
