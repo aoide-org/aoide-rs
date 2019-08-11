@@ -15,8 +15,12 @@
 
 ///////////////////////////////////////////////////////////////////////
 
-use std::fmt::{self, Debug, Display};
-use std::{any::Any, error::Error as StdError};
+use smallvec::{smallvec, SmallVec};
+use std::{
+    any::Any,
+    error::Error as StdError,
+    fmt::{self, Debug, Display},
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Min(pub usize);
@@ -104,13 +108,17 @@ where
 
 impl<T> StdError for Error<T> where T: Validation {}
 
+const SMALLVEC_ERROR_ARRAY_LEN: usize = 8;
+
+type SmallVecErrorArray<T> = [Error<T>; SMALLVEC_ERROR_ARRAY_LEN];
+
 /// A collection of validation errors.
 #[derive(Clone, Debug)]
 pub struct Errors<T>
 where
     T: Validation,
 {
-    errors: Vec<Error<T>>,
+    errors: SmallVec<SmallVecErrorArray<T>>,
 }
 
 impl<T> Default for Errors<T>
@@ -118,7 +126,9 @@ where
     T: Validation,
 {
     fn default() -> Self {
-        Self { errors: vec![] }
+        Self {
+            errors: smallvec![],
+        }
     }
 }
 
@@ -153,7 +163,7 @@ where
     /// Create a new collection with a single error.
     pub fn error(validation: impl Into<T>, violation: impl Into<Violation>) -> Self {
         Self {
-            errors: vec![Error::new(validation, violation)],
+            errors: smallvec![Error::new(validation, violation)],
         }
     }
 
@@ -163,14 +173,17 @@ where
     }
 
     /// Merge and clear another collection of errors into this collection.
-    pub fn merge_errors(&mut self, other: &mut Self) {
-        self.errors.append(&mut other.errors);
+    pub fn merge_errors(&mut self, other: Self) {
+        self.errors.reserve(other.errors.len());
+        for error in other.errors.into_iter() {
+            self.errors.push(error);
+        }
     }
 
     /// Merge a validation result into this collection.
     pub fn merge_result(&mut self, res: Result<T>) {
-        if let Err(mut other) = res {
-            self.merge_errors(&mut other);
+        if let Err(other) = res {
+            self.merge_errors(other);
         }
     }
 
@@ -204,19 +217,10 @@ where
     T: Validation,
 {
     type Item = Error<T>;
-    type IntoIter = std::vec::IntoIter<Error<T>>;
+    type IntoIter = smallvec::IntoIter<SmallVecErrorArray<T>>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.errors.into_iter()
-    }
-}
-
-impl<T> AsRef<Vec<Error<T>>> for Errors<T>
-where
-    T: Validation,
-{
-    fn as_ref(&self) -> &Vec<Error<T>> {
-        &self.errors
     }
 }
 
