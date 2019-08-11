@@ -18,12 +18,15 @@ members = [
 ]
 
 [patch.crates-io]
+#semval = { git = "https://github.com/uklotzde/semval" }
+semval = { path = "../../github/semval" }
 aoide-core = { path = "core" }
 aoide-domain = { path = "domain" }
 aoide-serde = { path = "serde" }
 aoide-storage = { path = "storage" }
 
 [dependencies]
+semval = "*"
 aoide-core = "*"
 aoide-domain = "*"
 aoide-serde = "*"

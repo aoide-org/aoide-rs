@@ -61,7 +61,7 @@ impl Score {
 impl Validate<()> for Score {
     fn validate(&self) -> ValidationResult<()> {
         if !(*self >= Self::min() && *self <= Self::max()) {
-            return Err(ValidationErrors::error((), Violation::OutOfBounds));
+            return Err(ValidationErrors::error((), Violation::OutOfRange));
         }
         Ok(())
     }

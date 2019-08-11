@@ -44,7 +44,7 @@ impl Validate<()> for PositionMs {
     fn validate(&self) -> ValidationResult<()> {
         let mut errors = ValidationErrors::default();
         if !self.0.is_finite() {
-            errors.add_error((), Violation::OutOfBounds);
+            errors.add_error((), Violation::OutOfRange);
         }
         errors.into_result()
     }
@@ -79,7 +79,7 @@ impl Validate<()> for DurationMs {
     fn validate(&self) -> ValidationResult<()> {
         let mut errors = ValidationErrors::default();
         if !(self.0.is_finite() && *self >= Self::empty()) {
-            errors.add_error((), Violation::OutOfBounds);
+            errors.add_error((), Violation::OutOfRange);
         }
         errors.into_result()
     }
@@ -131,7 +131,7 @@ impl Validate<AudioEncoderValidation> for AudioEncoder {
         if self.name.len() < MIN_NAME_LEN {
             errors.add_error(
                 AudioEncoderValidation::Name,
-                Violation::TooShort(validate::Min(MIN_NAME_LEN)),
+                Violation::too_short(MIN_NAME_LEN),
             );
         }
         errors.into_result()

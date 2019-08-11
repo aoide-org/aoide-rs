@@ -52,7 +52,7 @@ impl Validate<()> for ChannelCount {
     fn validate(&self) -> ValidationResult<()> {
         let mut errors = ValidationErrors::default();
         if *self < Self::min() || *self > Self::max() {
-            errors.add_error((), Violation::OutOfBounds);
+            errors.add_error((), Violation::OutOfRange);
         }
         errors.into_result()
     }

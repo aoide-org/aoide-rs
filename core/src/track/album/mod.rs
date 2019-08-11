@@ -52,6 +52,21 @@ impl Album {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AlbumValidation {
+    Titles(TitlesValidation),
+    Actors(ActorsValidation),
+}
+
+impl Validate<AlbumValidation> for Album {
+    fn validate(&self) -> ValidationResult<AlbumValidation> {
+        let mut errors = ValidationErrors::default();
+        errors.map_and_merge_result(Titles::validate(&self.titles), AlbumValidation::Titles);
+        errors.map_and_merge_result(Actors::validate(&self.actors), AlbumValidation::Actors);
+        errors.into_result()
+    }
+}
+
 // TODO: Move into separate module with response types?
 // Might not be needed in the core.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -80,21 +95,6 @@ impl AlbumTracksCount {
             release_year,
             count,
         }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum AlbumValidation {
-    Titles(TitlesValidation),
-    Actors(ActorsValidation),
-}
-
-impl Validate<AlbumValidation> for Album {
-    fn validate(&self) -> ValidationResult<AlbumValidation> {
-        let mut errors = ValidationErrors::default();
-        errors.map_and_merge_result(Titles::validate(&self.titles), AlbumValidation::Titles);
-        errors.map_and_merge_result(Actors::validate(&self.actors), AlbumValidation::Actors);
-        errors.into_result()
     }
 }
 

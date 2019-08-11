@@ -18,81 +18,181 @@
 use super::*;
 
 pub mod album;
+pub mod collection;
+pub mod marker;
 pub mod release;
+pub mod source;
+pub mod tag;
 
-use crate::tag::{Facet, Label, Tag, TagValidation};
+use self::{
+    album::*,
+    collection::*,
+    marker::{beat::*, key::*, position::*},
+    release::*,
+    source::*,
+};
 
-use lazy_static::lazy_static;
+use crate::{actor::*, tag::*, title::*};
 
-// Some predefined facets that are commonly used and could serve as
-// a starting point for complex tagging schemes
-lazy_static! {
-    // The Content Group aka Grouping field
-    pub static ref FACET_CGROUP: Facet = Facet::new("cgroup".into());
+use std::fmt;
 
-    // "Dinner", "Festival", "Party", "Soundcheck", "Top40", "Workout", ...
-    pub static ref FACET_CROWD: Facet = Facet::new("crowd".into());
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum IndexCount {
+    Index(u16),
+    IndexAndCount(u16, u16),
+}
 
-    // Decades like "1980s", "2000s", ..., or other time-based properties
-    pub static ref FACET_EPOCH: Facet = Facet::new("epoch".into());
+const MIN_INDEX: u16 = 1;
 
-    // "Birthday"/"Bday", "Xmas"/"Holiday"/"Christmas", "Summer", "Vacation", "Wedding", ...
-    pub static ref FACET_EVENT: Facet = Facet::new("event".into());
+const MIN_COUNT: u16 = 1;
 
-    // "Pop", "Dance", "Electronic", "R&B/Soul", "Hip Hop/Rap", ...
-    pub static ref FACET_GENRE: Facet = Facet::new("genre".into());
+impl IndexCount {
+    pub fn index(self) -> u16 {
+        use IndexCount::*;
+        match self {
+            Index(idx) => idx,
+            IndexAndCount(idx, _) => idx,
+        }
+    }
 
-    // ISO 639-2 language codes: "eng", "fre"/"fra", "ita", "spa", "ger"/"deu", ...
-    pub static ref FACET_LANG: Facet = Facet::new("lang".into());
+    pub fn count(self) -> Option<u16> {
+        use IndexCount::*;
+        match self {
+            Index(_) => None,
+            IndexAndCount(_, cnt) => Some(cnt),
+        }
+    }
+}
 
-    // "Happy", "Sexy", "Sad", "Melancholic", ...
-    pub static ref FACET_MOOD: Facet = Facet::new("mood".into());
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum IndexCountValidation {
+    Index,
+    Count,
+    IndexCount,
+}
 
-    // The set time, e.g. "Warmup", "Opening", "Filler", "Peak", "Closing", "Afterhours", ...
-    pub static ref FACET_SESSION: Facet = Facet::new("session".into());
+impl Validate<IndexCountValidation> for IndexCount {
+    #[allow(clippy::absurd_extreme_comparisons)]
+    fn validate(&self) -> ValidationResult<IndexCountValidation> {
+        let mut errors = ValidationErrors::default();
+        if self.index() < MIN_INDEX {
+            errors.add_error(IndexCountValidation::Index, Violation::OutOfRange);
+        }
+        if let Some(count) = self.count() {
+            if count < MIN_COUNT {
+                errors.add_error(IndexCountValidation::Count, Violation::OutOfRange);
+            } else if self.index() > count {
+                errors.add_error(IndexCountValidation::IndexCount, Violation::Inconsistent);
+            }
+        }
+        errors.into_result()
+    }
+}
 
-    // Sub-genres or details like "East Coast", "West Coast", ...
-    pub static ref FACET_STYLE: Facet = Facet::new("style".into());
+impl fmt::Display for IndexCount {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use IndexCount::*;
+        match self {
+            Index(idx) => write!(f, "{}", idx),
+            IndexAndCount(idx, cnt) => write!(f, "{}/{}", idx, cnt),
+        }
+    }
+}
 
-    // "Bar", "Beach", "Dinner", "Club", "Lounge", ...
-    pub static ref FACET_VENUE: Facet = Facet::new("venue".into());
+///////////////////////////////////////////////////////////////////////
+// TrackLock
+///////////////////////////////////////////////////////////////////////
 
-    // "Bouncy", "Driving", "Dreamy", "Joyful", "Poppy", "Punchy", "Spiritual", "Tropical", "Uplifting" ...
-    pub static ref FACET_VIBE: Facet = Facet::new("vibe".into());
-
-    // Select a subset of a collection, i.e. a virtual "crate".
-    // Examples: "DJ", "Mobile", ...
-    pub static ref FACET_CRATE: Facet = Facet::new("crate".into());
-
-    // Facets for various musical features. These tags are only scored,
-    // but should not be labeled.
-    // See also: [Spotify Audio Features](https://developer.spotify.com/documentation/web-api/reference/tracks/get-audio-features/)
-    pub static ref FACET_ENERGY: Label = Label::new("energy".into());
-    pub static ref FACET_DANCEABILITY: Label = Label::new("danceability".into());
-    pub static ref FACET_VALENCE: Label = Label::new("valence".into()); // a measure for happiness
-    pub static ref FACET_ACOUSTICNESS: Label = Label::new("acousticness".into());
-    pub static ref FACET_INSTRUMENTALNESS: Label = Label::new("instrumentalness".into());
-    pub static ref FACET_LIVENESS: Label = Label::new("liveness".into());
-    pub static ref FACET_SPEECHINESS: Label = Label::new("speechiness".into());
-    pub static ref FACET_POPULARITY: Label = Label::new("popularity".into());
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TrackLock {
+    Loudness,
+    Beats,
+    Keys,
 }
 
 #[derive(Clone, Debug)]
 pub struct Track {
+    pub collections: Vec<Collection>,
+
+    pub sources: Vec<Source>,
+
+    pub titles: Vec<Title>,
+    pub actors: Vec<Actor>,
+
+    pub album: Option<Album>,
+    pub release: Option<Release>,
+
+    pub disc_numbers: Option<IndexCount>,
+    pub track_numbers: Option<IndexCount>,
+    pub movement_numbers: Option<IndexCount>,
+
+    pub position_markers: Vec<PositionMarker>,
+    pub beat_markers: Vec<BeatMarker>,
+    pub key_markers: Vec<KeyMarker>,
+
     pub tags: Vec<Tag>,
+
+    pub locks: Vec<TrackLock>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug)]
 pub enum TrackValidation {
-    Tag(TagValidation),
+    Collections(CollectionsValidation),
+    Sources(SourcesValidation),
+    Titles(TitlesValidation),
+    Actors(ActorsValidation),
+    Album(AlbumValidation),
+    Release(ReleaseValidation),
+    DiscNumbers(IndexCountValidation),
+    TrackNumbers(IndexCountValidation),
+    MovementNumbers(IndexCountValidation),
+    PositionMarkers(PositionMarkersValidation),
+    BeatMarkers(BeatMarkersValidation),
+    KeyMarkers(KeyMarkersValidation),
+    Tags(TagsValidation),
 }
 
 impl Validate<TrackValidation> for Track {
     fn validate(&self) -> ValidationResult<TrackValidation> {
         let mut errors = ValidationErrors::default();
-        for tag in &self.tags {
-            errors.map_and_merge_result(tag.validate(), TrackValidation::Tag);
+        errors.map_and_merge_result(
+            Collections::validate(&self.collections),
+            TrackValidation::Collections,
+        );
+        errors.map_and_merge_result(Sources::validate(&self.sources), TrackValidation::Sources);
+        errors.map_and_merge_result(Titles::validate(&self.titles), TrackValidation::Titles);
+        errors.map_and_merge_result(Actors::validate(&self.actors), TrackValidation::Actors);
+        if let Some(ref album) = self.album {
+            errors.map_and_merge_result(album.validate(), TrackValidation::Album);
         }
+        if let Some(ref release) = self.release {
+            errors.map_and_merge_result(release.validate(), TrackValidation::Release);
+        }
+        if let Some(ref disc_numbers) = self.disc_numbers {
+            errors.map_and_merge_result(disc_numbers.validate(), TrackValidation::DiscNumbers);
+        }
+        if let Some(ref track_numbers) = self.track_numbers {
+            errors.map_and_merge_result(track_numbers.validate(), TrackValidation::TrackNumbers);
+        }
+        if let Some(ref movement_numbers) = self.movement_numbers {
+            errors.map_and_merge_result(
+                movement_numbers.validate(),
+                TrackValidation::MovementNumbers,
+            );
+        }
+        errors.map_and_merge_result(
+            PositionMarkers::validate(&self.position_markers),
+            TrackValidation::PositionMarkers,
+        );
+        errors.map_and_merge_result(
+            BeatMarkers::validate(&self.beat_markers),
+            TrackValidation::BeatMarkers,
+        );
+        errors.map_and_merge_result(
+            KeyMarkers::validate(&self.key_markers),
+            TrackValidation::KeyMarkers,
+        );
+        errors.map_and_merge_result(Tags::validate(&self.tags), TrackValidation::Tags);
         errors.into_result()
     }
 }

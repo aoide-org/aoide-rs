@@ -13,17 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-///////////////////////////////////////////////////////////////////////
+use super::*;
 
-#![deny(missing_debug_implementations)]
-
-pub mod actor;
-pub mod audio;
-pub mod entity;
-pub mod music;
-pub mod tag;
-pub mod title;
-pub mod track;
-pub mod util;
-
-use semval::prelude::*;
+#[test]
+fn default_position_marker() {
+    assert!(PositionMarker::Cue(Default::default()).validate().is_ok());
+}

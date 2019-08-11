@@ -15,13 +15,11 @@
 
 use super::*;
 
-use crate::validate::{self, Validate};
-
 ///////////////////////////////////////////////////////////////////////
 // ActorRole
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd)]
 pub enum ActorRole {
     Artist = 0, // default
     Arranger = 1,
@@ -85,16 +83,13 @@ impl Validate<ActorValidation> for Actor {
     fn validate(&self) -> ValidationResult<ActorValidation> {
         let mut errors = ValidationErrors::default();
         if self.name.len() < MIN_NAME_LEN {
-            errors.add_error(
-                ActorValidation::Name,
-                Violation::TooShort(validate::Min(MIN_NAME_LEN)),
-            );
+            errors.add_error(ActorValidation::Name, Violation::too_short(MIN_NAME_LEN));
         }
         errors.into_result()
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub struct Actors;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -142,10 +137,7 @@ impl Actors {
                 errors.add_error(ActorsValidation::SummaryActor, Violation::Missing);
             }
             if summary_too_many {
-                errors.add_error(
-                    ActorsValidation::SummaryActor,
-                    Violation::TooMany(validate::Max(1)),
-                );
+                errors.add_error(ActorsValidation::SummaryActor, Violation::too_many(1));
             }
         }
         if errors.is_empty()

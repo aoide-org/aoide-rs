@@ -7,6 +7,10 @@ publish = false
 edition = "2018"
 
 [dependencies]
+bs58 = "*"
 chrono = "*"
 lazy_static = "*"
+num-traits = "*"
+rand = "*"
+semval = "*"
 smallvec = "*"

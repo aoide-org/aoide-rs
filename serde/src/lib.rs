@@ -18,7 +18,11 @@
 #![deny(missing_debug_implementations, missing_copy_implementations)]
 
 use serde::{Deserialize, Serialize};
+use serde_repr::*;
 
-use aoide_core::validate::Validate;
+use semval::prelude::*;
 
+pub mod actor;
+pub mod entity;
 pub mod tag;
+pub mod title;

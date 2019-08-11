@@ -48,7 +48,7 @@ impl Validate<()> for BitRateBps {
     fn validate(&self) -> ValidationResult<()> {
         let mut errors = ValidationErrors::default();
         if !(*self >= Self::min() && *self <= Self::max()) {
-            errors.add_error((), Violation::OutOfBounds);
+            errors.add_error((), Violation::OutOfRange);
         }
         errors.into_result()
     }
@@ -103,7 +103,7 @@ impl Validate<()> for SampleRateHz {
     fn validate(&self) -> ValidationResult<()> {
         let mut errors = ValidationErrors::default();
         if !(*self >= Self::min() && *self <= Self::max()) {
-            errors.add_error((), Violation::OutOfBounds);
+            errors.add_error((), Violation::OutOfRange);
         }
         errors.into_result()
     }
@@ -197,7 +197,7 @@ impl Validate<()> for LatencyMs {
     fn validate(&self) -> ValidationResult<()> {
         let mut errors = ValidationErrors::default();
         if !self.0.is_finite() || *self < Self::min() {
-            errors.add_error((), Violation::OutOfBounds);
+            errors.add_error((), Violation::OutOfRange);
         }
         errors.into_result()
     }
@@ -233,7 +233,7 @@ impl Validate<()> for LoudnessLufs {
     fn validate(&self) -> ValidationResult<()> {
         let mut errors = ValidationErrors::default();
         if !self.0.is_finite() {
-            errors.add_error((), Violation::OutOfBounds);
+            errors.add_error((), Violation::OutOfRange);
         }
         errors.into_result()
     }

@@ -61,30 +61,24 @@ impl Validate<TitleValidation> for Title {
     fn validate(&self) -> ValidationResult<TitleValidation> {
         let mut errors = ValidationErrors::default();
         if self.name.len() < MIN_NAME_LEN {
-            errors.add_error(
-                TitleValidation::Name,
-                Violation::TooShort(validate::Min(MIN_NAME_LEN)),
-            );
+            errors.add_error(TitleValidation::Name, Violation::too_short(MIN_NAME_LEN));
         }
         if let Some(ref language) = self.language {
             if language.len() < MIN_LANG_LEN {
-                errors.add_error(
-                    TitleValidation::Name,
-                    Violation::TooShort(validate::Min(MIN_LANG_LEN)),
-                );
+                errors.add_error(TitleValidation::Name, Violation::too_short(MIN_LANG_LEN));
             }
         }
         errors.into_result()
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub struct Titles;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TitlesValidation {
     Title(TitleValidation),
-    LanguageIndependentMainTitle,
+    MainTitle,
 }
 
 pub const ANY_LEVEL_FILTER: Option<TitleLevel> = None;
@@ -104,10 +98,7 @@ impl Titles {
         }
         if errors.is_empty() && at_least_one_title {
             if Self::main_title(titles, None).is_none() {
-                errors.add_error(
-                    TitlesValidation::LanguageIndependentMainTitle,
-                    Violation::Missing,
-                );
+                errors.add_error(TitlesValidation::MainTitle, Violation::Missing);
             } else {
                 let mut languages: Vec<Option<&'a str>> = titles
                     .into_iter()
@@ -117,10 +108,7 @@ impl Titles {
                 languages.dedup();
                 for language in &languages {
                     if Self::main_titles(titles, Some(*language)).count() > 1 {
-                        errors.add_error(
-                            TitlesValidation::LanguageIndependentMainTitle,
-                            Violation::TooMany(validate::Max(1)),
-                        );
+                        errors.add_error(TitlesValidation::MainTitle, Violation::too_many(1));
                         break;
                     }
                 }

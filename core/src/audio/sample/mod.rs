@@ -80,7 +80,7 @@ impl Validate<()> for SamplePosition {
     fn validate(&self) -> ValidationResult<()> {
         let mut errors = ValidationErrors::default();
         if !self.0.is_finite() {
-            errors.add_error((), Violation::OutOfBounds);
+            errors.add_error((), Violation::OutOfRange);
         }
         errors.into_result()
     }
@@ -117,7 +117,7 @@ impl Validate<()> for SampleLength {
     fn validate(&self) -> ValidationResult<()> {
         let mut errors = ValidationErrors::default();
         if !(self.0.is_finite() && self.0.is_sign_positive()) {
-            errors.add_error((), Violation::OutOfBounds);
+            errors.add_error((), Violation::OutOfRange);
         }
         errors.into_result()
     }
