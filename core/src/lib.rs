@@ -17,7 +17,12 @@
 
 #![deny(missing_debug_implementations, missing_copy_implementations)]
 
+pub mod actor;
+pub mod audio;
 pub mod tag;
+pub mod title;
+pub mod track;
+pub mod util;
 pub mod validate;
 
 use validate::{Errors as ValidationErrors, Result as ValidationResult, Validate, Violation};

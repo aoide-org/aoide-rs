@@ -23,7 +23,7 @@ use std::u16;
 
 type ChannelCountValue = u16;
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub struct ChannelCount(pub ChannelCountValue);
 
 impl ChannelCount {
@@ -48,17 +48,13 @@ impl ChannelCount {
     }
 }
 
-impl Validate for ChannelCount {
+impl Validate<()> for ChannelCount {
     fn validate(&self) -> ValidationResult<()> {
-        let mut errors = ValidationErrors::new();
+        let mut errors = ValidationErrors::default();
         if *self < Self::min() || *self > Self::max() {
-            errors.add("number of channels", ValidationError::new("invalid value"));
+            errors.add_error((), Violation::OutOfBounds);
         }
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
+        errors.into_result()
     }
 }
 
@@ -78,8 +74,7 @@ impl From<ChannelCount> for ChannelCountValue {
 // ChannelLayout
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ChannelLayout {
     Mono,
 
@@ -99,9 +94,9 @@ impl ChannelLayout {
     }
 }
 
-impl Validate for ChannelLayout {
+impl Validate<()> for ChannelLayout {
     fn validate(&self) -> ValidationResult<()> {
-        Ok(())
+        (*self).channel_count().validate()
     }
 }
 
@@ -109,8 +104,7 @@ impl Validate for ChannelLayout {
 // Channels
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Channels {
     Count(ChannelCount),
     Layout(ChannelLayout),
@@ -144,12 +138,11 @@ impl From<ChannelLayout> for Channels {
     }
 }
 
-impl Validate for Channels {
+impl Validate<()> for Channels {
     fn validate(&self) -> ValidationResult<()> {
-        use Channels::*;
         match self {
-            Count(count) => count.validate(),
-            Layout(layout) => layout.validate(),
+            Channels::Count(count) => count.validate(),
+            Channels::Layout(layout) => layout.validate(),
         }
     }
 }

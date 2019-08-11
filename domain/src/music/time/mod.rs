@@ -41,7 +41,7 @@ impl TempoBpm {
 }
 
 impl Validate for TempoBpm {
-    fn validate(&self) -> Result<(), ValidationErrors> {
+    fn validate(&self) -> ValidationResult<()> {
         let mut errors = ValidationErrors::new();
         if !(*self >= Self::min() && *self <= Self::max()) {
             errors.add(
@@ -97,7 +97,7 @@ impl TimeSignature {
 }
 
 impl Validate for TimeSignature {
-    fn validate(&self) -> Result<(), ValidationErrors> {
+    fn validate(&self) -> ValidationResult<()> {
         let mut errors = ValidationErrors::new();
         if self.top() < 1 {
             errors.add("top", ValidationError::new("invalid value"));

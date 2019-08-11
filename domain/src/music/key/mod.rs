@@ -63,7 +63,7 @@ impl KeySignature {
 }
 
 impl Validate for KeySignature {
-    fn validate(&self) -> Result<(), ValidationErrors> {
+    fn validate(&self) -> ValidationResult<()> {
         let mut errors = ValidationErrors::new();
         if !Self::is_valid_code(self.code()) {
             errors.add("key code", ValidationError::new("invalid value"));

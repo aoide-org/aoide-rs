@@ -86,7 +86,7 @@ impl EntityUid {
 }
 
 impl Validate for EntityUid {
-    fn validate(&self) -> Result<(), ValidationErrors> {
+    fn validate(&self) -> ValidationResult<()> {
         let mut errors = ValidationErrors::new();
         if self == &Self::default() {
             errors.add("uid", ValidationError::new("default value"));
@@ -264,7 +264,7 @@ impl EntityRevision {
 }
 
 impl Validate for EntityRevision {
-    fn validate(&self) -> Result<(), ValidationErrors> {
+    fn validate(&self) -> ValidationResult<()> {
         let mut errors = ValidationErrors::new();
         if self.ordinal() < Self::initial_ordinal() {
             errors.add("ordinal", ValidationError::new("invalid value"));
@@ -369,7 +369,7 @@ impl<B> Validate for Entity<B>
 where
     B: Validate,
 {
-    fn validate(&self) -> Result<(), ValidationErrors> {
+    fn validate(&self) -> ValidationResult<()> {
         let res = ValidationErrors::merge(Ok(()), "header", self.0.validate());
         ValidationErrors::merge(res, "body", self.1.validate())
     }

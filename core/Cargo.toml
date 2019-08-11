@@ -7,3 +7,5 @@ publish = false
 edition = "2018"
 
 [dependencies]
+chrono = "*"
+lazy_static = "*"

@@ -15,14 +15,15 @@
 
 use super::*;
 
+use crate::util::IsInteger;
+
 use std::fmt;
 
 ///////////////////////////////////////////////////////////////////////
 // SampleLayout
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "lowercase")]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum SampleLayout {
     // Samples grouped by channel
     // Example for stereo signal with channels L+R: [LLLL|RRRR]
@@ -31,6 +32,12 @@ pub enum SampleLayout {
     // Samples grouped by frame
     // Example for stereo signal with channels L+R: [LR|LR|LR|LR]
     Interleaved,
+}
+
+impl Validate<()> for SampleLayout {
+    fn validate(&self) -> ValidationResult<()> {
+        Ok(())
+    }
 }
 
 impl fmt::Display for SampleLayout {
@@ -43,8 +50,7 @@ impl fmt::Display for SampleLayout {
 // SampleFormat
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "lowercase")]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum SampleFormat {
     Float32,
 }
@@ -67,21 +73,16 @@ pub type SampleType = f32;
 
 pub type SamplePositionType = f64;
 
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct SamplePosition(pub SamplePositionType);
 
-impl Validate for SamplePosition {
+impl Validate<()> for SamplePosition {
     fn validate(&self) -> ValidationResult<()> {
-        let mut errors = ValidationErrors::new();
+        let mut errors = ValidationErrors::default();
         if !self.0.is_finite() {
-            errors.add("sample position", ValidationError::new("invalid value"));
+            errors.add_error((), Violation::OutOfBounds);
         }
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
+        errors.into_result()
     }
 }
 
@@ -109,21 +110,16 @@ impl IsInteger for SamplePosition {
 
 pub type NumberOfSamples = f64;
 
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct SampleLength(pub NumberOfSamples);
 
-impl Validate for SampleLength {
+impl Validate<()> for SampleLength {
     fn validate(&self) -> ValidationResult<()> {
-        let mut errors = ValidationErrors::new();
+        let mut errors = ValidationErrors::default();
         if !(self.0.is_finite() && self.0.is_sign_positive()) {
-            errors.add("number of samples", ValidationError::new("invalid value"));
+            errors.add_error((), Violation::OutOfBounds);
         }
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
+        errors.into_result()
     }
 }
 
@@ -149,13 +145,10 @@ impl IsInteger for SampleLength {
 // SampleRange
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Validate)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct SampleRange {
-    #[validate]
     pub start: SamplePosition,
 
-    #[validate]
     pub end: SamplePosition,
 }
 
@@ -178,6 +171,12 @@ impl SampleRange {
     pub fn length(&self) -> SampleLength {
         SampleLength((self.end.0 - self.start.0).abs())
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SampleRangeValidation {
+    Start,
+    End,
 }
 
 impl IsEmpty for SampleRange {

@@ -21,6 +21,8 @@ pub mod signal;
 
 use self::{channel::*, sample::*, signal::*};
 
+use crate::util::IsEmpty;
+
 use std::{fmt, time::Duration};
 
 ///////////////////////////////////////////////////////////////////////
@@ -29,7 +31,7 @@ use std::{fmt, time::Duration};
 
 pub type PositionInMilliseconds = f64;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 pub struct PositionMs(pub PositionInMilliseconds);
 
 impl PositionMs {
@@ -38,20 +40,13 @@ impl PositionMs {
     }
 }
 
-impl Validate for PositionMs {
+impl Validate<()> for PositionMs {
     fn validate(&self) -> ValidationResult<()> {
-        let mut errors = ValidationErrors::new();
+        let mut errors = ValidationErrors::default();
         if !self.0.is_finite() {
-            errors.add(
-                Self::unit_of_measure(),
-                ValidationError::new("invalid value"),
-            );
+            errors.add_error((), Violation::OutOfBounds);
         }
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
+        errors.into_result()
     }
 }
 
@@ -67,7 +62,7 @@ impl fmt::Display for PositionMs {
 
 pub type DurationInMilliseconds = f64;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 pub struct DurationMs(pub DurationInMilliseconds);
 
 impl DurationMs {
@@ -80,20 +75,13 @@ impl DurationMs {
     }
 }
 
-impl Validate for DurationMs {
+impl Validate<()> for DurationMs {
     fn validate(&self) -> ValidationResult<()> {
-        let mut errors = ValidationErrors::new();
+        let mut errors = ValidationErrors::default();
         if !(self.0.is_finite() && *self >= Self::empty()) {
-            errors.add(
-                Self::unit_of_measure(),
-                ValidationError::new("invalid value"),
-            );
+            errors.add_error((), Violation::OutOfBounds);
         }
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
+        errors.into_result()
     }
 }
 
@@ -123,48 +111,85 @@ impl fmt::Display for DurationMs {
 ///////////////////////////////////////////////////////////////////////
 // AudioEncoder
 ///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, Validate)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct AudioEncoder {
-    #[serde(rename = "n", skip_serializing_if = "String::is_empty", default)]
-    #[validate(length(min = 1))]
     pub name: String,
 
-    #[serde(rename = "s", skip_serializing_if = "Option::is_none")]
     pub settings: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AudioEncoderValidation {
+    Name,
+}
+
+const MIN_NAME_LEN: usize = 1;
+
+impl Validate<AudioEncoderValidation> for AudioEncoder {
+    fn validate(&self) -> ValidationResult<AudioEncoderValidation> {
+        let mut errors = ValidationErrors::default();
+        if self.name.len() < MIN_NAME_LEN {
+            errors.add_error(
+                AudioEncoderValidation::Name,
+                Violation::TooShort(validate::Min(MIN_NAME_LEN)),
+            );
+        }
+        errors.into_result()
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////
 // AudioContent
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, Validate)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AudioContent {
-    #[serde(rename = "ch", skip_serializing_if = "IsDefault::is_default", default)]
-    #[validate]
     pub channels: Channels,
 
-    #[serde(rename = "ms", skip_serializing_if = "IsDefault::is_default", default)]
-    #[validate]
     pub duration: DurationMs,
 
-    #[serde(rename = "hz", skip_serializing_if = "IsDefault::is_default", default)]
-    #[validate]
     pub sample_rate: SampleRateHz,
 
-    #[serde(rename = "bps", skip_serializing_if = "IsDefault::is_default", default)]
-    #[validate]
     pub bit_rate: BitRateBps,
 
-    #[serde(rename = "lufs", skip_serializing_if = "Option::is_none")]
-    #[validate]
     pub loudness: Option<LoudnessLufs>,
 
-    #[serde(rename = "enc", skip_serializing_if = "Option::is_none")]
-    #[validate]
     pub encoder: Option<AudioEncoder>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AudioContentValidation {
+    Channels,
+    Duration,
+    SampleRate,
+    BitRate,
+    Loudness,
+    Encoder(AudioEncoderValidation),
+}
+
+impl Validate<AudioContentValidation> for AudioContent {
+    fn validate(&self) -> ValidationResult<AudioContentValidation> {
+        let mut errors = ValidationErrors::default();
+        errors.map_and_merge_result(self.channels.validate(), |()| {
+            AudioContentValidation::Channels
+        });
+        errors.map_and_merge_result(self.duration.validate(), |()| {
+            AudioContentValidation::Duration
+        });
+        errors.map_and_merge_result(self.sample_rate.validate(), |()| {
+            AudioContentValidation::SampleRate
+        });
+        errors.map_and_merge_result(self.bit_rate.validate(), |()| {
+            AudioContentValidation::BitRate
+        });
+        if let Some(ref loudness) = self.loudness {
+            errors.map_and_merge_result(loudness.validate(), |()| AudioContentValidation::Loudness);
+        }
+        if let Some(ref encoder) = self.encoder {
+            errors.map_and_merge_result(encoder.validate(), AudioContentValidation::Encoder);
+        }
+        errors.into_result()
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////

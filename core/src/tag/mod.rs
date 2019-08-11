@@ -58,10 +58,8 @@ impl Score {
     }
 }
 
-impl Validate for Score {
-    type Aspect = ();
-
-    fn validate(&self) -> ValidationResult<Self::Aspect> {
+impl Validate<()> for Score {
+    fn validate(&self) -> ValidationResult<()> {
         if !(*self >= Self::min() && *self <= Self::max()) {
             return Err(ValidationErrors::error((), Violation::OutOfBounds));
         }
@@ -105,10 +103,8 @@ impl Label {
     }
 }
 
-impl Validate for Label {
-    type Aspect = ();
-
-    fn validate(&self) -> ValidationResult<Self::Aspect> {
+impl Validate<()> for Label {
+    fn validate(&self) -> ValidationResult<()> {
         let mut errors = ValidationErrors::default();
         if self.0.is_empty() {
             errors.add_error((), Violation::Empty);
@@ -177,10 +173,8 @@ impl Facet {
     }
 }
 
-impl Validate for Facet {
-    type Aspect = ();
-
-    fn validate(&self) -> ValidationResult<Self::Aspect> {
+impl Validate<()> for Facet {
+    fn validate(&self) -> ValidationResult<()> {
         let mut errors = ValidationErrors::default();
         if self.0.is_empty() {
             errors.add_error((), Violation::Empty);
@@ -247,27 +241,25 @@ pub struct Tag {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum TagValidationAspect {
+pub enum TagValidation {
     Facet,
     Label,
     Score,
     FacetOrLabel,
 }
 
-impl Validate for Tag {
-    type Aspect = TagValidationAspect;
-
-    fn validate(&self) -> ValidationResult<Self::Aspect> {
+impl Validate<TagValidation> for Tag {
+    fn validate(&self) -> ValidationResult<TagValidation> {
         let mut errors = ValidationErrors::default();
         if let Some(ref facet) = self.facet {
-            errors.map_and_merge_result(facet.validate(), |()| TagValidationAspect::Facet);
+            errors.map_and_merge_result(facet.validate(), |()| TagValidation::Facet);
         }
         if let Some(ref label) = self.label {
-            errors.map_and_merge_result(label.validate(), |()| TagValidationAspect::Label);
+            errors.map_and_merge_result(label.validate(), |()| TagValidation::Label);
         }
-        errors.map_and_merge_result(self.score.validate(), |()| TagValidationAspect::Score);
+        errors.map_and_merge_result(self.score.validate(), |()| TagValidation::Score);
         if self.facet.is_none() && self.label.is_none() {
-            errors.add_error(TagValidationAspect::FacetOrLabel, Violation::Missing)
+            errors.add_error(TagValidation::FacetOrLabel, Violation::Missing)
         }
         errors.into_result()
     }
@@ -306,6 +298,50 @@ impl Scored for Tag {
         self.score
     }
 }
+
+#[derive(Debug, Clone, Copy)]
+pub struct Tags;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TagsValidation {
+    Tag(TagValidation),
+    Plain,
+    Faceted,
+}
+
+impl Tags {
+    pub fn validate<'a, I>(tags: I) -> ValidationResult<TagsValidation>
+    where
+        I: IntoIterator<Item = &'a Tag> + Copy,
+    {
+        let mut errors = ValidationErrors::default();
+        for tag in tags.into_iter() {
+            errors.map_and_merge_result(tag.validate(), TagsValidation::Tag);
+        }
+        let (plain, faceted): (Vec<_>, Vec<_>) =
+            tags.into_iter().partition(|tag| tag.facet.is_none());
+        let mut plain_labels: Vec<_> = plain.iter().map(|tag| &tag.label).collect();
+        plain_labels.sort();
+        plain_labels.dedup();
+        if plain_labels.len() < plain.len() {
+            errors.add_error(TagsValidation::Plain, Violation::Custom("duplicate labels"));
+        }
+        let mut faceted_labels: Vec<_> = faceted.iter().map(|tag| &tag.label).collect();
+        faceted_labels.sort();
+        faceted_labels.dedup();
+        if faceted_labels.len() < faceted.len() {
+            errors.add_error(
+                TagsValidation::Faceted,
+                Violation::Custom("duplicate labels"),
+            );
+        }
+        errors.into_result()
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// Tests
+///////////////////////////////////////////////////////////////////////
 
 #[cfg(test)]
 mod tests;

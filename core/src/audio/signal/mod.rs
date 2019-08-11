@@ -27,8 +27,7 @@ pub type BitsPerSample = u8;
 
 pub type BitsPerSecond = u32;
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct BitRateBps(pub BitsPerSecond);
 
 impl BitRateBps {
@@ -45,20 +44,13 @@ impl BitRateBps {
     }
 }
 
-impl Validate for BitRateBps {
+impl Validate<()> for BitRateBps {
     fn validate(&self) -> ValidationResult<()> {
-        let mut errors = ValidationErrors::new();
+        let mut errors = ValidationErrors::default();
         if !(*self >= Self::min() && *self <= Self::max()) {
-            errors.add(
-                Self::unit_of_measure(),
-                ValidationError::new("invalid value"),
-            );
+            errors.add_error((), Violation::OutOfBounds);
         }
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
+        errors.into_result()
     }
 }
 
@@ -74,7 +66,7 @@ impl fmt::Display for BitRateBps {
 
 pub type SamplesPerSecond = u32;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SampleRateHz(pub SamplesPerSecond);
 
 impl SampleRateHz {
@@ -107,20 +99,13 @@ impl SampleRateHz {
     }
 }
 
-impl Validate for SampleRateHz {
+impl Validate<()> for SampleRateHz {
     fn validate(&self) -> ValidationResult<()> {
-        let mut errors = ValidationErrors::new();
+        let mut errors = ValidationErrors::default();
         if !(*self >= Self::min() && *self <= Self::max()) {
-            errors.add(
-                Self::unit_of_measure(),
-                ValidationError::new("invalid value"),
-            );
+            errors.add_error((), Violation::OutOfBounds);
         }
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
+        errors.into_result()
     }
 }
 
@@ -134,14 +119,12 @@ impl fmt::Display for SampleRateHz {
 // PcmSignal
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Validate)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct PcmSignal {
     pub channel_layout: ChannelLayout,
 
     pub sample_layout: SampleLayout,
 
-    #[validate]
     pub sample_rate: SampleRateHz,
 }
 
@@ -155,14 +138,36 @@ impl PcmSignal {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PcmSignalValidation {
+    ChannelLayout,
+    SampleLayout,
+    SampleRate,
+}
+
+impl Validate<PcmSignalValidation> for PcmSignal {
+    fn validate(&self) -> ValidationResult<PcmSignalValidation> {
+        let mut errors = ValidationErrors::default();
+        errors.map_and_merge_result(self.channel_layout.validate(), |()| {
+            PcmSignalValidation::ChannelLayout
+        });
+        errors.map_and_merge_result(self.sample_layout.validate(), |()| {
+            PcmSignalValidation::SampleLayout
+        });
+        errors.map_and_merge_result(self.sample_rate.validate(), |()| {
+            PcmSignalValidation::SampleRate
+        });
+        errors.into_result()
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////
 // Latency
 ///////////////////////////////////////////////////////////////////////
 
 pub type LatencyInMilliseconds = f64;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 pub struct LatencyMs(pub LatencyInMilliseconds);
 
 impl LatencyMs {
@@ -188,20 +193,13 @@ impl LatencyMs {
     }
 }
 
-impl Validate for LatencyMs {
+impl Validate<()> for LatencyMs {
     fn validate(&self) -> ValidationResult<()> {
-        let mut errors = ValidationErrors::new();
+        let mut errors = ValidationErrors::default();
         if !self.0.is_finite() || *self < Self::min() {
-            errors.add(
-                Self::unit_of_measure(),
-                ValidationError::new("invalid value"),
-            );
+            errors.add_error((), Violation::OutOfBounds);
         }
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
+        errors.into_result()
     }
 }
 
@@ -217,7 +215,7 @@ impl fmt::Display for LatencyMs {
 
 pub type LufsValue = f64;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 pub struct LoudnessLufs(pub LufsValue);
 
 // Loudness is measured according to ITU-R BS.1770 in "Loudness Units
@@ -231,20 +229,13 @@ impl LoudnessLufs {
     }
 }
 
-impl Validate for LoudnessLufs {
+impl Validate<()> for LoudnessLufs {
     fn validate(&self) -> ValidationResult<()> {
-        let mut errors = ValidationErrors::new();
+        let mut errors = ValidationErrors::default();
         if !self.0.is_finite() {
-            errors.add(
-                Self::unit_of_measure(),
-                ValidationError::new("invalid value"),
-            );
+            errors.add_error((), Violation::OutOfBounds);
         }
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
+        errors.into_result()
     }
 }
 

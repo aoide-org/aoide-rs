@@ -164,7 +164,7 @@ pub enum PositionMarker {
 }
 
 impl Validate for PositionMarker {
-    fn validate(&self) -> Result<(), ValidationErrors> {
+    fn validate(&self) -> ValidationResult<()> {
         let res = self.data().validate();
         if let Err(err) = self.data().validate_range_by_type(self.r#type()) {
             let mut errors = if let Err(errors) = res {

@@ -100,3 +100,155 @@ fn default_tag_score() {
 fn default_tag_is_invalid() {
     assert!(Tag::default().validate().is_err());
 }
+
+#[test]
+fn duplicate_labels() {
+    let tags = [
+        Tag {
+            facet: None,
+            label: Some("label1".into()),
+            ..Default::default()
+        },
+        Tag {
+            facet: None,
+            label: Some("label2".into()),
+            ..Default::default()
+        },
+    ];
+    assert!(Tags::validate(&tags).is_ok());
+
+    let tags = [
+        Tag {
+            facet: None,
+            label: Some("label1".into()),
+            ..Default::default()
+        },
+        Tag {
+            facet: None,
+            label: Some("label2".into()),
+            ..Default::default()
+        },
+        Tag {
+            facet: None,
+            label: Some("label1".into()),
+            ..Default::default()
+        },
+    ];
+    assert_eq!(1, Tags::validate(&tags).err().unwrap().into_iter().count());
+
+    let tags = [
+        Tag {
+            facet: Some("facet1".into()),
+            label: Some("label1".into()),
+            ..Default::default()
+        },
+        Tag {
+            facet: None,
+            label: Some("label2".into()),
+            ..Default::default()
+        },
+        Tag {
+            facet: Some("facet2".into()),
+            label: Some("label2".into()),
+            ..Default::default()
+        },
+        Tag {
+            facet: None,
+            label: Some("label1".into()),
+            ..Default::default()
+        },
+    ];
+    assert!(Tags::validate(&tags).is_ok());
+
+    let tags = [
+        Tag {
+            facet: Some("facet1".into()),
+            label: Some("label1".into()),
+            ..Default::default()
+        },
+        Tag {
+            facet: None,
+            label: Some("label2".into()),
+            ..Default::default()
+        },
+        Tag {
+            facet: None,
+            label: Some("label2".into()),
+            ..Default::default()
+        },
+        Tag {
+            facet: Some("facet2".into()),
+            label: Some("label2".into()),
+            ..Default::default()
+        },
+        Tag {
+            facet: None,
+            label: Some("label1".into()),
+            ..Default::default()
+        },
+    ];
+    assert_eq!(1, Tags::validate(&tags).err().unwrap().into_iter().count());
+
+    let tags = [
+        Tag {
+            facet: Some("facet1".into()),
+            label: Some("label1".into()),
+            ..Default::default()
+        },
+        Tag {
+            facet: Some("facet2".into()),
+            label: Some("label2".into()),
+            ..Default::default()
+        },
+        Tag {
+            facet: None,
+            label: Some("label2".into()),
+            ..Default::default()
+        },
+        Tag {
+            facet: Some("facet2".into()),
+            label: Some("label2".into()),
+            ..Default::default()
+        },
+        Tag {
+            facet: None,
+            label: Some("label1".into()),
+            ..Default::default()
+        },
+    ];
+    assert_eq!(1, Tags::validate(&tags).err().unwrap().into_iter().count());
+
+    let tags = [
+        Tag {
+            facet: Some("facet1".into()),
+            label: Some("label1".into()),
+            ..Default::default()
+        },
+        Tag {
+            facet: Some("facet2".into()),
+            label: Some("label2".into()),
+            ..Default::default()
+        },
+        Tag {
+            facet: None,
+            label: Some("label2".into()),
+            ..Default::default()
+        },
+        Tag {
+            facet: None,
+            label: Some("label2".into()),
+            ..Default::default()
+        },
+        Tag {
+            facet: Some("facet2".into()),
+            label: Some("label2".into()),
+            ..Default::default()
+        },
+        Tag {
+            facet: None,
+            label: Some("label1".into()),
+            ..Default::default()
+        },
+    ];
+    assert_eq!(2, Tags::validate(&tags).err().unwrap().into_iter().count());
+}
