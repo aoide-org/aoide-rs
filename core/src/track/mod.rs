@@ -18,6 +18,7 @@
 use super::*;
 
 pub mod album;
+pub mod release;
 
 use crate::tag::{Facet, Label, Tag, TagValidation};
 

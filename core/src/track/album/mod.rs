@@ -15,6 +15,8 @@
 
 use super::*;
 
+use super::release::ReleaseYear;
+
 use crate::{actor::*, title::*};
 
 ///////////////////////////////////////////////////////////////////////
@@ -49,8 +51,6 @@ impl Album {
         Actors::main_actor(&self.actors, ActorRole::Artist)
     }
 }
-
-pub type ReleaseYear = i16;
 
 // TODO: Move into separate module with response types?
 // Might not be needed in the core.
