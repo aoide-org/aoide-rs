@@ -17,6 +17,8 @@
 
 use super::*;
 
+pub mod album;
+
 use crate::tag::{Facet, Label, Tag, TagValidation};
 
 use lazy_static::lazy_static;
