@@ -31,7 +31,7 @@ use std::{fmt, time::Duration};
 
 pub type PositionInMilliseconds = f64;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct PositionMs(pub PositionInMilliseconds);
 
 impl PositionMs {
@@ -40,13 +40,18 @@ impl PositionMs {
     }
 }
 
-impl Validate<()> for PositionMs {
-    fn validate(&self) -> ValidationResult<()> {
-        let mut errors = ValidationErrors::default();
-        if !self.0.is_finite() {
-            errors.add_error((), Violation::OutOfRange);
-        }
-        errors.into_result()
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum PositionMsValidation {
+    OutOfRange,
+}
+
+impl Validate for PositionMs {
+    type Validation = PositionMsValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.add_violation_if(!self.0.is_finite(), PositionMsValidation::OutOfRange);
+        context.into_result()
     }
 }
 
@@ -62,7 +67,7 @@ impl fmt::Display for PositionMs {
 
 pub type DurationInMilliseconds = f64;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct DurationMs(pub DurationInMilliseconds);
 
 impl DurationMs {
@@ -75,13 +80,21 @@ impl DurationMs {
     }
 }
 
-impl Validate<()> for DurationMs {
-    fn validate(&self) -> ValidationResult<()> {
-        let mut errors = ValidationErrors::default();
-        if !(self.0.is_finite() && *self >= Self::empty()) {
-            errors.add_error((), Violation::OutOfRange);
-        }
-        errors.into_result()
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum DurationMsValidation {
+    OutOfRange,
+}
+
+impl Validate for DurationMs {
+    type Validation = DurationMsValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.add_violation_if(
+            !(self.0.is_finite() && *self >= Self::empty()),
+            DurationMsValidation::OutOfRange,
+        );
+        context.into_result()
     }
 }
 
@@ -118,23 +131,23 @@ pub struct AudioEncoder {
     pub settings: Option<String>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+const NAME_MIN_LEN: usize = 1;
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum AudioEncoderValidation {
-    Name,
+    NameMinLen(usize),
 }
 
-const MIN_NAME_LEN: usize = 1;
+impl Validate for AudioEncoder {
+    type Validation = AudioEncoderValidation;
 
-impl Validate<AudioEncoderValidation> for AudioEncoder {
-    fn validate(&self) -> ValidationResult<AudioEncoderValidation> {
-        let mut errors = ValidationErrors::default();
-        if self.name.len() < MIN_NAME_LEN {
-            errors.add_error(
-                AudioEncoderValidation::Name,
-                Violation::too_short(MIN_NAME_LEN),
-            );
-        }
-        errors.into_result()
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.add_violation_if(
+            self.name.len() < NAME_MIN_LEN,
+            AudioEncoderValidation::NameMinLen(NAME_MIN_LEN),
+        );
+        context.into_result()
     }
 }
 
@@ -157,38 +170,35 @@ pub struct AudioContent {
     pub encoder: Option<AudioEncoder>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum AudioContentValidation {
-    Channels,
-    Duration,
-    SampleRate,
-    BitRate,
-    Loudness,
+    Channels(ChannelsValidation),
+    Duration(DurationMsValidation),
+    SampleRate(SampleRateHzValidation),
+    BitRate(BitRateBpsValidation),
+    Loudness(LoudnessLufsValidation),
     Encoder(AudioEncoderValidation),
 }
 
-impl Validate<AudioContentValidation> for AudioContent {
-    fn validate(&self) -> ValidationResult<AudioContentValidation> {
-        let mut errors = ValidationErrors::default();
-        errors.map_and_merge_result(self.channels.validate(), |()| {
-            AudioContentValidation::Channels
-        });
-        errors.map_and_merge_result(self.duration.validate(), |()| {
-            AudioContentValidation::Duration
-        });
-        errors.map_and_merge_result(self.sample_rate.validate(), |()| {
-            AudioContentValidation::SampleRate
-        });
-        errors.map_and_merge_result(self.bit_rate.validate(), |()| {
-            AudioContentValidation::BitRate
-        });
+impl Validate for AudioContent {
+    type Validation = AudioContentValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.map_and_merge_result(self.channels.validate(), AudioContentValidation::Channels);
+        context.map_and_merge_result(self.duration.validate(), AudioContentValidation::Duration);
+        context.map_and_merge_result(
+            self.sample_rate.validate(),
+            AudioContentValidation::SampleRate,
+        );
+        context.map_and_merge_result(self.bit_rate.validate(), AudioContentValidation::BitRate);
         if let Some(ref loudness) = self.loudness {
-            errors.map_and_merge_result(loudness.validate(), |()| AudioContentValidation::Loudness);
+            context.map_and_merge_result(loudness.validate(), AudioContentValidation::Loudness);
         }
         if let Some(ref encoder) = self.encoder {
-            errors.map_and_merge_result(encoder.validate(), AudioContentValidation::Encoder);
+            context.map_and_merge_result(encoder.validate(), AudioContentValidation::Encoder);
         }
-        errors.into_result()
+        context.into_result()
     }
 }
 

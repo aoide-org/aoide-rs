@@ -32,7 +32,7 @@ use std::{fmt, mem, str};
 // EntityUid
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EntityUid([u8; 24]);
 
 impl EntityUid {
@@ -123,7 +123,7 @@ impl Serialize for EntityUid {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Copy, Clone)]
 struct EntityUidDeserializeVisitor;
 
 impl<'de> SerdeDeserializeVisitor<'de> for EntityUidDeserializeVisitor {
@@ -170,7 +170,7 @@ impl std::str::FromStr for EntityUid {
 
 pub type EntityVersionNumber = u32;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityVersion {
     #[serde(rename = "maj")]
@@ -222,7 +222,7 @@ pub type EntityRevisionOrdinal = u64;
 
 pub type EntityRevisionInstant = TickInstant;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct EntityRevision(EntityRevisionOrdinal, EntityRevisionInstant);
 
 impl EntityRevision {
@@ -288,7 +288,7 @@ impl fmt::Display for EntityRevision {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(
-    Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Validate,
+    Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Validate,
 )]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EntityHeader {

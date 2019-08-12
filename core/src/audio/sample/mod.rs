@@ -23,7 +23,7 @@ use std::fmt;
 // SampleLayout
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum SampleLayout {
     // Samples grouped by channel
     // Example for stereo signal with channels L+R: [LLLL|RRRR]
@@ -34,9 +34,13 @@ pub enum SampleLayout {
     Interleaved,
 }
 
-impl Validate<()> for SampleLayout {
-    fn validate(&self) -> ValidationResult<()> {
-        Ok(())
+pub type SampleLayoutValidation = ();
+
+impl Validate for SampleLayout {
+    type Validation = SampleLayoutValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        Ok(()) // always valid
     }
 }
 
@@ -50,7 +54,7 @@ impl fmt::Display for SampleLayout {
 // SampleFormat
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum SampleFormat {
     Float32,
 }
@@ -73,16 +77,21 @@ pub type SampleType = f32;
 
 pub type SamplePositionType = f64;
 
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+#[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
 pub struct SamplePosition(pub SamplePositionType);
 
-impl Validate<()> for SamplePosition {
-    fn validate(&self) -> ValidationResult<()> {
-        let mut errors = ValidationErrors::default();
-        if !self.0.is_finite() {
-            errors.add_error((), Violation::OutOfRange);
-        }
-        errors.into_result()
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum SamplePositionValidation {
+    OutOfRange,
+}
+
+impl Validate for SamplePosition {
+    type Validation = SamplePositionValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.add_violation_if(!self.0.is_finite(), SamplePositionValidation::OutOfRange);
+        context.into_result()
     }
 }
 
@@ -110,16 +119,24 @@ impl IsInteger for SamplePosition {
 
 pub type NumberOfSamples = f64;
 
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+#[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
 pub struct SampleLength(pub NumberOfSamples);
 
-impl Validate<()> for SampleLength {
-    fn validate(&self) -> ValidationResult<()> {
-        let mut errors = ValidationErrors::default();
-        if !(self.0.is_finite() && self.0.is_sign_positive()) {
-            errors.add_error((), Violation::OutOfRange);
-        }
-        errors.into_result()
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum SampleLengthValidation {
+    OutOfRange,
+}
+
+impl Validate for SampleLength {
+    type Validation = SampleLengthValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.add_violation_if(
+            !(self.0.is_finite() && self.0.is_sign_positive()),
+            SampleLengthValidation::OutOfRange,
+        );
+        context.into_result()
     }
 }
 
@@ -145,7 +162,7 @@ impl IsInteger for SampleLength {
 // SampleRange
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct SampleRange {
     pub start: SamplePosition,
 
@@ -173,7 +190,7 @@ impl SampleRange {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum SampleRangeValidation {
     Start,
     End,

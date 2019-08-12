@@ -27,7 +27,7 @@ use serde_json;
 
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SerializationFormat {
     JSON = 1,
     CBOR = 2,

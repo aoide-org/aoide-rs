@@ -26,7 +26,7 @@ use aoide_core::{
 // ActorRole
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize_repr, Deserialize_repr)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize_repr, Deserialize_repr)]
 #[repr(u8)]
 pub enum ActorRole {
     Artist = 0, // default
@@ -75,7 +75,7 @@ impl From<ActorRole> for CoreActorRole {
 // ActorPrecedence
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize_repr, Deserialize_repr)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize_repr, Deserialize_repr)]
 #[repr(u8)]
 pub enum ActorPrecedence {
     Summary = 0, // default

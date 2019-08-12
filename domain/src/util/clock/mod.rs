@@ -24,7 +24,7 @@ const MILLIS_PER_SEC: TickType = 1_000;
 const MICROS_PER_SEC: TickType = 1_000_000;
 const NANOS_PER_SEC: TickType = 1_000_000_000;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Ticks(pub TickType);
 
 // Resolution = microseconds
@@ -43,7 +43,7 @@ impl Ticks {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct TickDuration(pub Ticks);
 
 impl TickDuration {
@@ -95,7 +95,7 @@ impl fmt::Display for TickDuration {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct TickInstant(pub Ticks);
 
 impl TickInstant {

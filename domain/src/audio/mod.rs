@@ -29,7 +29,7 @@ use std::{fmt, time::Duration};
 
 pub type PositionInMilliseconds = f64;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct PositionMs(pub PositionInMilliseconds);
 
 impl PositionMs {
@@ -67,7 +67,7 @@ impl fmt::Display for PositionMs {
 
 pub type DurationInMilliseconds = f64;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct DurationMs(pub DurationInMilliseconds);
 
 impl DurationMs {

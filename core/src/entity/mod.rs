@@ -28,7 +28,7 @@ use std::{fmt, mem, str};
 #[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EntityUid([u8; 24]);
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum DecodeError {
     InvalidInput(bs58::decode::DecodeError),
     InvalidLength(usize),
@@ -80,13 +80,18 @@ impl EntityUid {
     }
 }
 
-impl Validate<()> for EntityUid {
-    fn validate(&self) -> ValidationResult<()> {
-        let mut errors = ValidationErrors::default();
-        if self == &Self::default() {
-            errors.add_error((), Violation::Invalid);
-        }
-        errors.into_result()
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum EntityUidValidation {
+    Invalid,
+}
+
+impl Validate for EntityUid {
+    type Validation = EntityUidValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.add_violation_if(self == &Self::default(), EntityUidValidation::Invalid);
+        context.into_result()
     }
 }
 
@@ -122,7 +127,7 @@ impl std::str::FromStr for EntityUid {
 
 pub type EntityVersionNumber = u32;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EntityVersion {
     major: EntityVersionNumber,
     minor: EntityVersionNumber,
@@ -170,7 +175,7 @@ pub type EntityRevisionOrdinal = u64;
 
 pub type EntityRevisionInstant = TickInstant;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EntityRevision(EntityRevisionOrdinal, EntityRevisionInstant);
 
 impl EntityRevision {
@@ -211,13 +216,21 @@ impl EntityRevision {
     }
 }
 
-impl Validate<()> for EntityRevision {
-    fn validate(&self) -> ValidationResult<()> {
-        let mut errors = ValidationErrors::default();
-        if self.ordinal() < Self::initial_ordinal() {
-            errors.add_error((), Violation::OutOfRange);
-        }
-        errors.into_result()
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum EntityRevisionValidation {
+    OutOfRange,
+}
+
+impl Validate for EntityRevision {
+    type Validation = EntityRevisionValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.add_violation_if(
+            self.ordinal() < Self::initial_ordinal(),
+            EntityRevisionValidation::OutOfRange,
+        );
+        context.into_result()
     }
 }
 
@@ -234,14 +247,14 @@ impl fmt::Display for EntityRevision {
 #[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EntityHeader {
     uid: EntityUid,
-    revision: EntityRevision,
+    rev: EntityRevision,
 }
 
 impl EntityHeader {
-    pub fn new<I1: Into<EntityUid>, I2: Into<EntityRevision>>(uid: I1, revision: I2) -> Self {
+    pub fn new<I1: Into<EntityUid>, I2: Into<EntityRevision>>(uid: I1, rev: I2) -> Self {
         Self {
             uid: uid.into(),
-            revision: revision.into(),
+            rev: rev.into(),
         }
     }
 
@@ -252,7 +265,7 @@ impl EntityHeader {
     pub fn initial_with_uid<T: Into<EntityUid>>(uid: T) -> Self {
         Self {
             uid: uid.into(),
-            revision: EntityRevision::initial(),
+            rev: EntityRevision::initial(),
         }
     }
 
@@ -260,25 +273,25 @@ impl EntityHeader {
         &self.uid
     }
 
-    pub fn revision(&self) -> &EntityRevision {
-        &self.revision
+    pub fn rev(&self) -> &EntityRevision {
+        &self.rev
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum EntityHeaderValidation {
-    Uid,
-    Revision,
+    Uid(EntityUidValidation),
+    Revision(EntityRevisionValidation),
 }
 
-impl Validate<EntityHeaderValidation> for EntityHeader {
-    fn validate(&self) -> ValidationResult<EntityHeaderValidation> {
-        let mut errors = ValidationErrors::default();
-        errors.map_and_merge_result(self.uid.validate(), |()| EntityHeaderValidation::Uid);
-        errors.map_and_merge_result(self.revision.validate(), |()| {
-            EntityHeaderValidation::Revision
-        });
-        errors.into_result()
+impl Validate for EntityHeader {
+    type Validation = EntityHeaderValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.map_and_merge_result(self.uid.validate(), EntityHeaderValidation::Uid);
+        context.map_and_merge_result(self.rev.validate(), EntityHeaderValidation::Revision);
+        context.into_result()
     }
 }
 
@@ -296,7 +309,7 @@ pub struct Entity<T, B> {
 impl<T, B> Entity<T, B>
 where
     T: Validation,
-    B: Validate<T>,
+    B: Validate<Validation = T>,
 {
     pub fn new(header: EntityHeader, body: B) -> Self {
         Entity {
@@ -318,8 +331,8 @@ where
         &mut self.body
     }
 
-    pub fn replace_header_revision(self, revision: EntityRevision) -> Self {
-        let header = EntityHeader::new(self.header.uid().clone(), revision);
+    pub fn replace_header_rev(self, rev: EntityRevision) -> Self {
+        let header = EntityHeader::new(self.header.uid().clone(), rev);
         Self::new(header, self.body)
     }
 
@@ -334,16 +347,18 @@ pub enum EntityValidation<T: Validation> {
     Body(T),
 }
 
-impl<T, B> Validate<EntityValidation<T>> for Entity<T, B>
+impl<T, B> Validate for Entity<T, B>
 where
     T: Validation,
-    B: Validate<T>,
+    B: Validate<Validation = T>,
 {
-    fn validate(&self) -> ValidationResult<EntityValidation<T>> {
-        let mut errors = ValidationErrors::default();
-        errors.map_and_merge_result(self.header().validate(), EntityValidation::Header);
-        errors.map_and_merge_result(self.body().validate(), EntityValidation::Body);
-        errors.into_result()
+    type Validation = EntityValidation<T>;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.map_and_merge_result(self.header().validate(), EntityValidation::Header);
+        context.map_and_merge_result(self.body().validate(), EntityValidation::Body);
+        context.into_result()
     }
 }
 

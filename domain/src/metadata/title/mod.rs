@@ -19,7 +19,7 @@ use super::*;
 // TitleLevel
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "lowercase")]
 pub enum TitleLevel {
     Main = 0, // default
@@ -56,7 +56,7 @@ pub struct Title {
     pub language: Option<String>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Copy, Clone)]
 pub struct Titles;
 
 impl Titles {

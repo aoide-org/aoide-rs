@@ -23,7 +23,7 @@ use chrono::{DateTime, Utc};
 // TrackCollection
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Validate)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Validate)]
 pub struct TrackCollection {
     #[validate]
     pub uid: EntityUid,

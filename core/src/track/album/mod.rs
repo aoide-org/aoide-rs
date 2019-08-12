@@ -52,18 +52,20 @@ impl Album {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum AlbumValidation {
     Titles(TitlesValidation),
     Actors(ActorsValidation),
 }
 
-impl Validate<AlbumValidation> for Album {
-    fn validate(&self) -> ValidationResult<AlbumValidation> {
-        let mut errors = ValidationErrors::default();
-        errors.map_and_merge_result(Titles::validate(&self.titles), AlbumValidation::Titles);
-        errors.map_and_merge_result(Actors::validate(&self.actors), AlbumValidation::Actors);
-        errors.into_result()
+impl Validate for Album {
+    type Validation = AlbumValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.map_and_merge_result(Titles::validate(&self.titles), AlbumValidation::Titles);
+        context.map_and_merge_result(Actors::validate(&self.actors), AlbumValidation::Actors);
+        context.into_result()
     }
 }
 

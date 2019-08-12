@@ -19,7 +19,7 @@ use super::*;
 // TitleLevel
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TitleLevel {
     Main = 0, // default
     Sub = 1,
@@ -38,9 +38,9 @@ impl Default for TitleLevel {
 // Title
 ///////////////////////////////////////////////////////////////////////
 
-const MIN_NAME_LEN: usize = 1;
+const NAME_MIN_LEN: usize = 1;
 
-const MIN_LANG_LEN: usize = 2;
+const LANG_MIN_LEN: usize = 2;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Title {
@@ -51,34 +51,39 @@ pub struct Title {
     pub language: Option<String>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum TitleValidation {
-    Name,
-    Language,
+    NameMinLen(usize),
+    LanguageMinLen(usize),
 }
 
-impl Validate<TitleValidation> for Title {
-    fn validate(&self) -> ValidationResult<TitleValidation> {
-        let mut errors = ValidationErrors::default();
-        if self.name.len() < MIN_NAME_LEN {
-            errors.add_error(TitleValidation::Name, Violation::too_short(MIN_NAME_LEN));
-        }
+impl Validate for Title {
+    type Validation = TitleValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.add_violation_if(
+            self.name.len() < NAME_MIN_LEN,
+            TitleValidation::NameMinLen(NAME_MIN_LEN),
+        );
         if let Some(ref language) = self.language {
-            if language.len() < MIN_LANG_LEN {
-                errors.add_error(TitleValidation::Name, Violation::too_short(MIN_LANG_LEN));
-            }
+            context.add_violation_if(
+                language.len() < LANG_MIN_LEN,
+                TitleValidation::LanguageMinLen(LANG_MIN_LEN),
+            );
         }
-        errors.into_result()
+        context.into_result()
     }
 }
 
 #[derive(Debug)]
 pub struct Titles;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum TitlesValidation {
     Title(TitleValidation),
-    MainTitle,
+    MainTitleMissing,
+    MainTitleAmbiguous,
 }
 
 pub const ANY_LEVEL_FILTER: Option<TitleLevel> = None;
@@ -90,31 +95,31 @@ impl Titles {
     where
         I: IntoIterator<Item = &'a Title> + Copy,
     {
-        let mut errors = ValidationErrors::default();
+        let mut context = ValidationContext::default();
         let mut at_least_one_title = false;
         for title in titles.into_iter() {
-            errors.map_and_merge_result(title.validate(), TitlesValidation::Title);
+            context.map_and_merge_result(title.validate(), TitlesValidation::Title);
             at_least_one_title = true;
         }
-        if errors.is_empty() && at_least_one_title {
+        if !context.has_violations() && at_least_one_title {
             if Self::main_title(titles, None).is_none() {
-                errors.add_error(TitlesValidation::MainTitle, Violation::Missing);
+                context.add_violation(TitlesValidation::MainTitleMissing);
             } else {
                 let mut languages: Vec<Option<&'a str>> = titles
                     .into_iter()
                     .map(|title| title.language.as_ref().map(|s| s.as_str()))
                     .collect();
-                languages.sort();
+                languages.sort_unstable();
                 languages.dedup();
                 for language in &languages {
                     if Self::main_titles(titles, Some(*language)).count() > 1 {
-                        errors.add_error(TitlesValidation::MainTitle, Violation::too_many(1));
+                        context.add_violation(TitlesValidation::MainTitleAmbiguous);
                         break;
                     }
                 }
             }
         }
-        errors.into_result()
+        context.into_result()
     }
 
     pub fn filter_level_language<'a, 'b, I>(

@@ -21,7 +21,7 @@ use serde_repr::*;
 // ActorRole
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "lowercase")]
 pub enum ActorRole {
     Artist = 0, // default
@@ -49,7 +49,7 @@ impl Default for ActorRole {
 // ActorPrecedence
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize_repr, Deserialize_repr)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize_repr, Deserialize_repr)]
 #[serde(deny_unknown_fields, rename_all = "lowercase")]
 #[repr(u8)]
 pub enum ActorPrecedence {
@@ -82,7 +82,7 @@ pub struct Actor {
     pub precedence: ActorPrecedence,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Copy, Clone)]
 pub struct Actors;
 
 impl Actors {

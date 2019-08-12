@@ -290,7 +290,7 @@ impl<'a> InsertableTagFacet<'a> {
     }
 }
 
-#[derive(Debug, Clone, Copy, Insertable)]
+#[derive(Debug, Copy, Clone, Insertable)]
 #[table_name = "aux_track_tag"]
 pub struct InsertableTracksTag {
     pub track_id: StorageId,
@@ -327,7 +327,7 @@ impl<'a> InsertableMarkerLabel<'a> {
     }
 }
 
-#[derive(Debug, Clone, Copy, Insertable)]
+#[derive(Debug, Copy, Clone, Insertable)]
 #[table_name = "aux_track_marker"]
 pub struct InsertableTracksMarker {
     pub track_id: StorageId,

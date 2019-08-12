@@ -19,7 +19,7 @@ use std::fmt;
 
 pub type KeyCode = u8;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "lowercase")]
 pub enum KeyMode {
     #[serde(rename = "maj")]
@@ -29,7 +29,7 @@ pub enum KeyMode {
     Minor,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct KeySignature(KeyCode);
 
 impl KeySignature {
@@ -86,7 +86,7 @@ impl fmt::Display for KeySignature {
 // OpenKeySignature
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct OpenKeySignature(KeySignature);
 
 impl OpenKeySignature {
@@ -152,7 +152,7 @@ impl fmt::Display for OpenKeySignature {
 // LancelotKeySignature
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct LancelotKeySignature(KeySignature);
 
 impl LancelotKeySignature {
@@ -218,7 +218,7 @@ impl fmt::Display for LancelotKeySignature {
 // EngineKeySignature (as found in Denon Engine Prime Library)
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct EngineKeySignature(KeySignature);
 
 impl EngineKeySignature {

@@ -138,7 +138,7 @@ impl<'de> Deserialize<'de> for Label {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+#[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
 pub struct Score(CoreScore);
 
 impl Score {

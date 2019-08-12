@@ -33,13 +33,45 @@ pub struct Source {
     pub audio_content: Option<AudioContent>,
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum SourceValidation {
+    UriMinLen(usize),
+    ContentTypeMinLen(usize),
+    AudioContent(AudioContentValidation),
+}
+
+const URI_MIN_LEN: usize = 1;
+
+const CONTENT_TYPE_MIN_LEN: usize = 1;
+
+impl Validate for Source {
+    type Validation = SourceValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.add_violation_if(
+            self.uri.len() < URI_MIN_LEN,
+            SourceValidation::UriMinLen(URI_MIN_LEN),
+        );
+        context.add_violation_if(
+            self.content_type.len() < CONTENT_TYPE_MIN_LEN,
+            SourceValidation::ContentTypeMinLen(CONTENT_TYPE_MIN_LEN),
+        );
+        // TODO: Validate MIME type
+        if let Some(ref audio_content) = self.audio_content {
+            context.map_and_merge_result(audio_content.validate(), SourceValidation::AudioContent);
+        }
+        context.into_result()
+    }
+}
+
 #[derive(Debug)]
 pub struct Sources;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum SourcesValidation {
     Source(SourceValidation),
-    UniqueContentType,
+    ContentTypeAmbiguous,
 }
 
 impl Sources {
@@ -47,22 +79,23 @@ impl Sources {
     where
         I: IntoIterator<Item = &'a Source> + Copy,
     {
-        let mut errors = ValidationErrors::default();
+        let mut context = ValidationContext::default();
         for source in sources.into_iter() {
-            errors.map_and_merge_result(source.validate(), SourcesValidation::Source);
+            context.map_and_merge_result(source.validate(), SourcesValidation::Source);
         }
-        if errors.is_empty() {
+        if !context.has_violations() {
             let mut content_types: Vec<_> = sources
                 .into_iter()
                 .map(|source| &source.content_type)
                 .collect();
-            content_types.sort();
+            content_types.sort_unstable();
             content_types.dedup();
-            if content_types.len() < sources.into_iter().count() {
-                errors.add_error(SourcesValidation::UniqueContentType, Violation::Invalid);
-            }
+            context.add_violation_if(
+                content_types.len() < sources.into_iter().count(),
+                SourcesValidation::ContentTypeAmbiguous,
+            );
         }
-        errors.into_result()
+        context.into_result()
     }
 
     pub fn filter_content_type<'a, 'b, I>(
@@ -76,36 +109,5 @@ impl Sources {
         sources
             .into_iter()
             .filter(move |source| source.content_type == content_type)
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum SourceValidation {
-    Uri,
-    ContentType,
-    AudioContent(AudioContentValidation),
-}
-
-const URI_MIN_LEN: usize = 1;
-
-const CONTENT_TYPE_MIN_LEN: usize = 1;
-
-impl Validate<SourceValidation> for Source {
-    fn validate(&self) -> ValidationResult<SourceValidation> {
-        let mut errors = ValidationErrors::default();
-        if self.uri.len() < URI_MIN_LEN {
-            errors.add_error(SourceValidation::Uri, Violation::too_short(URI_MIN_LEN));
-        }
-        if self.content_type.len() < CONTENT_TYPE_MIN_LEN {
-            errors.add_error(
-                SourceValidation::ContentType,
-                Violation::too_short(CONTENT_TYPE_MIN_LEN),
-            );
-        }
-        // TODO: Validate MIME type
-        if let Some(ref audio_content) = self.audio_content {
-            errors.map_and_merge_result(audio_content.validate(), SourceValidation::AudioContent);
-        }
-        errors.into_result()
     }
 }

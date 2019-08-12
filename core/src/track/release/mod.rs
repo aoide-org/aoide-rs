@@ -23,9 +23,8 @@ use chrono::{DateTime, Datelike, Utc};
 
 pub type ReleaseYear = i16;
 
-pub const MIN_RELEASE_YEAR: ReleaseYear = 0;
-
-pub const MAX_RELEASE_YEAR: ReleaseYear = std::i16::MAX;
+pub const RELEASE_YEAR_MIN: ReleaseYear = 0;
+pub const RELEASE_YEAR_MAX: ReleaseYear = std::i16::MAX;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Release {
@@ -45,12 +44,13 @@ impl Release {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ReleaseValidation {
-    ReleasedAt,
-    ReleasedBy,
-    Copyright,
-    License,
+    ReleasedAtYearMin,
+    ReleasedAtYearMax,
+    ReleasedByMinLen(usize),
+    CopyrightMinLen(usize),
+    LicenseMinLen(usize),
 }
 
 const RELEASED_BY_MIN_LEN: usize = 1;
@@ -59,41 +59,41 @@ const COPYRIGHT_MIN_LEN: usize = 1;
 
 const LICENSE_MIN_LEN: usize = 1;
 
-impl Validate<ReleaseValidation> for Release {
-    fn validate(&self) -> ValidationResult<ReleaseValidation> {
-        let mut errors = ValidationErrors::default();
+impl Validate for Release {
+    type Validation = ReleaseValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
         if let Some(released_at) = self.released_at {
             let year = released_at.year();
-            if year < i32::from(MIN_RELEASE_YEAR) || year > i32::from(MAX_RELEASE_YEAR) {
-                errors.add_error(ReleaseValidation::ReleasedAt, Violation::OutOfRange);
-            }
+            context.add_violation_if(
+                year < i32::from(RELEASE_YEAR_MIN),
+                ReleaseValidation::ReleasedAtYearMin,
+            );
+            context.add_violation_if(
+                year > i32::from(RELEASE_YEAR_MAX),
+                ReleaseValidation::ReleasedAtYearMax,
+            );
         }
         if let Some(ref released_by) = self.released_by {
-            if released_by.len() < RELEASED_BY_MIN_LEN {
-                errors.add_error(
-                    ReleaseValidation::ReleasedBy,
-                    Violation::too_short(RELEASED_BY_MIN_LEN),
-                );
-            }
+            context.add_violation_if(
+                released_by.len() < RELEASED_BY_MIN_LEN,
+                ReleaseValidation::ReleasedByMinLen(RELEASED_BY_MIN_LEN),
+            );
         }
         if let Some(ref copyright) = self.copyright {
-            if copyright.len() < COPYRIGHT_MIN_LEN {
-                errors.add_error(
-                    ReleaseValidation::Copyright,
-                    Violation::too_short(COPYRIGHT_MIN_LEN),
-                );
-            }
+            context.add_violation_if(
+                copyright.len() < COPYRIGHT_MIN_LEN,
+                ReleaseValidation::CopyrightMinLen(COPYRIGHT_MIN_LEN),
+            );
         }
         for license in &self.licenses {
             if license.len() < LICENSE_MIN_LEN {
-                errors.add_error(
-                    ReleaseValidation::License,
-                    Violation::too_short(LICENSE_MIN_LEN),
-                );
+                context.add_violation(ReleaseValidation::LicenseMinLen(LICENSE_MIN_LEN));
                 break;
             }
         }
-        errors.into_result()
+        context.into_result()
     }
 }
 

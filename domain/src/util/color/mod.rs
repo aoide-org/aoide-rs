@@ -28,7 +28,7 @@ use std::{fmt, str::FromStr};
 
 pub type ColorCode = u32;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ColorArgb(ColorCode); // 0xAARRGGBB
 
 impl ColorArgb {
@@ -94,7 +94,7 @@ impl Serialize for ColorArgb {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Copy, Clone)]
 struct ColorDeserializeVisitor;
 
 impl<'de> SerdeDeserializeVisitor<'de> for ColorDeserializeVisitor {

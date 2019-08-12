@@ -56,7 +56,7 @@ fn should_fail_to_decode_too_short_string() {
 }
 
 #[test]
-fn revision_sequence() {
+fn rev_sequence() {
     let initial = EntityRevision::initial();
     assert!(initial.validate().is_ok());
     assert!(initial.is_initial());
@@ -80,7 +80,7 @@ fn revision_sequence() {
 fn header_without_uid() {
     let header = EntityHeader::initial_with_uid(EntityUid::default());
     assert!(!header.validate().is_ok());
-    assert!(header.revision().is_initial());
+    assert!(header.rev().is_initial());
 }
 
 #[test]
@@ -88,10 +88,10 @@ fn should_generate_unique_initial_headers() {
     let header1 = EntityHeader::initial();
     let header2 = EntityHeader::initial();
     assert!(header1.validate().is_ok());
-    assert!(header1.revision().is_initial());
+    assert!(header1.rev().is_initial());
     assert!(header2.validate().is_ok());
-    assert!(header2.revision().is_initial());
+    assert!(header2.rev().is_initial());
     assert_ne!(header1.uid(), header2.uid());
-    assert_eq!(header1.revision().ordinal(), header2.revision().ordinal());
-    assert!(header1.revision().instant() <= header2.revision().instant());
+    assert_eq!(header1.rev().ordinal(), header2.rev().ordinal());
+    assert!(header1.rev().instant() <= header2.rev().instant());
 }

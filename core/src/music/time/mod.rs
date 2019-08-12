@@ -23,7 +23,7 @@ use std::{f64, fmt};
 
 pub type Beats = f64;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct TempoBpm(pub Beats);
 
 impl TempoBpm {
@@ -40,13 +40,21 @@ impl TempoBpm {
     }
 }
 
-impl Validate<()> for TempoBpm {
-    fn validate(&self) -> ValidationResult<()> {
-        let mut errors = ValidationErrors::default();
-        if !(*self >= Self::min() && *self <= Self::max()) {
-            errors.add_error((), Violation::OutOfRange);
-        }
-        errors.into_result()
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum TempoBpmValidation {
+    OutOfRange,
+}
+
+impl Validate for TempoBpm {
+    type Validation = TempoBpmValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.add_violation_if(
+            !(*self >= Self::min() && *self <= Self::max()),
+            TempoBpmValidation::OutOfRange,
+        );
+        context.into_result()
     }
 }
 
@@ -62,7 +70,7 @@ impl fmt::Display for TempoBpm {
 
 pub type BeatNumber = u16;
 
-#[derive(Clone, Copy, Default, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Default, Debug, Eq, PartialEq)]
 pub struct TimeSignature(BeatNumber, BeatNumber);
 
 impl TimeSignature {
@@ -89,22 +97,20 @@ impl TimeSignature {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum TimeSignatureValidation {
-    Top,
-    Bottom,
+    TopLowerBound,
+    BottomLowerBound,
 }
 
-impl Validate<TimeSignatureValidation> for TimeSignature {
-    fn validate(&self) -> ValidationResult<TimeSignatureValidation> {
-        let mut errors = ValidationErrors::default();
-        if self.top() < 1 {
-            errors.add_error(TimeSignatureValidation::Top, Violation::LowerBound);
-        }
-        if self.bottom() < 1 {
-            errors.add_error(TimeSignatureValidation::Bottom, Violation::LowerBound);
-        }
-        errors.into_result()
+impl Validate for TimeSignature {
+    type Validation = TimeSignatureValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.add_violation_if(self.top() < 1, TimeSignatureValidation::TopLowerBound);
+        context.add_violation_if(self.bottom() < 1, TimeSignatureValidation::BottomLowerBound);
+        context.into_result()
     }
 }
 

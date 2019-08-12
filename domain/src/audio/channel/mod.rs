@@ -23,7 +23,7 @@ use std::u16;
 
 type ChannelCountValue = u16;
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ChannelCount(pub ChannelCountValue);
 
 impl ChannelCount {
@@ -78,7 +78,7 @@ impl From<ChannelCount> for ChannelCountValue {
 // ChannelLayout
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum ChannelLayout {
     Mono,
@@ -109,7 +109,7 @@ impl Validate for ChannelLayout {
 // Channels
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Channels {
     Count(ChannelCount),

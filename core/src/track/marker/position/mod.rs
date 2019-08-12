@@ -15,7 +15,10 @@
 
 use super::*;
 
-use crate::{audio::PositionMs, util::color::*};
+use crate::{
+    audio::{PositionMs, PositionMsValidation},
+    util::color::*,
+};
 
 use std::ops::{Deref, DerefMut};
 
@@ -60,12 +63,21 @@ pub struct PositionMarkerData {
     pub color: Option<ColorArgb>,
 }
 
+#[derive(Copy, Clone, Debug)]
+pub enum PositionMarkerRangeValidation {
+    Invalid,
+    Empty,
+}
+
 impl PositionMarkerData {
-    fn validate_range_by_type(&self, r#type: PositionMarkerType) -> Result<(), Violation> {
+    fn validate_range_by_type(
+        &self,
+        r#type: PositionMarkerType,
+    ) -> Result<(), PositionMarkerRangeValidation> {
         match r#type {
             PositionMarkerType::Cue | PositionMarkerType::HotCue => {
                 if self.end.is_some() {
-                    return Err(Violation::Invalid);
+                    return Err(PositionMarkerRangeValidation::Invalid);
                 }
             }
             PositionMarkerType::AutoCrop
@@ -74,17 +86,17 @@ impl PositionMarkerData {
             | PositionMarkerType::Section => {
                 if let (Some(start), Some(end)) = (self.start, self.end) {
                     if start >= end {
-                        return Err(Violation::Empty);
+                        return Err(PositionMarkerRangeValidation::Empty);
                     }
                 }
             }
             PositionMarkerType::Loop | PositionMarkerType::Sample => {
                 if let (Some(start), Some(end)) = (self.start, self.end) {
                     if start == end {
-                        return Err(Violation::Empty);
+                        return Err(PositionMarkerRangeValidation::Empty);
                     }
                 } else {
-                    return Err(Violation::OutOfRange);
+                    return Err(PositionMarkerRangeValidation::Invalid);
                 }
             }
         }
@@ -92,37 +104,37 @@ impl PositionMarkerData {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum PositionMarkerDataValidation {
-    Start,
-    End,
-    Label,
+    Start(PositionMsValidation),
+    End(PositionMsValidation),
+    LabelMinLen(usize),
 }
 
-const MIN_LABEL_LEN: usize = 1;
+const LABEL_MIN_LEN: usize = 1;
 
-impl Validate<PositionMarkerDataValidation> for PositionMarkerData {
-    fn validate(&self) -> ValidationResult<PositionMarkerDataValidation> {
-        let mut errors = ValidationErrors::default();
+impl Validate for PositionMarkerData {
+    type Validation = PositionMarkerDataValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
         if let Some(start) = self.start {
-            errors.map_and_merge_result(start.validate(), |()| PositionMarkerDataValidation::Start);
+            context.map_and_merge_result(start.validate(), PositionMarkerDataValidation::Start);
         }
         if let Some(end) = self.end {
-            errors.map_and_merge_result(end.validate(), |()| PositionMarkerDataValidation::End);
+            context.map_and_merge_result(end.validate(), PositionMarkerDataValidation::End);
         }
         if let Some(ref label) = self.label {
-            if label.len() < MIN_LABEL_LEN {
-                errors.add_error(
-                    PositionMarkerDataValidation::Label,
-                    Violation::too_short(MIN_LABEL_LEN),
-                )
-            }
+            context.add_violation_if(
+                label.len() < LABEL_MIN_LEN,
+                PositionMarkerDataValidation::LabelMinLen(LABEL_MIN_LEN),
+            );
         }
-        errors.into_result()
+        context.into_result()
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PositionMarkerType {
     /// The main cue point, e.g. used for as the initial position after loading the track
     Cue,
@@ -239,54 +251,56 @@ impl PositionMarker {
     fn validate_cardinality_by_type(
         markers: &[PositionMarker],
         r#type: PositionMarkerType,
-    ) -> Result<(), Violation> {
+    ) -> Result<(), PositionMarkerValidation> {
         if r#type.is_singular() && Self::count_by_type(markers, r#type) > 1 {
-            return Err(Violation::too_many(1));
+            return Err(PositionMarkerValidation::Cardinality);
         }
         Ok(())
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum PositionMarkerValidation {
     Data(PositionMarkerDataValidation),
-    Range,
+    Range(PositionMarkerRangeValidation),
+    Cardinality,
 }
 
-impl Validate<PositionMarkerValidation> for PositionMarker {
-    fn validate(&self) -> ValidationResult<PositionMarkerValidation> {
-        let mut errors = ValidationErrors::default();
+impl Validate for PositionMarker {
+    type Validation = PositionMarkerValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
         let data = self.data();
-        errors.map_and_merge_result(data.validate(), PositionMarkerValidation::Data);
+        context.map_and_merge_result(data.validate(), PositionMarkerValidation::Data);
         if let Err(violation) = data.validate_range_by_type(self.r#type()) {
-            errors.add_error(PositionMarkerValidation::Range, violation);
+            context.add_violation(PositionMarkerValidation::Range(violation));
         }
-        errors.into_result()
+        context.into_result()
     }
 }
 
 #[derive(Debug)]
 pub struct PositionMarkers;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum PositionMarkersValidation {
     Marker(PositionMarkerValidation),
-    Cardinality,
 }
 
 impl PositionMarkers {
     pub fn validate(markers: &[PositionMarker]) -> ValidationResult<PositionMarkersValidation> {
-        let mut errors = ValidationErrors::default();
+        let mut context = ValidationContext::default();
         for marker in markers {
-            errors.map_and_merge_result(marker.validate(), PositionMarkersValidation::Marker);
+            context.map_and_merge_result(marker.validate(), PositionMarkersValidation::Marker);
             if let Err(violation) =
                 PositionMarker::validate_cardinality_by_type(markers, marker.r#type())
             {
-                errors.add_error(PositionMarkersValidation::Cardinality, violation);
+                context.add_violation(PositionMarkersValidation::Marker(violation));
                 break;
             }
         }
-        errors.into_result()
+        context.into_result()
     }
 }
 

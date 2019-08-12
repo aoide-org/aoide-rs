@@ -19,7 +19,7 @@ use super::*;
 // ActorRole
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Ord, PartialOrd)]
 pub enum ActorRole {
     Artist = 0, // default
     Arranger = 1,
@@ -46,7 +46,7 @@ impl Default for ActorRole {
 // ActorPrecedence
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ActorPrecedence {
     Summary = 0, // default
     Primary = 1,
@@ -74,29 +74,33 @@ pub struct Actor {
     pub precedence: ActorPrecedence,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ActorValidation {
-    Name,
+    NameMinLen(usize),
 }
 
-impl Validate<ActorValidation> for Actor {
-    fn validate(&self) -> ValidationResult<ActorValidation> {
-        let mut errors = ValidationErrors::default();
-        if self.name.len() < MIN_NAME_LEN {
-            errors.add_error(ActorValidation::Name, Violation::too_short(MIN_NAME_LEN));
-        }
-        errors.into_result()
+impl Validate for Actor {
+    type Validation = ActorValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.add_violation_if(
+            self.name.len() < MIN_NAME_LEN,
+            ActorValidation::NameMinLen(MIN_NAME_LEN),
+        );
+        context.into_result()
     }
 }
 
 #[derive(Debug)]
 pub struct Actors;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ActorsValidation {
     Actor(ActorValidation),
-    SummaryActor,
-    MainActor,
+    SummaryActorMissing,
+    SummaryActorAmbiguous,
+    MainActorMissing,
 }
 
 pub const ANY_ROLE_FILTER: Option<ActorRole> = None;
@@ -107,18 +111,18 @@ impl Actors {
     where
         I: IntoIterator<Item = &'a Actor> + Copy,
     {
-        let mut errors = ValidationErrors::default();
+        let mut context = ValidationContext::default();
         let mut at_least_one_actor = false;
         for actor in actors.into_iter() {
-            errors.map_and_merge_result(actor.validate(), ActorsValidation::Actor);
+            context.map_and_merge_result(actor.validate(), ActorsValidation::Actor);
             at_least_one_actor = true;
         }
-        if errors.is_empty() {
+        if !context.has_violations() {
             let mut roles: Vec<_> = actors.into_iter().map(|actor| actor.role).collect();
-            roles.sort();
+            roles.sort_unstable();
             roles.dedup();
             let mut summary_missing = false;
-            let mut summary_too_many = false;
+            let mut summary_ambiguous = false;
             for role in roles {
                 // A summary entry exists if more than one primary entry exists for disambiguation
                 if Self::filter_role_precedence(actors, role, ActorPrecedence::Primary).count() > 1
@@ -130,23 +134,19 @@ impl Actors {
                 // At most one summary entry exists for each role
                 if Self::filter_role_precedence(actors, role, ActorPrecedence::Summary).count() > 1
                 {
-                    summary_too_many = true;
+                    summary_ambiguous = true;
                 }
             }
-            if summary_missing {
-                errors.add_error(ActorsValidation::SummaryActor, Violation::Missing);
-            }
-            if summary_too_many {
-                errors.add_error(ActorsValidation::SummaryActor, Violation::too_many(1));
-            }
+            context.add_violation_if(summary_missing, ActorsValidation::SummaryActorMissing);
+            context.add_violation_if(summary_ambiguous, ActorsValidation::SummaryActorAmbiguous);
         }
-        if errors.is_empty()
-            && at_least_one_actor
-            && Self::main_actor(actors, ActorRole::Artist).is_none()
-        {
-            errors.add_error(ActorsValidation::MainActor, Violation::Missing);
-        }
-        errors.into_result()
+        context.add_violation_if(
+            !context.has_violations()
+                && at_least_one_actor
+                && Self::main_actor(actors, ActorRole::Artist).is_none(),
+            ActorsValidation::MainActorMissing,
+        );
+        context.into_result()
     }
 
     pub fn filter_role_precedence<'a, I>(

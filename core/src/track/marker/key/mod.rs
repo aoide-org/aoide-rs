@@ -15,11 +15,15 @@
 
 use super::*;
 
-use crate::{audio::PositionMs, music::key::*, util::IsDefault};
+use crate::{
+    audio::{PositionMs, PositionMsValidation},
+    music::key::*,
+    util::IsDefault,
+};
 
 use std::f64;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct KeyMarker {
     pub start: PositionMs,
 
@@ -45,52 +49,51 @@ impl KeyMarker {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum KeyMarkerValidation {
-    Start,
-    End,
-    Direction,
-    Key,
+    Start(PositionMsValidation),
+    End(PositionMsValidation),
+    ReverseDirection,
+    Key(KeySignatureValidation),
 }
 
-impl Validate<KeyMarkerValidation> for KeyMarker {
-    fn validate(&self) -> ValidationResult<KeyMarkerValidation> {
-        let mut errors = ValidationErrors::default();
-        errors.map_and_merge_result(self.start.validate(), |()| KeyMarkerValidation::Start);
+impl Validate for KeyMarker {
+    type Validation = KeyMarkerValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.map_and_merge_result(self.start.validate(), KeyMarkerValidation::Start);
         if let Some(end) = self.end {
-            errors.map_and_merge_result(end.validate(), |()| KeyMarkerValidation::End);
-            if self.start > end {
-                errors.add_error(KeyMarkerValidation::Direction, Violation::Invalid);
-            }
+            context.map_and_merge_result(end.validate(), KeyMarkerValidation::End);
+            context.add_violation_if(self.start > end, KeyMarkerValidation::ReverseDirection);
         }
-        errors.map_and_merge_result(self.key.validate(), |()| KeyMarkerValidation::Key);
-        errors.into_result()
+        context.map_and_merge_result(self.key.validate(), KeyMarkerValidation::Key);
+        context.into_result()
     }
 }
 
 #[derive(Debug)]
 pub struct KeyMarkers;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum KeyMarkersValidation {
     Marker(KeyMarkerValidation),
-    OrderedAndNonOverlappingRanges,
+    Ranges,
 }
 
 impl KeyMarkers {
     pub fn validate(markers: &[KeyMarker]) -> ValidationResult<KeyMarkersValidation> {
-        let mut errors = ValidationErrors::default();
+        let mut context = ValidationContext::default();
         let mut min_pos = PositionMs(f64::NEG_INFINITY);
+        let mut ranges_violation = false;
         for marker in markers {
-            errors.map_and_merge_result(marker.validate(), KeyMarkersValidation::Marker);
+            context.map_and_merge_result(marker.validate(), KeyMarkersValidation::Marker);
             if min_pos > marker.start {
-                errors.add_error(
-                    KeyMarkersValidation::OrderedAndNonOverlappingRanges,
-                    Violation::Invalid,
-                );
+                ranges_violation = true;
             }
             min_pos = marker.start;
         }
-        errors.into_result()
+        context.add_violation_if(ranges_violation, KeyMarkersValidation::Ranges);
+        context.into_result()
     }
 }

@@ -15,7 +15,10 @@
 
 use super::*;
 
-use crate::{entity::EntityUid, util::color::*};
+use crate::{
+    entity::{EntityUid, EntityUidValidation},
+    util::color::*,
+};
 
 use chrono::{DateTime, Utc};
 
@@ -34,23 +37,25 @@ pub struct Collection {
     pub play_count: Option<usize>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum CollectionValidation {
-    Uid,
+    Uid(EntityUidValidation),
 }
 
-impl Validate<CollectionValidation> for Collection {
-    fn validate(&self) -> ValidationResult<CollectionValidation> {
-        let mut errors = ValidationErrors::default();
-        errors.map_and_merge_result(self.uid.validate(), |()| CollectionValidation::Uid);
-        errors.into_result()
+impl Validate for Collection {
+    type Validation = CollectionValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.map_and_merge_result(self.uid.validate(), CollectionValidation::Uid);
+        context.into_result()
     }
 }
 
 #[derive(Debug)]
 pub struct Collections;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum CollectionsValidation {
     Collection(CollectionValidation),
 }
@@ -60,10 +65,10 @@ impl Collections {
     where
         I: IntoIterator<Item = &'a Collection> + Copy,
     {
-        let mut errors = ValidationErrors::default();
+        let mut context = ValidationContext::default();
         for collection in collections.into_iter() {
-            errors.map_and_merge_result(collection.validate(), CollectionsValidation::Collection);
+            context.map_and_merge_result(collection.validate(), CollectionsValidation::Collection);
         }
-        errors.into_result()
+        context.into_result()
     }
 }

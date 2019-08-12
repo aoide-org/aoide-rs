@@ -27,7 +27,7 @@ pub type BitsPerSample = u8;
 
 pub type BitsPerSecond = u32;
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct BitRateBps(pub BitsPerSecond);
 
 impl BitRateBps {
@@ -44,13 +44,20 @@ impl BitRateBps {
     }
 }
 
-impl Validate<()> for BitRateBps {
-    fn validate(&self) -> ValidationResult<()> {
-        let mut errors = ValidationErrors::default();
-        if !(*self >= Self::min() && *self <= Self::max()) {
-            errors.add_error((), Violation::OutOfRange);
-        }
-        errors.into_result()
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum BitRateBpsValidation {
+    Min(BitRateBps),
+    Max(BitRateBps),
+}
+
+impl Validate for BitRateBps {
+    type Validation = BitRateBpsValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.add_violation_if(*self < Self::min(), BitRateBpsValidation::Min(Self::min()));
+        context.add_violation_if(*self > Self::max(), BitRateBpsValidation::Max(Self::max()));
+        context.into_result()
     }
 }
 
@@ -66,7 +73,7 @@ impl fmt::Display for BitRateBps {
 
 pub type SamplesPerSecond = u32;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SampleRateHz(pub SamplesPerSecond);
 
 impl SampleRateHz {
@@ -99,13 +106,26 @@ impl SampleRateHz {
     }
 }
 
-impl Validate<()> for SampleRateHz {
-    fn validate(&self) -> ValidationResult<()> {
-        let mut errors = ValidationErrors::default();
-        if !(*self >= Self::min() && *self <= Self::max()) {
-            errors.add_error((), Violation::OutOfRange);
-        }
-        errors.into_result()
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum SampleRateHzValidation {
+    Min(SampleRateHz),
+    Max(SampleRateHz),
+}
+
+impl Validate for SampleRateHz {
+    type Validation = SampleRateHzValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.add_violation_if(
+            *self < Self::min(),
+            SampleRateHzValidation::Min(Self::min()),
+        );
+        context.add_violation_if(
+            *self > Self::max(),
+            SampleRateHzValidation::Max(Self::max()),
+        );
+        context.into_result()
     }
 }
 
@@ -119,7 +139,7 @@ impl fmt::Display for SampleRateHz {
 // PcmSignal
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct PcmSignal {
     pub channel_layout: ChannelLayout,
 
@@ -138,26 +158,28 @@ impl PcmSignal {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum PcmSignalValidation {
-    ChannelLayout,
-    SampleLayout,
-    SampleRate,
+    ChannelLayout(ChannelLayoutValidation),
+    SampleLayout(SampleLayoutValidation),
+    SampleRate(SampleRateHzValidation),
 }
 
-impl Validate<PcmSignalValidation> for PcmSignal {
-    fn validate(&self) -> ValidationResult<PcmSignalValidation> {
-        let mut errors = ValidationErrors::default();
-        errors.map_and_merge_result(self.channel_layout.validate(), |()| {
-            PcmSignalValidation::ChannelLayout
-        });
-        errors.map_and_merge_result(self.sample_layout.validate(), |()| {
-            PcmSignalValidation::SampleLayout
-        });
-        errors.map_and_merge_result(self.sample_rate.validate(), |()| {
-            PcmSignalValidation::SampleRate
-        });
-        errors.into_result()
+impl Validate for PcmSignal {
+    type Validation = PcmSignalValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.map_and_merge_result(
+            self.channel_layout.validate(),
+            PcmSignalValidation::ChannelLayout,
+        );
+        context.map_and_merge_result(
+            self.sample_layout.validate(),
+            PcmSignalValidation::SampleLayout,
+        );
+        context.map_and_merge_result(self.sample_rate.validate(), PcmSignalValidation::SampleRate);
+        context.into_result()
     }
 }
 
@@ -167,7 +189,7 @@ impl Validate<PcmSignalValidation> for PcmSignal {
 
 pub type LatencyInMilliseconds = f64;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct LatencyMs(pub LatencyInMilliseconds);
 
 impl LatencyMs {
@@ -193,13 +215,21 @@ impl LatencyMs {
     }
 }
 
-impl Validate<()> for LatencyMs {
-    fn validate(&self) -> ValidationResult<()> {
-        let mut errors = ValidationErrors::default();
-        if !self.0.is_finite() || *self < Self::min() {
-            errors.add_error((), Violation::OutOfRange);
-        }
-        errors.into_result()
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum LatencyMsValidation {
+    OutOfRange,
+}
+
+impl Validate for LatencyMs {
+    type Validation = LatencyMsValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.add_violation_if(
+            !self.0.is_finite() || *self < Self::min(),
+            LatencyMsValidation::OutOfRange,
+        );
+        context.into_result()
     }
 }
 
@@ -215,7 +245,7 @@ impl fmt::Display for LatencyMs {
 
 pub type LufsValue = f64;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct LoudnessLufs(pub LufsValue);
 
 // Loudness is measured according to ITU-R BS.1770 in "Loudness Units
@@ -229,13 +259,18 @@ impl LoudnessLufs {
     }
 }
 
-impl Validate<()> for LoudnessLufs {
-    fn validate(&self) -> ValidationResult<()> {
-        let mut errors = ValidationErrors::default();
-        if !self.0.is_finite() {
-            errors.add_error((), Violation::OutOfRange);
-        }
-        errors.into_result()
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum LoudnessLufsValidation {
+    OutOfRange,
+}
+
+impl Validate for LoudnessLufs {
+    type Validation = LoudnessLufsValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.add_violation_if(!self.0.is_finite(), LoudnessLufsValidation::OutOfRange);
+        context.into_result()
     }
 }
 

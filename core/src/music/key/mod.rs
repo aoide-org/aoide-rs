@@ -19,13 +19,13 @@ use std::fmt;
 
 pub type KeyCode = u8;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum KeyMode {
     Major,
     Minor,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct KeySignature(KeyCode);
 
 impl KeySignature {
@@ -58,13 +58,21 @@ impl KeySignature {
     }
 }
 
-impl Validate<()> for KeySignature {
-    fn validate(&self) -> ValidationResult<()> {
-        let mut errors = ValidationErrors::default();
-        if !Self::is_valid_code(self.code()) {
-            errors.add_error((), Violation::Invalid);
-        }
-        errors.into_result()
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum KeySignatureValidation {
+    Invalid,
+}
+
+impl Validate for KeySignature {
+    type Validation = KeySignatureValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.add_violation_if(
+            !Self::is_valid_code(self.code()),
+            KeySignatureValidation::Invalid,
+        );
+        context.into_result()
     }
 }
 
@@ -78,7 +86,7 @@ impl fmt::Display for KeySignature {
 // OpenKeySignature
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct OpenKeySignature(KeySignature);
 
 impl OpenKeySignature {
@@ -144,7 +152,7 @@ impl fmt::Display for OpenKeySignature {
 // LancelotKeySignature
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct LancelotKeySignature(KeySignature);
 
 impl LancelotKeySignature {
@@ -210,7 +218,7 @@ impl fmt::Display for LancelotKeySignature {
 // EngineKeySignature (as found in Denon Engine Prime Library)
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EngineKeySignature(KeySignature);
 
 impl EngineKeySignature {

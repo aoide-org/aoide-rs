@@ -23,7 +23,7 @@ use std::{f64, fmt};
 
 pub type Beats = f64;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct TempoBpm(pub Beats);
 
 impl TempoBpm {
@@ -69,7 +69,7 @@ impl fmt::Display for TempoBpm {
 
 pub type BeatNumber = u16;
 
-#[derive(Clone, Copy, Default, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Default, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TimeSignature(BeatNumber, BeatNumber);
 
 impl TimeSignature {

@@ -27,7 +27,7 @@ pub type BitsPerSample = u8;
 
 pub type BitsPerSecond = u32;
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct BitRateBps(pub BitsPerSecond);
 
@@ -74,7 +74,7 @@ impl fmt::Display for BitRateBps {
 
 pub type SamplesPerSecond = u32;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct SampleRateHz(pub SamplesPerSecond);
 
 impl SampleRateHz {
@@ -134,7 +134,7 @@ impl fmt::Display for SampleRateHz {
 // PcmSignal
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Validate)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, Validate)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PcmSignal {
     pub channel_layout: ChannelLayout,
@@ -161,7 +161,7 @@ impl PcmSignal {
 
 pub type LatencyInMilliseconds = f64;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LatencyMs(pub LatencyInMilliseconds);
 
@@ -217,7 +217,7 @@ impl fmt::Display for LatencyMs {
 
 pub type LufsValue = f64;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct LoudnessLufs(pub LufsValue);
 
 // Loudness is measured according to ITU-R BS.1770 in "Loudness Units

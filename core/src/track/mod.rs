@@ -36,7 +36,7 @@ use crate::{actor::*, tag::*, title::*};
 
 use std::fmt;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum IndexCount {
     Index(u16),
     IndexAndCount(u16, u16),
@@ -64,28 +64,30 @@ impl IndexCount {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum IndexCountValidation {
-    Index,
-    Count,
-    IndexCount,
+    IndexMin(u16),
+    IndexMax(u16),
+    CountMin(u16),
 }
 
-impl Validate<IndexCountValidation> for IndexCount {
-    #[allow(clippy::absurd_extreme_comparisons)]
-    fn validate(&self) -> ValidationResult<IndexCountValidation> {
-        let mut errors = ValidationErrors::default();
-        if self.index() < MIN_INDEX {
-            errors.add_error(IndexCountValidation::Index, Violation::OutOfRange);
-        }
+impl Validate for IndexCount {
+    type Validation = IndexCountValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.add_violation_if(
+            self.index() < MIN_INDEX,
+            IndexCountValidation::IndexMin(MIN_INDEX),
+        );
         if let Some(count) = self.count() {
             if count < MIN_COUNT {
-                errors.add_error(IndexCountValidation::Count, Violation::OutOfRange);
+                context.add_violation(IndexCountValidation::CountMin(MIN_COUNT));
             } else if self.index() > count {
-                errors.add_error(IndexCountValidation::IndexCount, Violation::Inconsistent);
+                context.add_violation(IndexCountValidation::IndexMax(count));
             }
         }
-        errors.into_result()
+        context.into_result()
     }
 }
 
@@ -103,7 +105,7 @@ impl fmt::Display for IndexCount {
 // TrackLock
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum TrackLock {
     Loudness,
     Beats,
@@ -135,7 +137,7 @@ pub struct Track {
     pub locks: Vec<TrackLock>,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum TrackValidation {
     Collections(CollectionsValidation),
     Sources(SourcesValidation),
@@ -152,48 +154,50 @@ pub enum TrackValidation {
     Tags(TagsValidation),
 }
 
-impl Validate<TrackValidation> for Track {
-    fn validate(&self) -> ValidationResult<TrackValidation> {
-        let mut errors = ValidationErrors::default();
-        errors.map_and_merge_result(
+impl Validate for Track {
+    type Validation = TrackValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.map_and_merge_result(
             Collections::validate(&self.collections),
             TrackValidation::Collections,
         );
-        errors.map_and_merge_result(Sources::validate(&self.sources), TrackValidation::Sources);
-        errors.map_and_merge_result(Titles::validate(&self.titles), TrackValidation::Titles);
-        errors.map_and_merge_result(Actors::validate(&self.actors), TrackValidation::Actors);
+        context.map_and_merge_result(Sources::validate(&self.sources), TrackValidation::Sources);
+        context.map_and_merge_result(Titles::validate(&self.titles), TrackValidation::Titles);
+        context.map_and_merge_result(Actors::validate(&self.actors), TrackValidation::Actors);
         if let Some(ref album) = self.album {
-            errors.map_and_merge_result(album.validate(), TrackValidation::Album);
+            context.map_and_merge_result(album.validate(), TrackValidation::Album);
         }
         if let Some(ref release) = self.release {
-            errors.map_and_merge_result(release.validate(), TrackValidation::Release);
+            context.map_and_merge_result(release.validate(), TrackValidation::Release);
         }
         if let Some(ref disc_numbers) = self.disc_numbers {
-            errors.map_and_merge_result(disc_numbers.validate(), TrackValidation::DiscNumbers);
+            context.map_and_merge_result(disc_numbers.validate(), TrackValidation::DiscNumbers);
         }
         if let Some(ref track_numbers) = self.track_numbers {
-            errors.map_and_merge_result(track_numbers.validate(), TrackValidation::TrackNumbers);
+            context.map_and_merge_result(track_numbers.validate(), TrackValidation::TrackNumbers);
         }
         if let Some(ref movement_numbers) = self.movement_numbers {
-            errors.map_and_merge_result(
+            context.map_and_merge_result(
                 movement_numbers.validate(),
                 TrackValidation::MovementNumbers,
             );
         }
-        errors.map_and_merge_result(
+        context.map_and_merge_result(
             PositionMarkers::validate(&self.position_markers),
             TrackValidation::PositionMarkers,
         );
-        errors.map_and_merge_result(
+        context.map_and_merge_result(
             BeatMarkers::validate(&self.beat_markers),
             TrackValidation::BeatMarkers,
         );
-        errors.map_and_merge_result(
+        context.map_and_merge_result(
             KeyMarkers::validate(&self.key_markers),
             TrackValidation::KeyMarkers,
         );
-        errors.map_and_merge_result(Tags::validate(&self.tags), TrackValidation::Tags);
-        errors.into_result()
+        context.map_and_merge_result(Tags::validate(&self.tags), TrackValidation::Tags);
+        context.into_result()
     }
 }
 

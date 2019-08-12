@@ -24,7 +24,7 @@ pub type PaginationOffset = u64;
 
 pub type PaginationLimit = u64;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Pagination {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -47,13 +47,13 @@ impl Pagination {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum FilterModifier {
     Complement,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub enum StringCompare {
     StartsWith, // head (case-insensitive)
@@ -159,7 +159,7 @@ pub struct MarkerFilter {
     pub label: Option<StringPredicate>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub enum StringField {
     SourceUri, // percent-decoded URI
@@ -171,7 +171,7 @@ pub enum StringField {
     AlbumArtist,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub enum NumericField {
     AudioBitRate,
@@ -188,7 +188,7 @@ pub enum NumericField {
 
 pub type NumericValue = f64;
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub enum NumericPredicate {
     #[serde(rename = "lt")]
@@ -205,7 +205,7 @@ pub enum NumericPredicate {
     NotEqual(Option<NumericValue>),
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct NumericFilter {
     pub field: NumericField,
@@ -235,7 +235,7 @@ pub struct LocateTracksParams {
     pub uri: StringPredicate,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum ReplaceMode {
     UpdateOnly,
@@ -272,7 +272,7 @@ pub struct ReplacedTracks {
     pub discarded: Vec<String>, // e.g. nonexistent and need to be created
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub enum TrackSortField {
     InCollectionSince, // = recently added (only if searching in a single collection)
@@ -287,7 +287,7 @@ pub enum TrackSortField {
     MusicTempo,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub enum TagSortField {
     Facet,
@@ -296,7 +296,7 @@ pub enum TagSortField {
     Count,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum SortDirection {
     #[serde(rename = "asc")]
     Ascending,
@@ -305,7 +305,7 @@ pub enum SortDirection {
     Descending,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TrackSortOrder(TrackSortField, SortDirection);
 
 impl TrackSortOrder {
@@ -322,7 +322,7 @@ impl TrackSortOrder {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TagSortOrder(TagSortField, SortDirection);
 
 impl TagSortOrder {

@@ -110,7 +110,7 @@ impl PositionMarkerData {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum PositionMarkerType {
     /// The main cue point, e.g. used for as the initial position after loading the track
@@ -262,7 +262,7 @@ pub fn validate_position_marker_cardinalities(
     Ok(())
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Validate)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, Validate)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 #[validate(
     schema(function = "validate_beat_marker_direction"),
@@ -352,7 +352,7 @@ impl BeatMarker {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize, Validate)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, Validate)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct KeyMarker {
     #[serde(rename = "s")]
