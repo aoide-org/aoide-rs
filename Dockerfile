@@ -54,26 +54,40 @@ RUN mkdir -p "./src/bin/${BUILD_BIN}" \
     && \
     mv ./src/main.rs "./src/bin/${BUILD_BIN}" \
     && \
-    USER=root cargo new --lib ${PROJECT_NAME}-domain \
+    USER=root cargo new --lib ${PROJECT_NAME}-core \
     && \
-    mv ${PROJECT_NAME}-domain domain \
+    mv ${PROJECT_NAME}-core core \
     && \
-    USER=root cargo new --lib ${PROJECT_NAME}-storage \
+    USER=root cargo new --lib ${PROJECT_NAME}-core-serde \
     && \
-    mv ${PROJECT_NAME}-storage storage
+    mv ${PROJECT_NAME}-core-serde core-serde \
+    && \
+    USER=root cargo new --lib ${PROJECT_NAME}-repo \
+    && \
+    mv ${PROJECT_NAME}-repo repo \
+    && \
+    USER=root cargo new --lib ${PROJECT_NAME}-repo-sqlite \
+    && \
+    mv ${PROJECT_NAME}-repo-sqlite repo-sqlite
 COPY [ \
     "Cargo.toml", \
     "Cargo.lock", \
     "./" ]
 COPY [ \
-    "domain/Cargo.toml", \
-    "./domain/" ]
+    "core/Cargo.toml", \
+    "./core/" ]
 COPY [ \
-    "./domain/benches", \
-    "./domain/benches/" ]
+    "core/benches", \
+    "./core/benches/" ]
 COPY [ \
-    "storage/Cargo.toml", \
-    "./storage/" ]
+    "core-serde/Cargo.toml", \
+    "./core-serde/" ]
+COPY [ \
+    "repo/Cargo.toml", \
+    "./repo/" ]
+COPY [ \
+    "repo-sqlite/Cargo.toml", \
+    "./repo-sqlite/" ]
 
 # Build the dummy project(s), then delete all build artefacts that must(!) not be cached
 RUN cargo build --${BUILD_MODE} --target ${BUILD_TARGET} --all \
@@ -86,20 +100,26 @@ RUN cargo build --${BUILD_MODE} --target ${BUILD_TARGET} --all \
 
 # Copy all project (re-)sources that are required for building
 COPY [ \
-    "./src", \
+    "src", \
     "./src/" ]
 COPY [ \
-    "./resources", \
+    "resources", \
     "./resources/" ]
 COPY [ \
-    "./domain/src", \
-    "./domain/src/" ]
+    "core/src", \
+    "./core/src/" ]
 COPY [ \
-    "./storage/src", \
-    "./storage/src/" ]
+    "core-serde/src", \
+    "./core-serde/src/" ]
 COPY [ \
-    "./storage/resources", \
-    "./storage/resources/" ]
+    "repo/src", \
+    "./repo/src/" ]
+COPY [ \
+    "repo-sqlite/src", \
+    "./repo-sqlite/src/" ]
+COPY [ \
+    "repo-sqlite/migrations", \
+    "./repo-sqlite/migrations/" ]
 
 # Test and build the actual project
 RUN cargo test --${BUILD_MODE} --target ${BUILD_TARGET} --all \

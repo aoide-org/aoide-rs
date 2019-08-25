@@ -79,7 +79,7 @@ CREATE TABLE aux_track_source (
     track_id                 INTEGER NOT NULL,
     uri                      TEXT NOT NULL,     -- RFC 3986
     uri_decoded              TEXT NOT NULL,     -- percent-decoded URI
-    media_type             TEXT NOT NULL,     -- RFC 6838
+    media_type               TEXT NOT NULL,     -- RFC 6838
     audio_channel_count      INTEGER,           -- number of channels
     audio_duration           REAL,              -- milliseconds
     audio_samplerate         INTEGER,           -- Hz
