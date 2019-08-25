@@ -17,5 +17,7 @@ use super::*;
 
 #[test]
 fn default_position_marker() {
-    assert!(Marker(MarkerType::Load, Default::default()).validate().is_ok());
+    assert!(Marker(MarkerType::Load, Default::default())
+        .validate()
+        .is_ok());
 }

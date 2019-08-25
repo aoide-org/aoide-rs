@@ -55,14 +55,95 @@ fn validate_main_title() {
         },
         Title {
             name: "title2".into(),
-            level: TitleLevel::Main,
+            level: TitleLevel::Sub,
         },
     ];
     assert!(Titles::validate(titles.iter()).is_ok());
 
     let titles = [Title {
         name: "title1".into(),
+        level: TitleLevel::Sub,
+    }];
+    assert_eq!(
+        1,
+        Titles::validate(titles.iter())
+            .err()
+            .unwrap()
+            .into_iter()
+            .count()
+    );
+}
+
+#[test]
+fn validate_single_main_title() {
+    let titles = [Title {
+        name: "title1".into(),
         level: TitleLevel::Main,
     }];
+    assert!(Titles::validate(titles.iter()).is_ok());
+}
+
+#[test]
+fn validate_missing_main_title() {
+    let titles = [Title {
+        name: "title1".into(),
+        level: TitleLevel::Sub,
+    }];
+    assert_eq!(
+        1,
+        Titles::validate(titles.iter())
+            .err()
+            .unwrap()
+            .into_iter()
+            .count()
+    );
+}
+
+#[test]
+fn validate_ambiguous_main_title() {
+    let titles = [
+        Title {
+            name: "title1".into(),
+            level: TitleLevel::Main,
+        },
+        Title {
+            name: "title2".into(),
+            level: TitleLevel::Main,
+        },
+    ];
+    assert_eq!(
+        1,
+        Titles::validate(titles.iter())
+            .err()
+            .unwrap()
+            .into_iter()
+            .count()
+    );
+}
+
+#[test]
+fn validate_multiple_titles() {
+    let titles = [
+        Title {
+            name: "title1".into(),
+            level: TitleLevel::Main,
+        },
+        Title {
+            name: "title2".into(),
+            level: TitleLevel::Sub,
+        },
+        Title {
+            name: "title3".into(),
+            level: TitleLevel::Sub,
+        },
+        Title {
+            name: "title4".into(),
+            level: TitleLevel::Work,
+        },
+        Title {
+            name: "title4".into(),
+            level: TitleLevel::Movement,
+        },
+    ];
     assert!(Titles::validate(titles.iter()).is_ok());
 }

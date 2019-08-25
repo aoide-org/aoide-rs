@@ -85,8 +85,12 @@ impl Titles {
             context.map_and_merge_result(title.validate(), TitlesValidation::Title);
             at_least_one_title = true;
         }
-        if !context.has_violations() && at_least_one_title && Self::main_title(titles).is_none() {
-            context.add_violation(TitlesValidation::MainTitleMissing);
+        if !context.has_violations() && at_least_one_title {
+            match Self::main_titles(titles).count() {
+                0 => context.add_violation(TitlesValidation::MainTitleMissing),
+                1 => (), // ok
+                _ => context.add_violation(TitlesValidation::MainTitleAmbiguous),
+            }
         }
         context.into_result()
     }

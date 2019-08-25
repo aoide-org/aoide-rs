@@ -21,7 +21,10 @@ mod _core {
         track::marker::{
             beat::Marker as BeatMarker,
             key::Marker as KeyMarker,
-            position::{Marker as PositionMarker, MarkerData as PositionMarkerData, MarkerType as PositionMarkerType},
+            position::{
+                Marker as PositionMarker, MarkerData as PositionMarkerData,
+                MarkerType as PositionMarkerType,
+            },
             Markers, State,
         },
     };
