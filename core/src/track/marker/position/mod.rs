@@ -20,8 +20,6 @@ use crate::{
     util::color::*,
 };
 
-use std::ops::{Deref, DerefMut};
-
 ///////////////////////////////////////////////////////////////////////
 // Marker
 ///////////////////////////////////////////////////////////////////////
@@ -130,6 +128,9 @@ impl Validate for MarkerData {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum MarkerType {
+    /// Custom starting point, endpoint or range within the track, e.g. to label and color musical phrases
+    Custom,
+
     /// The initial position when loading a track (and the return point after stopping)
     Load,
 
@@ -151,9 +152,6 @@ pub enum MarkerType {
 
     /// Range that could be played as a sample, either forward or backward
     Sample,
-
-    /// Custom starting point, endpoint or range within the track, e.g. to label and color musical phrases
-    Custom,
 }
 
 impl MarkerType {
@@ -166,88 +164,15 @@ impl MarkerType {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Marker {
-    Load(MarkerData),
-    Main(MarkerData),
-    Intro(MarkerData),
-    Outro(MarkerData),
-    Jump(MarkerData),
-    Loop(MarkerData),
-    Sample(MarkerData),
-    Custom(MarkerData),
-}
-
-impl From<&Marker> for MarkerType {
-    fn from(from: &Marker) -> Self {
-        match from {
-            Marker::Load(_) => MarkerType::Load,
-            Marker::Main(_) => MarkerType::Main,
-            Marker::Intro(_) => MarkerType::Intro,
-            Marker::Outro(_) => MarkerType::Outro,
-            Marker::Jump(_) => MarkerType::Jump,
-            Marker::Loop(_) => MarkerType::Loop,
-            Marker::Sample(_) => MarkerType::Sample,
-            Marker::Custom(_) => MarkerType::Custom,
-        }
-    }
-}
-
-impl Deref for Marker {
-    type Target = MarkerData;
-
-    fn deref(&self) -> &Self::Target {
-        match self {
-            Marker::Load(data) => data,
-            Marker::Main(data) => data,
-            Marker::Intro(data) => data,
-            Marker::Outro(data) => data,
-            Marker::Jump(data) => data,
-            Marker::Loop(data) => data,
-            Marker::Sample(data) => data,
-            Marker::Custom(data) => data,
-        }
-    }
-}
-
-impl DerefMut for Marker {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        match self {
-            Marker::Load(data) => data,
-            Marker::Main(data) => data,
-            Marker::Intro(data) => data,
-            Marker::Outro(data) => data,
-            Marker::Jump(data) => data,
-            Marker::Loop(data) => data,
-            Marker::Sample(data) => data,
-            Marker::Custom(data) => data,
-        }
-    }
-}
+pub struct Marker(pub MarkerType, pub MarkerData);
 
 impl Marker {
     pub fn r#type(&self) -> MarkerType {
-        self.into()
+        self.0
     }
 
     pub fn data(&self) -> &MarkerData {
-        &*self
-    }
-
-    pub fn count_by_type(markers: &[Marker], r#type: MarkerType) -> usize {
-        markers
-            .iter()
-            .filter(|marker| marker.r#type() == r#type)
-            .count()
-    }
-
-    fn validate_cardinality_by_type(
-        markers: &[Marker],
-        r#type: MarkerType,
-    ) -> Result<(), MarkerValidation> {
-        if r#type.is_singular() && Self::count_by_type(markers, r#type) > 1 {
-            return Err(MarkerValidation::Cardinality);
-        }
-        Ok(())
+        &self.1
     }
 }
 
@@ -281,11 +206,28 @@ pub enum MarkersValidation {
 }
 
 impl Markers {
+    pub fn count_by_type(markers: &[Marker], r#type: MarkerType) -> usize {
+        markers
+            .iter()
+            .filter(|marker| marker.r#type() == r#type)
+            .count()
+    }
+
+    fn validate_cardinality_by_type(
+        markers: &[Marker],
+        r#type: MarkerType,
+    ) -> Result<(), MarkerValidation> {
+        if r#type.is_singular() && Self::count_by_type(markers, r#type) > 1 {
+            return Err(MarkerValidation::Cardinality);
+        }
+        Ok(())
+    }
+
     pub fn validate(markers: &[Marker]) -> ValidationResult<MarkersValidation> {
         let mut context = ValidationContext::default();
         for marker in markers {
             context.map_and_merge_result(marker.validate(), MarkersValidation::Marker);
-            if let Err(violation) = Marker::validate_cardinality_by_type(markers, marker.r#type()) {
+            if let Err(violation) = Self::validate_cardinality_by_type(markers, marker.r#type()) {
                 context.add_violation(MarkersValidation::Marker(violation));
                 break;
             }

@@ -21,7 +21,7 @@ mod _core {
         track::marker::{
             beat::Marker as BeatMarker,
             key::Marker as KeyMarker,
-            position::{Marker as PositionMarker, MarkerData as PositionMarkerData},
+            position::{Marker as PositionMarker, MarkerData as PositionMarkerData, MarkerType as PositionMarkerType},
             Markers, State,
         },
     };
@@ -39,13 +39,11 @@ use crate::{
 // State
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize_repr, Deserialize_repr)]
+#[repr(u8)]
 pub enum State {
-    #[serde(rename = "rw")]
-    ReadWrite,
-
-    #[serde(rename = "ro")]
-    ReadOnly,
+    ReadWrite = 0,
+    ReadOnly = 1,
 }
 
 impl Default for State {
@@ -122,10 +120,59 @@ impl From<Markers> for _core::Markers {
 // PositionMarker
 ///////////////////////////////////////////////////////////////////////
 
+#[derive(Clone, Debug, Serialize_repr, Deserialize_repr)]
+#[cfg_attr(test, derive(PartialEq))]
+#[repr(u8)]
+pub enum PositionMarkerType {
+    Custom = 0,
+    Load = 1,
+    Main = 2,
+    Intro = 3,
+    Outro = 4,
+    Jump = 5,
+    Loop = 6,
+    Sample = 7,
+}
+
+impl From<_core::PositionMarkerType> for PositionMarkerType {
+    fn from(from: _core::PositionMarkerType) -> Self {
+        use _core::PositionMarkerType::*;
+        match from {
+            Custom => PositionMarkerType::Custom,
+            Load => PositionMarkerType::Load,
+            Jump => PositionMarkerType::Jump,
+            Main => PositionMarkerType::Main,
+            Intro => PositionMarkerType::Intro,
+            Outro => PositionMarkerType::Outro,
+            Loop => PositionMarkerType::Loop,
+            Sample => PositionMarkerType::Sample,
+        }
+    }
+}
+
+impl From<PositionMarkerType> for _core::PositionMarkerType {
+    fn from(from: PositionMarkerType) -> Self {
+        use _core::PositionMarkerType::*;
+        match from {
+            PositionMarkerType::Custom => Custom,
+            PositionMarkerType::Load => Load,
+            PositionMarkerType::Jump => Jump,
+            PositionMarkerType::Main => Main,
+            PositionMarkerType::Intro => Intro,
+            PositionMarkerType::Outro => Outro,
+            PositionMarkerType::Loop => Loop,
+            PositionMarkerType::Sample => Sample,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(Default, PartialEq))]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(deny_unknown_fields)]
-pub struct PositionMarkerData {
+pub struct PositionMarker {
+    #[serde(rename = "t")]
+    pub r#type: PositionMarkerType,
+
     #[serde(rename = "z", skip_serializing_if = "IsDefault::is_default", default)]
     pub state: State,
 
@@ -148,77 +195,45 @@ pub struct PositionMarkerData {
     pub color: Option<ColorArgb>,
 }
 
-impl From<_core::PositionMarkerData> for PositionMarkerData {
-    fn from(from: _core::PositionMarkerData) -> Self {
-        Self {
-            start: from.start.map(Into::into),
-            end: from.end.map(Into::into),
-            label: from.label.map(Into::into),
-            number: from.number.map(Into::into),
-            color: from.color.map(Into::into),
-            state: from.state.into(),
-            source: from.source,
-        }
-    }
-}
-
-impl From<PositionMarkerData> for _core::PositionMarkerData {
-    fn from(from: PositionMarkerData) -> Self {
-        Self {
-            start: from.start.map(Into::into),
-            end: from.end.map(Into::into),
-            label: from.label.map(Into::into),
-            number: from.number.map(Into::into),
-            color: from.color.map(Into::into),
-            state: from.state.into(),
-            source: from.source,
-        }
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(PartialEq))]
-#[serde(deny_unknown_fields, tag = "t", rename_all = "kebab-case")]
-pub enum PositionMarker {
-    Load(PositionMarkerData),
-    Main(PositionMarkerData),
-    Intro(PositionMarkerData),
-    Outro(PositionMarkerData),
-    Jump(PositionMarkerData),
-    Loop(PositionMarkerData),
-    Sample(PositionMarkerData),
-    Custom(PositionMarkerData),
-}
-
 impl From<_core::PositionMarker> for PositionMarker {
     fn from(from: _core::PositionMarker) -> Self {
-        use _core::PositionMarker::*;
-        match from {
-            Load(data) => PositionMarker::Load(data.into()),
-            Jump(data) => PositionMarker::Jump(data.into()),
-            Main(data) => PositionMarker::Main(data.into()),
-            Intro(data) => PositionMarker::Intro(data.into()),
-            Outro(data) => PositionMarker::Outro(data.into()),
-            Loop(data) => PositionMarker::Loop(data.into()),
-            Sample(data) => PositionMarker::Sample(data.into()),
-            Custom(data) => PositionMarker::Custom(data.into()),
+        let _core::PositionMarker(r#type, data) = from;
+        Self {
+            r#type: r#type.into(),
+            start: data.start.map(Into::into),
+            end: data.end.map(Into::into),
+            label: data.label.map(Into::into),
+            number: data.number.map(Into::into),
+            color: data.color.map(Into::into),
+            state: data.state.into(),
+            source: data.source,
         }
     }
 }
 
 impl From<PositionMarker> for _core::PositionMarker {
     fn from(from: PositionMarker) -> Self {
-        use _core::PositionMarker::*;
-        match from {
-            PositionMarker::Load(data) => Load(data.into()),
-            PositionMarker::Main(data) => Main(data.into()),
-            PositionMarker::Intro(data) => Intro(data.into()),
-            PositionMarker::Outro(data) => Outro(data.into()),
-            PositionMarker::Jump(data) => Jump(data.into()),
-            PositionMarker::Loop(data) => Loop(data.into()),
-            PositionMarker::Sample(data) => Sample(data.into()),
-            PositionMarker::Custom(data) => Custom(data.into()),
-        }
+        use _core::PositionMarkerType::*;
+        let r#type = match from.r#type {
+            PositionMarkerType::Custom => Custom,
+            PositionMarkerType::Load => Load,
+            PositionMarkerType::Jump => Jump,
+            PositionMarkerType::Main => Main,
+            PositionMarkerType::Intro => Intro,
+            PositionMarkerType::Outro => Outro,
+            PositionMarkerType::Loop => Loop,
+            PositionMarkerType::Sample => Sample,
+        };
+        let data = _core::PositionMarkerData {
+            start: from.start.map(Into::into),
+            end: from.end.map(Into::into),
+            label: from.label.map(Into::into),
+            number: from.number.map(Into::into),
+            color: from.color.map(Into::into),
+            state: from.state.into(),
+            source: from.source,
+        };
+        Self(r#type, data)
     }
 }
 
