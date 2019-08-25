@@ -23,8 +23,12 @@ use crate::{
 
 use std::f64;
 
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub struct KeyMarker {
+#[derive(Clone, Debug, PartialEq)]
+pub struct Marker {
+    pub state: State,
+
+    pub source: Option<String>,
+
     pub start: PositionMs,
 
     pub end: Option<PositionMs>,
@@ -32,8 +36,40 @@ pub struct KeyMarker {
     pub key: KeySignature,
 }
 
-impl KeyMarker {
-    pub fn uniform_key(markers: &[KeyMarker]) -> Option<KeySignature> {
+#[derive(Copy, Clone, Debug)]
+pub enum MarkerValidation {
+    Start(PositionMsValidation),
+    End(PositionMsValidation),
+    ReverseDirection,
+    Key(KeySignatureValidation),
+}
+
+impl Validate for Marker {
+    type Validation = MarkerValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.map_and_merge_result(self.start.validate(), MarkerValidation::Start);
+        if let Some(end) = self.end {
+            context.map_and_merge_result(end.validate(), MarkerValidation::End);
+            context.add_violation_if(self.start > end, MarkerValidation::ReverseDirection);
+        }
+        context.map_and_merge_result(self.key.validate(), MarkerValidation::Key);
+        context.into_result()
+    }
+}
+
+#[derive(Debug)]
+pub struct Markers;
+
+#[derive(Copy, Clone, Debug)]
+pub enum MarkersValidation {
+    Marker(MarkerValidation),
+    Ranges,
+}
+
+impl Markers {
+    pub fn uniform_key(markers: &[Marker]) -> Option<KeySignature> {
         let mut key = None;
         for marker in markers {
             if !marker.key.is_default() {
@@ -47,53 +83,19 @@ impl KeyMarker {
         }
         key
     }
-}
 
-#[derive(Copy, Clone, Debug)]
-pub enum KeyMarkerValidation {
-    Start(PositionMsValidation),
-    End(PositionMsValidation),
-    ReverseDirection,
-    Key(KeySignatureValidation),
-}
-
-impl Validate for KeyMarker {
-    type Validation = KeyMarkerValidation;
-
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.map_and_merge_result(self.start.validate(), KeyMarkerValidation::Start);
-        if let Some(end) = self.end {
-            context.map_and_merge_result(end.validate(), KeyMarkerValidation::End);
-            context.add_violation_if(self.start > end, KeyMarkerValidation::ReverseDirection);
-        }
-        context.map_and_merge_result(self.key.validate(), KeyMarkerValidation::Key);
-        context.into_result()
-    }
-}
-
-#[derive(Debug)]
-pub struct KeyMarkers;
-
-#[derive(Copy, Clone, Debug)]
-pub enum KeyMarkersValidation {
-    Marker(KeyMarkerValidation),
-    Ranges,
-}
-
-impl KeyMarkers {
-    pub fn validate(markers: &[KeyMarker]) -> ValidationResult<KeyMarkersValidation> {
+    pub fn validate(markers: &[Marker]) -> ValidationResult<MarkersValidation> {
         let mut context = ValidationContext::default();
         let mut min_pos = PositionMs(f64::NEG_INFINITY);
         let mut ranges_violation = false;
         for marker in markers {
-            context.map_and_merge_result(marker.validate(), KeyMarkersValidation::Marker);
+            context.map_and_merge_result(marker.validate(), MarkersValidation::Marker);
             if min_pos > marker.start {
                 ranges_violation = true;
             }
             min_pos = marker.start;
         }
-        context.add_violation_if(ranges_violation, KeyMarkersValidation::Ranges);
+        context.add_violation_if(ranges_violation, MarkersValidation::Ranges);
         context.into_result()
     }
 }

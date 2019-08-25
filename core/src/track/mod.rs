@@ -19,138 +19,100 @@ use super::*;
 
 pub mod album;
 pub mod collection;
+pub mod index;
 pub mod marker;
 pub mod release;
 pub mod source;
 pub mod tag;
 
-use self::{
-    album::*,
-    collection::*,
-    marker::{beat::*, key::*, position::*},
-    release::*,
-    source::*,
-};
+use self::{album::*, collection::*, index::*, marker::*, release::*, source::*};
 
 use crate::{actor::*, tag::*, title::*};
-
-use std::fmt;
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub enum IndexCount {
-    Index(u16),
-    IndexAndCount(u16, u16),
-}
-
-const MIN_INDEX: u16 = 1;
-
-const MIN_COUNT: u16 = 1;
-
-impl IndexCount {
-    pub fn index(self) -> u16 {
-        use IndexCount::*;
-        match self {
-            Index(idx) => idx,
-            IndexAndCount(idx, _) => idx,
-        }
-    }
-
-    pub fn count(self) -> Option<u16> {
-        use IndexCount::*;
-        match self {
-            Index(_) => None,
-            IndexAndCount(_, cnt) => Some(cnt),
-        }
-    }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum IndexCountValidation {
-    IndexMin(u16),
-    IndexMax(u16),
-    CountMin(u16),
-}
-
-impl Validate for IndexCount {
-    type Validation = IndexCountValidation;
-
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.add_violation_if(
-            self.index() < MIN_INDEX,
-            IndexCountValidation::IndexMin(MIN_INDEX),
-        );
-        if let Some(count) = self.count() {
-            if count < MIN_COUNT {
-                context.add_violation(IndexCountValidation::CountMin(MIN_COUNT));
-            } else if self.index() > count {
-                context.add_violation(IndexCountValidation::IndexMax(count));
-            }
-        }
-        context.into_result()
-    }
-}
-
-impl fmt::Display for IndexCount {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use IndexCount::*;
-        match self {
-            Index(idx) => write!(f, "{}", idx),
-            IndexAndCount(idx, cnt) => write!(f, "{}/{}", idx, cnt),
-        }
-    }
-}
 
 ///////////////////////////////////////////////////////////////////////
 // TrackLock
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum TrackLock {
-    Loudness,
-    Beats,
-    Keys,
-}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Track {
     pub collections: Vec<Collection>,
 
-    pub sources: Vec<Source>,
+    pub media_sources: Vec<MediaSource>,
 
-    pub titles: Vec<Title>,
-    pub actors: Vec<Actor>,
-
-    pub album: Option<Album>,
     pub release: Option<Release>,
 
-    pub disc_numbers: Option<IndexCount>,
-    pub track_numbers: Option<IndexCount>,
-    pub movement_numbers: Option<IndexCount>,
+    pub album: Option<Album>,
 
-    pub position_markers: Vec<PositionMarker>,
-    pub beat_markers: Vec<BeatMarker>,
-    pub key_markers: Vec<KeyMarker>,
+    pub titles: Vec<Title>,
+
+    pub actors: Vec<Actor>,
+
+    pub indexes: Indexes,
+
+    pub markers: Markers,
 
     pub tags: Vec<Tag>,
+}
 
-    pub locks: Vec<TrackLock>,
+impl Track {
+    pub fn purge_media_source_by_uri(&mut self, uri: &str) -> usize {
+        let len_before = self.media_sources.len();
+        self.media_sources
+            .retain(|media_source| media_source.uri != uri);
+        debug_assert!(self.media_sources.len() <= len_before);
+        len_before - self.media_sources.len()
+    }
+
+    pub fn purge_media_source_by_uri_prefix(&mut self, uri_prefix: &str) -> usize {
+        let len_before = self.media_sources.len();
+        self.media_sources
+            .retain(|media_source| !media_source.uri.starts_with(uri_prefix));
+        debug_assert!(self.media_sources.len() <= len_before);
+        len_before - self.media_sources.len()
+    }
+
+    pub fn relocate_media_source_by_uri(&mut self, old_uri: &str, new_uri: &str) -> usize {
+        let mut relocated = 0;
+        for mut media_source in &mut self.media_sources {
+            if media_source.uri == old_uri {
+                media_source.uri = new_uri.to_owned();
+                relocated += 1;
+            }
+        }
+        relocated
+    }
+
+    pub fn relocate_media_source_by_uri_prefix(
+        &mut self,
+        old_uri_prefix: &str,
+        new_uri_prefix: &str,
+    ) -> usize {
+        let mut relocated = 0;
+        for mut media_source in &mut self.media_sources {
+            if media_source.uri.starts_with(old_uri_prefix) {
+                let mut new_uri = String::with_capacity(
+                    new_uri_prefix.len() + (media_source.uri.len() - old_uri_prefix.len()),
+                );
+                new_uri.push_str(new_uri_prefix);
+                new_uri.push_str(&media_source.uri[old_uri_prefix.len()..]);
+                media_source.uri = new_uri;
+                relocated += 1;
+            }
+        }
+        relocated
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
 pub enum TrackValidation {
     Collections(CollectionsValidation),
-    Sources(SourcesValidation),
+    MediaSources(MediaSourcesValidation),
+    Release(ReleaseValidation),
+    Album(AlbumValidation),
     Titles(TitlesValidation),
     Actors(ActorsValidation),
-    Album(AlbumValidation),
-    Release(ReleaseValidation),
-    DiscNumbers(IndexCountValidation),
-    TrackNumbers(IndexCountValidation),
-    MovementNumbers(IndexCountValidation),
-    PositionMarkers(PositionMarkersValidation),
-    BeatMarkers(BeatMarkersValidation),
-    KeyMarkers(KeyMarkersValidation),
+    Indexes(IndexesValidation),
+    Markers(MarkersValidation),
     Tags(TagsValidation),
 }
 
@@ -160,49 +122,39 @@ impl Validate for Track {
     fn validate(&self) -> ValidationResult<Self::Validation> {
         let mut context = ValidationContext::default();
         context.map_and_merge_result(
-            Collections::validate(&self.collections),
+            Collections::validate(self.collections.iter()),
             TrackValidation::Collections,
         );
-        context.map_and_merge_result(Sources::validate(&self.sources), TrackValidation::Sources);
-        context.map_and_merge_result(Titles::validate(&self.titles), TrackValidation::Titles);
-        context.map_and_merge_result(Actors::validate(&self.actors), TrackValidation::Actors);
+        context.map_and_merge_result(
+            MediaSources::validate(self.media_sources.iter()),
+            TrackValidation::MediaSources,
+        );
+        context.map_and_merge_result(
+            Titles::validate(self.titles.iter()),
+            TrackValidation::Titles,
+        );
+        context.map_and_merge_result(
+            Actors::validate(self.actors.iter()),
+            TrackValidation::Actors,
+        );
         if let Some(ref album) = self.album {
             context.map_and_merge_result(album.validate(), TrackValidation::Album);
         }
         if let Some(ref release) = self.release {
             context.map_and_merge_result(release.validate(), TrackValidation::Release);
         }
-        if let Some(ref disc_numbers) = self.disc_numbers {
-            context.map_and_merge_result(disc_numbers.validate(), TrackValidation::DiscNumbers);
-        }
-        if let Some(ref track_numbers) = self.track_numbers {
-            context.map_and_merge_result(track_numbers.validate(), TrackValidation::TrackNumbers);
-        }
-        if let Some(ref movement_numbers) = self.movement_numbers {
-            context.map_and_merge_result(
-                movement_numbers.validate(),
-                TrackValidation::MovementNumbers,
-            );
-        }
-        context.map_and_merge_result(
-            PositionMarkers::validate(&self.position_markers),
-            TrackValidation::PositionMarkers,
-        );
-        context.map_and_merge_result(
-            BeatMarkers::validate(&self.beat_markers),
-            TrackValidation::BeatMarkers,
-        );
-        context.map_and_merge_result(
-            KeyMarkers::validate(&self.key_markers),
-            TrackValidation::KeyMarkers,
-        );
-        context.map_and_merge_result(Tags::validate(&self.tags), TrackValidation::Tags);
+        context.map_and_merge_result(self.indexes.validate(), TrackValidation::Indexes);
+        context.map_and_merge_result(self.markers.validate(), TrackValidation::Markers);
+        context.map_and_merge_result(Tags::validate(self.tags.iter()), TrackValidation::Tags);
         context.into_result()
     }
 }
+
+pub type Entity = crate::entity::Entity<TrackValidation, Track>;
 
 ///////////////////////////////////////////////////////////////////////
 // Tests
 ///////////////////////////////////////////////////////////////////////
 
-// TODO
+#[cfg(tests)]
+mod tests;

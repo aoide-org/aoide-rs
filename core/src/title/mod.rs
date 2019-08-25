@@ -21,11 +21,11 @@ use super::*;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TitleLevel {
-    Main = 0, // default
-    Sub = 1,
+    Main,
+    Sub,
     // for classical music, only used for tracks not albums
-    Work = 2,
-    Movement = 3,
+    Work,
+    Movement,
 }
 
 impl Default for TitleLevel {
@@ -38,23 +38,16 @@ impl Default for TitleLevel {
 // Title
 ///////////////////////////////////////////////////////////////////////
 
-const NAME_MIN_LEN: usize = 1;
-
-const LANG_MIN_LEN: usize = 2;
-
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Title {
     pub name: String,
 
     pub level: TitleLevel,
-
-    pub language: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum TitleValidation {
-    NameMinLen(usize),
-    LanguageMinLen(usize),
+    NameEmpty,
 }
 
 impl Validate for Title {
@@ -62,16 +55,7 @@ impl Validate for Title {
 
     fn validate(&self) -> ValidationResult<Self::Validation> {
         let mut context = ValidationContext::default();
-        context.add_violation_if(
-            self.name.len() < NAME_MIN_LEN,
-            TitleValidation::NameMinLen(NAME_MIN_LEN),
-        );
-        if let Some(ref language) = self.language {
-            context.add_violation_if(
-                language.len() < LANG_MIN_LEN,
-                TitleValidation::LanguageMinLen(LANG_MIN_LEN),
-            );
-        }
+        context.add_violation_if(self.name.trim().is_empty(), TitleValidation::NameEmpty);
         context.into_result()
     }
 }
@@ -93,82 +77,45 @@ pub const ANY_LANGUAGE_FILTER: Option<Option<&'static str>> = None;
 impl Titles {
     pub fn validate<'a, I>(titles: I) -> ValidationResult<TitlesValidation>
     where
-        I: IntoIterator<Item = &'a Title> + Copy,
+        I: Iterator<Item = &'a Title> + Clone,
     {
         let mut context = ValidationContext::default();
         let mut at_least_one_title = false;
-        for title in titles.into_iter() {
+        for title in titles.clone() {
             context.map_and_merge_result(title.validate(), TitlesValidation::Title);
             at_least_one_title = true;
         }
-        if !context.has_violations() && at_least_one_title {
-            if Self::main_title(titles, None).is_none() {
-                context.add_violation(TitlesValidation::MainTitleMissing);
-            } else {
-                let mut languages: Vec<Option<&'a str>> = titles
-                    .into_iter()
-                    .map(|title| title.language.as_ref().map(|s| s.as_str()))
-                    .collect();
-                languages.sort_unstable();
-                languages.dedup();
-                for language in &languages {
-                    if Self::main_titles(titles, Some(*language)).count() > 1 {
-                        context.add_violation(TitlesValidation::MainTitleAmbiguous);
-                        break;
-                    }
-                }
-            }
+        if !context.has_violations() && at_least_one_title && Self::main_title(titles).is_none() {
+            context.add_violation(TitlesValidation::MainTitleMissing);
         }
         context.into_result()
     }
 
-    pub fn filter_level_language<'a, 'b, I>(
+    pub fn filter_level<'a, I>(
         titles: I,
         level: impl Into<Option<TitleLevel>>,
-        language: impl Into<Option<Option<&'b str>>>,
     ) -> impl Iterator<Item = &'a Title>
     where
         I: IntoIterator<Item = &'a Title>,
-        'b: 'a,
     {
         let level = level.into();
-        let language = language.into();
-        titles.into_iter().filter(move |title| {
-            (level == ANY_LEVEL_FILTER || level == Some(title.level))
-                && (language == ANY_LANGUAGE_FILTER
-                    || language == Some(title.language.as_ref().map(String::as_str)))
-        })
+        titles
+            .into_iter()
+            .filter(move |title| level == ANY_LEVEL_FILTER || level == Some(title.level))
     }
 
-    pub fn main_titles<'a, 'b, I>(
-        titles: I,
-        language: impl Into<Option<Option<&'b str>>>,
-    ) -> impl Iterator<Item = &'a Title>
+    pub fn main_titles<'a, 'b, I>(titles: I) -> impl Iterator<Item = &'a Title>
     where
         I: IntoIterator<Item = &'a Title>,
-        'b: 'a,
     {
-        Self::filter_level_language(titles, TitleLevel::Main, language)
+        Self::filter_level(titles, TitleLevel::Main)
     }
 
-    pub fn main_title<'a, 'b, I>(
-        titles: I,
-        default_language: impl Into<Option<&'b str>>,
-    ) -> Option<&'a Title>
+    pub fn main_title<'a, I>(titles: I) -> Option<&'a Title>
     where
-        I: IntoIterator<Item = &'a Title> + Copy,
-        'b: 'a,
+        I: IntoIterator<Item = &'a Title>,
     {
-        if let Some(main_title) = Self::main_titles(titles, Some(None)).nth(0) {
-            return Some(main_title);
-        }
-        let default_language = default_language.into();
-        if default_language.is_some() {
-            if let Some(main_title) = Self::main_titles(titles, Some(default_language)).nth(0) {
-                return Some(main_title);
-            }
-        }
-        Self::main_titles(titles, ANY_LANGUAGE_FILTER).nth(0)
+        Self::main_titles(titles).nth(0)
     }
 }
 

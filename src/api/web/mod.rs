@@ -20,7 +20,7 @@ use diesel::{
     r2d2::{ConnectionManager, Pool, PooledConnection},
 };
 
-use failure::Error;
+use failure::{Error, Fallible};
 
 pub mod collections;
 pub mod tracks;
@@ -41,6 +41,23 @@ impl SqliteExecutor {
 
     pub fn pooled_connection(&self) -> Result<SqlitePooledConnection, Error> {
         self.connection_pool.get().map_err(Into::into)
+    }
+}
+
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PaginationQueryParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub offset: Option<aoide_repo::PaginationOffset>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<aoide_repo::PaginationLimit>,
+}
+
+impl From<PaginationQueryParams> for aoide_repo::Pagination {
+    fn from(from: PaginationQueryParams) -> Self {
+        let PaginationQueryParams { offset, limit } = from;
+        Self { offset, limit }
     }
 }
 

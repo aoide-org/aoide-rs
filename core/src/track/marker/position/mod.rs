@@ -23,7 +23,7 @@ use crate::{
 use std::ops::{Deref, DerefMut};
 
 ///////////////////////////////////////////////////////////////////////
-// PositionMarker
+// Marker
 ///////////////////////////////////////////////////////////////////////
 
 /// Position markers identify distinctive points or ranges/sections
@@ -41,17 +41,21 @@ use std::ops::{Deref, DerefMut};
 ///
 /// | Type    | Extent    | Start    | End     | Constraints  | Direction | Cardinality |
 /// |---------|-----------|----------|---------|--------------|-----------|-------------|
-/// |cue      |point      |some      |none     |              |           |0..1         |
-/// |hot-cue  |point      |some      |none     |              |           |*            |
-/// |auto-crop|range      |some      |some     |start<end     | fwd       |0..1         |
+/// |load     |point      |some      |none     |              |           |0..1         |
+/// |main     |range      |some      |some     |start<end     | fwd       |0..1         |
 /// |intro    |point/range|none/some |none/some|start<end     | fwd       |0..1         |
 /// |outro    |point/range|none/some |none/some|start<end     | fwd       |0..1         |
-/// |section  |point/range|none/some |none/some|start<end     | fwd       |*            |
+/// |jump     |point      |some      |none     |              |           |*            |
 /// |loop     |range      |some      |some     |start<>end    | fwd/bkwd  |*            |
 /// |sample   |range      |some      |some     |start<>end    | fwd/bkwd  |*            |
+/// |custom   |point/range|none/some |none/some|start<>end    | fwd/bkwd  |*            |
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct PositionMarkerData {
+pub struct MarkerData {
+    pub state: State,
+
+    pub source: Option<String>,
+
     pub start: Option<PositionMs>,
 
     pub end: Option<PositionMs>,
@@ -64,86 +68,74 @@ pub struct PositionMarkerData {
 }
 
 #[derive(Copy, Clone, Debug)]
-pub enum PositionMarkerRangeValidation {
+pub enum MarkerRangeValidation {
     Invalid,
     Empty,
 }
 
-impl PositionMarkerData {
-    fn validate_range_by_type(
-        &self,
-        r#type: PositionMarkerType,
-    ) -> Result<(), PositionMarkerRangeValidation> {
+impl MarkerData {
+    fn validate_range_by_type(&self, r#type: MarkerType) -> Result<(), MarkerRangeValidation> {
         match r#type {
-            PositionMarkerType::Cue | PositionMarkerType::HotCue => {
+            MarkerType::Load | MarkerType::Jump => {
                 if self.end.is_some() {
-                    return Err(PositionMarkerRangeValidation::Invalid);
+                    return Err(MarkerRangeValidation::Invalid);
                 }
             }
-            PositionMarkerType::AutoCrop
-            | PositionMarkerType::Intro
-            | PositionMarkerType::Outro
-            | PositionMarkerType::Section => {
+            MarkerType::Main | MarkerType::Intro | MarkerType::Outro => {
                 if let (Some(start), Some(end)) = (self.start, self.end) {
                     if start >= end {
-                        return Err(PositionMarkerRangeValidation::Empty);
+                        return Err(MarkerRangeValidation::Empty);
                     }
                 }
             }
-            PositionMarkerType::Loop | PositionMarkerType::Sample => {
+            MarkerType::Loop | MarkerType::Sample => {
                 if let (Some(start), Some(end)) = (self.start, self.end) {
                     if start == end {
-                        return Err(PositionMarkerRangeValidation::Empty);
+                        return Err(MarkerRangeValidation::Empty);
                     }
                 } else {
-                    return Err(PositionMarkerRangeValidation::Invalid);
+                    return Err(MarkerRangeValidation::Invalid);
                 }
             }
+            MarkerType::Custom => (), // unrestricted
         }
         Ok(())
     }
 }
 
 #[derive(Copy, Clone, Debug)]
-pub enum PositionMarkerDataValidation {
+pub enum MarkerDataValidation {
     Start(PositionMsValidation),
     End(PositionMsValidation),
-    LabelMinLen(usize),
+    LabelEmpty,
 }
 
-const LABEL_MIN_LEN: usize = 1;
-
-impl Validate for PositionMarkerData {
-    type Validation = PositionMarkerDataValidation;
+impl Validate for MarkerData {
+    type Validation = MarkerDataValidation;
 
     fn validate(&self) -> ValidationResult<Self::Validation> {
         let mut context = ValidationContext::default();
         if let Some(start) = self.start {
-            context.map_and_merge_result(start.validate(), PositionMarkerDataValidation::Start);
+            context.map_and_merge_result(start.validate(), MarkerDataValidation::Start);
         }
         if let Some(end) = self.end {
-            context.map_and_merge_result(end.validate(), PositionMarkerDataValidation::End);
+            context.map_and_merge_result(end.validate(), MarkerDataValidation::End);
         }
         if let Some(ref label) = self.label {
-            context.add_violation_if(
-                label.len() < LABEL_MIN_LEN,
-                PositionMarkerDataValidation::LabelMinLen(LABEL_MIN_LEN),
-            );
+            context.add_violation_if(label.trim().is_empty(), MarkerDataValidation::LabelEmpty);
         }
         context.into_result()
     }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub enum PositionMarkerType {
-    /// The main cue point, e.g. used for as the initial position after loading the track
-    Cue,
+pub enum MarkerType {
+    /// The initial position when loading a track (and the return point after stopping)
+    Load,
 
-    /// Custom jump point within the track for quick navigation
-    HotCue,
-
-    /// The audible range between the first and last sound (implicit and inaccessible for the user)
-    AutoCrop,
+    /// The audible range between the first and last sound, i.e. after leading/trailing
+    /// silence has been stripped
+    Main,
 
     /// Starting point, endpoint, or range of the track's intro part
     Intro,
@@ -151,97 +143,97 @@ pub enum PositionMarkerType {
     /// Starting point, endpoint, or range of the track's outro part
     Outro,
 
-    /// Custom starting point, endpoint or range within the track, e.g. to label and color musical phrases
-    Section,
+    /// Custom start/cue points in a track for direct access while continuing playback, i.e. classical hot cues
+    Jump,
 
     /// Range that could be played in a loop, either forward or backward
     Loop,
 
     /// Range that could be played as a sample, either forward or backward
     Sample,
+
+    /// Custom starting point, endpoint or range within the track, e.g. to label and color musical phrases
+    Custom,
 }
 
-impl PositionMarkerType {
+impl MarkerType {
     pub fn is_singular(self) -> bool {
         match self {
-            PositionMarkerType::Cue
-            | PositionMarkerType::AutoCrop
-            | PositionMarkerType::Intro
-            | PositionMarkerType::Outro => true, // cardinality = 0..1
+            MarkerType::Load | MarkerType::Main | MarkerType::Intro | MarkerType::Outro => true, // cardinality = 0..1
             _ => false, // cardinality = *
         }
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum PositionMarker {
-    Cue(PositionMarkerData),
-    HotCue(PositionMarkerData),
-    AutoCrop(PositionMarkerData),
-    Intro(PositionMarkerData),
-    Outro(PositionMarkerData),
-    Section(PositionMarkerData),
-    Loop(PositionMarkerData),
-    Sample(PositionMarkerData),
+pub enum Marker {
+    Load(MarkerData),
+    Main(MarkerData),
+    Intro(MarkerData),
+    Outro(MarkerData),
+    Jump(MarkerData),
+    Loop(MarkerData),
+    Sample(MarkerData),
+    Custom(MarkerData),
 }
 
-impl From<&PositionMarker> for PositionMarkerType {
-    fn from(from: &PositionMarker) -> Self {
+impl From<&Marker> for MarkerType {
+    fn from(from: &Marker) -> Self {
         match from {
-            PositionMarker::Cue(_) => PositionMarkerType::Cue,
-            PositionMarker::HotCue(_) => PositionMarkerType::HotCue,
-            PositionMarker::AutoCrop(_) => PositionMarkerType::AutoCrop,
-            PositionMarker::Intro(_) => PositionMarkerType::Intro,
-            PositionMarker::Outro(_) => PositionMarkerType::Outro,
-            PositionMarker::Section(_) => PositionMarkerType::Section,
-            PositionMarker::Loop(_) => PositionMarkerType::Loop,
-            PositionMarker::Sample(_) => PositionMarkerType::Sample,
+            Marker::Load(_) => MarkerType::Load,
+            Marker::Main(_) => MarkerType::Main,
+            Marker::Intro(_) => MarkerType::Intro,
+            Marker::Outro(_) => MarkerType::Outro,
+            Marker::Jump(_) => MarkerType::Jump,
+            Marker::Loop(_) => MarkerType::Loop,
+            Marker::Sample(_) => MarkerType::Sample,
+            Marker::Custom(_) => MarkerType::Custom,
         }
     }
 }
 
-impl Deref for PositionMarker {
-    type Target = PositionMarkerData;
+impl Deref for Marker {
+    type Target = MarkerData;
 
     fn deref(&self) -> &Self::Target {
         match self {
-            PositionMarker::Cue(data) => data,
-            PositionMarker::HotCue(data) => data,
-            PositionMarker::AutoCrop(data) => data,
-            PositionMarker::Intro(data) => data,
-            PositionMarker::Outro(data) => data,
-            PositionMarker::Section(data) => data,
-            PositionMarker::Loop(data) => data,
-            PositionMarker::Sample(data) => data,
+            Marker::Load(data) => data,
+            Marker::Main(data) => data,
+            Marker::Intro(data) => data,
+            Marker::Outro(data) => data,
+            Marker::Jump(data) => data,
+            Marker::Loop(data) => data,
+            Marker::Sample(data) => data,
+            Marker::Custom(data) => data,
         }
     }
 }
 
-impl DerefMut for PositionMarker {
+impl DerefMut for Marker {
     fn deref_mut(&mut self) -> &mut Self::Target {
         match self {
-            PositionMarker::Cue(data) => data,
-            PositionMarker::HotCue(data) => data,
-            PositionMarker::AutoCrop(data) => data,
-            PositionMarker::Intro(data) => data,
-            PositionMarker::Outro(data) => data,
-            PositionMarker::Section(data) => data,
-            PositionMarker::Loop(data) => data,
-            PositionMarker::Sample(data) => data,
+            Marker::Load(data) => data,
+            Marker::Main(data) => data,
+            Marker::Intro(data) => data,
+            Marker::Outro(data) => data,
+            Marker::Jump(data) => data,
+            Marker::Loop(data) => data,
+            Marker::Sample(data) => data,
+            Marker::Custom(data) => data,
         }
     }
 }
 
-impl PositionMarker {
-    pub fn r#type(&self) -> PositionMarkerType {
+impl Marker {
+    pub fn r#type(&self) -> MarkerType {
         self.into()
     }
 
-    pub fn data(&self) -> &PositionMarkerData {
+    pub fn data(&self) -> &MarkerData {
         &*self
     }
 
-    pub fn count_by_type(markers: &[PositionMarker], r#type: PositionMarkerType) -> usize {
+    pub fn count_by_type(markers: &[Marker], r#type: MarkerType) -> usize {
         markers
             .iter()
             .filter(|marker| marker.r#type() == r#type)
@@ -249,54 +241,52 @@ impl PositionMarker {
     }
 
     fn validate_cardinality_by_type(
-        markers: &[PositionMarker],
-        r#type: PositionMarkerType,
-    ) -> Result<(), PositionMarkerValidation> {
+        markers: &[Marker],
+        r#type: MarkerType,
+    ) -> Result<(), MarkerValidation> {
         if r#type.is_singular() && Self::count_by_type(markers, r#type) > 1 {
-            return Err(PositionMarkerValidation::Cardinality);
+            return Err(MarkerValidation::Cardinality);
         }
         Ok(())
     }
 }
 
 #[derive(Copy, Clone, Debug)]
-pub enum PositionMarkerValidation {
-    Data(PositionMarkerDataValidation),
-    Range(PositionMarkerRangeValidation),
+pub enum MarkerValidation {
+    Data(MarkerDataValidation),
+    Range(MarkerRangeValidation),
     Cardinality,
 }
 
-impl Validate for PositionMarker {
-    type Validation = PositionMarkerValidation;
+impl Validate for Marker {
+    type Validation = MarkerValidation;
 
     fn validate(&self) -> ValidationResult<Self::Validation> {
         let mut context = ValidationContext::default();
         let data = self.data();
-        context.map_and_merge_result(data.validate(), PositionMarkerValidation::Data);
+        context.map_and_merge_result(data.validate(), MarkerValidation::Data);
         if let Err(violation) = data.validate_range_by_type(self.r#type()) {
-            context.add_violation(PositionMarkerValidation::Range(violation));
+            context.add_violation(MarkerValidation::Range(violation));
         }
         context.into_result()
     }
 }
 
 #[derive(Debug)]
-pub struct PositionMarkers;
+pub struct Markers;
 
 #[derive(Copy, Clone, Debug)]
-pub enum PositionMarkersValidation {
-    Marker(PositionMarkerValidation),
+pub enum MarkersValidation {
+    Marker(MarkerValidation),
 }
 
-impl PositionMarkers {
-    pub fn validate(markers: &[PositionMarker]) -> ValidationResult<PositionMarkersValidation> {
+impl Markers {
+    pub fn validate(markers: &[Marker]) -> ValidationResult<MarkersValidation> {
         let mut context = ValidationContext::default();
         for marker in markers {
-            context.map_and_merge_result(marker.validate(), PositionMarkersValidation::Marker);
-            if let Err(violation) =
-                PositionMarker::validate_cardinality_by_type(markers, marker.r#type())
-            {
-                context.add_violation(PositionMarkersValidation::Marker(violation));
+            context.map_and_merge_result(marker.validate(), MarkersValidation::Marker);
+            if let Err(violation) = Marker::validate_cardinality_by_type(markers, marker.r#type()) {
+                context.add_violation(MarkersValidation::Marker(violation));
                 break;
             }
         }

@@ -47,19 +47,19 @@ fn actors() {
         },
     ];
 
-    assert!(Actors::validate(&actors).is_ok());
+    assert!(Actors::validate(actors.iter()).is_ok());
 
     // Artist(s)
     assert_eq!(
         summary_artist_name,
-        Actors::filter_role_precedence(&actors, ActorRole::Artist, ActorPrecedence::Summary)
+        Actors::filter_role_precedence(actors.iter(), ActorRole::Artist, ActorPrecedence::Summary)
             .next()
             .unwrap()
             .name
     );
     assert_eq!(
         primary_artist_name,
-        Actors::filter_role_precedence(&actors, ActorRole::Artist, ActorPrecedence::Primary)
+        Actors::filter_role_precedence(actors.iter(), ActorRole::Artist, ActorPrecedence::Primary)
             .next()
             .unwrap()
             .name
@@ -67,7 +67,9 @@ fn actors() {
     // Not allowed to query for multiple secondary artists
     assert_eq!(
         summary_artist_name,
-        Actors::main_actor(&actors, ActorRole::Artist).unwrap().name
+        Actors::main_actor(actors.iter(), ActorRole::Artist)
+            .unwrap()
+            .name
     );
 
     // Producer(s)
@@ -90,7 +92,7 @@ fn actors() {
     );
     assert_eq!(
         primary_producer_name,
-        Actors::main_actor(&actors, ActorRole::Producer)
+        Actors::main_actor(actors.iter(), ActorRole::Producer)
             .unwrap()
             .name
     );
@@ -108,11 +110,14 @@ fn actors() {
             Actors::filter_role_precedence(&actors, ActorRole::Conductor, *prio).count()
         );
     }
-    assert_eq!(None, Actors::main_actor(&actors, ActorRole::Conductor));
+    assert_eq!(
+        None,
+        Actors::main_actor(actors.iter(), ActorRole::Conductor)
+    );
 }
 
 #[test]
 fn validate_empty_actors() {
     let actors = [];
-    assert!(Actors::validate(&actors).is_ok());
+    assert!(Actors::validate(actors.iter()).is_ok());
 }

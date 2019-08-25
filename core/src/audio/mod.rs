@@ -131,11 +131,9 @@ pub struct AudioEncoder {
     pub settings: Option<String>,
 }
 
-const NAME_MIN_LEN: usize = 1;
-
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum AudioEncoderValidation {
-    NameMinLen(usize),
+    NameEmpty,
 }
 
 impl Validate for AudioEncoder {
@@ -144,8 +142,8 @@ impl Validate for AudioEncoder {
     fn validate(&self) -> ValidationResult<Self::Validation> {
         let mut context = ValidationContext::default();
         context.add_violation_if(
-            self.name.len() < NAME_MIN_LEN,
-            AudioEncoderValidation::NameMinLen(NAME_MIN_LEN),
+            self.name.trim().is_empty(),
+            AudioEncoderValidation::NameEmpty,
         );
         context.into_result()
     }
@@ -192,7 +190,7 @@ impl Validate for AudioContent {
             AudioContentValidation::SampleRate,
         );
         context.map_and_merge_result(self.bit_rate.validate(), AudioContentValidation::BitRate);
-        if let Some(ref loudness) = self.loudness {
+        if let Some(loudness) = self.loudness {
             context.map_and_merge_result(loudness.validate(), AudioContentValidation::Loudness);
         }
         if let Some(ref encoder) = self.encoder {

@@ -21,19 +21,19 @@ use super::*;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Ord, PartialOrd)]
 pub enum ActorRole {
-    Artist = 0, // default
-    Arranger = 1,
-    Composer = 2,
-    Conductor = 3,
-    DjMixer = 4,
-    Engineer = 5,
-    Lyricist = 6,
-    Mixer = 7,
-    Performer = 8,
-    Producer = 9,
-    Publisher = 10,
-    Remixer = 11,
-    Writer = 12,
+    Artist,
+    Arranger,
+    Composer,
+    Conductor,
+    DjMixer,
+    Engineer,
+    Lyricist,
+    Mixer,
+    Performer,
+    Producer,
+    Publisher,
+    Remixer,
+    Writer,
 }
 
 impl Default for ActorRole {
@@ -48,9 +48,9 @@ impl Default for ActorRole {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ActorPrecedence {
-    Summary = 0, // default
-    Primary = 1,
-    Secondary = 2,
+    Summary,
+    Primary,
+    Secondary,
 }
 
 impl Default for ActorPrecedence {
@@ -63,8 +63,6 @@ impl Default for ActorPrecedence {
 // Actor
 ///////////////////////////////////////////////////////////////////////
 
-const MIN_NAME_LEN: usize = 1;
-
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Actor {
     pub name: String,
@@ -76,7 +74,7 @@ pub struct Actor {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ActorValidation {
-    NameMinLen(usize),
+    NameEmpty,
 }
 
 impl Validate for Actor {
@@ -84,10 +82,7 @@ impl Validate for Actor {
 
     fn validate(&self) -> ValidationResult<Self::Validation> {
         let mut context = ValidationContext::default();
-        context.add_violation_if(
-            self.name.len() < MIN_NAME_LEN,
-            ActorValidation::NameMinLen(MIN_NAME_LEN),
-        );
+        context.add_violation_if(self.name.trim().is_empty(), ActorValidation::NameEmpty);
         context.into_result()
     }
 }
@@ -109,30 +104,35 @@ pub const ANY_PRECEDENCE_FILTER: Option<ActorPrecedence> = None;
 impl Actors {
     pub fn validate<'a, I>(actors: I) -> ValidationResult<ActorsValidation>
     where
-        I: IntoIterator<Item = &'a Actor> + Copy,
+        I: Iterator<Item = &'a Actor> + Clone,
     {
         let mut context = ValidationContext::default();
         let mut at_least_one_actor = false;
-        for actor in actors.into_iter() {
+        for actor in actors.clone() {
             context.map_and_merge_result(actor.validate(), ActorsValidation::Actor);
             at_least_one_actor = true;
         }
         if !context.has_violations() {
-            let mut roles: Vec<_> = actors.into_iter().map(|actor| actor.role).collect();
+            let mut roles: Vec<_> = actors.clone().map(|actor| actor.role).collect();
             roles.sort_unstable();
             roles.dedup();
             let mut summary_missing = false;
             let mut summary_ambiguous = false;
             for role in roles {
                 // A summary entry exists if more than one primary entry exists for disambiguation
-                if Self::filter_role_precedence(actors, role, ActorPrecedence::Primary).count() > 1
-                    && Self::filter_role_precedence(actors, role, ActorPrecedence::Summary).count()
+                if Self::filter_role_precedence(actors.clone(), role, ActorPrecedence::Primary)
+                    .count()
+                    > 1
+                    && Self::filter_role_precedence(actors.clone(), role, ActorPrecedence::Summary)
+                        .count()
                         == 0
                 {
                     summary_missing = true;
                 }
                 // At most one summary entry exists for each role
-                if Self::filter_role_precedence(actors, role, ActorPrecedence::Summary).count() > 1
+                if Self::filter_role_precedence(actors.clone(), role, ActorPrecedence::Summary)
+                    .count()
+                    > 1
                 {
                     summary_ambiguous = true;
                 }
@@ -168,11 +168,16 @@ impl Actors {
     // The singular summary actor or if none exists then the singular primary actor
     pub fn main_actor<'a, I>(actors: I, role: ActorRole) -> Option<&'a Actor>
     where
-        I: IntoIterator<Item = &'a Actor> + Copy,
+        I: Iterator<Item = &'a Actor> + Clone,
     {
-        Self::filter_role_precedence(actors, role, ActorPrecedence::Summary)
-            .nth(0)
-            .or_else(|| Self::filter_role_precedence(actors, role, ActorPrecedence::Primary).nth(0))
+        // Try `Summary` first
+        if let Some(actor) =
+            Self::filter_role_precedence(actors.clone(), role, ActorPrecedence::Summary).nth(0)
+        {
+            return Some(actor);
+        }
+        // Otherwise try `Primary` as a fallback
+        Self::filter_role_precedence(actors, role, ActorPrecedence::Primary).nth(0)
     }
 }
 

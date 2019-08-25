@@ -21,10 +21,10 @@ use std::u16;
 // ChannelCount
 ///////////////////////////////////////////////////////////////////////
 
-type ChannelCountValue = u16;
+pub type NumberOfChannels = u16;
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
-pub struct ChannelCount(pub ChannelCountValue);
+pub struct ChannelCount(pub NumberOfChannels);
 
 impl ChannelCount {
     pub const fn zero() -> Self {
@@ -71,13 +71,13 @@ impl Validate for ChannelCount {
     }
 }
 
-impl From<ChannelCountValue> for ChannelCount {
-    fn from(from: ChannelCountValue) -> Self {
+impl From<NumberOfChannels> for ChannelCount {
+    fn from(from: NumberOfChannels) -> Self {
         Self(from)
     }
 }
 
-impl From<ChannelCount> for ChannelCountValue {
+impl From<ChannelCount> for NumberOfChannels {
     fn from(from: ChannelCount) -> Self {
         from.0
     }
@@ -90,9 +90,7 @@ impl From<ChannelCount> for ChannelCountValue {
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ChannelLayout {
     Mono,
-
     DualMono,
-
     Stereo,
     // ...to be continued
 }

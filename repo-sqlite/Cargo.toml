@@ -1,0 +1,19 @@
+[package]
+name = "aoide-repo-sqlite"
+version = "0.1.0"
+authors = [ "Uwe Klotz <uwe.klotz@gmail>", "et al." ]
+license = "AGPL-3.0-or-later"
+publish = false
+edition = "2018"
+
+[dependencies]
+aoide-core = "*"
+aoide-repo = "*"
+chrono = "*"
+diesel = { version = "*", features = ["chrono", "sqlite"] }
+failure = "*"
+log = "*"
+percent-encoding = "*"
+
+[dev-dependencies]
+diesel_migrations =  { version = "*", features = ["sqlite"] }

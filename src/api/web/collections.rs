@@ -15,16 +15,51 @@
 
 use super::*;
 
-use aoide_storage::{
-    api::{
-        collection::{CollectionEntityWithStats, CollectionStats, Collections, CollectionsResult},
-        track::Tracks,
-        Pagination,
-    },
-    storage::{collection::CollectionRepository, track::TrackRepository},
+mod _core {
+    pub use aoide_core::{
+        collection::{Collection, Entity},
+        entity::{EntityHeader, EntityRevision, EntityUid},
+    };
+}
+
+mod _repo {
+    pub use aoide_repo::collection::TrackStats;
+}
+
+use aoide_core::util::IsDefault;
+
+use aoide_repo::{collection::Repo as _, track::Repo as _, Pagination, RepoResult};
+
+use aoide_core_serde::{
+    collection::{Collection, Entity},
+    entity::EntityHeader,
 };
 
+use aoide_repo_sqlite::{collection::Repository, track::Repository as TrackRepository};
+
 ///////////////////////////////////////////////////////////////////////
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct TrackStats {
+    pub total_count: usize,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Default, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct EntityStats {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tracks: Option<TrackStats>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct EntityWithStats {
+    pub entity: Entity,
+
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    pub stats: EntityStats,
+}
 
 pub struct CollectionsHandler {
     db: SqlitePooledConnection,
@@ -39,30 +74,34 @@ impl CollectionsHandler {
         &self,
         new_collection: Collection,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
-        create_collection(&self.db, new_collection)
+        create_collection(&self.db, new_collection.into())
             .map_err(warp::reject::custom)
-            .map(|val| {
-                warp::reply::with_status(warp::reply::json(&val), warp::http::StatusCode::CREATED)
+            .map(|hdr| {
+                warp::reply::with_status(
+                    warp::reply::json(&EntityHeader::from(hdr)),
+                    warp::http::StatusCode::CREATED,
+                )
             })
     }
 
     pub fn handle_update(
         &self,
-        uid: EntityUid,
-        collection: CollectionEntity,
+        uid: _core::EntityUid,
+        entity: Entity,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
-        if uid != *collection.header().uid() {
+        let entity = _core::Entity::from(entity);
+        if uid != entity.hdr.uid {
             return Err(warp::reject::custom(failure::format_err!(
                 "Mismatching UIDs: {} <> {}",
                 uid,
-                collection.header().uid(),
+                entity.hdr.uid,
             )));
         }
-        update_collection(&self.db, &collection)
+        update_collection(&self.db, &entity)
             .and_then(move |res| match res {
-                (_, Some(next_revision)) => {
-                    let next_header = aoide_domain::entity::EntityHeader::new(uid, next_revision);
-                    Ok(warp::reply::json(&next_header))
+                (_, Some(rev)) => {
+                    let hdr = _core::EntityHeader { uid, rev };
+                    Ok(warp::reply::json(&EntityHeader::from(hdr)))
                 }
                 (_, None) => Err(failure::format_err!(
                     "Inexistent entity or revision conflict"
@@ -73,7 +112,7 @@ impl CollectionsHandler {
 
     pub fn handle_delete(
         &self,
-        uid: EntityUid,
+        uid: _core::EntityUid,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         delete_collection(&self.db, &uid)
             .map_err(warp::reject::custom)
@@ -88,72 +127,83 @@ impl CollectionsHandler {
 
     pub fn handle_load(
         &self,
-        uid: EntityUid,
+        uid: _core::EntityUid,
         params: WithTokensQueryParams,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         load_collection(&self.db, &uid, params.try_with_token("track-stats"))
             .map_err(warp::reject::custom)
             .and_then(|res| match res {
-                Some(val) => Ok(warp::reply::json(&val)),
+                Some((entity, track_stats)) => {
+                    let stats = EntityStats {
+                        tracks: track_stats.map(|track_stats| TrackStats {
+                            total_count: track_stats.total_count,
+                        }),
+                    };
+                    let entity_with_stats = EntityWithStats {
+                        entity: entity.into(),
+                        stats,
+                    };
+                    Ok(warp::reply::json(&entity_with_stats))
+                }
                 None => Err(warp::reject::not_found()),
             })
     }
 
     pub fn handle_list(
         &self,
-        pagination: Pagination,
+        pagination: PaginationQueryParams,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
-        list_collections(&self.db, pagination)
+        list_collections(&self.db, pagination.into())
             .map_err(warp::reject::custom)
-            .map(|val| warp::reply::json(&val))
+            .map(|entities| {
+                let entities: Vec<_> = entities.into_iter().map(Entity::from).collect();
+                warp::reply::json(&entities)
+            })
     }
 }
 
 fn create_collection(
     db: &SqlitePooledConnection,
-    new_collection: Collection,
-) -> CollectionsResult<CollectionEntity> {
-    let repository = CollectionRepository::new(&*db);
-    db.transaction::<_, Error, _>(|| repository.create_entity(new_collection))
+    new_collection: _core::Collection,
+) -> RepoResult<_core::EntityHeader> {
+    let repository = Repository::new(&*db);
+    let hdr = _core::EntityHeader::initial_random();
+    let entity = _core::Entity::new(hdr, new_collection);
+    db.transaction::<_, Error, _>(|| repository.insert_collection(&entity).map(|()| entity.hdr))
 }
 
 fn update_collection(
     db: &SqlitePooledConnection,
-    collection: &CollectionEntity,
-) -> CollectionsResult<(EntityRevision, Option<EntityRevision>)> {
-    let repository = CollectionRepository::new(&*db);
-    db.transaction::<_, Error, _>(|| repository.update_entity(collection))
+    entity: &_core::Entity,
+) -> RepoResult<(_core::EntityRevision, Option<_core::EntityRevision>)> {
+    let repository = Repository::new(&*db);
+    db.transaction::<_, Error, _>(|| repository.update_collection(entity))
 }
 
 fn delete_collection(
     db: &SqlitePooledConnection,
-    uid: &EntityUid,
-) -> CollectionsResult<Option<()>> {
-    let repository = CollectionRepository::new(&*db);
-    db.transaction::<_, Error, _>(|| repository.delete_entity(uid))
+    uid: &_core::EntityUid,
+) -> RepoResult<Option<()>> {
+    let repository = Repository::new(&*db);
+    db.transaction::<_, Error, _>(|| repository.delete_collection(uid))
 }
 
 fn load_collection(
     db: &SqlitePooledConnection,
-    uid: &EntityUid,
+    uid: &_core::EntityUid,
     with_track_stats: bool,
-) -> CollectionsResult<Option<CollectionEntityWithStats>> {
-    let repository = CollectionRepository::new(&*db);
+) -> RepoResult<Option<(_core::Entity, Option<_repo::TrackStats>)>> {
+    let repository = Repository::new(&*db);
     db.transaction::<_, Error, _>(|| {
-        let entity = repository.load_entity(uid)?;
+        let entity = repository.load_collection(uid)?;
         if let Some(entity) = entity {
             let track_stats = if with_track_stats {
                 let track_repo = TrackRepository::new(&*db);
-                Some(track_repo.collection_stats(uid)?)
+                Some(track_repo.collect_collection_track_stats(uid)?)
             } else {
                 None
             };
-            Ok(Some(CollectionEntityWithStats {
-                entity,
-                stats: CollectionStats {
-                    tracks: track_stats,
-                },
-            }))
+            Ok(Some((entity, track_stats)))
         } else {
             Ok(None)
         }
@@ -163,7 +213,7 @@ fn load_collection(
 pub fn list_collections(
     pooled_connection: &SqlitePooledConnection,
     pagination: Pagination,
-) -> CollectionsResult<Vec<CollectionEntity>> {
-    let repository = CollectionRepository::new(&*pooled_connection);
-    pooled_connection.transaction::<_, Error, _>(|| repository.list_entities(pagination))
+) -> RepoResult<Vec<_core::Entity>> {
+    let repository = Repository::new(&*pooled_connection);
+    pooled_connection.transaction::<_, Error, _>(|| repository.list_collections(pagination))
 }

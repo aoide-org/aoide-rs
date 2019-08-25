@@ -19,11 +19,10 @@ mod cli;
 mod env;
 
 use aoide::api::web::{collections::*, tracks::*, *};
-use aoide_domain::collection::Collection;
-use aoide_storage::{
-    api::{UriPredicate, UriRelocation},
-    storage::track::util::TrackRepositoryHelper,
-};
+
+use aoide_core::collection::Collection;
+
+use aoide_repo_sqlite::track::util::RepositoryHelper as TrackRepositoryHelper;
 
 use clap::App;
 use diesel::{prelude::*, sql_query};
@@ -46,7 +45,7 @@ const SERVER_LISTENING_DELAY: Duration = Duration::from_secs(1);
 static INDEX_HTML: &str = include_str!("../../../resources/index.html");
 static OPENAPI_YAML: &str = include_str!("../../../resources/openapi.yaml");
 
-diesel_migrations::embed_migrations!("storage/resources/migrations/sqlite");
+diesel_migrations::embed_migrations!("repo-sqlite/migrations");
 
 fn create_connection_pool(url: &str, max_size: u32) -> Result<SqliteConnectionPool, Error> {
     log::info!("Creating SQLite connection pool for '{}'", url);
@@ -180,7 +179,7 @@ pub fn main() -> Result<(), Error> {
 
     // /collections
     let collections = warp::path("collections");
-    let collections_uid = collections.and(warp::path::param::<aoide_domain::entity::EntityUid>());
+    let collections_uid = collections.and(warp::path::param::<aoide_core::entity::EntityUid>());
     let collections_create = warp::post2()
         .and(collections)
         .and(warp::path::end())
@@ -228,7 +227,7 @@ pub fn main() -> Result<(), Error> {
 
     // /tracks
     let tracks = warp::path("tracks");
-    let tracks_uid = tracks.and(warp::path::param::<aoide_domain::entity::EntityUid>());
+    let tracks_uid = tracks.and(warp::path::param::<aoide_core::entity::EntityUid>());
     let tracks_create = warp::post2()
         .and(tracks)
         .and(warp::path::end())
@@ -265,16 +264,6 @@ pub fn main() -> Result<(), Error> {
         .and_then(|query, pooled_connection| {
             TracksHandler::new(pooled_connection).handle_list(query)
         });
-    let tracks_search = warp::post2()
-        .and(tracks)
-        .and(warp::path("search"))
-        .and(warp::path::end())
-        .and(warp::query())
-        .and(warp::body::json())
-        .and(pooled_connection.clone())
-        .and_then(|query, body, pooled_connection| {
-            TracksHandler::new(pooled_connection).handle_search(query, body)
-        });
     let tracks_locate = warp::post2()
         .and(tracks)
         .and(warp::path("locate"))
@@ -284,6 +273,16 @@ pub fn main() -> Result<(), Error> {
         .and(pooled_connection.clone())
         .and_then(|query, body, pooled_connection| {
             TracksHandler::new(pooled_connection).handle_locate(query, body)
+        });
+    let tracks_search = warp::post2()
+        .and(tracks)
+        .and(warp::path("search"))
+        .and(warp::path::end())
+        .and(warp::query())
+        .and(warp::body::json())
+        .and(pooled_connection.clone())
+        .and_then(|query, body, pooled_connection| {
+            TracksHandler::new(pooled_connection).handle_search(query, body)
         });
     let tracks_replace = warp::post2()
         .and(tracks)
@@ -302,12 +301,10 @@ pub fn main() -> Result<(), Error> {
         .and(warp::query())
         .and(warp::body::json())
         .and(pooled_connection.clone())
-        .and_then(
-            |query, uri_predicates: Vec<UriPredicate>, pooled_connection| {
-                TracksHandler::new(pooled_connection)
-                    .handle_purge(query, uri_predicates.into_iter())
-            },
-        );
+        .and_then(|query, uri_predicates, pooled_connection| {
+            TracksHandler::new(pooled_connection).handle_purge(query, uri_predicates)
+        });
+    /*
     let tracks_relocate = warp::post2()
         .and(tracks)
         .and(warp::path("relocate"))
@@ -321,16 +318,19 @@ pub fn main() -> Result<(), Error> {
                     .handle_relocate(query, uri_relocations.into_iter())
             },
         );
-    let tracks_resources = tracks_search
-        .or(tracks_replace)
-        .or(tracks_relocate)
-        .or(tracks_purge)
-        .or(tracks_list)
-        .or(tracks_locate)
-        .or(tracks_create)
+        */
+    let tracks_resources = tracks_create
         .or(tracks_update)
         .or(tracks_delete)
-        .or(tracks_load);
+        .or(tracks_load)
+        .or(tracks_list)
+        .or(tracks_locate)
+        .or(tracks_search)
+        .or(tracks_replace)
+        .or(tracks_purge)
+        /*
+        .or(tracks_relocate)
+        */;
 
     let albums_count_tracks = warp::post2()
         .and(warp::path("albums"))
@@ -381,10 +381,10 @@ pub fn main() -> Result<(), Error> {
 
     log::info!("Initializing server");
     let server = warp::serve(
-        tracks_resources
+        collections_resources
+            .or(tracks_resources)
             .or(albums_resources)
             .or(tags_resources)
-            .or(collections_resources)
             .or(static_resources)
             .or(shutdown_filter)
             .or(about_filter),

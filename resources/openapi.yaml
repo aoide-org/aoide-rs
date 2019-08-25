@@ -1,8 +1,8 @@
 openapi: 3.0.2
 info:
-  version: 0.0.9
+  version: 0.1.0
   title: aoide
-  description: Music library management service.
+  description: Music library management
   license:
     name: AGPL-3.0-or-later
     url: 'https://www.gnu.org/licenses/agpl-3.0.html'
@@ -368,7 +368,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SearchTracksParams'
+              $ref: '#/components/schemas/SearchParams'
       responses:
         '200':
           description: |
@@ -569,15 +569,17 @@ components:
           * `track-stats` - Include track statistics
   schemas:
     Actor:
-      properties:
-        n:
-          $ref: '#/components/schemas/ActorName'
-        r:
-          $ref: '#/components/schemas/ActorRole'
-        p:
-          $ref: '#/components/schemas/ActorPrecedence'
+      oneOf:
+        - $ref: '#/components/schemas/ActorName'
+        - type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/ActorName'
+              - $ref: '#/components/schemas/ActorRole'
+              - $ref: '#/components/schemas/ActorPrecedence'
       description: |
-        Some actor naming examples:
+        Mandatory name, followed by optional role and optional precedence.
+        Some actor naming examples for the role _artist_:
           * summary = 'Michael Jackson'
           * summary = 'Bill Medley & Jennifer Warnes', primary = 'Bill Medley', primary = 'Jennifer Warnes'
           * summary = 'Nick Jonas ft. Anne-Marie & Mike Posner', primary = 'Nick Jonas', secondary = 'Anne-Marie', secondary = 'Mike Posner'
@@ -594,55 +596,60 @@ components:
       minimum: 0
       maximum: 2
       description: |
-        Optional precedence that defaults to 0 if missing:
-          * 0: the default display string (summary)
-          * 1: primary actor(s)
-          * 2: secondary actor(s)
+        Optional actor precedence that defaults to 0 = summary if missing:
+          * 0 = summary actor
+          * 1 = primary actor(s)
+          * 2 = secondary actor(s)
     ActorRole:
-      type: string
-      enum:
-        - artist
-        - arranger
-        - composer
-        - conductor
-        - djmixer
-        - engineer
-        - lyricist
-        - mixer
-        - performer
-        - producer
-        - publisher
-        - remixer
-        - writer
+      type: integer
+      minimum: 0
+      maximum: 12
       description: |
-        Optional role that defaults to `artist` if missing
+        Optional actor role that defaults to 0 = artist if missing:
+          * 0 = artist
+          * 1 = arranger
+          * 2 = composer
+          * 3 = conductor
+          * 4 = djmixer
+          * 5 = engineer
+          * 6 = lyricist
+          * 7 = mixer
+          * 8 = performer
+          * 9 = producer
+          * 10 = publisher
+          * 11 = remixer
+          * 12 = writer
     Album:
       properties:
-        tit:
+        t:
           type: array
+          description: |
+            An array of titles
           items:
             $ref: '#/components/schemas/Title'
-        act:
+        a:
           type: array
+          description: |
+            An array of acting participants/people
           items:
             $ref: '#/components/schemas/Actor'
-        cpl:
+        c:
           type: boolean
           description: |
             Indicates whether this album is a compilation with various artists.
     AudioContent:
       properties:
-        ch:
+        c:
           $ref: '#/components/schemas/Channels'
-        ms:
+        d:
           $ref: '#/components/schemas/DurationMs'
-        hz:
+        s:
           $ref: '#/components/schemas/SampleRateHz'
-        bps:
+        b:
           $ref: '#/components/schemas/BitRateBps'
-        lufs:
+        l:
           $ref: '#/components/schemas/LoudnessLufs'
-        enc:
+        e:
           $ref: '#/components/schemas/Encoder'
     BitRateBps:
       type: integer
@@ -652,16 +659,12 @@ components:
       description: |
         The bit rate in bits per second (bps).
     Channels:
-      properties:
-        count:
-          $ref: '#/components/schemas/ChannelCount'
-        layout:
-          $ref: '#/components/schemas/ChannelLayout'
-      required:
-        - count
+      oneOf:
+        - $ref: '#/components/schemas/ChannelCount'
+        - $ref: '#/components/schemas/ChannelLayout'
     ChannelCount:
       type: integer
-      minimum: 0
+      minimum: 1
       maximum: 65535
       example: 2
     ChannelLayout:
@@ -747,7 +750,7 @@ components:
       maxLength: 33
       example: 4L9v84JeigpHxEdtVHUkL6JASD92sDwdW
       description: A globally unique identifier (UID) for entities in base-58 encoding.
-    EntityRevisionOrdinal:
+    EntityRevisionVersion:
       type: integer
       format: int64
       minimum: 1
@@ -762,21 +765,23 @@ components:
       maxItems: 2
       items:
         oneOf:
-          - $ref: '#/components/schemas/EntityRevisionOrdinal'
+          - $ref: '#/components/schemas/EntityRevisionVersion'
           - $ref: '#/components/schemas/EntityRevisionTimeStamp'
       description: |
-        Tuple of 2 elements containing an ordinal and a timestamp.
+        Tuple of 2 elements containing a version number and a time stamp.
     EntityHeader:
-      properties:
-        uid:
-          $ref: '#/components/schemas/EntityUid'
-        rev:
-          $ref: '#/components/schemas/EntityRevision'
+      type: array
+      minItems: 2
+      maxItems: 2
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/EntityUid'
+          - $ref: '#/components/schemas/EntityRevision'
     FilterModifier:
       type: string
       enum:
         - complement
-    IndexCount:
+    Index:
       oneOf:
         - type: integer
           format: int32
@@ -791,16 +796,24 @@ components:
             format: int32
             minimum: 0
           description: >
-            Identifies the number of the current item (index = 1st) and the number of total items (count = 2nd).
-    TrackNumbers:
+            Identifies the number of the current item (1st) and the number of total items (2nd).
+    Indexes:
+      properties:
+        t:
+          $ref: '#/components/schemas/TrackIndex'
+        d:
+          $ref: '#/components/schemas/DiscIndex'
+        m:
+          $ref: '#/components/schemas/MovementIndex'
+    TrackIndex:
       oneOf:
-        - $ref: '#/components/schemas/IndexCount'
-    DiscNumbers:
+        - $ref: '#/components/schemas/Index'
+    DiscIndex:
       oneOf:
-        - $ref: '#/components/schemas/IndexCount'
-    MovementNumbers:
+        - $ref: '#/components/schemas/Index'
+    MovementIndex:
       oneOf:
-        - $ref: '#/components/schemas/IndexCount'
+        - $ref: '#/components/schemas/Index'
     KeySignature:
       type: integer
       minimum: 1
@@ -815,16 +828,9 @@ components:
           * ...
           * 23 = F maj
           * 24 = D min
-    LanguageCode:
-      type: string
-      minLength: 2
-      maxLength: 3
-      example: eng
-      description: |
-        A language code according to ISO 639-1/2/3.
     LocateTracksParams:
       properties:
-        uri:
+        sourceUri:
           $ref: '#/components/schemas/StringPredicate'
     LoudnessLufs:
       type: number
@@ -889,8 +895,10 @@ components:
         - audioDuration
         - audioLoudness
         - audioSampleRate
-        - trackIndex
-        - trackCount
+        - trackNumber
+        - trackTotal
+        - discNumber
+        - discTotal
         - releaseYear
         - musicTempo
         - musicKey
@@ -936,15 +944,15 @@ components:
         $ref: '#/components/schemas/UriRelocation'
     Release:
       properties:
-        at:
+        t:
           $ref: '#/components/schemas/ReleasedAtTimeStamp'
-        by:
+        b:
           description: Released by
           type: string
-        cpy:
+        c:
           description: Copyright
           type: string
-        lic:
+        l:
           description: Licenses
           type: array
           items:
@@ -1025,17 +1033,17 @@ components:
         Tuple of 2/3 elements containing a facet, a score value, and an optional/nullable label.
     TagCount:
       properties:
-        fct:
+        f:
           $ref: '#/components/schemas/TagFacet'
-        lbl:
+        l:
           $ref: '#/components/schemas/TagLabel'
-        avg:
-          $ref: '#/components/schemas/ScoreValue'
-        cnt:
+        s:
+          $ref: '#/components/schemas/AvgScoreValue'
+        n:
           $ref: '#/components/schemas/TotalCount'
       required:
-        - avg
-        - cnt
+        - s
+        - n
       description: >
         Selective tag properties (facet, label) with an average score among
         all occurrences and the total number of occurrences.
@@ -1046,19 +1054,22 @@ components:
       example: 0.83
       description: |
         Normalized score value between 0 and 1.
+    AvgScoreValue:
+      oneOf:
+        - $ref: '#/components/schemas/ScoreValue'
     AlbumTracksCount:
       properties:
-        tit:
+        t:
           $ref: '#/components/schemas/TitleName'
-        art:
+        a:
           $ref: '#/components/schemas/ArtistName'
-        rly:
+        y:
           $ref: '#/components/schemas/ReleaseYear'
-        cnt:
+        n:
           $ref: '#/components/schemas/TotalCount'
       required:
-        - title
-        - count
+        - t
+        - n
     TrackSearchFilterNode:
       oneOf:
         - $ref: '#/components/schemas/TrackSearchPhraseFilterNode'
@@ -1114,7 +1125,7 @@ components:
           $ref: '#/components/schemas/TrackSearchFilterNode'
       required:
         - not
-    SearchTracksParams:
+    SearchParams:
       properties:
         filter:
           $ref: '#/components/schemas/TrackSearchFilterNode'
@@ -1245,7 +1256,7 @@ components:
         - albumArtist
       description: |
         Selectable fields, including
-          * `uri` - percent-decoded URI
+          * `sourceUri` - percent-decoded URI
           * `contentType` - media (MIME) type
           * ...
     TagFacet:
@@ -1354,32 +1365,28 @@ components:
       oneOf:
         - $ref: '#/components/schemas/TimeStamp'
     Title:
-      properties:
-        n:
-          $ref: '#/components/schemas/TitleName'
-        v:
-          $ref: '#/components/schemas/TitleLevel'
-        l:
-          $ref: '#/components/schemas/LanguageCode'
-      required:
-        - n
+      oneOf:
+        - $ref: '#/components/schemas/TitleName'
+        - type: array
+          oneOf:
+            - $ref: '#/components/schemas/TitleName'
+            - $ref: '#/components/schemas/TitleLevel'
+      description: |
+        Mandatory name, followed by optional level
     TitleName:
       type: string
       minLength: 1
       example: Yellow Submarine
     TitleLevel:
-      type: string
-      enum:
-        - main
-        - sub
-        - wrk
-        - mvn
+      type: integer
+      minimum: 0
+      maximum: 3
       description: |
-        Optional level that defaults to `main` if missing
-          * `main` - default display string
-          * `sub` - a subtitle
-          * `wrk` - a work title for classical music
-          * `mvn` - a movement title for classical music
+        Optional level that defaults to 0 = main if missing:
+          * 0 = main title (default)
+          * 1 = subtitle
+          * 2 = work title for classical music
+          * 3 = movement title for classical music
     TotalCount:
       type: integer
       format: int64
@@ -1388,91 +1395,99 @@ components:
       description: |
         Total number of occurrences.
     Tags:
+      description: |
+        Tags partitioned into plain (1st) and faceted (2nd) tags.
+      type: array
+      minLength: 2
+      maxLength: 2
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/PlainTags'
+          - $ref: '#/components/schemas/FacetedTags'
+    PlainTags:
+      type: array
+      items:
+        $ref: '#/components/schemas/PlainTag'
+    FacetedTags:
+      type: array
+      items:
+        $ref: '#/components/schemas/FacetedTag'
+    Markers:
       properties:
         p:
-          description: Plain tags
+          description: |
+            Position markers
           type: array
-          items:
-            $ref: '#/components/schemas/PlainTag'
-        f:
-          description: Faceted tags
-          type: array
-          items:
-            $ref: '#/components/schemas/FacetedTag'
-    TrackEntityBody:
-      properties:
-        col:
-          type: array
-          description: Collections
-          items:
-            $ref: '#/components/schemas/TrackCollection'
-        src:
-          type: array
-          description: Sources
-          items:
-            $ref: '#/components/schemas/TrackSource'
-        tit:
-          type: array
-          description: Titles
-          items:
-            $ref: '#/components/schemas/Title'
-        act:
-          type: array
-          description: Actors
-          items:
-            $ref: '#/components/schemas/Actor'
-        alb:
-          $ref: '#/components/schemas/Album'
-        rel:
-          $ref: '#/components/schemas/Release'
-        dsn:
-          $ref: '#/components/schemas/DiscNumbers'
-        trn:
-          $ref: '#/components/schemas/TrackNumbers'
-        mvn:
-          $ref: '#/components/schemas/MovementNumbers'
-        tag:
-          $ref: '#/components/schemas/Tags'
-        pmk:
-          type: array
-          description: Position markers
           items:
             $ref: '#/components/schemas/PositionMarker'
-        bmk:
-          type: array
+        b:
           description: |
             Beat markers, sorted by their non-overlapping positions
+          type: array
           items:
             $ref: '#/components/schemas/BeatMarker'
-        kmk:
+        k:
+          description: |
+            Key markers, sorted by their non-overlapping positions
           type: array
           items:
             $ref: '#/components/schemas/KeyMarker'
+    TrackEntityBody:
+      properties:
+        c:
           description: |
-            Key markers, sorted by their non-overlapping positions
-        lck:
+            An array of collections
           type: array
-          description: Locks
           items:
-            $ref: '#/components/schemas/TrackLock'
+            $ref: '#/components/schemas/TrackCollection'
+        s:
+          description: |
+            An array of media sources
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaSource'
+        t:
+          description: |
+            An array of titles
+          type: array
+          items:
+            $ref: '#/components/schemas/Title'
+        p:
+          description: |
+            An array of acting participants/people
+          type: array
+          items:
+            $ref: '#/components/schemas/Actor'
+        a:
+          $ref: '#/components/schemas/Album'
+        r:
+          $ref: '#/components/schemas/Release'
+        i:
+          $ref: '#/components/schemas/Indexes'
+        m:
+          $ref: '#/components/schemas/Markers'
+        x:
+          $ref: '#/components/schemas/Tags'
     TrackCollection:
       properties:
-        uid:
+        u:
           $ref: '#/components/schemas/EntityUid'
-        s:
+        t:
           $ref: '#/components/schemas/SinceTimeStamp'
         c:
           $ref: '#/components/schemas/Color'
         p:
-          description: Play count
+          description: |
+            Play count
           type: integer
           format: int64
           minimum: 0
       required:
-        - uid
-        - since
+        - u
+        - t
     TrackEntity:
-      description: Entity header and body
+      description: |
+        Entity header and body
       type: array
       minLength: 2
       maxLength: 2
@@ -1480,49 +1495,64 @@ components:
         oneOf:
           - $ref: '#/components/schemas/EntityHeader'
           - $ref: '#/components/schemas/TrackEntityBody'
-    TrackLock:
+    MarkerState:
+      description: >
+        The (optional) state of a marker
+        * `rw` - read/write (default)
+        * `ro` - read-only
       type: string
       enum:
-        - loudness
-        - beats
-        - keys
+        - rw
+        - ro
+    MarkerSource:
+      description: |
+        The source or origin of a marker, e.g. the version of the analyzer
+      type: string
+      example: analyzer v2.3
+    MarkerLabel:
+      type: string
+      example: my marker
+    MarkerNumber:
+      type: integer
+      format: int32
+      example: 1
     PositionMarkerType:
+      description: >
+        Multiple position markers of the same type per track are only allowed for non-singular types:
+        * `load` - singular initial position when loading a track (and return point after stopping)
+        * `main` - singular main audio section (forward only) of the track, i.e. without leading/trailing silence
+        * `intro` - singular intro section (forward only) or point of a track for fade-in or mixing
+        * `outro` - singular outro section (forward only) or point of a track for fade-out or mixing
+        * `jump` - custom start/cue points in a track for direct access while continuing playback, i.e. classical hot cues
+        * `loop` - sections that are played as loops (forward or backward)
+        * `sample` - sections that are played as samples (forward or backward)
+        * `custom` - custom sections (forward only) or points without predefined semantics
       type: string
       enum:
-        - cue
-        - hot-cue
+        - load
+        - main
         - intro
         - outro
-        - section
+        - jump
         - loop
         - sample
-      description: >
-        * `cue` - singular start/cue point that marks the initial position when loading a track
-
-        * `hot-cue` - custom start/cue points in a track
-
-        * `intro` - singular intro section (or point) of a track (forward only)
-
-        * `outro` - singular outro section (or point) of a track (forward only)
-
-        * `section` - custom sections (or points) without predefined semantics (forward only)
-
-        * `loop` - sections that are played as loops (forward or backward)
-
-        * `sample` - sections that are played as samples (forward or backward)
+        - custom
     PositionMarker:
       properties:
         t:
           $ref: '#/components/schemas/PositionMarkerType'
+        z:
+          $ref: '#/components/schemas/MarkerState'
+        o:
+          $ref: '#/components/schemas/MarkerSource'
         s:
           $ref: '#/components/schemas/PositionMs'
         e:
           $ref: '#/components/schemas/PositionMs'
         n:
-          type: integer
-          format: int32
+          $ref: '#/components/schemas/MarkerNumber'
         l:
-          type: string
+          $ref: '#/components/schemas/MarkerLabel'
         c:
           $ref: '#/components/schemas/Color'
       required:
@@ -1532,30 +1562,38 @@ components:
         and end) within a track
     BeatMarker:
       properties:
+        z:
+          $ref: '#/components/schemas/MarkerState'
+        o:
+          $ref: '#/components/schemas/MarkerSource'
         s:
           $ref: '#/components/schemas/PositionMs'
         e:
           $ref: '#/components/schemas/PositionMs'
-        tm:
+        b:
           $ref: '#/components/schemas/TempoBpm'
-        ts:
+        t:
           $ref: '#/components/schemas/TimeSignature'
-        bn:
+        n:
           $ref: '#/components/schemas/BeatNumber'
       required:
         - s
       description: >
-        Section of a beat grid with uniform tempo and timiming). Either
-        tempo or timing is required. If the end position is missing the
-        section ends with the start of the following marker or at the
+        Section of a beat grid with uniform tempo and timiming. Either
+        tempo or time signature is required. If the end position is missing
+        the section ends with the start of the following marker or at the
         end of the track. The beat number must fit into the time signature.
     KeyMarker:
       properties:
+        z:
+          $ref: '#/components/schemas/MarkerState'
+        o:
+          $ref: '#/components/schemas/MarkerSource'
         s:
           $ref: '#/components/schemas/PositionMs'
         e:
           $ref: '#/components/schemas/PositionMs'
-        ks:
+        k:
           $ref: '#/components/schemas/KeySignature'
       required:
         - s
@@ -1566,12 +1604,12 @@ components:
         or at the end of the track.
     TrackReplacement:
       properties:
-        uri:
+        sourceUri:
           $ref: '#/components/schemas/Uri'
         track:
           $ref: '#/components/schemas/TrackEntityBody'
       required:
-        - uri
+        - sourceUri
         - track
       description: |
         The URI is used for looking up the existing track (if any) that gets
@@ -1598,8 +1636,10 @@ components:
         - lastRevisionedAt
         - trackTitle
         - trackArtist
-        - trackIndex
-        - trackCount
+        - trackNumber
+        - trackTotal
+        - discNumber
+        - discTotal
         - albumTitle
         - albumArtist
         - releaseYear
@@ -1612,14 +1652,21 @@ components:
         oneOf:
           - $ref: '#/components/schemas/TrackSortField'
           - $ref: '#/components/schemas/SortDirection'
-    TrackSource:
-      properties:
-        uri:
-          $ref: '#/components/schemas/Uri'
-        contentType:
-          $ref: '#/components/schemas/MediaType'
-        audioContent:
-          $ref: '#/components/schemas/AudioContent'
+    MediaSource:
+      type: array
+      minLength: 3
+      maxLength: 3
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/Uri'
+          - $ref: '#/components/schemas/MediaType'
+          - $ref: '#/components/schemas/MediaContent'
+    MediaContent:
+      oneOf:
+        - type: object
+          properties:
+            a:
+              $ref: '#/components/schemas/AudioContent'
     Uri:
       type: string
       minLength: 1

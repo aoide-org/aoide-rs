@@ -48,16 +48,10 @@ impl Release {
 pub enum ReleaseValidation {
     ReleasedAtYearMin,
     ReleasedAtYearMax,
-    ReleasedByMinLen(usize),
-    CopyrightMinLen(usize),
-    LicenseMinLen(usize),
+    ReleasedByEmpty,
+    CopyrightEmpty,
+    LicenseEmpty,
 }
-
-const RELEASED_BY_MIN_LEN: usize = 1;
-
-const COPYRIGHT_MIN_LEN: usize = 1;
-
-const LICENSE_MIN_LEN: usize = 1;
 
 impl Validate for Release {
     type Validation = ReleaseValidation;
@@ -77,19 +71,19 @@ impl Validate for Release {
         }
         if let Some(ref released_by) = self.released_by {
             context.add_violation_if(
-                released_by.len() < RELEASED_BY_MIN_LEN,
-                ReleaseValidation::ReleasedByMinLen(RELEASED_BY_MIN_LEN),
+                released_by.trim().is_empty(),
+                ReleaseValidation::ReleasedByEmpty,
             );
         }
         if let Some(ref copyright) = self.copyright {
             context.add_violation_if(
-                copyright.len() < COPYRIGHT_MIN_LEN,
-                ReleaseValidation::CopyrightMinLen(COPYRIGHT_MIN_LEN),
+                copyright.trim().is_empty(),
+                ReleaseValidation::CopyrightEmpty,
             );
         }
         for license in &self.licenses {
-            if license.len() < LICENSE_MIN_LEN {
-                context.add_violation(ReleaseValidation::LicenseMinLen(LICENSE_MIN_LEN));
+            if license.trim().is_empty() {
+                context.add_violation(ReleaseValidation::LicenseEmpty);
                 break;
             }
         }

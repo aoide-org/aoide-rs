@@ -48,6 +48,18 @@ impl IsEmpty for chrono::Duration {
     }
 }
 
+impl<T> IsEmpty for [T] {
+    fn is_empty(&self) -> bool {
+        self.is_empty()
+    }
+}
+
+impl<T> IsEmpty for Vec<T> {
+    fn is_empty(&self) -> bool {
+        self.is_empty()
+    }
+}
+
 pub trait IsDefault {
     fn is_default(&self) -> bool;
 }

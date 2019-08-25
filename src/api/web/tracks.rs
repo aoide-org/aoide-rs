@@ -15,30 +15,60 @@
 
 use super::*;
 
-use aoide_storage::{
-    api::{
-        serde::{SerializationFormat, SerializedEntity},
-        track::{TrackAlbums, TrackTags, Tracks, TracksResult},
-        CountTracksByAlbumParams, CountTracksByTagFacetParams, CountTracksByTagParams,
-        LocateTracksParams, Pagination, PaginationLimit, PaginationOffset, ReplaceTracksParams,
-        ReplacedTracks, SearchTracksParams, StringPredicate, TagCount, TagFacetCount, UriPredicate,
-        UriRelocation,
-    },
-    storage::track::TrackRepository,
+mod _core {
+    pub use aoide_core::{
+        entity::{EntityHeader, EntityRevision, EntityUid},
+        track::{Entity, Track},
+    };
+}
+
+mod _repo {
+    pub use aoide_repo::{
+        entity::{EntityBodyData, EntityData, EntityDataFormat, EntityDataVersion},
+        tag::{
+            AvgScoreCount as TagAvgScoreCount, CountParams as TagCountParams,
+            FacetCount as TagFacetCount, FacetCountParams as TagFacetCountParams,
+            Filter as TagFilter, SortField as TagSortField, SortOrder as TagSortOrder,
+        },
+        track::{
+            AlbumCountParams, AlbumCountResults, LocateParams, NumericField, NumericFieldFilter,
+            PhraseFieldFilter, ReplaceMode, ReplaceResult, SearchFilter, SearchParams, SortField,
+            SortOrder, StringField,
+        },
+        util::UriPredicate,
+        FilterModifier, NumericPredicate, NumericValue, SortDirection, StringFilter,
+        StringPredicate,
+    };
+}
+
+use aoide_core::{tag::ScoreValue as TagScoreValue, track::release::ReleaseYear};
+
+use aoide_repo::{
+    track::{Albums as _, Repo as _, Tags as _},
+    Pagination, PaginationLimit, PaginationOffset, RepoResult,
 };
 
+use aoide_core_serde::{
+    entity::{EntityHeader, EntityUid},
+    track::{Entity, Track},
+};
+
+use aoide_repo_sqlite::track::Repository;
+
 use futures::future::{self, Future};
+use std::io::Write;
 use warp::http::StatusCode;
 
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default, Deserialize)]
+#[cfg_attr(test, derive(Serialize))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TracksQueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub collection_uid: Option<EntityUid>,
 
-    // Flatting of Pagination does not work as expected:
+    // Flattening of Pagination does not work as expected:
     // https://github.com/serde-rs/serde/issues/1183
     // Workaround: Inline all parameters manually
     //#[serde(flatten)]
@@ -50,13 +80,690 @@ pub struct TracksQueryParams {
     pub limit: Option<PaginationLimit>,
 }
 
-impl TracksQueryParams {
-    pub fn pagination(&self) -> Pagination {
-        Pagination {
-            offset: self.offset,
-            limit: self.limit,
+impl From<TracksQueryParams> for (Option<_core::EntityUid>, Pagination) {
+    fn from(from: TracksQueryParams) -> Self {
+        let collection_uid = from.collection_uid.map(Into::into);
+        let pagination = Pagination {
+            offset: from.offset,
+            limit: from.limit,
+        };
+        (collection_uid, pagination)
+    }
+}
+
+/// Predicates for matching strings
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum StringPredicate {
+    StartsWith(String),
+    StartsNotWith(String),
+    EndsWith(String),
+    EndsNotWith(String),
+    Contains(String),
+    ContainsNot(String),
+    Matches(String),
+    MatchesNot(String),
+    Equals(String),
+    EqualsNot(String),
+}
+
+impl From<StringPredicate> for _repo::StringPredicate {
+    fn from(from: StringPredicate) -> Self {
+        use _repo::StringPredicate::*;
+        match from {
+            StringPredicate::StartsWith(s) => StartsWith(s),
+            StringPredicate::StartsNotWith(s) => StartsNotWith(s),
+            StringPredicate::EndsWith(s) => EndsWith(s),
+            StringPredicate::EndsNotWith(s) => EndsNotWith(s),
+            StringPredicate::Contains(s) => Contains(s),
+            StringPredicate::ContainsNot(s) => ContainsNot(s),
+            StringPredicate::Matches(s) => Matches(s),
+            StringPredicate::MatchesNot(s) => MatchesNot(s),
+            StringPredicate::Equals(s) => Equals(s),
+            StringPredicate::EqualsNot(s) => EqualsNot(s),
         }
     }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct LocateParams {
+    pub source_uri: StringPredicate,
+}
+
+impl From<LocateParams> for _repo::LocateParams {
+    fn from(from: LocateParams) -> Self {
+        Self {
+            source_uri: from.source_uri.into(),
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum SortField {
+    InCollectionSince,
+    LastRevisionedAt,
+    TrackTitle,
+    TrackArtist,
+    TrackNumber,
+    TrackTotal,
+    DiscNumber,
+    DiscTotal,
+    AlbumTitle,
+    AlbumArtist,
+    ReleaseYear,
+    MusicTempo,
+}
+
+#[derive(Copy, Clone, Debug, Deserialize)]
+pub enum SortDirection {
+    #[serde(rename = "asc")]
+    Ascending,
+
+    #[serde(rename = "dsc")]
+    Descending,
+}
+
+impl From<SortDirection> for _repo::SortDirection {
+    fn from(from: SortDirection) -> Self {
+        use _repo::SortDirection::*;
+        match from {
+            SortDirection::Ascending => Ascending,
+            SortDirection::Descending => Descending,
+        }
+    }
+}
+
+impl From<SortField> for _repo::SortField {
+    fn from(from: SortField) -> Self {
+        use _repo::SortField::*;
+        match from {
+            SortField::InCollectionSince => InCollectionSince,
+            SortField::LastRevisionedAt => LastRevisionedAt,
+            SortField::TrackTitle => TrackTitle,
+            SortField::TrackArtist => TrackArtist,
+            SortField::TrackNumber => TrackNumber,
+            SortField::TrackTotal => TrackTotal,
+            SortField::DiscNumber => DiscNumber,
+            SortField::DiscTotal => DiscTotal,
+            SortField::AlbumTitle => AlbumTitle,
+            SortField::AlbumArtist => AlbumArtist,
+            SortField::ReleaseYear => ReleaseYear,
+            SortField::MusicTempo => MusicTempo,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Deserialize)]
+pub struct SortOrder(SortField, SortDirection);
+
+impl From<SortOrder> for _repo::SortOrder {
+    fn from(from: SortOrder) -> Self {
+        Self {
+            field: from.0.into(),
+            direction: from.1.into(),
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum FilterModifier {
+    Complement,
+}
+
+impl From<FilterModifier> for _repo::FilterModifier {
+    fn from(from: FilterModifier) -> Self {
+        use _repo::FilterModifier::*;
+        match from {
+            FilterModifier::Complement => Complement,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct StringFilter {
+    #[serde(skip_serializing_if = "Option::None")]
+    pub modifier: Option<FilterModifier>,
+
+    #[serde(skip_serializing_if = "Option::None")]
+    pub value: Option<StringPredicate>,
+}
+
+impl From<StringFilter> for _repo::StringFilter {
+    fn from(from: StringFilter) -> Self {
+        Self {
+            modifier: from.modifier.map(Into::into),
+            value: from.value.map(Into::into),
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum StringField {
+    SourceUri,
+    ContentType,
+    TrackTitle,
+    TrackArtist,
+    TrackComposer,
+    AlbumTitle,
+    AlbumArtist,
+}
+
+impl From<StringField> for _repo::StringField {
+    fn from(from: StringField) -> Self {
+        use _repo::StringField::*;
+        match from {
+            StringField::SourceUri => SourceUri,
+            StringField::ContentType => ContentType,
+            StringField::TrackTitle => TrackTitle,
+            StringField::TrackArtist => TrackArtist,
+            StringField::TrackComposer => TrackComposer,
+            StringField::AlbumTitle => AlbumTitle,
+            StringField::AlbumArtist => AlbumArtist,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum NumericField {
+    AudioBitRate,
+    AudioChannelCount,
+    AudioDuration,
+    AudioSampleRate,
+    AudioLoudness,
+    TrackNumber,
+    TrackTotal,
+    DiscNumber,
+    DiscTotal,
+    ReleaseYear,
+    MusicTempo,
+    MusicKey,
+}
+
+impl From<NumericField> for _repo::NumericField {
+    fn from(from: NumericField) -> Self {
+        use _repo::NumericField::*;
+        match from {
+            NumericField::AudioBitRate => AudioBitRate,
+            NumericField::AudioChannelCount => AudioChannelCount,
+            NumericField::AudioDuration => AudioDuration,
+            NumericField::AudioSampleRate => AudioSampleRate,
+            NumericField::AudioLoudness => AudioLoudness,
+            NumericField::TrackNumber => TrackNumber,
+            NumericField::TrackTotal => TrackTotal,
+            NumericField::DiscNumber => DiscNumber,
+            NumericField::DiscTotal => DiscTotal,
+            NumericField::ReleaseYear => ReleaseYear,
+            NumericField::MusicTempo => MusicTempo,
+            NumericField::MusicKey => MusicKey,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum NumericPredicate {
+    LessThan(_repo::NumericValue),
+    LessOrEqual(_repo::NumericValue),
+    GreaterThan(_repo::NumericValue),
+    GreaterOrEqual(_repo::NumericValue),
+    Equal(Option<_repo::NumericValue>),
+    NotEqual(Option<_repo::NumericValue>),
+}
+
+impl From<NumericPredicate> for _repo::NumericPredicate {
+    fn from(from: NumericPredicate) -> Self {
+        use _repo::NumericPredicate::*;
+        match from {
+            NumericPredicate::LessThan(val) => LessThan(val),
+            NumericPredicate::LessOrEqual(val) => LessOrEqual(val),
+            NumericPredicate::GreaterThan(val) => GreaterThan(val),
+            NumericPredicate::GreaterOrEqual(val) => GreaterOrEqual(val),
+            NumericPredicate::Equal(val) => Equal(val),
+            NumericPredicate::NotEqual(val) => NotEqual(val),
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Deserialize)]
+pub struct NumericFieldFilter(NumericField, NumericPredicate);
+
+impl From<NumericFieldFilter> for _repo::NumericFieldFilter {
+    fn from(from: NumericFieldFilter) -> Self {
+        Self {
+            field: from.0.into(),
+            value: from.1.into(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct PhraseFieldFilter {
+    pub fields: Vec<StringField>,
+    pub terms: Vec<String>,
+}
+
+impl From<PhraseFieldFilter> for _repo::PhraseFieldFilter {
+    fn from(from: PhraseFieldFilter) -> Self {
+        Self {
+            fields: from.fields.into_iter().map(Into::into).collect(),
+            terms: from.terms,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct TagFilter {
+    #[serde(skip_serializing_if = "Option::None")]
+    pub modifier: Option<FilterModifier>,
+
+    // Facets are always matched with equals. Use an empty vector
+    // for matching only tags without a facet.
+    #[serde(skip_serializing_if = "Option::None")]
+    pub facets: Option<Vec<String>>,
+
+    #[serde(skip_serializing_if = "Option::None")]
+    pub label: Option<StringPredicate>,
+
+    #[serde(skip_serializing_if = "Option::None")]
+    pub score: Option<NumericPredicate>,
+}
+
+impl From<TagFilter> for _repo::TagFilter {
+    fn from(from: TagFilter) -> Self {
+        Self {
+            modifier: from.modifier.map(Into::into),
+            facets: from.facets,
+            label: from.label.map(Into::into),
+            score: from.score.map(Into::into),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum SearchFilter {
+    Phrase(PhraseFieldFilter),
+    Numeric(NumericFieldFilter),
+    Tag(TagFilter),
+    MarkerLabel(StringFilter),
+    All(Vec<SearchFilter>),
+    Any(Vec<SearchFilter>),
+    Not(Box<SearchFilter>),
+}
+
+impl From<SearchFilter> for _repo::SearchFilter {
+    fn from(from: SearchFilter) -> Self {
+        use _repo::SearchFilter::*;
+        match from {
+            SearchFilter::Phrase(from) => Phrase(from.into()),
+            SearchFilter::Numeric(from) => Numeric(from.into()),
+            SearchFilter::Tag(from) => Tag(from.into()),
+            SearchFilter::MarkerLabel(from) => MarkerLabel(from.into()),
+            SearchFilter::All(from) => All(from.into_iter().map(Into::into).collect()),
+            SearchFilter::Any(from) => Any(from.into_iter().map(Into::into).collect()),
+            SearchFilter::Not(from) => Not(Box::new((*from).into())),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct SearchParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub filter: Option<SearchFilter>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub ordering: Vec<SortOrder>,
+}
+
+impl From<SearchParams> for _repo::SearchParams {
+    fn from(from: SearchParams) -> Self {
+        Self {
+            filter: from.filter.map(Into::into),
+            ordering: from.ordering.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum TagSortField {
+    Facet,
+    Label,
+    Score,
+    Count,
+}
+
+impl From<TagSortField> for _repo::TagSortField {
+    fn from(from: TagSortField) -> Self {
+        use _repo::TagSortField::*;
+        match from {
+            TagSortField::Facet => Facet,
+            TagSortField::Label => Label,
+            TagSortField::Score => Score,
+            TagSortField::Count => Count,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Deserialize)]
+pub struct TagSortOrder(TagSortField, SortDirection);
+
+impl From<TagSortOrder> for _repo::TagSortOrder {
+    fn from(from: TagSortOrder) -> Self {
+        Self {
+            field: from.0.into(),
+            direction: from.1.into(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct TagCountParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub facets: Option<Vec<String>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_non_faceted_tags: Option<bool>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub ordering: Vec<TagSortOrder>,
+}
+
+impl From<TagCountParams> for _repo::TagCountParams {
+    fn from(from: TagCountParams) -> Self {
+        Self {
+            facets: from.facets.map(|facets| {
+                facets
+                    .into_iter()
+                    .filter_map(|facet| facet.parse().ok())
+                    .collect()
+            }),
+            include_non_faceted_tags: from.include_non_faceted_tags,
+            ordering: from.ordering.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct TagAvgScoreCount {
+    #[serde(rename = "f", skip_serializing_if = "Option::is_none")]
+    pub facet: Option<String>,
+
+    #[serde(rename = "l", skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+
+    #[serde(rename = "s")]
+    pub avg_score: TagScoreValue,
+
+    #[serde(rename = "n")]
+    pub total_count: usize,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct TagFacetCountParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub facets: Option<Vec<String>>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub ordering: Vec<TagSortOrder>,
+}
+
+impl From<TagFacetCountParams> for _repo::TagFacetCountParams {
+    fn from(from: TagFacetCountParams) -> Self {
+        Self {
+            facets: from.facets.map(|facets| {
+                facets
+                    .into_iter()
+                    .filter_map(|facet| facet.parse().ok())
+                    .collect()
+            }),
+            ordering: from.ordering.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct TagFacetCount(String, usize);
+
+impl From<_repo::TagFacetCount> for TagFacetCount {
+    fn from(from: _repo::TagFacetCount) -> Self {
+        Self(from.facet.into(), from.total_count)
+    }
+}
+
+impl From<_repo::TagAvgScoreCount> for TagAvgScoreCount {
+    fn from(from: _repo::TagAvgScoreCount) -> Self {
+        Self {
+            facet: from.facet.map(Into::into),
+            label: from.label.map(Into::into),
+            avg_score: from.avg_score.into(),
+            total_count: from.total_count,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct AlbumCountParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_release_year: Option<ReleaseYear>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_release_year: Option<ReleaseYear>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub ordering: Vec<SortOrder>,
+}
+
+impl From<AlbumCountParams> for _repo::AlbumCountParams {
+    fn from(from: AlbumCountParams) -> Self {
+        Self {
+            min_release_year: from.min_release_year,
+            max_release_year: from.max_release_year,
+            ordering: from.ordering.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct AlbumTrackCount {
+    #[serde(rename = "t", skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+
+    #[serde(rename = "a", skip_serializing_if = "Option::is_none")]
+    pub artist: Option<String>,
+
+    #[serde(rename = "y", skip_serializing_if = "Option::is_none")]
+    pub release_year: Option<ReleaseYear>,
+
+    #[serde(rename = "n")]
+    pub total_count: usize,
+}
+
+impl From<_repo::AlbumCountResults> for AlbumTrackCount {
+    fn from(from: _repo::AlbumCountResults) -> Self {
+        Self {
+            title: from.title,
+            artist: from.artist,
+            release_year: from.release_year,
+            total_count: from.total_count,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+enum ReplaceMode {
+    UpdateOnly,
+    UpdateOrCreate,
+}
+
+impl From<ReplaceMode> for _repo::ReplaceMode {
+    fn from(from: ReplaceMode) -> Self {
+        use _repo::ReplaceMode::*;
+        match from {
+            ReplaceMode::UpdateOnly => UpdateOnly,
+            ReplaceMode::UpdateOrCreate => UpdateOrCreate,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct TrackReplacement {
+    // The URI for locating any existing track that is supposed
+    // to replaced by the provided track.
+    #[serde(skip_serializing_if = "String::is_empty", default)]
+    source_uri: String,
+
+    track: Track,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct ReplaceTracksParams {
+    mode: ReplaceMode,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    replacements: Vec<TrackReplacement>,
+}
+
+#[derive(Clone, Debug, Default, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct ReplacedTracks {
+    pub created: Vec<EntityHeader>,
+    pub updated: Vec<EntityHeader>,
+    pub skipped: Vec<EntityHeader>,
+    pub rejected: Vec<String>,  // e.g. ambiguous or inconsistent
+    pub discarded: Vec<String>, // e.g. nonexistent and need to be created
+}
+
+/// Predicates for matching URI strings (case-sensitive)
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum UriPredicate {
+    Prefix(String),
+    Exact(String),
+}
+
+impl From<UriPredicate> for _repo::UriPredicate {
+    fn from(from: UriPredicate) -> Self {
+        use _repo::UriPredicate::*;
+        match from {
+            UriPredicate::Prefix(from) => Prefix(from),
+            UriPredicate::Exact(from) => Exact(from),
+        }
+    }
+}
+
+const ENTITY_DATA_FORMAT: _repo::EntityDataFormat = _repo::EntityDataFormat::JSON;
+
+const ENTITY_DATA_VERSION: _repo::EntityDataVersion =
+    _repo::EntityDataVersion { major: 0, minor: 0 };
+
+fn write_json_body_data(track: &Track) -> Fallible<_repo::EntityBodyData> {
+    Ok((
+        ENTITY_DATA_FORMAT,
+        ENTITY_DATA_VERSION,
+        serde_json::to_vec(track)?,
+    ))
+}
+
+fn read_json_entity(entity_data: _repo::EntityData) -> Fallible<_core::Entity> {
+    let (hdr, json_data) = load_json_entity_data(entity_data)?;
+    let track: Track = serde_json::from_slice(&json_data)?;
+    Ok(_core::Entity::new(hdr, _core::Track::from(track)))
+}
+
+fn load_json_entity_data(
+    entity_data: _repo::EntityData,
+) -> Fallible<(_core::EntityHeader, Vec<u8>)> {
+    let (hdr, (data_fmt, data_ver, json_data)) = entity_data;
+    if data_fmt != ENTITY_DATA_FORMAT {
+        let e = failure::format_err!(
+            "Unsupported data format when loading track {}: expected = {:?}, actual = {:?}",
+            hdr.uid,
+            ENTITY_DATA_FORMAT,
+            data_fmt
+        );
+        return Err(e);
+    }
+    if data_ver < ENTITY_DATA_VERSION {
+        // TODO: Data migration from an older version
+        unimplemented!();
+    }
+    if data_ver == ENTITY_DATA_VERSION {
+        return Ok((hdr, json_data));
+    }
+    let e = failure::format_err!(
+        "Unsupported data version when loading track {}: expected = {:?}, actual = {:?}",
+        hdr.uid,
+        ENTITY_DATA_VERSION,
+        data_ver
+    );
+    Err(e)
+}
+
+fn load_and_write_entity_data_json(
+    mut json_writer: &mut impl Write,
+    entity_data: _repo::EntityData,
+) -> Fallible<()> {
+    let (hdr, json_data) = load_json_entity_data(entity_data)?;
+    json_writer.write_all(b"[")?;
+    serde_json::to_writer(&mut json_writer, &EntityHeader::from(hdr))?;
+    json_writer.write_all(b",")?;
+    json_writer.write_all(&json_data)?;
+    json_writer.write_all(b"]")?;
+    Ok(())
+}
+
+fn entity_data_json_size(entity_data: &_repo::EntityData) -> usize {
+    let uid_bytes = 33;
+    let rev_ver_bytes = ((entity_data.0).rev.ver as f64).log10().ceil() as usize;
+    let rev_ts_bytes = 16;
+    // ["<uid>",[<rev.ver>,<rev.ts>]]
+    (entity_data.1).2.len() + uid_bytes + rev_ver_bytes + rev_ts_bytes + 8
+}
+
+fn load_entity_data_into_json(entity_data: _repo::EntityData) -> Fallible<Vec<u8>> {
+    let mut json_writer = Vec::with_capacity(entity_data_json_size(&entity_data));
+    load_and_write_entity_data_json(&mut json_writer, entity_data)?;
+    Ok(json_writer)
+}
+
+fn load_entity_data_iter_into_json_array(
+    entity_data_iter: impl Iterator<Item = _repo::EntityData> + Clone,
+) -> Fallible<Vec<u8>> {
+    let mut json_writer = Vec::with_capacity(entity_data_iter.clone().fold(
+        /*closing bracket*/ 1,
+        |acc, ref entity_data| {
+            acc + entity_data_json_size(&entity_data) + /*opening bracket or comma*/ 1
+        },
+    ));
+    json_writer.write_all(b"[")?;
+    for (i, entity_data) in entity_data_iter.enumerate() {
+        if i > 0 {
+            json_writer.write_all(b",")?;
+        }
+        load_and_write_entity_data_json(&mut json_writer, entity_data)?;
+    }
+    json_writer.write_all(b"]")?;
+    json_writer.flush()?;
+    Ok(json_writer)
 }
 
 fn reply_with_json_content(reply: impl warp::Reply) -> impl warp::Reply {
@@ -76,39 +783,44 @@ impl TracksHandler {
         &self,
         new_track: Track,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
-        create_track(&self.db, new_track, SerializationFormat::JSON)
-            .map_err(warp::reject::custom)
-            .map(|val| warp::reply::with_status(warp::reply::json(&val), StatusCode::CREATED))
+        let body_data = write_json_body_data(&new_track).map_err(warp::reject::custom)?;
+        let hdr =
+            create_track(&self.db, new_track.into(), body_data).map_err(warp::reject::custom)?;
+        Ok(warp::reply::with_status(
+            warp::reply::json(&EntityHeader::from(hdr)),
+            StatusCode::CREATED,
+        ))
     }
 
     pub fn handle_update(
         &self,
-        uid: EntityUid,
-        track: TrackEntity,
+        uid: _core::EntityUid,
+        entity: Entity,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
-        if uid != *track.header().uid() {
+        let json_data = write_json_body_data(&entity.1).map_err(warp::reject::custom)?;
+        let entity = _core::Entity::from(entity);
+        if uid != entity.hdr.uid {
             return Err(warp::reject::custom(failure::format_err!(
                 "Mismatching UIDs: {} <> {}",
                 uid,
-                track.header().uid(),
+                entity.hdr.uid,
             )));
         }
-        update_track(&self.db, track, SerializationFormat::JSON)
-            .and_then(move |res| match res {
-                (_, Some(next_revision)) => {
-                    let next_header = aoide_domain::entity::EntityHeader::new(uid, next_revision);
-                    Ok(warp::reply::json(&next_header))
-                }
-                (_, None) => Err(failure::format_err!(
-                    "Inexistent entity or revision conflict"
-                )),
-            })
-            .map_err(warp::reject::custom)
+        let (_, next_rev) =
+            update_track(&self.db, entity, json_data).map_err(warp::reject::custom)?;
+        if let Some(rev) = next_rev {
+            let hdr = _core::EntityHeader { uid, rev };
+            Ok(warp::reply::json(&EntityHeader::from(hdr)))
+        } else {
+            Err(warp::reject::custom(failure::format_err!(
+                "Inexistent entity or revision conflict"
+            )))
+        }
     }
 
     pub fn handle_delete(
         &self,
-        uid: EntityUid,
+        uid: _core::EntityUid,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         delete_track(&self.db, &uid)
             .map_err(warp::reject::custom)
@@ -121,18 +833,17 @@ impl TracksHandler {
             })
     }
 
-    pub fn handle_load(&self, uid: EntityUid) -> Result<impl warp::Reply, warp::reject::Rejection> {
+    pub fn handle_load(
+        &self,
+        uid: _core::EntityUid,
+    ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         load_track(&self.db, &uid)
             .map_err(warp::reject::custom)
             .and_then(|res| match res {
-                Some(val) => {
-                    let mime_type: mime::Mime = val.format.into();
-                    let body: Vec<u8> = val.blob;
-                    Ok(warp::reply::with_header(
-                        body,
-                        "Content-Type",
-                        mime_type.to_string().as_str(),
-                    ))
+                Some(entity_data) => {
+                    let json_data =
+                        load_entity_data_into_json(entity_data).map_err(warp::reject::custom)?;
+                    Ok(reply_with_json_content(json_data))
                 }
                 None => Err(warp::reject::not_found()),
             })
@@ -142,10 +853,9 @@ impl TracksHandler {
         &self,
         query_params: TracksQueryParams,
     ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
-        list_tracks(&self.db, &query_params)
-            .and_then(|reply| {
-                aoide_storage::api::serde::SerializedEntity::slice_to_json_array(&reply)
-            })
+        let (collection_uid, pagination) = query_params.into();
+        list_tracks(&self.db, collection_uid, pagination)
+            .and_then(|reply| load_entity_data_iter_into_json_array(reply.into_iter()))
             .map(reply_with_json_content)
             .map_err(warp::reject::custom)
     }
@@ -153,12 +863,11 @@ impl TracksHandler {
     pub fn handle_search(
         &self,
         query_params: TracksQueryParams,
-        search_params: SearchTracksParams,
+        search_params: SearchParams,
     ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
-        search_tracks(&self.db, query_params, search_params)
-            .and_then(|reply| {
-                aoide_storage::api::serde::SerializedEntity::slice_to_json_array(&reply)
-            })
+        let (collection_uid, pagination) = query_params.into();
+        search_tracks(&self.db, collection_uid, pagination, search_params.into())
+            .and_then(|reply| load_entity_data_iter_into_json_array(reply.into_iter()))
             .map(reply_with_json_content)
             .map_err(warp::reject::custom)
     }
@@ -166,12 +875,11 @@ impl TracksHandler {
     pub fn handle_locate(
         &self,
         query_params: TracksQueryParams,
-        locate_params: LocateTracksParams,
+        locate_params: LocateParams,
     ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
-        locate_tracks(&self.db, query_params, locate_params)
-            .and_then(|reply| {
-                aoide_storage::api::serde::SerializedEntity::slice_to_json_array(&reply)
-            })
+        let (collection_uid, pagination) = query_params.into();
+        locate_tracks(&self.db, collection_uid, pagination, locate_params.into())
+            .and_then(|reply| load_entity_data_iter_into_json_array(reply.into_iter()))
             .map(reply_with_json_content)
             .map_err(warp::reject::custom)
     }
@@ -181,26 +889,34 @@ impl TracksHandler {
         query_params: TracksQueryParams,
         replace_params: ReplaceTracksParams,
     ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
+        let (collection_uid, _) = query_params.into();
+        let mode = replace_params.mode.into();
         replace_tracks(
             &self.db,
-            query_params,
-            replace_params,
-            SerializationFormat::JSON,
+            collection_uid,
+            mode,
+            replace_params.replacements.into_iter(),
         )
         .map(|val| warp::reply::json(&val))
-        .map_err(warp::reject::custom)
+        .map_err(|err| {
+            log::warn!("Failed to replace tracks: {}", err);
+            warp::reject::custom(err)
+        })
     }
 
     pub fn handle_purge(
         &self,
         query_params: TracksQueryParams,
-        uri_predicates: impl IntoIterator<Item = UriPredicate>,
+        uri_predicates: Vec<UriPredicate>,
     ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
-        purge_tracks(&self.db, query_params.collection_uid, uri_predicates)
+        let (collection_uid, _) = query_params.into();
+        let uri_predicates = uri_predicates.into_iter().map(Into::into);
+        purge_tracks(&self.db, collection_uid, uri_predicates)
             .map(|()| StatusCode::NO_CONTENT)
             .map_err(warp::reject::custom)
     }
 
+    /*
     pub fn handle_relocate(
         &self,
         query_params: TracksQueryParams,
@@ -210,174 +926,247 @@ impl TracksHandler {
             .map(|()| StatusCode::NO_CONTENT)
             .map_err(warp::reject::custom)
     }
+    */
 
     pub fn handle_albums_count_tracks(
         &self,
         query_params: TracksQueryParams,
-        count_params: CountTracksByAlbumParams,
+        count_params: AlbumCountParams,
     ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
-        count_tracks_by_album(&self.db, query_params, &count_params)
-            .map(|val| warp::reply::json(&val))
+        let (collection_uid, pagination) = query_params.into();
+        count_tracks_by_album(&self.db, collection_uid, pagination, &count_params.into())
+            .map(|res| {
+                warp::reply::json(
+                    &res.into_iter()
+                        .map(AlbumTrackCount::from)
+                        .collect::<Vec<_>>(),
+                )
+            })
             .map_err(warp::reject::custom)
     }
 
     pub fn handle_tags_count_tracks(
         &self,
         query_params: TracksQueryParams,
-        count_params: CountTracksByTagParams,
+        count_params: TagCountParams,
     ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
-        count_tracks_by_tag(&self.db, query_params, count_params)
-            .map(|val| warp::reply::json(&val))
+        let (collection_uid, pagination) = query_params.into();
+        count_tracks_by_tag(&self.db, collection_uid, pagination, count_params.into())
+            .map(|res| {
+                warp::reply::json(
+                    &res.into_iter()
+                        .map(TagAvgScoreCount::from)
+                        .collect::<Vec<_>>(),
+                )
+            })
             .map_err(warp::reject::custom)
     }
 
     pub fn handle_tags_facets_count_tracks(
         &self,
         query_params: TracksQueryParams,
-        count_params: CountTracksByTagFacetParams,
+        count_params: TagFacetCountParams,
     ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
-        count_tracks_by_tag_facet(&self.db, query_params, count_params)
-            .map(|val| warp::reply::json(&val))
+        let (collection_uid, pagination) = query_params.into();
+        count_tracks_by_tag_facet(&self.db, collection_uid, pagination, count_params.into())
+            .map(|res| {
+                warp::reply::json(&res.into_iter().map(TagFacetCount::from).collect::<Vec<_>>())
+            })
             .map_err(warp::reject::custom)
     }
 }
 
 fn create_track(
     db: &SqlitePooledConnection,
-    new_track: Track,
-    format: SerializationFormat,
-) -> TracksResult<TrackEntity> {
-    let repository = TrackRepository::new(&*db);
-    db.transaction::<_, Error, _>(|| repository.create_entity(new_track, format))
+    new_track: _core::Track,
+    body_data: _repo::EntityBodyData,
+) -> RepoResult<_core::EntityHeader> {
+    let repository = Repository::new(&*db);
+    let hdr = _core::EntityHeader::initial_random();
+    let entity = _core::Entity::new(hdr.clone(), new_track);
+    db.transaction::<_, Error, _>(|| repository.insert_track(entity, body_data).map(|()| hdr))
 }
 
 fn update_track(
     db: &SqlitePooledConnection,
-    track: TrackEntity,
-    format: SerializationFormat,
-) -> TracksResult<(EntityRevision, Option<EntityRevision>)> {
-    let repository = TrackRepository::new(&*db);
-    db.transaction::<_, Error, _>(|| repository.update_entity(track, format))
+    track: _core::Entity,
+    body_data: _repo::EntityBodyData,
+) -> RepoResult<(_core::EntityRevision, Option<_core::EntityRevision>)> {
+    let repository = Repository::new(&*db);
+    db.transaction::<_, Error, _>(|| repository.update_track(track, body_data))
 }
 
-fn delete_track(db: &SqlitePooledConnection, uid: &EntityUid) -> TracksResult<Option<()>> {
-    let repository = TrackRepository::new(&*db);
-    db.transaction::<_, Error, _>(|| repository.delete_entity(uid))
+fn delete_track(db: &SqlitePooledConnection, uid: &_core::EntityUid) -> RepoResult<Option<()>> {
+    let repository = Repository::new(&*db);
+    db.transaction::<_, Error, _>(|| repository.delete_track(uid))
 }
 
 fn load_track(
     pooled_connection: &SqlitePooledConnection,
-    uid: &EntityUid,
-) -> TracksResult<Option<SerializedEntity>> {
-    let repository = TrackRepository::new(&*pooled_connection);
-    pooled_connection.transaction::<_, Error, _>(|| repository.load_entity(uid))
+    uid: &_core::EntityUid,
+) -> RepoResult<Option<_repo::EntityData>> {
+    let repository = Repository::new(&*pooled_connection);
+    pooled_connection.transaction::<_, Error, _>(|| repository.load_track(uid))
 }
 
 fn list_tracks(
     pooled_connection: &SqlitePooledConnection,
-    query: &TracksQueryParams,
-) -> impl Future<Item = Vec<SerializedEntity>, Error = Error> {
-    let repository = TrackRepository::new(&*pooled_connection);
+    collection_uid: Option<_core::EntityUid>,
+    pagination: Pagination,
+) -> impl Future<Item = Vec<_repo::EntityData>, Error = Error> {
+    let repository = Repository::new(&*pooled_connection);
     future::result(pooled_connection.transaction::<_, Error, _>(|| {
-        repository.search_entities(
-            query.collection_uid.as_ref(),
-            query.pagination(),
-            Default::default(),
-        )
+        repository.search_tracks(collection_uid.as_ref(), pagination, Default::default())
     }))
 }
 
 fn search_tracks(
     pooled_connection: &SqlitePooledConnection,
-    query: TracksQueryParams,
-    params: SearchTracksParams,
-) -> impl Future<Item = Vec<SerializedEntity>, Error = Error> {
-    let repository = TrackRepository::new(&*pooled_connection);
+    collection_uid: Option<_core::EntityUid>,
+    pagination: Pagination,
+    params: _repo::SearchParams,
+) -> impl Future<Item = Vec<_repo::EntityData>, Error = Error> {
+    let repository = Repository::new(&*pooled_connection);
     future::result(pooled_connection.transaction::<_, Error, _>(|| {
-        repository.search_entities(query.collection_uid.as_ref(), query.pagination(), params)
+        repository.search_tracks(collection_uid.as_ref(), pagination, params)
     }))
 }
 
 fn locate_tracks(
     pooled_connection: &SqlitePooledConnection,
-    query: TracksQueryParams,
-    params: LocateTracksParams,
-) -> impl Future<Item = Vec<SerializedEntity>, Error = Error> {
-    let repository = TrackRepository::new(&*pooled_connection);
+    collection_uid: Option<_core::EntityUid>,
+    pagination: Pagination,
+    params: _repo::LocateParams,
+) -> impl Future<Item = Vec<_repo::EntityData>, Error = Error> {
+    let repository = Repository::new(&*pooled_connection);
     future::result(pooled_connection.transaction::<_, Error, _>(|| {
-        repository.locate_entities(query.collection_uid.as_ref(), query.pagination(), params)
+        repository.locate_tracks(collection_uid.as_ref(), pagination, params)
     }))
 }
 
 fn replace_tracks(
     pooled_connection: &SqlitePooledConnection,
-    query: TracksQueryParams,
-    params: ReplaceTracksParams,
-    format: SerializationFormat,
+    collection_uid: Option<_core::EntityUid>,
+    mode: _repo::ReplaceMode,
+    replacements: impl Iterator<Item = TrackReplacement>,
 ) -> impl Future<Item = ReplacedTracks, Error = Error> {
-    debug_assert!(query.offset.is_none()); // unused
-    debug_assert!(query.limit.is_none()); // unused
-    let repository = TrackRepository::new(&*pooled_connection);
+    let repository = Repository::new(&*pooled_connection);
     future::result(pooled_connection.transaction::<_, Error, _>(|| {
-        repository.replace_entities(query.collection_uid.as_ref(), params, format)
+        let mut results = ReplacedTracks::default();
+        for replacement in replacements {
+            let body_data = write_json_body_data(&replacement.track)?;
+            let (data_fmt, data_ver, _) = body_data;
+            let source_uri = replacement.source_uri;
+            let replace_result = repository.replace_track(
+                collection_uid.as_ref(),
+                source_uri.clone(),
+                mode,
+                replacement.track.into(),
+                body_data,
+            )?;
+            use _repo::ReplaceResult::*;
+            match replace_result {
+                AmbiguousSourceUri(count) => {
+                    log::warn!(
+                        "Cannot replace track with ambiguous source URI '{}' that matches {} tracks",
+                        source_uri,
+                        count
+                    );
+                    results.rejected.push(source_uri);
+                }
+                IncompatibleFormat(fmt) => {
+                    log::warn!(
+                        "Incompatible data formats for track with source URI '{}': Current = {}, replacement = {}",
+                        source_uri,
+                        fmt,
+                        data_fmt
+                    );
+                    results.rejected.push(source_uri);
+                }
+                IncompatibleVersion(ver) => {
+                    log::warn!(
+                        "Incompatible data versions for track with source URI '{}': Current = {}, replacement = {}",
+                        source_uri,
+                        ver,
+                        data_ver
+                    );
+                    results.rejected.push(source_uri);
+                }
+                NotCreated => {
+                    results.discarded.push(source_uri);
+                }
+                Unchanged(hdr) => {
+                    results.skipped.push(hdr.into());
+                }
+                Created(hdr) => {
+                    results.created.push(hdr.into());
+                }
+                Updated(hdr) => {
+                    results.updated.push(hdr.into());
+                }
+            }
+        }
+        Ok(results)
     }))
 }
 
 fn purge_tracks(
     pooled_connection: &SqlitePooledConnection,
-    collection_uid: Option<EntityUid>,
-    uri_predicates: impl IntoIterator<Item = UriPredicate>,
+    collection_uid: Option<_core::EntityUid>,
+    uri_predicates: impl IntoIterator<Item = _repo::UriPredicate>,
 ) -> impl Future<Item = (), Error = Error> {
-    let repository = TrackRepository::new(&*pooled_connection);
+    let repository = Repository::new(&*pooled_connection);
     future::result(pooled_connection.transaction::<_, Error, _>(|| {
         for uri_predicate in uri_predicates {
+            use _repo::StringPredicate::*;
+            use _repo::UriPredicate::*;
             let locate_params = match &uri_predicate {
-                UriPredicate::Prefix(uri_prefix) => LocateTracksParams {
-                    uri: StringPredicate::StartsWith(uri_prefix.to_owned()),
+                Prefix(source_uri) => _repo::LocateParams {
+                    source_uri: StartsWith(source_uri.to_owned()),
                 },
-                UriPredicate::Exact(uri) => LocateTracksParams {
-                    uri: StringPredicate::Equals(uri.to_owned()),
+                Exact(source_uri) => _repo::LocateParams {
+                    source_uri: Equals(source_uri.to_owned()),
                 },
             };
-            let tracks = repository.locate_entities(
+            let entities = repository.locate_tracks(
                 collection_uid.as_ref(),
                 Default::default(),
                 locate_params,
             )?;
             log::debug!(
                 "Found {} track(s) that match {:?} as candidates for purging",
-                tracks.len(),
+                entities.len(),
                 uri_predicate,
             );
-            for track in tracks {
-                let format = track.format;
-                let mut track: TrackEntity = track.deserialize()?;
+            for entity in entities.into_iter() {
+                let _core::Entity { hdr, mut body, .. } = read_json_entity(entity)?;
                 let purged = match &uri_predicate {
-                    UriPredicate::Prefix(ref uri_prefix) => {
-                        track.body_mut().purge_source_by_uri_prefix(uri_prefix)
-                    }
-                    UriPredicate::Exact(ref uri) => track.body_mut().purge_source_by_uri(uri),
+                    Prefix(ref uri_prefix) => body.purge_media_source_by_uri_prefix(uri_prefix),
+                    Exact(ref uri) => body.purge_media_source_by_uri(uri),
                 };
                 if purged > 0 {
-                    if track.body().sources.is_empty() {
+                    if body.media_sources.is_empty() {
                         log::debug!(
-                            "Deleting track {} after purging all (= {}) sources",
-                            track.header().uid(),
+                            "Deleting track {} after purging all (= {}) media sources",
+                            hdr.uid,
                             purged,
                         );
-                        repository.delete_entity(track.header().uid())?;
+                        repository.delete_track(&hdr.uid)?;
                     } else {
                         log::debug!(
-                            "Updating track {} after purging {} of {} source(s)",
-                            track.header().uid(),
+                            "Updating track {} after purging {} of {} media source(s)",
+                            hdr.uid,
                             purged,
-                            purged + track.body().sources.len(),
+                            purged + body.media_sources.len(),
                         );
-                        let updated = repository.update_entity(track, format)?;
+                        // TODO: Avoid temporary clone
+                        let json_data = write_json_body_data(&body.clone().into())?;
+                        let entity = _core::Entity::new(hdr, body);
+                        let updated = repository.update_track(entity, json_data)?;
                         debug_assert!(updated.1.is_some());
                     }
                 } else {
-                    log::debug!("No sources purged from track {}", track.header().uid());
+                    log::debug!("No media sources purged from track {}", hdr.uid);
                 }
             }
         }
@@ -385,19 +1174,20 @@ fn purge_tracks(
     }))
 }
 
+/*
 fn relocate_tracks(
     pooled_connection: &SqlitePooledConnection,
     collection_uid: Option<EntityUid>,
     uri_relocations: impl IntoIterator<Item = UriRelocation>,
 ) -> impl Future<Item = (), Error = Error> {
-    let repository = TrackRepository::new(&*pooled_connection);
+    let repository = Repository::new(&*pooled_connection);
     future::result(pooled_connection.transaction::<_, Error, _>(|| {
         for uri_relocation in uri_relocations {
             let locate_params = match &uri_relocation.predicate {
-                UriPredicate::Prefix(uri_prefix) => LocateTracksParams {
+                UriPredicate::Prefix(uri_prefix) => LocateParams {
                     uri: StringPredicate::StartsWith(uri_prefix.to_owned()),
                 },
-                UriPredicate::Exact(uri) => LocateTracksParams {
+                UriPredicate::Exact(uri) => LocateParams {
                     uri: StringPredicate::Equals(uri.to_owned()),
                 },
             };
@@ -413,7 +1203,7 @@ fn relocate_tracks(
             );
             for track in tracks {
                 let format = track.format;
-                let mut track: TrackEntity = track.deserialize()?;
+                let mut track: Entity = track.deserialize()?;
                 let relocated = match &uri_relocation.predicate {
                     UriPredicate::Prefix(uri_prefix) => track
                         .body_mut()
@@ -425,56 +1215,56 @@ fn relocate_tracks(
                 if relocated > 0 {
                     log::debug!(
                         "Updating track {} after relocating {} source(s)",
-                        track.header().uid(),
+                        track.hdr.uid,
                         relocated,
                     );
                     let updated = repository.update_entity(track, format)?;
                     debug_assert!(updated.1.is_some());
                 } else {
-                    log::debug!("No sources relocated for track {}", track.header().uid());
+                    log::debug!("No sources relocated for track {}", track.hdr.uid);
                 }
             }
         }
         Ok(())
     }))
 }
+*/
 
 fn count_tracks_by_album(
     pooled_connection: &SqlitePooledConnection,
-    query: TracksQueryParams,
-    params: &CountTracksByAlbumParams,
-) -> impl Future<Item = Vec<AlbumTracksCount>, Error = Error> {
-    let repository = TrackRepository::new(&*pooled_connection);
+    collection_uid: Option<_core::EntityUid>,
+    pagination: Pagination,
+    params: &_repo::AlbumCountParams,
+) -> impl Future<Item = Vec<_repo::AlbumCountResults>, Error = Error> {
+    let repository = Repository::new(&*pooled_connection);
     future::result(pooled_connection.transaction::<_, Error, _>(|| {
-        repository.count_tracks_by_album(query.collection_uid.as_ref(), params, query.pagination())
+        repository.count_tracks_by_album(collection_uid.as_ref(), params, pagination)
     }))
 }
 
 fn count_tracks_by_tag(
     pooled_connection: &SqlitePooledConnection,
-    query: TracksQueryParams,
-    mut params: CountTracksByTagParams,
-) -> impl Future<Item = Vec<TagCount>, Error = Error> {
+    collection_uid: Option<_core::EntityUid>,
+    pagination: Pagination,
+    mut params: _repo::TagCountParams,
+) -> impl Future<Item = Vec<_repo::TagAvgScoreCount>, Error = Error> {
     params.dedup_facets();
-    let repository = TrackRepository::new(&*pooled_connection);
+    let repository = Repository::new(&*pooled_connection);
     future::result(pooled_connection.transaction::<_, Error, _>(|| {
-        repository.count_tracks_by_tag(query.collection_uid.as_ref(), &params, query.pagination())
+        repository.count_tracks_by_tag(collection_uid.as_ref(), &params, pagination)
     }))
 }
 
 fn count_tracks_by_tag_facet(
     pooled_connection: &SqlitePooledConnection,
-    query: TracksQueryParams,
-    mut params: CountTracksByTagFacetParams,
-) -> impl Future<Item = Vec<TagFacetCount>, Error = Error> {
+    collection_uid: Option<_core::EntityUid>,
+    pagination: Pagination,
+    mut params: _repo::TagFacetCountParams,
+) -> impl Future<Item = Vec<_repo::TagFacetCount>, Error = Error> {
     params.dedup_facets();
-    let repository = TrackRepository::new(&*pooled_connection);
+    let repository = Repository::new(&*pooled_connection);
     future::result(pooled_connection.transaction::<_, Error, _>(|| {
-        repository.count_tracks_by_tag_facet(
-            query.collection_uid.as_ref(),
-            &params,
-            query.pagination(),
-        )
+        repository.count_tracks_by_tag_facet(collection_uid.as_ref(), &params, pagination)
     }))
 }
 
@@ -485,10 +1275,10 @@ mod tests {
     #[test]
     fn urlencode_tracks_query_params() {
         let collection_uid =
-            EntityUid::decode_from_str("DNGwV8sS9XS2GAxfEvgW2NMFxDHwi81CC").unwrap();
+            _core::EntityUid::decode_from_str("DNGwV8sS9XS2GAxfEvgW2NMFxDHwi81CC").unwrap();
 
         let query = TracksQueryParams {
-            collection_uid: Some(collection_uid),
+            collection_uid: Some(collection_uid.clone().into()),
             offset: Some(0),
             limit: Some(2),
         };
@@ -498,12 +1288,20 @@ mod tests {
             serde_urlencoded::to_string(&query).unwrap()
         );
         assert_eq!(
-            query,
-            serde_urlencoded::from_str::<TracksQueryParams>(query_urlencoded).unwrap()
+            (
+                Some(collection_uid.clone()),
+                Pagination {
+                    offset: query.offset,
+                    limit: query.limit
+                }
+            ),
+            serde_urlencoded::from_str::<TracksQueryParams>(query_urlencoded)
+                .unwrap()
+                .into()
         );
 
         let query = TracksQueryParams {
-            collection_uid: Some(collection_uid),
+            collection_uid: Some(collection_uid.clone().into()),
             offset: None,
             limit: Some(2),
         };
@@ -513,12 +1311,20 @@ mod tests {
             serde_urlencoded::to_string(&query).unwrap()
         );
         assert_eq!(
-            query,
-            serde_urlencoded::from_str::<TracksQueryParams>(query_urlencoded).unwrap()
+            (
+                Some(collection_uid.clone()),
+                Pagination {
+                    offset: query.offset,
+                    limit: query.limit
+                }
+            ),
+            serde_urlencoded::from_str::<TracksQueryParams>(query_urlencoded)
+                .unwrap()
+                .into()
         );
 
         let query = TracksQueryParams {
-            collection_uid: Some(collection_uid),
+            collection_uid: Some(collection_uid.clone().into()),
             offset: None,
             limit: None,
         };
@@ -528,8 +1334,16 @@ mod tests {
             serde_urlencoded::to_string(&query).unwrap()
         );
         assert_eq!(
-            query,
-            serde_urlencoded::from_str::<TracksQueryParams>(query_urlencoded).unwrap()
+            (
+                Some(collection_uid.clone()),
+                Pagination {
+                    offset: query.offset,
+                    limit: query.limit
+                }
+            ),
+            serde_urlencoded::from_str::<TracksQueryParams>(query_urlencoded)
+                .unwrap()
+                .into()
         );
 
         let query = TracksQueryParams {
@@ -543,8 +1357,16 @@ mod tests {
             serde_urlencoded::to_string(&query).unwrap()
         );
         assert_eq!(
-            query,
-            serde_urlencoded::from_str::<TracksQueryParams>(query_urlencoded).unwrap()
+            (
+                None,
+                Pagination {
+                    offset: query.offset,
+                    limit: query.limit
+                }
+            ),
+            serde_urlencoded::from_str::<TracksQueryParams>(query_urlencoded)
+                .unwrap()
+                .into()
         );
     }
 }

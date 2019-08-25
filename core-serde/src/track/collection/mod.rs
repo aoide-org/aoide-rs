@@ -1,0 +1,78 @@
+// aoide.org - Copyright (C) 2018-2019 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+use super::*;
+
+mod _core {
+    pub use aoide_core::track::collection::*;
+}
+
+use crate::{entity::EntityUid, util::color::ColorArgb};
+
+use chrono::{DateTime, Utc};
+
+///////////////////////////////////////////////////////////////////////
+// Collection
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(Eq, PartialEq))]
+pub struct Collection {
+    #[serde(rename = "u")]
+    uid: EntityUid,
+
+    #[serde(rename = "t")]
+    since: DateTime<Utc>,
+
+    #[serde(rename = "c", skip_serializing_if = "Option::is_none")]
+    color: Option<ColorArgb>,
+
+    #[serde(rename = "p", skip_serializing_if = "Option::is_none")]
+    play_count: Option<usize>,
+}
+
+impl From<_core::Collection> for Collection {
+    fn from(from: _core::Collection) -> Self {
+        let _core::Collection {
+            uid,
+            since,
+            color,
+            play_count,
+        } = from;
+        Self {
+            uid: uid.into(),
+            since,
+            color: color.map(Into::into),
+            play_count,
+        }
+    }
+}
+
+impl From<Collection> for _core::Collection {
+    fn from(from: Collection) -> Self {
+        let Collection {
+            uid,
+            since,
+            color,
+            play_count,
+        } = from;
+        Self {
+            uid: uid.into(),
+            since,
+            color: color.map(Into::into),
+            play_count,
+        }
+    }
+}

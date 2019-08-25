@@ -18,7 +18,7 @@ use super::*;
 #[test]
 fn validate_empty_titles() {
     let titles = [];
-    assert!(Titles::validate(&titles).is_ok());
+    assert!(Titles::validate(titles.iter()).is_ok());
 }
 
 #[test]
@@ -26,45 +26,43 @@ fn validate_main_title() {
     let titles = [Title {
         name: "title1".into(),
         level: TitleLevel::Main,
-        language: None,
     }];
-    assert!(Titles::validate(&titles).is_ok());
+    assert!(Titles::validate(titles.iter()).is_ok());
 
     let titles = [
         Title {
             name: "title1".into(),
             level: TitleLevel::Main,
-            language: None,
         },
         Title {
             name: "title2".into(),
             level: TitleLevel::Main,
-            language: None,
         },
     ];
     assert_eq!(
         1,
-        Titles::validate(&titles).err().unwrap().into_iter().count()
+        Titles::validate(titles.iter())
+            .err()
+            .unwrap()
+            .into_iter()
+            .count()
     );
 
     let titles = [
         Title {
             name: "title1".into(),
             level: TitleLevel::Main,
-            language: None,
         },
         Title {
             name: "title2".into(),
             level: TitleLevel::Main,
-            language: Some("en".into()),
         },
     ];
-    assert!(Titles::validate(&titles).is_ok());
+    assert!(Titles::validate(titles.iter()).is_ok());
 
     let titles = [Title {
         name: "title1".into(),
         level: TitleLevel::Main,
-        language: Some("en".into()),
     }];
-    assert!(Titles::validate(&titles).is_ok());
+    assert!(Titles::validate(titles.iter()).is_ok());
 }

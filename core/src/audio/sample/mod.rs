@@ -54,6 +54,8 @@ impl fmt::Display for SampleLayout {
 // SampleFormat
 ///////////////////////////////////////////////////////////////////////
 
+pub type BitsPerSample = u8;
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum SampleFormat {
     Float32,

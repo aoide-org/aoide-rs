@@ -18,81 +18,84 @@ use super::*;
 use crate::audio::{AudioContent, AudioContentValidation};
 
 ///////////////////////////////////////////////////////////////////////
-// Source
+// MediaContent
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct Source {
+#[derive(Clone, Debug, PartialEq)]
+pub enum MediaContent {
+    Audio(AudioContent),
+}
+
+///////////////////////////////////////////////////////////////////////
+// MediaSource
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct MediaSource {
     pub uri: String,
 
-    // The content_type uniquely identifies a Source of
+    // The content_type uniquely identifies a MediaSource of
     // a Track, i.e. no duplicate content types are allowed
     // among the track sources of each track.
     pub content_type: String,
 
-    pub audio_content: Option<AudioContent>,
+    pub content: MediaContent,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum SourceValidation {
-    UriMinLen(usize),
-    ContentTypeMinLen(usize),
+pub enum MediaSourceValidation {
+    UriEmpty,
+    ContentTypeEmpty,
     AudioContent(AudioContentValidation),
 }
 
-const URI_MIN_LEN: usize = 1;
-
-const CONTENT_TYPE_MIN_LEN: usize = 1;
-
-impl Validate for Source {
-    type Validation = SourceValidation;
+impl Validate for MediaSource {
+    type Validation = MediaSourceValidation;
 
     fn validate(&self) -> ValidationResult<Self::Validation> {
         let mut context = ValidationContext::default();
+        context.add_violation_if(self.uri.trim().is_empty(), MediaSourceValidation::UriEmpty);
         context.add_violation_if(
-            self.uri.len() < URI_MIN_LEN,
-            SourceValidation::UriMinLen(URI_MIN_LEN),
-        );
-        context.add_violation_if(
-            self.content_type.len() < CONTENT_TYPE_MIN_LEN,
-            SourceValidation::ContentTypeMinLen(CONTENT_TYPE_MIN_LEN),
+            self.content_type.trim().is_empty(),
+            MediaSourceValidation::ContentTypeEmpty,
         );
         // TODO: Validate MIME type
-        if let Some(ref audio_content) = self.audio_content {
-            context.map_and_merge_result(audio_content.validate(), SourceValidation::AudioContent);
+        match self.content {
+            MediaContent::Audio(ref audio_content) => context.map_and_merge_result(
+                audio_content.validate(),
+                MediaSourceValidation::AudioContent,
+            ),
         }
         context.into_result()
     }
 }
 
 #[derive(Debug)]
-pub struct Sources;
+pub struct MediaSources;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum SourcesValidation {
-    Source(SourceValidation),
-    ContentTypeAmbiguous,
+pub enum MediaSourcesValidation {
+    MediaSource(MediaSourceValidation),
+    TypeAmbiguous,
 }
 
-impl Sources {
-    pub fn validate<'a, I>(sources: I) -> ValidationResult<SourcesValidation>
+impl MediaSources {
+    pub fn validate<'a, I>(sources: I) -> ValidationResult<MediaSourcesValidation>
     where
-        I: IntoIterator<Item = &'a Source> + Copy,
+        I: Iterator<Item = &'a MediaSource> + Clone,
     {
         let mut context = ValidationContext::default();
-        for source in sources.into_iter() {
-            context.map_and_merge_result(source.validate(), SourcesValidation::Source);
+        for source in sources.clone() {
+            context.map_and_merge_result(source.validate(), MediaSourcesValidation::MediaSource);
         }
         if !context.has_violations() {
-            let mut content_types: Vec<_> = sources
-                .into_iter()
-                .map(|source| &source.content_type)
-                .collect();
+            let mut content_types: Vec<_> =
+                sources.clone().map(|source| &source.content_type).collect();
             content_types.sort_unstable();
             content_types.dedup();
             context.add_violation_if(
-                content_types.len() < sources.into_iter().count(),
-                SourcesValidation::ContentTypeAmbiguous,
+                content_types.len() < sources.count(),
+                MediaSourcesValidation::TypeAmbiguous,
             );
         }
         context.into_result()
@@ -101,13 +104,11 @@ impl Sources {
     pub fn filter_content_type<'a, 'b, I>(
         sources: I,
         content_type: &'b str,
-    ) -> impl Iterator<Item = &'a Source>
+    ) -> impl Iterator<Item = &'a MediaSource>
     where
-        I: IntoIterator<Item = &'a Source>,
+        I: Iterator<Item = &'a MediaSource>,
         'b: 'a,
     {
-        sources
-            .into_iter()
-            .filter(move |source| source.content_type == content_type)
+        sources.filter(move |source| source.content_type == content_type)
     }
 }

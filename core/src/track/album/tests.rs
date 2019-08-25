@@ -21,7 +21,6 @@ fn validate_main_title() {
         titles: vec![Title {
             name: "main".to_string(),
             level: TitleLevel::Main,
-            ..Default::default()
         }],
         ..Default::default()
     };
@@ -29,7 +28,6 @@ fn validate_main_title() {
     album.titles = vec![Title {
         name: "sub".to_string(),
         level: TitleLevel::Sub,
-        ..Default::default()
     }];
     assert!(album.validate().is_err());
 }
@@ -40,7 +38,6 @@ fn validate_main_actor() {
         titles: vec![Title {
             name: "main".to_string(),
             level: TitleLevel::Main,
-            ..Default::default()
         }],
         actors: vec![Actor {
             name: "artist".to_string(),

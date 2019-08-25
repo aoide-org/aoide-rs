@@ -107,8 +107,8 @@ pub trait Labeled {
 }
 
 impl Label {
-    pub const fn new(label: String) -> Self {
-        Self(label)
+    pub fn new(label: impl Into<String>) -> Self {
+        Self(label.into())
     }
 }
 
@@ -132,6 +132,12 @@ impl Validate for Label {
     }
 }
 
+impl From<Label> for String {
+    fn from(from: Label) -> Self {
+        from.0
+    }
+}
+
 impl AsRef<String> for Label {
     fn as_ref(&self) -> &String {
         &self.0
@@ -141,15 +147,6 @@ impl AsRef<String> for Label {
 impl AsRef<str> for Label {
     fn as_ref(&self) -> &str {
         &self.0
-    }
-}
-
-impl<T> From<T> for Label
-where
-    T: Into<String>,
-{
-    fn from(from: T) -> Self {
-        Self::new(from.into())
     }
 }
 
@@ -180,8 +177,8 @@ pub trait Faceted {
 }
 
 impl Facet {
-    pub const fn new(label: String) -> Self {
-        Self(label)
+    pub fn new(label: impl Into<String>) -> Self {
+        Self(label.into())
     }
 
     fn is_invalid_char(c: char) -> bool {
@@ -209,6 +206,12 @@ impl Validate for Facet {
     }
 }
 
+impl From<Facet> for String {
+    fn from(from: Facet) -> Self {
+        from.0
+    }
+}
+
 impl AsRef<String> for Facet {
     fn as_ref(&self) -> &String {
         &self.0
@@ -218,15 +221,6 @@ impl AsRef<String> for Facet {
 impl AsRef<str> for Facet {
     fn as_ref(&self) -> &str {
         &self.0
-    }
-}
-
-impl<T> From<T> for Facet
-where
-    T: Into<String>,
-{
-    fn from(from: T) -> Self {
-        Self::new(from.into())
     }
 }
 
@@ -338,14 +332,13 @@ pub enum TagsValidation {
 impl Tags {
     pub fn validate<'a, I>(tags: I) -> ValidationResult<TagsValidation>
     where
-        I: IntoIterator<Item = &'a Tag> + Copy,
+        I: Iterator<Item = &'a Tag> + Clone,
     {
         let mut context = ValidationContext::default();
-        for tag in tags.into_iter() {
+        for tag in tags.clone() {
             context.map_and_merge_result(tag.validate(), TagsValidation::Tag);
         }
-        let (plain, faceted): (Vec<_>, Vec<_>) =
-            tags.into_iter().partition(|tag| tag.facet.is_none());
+        let (plain, faceted): (Vec<_>, Vec<_>) = tags.partition(|tag| tag.facet.is_none());
         let mut plain_labels: Vec<_> = plain.iter().map(|tag| &tag.label).collect();
         plain_labels.sort_unstable();
         plain_labels.dedup();

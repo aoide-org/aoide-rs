@@ -18,3 +18,60 @@ use super::*;
 pub mod beat;
 pub mod key;
 pub mod position;
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum State {
+    ReadWrite,
+    ReadOnly,
+}
+
+impl State {
+    pub const fn default() -> Self {
+        State::ReadWrite
+    }
+}
+
+impl Default for State {
+    fn default() -> Self {
+        State::default()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Markers {
+    pub positions: Vec<position::Marker>,
+    pub beats: Vec<beat::Marker>,
+    pub keys: Vec<key::Marker>,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum MarkersValidation {
+    Positions(position::MarkersValidation),
+    Beats(beat::MarkersValidation),
+    Keys(key::MarkersValidation),
+}
+
+impl Validate for Markers {
+    type Validation = MarkersValidation;
+
+    fn validate(&self) -> ValidationResult<Self::Validation> {
+        let mut context = ValidationContext::default();
+        context.map_and_merge_result(
+            position::Markers::validate(&self.positions),
+            MarkersValidation::Positions,
+        );
+        context.map_and_merge_result(
+            beat::Markers::validate(&self.beats),
+            MarkersValidation::Beats,
+        );
+        context.map_and_merge_result(key::Markers::validate(&self.keys), MarkersValidation::Keys);
+        context.into_result()
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// Tests
+///////////////////////////////////////////////////////////////////////
+
+#[cfg(tests)]
+mod tests;

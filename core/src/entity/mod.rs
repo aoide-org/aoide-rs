@@ -19,7 +19,7 @@ use crate::util::clock::TickInstant;
 
 use rand::{thread_rng, RngCore};
 
-use std::{fmt, mem, str};
+use std::{fmt, marker::PhantomData, mem, str};
 
 ///////////////////////////////////////////////////////////////////////
 // EntityUid
@@ -31,7 +31,7 @@ pub struct EntityUid([u8; 24]);
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum DecodeError {
     InvalidInput(bs58::decode::DecodeError),
-    InvalidLength(usize),
+    InvalidLength,
 }
 
 impl EntityUid {
@@ -64,7 +64,7 @@ impl EntityUid {
             bs58::decode::decode_into(encoded.as_bytes(), &mut self.0, Self::BASE58_ALPHABET)
                 .map_err(DecodeError::InvalidInput)?;
         if decoded_len != self.0.len() {
-            return Err(DecodeError::InvalidLength(decoded_len));
+            return Err(DecodeError::InvalidLength);
         }
         Ok(self)
     }
@@ -122,103 +122,55 @@ impl std::str::FromStr for EntityUid {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// EntityVersion
-///////////////////////////////////////////////////////////////////////
-
-pub type EntityVersionNumber = u32;
-
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct EntityVersion {
-    major: EntityVersionNumber,
-    minor: EntityVersionNumber,
-}
-
-impl EntityVersion {
-    pub const fn new(major: EntityVersionNumber, minor: EntityVersionNumber) -> Self {
-        EntityVersion { major, minor }
-    }
-
-    pub fn next_major(self) -> Self {
-        EntityVersion {
-            major: self.major + 1,
-            minor: 0,
-        }
-    }
-
-    pub fn next_minor(self) -> Self {
-        EntityVersion {
-            major: self.major,
-            minor: self.minor + 1,
-        }
-    }
-
-    pub fn major(self) -> EntityVersionNumber {
-        self.major
-    }
-
-    pub fn minor(self) -> EntityVersionNumber {
-        self.minor
-    }
-}
-
-impl fmt::Display for EntityVersion {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}.{}", self.major, self.minor)
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
 // EntityRevision
 ///////////////////////////////////////////////////////////////////////
 
-pub type EntityRevisionOrdinal = u64;
+pub type EntityRevisionVersion = u64;
 
 pub type EntityRevisionInstant = TickInstant;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub struct EntityRevision(EntityRevisionOrdinal, EntityRevisionInstant);
+pub struct EntityRevision {
+    // A non-negative, monotone-increasing version number
+    pub ver: EntityRevisionVersion,
+
+    // A time stamp for tracing
+    pub ts: EntityRevisionInstant,
+}
 
 impl EntityRevision {
-    const fn initial_ordinal() -> EntityRevisionOrdinal {
+    const fn initial_ver() -> EntityRevisionVersion {
         1
     }
 
-    pub fn new<I1: Into<EntityRevisionOrdinal>, I2: Into<EntityRevisionInstant>>(
-        ordinal: I1,
-        timestamp: I2,
-    ) -> Self {
-        EntityRevision(ordinal.into(), timestamp.into())
-    }
-
     pub fn initial() -> Self {
-        EntityRevision(Self::initial_ordinal(), TickInstant::now())
+        Self {
+            ver: Self::initial_ver(),
+            ts: TickInstant::now(),
+        }
     }
 
     pub fn next(&self) -> Self {
         debug_assert!(self.validate().is_ok());
-        self.0
+        let ver = self
+            .ver
             .checked_add(1)
-            .map(|ordinal| EntityRevision(ordinal, TickInstant::now()))
             // TODO: Return `Option<Self>`?
-            .unwrap()
+            .unwrap();
+        Self {
+            ver,
+            ts: TickInstant::now(),
+        }
     }
 
     pub fn is_initial(&self) -> bool {
-        self.ordinal() == Self::initial_ordinal()
-    }
-
-    pub fn ordinal(&self) -> EntityRevisionOrdinal {
-        self.0
-    }
-
-    pub fn instant(&self) -> EntityRevisionInstant {
-        self.1
+        self.ver == Self::initial_ver()
     }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum EntityRevisionValidation {
-    OutOfRange,
+    VersionOutOfRange,
 }
 
 impl Validate for EntityRevision {
@@ -227,8 +179,8 @@ impl Validate for EntityRevision {
     fn validate(&self) -> ValidationResult<Self::Validation> {
         let mut context = ValidationContext::default();
         context.add_violation_if(
-            self.ordinal() < Self::initial_ordinal(),
-            EntityRevisionValidation::OutOfRange,
+            self.ver < Self::initial_ver(),
+            EntityRevisionValidation::VersionOutOfRange,
         );
         context.into_result()
     }
@@ -236,7 +188,7 @@ impl Validate for EntityRevision {
 
 impl fmt::Display for EntityRevision {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}@{}", self.ordinal(), self.instant())
+        write!(f, "{}@{}", self.ver, self.ts)
     }
 }
 
@@ -246,19 +198,12 @@ impl fmt::Display for EntityRevision {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EntityHeader {
-    uid: EntityUid,
-    rev: EntityRevision,
+    pub uid: EntityUid,
+    pub rev: EntityRevision,
 }
 
 impl EntityHeader {
-    pub fn new<I1: Into<EntityUid>, I2: Into<EntityRevision>>(uid: I1, rev: I2) -> Self {
-        Self {
-            uid: uid.into(),
-            rev: rev.into(),
-        }
-    }
-
-    pub fn initial() -> Self {
+    pub fn initial_random() -> Self {
         Self::initial_with_uid(EntityUid::random())
     }
 
@@ -267,14 +212,6 @@ impl EntityHeader {
             uid: uid.into(),
             rev: EntityRevision::initial(),
         }
-    }
-
-    pub fn uid(&self) -> &EntityUid {
-        &self.uid
-    }
-
-    pub fn rev(&self) -> &EntityRevision {
-        &self.rev
     }
 }
 
@@ -299,45 +236,20 @@ impl Validate for EntityHeader {
 // Entity
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Entity<T, B> {
-    header: EntityHeader,
-    body: B,
-    _phantom: std::marker::PhantomData<T>,
+    pub hdr: EntityHeader,
+    pub body: B,
+    _phantom: PhantomData<T>,
 }
 
-impl<T, B> Entity<T, B>
-where
-    T: Validation,
-    B: Validate<Validation = T>,
-{
-    pub fn new(header: EntityHeader, body: B) -> Self {
+impl<T, B> Entity<T, B> {
+    pub fn new(hdr: impl Into<EntityHeader>, body: impl Into<B>) -> Self {
         Entity {
-            header,
-            body,
-            _phantom: Default::default(),
+            hdr: hdr.into(),
+            body: body.into(),
+            _phantom: PhantomData,
         }
-    }
-
-    pub fn header(&self) -> &EntityHeader {
-        &self.header
-    }
-
-    pub fn body(&self) -> &B {
-        &self.body
-    }
-
-    pub fn body_mut(&mut self) -> &mut B {
-        &mut self.body
-    }
-
-    pub fn replace_header_rev(self, rev: EntityRevision) -> Self {
-        let header = EntityHeader::new(self.header.uid().clone(), rev);
-        Self::new(header, self.body)
-    }
-
-    pub fn replace_body(self, body: B) -> Self {
-        Self::new(self.header, body)
     }
 }
 
@@ -356,8 +268,8 @@ where
 
     fn validate(&self) -> ValidationResult<Self::Validation> {
         let mut context = ValidationContext::default();
-        context.map_and_merge_result(self.header().validate(), EntityValidation::Header);
-        context.map_and_merge_result(self.body().validate(), EntityValidation::Body);
+        context.map_and_merge_result(self.hdr.validate(), EntityValidation::Header);
+        context.map_and_merge_result(self.body.validate(), EntityValidation::Body);
         context.into_result()
     }
 }

@@ -65,33 +65,33 @@ fn rev_sequence() {
     assert!(next.validate().is_ok());
     assert!(!next.is_initial());
     assert!(initial < next);
-    assert!(initial.ordinal() < next.ordinal());
-    assert!(initial.instant() <= next.instant());
+    assert!(initial.ver < next.ver);
+    assert!(initial.ts <= next.ts);
 
     let nextnext = next.next();
     assert!(nextnext.validate().is_ok());
     assert!(!nextnext.is_initial());
     assert!(next < nextnext);
-    assert!(next.ordinal() < nextnext.ordinal());
-    assert!(next.instant() <= nextnext.instant());
+    assert!(next.ver < nextnext.ver);
+    assert!(next.ts <= nextnext.ts);
 }
 
 #[test]
-fn header_without_uid() {
-    let header = EntityHeader::initial_with_uid(EntityUid::default());
-    assert!(!header.validate().is_ok());
-    assert!(header.rev().is_initial());
+fn hdr_without_uid() {
+    let hdr = EntityHeader::initial_with_uid(EntityUid::default());
+    assert!(!hdr.validate().is_ok());
+    assert!(hdr.rev.is_initial());
 }
 
 #[test]
-fn should_generate_unique_initial_headers() {
-    let header1 = EntityHeader::initial();
-    let header2 = EntityHeader::initial();
-    assert!(header1.validate().is_ok());
-    assert!(header1.rev().is_initial());
-    assert!(header2.validate().is_ok());
-    assert!(header2.rev().is_initial());
-    assert_ne!(header1.uid(), header2.uid());
-    assert_eq!(header1.rev().ordinal(), header2.rev().ordinal());
-    assert!(header1.rev().instant() <= header2.rev().instant());
+fn should_generate_unique_initial_hdrs() {
+    let hdr1 = EntityHeader::initial_random();
+    let hdr2 = EntityHeader::initial_random();
+    assert!(hdr1.validate().is_ok());
+    assert!(hdr1.rev.is_initial());
+    assert!(hdr2.validate().is_ok());
+    assert!(hdr2.rev.is_initial());
+    assert_ne!(hdr1.uid, hdr2.uid);
+    assert_eq!(hdr1.rev.ver, hdr2.rev.ver);
+    assert!(hdr1.rev.ts <= hdr2.rev.ts);
 }

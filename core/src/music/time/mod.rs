@@ -71,36 +71,24 @@ impl fmt::Display for TempoBpm {
 pub type BeatNumber = u16;
 
 #[derive(Copy, Clone, Default, Debug, Eq, PartialEq)]
-pub struct TimeSignature(BeatNumber, BeatNumber);
+pub struct TimeSignature {
+    // number of beats in each measure unit or bar, 0 = default/undefined
+    pub top: BeatNumber,
+
+    // beat value (the note that counts as one beat), 0 = default/undefined
+    pub bottom: BeatNumber,
+}
 
 impl TimeSignature {
     pub fn new(top: BeatNumber, bottom: BeatNumber) -> Self {
-        TimeSignature(top, bottom)
-    }
-
-    // number of beats in each measure unit or bar, 0 = default/undefined
-    pub fn top(self) -> BeatNumber {
-        self.0
-    }
-
-    pub fn beats_per_measure(self) -> BeatNumber {
-        self.top()
-    }
-
-    // beat value (the note that counts as one beat), 0 = default/undefined
-    pub fn bottom(self) -> BeatNumber {
-        self.1
-    }
-
-    pub fn measure_unit(self) -> BeatNumber {
-        self.bottom()
+        Self { top, bottom }
     }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum TimeSignatureValidation {
-    TopLowerBound,
-    BottomLowerBound,
+    TopLowerBound(BeatNumber, BeatNumber),
+    BottomLowerBound(BeatNumber, BeatNumber),
 }
 
 impl Validate for TimeSignature {
@@ -108,15 +96,21 @@ impl Validate for TimeSignature {
 
     fn validate(&self) -> ValidationResult<Self::Validation> {
         let mut context = ValidationContext::default();
-        context.add_violation_if(self.top() < 1, TimeSignatureValidation::TopLowerBound);
-        context.add_violation_if(self.bottom() < 1, TimeSignatureValidation::BottomLowerBound);
+        context.add_violation_if(
+            self.top < 1,
+            TimeSignatureValidation::TopLowerBound(1, self.top),
+        );
+        context.add_violation_if(
+            self.bottom < 1,
+            TimeSignatureValidation::BottomLowerBound(1, self.bottom),
+        );
         context.into_result()
     }
 }
 
 impl fmt::Display for TimeSignature {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}/{}", self.top(), self.bottom())
+        write!(f, "{}/{}", self.top, self.bottom)
     }
 }
 

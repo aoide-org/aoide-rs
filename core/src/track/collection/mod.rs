@@ -58,17 +58,33 @@ pub struct Collections;
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum CollectionsValidation {
     Collection(CollectionValidation),
+    NonUniqueUid,
 }
 
 impl Collections {
     pub fn validate<'a, I>(collections: I) -> ValidationResult<CollectionsValidation>
     where
-        I: IntoIterator<Item = &'a Collection> + Copy,
+        I: Iterator<Item = &'a Collection> + Clone,
     {
         let mut context = ValidationContext::default();
-        for collection in collections.into_iter() {
+        for collection in collections.clone() {
             context.map_and_merge_result(collection.validate(), CollectionsValidation::Collection);
         }
+        let mut uids: Vec<_> = collections.clone().map(|c| &c.uid).collect();
+        uids.sort_unstable();
+        uids.dedup();
+        context.add_violation_if(
+            uids.len() < collections.count(),
+            CollectionsValidation::NonUniqueUid,
+        );
         context.into_result()
+    }
+
+    pub fn find_by_uid<'a, I>(collections: I, uid: &EntityUid) -> Option<&'a Collection>
+    where
+        I: Iterator<Item = &'a Collection> + Clone,
+    {
+        debug_assert!(Self::validate(collections.clone()).is_ok());
+        collections.filter(|c| &c.uid == uid).nth(0)
     }
 }
