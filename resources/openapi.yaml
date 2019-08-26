@@ -902,33 +902,34 @@ components:
         - releaseYear
         - musicTempo
         - musicKey
-    NumericFilter:
-      properties:
-        field:
-          $ref: '#/components/schemas/NumericField'
-        value:
-          $ref: '#/components/schemas/NumericPredicate'
-      required:
-        - field
-        - value
-    PhraseFilter:
-      properties:
-        fields:
-          type: array
-          items:
-            $ref: '#/components/schemas/StringField'
-          description: If no fields are specified all available string fields
-            are matched.
-        terms:
-          type: array
-          items:
-            type: string
-          description: >
-            The terms are concatenated with wildcards, and filtered
-            using case-insensitive "contains" semantics for each of the
-            selected fields, e.g. "Pa la bell" or "tt ll" both match "Patti
-            LaBelle". An empty array matches both empty and missing/null
-            fields.
+    NumericFieldFilter:
+      type: array
+      minLength: 2
+      maxLength: 2
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/NumericField'
+          - $ref: '#/components/schemas/NumericPredicate'
+    PhraseFieldFilter:
+      type: array
+      minLength: 2
+      maxLength: 2
+      items:
+        oneOf:
+          - type: array
+            items:
+              $ref: '#/components/schemas/StringField'
+            description: If no fields are specified all available string fields
+              are matched.
+          - type: array
+            items:
+              type: string
+            description: >
+              The terms are concatenated with wildcards, and filtered
+              using case-insensitive "contains" semantics for each of the
+              selected fields, e.g. "Pa la bell" or "tt ll" both match "Patti
+              LaBelle". An empty array matches both empty and missing/null
+              fields.
       required:
         - terms
       description: |
@@ -1072,23 +1073,23 @@ components:
         - n
     TrackSearchFilterNode:
       oneOf:
-        - $ref: '#/components/schemas/TrackSearchPhraseFilterNode'
-        - $ref: '#/components/schemas/TrackSearchNumericFilterNode'
+        - $ref: '#/components/schemas/TrackSearchPhraseFieldFilterNode'
+        - $ref: '#/components/schemas/TrackSearchNumericFieldFilterNode'
         - $ref: '#/components/schemas/TrackSearchTagFilterNode'
         - $ref: '#/components/schemas/TrackSearchMarkerFilterNode'
         - $ref: '#/components/schemas/TrackSearchAllFilterNode'
         - $ref: '#/components/schemas/TrackSearchAnyFilterNode'
         - $ref: '#/components/schemas/TrackSearchNotFilterNode'
-    TrackSearchPhraseFilterNode:
+    TrackSearchPhraseFieldFilterNode:
       properties:
         phrase:
-          $ref: '#/components/schemas/PhraseFilter'
+          $ref: '#/components/schemas/PhraseFieldFilter'
       required:
         - phrase
-    TrackSearchNumericFilterNode:
+    TrackSearchNumericFieldFilterNode:
       properties:
         numeric:
-          $ref: '#/components/schemas/NumericFilter'
+          $ref: '#/components/schemas/NumericFieldFilter'
       required:
         - numeric
     TrackSearchTagFilterNode:

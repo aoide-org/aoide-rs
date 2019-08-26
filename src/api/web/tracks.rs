@@ -306,13 +306,23 @@ impl From<NumericField> for _repo::NumericField {
 }
 
 #[derive(Copy, Clone, Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub enum NumericPredicate {
+    #[serde(rename = "lt")]
     LessThan(_repo::NumericValue),
+
+    #[serde(rename = "le")]
     LessOrEqual(_repo::NumericValue),
+
+    #[serde(rename = "gt")]
     GreaterThan(_repo::NumericValue),
+
+    #[serde(rename = "ge")]
     GreaterOrEqual(_repo::NumericValue),
+
+    #[serde(rename = "eq")]
     Equal(Option<_repo::NumericValue>),
+
+    #[serde(rename = "ne")]
     NotEqual(Option<_repo::NumericValue>),
 }
 
@@ -343,17 +353,13 @@ impl From<NumericFieldFilter> for _repo::NumericFieldFilter {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct PhraseFieldFilter {
-    pub fields: Vec<StringField>,
-    pub terms: Vec<String>,
-}
+pub struct PhraseFieldFilter(Vec<StringField>, Vec<String>);
 
 impl From<PhraseFieldFilter> for _repo::PhraseFieldFilter {
     fn from(from: PhraseFieldFilter) -> Self {
         Self {
-            fields: from.fields.into_iter().map(Into::into).collect(),
-            terms: from.terms,
+            fields: from.0.into_iter().map(Into::into).collect(),
+            terms: from.1,
         }
     }
 }
