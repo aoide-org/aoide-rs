@@ -304,7 +304,6 @@ pub fn main() -> Result<(), Error> {
         .and_then(|query, uri_predicates, pooled_connection| {
             TracksHandler::new(pooled_connection).handle_purge(query, uri_predicates)
         });
-    /*
     let tracks_relocate = warp::post2()
         .and(tracks)
         .and(warp::path("relocate"))
@@ -318,7 +317,6 @@ pub fn main() -> Result<(), Error> {
                     .handle_relocate(query, uri_relocations.into_iter())
             },
         );
-        */
     let tracks_resources = tracks_create
         .or(tracks_update)
         .or(tracks_delete)
@@ -328,9 +326,7 @@ pub fn main() -> Result<(), Error> {
         .or(tracks_search)
         .or(tracks_replace)
         .or(tracks_purge)
-        /*
-        .or(tracks_relocate)
-        */;
+        .or(tracks_relocate);
 
     let albums_count_tracks = warp::post2()
         .and(warp::path("albums"))

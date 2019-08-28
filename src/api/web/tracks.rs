@@ -35,7 +35,7 @@ mod _repo {
             PhraseFieldFilter, ReplaceMode, ReplaceResult, SearchFilter, SearchParams, SortField,
             SortOrder, StringField,
         },
-        util::UriPredicate,
+        util::{UriPredicate, UriRelocation},
         FilterModifier, NumericPredicate, NumericValue, SortDirection, StringFilter,
         StringPredicate,
     };
@@ -676,6 +676,21 @@ impl From<UriPredicate> for _repo::UriPredicate {
     }
 }
 
+#[derive(Clone, Debug, Deserialize)]
+pub struct UriRelocation {
+    pub predicate: UriPredicate,
+    pub replacement: String,
+}
+
+impl From<UriRelocation> for _repo::UriRelocation {
+    fn from(from: UriRelocation) -> Self {
+        Self {
+            predicate: from.predicate.into(),
+            replacement: from.replacement,
+        }
+    }
+}
+
 const ENTITY_DATA_FORMAT: _repo::EntityDataFormat = _repo::EntityDataFormat::JSON;
 
 const ENTITY_DATA_VERSION: _repo::EntityDataVersion =
@@ -922,17 +937,20 @@ impl TracksHandler {
             .map_err(warp::reject::custom)
     }
 
-    /*
     pub fn handle_relocate(
         &self,
         query_params: TracksQueryParams,
         uri_relocations: impl IntoIterator<Item = UriRelocation>,
     ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
-        relocate_tracks(&self.db, query_params.collection_uid, uri_relocations)
-            .map(|()| StatusCode::NO_CONTENT)
-            .map_err(warp::reject::custom)
+        let (collection_uid, _) = query_params.into();
+        relocate_tracks(
+            &self.db,
+            collection_uid,
+            uri_relocations.into_iter().map(Into::into),
+        )
+        .map(|()| StatusCode::NO_CONTENT)
+        .map_err(warp::reject::custom)
     }
-    */
 
     pub fn handle_albums_count_tracks(
         &self,
@@ -1180,24 +1198,23 @@ fn purge_tracks(
     }))
 }
 
-/*
 fn relocate_tracks(
     pooled_connection: &SqlitePooledConnection,
-    collection_uid: Option<EntityUid>,
-    uri_relocations: impl IntoIterator<Item = UriRelocation>,
+    collection_uid: Option<_core::EntityUid>,
+    uri_relocations: impl IntoIterator<Item = _repo::UriRelocation>,
 ) -> impl Future<Item = (), Error = Error> {
     let repository = Repository::new(&*pooled_connection);
     future::result(pooled_connection.transaction::<_, Error, _>(|| {
         for uri_relocation in uri_relocations {
             let locate_params = match &uri_relocation.predicate {
-                UriPredicate::Prefix(uri_prefix) => LocateParams {
-                    uri: StringPredicate::StartsWith(uri_prefix.to_owned()),
+                _repo::UriPredicate::Prefix(uri_prefix) => _repo::LocateParams {
+                    source_uri: _repo::StringPredicate::StartsWith(uri_prefix.to_owned()),
                 },
-                UriPredicate::Exact(uri) => LocateParams {
-                    uri: StringPredicate::Equals(uri.to_owned()),
+                _repo::UriPredicate::Exact(uri) => _repo::LocateParams {
+                    source_uri: _repo::StringPredicate::Equals(uri.to_owned()),
                 },
             };
-            let tracks = repository.locate_entities(
+            let tracks = repository.locate_tracks(
                 collection_uid.as_ref(),
                 Default::default(),
                 locate_params,
@@ -1207,34 +1224,38 @@ fn relocate_tracks(
                 tracks.len(),
                 uri_relocation.predicate,
             );
-            for track in tracks {
-                let format = track.format;
-                let mut track: Entity = track.deserialize()?;
+            for entity_data in tracks {
+                let (hdr, json_data) = load_json_entity_data(entity_data)?;
+                let mut track = _core::Track::from(serde_json::from_slice::<Track>(&json_data)?);
                 let relocated = match &uri_relocation.predicate {
-                    UriPredicate::Prefix(uri_prefix) => track
-                        .body_mut()
-                        .relocate_source_by_uri_prefix(uri_prefix, &uri_relocation.replacement),
-                    UriPredicate::Exact(uri) => track
-                        .body_mut()
-                        .relocate_source_by_uri(uri, &uri_relocation.replacement),
+                    _repo::UriPredicate::Prefix(uri_prefix) => track
+                        .relocate_media_source_by_uri_prefix(
+                            &uri_prefix,
+                            &uri_relocation.replacement,
+                        ),
+                    _repo::UriPredicate::Exact(uri) => {
+                        track.relocate_media_source_by_uri(&uri, &uri_relocation.replacement)
+                    }
                 };
                 if relocated > 0 {
                     log::debug!(
                         "Updating track {} after relocating {} source(s)",
-                        track.hdr.uid,
+                        hdr.uid,
                         relocated,
                     );
-                    let updated = repository.update_entity(track, format)?;
+                    // TODO: Avoid temporary clone
+                    let json_data = write_json_body_data(&track.clone().into())?;
+                    let entity = _core::Entity::new(hdr, track);
+                    let updated = repository.update_track(entity, json_data)?;
                     debug_assert!(updated.1.is_some());
                 } else {
-                    log::debug!("No sources relocated for track {}", track.hdr.uid);
+                    log::debug!("No sources relocated for track {}", hdr.uid);
                 }
             }
         }
         Ok(())
     }))
 }
-*/
 
 fn count_tracks_by_album(
     pooled_connection: &SqlitePooledConnection,
