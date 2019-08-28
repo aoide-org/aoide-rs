@@ -46,17 +46,17 @@ pub struct Title {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum TitleValidation {
+pub enum TitleInvalidity {
     NameEmpty,
 }
 
 impl Validate for Title {
-    type Validation = TitleValidation;
+    type Invalidity = TitleInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.add_violation_if(self.name.trim().is_empty(), TitleValidation::NameEmpty);
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(self.name.trim().is_empty(), TitleInvalidity::NameEmpty)
+            .into()
     }
 }
 
@@ -64,8 +64,8 @@ impl Validate for Title {
 pub struct Titles;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum TitlesValidation {
-    Title(TitleValidation),
+pub enum TitlesInvalidity {
+    Title(TitleInvalidity),
     MainTitleMissing,
     MainTitleAmbiguous,
 }
@@ -75,24 +75,25 @@ pub const ANY_LEVEL_FILTER: Option<TitleLevel> = None;
 pub const ANY_LANGUAGE_FILTER: Option<Option<&'static str>> = None;
 
 impl Titles {
-    pub fn validate<'a, I>(titles: I) -> ValidationResult<TitlesValidation>
+    pub fn validate<'a, I>(titles: I) -> ValidationResult<TitlesInvalidity>
     where
         I: Iterator<Item = &'a Title> + Clone,
     {
-        let mut context = ValidationContext::default();
         let mut at_least_one_title = false;
-        for title in titles.clone() {
-            context.map_and_merge_result(title.validate(), TitlesValidation::Title);
-            at_least_one_title = true;
-        }
-        if !context.has_violations() && at_least_one_title {
-            match Self::main_titles(titles).count() {
-                0 => context.add_violation(TitlesValidation::MainTitleMissing),
-                1 => (), // ok
-                _ => context.add_violation(TitlesValidation::MainTitleAmbiguous),
+        let mut context = titles
+            .clone()
+            .fold(ValidationContext::new(), |context, title| {
+                at_least_one_title = true;
+                context.validate_and_map(title, TitlesInvalidity::Title)
+            });
+        if context.is_valid() && at_least_one_title {
+            context = match Self::main_titles(titles).count() {
+                0 => context.invalidate(TitlesInvalidity::MainTitleMissing),
+                1 => context, // ok
+                _ => context.invalidate(TitlesInvalidity::MainTitleAmbiguous),
             }
         }
-        context.into_result()
+        context.into()
     }
 
     pub fn filter_level<'a, I>(

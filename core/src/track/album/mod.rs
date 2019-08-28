@@ -48,25 +48,25 @@ impl Album {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum AlbumValidation {
-    Titles(TitlesValidation),
-    Actors(ActorsValidation),
+pub enum AlbumInvalidity {
+    Titles(TitlesInvalidity),
+    Actors(ActorsInvalidity),
 }
 
 impl Validate for Album {
-    type Validation = AlbumValidation;
+    type Invalidity = AlbumInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.map_and_merge_result(
-            Titles::validate(self.titles.iter()),
-            AlbumValidation::Titles,
-        );
-        context.map_and_merge_result(
-            Actors::validate(self.actors.iter()),
-            AlbumValidation::Actors,
-        );
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .map_and_merge_result(
+                Titles::validate(self.titles.iter()),
+                AlbumInvalidity::Titles,
+            )
+            .map_and_merge_result(
+                Actors::validate(self.actors.iter()),
+                AlbumInvalidity::Actors,
+            )
+            .into()
     }
 }
 

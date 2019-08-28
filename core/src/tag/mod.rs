@@ -59,20 +59,20 @@ impl Score {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum ScoreValidation {
+pub enum ScoreInvalidity {
     OutOfRange,
 }
 
 impl Validate for Score {
-    type Validation = ScoreValidation;
+    type Invalidity = ScoreInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.add_violation_if(
-            !(*self >= Self::min() && *self <= Self::max()),
-            ScoreValidation::OutOfRange,
-        );
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(
+                !(*self >= Self::min() && *self <= Self::max()),
+                ScoreInvalidity::OutOfRange,
+            )
+            .into()
     }
 }
 
@@ -113,22 +113,22 @@ impl Label {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum LabelValidation {
+pub enum LabelInvalidity {
     Empty,
     LeadingOrTrailingWhitespace,
 }
 
 impl Validate for Label {
-    type Validation = LabelValidation;
+    type Invalidity = LabelInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.add_violation_if(self.0.is_empty(), LabelValidation::Empty);
-        context.add_violation_if(
-            self.0.trim().len() != self.0.len(),
-            LabelValidation::LeadingOrTrailingWhitespace,
-        );
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(self.0.is_empty(), LabelInvalidity::Empty)
+            .invalidate_if(
+                self.0.trim().len() != self.0.len(),
+                LabelInvalidity::LeadingOrTrailingWhitespace,
+            )
+            .into()
     }
 }
 
@@ -187,22 +187,22 @@ impl Facet {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum FacetValidation {
+pub enum FacetInvalidity {
     Empty,
     InvalidChars,
 }
 
 impl Validate for Facet {
-    type Validation = FacetValidation;
+    type Invalidity = FacetInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.add_violation_if(self.0.is_empty(), FacetValidation::Empty);
-        context.add_violation_if(
-            self.0.chars().any(Facet::is_invalid_char),
-            FacetValidation::InvalidChars,
-        );
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(self.0.is_empty(), FacetInvalidity::Empty)
+            .invalidate_if(
+                self.0.chars().any(Facet::is_invalid_char),
+                FacetInvalidity::InvalidChars,
+            )
+            .into()
     }
 }
 
@@ -258,30 +258,26 @@ pub struct Tag {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum TagValidation {
-    Facet(FacetValidation),
-    Label(LabelValidation),
-    Score(ScoreValidation),
+pub enum TagInvalidity {
+    Facet(FacetInvalidity),
+    Label(LabelInvalidity),
+    Score(ScoreInvalidity),
     BothFacetAndLabelMissing,
 }
 
 impl Validate for Tag {
-    type Validation = TagValidation;
+    type Invalidity = TagInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        if self.facet.is_none() && self.label.is_none() {
-            context.add_violation(TagValidation::BothFacetAndLabelMissing);
-        } else {
-            if let Some(ref facet) = self.facet {
-                context.map_and_merge_result(facet.validate(), TagValidation::Facet);
-            }
-            if let Some(ref label) = self.label {
-                context.map_and_merge_result(label.validate(), TagValidation::Label);
-            }
-        }
-        context.map_and_merge_result(self.score.validate(), TagValidation::Score);
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .validate_and_map(&self.facet, TagInvalidity::Facet)
+            .validate_and_map(&self.label, TagInvalidity::Label)
+            .invalidate_if(
+                self.facet.is_none() && self.label.is_none(),
+                TagInvalidity::BothFacetAndLabelMissing,
+            )
+            .validate_and_map(&self.score, TagInvalidity::Score)
+            .into()
     }
 }
 
@@ -323,29 +319,21 @@ impl Scored for Tag {
 pub struct Tags;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum TagsValidation {
-    Tag(TagValidation),
+pub enum TagsInvalidity {
+    Tag(TagInvalidity),
     PlainDuplicateLabels,
     FacetedDuplicateLabels,
 }
 
 impl Tags {
-    pub fn validate<'a, I>(tags: I) -> ValidationResult<TagsValidation>
+    pub fn validate<'a, I>(tags: I) -> ValidationResult<TagsInvalidity>
     where
         I: Iterator<Item = &'a Tag> + Clone,
     {
-        let mut context = ValidationContext::default();
-        for tag in tags.clone() {
-            context.map_and_merge_result(tag.validate(), TagsValidation::Tag);
-        }
+        let mut context = tags.clone().fold(ValidationContext::new(), |context, tag| {
+            context.validate_and_map(tag, TagsInvalidity::Tag)
+        });
         let (plain, faceted): (Vec<_>, Vec<_>) = tags.partition(|tag| tag.facet.is_none());
-        let mut plain_labels: Vec<_> = plain.iter().map(|tag| &tag.label).collect();
-        plain_labels.sort_unstable();
-        plain_labels.dedup();
-        context.add_violation_if(
-            plain_labels.len() < plain.len(),
-            TagsValidation::PlainDuplicateLabels,
-        );
         let mut grouped_by_facet = faceted.clone();
         grouped_by_facet.sort_unstable_by_key(|t| &t.facet);
         let mut i = 0;
@@ -366,13 +354,21 @@ impl Tags {
                 faceted_labels.sort_unstable();
                 faceted_labels.dedup();
                 if faceted_labels.len() < j - i {
-                    context.add_violation(TagsValidation::FacetedDuplicateLabels);
+                    context = context.invalidate(TagsInvalidity::FacetedDuplicateLabels);
                     break;
                 }
             }
             i = j;
         }
-        context.into_result()
+        let mut plain_labels: Vec<_> = plain.iter().map(|tag| &tag.label).collect();
+        plain_labels.sort_unstable();
+        plain_labels.dedup();
+        context
+            .invalidate_if(
+                plain_labels.len() < plain.len(),
+                TagsInvalidity::PlainDuplicateLabels,
+            )
+            .into()
     }
 }
 

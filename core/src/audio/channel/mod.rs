@@ -49,25 +49,25 @@ impl ChannelCount {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum ChannelCountValidation {
+pub enum ChannelCountInvalidity {
     Min(ChannelCount),
     Max(ChannelCount),
 }
 
 impl Validate for ChannelCount {
-    type Validation = ChannelCountValidation;
+    type Invalidity = ChannelCountInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.add_violation_if(
-            *self < Self::min(),
-            ChannelCountValidation::Min(Self::min()),
-        );
-        context.add_violation_if(
-            *self > Self::max(),
-            ChannelCountValidation::Max(Self::max()),
-        );
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(
+                *self < Self::min(),
+                ChannelCountInvalidity::Min(Self::min()),
+            )
+            .invalidate_if(
+                *self > Self::max(),
+                ChannelCountInvalidity::Max(Self::max()),
+            )
+            .into()
     }
 }
 
@@ -106,20 +106,20 @@ impl ChannelLayout {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum ChannelLayoutValidation {
-    ChannelCount(ChannelCountValidation),
+pub enum ChannelLayoutInvalidity {
+    ChannelCount(ChannelCountInvalidity),
 }
 
 impl Validate for ChannelLayout {
-    type Validation = ChannelLayoutValidation;
+    type Invalidity = ChannelLayoutInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.map_and_merge_result(
-            (*self).channel_count().validate(),
-            ChannelLayoutValidation::ChannelCount,
-        );
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .validate_and_map(
+                &(*self).channel_count(),
+                ChannelLayoutInvalidity::ChannelCount,
+            )
+            .into()
     }
 }
 
@@ -162,25 +162,25 @@ impl From<ChannelLayout> for Channels {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum ChannelsValidation {
-    Count(ChannelCountValidation),
-    Layout(ChannelLayoutValidation),
+pub enum ChannelsInvalidity {
+    Count(ChannelCountInvalidity),
+    Layout(ChannelLayoutInvalidity),
 }
 
 impl Validate for Channels {
-    type Validation = ChannelsValidation;
+    type Invalidity = ChannelsInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        let context = ValidationContext::new();
         match self {
-            Channels::Count(count) => {
-                context.map_and_merge_result(count.validate(), ChannelsValidation::Count)
+            Channels::Count(ref count) => {
+                context.validate_and_map(count, ChannelsInvalidity::Count)
             }
-            Channels::Layout(layout) => {
-                context.map_and_merge_result(layout.validate(), ChannelsValidation::Layout)
+            Channels::Layout(ref layout) => {
+                context.validate_and_map(layout, ChannelsInvalidity::Layout)
             }
-        };
-        context.into_result()
+        }
+        .into()
     }
 }
 

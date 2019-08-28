@@ -43,19 +43,19 @@ impl BitRateBps {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum BitRateBpsValidation {
+pub enum BitRateBpsInvalidity {
     Min(BitRateBps),
     Max(BitRateBps),
 }
 
 impl Validate for BitRateBps {
-    type Validation = BitRateBpsValidation;
+    type Invalidity = BitRateBpsInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.add_violation_if(*self < Self::min(), BitRateBpsValidation::Min(Self::min()));
-        context.add_violation_if(*self > Self::max(), BitRateBpsValidation::Max(Self::max()));
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(*self < Self::min(), BitRateBpsInvalidity::Min(Self::min()))
+            .invalidate_if(*self > Self::max(), BitRateBpsInvalidity::Max(Self::max()))
+            .into()
     }
 }
 
@@ -105,25 +105,25 @@ impl SampleRateHz {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum SampleRateHzValidation {
+pub enum SampleRateHzInvalidity {
     Min(SampleRateHz),
     Max(SampleRateHz),
 }
 
 impl Validate for SampleRateHz {
-    type Validation = SampleRateHzValidation;
+    type Invalidity = SampleRateHzInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.add_violation_if(
-            *self < Self::min(),
-            SampleRateHzValidation::Min(Self::min()),
-        );
-        context.add_violation_if(
-            *self > Self::max(),
-            SampleRateHzValidation::Max(Self::max()),
-        );
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(
+                *self < Self::min(),
+                SampleRateHzInvalidity::Min(Self::min()),
+            )
+            .invalidate_if(
+                *self > Self::max(),
+                SampleRateHzInvalidity::Max(Self::max()),
+            )
+            .into()
     }
 }
 
@@ -157,27 +157,21 @@ impl PcmSignal {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum PcmSignalValidation {
-    ChannelLayout(ChannelLayoutValidation),
-    SampleLayout(SampleLayoutValidation),
-    SampleRate(SampleRateHzValidation),
+pub enum PcmSignalInvalidity {
+    ChannelLayout(ChannelLayoutInvalidity),
+    SampleLayout(SampleLayoutInvalidity),
+    SampleRate(SampleRateHzInvalidity),
 }
 
 impl Validate for PcmSignal {
-    type Validation = PcmSignalValidation;
+    type Invalidity = PcmSignalInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.map_and_merge_result(
-            self.channel_layout.validate(),
-            PcmSignalValidation::ChannelLayout,
-        );
-        context.map_and_merge_result(
-            self.sample_layout.validate(),
-            PcmSignalValidation::SampleLayout,
-        );
-        context.map_and_merge_result(self.sample_rate.validate(), PcmSignalValidation::SampleRate);
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .validate_and_map(&self.channel_layout, PcmSignalInvalidity::ChannelLayout)
+            .validate_and_map(&self.sample_layout, PcmSignalInvalidity::SampleLayout)
+            .validate_and_map(&self.sample_rate, PcmSignalInvalidity::SampleRate)
+            .into()
     }
 }
 
@@ -214,20 +208,20 @@ impl LatencyMs {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum LatencyMsValidation {
+pub enum LatencyMsInvalidity {
     OutOfRange,
 }
 
 impl Validate for LatencyMs {
-    type Validation = LatencyMsValidation;
+    type Invalidity = LatencyMsInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.add_violation_if(
-            !self.0.is_finite() || *self < Self::min(),
-            LatencyMsValidation::OutOfRange,
-        );
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(
+                !self.0.is_finite() || *self < Self::min(),
+                LatencyMsInvalidity::OutOfRange,
+            )
+            .into()
     }
 }
 
@@ -258,17 +252,17 @@ impl LoudnessLufs {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum LoudnessLufsValidation {
+pub enum LoudnessLufsInvalidity {
     OutOfRange,
 }
 
 impl Validate for LoudnessLufs {
-    type Validation = LoudnessLufsValidation;
+    type Invalidity = LoudnessLufsInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.add_violation_if(!self.0.is_finite(), LoudnessLufsValidation::OutOfRange);
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(!self.0.is_finite(), LoudnessLufsInvalidity::OutOfRange)
+            .into()
     }
 }
 

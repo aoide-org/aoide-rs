@@ -23,18 +23,18 @@ pub struct Collection {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum CollectionValidation {
+pub enum CollectionInvalidity {
     NameEmpty,
 }
 
 impl Validate for Collection {
-    type Validation = CollectionValidation;
+    type Invalidity = CollectionInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.add_violation_if(self.name.trim().is_empty(), CollectionValidation::NameEmpty);
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(self.name.trim().is_empty(), CollectionInvalidity::NameEmpty)
+            .into()
     }
 }
 
-pub type Entity = crate::entity::Entity<CollectionValidation, Collection>;
+pub type Entity = crate::entity::Entity<CollectionInvalidity, Collection>;

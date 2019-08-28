@@ -45,7 +45,7 @@ impl Release {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum ReleaseValidation {
+pub enum ReleaseInvalidity {
     ReleasedAtYearMin,
     ReleasedAtYearMax,
     ReleasedByEmpty,
@@ -54,40 +54,40 @@ pub enum ReleaseValidation {
 }
 
 impl Validate for Release {
-    type Validation = ReleaseValidation;
+    type Invalidity = ReleaseInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        let mut context = ValidationContext::new();
         if let Some(released_at) = self.released_at {
             let year = released_at.year();
-            context.add_violation_if(
-                year < i32::from(RELEASE_YEAR_MIN),
-                ReleaseValidation::ReleasedAtYearMin,
-            );
-            context.add_violation_if(
-                year > i32::from(RELEASE_YEAR_MAX),
-                ReleaseValidation::ReleasedAtYearMax,
-            );
+            context = context
+                .invalidate_if(
+                    year < i32::from(RELEASE_YEAR_MIN),
+                    ReleaseInvalidity::ReleasedAtYearMin,
+                )
+                .invalidate_if(
+                    year > i32::from(RELEASE_YEAR_MAX),
+                    ReleaseInvalidity::ReleasedAtYearMax,
+                );
         }
         if let Some(ref released_by) = self.released_by {
-            context.add_violation_if(
+            context = context.invalidate_if(
                 released_by.trim().is_empty(),
-                ReleaseValidation::ReleasedByEmpty,
+                ReleaseInvalidity::ReleasedByEmpty,
             );
         }
         if let Some(ref copyright) = self.copyright {
-            context.add_violation_if(
+            context = context.invalidate_if(
                 copyright.trim().is_empty(),
-                ReleaseValidation::CopyrightEmpty,
+                ReleaseInvalidity::CopyrightEmpty,
             );
         }
-        for license in &self.licenses {
-            if license.trim().is_empty() {
-                context.add_violation(ReleaseValidation::LicenseEmpty);
-                break;
-            }
-        }
-        context.into_result()
+        self.licenses
+            .iter()
+            .fold(context, |context, license| {
+                context.invalidate_if(license.trim().is_empty(), ReleaseInvalidity::LicenseEmpty)
+            })
+            .into()
     }
 }
 

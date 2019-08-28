@@ -73,17 +73,17 @@ pub struct Actor {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum ActorValidation {
+pub enum ActorInvalidity {
     NameEmpty,
 }
 
 impl Validate for Actor {
-    type Validation = ActorValidation;
+    type Invalidity = ActorInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.add_violation_if(self.name.trim().is_empty(), ActorValidation::NameEmpty);
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(self.name.trim().is_empty(), ActorInvalidity::NameEmpty)
+            .into()
     }
 }
 
@@ -91,8 +91,8 @@ impl Validate for Actor {
 pub struct Actors;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum ActorsValidation {
-    Actor(ActorValidation),
+pub enum ActorsInvalidity {
+    Actor(ActorInvalidity),
     SummaryActorMissing,
     SummaryActorAmbiguous,
     MainActorMissing,
@@ -102,17 +102,18 @@ pub const ANY_ROLE_FILTER: Option<ActorRole> = None;
 pub const ANY_PRECEDENCE_FILTER: Option<ActorPrecedence> = None;
 
 impl Actors {
-    pub fn validate<'a, I>(actors: I) -> ValidationResult<ActorsValidation>
+    pub fn validate<'a, I>(actors: I) -> ValidationResult<ActorsInvalidity>
     where
         I: Iterator<Item = &'a Actor> + Clone,
     {
-        let mut context = ValidationContext::default();
         let mut at_least_one_actor = false;
-        for actor in actors.clone() {
-            context.map_and_merge_result(actor.validate(), ActorsValidation::Actor);
-            at_least_one_actor = true;
-        }
-        if !context.has_violations() {
+        let mut context = actors
+            .clone()
+            .fold(ValidationContext::new(), |context, actor| {
+                at_least_one_actor = true;
+                context.validate_and_map(actor, ActorsInvalidity::Actor)
+            });
+        if context.is_valid() {
             let mut roles: Vec<_> = actors.clone().map(|actor| actor.role).collect();
             roles.sort_unstable();
             roles.dedup();
@@ -137,16 +138,17 @@ impl Actors {
                     summary_ambiguous = true;
                 }
             }
-            context.add_violation_if(summary_missing, ActorsValidation::SummaryActorMissing);
-            context.add_violation_if(summary_ambiguous, ActorsValidation::SummaryActorAmbiguous);
+            context = context
+                .invalidate_if(summary_missing, ActorsInvalidity::SummaryActorMissing)
+                .invalidate_if(summary_ambiguous, ActorsInvalidity::SummaryActorAmbiguous);
         }
-        context.add_violation_if(
-            !context.has_violations()
-                && at_least_one_actor
-                && Self::main_actor(actors, ActorRole::Artist).is_none(),
-            ActorsValidation::MainActorMissing,
-        );
-        context.into_result()
+        if context.is_valid() {
+            context = context.invalidate_if(
+                at_least_one_actor && Self::main_actor(actors, ActorRole::Artist).is_none(),
+                ActorsInvalidity::MainActorMissing,
+            );
+        }
+        context.into()
     }
 
     pub fn filter_role_precedence<'a, I>(

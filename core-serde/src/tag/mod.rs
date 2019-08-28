@@ -278,7 +278,6 @@ impl From<FacetedTag> for _core::Tag {
                 facet: Some(facet.into_inner()),
                 label: Some(label.into_inner()),
                 score: _core::Score::new(iscore as f64),
-                ..Default::default()
             },
         }
     }

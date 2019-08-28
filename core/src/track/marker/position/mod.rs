@@ -16,7 +16,7 @@
 use super::*;
 
 use crate::{
-    audio::{PositionMs, PositionMsValidation},
+    audio::{PositionMs, PositionMsInvalidity},
     util::color::*,
 };
 
@@ -66,33 +66,33 @@ pub struct MarkerData {
 }
 
 #[derive(Copy, Clone, Debug)]
-pub enum MarkerRangeValidation {
+pub enum MarkerRangeInvalidity {
     Invalid,
     Empty,
 }
 
 impl MarkerData {
-    fn validate_range_by_type(&self, r#type: MarkerType) -> Result<(), MarkerRangeValidation> {
+    fn validate_range_by_type(&self, r#type: MarkerType) -> Result<(), MarkerRangeInvalidity> {
         match r#type {
             MarkerType::Load | MarkerType::Jump => {
                 if self.end.is_some() {
-                    return Err(MarkerRangeValidation::Invalid);
+                    return Err(MarkerRangeInvalidity::Invalid);
                 }
             }
             MarkerType::Main | MarkerType::Intro | MarkerType::Outro => {
                 if let (Some(start), Some(end)) = (self.start, self.end) {
                     if start >= end {
-                        return Err(MarkerRangeValidation::Empty);
+                        return Err(MarkerRangeInvalidity::Empty);
                     }
                 }
             }
             MarkerType::Loop | MarkerType::Sample => {
                 if let (Some(start), Some(end)) = (self.start, self.end) {
                     if start == end {
-                        return Err(MarkerRangeValidation::Empty);
+                        return Err(MarkerRangeInvalidity::Empty);
                     }
                 } else {
-                    return Err(MarkerRangeValidation::Invalid);
+                    return Err(MarkerRangeInvalidity::Invalid);
                 }
             }
             MarkerType::Custom => (), // unrestricted
@@ -102,27 +102,24 @@ impl MarkerData {
 }
 
 #[derive(Copy, Clone, Debug)]
-pub enum MarkerDataValidation {
-    Start(PositionMsValidation),
-    End(PositionMsValidation),
+pub enum MarkerDataInvalidity {
+    Start(PositionMsInvalidity),
+    End(PositionMsInvalidity),
     LabelEmpty,
 }
 
 impl Validate for MarkerData {
-    type Validation = MarkerDataValidation;
+    type Invalidity = MarkerDataInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        if let Some(start) = self.start {
-            context.map_and_merge_result(start.validate(), MarkerDataValidation::Start);
-        }
-        if let Some(end) = self.end {
-            context.map_and_merge_result(end.validate(), MarkerDataValidation::End);
-        }
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        let mut context = ValidationContext::new()
+            .validate_and_map(&self.start, MarkerDataInvalidity::Start)
+            .validate_and_map(&self.end, MarkerDataInvalidity::End);
         if let Some(ref label) = self.label {
-            context.add_violation_if(label.trim().is_empty(), MarkerDataValidation::LabelEmpty);
+            context =
+                context.invalidate_if(label.trim().is_empty(), MarkerDataInvalidity::LabelEmpty)
         }
-        context.into_result()
+        context.into()
     }
 }
 
@@ -177,23 +174,21 @@ impl Marker {
 }
 
 #[derive(Copy, Clone, Debug)]
-pub enum MarkerValidation {
-    Data(MarkerDataValidation),
-    Range(MarkerRangeValidation),
-    Cardinality,
+pub enum MarkerInvalidity {
+    Data(MarkerDataInvalidity),
+    Range(MarkerRangeInvalidity),
 }
 
 impl Validate for Marker {
-    type Validation = MarkerValidation;
+    type Invalidity = MarkerInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        let data = self.data();
-        context.map_and_merge_result(data.validate(), MarkerValidation::Data);
-        if let Err(violation) = data.validate_range_by_type(self.r#type()) {
-            context.add_violation(MarkerValidation::Range(violation));
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        let mut context =
+            ValidationContext::new().validate_and_map(self.data(), MarkerInvalidity::Data);
+        if let Err(invalidity) = self.data().validate_range_by_type(self.r#type()) {
+            context = context.invalidate(MarkerInvalidity::Range(invalidity));
         }
-        context.into_result()
+        context.into()
     }
 }
 
@@ -201,38 +196,34 @@ impl Validate for Marker {
 pub struct Markers;
 
 #[derive(Copy, Clone, Debug)]
-pub enum MarkersValidation {
-    Marker(MarkerValidation),
+pub enum MarkersInvalidity {
+    Marker(MarkerInvalidity),
+    Cardinality,
 }
 
 impl Markers {
-    pub fn count_by_type(markers: &[Marker], r#type: MarkerType) -> usize {
-        markers
-            .iter()
-            .filter(|marker| marker.r#type() == r#type)
-            .count()
-    }
-
-    fn validate_cardinality_by_type(
-        markers: &[Marker],
+    pub fn count_by_type<'a>(
+        markers: impl Iterator<Item = &'a Marker>,
         r#type: MarkerType,
-    ) -> Result<(), MarkerValidation> {
-        if r#type.is_singular() && Self::count_by_type(markers, r#type) > 1 {
-            return Err(MarkerValidation::Cardinality);
-        }
-        Ok(())
+    ) -> usize {
+        markers.filter(|marker| marker.r#type() == r#type).count()
     }
 
-    pub fn validate(markers: &[Marker]) -> ValidationResult<MarkersValidation> {
-        let mut context = ValidationContext::default();
-        for marker in markers {
-            context.map_and_merge_result(marker.validate(), MarkersValidation::Marker);
-            if let Err(violation) = Self::validate_cardinality_by_type(markers, marker.r#type()) {
-                context.add_violation(MarkersValidation::Marker(violation));
-                break;
-            }
-        }
-        context.into_result()
+    pub fn validate<'a>(
+        markers: impl Iterator<Item = &'a Marker> + Clone,
+    ) -> ValidationResult<MarkersInvalidity> {
+        markers
+            .clone()
+            .fold(ValidationContext::new(), |context, marker| {
+                context
+                    .validate_and_map(marker, MarkersInvalidity::Marker)
+                    .invalidate_if(
+                        marker.r#type().is_singular()
+                            && Self::count_by_type(markers.clone(), marker.r#type()) > 1,
+                        MarkersInvalidity::Cardinality,
+                    )
+            })
+            .into()
     }
 }
 

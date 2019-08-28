@@ -52,21 +52,19 @@ impl Index {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum IndexValidation {
+pub enum IndexInvalidity {
     SingleExceedsTotal,
 }
 
 impl Validate for Index {
-    type Validation = IndexValidation;
+    type Invalidity = IndexInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        let mut context = ValidationContext::new();
         if let (Some(number), Some(total)) = (self.number(), self.total()) {
-            if number > total {
-                context.add_violation(IndexValidation::SingleExceedsTotal);
-            }
+            context = context.invalidate_if(number > total, IndexInvalidity::SingleExceedsTotal);
         }
-        context.into_result()
+        context.into()
     }
 }
 
@@ -89,21 +87,21 @@ pub struct Indexes {
 }
 
 #[derive(Copy, Clone, Debug)]
-pub enum IndexesValidation {
-    Disc(IndexValidation),
-    Track(IndexValidation),
-    Movement(IndexValidation),
+pub enum IndexesInvalidity {
+    Disc(IndexInvalidity),
+    Track(IndexInvalidity),
+    Movement(IndexInvalidity),
 }
 
 impl Validate for Indexes {
-    type Validation = IndexesValidation;
+    type Invalidity = IndexesInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.map_and_merge_result(self.disc.validate(), IndexesValidation::Disc);
-        context.map_and_merge_result(self.track.validate(), IndexesValidation::Track);
-        context.map_and_merge_result(self.movement.validate(), IndexesValidation::Movement);
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .validate_and_map(&self.disc, IndexesInvalidity::Disc)
+            .validate_and_map(&self.track, IndexesInvalidity::Track)
+            .validate_and_map(&self.movement, IndexesInvalidity::Movement)
+            .into()
     }
 }
 

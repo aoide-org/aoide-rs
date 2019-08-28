@@ -41,20 +41,20 @@ impl TempoBpm {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum TempoBpmValidation {
+pub enum TempoBpmInvalidity {
     OutOfRange,
 }
 
 impl Validate for TempoBpm {
-    type Validation = TempoBpmValidation;
+    type Invalidity = TempoBpmInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.add_violation_if(
-            !(*self >= Self::min() && *self <= Self::max()),
-            TempoBpmValidation::OutOfRange,
-        );
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(
+                !(*self >= Self::min() && *self <= Self::max()),
+                TempoBpmInvalidity::OutOfRange,
+            )
+            .into()
     }
 }
 
@@ -86,25 +86,25 @@ impl TimeSignature {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum TimeSignatureValidation {
+pub enum TimeSignatureInvalidity {
     TopLowerBound(BeatNumber, BeatNumber),
     BottomLowerBound(BeatNumber, BeatNumber),
 }
 
 impl Validate for TimeSignature {
-    type Validation = TimeSignatureValidation;
+    type Invalidity = TimeSignatureInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.add_violation_if(
-            self.top < 1,
-            TimeSignatureValidation::TopLowerBound(1, self.top),
-        );
-        context.add_violation_if(
-            self.bottom < 1,
-            TimeSignatureValidation::BottomLowerBound(1, self.bottom),
-        );
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(
+                self.top < 1,
+                TimeSignatureInvalidity::TopLowerBound(1, self.top),
+            )
+            .invalidate_if(
+                self.bottom < 1,
+                TimeSignatureInvalidity::BottomLowerBound(1, self.bottom),
+            )
+            .into()
     }
 }
 

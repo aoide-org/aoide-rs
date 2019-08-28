@@ -28,50 +28,6 @@ fn validate_main_title() {
         level: TitleLevel::Main,
     }];
     assert!(Titles::validate(titles.iter()).is_ok());
-
-    let titles = [
-        Title {
-            name: "title1".into(),
-            level: TitleLevel::Main,
-        },
-        Title {
-            name: "title2".into(),
-            level: TitleLevel::Main,
-        },
-    ];
-    assert_eq!(
-        1,
-        Titles::validate(titles.iter())
-            .err()
-            .unwrap()
-            .into_iter()
-            .count()
-    );
-
-    let titles = [
-        Title {
-            name: "title1".into(),
-            level: TitleLevel::Main,
-        },
-        Title {
-            name: "title2".into(),
-            level: TitleLevel::Sub,
-        },
-    ];
-    assert!(Titles::validate(titles.iter()).is_ok());
-
-    let titles = [Title {
-        name: "title1".into(),
-        level: TitleLevel::Sub,
-    }];
-    assert_eq!(
-        1,
-        Titles::validate(titles.iter())
-            .err()
-            .unwrap()
-            .into_iter()
-            .count()
-    );
 }
 
 #[test]

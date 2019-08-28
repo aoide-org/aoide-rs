@@ -59,20 +59,20 @@ impl KeySignature {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum KeySignatureValidation {
+pub enum KeySignatureInvalidity {
     Invalid,
 }
 
 impl Validate for KeySignature {
-    type Validation = KeySignatureValidation;
+    type Invalidity = KeySignatureInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.add_violation_if(
-            !Self::is_valid_code(self.code()),
-            KeySignatureValidation::Invalid,
-        );
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(
+                !Self::is_valid_code(self.code()),
+                KeySignatureInvalidity::Invalid,
+            )
+            .into()
     }
 }
 

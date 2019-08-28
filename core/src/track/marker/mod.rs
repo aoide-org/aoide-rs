@@ -45,27 +45,30 @@ pub struct Markers {
 }
 
 #[derive(Copy, Clone, Debug)]
-pub enum MarkersValidation {
-    Positions(position::MarkersValidation),
-    Beats(beat::MarkersValidation),
-    Keys(key::MarkersValidation),
+pub enum MarkersInvalidity {
+    Positions(position::MarkersInvalidity),
+    Beats(beat::MarkersInvalidity),
+    Keys(key::MarkersInvalidity),
 }
 
 impl Validate for Markers {
-    type Validation = MarkersValidation;
+    type Invalidity = MarkersInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.map_and_merge_result(
-            position::Markers::validate(&self.positions),
-            MarkersValidation::Positions,
-        );
-        context.map_and_merge_result(
-            beat::Markers::validate(&self.beats),
-            MarkersValidation::Beats,
-        );
-        context.map_and_merge_result(key::Markers::validate(&self.keys), MarkersValidation::Keys);
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .map_and_merge_result(
+                position::Markers::validate(self.positions.iter()),
+                MarkersInvalidity::Positions,
+            )
+            .map_and_merge_result(
+                beat::Markers::validate(self.beats.iter()),
+                MarkersInvalidity::Beats,
+            )
+            .map_and_merge_result(
+                key::Markers::validate(self.keys.iter()),
+                MarkersInvalidity::Keys,
+            )
+            .into()
     }
 }
 

@@ -81,17 +81,17 @@ impl EntityUid {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum EntityUidValidation {
+pub enum EntityUidInvalidity {
     Invalid,
 }
 
 impl Validate for EntityUid {
-    type Validation = EntityUidValidation;
+    type Invalidity = EntityUidInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.add_violation_if(self == &Self::default(), EntityUidValidation::Invalid);
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(self == &Self::default(), EntityUidInvalidity::Invalid)
+            .into()
     }
 }
 
@@ -169,20 +169,20 @@ impl EntityRevision {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum EntityRevisionValidation {
+pub enum EntityRevisionInvalidity {
     VersionOutOfRange,
 }
 
 impl Validate for EntityRevision {
-    type Validation = EntityRevisionValidation;
+    type Invalidity = EntityRevisionInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.add_violation_if(
-            self.ver < Self::initial_ver(),
-            EntityRevisionValidation::VersionOutOfRange,
-        );
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(
+                self.ver < Self::initial_ver(),
+                EntityRevisionInvalidity::VersionOutOfRange,
+            )
+            .into()
     }
 }
 
@@ -216,19 +216,19 @@ impl EntityHeader {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum EntityHeaderValidation {
-    Uid(EntityUidValidation),
-    Revision(EntityRevisionValidation),
+pub enum EntityHeaderInvalidity {
+    Uid(EntityUidInvalidity),
+    Revision(EntityRevisionInvalidity),
 }
 
 impl Validate for EntityHeader {
-    type Validation = EntityHeaderValidation;
+    type Invalidity = EntityHeaderInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.map_and_merge_result(self.uid.validate(), EntityHeaderValidation::Uid);
-        context.map_and_merge_result(self.rev.validate(), EntityHeaderValidation::Revision);
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .validate_and_map(&self.uid, EntityHeaderInvalidity::Uid)
+            .validate_and_map(&self.rev, EntityHeaderInvalidity::Revision)
+            .into()
     }
 }
 
@@ -254,23 +254,23 @@ impl<T, B> Entity<T, B> {
 }
 
 #[derive(Debug)]
-pub enum EntityValidation<T: Validation> {
-    Header(EntityHeaderValidation),
+pub enum EntityInvalidity<T: Invalidity> {
+    Header(EntityHeaderInvalidity),
     Body(T),
 }
 
 impl<T, B> Validate for Entity<T, B>
 where
-    T: Validation,
-    B: Validate<Validation = T>,
+    T: Invalidity,
+    B: Validate<Invalidity = T>,
 {
-    type Validation = EntityValidation<T>;
+    type Invalidity = EntityInvalidity<T>;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.map_and_merge_result(self.hdr.validate(), EntityValidation::Header);
-        context.map_and_merge_result(self.body.validate(), EntityValidation::Body);
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .validate_and_map(&self.hdr, EntityInvalidity::Header)
+            .validate_and_map(&self.body, EntityInvalidity::Body)
+            .into()
     }
 }
 

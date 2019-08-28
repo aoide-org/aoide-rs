@@ -143,7 +143,11 @@ fn deserialize_tag_facet_label_score_zero() {
         score: _core::Score::new(0.0),
     };
     // Ensure to parse score from literal 0, not 0.0!
-    let json = format!("[\"{}\",\"{}\",0]", expected_tag.facet.as_ref().unwrap(), expected_tag.label.as_ref().unwrap());
+    let json = format!(
+        "[\"{}\",\"{}\",0]",
+        expected_tag.facet.as_ref().unwrap(),
+        expected_tag.label.as_ref().unwrap()
+    );
     let parsed_tag: FacetedTag = serde_json::from_str(&json).unwrap();
     assert_eq!(json, serde_json::to_string(&parsed_tag).unwrap());
     assert_eq!(expected_tag, parsed_tag.into());
@@ -157,7 +161,11 @@ fn deserialize_tag_facet_label_score_one() {
         score: _core::Score::new(1.0),
     };
     // Ensure to parse score from literal 1, not 1.0!
-    let json = format!("[\"{}\",\"{}\",1]", expected_tag.facet.as_ref().unwrap(), expected_tag.label.as_ref().unwrap());
+    let json = format!(
+        "[\"{}\",\"{}\",1]",
+        expected_tag.facet.as_ref().unwrap(),
+        expected_tag.label.as_ref().unwrap()
+    );
     let parsed_tag: FacetedTag = serde_json::from_str(&json).unwrap();
     assert_eq!(json, serde_json::to_string(&parsed_tag).unwrap());
     assert_eq!(expected_tag, parsed_tag.into());

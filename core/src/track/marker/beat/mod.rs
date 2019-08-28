@@ -16,7 +16,7 @@
 use super::*;
 
 use crate::{
-    audio::{PositionMs, PositionMsValidation},
+    audio::{PositionMs, PositionMsInvalidity},
     music::time::*,
     util::IsDefault,
 };
@@ -43,37 +43,39 @@ pub struct Marker {
 }
 
 #[derive(Copy, Clone, Debug)]
-pub enum MarkerValidation {
-    Start(PositionMsValidation),
-    End(PositionMsValidation),
+pub enum MarkerInvalidity {
+    Start(PositionMsInvalidity),
+    End(PositionMsInvalidity),
     ReverseDirection,
-    Tempo(TempoBpmValidation),
-    Timing(TimeSignatureValidation),
+    Tempo(TempoBpmInvalidity),
+    Timing(TimeSignatureInvalidity),
     BothTempoAndTimingMissing,
     BeatNumberInvalid,
 }
 
 impl Validate for Marker {
-    type Validation = MarkerValidation;
+    type Invalidity = MarkerInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.map_and_merge_result(self.start.validate(), MarkerValidation::Start);
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        let mut context = ValidationContext::new();
         if let Some(end) = self.end {
-            context.map_and_merge_result(end.validate(), MarkerValidation::End);
-            context.add_violation_if(self.start > end, MarkerValidation::ReverseDirection);
+            context = context
+                .validate_and_map(&end, MarkerInvalidity::End)
+                .invalidate_if(self.start > end, MarkerInvalidity::ReverseDirection);
         }
-        if self.tempo.is_default() && self.timing.is_default() {
-            context.add_violation(MarkerValidation::BothTempoAndTimingMissing);
-        } else {
-            context.map_and_merge_result(self.tempo.validate(), MarkerValidation::Tempo);
-            context.map_and_merge_result(self.timing.validate(), MarkerValidation::Timing);
-        }
-        context.add_violation_if(
-            !self.timing.is_default() && !self.beat.is_zero() && self.beat > self.timing.top,
-            MarkerValidation::BeatNumberInvalid,
-        );
-        context.into_result()
+        context
+            .validate_and_map(&self.start, MarkerInvalidity::Start)
+            .validate_and_map(&self.tempo, MarkerInvalidity::Tempo)
+            .validate_and_map(&self.timing, MarkerInvalidity::Timing)
+            .invalidate_if(
+                self.tempo.is_default() && self.timing.is_default(),
+                MarkerInvalidity::BothTempoAndTimingMissing,
+            )
+            .invalidate_if(
+                !self.timing.is_default() && !self.beat.is_zero() && self.beat > self.timing.top,
+                MarkerInvalidity::BeatNumberInvalid,
+            )
+            .into()
     }
 }
 
@@ -81,8 +83,8 @@ impl Validate for Marker {
 pub struct Markers;
 
 #[derive(Copy, Clone, Debug)]
-pub enum MarkersValidation {
-    Marker(MarkerValidation),
+pub enum MarkersInvalidity {
+    Marker(MarkerInvalidity),
     Ranges,
 }
 
@@ -102,18 +104,20 @@ impl Markers {
         tempo
     }
 
-    pub fn validate(markers: &[Marker]) -> ValidationResult<MarkersValidation> {
-        let mut context = ValidationContext::default();
+    pub fn validate<'a>(
+        markers: impl Iterator<Item = &'a Marker>,
+    ) -> ValidationResult<MarkersInvalidity> {
         let mut min_pos = PositionMs(f64::NEG_INFINITY);
         let mut ranges_violation = false;
-        for marker in markers {
-            context.map_and_merge_result(marker.validate(), MarkersValidation::Marker);
-            if min_pos > marker.start {
-                ranges_violation = true;
-            }
-            min_pos = marker.start;
-        }
-        context.add_violation_if(ranges_violation, MarkersValidation::Ranges);
-        context.into_result()
+        markers
+            .fold(ValidationContext::new(), |context, marker| {
+                if min_pos > marker.start {
+                    ranges_violation = true;
+                }
+                min_pos = marker.start;
+                context.validate_and_map(marker, MarkersInvalidity::Marker)
+            })
+            .invalidate_if(ranges_violation, MarkersInvalidity::Ranges)
+            .into()
     }
 }

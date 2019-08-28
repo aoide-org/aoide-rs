@@ -104,53 +104,49 @@ impl Track {
 }
 
 #[derive(Copy, Clone, Debug)]
-pub enum TrackValidation {
-    Collections(CollectionsValidation),
-    MediaSources(MediaSourcesValidation),
-    Release(ReleaseValidation),
-    Album(AlbumValidation),
-    Titles(TitlesValidation),
-    Actors(ActorsValidation),
-    Indexes(IndexesValidation),
-    Markers(MarkersValidation),
-    Tags(TagsValidation),
+pub enum TrackInvalidity {
+    Collections(CollectionsInvalidity),
+    MediaSources(MediaSourcesInvalidity),
+    Release(ReleaseInvalidity),
+    Album(AlbumInvalidity),
+    Titles(TitlesInvalidity),
+    Actors(ActorsInvalidity),
+    Indexes(IndexesInvalidity),
+    Markers(MarkersInvalidity),
+    Tags(TagsInvalidity),
 }
 
 impl Validate for Track {
-    type Validation = TrackValidation;
+    type Invalidity = TrackInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.map_and_merge_result(
-            Collections::validate(self.collections.iter()),
-            TrackValidation::Collections,
-        );
-        context.map_and_merge_result(
-            MediaSources::validate(self.media_sources.iter()),
-            TrackValidation::MediaSources,
-        );
-        context.map_and_merge_result(
-            Titles::validate(self.titles.iter()),
-            TrackValidation::Titles,
-        );
-        context.map_and_merge_result(
-            Actors::validate(self.actors.iter()),
-            TrackValidation::Actors,
-        );
-        if let Some(ref album) = self.album {
-            context.map_and_merge_result(album.validate(), TrackValidation::Album);
-        }
-        if let Some(ref release) = self.release {
-            context.map_and_merge_result(release.validate(), TrackValidation::Release);
-        }
-        context.map_and_merge_result(self.indexes.validate(), TrackValidation::Indexes);
-        context.map_and_merge_result(self.markers.validate(), TrackValidation::Markers);
-        context.map_and_merge_result(Tags::validate(self.tags.iter()), TrackValidation::Tags);
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .map_and_merge_result(
+                Collections::validate(self.collections.iter()),
+                TrackInvalidity::Collections,
+            )
+            .map_and_merge_result(
+                MediaSources::validate(self.media_sources.iter()),
+                TrackInvalidity::MediaSources,
+            )
+            .map_and_merge_result(
+                Titles::validate(self.titles.iter()),
+                TrackInvalidity::Titles,
+            )
+            .map_and_merge_result(
+                Actors::validate(self.actors.iter()),
+                TrackInvalidity::Actors,
+            )
+            .validate_and_map(&self.album, TrackInvalidity::Album)
+            .validate_and_map(&self.release, TrackInvalidity::Release)
+            .validate_and_map(&self.indexes, TrackInvalidity::Indexes)
+            .validate_and_map(&self.markers, TrackInvalidity::Markers)
+            .map_and_merge_result(Tags::validate(self.tags.iter()), TrackInvalidity::Tags)
+            .into()
     }
 }
 
-pub type Entity = crate::entity::Entity<TrackValidation, Track>;
+pub type Entity = crate::entity::Entity<TrackInvalidity, Track>;
 
 ///////////////////////////////////////////////////////////////////////
 // Tests

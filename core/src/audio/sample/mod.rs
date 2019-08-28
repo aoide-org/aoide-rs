@@ -34,12 +34,12 @@ pub enum SampleLayout {
     Interleaved,
 }
 
-pub type SampleLayoutValidation = ();
+pub type SampleLayoutInvalidity = ();
 
 impl Validate for SampleLayout {
-    type Validation = SampleLayoutValidation;
+    type Invalidity = SampleLayoutInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
         Ok(()) // always valid
     }
 }
@@ -83,17 +83,17 @@ pub type SamplePositionType = f64;
 pub struct SamplePosition(pub SamplePositionType);
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum SamplePositionValidation {
+pub enum SamplePositionInvalidity {
     OutOfRange,
 }
 
 impl Validate for SamplePosition {
-    type Validation = SamplePositionValidation;
+    type Invalidity = SamplePositionInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.add_violation_if(!self.0.is_finite(), SamplePositionValidation::OutOfRange);
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(!self.0.is_finite(), SamplePositionInvalidity::OutOfRange)
+            .into()
     }
 }
 
@@ -125,20 +125,20 @@ pub type NumberOfSamples = f64;
 pub struct SampleLength(pub NumberOfSamples);
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum SampleLengthValidation {
+pub enum SampleLengthInvalidity {
     OutOfRange,
 }
 
 impl Validate for SampleLength {
-    type Validation = SampleLengthValidation;
+    type Invalidity = SampleLengthInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.add_violation_if(
-            !(self.0.is_finite() && self.0.is_sign_positive()),
-            SampleLengthValidation::OutOfRange,
-        );
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(
+                !(self.0.is_finite() && self.0.is_sign_positive()),
+                SampleLengthInvalidity::OutOfRange,
+            )
+            .into()
     }
 }
 
@@ -193,7 +193,7 @@ impl SampleRange {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum SampleRangeValidation {
+pub enum SampleRangeInvalidity {
     Start,
     End,
 }

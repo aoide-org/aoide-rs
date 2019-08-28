@@ -16,7 +16,7 @@
 use super::*;
 
 use crate::{
-    entity::{EntityUid, EntityUidValidation},
+    entity::{EntityUid, EntityUidInvalidity},
     util::color::*,
 };
 
@@ -38,17 +38,17 @@ pub struct Collection {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum CollectionValidation {
-    Uid(EntityUidValidation),
+pub enum CollectionInvalidity {
+    Uid(EntityUidInvalidity),
 }
 
 impl Validate for Collection {
-    type Validation = CollectionValidation;
+    type Invalidity = CollectionInvalidity;
 
-    fn validate(&self) -> ValidationResult<Self::Validation> {
-        let mut context = ValidationContext::default();
-        context.map_and_merge_result(self.uid.validate(), CollectionValidation::Uid);
-        context.into_result()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .validate_and_map(&self.uid, CollectionInvalidity::Uid)
+            .into()
     }
 }
 
@@ -56,28 +56,29 @@ impl Validate for Collection {
 pub struct Collections;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum CollectionsValidation {
-    Collection(CollectionValidation),
+pub enum CollectionsInvalidity {
+    Collection(CollectionInvalidity),
     NonUniqueUid,
 }
 
 impl Collections {
-    pub fn validate<'a, I>(collections: I) -> ValidationResult<CollectionsValidation>
+    pub fn validate<'a, I>(collections: I) -> ValidationResult<CollectionsInvalidity>
     where
         I: Iterator<Item = &'a Collection> + Clone,
     {
-        let mut context = ValidationContext::default();
-        for collection in collections.clone() {
-            context.map_and_merge_result(collection.validate(), CollectionsValidation::Collection);
-        }
         let mut uids: Vec<_> = collections.clone().map(|c| &c.uid).collect();
         uids.sort_unstable();
         uids.dedup();
-        context.add_violation_if(
-            uids.len() < collections.count(),
-            CollectionsValidation::NonUniqueUid,
-        );
-        context.into_result()
+        collections
+            .clone()
+            .fold(ValidationContext::new(), |context, collection| {
+                context.validate_and_map(collection, CollectionsInvalidity::Collection)
+            })
+            .invalidate_if(
+                uids.len() < collections.count(),
+                CollectionsInvalidity::NonUniqueUid,
+            )
+            .into()
     }
 
     pub fn find_by_uid<'a, I>(collections: I, uid: &EntityUid) -> Option<&'a Collection>
