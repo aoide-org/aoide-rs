@@ -24,8 +24,8 @@ use aoide_core::{
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum StringField {
-    SourceUri, // percent-decoded URI
-    ContentType,
+    MediaUri, // percent-decoded URI
+    MediaType,
     TrackTitle,
     TrackArtist,
     TrackComposer,
@@ -71,7 +71,7 @@ pub struct PhraseFieldFilter {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocateParams {
-    pub source_uri: StringPredicate,
+    pub media_uri: StringPredicate,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -123,7 +123,7 @@ pub struct StringFieldCounts {
 pub struct Replacement {
     // The URI for looking up the existing track (if any)
     // that gets replaced.
-    pub source_uri: String,
+    pub media_uri: String,
 
     pub track: Track,
 }
@@ -139,7 +139,7 @@ pub enum ReplaceMode {
 // failures are considered as errors!
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ReplaceResult {
-    AmbiguousSourceUri(usize),
+    AmbiguousMediaUri(usize),
     IncompatibleFormat(EntityDataFormat),
     IncompatibleVersion(EntityDataVersion),
     NotCreated,
@@ -190,7 +190,7 @@ pub trait Repo {
     fn replace_track(
         &self,
         collection_uid: Option<&EntityUid>,
-        source_uri: String,
+        media_uri: String,
         mode: ReplaceMode,
         track: Track,
         body_data: EntityBodyData,
@@ -209,12 +209,12 @@ pub trait Repo {
             }
         }
         let locate_params = LocateParams {
-            source_uri: StringPredicate::Equals(source_uri.clone()),
+            media_uri: StringPredicate::Equals(media_uri.clone()),
         };
         let located_tracks =
             self.locate_tracks(collection_uid, Pagination::default(), locate_params)?;
         if located_tracks.len() > 1 {
-            return Ok(ReplaceResult::AmbiguousSourceUri(located_tracks.len()));
+            return Ok(ReplaceResult::AmbiguousMediaUri(located_tracks.len()));
         }
         let (data_fmt, data_ver, data_blob) = body_data;
         if let Some((entity_hdr, (entity_fmt, entity_ver, entity_blob))) =

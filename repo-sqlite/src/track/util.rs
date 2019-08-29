@@ -75,8 +75,8 @@ impl<'a> RepositoryHelper<'a> {
 
     fn cleanup_source(&self) -> RepoResult<()> {
         let query = diesel::delete(
-            aux_track_source::table
-                .filter(aux_track_source::track_id.ne_all(tbl_track::table.select(tbl_track::id))),
+            aux_track_media::table
+                .filter(aux_track_media::track_id.ne_all(tbl_track::table.select(tbl_track::id))),
         );
         query.execute(self.connection)?;
         Ok(())
@@ -84,7 +84,7 @@ impl<'a> RepositoryHelper<'a> {
 
     fn delete_source(&self, track_id: RepoId) -> RepoResult<()> {
         let query =
-            diesel::delete(aux_track_source::table.filter(aux_track_source::track_id.eq(track_id)));
+            diesel::delete(aux_track_media::table.filter(aux_track_media::track_id.eq(track_id)));
         query.execute(self.connection)?;
         Ok(())
     }
@@ -92,7 +92,7 @@ impl<'a> RepositoryHelper<'a> {
     fn insert_source(&self, track_id: RepoId, track: &Track) -> RepoResult<()> {
         for media_source in &track.media_sources {
             let insertable = track::InsertableSource::bind(track_id, media_source);
-            let query = diesel::insert_into(aux_track_source::table).values(&insertable);
+            let query = diesel::insert_into(aux_track_media::table).values(&insertable);
             query.execute(self.connection)?;
         }
         Ok(())

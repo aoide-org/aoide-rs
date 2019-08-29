@@ -17,7 +17,7 @@ DROP TABLE tbl_collection;
 
 DROP TABLE tbl_track;
 DROP TABLE aux_track_collection;
-DROP TABLE aux_track_source;
+DROP TABLE aux_track_media;
 DROP TABLE aux_track_brief;
 DROP TABLE aux_track_tag;
 

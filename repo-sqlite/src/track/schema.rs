@@ -46,12 +46,12 @@ joinable!(aux_track_collection -> tbl_track (track_id));
 allow_tables_to_appear_in_same_query!(aux_track_collection, tbl_collection);
 
 table! {
-    aux_track_source (id) {
+    aux_track_media (id) {
         id -> BigInt,
         track_id -> BigInt,
         uri -> Text,
         uri_decoded -> Text,
-        media_type -> Text,
+        content_type -> Text,
         audio_channel_count -> Nullable<SmallInt>,
         audio_duration -> Nullable<Double>,
         audio_samplerate -> Nullable<Integer>,
@@ -62,7 +62,7 @@ table! {
     }
 }
 
-joinable!(aux_track_source -> tbl_track (track_id));
+joinable!(aux_track_media -> tbl_track (track_id));
 
 table! {
     aux_track_brief (id) {
@@ -134,7 +134,7 @@ joinable!(aux_track_marker -> aux_marker_label (label_id));
 allow_tables_to_appear_in_same_query!(
     tbl_track,
     aux_track_collection,
-    aux_track_source,
+    aux_track_media,
     aux_track_brief,
     aux_track_tag,
     aux_tag_label,

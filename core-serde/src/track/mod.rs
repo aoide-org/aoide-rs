@@ -20,9 +20,9 @@ pub mod collection;
 pub mod index;
 pub mod marker;
 pub mod release;
-pub mod source;
+pub mod media;
 
-use self::{album::*, collection::*, index::*, marker::*, release::*, source::*};
+use self::{album::*, collection::*, index::*, marker::*, release::*, media::*};
 
 use crate::{actor::*, tag::*, title::*};
 
@@ -44,7 +44,7 @@ pub struct Track {
     pub collections: Vec<Collection>,
 
     #[serde(rename = "s", skip_serializing_if = "Vec::is_empty", default)]
-    pub media_sources: Vec<MediaSource>,
+    pub media_sources: Vec<Source>,
 
     #[serde(rename = "r", skip_serializing_if = "Option::is_none")]
     pub release: Option<Release>,

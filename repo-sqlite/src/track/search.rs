@@ -49,11 +49,11 @@ type TrackSearchBoxedQuery<'a> = diesel::query_builder::BoxedSelectStatement<
                             diesel::expression::nullable::Nullable<tbl_track::columns::id>,
                         >,
                     >,
-                    aux_track_source::table,
+                    aux_track_media::table,
                     diesel::query_source::joins::LeftOuter,
                 >,
                 diesel::expression::operators::Eq<
-                    diesel::expression::nullable::Nullable<aux_track_source::columns::track_id>,
+                    diesel::expression::nullable::Nullable<aux_track_media::columns::track_id>,
                     diesel::expression::nullable::Nullable<tbl_track::columns::id>,
                 >,
             >,
@@ -83,11 +83,11 @@ type TrackSearchQuery = diesel::query_source::joins::JoinOn<
                         diesel::expression::nullable::Nullable<tbl_track::columns::id>,
                     >,
                 >,
-                aux_track_source::table,
+                aux_track_media::table,
                 diesel::query_source::joins::LeftOuter,
             >,
             diesel::expression::operators::Eq<
-                diesel::expression::nullable::Nullable<aux_track_source::columns::track_id>,
+                diesel::expression::nullable::Nullable<aux_track_media::columns::track_id>,
                 diesel::expression::nullable::Nullable<tbl_track::columns::id>,
             >,
         >,
@@ -260,22 +260,22 @@ fn build_phrase_field_filter_expression(filter: &PhraseFieldFilter) -> TrackSear
     };
 
     let mut or_expression = dummy_false_expression();
-    // aux_track_source (join)
+    // aux_track_media (join)
     if filter.fields.is_empty()
         || filter
             .fields
             .iter()
-            .any(|target| *target == StringField::SourceUri)
+            .any(|target| *target == StringField::MediaUri)
     {
         or_expression = if like_expr.is_empty() {
             Box::new(
                 or_expression
-                    .or(aux_track_source::uri_decoded.is_null())
-                    .or(aux_track_source::uri_decoded.eq(String::default())),
+                    .or(aux_track_media::uri_decoded.is_null())
+                    .or(aux_track_media::uri_decoded.eq(String::default())),
             )
         } else {
             Box::new(
-                or_expression.or(aux_track_source::uri_decoded
+                or_expression.or(aux_track_media::uri_decoded
                     .like(like_expr.clone())
                     .escape('\\')),
             )
@@ -285,17 +285,17 @@ fn build_phrase_field_filter_expression(filter: &PhraseFieldFilter) -> TrackSear
         || filter
             .fields
             .iter()
-            .any(|target| *target == StringField::ContentType)
+            .any(|target| *target == StringField::MediaType)
     {
         or_expression = if like_expr.is_empty() {
             Box::new(
                 or_expression
-                    .or(aux_track_source::uri_decoded.is_null())
-                    .or(aux_track_source::uri_decoded.eq(String::default())),
+                    .or(aux_track_media::uri_decoded.is_null())
+                    .or(aux_track_media::uri_decoded.eq(String::default())),
             )
         } else {
             Box::new(
-                or_expression.or(aux_track_source::uri_decoded
+                or_expression.or(aux_track_media::uri_decoded
                     .like(like_expr.clone())
                     .escape('\\')),
             )
@@ -412,107 +412,107 @@ fn build_numeric_field_filter_expression(
     use NumericPredicate::*;
     match filter.field {
         AudioDuration => match filter.value {
-            LessThan(value) => Box::new(aux_track_source::audio_duration.lt(value)),
-            LessOrEqual(value) => Box::new(aux_track_source::audio_duration.le(value)),
-            GreaterThan(value) => Box::new(aux_track_source::audio_duration.gt(value)),
-            GreaterOrEqual(value) => Box::new(aux_track_source::audio_duration.ge(value)),
+            LessThan(value) => Box::new(aux_track_media::audio_duration.lt(value)),
+            LessOrEqual(value) => Box::new(aux_track_media::audio_duration.le(value)),
+            GreaterThan(value) => Box::new(aux_track_media::audio_duration.gt(value)),
+            GreaterOrEqual(value) => Box::new(aux_track_media::audio_duration.ge(value)),
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(aux_track_source::audio_duration.eq(value))
+                    Box::new(aux_track_media::audio_duration.eq(value))
                 } else {
-                    Box::new(aux_track_source::audio_duration.is_null())
+                    Box::new(aux_track_media::audio_duration.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(aux_track_source::audio_duration.ne(value))
+                    Box::new(aux_track_media::audio_duration.ne(value))
                 } else {
-                    Box::new(aux_track_source::audio_duration.is_not_null())
+                    Box::new(aux_track_media::audio_duration.is_not_null())
                 }
             }
         },
         AudioSampleRate => match filter.value {
             // TODO: Check and limit/clamp value range when converting from f64 to i32
-            LessThan(value) => Box::new(aux_track_source::audio_samplerate.lt(value as i32)),
-            LessOrEqual(value) => Box::new(aux_track_source::audio_samplerate.le(value as i32)),
-            GreaterThan(value) => Box::new(aux_track_source::audio_samplerate.gt(value as i32)),
-            GreaterOrEqual(value) => Box::new(aux_track_source::audio_samplerate.ge(value as i32)),
+            LessThan(value) => Box::new(aux_track_media::audio_samplerate.lt(value as i32)),
+            LessOrEqual(value) => Box::new(aux_track_media::audio_samplerate.le(value as i32)),
+            GreaterThan(value) => Box::new(aux_track_media::audio_samplerate.gt(value as i32)),
+            GreaterOrEqual(value) => Box::new(aux_track_media::audio_samplerate.ge(value as i32)),
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(aux_track_source::audio_samplerate.eq(value as i32))
+                    Box::new(aux_track_media::audio_samplerate.eq(value as i32))
                 } else {
-                    Box::new(aux_track_source::audio_samplerate.is_null())
+                    Box::new(aux_track_media::audio_samplerate.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(aux_track_source::audio_samplerate.ne(value as i32))
+                    Box::new(aux_track_media::audio_samplerate.ne(value as i32))
                 } else {
-                    Box::new(aux_track_source::audio_samplerate.is_not_null())
+                    Box::new(aux_track_media::audio_samplerate.is_not_null())
                 }
             }
         },
         AudioBitRate => match filter.value {
             // TODO: Check and limit/clamp value range when converting from f64 to i32
-            LessThan(value) => Box::new(aux_track_source::audio_bitrate.lt(value as i32)),
-            LessOrEqual(value) => Box::new(aux_track_source::audio_bitrate.le(value as i32)),
-            GreaterThan(value) => Box::new(aux_track_source::audio_bitrate.gt(value as i32)),
-            GreaterOrEqual(value) => Box::new(aux_track_source::audio_bitrate.ge(value as i32)),
+            LessThan(value) => Box::new(aux_track_media::audio_bitrate.lt(value as i32)),
+            LessOrEqual(value) => Box::new(aux_track_media::audio_bitrate.le(value as i32)),
+            GreaterThan(value) => Box::new(aux_track_media::audio_bitrate.gt(value as i32)),
+            GreaterOrEqual(value) => Box::new(aux_track_media::audio_bitrate.ge(value as i32)),
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(aux_track_source::audio_bitrate.eq(value as i32))
+                    Box::new(aux_track_media::audio_bitrate.eq(value as i32))
                 } else {
-                    Box::new(aux_track_source::audio_bitrate.is_null())
+                    Box::new(aux_track_media::audio_bitrate.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(aux_track_source::audio_bitrate.ne(value as i32))
+                    Box::new(aux_track_media::audio_bitrate.ne(value as i32))
                 } else {
-                    Box::new(aux_track_source::audio_bitrate.is_not_null())
+                    Box::new(aux_track_media::audio_bitrate.is_not_null())
                 }
             }
         },
         AudioChannelCount => match filter.value {
             // TODO: Check and limit/clamp value range when converting from f64 to i16
-            LessThan(value) => Box::new(aux_track_source::audio_channel_count.lt(value as i16)),
-            LessOrEqual(value) => Box::new(aux_track_source::audio_channel_count.le(value as i16)),
-            GreaterThan(value) => Box::new(aux_track_source::audio_channel_count.gt(value as i16)),
+            LessThan(value) => Box::new(aux_track_media::audio_channel_count.lt(value as i16)),
+            LessOrEqual(value) => Box::new(aux_track_media::audio_channel_count.le(value as i16)),
+            GreaterThan(value) => Box::new(aux_track_media::audio_channel_count.gt(value as i16)),
             GreaterOrEqual(value) => {
-                Box::new(aux_track_source::audio_channel_count.ge(value as i16))
+                Box::new(aux_track_media::audio_channel_count.ge(value as i16))
             }
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(aux_track_source::audio_channel_count.eq(value as i16))
+                    Box::new(aux_track_media::audio_channel_count.eq(value as i16))
                 } else {
-                    Box::new(aux_track_source::audio_channel_count.is_null())
+                    Box::new(aux_track_media::audio_channel_count.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(aux_track_source::audio_channel_count.ne(value as i16))
+                    Box::new(aux_track_media::audio_channel_count.ne(value as i16))
                 } else {
-                    Box::new(aux_track_source::audio_channel_count.is_not_null())
+                    Box::new(aux_track_media::audio_channel_count.is_not_null())
                 }
             }
         },
         AudioLoudness => match filter.value {
-            LessThan(value) => Box::new(aux_track_source::audio_loudness.lt(value)),
-            LessOrEqual(value) => Box::new(aux_track_source::audio_loudness.le(value)),
-            GreaterThan(value) => Box::new(aux_track_source::audio_loudness.gt(value)),
-            GreaterOrEqual(value) => Box::new(aux_track_source::audio_loudness.ge(value)),
+            LessThan(value) => Box::new(aux_track_media::audio_loudness.lt(value)),
+            LessOrEqual(value) => Box::new(aux_track_media::audio_loudness.le(value)),
+            GreaterThan(value) => Box::new(aux_track_media::audio_loudness.gt(value)),
+            GreaterOrEqual(value) => Box::new(aux_track_media::audio_loudness.ge(value)),
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(aux_track_source::audio_loudness.eq(value))
+                    Box::new(aux_track_media::audio_loudness.eq(value))
                 } else {
-                    Box::new(aux_track_source::audio_loudness.is_null())
+                    Box::new(aux_track_media::audio_loudness.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(aux_track_source::audio_loudness.ne(value))
+                    Box::new(aux_track_media::audio_loudness.ne(value))
                 } else {
-                    Box::new(aux_track_source::audio_loudness.is_not_null())
+                    Box::new(aux_track_media::audio_loudness.is_not_null())
                 }
             }
         },

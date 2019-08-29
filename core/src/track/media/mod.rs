@@ -18,51 +18,51 @@ use super::*;
 use crate::audio::{AudioContent, AudioContentInvalidity};
 
 ///////////////////////////////////////////////////////////////////////
-// MediaContent
+// Content
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum MediaContent {
+pub enum Content {
     Audio(AudioContent),
 }
 
 ///////////////////////////////////////////////////////////////////////
-// MediaSource
+// Source
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct MediaSource {
+pub struct Source {
     pub uri: String,
 
-    // The content_type uniquely identifies a MediaSource of
+    // The content_type uniquely identifies a Source of
     // a Track, i.e. no duplicate content types are allowed
     // among the track sources of each track.
     pub content_type: String,
 
-    pub content: MediaContent,
+    pub content: Content,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum MediaSourceInvalidity {
+pub enum SourceInvalidity {
     UriEmpty,
     ContentTypeEmpty,
     AudioContent(AudioContentInvalidity),
 }
 
-impl Validate for MediaSource {
-    type Invalidity = MediaSourceInvalidity;
+impl Validate for Source {
+    type Invalidity = SourceInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         let context = ValidationContext::new()
-            .invalidate_if(self.uri.trim().is_empty(), MediaSourceInvalidity::UriEmpty)
+            .invalidate_if(self.uri.trim().is_empty(), SourceInvalidity::UriEmpty)
             .invalidate_if(
                 self.content_type.trim().is_empty(),
-                MediaSourceInvalidity::ContentTypeEmpty,
+                SourceInvalidity::ContentTypeEmpty,
             );
         // TODO: Validate MIME type
         match self.content {
-            MediaContent::Audio(ref audio_content) => {
-                context.validate_and_map(audio_content, MediaSourceInvalidity::AudioContent)
+            Content::Audio(ref audio_content) => {
+                context.validate_and_map(audio_content, SourceInvalidity::AudioContent)
             }
         }
         .into()
@@ -70,23 +70,23 @@ impl Validate for MediaSource {
 }
 
 #[derive(Debug)]
-pub struct MediaSources;
+pub struct Sources;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum MediaSourcesInvalidity {
-    MediaSource(MediaSourceInvalidity),
+pub enum SourcesInvalidity {
+    Source(SourceInvalidity),
     TypeAmbiguous,
 }
 
-impl MediaSources {
-    pub fn validate<'a, I>(sources: I) -> ValidationResult<MediaSourcesInvalidity>
+impl Sources {
+    pub fn validate<'a, I>(sources: I) -> ValidationResult<SourcesInvalidity>
     where
-        I: Iterator<Item = &'a MediaSource> + Clone,
+        I: Iterator<Item = &'a Source> + Clone,
     {
         let mut context = sources
             .clone()
             .fold(ValidationContext::new(), |context, source| {
-                context.validate_and_map(source, MediaSourcesInvalidity::MediaSource)
+                context.validate_and_map(source, SourcesInvalidity::Source)
             });
         if context.is_valid() {
             let mut content_types: Vec<_> =
@@ -95,7 +95,7 @@ impl MediaSources {
             content_types.dedup();
             context = context.invalidate_if(
                 content_types.len() < sources.count(),
-                MediaSourcesInvalidity::TypeAmbiguous,
+                SourcesInvalidity::TypeAmbiguous,
             );
         }
         context.into()
@@ -104,9 +104,9 @@ impl MediaSources {
     pub fn filter_content_type<'a, 'b, I>(
         sources: I,
         content_type: &'b str,
-    ) -> impl Iterator<Item = &'a MediaSource>
+    ) -> impl Iterator<Item = &'a Source>
     where
-        I: Iterator<Item = &'a MediaSource>,
+        I: Iterator<Item = &'a Source>,
         'b: 'a,
     {
         sources.filter(move |source| source.content_type == content_type)

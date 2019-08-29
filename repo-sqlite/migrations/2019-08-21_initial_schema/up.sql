@@ -74,12 +74,12 @@ CREATE INDEX IF NOT EXISTS idx_track_collection_since ON aux_track_collection (
     since
 );
 
-CREATE TABLE aux_track_source (
+CREATE TABLE aux_track_media (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     uri                      TEXT NOT NULL,     -- RFC 3986
     uri_decoded              TEXT NOT NULL,     -- percent-decoded URI
-    media_type               TEXT NOT NULL,     -- RFC 6838
+    content_type             TEXT NOT NULL,     -- RFC 6838
     audio_channel_count      INTEGER,           -- number of channels
     audio_duration           REAL,              -- milliseconds
     audio_samplerate         INTEGER,           -- Hz
@@ -89,14 +89,14 @@ CREATE TABLE aux_track_source (
     audio_enc_settings       TEXT,              -- encoder settings
     FOREIGN KEY(track_id) REFERENCES tbl_track(id),
     UNIQUE (track_id, uri),                     -- at most one source per URI for each track
-    UNIQUE (track_id, media_type)             -- at most one source per content type for each track
+    UNIQUE (track_id, content_type)             -- at most one source per content type for each track
 );
 
 -- Index with a permutation of the unique constraint to optimize
 -- the performance of subselects, joins, and filtering. See also:
 -- https://gitlab.com/uklotzde/aoide-rs/issues/12
 -- https://www.sqlite.org/queryplanner.html
-CREATE INDEX idx_track_source_uri_track ON aux_track_source (
+CREATE INDEX idx_track_media_uri_track ON aux_track_media (
     uri, track_id
 );
 
@@ -104,8 +104,8 @@ CREATE INDEX idx_track_source_uri_track ON aux_track_source (
 -- the performance of subselects, joins, and filtering. See also:
 -- https://gitlab.com/uklotzde/aoide-rs/issues/12
 -- https://www.sqlite.org/queryplanner.html
-CREATE INDEX idx_track_source_media_type_track ON aux_track_source (
-    media_type, track_id
+CREATE INDEX idx_track_media_content_type_track ON aux_track_media (
+    content_type, track_id
 );
 
 CREATE TABLE aux_track_brief (

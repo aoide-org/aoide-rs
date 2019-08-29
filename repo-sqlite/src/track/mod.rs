@@ -344,7 +344,7 @@ impl<'a> Repo for Repository<'a> {
         locate_params: LocateParams,
     ) -> RepoResult<Vec<EntityData>> {
         // URI filter
-        let (cmp, val, dir) = (&locate_params.source_uri).into();
+        let (cmp, val, dir) = (&locate_params.media_uri).into();
         let either_eq_or_like = match cmp {
             // Equal comparison without escape characters
             StringCompare::Equals => EitherEqualOrLike::Equal(val.to_owned()),
@@ -372,23 +372,23 @@ impl<'a> Repo for Repository<'a> {
             .into_boxed();
 
         // A subselect has proven to be much more efficient than
-        // joining the aux_track_source table for filtering by URI!
-        let mut track_id_subselect = aux_track_source::table
-            .select(aux_track_source::track_id)
+        // joining the aux_track_media table for filtering by URI!
+        let mut track_id_subselect = aux_track_media::table
+            .select(aux_track_media::track_id)
             .into_boxed();
         track_id_subselect = match either_eq_or_like {
             EitherEqualOrLike::Equal(eq) => {
                 if dir {
-                    track_id_subselect.filter(aux_track_source::uri.eq(eq))
+                    track_id_subselect.filter(aux_track_media::uri.eq(eq))
                 } else {
-                    track_id_subselect.filter(aux_track_source::uri.ne(eq))
+                    track_id_subselect.filter(aux_track_media::uri.ne(eq))
                 }
             }
             EitherEqualOrLike::Like(like) => {
                 if dir {
-                    track_id_subselect.filter(aux_track_source::uri.like(like).escape('\\'))
+                    track_id_subselect.filter(aux_track_media::uri.like(like).escape('\\'))
                 } else {
-                    track_id_subselect.filter(aux_track_source::uri.not_like(like).escape('\\'))
+                    track_id_subselect.filter(aux_track_media::uri.not_like(like).escape('\\'))
                 }
             }
         };
@@ -433,7 +433,7 @@ impl<'a> Repo for Repository<'a> {
             .select(tbl_track::all_columns)
             .distinct()
             .inner_join(aux_track_brief::table)
-            .left_outer_join(aux_track_source::table)
+            .left_outer_join(aux_track_media::table)
             .left_outer_join(aux_track_collection::table)
             .into_boxed();
 
@@ -472,19 +472,19 @@ impl<'a> Repo for Repository<'a> {
                 .filter(aux_track_collection::collection_uid.eq(collection_uid.as_ref()))
         });
         let rows = match field {
-            StringField::SourceUri => {
-                let mut target = aux_track_source::table
+            StringField::MediaUri => {
+                let mut target = aux_track_media::table
                     .select((
-                        aux_track_source::uri_decoded.nullable(),
+                        aux_track_media::uri_decoded.nullable(),
                         sql::<diesel::sql_types::BigInt>("count(*) AS count"),
                     ))
-                    .group_by(aux_track_source::uri_decoded)
+                    .group_by(aux_track_media::uri_decoded)
                     .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
-                    .then_order_by(aux_track_source::uri_decoded)
+                    .then_order_by(aux_track_media::uri_decoded)
                     .into_boxed();
 
                 if let Some(track_id_subselect) = track_id_subselect {
-                    target = target.filter(aux_track_source::track_id.eq_any(track_id_subselect));
+                    target = target.filter(aux_track_media::track_id.eq_any(track_id_subselect));
                 }
 
                 // Pagination
@@ -492,19 +492,19 @@ impl<'a> Repo for Repository<'a> {
 
                 target.load::<(Option<String>, i64)>(self.connection)?
             }
-            StringField::ContentType => {
-                let mut target = aux_track_source::table
+            StringField::MediaType => {
+                let mut target = aux_track_media::table
                     .select((
-                        aux_track_source::media_type.nullable(),
+                        aux_track_media::content_type.nullable(),
                         sql::<diesel::sql_types::BigInt>("count(*) AS count"),
                     ))
-                    .group_by(aux_track_source::media_type)
+                    .group_by(aux_track_media::content_type)
                     .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
-                    .then_order_by(aux_track_source::media_type)
+                    .then_order_by(aux_track_media::content_type)
                     .into_boxed();
 
                 if let Some(track_id_subselect) = track_id_subselect {
-                    target = target.filter(aux_track_source::track_id.eq_any(track_id_subselect));
+                    target = target.filter(aux_track_media::track_id.eq_any(track_id_subselect));
                 }
 
                 // Pagination

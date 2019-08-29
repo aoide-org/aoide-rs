@@ -248,7 +248,7 @@ paths:
     post:
       summary: Locate tracks by URI
       description: |
-        Locate tracks according to their (percent-encoded) source URI.
+        Locate tracks according to their (percent-encoded) media URI.
         Optionally the URI lookup can be restricted to a single collection.
       operationId: locateTracks
       tags:
@@ -278,7 +278,7 @@ paths:
       summary: Replace tracks by URI
       description: |
         Replace tracks with a new revision by locating them through their
-        (percent-encoded) source URI. Optionally the URI lookup can be
+        (percent-encoded) media URI. Optionally the URI lookup can be
         restricted to a single collection.
       operationId: replaceTracks
       tags:
@@ -830,7 +830,7 @@ components:
           * 24 = D min
     LocateTracksParams:
       properties:
-        sourceUri:
+        mediaUri:
           $ref: '#/components/schemas/StringPredicate'
     LoudnessLufs:
       type: number
@@ -1248,8 +1248,8 @@ components:
     StringField:
       type: string
       enum:
-        - sourceUri
-        - contentType
+        - mediaUri
+        - mediaType
         - trackTitle
         - trackArtist
         - trackComposer
@@ -1257,8 +1257,8 @@ components:
         - albumArtist
       description: |
         Selectable fields, including
-          * `sourceUri` - percent-decoded URI
-          * `contentType` - media (MIME) type
+          * `mediaUri` - percent-decoded URI
+          * `mediaType` - media type (RFC 6838)
           * ...
     TagFacet:
       type: string
@@ -1605,12 +1605,12 @@ components:
         or at the end of the track.
     TrackReplacement:
       properties:
-        sourceUri:
+        mediaUri:
           $ref: '#/components/schemas/Uri'
         track:
           $ref: '#/components/schemas/TrackEntityBody'
       required:
-        - sourceUri
+        - mediaUri
         - track
       description: |
         The URI is used for looking up the existing track (if any) that gets

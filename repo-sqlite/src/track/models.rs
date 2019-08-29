@@ -23,7 +23,7 @@ use aoide_core::{
     track::{
         self,
         marker::{beat, key},
-        source, *,
+        media, *,
     },
     util::clock::*,
 };
@@ -156,12 +156,12 @@ impl<'a> InsertableCollection<'a> {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "aux_track_source"]
+#[table_name = "aux_track_media"]
 pub struct InsertableSource<'a> {
     pub track_id: RepoId,
     pub uri: &'a str,
     pub uri_decoded: String,
-    pub media_type: &'a str,
+    pub content_type: &'a str,
     pub audio_channel_count: Option<i16>,
     pub audio_duration: Option<f64>,
     pub audio_samplerate: Option<i32>,
@@ -172,10 +172,10 @@ pub struct InsertableSource<'a> {
 }
 
 impl<'a> InsertableSource<'a> {
-    pub fn bind(track_id: RepoId, media_source: &'a track::source::MediaSource) -> Self {
+    pub fn bind(track_id: RepoId, media_source: &'a track::media::Source) -> Self {
         let audio_content = {
             match media_source.content {
-                source::MediaContent::Audio(ref audio_content) => Some(audio_content),
+                media::Content::Audio(ref audio_content) => Some(audio_content),
             }
         };
         Self {
@@ -184,7 +184,7 @@ impl<'a> InsertableSource<'a> {
             uri_decoded: percent_decode(media_source.uri.as_bytes())
                 .decode_utf8_lossy()
                 .into(),
-            media_type: media_source.content_type.as_str(),
+            content_type: media_source.content_type.as_str(),
             audio_channel_count: audio_content.map(|audio| audio.channels.count().0 as i16),
             audio_duration: audio_content.as_ref().map(|audio| audio.duration.0),
             audio_samplerate: audio_content.map(|audio| audio.sample_rate.0 as i32),

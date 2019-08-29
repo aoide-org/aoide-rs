@@ -128,13 +128,13 @@ impl From<StringPredicate> for _repo::StringPredicate {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct LocateParams {
-    pub source_uri: StringPredicate,
+    pub media_uri: StringPredicate,
 }
 
 impl From<LocateParams> for _repo::LocateParams {
     fn from(from: LocateParams) -> Self {
         Self {
-            source_uri: from.source_uri.into(),
+            media_uri: from.media_uri.into(),
         }
     }
 }
@@ -244,8 +244,8 @@ impl From<StringFilter> for _repo::StringFilter {
 #[derive(Copy, Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum StringField {
-    SourceUri,
-    ContentType,
+    MediaUri,
+    MediaType,
     TrackTitle,
     TrackArtist,
     TrackComposer,
@@ -257,8 +257,8 @@ impl From<StringField> for _repo::StringField {
     fn from(from: StringField) -> Self {
         use _repo::StringField::*;
         match from {
-            StringField::SourceUri => SourceUri,
-            StringField::ContentType => ContentType,
+            StringField::MediaUri => MediaUri,
+            StringField::MediaType => MediaType,
             StringField::TrackTitle => TrackTitle,
             StringField::TrackArtist => TrackArtist,
             StringField::TrackComposer => TrackComposer,
@@ -634,7 +634,7 @@ pub struct TrackReplacement {
     // The URI for locating any existing track that is supposed
     // to replaced by the provided track.
     #[serde(skip_serializing_if = "String::is_empty", default)]
-    source_uri: String,
+    media_uri: String,
 
     track: Track,
 }
@@ -1080,44 +1080,44 @@ fn replace_tracks(
         for replacement in replacements {
             let body_data = write_json_body_data(&replacement.track)?;
             let (data_fmt, data_ver, _) = body_data;
-            let source_uri = replacement.source_uri;
+            let media_uri = replacement.media_uri;
             let replace_result = repository.replace_track(
                 collection_uid.as_ref(),
-                source_uri.clone(),
+                media_uri.clone(),
                 mode,
                 replacement.track.into(),
                 body_data,
             )?;
             use _repo::ReplaceResult::*;
             match replace_result {
-                AmbiguousSourceUri(count) => {
+                AmbiguousMediaUri(count) => {
                     log::warn!(
-                        "Cannot replace track with ambiguous source URI '{}' that matches {} tracks",
-                        source_uri,
+                        "Cannot replace track with ambiguous media URI '{}' that matches {} tracks",
+                        media_uri,
                         count
                     );
-                    results.rejected.push(source_uri);
+                    results.rejected.push(media_uri);
                 }
                 IncompatibleFormat(fmt) => {
                     log::warn!(
-                        "Incompatible data formats for track with source URI '{}': Current = {}, replacement = {}",
-                        source_uri,
+                        "Incompatible data formats for track with media URI '{}': Current = {}, replacement = {}",
+                        media_uri,
                         fmt,
                         data_fmt
                     );
-                    results.rejected.push(source_uri);
+                    results.rejected.push(media_uri);
                 }
                 IncompatibleVersion(ver) => {
                     log::warn!(
-                        "Incompatible data versions for track with source URI '{}': Current = {}, replacement = {}",
-                        source_uri,
+                        "Incompatible data versions for track with media URI '{}': Current = {}, replacement = {}",
+                        media_uri,
                         ver,
                         data_ver
                     );
-                    results.rejected.push(source_uri);
+                    results.rejected.push(media_uri);
                 }
                 NotCreated => {
-                    results.discarded.push(source_uri);
+                    results.discarded.push(media_uri);
                 }
                 Unchanged(hdr) => {
                     results.skipped.push(hdr.into());
@@ -1145,11 +1145,11 @@ fn purge_tracks(
             use _repo::StringPredicate::*;
             use _repo::UriPredicate::*;
             let locate_params = match &uri_predicate {
-                Prefix(source_uri) => _repo::LocateParams {
-                    source_uri: StartsWith(source_uri.to_owned()),
+                Prefix(media_uri) => _repo::LocateParams {
+                    media_uri: StartsWith(media_uri.to_owned()),
                 },
-                Exact(source_uri) => _repo::LocateParams {
-                    source_uri: Equals(source_uri.to_owned()),
+                Exact(media_uri) => _repo::LocateParams {
+                    media_uri: Equals(media_uri.to_owned()),
                 },
             };
             let entities = repository.locate_tracks(
@@ -1208,10 +1208,10 @@ fn relocate_tracks(
         for uri_relocation in uri_relocations {
             let locate_params = match &uri_relocation.predicate {
                 _repo::UriPredicate::Prefix(uri_prefix) => _repo::LocateParams {
-                    source_uri: _repo::StringPredicate::StartsWith(uri_prefix.to_owned()),
+                    media_uri: _repo::StringPredicate::StartsWith(uri_prefix.to_owned()),
                 },
                 _repo::UriPredicate::Exact(uri) => _repo::LocateParams {
-                    source_uri: _repo::StringPredicate::Equals(uri.to_owned()),
+                    media_uri: _repo::StringPredicate::Equals(uri.to_owned()),
                 },
             };
             let tracks = repository.locate_tracks(

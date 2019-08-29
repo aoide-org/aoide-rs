@@ -16,36 +16,36 @@
 use super::*;
 
 mod _core {
-    pub use aoide_core::track::source::*;
+    pub use aoide_core::track::media::*;
 }
 
 use crate::audio::AudioContent;
 
 ///////////////////////////////////////////////////////////////////////
-// MediaContent
+// Content
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
-pub enum MediaContent {
+pub enum Content {
     #[serde(rename = "a")]
     Audio(AudioContent),
 }
 
-impl From<MediaContent> for _core::MediaContent {
-    fn from(from: MediaContent) -> Self {
-        use _core::MediaContent::*;
+impl From<Content> for _core::Content {
+    fn from(from: Content) -> Self {
+        use _core::Content::*;
         match from {
-            MediaContent::Audio(audio_content) => Audio(audio_content.into()),
+            Content::Audio(audio_content) => Audio(audio_content.into()),
         }
     }
 }
 
-impl From<_core::MediaContent> for MediaContent {
-    fn from(from: _core::MediaContent) -> Self {
-        use _core::MediaContent::*;
+impl From<_core::Content> for Content {
+    fn from(from: _core::Content) -> Self {
+        use _core::Content::*;
         match from {
-            Audio(audio_content) => MediaContent::Audio(audio_content.into()),
+            Audio(audio_content) => Content::Audio(audio_content.into()),
         }
     }
 }
@@ -57,11 +57,11 @@ impl From<_core::MediaContent> for MediaContent {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(deny_unknown_fields)]
-pub struct MediaSource(String, String, MediaContent);
+pub struct Source(String, String, Content);
 
-impl From<_core::MediaSource> for MediaSource {
-    fn from(from: _core::MediaSource) -> Self {
-        let _core::MediaSource {
+impl From<_core::Source> for Source {
+    fn from(from: _core::Source) -> Self {
+        let _core::Source {
             uri,
             content_type,
             content,
@@ -70,9 +70,9 @@ impl From<_core::MediaSource> for MediaSource {
     }
 }
 
-impl From<MediaSource> for _core::MediaSource {
-    fn from(from: MediaSource) -> Self {
-        let MediaSource(uri, content_type, content) = from;
+impl From<Source> for _core::Source {
+    fn from(from: Source) -> Self {
+        let Source(uri, content_type, content) = from;
         Self {
             uri,
             content_type,
