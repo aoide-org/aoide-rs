@@ -128,6 +128,13 @@ RUN cargo test --${BUILD_MODE} --target ${BUILD_TARGET} --all \
     && \
     strip ./target/${BUILD_TARGET}/${BUILD_MODE}/${BUILD_BIN}
 
+# Switch back to the root directory
+#
+# NOTE(2019-08-30, uklotzde): Otherwise copying from the build image fails
+# during all subsequent builds of the 2nd stage with an unchanged 1st stage
+# image. Tested with podman 1.5.x on Fedora 30.
+WORKDIR /
+
 
 ###############################################################################
 # 2nd Build Stage
