@@ -1656,6 +1656,7 @@ components:
         - albumArtist
         - releaseYear
         - musicTempo
+        - musicKey
     TrackSortOrder:
       type: array
       minLength: 2

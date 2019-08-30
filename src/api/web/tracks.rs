@@ -154,6 +154,7 @@ pub enum SortField {
     AlbumArtist,
     ReleaseYear,
     MusicTempo,
+    MusicKey,
 }
 
 #[derive(Copy, Clone, Debug, Deserialize)]
@@ -191,6 +192,7 @@ impl From<SortField> for _repo::SortField {
             SortField::AlbumArtist => AlbumArtist,
             SortField::ReleaseYear => ReleaseYear,
             SortField::MusicTempo => MusicTempo,
+            SortField::MusicKey => MusicKey,
         }
     }
 }

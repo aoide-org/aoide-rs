@@ -88,6 +88,7 @@ pub enum SortField {
     AlbumArtist,
     ReleaseYear,
     MusicTempo,
+    MusicKey,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

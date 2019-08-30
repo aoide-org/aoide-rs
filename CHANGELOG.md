@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- New sort field `musicKey` (Circle of fifth/OpenKey)
+
 ### Changed
 
 ### Removed

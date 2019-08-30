@@ -228,6 +228,12 @@ impl TrackSearchQueryTransform for SortOrder {
                     query.then_order_by(aux_track_brief::music_tempo.desc())
                 }
             },
+            SortField::MusicKey => match direction {
+                SortDirection::Ascending => query.then_order_by(aux_track_brief::music_key.asc()),
+                SortDirection::Descending => {
+                    query.then_order_by(aux_track_brief::music_key.desc())
+                }
+            },
         }
     }
 }
