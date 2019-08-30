@@ -17,13 +17,14 @@ use super::*;
 
 use aoide_core::{
     actor::*,
+    media,
     music::time::Beats,
     tag::*,
     title::*,
     track::{
         self,
         marker::{beat, key},
-        media, *,
+        *,
     },
     util::clock::*,
 };
@@ -172,7 +173,7 @@ pub struct InsertableSource<'a> {
 }
 
 impl<'a> InsertableSource<'a> {
-    pub fn bind(track_id: RepoId, media_source: &'a track::media::Source) -> Self {
+    pub fn bind(track_id: RepoId, media_source: &'a media::Source) -> Self {
         let audio_content = {
             match media_source.content {
                 media::Content::Audio(ref audio_content) => Some(audio_content),

@@ -21,6 +21,7 @@ pub mod actor;
 pub mod audio;
 pub mod collection;
 pub mod entity;
+pub mod media;
 pub mod music;
 pub mod tag;
 pub mod title;

@@ -16,7 +16,7 @@
 use super::*;
 
 mod _core {
-    pub use aoide_core::track::media::*;
+    pub use aoide_core::media::*;
 }
 
 use crate::audio::AudioContent;
