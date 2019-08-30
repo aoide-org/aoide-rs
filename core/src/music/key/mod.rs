@@ -25,13 +25,18 @@ pub enum KeyMode {
     Minor,
 }
 
+/// The ordering numbering of the key code follows the
+/// Circle of fifth / Open Key notation in clock-wise orientation,
+/// alternating between major and minor keys.
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct KeySignature(KeyCode);
 
 impl KeySignature {
+    /// C maj
     pub const fn min_code() -> KeyCode {
         1
     }
+    /// D min
     pub const fn max_code() -> KeyCode {
         24
     }

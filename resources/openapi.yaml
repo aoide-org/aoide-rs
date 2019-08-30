@@ -929,6 +929,8 @@ components:
           * ...
           * 23 = F maj
           * 24 = D min
+        The numbering follows the Circle of fifth / Open Key notation in
+        clock-wise orientation, alternating between major and minor keys.
     LocateTracksParams:
       properties:
         mediaUri:
