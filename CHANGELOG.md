@@ -6,22 +6,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-**This release breaks backward compatibiity with existing versions! Existing databases need to be rebuilt.**
+### Added
+
+### Changed
+
+### Removed
+
+## [0.1.0] - 2019-08-30
+
+**This release breaks backward compatibility with existing versions! Existing databases need to be rebuilt.**
 
 ### Added
 
-- Support track index (= track number) and count (= number of tracks) for filtering and sorting
+- Support track/disc number and total for filtering and sorting
 - Evaluate environment variables if corresponding command-line arguments are missing: LOG_LEVEL, LISTEN_ADDR, DATABASE_URL
 - New multi-stage Docker build image
 
 ### Changed
 
-- Improve semantic validation and reporting
-- Shorten property names in JSON schema to save space
-- Use separate routes/resources for calculating album and tag statistics
+- Re-engineered the JSON schema for improving space efficiency
+- Improved semantic validation and reporting
+- Separate routes for calculating album and tag statistics
 - Allow to sort tag count results by various fields
 
 ### Removed
+
+- No more language specific titles
 
 ## [0.0.9] - 2019-06-20
 
@@ -132,7 +142,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial public release
 
-[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.0.9...development
+[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.1.0...development
+[0.1.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.1.0
 [0.0.9]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.9
 [0.0.8]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.8
 [0.0.7]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.7
