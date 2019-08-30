@@ -30,7 +30,7 @@ pub struct EntityUid([u8; 24]);
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum DecodeError {
-    InvalidInput(bs58::decode::DecodeError),
+    InvalidInput(bs58::decode::Error),
     InvalidLength,
 }
 
