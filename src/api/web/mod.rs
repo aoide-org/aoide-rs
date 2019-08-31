@@ -15,34 +15,10 @@
 
 use super::*;
 
-use diesel::{
-    prelude::*,
-    r2d2::{ConnectionManager, Pool, PooledConnection},
-};
-
-use failure::{Error, Fallible};
+use serde::{Deserialize, Serialize};
 
 pub mod collections;
 pub mod tracks;
-
-pub type SqliteConnectionManager = ConnectionManager<SqliteConnection>;
-pub type SqliteConnectionPool = Pool<SqliteConnectionManager>;
-pub type SqlitePooledConnection = PooledConnection<SqliteConnectionManager>;
-
-#[derive(Clone)]
-pub struct SqliteExecutor {
-    connection_pool: SqliteConnectionPool,
-}
-
-impl SqliteExecutor {
-    pub fn new(connection_pool: SqliteConnectionPool) -> Self {
-        Self { connection_pool }
-    }
-
-    pub fn pooled_connection(&self) -> Result<SqlitePooledConnection, Error> {
-        self.connection_pool.get().map_err(Into::into)
-    }
-}
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

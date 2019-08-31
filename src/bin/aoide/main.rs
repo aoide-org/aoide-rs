@@ -18,7 +18,10 @@
 mod cli;
 mod env;
 
-use aoide::api::web::{collections::*, tracks::*, *};
+use aoide::{
+    api::web::{collections::*, tracks::*},
+    *,
+};
 
 use aoide_core::collection::Collection;
 

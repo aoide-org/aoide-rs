@@ -15,6 +15,10 @@
 
 use super::*;
 
+use crate::usecases::tracks::{
+    ReplacedTracks as UcReplacedTracks, TrackReplacement as UcTrackReplacement, *,
+};
+
 mod _core {
     pub use aoide_core::{
         entity::{EntityHeader, EntityRevision, EntityUid},
@@ -43,19 +47,14 @@ mod _repo {
 
 use aoide_core::{tag::ScoreValue as TagScoreValue, track::release::ReleaseYear};
 
-use aoide_repo::{
-    track::{Albums as _, Repo as _, Tags as _},
-    Pagination, PaginationLimit, PaginationOffset, RepoResult,
-};
+use aoide_repo::{Pagination, PaginationLimit, PaginationOffset};
 
 use aoide_core_serde::{
     entity::{EntityHeader, EntityUid},
     track::{Entity, Track},
 };
 
-use aoide_repo_sqlite::track::Repository;
-
-use futures::future::{self, Future};
+use futures::future::Future;
 use std::io::Write;
 use warp::http::StatusCode;
 
@@ -632,6 +631,15 @@ impl From<ReplaceMode> for _repo::ReplaceMode {
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct ReplaceTracksParams {
+    mode: ReplaceMode,
+
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    replacements: Vec<TrackReplacement>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackReplacement {
     // The URI for locating any existing track that is supposed
     // to replaced by the provided track.
@@ -641,13 +649,13 @@ pub struct TrackReplacement {
     track: Track,
 }
 
-#[derive(Clone, Debug, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct ReplaceTracksParams {
-    mode: ReplaceMode,
-
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    replacements: Vec<TrackReplacement>,
+impl From<TrackReplacement> for UcTrackReplacement {
+    fn from(from: TrackReplacement) -> Self {
+        Self {
+            media_uri: from.media_uri,
+            track: from.track,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, Serialize)]
@@ -658,6 +666,18 @@ pub struct ReplacedTracks {
     pub skipped: Vec<EntityHeader>,
     pub rejected: Vec<String>,  // e.g. ambiguous or inconsistent
     pub discarded: Vec<String>, // e.g. nonexistent and need to be created
+}
+
+impl From<UcReplacedTracks> for ReplacedTracks {
+    fn from(from: UcReplacedTracks) -> Self {
+        Self {
+            created: from.created.into_iter().map(Into::into).collect(),
+            updated: from.updated.into_iter().map(Into::into).collect(),
+            skipped: from.skipped.into_iter().map(Into::into).collect(),
+            rejected: from.rejected,
+            discarded: from.discarded,
+        }
+    }
 }
 
 /// Predicates for matching URI strings (case-sensitive)
@@ -691,54 +711,6 @@ impl From<UriRelocation> for _repo::UriRelocation {
             replacement: from.replacement,
         }
     }
-}
-
-const ENTITY_DATA_FORMAT: _repo::EntityDataFormat = _repo::EntityDataFormat::JSON;
-
-const ENTITY_DATA_VERSION: _repo::EntityDataVersion =
-    _repo::EntityDataVersion { major: 0, minor: 0 };
-
-fn write_json_body_data(track: &Track) -> Fallible<_repo::EntityBodyData> {
-    Ok((
-        ENTITY_DATA_FORMAT,
-        ENTITY_DATA_VERSION,
-        serde_json::to_vec(track)?,
-    ))
-}
-
-fn read_json_entity(entity_data: _repo::EntityData) -> Fallible<_core::Entity> {
-    let (hdr, json_data) = load_json_entity_data(entity_data)?;
-    let track: Track = serde_json::from_slice(&json_data)?;
-    Ok(_core::Entity::new(hdr, _core::Track::from(track)))
-}
-
-fn load_json_entity_data(
-    entity_data: _repo::EntityData,
-) -> Fallible<(_core::EntityHeader, Vec<u8>)> {
-    let (hdr, (data_fmt, data_ver, json_data)) = entity_data;
-    if data_fmt != ENTITY_DATA_FORMAT {
-        let e = failure::format_err!(
-            "Unsupported data format when loading track {}: expected = {:?}, actual = {:?}",
-            hdr.uid,
-            ENTITY_DATA_FORMAT,
-            data_fmt
-        );
-        return Err(e);
-    }
-    if data_ver < ENTITY_DATA_VERSION {
-        // TODO: Data migration from an older version
-        unimplemented!();
-    }
-    if data_ver == ENTITY_DATA_VERSION {
-        return Ok((hdr, json_data));
-    }
-    let e = failure::format_err!(
-        "Unsupported data version when loading track {}: expected = {:?}, actual = {:?}",
-        hdr.uid,
-        ENTITY_DATA_VERSION,
-        data_ver
-    );
-    Err(e)
 }
 
 fn load_and_write_entity_data_json(
@@ -918,9 +890,9 @@ impl TracksHandler {
             &self.db,
             collection_uid,
             mode,
-            replace_params.replacements.into_iter(),
+            replace_params.replacements.into_iter().map(Into::into),
         )
-        .map(|val| warp::reply::json(&val))
+        .map(|val| warp::reply::json(&ReplacedTracks::from(val)))
         .map_err(|err| {
             log::warn!("Failed to replace tracks: {}", err);
             warp::reject::custom(err)
@@ -1000,301 +972,6 @@ impl TracksHandler {
             })
             .map_err(warp::reject::custom)
     }
-}
-
-fn create_track(
-    db: &SqlitePooledConnection,
-    new_track: _core::Track,
-    body_data: _repo::EntityBodyData,
-) -> RepoResult<_core::EntityHeader> {
-    let repository = Repository::new(&*db);
-    let hdr = _core::EntityHeader::initial_random();
-    let entity = _core::Entity::new(hdr.clone(), new_track);
-    db.transaction::<_, Error, _>(|| repository.insert_track(entity, body_data).map(|()| hdr))
-}
-
-fn update_track(
-    db: &SqlitePooledConnection,
-    track: _core::Entity,
-    body_data: _repo::EntityBodyData,
-) -> RepoResult<(_core::EntityRevision, Option<_core::EntityRevision>)> {
-    let repository = Repository::new(&*db);
-    db.transaction::<_, Error, _>(|| repository.update_track(track, body_data))
-}
-
-fn delete_track(db: &SqlitePooledConnection, uid: &_core::EntityUid) -> RepoResult<Option<()>> {
-    let repository = Repository::new(&*db);
-    db.transaction::<_, Error, _>(|| repository.delete_track(uid))
-}
-
-fn load_track(
-    pooled_connection: &SqlitePooledConnection,
-    uid: &_core::EntityUid,
-) -> RepoResult<Option<_repo::EntityData>> {
-    let repository = Repository::new(&*pooled_connection);
-    pooled_connection.transaction::<_, Error, _>(|| repository.load_track(uid))
-}
-
-fn list_tracks(
-    pooled_connection: &SqlitePooledConnection,
-    collection_uid: Option<_core::EntityUid>,
-    pagination: Pagination,
-) -> impl Future<Item = Vec<_repo::EntityData>, Error = Error> {
-    let repository = Repository::new(&*pooled_connection);
-    future::result(pooled_connection.transaction::<_, Error, _>(|| {
-        repository.search_tracks(collection_uid.as_ref(), pagination, Default::default())
-    }))
-}
-
-fn search_tracks(
-    pooled_connection: &SqlitePooledConnection,
-    collection_uid: Option<_core::EntityUid>,
-    pagination: Pagination,
-    params: _repo::SearchParams,
-) -> impl Future<Item = Vec<_repo::EntityData>, Error = Error> {
-    let repository = Repository::new(&*pooled_connection);
-    future::result(pooled_connection.transaction::<_, Error, _>(|| {
-        repository.search_tracks(collection_uid.as_ref(), pagination, params)
-    }))
-}
-
-fn locate_tracks(
-    pooled_connection: &SqlitePooledConnection,
-    collection_uid: Option<_core::EntityUid>,
-    pagination: Pagination,
-    params: _repo::LocateParams,
-) -> impl Future<Item = Vec<_repo::EntityData>, Error = Error> {
-    let repository = Repository::new(&*pooled_connection);
-    future::result(pooled_connection.transaction::<_, Error, _>(|| {
-        repository.locate_tracks(collection_uid.as_ref(), pagination, params)
-    }))
-}
-
-fn replace_tracks(
-    pooled_connection: &SqlitePooledConnection,
-    collection_uid: Option<_core::EntityUid>,
-    mode: _repo::ReplaceMode,
-    replacements: impl Iterator<Item = TrackReplacement>,
-) -> impl Future<Item = ReplacedTracks, Error = Error> {
-    let repository = Repository::new(&*pooled_connection);
-    future::result(pooled_connection.transaction::<_, Error, _>(|| {
-        let mut results = ReplacedTracks::default();
-        for replacement in replacements {
-            let body_data = write_json_body_data(&replacement.track)?;
-            let (data_fmt, data_ver, _) = body_data;
-            let media_uri = replacement.media_uri;
-            let replace_result = repository.replace_track(
-                collection_uid.as_ref(),
-                media_uri.clone(),
-                mode,
-                replacement.track.into(),
-                body_data,
-            )?;
-            use _repo::ReplaceResult::*;
-            match replace_result {
-                AmbiguousMediaUri(count) => {
-                    log::warn!(
-                        "Cannot replace track with ambiguous media URI '{}' that matches {} tracks",
-                        media_uri,
-                        count
-                    );
-                    results.rejected.push(media_uri);
-                }
-                IncompatibleFormat(fmt) => {
-                    log::warn!(
-                        "Incompatible data formats for track with media URI '{}': Current = {}, replacement = {}",
-                        media_uri,
-                        fmt,
-                        data_fmt
-                    );
-                    results.rejected.push(media_uri);
-                }
-                IncompatibleVersion(ver) => {
-                    log::warn!(
-                        "Incompatible data versions for track with media URI '{}': Current = {}, replacement = {}",
-                        media_uri,
-                        ver,
-                        data_ver
-                    );
-                    results.rejected.push(media_uri);
-                }
-                NotCreated => {
-                    results.discarded.push(media_uri);
-                }
-                Unchanged(hdr) => {
-                    results.skipped.push(hdr.into());
-                }
-                Created(hdr) => {
-                    results.created.push(hdr.into());
-                }
-                Updated(hdr) => {
-                    results.updated.push(hdr.into());
-                }
-            }
-        }
-        Ok(results)
-    }))
-}
-
-fn purge_tracks(
-    pooled_connection: &SqlitePooledConnection,
-    collection_uid: Option<_core::EntityUid>,
-    uri_predicates: impl IntoIterator<Item = _repo::UriPredicate>,
-) -> impl Future<Item = (), Error = Error> {
-    let repository = Repository::new(&*pooled_connection);
-    future::result(pooled_connection.transaction::<_, Error, _>(|| {
-        for uri_predicate in uri_predicates {
-            use _repo::StringPredicate::*;
-            use _repo::UriPredicate::*;
-            let locate_params = match &uri_predicate {
-                Prefix(media_uri) => _repo::LocateParams {
-                    media_uri: StartsWith(media_uri.to_owned()),
-                },
-                Exact(media_uri) => _repo::LocateParams {
-                    media_uri: Equals(media_uri.to_owned()),
-                },
-            };
-            let entities = repository.locate_tracks(
-                collection_uid.as_ref(),
-                Default::default(),
-                locate_params,
-            )?;
-            log::debug!(
-                "Found {} track(s) that match {:?} as candidates for purging",
-                entities.len(),
-                uri_predicate,
-            );
-            for entity in entities.into_iter() {
-                let _core::Entity { hdr, mut body, .. } = read_json_entity(entity)?;
-                let purged = match &uri_predicate {
-                    Prefix(ref uri_prefix) => body.purge_media_source_by_uri_prefix(uri_prefix),
-                    Exact(ref uri) => body.purge_media_source_by_uri(uri),
-                };
-                if purged > 0 {
-                    if body.media_sources.is_empty() {
-                        log::debug!(
-                            "Deleting track {} after purging all (= {}) media sources",
-                            hdr.uid,
-                            purged,
-                        );
-                        repository.delete_track(&hdr.uid)?;
-                    } else {
-                        log::debug!(
-                            "Updating track {} after purging {} of {} media source(s)",
-                            hdr.uid,
-                            purged,
-                            purged + body.media_sources.len(),
-                        );
-                        // TODO: Avoid temporary clone
-                        let json_data = write_json_body_data(&body.clone().into())?;
-                        let entity = _core::Entity::new(hdr, body);
-                        let updated = repository.update_track(entity, json_data)?;
-                        debug_assert!(updated.1.is_some());
-                    }
-                } else {
-                    log::debug!("No media sources purged from track {}", hdr.uid);
-                }
-            }
-        }
-        Ok(())
-    }))
-}
-
-fn relocate_tracks(
-    pooled_connection: &SqlitePooledConnection,
-    collection_uid: Option<_core::EntityUid>,
-    uri_relocations: impl IntoIterator<Item = _repo::UriRelocation>,
-) -> impl Future<Item = (), Error = Error> {
-    let repository = Repository::new(&*pooled_connection);
-    future::result(pooled_connection.transaction::<_, Error, _>(|| {
-        for uri_relocation in uri_relocations {
-            let locate_params = match &uri_relocation.predicate {
-                _repo::UriPredicate::Prefix(uri_prefix) => _repo::LocateParams {
-                    media_uri: _repo::StringPredicate::StartsWith(uri_prefix.to_owned()),
-                },
-                _repo::UriPredicate::Exact(uri) => _repo::LocateParams {
-                    media_uri: _repo::StringPredicate::Equals(uri.to_owned()),
-                },
-            };
-            let tracks = repository.locate_tracks(
-                collection_uid.as_ref(),
-                Default::default(),
-                locate_params,
-            )?;
-            log::debug!(
-                "Found {} track(s) that match {:?} as candidates for relocating",
-                tracks.len(),
-                uri_relocation.predicate,
-            );
-            for entity_data in tracks {
-                let (hdr, json_data) = load_json_entity_data(entity_data)?;
-                let mut track = _core::Track::from(serde_json::from_slice::<Track>(&json_data)?);
-                let relocated = match &uri_relocation.predicate {
-                    _repo::UriPredicate::Prefix(uri_prefix) => track
-                        .relocate_media_source_by_uri_prefix(
-                            &uri_prefix,
-                            &uri_relocation.replacement,
-                        ),
-                    _repo::UriPredicate::Exact(uri) => {
-                        track.relocate_media_source_by_uri(&uri, &uri_relocation.replacement)
-                    }
-                };
-                if relocated > 0 {
-                    log::debug!(
-                        "Updating track {} after relocating {} source(s)",
-                        hdr.uid,
-                        relocated,
-                    );
-                    // TODO: Avoid temporary clone
-                    let json_data = write_json_body_data(&track.clone().into())?;
-                    let entity = _core::Entity::new(hdr, track);
-                    let updated = repository.update_track(entity, json_data)?;
-                    debug_assert!(updated.1.is_some());
-                } else {
-                    log::debug!("No sources relocated for track {}", hdr.uid);
-                }
-            }
-        }
-        Ok(())
-    }))
-}
-
-fn count_tracks_by_album(
-    pooled_connection: &SqlitePooledConnection,
-    collection_uid: Option<_core::EntityUid>,
-    pagination: Pagination,
-    params: &_repo::AlbumCountParams,
-) -> impl Future<Item = Vec<_repo::AlbumCountResults>, Error = Error> {
-    let repository = Repository::new(&*pooled_connection);
-    future::result(pooled_connection.transaction::<_, Error, _>(|| {
-        repository.count_tracks_by_album(collection_uid.as_ref(), params, pagination)
-    }))
-}
-
-fn count_tracks_by_tag(
-    pooled_connection: &SqlitePooledConnection,
-    collection_uid: Option<_core::EntityUid>,
-    pagination: Pagination,
-    mut params: _repo::TagCountParams,
-) -> impl Future<Item = Vec<_repo::TagAvgScoreCount>, Error = Error> {
-    params.dedup_facets();
-    let repository = Repository::new(&*pooled_connection);
-    future::result(pooled_connection.transaction::<_, Error, _>(|| {
-        repository.count_tracks_by_tag(collection_uid.as_ref(), &params, pagination)
-    }))
-}
-
-fn count_tracks_by_tag_facet(
-    pooled_connection: &SqlitePooledConnection,
-    collection_uid: Option<_core::EntityUid>,
-    pagination: Pagination,
-    mut params: _repo::TagFacetCountParams,
-) -> impl Future<Item = Vec<_repo::TagFacetCount>, Error = Error> {
-    params.dedup_facets();
-    let repository = Repository::new(&*pooled_connection);
-    future::result(pooled_connection.transaction::<_, Error, _>(|| {
-        repository.count_tracks_by_tag_facet(collection_uid.as_ref(), &params, pagination)
-    }))
 }
 
 #[cfg(test)]
