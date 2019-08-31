@@ -1,6 +1,6 @@
 [package]
 name = "aoide-repo-sqlite"
-version = "0.1.0"
+version = "0.1.1"
 authors = [ "Uwe Klotz <uwe.klotz@gmail>", "et al." ]
 license = "AGPL-3.0-or-later"
 publish = false

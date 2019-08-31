@@ -8,9 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- New sort field `musicKey` (Circle of fifth/OpenKey)
+### Changed
+
+### Removed
+
+## [0.1.1] - 2019-08-31
+
+### Added
+
+- New sort field `musicKey` (Circle of fifth / Open Key)
 
 ### Changed
+
+- Fixed OpenAPI spec
 
 ### Removed
 
@@ -144,10 +154,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial public release
 
-[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.1.0...development
+[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.1.1...development
+[0.1.1]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.1.1
 [0.1.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.1.0
 [0.0.9]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.9
 [0.0.8]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.8
 [0.0.7]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.7
-[0.0.6]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.6
-[0.0.5]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.5
