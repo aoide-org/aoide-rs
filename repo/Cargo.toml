@@ -8,9 +8,4 @@ edition = "2018"
 
 [dependencies]
 aoide-core = "*"
-chrono = { version = "*" }
 failure = "*"
-log = "*"
-mime = "*"
-percent-encoding = "*"
-rand = "*"

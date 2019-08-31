@@ -13,7 +13,6 @@ lazy_static = "*"
 num-traits = "*"
 rand = "*"
 semval = "*"
-smallvec = "*"
 
 [dev-dependencies]
 criterion = "*"
