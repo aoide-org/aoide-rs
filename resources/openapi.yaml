@@ -1484,9 +1484,10 @@ components:
       oneOf:
         - $ref: '#/components/schemas/TitleName'
         - type: array
-          oneOf:
-            - $ref: '#/components/schemas/TitleName'
-            - $ref: '#/components/schemas/TitleLevel'
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/TitleName'
+              - $ref: '#/components/schemas/TitleLevel'
       description: |
         Mandatory name, followed by optional level
     TitleLevel:
