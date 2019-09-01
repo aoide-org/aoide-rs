@@ -28,7 +28,7 @@ aoide-core = "*"
 aoide-core-serde = "*"
 aoide-repo = "*"
 aoide-repo-sqlite = "*"
-chrono = "*"
+chrono = { version = "*", default-features = false }
 clap = "*"
 diesel = { version = "*", features = ["r2d2", "sqlite"] }
 diesel_migrations =  { version = "*", features = ["sqlite"] }

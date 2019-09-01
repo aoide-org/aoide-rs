@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 bs58 = "*"
-chrono = "*"
+chrono = { version = "*", default-features = false }
 lazy_static = "*"
 num-traits = "*"
 rand = "*"

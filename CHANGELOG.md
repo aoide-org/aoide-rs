@@ -22,8 +22,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed OpenAPI spec
 
-### Removed
-
 ## [0.1.0] - 2019-08-30
 
 **This release breaks backward compatibility with existing versions! Existing databases need to be rebuilt.**

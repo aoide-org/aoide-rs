@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 aoide-core = "*"
 aoide-repo = "*"
-chrono = "*"
+chrono = { version = "*", default-features = false }
 diesel = { version = "*", features = ["chrono", "sqlite"] }
 failure = "*"
 log = "*"
