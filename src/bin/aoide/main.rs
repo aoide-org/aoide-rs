@@ -32,6 +32,7 @@ use diesel::{prelude::*, sql_query};
 use failure::Error;
 use futures::{future, Future, Stream};
 use std::{
+    env::current_exe,
     net::SocketAddr,
     time::{Duration, Instant},
 };
@@ -114,6 +115,11 @@ pub fn main() -> Result<(), Error> {
     );
 
     env::init_logger(arg_matches.log_level_filter());
+
+    if let Ok(exe_path) = current_exe() {
+        log::info!("Executable: {}", exe_path.display());
+    }
+    log::info!("Version: {}", env!("CARGO_PKG_VERSION"));
 
     let database_url = arg_matches.database_url();
     log::info!("Database URL: {}", database_url);
