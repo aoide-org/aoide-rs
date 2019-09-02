@@ -1173,7 +1173,7 @@ components:
     Release:
       properties:
         t:
-          $ref: '#/components/schemas/ReleasedAtTimeStamp'
+          $ref: '#/components/schemas/ReleasedAt'
         b:
           description: Released by
           type: string
@@ -1185,13 +1185,16 @@ components:
           type: array
           items:
             type: string
-    ReleasedAtTimeStamp:
+    ReleasedAt:
       oneOf:
-        - $ref: '#/components/schemas/TimeStamp'
+        - $ref: '#/components/schemas/ReleaseDate'
+        - $ref: '#/components/schemas/ReleaseDateTime'
     ReleaseDate:
       oneOf:
         - $ref: '#/components/schemas/YYYYMMDD'
-      example: 2019
+    ReleaseDateTime:
+      oneOf:
+        - $ref: '#/components/schemas/TimeStamp'
     RelocateTracksParams:
       type: array
       items:
@@ -1657,7 +1660,7 @@ components:
         - discTotal
         - albumTitle
         - albumArtist
-        - releasedAtYmd
+        - releaseDate
         - musicTempo
         - musicKey
     TrackSortOrder:

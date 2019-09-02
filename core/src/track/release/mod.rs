@@ -75,6 +75,14 @@ impl ReleaseDate {
     pub fn year(self) -> ReleaseYear {
         (self.0 / 10_000) as ReleaseYear
     }
+
+    pub fn is_year(self) -> bool {
+        self.0 % 10_000 == 0
+    }
+
+    pub fn is_year_month(self) -> bool {
+        self.0 % 100 == 0
+    }
 }
 
 impl From<NaiveDateTime> for ReleaseDate {
@@ -97,9 +105,24 @@ impl From<ReleaseDate> for YYYYMMDD {
     }
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum ReleasedAt {
+    Date(ReleaseDate),
+    DateTime(ReleaseDateTime),
+}
+
+impl From<ReleasedAt> for ReleaseDate {
+    fn from(from: ReleasedAt) -> Self {
+        match from {
+            ReleasedAt::Date(date) => date,
+            ReleasedAt::DateTime(dt) => dt.into(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Release {
-    pub released_at: Option<ReleaseDateTime>,
+    pub released_at: Option<ReleasedAt>,
 
     pub released_by: Option<String>, // record label
 

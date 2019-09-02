@@ -16,8 +16,10 @@
 use super::*;
 
 mod _core {
-    pub use aoide_core::track::release::{Release, ReleaseDateTime};
+    pub use aoide_core::track::release::{Release, ReleaseDateTime, ReleasedAt};
 }
+
+use aoide_core::track::release::{ReleaseDate, YYYYMMDD};
 
 use serde::{
     de::{self, Visitor as SerdeDeserializeVisitor},
@@ -30,7 +32,7 @@ use std::fmt;
 // ReleaseDateTime
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 #[cfg_attr(test, derive(Eq, PartialEq))]
 pub struct ReleaseDateTime(_core::ReleaseDateTime);
 
@@ -73,6 +75,38 @@ impl<'de> Deserialize<'de> for ReleaseDateTime {
 }
 
 ///////////////////////////////////////////////////////////////////////
+// ReleasedAt
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(Eq, PartialEq))]
+#[serde(untagged)]
+pub enum ReleasedAt {
+    Date(YYYYMMDD),
+    DateTime(ReleaseDateTime),
+}
+
+impl From<_core::ReleasedAt> for ReleasedAt {
+    fn from(from: _core::ReleasedAt) -> Self {
+        use _core::ReleasedAt::*;
+        match from {
+            Date(from) => ReleasedAt::Date(from.into()),
+            DateTime(from) => ReleasedAt::DateTime(ReleaseDateTime(from)),
+        }
+    }
+}
+
+impl From<ReleasedAt> for _core::ReleasedAt {
+    fn from(from: ReleasedAt) -> Self {
+        use _core::ReleasedAt::*;
+        match from {
+            ReleasedAt::Date(from) => Date(ReleaseDate::new(from)),
+            ReleasedAt::DateTime(from) => DateTime(from.0),
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
 // Release
 ///////////////////////////////////////////////////////////////////////
 
@@ -81,7 +115,7 @@ impl<'de> Deserialize<'de> for ReleaseDateTime {
 #[serde(deny_unknown_fields)]
 pub struct Release {
     #[serde(rename = "t", skip_serializing_if = "Option::is_none")]
-    released_at: Option<ReleaseDateTime>,
+    released_at: Option<ReleasedAt>,
 
     #[serde(rename = "b", skip_serializing_if = "Option::is_none")]
     released_by: Option<String>,
@@ -102,7 +136,7 @@ impl From<_core::Release> for Release {
             licenses,
         } = from;
         Self {
-            released_at: released_at.map(ReleaseDateTime),
+            released_at: released_at.map(Into::into),
             released_by,
             copyright,
             licenses,
@@ -119,7 +153,7 @@ impl From<Release> for _core::Release {
             licenses,
         } = from;
         Self {
-            released_at: released_at.map(|released_at| released_at.0),
+            released_at: released_at.map(Into::into),
             released_by,
             copyright,
             licenses,
