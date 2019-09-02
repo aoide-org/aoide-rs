@@ -16,6 +16,7 @@ semval = "*"
 
 [dev-dependencies]
 criterion = "*"
+chrono = { version = "*", default-features = false, features = ["clock"] }
 uuid = { version = "*", features = ["v4"] }
 
 [[bench]]

@@ -21,5 +21,5 @@ use super::*;
 fn default_state() {
     // Verify that the implementation is consistent and
     // does not enter an endless recursion!
-    assert_eq!(Default::default(), State::default())
+    assert_eq!(State::default(), State::default())
 }

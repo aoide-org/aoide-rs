@@ -151,5 +151,5 @@ pub type Entity = crate::entity::Entity<TrackInvalidity, Track>;
 // Tests
 ///////////////////////////////////////////////////////////////////////
 
-#[cfg(tests)]
+#[cfg(test)]
 mod tests;

@@ -18,7 +18,6 @@
 use super::*;
 
 #[test]
-fn default_index_count() {
-    assert_eq!(None, IndexCount::default().index());
-    assert_eq!(None, IndexCount::default().count());
+fn default_invalid() {
+    assert!(Index::default().validate().is_ok());
 }
