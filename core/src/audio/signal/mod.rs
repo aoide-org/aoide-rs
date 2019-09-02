@@ -42,7 +42,7 @@ impl BitRateBps {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum BitRateBpsInvalidity {
     Min(BitRateBps),
     Max(BitRateBps),
@@ -71,7 +71,7 @@ impl fmt::Display for BitRateBps {
 
 pub type SamplesPerSecond = u32;
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct SampleRateHz(pub SamplesPerSecond);
 
 impl SampleRateHz {
@@ -104,7 +104,7 @@ impl SampleRateHz {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum SampleRateHzInvalidity {
     Min(SampleRateHz),
     Max(SampleRateHz),
@@ -156,7 +156,7 @@ impl PcmSignal {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum PcmSignalInvalidity {
     ChannelLayout(ChannelLayoutInvalidity),
     SampleLayout(SampleLayoutInvalidity),
@@ -207,7 +207,7 @@ impl LatencyMs {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum LatencyMsInvalidity {
     OutOfRange,
 }
@@ -251,7 +251,7 @@ impl LoudnessLufs {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum LoudnessLufsInvalidity {
     OutOfRange,
 }

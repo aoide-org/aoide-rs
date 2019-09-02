@@ -37,7 +37,7 @@ pub type PaginationOffset = u64;
 
 pub type PaginationLimit = u64;
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
 pub struct Pagination {
     pub offset: Option<PaginationOffset>,
     pub limit: Option<PaginationLimit>,
@@ -56,18 +56,18 @@ impl Pagination {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum SortDirection {
     Ascending,
     Descending,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum FilterModifier {
     Complement,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum StringCompare {
     StartsWith, // head (case-insensitive)
     EndsWith,   // tail (case-insensitive)
@@ -77,7 +77,7 @@ pub enum StringCompare {
 }
 
 /// Predicates for matching strings
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum StringPredicate {
     // Case-sensitive comparison
     StartsWith(String),
@@ -116,7 +116,7 @@ pub struct StringFilter {
     pub value: Option<StringPredicate>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct StringCount {
     pub value: Option<String>,
     pub total_count: usize,

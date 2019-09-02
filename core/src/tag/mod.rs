@@ -99,7 +99,7 @@ impl fmt::Display for Score {
 // Label
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Default, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Label(String);
 
 pub trait Labeled {
@@ -169,7 +169,7 @@ impl fmt::Display for Label {
 // Facet
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Default, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Facet(String);
 
 pub trait Faceted {
@@ -257,7 +257,7 @@ pub struct Tag {
     pub score: Score,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum TagInvalidity {
     Facet(FacetInvalidity),
     Label(LabelInvalidity),
@@ -318,7 +318,7 @@ impl Scored for Tag {
 #[derive(Debug, Copy, Clone)]
 pub struct Tags;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum TagsInvalidity {
     Tag(TagInvalidity),
     PlainDuplicateLabels,

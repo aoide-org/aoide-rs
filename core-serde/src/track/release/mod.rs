@@ -16,10 +16,61 @@
 use super::*;
 
 mod _core {
-    pub use aoide_core::track::release::Release;
+    pub use aoide_core::track::release::{Release, ReleaseDateTime};
 }
 
-use chrono::{DateTime, Utc};
+use serde::{
+    de::{self, Visitor as SerdeDeserializeVisitor},
+    Deserializer, Serializer,
+};
+
+use std::fmt;
+
+///////////////////////////////////////////////////////////////////////
+// ReleaseDateTime
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug)]
+#[cfg_attr(test, derive(Eq, PartialEq))]
+pub struct ReleaseDateTime(_core::ReleaseDateTime);
+
+// Serialize (and deserialize) as string for maximum compatibility and portability
+impl Serialize for ReleaseDateTime {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // TODO: Avoid creating a temporary string
+        let encoded = self.0.to_string();
+        serializer.serialize_str(&encoded)
+    }
+}
+
+struct ReleaseDateTimeDeserializeVisitor;
+
+impl<'de> SerdeDeserializeVisitor<'de> for ReleaseDateTimeDeserializeVisitor {
+    type Value = ReleaseDateTime;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_fmt(format_args!("RFC 3339 date/time string"))
+    }
+
+    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        value.parse::<_core::ReleaseDateTime>().map(ReleaseDateTime).map_err(|e| E::custom(format!("{:?}", e)))
+    }
+}
+
+impl<'de> Deserialize<'de> for ReleaseDateTime {
+    fn deserialize<D>(deserializer: D) -> Result<ReleaseDateTime, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_str(ReleaseDateTimeDeserializeVisitor)
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////
 // Release
@@ -30,7 +81,7 @@ use chrono::{DateTime, Utc};
 #[serde(deny_unknown_fields)]
 pub struct Release {
     #[serde(rename = "t", skip_serializing_if = "Option::is_none")]
-    released_at: Option<DateTime<Utc>>,
+    released_at: Option<ReleaseDateTime>,
 
     #[serde(rename = "b", skip_serializing_if = "Option::is_none")]
     released_by: Option<String>,
@@ -51,7 +102,7 @@ impl From<_core::Release> for Release {
             licenses,
         } = from;
         Self {
-            released_at,
+            released_at: released_at.map(ReleaseDateTime),
             released_by,
             copyright,
             licenses,
@@ -68,7 +119,7 @@ impl From<Release> for _core::Release {
             licenses,
         } = from;
         Self {
-            released_at,
+            released_at: released_at.map(|released_at| released_at.0),
             released_by,
             copyright,
             licenses,

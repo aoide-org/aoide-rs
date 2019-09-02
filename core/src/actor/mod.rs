@@ -19,7 +19,7 @@ use super::*;
 // ActorRole
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum ActorRole {
     Artist,
     Arranger,
@@ -46,7 +46,7 @@ impl Default for ActorRole {
 // ActorPrecedence
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum ActorPrecedence {
     Summary,
     Primary,
@@ -63,7 +63,7 @@ impl Default for ActorPrecedence {
 // Actor
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Actor {
     pub name: String,
 
@@ -72,7 +72,7 @@ pub struct Actor {
     pub precedence: ActorPrecedence,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ActorInvalidity {
     NameEmpty,
 }
@@ -90,7 +90,7 @@ impl Validate for Actor {
 #[derive(Debug)]
 pub struct Actors;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ActorsInvalidity {
     Actor(ActorInvalidity),
     SummaryActorMissing,

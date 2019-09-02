@@ -40,7 +40,7 @@ impl PositionMs {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum PositionMsInvalidity {
     OutOfRange,
 }
@@ -80,7 +80,7 @@ impl DurationMs {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum DurationMsInvalidity {
     OutOfRange,
 }
@@ -124,14 +124,14 @@ impl fmt::Display for DurationMs {
 ///////////////////////////////////////////////////////////////////////
 // AudioEncoder
 ///////////////////////////////////////////////////////////////////////
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct AudioEncoder {
     pub name: String,
 
     pub settings: Option<String>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum AudioEncoderInvalidity {
     NameEmpty,
 }
@@ -168,7 +168,7 @@ pub struct AudioContent {
     pub encoder: Option<AudioEncoder>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum AudioContentInvalidity {
     Channels(ChannelsInvalidity),
     Duration(DurationMsInvalidity),

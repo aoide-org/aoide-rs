@@ -26,7 +26,7 @@ use aoide_repo::{
         FacetCount as TagFacetCount, FacetCountParams as TagFacetCountParams,
     },
     track::{
-        AlbumCountParams, AlbumCountResults, Albums as _, LocateParams, ReplaceMode, ReplaceResult,
+        CountTracksByAlbumParams, AlbumCountResults, Albums as _, LocateParams, ReplaceMode, ReplaceResult,
         Repo as _, SearchParams, Tags as _,
     },
     util::{UriPredicate, UriRelocation},
@@ -369,7 +369,7 @@ pub fn count_tracks_by_album(
     pooled_connection: &SqlitePooledConnection,
     collection_uid: Option<EntityUid>,
     pagination: Pagination,
-    params: &AlbumCountParams,
+    params: &CountTracksByAlbumParams,
 ) -> impl Future<Item = Vec<AlbumCountResults>, Error = Error> {
     let repository = Repository::new(&*pooled_connection);
     future::result(pooled_connection.transaction::<_, Error, _>(|| {

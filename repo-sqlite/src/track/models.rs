@@ -25,13 +25,14 @@ use aoide_core::{
         self,
         marker::{beat, key},
         *,
+        release::YYYYMMDD,
     },
     util::clock::*,
 };
 
 use aoide_repo::{entity::*, RepoId};
 
-use chrono::{naive::NaiveDateTime, Datelike};
+use chrono::naive::NaiveDateTime;
 
 use percent_encoding::percent_decode;
 
@@ -213,7 +214,7 @@ pub struct InsertableBrief<'a> {
     pub track_composer: Option<&'a str>,
     pub album_title: Option<&'a str>,
     pub album_artist: Option<&'a str>,
-    pub release_year: Option<i16>,
+    pub release_date: Option<YYYYMMDD>,
     pub track_number: Option<i16>,
     pub track_total: Option<i16>,
     pub disc_number: Option<i16>,
@@ -241,11 +242,11 @@ impl<'a> InsertableBrief<'a> {
                 .as_ref()
                 .and_then(|album| Actors::main_actor(album.actors.iter(), ActorRole::Artist))
                 .map(|actor| actor.name.as_str()),
-            release_year: track
+            release_date: track
                 .release
                 .as_ref()
-                .and_then(|release| release.released_at)
-                .map(|released_at| released_at.date().naive_utc().year() as i16),
+                .and_then(|release| release.date())
+                .map(Into::into),
             track_number: track.indexes.track.number().map(|idx| idx as i16),
             track_total: track.indexes.track.total().map(|cnt| cnt as i16),
             disc_number: track.indexes.disc.number().map(|idx| idx as i16),

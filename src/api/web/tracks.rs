@@ -35,7 +35,7 @@ mod _repo {
             Filter as TagFilter, SortField as TagSortField, SortOrder as TagSortOrder,
         },
         track::{
-            AlbumCountParams, AlbumCountResults, LocateParams, NumericField, NumericFieldFilter,
+            CountTracksByAlbumParams, AlbumCountResults, LocateParams, NumericField, NumericFieldFilter,
             PhraseFieldFilter, ReplaceMode, ReplaceResult, SearchFilter, SearchParams, SortField,
             SortOrder, StringField,
         },
@@ -45,7 +45,7 @@ mod _repo {
     };
 }
 
-use aoide_core::{tag::ScoreValue as TagScoreValue, track::release::ReleaseYear};
+use aoide_core::{tag::ScoreValue as TagScoreValue, track::release::{ReleaseDate, YYYYMMDD}};
 
 use aoide_repo::{Pagination, PaginationLimit, PaginationOffset};
 
@@ -151,7 +151,7 @@ pub enum SortField {
     DiscTotal,
     AlbumTitle,
     AlbumArtist,
-    ReleaseYear,
+    ReleaseDate,
     MusicTempo,
     MusicKey,
 }
@@ -189,7 +189,7 @@ impl From<SortField> for _repo::SortField {
             SortField::DiscTotal => DiscTotal,
             SortField::AlbumTitle => AlbumTitle,
             SortField::AlbumArtist => AlbumArtist,
-            SortField::ReleaseYear => ReleaseYear,
+            SortField::ReleaseDate => ReleaseDate,
             SortField::MusicTempo => MusicTempo,
             SortField::MusicKey => MusicKey,
         }
@@ -281,7 +281,7 @@ pub enum NumericField {
     TrackTotal,
     DiscNumber,
     DiscTotal,
-    ReleaseYear,
+    ReleaseDate,
     MusicTempo,
     MusicKey,
 }
@@ -299,7 +299,7 @@ impl From<NumericField> for _repo::NumericField {
             NumericField::TrackTotal => TrackTotal,
             NumericField::DiscNumber => DiscNumber,
             NumericField::DiscTotal => DiscTotal,
-            NumericField::ReleaseYear => ReleaseYear,
+            NumericField::ReleaseDate => ReleaseDate,
             NumericField::MusicTempo => MusicTempo,
             NumericField::MusicKey => MusicKey,
         }
@@ -564,22 +564,22 @@ impl From<_repo::TagAvgScoreCount> for TagAvgScoreCount {
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct AlbumCountParams {
+pub struct CountTracksByAlbumParams {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub min_release_year: Option<ReleaseYear>,
+    pub min_release_date: Option<YYYYMMDD>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub max_release_year: Option<ReleaseYear>,
+    pub max_release_date: Option<YYYYMMDD>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub ordering: Vec<SortOrder>,
 }
 
-impl From<AlbumCountParams> for _repo::AlbumCountParams {
-    fn from(from: AlbumCountParams) -> Self {
+impl From<CountTracksByAlbumParams> for _repo::CountTracksByAlbumParams {
+    fn from(from: CountTracksByAlbumParams) -> Self {
         Self {
-            min_release_year: from.min_release_year,
-            max_release_year: from.max_release_year,
+            min_release_date: from.min_release_date.map(ReleaseDate::new),
+            max_release_date: from.max_release_date.map(ReleaseDate::new),
             ordering: from.ordering.into_iter().map(Into::into).collect(),
         }
     }
@@ -594,8 +594,8 @@ pub struct AlbumTrackCount {
     #[serde(rename = "a", skip_serializing_if = "Option::is_none")]
     pub artist: Option<String>,
 
-    #[serde(rename = "y", skip_serializing_if = "Option::is_none")]
-    pub release_year: Option<ReleaseYear>,
+    #[serde(rename = "d", skip_serializing_if = "Option::is_none")]
+    pub release_date: Option<YYYYMMDD>,
 
     #[serde(rename = "n")]
     pub total_count: usize,
@@ -606,7 +606,7 @@ impl From<_repo::AlbumCountResults> for AlbumTrackCount {
         Self {
             title: from.title,
             artist: from.artist,
-            release_year: from.release_year,
+            release_date: from.release_date.map(Into::into),
             total_count: from.total_count,
         }
     }
@@ -929,7 +929,7 @@ impl TracksHandler {
     pub fn handle_albums_count_tracks(
         &self,
         query_params: TracksQueryParams,
-        count_params: AlbumCountParams,
+        count_params: CountTracksByAlbumParams,
     ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
         let (collection_uid, pagination) = query_params.into();
         count_tracks_by_album(&self.db, collection_uid, pagination, &count_params.into())

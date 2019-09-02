@@ -82,7 +82,7 @@ pub type SamplePositionType = f64;
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
 pub struct SamplePosition(pub SamplePositionType);
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum SamplePositionInvalidity {
     OutOfRange,
 }
@@ -124,7 +124,7 @@ pub type NumberOfSamples = f64;
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
 pub struct SampleLength(pub NumberOfSamples);
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum SampleLengthInvalidity {
     OutOfRange,
 }
@@ -192,7 +192,7 @@ impl SampleRange {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum SampleRangeInvalidity {
     Start,
     End,

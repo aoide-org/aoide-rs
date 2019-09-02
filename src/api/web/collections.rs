@@ -37,13 +37,13 @@ use aoide_core_serde::{
 
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct TrackStats {
     pub total_count: usize,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Default, Serialize)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Default, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct EntityStats {
     #[serde(skip_serializing_if = "Option::is_none")]

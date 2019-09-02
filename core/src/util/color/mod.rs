@@ -21,7 +21,7 @@ use std::{fmt, num::ParseIntError, str::FromStr};
 
 pub type ColorCode = u32;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ColorArgb(ColorCode); // 0xAARRGGBB
 
 impl ColorArgb {

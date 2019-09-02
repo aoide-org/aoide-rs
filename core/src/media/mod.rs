@@ -72,7 +72,7 @@ impl Validate for Source {
 #[derive(Debug)]
 pub struct Sources;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum SourcesInvalidity {
     Source(SourceInvalidity),
     TypeAmbiguous,

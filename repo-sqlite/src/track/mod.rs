@@ -32,7 +32,7 @@ use crate::util::*;
 use aoide_core::{
     entity::{EntityHeader, EntityRevision, EntityUid},
     tag::{Facet, Label},
-    track::*,
+    track::{*, release::{ReleaseDate, YYYYMMDD}},
 };
 
 use aoide_repo::{
@@ -642,20 +642,20 @@ impl<'a> Albums for Repository<'a> {
     fn count_tracks_by_album(
         &self,
         collection_uid: Option<&EntityUid>,
-        params: &AlbumCountParams,
+        params: &CountTracksByAlbumParams,
         pagination: Pagination,
     ) -> RepoResult<Vec<AlbumCountResults>> {
         let mut target = aux_track_brief::table
             .select((
                 aux_track_brief::album_title,
                 aux_track_brief::album_artist,
-                aux_track_brief::release_year,
+                aux_track_brief::release_date,
                 sql::<diesel::sql_types::BigInt>("COUNT(*) AS count"),
             ))
             .group_by((
                 aux_track_brief::album_title,
                 aux_track_brief::album_artist,
-                aux_track_brief::release_year,
+                aux_track_brief::release_date,
             ))
             .into_boxed();
 
@@ -668,11 +668,11 @@ impl<'a> Albums for Repository<'a> {
 
         target = target.filter(aux_track_brief::album_title.is_not_null());
         target = target.filter(aux_track_brief::album_artist.is_not_null());
-        if let Some(min_release_year) = params.min_release_year {
-            target = target.filter(aux_track_brief::release_year.ge(min_release_year));
+        if let Some(min_release_date) = params.min_release_date {
+            target = target.filter(aux_track_brief::release_date.ge(YYYYMMDD::from(min_release_date)));
         }
-        if let Some(max_release_year) = params.max_release_year {
-            target = target.filter(aux_track_brief::release_year.le(max_release_year));
+        if let Some(max_release_date) = params.max_release_date {
+            target = target.filter(aux_track_brief::release_date.le(YYYYMMDD::from(max_release_date)));
         }
 
         for sort_order in &params.ordering {
@@ -696,12 +696,12 @@ impl<'a> Albums for Repository<'a> {
                         target = target.then_order_by(aux_track_brief::album_artist.desc());
                     }
                 },
-                ReleaseYear => match direction {
+                ReleaseDate => match direction {
                     Ascending => {
-                        target = target.then_order_by(aux_track_brief::release_year.asc());
+                        target = target.then_order_by(aux_track_brief::release_date.asc());
                     }
                     Descending => {
-                        target = target.then_order_by(aux_track_brief::release_year.desc());
+                        target = target.then_order_by(aux_track_brief::release_date.desc());
                     }
                 },
                 field => log::warn!(
@@ -716,14 +716,14 @@ impl<'a> Albums for Repository<'a> {
         target = apply_pagination(target, pagination);
 
         let res =
-            target.load::<(Option<String>, Option<String>, Option<i16>, i64)>(self.connection)?;
+            target.load::<(Option<String>, Option<String>, Option<YYYYMMDD>, i64)>(self.connection)?;
 
         Ok(res
             .into_iter()
             .map(|row| AlbumCountResults {
                 title: row.0,
                 artist: row.1,
-                release_year: row.2,
+                release_date: row.2.map(ReleaseDate::new),
                 total_count: row.3 as usize,
             })
             .collect())

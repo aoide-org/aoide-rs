@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 pub mod collections;
 pub mod tracks;
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PaginationQueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]

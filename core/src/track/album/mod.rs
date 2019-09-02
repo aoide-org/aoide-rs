@@ -21,7 +21,7 @@ use crate::{actor::*, title::*};
 // Album
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Album {
     pub titles: Vec<Title>,
 

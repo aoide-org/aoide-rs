@@ -23,7 +23,7 @@ use std::u16;
 
 pub type NumberOfChannels = u16;
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ChannelCount(pub NumberOfChannels);
 
 impl ChannelCount {
@@ -48,7 +48,7 @@ impl ChannelCount {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ChannelCountInvalidity {
     Min(ChannelCount),
     Max(ChannelCount),
@@ -105,7 +105,7 @@ impl ChannelLayout {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ChannelLayoutInvalidity {
     ChannelCount(ChannelCountInvalidity),
 }
@@ -161,7 +161,7 @@ impl From<ChannelLayout> for Channels {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ChannelsInvalidity {
     Count(ChannelCountInvalidity),
     Layout(ChannelLayoutInvalidity),

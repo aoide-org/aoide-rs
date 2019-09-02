@@ -25,7 +25,7 @@ use std::{fmt, marker::PhantomData, mem, str};
 // EntityUid
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct EntityUid([u8; 24]);
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -80,7 +80,7 @@ impl EntityUid {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum EntityUidInvalidity {
     Invalid,
 }
@@ -129,7 +129,7 @@ pub type EntityRevisionVersion = u64;
 
 pub type EntityRevisionInstant = TickInstant;
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct EntityRevision {
     // A non-negative, monotone-increasing version number
     pub ver: EntityRevisionVersion,
@@ -168,7 +168,7 @@ impl EntityRevision {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum EntityRevisionInvalidity {
     VersionOutOfRange,
 }
@@ -196,7 +196,7 @@ impl fmt::Display for EntityRevision {
 // EntityHeader
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct EntityHeader {
     pub uid: EntityUid,
     pub rev: EntityRevision,
@@ -215,7 +215,7 @@ impl EntityHeader {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum EntityHeaderInvalidity {
     Uid(EntityUidInvalidity),
     Revision(EntityRevisionInvalidity),

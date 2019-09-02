@@ -19,7 +19,7 @@ use std::fmt;
 
 pub type KeyCode = u8;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum KeyMode {
     Major,
     Minor,
@@ -28,7 +28,7 @@ pub enum KeyMode {
 /// The ordering numbering of the key code follows the
 /// Circle of fifth / Open Key notation in clock-wise orientation,
 /// alternating between major and minor keys.
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct KeySignature(KeyCode);
 
 impl KeySignature {
@@ -63,7 +63,7 @@ impl KeySignature {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum KeySignatureInvalidity {
     Invalid,
 }
@@ -91,7 +91,7 @@ impl fmt::Display for KeySignature {
 // OpenKeySignature
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct OpenKeySignature(KeySignature);
 
 impl OpenKeySignature {
@@ -157,7 +157,7 @@ impl fmt::Display for OpenKeySignature {
 // LancelotKeySignature
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct LancelotKeySignature(KeySignature);
 
 impl LancelotKeySignature {
@@ -223,7 +223,7 @@ impl fmt::Display for LancelotKeySignature {
 // EngineKeySignature (as found in Denon Engine Prime Library)
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct EngineKeySignature(KeySignature);
 
 impl EngineKeySignature {

@@ -26,7 +26,7 @@ use chrono::{DateTime, Utc};
 // Collection
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Collection {
     pub uid: EntityUid,
 

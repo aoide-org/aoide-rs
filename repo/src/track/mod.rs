@@ -19,10 +19,10 @@ use crate::{collection, entity::*, tag};
 
 use aoide_core::{
     entity::{EntityRevision, EntityUid},
-    track::{album::*, collection::Collections, release::ReleaseYear, *},
+    track::{album::*, collection::Collections, release::ReleaseDate, *},
 };
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum StringField {
     MediaUri, // percent-decoded URI
     MediaType,
@@ -33,7 +33,7 @@ pub enum StringField {
     AlbumArtist,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum NumericField {
     AudioBitRate,
     AudioChannelCount,
@@ -44,7 +44,7 @@ pub enum NumericField {
     TrackTotal,
     DiscNumber,
     DiscTotal,
-    ReleaseYear,
+    ReleaseDate,
     MusicTempo,
     MusicKey,
 }
@@ -55,7 +55,7 @@ pub struct NumericFieldFilter {
     pub value: NumericPredicate,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PhraseFieldFilter {
     // Empty == All available string fields are considered
     // Disjunction, i.e. a match in one of the fields is sufficient
@@ -69,12 +69,12 @@ pub struct PhraseFieldFilter {
     pub terms: Vec<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LocateParams {
     pub media_uri: StringPredicate,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum SortField {
     InCollectionSince, // = recently added (only if searching in a single collection)
     LastRevisionedAt,  // = recently modified (created or updated)
@@ -86,12 +86,12 @@ pub enum SortField {
     DiscTotal,
     AlbumTitle,
     AlbumArtist,
-    ReleaseYear,
+    ReleaseDate,
     MusicTempo,
     MusicKey,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct SortOrder {
     pub field: SortField,
     pub direction: SortDirection,
@@ -114,7 +114,7 @@ pub struct SearchParams {
     pub ordering: Vec<SortOrder>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct StringFieldCounts {
     pub field: StringField,
     pub counts: Vec<StringCount>,
@@ -129,7 +129,7 @@ pub struct Replacement {
     pub track: Track,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ReplaceMode {
     UpdateOnly,
     UpdateOrCreate,
@@ -138,7 +138,7 @@ pub enum ReplaceMode {
 // Successful outcomes that allow batch processing and
 // handle conflicts on an outer level. Only technical
 // failures are considered as errors!
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ReplaceResult {
     AmbiguousMediaUri(usize),
     IncompatibleFormat(EntityDataFormat),
@@ -261,21 +261,21 @@ pub trait Repo {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct AlbumCountParams {
-    pub min_release_year: Option<ReleaseYear>,
-    pub max_release_year: Option<ReleaseYear>,
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct CountTracksByAlbumParams {
+    pub min_release_date: Option<ReleaseDate>,
+    pub max_release_date: Option<ReleaseDate>,
 
     pub ordering: Vec<SortOrder>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct AlbumCountResults {
     pub title: Option<String>,
 
     pub artist: Option<String>,
 
-    pub release_year: Option<ReleaseYear>,
+    pub release_date: Option<ReleaseDate>,
 
     pub total_count: usize,
 }
@@ -283,16 +283,16 @@ pub struct AlbumCountResults {
 impl AlbumCountResults {
     pub fn new_for_album(
         album: &Album,
-        release_year: impl Into<Option<ReleaseYear>>,
+        release_date: impl Into<Option<ReleaseDate>>,
         total_count: usize,
     ) -> Self {
         let title = album.main_title().map(|title| title.name.to_string());
         let artist = album.main_artist().map(|actor| actor.name.to_string());
-        let release_year = release_year.into();
+        let release_date = release_date.into();
         Self {
             title,
             artist,
-            release_year,
+            release_date,
             total_count,
         }
     }
@@ -302,7 +302,7 @@ pub trait Albums {
     fn count_tracks_by_album(
         &self,
         collection_uid: Option<&EntityUid>,
-        params: &AlbumCountParams,
+        params: &CountTracksByAlbumParams,
         pagination: Pagination,
     ) -> RepoResult<Vec<AlbumCountResults>>;
 }

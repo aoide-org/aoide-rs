@@ -19,7 +19,7 @@ use super::*;
 
 use std::fmt;
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Index {
     pub number: u16,
     pub total: u16,
@@ -51,7 +51,7 @@ impl Index {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum IndexInvalidity {
     SingleExceedsTotal,
 }

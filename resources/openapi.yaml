@@ -408,7 +408,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/AlbumTracksCount'
+                  $ref: '#/components/schemas/AlbumTrackCount'
         '500':
           $ref: '#/components/responses/500InternalServerError'
   /tags/count-tracks:
@@ -633,14 +633,14 @@ components:
           type: boolean
           description: |
             Indicates whether this album is a compilation with various artists.
-    AlbumTracksCount:
+    AlbumTrackCount:
       properties:
         t:
           $ref: '#/components/schemas/TitleName'
         a:
           $ref: '#/components/schemas/ArtistName'
-        y:
-          $ref: '#/components/schemas/ReleaseYear'
+        d:
+          $ref: '#/components/schemas/ReleaseDate'
         n:
           $ref: '#/components/schemas/TotalCount'
       required:
@@ -764,10 +764,10 @@ components:
         A hexadecimal color code `#AARRGGBB` with 8 bits per channel.
     CountTracksByAlbumParams:
       properties:
-        minReleaseYear:
-          $ref: '#/components/schemas/ReleaseYear'
-        maxReleaseYear:
-          $ref: '#/components/schemas/ReleaseYear'
+        minReleaseDate:
+          $ref: '#/components/schemas/ReleaseDate'
+        maxReleaseDate:
+          $ref: '#/components/schemas/ReleaseDate'
         ordering:
           type: array
           items:
@@ -1188,9 +1188,9 @@ components:
     ReleasedAtTimeStamp:
       oneOf:
         - $ref: '#/components/schemas/TimeStamp'
-    ReleaseYear:
+    ReleaseDate:
       oneOf:
-        - $ref: '#/components/schemas/Year'
+        - $ref: '#/components/schemas/YYYYMMDD'
       example: 2019
     RelocateTracksParams:
       type: array
@@ -1657,7 +1657,7 @@ components:
         - discTotal
         - albumTitle
         - albumArtist
-        - releaseYear
+        - releasedAtYmd
         - musicTempo
         - musicKey
     TrackSortOrder:
@@ -1695,11 +1695,12 @@ components:
           $ref: '#/components/schemas/UriPredicate'
         replacement:
           type: string
-    Year:
+    YYYYMMDD:
       type: integer
       format: int32
-      minimum: -32768
-      maximum: 32767
-      example: 2019
+      minimum: 0
+      maximum: 99999999
+      example: 20191124
       description: |
-        A year number.
+        An 8-digit integer representing a naive date without any time zone information:
+        YYYYMMDD = YYYY (year, 4-digits) + MM (month, 2-digits) + DD (day of month, 2 digits):

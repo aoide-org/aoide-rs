@@ -21,7 +21,7 @@ pub trait Repo {
     fn resolve_repo_id(&self, uid: &EntityUid) -> RepoResult<Option<RepoId>>;
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum EntityDataFormat {
     JSON = 1,
 }
@@ -36,7 +36,7 @@ impl fmt::Display for EntityDataFormat {
 
 pub type EntityDataVersionNumber = u16;
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct EntityDataVersion {
     pub major: EntityDataVersionNumber,
     pub minor: EntityDataVersionNumber,

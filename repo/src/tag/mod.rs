@@ -48,7 +48,7 @@ impl Filter {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum SortField {
     Facet,
     Label,
@@ -56,7 +56,7 @@ pub enum SortField {
     Count,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct SortOrder {
     pub field: SortField,
     pub direction: SortDirection,
@@ -67,7 +67,7 @@ fn dedup_facets(facets: &mut Vec<tag::Facet>) {
     facets.dedup();
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct CountParams {
     pub facets: Option<Vec<tag::Facet>>,
     pub include_non_faceted_tags: Option<bool>,
@@ -86,7 +86,7 @@ impl CountParams {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct FacetCountParams {
     pub facets: Option<Vec<tag::Facet>>,
     pub ordering: Vec<tag::SortOrder>,
@@ -100,7 +100,7 @@ impl FacetCountParams {
     }
 }
 
-#[derive(Clone, Default, Debug, PartialEq, Eq)]
+#[derive(Clone, Default, Debug, Eq, PartialEq)]
 pub struct FacetCount {
     pub facet: Facet,
     pub total_count: usize,

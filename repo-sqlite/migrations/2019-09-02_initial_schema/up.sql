@@ -116,10 +116,10 @@ CREATE TABLE aux_track_brief (
     track_composer           TEXT,
     album_title              TEXT,
     album_artist             TEXT,
-    release_year             INTEGER,
-    track_number              INTEGER, -- > 0
+    release_date          INTEGER,
+    track_number             INTEGER, -- > 0
     track_total              INTEGER, -- > 0
-    disc_number               INTEGER, -- > 0
+    disc_number              INTEGER, -- > 0
     disc_total               INTEGER, -- > 0
     music_tempo              REAL, -- beats per minute (bpm)
     music_key                TINYINT, -- {(0), 1, ..., 24}
@@ -143,12 +143,16 @@ CREATE INDEX IF NOT EXISTS idx_track_brief_album_artist ON aux_track_brief (
     album_artist
 );
 
-CREATE INDEX IF NOT EXISTS idx_track_brief_release_year ON aux_track_brief (
-    release_year
+CREATE INDEX IF NOT EXISTS idx_track_brief_release_date ON aux_track_brief (
+    release_date
 );
 
 CREATE INDEX IF NOT EXISTS idx_track_brief_music_tempo ON aux_track_brief (
     music_tempo
+);
+
+CREATE INDEX IF NOT EXISTS idx_track_brief_music_key ON aux_track_brief (
+    music_key
 );
 
 CREATE TABLE aux_tag_facet (

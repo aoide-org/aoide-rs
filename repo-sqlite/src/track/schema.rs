@@ -73,7 +73,7 @@ table! {
         track_composer -> Nullable<Text>,
         album_title -> Nullable<Text>,
         album_artist -> Nullable<Text>,
-        release_year -> Nullable<SmallInt>,
+        release_date -> Nullable<Integer>,
         track_number -> Nullable<SmallInt>,
         track_total -> Nullable<SmallInt>,
         disc_number -> Nullable<SmallInt>,

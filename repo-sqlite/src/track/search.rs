@@ -15,6 +15,8 @@
 
 use super::*;
 
+use aoide_core::track::release::YYYYMMDD;
+
 use aoide_repo::{tag::Filter as TagFilter, track::SearchFilter};
 
 ///////////////////////////////////////////////////////////////////////
@@ -214,12 +216,12 @@ impl TrackSearchQueryTransform for SortOrder {
                     query.then_order_by(aux_track_brief::album_artist.desc())
                 }
             },
-            SortField::ReleaseYear => match direction {
+            SortField::ReleaseDate => match direction {
                 SortDirection::Ascending => {
-                    query.then_order_by(aux_track_brief::release_year.asc())
+                    query.then_order_by(aux_track_brief::release_date.asc())
                 }
                 SortDirection::Descending => {
-                    query.then_order_by(aux_track_brief::release_year.desc())
+                    query.then_order_by(aux_track_brief::release_date.desc())
                 }
             },
             SortField::MusicTempo => match direction {
@@ -604,24 +606,24 @@ fn build_numeric_field_filter_expression(
                 }
             }
         },
-        ReleaseYear => match filter.value {
-            // TODO: Check and limit/clamp value range when converting from f64 to i32
-            LessThan(value) => Box::new(aux_track_brief::release_year.lt(value as i16)),
-            LessOrEqual(value) => Box::new(aux_track_brief::release_year.le(value as i16)),
-            GreaterThan(value) => Box::new(aux_track_brief::release_year.gt(value as i16)),
-            GreaterOrEqual(value) => Box::new(aux_track_brief::release_year.ge(value as i16)),
+        ReleaseDate => match filter.value {
+            // TODO: Check and limit/clamp value range when converting from f64 to YYYYMMDD
+            LessThan(value) => Box::new(aux_track_brief::release_date.lt(value as YYYYMMDD)),
+            LessOrEqual(value) => Box::new(aux_track_brief::release_date.le(value as YYYYMMDD)),
+            GreaterThan(value) => Box::new(aux_track_brief::release_date.gt(value as YYYYMMDD)),
+            GreaterOrEqual(value) => Box::new(aux_track_brief::release_date.ge(value as YYYYMMDD)),
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(aux_track_brief::release_year.eq(value as i16))
+                    Box::new(aux_track_brief::release_date.eq(value as YYYYMMDD))
                 } else {
-                    Box::new(aux_track_brief::release_year.is_null())
+                    Box::new(aux_track_brief::release_date.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(aux_track_brief::release_year.ne(value as i16))
+                    Box::new(aux_track_brief::release_date.ne(value as YYYYMMDD))
                 } else {
-                    Box::new(aux_track_brief::release_year.is_not_null())
+                    Box::new(aux_track_brief::release_date.is_not_null())
                 }
             }
         },

@@ -19,7 +19,7 @@ use super::*;
 // TitleLevel
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum TitleLevel {
     Main,
     Sub,
@@ -38,14 +38,14 @@ impl Default for TitleLevel {
 // Title
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Title {
     pub name: String,
 
     pub level: TitleLevel,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum TitleInvalidity {
     NameEmpty,
 }
@@ -63,7 +63,7 @@ impl Validate for Title {
 #[derive(Debug)]
 pub struct Titles;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum TitlesInvalidity {
     Title(TitleInvalidity),
     MainTitleMissing,

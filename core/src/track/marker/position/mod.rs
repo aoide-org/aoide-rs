@@ -123,7 +123,7 @@ impl Validate for MarkerData {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum MarkerType {
     /// Custom starting point, endpoint or range within the track, e.g. to label and color musical phrases
     Custom,

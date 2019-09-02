@@ -6,11 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**This release breaks backward compatibility with existing versions! Existing databases need to be rebuilt.**
+
 ### Added
 
 ### Changed
 
 - Log executable path and version on startup
+- Store complete release dates (YYYYMMDD) instead of only the year for filtering, sorting, and grouping of album tracks
 
 ### Removed
 

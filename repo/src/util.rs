@@ -14,13 +14,13 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 /// Predicates for matching URI strings (case-sensitive)
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UriPredicate {
     Prefix(String),
     Exact(String),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UriRelocation {
     pub predicate: UriPredicate,
     pub replacement: String,
