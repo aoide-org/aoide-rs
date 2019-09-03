@@ -18,17 +18,72 @@
 use super::*;
 
 #[test]
+fn min_max_release_date_year() {
+    assert!(RELEASE_YEAR_MIN <= ReleaseDate::min().year());
+    assert!(RELEASE_YEAR_MAX <= ReleaseDate::max().year());
+}
+
+#[test]
 fn into_release_yyyymmdd() {
-    assert_eq!(19_961_219, ReleaseDate::from("1996-12-19T02:00:57Z".parse::<ReleaseDateTime>().unwrap()).into());
-    assert_eq!(19_961_219, ReleaseDate::from("1996-12-19T02:00:57-12:00".parse::<ReleaseDateTime>().unwrap()).into());
-    assert_eq!(19_961_219, ReleaseDate::from("1996-12-19T02:00:57+12:00".parse::<ReleaseDateTime>().unwrap()).into());
+    assert_eq!(
+        19_961_219,
+        ReleaseDate::from("1996-12-19T02:00:57Z".parse::<ReleaseDateTime>().unwrap()).into()
+    );
+    assert_eq!(
+        19_961_219,
+        ReleaseDate::from(
+            "1996-12-19T02:00:57-12:00"
+                .parse::<ReleaseDateTime>()
+                .unwrap()
+        )
+        .into()
+    );
+    assert_eq!(
+        19_961_219,
+        ReleaseDate::from(
+            "1996-12-19T02:00:57+12:00"
+                .parse::<ReleaseDateTime>()
+                .unwrap()
+        )
+        .into()
+    );
 }
 
 #[test]
 fn from_to_string() {
-    assert_eq!("1996-12-19T02:00:57Z", "1996-12-19T02:00:57Z".parse::<ReleaseDateTime>().unwrap().to_string());
-    assert_eq!("1996-12-19T02:00:57Z", "1996-12-19T02:00:57+00:00".parse::<ReleaseDateTime>().unwrap().to_string());
-    assert_eq!("1996-12-19T02:00:57Z", "1996-12-19T02:00:57-00:00".parse::<ReleaseDateTime>().unwrap().to_string());
-    assert_eq!("1996-12-19T02:00:57-12:00", "1996-12-19T02:00:57-12:00".parse::<ReleaseDateTime>().unwrap().to_string());
-    assert_eq!("1996-12-19T02:00:57+12:00", "1996-12-19T02:00:57+12:00".parse::<ReleaseDateTime>().unwrap().to_string());
+    assert_eq!(
+        "1996-12-19T02:00:57Z",
+        "1996-12-19T02:00:57Z"
+            .parse::<ReleaseDateTime>()
+            .unwrap()
+            .to_string()
+    );
+    assert_eq!(
+        "1996-12-19T02:00:57Z",
+        "1996-12-19T02:00:57+00:00"
+            .parse::<ReleaseDateTime>()
+            .unwrap()
+            .to_string()
+    );
+    assert_eq!(
+        "1996-12-19T02:00:57Z",
+        "1996-12-19T02:00:57-00:00"
+            .parse::<ReleaseDateTime>()
+            .unwrap()
+            .to_string()
+    );
+    assert_eq!(
+        "1996-12-19T02:00:57-12:00",
+        "1996-12-19T02:00:57-12:00"
+            .parse::<ReleaseDateTime>()
+            .unwrap()
+            .to_string()
+    );
+    assert_eq!(
+        "1996-12-19T02:00:57+12:00",
+        "1996-12-19T02:00:57+12:00"
+            .parse::<ReleaseDateTime>()
+            .unwrap()
+            .to_string()
+    );
 }

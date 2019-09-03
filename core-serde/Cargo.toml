@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 aoide-core = "*"
 chrono = { version = "*", default-features = false, features = ["serde"] }
+semval = "*"
 serde = { version = "*", features = ["derive"] }
 serde_repr = "*"
 

@@ -24,8 +24,8 @@ use aoide_core::{
     track::{
         self,
         marker::{beat, key},
-        *,
         release::YYYYMMDD,
+        *,
     },
     util::clock::*,
 };

@@ -32,7 +32,10 @@ use crate::util::*;
 use aoide_core::{
     entity::{EntityHeader, EntityRevision, EntityUid},
     tag::{Facet, Label},
-    track::{*, release::{ReleaseDate, YYYYMMDD}},
+    track::{
+        release::{ReleaseDate, YYYYMMDD},
+        *,
+    },
 };
 
 use aoide_repo::{
@@ -669,10 +672,12 @@ impl<'a> Albums for Repository<'a> {
         target = target.filter(aux_track_brief::album_title.is_not_null());
         target = target.filter(aux_track_brief::album_artist.is_not_null());
         if let Some(min_release_date) = params.min_release_date {
-            target = target.filter(aux_track_brief::release_date.ge(YYYYMMDD::from(min_release_date)));
+            target =
+                target.filter(aux_track_brief::release_date.ge(YYYYMMDD::from(min_release_date)));
         }
         if let Some(max_release_date) = params.max_release_date {
-            target = target.filter(aux_track_brief::release_date.le(YYYYMMDD::from(max_release_date)));
+            target =
+                target.filter(aux_track_brief::release_date.le(YYYYMMDD::from(max_release_date)));
         }
 
         for sort_order in &params.ordering {
@@ -715,8 +720,8 @@ impl<'a> Albums for Repository<'a> {
         // Pagination
         target = apply_pagination(target, pagination);
 
-        let res =
-            target.load::<(Option<String>, Option<String>, Option<YYYYMMDD>, i64)>(self.connection)?;
+        let res = target
+            .load::<(Option<String>, Option<String>, Option<YYYYMMDD>, i64)>(self.connection)?;
 
         Ok(res
             .into_iter()

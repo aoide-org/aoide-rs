@@ -15,7 +15,9 @@
 
 use super::*;
 
-use chrono::{DateTime, Datelike, FixedOffset, NaiveDateTime, SecondsFormat, ParseError};
+use chrono::{
+    DateTime, Datelike, FixedOffset, NaiveDate, NaiveDateTime, ParseError, SecondsFormat,
+};
 use std::str::FromStr;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -50,7 +52,13 @@ impl ToString for ReleaseDateTime {
 // 4-digit year
 pub type ReleaseYear = i16;
 
-pub const RELEASE_YEAR_MIN: ReleaseYear = 0;
+// 2-digit month
+pub type ReleaseMonth = i8;
+
+// 2-digit day of month
+pub type ReleaseDayOfMonth = i8;
+
+pub const RELEASE_YEAR_MIN: ReleaseYear = 1;
 pub const RELEASE_YEAR_MAX: ReleaseYear = 9999;
 
 pub type YYYYMMDD = i32;
@@ -61,35 +69,81 @@ pub struct ReleaseDate(YYYYMMDD);
 
 impl ReleaseDate {
     pub const fn min() -> Self {
-        Self(0)
+        Self(10_000)
     }
 
     pub const fn max() -> Self {
         Self(99_999_999)
     }
 
-    pub const fn new(inner: YYYYMMDD) -> Self {
-        Self(inner)
+    pub const fn new(val: YYYYMMDD) -> Self {
+        Self(val)
     }
 
     pub fn year(self) -> ReleaseYear {
         (self.0 / 10_000) as ReleaseYear
     }
 
-    pub fn is_year(self) -> bool {
-        self.0 % 10_000 == 0
+    pub fn month(self) -> ReleaseMonth {
+        ((self.0 % 10_000) / 100) as ReleaseMonth
     }
 
-    pub fn is_year_month(self) -> bool {
-        self.0 % 100 == 0
+    pub fn day_of_month(self) -> ReleaseDayOfMonth {
+        (self.0 % 100) as ReleaseDayOfMonth
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum ReleaseDateInvalidity {
+    Min,
+    Max,
+    MonthOutOfRange,
+    DayOfMonthOutOfRange,
+    DayWithoutMonth,
+    Invalid,
+}
+
+impl Validate for ReleaseDate {
+    type Invalidity = ReleaseDateInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(*self < Self::min(), ReleaseDateInvalidity::Min)
+            .invalidate_if(*self > Self::max(), ReleaseDateInvalidity::Min)
+            .invalidate_if(
+                self.month() < 0 || self.month() > 12,
+                ReleaseDateInvalidity::MonthOutOfRange,
+            )
+            .invalidate_if(
+                self.day_of_month() < 0 || self.day_of_month() > 31,
+                ReleaseDateInvalidity::DayOfMonthOutOfRange,
+            )
+            .invalidate_if(
+                self.month() < 1 && self.day_of_month() > 0,
+                ReleaseDateInvalidity::DayWithoutMonth,
+            )
+            .invalidate_if(
+                self.month() > 0
+                    && self.day_of_month() > 0
+                    && NaiveDate::from_ymd_opt(
+                        i32::from(self.year()),
+                        self.month() as u32,
+                        self.day_of_month() as u32,
+                    )
+                    .is_none(),
+                ReleaseDateInvalidity::Invalid,
+            )
+            .into()
     }
 }
 
 impl From<NaiveDateTime> for ReleaseDate {
     fn from(from: NaiveDateTime) -> Self {
-        Self(from.year() as YYYYMMDD * 100 * 100 +
-                from.month() as YYYYMMDD * 100 +
-                from.day() as YYYYMMDD)
+        Self(
+            from.year() as YYYYMMDD * 10_000
+                + from.month() as YYYYMMDD * 100
+                + from.day() as YYYYMMDD,
+        )
     }
 }
 
@@ -120,6 +174,24 @@ impl From<ReleasedAt> for ReleaseDate {
     }
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum ReleasedAtInvalidity {
+    Date(ReleaseDateInvalidity),
+}
+
+impl Validate for ReleasedAt {
+    type Invalidity = ReleasedAtInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        let context = ValidationContext::new();
+        match self {
+            ReleasedAt::Date(date) => context.validate_and_map(date, ReleasedAtInvalidity::Date),
+            ReleasedAt::DateTime(_) => context,
+        }
+        .into()
+    }
+}
+
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Release {
     pub released_at: Option<ReleasedAt>,
@@ -143,8 +215,7 @@ impl Release {
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ReleaseInvalidity {
-    ReleasedAtYearMin,
-    ReleasedAtYearMax,
+    ReleasedAt(ReleasedAtInvalidity),
     ReleasedByEmpty,
     CopyrightEmpty,
     LicenseEmpty,
@@ -154,19 +225,8 @@ impl Validate for Release {
     type Invalidity = ReleaseInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        let mut context = ValidationContext::new();
-        if let Some(released_at) = self.released_at {
-            let year = ReleaseDate::from(released_at).year();
-            context = context
-                .invalidate_if(
-                    year < RELEASE_YEAR_MIN,
-                    ReleaseInvalidity::ReleasedAtYearMin,
-                )
-                .invalidate_if(
-                    year > RELEASE_YEAR_MAX,
-                    ReleaseInvalidity::ReleasedAtYearMax,
-                );
-        }
+        let mut context = ValidationContext::new()
+            .validate_and_map(&self.released_at, ReleaseInvalidity::ReleasedAt);
         if let Some(ref released_by) = self.released_by {
             context = context.invalidate_if(
                 released_by.trim().is_empty(),

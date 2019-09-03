@@ -35,9 +35,9 @@ mod _repo {
             Filter as TagFilter, SortField as TagSortField, SortOrder as TagSortOrder,
         },
         track::{
-            CountTracksByAlbumParams, AlbumCountResults, LocateParams, NumericField, NumericFieldFilter,
-            PhraseFieldFilter, ReplaceMode, ReplaceResult, SearchFilter, SearchParams, SortField,
-            SortOrder, StringField,
+            AlbumCountResults, CountTracksByAlbumParams, LocateParams, NumericField,
+            NumericFieldFilter, PhraseFieldFilter, ReplaceMode, ReplaceResult, SearchFilter,
+            SearchParams, SortField, SortOrder, StringField,
         },
         util::{UriPredicate, UriRelocation},
         FilterModifier, NumericPredicate, NumericValue, SortDirection, StringFilter,
@@ -45,7 +45,10 @@ mod _repo {
     };
 }
 
-use aoide_core::{tag::ScoreValue as TagScoreValue, track::release::{ReleaseDate, YYYYMMDD}};
+use aoide_core::{
+    tag::ScoreValue as TagScoreValue,
+    track::release::{ReleaseDate, YYYYMMDD},
+};
 
 use aoide_repo::{Pagination, PaginationLimit, PaginationOffset};
 
