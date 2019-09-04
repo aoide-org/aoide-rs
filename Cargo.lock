@@ -18,12 +18,12 @@ dependencies = [
 
 [[package]]
 name = "aoide"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
- "aoide-core 0.1.1",
- "aoide-core-serde 0.1.1",
- "aoide-repo 0.1.1",
- "aoide-repo-sqlite 0.1.1",
+ "aoide-core 0.2.0",
+ "aoide-core-serde 0.2.0",
+ "aoide-repo 0.2.0",
+ "aoide-repo-sqlite 0.2.0",
  "chrono 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "diesel 1.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -42,7 +42,7 @@ dependencies = [
 
 [[package]]
 name = "aoide-core"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "bs58 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -56,9 +56,9 @@ dependencies = [
 
 [[package]]
 name = "aoide-core-serde"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
- "aoide-core 0.1.1",
+ "aoide-core 0.2.0",
  "chrono 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "semval 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.99 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -68,18 +68,18 @@ dependencies = [
 
 [[package]]
 name = "aoide-repo"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
- "aoide-core 0.1.1",
+ "aoide-core 0.2.0",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "aoide-repo-sqlite"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
- "aoide-core 0.1.1",
- "aoide-repo 0.1.1",
+ "aoide-core 0.2.0",
+ "aoide-repo 0.2.0",
  "chrono 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "diesel 1.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "diesel_migrations 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
