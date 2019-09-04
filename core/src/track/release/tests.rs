@@ -87,3 +87,14 @@ fn from_to_string() {
             .to_string()
     );
 }
+
+#[test]
+fn validate_release_date() {
+    assert!(ReleaseDate::new(19_960_000).validate().is_ok());
+    assert!(ReleaseDate::new(19_960_101).validate().is_ok());
+    assert!(ReleaseDate::new(19_961_231).validate().is_ok());
+    assert!(ReleaseDate::new(19_960_230).validate().is_err()); // 1996-02-30
+    assert!(ReleaseDate::new(19_960_001).validate().is_err()); // 1996-00-01
+    assert!(ReleaseDate::new(19_960_00).validate().is_err());
+    assert!(ReleaseDate::new(119_960_001).validate().is_err());
+}
