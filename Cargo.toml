@@ -33,14 +33,14 @@ clap = "*"
 diesel = { version = "*", features = ["r2d2", "sqlite"] }
 diesel_migrations =  { version = "*", features = ["sqlite"] }
 env_logger = "*"
-failure = { version = "*", default_features = false, features = ["std"] }
+failure = { version = "*", default-features = false, features = ["std"] }
 futures = "*"
 log = "*"
 semval = "*"
 serde = "*"
 serde_json = "*"
-tokio = "0.1"
-warp = "*"
+tokio = { version = "0.1", default-features = false }
+warp = { version = "*", default-features = false }
 
 [dev-dependencies]
 serde_urlencoded = "*"
