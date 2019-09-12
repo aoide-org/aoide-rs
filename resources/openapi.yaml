@@ -650,6 +650,42 @@ components:
       oneOf:
         - $ref: '#/components/schemas/ActorName'
       example: The Beatles
+    ImageSize:
+      description: |
+        Width and height of an image in pixels
+      type: array
+      minLength: 2
+      maxLength: 2
+      items:
+        type: integer
+        minimum: 1
+        maximum: 65535
+        example: 600
+    Artwork:
+      description: |
+        An image that is embedded in the media content or referenced as
+        an external resource by the optional URI. The URI may also select
+        one out of multiple embedded resources.
+        The optional background color can be used to quickly display
+        a preliminary view before the actual image has been loaded and
+        for selecting a matching color scheme.
+      properties:
+        s:
+          $ref: '#/components/schemas/ImageSize'
+        f:
+          type: string
+          description: |
+            Fingerprint that identifies the actual content for cache lookup
+            and to decide about modifications, e.g. a base64-encoded SHA256
+            hash of the image data.
+        u:
+          $ref: '#/components/schemas/Uri'
+        b:
+          $ref: '#/components/schemas/BackgroundColor'
+      required:
+        - f
+        - w
+        - h
     AudioContent:
       properties:
         c:
@@ -667,6 +703,11 @@ components:
     AvgTagScore:
       oneOf:
         - $ref: '#/components/schemas/TagScore'
+    BackgroundColor:
+      description: |
+        A background color color, e.g. the average color of artwork
+      oneOf:
+        - $ref: '#/components/schemas/Color'
     BeatMarker:
       properties:
         z:
@@ -998,14 +1039,19 @@ components:
             a:
               $ref: '#/components/schemas/AudioContent'
     MediaSource:
-      type: array
-      minLength: 3
-      maxLength: 3
-      items:
-        oneOf:
-          - $ref: '#/components/schemas/Uri'
-          - $ref: '#/components/schemas/MediaType'
-          - $ref: '#/components/schemas/MediaContent'
+      properties:
+        u:
+          $ref: '#/components/schemas/Uri'
+        t:
+          $ref: '#/components/schemas/MediaType'
+        c:
+          $ref: '#/components/schemas/MediaContent'
+        a:
+          $ref: '#/components/schemas/Artwork'
+      required:
+        - u
+        - t
+        - c
     MediaType:
       type: string
       minLength: 1

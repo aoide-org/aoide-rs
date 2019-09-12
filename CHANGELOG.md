@@ -7,9 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**This release breaks backward compatibility with old versions! Existing databases need to be rebuilt.**
+
 ### Added
 
+- Added optional artwork to media sources
+
 ### Changed
+
+- Changed the representation of media sources to allow adding optional metadata like artwork
 
 ### Removed
 

@@ -19,7 +19,7 @@ mod _core {
     pub use aoide_core::media::*;
 }
 
-use crate::audio::AudioContent;
+use crate::{audio::AudioContent, util::color::ColorArgb};
 
 ///////////////////////////////////////////////////////////////////////
 // Content
@@ -51,13 +51,65 @@ impl From<_core::Content> for Content {
 }
 
 ///////////////////////////////////////////////////////////////////////
+// Artwork
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(Eq, PartialEq))]
+#[serde(deny_unknown_fields)]
+pub struct ImageSize(u16, u16);
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(Eq, PartialEq))]
+#[serde(deny_unknown_fields)]
+pub struct Artwork {
+    #[serde(rename = "s")]
+    size: ImageSize,
+
+    #[serde(rename = "f")]
+    fingerprint: String,
+
+    #[serde(rename = "u", skip_serializing_if = "Option::is_none")]
+    uri: Option<String>,
+
+    #[serde(rename = "b", skip_serializing_if = "Option::is_none")]
+    background_color: Option<ColorArgb>,
+}
+
+impl From<_core::Artwork> for Artwork {
+    fn from(from: _core::Artwork) -> Self {
+        let _core::Artwork { size: _core::ImageSize { width, height }, fingerprint, uri, background_color } = from;
+        Self { size: ImageSize(width, height), fingerprint, uri, background_color: background_color.map(Into::into) }
+    }
+}
+
+impl From<Artwork> for _core::Artwork {
+    fn from(from: Artwork) -> Self {
+        let Artwork { size: ImageSize(width, height), fingerprint, uri, background_color } = from;
+        Self { size: _core::ImageSize { width, height }, fingerprint, uri, background_color: background_color.map(Into::into) }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
 // Source
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(deny_unknown_fields)]
-pub struct Source(String, String, Content);
+pub struct Source {
+    #[serde(rename = "u")]
+    uri: String,
+
+    #[serde(rename = "t")]
+    content_type: String,
+
+    #[serde(rename = "c")]
+    content: Content,
+
+    #[serde(rename = "a", skip_serializing_if = "Option::is_none")]
+    cover_art: Option<Artwork>,
+}
 
 impl From<_core::Source> for Source {
     fn from(from: _core::Source) -> Self {
@@ -65,18 +117,30 @@ impl From<_core::Source> for Source {
             uri,
             content_type,
             content,
+            cover_art,
         } = from;
-        Self(uri, content_type, content.into())
+        Self {
+            uri,
+            content_type,
+            content: content.into(),
+            cover_art: cover_art.map(Into::into),
+        }
     }
 }
 
 impl From<Source> for _core::Source {
     fn from(from: Source) -> Self {
-        let Source(uri, content_type, content) = from;
+        let Source {
+            uri,
+            content_type,
+            content,
+            cover_art
+        } = from;
         Self {
             uri,
             content_type,
             content: content.into(),
+            cover_art: cover_art.map(Into::into),
         }
     }
 }

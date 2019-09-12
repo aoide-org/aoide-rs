@@ -15,7 +15,7 @@
 
 use super::*;
 
-use crate::audio::{AudioContent, AudioContentInvalidity};
+use crate::{audio::{AudioContent, AudioContentInvalidity}, util::color::ColorArgb};
 
 ///////////////////////////////////////////////////////////////////////
 // Content
@@ -24,6 +24,35 @@ use crate::audio::{AudioContent, AudioContentInvalidity};
 #[derive(Clone, Debug, PartialEq)]
 pub enum Content {
     Audio(AudioContent),
+}
+
+///////////////////////////////////////////////////////////////////////
+// Artwork
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ImageSize {
+    pub width: u16,
+    pub height: u16,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Artwork {
+    pub size: ImageSize,
+
+    /// Identifies the actual content for cache lookup and to decide
+    /// about modifications, e.g. a base64-encoded SHA256 hash of the
+    /// image data.
+    pub fingerprint: String,
+
+    /// Selects one out of multiple resources embedded in the media source
+    /// or an external resource.
+    pub uri: Option<String>,
+
+    /// The optional background color can be used to quickly display
+    /// a preliminary view before the actual image has been loaded and
+    /// for selecting a matching color scheme.
+    pub background_color: Option<ColorArgb>,
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -40,6 +69,8 @@ pub struct Source {
     pub content_type: String,
 
     pub content: Content,
+
+    pub cover_art: Option<Artwork>,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
