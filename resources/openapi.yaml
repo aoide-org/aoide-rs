@@ -683,9 +683,7 @@ components:
         b:
           $ref: '#/components/schemas/BackgroundColor'
       required:
-        - f
-        - w
-        - h
+        - s
     AudioContent:
       properties:
         c:
@@ -798,11 +796,11 @@ components:
         - totalCount
     Color:
       type: string
-      minLength: 9
-      maxLength: 9
-      example: '#FF808080'
+      minLength: 7
+      maxLength: 7
+      example: '#808080'
       description: |
-        A hexadecimal color code `#AARRGGBB` with 8 bits per channel.
+        A hexadecimal RGB color code `#RRGGBB` with 8 bits per channel.
     CountTracksByAlbumParams:
       properties:
         minReleaseDate:
