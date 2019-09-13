@@ -66,8 +66,8 @@ pub struct Artwork {
     #[serde(rename = "s")]
     size: ImageSize,
 
-    #[serde(rename = "f")]
-    fingerprint: String,
+    #[serde(rename = "f", skip_serializing_if = "Option::is_none")]
+    fingerprint: Option<String>,
 
     #[serde(rename = "u", skip_serializing_if = "Option::is_none")]
     uri: Option<String>,

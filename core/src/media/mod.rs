@@ -43,7 +43,7 @@ pub struct Artwork {
     /// Identifies the actual content for cache lookup and to decide
     /// about modifications, e.g. a base64-encoded SHA256 hash of the
     /// image data.
-    pub fingerprint: String,
+    pub fingerprint: Option<String>,
 
     /// Selects one out of multiple resources embedded in the media source
     /// or an external resource.
