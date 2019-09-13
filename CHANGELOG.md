@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+### Changed
+
+### Removed
+
+## [0.3.0] - 2019-09-13
+
 **This release breaks backward compatibility with old versions! Existing databases need to be rebuilt.**
 
 ### Added
@@ -171,9 +179,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial public release
 
-[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.2.0...development
+[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.3.0...development
+[0.3.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.3.0
 [0.2.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.2.0
 [0.1.1]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.1.1
 [0.1.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.1.0
-[0.0.9]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.9
-[0.0.8]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.0.8

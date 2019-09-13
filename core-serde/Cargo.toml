@@ -1,6 +1,6 @@
 [package]
 name = "aoide-core-serde"
-version = "0.2.0"
+version = "0.3.0"
 authors = [ "Uwe Klotz <uwe.klotz@gmail>", "et al." ]
 license = "AGPL-3.0-or-later"
 publish = false
