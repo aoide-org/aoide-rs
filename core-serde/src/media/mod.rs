@@ -19,7 +19,7 @@ mod _core {
     pub use aoide_core::media::*;
 }
 
-use crate::{audio::AudioContent, util::color::ColorArgb};
+use crate::{audio::AudioContent, util::color::ColorRgb};
 
 ///////////////////////////////////////////////////////////////////////
 // Content
@@ -73,7 +73,7 @@ pub struct Artwork {
     uri: Option<String>,
 
     #[serde(rename = "b", skip_serializing_if = "Option::is_none")]
-    background_color: Option<ColorArgb>,
+    background_color: Option<ColorRgb>,
 }
 
 impl From<_core::Artwork> for Artwork {

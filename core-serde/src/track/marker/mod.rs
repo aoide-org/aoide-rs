@@ -35,7 +35,7 @@ use aoide_core::util::IsDefault;
 use crate::{
     audio::PositionMs,
     music::{key::*, time::*},
-    util::color::ColorArgb,
+    util::color::ColorRgb,
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -195,7 +195,7 @@ pub struct PositionMarker {
     pub number: Option<i32>,
 
     #[serde(rename = "c", skip_serializing_if = "Option::is_none")]
-    pub color: Option<ColorArgb>,
+    pub color: Option<ColorRgb>,
 }
 
 impl From<_core::PositionMarker> for PositionMarker {

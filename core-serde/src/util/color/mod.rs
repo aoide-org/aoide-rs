@@ -26,26 +26,26 @@ use serde::{
 use std::{fmt, str::FromStr};
 
 ///////////////////////////////////////////////////////////////////////
-// ColorArgb
+// ColorRgb
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(test, derive(Eq, PartialEq))]
-pub struct ColorArgb(_core::ColorArgb);
+pub struct ColorRgb(_core::ColorRgb);
 
-impl From<_core::ColorArgb> for ColorArgb {
-    fn from(from: _core::ColorArgb) -> Self {
+impl From<_core::ColorRgb> for ColorRgb {
+    fn from(from: _core::ColorRgb) -> Self {
         Self(from)
     }
 }
 
-impl From<ColorArgb> for _core::ColorArgb {
-    fn from(from: ColorArgb) -> Self {
+impl From<ColorRgb> for _core::ColorRgb {
+    fn from(from: ColorRgb) -> Self {
         from.0
     }
 }
 
-impl Serialize for ColorArgb {
+impl Serialize for ColorRgb {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -57,7 +57,7 @@ impl Serialize for ColorArgb {
 struct ColorDeserializeVisitor;
 
 impl<'de> SerdeDeserializeVisitor<'de> for ColorDeserializeVisitor {
-    type Value = ColorArgb;
+    type Value = ColorRgb;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str("a color code string '#AARRGGBB'")
@@ -67,14 +67,14 @@ impl<'de> SerdeDeserializeVisitor<'de> for ColorDeserializeVisitor {
     where
         E: de::Error,
     {
-        _core::ColorArgb::from_str(value)
+        _core::ColorRgb::from_str(value)
             .map(Into::into)
             .map_err(|e| E::custom(e.to_string()))
     }
 }
 
-impl<'de> Deserialize<'de> for ColorArgb {
-    fn deserialize<D>(deserializer: D) -> Result<ColorArgb, D::Error>
+impl<'de> Deserialize<'de> for ColorRgb {
+    fn deserialize<D>(deserializer: D) -> Result<ColorRgb, D::Error>
     where
         D: Deserializer<'de>,
     {

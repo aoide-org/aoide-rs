@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- Removed transparency (alpha channel) from RGB color codes
+
 ## [0.2.0] - 2019-09-04
 
 **This release breaks backward compatibility with old versions! Existing databases need to be rebuilt.**

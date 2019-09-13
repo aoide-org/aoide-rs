@@ -16,49 +16,41 @@
 use std::{fmt, num::ParseIntError, str::FromStr};
 
 ///////////////////////////////////////////////////////////////////////
-// ColorArgb
+// ColorRgb
 ///////////////////////////////////////////////////////////////////////
 
 pub type ColorCode = u32;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct ColorArgb(ColorCode); // 0xAARRGGBB
+pub struct ColorRgb(ColorCode); // 0xRRGGBB
 
-impl ColorArgb {
+impl ColorRgb {
     const STRING_PREFIX: &'static str = "#";
-    const STRING_LEN: usize = 9;
+    const STRING_LEN: usize = 7;
 
-    pub const ALPHA_MASK: ColorCode = 0xff_00_00_00;
     pub const RED_MASK: ColorCode = 0x00_ff_00_00;
     pub const GREEN_MASK: ColorCode = 0x00_00_ff_00;
     pub const BLUE_MASK: ColorCode = 0x00_00_00_ff;
 
-    pub const BLACK: Self = ColorArgb(Self::ALPHA_MASK);
-    pub const RED: Self = ColorArgb(Self::ALPHA_MASK | Self::RED_MASK);
-    pub const GREEN: Self = ColorArgb(Self::ALPHA_MASK | Self::GREEN_MASK);
-    pub const BLUE: Self = ColorArgb(Self::ALPHA_MASK | Self::BLUE_MASK);
-    pub const YELLOW: Self = ColorArgb(Self::ALPHA_MASK | Self::RED_MASK | Self::GREEN_MASK);
-    pub const MAGENTA: Self = ColorArgb(Self::ALPHA_MASK | Self::RED_MASK | Self::BLUE_MASK);
-    pub const CYAN: Self = ColorArgb(Self::ALPHA_MASK | Self::GREEN_MASK | Self::BLUE_MASK);
+    pub const BLACK: Self = ColorRgb(0);
+    pub const RED: Self = ColorRgb(Self::RED_MASK);
+    pub const GREEN: Self = ColorRgb(Self::GREEN_MASK);
+    pub const BLUE: Self = ColorRgb(Self::BLUE_MASK);
+    pub const YELLOW: Self = ColorRgb(Self::RED_MASK | Self::GREEN_MASK);
+    pub const MAGENTA: Self = ColorRgb(Self::RED_MASK | Self::BLUE_MASK);
+    pub const CYAN: Self = ColorRgb(Self::GREEN_MASK | Self::BLUE_MASK);
     pub const WHITE: Self =
-        ColorArgb(Self::ALPHA_MASK | Self::RED_MASK | Self::GREEN_MASK | Self::BLUE_MASK);
+        ColorRgb(Self::RED_MASK | Self::GREEN_MASK | Self::BLUE_MASK);
 
     pub fn code(self) -> ColorCode {
         self.0
     }
-
-    pub fn to_opaque(self) -> Self {
-        ColorArgb(self.code() | Self::ALPHA_MASK)
-    }
-
-    pub fn to_transparent(self) -> Self {
-        ColorArgb(self.code() & !Self::ALPHA_MASK)
-    }
 }
 
-impl fmt::Display for ColorArgb {
+impl fmt::Display for ColorRgb {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}{:08X}", Self::STRING_PREFIX, self.code())
+        // "#RRGGBB"
+        write!(f, "{}{:06X}", Self::STRING_PREFIX, self.code())
     }
 }
 
@@ -76,19 +68,19 @@ impl fmt::Display for ParseError {
             InputLen => write!(
                 f,
                 "Invalid input length: expected = {}",
-                ColorArgb::STRING_LEN
+                ColorRgb::STRING_LEN
             ),
             InputPrefix => write!(
                 f,
                 "Invalid input prefix: expected = {}",
-                ColorArgb::STRING_PREFIX
+                ColorRgb::STRING_PREFIX
             ),
             ParseIntError(err) => f.write_str(&err.to_string()),
         }
     }
 }
 
-impl FromStr for ColorArgb {
+impl FromStr for ColorRgb {
     type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -100,7 +92,7 @@ impl FromStr for ColorArgb {
             return Err(ParseError::InputPrefix);
         }
         u32::from_str_radix(&hex_code, 16)
-            .map(ColorArgb)
+            .map(ColorRgb)
             .map_err(ParseError::ParseIntError)
     }
 }
@@ -109,4 +101,5 @@ impl FromStr for ColorArgb {
 // Tests
 ///////////////////////////////////////////////////////////////////////
 
-// TODO
+#[cfg(test)]
+mod tests;

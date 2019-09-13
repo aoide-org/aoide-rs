@@ -15,7 +15,7 @@
 
 use super::*;
 
-use crate::{audio::{AudioContent, AudioContentInvalidity}, util::color::ColorArgb};
+use crate::{audio::{AudioContent, AudioContentInvalidity}, util::color::ColorRgb};
 
 ///////////////////////////////////////////////////////////////////////
 // Content
@@ -52,7 +52,7 @@ pub struct Artwork {
     /// The optional background color can be used to quickly display
     /// a preliminary view before the actual image has been loaded and
     /// for selecting a matching color scheme.
-    pub background_color: Option<ColorArgb>,
+    pub background_color: Option<ColorRgb>,
 }
 
 ///////////////////////////////////////////////////////////////////////

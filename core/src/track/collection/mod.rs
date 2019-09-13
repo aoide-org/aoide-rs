@@ -32,7 +32,7 @@ pub struct Collection {
 
     pub since: DateTime<Utc>,
 
-    pub color: Option<ColorArgb>,
+    pub color: Option<ColorRgb>,
 
     pub play_count: Option<usize>,
 }

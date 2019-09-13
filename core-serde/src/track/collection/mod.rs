@@ -19,7 +19,7 @@ mod _core {
     pub use aoide_core::track::collection::*;
 }
 
-use crate::{entity::EntityUid, util::color::ColorArgb};
+use crate::{entity::EntityUid, util::color::ColorRgb};
 
 use chrono::{DateTime, Utc};
 
@@ -37,7 +37,7 @@ pub struct Collection {
     since: DateTime<Utc>,
 
     #[serde(rename = "c", skip_serializing_if = "Option::is_none")]
-    color: Option<ColorArgb>,
+    color: Option<ColorRgb>,
 
     #[serde(rename = "p", skip_serializing_if = "Option::is_none")]
     play_count: Option<usize>,
