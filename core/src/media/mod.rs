@@ -30,10 +30,31 @@ pub enum Content {
 // Artwork
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct ImageSize {
     pub width: u16,
     pub height: u16,
+}
+
+impl ImageSize {
+    pub fn is_empty(self) -> bool {
+        !(self.width > 0 && self.height > 0)
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum ImageSizeInvalidity {
+    Empty,
+}
+
+impl Validate for ImageSize {
+    type Invalidity = ImageSizeInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(self.is_empty(), ImageSizeInvalidity::Empty)
+            .into()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -53,6 +74,21 @@ pub struct Artwork {
     /// a preliminary view before the actual image has been loaded and
     /// for selecting a matching color scheme.
     pub background_color: Option<ColorRgb>,
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum ArtworkInvalidity {
+    ImageSize(ImageSizeInvalidity),
+}
+
+impl Validate for Artwork {
+    type Invalidity = ArtworkInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .validate_and_map(&self.size, ArtworkInvalidity::ImageSize)
+            .into()
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -78,6 +114,7 @@ pub enum SourceInvalidity {
     UriEmpty,
     ContentTypeEmpty,
     AudioContent(AudioContentInvalidity),
+    Artwork(ArtworkInvalidity),
 }
 
 impl Validate for Source {
@@ -89,7 +126,7 @@ impl Validate for Source {
             .invalidate_if(
                 self.content_type.trim().is_empty(),
                 SourceInvalidity::ContentTypeEmpty,
-            );
+            ).validate_and_map(&self.artwork, SourceInvalidity::Artwork);
         // TODO: Validate MIME type
         match self.content {
             Content::Audio(ref audio_content) => {
