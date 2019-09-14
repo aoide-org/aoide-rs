@@ -39,8 +39,7 @@ impl ColorRgb {
     pub const YELLOW: Self = ColorRgb(Self::RED_MASK | Self::GREEN_MASK);
     pub const MAGENTA: Self = ColorRgb(Self::RED_MASK | Self::BLUE_MASK);
     pub const CYAN: Self = ColorRgb(Self::GREEN_MASK | Self::BLUE_MASK);
-    pub const WHITE: Self =
-        ColorRgb(Self::RED_MASK | Self::GREEN_MASK | Self::BLUE_MASK);
+    pub const WHITE: Self = ColorRgb(Self::RED_MASK | Self::GREEN_MASK | Self::BLUE_MASK);
 
     pub fn code(self) -> ColorCode {
         self.0

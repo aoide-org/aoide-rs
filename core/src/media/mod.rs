@@ -15,7 +15,10 @@
 
 use super::*;
 
-use crate::{audio::{AudioContent, AudioContentInvalidity}, util::color::ColorRgb};
+use crate::{
+    audio::{AudioContent, AudioContentInvalidity},
+    util::color::ColorRgb,
+};
 
 ///////////////////////////////////////////////////////////////////////
 // Content
@@ -126,7 +129,8 @@ impl Validate for Source {
             .invalidate_if(
                 self.content_type.trim().is_empty(),
                 SourceInvalidity::ContentTypeEmpty,
-            ).validate_and_map(&self.artwork, SourceInvalidity::Artwork);
+            )
+            .validate_and_map(&self.artwork, SourceInvalidity::Artwork);
         // TODO: Validate MIME type
         match self.content {
             Content::Audio(ref audio_content) => {

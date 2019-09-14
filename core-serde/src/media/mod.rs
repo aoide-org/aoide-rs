@@ -78,15 +78,35 @@ pub struct Artwork {
 
 impl From<_core::Artwork> for Artwork {
     fn from(from: _core::Artwork) -> Self {
-        let _core::Artwork { size: _core::ImageSize { width, height }, fingerprint, uri, background_color } = from;
-        Self { size: ImageSize(width, height), fingerprint, uri, background_color: background_color.map(Into::into) }
+        let _core::Artwork {
+            size: _core::ImageSize { width, height },
+            fingerprint,
+            uri,
+            background_color,
+        } = from;
+        Self {
+            size: ImageSize(width, height),
+            fingerprint,
+            uri,
+            background_color: background_color.map(Into::into),
+        }
     }
 }
 
 impl From<Artwork> for _core::Artwork {
     fn from(from: Artwork) -> Self {
-        let Artwork { size: ImageSize(width, height), fingerprint, uri, background_color } = from;
-        Self { size: _core::ImageSize { width, height }, fingerprint, uri, background_color: background_color.map(Into::into) }
+        let Artwork {
+            size: ImageSize(width, height),
+            fingerprint,
+            uri,
+            background_color,
+        } = from;
+        Self {
+            size: _core::ImageSize { width, height },
+            fingerprint,
+            uri,
+            background_color: background_color.map(Into::into),
+        }
     }
 }
 
@@ -134,7 +154,7 @@ impl From<Source> for _core::Source {
             uri,
             content_type,
             content,
-            artwork
+            artwork,
         } = from;
         Self {
             uri,
