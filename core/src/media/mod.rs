@@ -70,7 +70,7 @@ pub struct Source {
 
     pub content: Content,
 
-    pub cover_art: Option<Artwork>,
+    pub artwork: Option<Artwork>,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]

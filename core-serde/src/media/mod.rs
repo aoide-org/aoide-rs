@@ -108,7 +108,7 @@ pub struct Source {
     content: Content,
 
     #[serde(rename = "a", skip_serializing_if = "Option::is_none")]
-    cover_art: Option<Artwork>,
+    artwork: Option<Artwork>,
 }
 
 impl From<_core::Source> for Source {
@@ -117,13 +117,13 @@ impl From<_core::Source> for Source {
             uri,
             content_type,
             content,
-            cover_art,
+            artwork,
         } = from;
         Self {
             uri,
             content_type,
             content: content.into(),
-            cover_art: cover_art.map(Into::into),
+            artwork: artwork.map(Into::into),
         }
     }
 }
@@ -134,13 +134,13 @@ impl From<Source> for _core::Source {
             uri,
             content_type,
             content,
-            cover_art
+            artwork
         } = from;
         Self {
             uri,
             content_type,
             content: content.into(),
-            cover_art: cover_art.map(Into::into),
+            artwork: artwork.map(Into::into),
         }
     }
 }
