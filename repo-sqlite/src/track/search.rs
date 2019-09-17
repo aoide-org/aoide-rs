@@ -162,6 +162,16 @@ impl TrackSearchQueryTransform for SortOrder {
                 SortDirection::Ascending => query.then_order_by(tbl_track::rev_ts.asc()),
                 SortDirection::Descending => query.then_order_by(tbl_track::rev_ts.desc()),
             },
+            SortField::MediaUri => match direction {
+                SortDirection::Ascending => query.then_order_by(aux_track_media::uri.asc()),
+                SortDirection::Descending => query.then_order_by(aux_track_media::uri.desc()),
+            },
+            SortField::MediaUriDecoded => match direction {
+                SortDirection::Ascending => query.then_order_by(aux_track_media::uri_decoded.asc()),
+                SortDirection::Descending => {
+                    query.then_order_by(aux_track_media::uri_decoded.desc())
+                }
+            },
             SortField::TrackTitle => match direction {
                 SortDirection::Ascending => query.then_order_by(aux_track_brief::track_title.asc()),
                 SortDirection::Descending => {

@@ -1320,6 +1320,7 @@ components:
       type: string
       enum:
         - mediaUri
+        - mediaUriDecoded
         - mediaType
         - trackTitle
         - trackArtist
@@ -1328,7 +1329,8 @@ components:
         - albumArtist
       description: |
         Selectable fields, including
-          * `mediaUri` - percent-decoded URI
+          * `mediaUri` - percent-encoded URI (RFC 3986)
+          * `mediaUriDecoded` - percent-decoded URI
           * `mediaType` - media type (RFC 6838)
           * ...
     StringPredicate:
@@ -1696,6 +1698,8 @@ components:
       enum:
         - inCollectionSince
         - lastRevisionedAt
+        - mediaUri
+        - mediaUriDecoded
         - trackTitle
         - trackArtist
         - trackNumber
@@ -1721,7 +1725,7 @@ components:
       example: >-
         file:///home/user/Music/album%20artist/album%20title/01%20the%20first%20track.mp3
       description: |
-        A percent-encoded URI.
+        A percent-encoded URI (RFC 3986).
     UriPredicate:
       oneOf:
         - $ref: '#/components/schemas/UriPredicatePrefix'

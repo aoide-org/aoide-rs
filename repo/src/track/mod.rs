@@ -24,7 +24,8 @@ use aoide_core::{
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum StringField {
-    MediaUri, // percent-decoded URI
+    MediaUri,        // percent-encoded URI
+    MediaUriDecoded, // percent-decoded URI
     MediaType,
     TrackTitle,
     TrackArtist,
@@ -78,6 +79,8 @@ pub struct LocateParams {
 pub enum SortField {
     InCollectionSince, // = recently added (only if searching in a single collection)
     LastRevisionedAt,  // = recently modified (created or updated)
+    MediaUri,          // percent-encoded URI
+    MediaUriDecoded,   // percent-encoded URI
     TrackTitle,
     TrackArtist,
     TrackNumber,

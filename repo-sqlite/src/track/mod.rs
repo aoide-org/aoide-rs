@@ -478,6 +478,26 @@ impl<'a> Repo for Repository<'a> {
             StringField::MediaUri => {
                 let mut target = aux_track_media::table
                     .select((
+                        aux_track_media::uri.nullable(),
+                        sql::<diesel::sql_types::BigInt>("count(*) AS count"),
+                    ))
+                    .group_by(aux_track_media::uri)
+                    .order_by(sql::<diesel::sql_types::BigInt>("count").desc())
+                    .then_order_by(aux_track_media::uri)
+                    .into_boxed();
+
+                if let Some(track_id_subselect) = track_id_subselect {
+                    target = target.filter(aux_track_media::track_id.eq_any(track_id_subselect));
+                }
+
+                // Pagination
+                target = apply_pagination(target, pagination);
+
+                target.load::<(Option<String>, i64)>(self.connection)?
+            }
+            StringField::MediaUriDecoded => {
+                let mut target = aux_track_media::table
+                    .select((
                         aux_track_media::uri_decoded.nullable(),
                         sql::<diesel::sql_types::BigInt>("count(*) AS count"),
                     ))
