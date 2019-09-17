@@ -60,9 +60,10 @@ impl EntityUid {
     }
 
     pub fn decode_str(mut self, encoded: &str) -> Result<Self, DecodeError> {
-        let decoded_len =
-            bs58::decode::decode_into(encoded.as_bytes(), &mut self.0, Self::BASE58_ALPHABET)
-                .map_err(DecodeError::InvalidInput)?;
+        let decoded_len = bs58::decode(encoded.as_bytes())
+            .with_alphabet(Self::BASE58_ALPHABET)
+            .into(&mut self.0)
+            .map_err(DecodeError::InvalidInput)?;
         if decoded_len != self.0.len() {
             return Err(DecodeError::InvalidLength);
         }
