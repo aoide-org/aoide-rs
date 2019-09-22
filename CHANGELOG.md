@@ -15,12 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.1] - 2019-09-22
 
-**This release introduces a backward incompatible API change. The parameter *mediaUri* has been replaced by *mediaUriDecoded*.**
+**This release introduces a backward-incompatible API change. The parameter *mediaUri* has been replaced by *mediaUriDecoded*.**
 
 ### Added
 
 - New string field *mediaUri* for filtering canonical, percent-encoded URIs
-- New string field *mediaUri* and *mediaUriDecoded for ordering search results
+- New string field *mediaUri* and *mediaUriDecoded* for ordering search results
 
 ### Changed
 
