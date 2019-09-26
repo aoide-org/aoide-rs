@@ -2,6 +2,7 @@
 
 jobs:
 
+# FIXME: LINK : fatal error LNK1181: cannot open input file 'sqlite3.lib'
 - job: Windows
   displayName: 'Windows'
   pool:
@@ -11,7 +12,6 @@ jobs:
   - script: |
       vcpkg integrate install
       vcpkg install sqlite3:x64-windows
-      # FIXME: LINK : fatal error LNK1181: cannot open input file 'sqlite3.lib'
     displayName: 'Install dependencies'
   - script: curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
     displayName: 'Install cargo'
