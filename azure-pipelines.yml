@@ -1,0 +1,74 @@
+# Inspired by: https://github.com/cloudflare/boringtun
+
+jobs:
+
+- job: Windows
+  displayName: 'Windows'
+  pool:
+    vmImage: 'windows-2019'
+  continueOnError: true
+  steps:
+  - script: |
+      vcpkg integrate install
+      vcpkg install sqlite3:x64-windows
+      # FIXME: LINK : fatal error LNK1181: cannot open input file 'sqlite3.lib'
+    displayName: 'Install dependencies'
+  - script: curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
+    displayName: 'Install cargo'
+  - script: |
+      PATH=%PATH%;%USERPROFILE%\.cargo\bin
+      cargo build --all
+    displayName: 'Build all'
+  - script: |
+      PATH=%PATH%;%USERPROFILE%\.cargo\bin
+      cargo test --all
+    displayName: 'Test all'
+
+- job: macOS
+  displayName: 'macOS'
+  pool:
+    vmImage: 'macOS-10.14'
+  continueOnError: true
+  steps:
+  - script: |
+      brew update
+      brew install sqlite3
+    displayName: 'Install dependencies'
+  - template: ci/azure-build.yml
+    parameters:
+      runBinaryTests: 'false'
+  - script: |
+      export PATH=$PATH:$HOME/.cargo/bin
+      rustup target add x86_64-apple-darwin
+      cargo build --all --target x86_64-apple-darwin
+    displayName: 'Build library for macOS'
+
+- job: Linux_x86_64
+  displayName: 'Linux x86-64'
+  pool:
+    vmImage: 'ubuntu-16.04'
+  continueOnError: true
+  steps:
+  - script: |
+      sudo apt-get update
+      sudo apt-get install sqlite3 libsqlite3-dev -y
+    displayName: 'Install dependencies'
+  - template: ci/azure-build.yml
+
+#- job: Linux_aarch64
+#  displayName: 'Linux aarch64'
+#  pool:
+#    name: default
+#    demands: agent.name -equals aarch64
+#  continueOnError: true
+#  steps:
+#  - template: ci/azure-build.yml
+
+#- job: Linux_armv7
+#  displayName: 'Linux armv7'
+#  pool:
+#    name: default
+#    demands: agent.name -equals armv7
+#  continueOnError: true
+#  steps:
+#  - template: ci/azure-build.yml
