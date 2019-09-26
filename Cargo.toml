@@ -30,8 +30,8 @@ aoide-repo = "*"
 aoide-repo-sqlite = "*"
 chrono = { version = "*", default-features = false }
 clap = "*"
-diesel = { version = "*", features = ["r2d2", "sqlite"] }
-diesel_migrations =  { version = "*", features = ["sqlite"] }
+diesel = { version = "*", default-features = false, features = ["r2d2", "sqlite"] }
+diesel_migrations =  { version = "*", default-features = false, features = ["sqlite"] }
 env_logger = "*"
 failure = { version = "*", default-features = false, features = ["std"] }
 futures = "*"
