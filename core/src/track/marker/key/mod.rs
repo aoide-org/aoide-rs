@@ -51,12 +51,12 @@ impl Validate for Marker {
         let mut context = ValidationContext::new();
         if let Some(end) = self.end {
             context = context
-                .validate_and_map(&end, MarkerInvalidity::End)
+                .validate_with(&end, MarkerInvalidity::End)
                 .invalidate_if(self.start > end, MarkerInvalidity::ReverseDirection);
         }
         context
-            .validate_and_map(&self.start, MarkerInvalidity::Start)
-            .validate_and_map(&self.key, MarkerInvalidity::Key)
+            .validate_with(&self.start, MarkerInvalidity::Start)
+            .validate_with(&self.key, MarkerInvalidity::Key)
             .into()
     }
 }
@@ -97,7 +97,7 @@ impl Markers {
                     ranges_violation = true;
                 }
                 min_pos = marker.start;
-                context.validate_and_map(marker, MarkersInvalidity::Marker)
+                context.validate_with(marker, MarkersInvalidity::Marker)
             })
             .invalidate_if(ranges_violation, MarkersInvalidity::Ranges)
             .into()

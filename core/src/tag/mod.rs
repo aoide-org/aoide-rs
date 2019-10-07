@@ -270,13 +270,13 @@ impl Validate for Tag {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .validate_and_map(&self.facet, TagInvalidity::Facet)
-            .validate_and_map(&self.label, TagInvalidity::Label)
+            .validate_with(&self.facet, TagInvalidity::Facet)
+            .validate_with(&self.label, TagInvalidity::Label)
             .invalidate_if(
                 self.facet.is_none() && self.label.is_none(),
                 TagInvalidity::BothFacetAndLabelMissing,
             )
-            .validate_and_map(&self.score, TagInvalidity::Score)
+            .validate_with(&self.score, TagInvalidity::Score)
             .into()
     }
 }
@@ -331,7 +331,7 @@ impl Tags {
         I: Iterator<Item = &'a Tag> + Clone,
     {
         let mut context = tags.clone().fold(ValidationContext::new(), |context, tag| {
-            context.validate_and_map(tag, TagsInvalidity::Tag)
+            context.validate_with(tag, TagsInvalidity::Tag)
         });
         let (plain, faceted): (Vec<_>, Vec<_>) = tags.partition(|tag| tag.facet.is_none());
         let mut grouped_by_facet = faceted.clone();

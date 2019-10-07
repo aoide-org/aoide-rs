@@ -227,8 +227,8 @@ impl Validate for EntityHeader {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .validate_and_map(&self.uid, EntityHeaderInvalidity::Uid)
-            .validate_and_map(&self.rev, EntityHeaderInvalidity::Revision)
+            .validate_with(&self.uid, EntityHeaderInvalidity::Uid)
+            .validate_with(&self.rev, EntityHeaderInvalidity::Revision)
             .into()
     }
 }
@@ -269,8 +269,8 @@ where
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .validate_and_map(&self.hdr, EntityInvalidity::Header)
-            .validate_and_map(&self.body, EntityInvalidity::Body)
+            .validate_with(&self.hdr, EntityInvalidity::Header)
+            .validate_with(&self.body, EntityInvalidity::Body)
             .into()
     }
 }

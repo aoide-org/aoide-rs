@@ -168,9 +168,9 @@ impl Validate for PcmSignal {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .validate_and_map(&self.channel_layout, PcmSignalInvalidity::ChannelLayout)
-            .validate_and_map(&self.sample_layout, PcmSignalInvalidity::SampleLayout)
-            .validate_and_map(&self.sample_rate, PcmSignalInvalidity::SampleRate)
+            .validate_with(&self.channel_layout, PcmSignalInvalidity::ChannelLayout)
+            .validate_with(&self.sample_layout, PcmSignalInvalidity::SampleLayout)
+            .validate_with(&self.sample_rate, PcmSignalInvalidity::SampleRate)
             .into()
     }
 }

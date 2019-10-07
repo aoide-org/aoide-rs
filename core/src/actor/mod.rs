@@ -111,7 +111,7 @@ impl Actors {
             .clone()
             .fold(ValidationContext::new(), |context, actor| {
                 at_least_one_actor = true;
-                context.validate_and_map(actor, ActorsInvalidity::Actor)
+                context.validate_with(actor, ActorsInvalidity::Actor)
             });
         if context.is_valid() {
             let mut roles: Vec<_> = actors.clone().map(|actor| actor.role).collect();

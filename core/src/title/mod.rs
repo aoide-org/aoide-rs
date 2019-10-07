@@ -84,7 +84,7 @@ impl Titles {
             .clone()
             .fold(ValidationContext::new(), |context, title| {
                 at_least_one_title = true;
-                context.validate_and_map(title, TitlesInvalidity::Title)
+                context.validate_with(title, TitlesInvalidity::Title)
             });
         if context.is_valid() && at_least_one_title {
             context = match Self::main_titles(titles).count() {

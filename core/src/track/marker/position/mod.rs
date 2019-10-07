@@ -113,8 +113,8 @@ impl Validate for MarkerData {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         let mut context = ValidationContext::new()
-            .validate_and_map(&self.start, MarkerDataInvalidity::Start)
-            .validate_and_map(&self.end, MarkerDataInvalidity::End);
+            .validate_with(&self.start, MarkerDataInvalidity::Start)
+            .validate_with(&self.end, MarkerDataInvalidity::End);
         if let Some(ref label) = self.label {
             context =
                 context.invalidate_if(label.trim().is_empty(), MarkerDataInvalidity::LabelEmpty)
@@ -184,7 +184,7 @@ impl Validate for Marker {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         let mut context =
-            ValidationContext::new().validate_and_map(self.data(), MarkerInvalidity::Data);
+            ValidationContext::new().validate_with(self.data(), MarkerInvalidity::Data);
         if let Err(invalidity) = self.data().validate_range_by_type(self.r#type()) {
             context = context.invalidate(MarkerInvalidity::Range(invalidity));
         }
@@ -216,7 +216,7 @@ impl Markers {
             .clone()
             .fold(ValidationContext::new(), |context, marker| {
                 context
-                    .validate_and_map(marker, MarkersInvalidity::Marker)
+                    .validate_with(marker, MarkersInvalidity::Marker)
                     .invalidate_if(
                         marker.r#type().is_singular()
                             && Self::count_by_type(markers.clone(), marker.r#type()) > 1,

@@ -183,12 +183,12 @@ impl Validate for AudioContent {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .validate_and_map(&self.channels, AudioContentInvalidity::Channels)
-            .validate_and_map(&self.duration, AudioContentInvalidity::Duration)
-            .validate_and_map(&self.sample_rate, AudioContentInvalidity::SampleRate)
-            .validate_and_map(&self.bit_rate, AudioContentInvalidity::BitRate)
-            .validate_and_map(&self.loudness, AudioContentInvalidity::Loudness)
-            .validate_and_map(&self.encoder, AudioContentInvalidity::Encoder)
+            .validate_with(&self.channels, AudioContentInvalidity::Channels)
+            .validate_with(&self.duration, AudioContentInvalidity::Duration)
+            .validate_with(&self.sample_rate, AudioContentInvalidity::SampleRate)
+            .validate_with(&self.bit_rate, AudioContentInvalidity::BitRate)
+            .validate_with(&self.loudness, AudioContentInvalidity::Loudness)
+            .validate_with(&self.encoder, AudioContentInvalidity::Encoder)
             .into()
     }
 }

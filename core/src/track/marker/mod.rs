@@ -56,15 +56,15 @@ impl Validate for Markers {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .map_and_merge_result(
+            .merge_result_with(
                 position::Markers::validate(self.positions.iter()),
                 MarkersInvalidity::Positions,
             )
-            .map_and_merge_result(
+            .merge_result_with(
                 beat::Markers::validate(self.beats.iter()),
                 MarkersInvalidity::Beats,
             )
-            .map_and_merge_result(
+            .merge_result_with(
                 key::Markers::validate(self.keys.iter()),
                 MarkersInvalidity::Keys,
             )

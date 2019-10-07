@@ -185,7 +185,7 @@ impl Validate for ReleasedAt {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         let context = ValidationContext::new();
         match self {
-            ReleasedAt::Date(date) => context.validate_and_map(date, ReleasedAtInvalidity::Date),
+            ReleasedAt::Date(date) => context.validate_with(date, ReleasedAtInvalidity::Date),
             ReleasedAt::DateTime(_) => context,
         }
         .into()
@@ -226,7 +226,7 @@ impl Validate for Release {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         let mut context = ValidationContext::new()
-            .validate_and_map(&self.released_at, ReleaseInvalidity::ReleasedAt);
+            .validate_with(&self.released_at, ReleaseInvalidity::ReleasedAt);
         if let Some(ref released_by) = self.released_by {
             context = context.invalidate_if(
                 released_by.trim().is_empty(),

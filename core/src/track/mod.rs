@@ -120,27 +120,27 @@ impl Validate for Track {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .map_and_merge_result(
+            .merge_result_with(
                 Collections::validate(self.collections.iter()),
                 TrackInvalidity::Collections,
             )
-            .map_and_merge_result(
+            .merge_result_with(
                 media::Sources::validate(self.media_sources.iter()),
                 TrackInvalidity::MediaSources,
             )
-            .map_and_merge_result(
+            .merge_result_with(
                 Titles::validate(self.titles.iter()),
                 TrackInvalidity::Titles,
             )
-            .map_and_merge_result(
+            .merge_result_with(
                 Actors::validate(self.actors.iter()),
                 TrackInvalidity::Actors,
             )
-            .validate_and_map(&self.album, TrackInvalidity::Album)
-            .validate_and_map(&self.release, TrackInvalidity::Release)
-            .validate_and_map(&self.indexes, TrackInvalidity::Indexes)
-            .validate_and_map(&self.markers, TrackInvalidity::Markers)
-            .map_and_merge_result(Tags::validate(self.tags.iter()), TrackInvalidity::Tags)
+            .validate_with(&self.album, TrackInvalidity::Album)
+            .validate_with(&self.release, TrackInvalidity::Release)
+            .validate_with(&self.indexes, TrackInvalidity::Indexes)
+            .validate_with(&self.markers, TrackInvalidity::Markers)
+            .merge_result_with(Tags::validate(self.tags.iter()), TrackInvalidity::Tags)
             .into()
     }
 }

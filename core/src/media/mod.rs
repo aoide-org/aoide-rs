@@ -89,7 +89,7 @@ impl Validate for Artwork {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .validate_and_map(&self.size, ArtworkInvalidity::ImageSize)
+            .validate_with(&self.size, ArtworkInvalidity::ImageSize)
             .into()
     }
 }
@@ -130,11 +130,11 @@ impl Validate for Source {
                 self.content_type.trim().is_empty(),
                 SourceInvalidity::ContentTypeEmpty,
             )
-            .validate_and_map(&self.artwork, SourceInvalidity::Artwork);
+            .validate_with(&self.artwork, SourceInvalidity::Artwork);
         // TODO: Validate MIME type
         match self.content {
             Content::Audio(ref audio_content) => {
-                context.validate_and_map(audio_content, SourceInvalidity::AudioContent)
+                context.validate_with(audio_content, SourceInvalidity::AudioContent)
             }
         }
         .into()
@@ -158,7 +158,7 @@ impl Sources {
         let mut context = sources
             .clone()
             .fold(ValidationContext::new(), |context, source| {
-                context.validate_and_map(source, SourcesInvalidity::Source)
+                context.validate_with(source, SourcesInvalidity::Source)
             });
         if context.is_valid() {
             let mut content_types: Vec<_> =

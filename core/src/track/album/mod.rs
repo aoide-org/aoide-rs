@@ -58,11 +58,11 @@ impl Validate for Album {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .map_and_merge_result(
+            .merge_result_with(
                 Titles::validate(self.titles.iter()),
                 AlbumInvalidity::Titles,
             )
-            .map_and_merge_result(
+            .merge_result_with(
                 Actors::validate(self.actors.iter()),
                 AlbumInvalidity::Actors,
             )

@@ -47,7 +47,7 @@ impl Validate for Collection {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .validate_and_map(&self.uid, CollectionInvalidity::Uid)
+            .validate_with(&self.uid, CollectionInvalidity::Uid)
             .into()
     }
 }
@@ -72,7 +72,7 @@ impl Collections {
         collections
             .clone()
             .fold(ValidationContext::new(), |context, collection| {
-                context.validate_and_map(collection, CollectionsInvalidity::Collection)
+                context.validate_with(collection, CollectionsInvalidity::Collection)
             })
             .invalidate_if(
                 uids.len() < collections.count(),
