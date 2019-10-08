@@ -12,6 +12,7 @@ jobs:
   - script: |
       vcpkg integrate install
       vcpkg install sqlite3:x64-windows
+      choco install sqlite --params "/NoTools"
     displayName: 'Install dependencies'
   - script: curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
     displayName: 'Install cargo'
