@@ -173,9 +173,7 @@ impl Validate for Channels {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         let context = ValidationContext::new();
         match self {
-            Channels::Count(ref count) => {
-                context.validate_with(count, ChannelsInvalidity::Count)
-            }
+            Channels::Count(ref count) => context.validate_with(count, ChannelsInvalidity::Count),
             Channels::Layout(ref layout) => {
                 context.validate_with(layout, ChannelsInvalidity::Layout)
             }
