@@ -248,7 +248,9 @@ impl TrackSearchQueryTransform for SortOrder {
     }
 }
 
-fn build_phrase_field_filter_expression(filter: &PhraseFieldFilter) -> TrackSearchBoxedExpression<'_> {
+fn build_phrase_field_filter_expression(
+    filter: &PhraseFieldFilter,
+) -> TrackSearchBoxedExpression<'_> {
     // Escape wildcard character with backslash (see below)
     let escaped_terms: Vec<_> = filter
         .terms

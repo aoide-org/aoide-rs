@@ -14,7 +14,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #![deny(missing_debug_implementations)]
-
 #![warn(rust_2018_idioms)]
 
 use aoide_core::entity::EntityHeader;
