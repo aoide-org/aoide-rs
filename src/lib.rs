@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#![deny(missing_debug_implementations)]
+
 #![warn(rust_2018_idioms)]
 
 pub mod api;
@@ -30,6 +32,7 @@ pub type SqliteConnectionPool = Pool<SqliteConnectionManager>;
 pub type SqlitePooledConnection = PooledConnection<SqliteConnectionManager>;
 
 #[derive(Clone)]
+#[allow(missing_debug_implementations)]
 pub struct SqliteExecutor {
     connection_pool: SqliteConnectionPool,
 }

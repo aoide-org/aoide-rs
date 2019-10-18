@@ -59,6 +59,7 @@ struct EntityWithStats {
     pub stats: EntityStats,
 }
 
+#[allow(missing_debug_implementations)]
 pub struct CollectionsHandler {
     db: SqlitePooledConnection,
 }

@@ -768,6 +768,7 @@ fn reply_with_json_content(reply: impl warp::Reply) -> impl warp::Reply {
     warp::reply::with_header(reply, "Content-Type", "application/json")
 }
 
+#[allow(missing_debug_implementations)]
 pub struct TracksHandler {
     db: SqlitePooledConnection,
 }
