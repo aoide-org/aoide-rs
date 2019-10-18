@@ -62,7 +62,7 @@ struct FacetVisitor;
 impl<'de> Visitor<'de> for FacetVisitor {
     type Value = Facet;
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str("Facet")
     }
 
@@ -121,7 +121,7 @@ struct LabelVisitor;
 impl<'de> Visitor<'de> for LabelVisitor {
     type Value = Label;
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str("Label")
     }
 
@@ -180,7 +180,7 @@ struct ScoreVisitor;
 impl<'de> Visitor<'de> for ScoreVisitor {
     type Value = Score;
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str("Score")
     }
 

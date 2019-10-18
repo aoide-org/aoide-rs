@@ -88,7 +88,7 @@ impl From<TickDuration> for std::time::Duration {
 }
 
 impl fmt::Display for TickDuration {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", chrono::Duration::from(*self))
     }
 }
@@ -139,7 +139,7 @@ impl From<TickInstant> for DateTime<Utc> {
 }
 
 impl fmt::Display for TickInstant {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", DateTime::<Utc>::from(*self))
     }
 }

@@ -53,7 +53,7 @@ struct ReleaseDateDeserializeVisitor;
 impl<'de> SerdeDeserializeVisitor<'de> for ReleaseDateDeserializeVisitor {
     type Value = ReleaseDate;
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_fmt(format_args!("4-digit YYYY or 8-digit YYYYMMDD integer"))
     }
 
@@ -111,7 +111,7 @@ struct ReleaseDateTimeDeserializeVisitor;
 impl<'de> SerdeDeserializeVisitor<'de> for ReleaseDateTimeDeserializeVisitor {
     type Value = ReleaseDateTime;
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_fmt(format_args!("RFC 3339 date/time string"))
     }
 

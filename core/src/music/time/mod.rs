@@ -59,7 +59,7 @@ impl Validate for TempoBpm {
 }
 
 impl fmt::Display for TempoBpm {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {}", self.0, Self::unit_of_measure())
     }
 }
@@ -109,7 +109,7 @@ impl Validate for TimeSignature {
 }
 
 impl fmt::Display for TimeSignature {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}/{}", self.top, self.bottom)
     }
 }

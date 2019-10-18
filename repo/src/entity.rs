@@ -27,7 +27,7 @@ pub enum EntityDataFormat {
 }
 
 impl fmt::Display for EntityDataFormat {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             EntityDataFormat::JSON => f.write_str("JSON"),
         }
@@ -59,7 +59,7 @@ impl EntityDataVersion {
 }
 
 impl fmt::Display for EntityDataVersion {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}.{}", self.major, self.minor)
     }
 }

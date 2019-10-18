@@ -17,6 +17,8 @@
 
 #![deny(missing_debug_implementations)]
 
+#![warn(rust_2018_idioms)]
+
 use serde::{Deserialize, Serialize};
 use serde_repr::*;
 

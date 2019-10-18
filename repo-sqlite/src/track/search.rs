@@ -248,7 +248,7 @@ impl TrackSearchQueryTransform for SortOrder {
     }
 }
 
-fn build_phrase_field_filter_expression(filter: &PhraseFieldFilter) -> TrackSearchBoxedExpression {
+fn build_phrase_field_filter_expression(filter: &PhraseFieldFilter) -> TrackSearchBoxedExpression<'_> {
     // Escape wildcard character with backslash (see below)
     let escaped_terms: Vec<_> = filter
         .terms
@@ -423,7 +423,7 @@ fn build_phrase_field_filter_expression(filter: &PhraseFieldFilter) -> TrackSear
 
 fn build_numeric_field_filter_expression(
     filter: &NumericFieldFilter,
-) -> TrackSearchBoxedExpression {
+) -> TrackSearchBoxedExpression<'_> {
     use NumericField::*;
     use NumericPredicate::*;
     match filter.field {
@@ -681,7 +681,7 @@ fn build_numeric_field_filter_expression(
     }
 }
 
-fn build_tag_filter_expression(filter: &TagFilter) -> TrackSearchBoxedExpression {
+fn build_tag_filter_expression(filter: &TagFilter) -> TrackSearchBoxedExpression<'_> {
     let (subselect, filter_modifier) = select_track_ids_matching_tag_filter(&filter);
     match filter_modifier {
         None => Box::new(tbl_track::id.eq_any(subselect)),
@@ -689,7 +689,7 @@ fn build_tag_filter_expression(filter: &TagFilter) -> TrackSearchBoxedExpression
     }
 }
 
-fn build_marker_label_filter_expression(filter: &StringFilter) -> TrackSearchBoxedExpression {
+fn build_marker_label_filter_expression(filter: &StringFilter) -> TrackSearchBoxedExpression<'_> {
     let (subselect, filter_modifier) = select_track_ids_matching_marker_filter(filter);
     match filter_modifier {
         None => Box::new(tbl_track::id.eq_any(subselect)),

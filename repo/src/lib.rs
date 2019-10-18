@@ -15,6 +15,8 @@
 
 #![deny(missing_debug_implementations)]
 
+#![warn(rust_2018_idioms)]
+
 use aoide_core::entity::EntityHeader;
 
 use failure::bail;

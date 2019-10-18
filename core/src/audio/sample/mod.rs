@@ -45,7 +45,7 @@ impl Validate for SampleLayout {
 }
 
 impl fmt::Display for SampleLayout {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", *self)
     }
 }
@@ -62,7 +62,7 @@ pub enum SampleFormat {
 }
 
 impl fmt::Display for SampleFormat {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", *self)
     }
 }

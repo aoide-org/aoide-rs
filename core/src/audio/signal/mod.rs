@@ -60,7 +60,7 @@ impl Validate for BitRateBps {
 }
 
 impl fmt::Display for BitRateBps {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {}", self.0, Self::unit_of_measure())
     }
 }
@@ -128,7 +128,7 @@ impl Validate for SampleRateHz {
 }
 
 impl fmt::Display for SampleRateHz {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {}", self.0, Self::unit_of_measure())
     }
 }
@@ -226,7 +226,7 @@ impl Validate for LatencyMs {
 }
 
 impl fmt::Display for LatencyMs {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {}", self.0, Self::unit_of_measure())
     }
 }
@@ -267,7 +267,7 @@ impl Validate for LoudnessLufs {
 }
 
 impl fmt::Display for LoudnessLufs {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {}", self.0, Self::unit_of_measure())
     }
 }

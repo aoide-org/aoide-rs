@@ -53,7 +53,7 @@ struct EntityUidDeserializeVisitor;
 impl<'de> SerdeDeserializeVisitor<'de> for EntityUidDeserializeVisitor {
     type Value = EntityUid;
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_fmt(format_args!("base58 encoded string"))
     }
 

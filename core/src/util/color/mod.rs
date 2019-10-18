@@ -47,7 +47,7 @@ impl ColorRgb {
 }
 
 impl fmt::Display for ColorRgb {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // "#RRGGBB"
         write!(f, "{}{:06X}", Self::STRING_PREFIX, self.code())
     }
@@ -61,7 +61,7 @@ pub enum ParseError {
 }
 
 impl fmt::Display for ParseError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use ParseError::*;
         match self {
             InputLen => write!(

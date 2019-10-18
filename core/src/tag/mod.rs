@@ -89,7 +89,7 @@ impl From<ScoreValue> for Score {
 }
 
 impl fmt::Display for Score {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         debug_assert!(self.validate().is_ok());
         write!(f, "{:.1}%", self.to_percentage())
     }
@@ -160,7 +160,7 @@ impl FromStr for Label {
 }
 
 impl fmt::Display for Label {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.0)
     }
 }
@@ -241,7 +241,7 @@ impl FromStr for Facet {
 }
 
 impl fmt::Display for Facet {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.0)
     }
 }

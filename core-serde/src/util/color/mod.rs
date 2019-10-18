@@ -59,7 +59,7 @@ struct ColorDeserializeVisitor;
 impl<'de> SerdeDeserializeVisitor<'de> for ColorDeserializeVisitor {
     type Value = ColorRgb;
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str("a color code string '#AARRGGBB'")
     }
 

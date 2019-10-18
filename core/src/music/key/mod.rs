@@ -82,7 +82,7 @@ impl Validate for KeySignature {
 }
 
 impl fmt::Display for KeySignature {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.code())
     }
 }
@@ -140,7 +140,7 @@ impl From<OpenKeySignature> for KeySignature {
 }
 
 impl fmt::Display for OpenKeySignature {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "{}{}",
@@ -206,7 +206,7 @@ impl From<LancelotKeySignature> for KeySignature {
 }
 
 impl fmt::Display for LancelotKeySignature {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "{}{}",

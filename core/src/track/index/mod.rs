@@ -69,7 +69,7 @@ impl Validate for Index {
 }
 
 impl fmt::Display for Index {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match (self.number(), self.total()) {
             (None, None) => f.write_str(""),
             (Some(number), None) => write!(f, "{}", number),

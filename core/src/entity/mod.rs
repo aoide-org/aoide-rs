@@ -109,7 +109,7 @@ impl AsMut<[u8]> for EntityUid {
 }
 
 impl fmt::Display for EntityUid {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.encode_to_string())
     }
 }
@@ -188,7 +188,7 @@ impl Validate for EntityRevision {
 }
 
 impl fmt::Display for EntityRevision {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}@{}", self.ver, self.ts)
     }
 }

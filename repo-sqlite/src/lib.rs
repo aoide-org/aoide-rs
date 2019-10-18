@@ -14,7 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #![deny(missing_debug_implementations)]
-//#![recursion_limit = "128"]
+
+#![warn(rust_2018_idioms)]
 
 // The following workaround is need to avoid cluttering the code with
 // #[cfg_attr(feature = "diesel", ...)] to specify custom diesel

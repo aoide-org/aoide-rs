@@ -56,7 +56,7 @@ impl Validate for PositionMs {
 }
 
 impl fmt::Display for PositionMs {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:+} {}", self.0, Self::unit_of_measure())
     }
 }
@@ -116,7 +116,7 @@ impl From<Duration> for DurationMs {
 }
 
 impl fmt::Display for DurationMs {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {}", self.0, Self::unit_of_measure())
     }
 }

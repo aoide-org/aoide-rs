@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#![recursion_limit = "128"]
+#![warn(rust_2018_idioms)]
 
 mod cli;
 mod env;
