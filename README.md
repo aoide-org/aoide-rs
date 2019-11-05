@@ -1,67 +1,92 @@
-# aoide-rs
+![aoide banner](resources/aoide_banner_1500x500.png)
 
-A web service for managing and exploring music collections.
+# aoide - All about music
 
-## Domain Concepts
+A local HTTP/REST service for managing and exploring music collections. Independent and portable. Written in Rust.
 
-### Track
+## Fundamentals
 
-The domain model is centered around the concept of individual *tracks* with detailed metadata:
+### Collections and tracks
 
-- Multiple independent sources (URI) and data formats (MP3, AAC, FLAC, ...) per track
-- Both track and album titles on different levels (main title, subtitle, classical work, classical movement)
-- Both track and album actors with different roles (artist, composer, performer, ...)
-- Release (date, label, ...) and licensing information
-- Various audio und musical properties
-- Position, beat, and key markers for live performance and mixing
-- *Faceted and scored tags*
-  - Custom properties (genre, mood, style, epoch, comment, rating, ...)
-  - Feature analysis results (energy, valence, danceability, ...)
-  - ...
+A music _collection_ is an aggregation of _tracks_ or songs. Tracks can
+belong to multiple collections.
 
-### Collection
+### Tracks
 
-Tracks belong to one or more *collections*.
+The nature of tracks is twofold. The actual content of a track is the
+audio stream, encoded with some _audio codec_. The other part is metadata
+about this content, like an _artist_ or a _title_.
 
-## Design Principles
+Some or all of this metadata could be stored together with the audio stream
+in a file format like _MP3_ with _ID3v2_ tags or an _MP4_ container with
+_atoms_. If the audio stream is not stored locally but provided by a streaming
+service then this metadata might be obtained separately through an API
+request.
 
-### Interoperability
+### Playlists and crates
 
-The universal track domain model with its detailed metadata and a customizable tagging scheme
-should cover many use cases and existing data models, ranging from casual music players to
-dedicated DJ apps.
+Traditionally music collections are organized into _playlists_ (ordered) or
+_crates_ (unordered). Both playlists and crates are _static_, i.e. tracks
+are assigned independent of their metadata. Modifying the metadata will not
+change the membership to playlists and crates.
 
-### Synchronization
+Some applications allow defining _dynamic_ playlists or crates. In this
+case, the membership is defined by a _selection criteria_. Their internal
+ordering (in case of playlists) is defined by a _sort criteria_.
 
-Both *tracks* and *collections* are referenced by globally unique identifiers for offline
-usage and independent operation.
+### Tags
 
-Track entities are revisioned to allow synchronization of file tags and synchronization
-with external libraries. The synchronization algorithms are not part of this service
-that is agnostic of any client software.
+Metadata is usually restricted to predefined properties that are not
+extensible. Aoide allows assigning custom metadata through _tags_.
 
-### Restrictions
+Only a basic set of properties is predefined, everything else can be
+covered by tags. Even the common property _genre_ is encoded as a tag
+and allows one to assign multiple values. We will revisit this example in
+a moment.
 
-Common music and DJ apps allow to arrange a selection of tracks into *playlists* or *crates*.
-Playlists are manually ordered lists of tracks that may contain duplicate entries. Crates are
-unordered sets of tracks without any duplicate entries.
+#### Plain tags
 
-Aoide currently supports none of those static track selections. Instead dynamic queries with
-filter and ordering criteria are proposed for selecting a subset of tracks from a collection.
+The public value of a tag is stored in the _label_. Each tag may be
+assigned a _score_ between 1.0 (= maximum/default) and 0.0 (= minimum).
+Tags with only a _label_ and _score_ are called _plain tags_.
 
-Crates can be simulated by assigning dedicated *tags*, e.g. with a dedicated *facet* named 'crate'.
-This is actually a special case of *virtual crates* that are implemented by storing and executing
-arbitrary *prepared queries*.
+#### Faceted tags
 
-## Technology
+_Faceted tags_ allow storing multiple, different _labels_ for the same
+_facet_. Tags with the same facet can be prioritized among each other by
+assigning a _score_ like for _plain tags_.
 
-- Cross-platform REST API (OpenAPI)
-- Portable domain model (JSON)
-- Hybrid relational/document-oriented database (SQLite)
-- Standalone static executable with no dependencies (optional, see below)
-- Safely written in *stable* Rust
+A typical use case for multi-valued, faceted tags is the _musical genre_.
+The musical genre of a track is manifold and ambiguous with a varying
+degree of association. It is (by convention) represented by the facet
+"genre". The different labels might contain values like "Pop", "Rock",
+"R&B/Soul", "Hip-Hop/Rap", ... each with a _score_ that represents the
+perceived relationship to this genre. Ordering the tag labels by their
+descending score value reveals the main genre(s).
 
-## Development
+Faceted tags and their score could also be used to store feature analysis
+results of the audio data like energy, valence, or danceability for
+encoding a huge amount of musical knowledge about the collected tracks
+and to perform clustering on this data.
+
+### Queries
+
+Aoide does neither support playlists nor crates (yet). Instead, powerful
+queries with filtering and sorting criteria can be defined by clients.
+The criteria of those queries can refer to both predefined textual or
+numerical properties as well as all custom tags with their facet, label,
+and score.
+
+## Integrations
+
+### Mixxx (experimental)
+
+A proof-of-concept for integrating _aoide_ with [Mixxx](https://www.mixxx.org)
+is available in this [PR #2282](https://github.com/mixxxdj/mixxx/pull/2282)
+for testing.
+
+## Build & run
+[Build & run]: #build-and-run
 
 ### Executable
 
@@ -106,16 +131,16 @@ Build and run the unit tests with the following command:
 cargo test --all --verbose -- --nocapture
 ```
 
-## Deployment
+## Deploy
 
 ### Native
 
-Follow the instructions in _Development_ for building a dynamically linked executable
-for the host system.
+Follow the instructions in [Build & run](#build-and-run) for building a dynamically
+linked executable for the host system.
 
 ### Docker
 
-#### Build
+#### Docker build
 
 ```sh
 docker build -t aoide:latest .
@@ -124,7 +149,7 @@ docker build -t aoide:latest .
 The final image is created `FROM scratch` and does not provide any user environment or shell.
 It contains just the statically linked executable that can be extracted with `docker cp`.
 
-#### Run
+#### Docker run
 
 The container exposes the internal port 8080 for publishing to the host. The volume that
 hosts the SQLite database is mounted at /data.
@@ -139,13 +164,13 @@ docker run --rm \
     aoide:latest
 ```
 
-This will start the instance with the the database file stored in the current working directory.
+This will start the instance with the database file stored in the current working directory.
 
 ## API
 
-### Command Line
+### CLI
 
-The server is configured at startup with various command line parameters.
+The server is configured at startup with various command line parameters. Use the command-line argument `--help` for an overview.
 
 ### REST
 
