@@ -1,4 +1,4 @@
-![aoide banner](resources/aoide_banner_1500x500.png)
+![aoide banner](resources/aoide_banner_1280x340.png)
 
 # aoide - All about music
 
