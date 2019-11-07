@@ -34,7 +34,7 @@ diesel = { version = "*", default-features = false, features = ["r2d2", "sqlite"
 diesel_migrations =  { version = "*", default-features = false, features = ["sqlite"] }
 env_logger = "*"
 failure = { version = "*", default-features = false, features = ["std"] }
-futures = "*"
+futures = "0.1"
 log = "*"
 semval = "*"
 serde = "*"
