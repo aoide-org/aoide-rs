@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.3.2] - 2019-11-08
+
+### Changed
+
+- Updated OpenAPI spec
+
 ## [0.3.1] - 2019-09-22
 
 **This release introduces a backward-incompatible API change. The parameter *mediaUri* has been replaced by *mediaUriDecoded*.**
@@ -192,9 +198,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial public release
 
-[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.3.1...development
+[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.3.2...development
+[0.3.2]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.3.2
 [0.3.1]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.3.1
 [0.3.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.3.0
 [0.2.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.2.0
-[0.1.1]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.1.1
-[0.1.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.1.0

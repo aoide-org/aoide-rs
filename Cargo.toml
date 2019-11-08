@@ -1,6 +1,6 @@
 [package]
 name = "aoide"
-version = "0.3.1"
+version = "0.3.2"
 authors = [ "Uwe Klotz <uwe.klotz@gmail>", "et al." ]
 license = "AGPL-3.0-or-later"
 description = "A web service for managing and exploring music collections"

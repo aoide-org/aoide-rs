@@ -1,6 +1,6 @@
 openapi: 3.0.2
 info:
-  version: 0.3.1
+  version: 0.3.2
   title: aoide
   description: Music library management
   license:
@@ -538,7 +538,7 @@ components:
       in: query
       required: false
       schema:
-        $ref: '#/components/schemas/EntityUid'
+        $ref: '#/components/schemas/CollectionUid'
       description: |
         An optional UID for selecting a single collection or none for all
         collections.
@@ -547,7 +547,7 @@ components:
       in: path
       required: true
       schema:
-        $ref: '#/components/schemas/EntityUid'
+        $ref: '#/components/schemas/CollectionUid'
       description: |
         The UID of the collection.
     trackUidPath:
@@ -555,7 +555,7 @@ components:
       in: path
       required: true
       schema:
-        $ref: '#/components/schemas/EntityUid'
+        $ref: '#/components/schemas/TrackUid'
       description: |
         The UID of the track.
     withCollectionQuery:
@@ -794,6 +794,9 @@ components:
           $ref: '#/components/schemas/TotalCount'
       required:
         - totalCount
+    CollectionUid:
+      oneOf:
+        - $ref: '#/components/schemas/EntityUid'
     Color:
       type: string
       minLength: 7
@@ -872,10 +875,10 @@ components:
       items:
         oneOf:
           - $ref: '#/components/schemas/EntityRevisionVersion'
-          - $ref: '#/components/schemas/EntityRevisionTimeStamp'
+          - $ref: '#/components/schemas/EntityRevisionInstant'
       description: |
         Tuple of 2 elements containing a version number and a time stamp.
-    EntityRevisionTimeStamp:
+    EntityRevisionInstant:
       type: integer
       format: int64
       example: 1552823952261838
@@ -889,7 +892,7 @@ components:
       minLength: 32
       maxLength: 33
       example: 4L9v84JeigpHxEdtVHUkL6JASD92sDwdW
-      description: A globally unique identifier (UID) for entities in base-58 encoding.
+      description: A unique identifier (UID) for entities in base-58 encoding.
     FacetedTag:
       description: |
         Either a single facet or [facet, score], [facet, label], [facet, label, score].
@@ -1277,6 +1280,7 @@ components:
       enum:
         - update-only
         - update-or-create
+      example: update-or-create
       description: |
         Operational mode for resolving conflicts during replacement
           * `update-only` - only update existing entities and discard new entities that need to be created
@@ -1561,9 +1565,11 @@ components:
       description: |
         Total number of occurrences.
     TrackCollection:
+      description: |
+        Track properties that are dependent on the collection.
       properties:
         u:
-          $ref: '#/components/schemas/EntityUid'
+          $ref: '#/components/schemas/CollectionUid'
         t:
           $ref: '#/components/schemas/SinceTimeStamp'
         c:
@@ -1574,6 +1580,7 @@ components:
           type: integer
           format: int64
           minimum: 0
+          example: 4
       required:
         - u
         - t
@@ -1719,6 +1726,9 @@ components:
         oneOf:
           - $ref: '#/components/schemas/TrackSortField'
           - $ref: '#/components/schemas/SortDirection'
+    TrackUid:
+      oneOf:
+        - $ref: '#/components/schemas/EntityUid'
     Uri:
       type: string
       minLength: 1
