@@ -262,14 +262,15 @@ pub struct BeatMarker {
     #[serde(rename = "t", skip_serializing_if = "Option::is_none")]
     pub timing: Option<TimeSignature>,
 
-    /// The beat 1..n (with n = `timing.beats_per_measure()`) in a bar or 0 if unknown
     #[serde(rename = "n", skip_serializing_if = "Option::is_none")]
-    pub beat: Option<_core::BeatNumber>,
+    pub start_beat: Option<_core::BeatNumber>,
 }
 
 impl From<_core::BeatMarker> for BeatMarker {
     fn from(from: _core::BeatMarker) -> Self {
         Self {
+            state: from.state.into(),
+            source: from.source,
             start: from.start.into(),
             end: from.end.map(Into::into),
             tempo: if from.tempo == Default::default() {
@@ -282,13 +283,11 @@ impl From<_core::BeatMarker> for BeatMarker {
             } else {
                 Some(from.timing.into())
             },
-            beat: if from.beat == _core::BeatNumber::default() {
+            start_beat: if from.start_beat == _core::BeatNumber::default() {
                 None
             } else {
-                Some(from.beat)
+                Some(from.start_beat)
             },
-            state: from.state.into(),
-            source: from.source,
         }
     }
 }
@@ -296,13 +295,13 @@ impl From<_core::BeatMarker> for BeatMarker {
 impl From<BeatMarker> for _core::BeatMarker {
     fn from(from: BeatMarker) -> Self {
         Self {
+            state: from.state.into(),
+            source: from.source,
             start: from.start.into(),
             end: from.end.map(Into::into),
             tempo: from.tempo.map(Into::into).unwrap_or_default(),
             timing: from.timing.map(Into::into).unwrap_or_default(),
-            beat: from.beat.map(Into::into).unwrap_or_default(),
-            state: from.state.into(),
-            source: from.source,
+            start_beat: from.start_beat.map(Into::into).unwrap_or_default(),
         }
     }
 }

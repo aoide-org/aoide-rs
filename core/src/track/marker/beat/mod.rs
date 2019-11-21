@@ -38,8 +38,9 @@ pub struct Marker {
 
     pub timing: TimeSignature,
 
-    /// The beat 1..n (with n = `timing.beats_per_measure()`) in a bar or 0 if unknown
-    pub beat: BeatNumber,
+    /// The beat 1..n in a bar (with n = `timing.beats_per_measure()`)
+    /// at the start position or 0 if unknown/undefined.
+    pub start_beat: BeatNumber,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -72,7 +73,7 @@ impl Validate for Marker {
                 MarkerInvalidity::BothTempoAndTimingMissing,
             )
             .invalidate_if(
-                !self.timing.is_default() && !self.beat.is_zero() && self.beat > self.timing.top,
+                !self.timing.is_default() && !self.start_beat.is_zero() && self.start_beat > self.timing.top,
                 MarkerInvalidity::BeatNumberInvalid,
             )
             .into()
