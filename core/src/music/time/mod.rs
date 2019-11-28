@@ -88,7 +88,6 @@ impl TimeSignature {
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum TimeSignatureInvalidity {
     TopLowerBound(BeatNumber, BeatNumber),
-    BottomLowerBound(BeatNumber, BeatNumber),
 }
 
 impl Validate for TimeSignature {
@@ -97,12 +96,8 @@ impl Validate for TimeSignature {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
             .invalidate_if(
-                self.top < 1,
+                self.top < 1 && self.bottom > 0,
                 TimeSignatureInvalidity::TopLowerBound(1, self.top),
-            )
-            .invalidate_if(
-                self.bottom < 1,
-                TimeSignatureInvalidity::BottomLowerBound(1, self.bottom),
             )
             .into()
     }
