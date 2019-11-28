@@ -18,7 +18,6 @@ use super::*;
 use crate::{
     audio::{PositionMs, PositionMsInvalidity},
     music::key::*,
-    util::IsDefault,
 };
 
 use std::f64;
@@ -74,7 +73,7 @@ impl Markers {
     pub fn uniform_key(markers: &[Marker]) -> Option<KeySignature> {
         let mut key = None;
         for marker in markers {
-            if !marker.key.is_default() {
+            if marker.key.is_valid() {
                 if let Some(key) = key {
                     if marker.key != key {
                         return None;

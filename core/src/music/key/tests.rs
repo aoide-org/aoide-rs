@@ -17,7 +17,12 @@ use super::*;
 
 #[test]
 fn default_key_sig() {
-    assert!(KeySignature::default().validate().is_err());
+    assert!(KeySignature::default().validate().is_ok());
+}
+
+#[test]
+fn invalid_key_code() {
+    assert!(KeySignature(KeySignature::max_code() + 1).validate().is_err());
 }
 
 #[test]

@@ -54,11 +54,15 @@ impl KeySignature {
         self.0
     }
 
-    pub fn mode(self) -> KeyMode {
-        match self.code() % 2 {
-            0 => KeyMode::Minor,
-            1 => KeyMode::Major,
-            _ => unreachable!(),
+    pub fn mode(self) -> Option<KeyMode> {
+        if Self::is_valid_code(self.code()) {
+            Some(match self.code() % 2 {
+                0 => KeyMode::Minor,
+                1 => KeyMode::Major,
+                _ => unreachable!(),
+            })
+        } else {
+            None
         }
     }
 }
@@ -74,7 +78,7 @@ impl Validate for KeySignature {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
             .invalidate_if(
-                !Self::is_valid_code(self.code()),
+                self.0 > KeySignature::max_code(),
                 KeySignatureInvalidity::Invalid,
             )
             .into()
@@ -83,7 +87,7 @@ impl Validate for KeySignature {
 
 impl fmt::Display for KeySignature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.code())
+        write!(f, "{}", self.0)
     }
 }
 
@@ -122,7 +126,7 @@ impl OpenKeySignature {
         1 + (self.0.code() - 1) / 2
     }
 
-    pub fn mode(self) -> KeyMode {
+    pub fn mode(self) -> Option<KeyMode> {
         self.0.mode()
     }
 }
@@ -141,15 +145,19 @@ impl From<OpenKeySignature> for KeySignature {
 
 impl fmt::Display for OpenKeySignature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}{}",
-            self.code(),
-            match self.mode() {
-                KeyMode::Major => 'd',
-                KeyMode::Minor => 'm',
-            }
-        )
+        if let Some(mode) = self.mode() {
+            write!(
+                f,
+                "{}{}",
+                self.code(),
+                match mode {
+                    KeyMode::Major => 'd',
+                    KeyMode::Minor => 'm',
+                }
+            )
+        } else {
+            write!(f, "{}", self.code(),)
+        }
     }
 }
 
@@ -188,7 +196,7 @@ impl LancelotKeySignature {
         1 + ((self.0.code() + 13) / 2) % 12
     }
 
-    pub fn mode(self) -> KeyMode {
+    pub fn mode(self) -> Option<KeyMode> {
         self.0.mode()
     }
 }
@@ -207,15 +215,23 @@ impl From<LancelotKeySignature> for KeySignature {
 
 impl fmt::Display for LancelotKeySignature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}{}",
-            self.code(),
-            match self.mode() {
-                KeyMode::Major => 'B',
-                KeyMode::Minor => 'A',
-            }
-        )
+        if let Some(mode) = self.mode() {
+            write!(
+                f,
+                "{}{}",
+                self.code(),
+                match mode {
+                    KeyMode::Major => 'B',
+                    KeyMode::Minor => 'A',
+                }
+            )
+        } else {
+            write!(
+                f,
+                "{}",
+                self.code(),
+            )
+        }
     }
 }
 
