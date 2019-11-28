@@ -43,6 +43,32 @@ pub struct Marker {
     pub start_beat: BeatNumber,
 }
 
+impl Marker {
+    pub fn tempo(&self) -> Option<TempoBpm> {
+        if self.tempo.is_default() {
+            None
+        } else {
+            Some(self.tempo)
+        }
+    }
+
+    pub fn timing(&self) -> Option<TimeSignature> {
+        if self.timing.is_default() {
+            None
+        } else {
+            Some(self.timing)
+        }
+    }
+
+    pub fn start_beat(&self) -> Option<BeatNumber> {
+        if self.start_beat.is_zero() {
+            None
+        } else {
+            Some(self.start_beat)
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug)]
 pub enum MarkerInvalidity {
     Start(PositionMsInvalidity),
@@ -51,7 +77,7 @@ pub enum MarkerInvalidity {
     Tempo(TempoBpmInvalidity),
     Timing(TimeSignatureInvalidity),
     BothTempoAndTimingMissing,
-    BeatNumberInvalid,
+    StartBeatInvalid,
 }
 
 impl Validate for Marker {
@@ -66,15 +92,15 @@ impl Validate for Marker {
         }
         context
             .validate_with(&self.start, MarkerInvalidity::Start)
-            .validate_with(&self.tempo, MarkerInvalidity::Tempo)
-            .validate_with(&self.timing, MarkerInvalidity::Timing)
+            .validate_with(&self.tempo(), MarkerInvalidity::Tempo)
+            .validate_with(&self.timing(), MarkerInvalidity::Timing)
             .invalidate_if(
-                self.tempo.is_default() && self.timing.is_default(),
+                self.tempo().is_none() && self.timing().is_none(),
                 MarkerInvalidity::BothTempoAndTimingMissing,
             )
             .invalidate_if(
-                !self.timing.is_default() && !self.start_beat.is_zero() && self.start_beat > self.timing.top,
-                MarkerInvalidity::BeatNumberInvalid,
+                self.timing().is_some() && self.start_beat().is_some() && self.start_beat > self.timing.top,
+                MarkerInvalidity::StartBeatInvalid,
             )
             .into()
     }
@@ -93,7 +119,7 @@ impl Markers {
     pub fn uniform_tempo(markers: &[Marker]) -> Option<TempoBpm> {
         let mut tempo = None;
         for marker in markers {
-            if !marker.tempo.is_default() {
+            if marker.tempo.is_valid() {
                 if let Some(tempo) = tempo {
                     if marker.tempo != tempo {
                         return None;
@@ -122,3 +148,6 @@ impl Markers {
             .into()
     }
 }
+
+#[cfg(test)]
+mod tests;
