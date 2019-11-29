@@ -58,11 +58,11 @@ pub struct MarkerData {
 
     pub end: Option<PositionMs>,
 
-    pub label: Option<String>,
-
     pub number: Option<i32>,
 
     pub color: Option<ColorRgb>,
+
+    pub label: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug)]

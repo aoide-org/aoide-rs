@@ -18,10 +18,8 @@ use super::*;
 use crate::{
     audio::{PositionMs, PositionMsInvalidity},
     music::time::*,
-    util::IsDefault,
 };
 
-use num_traits::identities::Zero;
 use std::f64;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -34,39 +32,13 @@ pub struct Marker {
 
     pub end: Option<PositionMs>,
 
-    pub tempo: TempoBpm,
+    pub tempo: Option<TempoBpm>,
 
-    pub timing: TimeSignature,
+    pub timing: Option<TimeSignature>,
 
     /// The beat 1..n in a bar (with n = `timing.beats_per_measure()`)
     /// at the start position or 0 if unknown/undefined.
-    pub start_beat: BeatNumber,
-}
-
-impl Marker {
-    pub fn tempo(&self) -> Option<TempoBpm> {
-        if self.tempo.is_default() {
-            None
-        } else {
-            Some(self.tempo)
-        }
-    }
-
-    pub fn timing(&self) -> Option<TimeSignature> {
-        if self.timing.is_default() {
-            None
-        } else {
-            Some(self.timing)
-        }
-    }
-
-    pub fn start_beat(&self) -> Option<BeatNumber> {
-        if self.start_beat.is_zero() {
-            None
-        } else {
-            Some(self.start_beat)
-        }
-    }
+    pub start_beat: Option<BeatNumber>,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -92,14 +64,14 @@ impl Validate for Marker {
         }
         context
             .validate_with(&self.start, MarkerInvalidity::Start)
-            .validate_with(&self.tempo(), MarkerInvalidity::Tempo)
-            .validate_with(&self.timing(), MarkerInvalidity::Timing)
+            .validate_with(&self.tempo, MarkerInvalidity::Tempo)
+            .validate_with(&self.timing, MarkerInvalidity::Timing)
             .invalidate_if(
-                self.tempo().is_none() && self.timing().is_none(),
+                self.tempo.is_none() && self.timing.is_none(),
                 MarkerInvalidity::BothTempoAndTimingMissing,
             )
             .invalidate_if(
-                self.timing().is_some() && self.start_beat().is_some() && self.start_beat > self.timing.top,
+                self.timing.and_then(|t| self.start_beat.map(|b| b > t.top)).unwrap_or_default(),
                 MarkerInvalidity::StartBeatInvalid,
             )
             .into()
@@ -117,18 +89,29 @@ pub enum MarkersInvalidity {
 
 impl Markers {
     pub fn uniform_tempo(markers: &[Marker]) -> Option<TempoBpm> {
-        let mut tempo = None;
-        for marker in markers {
-            if marker.tempo.is_valid() {
-                if let Some(tempo) = tempo {
-                    if marker.tempo != tempo {
-                        return None;
-                    }
+        let mut with_tempo = markers.iter().filter_map(|m| m.tempo);
+        if let Some(tempo) = with_tempo.next() {
+            for t in with_tempo {
+                if t != tempo {
+                    return None;
                 }
-                tempo = Some(marker.tempo);
             }
+            return Some(tempo);
         }
-        tempo
+        None
+    }
+
+    pub fn uniform_timing(markers: &[Marker]) -> Option<TimeSignature> {
+        let mut with_timing = markers.iter().filter_map(|m| m.timing);
+        if let Some(timing) = with_timing.next() {
+            for t in with_timing {
+                if t != timing {
+                    return None;
+                }
+            }
+            return Some(timing);
+        }
+        None
     }
 
     pub fn validate<'a>(

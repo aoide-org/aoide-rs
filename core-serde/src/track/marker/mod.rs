@@ -173,9 +173,6 @@ impl From<PositionMarkerType> for _core::PositionMarkerType {
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(deny_unknown_fields)]
 pub struct PositionMarker {
-    #[serde(rename = "t")]
-    pub r#type: PositionMarkerType,
-
     #[serde(rename = "z", skip_serializing_if = "IsDefault::is_default", default)]
     pub state: State,
 
@@ -188,28 +185,31 @@ pub struct PositionMarker {
     #[serde(rename = "e", skip_serializing_if = "Option::is_none")]
     pub end: Option<PositionMs>,
 
-    #[serde(rename = "l", skip_serializing_if = "Option::is_none")]
-    pub label: Option<String>,
+    #[serde(rename = "t")]
+    pub r#type: PositionMarkerType,
 
     #[serde(rename = "n", skip_serializing_if = "Option::is_none")]
     pub number: Option<i32>,
 
     #[serde(rename = "c", skip_serializing_if = "Option::is_none")]
     pub color: Option<ColorRgb>,
+
+    #[serde(rename = "l", skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
 }
 
 impl From<_core::PositionMarker> for PositionMarker {
     fn from(from: _core::PositionMarker) -> Self {
         let _core::PositionMarker(r#type, data) = from;
         Self {
-            r#type: r#type.into(),
-            start: data.start.map(Into::into),
-            end: data.end.map(Into::into),
-            label: data.label.map(Into::into),
-            number: data.number.map(Into::into),
-            color: data.color.map(Into::into),
             state: data.state.into(),
             source: data.source,
+            start: data.start.map(Into::into),
+            end: data.end.map(Into::into),
+            r#type: r#type.into(),
+            number: data.number.map(Into::into),
+            color: data.color.map(Into::into),
+            label: data.label.map(Into::into),
         }
     }
 }
@@ -228,13 +228,13 @@ impl From<PositionMarker> for _core::PositionMarker {
             PositionMarkerType::Sample => Sample,
         };
         let data = _core::PositionMarkerData {
-            start: from.start.map(Into::into),
-            end: from.end.map(Into::into),
-            label: from.label.map(Into::into),
-            number: from.number.map(Into::into),
-            color: from.color.map(Into::into),
             state: from.state.into(),
             source: from.source,
+            start: from.start.map(Into::into),
+            end: from.end.map(Into::into),
+            number: from.number.map(Into::into),
+            color: from.color.map(Into::into),
+            label: from.label.map(Into::into),
         };
         Self(r#type, data)
     }
@@ -273,21 +273,9 @@ impl From<_core::BeatMarker> for BeatMarker {
             source: from.source,
             start: from.start.into(),
             end: from.end.map(Into::into),
-            tempo: if from.tempo == Default::default() {
-                None
-            } else {
-                Some(from.tempo.into())
-            },
-            timing: if from.timing == Default::default() {
-                None
-            } else {
-                Some(from.timing.into())
-            },
-            start_beat: if from.start_beat == _core::BeatNumber::default() {
-                None
-            } else {
-                Some(from.start_beat)
-            },
+            tempo: from.tempo.map(Into::into),
+            timing: from.timing.map(Into::into),
+            start_beat: from.start_beat.map(Into::into),
         }
     }
 }
@@ -299,9 +287,9 @@ impl From<BeatMarker> for _core::BeatMarker {
             source: from.source,
             start: from.start.into(),
             end: from.end.map(Into::into),
-            tempo: from.tempo.map(Into::into).unwrap_or_default(),
-            timing: from.timing.map(Into::into).unwrap_or_default(),
-            start_beat: from.start_beat.map(Into::into).unwrap_or_default(),
+            tempo: from.tempo.map(Into::into),
+            timing: from.timing.map(Into::into),
+            start_beat: from.start_beat.map(Into::into),
         }
     }
 }
@@ -322,22 +310,18 @@ pub struct KeyMarker {
     #[serde(rename = "e", skip_serializing_if = "Option::is_none")]
     pub end: Option<PositionMs>,
 
-    #[serde(rename = "k", skip_serializing_if = "Option::is_none")]
-    pub key: Option<KeySignature>,
+    #[serde(rename = "k")]
+    pub key: KeySignature,
 }
 
 impl From<_core::KeyMarker> for KeyMarker {
     fn from(from: _core::KeyMarker) -> Self {
         Self {
-            start: from.start.into(),
-            end: from.end.map(Into::into),
-            key: if from.key == Default::default() {
-                None
-            } else {
-                Some(from.key.into())
-            },
             state: from.state.into(),
             source: from.source,
+            start: from.start.into(),
+            end: from.end.map(Into::into),
+            key: from.key.into(),
         }
     }
 }
@@ -345,11 +329,11 @@ impl From<_core::KeyMarker> for KeyMarker {
 impl From<KeyMarker> for _core::KeyMarker {
     fn from(from: KeyMarker) -> Self {
         Self {
-            start: from.start.into(),
-            end: from.end.map(Into::into),
-            key: from.key.map(Into::into).unwrap_or_default(),
             state: from.state.into(),
             source: from.source,
+            start: from.start.into(),
+            end: from.end.map(Into::into),
+            key: from.key.into(),
         }
     }
 }

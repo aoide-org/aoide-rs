@@ -28,7 +28,7 @@ pub enum KeyMode {
 /// The ordering numbering of the key code follows the
 /// Circle of fifth / Open Key notation in clock-wise orientation,
 /// alternating between major and minor keys.
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct KeySignature(KeyCode);
 
 impl KeySignature {
@@ -54,15 +54,12 @@ impl KeySignature {
         self.0
     }
 
-    pub fn mode(self) -> Option<KeyMode> {
-        if Self::is_valid_code(self.code()) {
-            Some(match self.code() % 2 {
-                0 => KeyMode::Minor,
-                1 => KeyMode::Major,
-                _ => unreachable!(),
-            })
-        } else {
-            None
+    pub fn mode(self) -> KeyMode {
+        debug_assert!(self.is_valid());
+        match self.code() % 2 {
+            0 => KeyMode::Minor,
+            1 => KeyMode::Major,
+            _ => unreachable!(),
         }
     }
 }
@@ -78,7 +75,7 @@ impl Validate for KeySignature {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
             .invalidate_if(
-                self.0 > KeySignature::max_code(),
+                !Self::is_valid_code(self.0),
                 KeySignatureInvalidity::Invalid,
             )
             .into()
@@ -95,7 +92,7 @@ impl fmt::Display for KeySignature {
 // OpenKeySignature
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct OpenKeySignature(KeySignature);
 
 impl OpenKeySignature {
@@ -126,7 +123,7 @@ impl OpenKeySignature {
         1 + (self.0.code() - 1) / 2
     }
 
-    pub fn mode(self) -> Option<KeyMode> {
+    pub fn mode(self) -> KeyMode {
         self.0.mode()
     }
 }
@@ -145,19 +142,15 @@ impl From<OpenKeySignature> for KeySignature {
 
 impl fmt::Display for OpenKeySignature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(mode) = self.mode() {
-            write!(
-                f,
-                "{}{}",
-                self.code(),
-                match mode {
-                    KeyMode::Major => 'd',
-                    KeyMode::Minor => 'm',
-                }
-            )
-        } else {
-            write!(f, "{}", self.code(),)
-        }
+        write!(
+            f,
+            "{}{}",
+            self.code(),
+            match self.mode() {
+                KeyMode::Major => 'd',
+                KeyMode::Minor => 'm',
+            }
+        )
     }
 }
 
@@ -165,7 +158,7 @@ impl fmt::Display for OpenKeySignature {
 // LancelotKeySignature
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct LancelotKeySignature(KeySignature);
 
 impl LancelotKeySignature {
@@ -196,7 +189,7 @@ impl LancelotKeySignature {
         1 + ((self.0.code() + 13) / 2) % 12
     }
 
-    pub fn mode(self) -> Option<KeyMode> {
+    pub fn mode(self) -> KeyMode {
         self.0.mode()
     }
 }
@@ -215,23 +208,15 @@ impl From<LancelotKeySignature> for KeySignature {
 
 impl fmt::Display for LancelotKeySignature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(mode) = self.mode() {
-            write!(
-                f,
-                "{}{}",
-                self.code(),
-                match mode {
-                    KeyMode::Major => 'B',
-                    KeyMode::Minor => 'A',
-                }
-            )
-        } else {
-            write!(
-                f,
-                "{}",
-                self.code(),
-            )
-        }
+        write!(
+            f,
+            "{}{}",
+            self.code(),
+            match self.mode() {
+                KeyMode::Major => 'B',
+                KeyMode::Minor => 'A',
+            }
+        )
     }
 }
 
@@ -239,7 +224,7 @@ impl fmt::Display for LancelotKeySignature {
 // EngineKeySignature (as found in Denon Engine Prime Library)
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct EngineKeySignature(KeySignature);
 
 impl EngineKeySignature {
@@ -264,6 +249,10 @@ impl EngineKeySignature {
             1 => 24,
             code => code - 1,
         }
+    }
+
+    pub fn mode(self) -> KeyMode {
+        self.0.mode()
     }
 }
 

@@ -45,19 +45,41 @@ impl From<TempoBpm> for _core::TempoBpm {
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(Eq, PartialEq))]
-pub struct TimeSignature(_core::BeatNumber, _core::BeatNumber);
-
-impl From<_core::TimeSignature> for TimeSignature {
-    fn from(from: _core::TimeSignature) -> Self {
-        Self(from.top, from.bottom)
-    }
+#[serde(untagged)]
+pub enum TimeSignature {
+    Top(_core::BeatNumber),
+    TopBottom(_core::BeatNumber, _core::BeatNumber),
 }
 
 impl From<TimeSignature> for _core::TimeSignature {
     fn from(from: TimeSignature) -> Self {
-        Self {
-            top: from.0,
-            bottom: from.1,
+        use TimeSignature::*;
+        match from {
+            Top(top) => _core::TimeSignature {
+                top,
+                bottom: None,
+            },
+            TopBottom(top, bottom) => _core::TimeSignature {
+                top,
+                bottom: Some(bottom),
+            },
         }
     }
 }
+
+impl From<_core::TimeSignature> for TimeSignature {
+    fn from(from: _core::TimeSignature) -> Self {
+        let _core::TimeSignature {
+            top,
+            bottom,
+        } = from;
+        if let Some(bottom) = bottom {
+            TimeSignature::TopBottom(top, bottom)
+        } else {
+            TimeSignature::Top(top)
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests;

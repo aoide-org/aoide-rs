@@ -21,24 +21,24 @@ fn base_marker() -> Marker {
         source: None,
         start: Default::default(),
         end: None,
-        tempo: Default::default(),
-        timing: Default::default(),
-        start_beat: 0u16,
+        tempo: None,
+        timing: None,
+        start_beat: None,
     }
 }
 
 #[test]
 fn valid_markers() {
     let mk1 = Marker {
-        tempo: TempoBpm(1f64),
+        tempo: Some(TempoBpm(1f64)),
         ..base_marker()
     };
     assert!(mk1.is_valid());
     let mk2 = Marker {
-        timing: TimeSignature {
+        timing: Some(TimeSignature {
             top: 4,
-            bottom: 0,
-        },
+            bottom: None,
+        }),
         ..base_marker()
     };
     assert!(mk2.is_valid());
@@ -48,12 +48,60 @@ fn valid_markers() {
 fn invalid_markers() {
     assert!(!base_marker().is_valid());
     let mk1 = Marker {
-        timing: TimeSignature {
+        timing: Some(TimeSignature {
             top: 4,
-            bottom: 4,
-        },
-        start_beat: 5,
+            bottom: Some(4),
+        }),
+        start_beat: Some(5),
         ..base_marker()
     };
     assert!(!mk1.is_valid());
+}
+
+#[test]
+fn uniform_tempo() {
+    assert!(!base_marker().is_valid());
+    let tempo = Some(TempoBpm(123.0));
+    let markers = [
+        Marker {
+            start: PositionMs(0.0),
+            ..base_marker()
+        },
+        Marker {
+            start: PositionMs(1.0),
+            tempo,
+            ..base_marker()
+        },
+        Marker {
+            start: PositionMs(2.0),
+            ..base_marker()
+        },
+    ];
+    assert_eq!(tempo, Markers::uniform_tempo(&markers));
+}
+
+#[test]
+fn non_uniform_tempo() {
+    assert!(!base_marker().is_valid());
+    let markers = [
+        Marker {
+            start: PositionMs(0.0),
+            ..base_marker()
+        },
+        Marker {
+            start: PositionMs(1.0),
+            tempo: Some(TempoBpm(123.0)),
+            ..base_marker()
+        },
+        Marker {
+            start: PositionMs(2.0),
+            ..base_marker()
+        },
+        Marker {
+            start: PositionMs(3.0),
+            tempo: Some(TempoBpm(123.1)),
+            ..base_marker()
+        },
+    ];
+    assert_eq!(None, Markers::uniform_tempo(&markers));
 }

@@ -23,7 +23,7 @@ use std::{f64, fmt};
 
 pub type Beats = f64;
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
+#[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
 pub struct TempoBpm(pub Beats);
 
 impl TempoBpm {
@@ -70,24 +70,25 @@ impl fmt::Display for TempoBpm {
 
 pub type BeatNumber = u16;
 
-#[derive(Copy, Clone, Default, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct TimeSignature {
     // number of beats in each measure unit or bar, 0 = default/undefined
     pub top: BeatNumber,
 
     // beat value (the note that counts as one beat), 0 = default/undefined
-    pub bottom: BeatNumber,
+    pub bottom: Option<BeatNumber>,
 }
 
 impl TimeSignature {
-    pub fn new(top: BeatNumber, bottom: BeatNumber) -> Self {
+    pub fn new(top: BeatNumber, bottom: Option<BeatNumber>) -> Self {
         Self { top, bottom }
     }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum TimeSignatureInvalidity {
-    TopLowerBound(BeatNumber, BeatNumber),
+    Top,
+    Bottom,
 }
 
 impl Validate for TimeSignature {
@@ -96,8 +97,12 @@ impl Validate for TimeSignature {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
             .invalidate_if(
-                self.top < 1 && self.bottom > 0,
-                TimeSignatureInvalidity::TopLowerBound(1, self.top),
+                self.top < 1,
+                TimeSignatureInvalidity::Top,
+            )
+            .invalidate_if(
+                self.bottom.map(|bottom| bottom < 1).unwrap_or_default(),
+                TimeSignatureInvalidity::Bottom,
             )
             .into()
     }
@@ -105,7 +110,11 @@ impl Validate for TimeSignature {
 
 impl fmt::Display for TimeSignature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}/{}", self.top, self.bottom)
+        if let Some(bottom) = self.bottom {
+            write!(f, "{}/{}", self.top, bottom)
+        } else {
+            write!(f, "{}/", self.top)
+        }
     }
 }
 

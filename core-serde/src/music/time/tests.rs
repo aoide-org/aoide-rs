@@ -13,16 +13,25 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+///////////////////////////////////////////////////////////////////////
+
 use super::*;
 
 #[test]
-fn validate_time_sig() {
-    assert!(TimeSignature::new(0, Some(0)).validate().is_err());
-    assert!(TimeSignature::new(0, Some(1)).validate().is_err());
-    assert!(TimeSignature::new(1, Some(0)).validate().is_err());
-    assert!(TimeSignature::new(1, None).validate().is_ok());
-    assert!(TimeSignature::new(1, Some(1)).validate().is_ok());
-    assert!(TimeSignature::new(3, Some(4)).validate().is_ok());
-    assert!(TimeSignature::new(4, Some(4)).validate().is_ok());
-    assert!(TimeSignature::new(4, Some(3)).validate().is_ok());
+fn deserialize_top() {
+    let top = 4;
+    let json = format!("{}", top);
+    let timing: TimeSignature = serde_json::from_str(&json).unwrap();
+    assert_eq!(TimeSignature::Top(top), timing);
+    assert_eq!(json, serde_json::to_string(&timing).unwrap());
+}
+
+#[test]
+fn deserialize_top_bottom() {
+    let top = 3;
+    let bottom = 4;
+    let json = format!("[{},{}]", top, bottom);
+    let timing: TimeSignature = serde_json::from_str(&json).unwrap();
+    assert_eq!(TimeSignature::TopBottom(top, bottom), timing);
+    assert_eq!(json, serde_json::to_string(&timing).unwrap());
 }

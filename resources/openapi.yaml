@@ -1488,16 +1488,18 @@ components:
       description: |
         The tempo measured in `beats per minute` (bpm).
     TimeSignature:
-      type: array
-      minLength: 2
-      maxLength: 2
-      items:
-        oneOf:
-          - $ref: '#/components/schemas/TimeSignatureTop'
-          - $ref: '#/components/schemas/TimeSignatureBottom'
+      oneOf:
+        - $ref: '#/components/schemas/TimeSignatureTop'
+        - type: array
+          minLength: 2
+          maxLength: 2
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/TimeSignatureTop'
+              - $ref: '#/components/schemas/TimeSignatureBottom'
       description: >
-        Tuple of 2 elements containing the top and bottom values of the time
-        signature.
+        Either the number of beats per bar (top) or a tuple with
+        both the top and bottom values of the time signature.
     TimeSignatureTop:
       type: integer
       minimum: 1

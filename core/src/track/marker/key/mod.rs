@@ -71,18 +71,16 @@ pub enum MarkersInvalidity {
 
 impl Markers {
     pub fn uniform_key(markers: &[Marker]) -> Option<KeySignature> {
-        let mut key = None;
-        for marker in markers {
-            if marker.key.is_valid() {
-                if let Some(key) = key {
-                    if marker.key != key {
-                        return None;
-                    }
+        let mut keys = markers.iter().map(|marker| marker.key);
+        if let Some(key) = keys.next() {
+            for k in keys {
+                if k != key {
+                    return None;
                 }
-                key = Some(marker.key);
             }
+            return Some(key);
         }
-        key
+        None
     }
 
     pub fn validate<'a>(
@@ -102,3 +100,6 @@ impl Markers {
             .into()
     }
 }
+
+#[cfg(test)]
+mod tests;
