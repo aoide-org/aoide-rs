@@ -27,6 +27,13 @@ fn deserialize_top() {
 }
 
 #[test]
+fn should_fail_to_deserialize_single_element_array_with_top() {
+    let top = 4;
+    let json = format!("[{}]", top);
+    assert!(serde_json::from_str::<TimeSignature>(&json).is_err());
+}
+
+#[test]
 fn deserialize_top_bottom() {
     let top = 3;
     let bottom = 4;

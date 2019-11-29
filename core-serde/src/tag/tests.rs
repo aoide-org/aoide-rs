@@ -27,6 +27,13 @@ fn deserialize_tag_label() {
 }
 
 #[test]
+fn should_fail_to_deserialize_single_element_array_with_label() {
+    let label = _core::Label::new("label");
+    let json = format!("[\"{}\"]", label);
+    assert!(serde_json::from_str::<PlainTag>(&json).is_err());
+}
+
+#[test]
 fn deserialize_tag_label_score() {
     let label = _core::Label::new("label");
     let score = _core::Score::new(0.5);
@@ -71,6 +78,13 @@ fn deserialize_tag_facet() {
     let tag: FacetedTag = serde_json::from_str(&json).unwrap();
     assert_eq!(FacetedTag::Facet(facet.into()), tag);
     assert_eq!(json, serde_json::to_string(&tag).unwrap());
+}
+
+#[test]
+fn should_fail_to_deserialize_single_element_array_with_facet() {
+    let facet = _core::Facet::new("facet");
+    let json = format!("[\"{}\"]", facet);
+    assert!(serde_json::from_str::<FacetedTag>(&json).is_err());
 }
 
 #[test]
@@ -169,4 +183,12 @@ fn deserialize_tag_facet_label_score_one() {
     let parsed_tag: FacetedTag = serde_json::from_str(&json).unwrap();
     assert_eq!(json, serde_json::to_string(&parsed_tag).unwrap());
     assert_eq!(expected_tag, parsed_tag.into());
+}
+
+#[test]
+fn should_fail_to_deserialize_single_element_array_with_score() {
+    let score = _core::Score::new(0.5);
+    let json = format!("[{}]", f64::from(score));
+    assert!(serde_json::from_str::<PlainTag>(&json).is_err());
+    assert!(serde_json::from_str::<FacetedTag>(&json).is_err());
 }
