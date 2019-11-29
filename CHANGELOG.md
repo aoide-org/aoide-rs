@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.3.3] - 2019-11-29
+
+### Changed
+
+- Improved and fixed validation
+
 ## [0.3.2] - 2019-11-08
 
 ### Changed
@@ -198,7 +204,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial public release
 
-[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.3.2...development
+[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.3.3...development
+[0.3.3]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.3.2
 [0.3.2]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.3.2
 [0.3.1]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.3.1
 [0.3.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.3.0
