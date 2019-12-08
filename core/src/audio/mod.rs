@@ -21,8 +21,6 @@ pub mod signal;
 
 use self::{channel::*, sample::*, signal::*};
 
-use crate::util::IsEmpty;
-
 use std::{fmt, time::Duration};
 
 ///////////////////////////////////////////////////////////////////////
@@ -95,12 +93,6 @@ impl Validate for DurationMs {
                 DurationMsInvalidity::OutOfRange,
             )
             .into()
-    }
-}
-
-impl IsEmpty for DurationMs {
-    fn is_empty(&self) -> bool {
-        *self <= Self::empty()
     }
 }
 

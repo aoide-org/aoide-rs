@@ -23,8 +23,7 @@ mod _core {
 // Tempo
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(PartialEq))]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TempoBpm(_core::Beats);
 
 impl From<_core::TempoBpm> for TempoBpm {
@@ -43,8 +42,7 @@ impl From<TempoBpm> for _core::TempoBpm {
 // TimeSignature
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum TimeSignature {
     Top(_core::BeatNumber),

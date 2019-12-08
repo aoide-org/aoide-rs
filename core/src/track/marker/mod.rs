@@ -37,11 +37,11 @@ impl Default for State {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Markers {
-    pub positions: Vec<position::Marker>,
-    pub beats: Vec<beat::Marker>,
-    pub keys: Vec<key::Marker>,
+    pub positions: position::Markers,
+    pub beats: beat::Markers,
+    pub keys: key::Markers,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -56,16 +56,16 @@ impl Validate for Markers {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .merge_result_with(
-                position::Markers::validate(self.positions.iter()),
+            .validate_with(
+                &self.positions,
                 MarkersInvalidity::Positions,
             )
-            .merge_result_with(
-                beat::Markers::validate(self.beats.iter()),
+            .validate_with(
+                &self.beats,
                 MarkersInvalidity::Beats,
             )
-            .merge_result_with(
-                key::Markers::validate(self.keys.iter()),
+            .validate_with(
+                &self.keys,
                 MarkersInvalidity::Keys,
             )
             .into()

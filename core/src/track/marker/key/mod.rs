@@ -24,10 +24,6 @@ use std::f64;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Marker {
-    pub state: State,
-
-    pub source: Option<String>,
-
     pub start: PositionMs,
 
     pub end: Option<PositionMs>,
@@ -60,8 +56,32 @@ impl Validate for Marker {
     }
 }
 
-#[derive(Debug)]
-pub struct Markers;
+fn uniform_key_from_markers<'a>(
+    markers: impl Iterator<Item = &'a Marker>,
+) -> Option<KeySignature> {
+    let mut keys = markers.map(|marker| marker.key);
+    if let Some(key) = keys.next() {
+        for k in keys {
+            if k != key {
+                return None;
+            }
+        }
+        return Some(key);
+    }
+    None
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Markers {
+    pub state: State,
+    pub markers: Vec<Marker>,
+}
+
+impl Markers {
+    pub fn uniform_key(&self) -> Option<KeySignature> {
+        uniform_key_from_markers(self.markers.iter())
+    }
+}
 
 #[derive(Copy, Clone, Debug)]
 pub enum MarkersInvalidity {
@@ -69,35 +89,28 @@ pub enum MarkersInvalidity {
     Ranges,
 }
 
-impl Markers {
-    pub fn uniform_key(markers: &[Marker]) -> Option<KeySignature> {
-        let mut keys = markers.iter().map(|marker| marker.key);
-        if let Some(key) = keys.next() {
-            for k in keys {
-                if k != key {
-                    return None;
-                }
+fn validate_markers<'a>(
+    markers: impl Iterator<Item = &'a Marker>,
+) -> ValidationResult<MarkersInvalidity> {
+    let mut min_pos = PositionMs(f64::NEG_INFINITY);
+    let mut ranges_violation = false;
+    markers
+        .fold(ValidationContext::new(), |context, marker| {
+            if min_pos > marker.start {
+                ranges_violation = true;
             }
-            return Some(key);
-        }
-        None
-    }
+            min_pos = marker.start;
+            context.validate_with(marker, MarkersInvalidity::Marker)
+        })
+        .invalidate_if(ranges_violation, MarkersInvalidity::Ranges)
+        .into()
+}
 
-    pub fn validate<'a>(
-        markers: impl Iterator<Item = &'a Marker>,
-    ) -> ValidationResult<MarkersInvalidity> {
-        let mut min_pos = PositionMs(f64::NEG_INFINITY);
-        let mut ranges_violation = false;
-        markers
-            .fold(ValidationContext::new(), |context, marker| {
-                if min_pos > marker.start {
-                    ranges_violation = true;
-                }
-                min_pos = marker.start;
-                context.validate_with(marker, MarkersInvalidity::Marker)
-            })
-            .invalidate_if(ranges_violation, MarkersInvalidity::Ranges)
-            .into()
+impl Validate for Markers {
+    type Invalidity = MarkersInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        validate_markers(self.markers.iter())
     }
 }
 

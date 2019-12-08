@@ -19,8 +19,7 @@ mod _core {
     pub use aoide_core::music::key::*;
 }
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct KeySignature(_core::KeyCode);
 
 impl From<_core::KeySignature> for KeySignature {

@@ -23,14 +23,15 @@ mod _core {
     pub use aoide_core::audio::*;
 }
 
+use aoide_core::util::IsDefault;
+
 use self::{channel::*, signal::*};
 
 ///////////////////////////////////////////////////////////////////////
 // Position
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(PartialEq))]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PositionMs(_core::PositionInMilliseconds);
 
 impl From<_core::PositionMs> for PositionMs {
@@ -49,8 +50,7 @@ impl From<PositionMs> for _core::PositionMs {
 // Duration
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(PartialEq))]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DurationMs(_core::DurationInMilliseconds);
 
 impl From<_core::DurationMs> for DurationMs {
@@ -69,11 +69,10 @@ impl From<DurationMs> for _core::DurationMs {
 // AudioEncoder
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AudioEncoder {
-    #[serde(rename = "n", skip_serializing_if = "String::is_empty", default)]
+    #[serde(rename = "n", skip_serializing_if = "IsDefault::is_default", default)]
     name: String,
 
     #[serde(rename = "s", skip_serializing_if = "Option::is_none")]
@@ -102,8 +101,7 @@ impl From<_core::AudioEncoder> for AudioEncoder {
 // AudioContent
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(PartialEq))]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AudioContent {
     #[serde(rename = "c", skip_serializing_if = "Option::is_none")]

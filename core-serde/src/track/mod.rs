@@ -29,7 +29,7 @@ mod _core {
     pub use aoide_core::track::*;
 }
 
-use aoide_core::util::IsEmpty;
+use aoide_core::util::IsDefault;
 
 ///////////////////////////////////////////////////////////////////////
 // Track
@@ -39,10 +39,10 @@ use aoide_core::util::IsEmpty;
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(deny_unknown_fields)]
 pub struct Track {
-    #[serde(rename = "c", skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(rename = "c", skip_serializing_if = "IsDefault::is_default", default)]
     pub collections: Vec<Collection>,
 
-    #[serde(rename = "s", skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(rename = "s", skip_serializing_if = "IsDefault::is_default", default)]
     pub media_sources: Vec<media::Source>,
 
     #[serde(rename = "r", skip_serializing_if = "Option::is_none")]
@@ -51,19 +51,19 @@ pub struct Track {
     #[serde(rename = "a", skip_serializing_if = "Option::is_none")]
     pub album: Option<Album>,
 
-    #[serde(rename = "t", skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(rename = "t", skip_serializing_if = "IsDefault::is_default", default)]
     pub titles: Vec<Title>,
 
-    #[serde(rename = "p", skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(rename = "p", skip_serializing_if = "IsDefault::is_default", default)]
     pub actors: Vec<Actor>,
 
-    #[serde(rename = "i", skip_serializing_if = "IsEmpty::is_empty", default)]
+    #[serde(rename = "i", skip_serializing_if = "IsDefault::is_default", default)]
     pub indexes: Indexes,
 
-    #[serde(rename = "m", skip_serializing_if = "IsEmpty::is_empty", default)]
+    #[serde(rename = "m", skip_serializing_if = "IsDefault::is_default", default)]
     pub markers: Markers,
 
-    #[serde(rename = "x", skip_serializing_if = "IsEmpty::is_empty", default)]
+    #[serde(rename = "x", skip_serializing_if = "IsDefault::is_default", default)]
     pub tags: Tags,
 }
 

@@ -27,8 +27,7 @@ use chrono::{DateTime, Utc};
 // Collection
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Collection {
     #[serde(rename = "u")]
     uid: EntityUid,

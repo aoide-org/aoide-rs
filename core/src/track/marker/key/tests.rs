@@ -17,8 +17,6 @@ use super::*;
 
 fn base_marker(key: KeySignature) -> Marker {
     Marker {
-        state: State::ReadWrite,
-        source: None,
         start: Default::default(),
         end: None,
         key,
@@ -38,7 +36,7 @@ fn uniform_key() {
             ..base_marker(key)
         },
     ];
-    assert_eq!(Some(key), Markers::uniform_key(&markers));
+    assert_eq!(Some(key), uniform_key_from_markers(markers.iter()));
 }
 
 #[test]
@@ -53,5 +51,5 @@ fn non_uniform_key() {
             ..base_marker(KeySignature::from_code(KeySignature::max_code()))
         },
     ];
-    assert_eq!(None, Markers::uniform_key(&markers));
+    assert_eq!(None, uniform_key_from_markers(markers.iter()));
 }

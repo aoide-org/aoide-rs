@@ -17,13 +17,11 @@ use super::*;
 
 fn base_marker() -> Marker {
     Marker {
-        state: State::ReadWrite,
-        source: None,
         start: Default::default(),
         end: None,
         tempo: None,
         timing: None,
-        start_beat: None,
+        beat_at_start: None,
     }
 }
 
@@ -52,7 +50,7 @@ fn invalid_markers() {
             top: 4,
             bottom: Some(4),
         }),
-        start_beat: Some(5),
+        beat_at_start: Some(5),
         ..base_marker()
     };
     assert!(!mk1.is_valid());
@@ -77,7 +75,7 @@ fn uniform_tempo() {
             ..base_marker()
         },
     ];
-    assert_eq!(tempo, Markers::uniform_tempo(&markers));
+    assert_eq!(tempo, uniform_tempo_from_markers(markers.iter()));
 }
 
 #[test]
@@ -103,5 +101,5 @@ fn non_uniform_tempo() {
             ..base_marker()
         },
     ];
-    assert_eq!(None, Markers::uniform_tempo(&markers));
+    assert_eq!(None, uniform_tempo_from_markers(markers.iter()));
 }

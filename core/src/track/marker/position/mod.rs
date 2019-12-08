@@ -50,10 +50,6 @@ use crate::{
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct MarkerData {
-    pub state: State,
-
-    pub source: Option<String>,
-
     pub start: Option<PositionMs>,
 
     pub end: Option<PositionMs>,
@@ -192,8 +188,26 @@ impl Validate for Marker {
     }
 }
 
-#[derive(Debug)]
-pub struct Markers;
+pub fn count_markers_by_type<'a>(
+    markers: impl Iterator<Item = &'a Marker>,
+    r#type: MarkerType,
+) -> usize {
+    markers.filter(|marker| marker.r#type() == r#type).count()
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Markers {
+    pub state: State,
+    pub markers: Vec<Marker>,
+}
+
+impl Markers {
+    pub fn count_by_type(&self,
+        r#type: MarkerType,
+    ) -> usize {
+        count_markers_by_type(self.markers.iter(), r#type)
+    }
+}
 
 #[derive(Copy, Clone, Debug)]
 pub enum MarkersInvalidity {
@@ -201,29 +215,28 @@ pub enum MarkersInvalidity {
     Cardinality,
 }
 
-impl Markers {
-    pub fn count_by_type<'a>(
-        markers: impl Iterator<Item = &'a Marker>,
-        r#type: MarkerType,
-    ) -> usize {
-        markers.filter(|marker| marker.r#type() == r#type).count()
-    }
+fn validate_markers<'a>(
+    markers: impl Iterator<Item = &'a Marker> + Clone,
+) -> ValidationResult<MarkersInvalidity> {
+    markers
+        .clone()
+        .fold(ValidationContext::new(), |context, marker| {
+            context
+                .validate_with(marker, MarkersInvalidity::Marker)
+                .invalidate_if(
+                    marker.r#type().is_singular()
+                        && count_markers_by_type(markers.clone(), marker.r#type()) > 1,
+                    MarkersInvalidity::Cardinality,
+                )
+        })
+        .into()
+}
 
-    pub fn validate<'a>(
-        markers: impl Iterator<Item = &'a Marker> + Clone,
-    ) -> ValidationResult<MarkersInvalidity> {
-        markers
-            .clone()
-            .fold(ValidationContext::new(), |context, marker| {
-                context
-                    .validate_with(marker, MarkersInvalidity::Marker)
-                    .invalidate_if(
-                        marker.r#type().is_singular()
-                            && Self::count_by_type(markers.clone(), marker.r#type()) > 1,
-                        MarkersInvalidity::Cardinality,
-                    )
-            })
-            .into()
+impl Validate for Markers {
+    type Invalidity = MarkersInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        validate_markers(self.markers.iter())
     }
 }
 

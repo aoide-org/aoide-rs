@@ -36,18 +36,6 @@ pub trait IsEmpty {
     fn is_empty(&self) -> bool;
 }
 
-impl IsEmpty for std::time::Duration {
-    fn is_empty(&self) -> bool {
-        *self == std::time::Duration::from_secs(0)
-    }
-}
-
-impl IsEmpty for chrono::Duration {
-    fn is_empty(&self) -> bool {
-        self.is_zero()
-    }
-}
-
 impl<T> IsEmpty for [T] {
     fn is_empty(&self) -> bool {
         self.is_empty()

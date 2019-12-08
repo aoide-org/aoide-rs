@@ -11,7 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Aggregated position/beat/key markers into a separate abstraction level with `state`
+- Renamed marker properties in serialization format
+
 ### Removed
+
+- Removed `source` from position/beat/key markers
+- Removed `state` from invidividual position/beat/key markers
 
 ## [0.3.3] - 2019-11-29
 

@@ -24,10 +24,6 @@ use std::f64;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Marker {
-    pub state: State,
-
-    pub source: Option<String>,
-
     pub start: PositionMs,
 
     pub end: Option<PositionMs>,
@@ -37,8 +33,8 @@ pub struct Marker {
     pub timing: Option<TimeSignature>,
 
     /// The beat 1..n in a bar (with n = `timing.beats_per_measure()`)
-    /// at the start position or 0 if unknown/undefined.
-    pub start_beat: Option<BeatNumber>,
+    /// at the start position.
+    pub beat_at_start: Option<BeatNumber>,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -71,15 +67,60 @@ impl Validate for Marker {
                 MarkerInvalidity::BothTempoAndTimingMissing,
             )
             .invalidate_if(
-                self.timing.and_then(|t| self.start_beat.map(|b| b > t.top)).unwrap_or_default(),
+                self.timing
+                    .and_then(|t| self.beat_at_start.map(|b| b < 1 || b > t.top))
+                    .unwrap_or_default(),
                 MarkerInvalidity::StartBeatInvalid,
             )
             .into()
     }
 }
 
-#[derive(Debug)]
-pub struct Markers;
+fn uniform_tempo_from_markers<'a>(
+    markers: impl Iterator<Item = &'a Marker>,
+) -> Option<TempoBpm> {
+    let mut with_tempo = markers.filter_map(|m| m.tempo);
+    if let Some(tempo) = with_tempo.next() {
+        for t in with_tempo {
+            if t != tempo {
+                return None;
+            }
+        }
+        return Some(tempo);
+    }
+    None
+}
+
+fn uniform_timing_from_markers<'a>(
+    markers: impl Iterator<Item = &'a Marker>,
+) -> Option<TimeSignature> {
+    let mut with_timing = markers.filter_map(|m| m.timing);
+    if let Some(timing) = with_timing.next() {
+        for t in with_timing {
+            if t != timing {
+                return None;
+            }
+        }
+        return Some(timing);
+    }
+    None
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Markers {
+    pub state: State,
+    pub markers: Vec<Marker>,
+}
+
+impl Markers {
+    pub fn uniform_tempo(&self) -> Option<TempoBpm> {
+        uniform_tempo_from_markers(self.markers.iter())
+    }
+
+    pub fn uniform_timing(&self) -> Option<TimeSignature> {
+        uniform_timing_from_markers(self.markers.iter())
+    }
+}
 
 #[derive(Copy, Clone, Debug)]
 pub enum MarkersInvalidity {
@@ -87,48 +128,28 @@ pub enum MarkersInvalidity {
     Ranges,
 }
 
-impl Markers {
-    pub fn uniform_tempo(markers: &[Marker]) -> Option<TempoBpm> {
-        let mut with_tempo = markers.iter().filter_map(|m| m.tempo);
-        if let Some(tempo) = with_tempo.next() {
-            for t in with_tempo {
-                if t != tempo {
-                    return None;
-                }
+fn validate_markers<'a>(
+    markers: impl Iterator<Item = &'a Marker>,
+) -> ValidationResult<MarkersInvalidity> {
+    let mut min_pos = PositionMs(f64::NEG_INFINITY);
+    let mut ranges_violation = false;
+    markers
+        .fold(ValidationContext::new(), |context, marker| {
+            if min_pos > marker.start {
+                ranges_violation = true;
             }
-            return Some(tempo);
-        }
-        None
-    }
+            min_pos = marker.start;
+            context.validate_with(marker, MarkersInvalidity::Marker)
+        })
+        .invalidate_if(ranges_violation, MarkersInvalidity::Ranges)
+        .into()
+}
 
-    pub fn uniform_timing(markers: &[Marker]) -> Option<TimeSignature> {
-        let mut with_timing = markers.iter().filter_map(|m| m.timing);
-        if let Some(timing) = with_timing.next() {
-            for t in with_timing {
-                if t != timing {
-                    return None;
-                }
-            }
-            return Some(timing);
-        }
-        None
-    }
+impl Validate for Markers {
+    type Invalidity = MarkersInvalidity;
 
-    pub fn validate<'a>(
-        markers: impl Iterator<Item = &'a Marker>,
-    ) -> ValidationResult<MarkersInvalidity> {
-        let mut min_pos = PositionMs(f64::NEG_INFINITY);
-        let mut ranges_violation = false;
-        markers
-            .fold(ValidationContext::new(), |context, marker| {
-                if min_pos > marker.start {
-                    ranges_violation = true;
-                }
-                min_pos = marker.start;
-                context.validate_with(marker, MarkersInvalidity::Marker)
-            })
-            .invalidate_if(ranges_violation, MarkersInvalidity::Ranges)
-            .into()
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        validate_markers(self.markers.iter())
     }
 }
 

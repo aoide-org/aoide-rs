@@ -32,8 +32,7 @@ use std::{fmt, str};
 // EntityUid
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EntityUid(pub _core::EntityUid);
 
 // Serialize (and deserialize) as string for maximum compatibility and portability

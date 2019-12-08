@@ -23,8 +23,7 @@ mod _core {
 // Index
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Index {
     Number(u16),
@@ -63,8 +62,7 @@ impl Index {
 // Indexes
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Indexes {
     #[serde(rename = "d", skip_serializing_if = "Option::is_none")]
@@ -75,12 +73,6 @@ pub struct Indexes {
 
     #[serde(rename = "m", skip_serializing_if = "Option::is_none")]
     pub movement: Option<Index>,
-}
-
-impl IsEmpty for Indexes {
-    fn is_empty(&self) -> bool {
-        self.disc.is_none() && self.track.is_none() && self.movement.is_none()
-    }
 }
 
 impl From<_core::Indexes> for Indexes {

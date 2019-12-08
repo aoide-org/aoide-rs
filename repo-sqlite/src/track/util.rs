@@ -295,7 +295,7 @@ impl<'a> RepositoryHelper<'a> {
     }
 
     fn insert_markers(&self, track_id: RepoId, track: &Track) -> RepoResult<()> {
-        for marker in &track.markers.positions {
+        for marker in &track.markers.positions.markers {
             let data: &PositionMarkerData = marker.data();
             if let Some(ref label) = data.label {
                 let label_id = self.resolve_marker_label(&label)?;

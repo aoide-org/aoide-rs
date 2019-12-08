@@ -29,8 +29,7 @@ use std::{fmt, str::FromStr};
 // ColorRgb
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct ColorRgb(_core::ColorRgb);
 
 impl From<_core::ColorRgb> for ColorRgb {

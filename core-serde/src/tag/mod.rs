@@ -21,13 +21,10 @@ mod _core {
     pub use aoide_core::tag::*;
 }
 
-use aoide_core::util::IsEmpty;
-
 use serde::{de::Visitor, Deserializer, Serializer};
 use std::fmt;
 
-#[derive(Clone, Debug)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Facet(_core::Facet);
 
 impl Facet {
@@ -85,8 +82,7 @@ impl<'de> Deserialize<'de> for Facet {
     }
 }
 
-#[derive(Clone, Debug)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Label(_core::Label);
 
 impl Label {
@@ -144,8 +140,7 @@ impl<'de> Deserialize<'de> for Label {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
-#[cfg_attr(test, derive(PartialEq))]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Score(_core::Score);
 
 impl Score {
@@ -201,8 +196,7 @@ impl<'de> Deserialize<'de> for Score {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(PartialEq))]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum PlainTag {
     Label(Label),
@@ -233,8 +227,7 @@ impl From<PlainTag> for _core::Tag {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(PartialEq))]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum FacetedTag {
     Facet(Facet),
@@ -283,8 +276,7 @@ impl From<FacetedTag> for _core::Tag {
     }
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
-#[cfg_attr(test, derive(PartialEq))]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Tags(Vec<PlainTag>, Vec<FacetedTag>);
 
 impl Tags {
@@ -336,12 +328,6 @@ impl Tags {
             }
         }
         Self(plain_tags, faceted_tags)
-    }
-}
-
-impl IsEmpty for Tags {
-    fn is_empty(&self) -> bool {
-        self.0.is_empty() && self.1.is_empty()
     }
 }
 

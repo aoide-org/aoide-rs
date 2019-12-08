@@ -23,8 +23,7 @@ mod _core {
 // BitRate
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct BitRateBps(_core::BitsPerSecond);
 
 impl From<_core::BitRateBps> for BitRateBps {
@@ -43,8 +42,7 @@ impl From<BitRateBps> for _core::BitRateBps {
 // SampleRate
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct SampleRateHz(_core::SamplesPerSecond);
 
 impl From<_core::SampleRateHz> for SampleRateHz {
@@ -63,8 +61,7 @@ impl From<SampleRateHz> for _core::SampleRateHz {
 // Loudness
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(PartialEq))]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct LoudnessLufs(_core::LufsValue);
 
 impl From<_core::LoudnessLufs> for LoudnessLufs {
