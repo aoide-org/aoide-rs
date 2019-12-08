@@ -1,6 +1,6 @@
 [package]
 name = "aoide-core"
-version = "0.3.3"
+version = "0.0.0"
 authors = [ "Uwe Klotz <uwe.klotz@gmail>", "et al." ]
 license = "AGPL-3.0-or-later"
 publish = false
