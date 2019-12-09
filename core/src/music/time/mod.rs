@@ -96,10 +96,7 @@ impl Validate for TimeSignature {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(
-                self.top < 1,
-                TimeSignatureInvalidity::Top,
-            )
+            .invalidate_if(self.top < 1, TimeSignatureInvalidity::Top)
             .invalidate_if(
                 self.bottom.map(|bottom| bottom < 1).unwrap_or_default(),
                 TimeSignatureInvalidity::Bottom,

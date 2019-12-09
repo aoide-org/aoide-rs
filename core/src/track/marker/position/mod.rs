@@ -202,9 +202,7 @@ pub struct Markers {
 }
 
 impl Markers {
-    pub fn count_by_type(&self,
-        r#type: MarkerType,
-    ) -> usize {
+    pub fn count_by_type(&self, r#type: MarkerType) -> usize {
         count_markers_by_type(self.markers.iter(), r#type)
     }
 }

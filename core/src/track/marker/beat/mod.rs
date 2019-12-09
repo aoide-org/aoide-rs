@@ -76,9 +76,7 @@ impl Validate for Marker {
     }
 }
 
-fn uniform_tempo_from_markers<'a>(
-    markers: impl Iterator<Item = &'a Marker>,
-) -> Option<TempoBpm> {
+fn uniform_tempo_from_markers<'a>(markers: impl Iterator<Item = &'a Marker>) -> Option<TempoBpm> {
     let mut with_tempo = markers.filter_map(|m| m.tempo);
     if let Some(tempo) = with_tempo.next() {
         for t in with_tempo {

@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - Removed `source` from position/beat/key markers
-- Removed `state` from invidividual position/beat/key markers
+- Removed `state` from individual position/beat/key markers
 
 ## [0.3.3] - 2019-11-29
 

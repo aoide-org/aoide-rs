@@ -56,18 +56,9 @@ impl Validate for Markers {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .validate_with(
-                &self.positions,
-                MarkersInvalidity::Positions,
-            )
-            .validate_with(
-                &self.beats,
-                MarkersInvalidity::Beats,
-            )
-            .validate_with(
-                &self.keys,
-                MarkersInvalidity::Keys,
-            )
+            .validate_with(&self.positions, MarkersInvalidity::Positions)
+            .validate_with(&self.beats, MarkersInvalidity::Beats)
+            .validate_with(&self.keys, MarkersInvalidity::Keys)
             .into()
     }
 }

@@ -56,9 +56,7 @@ impl Validate for Marker {
     }
 }
 
-fn uniform_key_from_markers<'a>(
-    markers: impl Iterator<Item = &'a Marker>,
-) -> Option<KeySignature> {
+fn uniform_key_from_markers<'a>(markers: impl Iterator<Item = &'a Marker>) -> Option<KeySignature> {
     let mut keys = markers.map(|marker| marker.key);
     if let Some(key) = keys.next() {
         for k in keys {

@@ -15,7 +15,7 @@
 
 use super::*;
 
-use crate::util::{IsInteger, IsEmpty};
+use crate::util::{IsEmpty, IsInteger};
 
 use std::fmt;
 

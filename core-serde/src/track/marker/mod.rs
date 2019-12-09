@@ -30,7 +30,7 @@ mod _core {
     };
 }
 
-use aoide_core::util::{IsDefault};
+use aoide_core::util::IsDefault;
 
 use crate::{
     audio::PositionMs,
