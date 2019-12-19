@@ -375,39 +375,37 @@ impl<'a> Repo for Repository<'a> {
             .into_boxed();
 
         // A subselect has proven to be much more efficient than
-        // joining the aux_track_media table for filtering by URI!
-        let mut track_id_subselect = aux_track_media::table
-            .select(aux_track_media::track_id)
+        // joining the aux_track_location table for filtering by URI!
+        let mut track_id_subselect = aux_track_location::table
+            .select(aux_track_location::track_id)
             .into_boxed();
+        // URI filtering
         track_id_subselect = match either_eq_or_like {
             EitherEqualOrLike::Equal(eq) => {
                 if dir {
-                    track_id_subselect.filter(aux_track_media::uri.eq(eq))
+                    track_id_subselect.filter(aux_track_location::uri.eq(eq))
                 } else {
-                    track_id_subselect.filter(aux_track_media::uri.ne(eq))
+                    track_id_subselect.filter(aux_track_location::uri.ne(eq))
                 }
             }
             EitherEqualOrLike::Like(like) => {
                 if dir {
-                    track_id_subselect.filter(aux_track_media::uri.like(like).escape('\\'))
+                    track_id_subselect.filter(aux_track_location::uri.like(like).escape('\\'))
                 } else {
-                    track_id_subselect.filter(aux_track_media::uri.not_like(like).escape('\\'))
+                    track_id_subselect.filter(aux_track_location::uri.not_like(like).escape('\\'))
                 }
             }
         };
+        // Collection filtering
+        if let Some(collection_uid) = collection_uid {
+            track_id_subselect = track_id_subselect
+                .filter(aux_track_location::collection_uid.eq(collection_uid.as_ref()));
+        }
         target = if dir {
             target.filter(tbl_track::id.eq_any(track_id_subselect))
         } else {
             target.filter(tbl_track::id.ne_all(track_id_subselect))
         };
-
-        // Collection filtering
-        if let Some(collection_uid) = collection_uid {
-            let track_id_subselect = aux_track_collection::table
-                .select(aux_track_collection::track_id)
-                .filter(aux_track_collection::collection_uid.eq(collection_uid.as_ref()));
-            target = target.filter(tbl_track::id.eq_any(track_id_subselect));
-        }
 
         // Pagination
         target = apply_pagination(target, pagination);

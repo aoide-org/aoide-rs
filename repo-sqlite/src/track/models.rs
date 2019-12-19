@@ -206,6 +206,24 @@ impl<'a> InsertableSource<'a> {
 }
 
 #[derive(Debug, Insertable)]
+#[table_name = "aux_track_location"]
+pub struct InsertableLocation<'a> {
+    pub track_id: RepoId,
+    pub collection_uid: &'a [u8],
+    pub uri: &'a str,
+}
+
+impl<'a> InsertableLocation<'a> {
+    pub fn bind(track_id: RepoId, collection_uid: &'a [u8], uri: &'a str) -> Self {
+        Self {
+            track_id,
+            collection_uid,
+            uri,
+        }
+    }
+}
+
+#[derive(Debug, Insertable)]
 #[table_name = "aux_track_brief"]
 pub struct InsertableBrief<'a> {
     pub track_id: RepoId,

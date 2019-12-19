@@ -98,6 +98,38 @@ impl<'a> RepositoryHelper<'a> {
         Ok(())
     }
 
+    fn cleanup_location(&self) -> RepoResult<()> {
+        let query =
+            diesel::delete(aux_track_location::table.filter(
+                aux_track_location::track_id.ne_all(tbl_track::table.select(tbl_track::id)),
+            ));
+        query.execute(self.connection)?;
+        Ok(())
+    }
+
+    fn delete_location(&self, track_id: RepoId) -> RepoResult<()> {
+        let query = diesel::delete(
+            aux_track_location::table.filter(aux_track_location::track_id.eq(track_id)),
+        );
+        query.execute(self.connection)?;
+        Ok(())
+    }
+
+    fn insert_location(&self, track_id: RepoId, track: &Track) -> RepoResult<()> {
+        for collection in &track.collections {
+            for media_source in &track.media_sources {
+                let insertable = track::InsertableLocation::bind(
+                    track_id,
+                    collection.uid.as_ref(),
+                    &media_source.uri,
+                );
+                let query = diesel::insert_into(aux_track_location::table).values(&insertable);
+                query.execute(self.connection)?;
+            }
+        }
+        Ok(())
+    }
+
     fn cleanup_collection(&self) -> RepoResult<()> {
         let query =
             diesel::delete(aux_track_collection::table.filter(
@@ -323,6 +355,7 @@ impl<'a> RepositoryHelper<'a> {
         self.cleanup_tags()?;
         self.cleanup_markers()?;
         self.cleanup_brief()?;
+        self.cleanup_location()?;
         self.cleanup_source()?;
         self.cleanup_collection()?;
         Ok(())
@@ -331,6 +364,7 @@ impl<'a> RepositoryHelper<'a> {
     fn on_insert(&self, repo_id: RepoId, track: &Track) -> RepoResult<()> {
         self.insert_collection(repo_id, track)?;
         self.insert_source(repo_id, track)?;
+        self.insert_location(repo_id, track)?;
         self.insert_brief(repo_id, track)?;
         self.insert_markers(repo_id, track)?;
         self.insert_tags(repo_id, track)?;
@@ -341,6 +375,7 @@ impl<'a> RepositoryHelper<'a> {
         self.delete_tags(repo_id)?;
         self.delete_markers(repo_id)?;
         self.delete_brief(repo_id)?;
+        self.delete_location(repo_id)?;
         self.delete_source(repo_id)?;
         self.delete_collection(repo_id)?;
         Ok(())

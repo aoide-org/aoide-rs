@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.5.0] - 2019-12-19
+
+**This release breaks backward compatibility with old versions! Existing databases need to be rebuilt.**
+
+### Added
+
+- Added auxiliary table for locating tracks by URI in collections
+- Added constraints to prevent tracks with ambiguous/duplicate URIs
+  in a single collection
+
 ## [0.4.0] - 2019-12-08
 
 **This release breaks backward compatibility with old versions! Existing databases need to be rebuilt.**
@@ -218,10 +228,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial public release
 
-[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.4.0...development
+[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.5.0...development
+[0.5.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.5.0
 [0.4.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.4.0
 [0.3.3]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.3.2
 [0.3.2]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.3.2
 [0.3.1]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.3.1
 [0.3.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.3.0
-[0.2.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.2.0

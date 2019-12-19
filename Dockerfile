@@ -50,6 +50,7 @@ WORKDIR ${WORKDIR_ROOT}
 # if unchanged.
 RUN USER=root cargo new --bin ${PROJECT_NAME}
 WORKDIR ${WORKDIR_ROOT}/${PROJECT_NAME}
+
 RUN mkdir -p "./src/bin/${BUILD_BIN}" \
     && \
     mv ./src/main.rs "./src/bin/${BUILD_BIN}" \
@@ -69,6 +70,7 @@ RUN mkdir -p "./src/bin/${BUILD_BIN}" \
     USER=root cargo new --lib ${PROJECT_NAME}-repo-sqlite \
     && \
     mv ${PROJECT_NAME}-repo-sqlite repo-sqlite
+
 COPY [ \
     "Cargo.toml", \
     "Cargo.lock", \
@@ -90,13 +92,13 @@ COPY [ \
     "./repo-sqlite/" ]
 
 # Build the dummy project(s), then delete all build artefacts that must(!) not be cached
-RUN cargo build --${BUILD_MODE} --target ${BUILD_TARGET} --all \
+RUN cargo build --${BUILD_MODE} --target ${BUILD_TARGET} --workspace \
     && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/${PROJECT_NAME}* \
     && \
-    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/${PROJECT_NAME}* \
+    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/${PROJECT_NAME}-* \
     && \
-    rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/${PROJECT_NAME}*
+    rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/${PROJECT_NAME}-*
 
 # Copy all project (re-)sources that are required for building
 COPY [ \
@@ -122,7 +124,7 @@ COPY [ \
     "./repo-sqlite/migrations/" ]
 
 # Test and build the actual project
-RUN cargo test --${BUILD_MODE} --target ${BUILD_TARGET} --all \
+RUN cargo test --${BUILD_MODE} --target ${BUILD_TARGET} --workspace \
     && \
     cargo build --${BUILD_MODE} --target ${BUILD_TARGET} --bin ${BUILD_BIN} \
     && \

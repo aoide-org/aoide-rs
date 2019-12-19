@@ -65,6 +65,17 @@ table! {
 joinable!(aux_track_media -> tbl_track (track_id));
 
 table! {
+    aux_track_location (id) {
+        id -> BigInt,
+        track_id -> BigInt,
+        collection_uid -> Binary,
+        uri -> Text,
+    }
+}
+
+joinable!(aux_track_location -> tbl_track (track_id));
+
+table! {
     aux_track_brief (id) {
         id -> BigInt,
         track_id -> BigInt,
@@ -133,12 +144,13 @@ joinable!(aux_track_marker -> aux_marker_label (label_id));
 
 allow_tables_to_appear_in_same_query!(
     tbl_track,
-    aux_track_collection,
-    aux_track_media,
     aux_track_brief,
-    aux_track_tag,
-    aux_tag_label,
-    aux_tag_facet,
+    aux_track_collection,
+    aux_track_location,
     aux_track_marker,
+    aux_track_media,
+    aux_track_tag,
+    aux_tag_facet,
+    aux_tag_label,
     aux_marker_label,
 );

@@ -108,6 +108,19 @@ CREATE INDEX idx_track_media_content_type_track ON aux_track_media (
     content_type, track_id
 );
 
+CREATE TABLE aux_track_location (
+    id                       INTEGER PRIMARY KEY,
+    track_id                 INTEGER NOT NULL,
+    collection_uid           BINARY(24) NOT NULL,
+    uri                      TEXT NOT NULL,     -- RFC 3986
+    FOREIGN KEY(track_id) REFERENCES tbl_track(id),
+    UNIQUE (uri, collection_uid)                -- URIs must be unique in each collection
+);
+
+CREATE INDEX idx_aux_track_location_track_id ON aux_track_location (
+    track_id
+);
+
 CREATE TABLE aux_track_brief (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
