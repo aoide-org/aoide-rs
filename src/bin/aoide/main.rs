@@ -367,7 +367,7 @@ pub fn main() -> Result<(), Error> {
         .and(warp::path::end())
         .and(warp::query())
         .and(warp::body::json())
-        .and(pooled_connection.clone())
+        .and(pooled_connection)
         .and_then(|query, body, pooled_connection| {
             TracksHandler::new(pooled_connection).handle_tags_facets_count_tracks(query, body)
         });

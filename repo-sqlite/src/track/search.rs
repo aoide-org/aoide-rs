@@ -415,7 +415,7 @@ fn build_phrase_field_filter_expression(
         } else {
             Box::new(
                 or_expression.or(aux_track_brief::album_artist
-                    .like(like_expr.clone())
+                    .like(like_expr)
                     .escape('\\')),
             )
         };

@@ -213,7 +213,7 @@ pub trait Repo {
             }
         }
         let locate_params = LocateParams {
-            media_uri: StringPredicate::Equals(media_uri.clone()),
+            media_uri: StringPredicate::Equals(media_uri),
         };
         let located_tracks =
             self.locate_tracks(collection_uid, Pagination::default(), locate_params)?;
