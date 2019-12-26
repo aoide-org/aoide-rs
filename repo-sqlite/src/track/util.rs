@@ -272,7 +272,7 @@ impl<'a> RepositoryHelper<'a> {
                 .values(&insertable)
                 .execute(self.connection)
             {
-                Err(err) => log::error!(
+                Err(err) => log::warn!(
                     "Failed to insert tag {:?} for track {}: {}",
                     tag,
                     track_id,
@@ -338,7 +338,7 @@ impl<'a> RepositoryHelper<'a> {
                     .values(&insertable)
                     .execute(self.connection)
                 {
-                    Err(err) => log::error!(
+                    Err(err) => log::warn!(
                         "Failed to insert marker {:?} for track {}: {}",
                         marker,
                         track_id,
