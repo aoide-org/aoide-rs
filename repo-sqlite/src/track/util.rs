@@ -82,16 +82,16 @@ impl<'a> RepositoryHelper<'a> {
         Ok(())
     }
 
-    fn delete_media(&self, track_id: RepoId) -> RepoResult<()> {
+    fn delete_media(&self, repo_id: RepoId) -> RepoResult<()> {
         let query =
-            diesel::delete(aux_track_media::table.filter(aux_track_media::track_id.eq(track_id)));
+            diesel::delete(aux_track_media::table.filter(aux_track_media::track_id.eq(repo_id)));
         query.execute(self.connection)?;
         Ok(())
     }
 
-    fn insert_media(&self, track_id: RepoId, track: &Track) -> RepoResult<()> {
-        for media_media in &track.media_medias {
-            let insertable = track::InsertableSource::bind(track_id, media_media);
+    fn insert_media(&self, repo_id: RepoId, track: &Track) -> RepoResult<()> {
+        for media_source in &track.media_sources {
+            let insertable = track::InsertableSource::bind(repo_id, media_source);
             let query = diesel::insert_into(aux_track_media::table).values(&insertable);
             query.execute(self.connection)?;
         }
@@ -107,21 +107,21 @@ impl<'a> RepositoryHelper<'a> {
         Ok(())
     }
 
-    fn delete_location(&self, track_id: RepoId) -> RepoResult<()> {
+    fn delete_location(&self, repo_id: RepoId) -> RepoResult<()> {
         let query = diesel::delete(
-            aux_track_location::table.filter(aux_track_location::track_id.eq(track_id)),
+            aux_track_location::table.filter(aux_track_location::track_id.eq(repo_id)),
         );
         query.execute(self.connection)?;
         Ok(())
     }
 
-    fn insert_location(&self, track_id: RepoId, track: &Track) -> RepoResult<()> {
+    fn insert_location(&self, repo_id: RepoId, track: &Track) -> RepoResult<()> {
         for collection in &track.collections {
-            for media_media in &track.media_medias {
+            for media_source in &track.media_sources {
                 let insertable = track::InsertableLocation::bind(
-                    track_id,
+                    repo_id,
                     collection.uid.as_ref(),
-                    &media_media.uri,
+                    &media_source.uri,
                 );
                 let query = diesel::insert_into(aux_track_location::table).values(&insertable);
                 query.execute(self.connection)?;
@@ -139,17 +139,17 @@ impl<'a> RepositoryHelper<'a> {
         Ok(())
     }
 
-    fn delete_collection(&self, track_id: RepoId) -> RepoResult<()> {
+    fn delete_collection(&self, repo_id: RepoId) -> RepoResult<()> {
         let query = diesel::delete(
-            aux_track_collection::table.filter(aux_track_collection::track_id.eq(track_id)),
+            aux_track_collection::table.filter(aux_track_collection::track_id.eq(repo_id)),
         );
         query.execute(self.connection)?;
         Ok(())
     }
 
-    fn insert_collection(&self, track_id: RepoId, track: &Track) -> RepoResult<()> {
+    fn insert_collection(&self, repo_id: RepoId, track: &Track) -> RepoResult<()> {
         for collection in &track.collections {
-            let insertable = track::InsertableCollection::bind(track_id, collection);
+            let insertable = track::InsertableCollection::bind(repo_id, collection);
             let query = diesel::insert_into(aux_track_collection::table).values(&insertable);
             query.execute(self.connection)?;
         }
@@ -165,15 +165,15 @@ impl<'a> RepositoryHelper<'a> {
         Ok(())
     }
 
-    fn delete_brief(&self, track_id: RepoId) -> RepoResult<()> {
+    fn delete_brief(&self, repo_id: RepoId) -> RepoResult<()> {
         let query =
-            diesel::delete(aux_track_brief::table.filter(aux_track_brief::track_id.eq(track_id)));
+            diesel::delete(aux_track_brief::table.filter(aux_track_brief::track_id.eq(repo_id)));
         query.execute(self.connection)?;
         Ok(())
     }
 
-    fn insert_brief(&self, track_id: RepoId, track: &Track) -> RepoResult<()> {
-        let insertable = track::InsertableBrief::bind(track_id, track);
+    fn insert_brief(&self, repo_id: RepoId, track: &Track) -> RepoResult<()> {
+        let insertable = track::InsertableBrief::bind(repo_id, track);
         let query = diesel::insert_into(aux_track_brief::table).values(&insertable);
         query.execute(self.connection)?;
         Ok(())
@@ -207,8 +207,8 @@ impl<'a> RepositoryHelper<'a> {
         Ok(())
     }
 
-    fn delete_tags(&self, track_id: RepoId) -> RepoResult<()> {
-        diesel::delete(aux_track_tag::table.filter(aux_track_tag::track_id.eq(track_id)))
+    fn delete_tags(&self, repo_id: RepoId) -> RepoResult<()> {
+        diesel::delete(aux_track_tag::table.filter(aux_track_tag::track_id.eq(repo_id)))
             .execute(self.connection)?;
         Ok(())
     }
@@ -257,7 +257,7 @@ impl<'a> RepositoryHelper<'a> {
         }
     }
 
-    fn insert_tags(&self, track_id: RepoId, track: &Track) -> RepoResult<()> {
+    fn insert_tags(&self, repo_id: RepoId, track: &Track) -> RepoResult<()> {
         for tag in &track.tags {
             let facet_id = tag
                 .facet()
@@ -267,7 +267,7 @@ impl<'a> RepositoryHelper<'a> {
                 .label()
                 .map(|label| self.resolve_tag_label(label))
                 .transpose()?;
-            let insertable = InsertableTracksTag::bind(track_id, facet_id, label_id, tag.score());
+            let insertable = InsertableTracksTag::bind(repo_id, facet_id, label_id, tag.score());
             match diesel::insert_into(aux_track_tag::table)
                 .values(&insertable)
                 .execute(self.connection)
@@ -275,7 +275,7 @@ impl<'a> RepositoryHelper<'a> {
                 Err(err) => log::warn!(
                     "Failed to insert tag {:?} for track {}: {}",
                     tag,
-                    track_id,
+                    repo_id,
                     err
                 ),
                 Ok(count) => debug_assert!(count == 1),
@@ -299,8 +299,8 @@ impl<'a> RepositoryHelper<'a> {
         Ok(())
     }
 
-    fn delete_markers(&self, track_id: RepoId) -> RepoResult<()> {
-        diesel::delete(aux_track_marker::table.filter(aux_track_marker::track_id.eq(track_id)))
+    fn delete_markers(&self, repo_id: RepoId) -> RepoResult<()> {
+        diesel::delete(aux_track_marker::table.filter(aux_track_marker::track_id.eq(repo_id)))
             .execute(self.connection)?;
         Ok(())
     }
@@ -326,12 +326,12 @@ impl<'a> RepositoryHelper<'a> {
         }
     }
 
-    fn insert_markers(&self, track_id: RepoId, track: &Track) -> RepoResult<()> {
+    fn insert_markers(&self, repo_id: RepoId, track: &Track) -> RepoResult<()> {
         for marker in &track.markers.positions.markers {
             let data: &PositionMarkerData = marker.data();
             if let Some(ref label) = data.label {
                 let label_id = self.resolve_marker_label(&label)?;
-                let insertable = InsertableTracksMarker::bind(track_id, label_id);
+                let insertable = InsertableTracksMarker::bind(repo_id, label_id);
                 // The same label might be used for multiple markers of
                 // the same track.
                 match diesel::insert_or_ignore_into(aux_track_marker::table)
@@ -341,7 +341,7 @@ impl<'a> RepositoryHelper<'a> {
                     Err(err) => log::warn!(
                         "Failed to insert marker {:?} for track {}: {}",
                         marker,
-                        track_id,
+                        repo_id,
                         err
                     ),
                     Ok(count) => debug_assert!(count <= 1),
