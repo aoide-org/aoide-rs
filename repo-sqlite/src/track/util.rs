@@ -73,7 +73,7 @@ impl<'a> RepositoryHelper<'a> {
         Ok(recreated_collections)
     }
 
-    fn cleanup_source(&self) -> RepoResult<()> {
+    fn cleanup_media(&self) -> RepoResult<()> {
         let query = diesel::delete(
             aux_track_media::table
                 .filter(aux_track_media::track_id.ne_all(tbl_track::table.select(tbl_track::id))),
@@ -82,16 +82,16 @@ impl<'a> RepositoryHelper<'a> {
         Ok(())
     }
 
-    fn delete_source(&self, track_id: RepoId) -> RepoResult<()> {
+    fn delete_media(&self, track_id: RepoId) -> RepoResult<()> {
         let query =
             diesel::delete(aux_track_media::table.filter(aux_track_media::track_id.eq(track_id)));
         query.execute(self.connection)?;
         Ok(())
     }
 
-    fn insert_source(&self, track_id: RepoId, track: &Track) -> RepoResult<()> {
-        for media_source in &track.media_sources {
-            let insertable = track::InsertableSource::bind(track_id, media_source);
+    fn insert_media(&self, track_id: RepoId, track: &Track) -> RepoResult<()> {
+        for media_media in &track.media_medias {
+            let insertable = track::InsertableSource::bind(track_id, media_media);
             let query = diesel::insert_into(aux_track_media::table).values(&insertable);
             query.execute(self.connection)?;
         }
@@ -117,11 +117,11 @@ impl<'a> RepositoryHelper<'a> {
 
     fn insert_location(&self, track_id: RepoId, track: &Track) -> RepoResult<()> {
         for collection in &track.collections {
-            for media_source in &track.media_sources {
+            for media_media in &track.media_medias {
                 let insertable = track::InsertableLocation::bind(
                     track_id,
                     collection.uid.as_ref(),
-                    &media_source.uri,
+                    &media_media.uri,
                 );
                 let query = diesel::insert_into(aux_track_location::table).values(&insertable);
                 query.execute(self.connection)?;
@@ -356,14 +356,14 @@ impl<'a> RepositoryHelper<'a> {
         self.cleanup_markers()?;
         self.cleanup_brief()?;
         self.cleanup_location()?;
-        self.cleanup_source()?;
+        self.cleanup_media()?;
         self.cleanup_collection()?;
         Ok(())
     }
 
     fn on_insert(&self, repo_id: RepoId, track: &Track) -> RepoResult<()> {
         self.insert_collection(repo_id, track)?;
-        self.insert_source(repo_id, track)?;
+        self.insert_media(repo_id, track)?;
         self.insert_location(repo_id, track)?;
         self.insert_brief(repo_id, track)?;
         self.insert_markers(repo_id, track)?;
@@ -376,7 +376,7 @@ impl<'a> RepositoryHelper<'a> {
         self.delete_markers(repo_id)?;
         self.delete_brief(repo_id)?;
         self.delete_location(repo_id)?;
-        self.delete_source(repo_id)?;
+        self.delete_media(repo_id)?;
         self.delete_collection(repo_id)?;
         Ok(())
     }
