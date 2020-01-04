@@ -1,0 +1,171 @@
+// aoide.org - Copyright (C) 2018-2020 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+use super::*;
+
+use aoide_core::util::clock::*;
+
+use aoide_repo::{entity::*, RepoId};
+
+use chrono::{naive::NaiveDateTime, DateTime};
+
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Insertable)]
+#[table_name = "tbl_playlist"]
+pub struct InsertableEntity<'a> {
+    pub uid: &'a [u8],
+    pub rev_ver: i64,
+    pub rev_ts: TickType,
+    pub data_fmt: i16,
+    pub data_vmaj: i16,
+    pub data_vmin: i16,
+    pub data_blob: &'a [u8],
+}
+
+impl<'a> InsertableEntity<'a> {
+    pub fn bind(
+        hdr: &'a EntityHeader,
+        data_fmt: EntityDataFormat,
+        data_ver: EntityDataVersion,
+        data_blob: &'a [u8],
+    ) -> Self {
+        Self {
+            uid: hdr.uid.as_ref(),
+            rev_ver: hdr.rev.ver as i64,
+            rev_ts: (hdr.rev.ts.0).0,
+            data_fmt: data_fmt as i16,
+            data_vmaj: data_ver.major as i16,
+            data_vmin: data_ver.minor as i16,
+            data_blob,
+        }
+    }
+}
+
+#[derive(Debug, AsChangeset)]
+#[table_name = "tbl_playlist"]
+pub struct UpdatableEntity<'a> {
+    pub rev_ver: i64,
+    pub rev_ts: TickType,
+    pub data_fmt: i16,
+    pub data_vmaj: i16,
+    pub data_vmin: i16,
+    pub data_blob: &'a [u8],
+}
+
+impl<'a> UpdatableEntity<'a> {
+    pub fn bind(
+        next_rev: &'a EntityRevision,
+        data_fmt: EntityDataFormat,
+        data_ver: EntityDataVersion,
+        data_blob: &'a [u8],
+    ) -> Self {
+        Self {
+            rev_ver: next_rev.ver as i64,
+            rev_ts: (next_rev.ts.0).0,
+            data_fmt: data_fmt as i16,
+            data_vmaj: data_ver.major as i16,
+            data_vmin: data_ver.minor as i16,
+            data_blob,
+        }
+    }
+}
+
+#[derive(Debug, Queryable, Identifiable)]
+#[table_name = "tbl_playlist"]
+pub struct QueryableEntityData {
+    pub id: RepoId,
+    pub uid: Vec<u8>,
+    pub rev_ver: i64,
+    pub rev_ts: TickType,
+    pub data_fmt: i16,
+    pub data_vmaj: i16,
+    pub data_vmin: i16,
+    pub data_blob: Vec<u8>,
+}
+
+impl From<QueryableEntityData> for EntityData {
+    fn from(from: QueryableEntityData) -> Self {
+        let rev = EntityRevision {
+            ver: from.rev_ver as u64,
+            ts: TickInstant(Ticks(from.rev_ts)),
+        };
+        let hdr = EntityHeader {
+            uid: EntityUid::from_slice(&from.uid),
+            rev,
+        };
+        let fmt = if from.data_fmt == EntityDataFormat::JSON as i16 {
+            EntityDataFormat::JSON
+        } else {
+            // TODO: How to handle unexpected/invalid values?
+            unreachable!()
+        };
+        let ver = EntityDataVersion {
+            major: from.data_vmaj as EntityDataVersionNumber,
+            minor: from.data_vmin as EntityDataVersionNumber,
+        };
+        (hdr, (fmt, ver, from.data_blob))
+    }
+}
+
+#[derive(Debug, Insertable)]
+#[table_name = "aux_playlist_brief"]
+pub struct InsertableBrief<'a> {
+    pub playlist_id: RepoId,
+    pub name: &'a str,
+    pub desc: Option<&'a str>,
+    pub rtype: Option<&'a str>,
+    pub color_code: Option<i32>,
+    pub entries_count: i64,
+    pub entries_since_min: Option<NaiveDateTime>,
+    pub entries_since_max: Option<NaiveDateTime>,
+}
+
+impl<'a> InsertableBrief<'a> {
+    pub fn bind(playlist_id: RepoId, playlist_brief: &'a PlaylistBrief<'a>) -> Self {
+        Self {
+            playlist_id,
+            name: &playlist_brief.name,
+            desc: playlist_brief.description,
+            rtype: playlist_brief.r#type,
+            color_code: playlist_brief.color.map(|color| color.code() as i32),
+            entries_count: playlist_brief.entries_count as i64,
+            entries_since_min: playlist_brief
+                .entries_since_min
+                .map(|min| DateTime::from(min).naive_utc()),
+            entries_since_max: playlist_brief
+                .entries_since_max
+                .map(|max| DateTime::from(max).naive_utc()),
+        }
+    }
+}
+
+#[derive(Debug, Insertable)]
+#[table_name = "aux_playlist_track"]
+pub struct InsertableTrack<'a> {
+    pub playlist_id: RepoId,
+    pub track_uid: &'a [u8],
+    pub track_ref_count: i64,
+}
+
+impl<'a> InsertableTrack<'a> {
+    pub fn bind(playlist_id: RepoId, track_uid: &'a EntityUid, track_ref_count: usize) -> Self {
+        Self {
+            playlist_id,
+            track_uid: track_uid.as_ref(),
+            track_ref_count: track_ref_count as i64,
+        }
+    }
+}

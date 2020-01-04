@@ -24,6 +24,7 @@ use std::fmt;
 
 pub mod collection;
 pub mod entity;
+pub mod playlist;
 pub mod tag;
 pub mod track;
 pub mod util;

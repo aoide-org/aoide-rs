@@ -25,7 +25,10 @@ use aoide::{
 
 use aoide_core::collection::Collection;
 
-use aoide_repo_sqlite::track::util::RepositoryHelper as TrackRepositoryHelper;
+use aoide_repo_sqlite::{
+    track::util::RepositoryHelper as TrackRepositoryHelper,
+    playlist::util::RepositoryHelper as PlaylistRepositoryHelper,
+};
 
 use clap::App;
 use diesel::{prelude::*, sql_query};
@@ -79,8 +82,15 @@ fn migrate_database_schema(connection_pool: &SqliteConnectionPool) -> Result<(),
 fn cleanup_database_storage(connection_pool: &SqliteConnectionPool) -> Result<(), Error> {
     log::info!("Cleaning up database storage");
     let connection = &*connection_pool.get()?;
-    let helper = TrackRepositoryHelper::new(connection);
-    connection.transaction::<_, Error, _>(|| helper.cleanup())
+    {
+        let helper = TrackRepositoryHelper::new(connection);
+        connection.transaction::<_, Error, _>(|| helper.cleanup())?;
+    }
+    {
+        let helper = PlaylistRepositoryHelper::new(connection);
+        connection.transaction::<_, Error, _>(|| helper.cleanup())?;
+    }
+    Ok(())
 }
 
 fn restore_database_storage(connection_pool: &SqliteConnectionPool) -> Result<(), Error> {
