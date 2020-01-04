@@ -9,10 +9,13 @@ edition = "2018"
 [dependencies]
 aoide-core = "*"
 aoide-repo = "*"
+bigdecimal = "*"
 chrono = { version = "*", default-features = false }
-diesel = { version = "*", features = ["chrono", "sqlite"] }
+diesel = { version = "*", features = ["chrono", "sqlite", "numeric"] }
 failure = "*"
 log = "*"
+num-bigint = "*"
+num-traits = "*"
 percent-encoding = "*"
 
 [dev-dependencies]

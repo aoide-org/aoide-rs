@@ -13,23 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#![deny(missing_debug_implementations)]
-#![warn(rust_2018_idioms)]
+/*
+use super::*;
 
-// The following workaround is need to avoid cluttering the code with
-// #[cfg_attr(feature = "diesel", ...)] to specify custom diesel
-// attributes.
-#[macro_use]
-extern crate diesel;
+embed_migrations!("migrations/sqlite");
 
-// Workaround for using the embed_migrations!() macro in tests.
-#[cfg(test)]
-#[macro_use]
-extern crate diesel_migrations;
-
-use diesel::prelude::*;
-
-pub mod collection;
-pub mod playlist;
-pub mod track;
-pub mod util;
+fn establish_connection() -> SqliteConnection {
+    let connection =
+        SqliteConnection::establish(":memory:").expect("in-memory database connection");
+    embedded_migrations::run(&connection).expect("database schema migration");
+    connection
+}
+*/
