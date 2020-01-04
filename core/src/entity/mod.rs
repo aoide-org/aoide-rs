@@ -25,7 +25,7 @@ use std::{fmt, marker::PhantomData, mem, str};
 // EntityUid
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct EntityUid([u8; 24]);
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
