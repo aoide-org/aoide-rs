@@ -19,13 +19,13 @@ paths:
       tags:
         - Collections
       parameters:
-        - $ref: '#/components/parameters/paginationOffset'
-        - $ref: '#/components/parameters/paginationLimit'
+        - $ref: '#/components/parameters/paginationOffsetQuery'
+        - $ref: '#/components/parameters/paginationLimitQuery'
       responses:
         '200':
           description: |
             An array of collection entities sorted in descending order of the
-            corresponding time stamp.
+            revision time stamp.
           content:
             application/json:
               schema:
@@ -71,7 +71,7 @@ paths:
         - Collections
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
-        - $ref: '#/components/parameters/withCollectionQuery'
+        - $ref: '#/components/parameters/collectionWithQuery'
       responses:
         '200':
           description: |
@@ -141,14 +141,14 @@ paths:
       tags:
         - Tracks
       parameters:
-        - $ref: '#/components/parameters/collectionUidParam'
-        - $ref: '#/components/parameters/paginationOffset'
-        - $ref: '#/components/parameters/paginationLimit'
+        - $ref: '#/components/parameters/collectionUidQuery'
+        - $ref: '#/components/parameters/paginationOffsetQuery'
+        - $ref: '#/components/parameters/paginationLimitQuery'
       responses:
         '200':
           description: |
             An array of track entities sorted in descending order of the
-            corresponding time stamp.
+            revision time stamp.
           content:
             application/json:
               schema:
@@ -254,7 +254,7 @@ paths:
       tags:
         - Tracks
       parameters:
-        - $ref: '#/components/parameters/collectionUidParam'
+        - $ref: '#/components/parameters/collectionUidQuery'
       requestBody:
         required: true
         content:
@@ -284,7 +284,7 @@ paths:
       tags:
         - Tracks
       parameters:
-        - $ref: '#/components/parameters/collectionUidParam'
+        - $ref: '#/components/parameters/collectionUidQuery'
       requestBody:
         required: true
         content:
@@ -314,7 +314,7 @@ paths:
       tags:
         - Tracks
       parameters:
-        - $ref: '#/components/parameters/collectionUidParam'
+        - $ref: '#/components/parameters/collectionUidQuery'
       requestBody:
         required: true
         content:
@@ -337,7 +337,7 @@ paths:
       tags:
         - Tracks
       parameters:
-        - $ref: '#/components/parameters/collectionUidParam'
+        - $ref: '#/components/parameters/collectionUidQuery'
       requestBody:
         required: true
         content:
@@ -360,9 +360,9 @@ paths:
       tags:
         - Tracks
       parameters:
-        - $ref: '#/components/parameters/collectionUidParam'
-        - $ref: '#/components/parameters/paginationOffset'
-        - $ref: '#/components/parameters/paginationLimit'
+        - $ref: '#/components/parameters/collectionUidQuery'
+        - $ref: '#/components/parameters/paginationOffsetQuery'
+        - $ref: '#/components/parameters/paginationLimitQuery'
       requestBody:
         required: true
         content:
@@ -390,9 +390,9 @@ paths:
       tags:
         - Albums
       parameters:
-        - $ref: '#/components/parameters/collectionUidParam'
-        - $ref: '#/components/parameters/paginationOffset'
-        - $ref: '#/components/parameters/paginationLimit'
+        - $ref: '#/components/parameters/collectionUidQuery'
+        - $ref: '#/components/parameters/paginationOffsetQuery'
+        - $ref: '#/components/parameters/paginationLimitQuery'
       requestBody:
         required: true
         content:
@@ -422,9 +422,9 @@ paths:
       tags:
         - Tags
       parameters:
-        - $ref: '#/components/parameters/collectionUidParam'
-        - $ref: '#/components/parameters/paginationOffset'
-        - $ref: '#/components/parameters/paginationLimit'
+        - $ref: '#/components/parameters/collectionUidQuery'
+        - $ref: '#/components/parameters/paginationOffsetQuery'
+        - $ref: '#/components/parameters/paginationLimitQuery'
       requestBody:
         required: true
         content:
@@ -453,9 +453,9 @@ paths:
       tags:
         - Tags
       parameters:
-        - $ref: '#/components/parameters/collectionUidParam'
-        - $ref: '#/components/parameters/paginationOffset'
-        - $ref: '#/components/parameters/paginationLimit'
+        - $ref: '#/components/parameters/collectionUidQuery'
+        - $ref: '#/components/parameters/paginationOffsetQuery'
+        - $ref: '#/components/parameters/paginationLimitQuery'
       requestBody:
         required: true
         content:
@@ -507,7 +507,7 @@ components:
       description: |
         The server failed to process the request.
   parameters:
-    paginationOffset:
+    paginationOffsetQuery:
       name: offset
       in: query
       required: false
@@ -517,7 +517,7 @@ components:
         minimum: 0
       description: |
         Number of items to skip before returning the results or 0 if missing.
-    paginationLimit:
+    paginationLimitQuery:
       name: limit
       in: query
       required: false
@@ -533,7 +533,7 @@ components:
         result
 
         in an empty set of returned items.
-    collectionUidParam:
+    collectionUidQuery:
       name: collectionUid
       in: query
       required: false
@@ -550,15 +550,7 @@ components:
         $ref: '#/components/schemas/CollectionUid'
       description: |
         The UID of the collection.
-    trackUidPath:
-      name: trackUid
-      in: path
-      required: true
-      schema:
-        $ref: '#/components/schemas/TrackUid'
-      description: |
-        The UID of the track.
-    withCollectionQuery:
+    collectionWithQuery:
       name: with
       in: query
       required: false
@@ -567,6 +559,14 @@ components:
       description: |
         Comma-separated list of boolean options:
           * `track-stats` - Include track statistics
+    trackUidPath:
+      name: trackUid
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/TrackUid'
+      description: |
+        The UID of the track.
   schemas:
     Actor:
       oneOf:

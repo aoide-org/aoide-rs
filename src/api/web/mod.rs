@@ -20,7 +20,11 @@ use serde::{Deserialize, Serialize};
 pub mod collections;
 pub mod tracks;
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+mod json;
+
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PaginationQueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -37,8 +41,8 @@ impl From<PaginationQueryParams> for aoide_repo::Pagination {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct WithTokensQueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     with: Option<String>,
