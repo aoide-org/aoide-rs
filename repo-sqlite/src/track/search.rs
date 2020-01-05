@@ -413,11 +413,7 @@ fn build_phrase_field_filter_expression(
                     .or(aux_track_brief::album_artist.eq(String::default())),
             )
         } else {
-            Box::new(
-                or_expression.or(aux_track_brief::album_artist
-                    .like(like_expr)
-                    .escape('\\')),
-            )
+            Box::new(or_expression.or(aux_track_brief::album_artist.like(like_expr).escape('\\')))
         };
     }
     or_expression

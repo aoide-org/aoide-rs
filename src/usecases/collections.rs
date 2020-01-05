@@ -34,23 +34,23 @@ pub fn create_collection(
     db: &SqlitePooledConnection,
     new_collection: Collection,
 ) -> RepoResult<EntityHeader> {
-    let repository = Repository::new(&*db);
+    let repo = Repository::new(&*db);
     let hdr = EntityHeader::initial_random();
     let entity = Entity::new(hdr, new_collection);
-    db.transaction::<_, Error, _>(|| repository.insert_collection(&entity).map(|()| entity.hdr))
+    db.transaction::<_, Error, _>(|| repo.insert_collection(&entity).map(|()| entity.hdr))
 }
 
 pub fn update_collection(
     db: &SqlitePooledConnection,
     entity: &Entity,
 ) -> RepoResult<(EntityRevision, Option<EntityRevision>)> {
-    let repository = Repository::new(&*db);
-    db.transaction::<_, Error, _>(|| repository.update_collection(entity))
+    let repo = Repository::new(&*db);
+    db.transaction::<_, Error, _>(|| repo.update_collection(entity))
 }
 
 pub fn delete_collection(db: &SqlitePooledConnection, uid: &EntityUid) -> RepoResult<Option<()>> {
-    let repository = Repository::new(&*db);
-    db.transaction::<_, Error, _>(|| repository.delete_collection(uid))
+    let repo = Repository::new(&*db);
+    db.transaction::<_, Error, _>(|| repo.delete_collection(uid))
 }
 
 pub fn load_collection(
@@ -58,9 +58,9 @@ pub fn load_collection(
     uid: &EntityUid,
     with_track_stats: bool,
 ) -> RepoResult<Option<(Entity, Option<TrackStats>)>> {
-    let repository = Repository::new(&*db);
+    let repo = Repository::new(&*db);
     db.transaction::<_, Error, _>(|| {
-        let entity = repository.load_collection(uid)?;
+        let entity = repo.load_collection(uid)?;
         if let Some(entity) = entity {
             let track_stats = if with_track_stats {
                 let track_repo = TrackRepository::new(&*db);
@@ -76,9 +76,9 @@ pub fn load_collection(
 }
 
 pub fn list_collections(
-    pooled_connection: &SqlitePooledConnection,
+    conn: &SqlitePooledConnection,
     pagination: Pagination,
 ) -> RepoResult<Vec<Entity>> {
-    let repository = Repository::new(&*pooled_connection);
-    pooled_connection.transaction::<_, Error, _>(|| repository.list_collections(pagination))
+    let repo = Repository::new(&*conn);
+    conn.transaction::<_, Error, _>(|| repo.list_collections(pagination))
 }
