@@ -27,6 +27,7 @@ pub mod collection;
 pub mod entity;
 pub mod media;
 pub mod music;
+pub mod playlist;
 pub mod tag;
 pub mod title;
 pub mod track;
