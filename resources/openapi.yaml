@@ -130,6 +130,126 @@ paths:
           $ref: '#/components/responses/400BadRequest'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+  /playlists:
+    get:
+      summary: List playlists
+      description: |
+        List all playlists that have recently been created/modified.
+      operationId: listPlaylists
+      tags:
+        - Playlists
+      parameters:
+        - $ref: '#/components/parameters/playlistTypeQuery'
+        - $ref: '#/components/parameters/paginationOffsetQuery'
+        - $ref: '#/components/parameters/paginationLimitQuery'
+      responses:
+        '200':
+          description: |
+            An array of playlist entities sorted in descending order of the
+            revision time stamp.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaylistEntity'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+    post:
+      summary: Create a new playlist
+      operationId: createPlaylist
+      tags:
+        - Playlists
+      requestBody:
+        description: |
+          Properties and entries of the new playlist.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionEntityBody'
+      responses:
+        '201':
+          description: |
+            The header of the newly created playlist entity.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntityHeader'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  '/playlists/{playlistUid}':
+    get:
+      summary: Load a playlist
+      description: |
+        Load a playlist entity referenced by its UID.
+      operationId: loadPlaylist
+      tags:
+        - Playlists
+      parameters:
+        - $ref: '#/components/parameters/playlistUidPath'
+      responses:
+        '200':
+          description: |
+            The loaded collection entity, optionally with additional statistics.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionEntityWithStats'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+    put:
+      summary: Update a playlist
+      description: |
+        Update a playlist entity after validating that the provided `header`
+        matches that of the current entity (optimistic locking).
+      operationId: updatePlaylist
+      tags:
+        - Playlists
+      parameters:
+        - $ref: '#/components/parameters/playlistUidPath'
+      requestBody:
+        description: |
+          A playlist entity with the current `header` and and updated `body`.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaylistEntity'
+      responses:
+        '200':
+          description: |
+            The header of the updated playlist entity.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntityHeader'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+    delete:
+      summary: Delete a playlist
+      operationId: deletePlaylist
+      tags:
+        - Playlists
+      parameters:
+        - $ref: '#/components/parameters/playlistUidPath'
+      responses:
+        '204':
+          $ref: '#/components/responses/204NoContent'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
   /tracks:
     get:
       summary: List tracks
@@ -559,6 +679,22 @@ components:
       description: |
         Comma-separated list of boolean options:
           * `track-stats` - Include track statistics
+    playlistTypeQuery:
+      name: type
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/PlaylistType'
+      description: |
+        The desired custom type of the playlist.
+    playlistUidPath:
+      name: playlistUid
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/PlaylistUid'
+      description: |
+        The UID of the playlist.
     trackUidPath:
       name: trackUid
       in: path
@@ -1160,6 +1296,60 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/PlainTag'
+    PlaylistEntity:
+      description: Entity header and body
+      type: array
+      minLength: 2
+      maxLength: 2
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/EntityHeader'
+          - $ref: '#/components/schemas/PlaylistEntityBody'
+    PlaylistEntityBody:
+      properties:
+        n:
+          description: Mandatory name
+          type: string
+          minLength: 1
+        d:
+          description: Optional description
+          type: string
+        t:
+          $ref: '#/components/schemas/PlaylistType'
+        c:
+          $ref: '#/components/schemas/Color'
+        e:
+          description: Entries
+          type: array
+          items:
+            $ref: '#/components/schemas/PlaylistEntry'
+      required:
+        - n
+    PlaylistEntry:
+      properties:
+        u:
+          $ref: '#/components/schemas/TrackUid'
+        t:
+          description: |
+            Time stamp since when this entry is part of its playlist,
+            i.e. when it has been created and added.
+          oneOf:
+            - $ref: '#/components/schemas/SinceTimeStamp'
+        c:
+          description: |
+            Custom comments and notes to annotate this entry
+          type: string
+    PlaylistType:
+      description: |
+        Custom type of to the playlist. This allows 3rd party applications
+        to distinguish different kinds of playlists for different purposes
+        and depending on their use case, e.g. generated session or history
+        playlists for logging all tracks that have been played during this
+        session.
+      type: string
+    PlaylistUid:
+      oneOf:
+        - $ref: '#/components/schemas/EntityUid'
     PositionMarker:
       properties:
         m:

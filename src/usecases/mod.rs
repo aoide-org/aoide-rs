@@ -17,4 +17,5 @@ use super::*;
 
 pub mod collections;
 pub mod json;
+pub mod playlists;
 pub mod tracks;
