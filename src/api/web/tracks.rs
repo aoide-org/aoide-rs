@@ -15,25 +15,30 @@
 
 use super::*;
 
+use crate::usecases::tracks::{
+    ReplacedTracks as UcReplacedTracks, TrackReplacement as UcTrackReplacement, *,
+};
+
 mod json {
     pub use super::super::json::*;
     pub use crate::usecases::tracks::json::*;
 }
 
-use crate::usecases::tracks::{
-    ReplacedTracks as UcReplacedTracks, TrackReplacement as UcTrackReplacement, *,
-};
-
-mod _core {
-    pub use aoide_core::{
-        entity::{EntityHeader, EntityRevision, EntityUid},
-        track::{Entity, Track},
+mod _serde {
+    pub use aoide_core_serde::{
+        entity::{EntityHeader, EntityUid},
+        track::Entity,
     };
+}
+
+// NOTE: This additional module is just a workaround, because
+// otherwise _serde::EntityUid (see above) is not found!?!?
+mod _serde2 {
+    pub use aoide_core_serde::entity::EntityUid;
 }
 
 mod _repo {
     pub use aoide_repo::{
-        entity::{EntityBodyData, EntityData, EntityDataFormat, EntityDataVersion},
         tag::{
             AvgScoreCount as TagAvgScoreCount, CountParams as TagCountParams,
             FacetCount as TagFacetCount, FacetCountParams as TagFacetCountParams,
@@ -51,16 +56,17 @@ mod _repo {
 }
 
 use aoide_core::{
+    entity::{EntityHeader, EntityUid},
     tag::ScoreValue as TagScoreValue,
-    track::release::{ReleaseDate, YYYYMMDD},
+    track::{
+        release::{ReleaseDate, YYYYMMDD},
+        Entity,
+    },
 };
 
 use aoide_repo::{Pagination, PaginationLimit, PaginationOffset};
 
-use aoide_core_serde::{
-    entity::{EntityHeader, EntityUid},
-    track::{Entity, Track},
-};
+use aoide_core_serde::track::Track;
 
 use futures::future::Future;
 use warp::http::StatusCode;
@@ -72,7 +78,7 @@ use warp::http::StatusCode;
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TracksQueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub collection_uid: Option<EntityUid>,
+    pub collection_uid: Option<_serde2::EntityUid>,
 
     // Flattening of Pagination does not work as expected:
     // https://github.com/serde-rs/serde/issues/1183
@@ -86,7 +92,7 @@ pub struct TracksQueryParams {
     pub limit: Option<PaginationLimit>,
 }
 
-impl From<TracksQueryParams> for (Option<_core::EntityUid>, Pagination) {
+impl From<TracksQueryParams> for (Option<EntityUid>, Pagination) {
     fn from(from: TracksQueryParams) -> Self {
         let collection_uid = from.collection_uid.map(Into::into);
         let pagination = Pagination {
@@ -668,9 +674,9 @@ impl From<TrackReplacement> for UcTrackReplacement {
 #[derive(Clone, Debug, Default, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ReplacedTracks {
-    pub created: Vec<EntityHeader>,
-    pub updated: Vec<EntityHeader>,
-    pub skipped: Vec<EntityHeader>,
+    pub created: Vec<_serde::EntityHeader>,
+    pub updated: Vec<_serde::EntityHeader>,
+    pub skipped: Vec<_serde::EntityHeader>,
     pub rejected: Vec<String>,  // e.g. ambiguous or inconsistent
     pub discarded: Vec<String>, // e.g. nonexistent and need to be created
 }
@@ -739,19 +745,19 @@ impl TracksHandler {
         let hdr =
             create_track(&self.db, new_track.into(), body_data).map_err(warp::reject::custom)?;
         Ok(warp::reply::with_status(
-            warp::reply::json(&EntityHeader::from(hdr)),
+            warp::reply::json(&_serde::EntityHeader::from(hdr)),
             StatusCode::CREATED,
         ))
     }
 
     pub fn handle_update(
         &self,
-        uid: _core::EntityUid,
-        entity: Entity,
+        uid: EntityUid,
+        entity: _serde::Entity,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         let json_data =
             json::serialize_entity_body_data(&entity.1).map_err(warp::reject::custom)?;
-        let entity = _core::Entity::from(entity);
+        let entity = Entity::from(entity);
         if uid != entity.hdr.uid {
             return Err(warp::reject::custom(failure::format_err!(
                 "Mismatching UIDs: {} <> {}",
@@ -762,8 +768,8 @@ impl TracksHandler {
         let (_, next_rev) =
             update_track(&self.db, entity, json_data).map_err(warp::reject::custom)?;
         if let Some(rev) = next_rev {
-            let hdr = _core::EntityHeader { uid, rev };
-            Ok(warp::reply::json(&EntityHeader::from(hdr)))
+            let hdr = EntityHeader { uid, rev };
+            Ok(warp::reply::json(&_serde::EntityHeader::from(hdr)))
         } else {
             Err(warp::reject::custom(failure::format_err!(
                 "Inexistent entity or revision conflict"
@@ -773,7 +779,7 @@ impl TracksHandler {
 
     pub fn handle_delete(
         &self,
-        uid: _core::EntityUid,
+        uid: EntityUid,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         delete_track(&self.db, &uid)
             .map_err(warp::reject::custom)
@@ -786,10 +792,7 @@ impl TracksHandler {
             })
     }
 
-    pub fn handle_load(
-        &self,
-        uid: _core::EntityUid,
-    ) -> Result<impl warp::Reply, warp::reject::Rejection> {
+    pub fn handle_load(&self, uid: EntityUid) -> Result<impl warp::Reply, warp::reject::Rejection> {
         load_track(&self.db, &uid)
             .map_err(warp::reject::custom)
             .and_then(|res| match res {
@@ -939,7 +942,7 @@ mod tests {
     #[test]
     fn urlencode_tracks_query_params() {
         let collection_uid =
-            _core::EntityUid::decode_from_str("DNGwV8sS9XS2GAxfEvgW2NMFxDHwi81CC").unwrap();
+            EntityUid::decode_from_str("DNGwV8sS9XS2GAxfEvgW2NMFxDHwi81CC").unwrap();
 
         let query = TracksQueryParams {
             collection_uid: Some(collection_uid.clone().into()),

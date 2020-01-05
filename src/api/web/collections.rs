@@ -17,23 +17,21 @@ use super::*;
 
 use crate::usecases::collections::*;
 
-mod _core {
-    pub use aoide_core::{
-        collection::{Collection, Entity},
-        entity::{EntityHeader, EntityRevision, EntityUid},
-    };
-}
-
 mod _repo {
     pub use aoide_repo::collection::TrackStats;
 }
 
-use aoide_core::util::IsDefault;
+mod _serde {
+    pub use aoide_core_serde::{collection::Entity, entity::EntityHeader};
+}
 
-use aoide_core_serde::{
-    collection::{Collection, Entity},
-    entity::EntityHeader,
+use aoide_core::{
+    collection::Entity,
+    entity::{EntityHeader, EntityUid},
+    util::IsDefault,
 };
+
+use aoide_core_serde::collection::Collection;
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -53,7 +51,7 @@ struct EntityStats {
 #[derive(Clone, Debug, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct EntityWithStats {
-    pub entity: Entity,
+    pub entity: _serde::Entity,
 
     #[serde(skip_serializing_if = "IsDefault::is_default", default)]
     pub stats: EntityStats,
@@ -77,7 +75,7 @@ impl CollectionsHandler {
             .map_err(warp::reject::custom)
             .map(|hdr| {
                 warp::reply::with_status(
-                    warp::reply::json(&EntityHeader::from(hdr)),
+                    warp::reply::json(&_serde::EntityHeader::from(hdr)),
                     warp::http::StatusCode::CREATED,
                 )
             })
@@ -85,10 +83,10 @@ impl CollectionsHandler {
 
     pub fn handle_update(
         &self,
-        uid: _core::EntityUid,
-        entity: Entity,
+        uid: EntityUid,
+        entity: _serde::Entity,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
-        let entity = _core::Entity::from(entity);
+        let entity = Entity::from(entity);
         if uid != entity.hdr.uid {
             return Err(warp::reject::custom(failure::format_err!(
                 "Mismatching UIDs: {} <> {}",
@@ -99,8 +97,8 @@ impl CollectionsHandler {
         update_collection(&self.db, &entity)
             .and_then(move |res| match res {
                 (_, Some(rev)) => {
-                    let hdr = _core::EntityHeader { uid, rev };
-                    Ok(warp::reply::json(&EntityHeader::from(hdr)))
+                    let hdr = EntityHeader { uid, rev };
+                    Ok(warp::reply::json(&_serde::EntityHeader::from(hdr)))
                 }
                 (_, None) => Err(failure::format_err!(
                     "Inexistent entity or revision conflict"
@@ -111,7 +109,7 @@ impl CollectionsHandler {
 
     pub fn handle_delete(
         &self,
-        uid: _core::EntityUid,
+        uid: EntityUid,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         delete_collection(&self.db, &uid)
             .map_err(warp::reject::custom)
@@ -126,7 +124,7 @@ impl CollectionsHandler {
 
     pub fn handle_load(
         &self,
-        uid: _core::EntityUid,
+        uid: EntityUid,
         params: WithTokensQueryParams,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         load_collection(&self.db, &uid, params.try_with_token("track-stats"))
@@ -155,7 +153,7 @@ impl CollectionsHandler {
         list_collections(&self.db, pagination.into())
             .map_err(warp::reject::custom)
             .map(|entities| {
-                let entities: Vec<_> = entities.into_iter().map(Entity::from).collect();
+                let entities: Vec<_> = entities.into_iter().map(_serde::Entity::from).collect();
                 warp::reply::json(&entities)
             })
     }
