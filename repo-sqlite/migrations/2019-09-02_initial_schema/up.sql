@@ -20,7 +20,7 @@
 CREATE TABLE tbl_collection (
     id                       INTEGER PRIMARY KEY,
     uid                      BINARY(24) NOT NULL,
-    rev_ver                   INTEGER NOT NULL,
+    rev_ver                  INTEGER NOT NULL,
     rev_ts                   INTEGER NOT NULL,
     name                     TEXT NOT NULL,
     desc                     TEXT,
@@ -56,7 +56,7 @@ CREATE TABLE aux_track_collection (
     track_id                 INTEGER NOT NULL,
     collection_uid           BINARY(24) NOT NULL,
     since                    DATETIME NOT NULL, -- UTC
-    color_code               INTEGER,           -- 0xAARRGGBB (hex)
+    color_code               INTEGER,           -- 0xRRGGBB (hex)
     play_count               INTEGER,
     FOREIGN KEY(track_id) REFERENCES tbl_track(id),
     UNIQUE (track_id, collection_uid)
