@@ -19,15 +19,15 @@ mod cli;
 mod env;
 
 use aoide::{
-    api::web::{collections::*, tracks::*},
+    api::web::{collections::*, playlists::*, tracks::*},
     *,
 };
 
 use aoide_core::collection::Collection;
 
 use aoide_repo_sqlite::{
-    track::util::RepositoryHelper as TrackRepositoryHelper,
     playlist::util::RepositoryHelper as PlaylistRepositoryHelper,
+    track::util::RepositoryHelper as TrackRepositoryHelper,
 };
 
 use clap::App;
@@ -244,6 +244,53 @@ pub fn main() -> Result<(), Error> {
         .or(collections_update)
         .or(collections_delete);
 
+    // /playlists
+    let playlists = warp::path("playlists");
+    let playlists_uid = playlists.and(warp::path::param::<aoide_core::entity::EntityUid>());
+    let playlists_create = warp::post2()
+        .and(playlists)
+        .and(warp::path::end())
+        .and(warp::body::json())
+        .and(pooled_connection.clone())
+        .and_then(|body, pooled_connection| {
+            PlaylistsHandler::new(pooled_connection).handle_create(body)
+        });
+    let playlists_update = warp::put2()
+        .and(playlists_uid)
+        .and(warp::path::end())
+        .and(warp::body::json())
+        .and(pooled_connection.clone())
+        .and_then(|query, body, pooled_connection| {
+            PlaylistsHandler::new(pooled_connection).handle_update(query, body)
+        });
+    let playlists_delete = warp::delete2()
+        .and(playlists_uid)
+        .and(warp::path::end())
+        .and(pooled_connection.clone())
+        .and_then(|uid, pooled_connection| {
+            PlaylistsHandler::new(pooled_connection).handle_delete(uid)
+        });
+    let playlists_list = warp::get2()
+        .and(playlists)
+        .and(warp::path::end())
+        .and(warp::query())
+        .and(pooled_connection.clone())
+        .and_then(|query, pooled_connection| {
+            PlaylistsHandler::new(pooled_connection).handle_list(query)
+        });
+    let playlists_load = warp::get2()
+        .and(playlists_uid)
+        .and(warp::path::end())
+        .and(pooled_connection.clone())
+        .and_then(|uid, pooled_connection| {
+            PlaylistsHandler::new(pooled_connection).handle_load(uid)
+        });
+    let playlists_resources = playlists_list
+        .or(playlists_load)
+        .or(playlists_create)
+        .or(playlists_update)
+        .or(playlists_delete);
+
     // /tracks
     let tracks = warp::path("tracks");
     let tracks_uid = tracks.and(warp::path::param::<aoide_core::entity::EntityUid>());
@@ -397,6 +444,7 @@ pub fn main() -> Result<(), Error> {
     log::info!("Initializing server");
     let server = warp::serve(
         collections_resources
+            .or(playlists_resources)
             .or(tracks_resources)
             .or(albums_resources)
             .or(tags_resources)

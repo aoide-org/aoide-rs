@@ -18,6 +18,7 @@ use super::*;
 use serde::{Deserialize, Serialize};
 
 pub mod collections;
+pub mod playlists;
 pub mod tracks;
 
 mod json;
