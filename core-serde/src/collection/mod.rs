@@ -30,7 +30,7 @@ pub struct Collection {
     #[serde(rename = "n")]
     name: String,
 
-    #[serde(rename = "d")]
+    #[serde(rename = "d", skip_serializing_if = "Option::is_none")]
     description: Option<String>,
 }
 
