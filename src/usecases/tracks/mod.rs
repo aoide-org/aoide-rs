@@ -17,11 +17,14 @@ use super::*;
 
 pub mod json;
 
-mod _core {
-    pub use aoide_core::track::Track;
+mod _serde {
+    pub use aoide_core_serde::track::Track;
 }
 
-use aoide_core_serde::track::Track;
+use aoide_core::{
+    entity::{EntityHeader, EntityRevision, EntityUid},
+    track::{Entity, Track},
+};
 
 use aoide_repo::{
     entity::{EntityBodyData, EntityData},
@@ -37,11 +40,6 @@ use aoide_repo::{
     Pagination, RepoResult, StringPredicate,
 };
 
-use aoide_core::{
-    entity::{EntityHeader, EntityRevision, EntityUid},
-    track::Entity,
-};
-
 use aoide_repo_sqlite::track::Repository;
 
 use futures::future::{self, Future};
@@ -54,7 +52,7 @@ pub struct TrackReplacement {
     // to replaced by the provided track.
     pub media_uri: String,
 
-    pub track: Track,
+    pub track: _serde::Track,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -68,7 +66,7 @@ pub struct ReplacedTracks {
 
 pub fn create_track(
     conn: &SqlitePooledConnection,
-    new_track: _core::Track,
+    new_track: Track,
     body_data: EntityBodyData,
 ) -> RepoResult<EntityHeader> {
     let repo = Repository::new(&*conn);
