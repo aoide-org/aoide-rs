@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+///////////////////////////////////////////////////////////////////////
 
-pub mod collections;
-pub mod json;
-pub mod tracks;
+pub fn reply_with_content_type(reply: impl warp::Reply) -> impl warp::Reply {
+    warp::reply::with_header(reply, "Content-Type", "application/json")
+}

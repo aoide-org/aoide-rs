@@ -15,6 +15,11 @@
 
 use super::*;
 
+mod json {
+    pub use super::super::json::*;
+    pub use crate::usecases::tracks::json::*;
+}
+
 use crate::usecases::tracks::{
     ReplacedTracks as UcReplacedTracks, TrackReplacement as UcTrackReplacement, *,
 };
@@ -58,7 +63,6 @@ use aoide_core_serde::{
 };
 
 use futures::future::Future;
-use std::io::Write;
 use warp::http::StatusCode;
 
 ///////////////////////////////////////////////////////////////////////
@@ -716,58 +720,6 @@ impl From<UriRelocation> for _repo::UriRelocation {
     }
 }
 
-fn load_and_write_entity_data_json(
-    mut json_writer: &mut impl Write,
-    entity_data: _repo::EntityData,
-) -> Fallible<()> {
-    let (hdr, json_data) = load_json_entity_data(entity_data)?;
-    json_writer.write_all(b"[")?;
-    serde_json::to_writer(&mut json_writer, &EntityHeader::from(hdr))?;
-    json_writer.write_all(b",")?;
-    json_writer.write_all(&json_data)?;
-    json_writer.write_all(b"]")?;
-    Ok(())
-}
-
-fn entity_data_json_size(entity_data: &_repo::EntityData) -> usize {
-    let uid_bytes = 33;
-    let rev_ver_bytes = ((entity_data.0).rev.ver as f64).log10().ceil() as usize;
-    let rev_ts_bytes = 16;
-    // ["<uid>",[<rev.ver>,<rev.ts>]]
-    (entity_data.1).2.len() + uid_bytes + rev_ver_bytes + rev_ts_bytes + 8
-}
-
-fn load_entity_data_into_json(entity_data: _repo::EntityData) -> Fallible<Vec<u8>> {
-    let mut json_writer = Vec::with_capacity(entity_data_json_size(&entity_data));
-    load_and_write_entity_data_json(&mut json_writer, entity_data)?;
-    Ok(json_writer)
-}
-
-fn load_entity_data_iter_into_json_array(
-    entity_data_iter: impl Iterator<Item = _repo::EntityData> + Clone,
-) -> Fallible<Vec<u8>> {
-    let mut json_writer = Vec::with_capacity(entity_data_iter.clone().fold(
-        /*closing bracket*/ 1,
-        |acc, ref entity_data| {
-            acc + entity_data_json_size(&entity_data) + /*opening bracket or comma*/ 1
-        },
-    ));
-    json_writer.write_all(b"[")?;
-    for (i, entity_data) in entity_data_iter.enumerate() {
-        if i > 0 {
-            json_writer.write_all(b",")?;
-        }
-        load_and_write_entity_data_json(&mut json_writer, entity_data)?;
-    }
-    json_writer.write_all(b"]")?;
-    json_writer.flush()?;
-    Ok(json_writer)
-}
-
-fn reply_with_json_content(reply: impl warp::Reply) -> impl warp::Reply {
-    warp::reply::with_header(reply, "Content-Type", "application/json")
-}
-
 #[allow(missing_debug_implementations)]
 pub struct TracksHandler {
     db: SqlitePooledConnection,
@@ -782,7 +734,8 @@ impl TracksHandler {
         &self,
         new_track: Track,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
-        let body_data = write_json_body_data(&new_track).map_err(warp::reject::custom)?;
+        let body_data =
+            json::serialize_entity_body_data(&new_track).map_err(warp::reject::custom)?;
         let hdr =
             create_track(&self.db, new_track.into(), body_data).map_err(warp::reject::custom)?;
         Ok(warp::reply::with_status(
@@ -796,7 +749,8 @@ impl TracksHandler {
         uid: _core::EntityUid,
         entity: Entity,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
-        let json_data = write_json_body_data(&entity.1).map_err(warp::reject::custom)?;
+        let json_data =
+            json::serialize_entity_body_data(&entity.1).map_err(warp::reject::custom)?;
         let entity = _core::Entity::from(entity);
         if uid != entity.hdr.uid {
             return Err(warp::reject::custom(failure::format_err!(
@@ -841,8 +795,8 @@ impl TracksHandler {
             .and_then(|res| match res {
                 Some(entity_data) => {
                     let json_data =
-                        load_entity_data_into_json(entity_data).map_err(warp::reject::custom)?;
-                    Ok(reply_with_json_content(json_data))
+                        json::load_entity_data_blob(entity_data).map_err(warp::reject::custom)?;
+                    Ok(json::reply_with_content_type(json_data))
                 }
                 None => Err(warp::reject::not_found()),
             })
@@ -854,8 +808,8 @@ impl TracksHandler {
     ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
         let (collection_uid, pagination) = query_params.into();
         list_tracks(&self.db, collection_uid, pagination)
-            .and_then(|reply| load_entity_data_iter_into_json_array(reply.into_iter()))
-            .map(reply_with_json_content)
+            .and_then(|reply| json::load_entity_data_array_blob(reply.into_iter()))
+            .map(json::reply_with_content_type)
             .map_err(warp::reject::custom)
     }
 
@@ -866,8 +820,8 @@ impl TracksHandler {
     ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
         let (collection_uid, pagination) = query_params.into();
         search_tracks(&self.db, collection_uid, pagination, search_params.into())
-            .and_then(|reply| load_entity_data_iter_into_json_array(reply.into_iter()))
-            .map(reply_with_json_content)
+            .and_then(|reply| json::load_entity_data_array_blob(reply.into_iter()))
+            .map(json::reply_with_content_type)
             .map_err(warp::reject::custom)
     }
 
@@ -878,8 +832,8 @@ impl TracksHandler {
     ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
         let (collection_uid, pagination) = query_params.into();
         locate_tracks(&self.db, collection_uid, pagination, locate_params.into())
-            .and_then(|reply| load_entity_data_iter_into_json_array(reply.into_iter()))
-            .map(reply_with_json_content)
+            .and_then(|reply| json::load_entity_data_array_blob(reply.into_iter()))
+            .map(json::reply_with_content_type)
             .map_err(warp::reject::custom)
     }
 
@@ -1045,7 +999,7 @@ mod tests {
         );
         assert_eq!(
             (
-                Some(collection_uid.clone()),
+                Some(collection_uid),
                 Pagination {
                     offset: query.offset,
                     limit: query.limit
