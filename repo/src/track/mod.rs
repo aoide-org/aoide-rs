@@ -18,7 +18,7 @@ use super::*;
 use crate::{collection, entity::*, tag};
 
 use aoide_core::{
-    entity::{EntityRevision, EntityUid},
+    entity::{EntityRevisionUpdateResult, EntityUid},
     track::{album::*, collection::Collections, release::ReleaseDate, *},
 };
 
@@ -159,7 +159,7 @@ pub trait Repo {
         &self,
         entity: Entity,
         body_data: EntityBodyData,
-    ) -> RepoResult<(EntityRevision, Option<EntityRevision>)>;
+    ) -> RepoResult<EntityRevisionUpdateResult>;
 
     fn delete_track(&self, uid: &EntityUid) -> RepoResult<Option<()>>;
 
@@ -237,13 +237,17 @@ pub trait Repo {
             let old_hdr = entity_hdr;
             let entity = Entity::new(old_hdr.clone(), track);
             match self.update_track(entity, (data_fmt, data_ver, data_blob))? {
-                (_, None) => {
+                EntityRevisionUpdateResult::NotFound => {
+                    bail!("Failed to update track {:?}: Not found", old_hdr);
+                }
+                EntityRevisionUpdateResult::CurrentIsNewer(rev) => {
                     bail!(
-                        "Failed to update track {:?} due to internal race condition",
-                        old_hdr
+                        "Failed to update track {:?}: Current revision {:?} is newer",
+                        old_hdr,
+                        rev,
                     );
                 }
-                (_, Some(rev)) => {
+                EntityRevisionUpdateResult::Updated(_, rev) => {
                     let uid = old_hdr.uid;
                     let new_hdr = EntityHeader { uid, rev };
                     Ok(ReplaceResult::Updated(new_hdr))

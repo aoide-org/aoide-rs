@@ -275,6 +275,23 @@ where
     }
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum EntityRevisionUpdateResult {
+    NotFound,
+    CurrentIsNewer(EntityRevision),
+    Updated(EntityRevision, EntityRevision),
+}
+
+impl EntityRevisionUpdateResult {
+    pub fn is_updated(self) -> bool {
+        if let Self::Updated(_, _) = self {
+            true
+        } else {
+            false
+        }
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////
 // Tests
 ///////////////////////////////////////////////////////////////////////

@@ -30,12 +30,15 @@ use self::{
 use crate::util::*;
 
 use aoide_core::{
-    entity::{EntityHeader, EntityRevision, EntityUid},
+    entity::{
+        EntityHeader, EntityRevision, EntityRevisionUpdateResult, EntityRevisionVersion, EntityUid,
+    },
     tag::{Facet, Label},
     track::{
         release::{ReleaseDate, YYYYMMDD},
         *,
     },
+    util::clock::{TickInstant, TickType, Ticks},
 };
 
 use aoide_repo::{
@@ -291,7 +294,7 @@ impl<'a> Repo for Repository<'a> {
         &self,
         entity: Entity,
         body_data: EntityBodyData,
-    ) -> RepoResult<(EntityRevision, Option<EntityRevision>)> {
+    ) -> RepoResult<EntityRevisionUpdateResult> {
         let prev_rev = entity.hdr.rev;
         let next_rev = prev_rev.next();
         {
@@ -310,11 +313,24 @@ impl<'a> Repo for Repository<'a> {
             let rows_affected: usize = query.execute(self.connection)?;
             debug_assert!(rows_affected <= 1);
             if rows_affected < 1 {
-                return Ok((prev_rev, None));
+                let row = tbl_track::table
+                    .select((tbl_track::rev_ver, tbl_track::rev_ts))
+                    .filter(tbl_track::uid.eq(entity.hdr.uid.as_ref()))
+                    .first::<(i64, TickType)>(self.connection)
+                    .optional()?;
+                if let Some(row) = row {
+                    let rev = EntityRevision {
+                        ver: row.0 as EntityRevisionVersion,
+                        ts: TickInstant(Ticks(row.1)),
+                    };
+                    return Ok(EntityRevisionUpdateResult::CurrentIsNewer(rev));
+                } else {
+                    return Ok(EntityRevisionUpdateResult::NotFound);
+                }
             }
             self.helper.after_entity_updated(repo_id, &entity.body)?;
         }
-        Ok((prev_rev, Some(next_rev)))
+        Ok(EntityRevisionUpdateResult::Updated(prev_rev, next_rev))
     }
 
     fn delete_track(&self, uid: &EntityUid) -> RepoResult<Option<()>> {

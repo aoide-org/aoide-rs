@@ -101,7 +101,7 @@ impl CollectionsHandler {
                     Ok(warp::reply::json(&_serde::EntityHeader::from(hdr)))
                 }
                 (_, None) => Err(failure::format_err!(
-                    "Inexistent entity or revision conflict"
+                    "Entity not found or revision conflict"
                 )),
             })
             .map_err(warp::reject::custom)
