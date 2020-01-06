@@ -22,7 +22,7 @@ mod _serde {
 }
 
 use aoide_core::{
-    entity::{EntityHeader, EntityRevision, EntityUid},
+    entity::{EntityHeader, EntityRevisionUpdateResult, EntityUid},
     track::{Entity, Track},
 };
 
@@ -79,7 +79,7 @@ pub fn update_track(
     conn: &SqlitePooledConnection,
     track: Entity,
     body_data: EntityBodyData,
-) -> RepoResult<(EntityRevision, Option<EntityRevision>)> {
+) -> RepoResult<EntityRevisionUpdateResult> {
     let repo = Repository::new(&*conn);
     conn.transaction::<_, Error, _>(|| repo.update_track(track, body_data))
 }
@@ -247,8 +247,8 @@ pub fn purge_tracks(
                         // TODO: Avoid temporary clone
                         let json_data = json::serialize_entity_body_data(&body.clone().into())?;
                         let entity = Entity::new(hdr, body);
-                        let updated = repo.update_track(entity, json_data)?;
-                        debug_assert!(updated.1.is_some());
+                        let _update_result = repo.update_track(entity, json_data)?;
+                        debug_assert!(_update_result.is_updated());
                     }
                 } else {
                     log::debug!("No media sources purged from track {}", hdr.uid);
@@ -306,8 +306,8 @@ pub fn relocate_tracks(
                     // TODO: Avoid temporary clone
                     let json_data = json::serialize_entity_body_data(&track.clone().into())?;
                     let entity = Entity::new(hdr, track);
-                    let updated = repo.update_track(entity, json_data)?;
-                    debug_assert!(updated.1.is_some());
+                    let _update_result = repo.update_track(entity, json_data)?;
+                    debug_assert!(_update_result.is_updated());
                 } else {
                     log::debug!("No sources relocated for track {}", hdr.uid);
                 }

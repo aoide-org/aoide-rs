@@ -56,7 +56,7 @@ mod _repo {
 }
 
 use aoide_core::{
-    entity::{EntityHeader, EntityUid},
+    entity::{EntityHeader, EntityRevisionUpdateResult, EntityUid},
     tag::ScoreValue as TagScoreValue,
     track::{
         release::{ReleaseDate, YYYYMMDD},
@@ -765,14 +765,14 @@ impl TracksHandler {
                 entity.hdr.uid,
             )));
         }
-        let (_, next_rev) =
+        let update_result =
             update_track(&self.db, entity, json_data).map_err(warp::reject::custom)?;
-        if let Some(rev) = next_rev {
-            let hdr = EntityHeader { uid, rev };
+        if let EntityRevisionUpdateResult::Updated(_, next_rev) = update_result {
+            let hdr = EntityHeader { uid, rev: next_rev };
             Ok(warp::reply::json(&_serde::EntityHeader::from(hdr)))
         } else {
             Err(warp::reject::custom(failure::format_err!(
-                "Inexistent entity or revision conflict"
+                "Entity not found or revision conflict"
             )))
         }
     }
