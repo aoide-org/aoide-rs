@@ -77,7 +77,7 @@ pub struct PlaylistPatchParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rev: Option<EntityRevision>,
 
-    pub action: PlaylistPatchAction,
+    pub ops: Vec<PlaylistPatchOperation>,
 }
 
 #[allow(missing_debug_implementations)]
@@ -134,16 +134,21 @@ impl PlaylistsHandler {
         uid: EntityUid,
         params: PlaylistPatchParams,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
-        let update_result =
-            patch_playlist(&self.db, &uid, params.rev.map(Into::into), params.action)
-                .map_err(warp::reject::custom)?;
-        if let EntityRevisionUpdateResult::Updated(_, next_rev) = update_result {
-            let hdr = EntityHeader { uid, rev: next_rev };
-            Ok(warp::reply::json(&_serde::EntityHeader::from(hdr)))
-        } else {
-            Err(warp::reject::custom(failure::format_err!(
-                "Entity not found or revision conflict"
-            )))
+        let update_result = patch_playlist(&self.db, &uid, params.rev.map(Into::into), params.ops)
+            .map_err(warp::reject::custom)?;
+        use EntityRevisionUpdateResult::*;
+        match update_result {
+            NotFound => Err(warp::reject::custom(failure::format_err!(
+                "Entity not found"
+            ))),
+            Current(rev) => {
+                let hdr = EntityHeader { uid, rev };
+                Ok(warp::reply::json(&_serde::EntityHeader::from(hdr)))
+            }
+            Updated(_, next_rev) => {
+                let hdr = EntityHeader { uid, rev: next_rev };
+                Ok(warp::reply::json(&_serde::EntityHeader::from(hdr)))
+            }
         }
     }
 

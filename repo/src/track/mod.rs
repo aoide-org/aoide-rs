@@ -240,7 +240,7 @@ pub trait Repo {
                 EntityRevisionUpdateResult::NotFound => {
                     bail!("Failed to update track {:?}: Not found", old_hdr);
                 }
-                EntityRevisionUpdateResult::CurrentIsNewer(rev) => {
+                EntityRevisionUpdateResult::Current(rev) => {
                     bail!(
                         "Failed to update track {:?}: Current revision {:?} is newer",
                         old_hdr,

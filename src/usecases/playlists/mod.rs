@@ -17,15 +17,15 @@ use super::*;
 
 pub mod json;
 
-mod _core {
-    pub use aoide_core::playlist::Playlist;
+mod _serde {
+    pub use aoide_core_serde::playlist::Playlist;
 }
 
-use aoide_core_serde::playlist::Playlist;
+use aoide_core_serde::playlist::PlaylistEntry;
 
 use aoide_core::{
     entity::{EntityHeader, EntityRevision, EntityRevisionUpdateResult, EntityUid},
-    playlist::Entity,
+    playlist::{Entity, Playlist},
 };
 
 use aoide_repo::{
@@ -45,7 +45,7 @@ const ENTITY_DATA_FORMAT: EntityDataFormat = EntityDataFormat::JSON;
 
 const ENTITY_DATA_VERSION: EntityDataVersion = EntityDataVersion { major: 0, minor: 0 };
 
-pub fn write_json_body_data(playlist: &Playlist) -> Fallible<EntityBodyData> {
+pub fn write_json_body_data(playlist: &_serde::Playlist) -> Fallible<EntityBodyData> {
     Ok((
         ENTITY_DATA_FORMAT,
         ENTITY_DATA_VERSION,
@@ -55,8 +55,8 @@ pub fn write_json_body_data(playlist: &Playlist) -> Fallible<EntityBodyData> {
 
 fn read_json_entity(entity_data: EntityData) -> Fallible<Entity> {
     let (hdr, json_data) = load_json_entity_data(entity_data)?;
-    let playlist: Playlist = serde_json::from_slice(&json_data)?;
-    Ok(Entity::new(hdr, _core::Playlist::from(playlist)))
+    let playlist: _serde::Playlist = serde_json::from_slice(&json_data)?;
+    Ok(Entity::new(hdr, Playlist::from(playlist)))
 }
 
 pub fn load_json_entity_data(entity_data: EntityData) -> Fallible<(EntityHeader, Vec<u8>)> {
@@ -88,7 +88,7 @@ pub fn load_json_entity_data(entity_data: EntityData) -> Fallible<(EntityHeader,
 
 pub fn create_playlist(
     conn: &SqlitePooledConnection,
-    new_playlist: _core::Playlist,
+    new_playlist: Playlist,
     body_data: EntityBodyData,
 ) -> RepoResult<EntityHeader> {
     let repo = Repository::new(&*conn);
@@ -109,7 +109,26 @@ pub fn update_playlist(
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(serde::Serialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub enum PlaylistPatchAction {
+pub enum PlaylistPatchOperation {
+    AppendEntries {
+        entries: Vec<PlaylistEntry>,
+    },
+    InsertEntries {
+        before: usize,
+        entries: Vec<PlaylistEntry>,
+    },
+    ReplaceEntries {
+        start: Option<usize>,
+        end: Option<usize>,
+        entries: Vec<PlaylistEntry>,
+    },
+    RemoveEntries {
+        start: Option<usize>,
+        end: Option<usize>,
+    },
+    RemoveAllEntries,
+    ReverseEntries,
+    ShuffleEntries,
     SortEntriesChronologically,
 }
 
@@ -117,7 +136,7 @@ pub fn patch_playlist(
     conn: &SqlitePooledConnection,
     uid: &EntityUid,
     rev: Option<EntityRevision>,
-    action: PlaylistPatchAction,
+    operations: impl IntoIterator<Item = PlaylistPatchOperation>,
 ) -> RepoResult<EntityRevisionUpdateResult> {
     let repo = Repository::new(&*conn);
     conn.transaction::<_, Error, _>(|| {
@@ -131,12 +150,138 @@ pub fn patch_playlist(
             debug_assert_eq!(uid, &hdr.uid);
             if let Some(rev) = rev {
                 if rev != hdr.rev {
-                    return Ok(EntityRevisionUpdateResult::CurrentIsNewer(hdr.rev));
+                    // Conflicting revision
+                    return Ok(EntityRevisionUpdateResult::Current(hdr.rev));
                 }
             }
-            use PlaylistPatchAction::*;
-            match action {
-                SortEntriesChronologically => playlist.sort_entries_chronologically(),
+            let mut modified = false;
+            for operation in operations.into_iter() {
+                use PlaylistPatchOperation::*;
+                match operation {
+                    AppendEntries { entries } => {
+                        if entries.is_empty() {
+                            continue;
+                        }
+                        playlist.append_entries(entries.into_iter().map(Into::into));
+                        modified = true;
+                    }
+                    InsertEntries { before, entries } => {
+                        if entries.is_empty() {
+                            continue;
+                        }
+                        let before = before.min(playlist.entries.len());
+                        playlist.insert_entries(before, entries.into_iter().map(Into::into));
+                        modified = true;
+                    }
+                    ReplaceEntries {
+                        start,
+                        end,
+                        entries,
+                    } => {
+                        if playlist.entries.is_empty() {
+                            continue;
+                        }
+                        let entries = entries.into_iter().map(Into::into);
+                        match (start, end) {
+                            (None, None) => {
+                                playlist.replace_entries(.., entries);
+                                modified = true;
+                            }
+                            (Some(start), None) => {
+                                if start >= playlist.entries.len() {
+                                    continue;
+                                }
+                                playlist.replace_entries(start.., entries);
+                                modified = true;
+                            }
+                            (None, Some(end)) => {
+                                let end = end.max(playlist.entries.len());
+                                if end == 0 {
+                                    continue;
+                                }
+                                playlist.replace_entries(..end, entries);
+                                modified = true;
+                            }
+                            (Some(start), Some(end)) => {
+                                let start = start.min(playlist.entries.len());
+                                let end = end.max(start);
+                                debug_assert!(start <= end);
+                                if start == end {
+                                    continue;
+                                }
+                                playlist.replace_entries(start..end, entries);
+                                modified = true;
+                            }
+                        }
+                    }
+                    RemoveEntries { start, end } => {
+                        if playlist.entries.is_empty() {
+                            continue;
+                        }
+                        match (start, end) {
+                            (None, None) => {
+                                playlist.remove_all_entries();
+                                modified = true;
+                            }
+                            (Some(start), None) => {
+                                if start >= playlist.entries.len() {
+                                    continue;
+                                }
+                                playlist.remove_entries(start..);
+                                modified = true;
+                            }
+                            (None, Some(end)) => {
+                                let end = end.max(playlist.entries.len());
+                                if end == 0 {
+                                    continue;
+                                }
+                                playlist.remove_entries(..end);
+                                modified = true;
+                            }
+                            (Some(start), Some(end)) => {
+                                let start = start.min(playlist.entries.len());
+                                let end = end.max(start);
+                                debug_assert!(start <= end);
+                                if start == end {
+                                    continue;
+                                }
+                                playlist.remove_entries(start..end);
+                                modified = true;
+                            }
+                        }
+                    }
+                    RemoveAllEntries => {
+                        if playlist.entries.is_empty() {
+                            continue;
+                        }
+                        playlist.remove_all_entries();
+                        modified = true;
+                    }
+                    ReverseEntries => {
+                        if playlist.entries.is_empty() {
+                            continue;
+                        }
+                        playlist.reverse_entries();
+                        modified = true;
+                    }
+                    ShuffleEntries => {
+                        if playlist.entries.is_empty() {
+                            continue;
+                        }
+                        playlist.shuffle_entries();
+                        modified = true;
+                    }
+                    SortEntriesChronologically => {
+                        if playlist.entries.is_empty() {
+                            continue;
+                        }
+                        playlist.sort_entries_chronologically();
+                        modified = true;
+                    }
+                }
+            }
+            if !modified {
+                return Ok(EntityRevisionUpdateResult::Current(hdr.rev));
             }
             let updated_body_data = json::serialize_entity_body_data(&playlist.clone().into())?;
             let updated_entity = Entity::new(hdr, playlist);

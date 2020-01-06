@@ -22,6 +22,9 @@ use crate::{
     util::{clock::TickInstant, color::ColorRgb},
 };
 
+use rand::{seq::SliceRandom, thread_rng};
+use std::ops::RangeBounds;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PlaylistEntry {
     /// A reference to the track.
@@ -87,6 +90,44 @@ impl Playlist {
         } else {
             None
         }
+    }
+
+    pub fn append_entries(&mut self, new_entries: impl IntoIterator<Item = PlaylistEntry>) {
+        self.replace_entries(self.entries.len().., new_entries);
+    }
+
+    pub fn insert_entries(
+        &mut self,
+        before: usize,
+        new_entries: impl IntoIterator<Item = PlaylistEntry>,
+    ) {
+        self.replace_entries(before..before, new_entries);
+    }
+
+    pub fn replace_entries(
+        &mut self,
+        range: impl RangeBounds<usize>,
+        new_entries: impl IntoIterator<Item = PlaylistEntry>,
+    ) {
+        self.entries.splice(range, new_entries.into_iter());
+    }
+
+    pub fn remove_entries(&mut self, range: impl RangeBounds<usize>) {
+        self.entries.drain(range);
+    }
+
+    pub fn remove_all_entries(&mut self) {
+        self.entries.clear();
+    }
+
+    pub fn shuffle_entries(&mut self) {
+        self.entries.shuffle(&mut thread_rng());
+    }
+
+    // Sort entries by their creation time stamp, preserving the
+    // order of entries with equal time stamps.
+    pub fn reverse_entries(&mut self) {
+        self.entries.reverse();
     }
 
     // Sort entries by their creation time stamp, preserving the
