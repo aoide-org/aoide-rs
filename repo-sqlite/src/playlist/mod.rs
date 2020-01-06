@@ -118,7 +118,7 @@ impl<'a> Repo for Repository<'a> {
                         ver: row.0 as EntityRevisionVersion,
                         ts: TickInstant(Ticks(row.1)),
                     };
-                    return Ok(EntityRevisionUpdateResult::CurrentIsNewer(rev));
+                    return Ok(EntityRevisionUpdateResult::Current(rev));
                 } else {
                     return Ok(EntityRevisionUpdateResult::NotFound);
                 }

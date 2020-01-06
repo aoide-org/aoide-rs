@@ -263,6 +263,14 @@ pub fn main() -> Result<(), Error> {
         .and_then(|query, body, pooled_connection| {
             PlaylistsHandler::new(pooled_connection).handle_update(query, body)
         });
+    let playlists_patch = warp::patch()
+        .and(playlists_uid)
+        .and(warp::path::end())
+        .and(warp::body::json())
+        .and(pooled_connection.clone())
+        .and_then(|query, body, pooled_connection| {
+            PlaylistsHandler::new(pooled_connection).handle_patch(query, body)
+        });
     let playlists_delete = warp::delete2()
         .and(playlists_uid)
         .and(warp::path::end())
@@ -289,6 +297,7 @@ pub fn main() -> Result<(), Error> {
         .or(playlists_load)
         .or(playlists_create)
         .or(playlists_update)
+        .or(playlists_patch)
         .or(playlists_delete);
 
     // /tracks

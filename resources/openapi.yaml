@@ -236,6 +236,35 @@ paths:
           $ref: '#/components/responses/404NotFound'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+    patch:
+      summary: Patch a playlist
+      description: |
+        Modify a playlist by applying a sequence of operations.
+      operationId: patchPlaylist
+      tags:
+        - Playlists
+      parameters:
+        - $ref: '#/components/parameters/playlistUidPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaylistPatchParams'
+      responses:
+        '200':
+          description: |
+            The header of the patched playlist entity.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntityHeader'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
     delete:
       summary: Delete a playlist
       operationId: deletePlaylist
@@ -1339,6 +1368,88 @@ components:
           description: |
             Custom comments and notes to annotate this entry
           type: string
+      required:
+        - u
+        - t
+    PlaylistEntryPosition:
+      type: number
+      format: int64
+      minimum: 0
+    PlaylistPatchOperation:
+      oneOf:
+        - type: object
+          properties:
+            appendEntries:
+              type: object
+              properties:
+                entries:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/PlaylistEntry'
+              required:
+                - entries
+          required:
+            - appendEntries
+        - type: object
+          properties:
+            insertEntries:
+              type: object
+              properties:
+                before:
+                  $ref: '#/components/schemas/PlaylistEntryPosition'
+                entries:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/PlaylistEntry'
+              required:
+                - before
+                - entries
+          required:
+            - insertEntries
+        - type: object
+          properties:
+            replaceEntries:
+              type: object
+              properties:
+                start:
+                  $ref: '#/components/schemas/PlaylistEntryPosition'
+                end:
+                  $ref: '#/components/schemas/PlaylistEntryPosition'
+                entries:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/PlaylistEntry'
+              required:
+                - entries
+          required:
+            - replaceEntries
+        - type: object
+          properties:
+            removeEntries:
+              type: object
+              properties:
+                start:
+                  $ref: '#/components/schemas/PlaylistEntryPosition'
+                end:
+                  $ref: '#/components/schemas/PlaylistEntryPosition'
+          required:
+            - removeEntries
+        - type: string
+          enum:
+            - removeAllEntries
+            - reverseEntries
+            - shuffleEntries
+            - sortEntriesChronologically
+    PlaylistPatchParams:
+      properties:
+        rev:
+          $ref: '#/components/schemas/EntityRevision'
+        ops:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlaylistPatchOperation'
+      required:
+        - ops
     PlaylistType:
       description: |
         Custom type of to the playlist. This allows 3rd party applications

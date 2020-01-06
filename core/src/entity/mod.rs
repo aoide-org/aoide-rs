@@ -278,7 +278,7 @@ where
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum EntityRevisionUpdateResult {
     NotFound,
-    CurrentIsNewer(EntityRevision),
+    Current(EntityRevision), // conflict or no changes
     Updated(EntityRevision, EntityRevision),
 }
 
