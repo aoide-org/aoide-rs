@@ -133,7 +133,7 @@ impl<'a> RepositoryHelper<'a> {
                 self.on_refresh(repo_id, &entity.body)?;
                 Ok(repo_id)
             }
-            None => Err(failure::format_err!("Entity not found: {}", uid)),
+            None => Err(anyhow!("Entity not found: {}", uid)),
         }
     }
 
@@ -144,7 +144,7 @@ impl<'a> RepositoryHelper<'a> {
                 self.on_insert(repo_id, &entity.body)?;
                 Ok(repo_id)
             }
-            None => Err(failure::format_err!("Entity not found: {}", uid)),
+            None => Err(anyhow!("Entity not found: {}", uid)),
         }
     }
 
@@ -154,7 +154,7 @@ impl<'a> RepositoryHelper<'a> {
                 self.on_delete(repo_id)?;
                 Ok(repo_id)
             }
-            None => Err(failure::format_err!("Entity not found: {}", uid)),
+            None => Err(anyhow!("Entity not found: {}", uid)),
         }
     }
 

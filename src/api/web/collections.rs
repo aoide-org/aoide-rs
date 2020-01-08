@@ -88,7 +88,7 @@ impl CollectionsHandler {
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         let entity = Entity::from(entity);
         if uid != entity.hdr.uid {
-            return Err(warp::reject::custom(failure::format_err!(
+            return Err(warp::reject::custom(anyhow!(
                 "Mismatching UIDs: {} <> {}",
                 uid,
                 entity.hdr.uid,
@@ -100,7 +100,7 @@ impl CollectionsHandler {
                     let hdr = EntityHeader { uid, rev };
                     Ok(warp::reply::json(&_serde::EntityHeader::from(hdr)))
                 }
-                (_, None) => Err(failure::format_err!(
+                (_, None) => Err(anyhow!(
                     "Entity not found or revision conflict"
                 )),
             })

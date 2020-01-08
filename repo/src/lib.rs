@@ -18,7 +18,7 @@
 
 use aoide_core::entity::EntityHeader;
 
-use failure::bail;
+use anyhow::bail;
 
 use std::fmt;
 
@@ -31,7 +31,7 @@ pub mod util;
 
 pub type RepoId = i64;
 
-pub type RepoError = failure::Error;
+pub type RepoError = anyhow::Error;
 
 pub type RepoResult<T> = Result<T, RepoError>;
 

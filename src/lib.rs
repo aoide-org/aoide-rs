@@ -24,7 +24,7 @@ use diesel::{
     r2d2::{ConnectionManager, Pool, PooledConnection},
 };
 
-use failure::{Error, Fallible};
+use anyhow::{anyhow, Error, Result as Fallible};
 
 pub type SqliteConnectionManager = ConnectionManager<SqliteConnection>;
 pub type SqliteConnectionPool = Pool<SqliteConnectionManager>;

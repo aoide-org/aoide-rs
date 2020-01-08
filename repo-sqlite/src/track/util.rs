@@ -15,6 +15,8 @@
 
 use super::*;
 
+use crate::collection::{schema::tbl_collection, Repository as CollectionRepository};
+
 use aoide_core::{
     collection::{Collection, Entity as CollectionEntity},
     tag::*,
@@ -24,10 +26,6 @@ use aoide_core::{
 use aoide_repo::{
     collection::Repo as CollectionRepo, entity::Repo as EntityRepo, RepoId, RepoResult,
 };
-
-use crate::collection::{schema::tbl_collection, Repository as CollectionRepository};
-
-use failure::Error;
 
 ///////////////////////////////////////////////////////////////////////
 // RepositoryHelper
@@ -47,7 +45,7 @@ impl<'a> RepositoryHelper<'a> {
     pub fn recreate_missing_collections(
         &self,
         collection_prototype: &Collection,
-    ) -> Result<Vec<CollectionEntity>, Error> {
+    ) -> RepoResult<Vec<CollectionEntity>> {
         let orphaned_collection_uids = aux_track_collection::table
             .select(aux_track_collection::collection_uid)
             .distinct()
@@ -394,7 +392,7 @@ impl<'a> RepositoryHelper<'a> {
                 self.on_refresh(repo_id, &entity.body)?;
                 Ok(repo_id)
             }
-            None => Err(failure::format_err!("Entity not found: {}", uid)),
+            None => Err(anyhow!("Entity not found: {}", uid)),
         }
     }
 
@@ -405,7 +403,7 @@ impl<'a> RepositoryHelper<'a> {
                 self.on_insert(repo_id, &entity.body)?;
                 Ok(repo_id)
             }
-            None => Err(failure::format_err!("Entity not found: {}", uid)),
+            None => Err(anyhow!("Entity not found: {}", uid)),
         }
     }
 
@@ -415,7 +413,7 @@ impl<'a> RepositoryHelper<'a> {
                 self.on_delete(repo_id)?;
                 Ok(repo_id)
             }
-            None => Err(failure::format_err!("Entity not found: {}", uid)),
+            None => Err(anyhow!("Entity not found: {}", uid)),
         }
     }
 

@@ -43,7 +43,7 @@ pub fn load_entity_data(
 ) -> Fallible<(EntityHeader, Vec<u8>)> {
     let (hdr, (data_fmt, data_ver, json_data)) = entity_data;
     if data_fmt != ENTITY_DATA_FORMAT {
-        let e = failure::format_err!(
+        let e = anyhow!(
             "Unsupported data format when loading entity {}: expected = {:?}, actual = {:?}",
             hdr.uid,
             ENTITY_DATA_FORMAT,
@@ -58,7 +58,7 @@ pub fn load_entity_data(
     if data_ver == expected_data_ver {
         return Ok((hdr, json_data));
     }
-    let e = failure::format_err!(
+    let e = anyhow!(
         "Unsupported data version when loading entity {}: expected = {:?}, actual = {:?}",
         hdr.uid,
         expected_data_ver,

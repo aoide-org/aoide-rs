@@ -30,9 +30,9 @@ use aoide_repo_sqlite::{
     track::util::RepositoryHelper as TrackRepositoryHelper,
 };
 
+use anyhow::Error;
 use clap::App;
 use diesel::{prelude::*, sql_query};
-use failure::Error;
 use futures::{future, Future, Stream};
 use std::{
     env::current_exe,
