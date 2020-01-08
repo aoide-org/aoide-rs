@@ -12,7 +12,7 @@ aoide-repo = "*"
 bigdecimal = "*"
 chrono = { version = "*", default-features = false }
 diesel = { version = "*", features = ["chrono", "sqlite", "numeric"] }
-failure = "*"
+anyhow = "*"
 log = "*"
 num-bigint = "*"
 num-traits = "*"

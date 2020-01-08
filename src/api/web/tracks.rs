@@ -759,7 +759,7 @@ impl TracksHandler {
             json::serialize_entity_body_data(&entity.1).map_err(warp::reject::custom)?;
         let entity = Entity::from(entity);
         if uid != entity.hdr.uid {
-            return Err(warp::reject::custom(failure::format_err!(
+            return Err(warp::reject::custom(anyhow!(
                 "Mismatching UIDs: {} <> {}",
                 uid,
                 entity.hdr.uid,
@@ -771,7 +771,7 @@ impl TracksHandler {
             let hdr = EntityHeader { uid, rev: next_rev };
             Ok(warp::reply::json(&_serde::EntityHeader::from(hdr)))
         } else {
-            Err(warp::reject::custom(failure::format_err!(
+            Err(warp::reject::custom(anyhow!(
                 "Entity not found or revision conflict"
             )))
         }

@@ -62,7 +62,7 @@ fn read_json_entity(entity_data: EntityData) -> Fallible<Entity> {
 pub fn load_json_entity_data(entity_data: EntityData) -> Fallible<(EntityHeader, Vec<u8>)> {
     let (hdr, (data_fmt, data_ver, json_data)) = entity_data;
     if data_fmt != ENTITY_DATA_FORMAT {
-        let e = failure::format_err!(
+        let e = anyhow!(
             "Unsupported data format when loading playlist {}: expected = {:?}, actual = {:?}",
             hdr.uid,
             ENTITY_DATA_FORMAT,
@@ -77,7 +77,7 @@ pub fn load_json_entity_data(entity_data: EntityData) -> Fallible<(EntityHeader,
     if data_ver == ENTITY_DATA_VERSION {
         return Ok((hdr, json_data));
     }
-    let e = failure::format_err!(
+    let e = anyhow!(
         "Unsupported data version when loading playlist {}: expected = {:?}, actual = {:?}",
         hdr.uid,
         ENTITY_DATA_VERSION,

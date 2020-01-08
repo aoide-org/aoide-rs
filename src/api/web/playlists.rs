@@ -111,7 +111,7 @@ impl PlaylistsHandler {
         let json_data = write_json_body_data(&entity.1).map_err(warp::reject::custom)?;
         let entity = Entity::from(entity);
         if uid != entity.hdr.uid {
-            return Err(warp::reject::custom(failure::format_err!(
+            return Err(warp::reject::custom(anyhow!(
                 "Mismatching UIDs: {} <> {}",
                 uid,
                 entity.hdr.uid,
@@ -123,7 +123,7 @@ impl PlaylistsHandler {
             let hdr = EntityHeader { uid, rev: next_rev };
             Ok(warp::reply::json(&_serde::EntityHeader::from(hdr)))
         } else {
-            Err(warp::reject::custom(failure::format_err!(
+            Err(warp::reject::custom(anyhow!(
                 "Entity not found or revision conflict"
             )))
         }
@@ -138,7 +138,7 @@ impl PlaylistsHandler {
             .map_err(warp::reject::custom)?;
         use EntityRevisionUpdateResult::*;
         match update_result {
-            NotFound => Err(warp::reject::custom(failure::format_err!(
+            NotFound => Err(warp::reject::custom(anyhow!(
                 "Entity not found"
             ))),
             Current(rev) => {

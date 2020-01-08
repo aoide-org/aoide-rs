@@ -8,4 +8,4 @@ edition = "2018"
 
 [dependencies]
 aoide-core = "*"
-failure = "*"
+anyhow = "*"

@@ -27,6 +27,7 @@ extern crate diesel;
 #[macro_use]
 extern crate diesel_migrations;
 
+use anyhow::anyhow;
 use diesel::prelude::*;
 
 pub mod collection;
