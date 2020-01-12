@@ -36,6 +36,7 @@ table! {
         rtype -> Nullable<Text>, // r#type doesn't work in macro expansion
         color_code -> Nullable<Integer>,
         desc -> Nullable<Text>,
+        tracks_count -> BigInt,
         entries_count -> BigInt,
         entries_since_min -> Nullable<Timestamp>,
         entries_since_max -> Nullable<Timestamp>,

@@ -138,9 +138,7 @@ impl PlaylistsHandler {
             .map_err(warp::reject::custom)?;
         use EntityRevisionUpdateResult::*;
         match update_result {
-            NotFound => Err(warp::reject::custom(anyhow!(
-                "Entity not found"
-            ))),
+            NotFound => Err(warp::reject::custom(anyhow!("Entity not found"))),
             Current(rev) => {
                 let hdr = EntityHeader { uid, rev };
                 Ok(warp::reply::json(&_serde::EntityHeader::from(hdr)))
