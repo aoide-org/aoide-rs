@@ -1357,7 +1357,12 @@ components:
         - e
     PlaylistItem:
         oneOf:
+          - $ref: '#/components/schemas/PlaylistItemSeparator'
           - $ref: '#/components/schemas/PlaylistItemTrack'
+    PlaylistItemSeparator:
+      type: string
+      enum:
+        - s
     PlaylistItemTrack:
       properties:
         t:
