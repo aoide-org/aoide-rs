@@ -128,6 +128,7 @@ pub struct InsertableBrief<'a> {
     pub desc: Option<&'a str>,
     pub rtype: Option<&'a str>,
     pub color_code: Option<i32>,
+    pub tracks_count: i64,
     pub entries_count: i64,
     pub entries_since_min: Option<NaiveDateTime>,
     pub entries_since_max: Option<NaiveDateTime>,
@@ -141,6 +142,7 @@ impl<'a> InsertableBrief<'a> {
             desc: playlist_brief.description,
             rtype: playlist_brief.r#type,
             color_code: playlist_brief.color.map(|color| color.code() as i32),
+            tracks_count: playlist_brief.tracks_count as i64,
             entries_count: playlist_brief.entries_count as i64,
             entries_since_min: playlist_brief
                 .entries_since_min

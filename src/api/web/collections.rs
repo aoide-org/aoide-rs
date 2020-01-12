@@ -100,9 +100,7 @@ impl CollectionsHandler {
                     let hdr = EntityHeader { uid, rev };
                     Ok(warp::reply::json(&_serde::EntityHeader::from(hdr)))
                 }
-                (_, None) => Err(anyhow!(
-                    "Entity not found or revision conflict"
-                )),
+                (_, None) => Err(anyhow!("Entity not found or revision conflict")),
             })
             .map_err(warp::reject::custom)
     }

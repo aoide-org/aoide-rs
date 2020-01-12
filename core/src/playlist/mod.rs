@@ -48,10 +48,27 @@ impl Validate for PlaylistTrack {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PlaylistItem {
+    Empty, // usable as a separator between tracks or parts of a playlist
     Track(PlaylistTrack),
     // TODO: Add more items like an optional transition between
     // two subsequent track items?
     //Transition(PlaylistTransition),
+}
+
+impl PlaylistItem {
+    pub fn is_track(&self) -> bool {
+        if let Self::Track(_) = self {
+            true
+        } else {
+            false
+        }
+    }
+}
+
+impl Default for PlaylistItem {
+    fn default() -> Self {
+        PlaylistItem::Empty
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -64,8 +81,10 @@ impl Validate for PlaylistItem {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         let context = ValidationContext::new();
+        use PlaylistItem::*;
         match self {
-            Self::Track(ref track) => context.validate_with(track, Self::Invalidity::Track),
+            Empty => context,
+            Track(ref track) => context.validate_with(track, Self::Invalidity::Track),
         }
         .into()
     }
@@ -182,6 +201,10 @@ impl Playlist {
     pub fn sort_entries_chronologically(&mut self) {
         self.entries.sort_by_key(|e| e.since);
     }
+
+    pub fn count_tracks(&self) -> usize {
+        self.entries.iter().filter(|e| e.item.is_track()).count()
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -220,6 +243,8 @@ pub struct PlaylistBrief<'a> {
 
     pub color: Option<ColorRgb>,
 
+    pub tracks_count: usize,
+
     pub entries_count: usize,
 
     pub entries_since_min: Option<TickInstant>,
@@ -239,12 +264,14 @@ impl<'a> Playlist {
             color,
             ref entries,
         } = self;
+        let tracks_count = self.count_tracks();
         let entries_count = entries.len();
         PlaylistBrief {
             name,
             description: description.as_ref().map(String::as_str),
             r#type: r#type.as_ref().map(String::as_str),
             color: *color,
+            tracks_count,
             entries_count,
             entries_since_min,
             entries_since_max,
