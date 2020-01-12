@@ -1354,23 +1354,33 @@ components:
             $ref: '#/components/schemas/PlaylistEntry'
       required:
         - n
+        - e
+    PlaylistItem:
+        oneOf:
+          - $ref: '#/components/schemas/PlaylistItemTrack'
+    PlaylistItemTrack:
+      properties:
+        t:
+          $ref: '#/components/schemas/PlaylistTrack'
+      required:
+        - t
     PlaylistEntry:
       properties:
-        u:
-          $ref: '#/components/schemas/TrackUid'
-        t:
+        i:
+          $ref: '#/components/schemas/PlaylistItem'
+        s:
           description: |
-            Time stamp since when this entry is part of its playlist,
+            Time stamp since when this entry is part of the playlist,
             i.e. when it has been created and added.
           oneOf:
-            - $ref: '#/components/schemas/SinceTimeStamp'
+            - $ref: '#/components/schemas/TimeStamp'
         c:
           description: |
             Custom comments and notes to annotate this entry
           type: string
       required:
-        - u
-        - t
+        - i
+        - s
     PlaylistEntryPosition:
       type: number
       format: int64
@@ -1450,6 +1460,12 @@ components:
             $ref: '#/components/schemas/PlaylistPatchOperation'
       required:
         - ops
+    PlaylistTrack:
+      properties:
+        u:
+          $ref: '#/components/schemas/TrackUid'
+      required:
+        - u
     PlaylistType:
       description: |
         Custom type of to the playlist. This allows 3rd party applications
@@ -1602,9 +1618,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TrackSortOrder'
-    SinceTimeStamp:
-      oneOf:
-        - $ref: '#/components/schemas/TimeStamp'
     SortDirection:
       type: string
       enum:
@@ -1867,7 +1880,11 @@ components:
         u:
           $ref: '#/components/schemas/CollectionUid'
         t:
-          $ref: '#/components/schemas/SinceTimeStamp'
+          description: |
+            Time stamp since when the track is part of this collection,
+            i.e. when it has been added.
+          oneOf:
+            - $ref: '#/components/schemas/TimeStamp'
         c:
           $ref: '#/components/schemas/Color'
         p:

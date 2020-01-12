@@ -82,14 +82,18 @@ impl<'a> RepositoryHelper<'a> {
     fn insert_tracks(&self, repo_id: RepoId, playlist_entries: &[PlaylistEntry]) -> RepoResult<()> {
         let mut tracks: HashMap<EntityUid, usize> =
             HashMap::with_capacity(playlist_entries.len() + 100);
-        for entry in playlist_entries {
-            match tracks.entry(entry.track_uid.clone()) {
-                hash_map::Entry::Occupied(mut entry) => {
-                    debug_assert!(*entry.get() > 0);
-                    *entry.get_mut() += 1;
-                }
-                hash_map::Entry::Vacant(entry) => {
-                    entry.insert(1);
+        for playlist_entry in playlist_entries {
+            match &playlist_entry.item {
+                PlaylistItem::Track(track) => {
+                    match tracks.entry(track.uid.clone()) {
+                        hash_map::Entry::Occupied(mut entry) => {
+                            debug_assert!(*entry.get() > 0);
+                            *entry.get_mut() += 1;
+                        }
+                        hash_map::Entry::Vacant(entry) => {
+                            entry.insert(1);
+                        }
+                    }
                 }
             }
         }

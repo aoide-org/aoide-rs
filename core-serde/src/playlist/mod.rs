@@ -24,6 +24,65 @@ mod _core {
 }
 
 ///////////////////////////////////////////////////////////////////////
+// PlaylistTrack
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(Eq, PartialEq))]
+#[serde(deny_unknown_fields)]
+pub struct PlaylistTrack {
+    #[serde(rename = "u")]
+    uid: EntityUid,
+}
+
+impl From<PlaylistTrack> for _core::PlaylistTrack {
+    fn from(from: PlaylistTrack) -> Self {
+        let PlaylistTrack { uid } = from;
+        Self { uid: uid.into() }
+    }
+}
+
+impl From<_core::PlaylistTrack> for PlaylistTrack {
+    fn from(from: _core::PlaylistTrack) -> Self {
+        let _core::PlaylistTrack { uid } = from;
+        Self { uid: uid.into() }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// PlaylistItem
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(Eq, PartialEq))]
+#[serde(deny_unknown_fields)]
+pub enum PlaylistItem {
+    #[serde(rename = "t")]
+    Track(PlaylistTrack),
+    // TODO: Add different kinds of playlist items
+    //#[serde(rename = "x")]
+    //Transition(PlaylistTransition),
+}
+
+impl From<PlaylistItem> for _core::PlaylistItem {
+    fn from(from: PlaylistItem) -> Self {
+        use PlaylistItem::*;
+        match from {
+            Track(track) => Self::Track(track.into()),
+        }
+    }
+}
+
+impl From<_core::PlaylistItem> for PlaylistItem {
+    fn from(from: _core::PlaylistItem) -> Self {
+        use _core::PlaylistItem::*;
+        match from {
+            Track(track) => Self::Track(track.into()),
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
 // PlaylistEntry
 ///////////////////////////////////////////////////////////////////////
 
@@ -31,10 +90,10 @@ mod _core {
 #[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(deny_unknown_fields)]
 pub struct PlaylistEntry {
-    #[serde(rename = "u")]
-    track_uid: EntityUid,
+    #[serde(rename = "i")]
+    item: PlaylistItem,
 
-    #[serde(rename = "t")]
+    #[serde(rename = "s")]
     since: TickType,
 
     #[serde(rename = "c")]
@@ -44,12 +103,12 @@ pub struct PlaylistEntry {
 impl From<PlaylistEntry> for _core::PlaylistEntry {
     fn from(from: PlaylistEntry) -> Self {
         let PlaylistEntry {
-            track_uid,
+            item,
             since,
             comment,
         } = from;
         Self {
-            track_uid: track_uid.into(),
+            item: item.into(),
             since: TickInstant(Ticks(since)),
             comment,
         }
@@ -59,12 +118,12 @@ impl From<PlaylistEntry> for _core::PlaylistEntry {
 impl From<_core::PlaylistEntry> for PlaylistEntry {
     fn from(from: _core::PlaylistEntry) -> Self {
         let _core::PlaylistEntry {
-            track_uid,
+            item,
             since,
             comment,
         } = from;
         Self {
-            track_uid: track_uid.into(),
+            item: item.into(),
             since: (since.0).0,
             comment,
         }
