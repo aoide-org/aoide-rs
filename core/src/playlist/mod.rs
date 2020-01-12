@@ -26,11 +26,58 @@ use rand::{seq::SliceRandom, thread_rng};
 use std::ops::RangeBounds;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PlaylistEntry {
+pub struct PlaylistTrack {
     /// A reference to the track.
-    pub track_uid: EntityUid,
+    pub uid: EntityUid,
+}
 
-    /// Time stamp since when this entry is part of its playlist,
+#[derive(Copy, Clone, Debug)]
+pub enum PlaylistTrackInvalidity {
+    Uid(EntityUidInvalidity),
+}
+
+impl Validate for PlaylistTrack {
+    type Invalidity = PlaylistTrackInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .validate_with(&self.uid, Self::Invalidity::Uid)
+            .into()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PlaylistItem {
+    Track(PlaylistTrack),
+    // TODO: Add more items like an optional transition between
+    // two subsequent track items?
+    //Transition(PlaylistTransition),
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum PlaylistItemInvalidity {
+    Track(PlaylistTrackInvalidity),
+}
+
+impl Validate for PlaylistItem {
+    type Invalidity = PlaylistItemInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        let context = ValidationContext::new();
+        match self {
+            Self::Track(ref track) => context.validate_with(track, Self::Invalidity::Track),
+        }
+        .into()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PlaylistEntry {
+    /// The actual item, e.g. a single track or a transition between
+    /// two subsequent tracks.
+    pub item: PlaylistItem,
+
+    /// Time stamp since when this entry is part of the playlist,
     /// i.e. when it has been created and added.
     pub since: TickInstant,
 
@@ -40,7 +87,7 @@ pub struct PlaylistEntry {
 
 #[derive(Copy, Clone, Debug)]
 pub enum PlaylistEntryInvalidity {
-    TrackUid(EntityUidInvalidity),
+    Item(PlaylistItemInvalidity),
 }
 
 impl Validate for PlaylistEntry {
@@ -48,7 +95,7 @@ impl Validate for PlaylistEntry {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .validate_with(&self.track_uid, PlaylistEntryInvalidity::TrackUid)
+            .validate_with(&self.item, Self::Invalidity::Item)
             .into()
     }
 }
