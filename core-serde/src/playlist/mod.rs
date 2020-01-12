@@ -57,8 +57,8 @@ impl From<_core::PlaylistTrack> for PlaylistTrack {
 #[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(deny_unknown_fields)]
 pub enum PlaylistItem {
-    #[serde(rename = "e")]
-    Empty,
+    #[serde(rename = "s")]
+    Separator,
 
     #[serde(rename = "t")]
     Track(PlaylistTrack),
@@ -72,7 +72,7 @@ impl From<PlaylistItem> for _core::PlaylistItem {
     fn from(from: PlaylistItem) -> Self {
         use PlaylistItem::*;
         match from {
-            Empty => Self::Empty,
+            Separator => Self::Separator,
             Track(track) => Self::Track(track.into()),
         }
     }
@@ -82,7 +82,7 @@ impl From<_core::PlaylistItem> for PlaylistItem {
     fn from(from: _core::PlaylistItem) -> Self {
         use _core::PlaylistItem::*;
         match from {
-            Empty => Self::Empty,
+            Separator => Self::Separator,
             Track(track) => Self::Track(track.into()),
         }
     }

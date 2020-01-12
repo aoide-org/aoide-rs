@@ -85,7 +85,7 @@ impl<'a> RepositoryHelper<'a> {
         for playlist_entry in playlist_entries {
             use PlaylistItem::*;
             match &playlist_entry.item {
-                Empty => {}
+                Separator => {}
                 Track(track) => match tracks.entry(track.uid.clone()) {
                     hash_map::Entry::Occupied(mut entry) => {
                         debug_assert!(*entry.get() > 0);

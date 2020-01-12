@@ -48,7 +48,7 @@ impl Validate for PlaylistTrack {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PlaylistItem {
-    Empty, // usable as a separator between tracks or parts of a playlist
+    Separator, // empty
     Track(PlaylistTrack),
     // TODO: Add more items like an optional transition between
     // two subsequent track items?
@@ -65,12 +65,6 @@ impl PlaylistItem {
     }
 }
 
-impl Default for PlaylistItem {
-    fn default() -> Self {
-        PlaylistItem::Empty
-    }
-}
-
 #[derive(Copy, Clone, Debug)]
 pub enum PlaylistItemInvalidity {
     Track(PlaylistTrackInvalidity),
@@ -83,7 +77,7 @@ impl Validate for PlaylistItem {
         let context = ValidationContext::new();
         use PlaylistItem::*;
         match self {
-            Empty => context,
+            Separator => context,
             Track(ref track) => context.validate_with(track, Self::Invalidity::Track),
         }
         .into()
