@@ -25,7 +25,7 @@ use crate::util::*;
 
 use aoide_core::{
     entity::{
-        EntityHeader, EntityRevision, EntityRevisionUpdateResult, EntityRevisionVersion, EntityUid,
+        EntityHeader, EntityRevision, EntityRevisionUpdateResult, EntityUid, EntityVersionNumber,
     },
     playlist::*,
     util::clock::{TickInstant, TickType, Ticks},
@@ -98,7 +98,7 @@ impl<'a> Repo for Repository<'a> {
             let target = tbl_playlist::table.filter(
                 tbl_playlist::uid
                     .eq(entity.hdr.uid.as_ref())
-                    .and(tbl_playlist::rev_ver.eq(prev_rev.ver as i64))
+                    .and(tbl_playlist::rev_no.eq(prev_rev.no as i64))
                     .and(tbl_playlist::rev_ts.eq((prev_rev.ts.0).0)),
             );
             let repo_id = self
@@ -109,13 +109,13 @@ impl<'a> Repo for Repository<'a> {
             debug_assert!(rows_affected <= 1);
             if rows_affected < 1 {
                 let row = tbl_playlist::table
-                    .select((tbl_playlist::rev_ver, tbl_playlist::rev_ts))
+                    .select((tbl_playlist::rev_no, tbl_playlist::rev_ts))
                     .filter(tbl_playlist::uid.eq(entity.hdr.uid.as_ref()))
                     .first::<(i64, TickType)>(self.connection)
                     .optional()?;
                 if let Some(row) = row {
                     let rev = EntityRevision {
-                        ver: row.0 as EntityRevisionVersion,
+                        no: row.0 as EntityVersionNumber,
                         ts: TickInstant(Ticks(row.1)),
                     };
                     return Ok(EntityRevisionUpdateResult::Current(rev));
@@ -156,7 +156,7 @@ impl<'a> Repo for Repository<'a> {
             .filter(
                 tbl_playlist::uid
                     .eq(hdr.uid.as_ref())
-                    .and(tbl_playlist::rev_ver.eq(hdr.rev.ver as i64))
+                    .and(tbl_playlist::rev_no.eq(hdr.rev.no as i64))
                     .and(tbl_playlist::rev_ts.eq((hdr.rev.ts.0).0)),
             )
             .first::<QueryableEntityData>(self.connection)
@@ -180,7 +180,7 @@ impl<'a> Repo for Repository<'a> {
                 tbl_playlist::id.eq_any(
                     aux_playlist_brief::table
                         .select(aux_playlist_brief::playlist_id)
-                        .filter(aux_playlist_brief::rtype.eq(r#type)),
+                        .filter(aux_playlist_brief::playlist_type.eq(r#type)),
                 ),
             )
         }
@@ -191,6 +191,49 @@ impl<'a> Repo for Repository<'a> {
         target
             .load::<QueryableEntityData>(self.connection)
             .map(|v| v.into_iter().map(Into::into).collect())
+            .map_err(Into::into)
+    }
+
+    fn list_playlist_briefs(
+        &self,
+        r#type: Option<&str>,
+        pagination: Pagination,
+    ) -> RepoResult<Vec<(EntityHeader, PlaylistBrief)>> {
+        let mut target = tbl_playlist::table
+            .inner_join(aux_playlist_brief::table)
+            .then_order_by(tbl_playlist::rev_ts.desc())
+            .into_boxed();
+
+        // Filter by type
+        if let Some(r#type) = r#type {
+            target = target.filter(aux_playlist_brief::playlist_type.eq(r#type));
+        }
+
+        // Pagination
+        target = apply_pagination(target, pagination);
+
+        target
+            .select((
+                tbl_playlist::id,
+                tbl_playlist::uid,
+                tbl_playlist::rev_no,
+                tbl_playlist::rev_ts,
+                aux_playlist_brief::name,
+                aux_playlist_brief::desc,
+                aux_playlist_brief::playlist_type,
+                aux_playlist_brief::color_code,
+                aux_playlist_brief::tracks_count,
+                aux_playlist_brief::entries_count,
+                aux_playlist_brief::entries_since_min,
+                aux_playlist_brief::entries_since_max,
+            ))
+            .load::<QueryableBrief>(self.connection)
+            .map(|v| {
+                v.into_iter()
+                    .map(Into::into)
+                    .map(|(_, hdr, brief)| (hdr, brief))
+                    .collect()
+            })
             .map_err(Into::into)
     }
 

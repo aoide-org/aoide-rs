@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**This release breaks backward compatibility with old versions! Existing databases need to be rebuilt.**
+
 ### Added
+
+- Support for playlist entities
 
 ### Changed
 

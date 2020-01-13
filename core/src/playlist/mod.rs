@@ -227,16 +227,8 @@ impl Validate for Playlist {
 
 pub type Entity = crate::entity::Entity<PlaylistInvalidity, Playlist>;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PlaylistBrief<'a> {
-    pub name: &'a str,
-
-    pub description: Option<&'a str>,
-
-    pub r#type: Option<&'a str>,
-
-    pub color: Option<ColorRgb>,
-
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct PlaylistBriefEntries {
     pub tracks_count: usize,
 
     pub entries_count: usize,
@@ -246,29 +238,62 @@ pub struct PlaylistBrief<'a> {
     pub entries_since_max: Option<TickInstant>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PlaylistBrief {
+    pub name: String,
+
+    pub description: Option<String>,
+
+    pub r#type: Option<String>,
+
+    pub color: Option<ColorRgb>,
+
+    pub entries: PlaylistBriefEntries,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PlaylistBriefRef<'a> {
+    pub name: &'a str,
+
+    pub description: Option<&'a str>,
+
+    pub r#type: Option<&'a str>,
+
+    pub color: Option<ColorRgb>,
+
+    pub entries: PlaylistBriefEntries,
+}
+
 impl<'a> Playlist {
-    pub fn brief(&'a self) -> PlaylistBrief<'a> {
+    pub fn entries_brief(&self) -> PlaylistBriefEntries {
+        let tracks_count = self.count_tracks();
+        let entries_count = self.entries.len();
         let (entries_since_min, entries_since_max) = self
             .entries_since_min_max()
             .map_or((None, None), |(min, max)| (Some(min), Some(max)));
+        PlaylistBriefEntries {
+            tracks_count,
+            entries_count,
+            entries_since_min,
+            entries_since_max,
+        }
+    }
+
+    pub fn brief_ref(&'a self) -> PlaylistBriefRef<'a> {
+        let entries = self.entries_brief();
         let Playlist {
             ref name,
             ref description,
             r#type,
             color,
-            ref entries,
+            entries: _entries,
         } = self;
-        let tracks_count = self.count_tracks();
-        let entries_count = entries.len();
-        PlaylistBrief {
+        PlaylistBriefRef {
             name,
             description: description.as_ref().map(String::as_str),
             r#type: r#type.as_ref().map(String::as_str),
             color: *color,
-            tracks_count,
-            entries_count,
-            entries_since_min,
-            entries_since_max,
+            entries,
         }
     }
 }

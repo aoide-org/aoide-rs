@@ -83,10 +83,10 @@ fn load_and_write_entity_data(
 
 fn entity_data_blob_size(entity_data: &EntityData) -> usize {
     let uid_bytes = 33;
-    let rev_ver_bytes = ((entity_data.0).rev.ver as f64).log10().ceil() as usize;
+    let rev_no_bytes = ((entity_data.0).rev.no as f64).log10().ceil() as usize;
     let rev_ts_bytes = 16;
     // ["<uid>",[<rev.ver>,<rev.ts>]]
-    (entity_data.1).2.len() + uid_bytes + rev_ver_bytes + rev_ts_bytes + 8
+    (entity_data.1).2.len() + uid_bytes + rev_no_bytes + rev_ts_bytes + 8
 }
 
 pub fn load_entity_data_blob(

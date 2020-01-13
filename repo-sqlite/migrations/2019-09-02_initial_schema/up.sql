@@ -20,7 +20,7 @@
 CREATE TABLE tbl_collection (
     id                       INTEGER PRIMARY KEY,
     uid                      BINARY(24) NOT NULL,
-    rev_ver                  INTEGER NOT NULL,
+    rev_no                  INTEGER NOT NULL,
     rev_ts                   INTEGER NOT NULL,
     name                     TEXT NOT NULL,
     desc                     TEXT,
@@ -38,7 +38,7 @@ CREATE INDEX idx_collection_name ON tbl_collection (
 CREATE TABLE tbl_track (
     id                       INTEGER PRIMARY KEY,
     uid                      BINARY(24) NOT NULL,
-    rev_ver                  INTEGER NOT NULL,
+    rev_no                  INTEGER NOT NULL,
     rev_ts                   INTEGER NOT NULL,
     data_fmt                 INTEGER NOT NULL,  -- serialization format
     data_vmaj                INTEGER NOT NULL,  -- serialization version for data migration - breaking changes

@@ -24,8 +24,10 @@ paths:
       responses:
         '200':
           description: |
-            An array of collection entities sorted in descending order of the
-            revision time stamp.
+            An array of collection entities.
+
+            Results are sorted in descending order of the revision
+            time stamp.
           content:
             application/json:
               schema:
@@ -139,20 +141,26 @@ paths:
       tags:
         - Playlists
       parameters:
+        - $ref: '#/components/parameters/playlistBriefQuery'
         - $ref: '#/components/parameters/playlistTypeQuery'
         - $ref: '#/components/parameters/paginationOffsetQuery'
         - $ref: '#/components/parameters/paginationLimitQuery'
       responses:
         '200':
           description: |
-            An array of playlist entities sorted in descending order of the
-            revision time stamp.
+            An array of playlist entities, either with all entries
+            or only a brief summary without any entries.
+
+            Results are sorted in descending order of the revision
+            time stamp.
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/PlaylistEntity'
+                  oneOf:
+                    - $ref: '#/components/schemas/PlaylistEntity'
+                    - $ref: '#/components/schemas/PlaylistBriefEntity'
         '400':
           $ref: '#/components/responses/400BadRequest'
         '500':
@@ -296,8 +304,10 @@ paths:
       responses:
         '200':
           description: |
-            An array of track entities sorted in descending order of the
-            revision time stamp.
+            An array of track entities.
+
+            Results are sorted in descending order of the revision
+            time stamp.
           content:
             application/json:
               schema:
@@ -708,6 +718,15 @@ components:
       description: |
         Comma-separated list of boolean options:
           * `track-stats` - Include track statistics
+    playlistBriefQuery:
+      name: brief
+      in: query
+      required: false
+      description: |
+        Allows to request only a brief playlist representation
+        without individual entries
+      schema:
+        type: boolean
     playlistTypeQuery:
       name: type
       in: query
@@ -1045,7 +1064,7 @@ components:
       maxItems: 2
       items:
         oneOf:
-          - $ref: '#/components/schemas/EntityRevisionVersion'
+          - $ref: '#/components/schemas/EntityVersionNumber'
           - $ref: '#/components/schemas/EntityRevisionInstant'
       description: |
         Tuple of 2 elements containing a version number and a time stamp.
@@ -1053,7 +1072,7 @@ components:
       type: integer
       format: int64
       example: 1552823952261838
-    EntityRevisionVersion:
+    EntityVersionNumber:
       type: integer
       format: int64
       minimum: 1
@@ -1351,7 +1370,7 @@ components:
         c:
           $ref: '#/components/schemas/Color'
         e:
-          $ref: '#/components/schemas/PlaylistEntriesBrief'
+          $ref: '#/components/schemas/PlaylistBriefEntries'
       required:
         - n
         - e
@@ -1382,14 +1401,14 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/PlaylistEntry'
-    PlaylistEntriesBrief:
+    PlaylistBriefEntries:
       properties:
         m:
-          description: Number of tracks in playlist
+          description: Number of tracks in the playlist
           oneOf:
             - $ref: '#/components/schemas/PlaylistEntryCount'
         n:
-          description: Number of entries in playlist
+          description: Number of entries in the playlist
           oneOf:
             - $ref: '#/components/schemas/PlaylistEntryCount'
         s:

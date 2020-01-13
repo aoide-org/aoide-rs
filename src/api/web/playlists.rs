@@ -23,7 +23,7 @@ mod json {
 use crate::usecases::playlists::*;
 
 mod _serde {
-    pub use aoide_core_serde::{entity::EntityHeader, playlist::Entity};
+    pub use aoide_core_serde::entity::{Entity, EntityHeader};
 }
 
 use aoide_core::{
@@ -31,11 +31,14 @@ use aoide_core::{
     playlist::Entity,
 };
 
-use aoide_core_serde::{entity::EntityRevision, playlist::Playlist};
+use aoide_core_serde::{
+    entity::EntityRevision,
+    playlist::{Playlist, PlaylistBrief},
+};
 
 use aoide_repo::{Pagination, PaginationLimit, PaginationOffset};
 
-use futures::future::Future;
+use futures::future::{self, Future};
 use warp::http::StatusCode;
 
 ///////////////////////////////////////////////////////////////////////
@@ -44,6 +47,9 @@ use warp::http::StatusCode;
 #[cfg_attr(test, derive(Serialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PlaylistQueryParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub brief: Option<bool>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub r#type: Option<String>,
 
@@ -59,14 +65,16 @@ pub struct PlaylistQueryParams {
     pub limit: Option<PaginationLimit>,
 }
 
-impl From<PlaylistQueryParams> for (Option<String>, Pagination) {
+impl From<PlaylistQueryParams> for (Option<bool>, Option<String>, Pagination) {
     fn from(from: PlaylistQueryParams) -> Self {
-        let r#type = from.r#type;
-        let pagination = Pagination {
-            offset: from.offset,
-            limit: from.limit,
-        };
-        (r#type, pagination)
+        let PlaylistQueryParams {
+            brief,
+            r#type,
+            offset,
+            limit,
+        } = from;
+        let pagination = Pagination { offset, limit };
+        (brief, r#type, pagination)
     }
 }
 
@@ -106,7 +114,7 @@ impl PlaylistsHandler {
     pub fn handle_update(
         &self,
         uid: EntityUid,
-        entity: _serde::Entity,
+        entity: _serde::Entity<Playlist>,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         let json_data = write_json_body_data(&entity.1).map_err(warp::reject::custom)?;
         let entity = Entity::from(entity);
@@ -181,11 +189,33 @@ impl PlaylistsHandler {
     pub fn handle_list(
         &self,
         params: PlaylistQueryParams,
-    ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
-        let (r#type, pagination) = params.into();
-        list_playlists(&self.db, r#type.as_ref().map(String::as_str), pagination)
-            .and_then(|reply| json::load_entity_data_array_blob(reply.into_iter()))
-            .map(json::reply_with_content_type)
-            .map_err(warp::reject::custom)
+    ) -> impl Future<Item = impl warp_ext::BoxedReply, Error = warp::reject::Rejection> {
+        let (brief, r#type, pagination) = params.into();
+        if let Some(true) = brief {
+            future::Either::A(
+                list_playlist_briefs(&self.db, r#type.as_ref().map(String::as_str), pagination)
+                    .map(|res| {
+                        let res: Vec<_> = res
+                            .into_iter()
+                            .map(|(hdr, brief)| {
+                                let hdr = _serde::EntityHeader::from(hdr);
+                                let brief = PlaylistBrief::from(brief);
+                                _serde::Entity(hdr, brief)
+                            })
+                            .collect();
+                        warp::reply::json(&res)
+                    })
+                    .map(warp_ext::dyn_reply)
+                    .map_err(warp::reject::custom),
+            )
+        } else {
+            future::Either::B(
+                list_playlists(&self.db, r#type.as_ref().map(String::as_str), pagination)
+                    .and_then(|reply| json::load_entity_data_array_blob(reply.into_iter()))
+                    .map(json::reply_with_content_type)
+                    .map(warp_ext::dyn_reply)
+                    .map_err(warp::reject::custom),
+            )
+        }
     }
 }

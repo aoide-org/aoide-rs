@@ -15,11 +15,11 @@
 
 use super::*;
 
-use aoide_core::util::clock::*;
+use aoide_core::util::{clock::*, color::*};
 
 use aoide_repo::{entity::*, RepoId};
 
-use chrono::{naive::NaiveDateTime, DateTime};
+use chrono::{naive::NaiveDateTime, DateTime, Utc};
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -27,7 +27,7 @@ use chrono::{naive::NaiveDateTime, DateTime};
 #[table_name = "tbl_playlist"]
 pub struct InsertableEntity<'a> {
     pub uid: &'a [u8],
-    pub rev_ver: i64,
+    pub rev_no: i64,
     pub rev_ts: TickType,
     pub data_fmt: i16,
     pub data_vmaj: i16,
@@ -44,7 +44,7 @@ impl<'a> InsertableEntity<'a> {
     ) -> Self {
         Self {
             uid: hdr.uid.as_ref(),
-            rev_ver: hdr.rev.ver as i64,
+            rev_no: hdr.rev.no as i64,
             rev_ts: (hdr.rev.ts.0).0,
             data_fmt: data_fmt as i16,
             data_vmaj: data_ver.major as i16,
@@ -57,7 +57,7 @@ impl<'a> InsertableEntity<'a> {
 #[derive(Debug, AsChangeset)]
 #[table_name = "tbl_playlist"]
 pub struct UpdatableEntity<'a> {
-    pub rev_ver: i64,
+    pub rev_no: i64,
     pub rev_ts: TickType,
     pub data_fmt: i16,
     pub data_vmaj: i16,
@@ -73,7 +73,7 @@ impl<'a> UpdatableEntity<'a> {
         data_blob: &'a [u8],
     ) -> Self {
         Self {
-            rev_ver: next_rev.ver as i64,
+            rev_no: next_rev.no as i64,
             rev_ts: (next_rev.ts.0).0,
             data_fmt: data_fmt as i16,
             data_vmaj: data_ver.major as i16,
@@ -88,7 +88,7 @@ impl<'a> UpdatableEntity<'a> {
 pub struct QueryableEntityData {
     pub id: RepoId,
     pub uid: Vec<u8>,
-    pub rev_ver: i64,
+    pub rev_no: i64,
     pub rev_ts: TickType,
     pub data_fmt: i16,
     pub data_vmaj: i16,
@@ -99,7 +99,7 @@ pub struct QueryableEntityData {
 impl From<QueryableEntityData> for EntityData {
     fn from(from: QueryableEntityData) -> Self {
         let rev = EntityRevision {
-            ver: from.rev_ver as u64,
+            no: from.rev_no as u64,
             ts: TickInstant(Ticks(from.rev_ts)),
         };
         let hdr = EntityHeader {
@@ -120,13 +120,69 @@ impl From<QueryableEntityData> for EntityData {
     }
 }
 
+#[derive(Debug, Queryable)]
+pub struct QueryableBrief {
+    pub id: RepoId,
+    pub uid: Vec<u8>,
+    pub rev_no: i64,
+    pub rev_ts: TickType,
+    pub name: String,
+    pub desc: Option<String>,
+    pub playlist_type: Option<String>,
+    pub color_code: Option<i32>,
+    pub tracks_count: i64,
+    pub entries_count: i64,
+    pub entries_since_min: Option<NaiveDateTime>,
+    pub entries_since_max: Option<NaiveDateTime>,
+}
+
+impl From<QueryableBrief> for (RepoId, EntityHeader, PlaylistBrief) {
+    fn from(from: QueryableBrief) -> Self {
+        let QueryableBrief {
+            id,
+            uid,
+            rev_no,
+            rev_ts,
+            name,
+            desc,
+            playlist_type,
+            color_code,
+            tracks_count,
+            entries_count,
+            entries_since_min,
+            entries_since_max,
+        } = from;
+        let hdr = EntityHeader {
+            uid: EntityUid::from_slice(&uid),
+            rev: EntityRevision {
+                no: rev_no as u64,
+                ts: TickInstant(Ticks(rev_ts)),
+            },
+        };
+        let entries = PlaylistBriefEntries {
+            tracks_count: tracks_count as usize,
+            entries_count: entries_count as usize,
+            entries_since_min: entries_since_min.map(|min| DateTime::from_utc(min, Utc).into()),
+            entries_since_max: entries_since_max.map(|max| DateTime::from_utc(max, Utc).into()),
+        };
+        let brief = PlaylistBrief {
+            name,
+            description: desc,
+            r#type: playlist_type,
+            color: color_code.map(|c| ColorRgb(c as ColorCode)),
+            entries,
+        };
+        (id, hdr, brief)
+    }
+}
+
 #[derive(Debug, Insertable)]
 #[table_name = "aux_playlist_brief"]
 pub struct InsertableBrief<'a> {
     pub playlist_id: RepoId,
     pub name: &'a str,
     pub desc: Option<&'a str>,
-    pub rtype: Option<&'a str>,
+    pub playlist_type: Option<&'a str>,
     pub color_code: Option<i32>,
     pub tracks_count: i64,
     pub entries_count: i64,
@@ -135,20 +191,31 @@ pub struct InsertableBrief<'a> {
 }
 
 impl<'a> InsertableBrief<'a> {
-    pub fn bind(playlist_id: RepoId, playlist_brief: &'a PlaylistBrief<'a>) -> Self {
+    pub fn bind(playlist_id: RepoId, brief_ref: &'a PlaylistBriefRef<'a>) -> Self {
+        let &PlaylistBriefRef {
+            name,
+            description,
+            r#type,
+            color,
+            entries,
+        } = brief_ref;
+        let PlaylistBriefEntries {
+            tracks_count,
+            entries_count,
+            entries_since_min,
+            entries_since_max,
+        } = entries;
         Self {
             playlist_id,
-            name: &playlist_brief.name,
-            desc: playlist_brief.description,
-            rtype: playlist_brief.r#type,
-            color_code: playlist_brief.color.map(|color| color.code() as i32),
-            tracks_count: playlist_brief.tracks_count as i64,
-            entries_count: playlist_brief.entries_count as i64,
-            entries_since_min: playlist_brief
-                .entries_since_min
+            name,
+            desc: description,
+            playlist_type: r#type,
+            color_code: color.map(|color| color.code() as i32),
+            tracks_count: tracks_count as i64,
+            entries_count: entries_count as i64,
+            entries_since_min: entries_since_min
                 .map(|min| DateTime::from(min).naive_utc()),
-            entries_since_max: playlist_brief
-                .entries_since_max
+            entries_since_max: entries_since_max
                 .map(|max| DateTime::from(max).naive_utc()),
         }
     }

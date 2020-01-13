@@ -93,12 +93,12 @@ impl From<_core::EntityUid> for EntityUid {
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(Eq, PartialEq))]
-pub struct EntityRevision(_core::EntityRevisionVersion, TickType);
+pub struct EntityRevision(_core::EntityVersionNumber, TickType);
 
 impl From<EntityRevision> for _core::EntityRevision {
     fn from(from: EntityRevision) -> Self {
         Self {
-            ver: from.0,
+            no: from.0,
             ts: TickInstant(Ticks(from.1)),
         }
     }
@@ -106,7 +106,7 @@ impl From<EntityRevision> for _core::EntityRevision {
 
 impl From<_core::EntityRevision> for EntityRevision {
     fn from(from: _core::EntityRevision) -> Self {
-        Self(from.ver, (from.ts.0).0)
+        Self(from.no, (from.ts.0).0)
     }
 }
 

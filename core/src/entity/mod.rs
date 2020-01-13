@@ -126,46 +126,46 @@ impl std::str::FromStr for EntityUid {
 // EntityRevision
 ///////////////////////////////////////////////////////////////////////
 
-pub type EntityRevisionVersion = u64;
+pub type EntityVersionNumber = u64;
 
 pub type EntityRevisionInstant = TickInstant;
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct EntityRevision {
     // A non-negative, monotone-increasing version number
-    pub ver: EntityRevisionVersion,
+    pub no: EntityVersionNumber,
 
     // A time stamp for tracing
     pub ts: EntityRevisionInstant,
 }
 
 impl EntityRevision {
-    const fn initial_ver() -> EntityRevisionVersion {
+    const fn initial_ver() -> EntityVersionNumber {
         1
     }
 
     pub fn initial() -> Self {
         Self {
-            ver: Self::initial_ver(),
+            no: Self::initial_ver(),
             ts: TickInstant::now(),
         }
     }
 
     pub fn next(&self) -> Self {
         debug_assert!(self.validate().is_ok());
-        let ver = self
-            .ver
+        let no = self
+            .no
             .checked_add(1)
             // TODO: Return `Option<Self>`?
             .unwrap();
         Self {
-            ver,
+            no,
             ts: TickInstant::now(),
         }
     }
 
     pub fn is_initial(&self) -> bool {
-        self.ver == Self::initial_ver()
+        self.no == Self::initial_ver()
     }
 }
 
@@ -180,7 +180,7 @@ impl Validate for EntityRevision {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
             .invalidate_if(
-                self.ver < Self::initial_ver(),
+                self.no < Self::initial_ver(),
                 EntityRevisionInvalidity::VersionOutOfRange,
             )
             .into()
@@ -189,7 +189,7 @@ impl Validate for EntityRevision {
 
 impl fmt::Display for EntityRevision {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}@{}", self.ver, self.ts)
+        write!(f, "{}@{}", self.no, self.ts)
     }
 }
 

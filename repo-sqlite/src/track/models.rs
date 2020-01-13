@@ -42,7 +42,7 @@ use percent_encoding::percent_decode;
 #[table_name = "tbl_track"]
 pub struct InsertableEntity<'a> {
     pub uid: &'a [u8],
-    pub rev_ver: i64,
+    pub rev_no: i64,
     pub rev_ts: TickType,
     pub data_fmt: i16,
     pub data_vmaj: i16,
@@ -59,7 +59,7 @@ impl<'a> InsertableEntity<'a> {
     ) -> Self {
         Self {
             uid: hdr.uid.as_ref(),
-            rev_ver: hdr.rev.ver as i64,
+            rev_no: hdr.rev.no as i64,
             rev_ts: (hdr.rev.ts.0).0,
             data_fmt: data_fmt as i16,
             data_vmaj: data_ver.major as i16,
@@ -72,7 +72,7 @@ impl<'a> InsertableEntity<'a> {
 #[derive(Debug, AsChangeset)]
 #[table_name = "tbl_track"]
 pub struct UpdatableEntity<'a> {
-    pub rev_ver: i64,
+    pub rev_no: i64,
     pub rev_ts: TickType,
     pub data_fmt: i16,
     pub data_vmaj: i16,
@@ -88,7 +88,7 @@ impl<'a> UpdatableEntity<'a> {
         data_blob: &'a [u8],
     ) -> Self {
         Self {
-            rev_ver: next_rev.ver as i64,
+            rev_no: next_rev.no as i64,
             rev_ts: (next_rev.ts.0).0,
             data_fmt: data_fmt as i16,
             data_vmaj: data_ver.major as i16,
@@ -103,7 +103,7 @@ impl<'a> UpdatableEntity<'a> {
 pub struct QueryableEntityData {
     pub id: RepoId,
     pub uid: Vec<u8>,
-    pub rev_ver: i64,
+    pub rev_no: i64,
     pub rev_ts: TickType,
     pub data_fmt: i16,
     pub data_vmaj: i16,
@@ -114,7 +114,7 @@ pub struct QueryableEntityData {
 impl From<QueryableEntityData> for EntityData {
     fn from(from: QueryableEntityData) -> Self {
         let rev = EntityRevision {
-            ver: from.rev_ver as u64,
+            no: from.rev_no as u64,
             ts: TickInstant(Ticks(from.rev_ts)),
         };
         let hdr = EntityHeader {
