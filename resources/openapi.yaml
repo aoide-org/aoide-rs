@@ -1325,6 +1325,48 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/PlainTag'
+    Playlist:
+      properties:
+        n:
+          $ref: '#/components/schemas/PlaylistName'
+        d:
+          $ref: '#/components/schemas/PlaylistDescription'
+        p:
+          $ref: '#/components/schemas/PlaylistType'
+        c:
+          $ref: '#/components/schemas/Color'
+        e:
+          $ref: '#/components/schemas/PlaylistEntries'
+      required:
+        - n
+        - e
+    PlaylistBrief:
+      properties:
+        n:
+          $ref: '#/components/schemas/PlaylistName'
+        d:
+          $ref: '#/components/schemas/PlaylistDescription'
+        p:
+          $ref: '#/components/schemas/PlaylistType'
+        c:
+          $ref: '#/components/schemas/Color'
+        e:
+          $ref: '#/components/schemas/PlaylistEntriesBrief'
+      required:
+        - n
+        - e
+    PlaylistBriefEntity:
+      description: Entity header and body
+      type: array
+      minLength: 2
+      maxLength: 2
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/EntityHeader'
+          - $ref: '#/components/schemas/PlaylistBrief'
+    PlaylistDescription:
+      description: Optional playlist description
+      type: string
     PlaylistEntity:
       description: Entity header and body
       type: array
@@ -1333,63 +1375,69 @@ components:
       items:
         oneOf:
           - $ref: '#/components/schemas/EntityHeader'
-          - $ref: '#/components/schemas/PlaylistEntityBody'
-    PlaylistEntityBody:
+          - $ref: '#/components/schemas/Playlist'
+    PlaylistEntries:
+      description: |
+        A sequence of playlist entries
+      type: array
+      items:
+        $ref: '#/components/schemas/PlaylistEntry'
+    PlaylistEntriesBrief:
       properties:
+        m:
+          description: Number of tracks in playlist
+          oneOf:
+            - $ref: '#/components/schemas/PlaylistEntryCount'
         n:
-          description: Mandatory name
-          type: string
-          minLength: 1
-        d:
-          description: Optional description
-          type: string
+          description: Number of entries in playlist
+          oneOf:
+            - $ref: '#/components/schemas/PlaylistEntryCount'
+        s:
+          description: Minimum (lower bound) `since` time stamp of all playlist entries
+          oneOf:
+            - $ref: '#/components/schemas/PlaylistEntrySince'
         t:
-          $ref: '#/components/schemas/PlaylistType'
-        c:
-          $ref: '#/components/schemas/Color'
-        e:
-          description: Entries
-          type: array
-          items:
-            $ref: '#/components/schemas/PlaylistEntry'
+          description: Maximum (upper bound) `since` time stamp of all playlist entries
+          oneOf:
+            - $ref: '#/components/schemas/PlaylistEntrySince'
       required:
+        - m
         - n
-        - e
-    PlaylistItem:
-        oneOf:
-          - $ref: '#/components/schemas/PlaylistItemSeparator'
-          - $ref: '#/components/schemas/PlaylistItemTrack'
-    PlaylistItemSeparator:
-      type: string
-      enum:
-        - s
-    PlaylistItemTrack:
-      properties:
-        t:
-          $ref: '#/components/schemas/PlaylistTrack'
-      required:
-        - t
     PlaylistEntry:
       properties:
         i:
           $ref: '#/components/schemas/PlaylistItem'
         s:
-          description: |
-            Time stamp since when this entry is part of the playlist,
-            i.e. when it has been created and added.
-          oneOf:
-            - $ref: '#/components/schemas/TimeStamp'
+          $ref: '#/components/schemas/PlaylistEntrySince'
         c:
-          description: |
-            Custom comments and notes to annotate this entry
-          type: string
+          $ref: '#/components/schemas/PlaylistEntryComment'
       required:
         - i
         - s
-    PlaylistEntryPosition:
+    PlaylistEntryComment:
+      description: |
+        Custom comments and notes to annotate a playlist entry
+      type: string
+    PlaylistEntryCount:
       type: number
       format: int64
       minimum: 0
+    PlaylistEntrySince:
+      description: |
+        Time stamp since when an entry is part of the playlist,
+        i.e. when it has been created and added.
+      oneOf:
+        - $ref: '#/components/schemas/TimeStamp'
+    PlaylistEntryPosition:
+      description: |
+        0-based position number to locate a playlist entry
+      type: number
+      format: int64
+      minimum: 0
+    PlaylistName:
+      description: Mandatory playlist name
+      type: string
+      minLength: 1
     PlaylistPatchOperation:
       oneOf:
         - type: object
@@ -1455,6 +1503,20 @@ components:
             - reverseEntries
             - shuffleEntries
             - sortEntriesChronologically
+    PlaylistItem:
+        oneOf:
+          - $ref: '#/components/schemas/PlaylistItemSeparator'
+          - $ref: '#/components/schemas/PlaylistItemTrack'
+    PlaylistItemSeparator:
+      type: string
+      enum:
+        - s
+    PlaylistItemTrack:
+      properties:
+        t:
+          $ref: '#/components/schemas/PlaylistTrack'
+      required:
+        - t
     PlaylistPatchParams:
       properties:
         rev:
