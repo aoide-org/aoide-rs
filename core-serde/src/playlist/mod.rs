@@ -150,7 +150,7 @@ pub struct Playlist {
     #[serde(rename = "d", skip_serializing_if = "Option::is_none")]
     description: Option<String>,
 
-    #[serde(rename = "t", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "p", skip_serializing_if = "Option::is_none")]
     r#type: Option<String>,
 
     #[serde(rename = "c", skip_serializing_if = "Option::is_none")]
@@ -211,6 +211,99 @@ impl From<Entity> for _core::Entity {
 }
 
 impl From<_core::Entity> for Entity {
+    fn from(from: _core::Entity) -> Self {
+        Self(from.hdr.into(), from.body.into())
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// PlaylistEntriesBrief
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(Eq, PartialEq))]
+#[serde(deny_unknown_fields)]
+pub struct PlaylistEntriesBrief {
+    #[serde(rename = "m")]
+    tracks_count: usize,
+
+    #[serde(rename = "n")]
+    entries_count: usize,
+
+    #[serde(rename = "s")]
+    entries_since_min: Option<TickType>,
+
+    #[serde(rename = "t")]
+    entries_since_max: Option<TickType>,
+}
+
+impl From<&_core::Playlist> for PlaylistEntriesBrief {
+    fn from(from: &_core::Playlist) -> Self {
+        let tracks_count = from.count_tracks();
+        let entries_count = from.entries.len();
+        let (entries_since_min, entries_since_max) = from
+            .entries_since_min_max()
+            .map_or((None, None), |(min, max)| (Some(min), Some(max)));
+        Self {
+            tracks_count,
+            entries_count,
+            entries_since_min: entries_since_min.map(|min| (min.0).0),
+            entries_since_max: entries_since_max.map(|max| (max.0).0),
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// PlaylistBrief
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(Eq, PartialEq))]
+#[serde(deny_unknown_fields)]
+pub struct PlaylistBrief {
+    #[serde(rename = "n")]
+    name: String,
+
+    #[serde(rename = "d", skip_serializing_if = "Option::is_none")]
+    description: Option<String>,
+
+    #[serde(rename = "p", skip_serializing_if = "Option::is_none")]
+    r#type: Option<String>,
+
+    #[serde(rename = "c", skip_serializing_if = "Option::is_none")]
+    color: Option<ColorRgb>,
+
+    #[serde(rename = "e")]
+    entries_brief: PlaylistEntriesBrief,
+}
+
+impl From<_core::Playlist> for PlaylistBrief {
+    fn from(from: _core::Playlist) -> Self {
+        let entries_brief = (&from).into();
+        let _core::Playlist {
+            name,
+            description,
+            r#type,
+            color,
+            entries: _entries,
+        } = from;
+        Self {
+            name,
+            description,
+            r#type,
+            color: color.map(Into::into),
+            entries_brief,
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// BriefEntity
+///////////////////////////////////////////////////////////////////////
+
+pub type BriefEntity = crate::entity::Entity<PlaylistBrief>;
+
+impl From<_core::Entity> for BriefEntity {
     fn from(from: _core::Entity) -> Self {
         Self(from.hdr.into(), from.body.into())
     }
