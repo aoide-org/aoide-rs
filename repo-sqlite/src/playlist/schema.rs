@@ -19,7 +19,7 @@ table! {
     tbl_playlist (id) {
         id -> BigInt,
         uid -> Binary,
-        rev_ver -> BigInt,
+        rev_no -> BigInt,
         rev_ts -> BigInt,
         data_fmt -> SmallInt,
         data_vmaj -> SmallInt,
@@ -33,7 +33,7 @@ table! {
         id -> BigInt,
         playlist_id -> BigInt,
         name -> Text,
-        rtype -> Nullable<Text>, // r#type doesn't work in macro expansion
+        playlist_type -> Nullable<Text>, // r#type doesn't work in macro expansion
         color_code -> Nullable<Integer>,
         desc -> Nullable<Text>,
         tracks_count -> BigInt,

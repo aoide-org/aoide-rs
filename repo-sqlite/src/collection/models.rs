@@ -25,7 +25,7 @@ use aoide_repo::RepoId;
 #[table_name = "tbl_collection"]
 pub struct InsertableEntity<'a> {
     pub uid: &'a [u8],
-    pub rev_ver: i64,
+    pub rev_no: i64,
     pub rev_ts: TickType,
     pub name: &'a str,
     pub desc: Option<&'a str>,
@@ -35,7 +35,7 @@ impl<'a> InsertableEntity<'a> {
     pub fn bind(entity: &'a Entity) -> Self {
         Self {
             uid: entity.hdr.uid.as_ref(),
-            rev_ver: entity.hdr.rev.ver as i64,
+            rev_no: entity.hdr.rev.no as i64,
             rev_ts: (entity.hdr.rev.ts.0).0,
             name: &entity.body.name,
             desc: entity.body.description.as_ref().map(String::as_str),
@@ -46,7 +46,7 @@ impl<'a> InsertableEntity<'a> {
 #[derive(Debug, AsChangeset)]
 #[table_name = "tbl_collection"]
 pub struct UpdatableEntity<'a> {
-    pub rev_ver: i64,
+    pub rev_no: i64,
     pub rev_ts: TickType,
     pub name: &'a str,
     pub desc: Option<&'a str>,
@@ -55,7 +55,7 @@ pub struct UpdatableEntity<'a> {
 impl<'a> UpdatableEntity<'a> {
     pub fn bind(next_revision: &EntityRevision, body: &'a Collection) -> Self {
         Self {
-            rev_ver: next_revision.ver as i64,
+            rev_no: next_revision.no as i64,
             rev_ts: (next_revision.ts.0).0,
             name: &body.name,
             desc: body.description.as_ref().map(String::as_str),
@@ -67,7 +67,7 @@ impl<'a> UpdatableEntity<'a> {
 pub struct QueryableEntity {
     pub id: RepoId,
     pub uid: Vec<u8>,
-    pub rev_ver: i64,
+    pub rev_no: i64,
     pub rev_ts: TickType,
     pub name: String,
     pub desc: Option<String>,
@@ -77,7 +77,7 @@ impl From<QueryableEntity> for Entity {
     fn from(from: QueryableEntity) -> Self {
         let uid = EntityUid::from_slice(&from.uid);
         let rev = EntityRevision {
-            ver: from.rev_ver as u64,
+            no: from.rev_no as u64,
             ts: TickInstant(Ticks(from.rev_ts)),
         };
         let header = EntityHeader { uid, rev };

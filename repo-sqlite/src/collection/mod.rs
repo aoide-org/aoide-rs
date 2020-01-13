@@ -75,7 +75,7 @@ impl<'a> Repo for Repository<'a> {
             let target = tbl_collection::table.filter(
                 tbl_collection::uid
                     .eq(entity.hdr.uid.as_ref())
-                    .and(tbl_collection::rev_ver.eq(prev_rev.ver as i64))
+                    .and(tbl_collection::rev_no.eq(prev_rev.no as i64))
                     .and(tbl_collection::rev_ts.eq((prev_rev.ts.0).0)),
             );
             let query = diesel::update(target).set(&updatable);

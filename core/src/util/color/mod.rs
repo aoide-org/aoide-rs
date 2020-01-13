@@ -22,7 +22,7 @@ use std::{fmt, num::ParseIntError, str::FromStr};
 pub type ColorCode = u32;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct ColorRgb(ColorCode); // 0xRRGGBB
+pub struct ColorRgb(pub ColorCode); // 0xRRGGBB
 
 impl ColorRgb {
     const STRING_PREFIX: &'static str = "#";

@@ -43,5 +43,11 @@ pub trait Repo {
         pagination: Pagination,
     ) -> RepoResult<Vec<EntityData>>;
 
+    fn list_playlist_briefs(
+        &self,
+        r#type: Option<&str>,
+        pagination: Pagination,
+    ) -> RepoResult<Vec<(EntityHeader, PlaylistBrief)>>;
+
     fn count_playlist_entries(&self, uid: &EntityUid) -> RepoResult<Option<usize>>;
 }

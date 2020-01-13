@@ -238,7 +238,7 @@ pub fn main() -> Result<(), Error> {
         .and_then(|uid, query, pooled_connection| {
             CollectionsHandler::new(pooled_connection).handle_load(uid, query)
         });
-    let collections_resources = collections_list
+    let collections_filters = collections_list
         .or(collections_load)
         .or(collections_create)
         .or(collections_update)
@@ -293,7 +293,7 @@ pub fn main() -> Result<(), Error> {
         .and_then(|uid, pooled_connection| {
             PlaylistsHandler::new(pooled_connection).handle_load(uid)
         });
-    let playlists_resources = playlists_list
+    let playlists_filters = playlists_list
         .or(playlists_load)
         .or(playlists_create)
         .or(playlists_update)
@@ -392,7 +392,7 @@ pub fn main() -> Result<(), Error> {
                     .handle_relocate(query, uri_relocations.into_iter())
             },
         );
-    let tracks_resources = tracks_create
+    let tracks_filters = tracks_create
         .or(tracks_update)
         .or(tracks_delete)
         .or(tracks_load)
@@ -413,7 +413,7 @@ pub fn main() -> Result<(), Error> {
         .and_then(|query, body, pooled_connection| {
             TracksHandler::new(pooled_connection).handle_albums_count_tracks(query, body)
         });
-    let albums_resources = albums_count_tracks;
+    let albums_filters = albums_count_tracks;
 
     // /tags
     let tags_count_tracks = warp::post2()
@@ -437,7 +437,7 @@ pub fn main() -> Result<(), Error> {
         .and_then(|query, body, pooled_connection| {
             TracksHandler::new(pooled_connection).handle_tags_facets_count_tracks(query, body)
         });
-    let tags_resources = tags_count_tracks.or(tags_facets_count_tracks);
+    let tags_filters = tags_count_tracks.or(tags_facets_count_tracks);
 
     // Static content
     let index_html = warp::path::end().map(|| warp::reply::html(INDEX_HTML));
@@ -448,16 +448,16 @@ pub fn main() -> Result<(), Error> {
             "application/x-yaml;charset=utf-8",
         )
     });
-    let static_resources = index_html.or(openapi_yaml);
+    let static_filters = index_html.or(openapi_yaml);
 
     log::info!("Initializing server");
     let server = warp::serve(
-        collections_resources
-            .or(playlists_resources)
-            .or(tracks_resources)
-            .or(albums_resources)
-            .or(tags_resources)
-            .or(static_resources)
+        collections_filters
+            .or(playlists_filters)
+            .or(tracks_filters)
+            .or(albums_filters)
+            .or(tags_filters)
+            .or(static_filters)
             .or(shutdown_filter)
             .or(about_filter),
     );

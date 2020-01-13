@@ -21,7 +21,7 @@ table! {
     tbl_track (id) {
         id -> BigInt,
         uid -> Binary,
-        rev_ver -> BigInt,
+        rev_no -> BigInt,
         rev_ts -> BigInt,
         data_fmt -> SmallInt,
         data_vmaj -> SmallInt,

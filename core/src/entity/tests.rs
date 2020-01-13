@@ -65,14 +65,14 @@ fn rev_sequence() {
     assert!(next.validate().is_ok());
     assert!(!next.is_initial());
     assert!(initial < next);
-    assert!(initial.ver < next.ver);
+    assert!(initial.no < next.no);
     assert!(initial.ts <= next.ts);
 
     let nextnext = next.next();
     assert!(nextnext.validate().is_ok());
     assert!(!nextnext.is_initial());
     assert!(next < nextnext);
-    assert!(next.ver < nextnext.ver);
+    assert!(next.no < nextnext.no);
     assert!(next.ts <= nextnext.ts);
 }
 
@@ -92,6 +92,6 @@ fn should_generate_unique_initial_hdrs() {
     assert!(hdr2.validate().is_ok());
     assert!(hdr2.rev.is_initial());
     assert_ne!(hdr1.uid, hdr2.uid);
-    assert_eq!(hdr1.rev.ver, hdr2.rev.ver);
+    assert_eq!(hdr1.rev.no, hdr2.rev.no);
     assert!(hdr1.rev.ts <= hdr2.rev.ts);
 }

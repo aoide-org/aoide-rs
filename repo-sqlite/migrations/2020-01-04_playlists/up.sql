@@ -20,7 +20,7 @@
 CREATE TABLE tbl_playlist (
     id                       INTEGER PRIMARY KEY,
     uid                      BINARY(24) NOT NULL,
-    rev_ver                  INTEGER NOT NULL,
+    rev_no                  INTEGER NOT NULL,
     rev_ts                   INTEGER NOT NULL,
     data_fmt                 INTEGER NOT NULL,  -- serialization format
     data_vmaj                INTEGER NOT NULL,  -- serialization version for data migration - breaking changes
@@ -38,7 +38,7 @@ CREATE TABLE aux_playlist_brief (
     playlist_id              INTEGER NOT NULL,
     name                     TEXT NOT NULL,
     desc                     TEXT,
-    rtype                    TEXT,
+    playlist_type                    TEXT,
     color_code               INTEGER, -- 0xRRGGBB (hex)
     entries_count            INTEGER NOT NULL,
     entries_since_min        DATETIME, -- UTC
@@ -51,8 +51,8 @@ CREATE INDEX IF NOT EXISTS idx_playlist_brief_name ON aux_playlist_brief (
     name
 );
 
-CREATE INDEX IF NOT EXISTS idx_playlist_brief_rtype ON aux_playlist_brief (
-    rtype
+CREATE INDEX IF NOT EXISTS idx_playlist_brief_playlist_type ON aux_playlist_brief (
+    playlist_type
 );
 
 CREATE TABLE aux_playlist_track (

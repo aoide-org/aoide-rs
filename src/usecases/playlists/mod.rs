@@ -25,7 +25,7 @@ use aoide_core_serde::playlist::PlaylistEntry;
 
 use aoide_core::{
     entity::{EntityHeader, EntityRevision, EntityRevisionUpdateResult, EntityUid},
-    playlist::{Entity, Playlist},
+    playlist::{Entity, Playlist, PlaylistBrief},
 };
 
 use aoide_repo::{
@@ -312,4 +312,13 @@ pub fn list_playlists(
 ) -> impl Future<Item = Vec<EntityData>, Error = Error> {
     let repo = Repository::new(&*conn);
     future::result(conn.transaction::<_, Error, _>(|| repo.list_playlists(r#type, pagination)))
+}
+
+pub fn list_playlist_briefs(
+    conn: &SqlitePooledConnection,
+    r#type: Option<&str>,
+    pagination: Pagination,
+) -> impl Future<Item = Vec<(EntityHeader, PlaylistBrief)>, Error = Error> {
+    let repo = Repository::new(&*conn);
+    future::result(conn.transaction::<_, Error, _>(|| repo.list_playlist_briefs(r#type, pagination)))
 }

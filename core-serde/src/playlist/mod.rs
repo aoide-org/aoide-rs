@@ -31,7 +31,7 @@ mod _core {
 #[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(deny_unknown_fields)]
 pub struct PlaylistTrack {
-    #[serde(rename = "u")]
+    #[serde(rename = "t")]
     uid: EntityUid,
 }
 
@@ -99,10 +99,10 @@ pub struct PlaylistEntry {
     #[serde(rename = "i")]
     item: PlaylistItem,
 
-    #[serde(rename = "s")]
+    #[serde(rename = "t")]
     since: TickType,
 
-    #[serde(rename = "c")]
+    #[serde(rename = "c", skip_serializing_if = "Option::is_none")]
     comment: Option<String>,
 }
 
@@ -217,33 +217,34 @@ impl From<_core::Entity> for Entity {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// PlaylistEntriesBrief
+// PlaylistBriefEntries
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(deny_unknown_fields)]
-pub struct PlaylistEntriesBrief {
+pub struct PlaylistBriefEntries {
     #[serde(rename = "m")]
     tracks_count: usize,
 
     #[serde(rename = "n")]
     entries_count: usize,
 
-    #[serde(rename = "s")]
+    #[serde(rename = "s", skip_serializing_if = "Option::is_none")]
     entries_since_min: Option<TickType>,
 
-    #[serde(rename = "t")]
+    #[serde(rename = "t", skip_serializing_if = "Option::is_none")]
     entries_since_max: Option<TickType>,
 }
 
-impl From<&_core::Playlist> for PlaylistEntriesBrief {
-    fn from(from: &_core::Playlist) -> Self {
-        let tracks_count = from.count_tracks();
-        let entries_count = from.entries.len();
-        let (entries_since_min, entries_since_max) = from
-            .entries_since_min_max()
-            .map_or((None, None), |(min, max)| (Some(min), Some(max)));
+impl From<_core::PlaylistBriefEntries> for PlaylistBriefEntries {
+    fn from(from: _core::PlaylistBriefEntries) -> Self {
+        let _core::PlaylistBriefEntries {
+            tracks_count,
+            entries_count,
+            entries_since_min,
+            entries_since_max,
+        } = from;
         Self {
             tracks_count,
             entries_count,
@@ -274,12 +275,12 @@ pub struct PlaylistBrief {
     color: Option<ColorRgb>,
 
     #[serde(rename = "e")]
-    entries_brief: PlaylistEntriesBrief,
+    entries: PlaylistBriefEntries,
 }
 
 impl From<_core::Playlist> for PlaylistBrief {
     fn from(from: _core::Playlist) -> Self {
-        let entries_brief = (&from).into();
+        let entries = from.entries_brief().into();
         let _core::Playlist {
             name,
             description,
@@ -292,7 +293,26 @@ impl From<_core::Playlist> for PlaylistBrief {
             description,
             r#type,
             color: color.map(Into::into),
-            entries_brief,
+            entries,
+        }
+    }
+}
+
+impl From<_core::PlaylistBrief> for PlaylistBrief {
+    fn from(from: _core::PlaylistBrief) -> Self {
+        let _core::PlaylistBrief {
+            name,
+            description,
+            r#type,
+            color,
+            entries,
+        } = from;
+        Self {
+            name,
+            description,
+            r#type,
+            color: color.map(Into::into),
+            entries: entries.into(),
         }
     }
 }

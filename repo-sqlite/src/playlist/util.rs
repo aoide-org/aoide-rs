@@ -52,7 +52,7 @@ impl<'a> RepositoryHelper<'a> {
         Ok(())
     }
 
-    fn insert_brief(&self, repo_id: RepoId, playlist: &'a PlaylistBrief<'a>) -> RepoResult<()> {
+    fn insert_brief(&self, repo_id: RepoId, playlist: &'a PlaylistBriefRef<'a>) -> RepoResult<()> {
         let insertable = playlist::InsertableBrief::bind(repo_id, playlist);
         let query = diesel::insert_into(aux_playlist_brief::table).values(&insertable);
         query.execute(self.connection)?;
@@ -113,7 +113,7 @@ impl<'a> RepositoryHelper<'a> {
     }
 
     fn on_insert(&self, repo_id: RepoId, playlist: &Playlist) -> RepoResult<()> {
-        self.insert_brief(repo_id, &playlist.brief())?;
+        self.insert_brief(repo_id, &playlist.brief_ref())?;
         self.insert_tracks(repo_id, &playlist.entries)?;
         Ok(())
     }

@@ -20,6 +20,7 @@ use serde::{Deserialize, Serialize};
 pub mod collections;
 pub mod playlists;
 pub mod tracks;
+pub mod warp_ext;
 
 mod json;
 

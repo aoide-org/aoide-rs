@@ -31,7 +31,7 @@ use crate::util::*;
 
 use aoide_core::{
     entity::{
-        EntityHeader, EntityRevision, EntityRevisionUpdateResult, EntityRevisionVersion, EntityUid,
+        EntityHeader, EntityRevision, EntityRevisionUpdateResult, EntityVersionNumber, EntityUid,
     },
     tag::{Facet, Label},
     track::{
@@ -303,7 +303,7 @@ impl<'a> Repo for Repository<'a> {
             let target = tbl_track::table.filter(
                 tbl_track::uid
                     .eq(entity.hdr.uid.as_ref())
-                    .and(tbl_track::rev_ver.eq(prev_rev.ver as i64))
+                    .and(tbl_track::rev_no.eq(prev_rev.no as i64))
                     .and(tbl_track::rev_ts.eq((prev_rev.ts.0).0)),
             );
             let repo_id = self
@@ -314,13 +314,13 @@ impl<'a> Repo for Repository<'a> {
             debug_assert!(rows_affected <= 1);
             if rows_affected < 1 {
                 let row = tbl_track::table
-                    .select((tbl_track::rev_ver, tbl_track::rev_ts))
+                    .select((tbl_track::rev_no, tbl_track::rev_ts))
                     .filter(tbl_track::uid.eq(entity.hdr.uid.as_ref()))
                     .first::<(i64, TickType)>(self.connection)
                     .optional()?;
                 if let Some(row) = row {
                     let rev = EntityRevision {
-                        ver: row.0 as EntityRevisionVersion,
+                        no: row.0 as EntityVersionNumber,
                         ts: TickInstant(Ticks(row.1)),
                     };
                     return Ok(EntityRevisionUpdateResult::Current(rev));
