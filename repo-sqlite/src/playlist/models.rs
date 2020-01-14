@@ -213,10 +213,8 @@ impl<'a> InsertableBrief<'a> {
             color_code: color.map(|color| color.code() as i32),
             tracks_count: tracks_count as i64,
             entries_count: entries_count as i64,
-            entries_since_min: entries_since_min
-                .map(|min| DateTime::from(min).naive_utc()),
-            entries_since_max: entries_since_max
-                .map(|max| DateTime::from(max).naive_utc()),
+            entries_since_min: entries_since_min.map(|min| DateTime::from(min).naive_utc()),
+            entries_since_max: entries_since_max.map(|max| DateTime::from(max).naive_utc()),
         }
     }
 }

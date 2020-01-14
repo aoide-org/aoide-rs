@@ -42,8 +42,6 @@ use aoide_repo::{
 
 use aoide_repo_sqlite::track::Repository;
 
-use futures::future::{self, Future};
-
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug)]
@@ -101,11 +99,11 @@ pub fn list_tracks(
     conn: &SqlitePooledConnection,
     collection_uid: Option<EntityUid>,
     pagination: Pagination,
-) -> impl Future<Item = Vec<EntityData>, Error = Error> {
+) -> RepoResult<Vec<EntityData>> {
     let repo = Repository::new(&*conn);
-    future::result(conn.transaction::<_, Error, _>(|| {
+    conn.transaction::<_, Error, _>(|| {
         repo.search_tracks(collection_uid.as_ref(), pagination, Default::default())
-    }))
+    })
 }
 
 pub fn search_tracks(
@@ -113,11 +111,11 @@ pub fn search_tracks(
     collection_uid: Option<EntityUid>,
     pagination: Pagination,
     params: SearchParams,
-) -> impl Future<Item = Vec<EntityData>, Error = Error> {
+) -> RepoResult<Vec<EntityData>> {
     let repo = Repository::new(&*conn);
-    future::result(conn.transaction::<_, Error, _>(|| {
+    conn.transaction::<_, Error, _>(|| {
         repo.search_tracks(collection_uid.as_ref(), pagination, params)
-    }))
+    })
 }
 
 pub fn locate_tracks(
@@ -125,11 +123,11 @@ pub fn locate_tracks(
     collection_uid: Option<EntityUid>,
     pagination: Pagination,
     params: LocateParams,
-) -> impl Future<Item = Vec<EntityData>, Error = Error> {
+) -> RepoResult<Vec<EntityData>> {
     let repo = Repository::new(&*conn);
-    future::result(conn.transaction::<_, Error, _>(|| {
+    conn.transaction::<_, Error, _>(|| {
         repo.locate_tracks(collection_uid.as_ref(), pagination, params)
-    }))
+    })
 }
 
 pub fn replace_tracks(
@@ -137,9 +135,9 @@ pub fn replace_tracks(
     collection_uid: Option<EntityUid>,
     mode: ReplaceMode,
     replacements: impl Iterator<Item = TrackReplacement>,
-) -> impl Future<Item = ReplacedTracks, Error = Error> {
+) -> RepoResult<ReplacedTracks> {
     let repo = Repository::new(&*conn);
-    future::result(conn.transaction::<_, Error, _>(|| {
+    conn.transaction::<_, Error, _>(|| {
         let mut results = ReplacedTracks::default();
         for replacement in replacements {
             let body_data = json::serialize_entity_body_data(&replacement.track)?;
@@ -195,16 +193,16 @@ pub fn replace_tracks(
             }
         }
         Ok(results)
-    }))
+    })
 }
 
 pub fn purge_tracks(
     conn: &SqlitePooledConnection,
     collection_uid: Option<EntityUid>,
     uri_predicates: impl IntoIterator<Item = UriPredicate>,
-) -> impl Future<Item = (), Error = Error> {
+) -> RepoResult<()> {
     let repo = Repository::new(&*conn);
-    future::result(conn.transaction::<_, Error, _>(|| {
+    conn.transaction::<_, Error, _>(|| {
         for uri_predicate in uri_predicates {
             use StringPredicate::*;
             use UriPredicate::*;
@@ -256,16 +254,16 @@ pub fn purge_tracks(
             }
         }
         Ok(())
-    }))
+    })
 }
 
 pub fn relocate_tracks(
     conn: &SqlitePooledConnection,
     collection_uid: Option<EntityUid>,
     uri_relocations: impl IntoIterator<Item = UriRelocation>,
-) -> impl Future<Item = (), Error = Error> {
+) -> RepoResult<()> {
     let repo = Repository::new(&*conn);
-    future::result(conn.transaction::<_, Error, _>(|| {
+    conn.transaction::<_, Error, _>(|| {
         for uri_relocation in uri_relocations {
             let locate_params = match &uri_relocation.predicate {
                 UriPredicate::Prefix(uri_prefix) => LocateParams {
@@ -314,7 +312,7 @@ pub fn relocate_tracks(
             }
         }
         Ok(())
-    }))
+    })
 }
 
 pub fn count_tracks_by_album(
@@ -322,11 +320,11 @@ pub fn count_tracks_by_album(
     collection_uid: Option<EntityUid>,
     pagination: Pagination,
     params: &CountTracksByAlbumParams,
-) -> impl Future<Item = Vec<AlbumCountResults>, Error = Error> {
+) -> RepoResult<Vec<AlbumCountResults>> {
     let repo = Repository::new(&*conn);
-    future::result(conn.transaction::<_, Error, _>(|| {
+    conn.transaction::<_, Error, _>(|| {
         repo.count_tracks_by_album(collection_uid.as_ref(), params, pagination)
-    }))
+    })
 }
 
 pub fn count_tracks_by_tag(
@@ -334,12 +332,12 @@ pub fn count_tracks_by_tag(
     collection_uid: Option<EntityUid>,
     pagination: Pagination,
     mut params: TagCountParams,
-) -> impl Future<Item = Vec<TagAvgScoreCount>, Error = Error> {
+) -> RepoResult<Vec<TagAvgScoreCount>> {
     params.dedup_facets();
     let repo = Repository::new(&*conn);
-    future::result(conn.transaction::<_, Error, _>(|| {
+    conn.transaction::<_, Error, _>(|| {
         repo.count_tracks_by_tag(collection_uid.as_ref(), &params, pagination)
-    }))
+    })
 }
 
 pub fn count_tracks_by_tag_facet(
@@ -347,10 +345,10 @@ pub fn count_tracks_by_tag_facet(
     collection_uid: Option<EntityUid>,
     pagination: Pagination,
     mut params: TagFacetCountParams,
-) -> impl Future<Item = Vec<TagFacetCount>, Error = Error> {
+) -> RepoResult<Vec<TagFacetCount>> {
     params.dedup_facets();
     let repo = Repository::new(&*conn);
-    future::result(conn.transaction::<_, Error, _>(|| {
+    conn.transaction::<_, Error, _>(|| {
         repo.count_tracks_by_tag_facet(collection_uid.as_ref(), &params, pagination)
-    }))
+    })
 }

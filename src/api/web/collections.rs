@@ -72,7 +72,7 @@ impl CollectionsHandler {
         new_collection: Collection,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         create_collection(&self.db, new_collection.into())
-            .map_err(warp::reject::custom)
+            .map_err(reject_from_anyhow)
             .map(|hdr| {
                 warp::reply::with_status(
                     warp::reply::json(&_serde::EntityHeader::from(hdr)),
@@ -88,7 +88,7 @@ impl CollectionsHandler {
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         let entity = Entity::from(entity);
         if uid != entity.hdr.uid {
-            return Err(warp::reject::custom(anyhow!(
+            return Err(reject_from_anyhow(anyhow!(
                 "Mismatching UIDs: {} <> {}",
                 uid,
                 entity.hdr.uid,
@@ -102,7 +102,7 @@ impl CollectionsHandler {
                 }
                 (_, None) => Err(anyhow!("Entity not found or revision conflict")),
             })
-            .map_err(warp::reject::custom)
+            .map_err(reject_from_anyhow)
     }
 
     pub fn handle_delete(
@@ -110,7 +110,7 @@ impl CollectionsHandler {
         uid: EntityUid,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         delete_collection(&self.db, &uid)
-            .map_err(warp::reject::custom)
+            .map_err(reject_from_anyhow)
             .map(|res| {
                 warp::reply::with_status(
                     warp::reply(),
@@ -126,7 +126,7 @@ impl CollectionsHandler {
         params: WithTokensQueryParams,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         load_collection(&self.db, &uid, params.try_with_token("track-stats"))
-            .map_err(warp::reject::custom)
+            .map_err(reject_from_anyhow)
             .and_then(|res| match res {
                 Some((entity, track_stats)) => {
                     let stats = EntityStats {
@@ -149,7 +149,7 @@ impl CollectionsHandler {
         pagination: PaginationQueryParams,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         list_collections(&self.db, pagination.into())
-            .map_err(warp::reject::custom)
+            .map_err(reject_from_anyhow)
             .map(|entities| {
                 let entities: Vec<_> = entities.into_iter().map(_serde::Entity::from).collect();
                 warp::reply::json(&entities)

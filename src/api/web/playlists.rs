@@ -38,7 +38,6 @@ use aoide_core_serde::{
 
 use aoide_repo::{Pagination, PaginationLimit, PaginationOffset};
 
-use futures::future::{self, Future};
 use warp::http::StatusCode;
 
 ///////////////////////////////////////////////////////////////////////
@@ -102,9 +101,9 @@ impl PlaylistsHandler {
         &self,
         new_playlist: Playlist,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
-        let body_data = write_json_body_data(&new_playlist).map_err(warp::reject::custom)?;
+        let body_data = write_json_body_data(&new_playlist).map_err(reject_from_anyhow)?;
         let hdr = create_playlist(&self.db, new_playlist.into(), body_data)
-            .map_err(warp::reject::custom)?;
+            .map_err(reject_from_anyhow)?;
         Ok(warp::reply::with_status(
             warp::reply::json(&_serde::EntityHeader::from(hdr)),
             StatusCode::CREATED,
@@ -116,22 +115,22 @@ impl PlaylistsHandler {
         uid: EntityUid,
         entity: _serde::Entity<Playlist>,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
-        let json_data = write_json_body_data(&entity.1).map_err(warp::reject::custom)?;
+        let json_data = write_json_body_data(&entity.1).map_err(reject_from_anyhow)?;
         let entity = Entity::from(entity);
         if uid != entity.hdr.uid {
-            return Err(warp::reject::custom(anyhow!(
+            return Err(reject_from_anyhow(anyhow!(
                 "Mismatching UIDs: {} <> {}",
                 uid,
                 entity.hdr.uid,
             )));
         }
         let update_result =
-            update_playlist(&self.db, entity, json_data).map_err(warp::reject::custom)?;
+            update_playlist(&self.db, entity, json_data).map_err(reject_from_anyhow)?;
         if let EntityRevisionUpdateResult::Updated(_, next_rev) = update_result {
             let hdr = EntityHeader { uid, rev: next_rev };
             Ok(warp::reply::json(&_serde::EntityHeader::from(hdr)))
         } else {
-            Err(warp::reject::custom(anyhow!(
+            Err(reject_from_anyhow(anyhow!(
                 "Entity not found or revision conflict"
             )))
         }
@@ -143,10 +142,10 @@ impl PlaylistsHandler {
         params: PlaylistPatchParams,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         let update_result = patch_playlist(&self.db, &uid, params.rev.map(Into::into), params.ops)
-            .map_err(warp::reject::custom)?;
+            .map_err(reject_from_anyhow)?;
         use EntityRevisionUpdateResult::*;
         match update_result {
-            NotFound => Err(warp::reject::custom(anyhow!("Entity not found"))),
+            NotFound => Err(reject_from_anyhow(anyhow!("Entity not found"))),
             Current(rev) => {
                 let hdr = EntityHeader { uid, rev };
                 Ok(warp::reply::json(&_serde::EntityHeader::from(hdr)))
@@ -163,7 +162,7 @@ impl PlaylistsHandler {
         uid: EntityUid,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         delete_playlist(&self.db, &uid)
-            .map_err(warp::reject::custom)
+            .map_err(reject_from_anyhow)
             .map(|res| {
                 warp::reply::with_status(
                     warp::reply(),
@@ -175,11 +174,11 @@ impl PlaylistsHandler {
 
     pub fn handle_load(&self, uid: EntityUid) -> Result<impl warp::Reply, warp::reject::Rejection> {
         load_playlist(&self.db, &uid)
-            .map_err(warp::reject::custom)
+            .map_err(reject_from_anyhow)
             .and_then(|res| match res {
                 Some(entity_data) => {
                     let json_data =
-                        json::load_entity_data_blob(entity_data).map_err(warp::reject::custom)?;
+                        json::load_entity_data_blob(entity_data).map_err(reject_from_anyhow)?;
                     Ok(json::reply_with_content_type(json_data))
                 }
                 None => Err(warp::reject::not_found()),
@@ -189,33 +188,28 @@ impl PlaylistsHandler {
     pub fn handle_list(
         &self,
         params: PlaylistQueryParams,
-    ) -> impl Future<Item = impl warp_ext::BoxedReply, Error = warp::reject::Rejection> {
+    ) -> Result<Box<dyn warp::Reply>, warp::reject::Rejection> {
         let (brief, r#type, pagination) = params.into();
         if let Some(true) = brief {
-            future::Either::A(
-                list_playlist_briefs(&self.db, r#type.as_ref().map(String::as_str), pagination)
-                    .map(|res| {
-                        let res: Vec<_> = res
-                            .into_iter()
-                            .map(|(hdr, brief)| {
-                                let hdr = _serde::EntityHeader::from(hdr);
-                                let brief = PlaylistBrief::from(brief);
-                                _serde::Entity(hdr, brief)
-                            })
-                            .collect();
-                        warp::reply::json(&res)
-                    })
-                    .map(warp_ext::dyn_reply)
-                    .map_err(warp::reject::custom),
-            )
+            list_playlist_briefs(&self.db, r#type.as_ref().map(String::as_str), pagination)
+                .map(|res| {
+                    let res: Vec<_> = res
+                        .into_iter()
+                        .map(|(hdr, brief)| {
+                            let hdr = _serde::EntityHeader::from(hdr);
+                            let brief = PlaylistBrief::from(brief);
+                            _serde::Entity(hdr, brief)
+                        })
+                        .collect();
+                    warp::reply::json(&res)
+                })
+                .map(|reply| Box::new(reply) as Box<dyn warp::Reply>)
         } else {
-            future::Either::B(
-                list_playlists(&self.db, r#type.as_ref().map(String::as_str), pagination)
-                    .and_then(|reply| json::load_entity_data_array_blob(reply.into_iter()))
-                    .map(json::reply_with_content_type)
-                    .map(warp_ext::dyn_reply)
-                    .map_err(warp::reject::custom),
-            )
+            list_playlists(&self.db, r#type.as_ref().map(String::as_str), pagination)
+                .and_then(|x| json::load_entity_data_array_blob(x.into_iter()))
+                .map(json::reply_with_content_type)
+                .map(|reply| Box::new(reply) as Box<dyn warp::Reply>)
         }
+        .map_err(reject_from_anyhow)
     }
 }

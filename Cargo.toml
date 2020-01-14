@@ -34,13 +34,12 @@ diesel = { version = "*", default-features = false, features = ["r2d2", "sqlite"
 diesel_migrations =  { version = "*", default-features = false, features = ["sqlite"] }
 env_logger = "*"
 anyhow = "*"
-futures = "0.1"
 log = "*"
 semval = "*"
 serde = "*"
 serde_json = "*"
-tokio = { version = "0.1", default-features = false }
-warp = { version = "0.1", default-features = false }
+tokio = { version = "*", default-features = false, features = ["full"] }
+warp = { version = "*", default-features = false }
 
 [dev-dependencies]
 serde_urlencoded = "*"

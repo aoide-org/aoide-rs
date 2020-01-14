@@ -41,6 +41,10 @@ impl SqliteExecutor {
         Self { connection_pool }
     }
 
+    pub fn connection_pool(&self) -> SqliteConnectionPool {
+        self.connection_pool.clone()
+    }
+
     pub fn pooled_connection(&self) -> Result<SqlitePooledConnection, Error> {
         self.connection_pool.get().map_err(Into::into)
     }

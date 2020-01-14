@@ -20,9 +20,35 @@ use serde::{Deserialize, Serialize};
 pub mod collections;
 pub mod playlists;
 pub mod tracks;
-pub mod warp_ext;
 
 mod json;
+
+use warp::reject::{self, Reject, Rejection};
+
+use std::{error::Error as StdError, fmt};
+
+#[derive(Debug)]
+struct RejectAnyhowError(anyhow::Error);
+
+impl fmt::Display for RejectAnyhowError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl Reject for RejectAnyhowError {}
+
+impl StdError for RejectAnyhowError {}
+
+impl From<anyhow::Error> for RejectAnyhowError {
+    fn from(err: anyhow::Error) -> Self {
+        RejectAnyhowError(err)
+    }
+}
+
+pub fn reject_from_anyhow(err: anyhow::Error) -> Rejection {
+    reject::custom(RejectAnyhowError(err))
+}
 
 ///////////////////////////////////////////////////////////////////////
 
