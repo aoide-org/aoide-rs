@@ -19,7 +19,7 @@ mod cli;
 mod env;
 
 use aoide::{
-    api::web::{collections::*, playlists::*, tracks::*},
+    api::web::{collections::*, playlists::*, reject_from_anyhow, tracks::*},
     *,
 };
 
@@ -33,13 +33,8 @@ use aoide_repo_sqlite::{
 use anyhow::Error;
 use clap::App;
 use diesel::{prelude::*, sql_query};
-use futures::{future, Future, Stream};
-use std::{
-    env::current_exe,
-    net::SocketAddr,
-    time::{Duration, Instant},
-};
-use tokio::timer::Delay;
+use std::{env::current_exe, net::SocketAddr, time::Duration};
+use tokio::time::delay_for;
 use warp::{http::StatusCode, Filter};
 
 #[macro_use]
@@ -114,7 +109,8 @@ fn optimize_database_storage(connection_pool: &SqliteConnectionPool) -> Result<(
     Ok(())
 }
 
-pub fn main() -> Result<(), Error> {
+#[tokio::main]
+pub async fn main() -> Result<(), Error> {
     let started_at = chrono::Utc::now();
 
     let arg_matches = cli::ArgMatches::new(
@@ -163,16 +159,16 @@ pub fn main() -> Result<(), Error> {
 
     let pooled_connection = warp::any()
         .map({ move || sqlite_exec.pooled_connection() })
-        .and_then(|res: Result<_, _>| res.map_err(warp::reject::custom));
+        .and_then(|res: Result<_, _>| async { res.map_err(reject_from_anyhow) });
 
     // POST /shutdown
-    let (server_shutdown_tx, server_shutdown_rx) = futures::sync::mpsc::unbounded::<()>();
-    let shutdown_filter = warp::post2()
+    let (server_shutdown_tx, mut server_shutdown_rx) = tokio::sync::mpsc::unbounded_channel::<()>();
+    let shutdown_filter = warp::post()
         .and(warp::path("shutdown"))
         .and(warp::path::end())
         .map(move || {
             server_shutdown_tx
-                .unbounded_send(())
+                .send(())
                 .map(|()| StatusCode::ACCEPTED)
                 .or_else(|_| {
                     log::warn!("Failed to forward shutdown request");
@@ -181,7 +177,7 @@ pub fn main() -> Result<(), Error> {
         });
 
     // GET /about
-    let about_filter = warp::get2()
+    let about_filter = warp::get()
         .and(warp::path("about"))
         .and(warp::path::end())
         .map(move || {
@@ -199,44 +195,44 @@ pub fn main() -> Result<(), Error> {
     // /collections
     let collections = warp::path("collections");
     let collections_uid = collections.and(warp::path::param::<aoide_core::entity::EntityUid>());
-    let collections_create = warp::post2()
+    let collections_create = warp::post()
         .and(collections)
         .and(warp::path::end())
         .and(warp::body::json())
         .and(pooled_connection.clone())
         .and_then(|body, pooled_connection| {
-            CollectionsHandler::new(pooled_connection).handle_create(body)
+            async { CollectionsHandler::new(pooled_connection).handle_create(body) }
         });
-    let collections_update = warp::put2()
+    let collections_update = warp::put()
         .and(collections_uid)
         .and(warp::path::end())
         .and(warp::body::json())
         .and(pooled_connection.clone())
         .and_then(|query, body, pooled_connection| {
-            CollectionsHandler::new(pooled_connection).handle_update(query, body)
+            async { CollectionsHandler::new(pooled_connection).handle_update(query, body) }
         });
-    let collections_delete = warp::delete2()
+    let collections_delete = warp::delete()
         .and(collections_uid)
         .and(warp::path::end())
         .and(pooled_connection.clone())
         .and_then(|uid, pooled_connection| {
-            CollectionsHandler::new(pooled_connection).handle_delete(uid)
+            async { CollectionsHandler::new(pooled_connection).handle_delete(uid) }
         });
-    let collections_list = warp::get2()
+    let collections_list = warp::get()
         .and(collections)
         .and(warp::path::end())
         .and(warp::query())
         .and(pooled_connection.clone())
         .and_then(|query, pooled_connection| {
-            CollectionsHandler::new(pooled_connection).handle_list(query)
+            async { CollectionsHandler::new(pooled_connection).handle_list(query) }
         });
-    let collections_load = warp::get2()
+    let collections_load = warp::get()
         .and(collections_uid)
         .and(warp::path::end())
         .and(warp::query())
         .and(pooled_connection.clone())
         .and_then(|uid, query, pooled_connection| {
-            CollectionsHandler::new(pooled_connection).handle_load(uid, query)
+            async { CollectionsHandler::new(pooled_connection).handle_load(uid, query) }
         });
     let collections_filters = collections_list
         .or(collections_load)
@@ -247,21 +243,21 @@ pub fn main() -> Result<(), Error> {
     // /playlists
     let playlists = warp::path("playlists");
     let playlists_uid = playlists.and(warp::path::param::<aoide_core::entity::EntityUid>());
-    let playlists_create = warp::post2()
+    let playlists_create = warp::post()
         .and(playlists)
         .and(warp::path::end())
         .and(warp::body::json())
         .and(pooled_connection.clone())
         .and_then(|body, pooled_connection| {
-            PlaylistsHandler::new(pooled_connection).handle_create(body)
+            async { PlaylistsHandler::new(pooled_connection).handle_create(body) }
         });
-    let playlists_update = warp::put2()
+    let playlists_update = warp::put()
         .and(playlists_uid)
         .and(warp::path::end())
         .and(warp::body::json())
         .and(pooled_connection.clone())
         .and_then(|query, body, pooled_connection| {
-            PlaylistsHandler::new(pooled_connection).handle_update(query, body)
+            async { PlaylistsHandler::new(pooled_connection).handle_update(query, body) }
         });
     let playlists_patch = warp::patch()
         .and(playlists_uid)
@@ -269,87 +265,89 @@ pub fn main() -> Result<(), Error> {
         .and(warp::body::json())
         .and(pooled_connection.clone())
         .and_then(|query, body, pooled_connection| {
-            PlaylistsHandler::new(pooled_connection).handle_patch(query, body)
+            async { PlaylistsHandler::new(pooled_connection).handle_patch(query, body) }
         });
-    let playlists_delete = warp::delete2()
+    let playlists_delete = warp::delete()
         .and(playlists_uid)
         .and(warp::path::end())
         .and(pooled_connection.clone())
         .and_then(|uid, pooled_connection| {
-            PlaylistsHandler::new(pooled_connection).handle_delete(uid)
+            async { PlaylistsHandler::new(pooled_connection).handle_delete(uid) }
         });
-    let playlists_list = warp::get2()
+    let playlists_list = warp::get()
         .and(playlists)
         .and(warp::path::end())
         .and(warp::query())
         .and(pooled_connection.clone())
-        .and_then(|query, pooled_connection| {
-            PlaylistsHandler::new(pooled_connection).handle_list(query)
+        .and_then(move |query, pooled_connection| {
+            async move { PlaylistsHandler::new(pooled_connection).handle_list(query) }
         });
-    let playlists_load = warp::get2()
+    let playlists_load = warp::get()
         .and(playlists_uid)
         .and(warp::path::end())
         .and(pooled_connection.clone())
         .and_then(|uid, pooled_connection| {
-            PlaylistsHandler::new(pooled_connection).handle_load(uid)
+            async { PlaylistsHandler::new(pooled_connection).handle_load(uid) }
         });
-    let playlists_filters = playlists_list
-        .or(playlists_load)
-        .or(playlists_create)
+    let playlists_filters = playlists_create
         .or(playlists_update)
         .or(playlists_patch)
-        .or(playlists_delete);
+        .or(playlists_delete)
+        .or(playlists_load)
+        .or(playlists_list);
 
     // /tracks
     let tracks = warp::path("tracks");
     let tracks_uid = tracks.and(warp::path::param::<aoide_core::entity::EntityUid>());
-    let tracks_create = warp::post2()
+    let tracks_create = warp::post()
         .and(tracks)
         .and(warp::path::end())
         .and(warp::body::json())
         .and(pooled_connection.clone())
         .and_then(|body, pooled_connection| {
-            TracksHandler::new(pooled_connection).handle_create(body)
+            async { TracksHandler::new(pooled_connection).handle_create(body) }
         });
-    let tracks_update = warp::put2()
+    let tracks_update = warp::put()
         .and(tracks_uid)
         .and(warp::path::end())
         .and(warp::body::json())
         .and(pooled_connection.clone())
         .and_then(|uid, body, pooled_connection| {
-            TracksHandler::new(pooled_connection).handle_update(uid, body)
+            async { TracksHandler::new(pooled_connection).handle_update(uid, body) }
         });
-    let tracks_delete = warp::delete2()
+    let tracks_delete = warp::delete()
         .and(tracks_uid)
         .and(warp::path::end())
         .and(pooled_connection.clone())
         .and_then(|uid, pooled_connection| {
-            TracksHandler::new(pooled_connection).handle_delete(uid)
+            async { TracksHandler::new(pooled_connection).handle_delete(uid) }
         });
-    let tracks_load = warp::get2()
+    let tracks_load = warp::get()
         .and(tracks_uid)
         .and(warp::path::end())
         .and(pooled_connection.clone())
-        .and_then(|uid, pooled_connection| TracksHandler::new(pooled_connection).handle_load(uid));
-    let tracks_list = warp::get2()
+        .and_then(|uid, pooled_connection| {
+            async { TracksHandler::new(pooled_connection).handle_load(uid) }
+        });
+    let tracks_list = warp::get()
         .and(tracks)
         .and(warp::path::end())
         .and(warp::query())
         .and(pooled_connection.clone())
         .and_then(|query, pooled_connection| {
-            TracksHandler::new(pooled_connection).handle_list(query)
+            async { TracksHandler::new(pooled_connection).handle_list(query) }
         });
-    let tracks_locate = warp::post2()
+    let tracks_locate = warp::post()
         .and(tracks)
         .and(warp::path("locate"))
         .and(warp::path::end())
         .and(warp::query())
         .and(warp::body::json())
         .and(pooled_connection.clone())
-        .and_then(|query, body, pooled_connection| {
-            TracksHandler::new(pooled_connection).handle_locate(query, body)
+        .and_then(move |query, body, pooled_connection| {
+            async move { TracksHandler::new(pooled_connection).handle_locate(query, body) }
         });
-    let tracks_search = warp::post2()
+    let tracks_search = warp::post()
         .and(tracks)
         .and(warp::path("search"))
         .and(warp::path::end())
@@ -357,9 +355,9 @@ pub fn main() -> Result<(), Error> {
         .and(warp::body::json())
         .and(pooled_connection.clone())
         .and_then(|query, body, pooled_connection| {
-            TracksHandler::new(pooled_connection).handle_search(query, body)
+            async { TracksHandler::new(pooled_connection).handle_search(query, body) }
         });
-    let tracks_replace = warp::post2()
+    let tracks_replace = warp::post()
         .and(tracks)
         .and(warp::path("replace"))
         .and(warp::path::end())
@@ -367,9 +365,9 @@ pub fn main() -> Result<(), Error> {
         .and(warp::body::json())
         .and(pooled_connection.clone())
         .and_then(|query, body, pooled_connection| {
-            TracksHandler::new(pooled_connection).handle_replace(query, body)
+            async { TracksHandler::new(pooled_connection).handle_replace(query, body) }
         });
-    let tracks_purge = warp::post2()
+    let tracks_purge = warp::post()
         .and(tracks)
         .and(warp::path("purge"))
         .and(warp::path::end())
@@ -377,9 +375,9 @@ pub fn main() -> Result<(), Error> {
         .and(warp::body::json())
         .and(pooled_connection.clone())
         .and_then(|query, uri_predicates, pooled_connection| {
-            TracksHandler::new(pooled_connection).handle_purge(query, uri_predicates)
+            async { TracksHandler::new(pooled_connection).handle_purge(query, uri_predicates) }
         });
-    let tracks_relocate = warp::post2()
+    let tracks_relocate = warp::post()
         .and(tracks)
         .and(warp::path("relocate"))
         .and(warp::path::end())
@@ -388,8 +386,10 @@ pub fn main() -> Result<(), Error> {
         .and(pooled_connection.clone())
         .and_then(
             |query, uri_relocations: Vec<UriRelocation>, pooled_connection| {
-                TracksHandler::new(pooled_connection)
-                    .handle_relocate(query, uri_relocations.into_iter())
+                async {
+                    TracksHandler::new(pooled_connection)
+                        .handle_relocate(query, uri_relocations.into_iter())
+                }
             },
         );
     let tracks_filters = tracks_create
@@ -403,7 +403,7 @@ pub fn main() -> Result<(), Error> {
         .or(tracks_purge)
         .or(tracks_relocate);
 
-    let albums_count_tracks = warp::post2()
+    let albums_count_tracks = warp::post()
         .and(warp::path("albums"))
         .and(warp::path("count-tracks"))
         .and(warp::path::end())
@@ -411,12 +411,16 @@ pub fn main() -> Result<(), Error> {
         .and(warp::body::json())
         .and(pooled_connection.clone())
         .and_then(|query, body, pooled_connection| {
-            TracksHandler::new(pooled_connection).handle_albums_count_tracks(query, body)
+            async {
+                TracksHandler::new(pooled_connection)
+                    .handle_albums_count_tracks(query, body)
+                    .into()
+            }
         });
     let albums_filters = albums_count_tracks;
 
     // /tags
-    let tags_count_tracks = warp::post2()
+    let tags_count_tracks = warp::post()
         .and(warp::path("tags"))
         .and(warp::path("count-tracks"))
         .and(warp::path::end())
@@ -424,9 +428,13 @@ pub fn main() -> Result<(), Error> {
         .and(warp::body::json())
         .and(pooled_connection.clone())
         .and_then(|query, body, pooled_connection| {
-            TracksHandler::new(pooled_connection).handle_tags_count_tracks(query, body)
+            async {
+                TracksHandler::new(pooled_connection)
+                    .handle_tags_count_tracks(query, body)
+                    .into()
+            }
         });
-    let tags_facets_count_tracks = warp::post2()
+    let tags_facets_count_tracks = warp::post()
         .and(warp::path("tags"))
         .and(warp::path("facets"))
         .and(warp::path("count-tracks"))
@@ -435,7 +443,11 @@ pub fn main() -> Result<(), Error> {
         .and(warp::body::json())
         .and(pooled_connection)
         .and_then(|query, body, pooled_connection| {
-            TracksHandler::new(pooled_connection).handle_tags_facets_count_tracks(query, body)
+            async {
+                TracksHandler::new(pooled_connection)
+                    .handle_tags_facets_count_tracks(query, body)
+                    .into()
+            }
         });
     let tags_filters = tags_count_tracks.or(tags_facets_count_tracks);
 
@@ -461,34 +473,26 @@ pub fn main() -> Result<(), Error> {
             .or(shutdown_filter)
             .or(about_filter),
     );
-    let (socket_addr, server_listener) = server.bind_with_graceful_shutdown(
-        listen_addr,
-        server_shutdown_rx.into_future().map(|_| {
-            log::info!("Shutting down server");
-        }),
-    );
+
     log::info!("Starting");
-    let main_task = future::lazy(move || {
-        // Give the server some time for starting up before announcing the
-        // actual endpoint address, i.e. when using an ephemeral port.
-        Delay::new(Instant::now() + SERVER_LISTENING_DELAY)
-            .map(move |()| {
-                // stderr
-                log::info!("Listening on {}", socket_addr);
-                // stdout
-                println!("{}", socket_addr);
-            })
-            .map_err(drop)
-            .join(
-                server_listener
-                    .map(drop)
-                    .map_err(drop)
-                    .map(|()| log::info!("Finished"))
-                    .map_err(|()| log::error!("Aborted")),
-            )
-            .map(drop)
-    });
-    tokio::run(main_task);
+
+    let (socket_addr, server_listener) =
+        server.bind_with_graceful_shutdown(listen_addr, async move {
+            server_shutdown_rx.recv().await;
+            log::info!("Shutting down server");
+        });
+
+    // Give the server some time for starting up before announcing the
+    // actual endpoint address, i.e. when using an ephemeral port.
+    delay_for(SERVER_LISTENING_DELAY).await;
+
+    // stderr
+    log::info!("Listening on {}", socket_addr);
+    // stdout
+    println!("{}", socket_addr);
+
+    server_listener.await;
+
     log::info!("Stopped");
 
     optimize_database_storage(&connection_pool).expect("Failed to optimize database storage");

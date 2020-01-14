@@ -36,7 +36,6 @@ use aoide_repo::{
 
 use aoide_repo_sqlite::playlist::Repository;
 
-use futures::future::{self, Future};
 use serde::Deserialize;
 
 ///////////////////////////////////////////////////////////////////////
@@ -309,16 +308,16 @@ pub fn list_playlists(
     conn: &SqlitePooledConnection,
     r#type: Option<&str>,
     pagination: Pagination,
-) -> impl Future<Item = Vec<EntityData>, Error = Error> {
+) -> RepoResult<Vec<EntityData>> {
     let repo = Repository::new(&*conn);
-    future::result(conn.transaction::<_, Error, _>(|| repo.list_playlists(r#type, pagination)))
+    conn.transaction::<_, Error, _>(|| repo.list_playlists(r#type, pagination))
 }
 
 pub fn list_playlist_briefs(
     conn: &SqlitePooledConnection,
     r#type: Option<&str>,
     pagination: Pagination,
-) -> impl Future<Item = Vec<(EntityHeader, PlaylistBrief)>, Error = Error> {
+) -> RepoResult<Vec<(EntityHeader, PlaylistBrief)>> {
     let repo = Repository::new(&*conn);
-    future::result(conn.transaction::<_, Error, _>(|| repo.list_playlist_briefs(r#type, pagination)))
+    conn.transaction::<_, Error, _>(|| repo.list_playlist_briefs(r#type, pagination))
 }

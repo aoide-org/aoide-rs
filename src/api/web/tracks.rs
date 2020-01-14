@@ -68,7 +68,6 @@ use aoide_repo::{Pagination, PaginationLimit, PaginationOffset};
 
 use aoide_core_serde::track::Track;
 
-use futures::future::Future;
 use warp::http::StatusCode;
 
 ///////////////////////////////////////////////////////////////////////
@@ -740,10 +739,9 @@ impl TracksHandler {
         &self,
         new_track: Track,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
-        let body_data =
-            json::serialize_entity_body_data(&new_track).map_err(warp::reject::custom)?;
+        let body_data = json::serialize_entity_body_data(&new_track).map_err(reject_from_anyhow)?;
         let hdr =
-            create_track(&self.db, new_track.into(), body_data).map_err(warp::reject::custom)?;
+            create_track(&self.db, new_track.into(), body_data).map_err(reject_from_anyhow)?;
         Ok(warp::reply::with_status(
             warp::reply::json(&_serde::EntityHeader::from(hdr)),
             StatusCode::CREATED,
@@ -755,23 +753,22 @@ impl TracksHandler {
         uid: EntityUid,
         entity: _serde::Entity,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
-        let json_data =
-            json::serialize_entity_body_data(&entity.1).map_err(warp::reject::custom)?;
+        let json_data = json::serialize_entity_body_data(&entity.1).map_err(reject_from_anyhow)?;
         let entity = Entity::from(entity);
         if uid != entity.hdr.uid {
-            return Err(warp::reject::custom(anyhow!(
+            return Err(reject_from_anyhow(anyhow!(
                 "Mismatching UIDs: {} <> {}",
                 uid,
                 entity.hdr.uid,
             )));
         }
         let update_result =
-            update_track(&self.db, entity, json_data).map_err(warp::reject::custom)?;
+            update_track(&self.db, entity, json_data).map_err(reject_from_anyhow)?;
         if let EntityRevisionUpdateResult::Updated(_, next_rev) = update_result {
             let hdr = EntityHeader { uid, rev: next_rev };
             Ok(warp::reply::json(&_serde::EntityHeader::from(hdr)))
         } else {
-            Err(warp::reject::custom(anyhow!(
+            Err(reject_from_anyhow(anyhow!(
                 "Entity not found or revision conflict"
             )))
         }
@@ -782,7 +779,7 @@ impl TracksHandler {
         uid: EntityUid,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         delete_track(&self.db, &uid)
-            .map_err(warp::reject::custom)
+            .map_err(reject_from_anyhow)
             .map(|res| {
                 warp::reply::with_status(
                     warp::reply(),
@@ -794,11 +791,11 @@ impl TracksHandler {
 
     pub fn handle_load(&self, uid: EntityUid) -> Result<impl warp::Reply, warp::reject::Rejection> {
         load_track(&self.db, &uid)
-            .map_err(warp::reject::custom)
+            .map_err(reject_from_anyhow)
             .and_then(|res| match res {
                 Some(entity_data) => {
                     let json_data =
-                        json::load_entity_data_blob(entity_data).map_err(warp::reject::custom)?;
+                        json::load_entity_data_blob(entity_data).map_err(reject_from_anyhow)?;
                     Ok(json::reply_with_content_type(json_data))
                 }
                 None => Err(warp::reject::not_found()),
@@ -808,43 +805,43 @@ impl TracksHandler {
     pub fn handle_list(
         &self,
         query_params: TracksQueryParams,
-    ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
+    ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         let (collection_uid, pagination) = query_params.into();
         list_tracks(&self.db, collection_uid, pagination)
-            .and_then(|reply| json::load_entity_data_array_blob(reply.into_iter()))
+            .and_then(|x| json::load_entity_data_array_blob(x.into_iter()))
+            .map_err(reject_from_anyhow)
             .map(json::reply_with_content_type)
-            .map_err(warp::reject::custom)
     }
 
     pub fn handle_search(
         &self,
         query_params: TracksQueryParams,
         search_params: SearchParams,
-    ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
+    ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         let (collection_uid, pagination) = query_params.into();
         search_tracks(&self.db, collection_uid, pagination, search_params.into())
-            .and_then(|reply| json::load_entity_data_array_blob(reply.into_iter()))
+            .and_then(|x| json::load_entity_data_array_blob(x.into_iter()))
+            .map_err(reject_from_anyhow)
             .map(json::reply_with_content_type)
-            .map_err(warp::reject::custom)
     }
 
     pub fn handle_locate(
         &self,
         query_params: TracksQueryParams,
         locate_params: LocateParams,
-    ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
+    ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         let (collection_uid, pagination) = query_params.into();
         locate_tracks(&self.db, collection_uid, pagination, locate_params.into())
-            .and_then(|reply| json::load_entity_data_array_blob(reply.into_iter()))
+            .and_then(|x| json::load_entity_data_array_blob(x.into_iter()))
+            .map_err(reject_from_anyhow)
             .map(json::reply_with_content_type)
-            .map_err(warp::reject::custom)
     }
 
     pub fn handle_replace(
         &self,
         query_params: TracksQueryParams,
         replace_params: ReplaceTracksParams,
-    ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
+    ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         let (collection_uid, _) = query_params.into();
         let mode = replace_params.mode.into();
         replace_tracks(
@@ -853,85 +850,86 @@ impl TracksHandler {
             mode,
             replace_params.replacements.into_iter().map(Into::into),
         )
-        .map(|val| warp::reply::json(&ReplacedTracks::from(val)))
         .map_err(|err| {
             log::warn!("Failed to replace tracks: {}", err);
-            warp::reject::custom(err)
+            reject_from_anyhow(err)
         })
+        .map(ReplacedTracks::from)
+        .map(|ref x| warp::reply::json(x))
     }
 
     pub fn handle_purge(
         &self,
         query_params: TracksQueryParams,
         uri_predicates: Vec<UriPredicate>,
-    ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
+    ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         let (collection_uid, _) = query_params.into();
         let uri_predicates = uri_predicates.into_iter().map(Into::into);
         purge_tracks(&self.db, collection_uid, uri_predicates)
+            .map_err(|err| {
+                log::warn!("Failed to purge tracks: {}", err);
+                reject_from_anyhow(err)
+            })
             .map(|()| StatusCode::NO_CONTENT)
-            .map_err(warp::reject::custom)
     }
 
     pub fn handle_relocate(
         &self,
         query_params: TracksQueryParams,
         uri_relocations: impl IntoIterator<Item = UriRelocation>,
-    ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
+    ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         let (collection_uid, _) = query_params.into();
         relocate_tracks(
             &self.db,
             collection_uid,
             uri_relocations.into_iter().map(Into::into),
         )
+        .map_err(|err| {
+            log::warn!("Failed to relocate tracks: {}", err);
+            reject_from_anyhow(err)
+        })
         .map(|()| StatusCode::NO_CONTENT)
-        .map_err(warp::reject::custom)
     }
 
     pub fn handle_albums_count_tracks(
         &self,
         query_params: TracksQueryParams,
         count_params: CountTracksByAlbumParams,
-    ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
+    ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         let (collection_uid, pagination) = query_params.into();
         count_tracks_by_album(&self.db, collection_uid, pagination, &count_params.into())
-            .map(|res| {
-                warp::reply::json(
-                    &res.into_iter()
-                        .map(AlbumTrackCount::from)
-                        .collect::<Vec<_>>(),
-                )
+            .map_err(reject_from_anyhow)
+            .map(|x| {
+                warp::reply::json(&x.into_iter().map(AlbumTrackCount::from).collect::<Vec<_>>())
             })
-            .map_err(warp::reject::custom)
     }
 
     pub fn handle_tags_count_tracks(
         &self,
         query_params: TracksQueryParams,
         count_params: TagCountParams,
-    ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
+    ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         let (collection_uid, pagination) = query_params.into();
         count_tracks_by_tag(&self.db, collection_uid, pagination, count_params.into())
-            .map(|res| {
+            .map_err(reject_from_anyhow)
+            .map(|x| {
                 warp::reply::json(
-                    &res.into_iter()
+                    &x.into_iter()
                         .map(TagAvgScoreCount::from)
                         .collect::<Vec<_>>(),
                 )
             })
-            .map_err(warp::reject::custom)
     }
 
     pub fn handle_tags_facets_count_tracks(
         &self,
         query_params: TracksQueryParams,
         count_params: TagFacetCountParams,
-    ) -> impl Future<Item = impl warp::Reply, Error = warp::reject::Rejection> {
+    ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         let (collection_uid, pagination) = query_params.into();
         count_tracks_by_tag_facet(&self.db, collection_uid, pagination, count_params.into())
-            .map(|res| {
-                warp::reply::json(&res.into_iter().map(TagFacetCount::from).collect::<Vec<_>>())
-            })
-            .map_err(warp::reject::custom)
+            .map_err(reject_from_anyhow)
+            .map(|x| warp::reply::json(&x.into_iter().map(TagFacetCount::from).collect::<Vec<_>>()))
     }
 }
 

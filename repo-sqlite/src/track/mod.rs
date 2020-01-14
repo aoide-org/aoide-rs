@@ -31,7 +31,7 @@ use crate::util::*;
 
 use aoide_core::{
     entity::{
-        EntityHeader, EntityRevision, EntityRevisionUpdateResult, EntityVersionNumber, EntityUid,
+        EntityHeader, EntityRevision, EntityRevisionUpdateResult, EntityUid, EntityVersionNumber,
     },
     tag::{Facet, Label},
     track::{
