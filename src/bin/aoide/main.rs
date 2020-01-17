@@ -411,11 +411,7 @@ pub async fn main() -> Result<(), Error> {
         .and(warp::body::json())
         .and(pooled_connection.clone())
         .and_then(|query, body, pooled_connection| {
-            async {
-                TracksHandler::new(pooled_connection)
-                    .handle_albums_count_tracks(query, body)
-                    .into()
-            }
+            async { TracksHandler::new(pooled_connection).handle_albums_count_tracks(query, body) }
         });
     let albums_filters = albums_count_tracks;
 
@@ -428,11 +424,7 @@ pub async fn main() -> Result<(), Error> {
         .and(warp::body::json())
         .and(pooled_connection.clone())
         .and_then(|query, body, pooled_connection| {
-            async {
-                TracksHandler::new(pooled_connection)
-                    .handle_tags_count_tracks(query, body)
-                    .into()
-            }
+            async { TracksHandler::new(pooled_connection).handle_tags_count_tracks(query, body) }
         });
     let tags_facets_count_tracks = warp::post()
         .and(warp::path("tags"))
@@ -444,9 +436,7 @@ pub async fn main() -> Result<(), Error> {
         .and(pooled_connection)
         .and_then(|query, body, pooled_connection| {
             async {
-                TracksHandler::new(pooled_connection)
-                    .handle_tags_facets_count_tracks(query, body)
-                    .into()
+                TracksHandler::new(pooled_connection).handle_tags_facets_count_tracks(query, body)
             }
         });
     let tags_filters = tags_count_tracks.or(tags_facets_count_tracks);
