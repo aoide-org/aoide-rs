@@ -40,7 +40,7 @@ semval = "*"
 serde = "*"
 serde_json = "*"
 tokio = { version = "0.1", default-features = false }
-warp = { version = "*", default-features = false }
+warp = { version = "0.1", default-features = false }
 
 [dev-dependencies]
 serde_urlencoded = "*"
