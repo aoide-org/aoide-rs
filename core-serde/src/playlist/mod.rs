@@ -99,10 +99,10 @@ pub struct PlaylistEntry {
     #[serde(rename = "i")]
     item: PlaylistItem,
 
-    #[serde(rename = "t")]
+    #[serde(rename = "s")]
     since: TickType,
 
-    #[serde(rename = "c", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "m", skip_serializing_if = "Option::is_none")]
     comment: Option<String>,
 }
 
@@ -224,17 +224,14 @@ impl From<_core::Entity> for Entity {
 #[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(deny_unknown_fields)]
 pub struct PlaylistBriefEntries {
-    #[serde(rename = "m")]
+    #[serde(rename = "t")]
     tracks_count: usize,
 
-    #[serde(rename = "n")]
+    #[serde(rename = "e")]
     entries_count: usize,
 
     #[serde(rename = "s", skip_serializing_if = "Option::is_none")]
-    entries_since_min: Option<TickType>,
-
-    #[serde(rename = "t", skip_serializing_if = "Option::is_none")]
-    entries_since_max: Option<TickType>,
+    entries_since_minmax: Option<(TickType, TickType)>,
 }
 
 impl From<_core::PlaylistBriefEntries> for PlaylistBriefEntries {
@@ -242,14 +239,12 @@ impl From<_core::PlaylistBriefEntries> for PlaylistBriefEntries {
         let _core::PlaylistBriefEntries {
             tracks_count,
             entries_count,
-            entries_since_min,
-            entries_since_max,
+            entries_since_minmax,
         } = from;
         Self {
             tracks_count,
             entries_count,
-            entries_since_min: entries_since_min.map(|min| (min.0).0),
-            entries_since_max: entries_since_max.map(|max| (max.0).0),
+            entries_since_minmax: entries_since_minmax.map(|(min, max)| ((min.0).0, (max.0).0)),
         }
     }
 }

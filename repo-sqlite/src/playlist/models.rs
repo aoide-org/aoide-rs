@@ -159,11 +159,17 @@ impl From<QueryableBrief> for (RepoId, EntityHeader, PlaylistBrief) {
                 ts: TickInstant(Ticks(rev_ts)),
             },
         };
+        let entries_since_min = entries_since_min.map(|min| DateTime::from_utc(min, Utc).into());
+        let entries_since_max = entries_since_max.map(|max| DateTime::from_utc(max, Utc).into());
+        debug_assert_eq!(entries_since_min.is_some(), entries_since_max.is_some());
+        let entries_since_minmax = match (entries_since_min, entries_since_max) {
+            (Some(min), Some(max)) => Some((min, max)),
+            _ => None,
+        };
         let entries = PlaylistBriefEntries {
             tracks_count: tracks_count as usize,
             entries_count: entries_count as usize,
-            entries_since_min: entries_since_min.map(|min| DateTime::from_utc(min, Utc).into()),
-            entries_since_max: entries_since_max.map(|max| DateTime::from_utc(max, Utc).into()),
+            entries_since_minmax,
         };
         let brief = PlaylistBrief {
             name,
@@ -202,8 +208,7 @@ impl<'a> InsertableBrief<'a> {
         let PlaylistBriefEntries {
             tracks_count,
             entries_count,
-            entries_since_min,
-            entries_since_max,
+            entries_since_minmax,
         } = entries;
         Self {
             playlist_id,
@@ -213,8 +218,8 @@ impl<'a> InsertableBrief<'a> {
             color_code: color.map(|color| color.code() as i32),
             tracks_count: tracks_count as i64,
             entries_count: entries_count as i64,
-            entries_since_min: entries_since_min.map(|min| DateTime::from(min).naive_utc()),
-            entries_since_max: entries_since_max.map(|max| DateTime::from(max).naive_utc()),
+            entries_since_min: entries_since_minmax.map(|minmax| DateTime::from(minmax.0).naive_utc()),
+            entries_since_max: entries_since_minmax.map(|minmax| DateTime::from(minmax.1).naive_utc()),
         }
     }
 }
