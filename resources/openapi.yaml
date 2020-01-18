@@ -1403,32 +1403,33 @@ components:
         $ref: '#/components/schemas/PlaylistEntry'
     PlaylistBriefEntries:
       properties:
-        m:
+        t:
           description: Number of tracks in the playlist
           oneOf:
             - $ref: '#/components/schemas/PlaylistEntryCount'
-        n:
+        e:
           description: Number of entries in the playlist
           oneOf:
             - $ref: '#/components/schemas/PlaylistEntryCount'
         s:
-          description: Minimum (lower bound) `since` time stamp of all playlist entries
-          oneOf:
-            - $ref: '#/components/schemas/PlaylistEntrySince'
-        t:
-          description: Maximum (upper bound) `since` time stamp of all playlist entries
-          oneOf:
-            - $ref: '#/components/schemas/PlaylistEntrySince'
+          description: |
+            Minimum (lower bound) and maximum (upper bound) `since`
+            time stamp of all playlist entries
+          type: array
+          minLength: 2
+          maxLength: 2
+          items:
+              $ref: '#/components/schemas/PlaylistEntrySince'
       required:
-        - m
-        - n
+        - t
+        - e
     PlaylistEntry:
       properties:
         i:
           $ref: '#/components/schemas/PlaylistItem'
         s:
           $ref: '#/components/schemas/PlaylistEntrySince'
-        c:
+        m:
           $ref: '#/components/schemas/PlaylistEntryComment'
       required:
         - i

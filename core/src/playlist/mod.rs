@@ -137,7 +137,7 @@ pub struct Playlist {
 }
 
 impl Playlist {
-    pub fn entries_since_min_max(&self) -> Option<(TickInstant, TickInstant)> {
+    pub fn entries_since_minmax(&self) -> Option<(TickInstant, TickInstant)> {
         let mut entries = self.entries.iter();
         if let Some(first_since) = entries.next().map(|e| e.since) {
             let mut since_min = first_since;
@@ -233,9 +233,7 @@ pub struct PlaylistBriefEntries {
 
     pub entries_count: usize,
 
-    pub entries_since_min: Option<TickInstant>,
-
-    pub entries_since_max: Option<TickInstant>,
+    pub entries_since_minmax: Option<(TickInstant, TickInstant)>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -266,16 +264,10 @@ pub struct PlaylistBriefRef<'a> {
 
 impl<'a> Playlist {
     pub fn entries_brief(&self) -> PlaylistBriefEntries {
-        let tracks_count = self.count_tracks();
-        let entries_count = self.entries.len();
-        let (entries_since_min, entries_since_max) = self
-            .entries_since_min_max()
-            .map_or((None, None), |(min, max)| (Some(min), Some(max)));
         PlaylistBriefEntries {
-            tracks_count,
-            entries_count,
-            entries_since_min,
-            entries_since_max,
+            tracks_count: self.count_tracks(),
+            entries_count: self.entries.len(),
+            entries_since_minmax: self.entries_since_minmax(),
         }
     }
 
