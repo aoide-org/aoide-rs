@@ -19,9 +19,9 @@ mod _core {
     pub use aoide_core::track::collection::*;
 }
 
-use crate::{entity::EntityUid, util::color::ColorRgb};
+use aoide_core::util::clock::{TickInstant, TickType, Ticks};
 
-use chrono::{DateTime, Utc};
+use crate::{entity::EntityUid, util::color::ColorRgb};
 
 ///////////////////////////////////////////////////////////////////////
 // Collection
@@ -32,8 +32,8 @@ pub struct Collection {
     #[serde(rename = "u")]
     uid: EntityUid,
 
-    #[serde(rename = "t")]
-    since: DateTime<Utc>,
+    #[serde(rename = "s")]
+    since: TickType,
 
     #[serde(rename = "c", skip_serializing_if = "Option::is_none")]
     color: Option<ColorRgb>,
@@ -52,7 +52,7 @@ impl From<_core::Collection> for Collection {
         } = from;
         Self {
             uid: uid.into(),
-            since,
+            since: (since.0).0,
             color: color.map(Into::into),
             play_count,
         }
@@ -69,7 +69,7 @@ impl From<Collection> for _core::Collection {
         } = from;
         Self {
             uid: uid.into(),
-            since,
+            since: TickInstant(Ticks(since)),
             color: color.map(Into::into),
             play_count,
         }
