@@ -1966,7 +1966,7 @@ components:
       properties:
         u:
           $ref: '#/components/schemas/CollectionUid'
-        t:
+        s:
           description: |
             Time stamp since when the track is part of this collection,
             i.e. when it has been added.

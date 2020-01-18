@@ -17,10 +17,8 @@ use super::*;
 
 use crate::{
     entity::{EntityUid, EntityUidInvalidity},
-    util::color::*,
+    util::{color::*, clock::TickInstant},
 };
-
-use chrono::{DateTime, Utc};
 
 ///////////////////////////////////////////////////////////////////////
 // Collection
@@ -30,7 +28,7 @@ use chrono::{DateTime, Utc};
 pub struct Collection {
     pub uid: EntityUid,
 
-    pub since: DateTime<Utc>,
+    pub since: TickInstant,
 
     pub color: Option<ColorRgb>,
 

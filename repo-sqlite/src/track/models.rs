@@ -32,7 +32,7 @@ use aoide_core::{
 
 use aoide_repo::{entity::*, RepoId};
 
-use chrono::naive::NaiveDateTime;
+use chrono::{naive::NaiveDateTime, DateTime};
 
 use percent_encoding::percent_decode;
 
@@ -150,7 +150,7 @@ impl<'a> InsertableCollection<'a> {
         Self {
             track_id,
             collection_uid: collection.uid.as_ref(),
-            since: collection.since.naive_utc(),
+            since: DateTime::from(collection.since).naive_utc(),
             color_code: collection.color.map(|color| color.code() as i32),
             play_count: collection.play_count.map(|count| count as i32),
         }
