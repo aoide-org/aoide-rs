@@ -7,13 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+### Changed
+
+### Removed
+
+## [0.6.0] - 2020-01-18
+
 **This release breaks backward compatibility with old versions! Existing databases need to be rebuilt.**
 
 ### Added
 
 - Support for playlist entities
+- Optional comment for track/collection relationships
 
 ### Changed
+
+- Serialization of track/collection relationships
 
 ### Removed
 
@@ -239,7 +250,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial public release
 
-[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.5.1...development
+[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.6.0...development
+[0.6.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.6.0
 [0.5.1]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.5.1
 [0.5.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.5.0
 [0.4.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.4.0
