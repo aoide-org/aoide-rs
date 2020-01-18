@@ -1,6 +1,6 @@
 openapi: 3.0.2
 info:
-  version: 0.6.0
+  version: 0.6.1
   title: aoide
   description: Music library management
   license:
@@ -773,8 +773,7 @@ components:
       example: The Beatles
     ActorPrecedence:
       type: integer
-      minimum: 0
-      maximum: 2
+      enum: [0, 1, 2]
       description: |
         Optional actor precedence that defaults to 0 = summary if missing:
           * 0 = summary actor
@@ -782,8 +781,7 @@ components:
           * 2 = secondary actor(s)
     ActorRole:
       type: integer
-      minimum: 0
-      maximum: 12
+      enum: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
       description: |
         Optional actor role that defaults to 0 = artist if missing:
           * 0 = artist
@@ -864,7 +862,7 @@ components:
             hash of the image data.
         u:
           $ref: '#/components/schemas/Uri'
-        b:
+        c:
           $ref: '#/components/schemas/BackgroundColor'
       required:
         - s
@@ -1039,6 +1037,7 @@ components:
         - $ref: '#/components/schemas/Index'
     DurationMs:
       type: number
+      format: double
       minimum: 0
       example: 210387.576
     Encoder:
@@ -1069,9 +1068,8 @@ components:
       description: |
         Tuple of 2 elements containing a version number and a time stamp.
     EntityRevisionInstant:
-      type: integer
-      format: int64
-      example: 1552823952261838
+      oneOf:
+        - $ref: '#/components/schemas/TimeStampTicks'
     EntityVersionNumber:
       type: integer
       format: int64
@@ -1155,9 +1153,7 @@ components:
             $ref: '#/components/schemas/KeyMarker'
     KeySignature:
       type: integer
-      minimum: 1
-      maximum: 24
-      example: 1
+      enum: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]
       description: |
         The key signature is denoted by a code with one of the following values:
           * 1 = C maj
@@ -1175,6 +1171,7 @@ components:
           $ref: '#/components/schemas/StringPredicate'
     LoudnessLufs:
       type: number
+      format: double
       example: -13.4239
       description: >
         Loudness is measured in "Loudness Units relative to Full Scale" (LUFS)
@@ -1209,8 +1206,7 @@ components:
         * 0 - read/write (default)
         * 1 - read-only (locked)
       type: integer
-      minimum: 0
-      maximum: 1
+      enum: [0, 1]
     MediaContent:
       oneOf:
         - type: object
@@ -1275,34 +1271,40 @@ components:
       properties:
         lt:
           type: number
+          format: double
       required:
         - lt
     NumericPredicateLessOrEqual:
       properties:
         le:
           type: number
+          format: double
       required:
         - le
     NumericPredicateGreaterThan:
       properties:
         gt:
           type: number
+          format: double
       required:
         - gt
     NumericPredicateGreaterOrEqual:
       properties:
         ge:
           type: number
+          format: double
       required:
         - ge
     NumericPredicateEqual:
       properties:
         eq:
           type: number
+          format: double
     NumericPredicateNotEqual:
       properties:
         ne:
           type: number
+          format: double
     PhraseFieldFilter:
       type: array
       minLength: 2
@@ -1439,7 +1441,7 @@ components:
         Custom comments and notes to annotate a playlist entry
       type: string
     PlaylistEntryCount:
-      type: number
+      type: integer
       format: int64
       minimum: 0
     PlaylistEntrySince:
@@ -1447,13 +1449,27 @@ components:
         Time stamp since when an entry is part of the playlist,
         i.e. when it has been created and added.
       oneOf:
-        - $ref: '#/components/schemas/TimeStamp'
+        - $ref: '#/components/schemas/TimeStampTicks'
     PlaylistEntryPosition:
       description: |
         0-based position number to locate a playlist entry
-      type: number
+      type: integer
       format: int64
       minimum: 0
+    PlaylistItem:
+        oneOf:
+          - $ref: '#/components/schemas/PlaylistItemSeparator'
+          - $ref: '#/components/schemas/PlaylistItemTrack'
+    PlaylistItemSeparator:
+      type: string
+      enum:
+        - s
+    PlaylistItemTrack:
+      properties:
+        t:
+          $ref: '#/components/schemas/PlaylistTrack'
+      required:
+        - t
     PlaylistName:
       description: Mandatory playlist name
       type: string
@@ -1523,20 +1539,6 @@ components:
             - reverseEntries
             - shuffleEntries
             - sortEntriesChronologically
-    PlaylistItem:
-        oneOf:
-          - $ref: '#/components/schemas/PlaylistItemSeparator'
-          - $ref: '#/components/schemas/PlaylistItemTrack'
-    PlaylistItemSeparator:
-      type: string
-      enum:
-        - s
-    PlaylistItemTrack:
-      properties:
-        t:
-          $ref: '#/components/schemas/PlaylistTrack'
-      required:
-        - t
     PlaylistPatchParams:
       properties:
         rev:
@@ -1548,11 +1550,10 @@ components:
       required:
         - ops
     PlaylistTrack:
-      properties:
-        u:
-          $ref: '#/components/schemas/TrackUid'
-      required:
-        - u
+      description: |
+        The UID of the referenced track
+      oneOf:
+        - $ref: '#/components/schemas/TrackUid'
     PlaylistType:
       description: |
         Custom type of to the playlist. This allows 3rd party applications
@@ -1605,10 +1606,10 @@ components:
         * 6 (`loop`) - sections that are played as loops (forward or backward)
         * 7 (`sample`) - sections that are played as samples (forward or backward)
       type: integer
-      minimum: 0
-      maximum: 7
+      enum: [0, 1, 2, 3, 4, 5, 6, 7]
     PositionMs:
       type: number
+      format: double
       example: 210387.576
     PurgeTracksParams:
       type: array
@@ -1870,6 +1871,7 @@ components:
           - $ref: '#/components/schemas/FacetedTags'
     TagScore:
       type: number
+      format: double
       minimum: 0
       maximum: 1
       example: 0.83
@@ -1877,6 +1879,7 @@ components:
         Normalized score value between 0 and 1.
     TempoBpm:
       type: number
+      format: double
       minimum: 0
       example: 110.67
       description: |
@@ -1914,6 +1917,14 @@ components:
       type: string
       format: date-time
       example: '2018-06-10T12:19:50.758Z'
+      description: |
+        A time stamp with up to millisecond precision according to RFC 3339.
+    TimeStampTicks:
+      type: integer
+      format: int64
+      example: 1578221715728131
+      description: |
+        A time stamp in microseconds that have passed since 1970-01-01T00:00:00.000000Z.
     TagSortField:
       type: string
       enum:
@@ -1941,8 +1952,7 @@ components:
         Mandatory name, followed by optional level
     TitleLevel:
       type: integer
-      minimum: 0
-      maximum: 3
+      enum: [0, 1, 2, 3]
       description: |
         Optional level that defaults to 0 = main if missing:
           * 0 = main title (default)
@@ -1971,7 +1981,7 @@ components:
             Time stamp since when the track is part of this collection,
             i.e. when it has been added.
           oneOf:
-            - $ref: '#/components/schemas/TimeStamp'
+            - $ref: '#/components/schemas/TimeStampTicks'
         m:
           description: |
             Optional comment that describes the track/collection relationship,
