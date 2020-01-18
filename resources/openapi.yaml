@@ -1972,6 +1972,11 @@ components:
             i.e. when it has been added.
           oneOf:
             - $ref: '#/components/schemas/TimeStamp'
+        m:
+          description: |
+            Optional comment that describes the track/collection relationship,
+            e.g. why the track is included in this collection.
+          type: string
         c:
           $ref: '#/components/schemas/Color'
         p:

@@ -30,6 +30,8 @@ pub struct Collection {
 
     pub since: TickInstant,
 
+    pub comment: Option<String>,
+
     pub color: Option<ColorRgb>,
 
     pub play_count: Option<usize>,
