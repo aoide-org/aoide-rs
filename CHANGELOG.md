@@ -19,12 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Support for playlist entities
-- Optional comment for track/collection relationships
+- Added support for playlist entities
+- Added optional comment for track/collection relationships
 
 ### Changed
 
-- Serialization of track/collection relationships
+- Modified serialization format of track/collection relationships
+- Renamed artwork background color field
 
 ### Removed
 

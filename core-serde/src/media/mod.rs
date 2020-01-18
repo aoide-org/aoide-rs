@@ -69,7 +69,7 @@ pub struct Artwork {
     #[serde(rename = "u", skip_serializing_if = "Option::is_none")]
     uri: Option<String>,
 
-    #[serde(rename = "b", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "c", skip_serializing_if = "Option::is_none")]
     background_color: Option<ColorRgb>,
 }
 
