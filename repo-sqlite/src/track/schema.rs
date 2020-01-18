@@ -36,6 +36,7 @@ table! {
         track_id -> BigInt,
         collection_uid -> Binary,
         since -> Timestamp,
+        comment -> Nullable<Text>,
         color_code -> Nullable<Integer>,
         play_count -> Nullable<Integer>,
     }

@@ -141,6 +141,7 @@ pub struct InsertableCollection<'a> {
     pub track_id: RepoId,
     pub collection_uid: &'a [u8],
     pub since: NaiveDateTime,
+    pub comment: Option<&'a str>,
     pub color_code: Option<i32>,
     pub play_count: Option<i32>,
 }
@@ -151,6 +152,7 @@ impl<'a> InsertableCollection<'a> {
             track_id,
             collection_uid: collection.uid.as_ref(),
             since: DateTime::from(collection.since).naive_utc(),
+            comment: collection.comment.as_ref().map(String::as_str),
             color_code: collection.color.map(|color| color.code() as i32),
             play_count: collection.play_count.map(|count| count as i32),
         }

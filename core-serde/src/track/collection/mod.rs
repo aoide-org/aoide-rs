@@ -35,6 +35,9 @@ pub struct Collection {
     #[serde(rename = "s")]
     since: TickType,
 
+    #[serde(rename = "m", skip_serializing_if = "Option::is_none")]
+    comment: Option<String>,
+
     #[serde(rename = "c", skip_serializing_if = "Option::is_none")]
     color: Option<ColorRgb>,
 
@@ -47,12 +50,14 @@ impl From<_core::Collection> for Collection {
         let _core::Collection {
             uid,
             since,
+            comment,
             color,
             play_count,
         } = from;
         Self {
             uid: uid.into(),
             since: (since.0).0,
+            comment,
             color: color.map(Into::into),
             play_count,
         }
@@ -65,11 +70,13 @@ impl From<Collection> for _core::Collection {
             uid,
             since,
             color,
+            comment,
             play_count,
         } = from;
         Self {
             uid: uid.into(),
             since: TickInstant(Ticks(since)),
+            comment,
             color: color.map(Into::into),
             play_count,
         }
