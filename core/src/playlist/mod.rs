@@ -19,7 +19,11 @@ use super::*;
 
 use crate::{
     entity::{EntityUid, EntityUidInvalidity},
-    util::{clock::TickInstant, color::ColorRgb},
+    util::{
+        clock::TickInstant,
+        color::ColorRgb,
+        geo::{GeoPoint, GeoPointInvalidity},
+    },
 };
 
 use rand::{seq::SliceRandom, thread_rng};
@@ -113,7 +117,7 @@ impl Validate for PlaylistEntry {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Playlist {
     /// Mandatory name.
     pub name: String,
@@ -131,6 +135,13 @@ pub struct Playlist {
 
     /// Optional color for display purposes.
     pub color: Option<ColorRgb>,
+
+    /// An optional geographical location, e.g. to identify the place where
+    /// the playlist has been composed or recorded during an event.
+    ///
+    /// This information could also be used to restore the time zone for the
+    /// time stamps of the entries.
+    pub location: Option<GeoPoint>,
 
     /// Ordered list of playlist entries.
     pub entries: Vec<PlaylistEntry>,
@@ -204,6 +215,7 @@ impl Playlist {
 #[derive(Copy, Clone, Debug)]
 pub enum PlaylistInvalidity {
     Name,
+    Location(GeoPointInvalidity),
     Entry(usize, PlaylistEntryInvalidity),
 }
 
@@ -211,8 +223,9 @@ impl Validate for Playlist {
     type Invalidity = PlaylistInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        let context =
-            ValidationContext::new().invalidate_if(self.name.is_empty(), PlaylistInvalidity::Name);
+        let context = ValidationContext::new()
+            .invalidate_if(self.name.is_empty(), PlaylistInvalidity::Name)
+            .validate_with(&self.location, PlaylistInvalidity::Location);
         self.entries
             .iter()
             .enumerate()
@@ -236,7 +249,7 @@ pub struct PlaylistBriefEntries {
     pub entries_since_minmax: Option<(TickInstant, TickInstant)>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct PlaylistBrief {
     pub name: String,
 
@@ -246,10 +259,12 @@ pub struct PlaylistBrief {
 
     pub color: Option<ColorRgb>,
 
+    pub location: Option<GeoPoint>,
+
     pub entries: PlaylistBriefEntries,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct PlaylistBriefRef<'a> {
     pub name: &'a str,
 
@@ -258,6 +273,8 @@ pub struct PlaylistBriefRef<'a> {
     pub r#type: Option<&'a str>,
 
     pub color: Option<ColorRgb>,
+
+    pub location: Option<&'a GeoPoint>,
 
     pub entries: PlaylistBriefEntries,
 }
@@ -278,6 +295,7 @@ impl<'a> Playlist {
             ref description,
             r#type,
             color,
+            ref location,
             entries: _entries,
         } = self;
         PlaylistBriefRef {
@@ -285,6 +303,7 @@ impl<'a> Playlist {
             description: description.as_ref().map(String::as_str),
             r#type: r#type.as_ref().map(String::as_str),
             color: *color,
+            location: location.as_ref(),
             entries,
         }
     }

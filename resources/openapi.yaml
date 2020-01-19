@@ -1102,6 +1102,34 @@ components:
       type: string
       enum:
         - complement
+    GeoLatDegrees:
+      type: number
+      format: double
+      minimum: -90
+      maximum: 90
+      example: 40.712784
+      description: |
+        The latitude of a geographical point in degrees.
+    GeoLonDegrees:
+      type: number
+      format: double
+      minimum: -180
+      maximum: 180
+      example: -74.005941
+      description: |
+        The longitude of a geographical point in degrees.
+    GeoPointDegrees:
+      type: array
+      minLength: 2
+      maxLength: 2
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/GeoLatDegrees'
+          - $ref: '#/components/schemas/GeoLonDegrees'
+      example: [40.712784, -74.005941]
+      description: |
+        A flat WGS 84 point [lat, lon] in degrees without height/elevation
+        on the surface of the earth.
     Index:
       oneOf:
         - type: integer
@@ -1356,6 +1384,8 @@ components:
           $ref: '#/components/schemas/PlaylistType'
         c:
           $ref: '#/components/schemas/Color'
+        l:
+          $ref: '#/components/schemas/PlaylistLocation'
         e:
           $ref: '#/components/schemas/PlaylistEntries'
       required:
@@ -1371,6 +1401,8 @@ components:
           $ref: '#/components/schemas/PlaylistType'
         c:
           $ref: '#/components/schemas/Color'
+        l:
+          $ref: '#/components/schemas/PlaylistLocation'
         e:
           $ref: '#/components/schemas/PlaylistBriefEntries'
       required:
@@ -1549,6 +1581,15 @@ components:
             $ref: '#/components/schemas/PlaylistPatchOperation'
       required:
         - ops
+    PlaylistLocation:
+      oneOf:
+        - $ref: '#/components/schemas/GeoPointDegrees'
+      description: |
+        The geographical point of a location, e.g. to identify the place where
+        the playlist has been composed or recorded during an event.
+
+        This information could also be used to restore the time zone for the
+        time stamps of the entries.
     PlaylistTrack:
       description: |
         The UID of the referenced track

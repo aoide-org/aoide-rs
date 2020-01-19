@@ -15,7 +15,7 @@
 
 use super::*;
 
-use aoide_core::util::{clock::*, color::*};
+use aoide_core::util::{clock::*, color::*, geo::*};
 
 use aoide_repo::{entity::*, RepoId};
 
@@ -130,6 +130,8 @@ pub struct QueryableBrief {
     pub desc: Option<String>,
     pub playlist_type: Option<String>,
     pub color_code: Option<i32>,
+    pub geoloc_lat: Option<f64>,
+    pub geoloc_lon: Option<f64>,
     pub tracks_count: i64,
     pub entries_count: i64,
     pub entries_since_min: Option<NaiveDateTime>,
@@ -147,6 +149,8 @@ impl From<QueryableBrief> for (RepoId, EntityHeader, PlaylistBrief) {
             desc,
             playlist_type,
             color_code,
+            geoloc_lat,
+            geoloc_lon,
             tracks_count,
             entries_count,
             entries_since_min,
@@ -158,6 +162,11 @@ impl From<QueryableBrief> for (RepoId, EntityHeader, PlaylistBrief) {
                 no: rev_no as u64,
                 ts: TickInstant(Ticks(rev_ts)),
             },
+        };
+        debug_assert_eq!(geoloc_lat.is_some(), geoloc_lon.is_some());
+        let location = match (geoloc_lat, geoloc_lon) {
+            (Some(lat), Some(lon)) => Some(GeoPoint { lat, lon }),
+            _ => None,
         };
         let entries_since_min = entries_since_min.map(|min| DateTime::from_utc(min, Utc).into());
         let entries_since_max = entries_since_max.map(|max| DateTime::from_utc(max, Utc).into());
@@ -176,6 +185,7 @@ impl From<QueryableBrief> for (RepoId, EntityHeader, PlaylistBrief) {
             description: desc,
             r#type: playlist_type,
             color: color_code.map(|c| ColorRgb(c as ColorCode)),
+            location,
             entries,
         };
         (id, hdr, brief)
@@ -190,6 +200,8 @@ pub struct InsertableBrief<'a> {
     pub desc: Option<&'a str>,
     pub playlist_type: Option<&'a str>,
     pub color_code: Option<i32>,
+    pub geoloc_lat: Option<f64>,
+    pub geoloc_lon: Option<f64>,
     pub tracks_count: i64,
     pub entries_count: i64,
     pub entries_since_min: Option<NaiveDateTime>,
@@ -203,6 +215,7 @@ impl<'a> InsertableBrief<'a> {
             description,
             r#type,
             color,
+            location,
             entries,
         } = brief_ref;
         let PlaylistBriefEntries {
@@ -216,6 +229,8 @@ impl<'a> InsertableBrief<'a> {
             desc: description,
             playlist_type: r#type,
             color_code: color.map(|color| color.code() as i32),
+            geoloc_lat: location.as_ref().map(|p| p.lat),
+            geoloc_lon: location.as_ref().map(|p| p.lon),
             tracks_count: tracks_count as i64,
             entries_count: entries_count as i64,
             entries_since_min: entries_since_minmax.map(|minmax| DateTime::from(minmax.0).naive_utc()),

@@ -40,6 +40,8 @@ CREATE TABLE aux_playlist_brief (
     desc                     TEXT,
     playlist_type            TEXT,
     color_code               INTEGER, -- 0xRRGGBB (hex)
+    geoloc_lat               NUMBER,
+    geoloc_lon               NUMBER,
     entries_count            INTEGER NOT NULL,
     entries_since_min        DATETIME, -- UTC
     entries_since_max        DATETIME, -- UTC
