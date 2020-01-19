@@ -14,16 +14,3 @@
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 DROP TABLE tbl_collection;
-
-DROP TABLE aux_track_brief;
-DROP TABLE aux_track_collection;
-DROP TABLE aux_track_location;
-DROP TABLE aux_track_marker;
-DROP TABLE aux_track_media;
-DROP TABLE aux_track_tag;
-DROP TABLE tbl_track;
-
-DROP TABLE aux_marker_label;
-
-DROP TABLE aux_tag_facet;
-DROP TABLE aux_tag_label;
