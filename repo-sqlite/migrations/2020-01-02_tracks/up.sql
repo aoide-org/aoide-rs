@@ -13,28 +13,6 @@
 -- You should have received a copy of the GNU Affero General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
------------------------------------------------------------------------
--- Collections
------------------------------------------------------------------------
-
-CREATE TABLE tbl_collection (
-    id                       INTEGER PRIMARY KEY,
-    uid                      BINARY(24) NOT NULL,
-    rev_no                   INTEGER NOT NULL,
-    rev_ts                   INTEGER NOT NULL,
-    name                     TEXT NOT NULL,
-    desc                     TEXT,
-    UNIQUE (uid)
-);
-
-CREATE INDEX idx_collection_name ON tbl_collection (
-    name
-);
-
------------------------------------------------------------------------
--- Tracks
------------------------------------------------------------------------
-
 CREATE TABLE tbl_track (
     id                       INTEGER PRIMARY KEY,
     uid                      BINARY(24) NOT NULL,
