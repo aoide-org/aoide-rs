@@ -13,6 +13,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.6.1] - 2020-01-19
+
+**This release breaks backward compatibility with old versions! Existing databases need to be rebuilt.**
+
+### Added
+
+- Added optional (geographical) location field for playlists
+
+### Changed
+
+- Flattened serialization format of playlist tracks
+- Restructured serialization format of playlist brief entries
+- Fixed OpenAPI spec
+
 ## [0.6.0] - 2020-01-18
 
 **This release breaks backward compatibility with old versions! Existing databases need to be rebuilt.**
@@ -251,9 +265,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial public release
 
-[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.6.0...development
+[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.6.1...development
+[0.6.1]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.6.1
 [0.6.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.6.0
 [0.5.1]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.5.1
 [0.5.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.5.0
 [0.4.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.4.0
-[0.3.3]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.3.2
