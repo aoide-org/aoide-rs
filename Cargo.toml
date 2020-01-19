@@ -38,7 +38,7 @@ log = "*"
 semval = "*"
 serde = "*"
 serde_json = "*"
-tokio = { version = "*", default-features = false, features = ["full"] }
+tokio = { version = "*", default-features = false, features = ["macros", "rt-threaded"] }
 warp = { version = "*", default-features = false }
 
 [dev-dependencies]
