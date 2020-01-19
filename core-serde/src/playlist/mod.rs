@@ -210,28 +210,43 @@ impl From<_core::Entity> for Entity {
 #[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(deny_unknown_fields)]
 pub struct PlaylistBriefEntries {
-    #[serde(rename = "t")]
-    tracks_count: usize,
-
-    #[serde(rename = "e")]
-    entries_count: usize,
+    #[serde(rename = "n")]
+    count: usize,
 
     #[serde(rename = "s", skip_serializing_if = "Option::is_none")]
-    entries_since_minmax: Option<(TickType, TickType)>,
+    since_minmax: Option<(TickType, TickType)>,
+
+    #[serde(rename = "t")]
+    tracks: PlaylistBriefTracks,
 }
 
 impl From<_core::PlaylistBriefEntries> for PlaylistBriefEntries {
     fn from(from: _core::PlaylistBriefEntries) -> Self {
         let _core::PlaylistBriefEntries {
-            tracks_count,
-            entries_count,
-            entries_since_minmax,
+            count,
+            since_minmax,
+            tracks,
         } = from;
         Self {
-            tracks_count,
-            entries_count,
-            entries_since_minmax: entries_since_minmax.map(|(min, max)| ((min.0).0, (max.0).0)),
+            count,
+            since_minmax: since_minmax.map(|(min, max)| ((min.0).0, (max.0).0)),
+            tracks: tracks.into(),
         }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(Eq, PartialEq))]
+#[serde(deny_unknown_fields)]
+pub struct PlaylistBriefTracks {
+    #[serde(rename = "n")]
+    count: usize,
+}
+
+impl From<_core::PlaylistBriefTracks> for PlaylistBriefTracks {
+    fn from(from: _core::PlaylistBriefTracks) -> Self {
+        let _core::PlaylistBriefTracks { count } = from;
+        Self { count }
     }
 }
 
