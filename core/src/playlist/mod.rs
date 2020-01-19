@@ -240,13 +240,18 @@ impl Validate for Playlist {
 
 pub type Entity = crate::entity::Entity<PlaylistInvalidity, Playlist>;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PlaylistBriefEntries {
-    pub tracks_count: usize,
+    pub count: usize,
 
-    pub entries_count: usize,
+    pub since_minmax: Option<(TickInstant, TickInstant)>,
 
-    pub entries_since_minmax: Option<(TickInstant, TickInstant)>,
+    pub tracks: PlaylistBriefTracks,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PlaylistBriefTracks {
+    pub count: usize,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -281,10 +286,13 @@ pub struct PlaylistBriefRef<'a> {
 
 impl<'a> Playlist {
     pub fn entries_brief(&self) -> PlaylistBriefEntries {
+        let tracks = PlaylistBriefTracks {
+            count: self.count_tracks(),
+        };
         PlaylistBriefEntries {
-            tracks_count: self.count_tracks(),
-            entries_count: self.entries.len(),
-            entries_since_minmax: self.entries_since_minmax(),
+            count: self.entries.len(),
+            since_minmax: self.entries_since_minmax(),
+            tracks,
         }
     }
 

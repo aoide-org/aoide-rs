@@ -175,10 +175,13 @@ impl From<QueryableBrief> for (RepoId, EntityHeader, PlaylistBrief) {
             (Some(min), Some(max)) => Some((min, max)),
             _ => None,
         };
+        let tracks = PlaylistBriefTracks {
+            count: tracks_count as usize,
+        };
         let entries = PlaylistBriefEntries {
-            tracks_count: tracks_count as usize,
-            entries_count: entries_count as usize,
-            entries_since_minmax,
+            count: entries_count as usize,
+            since_minmax: entries_since_minmax,
+            tracks,
         };
         let brief = PlaylistBrief {
             name,
@@ -216,13 +219,16 @@ impl<'a> InsertableBrief<'a> {
             r#type,
             color,
             location,
-            entries,
+            ref entries,
         } = brief_ref;
         let PlaylistBriefEntries {
-            tracks_count,
-            entries_count,
-            entries_since_minmax,
+            count: entries_count,
+            since_minmax: entries_since_minmax,
+            tracks,
         } = entries;
+        let PlaylistBriefTracks {
+            count: tracks_count,
+        } = tracks;
         Self {
             playlist_id,
             name,
@@ -231,10 +237,12 @@ impl<'a> InsertableBrief<'a> {
             color_code: color.map(|color| color.code() as i32),
             geoloc_lat: location.as_ref().map(|p| p.lat),
             geoloc_lon: location.as_ref().map(|p| p.lon),
-            tracks_count: tracks_count as i64,
-            entries_count: entries_count as i64,
-            entries_since_min: entries_since_minmax.map(|minmax| DateTime::from(minmax.0).naive_utc()),
-            entries_since_max: entries_since_minmax.map(|minmax| DateTime::from(minmax.1).naive_utc()),
+            tracks_count: *tracks_count as i64,
+            entries_count: *entries_count as i64,
+            entries_since_min: entries_since_minmax
+                .map(|minmax| DateTime::from(minmax.0).naive_utc()),
+            entries_since_max: entries_since_minmax
+                .map(|minmax| DateTime::from(minmax.1).naive_utc()),
         }
     }
 }
