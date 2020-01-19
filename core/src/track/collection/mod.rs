@@ -17,7 +17,7 @@ use super::*;
 
 use crate::{
     entity::{EntityUid, EntityUidInvalidity},
-    util::{color::*, clock::TickInstant},
+    util::{clock::TickInstant, color::*},
 };
 
 ///////////////////////////////////////////////////////////////////////

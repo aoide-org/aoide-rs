@@ -17,36 +17,13 @@ use super::*;
 
 use crate::{entity::EntityUid, util::color::ColorRgb};
 
-use aoide_core::util::clock::{TickInstant, TickType, Ticks};
+use aoide_core::util::{
+    clock::{TickInstant, TickType, Ticks},
+    geo::*,
+};
 
 mod _core {
     pub use aoide_core::{entity::EntityHeader, playlist::*};
-}
-
-///////////////////////////////////////////////////////////////////////
-// PlaylistTrack
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
-#[serde(deny_unknown_fields)]
-pub struct PlaylistTrack {
-    #[serde(rename = "t")]
-    uid: EntityUid,
-}
-
-impl From<PlaylistTrack> for _core::PlaylistTrack {
-    fn from(from: PlaylistTrack) -> Self {
-        let PlaylistTrack { uid } = from;
-        Self { uid: uid.into() }
-    }
-}
-
-impl From<_core::PlaylistTrack> for PlaylistTrack {
-    fn from(from: _core::PlaylistTrack) -> Self {
-        let _core::PlaylistTrack { uid } = from;
-        Self { uid: uid.into() }
-    }
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -61,7 +38,7 @@ pub enum PlaylistItem {
     Separator,
 
     #[serde(rename = "t")]
-    Track(PlaylistTrack),
+    Track(EntityUid),
     //
     // TODO: Add other kinds of playlist items
     //#[serde(rename = "x")]
@@ -73,7 +50,9 @@ impl From<PlaylistItem> for _core::PlaylistItem {
         use PlaylistItem::*;
         match from {
             Separator => Self::Separator,
-            Track(track) => Self::Track(track.into()),
+            Track(track_uid) => Self::Track(_core::PlaylistTrack {
+                uid: track_uid.into(),
+            }),
         }
     }
 }
@@ -83,7 +62,7 @@ impl From<_core::PlaylistItem> for PlaylistItem {
         use _core::PlaylistItem::*;
         match from {
             Separator => Self::Separator,
-            Track(track) => Self::Track(track.into()),
+            Track(track) => Self::Track(track.uid.into()),
         }
     }
 }
@@ -141,7 +120,7 @@ impl From<_core::PlaylistEntry> for PlaylistEntry {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(deny_unknown_fields)]
 pub struct Playlist {
     #[serde(rename = "n")]
@@ -156,6 +135,9 @@ pub struct Playlist {
     #[serde(rename = "c", skip_serializing_if = "Option::is_none")]
     color: Option<ColorRgb>,
 
+    #[serde(rename = "g", skip_serializing_if = "Option::is_none")]
+    location: Option<(GeoCoord, GeoCoord)>,
+
     #[serde(rename = "e")]
     entries: Vec<PlaylistEntry>,
 }
@@ -167,6 +149,7 @@ impl From<Playlist> for _core::Playlist {
             description,
             r#type,
             color,
+            location,
             entries,
         } = from;
         Self {
@@ -174,6 +157,7 @@ impl From<Playlist> for _core::Playlist {
             description,
             r#type,
             color: color.map(Into::into),
+            location: location.map(|(lat, lon)| GeoPoint { lat, lon }),
             entries: entries.into_iter().map(Into::into).collect(),
         }
     }
@@ -186,6 +170,7 @@ impl From<_core::Playlist> for Playlist {
             description,
             r#type,
             color,
+            location,
             entries,
         } = from;
         Self {
@@ -193,6 +178,7 @@ impl From<_core::Playlist> for Playlist {
             description,
             r#type,
             color: color.map(Into::into),
+            location: location.map(|p| (p.lat, p.lon)),
             entries: entries.into_iter().map(Into::into).collect(),
         }
     }
@@ -254,7 +240,7 @@ impl From<_core::PlaylistBriefEntries> for PlaylistBriefEntries {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(deny_unknown_fields)]
 pub struct PlaylistBrief {
     #[serde(rename = "n")]
@@ -269,6 +255,9 @@ pub struct PlaylistBrief {
     #[serde(rename = "c", skip_serializing_if = "Option::is_none")]
     color: Option<ColorRgb>,
 
+    #[serde(rename = "g", skip_serializing_if = "Option::is_none")]
+    location: Option<(GeoCoord, GeoCoord)>,
+
     #[serde(rename = "e")]
     entries: PlaylistBriefEntries,
 }
@@ -281,6 +270,7 @@ impl From<_core::Playlist> for PlaylistBrief {
             description,
             r#type,
             color,
+            location,
             entries: _entries,
         } = from;
         Self {
@@ -288,6 +278,7 @@ impl From<_core::Playlist> for PlaylistBrief {
             description,
             r#type,
             color: color.map(Into::into),
+            location: location.map(|p| (p.lat, p.lon)),
             entries,
         }
     }
@@ -300,6 +291,7 @@ impl From<_core::PlaylistBrief> for PlaylistBrief {
             description,
             r#type,
             color,
+            location,
             entries,
         } = from;
         Self {
@@ -307,6 +299,7 @@ impl From<_core::PlaylistBrief> for PlaylistBrief {
             description,
             r#type,
             color: color.map(Into::into),
+            location: location.map(|p| (p.lat, p.lon)),
             entries: entries.into(),
         }
     }
@@ -323,3 +316,10 @@ impl From<_core::Entity> for BriefEntity {
         Self(from.hdr.into(), from.body.into())
     }
 }
+
+///////////////////////////////////////////////////////////////////////
+// Tests
+///////////////////////////////////////////////////////////////////////
+
+#[cfg(test)]
+mod tests;
