@@ -28,6 +28,7 @@ use crate::{entity::EntityUid, util::color::ColorRgb};
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Collection {
     #[serde(rename = "u")]
     uid: EntityUid,

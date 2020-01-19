@@ -67,7 +67,7 @@ impl From<_core::TitleLevel> for TitleLevel {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
+#[serde(untagged, deny_unknown_fields)]
 pub enum Title {
     Name(String),
     NameLevel(String, TitleLevel),

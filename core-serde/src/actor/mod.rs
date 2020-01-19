@@ -134,7 +134,7 @@ impl From<_core::ActorPrecedence> for ActorPrecedence {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
+#[serde(untagged, deny_unknown_fields)]
 pub enum Actor {
     Name(String),
     NameRole(String, ActorRole),
