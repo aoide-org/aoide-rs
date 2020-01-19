@@ -197,7 +197,7 @@ impl<'de> Deserialize<'de> for Score {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
+#[serde(untagged, deny_unknown_fields)]
 pub enum PlainTag {
     Label(Label),
     LabelScore(Label, Score),
@@ -228,7 +228,7 @@ impl From<PlainTag> for _core::Tag {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
+#[serde(untagged, deny_unknown_fields)]
 pub enum FacetedTag {
     Facet(Facet),
     FacetScore(Facet, Score),

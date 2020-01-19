@@ -43,7 +43,7 @@ impl From<TempoBpm> for _core::TempoBpm {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
+#[serde(untagged, deny_unknown_fields)]
 pub enum TimeSignature {
     Top(_core::BeatNumber),
     TopBottom(_core::BeatNumber, _core::BeatNumber),

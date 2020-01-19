@@ -84,7 +84,7 @@ impl From<ChannelLayout> for _core::ChannelLayout {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
+#[serde(untagged, deny_unknown_fields)]
 pub enum Channels {
     Count(ChannelCount),
     Layout(ChannelLayout),
