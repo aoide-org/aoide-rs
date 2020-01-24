@@ -453,6 +453,8 @@ pub async fn main() -> Result<(), Error> {
     let static_filters = index_html.or(openapi_yaml);
 
     log::info!("Initializing server");
+
+    let cors = warp::cors().allow_any_origin();
     let server = warp::serve(
         collections_filters
             .or(playlists_filters)
@@ -461,7 +463,8 @@ pub async fn main() -> Result<(), Error> {
             .or(tags_filters)
             .or(static_filters)
             .or(shutdown_filter)
-            .or(about_filter),
+            .or(about_filter)
+            .with(cors),
     );
 
     log::info!("Starting");
