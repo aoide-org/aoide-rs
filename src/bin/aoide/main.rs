@@ -33,8 +33,9 @@ use aoide_repo_sqlite::{
 use anyhow::Error;
 use clap::App;
 use diesel::{prelude::*, sql_query};
+use futures::future::{join, FutureExt};
 use std::{env::current_exe, net::SocketAddr, time::Duration};
-use tokio::time::delay_for;
+use tokio::{sync::mpsc, time::delay_for};
 use warp::{http::StatusCode, Filter};
 
 #[macro_use]
@@ -42,7 +43,7 @@ extern crate diesel_migrations;
 
 ///////////////////////////////////////////////////////////////////////
 
-const SERVER_LISTENING_DELAY: Duration = Duration::from_secs(1);
+const WEB_SERVER_LISTENING_DELAY: Duration = Duration::from_millis(100);
 
 static INDEX_HTML: &str = include_str!("../../../resources/index.html");
 static OPENAPI_YAML: &str = include_str!("../../../resources/openapi.yaml");
@@ -162,7 +163,7 @@ pub async fn main() -> Result<(), Error> {
         .and_then(|res: Result<_, _>| async { res.map_err(reject_from_anyhow) });
 
     // POST /shutdown
-    let (server_shutdown_tx, mut server_shutdown_rx) = tokio::sync::mpsc::unbounded_channel::<()>();
+    let (server_shutdown_tx, mut server_shutdown_rx) = mpsc::unbounded_channel::<()>();
     let shutdown_filter = warp::post()
         .and(warp::path("shutdown"))
         .and(warp::path::end())
@@ -472,19 +473,24 @@ pub async fn main() -> Result<(), Error> {
     let (socket_addr, server_listener) =
         server.bind_with_graceful_shutdown(listen_addr, async move {
             server_shutdown_rx.recv().await;
-            log::info!("Shutting down server");
+            log::info!("Shutting down");
         });
 
-    // Give the server some time for starting up before announcing the
-    // actual endpoint address, i.e. when using an ephemeral port.
-    delay_for(SERVER_LISTENING_DELAY).await;
+    let server_listening = async move {
+        // Give the server some time to become ready and start listening
+        // before announcing the actual endpoint address, i.e. when using
+        // an ephemeral port. The delay might need to be tuned depending
+        // on how long the startup actually takes. Unfortunately warp does
+        // not provide any signal when the server has started listening.
+        delay_for(WEB_SERVER_LISTENING_DELAY).await;
 
-    // stderr
-    log::info!("Listening on {}", socket_addr);
-    // stdout
-    println!("{}", socket_addr);
+        // -> stderr
+        log::info!("Listening on {}", socket_addr);
+        // -> stdout
+        println!("{}", socket_addr);
+    };
 
-    server_listener.await;
+    join(server_listener, server_listening).map(drop).await;
 
     log::info!("Stopped");
 
