@@ -403,6 +403,38 @@ paths:
           $ref: '#/components/responses/400BadRequest'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+  /tracks/load:
+    post:
+      summary: Load multiple tracks by UID
+      description: |
+        Load multiple tracks by their UID.
+
+        The result may contain fewer tracks than requested if some
+        tracks do not exist. The order of the given UIDs is not preserved
+        in the result set, i.e. the ordering of tracks is undefined!!
+      operationId: loadTracks
+      tags:
+        - Tracks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/EntityUid'
+      responses:
+        '200':
+          description: |
+            An array of found tracks in arbitrary order.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrackEntity'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
   /tracks/locate:
     post:
       summary: Locate tracks by URI

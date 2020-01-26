@@ -802,6 +802,16 @@ impl TracksHandler {
             })
     }
 
+    pub fn handle_load_batch(
+        &self,
+        uids: impl Iterator<Item = EntityUid>,
+    ) -> Result<impl warp::Reply, warp::reject::Rejection> {
+        load_tracks(&self.db, uids)
+            .and_then(|x| json::load_entity_data_array_blob(x.into_iter()))
+            .map_err(reject_from_anyhow)
+            .map(json::reply_with_content_type)
+    }
+
     pub fn handle_list(
         &self,
         query_params: TracksQueryParams,

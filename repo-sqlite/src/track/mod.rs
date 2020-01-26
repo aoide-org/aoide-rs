@@ -356,6 +356,17 @@ impl<'a> Repo for Repository<'a> {
             .map_err(Into::into)
     }
 
+    fn load_tracks(
+        &self,
+        uids: &[EntityUid],
+    ) -> RepoResult<Vec<EntityData>> {
+        tbl_track::table
+            .filter(tbl_track::uid.eq_any(uids.iter().map(AsRef::as_ref)))
+            .load::<QueryableEntityData>(self.connection)
+            .map(|v| v.into_iter().map(Into::into).collect())
+            .map_err(Into::into)
+    }
+
     fn locate_tracks(
         &self,
         collection_uid: Option<&EntityUid>,

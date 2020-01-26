@@ -95,6 +95,14 @@ pub fn load_track(
     conn.transaction::<_, Error, _>(|| repo.load_track(uid))
 }
 
+pub fn load_tracks(
+    conn: &SqlitePooledConnection,
+    uids: impl Iterator<Item = EntityUid>,
+) -> RepoResult<Vec<EntityData>> {
+    let repo = Repository::new(&*conn);
+    conn.transaction::<_, Error, _>(|| repo.load_tracks(&uids.collect::<Vec<_>>()))
+}
+
 pub fn list_tracks(
     conn: &SqlitePooledConnection,
     collection_uid: Option<EntityUid>,

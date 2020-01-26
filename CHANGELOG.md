@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.6.2] - 2020-01-dd
+
+### Added
+
+- Load multiple tracks by UID
+
 ## [0.6.1] - 2020-01-19
 
 **This release breaks backward compatibility with old versions! Existing databases need to be rebuilt.**

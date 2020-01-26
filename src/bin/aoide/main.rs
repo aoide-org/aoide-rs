@@ -23,7 +23,11 @@ use aoide::{
     *,
 };
 
-use aoide_core::collection::Collection;
+use aoide_core::{collection::Collection, entity::EntityUid};
+
+mod _serde {
+    pub use aoide_core_serde::entity::EntityUid;
+}
 
 use aoide_repo_sqlite::{
     playlist::util::RepositoryHelper as PlaylistRepositoryHelper,
@@ -195,7 +199,7 @@ pub async fn main() -> Result<(), Error> {
 
     // /collections
     let collections = warp::path("collections");
-    let collections_uid = collections.and(warp::path::param::<aoide_core::entity::EntityUid>());
+    let collections_uid = collections.and(warp::path::param::<EntityUid>());
     let collections_create = warp::post()
         .and(collections)
         .and(warp::path::end())
@@ -243,7 +247,7 @@ pub async fn main() -> Result<(), Error> {
 
     // /playlists
     let playlists = warp::path("playlists");
-    let playlists_uid = playlists.and(warp::path::param::<aoide_core::entity::EntityUid>());
+    let playlists_uid = playlists.and(warp::path::param::<EntityUid>());
     let playlists_create = warp::post()
         .and(playlists)
         .and(warp::path::end())
@@ -299,7 +303,7 @@ pub async fn main() -> Result<(), Error> {
 
     // /tracks
     let tracks = warp::path("tracks");
-    let tracks_uid = tracks.and(warp::path::param::<aoide_core::entity::EntityUid>());
+    let tracks_uid = tracks.and(warp::path::param::<EntityUid>());
     let tracks_create = warp::post()
         .and(tracks)
         .and(warp::path::end())
@@ -329,6 +333,18 @@ pub async fn main() -> Result<(), Error> {
         .and(pooled_connection.clone())
         .and_then(|uid, pooled_connection| {
             async { TracksHandler::new(pooled_connection).handle_load(uid) }
+        });
+    let tracks_load_batch = warp::post()
+        .and(tracks)
+        .and(warp::path("load"))
+        .and(warp::path::end())
+        .and(warp::body::json())
+        .and(pooled_connection.clone())
+        .and_then(|body: Vec<_serde::EntityUid>, pooled_connection| {
+            async {
+                TracksHandler::new(pooled_connection)
+                    .handle_load_batch(body.into_iter().map(Into::into))
+            }
         });
     let tracks_list = warp::get()
         .and(tracks)
