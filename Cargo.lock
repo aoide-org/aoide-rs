@@ -26,7 +26,7 @@ checksum = "7825f6833612eb2414095684fcf6c635becf3ce97fe48cf6421321e93bfbd53c"
 
 [[package]]
 name = "aoide"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
  "anyhow",
  "aoide-core",

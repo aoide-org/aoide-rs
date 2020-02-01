@@ -33,7 +33,7 @@ use aoide_core::{
 
 use aoide_core_serde::{
     entity::EntityRevision,
-    playlist::{Playlist, PlaylistBrief},
+    playlist::{Playlist, PlaylistBrief, BriefEntity},
 };
 
 use aoide_repo::{Pagination, PaginationLimit, PaginationOffset};
@@ -102,10 +102,10 @@ impl PlaylistsHandler {
         new_playlist: Playlist,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         let body_data = write_json_body_data(&new_playlist).map_err(reject_from_anyhow)?;
-        let hdr = create_playlist(&self.db, new_playlist.into(), body_data)
+        let entity = create_playlist(&self.db, new_playlist.into(), body_data)
             .map_err(reject_from_anyhow)?;
         Ok(warp::reply::with_status(
-            warp::reply::json(&_serde::EntityHeader::from(hdr)),
+            warp::reply::json(&BriefEntity::from(entity)),
             StatusCode::CREATED,
         ))
     }
@@ -125,10 +125,11 @@ impl PlaylistsHandler {
             )));
         }
         let update_result =
-            update_playlist(&self.db, entity, json_data).map_err(reject_from_anyhow)?;
+            update_playlist(&self.db, &entity, json_data).map_err(reject_from_anyhow)?;
         if let EntityRevisionUpdateResult::Updated(_, next_rev) = update_result {
-            let hdr = EntityHeader { uid, rev: next_rev };
-            Ok(warp::reply::json(&_serde::EntityHeader::from(hdr)))
+            let next_hdr = EntityHeader { uid, rev: next_rev };
+            let entity = Entity::new(next_hdr, entity.body);
+            Ok(warp::reply::json(&BriefEntity::from(entity)))
         } else {
             Err(reject_from_anyhow(anyhow!(
                 "Entity not found or revision conflict"
@@ -145,15 +146,18 @@ impl PlaylistsHandler {
             .map_err(reject_from_anyhow)?;
         use EntityRevisionUpdateResult::*;
         match update_result {
-            NotFound => Err(reject_from_anyhow(anyhow!("Entity not found"))),
-            Current(rev) => {
+            (NotFound, None) => Err(reject_from_anyhow(anyhow!("Entity not found"))),
+            (Current(rev), Some(body)) => {
                 let hdr = EntityHeader { uid, rev };
-                Ok(warp::reply::json(&_serde::EntityHeader::from(hdr)))
+                let entity = Entity::new(hdr, body);
+                Ok(warp::reply::json(&BriefEntity::from(entity)))
             }
-            Updated(_, next_rev) => {
-                let hdr = EntityHeader { uid, rev: next_rev };
-                Ok(warp::reply::json(&_serde::EntityHeader::from(hdr)))
+            (Updated(_, next_rev), Some(updated_body)) => {
+                let next_hdr = EntityHeader { uid, rev: next_rev };
+                let updated_entity = Entity::new(next_hdr, updated_body);
+                Ok(warp::reply::json(&BriefEntity::from(updated_entity)))
             }
+            _ => unreachable!("unexpected result when patching a playlist"),
         }
     }
 

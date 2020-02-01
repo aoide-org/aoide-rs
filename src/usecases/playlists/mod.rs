@@ -89,16 +89,16 @@ pub fn create_playlist(
     conn: &SqlitePooledConnection,
     new_playlist: Playlist,
     body_data: EntityBodyData,
-) -> RepoResult<EntityHeader> {
+) -> RepoResult<Entity> {
     let repo = Repository::new(&*conn);
     let hdr = EntityHeader::initial_random();
-    let entity = Entity::new(hdr.clone(), new_playlist);
-    conn.transaction::<_, Error, _>(|| repo.insert_playlist(entity, body_data).map(|()| hdr))
+    let entity = Entity::new(hdr, new_playlist);
+    conn.transaction::<_, Error, _>(|| repo.insert_playlist(&entity, body_data).map(|()| entity))
 }
 
 pub fn update_playlist(
     conn: &SqlitePooledConnection,
-    entity: Entity,
+    entity: &Entity,
     body_data: EntityBodyData,
 ) -> RepoResult<EntityRevisionUpdateResult> {
     let repo = Repository::new(&*conn);
@@ -136,7 +136,7 @@ pub fn patch_playlist(
     uid: &EntityUid,
     rev: Option<EntityRevision>,
     operations: impl IntoIterator<Item = PlaylistPatchOperation>,
-) -> RepoResult<EntityRevisionUpdateResult> {
+) -> RepoResult<(EntityRevisionUpdateResult, Option<Playlist>)> {
     let repo = Repository::new(&*conn);
     conn.transaction::<_, Error, _>(|| {
         let entity_data = repo.load_playlist(uid)?;
@@ -150,7 +150,7 @@ pub fn patch_playlist(
             if let Some(rev) = rev {
                 if rev != hdr.rev {
                     // Conflicting revision
-                    return Ok(EntityRevisionUpdateResult::Current(hdr.rev));
+                    return Ok((EntityRevisionUpdateResult::Current(hdr.rev), Some(playlist)));
                 }
             }
             let mut modified = false;
@@ -280,13 +280,13 @@ pub fn patch_playlist(
                 }
             }
             if !modified {
-                return Ok(EntityRevisionUpdateResult::Current(hdr.rev));
+                return Ok((EntityRevisionUpdateResult::Current(hdr.rev), Some(playlist)));
             }
             let updated_body_data = json::serialize_entity_body_data(&playlist.clone().into())?;
             let updated_entity = Entity::new(hdr, playlist);
-            repo.update_playlist(updated_entity, updated_body_data)
+            repo.update_playlist(&updated_entity, updated_body_data).map(|res| (res, Some(updated_entity.body)))
         } else {
-            Ok(EntityRevisionUpdateResult::NotFound)
+            Ok((EntityRevisionUpdateResult::NotFound, None))
         }
     })
 }

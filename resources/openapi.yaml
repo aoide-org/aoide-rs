@@ -1,6 +1,6 @@
 openapi: 3.0.2
 info:
-  version: 0.6.2
+  version: 0.6.3
   title: aoide
   description: Music library management
   license:
@@ -181,11 +181,11 @@ paths:
       responses:
         '201':
           description: |
-            The header of the newly created playlist entity.
+            A brief summary of the newly created playlist entity.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EntityHeader'
+                $ref: '#/components/schemas/PlaylistBriefEntity'
         '400':
           $ref: '#/components/responses/400BadRequest'
         '500':
@@ -194,7 +194,7 @@ paths:
     get:
       summary: Load a playlist
       description: |
-        Load a playlist entity referenced by its UID.
+        Load a playlist entity with all entries referenced by its UID.
       operationId: loadPlaylist
       tags:
         - Playlists
@@ -233,11 +233,11 @@ paths:
       responses:
         '200':
           description: |
-            The header of the updated playlist entity.
+            A brief summary of the updated playlist entity.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EntityHeader'
+                $ref: '#/components/schemas/PlaylistBriefEntity'
         '400':
           $ref: '#/components/responses/400BadRequest'
         '404':
@@ -262,11 +262,11 @@ paths:
       responses:
         '200':
           description: |
-            The header of the patched playlist entity.
+            A brief summary of the patched playlist entity.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EntityHeader'
+                $ref: '#/components/schemas/PlaylistBriefEntity'
         '400':
           $ref: '#/components/responses/400BadRequest'
         '404':

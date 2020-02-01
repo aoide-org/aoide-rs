@@ -23,11 +23,11 @@ use aoide_core::{
 };
 
 pub trait Repo {
-    fn insert_playlist(&self, entity: Entity, body_data: EntityBodyData) -> RepoResult<()>;
+    fn insert_playlist(&self, entity: &Entity, body_data: EntityBodyData) -> RepoResult<()>;
 
     fn update_playlist(
         &self,
-        entity: Entity,
+        entity: &Entity,
         body_data: EntityBodyData,
     ) -> RepoResult<EntityRevisionUpdateResult>;
 
