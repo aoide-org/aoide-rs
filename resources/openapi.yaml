@@ -203,11 +203,11 @@ paths:
       responses:
         '200':
           description: |
-            The loaded collection entity, optionally with additional statistics.
+            The loaded playlist entity including all entries.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CollectionEntityWithStats'
+                $ref: '#/components/schemas/PlaylistEntity'
         '404':
           $ref: '#/components/responses/404NotFound'
         '500':
@@ -1406,7 +1406,7 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/PlainTag'
-    Playlist:
+    PlaylistEntityBody:
       properties:
         n:
           $ref: '#/components/schemas/PlaylistName'
@@ -1460,7 +1460,7 @@ components:
       items:
         oneOf:
           - $ref: '#/components/schemas/EntityHeader'
-          - $ref: '#/components/schemas/Playlist'
+          - $ref: '#/components/schemas/PlaylistEntityBody'
     PlaylistEntries:
       description: |
         A sequence of playlist entries
