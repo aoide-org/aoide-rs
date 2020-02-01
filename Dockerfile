@@ -94,9 +94,9 @@ COPY [ \
 # Build the dummy project(s), then delete all build artefacts that must(!) not be cached
 RUN cargo build --${BUILD_MODE} --target ${BUILD_TARGET} --workspace \
     && \
-    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/${PROJECT_NAME}* \
-    && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/${PROJECT_NAME}-* \
+    && \
+    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/${PROJECT_NAME}_* \
     && \
     rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/${PROJECT_NAME}-*
 
