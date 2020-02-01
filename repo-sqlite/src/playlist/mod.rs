@@ -25,7 +25,8 @@ use crate::util::*;
 
 use aoide_core::{
     entity::{
-        EntityHeader, EntityRevision, EntityRevisionUpdateResult, EntityUid, EntityVersionNumber,
+        EntityHeader, EntityRevision, EntityRevisionUpdateResult, EntityUid,
+        EntityVersionNumber,
     },
     playlist::*,
     util::clock::{TickInstant, TickType, Ticks},
@@ -74,7 +75,11 @@ impl<'a> EntityRepo for Repository<'a> {
 }
 
 impl<'a> Repo for Repository<'a> {
-    fn insert_playlist(&self, entity: Entity, body_data: EntityBodyData) -> RepoResult<()> {
+    fn insert_playlist(
+        &self,
+        entity: &Entity,
+        body_data: EntityBodyData,
+    ) -> RepoResult<()> {
         {
             let (data_fmt, data_ver, data_blob) = body_data;
             let insertable = InsertableEntity::bind(&entity.hdr, data_fmt, data_ver, &data_blob);
@@ -87,7 +92,7 @@ impl<'a> Repo for Repository<'a> {
 
     fn update_playlist(
         &self,
-        entity: Entity,
+        entity: &Entity,
         body_data: EntityBodyData,
     ) -> RepoResult<EntityRevisionUpdateResult> {
         let prev_rev = entity.hdr.rev;
