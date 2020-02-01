@@ -171,10 +171,7 @@ pub trait Repo {
     /// The result may contain fewer tracks than requested if some
     /// tracks do not exist. The order of the given UIDs is not preserved
     /// in the result set, i.e. the ordering of tracks is undefined!!
-    fn load_tracks(
-        &self,
-        uids: &[EntityUid],
-    ) -> RepoResult<Vec<EntityData>>;
+    fn load_tracks(&self, uids: &[EntityUid]) -> RepoResult<Vec<EntityData>>;
 
     fn locate_tracks(
         &self,
