@@ -413,6 +413,7 @@ pub async fn main() -> Result<(), Error> {
         .or(tracks_update)
         .or(tracks_delete)
         .or(tracks_load)
+        .or(tracks_load_batch)
         .or(tracks_list)
         .or(tracks_locate)
         .or(tracks_search)
