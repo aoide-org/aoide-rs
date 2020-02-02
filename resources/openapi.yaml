@@ -1888,8 +1888,8 @@ components:
       minLength: 1
       example: genre
       description: |
-        Non-empty, lowercase, string that defines the facet of tag.
-        Facets must also not contain any whitespace characters.
+        Non-empty, lowercase, string that defines the facet of a tag.
+        Tag facets must not contain any whitespace characters.
     TagFacetCount:
       type: array
       minLength: 2
@@ -1932,6 +1932,7 @@ components:
       example: Hip Hop/Rap
       description: |
         Non-empty string that defines the textual content of the tag.
+        Tag labels must not contain any leading or trailing whitespace.
     Tags:
       description: |
         Tags partitioned into plain (1st) and faceted (2nd) tags.
@@ -1949,7 +1950,8 @@ components:
       maximum: 1
       example: 0.83
       description: |
-        Normalized score value between 0 and 1.
+        Normalized numeric value between 0 and 1 that assignes a score to the tag.
+        If not specified the default score is 1.0, i.e. full score.
     TempoBpm:
       type: number
       format: double
