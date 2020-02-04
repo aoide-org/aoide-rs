@@ -33,7 +33,7 @@ use aoide_core::{
 
 use aoide_core_serde::{
     entity::EntityRevision,
-    playlist::{Playlist, PlaylistBrief, BriefEntity},
+    playlist::{BriefEntity, Playlist, PlaylistBrief},
 };
 
 use aoide_repo::{Pagination, PaginationLimit, PaginationOffset};

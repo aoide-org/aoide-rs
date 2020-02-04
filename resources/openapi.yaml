@@ -437,21 +437,55 @@ paths:
           $ref: '#/components/responses/500InternalServerError'
   /tracks/locate:
     post:
-      summary: Locate tracks by URI
+      summary: Load multiple tracks matching a media source filter
       description: |
-        Locate tracks according to their (percent-encoded) media URI.
+        Locate and load tracks according to their (percent-encoded) media URI.
         Optionally the URI lookup can be restricted to a single collection.
       operationId: locateTracks
       tags:
         - Tracks
       parameters:
         - $ref: '#/components/parameters/collectionUidQuery'
+        - $ref: '#/components/parameters/paginationOffsetQuery'
+        - $ref: '#/components/parameters/paginationLimitQuery'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LocateTracksParams'
+              $ref: '#/components/schemas/MediaSourceFilterParams'
+      responses:
+        '200':
+          description: |
+            An array of matching tracks.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrackEntity'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /tracks/resolve:
+    post:
+      summary: Resolve the UIDs of tracks from a list of URIs
+      description: |
+        Resolve the UID of tracks from a list of URIs.
+        The result list is unordered and contains only those tracks
+        that have been found.
+      operationId: resolveTracks
+      tags:
+        - Tracks
+      parameters:
+        - $ref: '#/components/parameters/collectionUidRequiredQuery'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Uri'
       responses:
         '200':
           description: |
@@ -733,6 +767,14 @@ components:
       description: |
         An optional UID for selecting a single collection or none for all
         collections.
+    collectionUidRequiredQuery:
+      name: collectionUid
+      in: query
+      required: true
+      schema:
+        $ref: '#/components/schemas/CollectionUid'
+      description: |
+        A UID for selecting a single collection.
     collectionUidPath:
       name: collectionUid
       in: path
@@ -1225,7 +1267,7 @@ components:
           * 24 = D min
         The numbering follows the Circle of fifth / Open Key notation in
         clock-wise orientation, alternating between major and minor keys.
-    LocateTracksParams:
+    MediaSourceFilterParams:
       properties:
         mediaUri:
           $ref: '#/components/schemas/StringPredicate'

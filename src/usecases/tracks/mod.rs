@@ -33,8 +33,8 @@ use aoide_repo::{
         FacetCount as TagFacetCount, FacetCountParams as TagFacetCountParams,
     },
     track::{
-        AlbumCountResults, Albums as _, CountTracksByAlbumParams, LocateParams, ReplaceMode,
-        ReplaceResult, Repo as _, SearchParams, Tags as _,
+        AlbumCountResults, Albums as _, CountTracksByAlbumParams, MediaSourceFilterParams,
+        ReplaceMode, ReplaceResult, Repo as _, SearchParams, Tags as _,
     },
     util::{UriPredicate, UriRelocation},
     Pagination, RepoResult, StringPredicate,
@@ -130,11 +130,22 @@ pub fn locate_tracks(
     conn: &SqlitePooledConnection,
     collection_uid: Option<EntityUid>,
     pagination: Pagination,
-    params: LocateParams,
+    params: MediaSourceFilterParams,
 ) -> RepoResult<Vec<EntityData>> {
     let repo = Repository::new(&*conn);
     conn.transaction::<_, Error, _>(|| {
         repo.locate_tracks(collection_uid.as_ref(), pagination, params)
+    })
+}
+
+pub fn resolve_tracks_by_media_source_uri(
+    conn: &SqlitePooledConnection,
+    collection_uid: &EntityUid,
+    uris: &[String],
+) -> RepoResult<Vec<(String, EntityUid)>> {
+    let repo = Repository::new(&*conn);
+    conn.transaction::<_, Error, _>(|| {
+        repo.resolve_tracks_by_media_source_uri(&collection_uid, &uris)
     })
 }
 
@@ -214,16 +225,16 @@ pub fn purge_tracks(
         for uri_predicate in uri_predicates {
             use StringPredicate::*;
             use UriPredicate::*;
-            let locate_params = match &uri_predicate {
-                Prefix(media_uri) => LocateParams {
+            let filter_params = match &uri_predicate {
+                Prefix(media_uri) => MediaSourceFilterParams {
                     media_uri: StartsWith(media_uri.to_owned()),
                 },
-                Exact(media_uri) => LocateParams {
+                Exact(media_uri) => MediaSourceFilterParams {
                     media_uri: Equals(media_uri.to_owned()),
                 },
             };
             let entities =
-                repo.locate_tracks(collection_uid.as_ref(), Default::default(), locate_params)?;
+                repo.locate_tracks(collection_uid.as_ref(), Default::default(), filter_params)?;
             log::debug!(
                 "Found {} track(s) that match {:?} as candidates for purging",
                 entities.len(),
@@ -273,16 +284,16 @@ pub fn relocate_tracks(
     let repo = Repository::new(&*conn);
     conn.transaction::<_, Error, _>(|| {
         for uri_relocation in uri_relocations {
-            let locate_params = match &uri_relocation.predicate {
-                UriPredicate::Prefix(uri_prefix) => LocateParams {
+            let filter_params = match &uri_relocation.predicate {
+                UriPredicate::Prefix(uri_prefix) => MediaSourceFilterParams {
                     media_uri: StringPredicate::StartsWith(uri_prefix.to_owned()),
                 },
-                UriPredicate::Exact(uri) => LocateParams {
+                UriPredicate::Exact(uri) => MediaSourceFilterParams {
                     media_uri: StringPredicate::Equals(uri.to_owned()),
                 },
             };
             let tracks =
-                repo.locate_tracks(collection_uid.as_ref(), Default::default(), locate_params)?;
+                repo.locate_tracks(collection_uid.as_ref(), Default::default(), filter_params)?;
             log::debug!(
                 "Found {} track(s) that match {:?} as candidates for relocating",
                 tracks.len(),

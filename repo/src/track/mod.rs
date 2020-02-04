@@ -71,7 +71,7 @@ pub struct PhraseFieldFilter {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct LocateParams {
+pub struct MediaSourceFilterParams {
     pub media_uri: StringPredicate,
 }
 
@@ -177,8 +177,14 @@ pub trait Repo {
         &self,
         collection_uid: Option<&EntityUid>,
         pagination: Pagination,
-        locate_params: LocateParams,
+        filter_params: MediaSourceFilterParams,
     ) -> RepoResult<Vec<EntityData>>;
+
+    fn resolve_tracks_by_media_source_uri(
+        &self,
+        collection_uid: &EntityUid, // for disambiguation
+        media_uris: &[String],
+    ) -> RepoResult<Vec<(String, EntityUid)>>;
 
     fn search_tracks(
         &self,
@@ -220,7 +226,7 @@ pub trait Repo {
                 );
             }
         }
-        let locate_params = LocateParams {
+        let locate_params = MediaSourceFilterParams {
             media_uri: StringPredicate::Equals(media_uri),
         };
         let located_tracks =

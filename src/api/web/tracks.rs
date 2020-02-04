@@ -45,7 +45,7 @@ mod _repo {
             Filter as TagFilter, SortField as TagSortField, SortOrder as TagSortOrder,
         },
         track::{
-            AlbumCountResults, CountTracksByAlbumParams, LocateParams, NumericField,
+            AlbumCountResults, CountTracksByAlbumParams, MediaSourceFilterParams, NumericField,
             NumericFieldFilter, PhraseFieldFilter, ReplaceMode, ReplaceResult, SearchFilter,
             SearchParams, SortField, SortOrder, StringField,
         },
@@ -138,12 +138,12 @@ impl From<StringPredicate> for _repo::StringPredicate {
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct LocateParams {
+pub struct MediaSourceFilterParams {
     pub media_uri: StringPredicate,
 }
 
-impl From<LocateParams> for _repo::LocateParams {
-    fn from(from: LocateParams) -> Self {
+impl From<MediaSourceFilterParams> for _repo::MediaSourceFilterParams {
+    fn from(from: MediaSourceFilterParams) -> Self {
         Self {
             media_uri: from.media_uri.into(),
         }
@@ -838,13 +838,29 @@ impl TracksHandler {
     pub fn handle_locate(
         &self,
         query_params: TracksQueryParams,
-        locate_params: LocateParams,
+        filter_params: MediaSourceFilterParams,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         let (collection_uid, pagination) = query_params.into();
-        locate_tracks(&self.db, collection_uid, pagination, locate_params.into())
+        locate_tracks(&self.db, collection_uid, pagination, filter_params.into())
             .and_then(|x| json::load_entity_data_array_blob(x.into_iter()))
             .map_err(reject_from_anyhow)
             .map(json::reply_with_content_type)
+    }
+
+    pub fn handle_resolve(
+        &self,
+        query_params: _serde2::EntityUid,
+        uris: Vec<String>,
+    ) -> Result<impl warp::Reply, warp::reject::Rejection> {
+        let collection_uid = query_params.into();
+        resolve_tracks_by_media_source_uri(&self.db, &collection_uid, &uris)
+            .map(|v| {
+                v.into_iter()
+                    .map(|(uri, uid)| (uri, _serde2::EntityUid::from(uid)))
+                    .collect::<Vec<_>>()
+            })
+            .map_err(reject_from_anyhow)
+            .map(|body| warp::reply::json(&body))
     }
 
     pub fn handle_replace(
@@ -865,7 +881,7 @@ impl TracksHandler {
             reject_from_anyhow(err)
         })
         .map(ReplacedTracks::from)
-        .map(|ref x| warp::reply::json(x))
+        .map(|body| warp::reply::json(&body))
     }
 
     pub fn handle_purge(
