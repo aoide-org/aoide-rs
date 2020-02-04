@@ -284,7 +284,8 @@ pub fn patch_playlist(
             }
             let updated_body_data = json::serialize_entity_body_data(&playlist.clone().into())?;
             let updated_entity = Entity::new(hdr, playlist);
-            repo.update_playlist(&updated_entity, updated_body_data).map(|res| (res, Some(updated_entity.body)))
+            repo.update_playlist(&updated_entity, updated_body_data)
+                .map(|res| (res, Some(updated_entity.body)))
         } else {
             Ok((EntityRevisionUpdateResult::NotFound, None))
         }

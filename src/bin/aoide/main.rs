@@ -364,6 +364,16 @@ pub async fn main() -> Result<(), Error> {
         .and_then(move |query, body, pooled_connection| {
             async move { TracksHandler::new(pooled_connection).handle_locate(query, body) }
         });
+    let tracks_resolve = warp::post()
+        .and(tracks)
+        .and(warp::path("resolve"))
+        .and(warp::path::end())
+        .and(warp::query())
+        .and(warp::body::json())
+        .and(pooled_connection.clone())
+        .and_then(move |query, body, pooled_connection| {
+            async move { TracksHandler::new(pooled_connection).handle_resolve(query, body) }
+        });
     let tracks_search = warp::post()
         .and(tracks)
         .and(warp::path("search"))
@@ -416,6 +426,7 @@ pub async fn main() -> Result<(), Error> {
         .or(tracks_load_batch)
         .or(tracks_list)
         .or(tracks_locate)
+        .or(tracks_resolve)
         .or(tracks_search)
         .or(tracks_replace)
         .or(tracks_purge)

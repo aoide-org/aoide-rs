@@ -368,10 +368,10 @@ impl<'a> Repo for Repository<'a> {
         &self,
         collection_uid: Option<&EntityUid>,
         pagination: Pagination,
-        locate_params: LocateParams,
+        filter_params: MediaSourceFilterParams,
     ) -> RepoResult<Vec<EntityData>> {
         // URI filter
-        let (cmp, val, dir) = (&locate_params.media_uri).into();
+        let (cmp, val, dir) = (&filter_params.media_uri).into();
         let either_eq_or_like = match cmp {
             // Equal comparison without escape characters
             StringCompare::Equals => EitherEqualOrLike::Equal(val.to_owned()),
@@ -437,6 +437,26 @@ impl<'a> Repo for Repository<'a> {
         target
             .load::<QueryableEntityData>(self.connection)
             .map(|v| v.into_iter().map(Into::into).collect())
+            .map_err(Into::into)
+    }
+
+    fn resolve_tracks_by_media_source_uri(
+        &self,
+        collection_uid: &EntityUid, // for disambiguation
+        media_uris: &[String],
+    ) -> RepoResult<Vec<(String, EntityUid)>> {
+        aux_track_location::table
+            .inner_join(tbl_track::table)
+            .filter(aux_track_location::collection_uid.eq(collection_uid.as_ref()))
+            .filter(aux_track_location::uri.eq_any(media_uris))
+            .order_by(tbl_track::uid)
+            .select((aux_track_location::uri, tbl_track::uid))
+            .load::<(String, Vec<u8>)>(self.connection)
+            .map(|v| {
+                v.into_iter()
+                    .map(|(uri, uid)| (uri, EntityUid::from_slice(&uid)))
+                    .collect()
+            })
             .map_err(Into::into)
     }
 

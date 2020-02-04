@@ -11,9 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Return brief summary result when creating/updating/patching a playlist
-
 ### Removed
+
+## [0.6.3] - 2020-02-04
+
+### Added
+
+- Added a function for resolving the UIDs of tracks from a list of URIs
+
+### Changed
+
+- Return brief summary result when creating/updating/patching a playlist
 
 ## [0.6.2] - 2020-02-01
 
@@ -273,7 +281,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial public release
 
-[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.6.2...development
+[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.6.3...development
+[0.6.3]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.6.3
 [0.6.2]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.6.2
 [0.6.1]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.6.1
 [0.6.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.6.0
