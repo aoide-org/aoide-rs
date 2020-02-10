@@ -725,6 +725,13 @@ impl From<UriRelocation> for _repo::UriRelocation {
     }
 }
 
+#[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(Serialize))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct CollectionUidQueryParams {
+    pub collection_uid: _serde2::EntityUid,
+}
+
 #[allow(missing_debug_implementations)]
 pub struct TracksHandler {
     db: SqlitePooledConnection,
@@ -849,10 +856,10 @@ impl TracksHandler {
 
     pub fn handle_resolve(
         &self,
-        query_params: _serde2::EntityUid,
+        query_params: CollectionUidQueryParams,
         uris: Vec<String>,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
-        let collection_uid = query_params.into();
+        let collection_uid = query_params.collection_uid.into();
         resolve_tracks_by_media_source_uri(&self.db, &collection_uid, &uris)
             .map(|v| {
                 v.into_iter()

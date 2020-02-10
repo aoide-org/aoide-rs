@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.6.4] - 2020-02-10
+
+### Changed
+
+- Fixed parsing of query parameters for POST /tracks/resolve
+
 ## [0.6.3] - 2020-02-04
 
 ### Added
@@ -281,7 +287,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial public release
 
-[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.6.3...development
+[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.6.4...development
+[0.6.4]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.6.4
 [0.6.3]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.6.3
 [0.6.2]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.6.2
 [0.6.1]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.6.1
