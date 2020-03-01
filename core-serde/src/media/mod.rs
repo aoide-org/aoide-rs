@@ -60,32 +60,36 @@ pub struct ImageSize(u16, u16);
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Artwork {
-    #[serde(rename = "s")]
-    size: ImageSize,
+    #[serde(rename = "c", skip_serializing_if = "Option::is_none")]
+    color: Option<ColorRgb>,
+
+    #[serde(rename = "s", skip_serializing_if = "Option::is_none")]
+    size: Option<ImageSize>,
 
     #[serde(rename = "f", skip_serializing_if = "Option::is_none")]
     fingerprint: Option<String>,
 
     #[serde(rename = "u", skip_serializing_if = "Option::is_none")]
     uri: Option<String>,
-
-    #[serde(rename = "c", skip_serializing_if = "Option::is_none")]
-    background_color: Option<ColorRgb>,
 }
 
 impl From<_core::Artwork> for Artwork {
     fn from(from: _core::Artwork) -> Self {
         let _core::Artwork {
-            size: _core::ImageSize { width, height },
+            color,
+            size,
             fingerprint,
             uri,
-            background_color,
         } = from;
+        let size = size.map(|size| {
+            let _core::ImageSize { width, height } = size;
+            ImageSize(width, height)
+        });
         Self {
-            size: ImageSize(width, height),
+            color: color.map(Into::into),
+            size,
             fingerprint,
             uri,
-            background_color: background_color.map(Into::into),
         }
     }
 }
@@ -93,16 +97,20 @@ impl From<_core::Artwork> for Artwork {
 impl From<Artwork> for _core::Artwork {
     fn from(from: Artwork) -> Self {
         let Artwork {
-            size: ImageSize(width, height),
+            color,
+            size,
             fingerprint,
             uri,
-            background_color,
         } = from;
+        let size = size.map(|size| {
+            let ImageSize(width, height) = size;
+            _core::ImageSize { width, height }
+        });
         Self {
-            size: _core::ImageSize { width, height },
+            color: color.map(Into::into),
+            size,
             fingerprint,
             uri,
-            background_color: background_color.map(Into::into),
         }
     }
 }

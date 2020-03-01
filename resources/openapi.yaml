@@ -906,6 +906,13 @@ components:
       oneOf:
         - $ref: '#/components/schemas/ActorName'
       example: The Beatles
+    ImageFingerprint:
+      description: |
+        Fingerprint that identifies the contents of an image for cache lookup
+        and to decide about modifications, e.g. a base64-encoded SHA256
+        hash of the image data.
+      type: string
+      minLength: 1
     ImageSize:
       description: |
         Width and height of an image in pixels
@@ -926,20 +933,19 @@ components:
         a preliminary view before the actual image has been loaded and
         for selecting a matching color scheme.
       properties:
+        c:
+          $ref: '#/components/schemas/ArtworkColor'
         s:
           $ref: '#/components/schemas/ImageSize'
         f:
-          type: string
-          description: |
-            Fingerprint that identifies the actual content for cache lookup
-            and to decide about modifications, e.g. a base64-encoded SHA256
-            hash of the image data.
+          $ref: '#/components/schemas/ImageFingerprint'
         u:
           $ref: '#/components/schemas/Uri'
-        c:
-          $ref: '#/components/schemas/BackgroundColor'
-      required:
-        - s
+    ArtworkColor:
+      description: |
+        A solid (background) color, e.g. the average color of the artwork image
+      oneOf:
+        - $ref: '#/components/schemas/Color'
     AudioContent:
       properties:
         c:
@@ -957,11 +963,6 @@ components:
     AvgTagScore:
       oneOf:
         - $ref: '#/components/schemas/TagScore'
-    BackgroundColor:
-      description: |
-        A background color color, e.g. the average color of artwork
-      oneOf:
-        - $ref: '#/components/schemas/Color'
     BeatMarker:
       properties:
         s:
