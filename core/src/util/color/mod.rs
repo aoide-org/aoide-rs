@@ -26,11 +26,11 @@ pub struct ColorRgb(pub ColorCode); // 0xRRGGBB
 
 impl ColorRgb {
     const STRING_PREFIX: &'static str = "#";
-    const STRING_LEN: usize = 7;
+    const STRING_LEN: usize = 1 + 2 + 2 + 2;
 
-    pub const RED_MASK: ColorCode = 0x00_ff_00_00;
-    pub const GREEN_MASK: ColorCode = 0x00_00_ff_00;
-    pub const BLUE_MASK: ColorCode = 0x00_00_00_ff;
+    pub const RED_MASK: ColorCode = 0xff_00_00;
+    pub const GREEN_MASK: ColorCode = 0x00_ff_00;
+    pub const BLUE_MASK: ColorCode = 0x00_00_ff;
 
     pub const BLACK: Self = ColorRgb(0);
     pub const RED: Self = ColorRgb(Self::RED_MASK);
@@ -86,7 +86,7 @@ impl FromStr for ColorRgb {
         if s.len() != Self::STRING_LEN {
             return Err(ParseError::InputLen);
         }
-        let (prefix, hex_code) = s.split_at(1);
+        let (prefix, hex_code) = s.split_at(Self::STRING_PREFIX.len());
         if prefix != Self::STRING_PREFIX {
             return Err(ParseError::InputPrefix);
         }

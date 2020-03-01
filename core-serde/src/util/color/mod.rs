@@ -59,7 +59,7 @@ impl<'de> SerdeDeserializeVisitor<'de> for ColorDeserializeVisitor {
     type Value = ColorRgb;
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("a color code string '#AARRGGBB'")
+        formatter.write_str("a color code string '#RRGGBB'")
     }
 
     fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
@@ -80,3 +80,10 @@ impl<'de> Deserialize<'de> for ColorRgb {
         deserializer.deserialize_str(ColorDeserializeVisitor)
     }
 }
+
+///////////////////////////////////////////////////////////////////////
+// Tests
+///////////////////////////////////////////////////////////////////////
+
+#[cfg(test)]
+mod tests;
