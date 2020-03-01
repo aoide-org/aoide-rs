@@ -60,9 +60,18 @@ impl Validate for ImageSize {
     }
 }
 
+// All artwork properties are optional for maximum flexibility.
+// Properties could be missing or are yet unknown at some point
+// in time.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Artwork {
-    pub size: ImageSize,
+    /// An optional (background) color can be used to quickly display
+    /// a preliminary view before the actual image has been loaded and
+    /// for selecting a matching color scheme.
+    pub color: Option<ColorRgb>,
+
+    /// The dimensions of the image.
+    pub size: Option<ImageSize>,
 
     /// Identifies the actual content for cache lookup and to decide
     /// about modifications, e.g. a base64-encoded SHA256 hash of the
@@ -72,11 +81,6 @@ pub struct Artwork {
     /// Selects one out of multiple resources embedded in the media source
     /// or an external resource.
     pub uri: Option<String>,
-
-    /// The optional background color can be used to quickly display
-    /// a preliminary view before the actual image has been loaded and
-    /// for selecting a matching color scheme.
-    pub background_color: Option<ColorRgb>,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
