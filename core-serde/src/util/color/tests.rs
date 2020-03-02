@@ -19,12 +19,30 @@ use aoide_core::util::color::ColorRgb as CoreColorRgb;
 
 #[test]
 fn deserialize_json() {
-    assert_eq!(ColorRgb::from(CoreColorRgb::BLACK), serde_json::from_str("\"#000000\"").unwrap());
-    assert_eq!(ColorRgb::from(CoreColorRgb::WHITE), serde_json::from_str("\"#FfFfFf\"").unwrap());
-    assert_eq!(ColorRgb::from(CoreColorRgb::RED), serde_json::from_str("\"#FF0000\"").unwrap());
-    assert_eq!(ColorRgb::from(CoreColorRgb::GREEN), serde_json::from_str("\"#00ff00\"").unwrap());
-    assert_eq!(ColorRgb::from(CoreColorRgb::BLUE), serde_json::from_str("\"#0000fF\"").unwrap());
-    assert_eq!(ColorRgb::from(CoreColorRgb(0xabcdef)), serde_json::from_str("\"#aBcDeF\"").unwrap());
+    assert_eq!(
+        ColorRgb::from(CoreColorRgb::BLACK),
+        serde_json::from_str("\"#000000\"").unwrap()
+    );
+    assert_eq!(
+        ColorRgb::from(CoreColorRgb::WHITE),
+        serde_json::from_str("\"#FfFfFf\"").unwrap()
+    );
+    assert_eq!(
+        ColorRgb::from(CoreColorRgb::RED),
+        serde_json::from_str("\"#FF0000\"").unwrap()
+    );
+    assert_eq!(
+        ColorRgb::from(CoreColorRgb::GREEN),
+        serde_json::from_str("\"#00ff00\"").unwrap()
+    );
+    assert_eq!(
+        ColorRgb::from(CoreColorRgb::BLUE),
+        serde_json::from_str("\"#0000fF\"").unwrap()
+    );
+    assert_eq!(
+        ColorRgb::from(CoreColorRgb(0xabcdef)),
+        serde_json::from_str("\"#aBcDeF\"").unwrap()
+    );
 }
 
 #[test]
@@ -75,9 +93,24 @@ fn deserialize_json_too_short() {
 
 #[test]
 fn serialize_json() {
-    assert_eq!("\"#000000\"", serde_json::to_string(&ColorRgb::from(CoreColorRgb::BLACK)).unwrap());
-    assert_eq!("\"#FFFFFF\"", serde_json::to_string(&ColorRgb::from(CoreColorRgb::WHITE)).unwrap());
-    assert_eq!("\"#FF0000\"", serde_json::to_string(&ColorRgb::from(CoreColorRgb::RED)).unwrap());
-    assert_eq!("\"#00FF00\"", serde_json::to_string(&ColorRgb::from(CoreColorRgb::GREEN)).unwrap());
-    assert_eq!("\"#0000FF\"", serde_json::to_string(&ColorRgb::from(CoreColorRgb::BLUE)).unwrap());
+    assert_eq!(
+        "\"#000000\"",
+        serde_json::to_string(&ColorRgb::from(CoreColorRgb::BLACK)).unwrap()
+    );
+    assert_eq!(
+        "\"#FFFFFF\"",
+        serde_json::to_string(&ColorRgb::from(CoreColorRgb::WHITE)).unwrap()
+    );
+    assert_eq!(
+        "\"#FF0000\"",
+        serde_json::to_string(&ColorRgb::from(CoreColorRgb::RED)).unwrap()
+    );
+    assert_eq!(
+        "\"#00FF00\"",
+        serde_json::to_string(&ColorRgb::from(CoreColorRgb::GREEN)).unwrap()
+    );
+    assert_eq!(
+        "\"#0000FF\"",
+        serde_json::to_string(&ColorRgb::from(CoreColorRgb::BLUE)).unwrap()
+    );
 }
