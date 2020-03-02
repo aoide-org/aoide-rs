@@ -65,13 +65,13 @@ impl Validate for ImageSize {
 // in time.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Artwork {
+    /// The dimensions of the image.
+    pub size: Option<ImageSize>,
+
     /// An optional (background) color can be used to quickly display
     /// a preliminary view before the actual image has been loaded and
     /// for selecting a matching color scheme.
     pub color: Option<ColorRgb>,
-
-    /// The dimensions of the image.
-    pub size: Option<ImageSize>,
 
     /// Identifies the actual content for cache lookup and to decide
     /// about modifications, e.g. a base64-encoded SHA256 hash of the
@@ -83,8 +83,21 @@ pub struct Artwork {
     pub uri: Option<String>,
 }
 
+impl Artwork {
+    pub fn is_empty(&self) -> bool {
+        let Self {
+            size,
+            color,
+            fingerprint,
+            uri,
+        } = self;
+        size.is_none() && color.is_none() && fingerprint.is_none() && uri.is_none()
+    }
+}
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ArtworkInvalidity {
+    Empty,
     ImageSize(ImageSizeInvalidity),
 }
 
@@ -94,6 +107,7 @@ impl Validate for Artwork {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
             .validate_with(&self.size, ArtworkInvalidity::ImageSize)
+            .invalidate_if(self.is_empty(), ArtworkInvalidity::Empty)
             .into()
     }
 }

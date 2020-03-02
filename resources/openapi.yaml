@@ -933,10 +933,10 @@ components:
         a preliminary view before the actual image has been loaded and
         for selecting a matching color scheme.
       properties:
-        c:
-          $ref: '#/components/schemas/ArtworkColor'
         s:
           $ref: '#/components/schemas/ImageSize'
+        c:
+          $ref: '#/components/schemas/ArtworkColor'
         f:
           $ref: '#/components/schemas/ImageFingerprint'
         u:

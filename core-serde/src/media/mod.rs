@@ -60,11 +60,11 @@ pub struct ImageSize(u16, u16);
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Artwork {
-    #[serde(rename = "c", skip_serializing_if = "Option::is_none")]
-    color: Option<ColorRgb>,
-
     #[serde(rename = "s", skip_serializing_if = "Option::is_none")]
     size: Option<ImageSize>,
+
+    #[serde(rename = "c", skip_serializing_if = "Option::is_none")]
+    color: Option<ColorRgb>,
 
     #[serde(rename = "f", skip_serializing_if = "Option::is_none")]
     fingerprint: Option<String>,
@@ -76,8 +76,8 @@ pub struct Artwork {
 impl From<_core::Artwork> for Artwork {
     fn from(from: _core::Artwork) -> Self {
         let _core::Artwork {
-            color,
             size,
+            color,
             fingerprint,
             uri,
         } = from;
@@ -86,8 +86,8 @@ impl From<_core::Artwork> for Artwork {
             ImageSize(width, height)
         });
         Self {
-            color: color.map(Into::into),
             size,
+            color: color.map(Into::into),
             fingerprint,
             uri,
         }
@@ -97,8 +97,8 @@ impl From<_core::Artwork> for Artwork {
 impl From<Artwork> for _core::Artwork {
     fn from(from: Artwork) -> Self {
         let Artwork {
-            color,
             size,
+            color,
             fingerprint,
             uri,
         } = from;
@@ -107,8 +107,8 @@ impl From<Artwork> for _core::Artwork {
             _core::ImageSize { width, height }
         });
         Self {
-            color: color.map(Into::into),
             size,
+            color: color.map(Into::into),
             fingerprint,
             uri,
         }
