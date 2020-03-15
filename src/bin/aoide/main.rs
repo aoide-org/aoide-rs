@@ -73,6 +73,7 @@ PRAGMA wal_autocheckpoint = 1000; -- write WAL changes back every 1000 pages (de
 PRAGMA wal_checkpoint(TRUNCATE);  -- free some space by truncating possibly massive WAL files from the last run
 PRAGMA automatic_index = 1;       -- detect and log missing indexes
 PRAGMA foreign_keys = 1;          -- check foreign key constraints
+PRAGMA defer_foreign_keys = 1;    -- delay enforcement of foreign key constraints until commit
 PRAGMA encoding = 'UTF-8';
 "#).execute(connection)?;
     Ok(())
