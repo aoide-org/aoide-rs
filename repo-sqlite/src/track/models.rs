@@ -152,7 +152,7 @@ impl<'a> InsertableCollection<'a> {
             track_id,
             collection_uid: collection.uid.as_ref(),
             since: DateTime::from(collection.since).naive_utc(),
-            comment: collection.comment.as_ref().map(String::as_str),
+            comment: collection.comment.as_deref(),
             color_code: collection.color.map(|color| color.code() as i32),
             play_count: collection.play_count.map(|count| count as i32),
         }

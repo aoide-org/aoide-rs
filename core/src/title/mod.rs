@@ -120,7 +120,7 @@ impl Titles {
     where
         I: IntoIterator<Item = &'a Title>,
     {
-        Self::main_titles(titles).nth(0)
+        Self::main_titles(titles).next()
     }
 }
 

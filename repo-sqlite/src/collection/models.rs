@@ -38,7 +38,7 @@ impl<'a> InsertableEntity<'a> {
             rev_no: entity.hdr.rev.no as i64,
             rev_ts: (entity.hdr.rev.ts.0).0,
             name: &entity.body.name,
-            desc: entity.body.description.as_ref().map(String::as_str),
+            desc: entity.body.description.as_deref(),
         }
     }
 }
@@ -58,7 +58,7 @@ impl<'a> UpdatableEntity<'a> {
             rev_no: next_revision.no as i64,
             rev_ts: (next_revision.ts.0).0,
             name: &body.name,
-            desc: body.description.as_ref().map(String::as_str),
+            desc: body.description.as_deref(),
         }
     }
 }

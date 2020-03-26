@@ -195,7 +195,7 @@ impl PlaylistsHandler {
     ) -> Result<Box<dyn warp::Reply>, warp::reject::Rejection> {
         let (brief, r#type, pagination) = params.into();
         if let Some(true) = brief {
-            list_playlist_briefs(&self.db, r#type.as_ref().map(String::as_str), pagination)
+            list_playlist_briefs(&self.db, r#type.as_deref(), pagination)
                 .map(|res| {
                     let res: Vec<_> = res
                         .into_iter()
@@ -209,7 +209,7 @@ impl PlaylistsHandler {
                 })
                 .map(|reply| Box::new(reply) as Box<dyn warp::Reply>)
         } else {
-            list_playlists(&self.db, r#type.as_ref().map(String::as_str), pagination)
+            list_playlists(&self.db, r#type.as_deref(), pagination)
                 .and_then(|x| json::load_entity_data_array_blob(x.into_iter()))
                 .map(json::reply_with_content_type)
                 .map(|reply| Box::new(reply) as Box<dyn warp::Reply>)
