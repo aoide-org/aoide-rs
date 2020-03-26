@@ -86,6 +86,6 @@ impl Collections {
         I: Iterator<Item = &'a Collection> + Clone,
     {
         debug_assert!(Self::validate(collections.clone()).is_ok());
-        collections.filter(|c| &c.uid == uid).nth(0)
+        collections.filter(|c| &c.uid == uid).next()
     }
 }

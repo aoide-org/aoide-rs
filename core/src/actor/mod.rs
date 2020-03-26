@@ -174,12 +174,12 @@ impl Actors {
     {
         // Try `Summary` first
         if let Some(actor) =
-            Self::filter_role_precedence(actors.clone(), role, ActorPrecedence::Summary).nth(0)
+            Self::filter_role_precedence(actors.clone(), role, ActorPrecedence::Summary).next()
         {
             return Some(actor);
         }
         // Otherwise try `Primary` as a fallback
-        Self::filter_role_precedence(actors, role, ActorPrecedence::Primary).nth(0)
+        Self::filter_role_precedence(actors, role, ActorPrecedence::Primary).next()
     }
 }
 

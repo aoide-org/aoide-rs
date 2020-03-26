@@ -308,8 +308,8 @@ impl<'a> Playlist {
         } = self;
         PlaylistBriefRef {
             name,
-            description: description.as_ref().map(String::as_str),
-            r#type: r#type.as_ref().map(String::as_str),
+            description: description.as_deref(),
+            r#type: r#type.as_deref(),
             color: *color,
             location: location.as_ref(),
             entries,
