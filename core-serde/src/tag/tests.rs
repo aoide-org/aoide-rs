@@ -37,16 +37,22 @@ fn should_fail_to_deserialize_plain_tag_from_single_element_array_with_label() {
 fn deserialize_plain_tag_score_one() {
     let score = _core::Score::new(1.0);
     let tag: PlainTag = serde_json::from_str(&"1").unwrap();
-    assert_eq!(PlainTag::Score(score.into()), tag);
-    assert_eq!("1.0", serde_json::to_string(&tag).unwrap());
+    assert_eq!(
+        _core::Tag::from(PlainTag::Score(score.into())),
+        _core::Tag::from(tag.clone()).into()
+    );
+    assert_eq!("1", serde_json::to_string(&tag).unwrap());
 }
 
 #[test]
 fn deserialize_plain_tag_score_zero() {
     let score = _core::Score::new(0.0);
     let tag: PlainTag = serde_json::from_str(&"0").unwrap();
-    assert_eq!(PlainTag::Score(score.into()), tag);
-    assert_eq!("0.0", serde_json::to_string(&tag).unwrap());
+    assert_eq!(
+        _core::Tag::from(PlainTag::Score(score.into())),
+        _core::Tag::from(tag.clone()).into()
+    );
+    assert_eq!("0", serde_json::to_string(&tag).unwrap());
 }
 
 #[test]

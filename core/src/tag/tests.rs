@@ -53,8 +53,11 @@ fn validate_label() {
 
 #[test]
 fn validate_facet() {
-    assert!(Facet::new(
-        "!\"#$%&'()*+,-./0123456789:;<=>?@[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~").validate().is_ok());
+    assert!(
+        Facet::new("!\"#$%&'()*+,-./0123456789:;<=>?@[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~")
+            .validate()
+            .is_ok()
+    );
     assert!(Facet::new("Facet").validate().is_err());
     assert!(Facet::new("a facet").validate().is_err());
 }
