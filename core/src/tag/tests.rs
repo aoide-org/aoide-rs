@@ -52,15 +52,11 @@ fn validate_label() {
 }
 
 #[test]
-fn parse_facet() {
-    assert_eq!(Ok(Facet::new("a_facet")), "\tA Facet  ".parse::<Facet>());
-}
-
-#[test]
 fn validate_facet() {
-    assert!(Facet::new("a_facet").validate().is_ok());
+    assert!(Facet::new(
+        "!\"#$%&'()*+,-./0123456789:;<=>?@[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~").validate().is_ok());
+    assert!(Facet::new("Facet").validate().is_err());
     assert!(Facet::new("a facet").validate().is_err());
-    assert!(Facet::new("\tA facet  ").validate().is_err());
 }
 
 #[test]
@@ -71,7 +67,11 @@ fn default_facet_is_invalid() {
 #[test]
 fn empty_facet_is_invalid() {
     assert!(Facet::new("").validate().is_err());
-    assert!("".parse::<Facet>().unwrap().validate().is_err());
+}
+
+#[test]
+fn should_fail_to_parse_empty_facet() {
+    assert!("".parse::<Facet>().is_err());
 }
 
 #[test]
