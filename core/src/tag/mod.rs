@@ -182,7 +182,7 @@ impl Facet {
     }
 
     fn is_invalid_char(c: char) -> bool {
-        c.is_whitespace() || c.is_uppercase()
+        !c.is_ascii_lowercase() || c.is_ascii_whitespace()
     }
 }
 
@@ -225,16 +225,19 @@ impl AsRef<str> for Facet {
 }
 
 impl FromStr for Facet {
-    type Err = ();
+    type Err = FacetInvalidity;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let s = s.trim();
         let mut facet = String::with_capacity(s.len());
         for c in s.chars() {
-            let lc = if c.is_whitespace() { '_' } else { c }.to_lowercase();
-            for c in lc {
-                facet.push(c)
+            if Self::is_invalid_char(c) {
+                return Err(FacetInvalidity::InvalidChars);
             }
+            facet.push(c)
+        }
+        if facet.is_empty() {
+            return Err(FacetInvalidity::Empty)
         }
         Ok(Self(facet))
     }

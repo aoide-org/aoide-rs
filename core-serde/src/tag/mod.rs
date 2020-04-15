@@ -69,7 +69,12 @@ impl<'de> Visitor<'de> for FacetVisitor {
     {
         v.parse::<_core::Facet>()
             .map(Into::into)
-            .map_err(|()| serde::de::Error::custom("invalid tag facet"))
+            .map_err(|e| match e {
+                _core::FacetInvalidity::Empty => serde::de::Error::custom("empty tag facet"),
+                _core::FacetInvalidity::InvalidChars => {
+                    serde::de::Error::custom("invalid tag facet")
+                }
+            })
     }
 }
 
@@ -200,9 +205,8 @@ impl<'de> Deserialize<'de> for Score {
 #[serde(untagged, deny_unknown_fields)]
 pub enum PlainTag {
     Label(Label),
+    Score(Score),
     LabelScore(Label, Score),
-    // Needed as a fallback to parse integer score values!
-    LabelIntFallback(Label, i64),
 }
 
 impl From<PlainTag> for _core::Tag {
@@ -213,14 +217,13 @@ impl From<PlainTag> for _core::Tag {
                 label: Some(label.into_inner()),
                 ..Default::default()
             },
-            LabelScore(label, score) => _core::Tag {
-                label: Some(label.into_inner()),
+            Score(score) => _core::Tag {
                 score: score.into_inner(),
                 ..Default::default()
             },
-            LabelIntFallback(label, iscore) => _core::Tag {
+            LabelScore(label, score) => _core::Tag {
                 label: Some(label.into_inner()),
-                score: _core::Score::new(iscore as f64),
+                score: score.into_inner(),
                 ..Default::default()
             },
         }
@@ -234,9 +237,6 @@ pub enum FacetedTag {
     FacetScore(Facet, Score),
     FacetLabel(Facet, Label),
     FacetLabelScore(Facet, Label, Score),
-    // Needed as a fallback to parse integer score values!
-    FacetIntFallback(Facet, i64),
-    FacetLabelIntFallback(Facet, Label, i64),
 }
 
 impl From<FacetedTag> for _core::Tag {
@@ -261,16 +261,6 @@ impl From<FacetedTag> for _core::Tag {
                 facet: Some(facet.into_inner()),
                 label: Some(label.into_inner()),
                 score: score.into_inner(),
-            },
-            FacetIntFallback(facet, iscore) => _core::Tag {
-                facet: Some(facet.into_inner()),
-                score: _core::Score::new(iscore as f64),
-                ..Default::default()
-            },
-            FacetLabelIntFallback(facet, label, iscore) => _core::Tag {
-                facet: Some(facet.into_inner()),
-                label: Some(label.into_inner()),
-                score: _core::Score::new(iscore as f64),
             },
         }
     }
