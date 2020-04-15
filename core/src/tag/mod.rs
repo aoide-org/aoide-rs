@@ -229,7 +229,7 @@ impl FromStr for Facet {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.is_empty() {
-            return Err(FacetInvalidity::Empty)
+            return Err(FacetInvalidity::Empty);
         }
         let mut facet = String::with_capacity(s.len());
         for c in s.chars() {

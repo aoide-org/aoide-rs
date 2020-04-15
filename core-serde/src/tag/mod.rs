@@ -207,6 +207,9 @@ pub enum PlainTag {
     Label(Label),
     Score(Score),
     LabelScore(Label, Score),
+    // Needed as a fallback to parse integer score values!
+    IntScoreFallback(i64),
+    LabelIntScoreFallback(Label, i64),
 }
 
 impl From<PlainTag> for _core::Tag {
@@ -226,6 +229,15 @@ impl From<PlainTag> for _core::Tag {
                 score: score.into_inner(),
                 ..Default::default()
             },
+            IntScoreFallback(iscore) => _core::Tag {
+                score: _core::Score::new(iscore as f64),
+                ..Default::default()
+            },
+            LabelIntScoreFallback(label, iscore) => _core::Tag {
+                label: Some(label.into_inner()),
+                score: _core::Score::new(iscore as f64),
+                ..Default::default()
+            },
         }
     }
 }
@@ -237,6 +249,9 @@ pub enum FacetedTag {
     FacetScore(Facet, Score),
     FacetLabel(Facet, Label),
     FacetLabelScore(Facet, Label, Score),
+    // Needed as a fallback to parse integer score values!
+    FacetIntScoreFallback(Facet, i64),
+    FacetLabelIntScoreFallback(Facet, Label, i64),
 }
 
 impl From<FacetedTag> for _core::Tag {
@@ -261,6 +276,16 @@ impl From<FacetedTag> for _core::Tag {
                 facet: Some(facet.into_inner()),
                 label: Some(label.into_inner()),
                 score: score.into_inner(),
+            },
+            FacetIntScoreFallback(facet, iscore) => _core::Tag {
+                facet: Some(facet.into_inner()),
+                score: _core::Score::new(iscore as f64),
+                ..Default::default()
+            },
+            FacetLabelIntScoreFallback(facet, label, iscore) => _core::Tag {
+                facet: Some(facet.into_inner()),
+                label: Some(label.into_inner()),
+                score: _core::Score::new(iscore as f64),
             },
         }
     }
