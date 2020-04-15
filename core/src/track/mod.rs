@@ -50,7 +50,7 @@ pub struct Track {
 
     pub markers: Markers,
 
-    pub tags: Vec<Tag>,
+    pub tags: Tags,
 }
 
 impl Track {
@@ -140,7 +140,7 @@ impl Validate for Track {
             .validate_with(&self.release, TrackInvalidity::Release)
             .validate_with(&self.indexes, TrackInvalidity::Indexes)
             .validate_with(&self.markers, TrackInvalidity::Markers)
-            .merge_result_with(Tags::validate(self.tags.iter()), TrackInvalidity::Tags)
+            .validate_with(&self.tags, TrackInvalidity::Tags)
             .into()
     }
 }

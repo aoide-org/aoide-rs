@@ -22,30 +22,30 @@ mod _core {
 }
 
 use serde::{de::Visitor, Deserializer, Serializer};
-use std::fmt;
+use std::{collections::HashMap, fmt};
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Facet(_core::Facet);
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct FacetKey(_core::FacetKey);
 
-impl Facet {
-    pub fn into_inner(self) -> _core::Facet {
-        self.0
-    }
-}
-
-impl From<_core::Facet> for Facet {
-    fn from(from: _core::Facet) -> Self {
+impl From<_core::FacetKey> for FacetKey {
+    fn from(from: _core::FacetKey) -> Self {
         Self(from)
     }
 }
 
-impl AsRef<_core::Facet> for Facet {
-    fn as_ref(&self) -> &_core::Facet {
+impl From<FacetKey> for _core::FacetKey {
+    fn from(from: FacetKey) -> Self {
+        from.0
+    }
+}
+
+impl AsRef<_core::FacetKey> for FacetKey {
+    fn as_ref(&self) -> &_core::FacetKey {
         &self.0
     }
 }
 
-impl Serialize for Facet {
+impl Serialize for FacetKey {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -54,51 +54,46 @@ impl Serialize for Facet {
     }
 }
 
-struct FacetVisitor;
+struct FacetKeyVisitor;
 
-impl<'de> Visitor<'de> for FacetVisitor {
-    type Value = Facet;
+impl<'de> Visitor<'de> for FacetKeyVisitor {
+    type Value = FacetKey;
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("Facet")
+        formatter.write_str("FacetKey")
     }
 
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
     where
         E: serde::de::Error,
     {
-        v.parse::<_core::Facet>()
+        v.parse::<_core::FacetKey>()
             .map(Into::into)
-            .map_err(|e| match e {
-                _core::FacetInvalidity::Empty => serde::de::Error::custom("empty tag facet"),
-                _core::FacetInvalidity::InvalidChars => {
-                    serde::de::Error::custom("invalid tag facet")
-                }
-            })
+            .map_err(|()| serde::de::Error::custom("failed to parse tag facet key"))
     }
 }
 
-impl<'de> Deserialize<'de> for Facet {
+impl<'de> Deserialize<'de> for FacetKey {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        deserializer.deserialize_str(FacetVisitor)
+        deserializer.deserialize_str(FacetKeyVisitor)
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Label(_core::Label);
 
-impl Label {
-    pub fn into_inner(self) -> _core::Label {
-        self.0
-    }
-}
-
 impl From<_core::Label> for Label {
     fn from(from: _core::Label) -> Self {
         Self(from)
+    }
+}
+
+impl From<Label> for _core::Label {
+    fn from(from: Label) -> Self {
+        from.0
     }
 }
 
@@ -132,7 +127,7 @@ impl<'de> Visitor<'de> for LabelVisitor {
     {
         v.parse::<_core::Label>()
             .map(Into::into)
-            .map_err(|()| serde::de::Error::custom("invalid tag label"))
+            .map_err(|()| serde::de::Error::custom("failed to parse tag label"))
     }
 }
 
@@ -148,15 +143,15 @@ impl<'de> Deserialize<'de> for Label {
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Score(_core::Score);
 
-impl Score {
-    pub fn into_inner(self) -> _core::Score {
-        self.0
-    }
-}
-
 impl From<_core::Score> for Score {
     fn from(from: _core::Score) -> Self {
         Self(from)
+    }
+}
+
+impl From<Score> for _core::Score {
+    fn from(from: Score) -> Self {
+        from.0
     }
 }
 
@@ -212,137 +207,104 @@ pub enum PlainTag {
     LabelIntScoreFallback(Label, i64),
 }
 
-impl From<PlainTag> for _core::Tag {
+impl From<PlainTag> for _core::PlainTag {
     fn from(from: PlainTag) -> Self {
         use PlainTag::*;
         match from {
-            Label(label) => _core::Tag {
-                label: Some(label.into_inner()),
+            Label(label) => _core::PlainTag {
+                label: Some(label.into()),
                 ..Default::default()
             },
-            Score(score) => _core::Tag {
-                score: score.into_inner(),
+            Score(score) => _core::PlainTag {
+                score: score.into(),
                 ..Default::default()
             },
-            LabelScore(label, score) => _core::Tag {
-                label: Some(label.into_inner()),
-                score: score.into_inner(),
+            IntScoreFallback(iscore) => _core::PlainTag {
+                score: _core::Score::from_inner(iscore as f64),
                 ..Default::default()
             },
-            IntScoreFallback(iscore) => _core::Tag {
-                score: _core::Score::new(iscore as f64),
+            LabelIntScoreFallback(label, iscore) => _core::PlainTag {
+                label: Some(label.into()),
+                score: _core::Score::from_inner(iscore as f64),
                 ..Default::default()
             },
-            LabelIntScoreFallback(label, iscore) => _core::Tag {
-                label: Some(label.into_inner()),
-                score: _core::Score::new(iscore as f64),
+            LabelScore(label, score) => _core::PlainTag {
+                label: Some(label.into()),
+                score: score.into(),
                 ..Default::default()
             },
         }
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(untagged, deny_unknown_fields)]
-pub enum FacetedTag {
-    Facet(Facet),
-    FacetScore(Facet, Score),
-    FacetLabel(Facet, Label),
-    FacetLabelScore(Facet, Label, Score),
-    // Needed as a fallback to parse integer score values!
-    FacetIntScoreFallback(Facet, i64),
-    FacetLabelIntScoreFallback(Facet, Label, i64),
-}
-
-impl From<FacetedTag> for _core::Tag {
-    fn from(from: FacetedTag) -> Self {
-        use FacetedTag::*;
-        match from {
-            Facet(facet) => _core::Tag {
-                facet: Some(facet.into_inner()),
-                ..Default::default()
-            },
-            FacetScore(facet, score) => _core::Tag {
-                facet: Some(facet.into_inner()),
-                score: score.into_inner(),
-                ..Default::default()
-            },
-            FacetLabel(facet, label) => _core::Tag {
-                facet: Some(facet.into_inner()),
-                label: Some(label.into_inner()),
-                ..Default::default()
-            },
-            FacetLabelScore(facet, label, score) => _core::Tag {
-                facet: Some(facet.into_inner()),
-                label: Some(label.into_inner()),
-                score: score.into_inner(),
-            },
-            FacetIntScoreFallback(facet, iscore) => _core::Tag {
-                facet: Some(facet.into_inner()),
-                score: _core::Score::new(iscore as f64),
-                ..Default::default()
-            },
-            FacetLabelIntScoreFallback(facet, label, iscore) => _core::Tag {
-                facet: Some(facet.into_inner()),
-                label: Some(label.into_inner()),
-                score: _core::Score::new(iscore as f64),
-            },
-        }
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-pub struct Tags(Vec<PlainTag>, Vec<FacetedTag>);
-
-impl Tags {
-    pub fn decode(self) -> Vec<_core::Tag> {
-        let mut decoded = Vec::with_capacity(self.0.len() + self.1.len());
-        for plain_tag in self.0.into_iter() {
-            decoded.push(plain_tag.into());
-        }
-        for faceted_tag in self.1.into_iter() {
-            decoded.push(faceted_tag.into());
-        }
-        decoded
-    }
-
-    pub fn encode(tags: Vec<_core::Tag>) -> Self {
-        // Reserve the full capacity for both plain and faceted tags
-        // to avoid reallocations during the encoding. Half of the
-        // space will remain unused, but the doesn't matter in a
-        // data transfer object with a very limited lifetime.
-        let mut plain_tags = Vec::with_capacity(tags.len());
-        let mut faceted_tags = Vec::with_capacity(tags.len());
-        for tag in tags.into_iter() {
-            let _core::Tag {
-                facet,
-                label,
-                score,
-            } = tag;
-            match (facet, label) {
-                (None, None) => unreachable!(), // invalid tag
-                (None, Some(label)) => {
-                    if score == _core::Tag::default_score() {
-                        plain_tags.push(PlainTag::Label(label.into()));
-                    } else {
-                        plain_tags.push(PlainTag::LabelScore(label.into(), score.into()));
-                    }
+impl From<_core::PlainTag> for PlainTag {
+    fn from(from: _core::PlainTag) -> Self {
+        let _core::PlainTag { label, score } = from;
+        match (label, score) {
+            (None, score) => Self::Score(score.into()),
+            (Some(label), score) => {
+                if score == _core::Score::default() {
+                    Self::Label(label.into())
+                } else {
+                    Self::LabelScore(label.into(), score.into())
                 }
-                (Some(facet), None) => {
-                    if score == _core::Tag::default_score() {
-                        faceted_tags.push(FacetedTag::Facet(facet.into()));
-                    } else {
-                        faceted_tags.push(FacetedTag::FacetScore(facet.into(), score.into()));
-                    }
-                }
-                (Some(facet), Some(label)) => faceted_tags.push(FacetedTag::FacetLabelScore(
-                    facet.into(),
-                    label.into(),
-                    score.into(),
-                )),
             }
         }
-        Self(plain_tags, faceted_tags)
+    }
+}
+
+pub type TagsMap = HashMap<FacetKey, Vec<PlainTag>>;
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct Tags(TagsMap);
+
+impl Tags {
+    pub const fn from_inner(inner: TagsMap) -> Self {
+        Self(inner)
+    }
+
+    pub fn into_inner(self) -> TagsMap {
+        self.0
+    }
+}
+
+impl From<TagsMap> for Tags {
+    fn from(inner: TagsMap) -> Self {
+        Self::from_inner(inner)
+    }
+}
+
+impl From<Tags> for TagsMap {
+    fn from(from: Tags) -> Self {
+        from.into_inner()
+    }
+}
+
+impl From<_core::Tags> for Tags {
+    fn from(from: _core::Tags) -> Self {
+        let from = from.into_inner();
+        let mut into = HashMap::with_capacity(from.capacity());
+        for (facet_key, plain_tags) in from.into_iter() {
+            into.insert(
+                facet_key.into(),
+                plain_tags.into_iter().map(Into::into).collect::<Vec<_>>(),
+            );
+        }
+        Self::from_inner(into)
+    }
+}
+
+impl From<Tags> for _core::Tags {
+    fn from(from: Tags) -> Self {
+        let from = from.into_inner();
+        let mut into = HashMap::with_capacity(from.capacity());
+        for (facet_key, plain_tags) in from.into_iter() {
+            into.insert(
+                facet_key.into(),
+                plain_tags.into_iter().map(Into::into).collect::<Vec<_>>(),
+            );
+        }
+        Self::from_inner(into)
     }
 }
 
