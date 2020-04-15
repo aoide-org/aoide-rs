@@ -1,0 +1,93 @@
+type EntityRevision {
+  ordinal: Int!
+  timestamp: DateTime!
+}
+
+type EntityHeader {
+  uid: ID!
+  revision: EntityRevision!
+}
+
+type Collection {
+  name: String!
+  description: String
+}
+
+type CollectionEntity {
+  header: EntityHeader!
+  body: Collection!
+}
+
+enum TitleLevel {
+  MAIN
+  SUB
+}
+
+type Title {
+  name: String!
+  level: TitleLevel @default(value: MAIN)
+  lang: String
+}
+
+enum ActorRole {
+  ARTIST
+  ARRANGER
+  COMPOSER
+  CONDUCTOR
+  DJMIXER
+  LYRICIST
+  PERFORMER
+  REMIXER
+}
+
+enum ActorPrecedence {
+  SUMMARY
+  PRIMARY
+  SECONDARY
+}
+
+type Actor {
+  name: String!
+  role: ActorRole! @default(value: ARTIST)
+  prio: ActorPrecedence! @default(value: SUMMARY)
+  refs: [ID!]
+}
+
+type Release {
+  releasedAt: DateTime
+  releasedBy: String
+  copyright: String
+  licenses: [String!]
+}
+
+type Album {
+  titles: [Title!]!
+  actors: [Actor!]!
+  refs: [ID!]
+  release: Release
+}
+
+type Tag {
+  term: String!
+  score: Float! @default(value: 1)
+  facet: String
+}
+
+type Comment {
+  text: String!
+  owner: String
+}
+
+type Rating {
+  score: Float!
+  owner: String
+}
+
+type Track {
+  titles: [Title!]!
+  actors: [Actor!]!
+  refs: [ID!]!
+  tags: [Tag!]!
+  comments: [Comment!]!
+  ratings: [Rating!]!
+}

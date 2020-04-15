@@ -874,7 +874,7 @@ impl<'a> Tags for Repository<'a> {
         Ok(rows
             .into_iter()
             .map(|row| FacetCount {
-                facet: Facet::new(row.0),
+                facet: Facet::from_inner(row.0),
                 total_count: row.1 as usize,
             })
             .collect())
@@ -989,8 +989,8 @@ impl<'a> Tags for Repository<'a> {
         Ok(rows
             .into_iter()
             .map(|row| AvgScoreCount {
-                facet: row.0.map(Facet::new),
-                label: row.1.map(Label::new),
+                facet: row.0.map(Facet::from_inner),
+                label: row.1.map(Label::from_inner),
                 avg_score: row.2.into(),
                 total_count: row.3 as usize,
             })

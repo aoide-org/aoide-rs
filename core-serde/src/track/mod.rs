@@ -78,7 +78,7 @@ impl From<_core::Track> for Track {
             actors: from.actors.into_iter().map(Into::into).collect(),
             indexes: from.indexes.into(),
             markers: from.markers.into(),
-            tags: Tags::encode(from.tags),
+            tags: from.tags.into(),
         }
     }
 }
@@ -94,7 +94,7 @@ impl From<Track> for _core::Track {
             actors: from.actors.into_iter().map(Into::into).collect(),
             indexes: from.indexes.into(),
             markers: from.markers.into(),
-            tags: from.tags.decode(),
+            tags: from.tags.into(),
         }
     }
 }

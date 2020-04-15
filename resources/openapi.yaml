@@ -1,6 +1,6 @@
 openapi: 3.0.2
 info:
-  version: 0.6.6
+  version: 0.7.0
   title: aoide
   description: Music library management
   license:
@@ -1156,23 +1156,6 @@ components:
       maxLength: 33
       example: 4L9v84JeigpHxEdtVHUkL6JASD92sDwdW
       description: A unique identifier (UID) for entities in base-58 encoding.
-    FacetedTag:
-      description: |
-        Either a single facet or [facet, score], [facet, label], [facet, label, score].
-      oneOf:
-        - $ref: '#/components/schemas/TagFacet'
-        - type: array
-          minLength: 2
-          maxLength: 3
-          items:
-            oneOf:
-              - $ref: '#/components/schemas/TagFacet'
-              - $ref: '#/components/schemas/TagLabel'
-              - $ref: '#/components/schemas/TagScore'
-    FacetedTags:
-      type: array
-      items:
-        $ref: '#/components/schemas/FacetedTag'
     FilterModifier:
       type: string
       enum:
@@ -1435,9 +1418,10 @@ components:
         A match for at least one of the fields is sufficient.
     PlainTag:
       description: |
-        Either a single label or [label, score].
+        Either a single label, a single score, or a 2-element array [label, score].
       oneOf:
         - $ref: '#/components/schemas/TagLabel'
+        - $ref: '#/components/schemas/TagScore'
         - type: array
           minLength: 2
           maxLength: 2
@@ -1978,14 +1962,13 @@ components:
         Tag labels must not contain any leading or trailing whitespace.
     Tags:
       description: |
-        Tags partitioned into plain (1st) and faceted (2nd) tags.
-      type: array
-      minLength: 2
-      maxLength: 2
-      items:
-        oneOf:
-          - $ref: '#/components/schemas/PlainTags'
-          - $ref: '#/components/schemas/FacetedTags'
+        A dictionary of tags indexed by facet.
+
+        The empty key "" stands for no facet and contains all plain tags,
+        i.e. tags without a facet.
+      type: object
+      additionalProperties:
+        $ref: '#/components/schemas/PlainTags'
     TagScore:
       type: number
       format: double

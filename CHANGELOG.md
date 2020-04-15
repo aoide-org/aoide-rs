@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.7.0] - 2020-04-17
+
+**This release breaks backward compatibility with old versions! Existing databases need to be rebuilt.**
+
+**All upcoming minor versions in the 0.7.x release series are supposed to introduce breaking changes without further notice. This will affect both the API as well as the database schema!**
+
+### Changed
+
+- Store all track tags in a single map/dictionary
+
 ## [0.6.6] - 2020-03-26
 
 ### Changed
@@ -299,7 +309,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial public release
 
-[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.6.6...development
+[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.7.0...development
+[0.7.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.6.6
 [0.6.6]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.6.6
 [0.6.5]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.6.5
 [0.6.4]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.6.4

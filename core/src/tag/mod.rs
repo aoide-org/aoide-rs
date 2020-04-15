@@ -17,10 +17,16 @@
 
 use super::*;
 
-use std::{fmt, str::FromStr};
+use std::{
+    cmp::Ordering,
+    collections::HashMap,
+    fmt,
+    hash::{Hash, Hasher},
+    str::FromStr,
+};
 
 ///////////////////////////////////////////////////////////////////////
-// Scoring
+// Score
 ///////////////////////////////////////////////////////////////////////
 
 pub type ScoreValue = f64;
@@ -28,21 +34,34 @@ pub type ScoreValue = f64;
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct Score(ScoreValue);
 
-pub trait Scored {
-    fn score(&self) -> Score;
-}
-
 impl Score {
+    pub const fn min_value() -> ScoreValue {
+        0.0
+    }
+
+    pub const fn max_value() -> ScoreValue {
+        1.0
+    }
+
+    pub fn clamp_value(value: ScoreValue) -> ScoreValue {
+        //value.clamp(Self::min(), Self::max())
+        value.min(Self::max_value()).max(Self::min_value())
+    }
+
     pub const fn min() -> Self {
-        Self(0.0)
+        Self(Self::min_value())
     }
 
     pub const fn max() -> Self {
-        Self(1.0)
+        Self(Self::max_value())
     }
 
-    pub const fn new(score: ScoreValue) -> Self {
-        Self(score)
+    pub const fn from_inner(inner: ScoreValue) -> Self {
+        Self(inner)
+    }
+
+    pub const fn into_inner(self) -> ScoreValue {
+        self.0
     }
 
     // Convert to percentage value with a single decimal digit
@@ -78,13 +97,13 @@ impl Validate for Score {
 
 impl From<Score> for ScoreValue {
     fn from(from: Score) -> Self {
-        from.0
+        from.into_inner()
     }
 }
 
 impl From<ScoreValue> for Score {
     fn from(from: ScoreValue) -> Self {
-        Self::new(from)
+        Self::from_inner(from)
     }
 }
 
@@ -95,27 +114,47 @@ impl fmt::Display for Score {
     }
 }
 
+pub trait Scored {
+    fn score(&self) -> Score;
+}
+
+impl Scored for Score {
+    fn score(&self) -> Self {
+        *self
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////
 // Label
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Default, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct Label(String);
+pub type LabelValue = String;
 
-pub trait Labeled {
-    fn label(&self) -> Option<&Label>;
-}
+/// The name of a tag.
+///
+/// Format: Uniccode string without leading/trailing whitespace
+#[derive(Clone, Default, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct Label(LabelValue);
 
 impl Label {
-    pub fn new(label: impl Into<String>) -> Self {
-        Self(label.into())
+    pub fn clamp_value(value: impl Into<LabelValue>) -> LabelValue {
+        // TODO: Truncate the given string instead of creating a new string
+        value.into().trim().to_string()
+    }
+
+    pub const fn from_inner(inner: LabelValue) -> Self {
+        Self(inner)
+    }
+
+    pub fn into_inner(self) -> LabelValue {
+        self.0
     }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum LabelInvalidity {
     Empty,
-    LeadingOrTrailingWhitespace,
+    Format,
 }
 
 impl Validate for Label {
@@ -124,22 +163,25 @@ impl Validate for Label {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
             .invalidate_if(self.0.is_empty(), LabelInvalidity::Empty)
-            .invalidate_if(
-                self.0.trim().len() != self.0.len(),
-                LabelInvalidity::LeadingOrTrailingWhitespace,
-            )
+            .invalidate_if(self.0.trim().len() != self.0.len(), LabelInvalidity::Format)
             .into()
     }
 }
 
-impl From<Label> for String {
-    fn from(from: Label) -> Self {
-        from.0
+impl From<LabelValue> for Label {
+    fn from(from: LabelValue) -> Self {
+        Self::from_inner(from)
     }
 }
 
-impl AsRef<String> for Label {
-    fn as_ref(&self) -> &String {
+impl From<Label> for LabelValue {
+    fn from(from: Label) -> Self {
+        from.into_inner()
+    }
+}
+
+impl AsRef<LabelValue> for Label {
+    fn as_ref(&self) -> &LabelValue {
         &self.0
     }
 }
@@ -154,14 +196,23 @@ impl FromStr for Label {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let label = s.trim().to_string();
-        Ok(Self(label))
+        Ok(Self(s.into()))
     }
 }
 
 impl fmt::Display for Label {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.0)
+        f.write_str(self.as_ref())
+    }
+}
+
+pub trait Labeled {
+    fn label(&self) -> Option<&Label>;
+}
+
+impl Labeled for Label {
+    fn label(&self) -> Option<&Self> {
+        Some(self)
     }
 }
 
@@ -169,27 +220,41 @@ impl fmt::Display for Label {
 // Facet
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Default, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct Facet(String);
+pub type FacetValue = String;
 
-pub trait Faceted {
-    fn facet(&self) -> Option<&Facet>;
-}
+/// Identifier for a category of tags.
+///
+/// Format: ASCII string, no uppercase characters, no whitespace
+#[derive(Clone, Default, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct Facet(FacetValue);
 
 impl Facet {
-    pub fn new(label: impl Into<String>) -> Self {
-        Self(label.into())
+    pub fn clamp_value(mut value: FacetValue) -> FacetValue {
+        value.retain(Self::is_valid_char);
+        value
+    }
+
+    pub const fn from_inner(inner: FacetValue) -> Self {
+        Self(inner)
+    }
+
+    pub fn into_inner(self) -> FacetValue {
+        self.0
     }
 
     fn is_invalid_char(c: char) -> bool {
         !c.is_ascii() || c.is_ascii_whitespace() || c.is_ascii_uppercase()
+    }
+
+    fn is_valid_char(c: char) -> bool {
+        !Self::is_invalid_char(c)
     }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum FacetInvalidity {
     Empty,
-    InvalidChars,
+    Format,
 }
 
 impl Validate for Facet {
@@ -200,20 +265,26 @@ impl Validate for Facet {
             .invalidate_if(self.0.is_empty(), FacetInvalidity::Empty)
             .invalidate_if(
                 self.0.chars().any(Facet::is_invalid_char),
-                FacetInvalidity::InvalidChars,
+                FacetInvalidity::Format,
             )
             .into()
     }
 }
 
-impl From<Facet> for String {
-    fn from(from: Facet) -> Self {
-        from.0
+impl From<FacetValue> for Facet {
+    fn from(from: FacetValue) -> Self {
+        Self::from_inner(from)
     }
 }
 
-impl AsRef<String> for Facet {
-    fn as_ref(&self) -> &String {
+impl From<Facet> for FacetValue {
+    fn from(from: Facet) -> Self {
+        from.into_inner()
+    }
+}
+
+impl AsRef<FacetValue> for Facet {
+    fn as_ref(&self) -> &FacetValue {
         &self.0
     }
 }
@@ -225,20 +296,10 @@ impl AsRef<str> for Facet {
 }
 
 impl FromStr for Facet {
-    type Err = FacetInvalidity;
+    type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.is_empty() {
-            return Err(FacetInvalidity::Empty);
-        }
-        let mut facet = String::with_capacity(s.len());
-        for c in s.chars() {
-            if Self::is_invalid_char(c) {
-                return Err(FacetInvalidity::InvalidChars);
-            }
-            facet.push(c)
-        }
-        Ok(Self(facet))
+        Ok(Self(s.into()))
     }
 }
 
@@ -248,129 +309,243 @@ impl fmt::Display for Facet {
     }
 }
 
+pub trait Faceted {
+    fn facet(&self) -> Option<&Facet>;
+}
+
+impl Faceted for Facet {
+    fn facet(&self) -> Option<&Self> {
+        Some(self)
+    }
+}
+
+#[derive(Clone, Default, Debug)]
+pub struct FacetKey(Option<Facet>);
+
+impl FacetKey {
+    pub const fn from_inner(inner: Option<Facet>) -> Self {
+        Self(inner)
+    }
+
+    pub fn into_inner(self) -> Option<Facet> {
+        self.0
+    }
+}
+
+impl From<Option<Facet>> for FacetKey {
+    fn from(from: Option<Facet>) -> Self {
+        FacetKey::from_inner(from)
+    }
+}
+
+impl From<FacetKey> for Option<Facet> {
+    fn from(from: FacetKey) -> Self {
+        from.into_inner()
+    }
+}
+
+impl From<Facet> for FacetKey {
+    fn from(from: Facet) -> Self {
+        FacetKey(Some(from))
+    }
+}
+
+impl AsRef<Option<Facet>> for FacetKey {
+    fn as_ref(&self) -> &Option<Facet> {
+        &self.0
+    }
+}
+
+impl AsRef<str> for FacetKey {
+    fn as_ref(&self) -> &str {
+        match &self.0 {
+            Some(facet) => facet.as_ref(),
+            None => "",
+        }
+    }
+}
+
+impl FromStr for FacetKey {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(if s.is_empty() {
+            None.into()
+        } else {
+            Some(Facet::from_inner(s.into())).into()
+        })
+    }
+}
+
+impl fmt::Display for FacetKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_ref())
+    }
+}
+
+impl PartialEq for FacetKey {
+    fn eq(&self, other: &Self) -> bool {
+        let self_str: &str = self.as_ref();
+        let other_str: &str = other.as_ref();
+        self_str == other_str
+    }
+}
+
+impl Eq for FacetKey {}
+
+impl Ord for FacetKey {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let self_str: &str = self.as_ref();
+        let other_str: &str = other.as_ref();
+        self_str.cmp(other_str)
+    }
+}
+
+impl PartialOrd for FacetKey {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Hash for FacetKey {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let self_str: &str = self.as_ref();
+        self_str.hash(state);
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////
-// Tag
+// PlainTag
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Tag {
-    pub facet: Option<Facet>,
+pub struct PlainTag {
     pub label: Option<Label>,
     pub score: Score,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum TagInvalidity {
-    Facet(FacetInvalidity),
+pub enum PlainTagInvalidity {
     Label(LabelInvalidity),
     Score(ScoreInvalidity),
-    BothFacetAndLabelMissing,
 }
 
-impl Validate for Tag {
-    type Invalidity = TagInvalidity;
+impl Validate for PlainTag {
+    type Invalidity = PlainTagInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .validate_with(&self.facet, TagInvalidity::Facet)
-            .validate_with(&self.label, TagInvalidity::Label)
-            .invalidate_if(
-                self.facet.is_none() && self.label.is_none(),
-                TagInvalidity::BothFacetAndLabelMissing,
-            )
-            .validate_with(&self.score, TagInvalidity::Score)
+            .validate_with(&self.label, PlainTagInvalidity::Label)
+            .validate_with(&self.score, PlainTagInvalidity::Score)
             .into()
     }
 }
 
-impl Tag {
+impl PlainTag {
     pub const fn default_score() -> Score {
         Score::max()
     }
 }
 
-impl Default for Tag {
+impl Default for PlainTag {
     fn default() -> Self {
         Self {
-            facet: None,
             label: None,
             score: Self::default_score(),
         }
     }
 }
 
-impl Faceted for Tag {
-    fn facet(&self) -> Option<&Facet> {
-        self.facet.as_ref()
-    }
-}
-
-impl Labeled for Tag {
+impl Labeled for PlainTag {
     fn label(&self) -> Option<&Label> {
         self.label.as_ref()
     }
 }
 
-impl Scored for Tag {
+impl Scored for PlainTag {
     fn score(&self) -> Score {
         self.score
     }
 }
 
-#[derive(Debug, Copy, Clone)]
-pub struct Tags;
+///////////////////////////////////////////////////////////////////////
+// Tags
+///////////////////////////////////////////////////////////////////////
+
+/// Unified map of both plain and faceted tags
+pub type TagsMap = HashMap<FacetKey, Vec<PlainTag>>;
+
+#[derive(Debug, Default, Clone, PartialEq)]
+pub struct Tags(TagsMap);
+
+impl Tags {
+    pub const fn from_inner(inner: TagsMap) -> Self {
+        Self(inner)
+    }
+
+    pub fn into_inner(self) -> TagsMap {
+        self.0
+    }
+}
+
+impl From<TagsMap> for Tags {
+    fn from(from: TagsMap) -> Self {
+        Self::from_inner(from)
+    }
+}
+
+impl From<Tags> for TagsMap {
+    fn from(from: Tags) -> Self {
+        from.into_inner()
+    }
+}
+
+impl AsRef<TagsMap> for Tags {
+    fn as_ref(&self) -> &TagsMap {
+        &self.0
+    }
+}
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum TagsInvalidity {
-    Tag(TagInvalidity),
-    PlainDuplicateLabels,
-    FacetedDuplicateLabels,
+    Facet(FacetInvalidity),
+    PlainTag(PlainTagInvalidity),
+    DuplicateLabels,
 }
 
 impl Tags {
-    pub fn validate<'a, I>(tags: I) -> ValidationResult<TagsInvalidity>
+    fn validate_iter<'a, 'b, I>(
+        context: ValidationContext<TagsInvalidity>,
+        tags_iter: I,
+    ) -> ValidationResult<TagsInvalidity>
     where
-        I: Iterator<Item = &'a Tag> + Clone,
+        I: Iterator<Item = (&'a FacetKey, &'b Vec<PlainTag>)>,
     {
-        let mut context = tags.clone().fold(ValidationContext::new(), |context, tag| {
-            context.validate_with(tag, TagsInvalidity::Tag)
-        });
-        let (plain, faceted): (Vec<_>, Vec<_>) = tags.partition(|tag| tag.facet.is_none());
-        let mut grouped_by_facet = faceted.clone();
-        grouped_by_facet.sort_unstable_by_key(|t| &t.facet);
-        let mut i = 0;
-        while i < grouped_by_facet.len() {
-            let mut j = i + 1;
-            while j < grouped_by_facet.len() {
-                if grouped_by_facet[i].facet != grouped_by_facet[j].facet {
-                    break;
+        tags_iter
+            .fold(context, |mut context, (facet_key, plain_tags)| {
+                let facet: &Option<Facet> = facet_key.as_ref();
+                context = context.validate_with(facet, TagsInvalidity::Facet);
+                for plain_tag in plain_tags {
+                    context = context.validate_with(plain_tag, TagsInvalidity::PlainTag);
                 }
-                j += 1;
-            }
-            if j <= grouped_by_facet.len() {
-                debug_assert!(i < j);
-                let mut faceted_labels: Vec<_> = grouped_by_facet[i..j]
-                    .iter()
-                    .map(|tag| &tag.label)
-                    .collect();
-                faceted_labels.sort_unstable();
-                faceted_labels.dedup();
-                if faceted_labels.len() < j - i {
-                    context = context.invalidate(TagsInvalidity::FacetedDuplicateLabels);
-                    break;
-                }
-            }
-            i = j;
-        }
-        let mut plain_labels: Vec<_> = plain.iter().map(|tag| &tag.label).collect();
-        plain_labels.sort_unstable();
-        plain_labels.dedup();
-        context
-            .invalidate_if(
-                plain_labels.len() < plain.len(),
-                TagsInvalidity::PlainDuplicateLabels,
-            )
+                let mut unique_labels: Vec<_> = plain_tags.iter().map(|t| &t.label).collect();
+                unique_labels.sort_unstable();
+                unique_labels.dedup();
+                context = context.invalidate_if(
+                    unique_labels.len() < plain_tags.len(),
+                    TagsInvalidity::DuplicateLabels,
+                );
+                context
+            })
             .into()
+    }
+}
+
+impl Validate for Tags {
+    type Invalidity = TagsInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        Self::validate_iter(ValidationContext::new(), self.0.iter())
     }
 }
 

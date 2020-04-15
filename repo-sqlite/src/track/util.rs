@@ -256,27 +256,33 @@ impl<'a> RepositoryHelper<'a> {
     }
 
     fn insert_tags(&self, repo_id: RepoId, track: &Track) -> RepoResult<()> {
-        for tag in &track.tags {
-            let facet_id = tag
-                .facet()
+        for (facet_key, plain_tags) in track.tags.as_ref() {
+            let facet: &Option<Facet> = facet_key.as_ref();
+            let facet_id = facet
+                .as_ref()
                 .map(|facet| self.resolve_tag_facet(facet))
                 .transpose()?;
-            let label_id = tag
-                .label()
-                .map(|label| self.resolve_tag_label(label))
-                .transpose()?;
-            let insertable = InsertableTracksTag::bind(repo_id, facet_id, label_id, tag.score());
-            match diesel::insert_into(aux_track_tag::table)
-                .values(&insertable)
-                .execute(self.connection)
-            {
-                Err(err) => log::warn!(
-                    "Failed to insert tag {:?} for track {}: {}",
-                    tag,
-                    repo_id,
-                    err
-                ),
-                Ok(count) => debug_assert!(count == 1),
+            for plain_tag in plain_tags {
+                let label_id = plain_tag
+                    .label
+                    .as_ref()
+                    .map(|label| self.resolve_tag_label(label))
+                    .transpose()?;
+                let insertable =
+                    InsertableTracksTag::bind(repo_id, facet_id, label_id, plain_tag.score());
+                match diesel::insert_into(aux_track_tag::table)
+                    .values(&insertable)
+                    .execute(self.connection)
+                {
+                    Err(err) => log::warn!(
+                        "Failed to insert tag {} -> {:?} for track {}: {}",
+                        facet_key,
+                        plain_tag,
+                        repo_id,
+                        err
+                    ),
+                    Ok(count) => debug_assert!(count == 1),
+                }
             }
         }
         Ok(())

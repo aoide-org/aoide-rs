@@ -21,13 +21,13 @@ use super::*;
 fn score_valid() {
     assert!(Score::min().validate().is_ok());
     assert!(Score::max().validate().is_ok());
-    assert!(Score::new(Score::min().0 + Score::max().0)
+    assert!(Score::from_inner(Score::min().0 + Score::max().0)
         .validate()
         .is_ok());
-    assert!(!Score::new(Score::min().0 - Score::max().0)
+    assert!(!Score::from_inner(Score::min().0 - Score::max().0)
         .validate()
         .is_ok());
-    assert!(!Score::new(Score::max().0 + Score::max().0)
+    assert!(!Score::from_inner(Score::max().0 + Score::max().0)
         .validate()
         .is_ok());
 }
@@ -42,24 +42,32 @@ fn score_display() {
 
 #[test]
 fn parse_label() {
-    assert_eq!(Ok(Label::new("A Label")), "\tA Label  ".parse::<Label>());
+    assert_eq!(
+        Ok(Label::from_inner("A Label".into())),
+        "A Label".parse::<Label>()
+    );
+}
+
+#[test]
+fn clamp_label_value() {
+    assert_eq!("A Label", &Label::clamp_value("\tA Label  "));
 }
 
 #[test]
 fn validate_label() {
-    assert!(Label::new("A Term").validate().is_ok());
-    assert!(Label::new("\tA Term  ").validate().is_err());
+    assert!(Label::from_inner("A Term".into()).validate().is_ok());
+    assert!(Label::from_inner("\tA Term  ".into()).validate().is_err());
 }
 
 #[test]
 fn validate_facet() {
-    assert!(
-        Facet::new("!\"#$%&'()*+,-./0123456789:;<=>?@[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~")
-            .validate()
-            .is_ok()
-    );
-    assert!(Facet::new("Facet").validate().is_err());
-    assert!(Facet::new("a facet").validate().is_err());
+    assert!(Facet::from_inner(
+        "!\"#$%&'()*+,-./0123456789:;<=>?@[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~".into()
+    )
+    .validate()
+    .is_ok());
+    assert!(Facet::from_inner("Facet".into()).validate().is_err());
+    assert!(Facet::from_inner("a facet".into()).validate().is_err());
 }
 
 #[test]
@@ -69,12 +77,12 @@ fn default_facet_is_invalid() {
 
 #[test]
 fn empty_facet_is_invalid() {
-    assert!(Facet::new("").validate().is_err());
+    assert!(Facet::from_inner("".into()).validate().is_err());
 }
 
 #[test]
-fn should_fail_to_parse_empty_facet() {
-    assert!("".parse::<Facet>().is_err());
+fn parse_empty_facet_key() {
+    assert_eq!(Ok(None.into()), "".parse::<FacetKey>());
 }
 
 #[test]
@@ -84,196 +92,231 @@ fn default_label_is_invalid() {
 
 #[test]
 fn empty_label_is_invalid() {
-    assert!(Label::new("").validate().is_err());
+    assert!(Label::from_inner("".into()).validate().is_err());
     assert!("".parse::<Label>().unwrap().validate().is_err());
 }
 
 #[test]
-fn default_tag_score() {
-    assert_eq!(Tag::default_score(), Tag::default().score);
+fn default_plain_tag_score() {
+    assert_eq!(PlainTag::default_score(), PlainTag::default().score);
 }
 
 #[test]
-fn default_tag_is_invalid() {
-    assert!(Tag::default().validate().is_err());
+fn default_plain_tag_is_valid() {
+    assert!(PlainTag::default().validate().is_ok());
 }
 
 #[test]
 fn duplicate_labels() {
-    let tags = [
-        Tag {
-            facet: None,
-            label: Some(Label::new("label1")),
-            ..Default::default()
-        },
-        Tag {
-            facet: None,
-            label: Some(Label::new("label2")),
-            ..Default::default()
-        },
-    ];
-    assert!(Tags::validate(tags.iter()).is_ok());
-
-    let tags = [
-        Tag {
-            facet: None,
-            label: Some(Label::new("label1")),
-            ..Default::default()
-        },
-        Tag {
-            facet: None,
-            label: Some(Label::new("label2")),
-            ..Default::default()
-        },
-        Tag {
-            facet: None,
-            label: Some(Label::new("label1")),
-            ..Default::default()
-        },
-    ];
-    assert_eq!(
-        1,
-        Tags::validate(tags.iter())
-            .err()
-            .unwrap()
-            .into_iter()
-            .count()
+    let tags = Tags::from_inner(
+        vec![(
+            None.into(),
+            vec![
+                PlainTag {
+                    label: Some(Label::from_inner("label1".into())),
+                    ..Default::default()
+                },
+                PlainTag {
+                    label: Some(Label::from_inner("label2".into())),
+                    ..Default::default()
+                },
+            ],
+        )]
+        .into_iter()
+        .collect(),
     );
+    assert!(tags.validate().is_ok());
 
-    let tags = [
-        Tag {
-            facet: Some(Facet::new("facet1")),
-            label: Some(Label::new("label1")),
-            ..Default::default()
-        },
-        Tag {
-            facet: None,
-            label: Some(Label::new("label2")),
-            ..Default::default()
-        },
-        Tag {
-            facet: Some(Facet::new("facet2")),
-            label: Some(Label::new("label2")),
-            ..Default::default()
-        },
-        Tag {
-            facet: None,
-            label: Some(Label::new("label1")),
-            ..Default::default()
-        },
-    ];
-    assert!(Tags::validate(tags.iter()).is_ok());
-
-    let tags = [
-        Tag {
-            facet: Some(Facet::new("facet1")),
-            label: Some(Label::new("label1")),
-            ..Default::default()
-        },
-        Tag {
-            facet: None,
-            label: Some(Label::new("label2")),
-            ..Default::default()
-        },
-        Tag {
-            facet: None,
-            label: Some(Label::new("label2")),
-            ..Default::default()
-        },
-        Tag {
-            facet: Some(Facet::new("facet2")),
-            label: Some(Label::new("label2")),
-            ..Default::default()
-        },
-        Tag {
-            facet: None,
-            label: Some(Label::new("label1")),
-            ..Default::default()
-        },
-    ];
-    assert_eq!(
-        1,
-        Tags::validate(tags.iter())
-            .err()
-            .unwrap()
-            .into_iter()
-            .count()
+    let tags = Tags::from_inner(
+        vec![(
+            None.into(),
+            vec![
+                PlainTag {
+                    label: Some(Label::from_inner("label1".into())),
+                    ..Default::default()
+                },
+                PlainTag {
+                    label: Some(Label::from_inner("label2".into())),
+                    ..Default::default()
+                },
+                PlainTag {
+                    label: Some(Label::from_inner("label1".into())),
+                    ..Default::default()
+                },
+            ],
+        )]
+        .into_iter()
+        .collect(),
     );
+    assert_eq!(1, tags.validate().err().unwrap().into_iter().count());
 
-    let tags = [
-        Tag {
-            facet: Some(Facet::new("facet1")),
-            label: Some(Label::new("label1")),
-            ..Default::default()
-        },
-        Tag {
-            facet: Some(Facet::new("facet2")),
-            label: Some(Label::new("label2")),
-            ..Default::default()
-        },
-        Tag {
-            facet: None,
-            label: Some(Label::new("label2")),
-            ..Default::default()
-        },
-        Tag {
-            facet: Some(Facet::new("facet2")),
-            label: Some(Label::new("label2")),
-            ..Default::default()
-        },
-        Tag {
-            facet: None,
-            label: Some(Label::new("label1")),
-            ..Default::default()
-        },
-    ];
-    assert_eq!(
-        1,
-        Tags::validate(tags.iter())
-            .err()
-            .unwrap()
-            .into_iter()
-            .count()
+    let tags = Tags::from_inner(
+        vec![
+            (
+                None.into(),
+                vec![
+                    PlainTag {
+                        label: Some(Label::from_inner("label1".into())),
+                        ..Default::default()
+                    },
+                    PlainTag {
+                        label: Some(Label::from_inner("label2".into())),
+                        ..Default::default()
+                    },
+                ],
+            ),
+            (
+                Facet::from_inner("facet1".into()).into(),
+                vec![PlainTag {
+                    label: Some(Label::from_inner("label1".into())),
+                    ..Default::default()
+                }],
+            ),
+            (
+                Facet::from_inner("facet2".into()).into(),
+                vec![PlainTag {
+                    label: Some(Label::from_inner("label2".into())),
+                    ..Default::default()
+                }],
+            ),
+        ]
+        .into_iter()
+        .collect(),
     );
+    assert!(tags.validate().is_ok());
 
-    let tags = [
-        Tag {
-            facet: Some(Facet::new("facet1")),
-            label: Some(Label::new("label1")),
-            ..Default::default()
-        },
-        Tag {
-            facet: Some(Facet::new("facet2")),
-            label: Some(Label::new("label2")),
-            ..Default::default()
-        },
-        Tag {
-            facet: None,
-            label: Some(Label::new("label2")),
-            ..Default::default()
-        },
-        Tag {
-            facet: None,
-            label: Some(Label::new("label2")),
-            ..Default::default()
-        },
-        Tag {
-            facet: Some(Facet::new("facet2")),
-            label: Some(Label::new("label2")),
-            ..Default::default()
-        },
-        Tag {
-            facet: None,
-            label: Some(Label::new("label1")),
-            ..Default::default()
-        },
-    ];
-    assert_eq!(
-        2,
-        Tags::validate(tags.iter())
-            .err()
-            .unwrap()
-            .into_iter()
-            .count()
+    let tags = Tags::from_inner(
+        vec![
+            (
+                None.into(),
+                vec![
+                    PlainTag {
+                        label: Some(Label::from_inner("label2".into())),
+                        ..Default::default()
+                    },
+                    PlainTag {
+                        label: Some(Label::from_inner("label1".into())),
+                        ..Default::default()
+                    },
+                    PlainTag {
+                        label: Some(Label::from_inner("label2".into())),
+                        ..Default::default()
+                    },
+                ],
+            ),
+            (
+                Facet::from_inner("facet1".into()).into(),
+                vec![PlainTag {
+                    label: Some(Label::from_inner("label1".into())),
+                    ..Default::default()
+                }],
+            ),
+            (
+                Facet::from_inner("facet2".into()).into(),
+                vec![PlainTag {
+                    label: Some(Label::from_inner("label2".into())),
+                    ..Default::default()
+                }],
+            ),
+        ]
+        .into_iter()
+        .collect(),
     );
+    assert_eq!(1, tags.validate().err().unwrap().into_iter().count());
+
+    let tags = Tags::from_inner(
+        vec![
+            (
+                None.into(),
+                vec![
+                    PlainTag {
+                        label: Some(Label::from_inner("label1".into())),
+                        ..Default::default()
+                    },
+                    PlainTag {
+                        label: Some(Label::from_inner("label2".into())),
+                        ..Default::default()
+                    },
+                ],
+            ),
+            (
+                Facet::from_inner("facet1".into()).into(),
+                vec![PlainTag {
+                    label: Some(Label::from_inner("label1".into())),
+                    ..Default::default()
+                }],
+            ),
+            (
+                Facet::from_inner("facet2".into()).into(),
+                vec![
+                    PlainTag {
+                        label: Some(Label::from_inner("label2".into())),
+                        ..Default::default()
+                    },
+                    PlainTag {
+                        label: Some(Label::from_inner("label2".into())),
+                        ..Default::default()
+                    },
+                ],
+            ),
+        ]
+        .into_iter()
+        .collect(),
+    );
+    assert_eq!(1, tags.validate().err().unwrap().into_iter().count());
+
+    let tags = Tags::from_inner(
+        vec![
+            (
+                None.into(),
+                vec![
+                    PlainTag {
+                        label: Some(Label::from_inner("label2".into())),
+                        ..Default::default()
+                    },
+                    PlainTag {
+                        label: Some(Label::from_inner("label1".into())),
+                        ..Default::default()
+                    },
+                    PlainTag {
+                        label: Some(Label::from_inner("label2".into())),
+                        ..Default::default()
+                    },
+                ],
+            ),
+            (
+                Facet::from_inner("facet1".into()).into(),
+                vec![
+                    PlainTag {
+                        label: Some(Label::from_inner("label1".into())),
+                        ..Default::default()
+                    },
+                    PlainTag {
+                        label: Some(Label::from_inner("label2".into())),
+                        ..Default::default()
+                    },
+                ],
+            ),
+            (
+                Facet::from_inner("facet2".into()).into(),
+                vec![
+                    PlainTag {
+                        label: Some(Label::from_inner("label2".into())),
+                        ..Default::default()
+                    },
+                    PlainTag {
+                        label: Some(Label::from_inner("label2".into())),
+                        ..Default::default()
+                    },
+                    PlainTag {
+                        label: Some(Label::from_inner("label2".into())),
+                        ..Default::default()
+                    },
+                ],
+            ),
+        ]
+        .into_iter()
+        .collect(),
+    );
+    assert_eq!(2, tags.validate().err().unwrap().into_iter().count());
 }
