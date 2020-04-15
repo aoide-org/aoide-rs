@@ -18,7 +18,7 @@
 use super::*;
 
 #[test]
-fn deserialize_tag_label() {
+fn deserialize_plain_tag_label() {
     let label = _core::Label::new("label");
     let json = format!("\"{}\"", label);
     let tag: PlainTag = serde_json::from_str(&json).unwrap();
@@ -27,14 +27,30 @@ fn deserialize_tag_label() {
 }
 
 #[test]
-fn should_fail_to_deserialize_single_element_array_with_label() {
+fn should_fail_to_deserialize_plain_tag_from_single_element_array_with_label() {
     let label = _core::Label::new("label");
     let json = format!("[\"{}\"]", label);
     assert!(serde_json::from_str::<PlainTag>(&json).is_err());
 }
 
 #[test]
-fn deserialize_tag_label_score() {
+fn deserialize_plain_tag_score_one() {
+    let score = _core::Score::new(1.0);
+    let tag: PlainTag = serde_json::from_str(&"1").unwrap();
+    assert_eq!(PlainTag::Score(score.into()), tag);
+    assert_eq!("1.0", serde_json::to_string(&tag).unwrap());
+}
+
+#[test]
+fn deserialize_plain_tag_score_zero() {
+    let score = _core::Score::new(0.0);
+    let tag: PlainTag = serde_json::from_str(&"0").unwrap();
+    assert_eq!(PlainTag::Score(score.into()), tag);
+    assert_eq!("0.0", serde_json::to_string(&tag).unwrap());
+}
+
+#[test]
+fn deserialize_plain_tag_label_score() {
     let label = _core::Label::new("label");
     let score = _core::Score::new(0.5);
     let json = format!("[\"{}\",{}]", label, f64::from(score));
@@ -44,7 +60,7 @@ fn deserialize_tag_label_score() {
 }
 
 #[test]
-fn deserialize_tag_label_score_zero() {
+fn deserialize_plain_tag_label_score_zero() {
     let expected_tag = _core::Tag {
         label: Some(_core::Label::new("label")),
         score: _core::Score::new(0.0),
@@ -58,7 +74,7 @@ fn deserialize_tag_label_score_zero() {
 }
 
 #[test]
-fn deserialize_tag_label_score_one() {
+fn deserialize_plain_tag_label_score_one() {
     let expected_tag = _core::Tag {
         label: Some(_core::Label::new("label")),
         score: _core::Score::new(1.0),
