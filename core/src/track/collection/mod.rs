@@ -83,9 +83,8 @@ impl Collections {
 
     pub fn find_by_uid<'a, I>(collections: I, uid: &EntityUid) -> Option<&'a Collection>
     where
-        I: Iterator<Item = &'a Collection> + Clone,
+        I: IntoIterator<Item = &'a Collection> + Clone,
     {
-        debug_assert!(Self::validate(collections.clone()).is_ok());
-        collections.filter(|c| &c.uid == uid).next()
+        collections.into_iter().find(|c| &c.uid == uid)
     }
 }
