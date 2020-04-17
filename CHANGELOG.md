@@ -310,7 +310,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial public release
 
 [Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.7.0...development
-[0.7.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.6.6
+[0.7.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.7.0
 [0.6.6]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.6.6
 [0.6.5]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.6.5
 [0.6.4]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.6.4
