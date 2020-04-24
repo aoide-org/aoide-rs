@@ -226,8 +226,8 @@ impl<'a> Repo for Repository<'a> {
                 aux_playlist_brief::geoloc_lon,
                 aux_playlist_brief::tracks_count,
                 aux_playlist_brief::entries_count,
-                aux_playlist_brief::entries_since_min,
-                aux_playlist_brief::entries_since_max,
+                aux_playlist_brief::entries_added_min,
+                aux_playlist_brief::entries_added_max,
             ))
             .load::<QueryableBrief>(self.connection)
             .map(|v| {

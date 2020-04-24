@@ -134,8 +134,8 @@ pub struct QueryableBrief {
     pub geoloc_lon: Option<f64>,
     pub tracks_count: i64,
     pub entries_count: i64,
-    pub entries_since_min: Option<NaiveDateTime>,
-    pub entries_since_max: Option<NaiveDateTime>,
+    pub entries_added_min: Option<NaiveDateTime>,
+    pub entries_added_max: Option<NaiveDateTime>,
 }
 
 impl From<QueryableBrief> for (RepoId, EntityHeader, PlaylistBrief) {
@@ -153,8 +153,8 @@ impl From<QueryableBrief> for (RepoId, EntityHeader, PlaylistBrief) {
             geoloc_lon,
             tracks_count,
             entries_count,
-            entries_since_min,
-            entries_since_max,
+            entries_added_min,
+            entries_added_max,
         } = from;
         let hdr = EntityHeader {
             uid: EntityUid::from_slice(&uid),
@@ -164,14 +164,14 @@ impl From<QueryableBrief> for (RepoId, EntityHeader, PlaylistBrief) {
             },
         };
         debug_assert_eq!(geoloc_lat.is_some(), geoloc_lon.is_some());
-        let location = match (geoloc_lat, geoloc_lon) {
+        let geo_location = match (geoloc_lat, geoloc_lon) {
             (Some(lat), Some(lon)) => Some(GeoPoint { lat, lon }),
             _ => None,
         };
-        let entries_since_min = entries_since_min.map(|min| DateTime::from_utc(min, Utc).into());
-        let entries_since_max = entries_since_max.map(|max| DateTime::from_utc(max, Utc).into());
-        debug_assert_eq!(entries_since_min.is_some(), entries_since_max.is_some());
-        let entries_since_minmax = match (entries_since_min, entries_since_max) {
+        let entries_added_min = entries_added_min.map(|min| DateTime::from_utc(min, Utc).into());
+        let entries_added_max = entries_added_max.map(|max| DateTime::from_utc(max, Utc).into());
+        debug_assert_eq!(entries_added_min.is_some(), entries_added_max.is_some());
+        let entries_added_minmax = match (entries_added_min, entries_added_max) {
             (Some(min), Some(max)) => Some((min, max)),
             _ => None,
         };
@@ -180,7 +180,7 @@ impl From<QueryableBrief> for (RepoId, EntityHeader, PlaylistBrief) {
         };
         let entries = PlaylistBriefEntries {
             count: entries_count as usize,
-            since_minmax: entries_since_minmax,
+            added_minmax: entries_added_minmax,
             tracks,
         };
         let brief = PlaylistBrief {
@@ -188,7 +188,7 @@ impl From<QueryableBrief> for (RepoId, EntityHeader, PlaylistBrief) {
             description: desc,
             r#type: playlist_type,
             color: color_code.map(|c| ColorRgb(c as ColorCode)),
-            location,
+            geo_location,
             entries,
         };
         (id, hdr, brief)
@@ -207,8 +207,8 @@ pub struct InsertableBrief<'a> {
     pub geoloc_lon: Option<f64>,
     pub tracks_count: i64,
     pub entries_count: i64,
-    pub entries_since_min: Option<NaiveDateTime>,
-    pub entries_since_max: Option<NaiveDateTime>,
+    pub entries_added_min: Option<NaiveDateTime>,
+    pub entries_added_max: Option<NaiveDateTime>,
 }
 
 impl<'a> InsertableBrief<'a> {
@@ -218,12 +218,12 @@ impl<'a> InsertableBrief<'a> {
             description,
             r#type,
             color,
-            location,
+            geo_location,
             ref entries,
         } = brief_ref;
         let PlaylistBriefEntries {
             count: entries_count,
-            since_minmax: entries_since_minmax,
+            added_minmax: entries_added_minmax,
             tracks,
         } = entries;
         let PlaylistBriefTracks {
@@ -235,13 +235,13 @@ impl<'a> InsertableBrief<'a> {
             desc: description,
             playlist_type: r#type,
             color_code: color.map(|color| color.code() as i32),
-            geoloc_lat: location.as_ref().map(|p| p.lat),
-            geoloc_lon: location.as_ref().map(|p| p.lon),
+            geoloc_lat: geo_location.as_ref().map(|p| p.lat),
+            geoloc_lon: geo_location.as_ref().map(|p| p.lon),
             tracks_count: *tracks_count as i64,
             entries_count: *entries_count as i64,
-            entries_since_min: entries_since_minmax
+            entries_added_min: entries_added_minmax
                 .map(|minmax| DateTime::from(minmax.0).naive_utc()),
-            entries_since_max: entries_since_minmax
+            entries_added_max: entries_added_minmax
                 .map(|minmax| DateTime::from(minmax.1).naive_utc()),
         }
     }

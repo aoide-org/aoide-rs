@@ -33,10 +33,10 @@ CREATE TABLE aux_track_collection (
     id                       INTEGER PRIMARY KEY,
     track_id                 INTEGER NOT NULL,
     collection_uid           BINARY(24) NOT NULL,
-    since                    DATETIME NOT NULL, -- UTC
-    comment                  TEXT,
+    added_at                 DATETIME NOT NULL, -- UTC
     color_code               INTEGER,           -- 0xRRGGBB (hex)
     play_count               INTEGER,
+    last_played_at           DATETIME,          -- UTC
     FOREIGN KEY(track_id) REFERENCES tbl_track(id),
     UNIQUE (track_id, collection_uid)
 );
@@ -49,8 +49,8 @@ CREATE INDEX idx_track_collection_collection_uid_track ON aux_track_collection (
     collection_uid, track_id
 );
 
-CREATE INDEX IF NOT EXISTS idx_track_collection_since ON aux_track_collection (
-    since
+CREATE INDEX IF NOT EXISTS idx_track_collection_added_at ON aux_track_collection (
+    added_at
 );
 
 CREATE TABLE aux_track_media (

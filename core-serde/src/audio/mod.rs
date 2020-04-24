@@ -72,10 +72,10 @@ impl From<DurationMs> for _core::DurationMs {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AudioEncoder {
-    #[serde(rename = "n", skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(rename = "nam", skip_serializing_if = "IsDefault::is_default", default)]
     name: String,
 
-    #[serde(rename = "s", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "cfg", skip_serializing_if = "Option::is_none")]
     settings: Option<String>,
 }
 
@@ -104,22 +104,22 @@ impl From<_core::AudioEncoder> for AudioEncoder {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AudioContent {
-    #[serde(rename = "c", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "chn", skip_serializing_if = "Option::is_none")]
     channels: Option<Channels>,
 
-    #[serde(rename = "d", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "len", skip_serializing_if = "Option::is_none")]
     duration: Option<DurationMs>,
 
-    #[serde(rename = "s", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "shz", skip_serializing_if = "Option::is_none")]
     sample_rate: Option<SampleRateHz>,
 
-    #[serde(rename = "b", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "bps", skip_serializing_if = "Option::is_none")]
     bit_rate: Option<BitRateBps>,
 
-    #[serde(rename = "l", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "lou", skip_serializing_if = "Option::is_none")]
     loudness: Option<LoudnessLufs>,
 
-    #[serde(rename = "e", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "enc", skip_serializing_if = "Option::is_none")]
     encoder: Option<AudioEncoder>,
 }
 

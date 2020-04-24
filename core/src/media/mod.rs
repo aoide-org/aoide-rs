@@ -76,7 +76,7 @@ pub struct Artwork {
     /// Identifies the actual content for cache lookup and to decide
     /// about modifications, e.g. a base64-encoded SHA256 hash of the
     /// image data.
-    pub fingerprint: Option<String>,
+    pub digest: Option<String>,
 
     /// Selects one out of multiple resources embedded in the media source
     /// or an external resource.
@@ -88,10 +88,10 @@ impl Artwork {
         let Self {
             size,
             color,
-            fingerprint,
+            digest,
             uri,
         } = self;
-        size.is_none() && color.is_none() && fingerprint.is_none() && uri.is_none()
+        size.is_none() && color.is_none() && digest.is_none() && uri.is_none()
     }
 }
 

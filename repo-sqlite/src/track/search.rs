@@ -147,10 +147,10 @@ impl TrackSearchQueryTransform for SortOrder {
                 if collection_uid.is_some() {
                     match direction {
                         SortDirection::Ascending => {
-                            query.then_order_by(aux_track_collection::since.asc())
+                            query.then_order_by(aux_track_collection::added_at.asc())
                         }
                         SortDirection::Descending => {
-                            query.then_order_by(aux_track_collection::since.desc())
+                            query.then_order_by(aux_track_collection::added_at.desc())
                         }
                     }
                 } else {

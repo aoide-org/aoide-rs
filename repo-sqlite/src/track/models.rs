@@ -140,10 +140,10 @@ impl From<QueryableEntityData> for EntityData {
 pub struct InsertableCollection<'a> {
     pub track_id: RepoId,
     pub collection_uid: &'a [u8],
-    pub since: NaiveDateTime,
-    pub comment: Option<&'a str>,
+    pub added_at: NaiveDateTime,
     pub color_code: Option<i32>,
     pub play_count: Option<i32>,
+    pub last_played_at: Option<NaiveDateTime>,
 }
 
 impl<'a> InsertableCollection<'a> {
@@ -151,10 +151,12 @@ impl<'a> InsertableCollection<'a> {
         Self {
             track_id,
             collection_uid: collection.uid.as_ref(),
-            since: DateTime::from(collection.since).naive_utc(),
-            comment: collection.comment.as_deref(),
+            added_at: DateTime::from(collection.added_at).naive_utc(),
             color_code: collection.color.map(|color| color.code() as i32),
             play_count: collection.play_count.map(|count| count as i32),
+            last_played_at: collection
+                .last_played_at
+                .map(|last_played_at| DateTime::from(last_played_at).naive_utc()),
         }
     }
 }

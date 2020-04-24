@@ -43,6 +43,8 @@ use crate::{
 /// |main     |range      |some      |some     |start<end     | fwd       |0..1         |
 /// |intro    |point/range|none/some |none/some|start<end     | fwd       |0..1         |
 /// |outro    |point/range|none/some |none/some|start<end     | fwd       |0..1         |
+/// |beacon   |point      |some      |none     |              |           |*            |
+/// |phrase   |range      |some      |some     |start<end     | fwd       |*            |
 /// |jump     |point      |some      |none     |              |           |*            |
 /// |loop     |range      |some      |some     |start<>end    | fwd/bkwd  |*            |
 /// |sample   |range      |some      |some     |start<>end    | fwd/bkwd  |*            |
@@ -70,12 +72,12 @@ pub enum MarkerRangeInvalidity {
 impl MarkerData {
     fn validate_range_by_type(&self, r#type: MarkerType) -> Result<(), MarkerRangeInvalidity> {
         match r#type {
-            MarkerType::Load | MarkerType::Jump => {
+            MarkerType::Load | MarkerType::Jump | MarkerType::Beacon => {
                 if self.end.is_some() {
                     return Err(MarkerRangeInvalidity::Invalid);
                 }
             }
-            MarkerType::Main | MarkerType::Intro | MarkerType::Outro => {
+            MarkerType::Main | MarkerType::Intro | MarkerType::Outro | MarkerType::Phrase => {
                 if let (Some(start), Some(end)) = (self.start, self.end) {
                     if start >= end {
                         return Err(MarkerRangeInvalidity::Empty);
@@ -137,7 +139,13 @@ pub enum MarkerType {
     /// Starting point, endpoint, or range of the track's outro part
     Outro,
 
-    /// Custom start/cue points in a track for direct access while continuing playback, i.e. classical hot cues
+    /// A point that marks a custom, musical event in the track
+    Beacon,
+
+    /// A range that limits a distinct musical part of the track
+    Phrase,
+
+    /// Custom start/cue points in a track for direct access while continuing playback, i.e. hot cues
     Jump,
 
     /// Range that could be played in a loop, either forward or backward

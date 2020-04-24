@@ -39,8 +39,8 @@ CREATE TABLE aux_playlist_brief (
     geoloc_lat               NUMBER,
     geoloc_lon               NUMBER,
     entries_count            INTEGER NOT NULL,
-    entries_since_min        DATETIME, -- UTC
-    entries_since_max        DATETIME, -- UTC
+    entries_added_min        DATETIME, -- UTC
+    entries_added_max        DATETIME, -- UTC
     tracks_count             INTEGER NOT NULL,
     FOREIGN KEY(playlist_id) REFERENCES tbl_playlist(id)
 );

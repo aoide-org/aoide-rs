@@ -27,10 +27,10 @@ mod _core {
 #[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(deny_unknown_fields)]
 pub struct Collection {
-    #[serde(rename = "n")]
+    #[serde(rename = "nam")]
     name: String,
 
-    #[serde(rename = "d", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "dsc", skip_serializing_if = "Option::is_none")]
     description: Option<String>,
 }
 

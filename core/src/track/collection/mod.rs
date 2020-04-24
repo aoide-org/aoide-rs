@@ -28,13 +28,13 @@ use crate::{
 pub struct Collection {
     pub uid: EntityUid,
 
-    pub since: TickInstant,
-
-    pub comment: Option<String>,
+    pub added_at: TickInstant,
 
     pub color: Option<ColorRgb>,
 
     pub play_count: Option<usize>,
+
+    pub last_played_at: Option<TickInstant>,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]

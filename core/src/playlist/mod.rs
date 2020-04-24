@@ -94,12 +94,9 @@ pub struct PlaylistEntry {
     /// two subsequent tracks.
     pub item: PlaylistItem,
 
-    /// Time stamp since when this entry is part of the playlist,
+    /// Time stamp added when this entry is part of the playlist,
     /// i.e. when it has been created and added.
-    pub since: TickInstant,
-
-    /// Custom comments and notes to annotate this entry.
-    pub comment: Option<String>,
+    pub added: TickInstant,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -141,23 +138,23 @@ pub struct Playlist {
     ///
     /// This information could also be used to restore the time zone for the
     /// time stamps of the entries.
-    pub location: Option<GeoPoint>,
+    pub geo_location: Option<GeoPoint>,
 
     /// Ordered list of playlist entries.
     pub entries: Vec<PlaylistEntry>,
 }
 
 impl Playlist {
-    pub fn entries_since_minmax(&self) -> Option<(TickInstant, TickInstant)> {
+    pub fn entries_added_minmax(&self) -> Option<(TickInstant, TickInstant)> {
         let mut entries = self.entries.iter();
-        if let Some(first_since) = entries.next().map(|e| e.since) {
-            let mut since_min = first_since;
-            let mut since_max = first_since;
+        if let Some(first_added) = entries.next().map(|e| e.added) {
+            let mut added_min = first_added;
+            let mut added_max = first_added;
             for e in entries {
-                since_min = since_min.min(e.since);
-                since_max = since_max.max(e.since);
+                added_min = added_min.min(e.added);
+                added_max = added_max.max(e.added);
             }
-            Some((since_min, since_max))
+            Some((added_min, added_max))
         } else {
             None
         }
@@ -204,7 +201,7 @@ impl Playlist {
     // Sort entries by their creation time stamp, preserving the
     // order of entries with equal time stamps.
     pub fn sort_entries_chronologically(&mut self) {
-        self.entries.sort_by_key(|e| e.since);
+        self.entries.sort_by_key(|e| e.added);
     }
 
     pub fn count_tracks(&self) -> usize {
@@ -225,7 +222,7 @@ impl Validate for Playlist {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         let context = ValidationContext::new()
             .invalidate_if(self.name.is_empty(), PlaylistInvalidity::Name)
-            .validate_with(&self.location, PlaylistInvalidity::Location);
+            .validate_with(&self.geo_location, PlaylistInvalidity::Location);
         self.entries
             .iter()
             .enumerate()
@@ -244,7 +241,7 @@ pub type Entity = crate::entity::Entity<PlaylistInvalidity, Playlist>;
 pub struct PlaylistBriefEntries {
     pub count: usize,
 
-    pub since_minmax: Option<(TickInstant, TickInstant)>,
+    pub added_minmax: Option<(TickInstant, TickInstant)>,
 
     pub tracks: PlaylistBriefTracks,
 }
@@ -264,7 +261,7 @@ pub struct PlaylistBrief {
 
     pub color: Option<ColorRgb>,
 
-    pub location: Option<GeoPoint>,
+    pub geo_location: Option<GeoPoint>,
 
     pub entries: PlaylistBriefEntries,
 }
@@ -279,7 +276,7 @@ pub struct PlaylistBriefRef<'a> {
 
     pub color: Option<ColorRgb>,
 
-    pub location: Option<&'a GeoPoint>,
+    pub geo_location: Option<&'a GeoPoint>,
 
     pub entries: PlaylistBriefEntries,
 }
@@ -291,7 +288,7 @@ impl<'a> Playlist {
         };
         PlaylistBriefEntries {
             count: self.entries.len(),
-            since_minmax: self.entries_since_minmax(),
+            added_minmax: self.entries_added_minmax(),
             tracks,
         }
     }
@@ -303,7 +300,7 @@ impl<'a> Playlist {
             ref description,
             r#type,
             color,
-            ref location,
+            ref geo_location,
             entries: _entries,
         } = self;
         PlaylistBriefRef {
@@ -311,7 +308,7 @@ impl<'a> Playlist {
             description: description.as_deref(),
             r#type: r#type.as_deref(),
             color: *color,
-            location: location.as_ref(),
+            geo_location: geo_location.as_ref(),
             entries,
         }
     }

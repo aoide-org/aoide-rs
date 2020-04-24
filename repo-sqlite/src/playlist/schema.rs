@@ -40,8 +40,8 @@ table! {
         desc -> Nullable<Text>,
         tracks_count -> BigInt,
         entries_count -> BigInt,
-        entries_since_min -> Nullable<Timestamp>,
-        entries_since_max -> Nullable<Timestamp>,
+        entries_added_min -> Nullable<Timestamp>,
+        entries_added_max -> Nullable<Timestamp>,
     }
 }
 

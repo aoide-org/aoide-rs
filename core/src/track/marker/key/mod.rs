@@ -28,7 +28,7 @@ pub struct Marker {
 
     pub end: Option<PositionMs>,
 
-    pub key: KeySignature,
+    pub signature: KeySignature,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -36,7 +36,7 @@ pub enum MarkerInvalidity {
     Start(PositionMsInvalidity),
     End(PositionMsInvalidity),
     ReverseDirection,
-    Key(KeySignatureInvalidity),
+    KeySignature(KeySignatureInvalidity),
 }
 
 impl Validate for Marker {
@@ -51,13 +51,13 @@ impl Validate for Marker {
         }
         context
             .validate_with(&self.start, MarkerInvalidity::Start)
-            .validate_with(&self.key, MarkerInvalidity::Key)
+            .validate_with(&self.signature, MarkerInvalidity::KeySignature)
             .into()
     }
 }
 
 fn uniform_key_from_markers<'a>(markers: impl Iterator<Item = &'a Marker>) -> Option<KeySignature> {
-    let mut keys = markers.map(|marker| marker.key);
+    let mut keys = markers.map(|marker| marker.signature);
     if let Some(key) = keys.next() {
         for k in keys {
             if k != key {

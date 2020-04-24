@@ -35,10 +35,10 @@ table! {
         id -> BigInt,
         track_id -> BigInt,
         collection_uid -> Binary,
-        since -> Timestamp,
-        comment -> Nullable<Text>,
+        added_at -> Timestamp,
         color_code -> Nullable<Integer>,
         play_count -> Nullable<Integer>,
+        last_played_at -> Nullable<Timestamp>,
     }
 }
 

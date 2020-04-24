@@ -516,16 +516,16 @@ impl From<TagCountParams> for _repo::TagCountParams {
 #[derive(Clone, Debug, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct TagAvgScoreCount {
-    #[serde(rename = "f", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "fct", skip_serializing_if = "Option::is_none")]
     pub facet: Option<String>,
 
-    #[serde(rename = "l", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "lbl", skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
 
-    #[serde(rename = "s")]
+    #[serde(rename = "avg")]
     pub avg_score: TagScoreValue,
 
-    #[serde(rename = "n")]
+    #[serde(rename = "cnt")]
     pub total_count: usize,
 }
 
@@ -600,16 +600,16 @@ impl From<CountTracksByAlbumParams> for _repo::CountTracksByAlbumParams {
 #[derive(Clone, Debug, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct AlbumTrackCount {
-    #[serde(rename = "t", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "tit", skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
 
-    #[serde(rename = "a", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "art", skip_serializing_if = "Option::is_none")]
     pub artist: Option<String>,
 
-    #[serde(rename = "d", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "rel", skip_serializing_if = "Option::is_none")]
     pub release_date: Option<YYYYMMDD>,
 
-    #[serde(rename = "n")]
+    #[serde(rename = "cnt")]
     pub total_count: usize,
 }
 

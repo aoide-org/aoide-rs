@@ -27,7 +27,7 @@ use crate::{audio::AudioContent, util::color::ColorRgb};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Content {
-    #[serde(rename = "a")]
+    #[serde(rename = "aud")]
     Audio(AudioContent),
 }
 
@@ -60,16 +60,16 @@ pub struct ImageSize(u16, u16);
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Artwork {
-    #[serde(rename = "s", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "dim", skip_serializing_if = "Option::is_none")]
     size: Option<ImageSize>,
 
-    #[serde(rename = "c", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "col", skip_serializing_if = "Option::is_none")]
     color: Option<ColorRgb>,
 
-    #[serde(rename = "f", skip_serializing_if = "Option::is_none")]
-    fingerprint: Option<String>,
+    #[serde(rename = "dig", skip_serializing_if = "Option::is_none")]
+    digest: Option<String>,
 
-    #[serde(rename = "u", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "uri", skip_serializing_if = "Option::is_none")]
     uri: Option<String>,
 }
 
@@ -78,7 +78,7 @@ impl From<_core::Artwork> for Artwork {
         let _core::Artwork {
             size,
             color,
-            fingerprint,
+            digest,
             uri,
         } = from;
         let size = size.map(|size| {
@@ -88,7 +88,7 @@ impl From<_core::Artwork> for Artwork {
         Self {
             size,
             color: color.map(Into::into),
-            fingerprint,
+            digest,
             uri,
         }
     }
@@ -99,7 +99,7 @@ impl From<Artwork> for _core::Artwork {
         let Artwork {
             size,
             color,
-            fingerprint,
+            digest,
             uri,
         } = from;
         let size = size.map(|size| {
@@ -109,7 +109,7 @@ impl From<Artwork> for _core::Artwork {
         Self {
             size,
             color: color.map(Into::into),
-            fingerprint,
+            digest,
             uri,
         }
     }
@@ -122,16 +122,16 @@ impl From<Artwork> for _core::Artwork {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Source {
-    #[serde(rename = "u")]
+    #[serde(rename = "uri")]
     uri: String,
 
-    #[serde(rename = "t")]
+    #[serde(rename = "typ")]
     content_type: String,
 
-    #[serde(rename = "c")]
+    #[serde(rename = "con")]
     content: Content,
 
-    #[serde(rename = "a", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "art", skip_serializing_if = "Option::is_none")]
     artwork: Option<Artwork>,
 }
 
