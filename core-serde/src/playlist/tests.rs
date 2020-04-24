@@ -17,18 +17,8 @@ use super::*;
 
 #[test]
 fn deserialize_playlist() {
-    let playlist: Playlist = serde_json::from_str(r#"{"n":"test","p":"type","e":[{"i":{"t":"MAdeyPtrDVSMnwpriPA5anaD66xw5iP1s"},"s":1578221715728131,"m":"my first playlist entry"},{"i":"s","s":1578221715728132,"m":"a separator"}]}"#).unwrap();
+    let playlist: Playlist = serde_json::from_str(r#"{"nam":"test","typ":"type","lst":[{"itm":{"trk":"MAdeyPtrDVSMnwpriPA5anaD66xw5iP1s"},"add":1578221715728131},{"itm":"sep","add":1578221715728132}]}"#).unwrap();
     assert_eq!("test", playlist.name);
     assert_eq!(Some("type".into()), playlist.r#type);
     assert_eq!(2, playlist.entries.len());
-    assert!(playlist.entries[0]
-        .comment
-        .as_ref()
-        .unwrap()
-        .contains("entry"));
-    assert!(playlist.entries[1]
-        .comment
-        .as_ref()
-        .unwrap()
-        .contains("separator"));
 }

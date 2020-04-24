@@ -65,13 +65,13 @@ impl Index {
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Indexes {
-    #[serde(rename = "d", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "dsi", skip_serializing_if = "Option::is_none")]
     pub disc: Option<Index>,
 
-    #[serde(rename = "t", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "tri", skip_serializing_if = "Option::is_none")]
     pub track: Option<Index>,
 
-    #[serde(rename = "m", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "mvi", skip_serializing_if = "Option::is_none")]
     pub movement: Option<Index>,
 }
 

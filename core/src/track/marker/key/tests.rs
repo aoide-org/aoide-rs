@@ -15,28 +15,28 @@
 
 use super::*;
 
-fn base_marker(key: KeySignature) -> Marker {
+fn base_marker(signature: KeySignature) -> Marker {
     Marker {
         start: Default::default(),
         end: None,
-        key,
+        signature,
     }
 }
 
 #[test]
 fn uniform_key() {
-    let key = KeySignature::from_code(KeySignature::min_code());
+    let signature = KeySignature::from_code(KeySignature::min_code());
     let markers = [
         Marker {
             start: PositionMs(0.0),
-            ..base_marker(key)
+            ..base_marker(signature)
         },
         Marker {
             start: PositionMs(1.0),
-            ..base_marker(key)
+            ..base_marker(signature)
         },
     ];
-    assert_eq!(Some(key), uniform_key_from_markers(markers.iter()));
+    assert_eq!(Some(signature), uniform_key_from_markers(markers.iter()));
 }
 
 #[test]

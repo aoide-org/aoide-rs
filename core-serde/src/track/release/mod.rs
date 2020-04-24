@@ -175,16 +175,16 @@ impl From<ReleasedAt> for _core::ReleasedAt {
 #[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(deny_unknown_fields)]
 pub struct Release {
-    #[serde(rename = "t", skip_serializing_if = "Option::is_none")]
-    released_at: Option<ReleasedAt>,
-
-    #[serde(rename = "b", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "own", skip_serializing_if = "Option::is_none")]
     released_by: Option<String>,
 
-    #[serde(rename = "c", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "dat", skip_serializing_if = "Option::is_none")]
+    released_at: Option<ReleasedAt>,
+
+    #[serde(rename = "cpy", skip_serializing_if = "Option::is_none")]
     copyright: Option<String>,
 
-    #[serde(rename = "l", skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(rename = "lic", skip_serializing_if = "Vec::is_empty", default)]
     licenses: Vec<String>,
 }
 

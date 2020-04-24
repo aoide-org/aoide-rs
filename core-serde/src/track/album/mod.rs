@@ -29,13 +29,13 @@ use crate::{actor::*, title::*};
 #[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(deny_unknown_fields)]
 pub struct Album {
-    #[serde(rename = "t", skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(rename = "tit", skip_serializing_if = "Vec::is_empty", default)]
     pub titles: Vec<Title>,
 
-    #[serde(rename = "p", skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(rename = "act", skip_serializing_if = "Vec::is_empty", default)]
     pub actors: Vec<Actor>,
 
-    #[serde(rename = "c", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "cpl", skip_serializing_if = "Option::is_none")]
     pub compilation: Option<bool>,
 }
 

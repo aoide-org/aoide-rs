@@ -80,7 +80,7 @@ pub enum SortField {
     InCollectionSince, // = recently added (only if searching in a single collection)
     LastRevisionedAt,  // = recently modified (created or updated)
     MediaUri,          // percent-encoded URI
-    MediaUriDecoded,   // percent-encoded URI
+    MediaUriDecoded,   // plain URI
     TrackTitle,
     TrackArtist,
     TrackNumber,

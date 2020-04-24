@@ -34,10 +34,10 @@ mod _core {
 #[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(deny_unknown_fields)]
 pub enum PlaylistItem {
-    #[serde(rename = "s")]
+    #[serde(rename = "sep")]
     Separator,
 
-    #[serde(rename = "t")]
+    #[serde(rename = "trk")]
     Track(EntityUid),
     //
     // TODO: Add other kinds of playlist items
@@ -75,42 +75,29 @@ impl From<_core::PlaylistItem> for PlaylistItem {
 #[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(deny_unknown_fields)]
 pub struct PlaylistEntry {
-    #[serde(rename = "i")]
+    #[serde(rename = "itm")]
     item: PlaylistItem,
 
-    #[serde(rename = "s")]
-    since: TickType,
-
-    #[serde(rename = "m", skip_serializing_if = "Option::is_none")]
-    comment: Option<String>,
+    #[serde(rename = "add")]
+    added: TickType,
 }
 
 impl From<PlaylistEntry> for _core::PlaylistEntry {
     fn from(from: PlaylistEntry) -> Self {
-        let PlaylistEntry {
-            item,
-            since,
-            comment,
-        } = from;
+        let PlaylistEntry { item, added } = from;
         Self {
             item: item.into(),
-            since: TickInstant(Ticks(since)),
-            comment,
+            added: TickInstant(Ticks(added)),
         }
     }
 }
 
 impl From<_core::PlaylistEntry> for PlaylistEntry {
     fn from(from: _core::PlaylistEntry) -> Self {
-        let _core::PlaylistEntry {
-            item,
-            since,
-            comment,
-        } = from;
+        let _core::PlaylistEntry { item, added } = from;
         Self {
             item: item.into(),
-            since: (since.0).0,
-            comment,
+            added: (added.0).0,
         }
     }
 }
@@ -123,22 +110,22 @@ impl From<_core::PlaylistEntry> for PlaylistEntry {
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(deny_unknown_fields)]
 pub struct Playlist {
-    #[serde(rename = "n")]
+    #[serde(rename = "nam")]
     name: String,
 
-    #[serde(rename = "d", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "dsc", skip_serializing_if = "Option::is_none")]
     description: Option<String>,
 
-    #[serde(rename = "p", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "typ", skip_serializing_if = "Option::is_none")]
     r#type: Option<String>,
 
-    #[serde(rename = "c", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "col", skip_serializing_if = "Option::is_none")]
     color: Option<ColorRgb>,
 
-    #[serde(rename = "g", skip_serializing_if = "Option::is_none")]
-    location: Option<(GeoCoord, GeoCoord)>,
+    #[serde(rename = "geo", skip_serializing_if = "Option::is_none")]
+    geo_location: Option<(GeoCoord, GeoCoord)>,
 
-    #[serde(rename = "e")]
+    #[serde(rename = "lst")]
     entries: Vec<PlaylistEntry>,
 }
 
@@ -149,7 +136,7 @@ impl From<Playlist> for _core::Playlist {
             description,
             r#type,
             color,
-            location,
+            geo_location,
             entries,
         } = from;
         Self {
@@ -157,7 +144,7 @@ impl From<Playlist> for _core::Playlist {
             description,
             r#type,
             color: color.map(Into::into),
-            location: location.map(|(lat, lon)| GeoPoint { lat, lon }),
+            geo_location: geo_location.map(|(lat, lon)| GeoPoint { lat, lon }),
             entries: entries.into_iter().map(Into::into).collect(),
         }
     }
@@ -170,7 +157,7 @@ impl From<_core::Playlist> for Playlist {
             description,
             r#type,
             color,
-            location,
+            geo_location,
             entries,
         } = from;
         Self {
@@ -178,7 +165,7 @@ impl From<_core::Playlist> for Playlist {
             description,
             r#type,
             color: color.map(Into::into),
-            location: location.map(|p| (p.lat, p.lon)),
+            geo_location: geo_location.map(|p| (p.lat, p.lon)),
             entries: entries.into_iter().map(Into::into).collect(),
         }
     }
@@ -210,13 +197,13 @@ impl From<_core::Entity> for Entity {
 #[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(deny_unknown_fields)]
 pub struct PlaylistBriefEntries {
-    #[serde(rename = "n")]
+    #[serde(rename = "cnt")]
     count: usize,
 
-    #[serde(rename = "s", skip_serializing_if = "Option::is_none")]
-    since_minmax: Option<(TickType, TickType)>,
+    #[serde(rename = "add", skip_serializing_if = "Option::is_none")]
+    added_minmax: Option<(TickType, TickType)>,
 
-    #[serde(rename = "t")]
+    #[serde(rename = "trk")]
     tracks: PlaylistBriefTracks,
 }
 
@@ -224,12 +211,12 @@ impl From<_core::PlaylistBriefEntries> for PlaylistBriefEntries {
     fn from(from: _core::PlaylistBriefEntries) -> Self {
         let _core::PlaylistBriefEntries {
             count,
-            since_minmax,
+            added_minmax,
             tracks,
         } = from;
         Self {
             count,
-            since_minmax: since_minmax.map(|(min, max)| ((min.0).0, (max.0).0)),
+            added_minmax: added_minmax.map(|(min, max)| ((min.0).0, (max.0).0)),
             tracks: tracks.into(),
         }
     }
@@ -239,7 +226,7 @@ impl From<_core::PlaylistBriefEntries> for PlaylistBriefEntries {
 #[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(deny_unknown_fields)]
 pub struct PlaylistBriefTracks {
-    #[serde(rename = "n")]
+    #[serde(rename = "cnt")]
     count: usize,
 }
 
@@ -258,22 +245,22 @@ impl From<_core::PlaylistBriefTracks> for PlaylistBriefTracks {
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(deny_unknown_fields)]
 pub struct PlaylistBrief {
-    #[serde(rename = "n")]
+    #[serde(rename = "nam")]
     name: String,
 
-    #[serde(rename = "d", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "dsc", skip_serializing_if = "Option::is_none")]
     description: Option<String>,
 
-    #[serde(rename = "p", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "typ", skip_serializing_if = "Option::is_none")]
     r#type: Option<String>,
 
-    #[serde(rename = "c", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "col", skip_serializing_if = "Option::is_none")]
     color: Option<ColorRgb>,
 
-    #[serde(rename = "g", skip_serializing_if = "Option::is_none")]
-    location: Option<(GeoCoord, GeoCoord)>,
+    #[serde(rename = "geo", skip_serializing_if = "Option::is_none")]
+    geo_location: Option<(GeoCoord, GeoCoord)>,
 
-    #[serde(rename = "e")]
+    #[serde(rename = "lst")]
     entries: PlaylistBriefEntries,
 }
 
@@ -285,7 +272,7 @@ impl From<_core::Playlist> for PlaylistBrief {
             description,
             r#type,
             color,
-            location,
+            geo_location,
             entries: _entries,
         } = from;
         Self {
@@ -293,7 +280,7 @@ impl From<_core::Playlist> for PlaylistBrief {
             description,
             r#type,
             color: color.map(Into::into),
-            location: location.map(|p| (p.lat, p.lon)),
+            geo_location: geo_location.map(|p| (p.lat, p.lon)),
             entries,
         }
     }
@@ -306,7 +293,7 @@ impl From<_core::PlaylistBrief> for PlaylistBrief {
             description,
             r#type,
             color,
-            location,
+            geo_location,
             entries,
         } = from;
         Self {
@@ -314,7 +301,7 @@ impl From<_core::PlaylistBrief> for PlaylistBrief {
             description,
             r#type,
             color: color.map(Into::into),
-            location: location.map(|p| (p.lat, p.lon)),
+            geo_location: geo_location.map(|p| (p.lat, p.lon)),
             entries: entries.into(),
         }
     }

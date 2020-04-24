@@ -82,13 +82,13 @@ impl From<State> for _core::State {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Markers {
-    #[serde(rename = "p", skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(rename = "pos", skip_serializing_if = "IsDefault::is_default", default)]
     pub positions: PositionMarkers,
 
-    #[serde(rename = "b", skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(rename = "bpm", skip_serializing_if = "IsDefault::is_default", default)]
     pub beats: BeatMarkers,
 
-    #[serde(rename = "k", skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(rename = "key", skip_serializing_if = "IsDefault::is_default", default)]
     pub keys: KeyMarkers,
 }
 
@@ -137,6 +137,8 @@ pub enum PositionMarkerType {
     Jump = 5,
     Loop = 6,
     Sample = 7,
+    Beacon = 8,
+    Phrase = 9,
 }
 
 impl From<_core::PositionMarkerType> for PositionMarkerType {
@@ -151,6 +153,8 @@ impl From<_core::PositionMarkerType> for PositionMarkerType {
             Outro => PositionMarkerType::Outro,
             Loop => PositionMarkerType::Loop,
             Sample => PositionMarkerType::Sample,
+            Beacon => PositionMarkerType::Beacon,
+            Phrase => PositionMarkerType::Phrase,
         }
     }
 }
@@ -167,6 +171,8 @@ impl From<PositionMarkerType> for _core::PositionMarkerType {
             PositionMarkerType::Outro => Outro,
             PositionMarkerType::Loop => Loop,
             PositionMarkerType::Sample => Sample,
+            PositionMarkerType::Beacon => Beacon,
+            PositionMarkerType::Phrase => Phrase,
         }
     }
 }
@@ -174,22 +180,22 @@ impl From<PositionMarkerType> for _core::PositionMarkerType {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PositionMarker {
-    #[serde(rename = "s", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "pos", skip_serializing_if = "Option::is_none")]
     pub start: Option<PositionMs>,
 
-    #[serde(rename = "e", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "end", skip_serializing_if = "Option::is_none")]
     pub end: Option<PositionMs>,
 
-    #[serde(rename = "m")]
+    #[serde(rename = "typ")]
     pub r#type: PositionMarkerType,
 
-    #[serde(rename = "n", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "num", skip_serializing_if = "Option::is_none")]
     pub number: Option<i32>,
 
-    #[serde(rename = "c", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "col", skip_serializing_if = "Option::is_none")]
     pub color: Option<ColorRgb>,
 
-    #[serde(rename = "l", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "lbl", skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
 }
 
@@ -219,6 +225,8 @@ impl From<PositionMarker> for _core::PositionMarker {
             PositionMarkerType::Outro => Outro,
             PositionMarkerType::Loop => Loop,
             PositionMarkerType::Sample => Sample,
+            PositionMarkerType::Beacon => Beacon,
+            PositionMarkerType::Phrase => Phrase,
         };
         let data = _core::PositionMarkerData {
             start: from.start.map(Into::into),
@@ -234,10 +242,10 @@ impl From<PositionMarker> for _core::PositionMarker {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PositionMarkers {
-    #[serde(rename = "z", skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(rename = "mks", skip_serializing_if = "IsDefault::is_default", default)]
     pub state: State,
 
-    #[serde(rename = "m", skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(rename = "mkl", skip_serializing_if = "IsDefault::is_default", default)]
     pub markers: Vec<PositionMarker>,
 }
 
@@ -264,19 +272,19 @@ impl From<PositionMarkers> for _core::PositionMarkers {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BeatMarker {
-    #[serde(rename = "s")]
+    #[serde(rename = "pos")]
     pub start: PositionMs,
 
-    #[serde(rename = "e", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "end", skip_serializing_if = "Option::is_none")]
     pub end: Option<PositionMs>,
 
-    #[serde(rename = "b", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "bpm", skip_serializing_if = "Option::is_none")]
     pub tempo: Option<TempoBpm>,
 
-    #[serde(rename = "t", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "sig", skip_serializing_if = "Option::is_none")]
     pub timing: Option<TimeSignature>,
 
-    #[serde(rename = "n", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "btn", skip_serializing_if = "Option::is_none")]
     pub beat_at_start: Option<_core::BeatNumber>,
 }
 
@@ -321,10 +329,10 @@ impl From<BeatMarker> for _core::BeatMarker {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BeatMarkers {
-    #[serde(rename = "z", skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(rename = "mks", skip_serializing_if = "IsDefault::is_default", default)]
     pub state: State,
 
-    #[serde(rename = "m", skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(rename = "mkl", skip_serializing_if = "IsDefault::is_default", default)]
     pub markers: Vec<BeatMarker>,
 }
 
@@ -351,34 +359,42 @@ impl From<BeatMarkers> for _core::BeatMarkers {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct KeyMarker {
-    #[serde(rename = "s")]
+    #[serde(rename = "pos")]
     pub start: PositionMs,
 
-    #[serde(rename = "e", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "end", skip_serializing_if = "Option::is_none")]
     pub end: Option<PositionMs>,
 
-    #[serde(rename = "k")]
-    pub key: KeySignature,
+    #[serde(rename = "sig")]
+    pub signature: KeySignature,
 }
 
 impl From<_core::KeyMarker> for KeyMarker {
     fn from(from: _core::KeyMarker) -> Self {
-        let _core::KeyMarker { start, end, key } = from;
+        let _core::KeyMarker {
+            start,
+            end,
+            signature,
+        } = from;
         Self {
             start: start.into(),
             end: end.map(Into::into),
-            key: key.into(),
+            signature: signature.into(),
         }
     }
 }
 
 impl From<KeyMarker> for _core::KeyMarker {
     fn from(from: KeyMarker) -> Self {
-        let KeyMarker { start, end, key } = from;
+        let KeyMarker {
+            start,
+            end,
+            signature,
+        } = from;
         Self {
             start: start.into(),
             end: end.map(Into::into),
-            key: key.into(),
+            signature: signature.into(),
         }
     }
 }
@@ -386,10 +402,10 @@ impl From<KeyMarker> for _core::KeyMarker {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct KeyMarkers {
-    #[serde(rename = "z", skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(rename = "mks", skip_serializing_if = "IsDefault::is_default", default)]
     pub state: State,
 
-    #[serde(rename = "m", skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(rename = "mkl", skip_serializing_if = "IsDefault::is_default", default)]
     pub markers: Vec<KeyMarker>,
 }
 
