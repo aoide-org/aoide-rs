@@ -20,8 +20,6 @@ use crate::{
     music::key::*,
 };
 
-use std::f64;
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct Marker {
     pub start: PositionMs,
