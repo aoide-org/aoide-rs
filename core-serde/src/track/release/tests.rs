@@ -39,6 +39,17 @@ fn deserialize_year() {
 }
 
 #[test]
+fn serialize_year() {
+    assert_eq!(
+        serde_json::to_string(&ReleasedAt::Date(ReleaseDate(_core::ReleaseDate::new(
+            19_960_000
+        ))))
+        .unwrap(),
+        serde_json::to_string(&json!(1996)).unwrap()
+    );
+}
+
+#[test]
 fn deserialize_year_month() {
     assert_eq!(
         _core::ReleasedAt::Date(_core::ReleaseDate::new(19_960_100)),

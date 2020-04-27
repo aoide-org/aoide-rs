@@ -1822,6 +1822,7 @@ components:
         - $ref: '#/components/schemas/ReleaseDateTime'
     ReleaseDate:
       oneOf:
+        - $ref: '#/components/schemas/YYYY'
         - $ref: '#/components/schemas/YYYYMMDD'
     ReleaseDateTime:
       oneOf:
@@ -2363,10 +2364,18 @@ components:
           $ref: '#/components/schemas/UriPredicate'
         replacement:
           type: string
+    YYYY:
+      type: integer
+      format: int32
+      minimum: 1
+      maximum: 9999
+      example: 2019
+      description: |
+        A 4-digit integer representing a year
     YYYYMMDD:
       type: integer
       format: int32
-      minimum: 0
+      minimum: 10000
       maximum: 99999999
       example: 20191124
       description: |

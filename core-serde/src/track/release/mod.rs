@@ -16,7 +16,9 @@
 use super::*;
 
 mod _core {
-    pub use aoide_core::track::release::{Release, ReleaseDate, ReleaseDateTime, ReleasedAt};
+    pub use aoide_core::track::release::{
+        Release, ReleaseDate, ReleaseDateTime, ReleaseYear, ReleasedAt,
+    };
 }
 
 use aoide_core::track::release::YYYYMMDD;
@@ -44,7 +46,12 @@ impl Serialize for ReleaseDate {
     where
         S: Serializer,
     {
-        serializer.serialize_i32(self.0.into())
+        let value = if self.0.is_year() {
+            i32::from(self.0.year())
+        } else {
+            self.0.into()
+        };
+        serializer.serialize_i32(value)
     }
 }
 
@@ -61,15 +68,16 @@ impl<'de> SerdeDeserializeVisitor<'de> for ReleaseDateDeserializeVisitor {
     where
         E: de::Error,
     {
-        let mut value = value as YYYYMMDD;
-        if value < _core::ReleaseDate::min().into()
+        let value = value as YYYYMMDD;
+        let value = if value < _core::ReleaseDate::min().into()
             && value >= YYYYMMDD::from(_core::ReleaseDate::min().year())
             && value <= YYYYMMDD::from(_core::ReleaseDate::max().year())
         {
-            // Special case handling: YYYY -> YYYY0000
-            value *= 10_000;
-        }
-        let value = _core::ReleaseDate::new(value);
+            // Special case handling: YYYY
+            _core::ReleaseDate::from_year(value as _core::ReleaseYear)
+        } else {
+            _core::ReleaseDate::new(value)
+        };
         value
             .validate()
             .map_err(|e| E::custom(format!("{:?}", e)))
