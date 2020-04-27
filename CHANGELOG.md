@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.7.1] - 2020-04-27
+
+**This release breaks backward compatibility with old versions! Existing databases need to be rebuilt.**
+
+### Changed
+
+- New database schema and API using 3 instead of 1 characters for property names
+- Fixed handling of 4-digit year release dates
+
 ## [0.7.0] - 2020-04-17
 
 **This release breaks backward compatibility with old versions! Existing databases need to be rebuilt.**
@@ -309,7 +318,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial public release
 
-[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.7.0...development
+[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.7.1...development
+[0.7.1]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.7.1
 [0.7.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.7.0
 [0.6.6]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.6.6
 [0.6.5]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.6.5
