@@ -91,6 +91,14 @@ impl ReleaseDate {
     pub fn day_of_month(self) -> ReleaseDayOfMonth {
         (self.0 % 100) as ReleaseDayOfMonth
     }
+
+    pub fn from_year(year: ReleaseYear) -> Self {
+        Self(YYYYMMDD::from(year) * 10_000)
+    }
+
+    pub fn is_year(self) -> bool {
+        Self::from_year(self.year()) == self
+    }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
