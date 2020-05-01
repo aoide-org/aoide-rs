@@ -253,7 +253,8 @@ impl<'a> Repo for Repository<'a> {
             .optional()
             .map(|opt_sum| {
                 opt_sum.flatten().map(|sum| {
-                    debug_assert!(sum.is_integer());
+                    // TODO: Re-enable assertion for bigdecimal >= 0.1.0
+                    //debug_assert!(sum.is_integer());
                     debug_assert!(sum.sign() != Sign::Minus);
                     sum.to_bigint()
                         .expect("uncountable playlist entries")
