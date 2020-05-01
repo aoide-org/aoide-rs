@@ -99,7 +99,7 @@ cargo build --bin aoide
 During development it is handy to build and run the executable in a single step:
 
 ```bash
-cargo run --bin aoide -- -vv --listen [::1]:0 /tmp/aoide.sqlite
+cargo run --bin aoide -- -vv --listen "[::1]:0" /tmp/aoide.sqlite
 ```
 
 In this example the following command line parameters are passed through to the executable:
