@@ -128,7 +128,7 @@ pub struct Source {
     #[serde(rename = "typ")]
     content_type: String,
 
-    #[serde(rename = "con")]
+    #[serde(flatten)]
     content: Content,
 
     #[serde(rename = "art", skip_serializing_if = "Option::is_none")]
