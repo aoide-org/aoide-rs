@@ -942,13 +942,33 @@ components:
           $ref: '#/components/schemas/ImageDigest'
         dim:
           $ref: '#/components/schemas/ImageSize'
-        uri:
-          $ref: '#/components/schemas/Uri'
+        typ:
+          $ref: '#/components/schemas/MediaType'
+      additionalProperties:
+        $ref: '#/components/schemas/ArtworkResourceProperties'
     ArtworkColor:
       description: |
         A solid (background) color, e.g. the average color of the artwork image
       oneOf:
         - $ref: '#/components/schemas/Color'
+    ArtworkResourceProperties:
+      oneOf:
+        - $ref: '#/components/schemas/ArtworkResourcePropertyEmbedded'
+        - $ref: '#/components/schemas/ArtworkResourcePropertyUri'
+    ArtworkResourcePropertyEmbedded:
+      description: |
+        Embedded artwork resource referenced by a string selector
+      properties:
+        res:
+          type: string
+          minLength: 1
+    ArtworkResourcePropertyUri:
+      description: |
+        External artwork resource referenced by an URI
+      properties:
+        uri:
+          oneOf:
+            - $ref: '#/components/schemas/Uri'
     AudioContent:
       properties:
         bps:

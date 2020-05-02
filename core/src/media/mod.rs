@@ -63,9 +63,9 @@ impl Validate for ImageSize {
 // All artwork properties are optional for maximum flexibility.
 // Properties could be missing or are yet unknown at some point
 // in time.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub struct Artwork {
-    /// The dimensions of the image.
+    /// The dimensions of the image (if known).
     pub size: Option<ImageSize>,
 
     /// An optional (background) color can be used to quickly display
@@ -75,12 +75,41 @@ pub struct Artwork {
 
     /// Identifies the actual content for cache lookup and to decide
     /// about modifications, e.g. a base64-encoded SHA256 hash of the
-    /// image data.
+    /// raw image data.
     pub digest: Option<String>,
 
+    /// The content type (if known), e.g. "image/jpeg"
+    pub content_type: Option<String>,
+
     /// Selects one out of multiple resources embedded in the media source
-    /// or an external resource.
-    pub uri: Option<String>,
+    /// (e.g. "front") or references image data in an external resource.
+    ///
+    /// If this property is missing then the image is implicitly embedded
+    /// in the media source and the client is responsible for selecting
+    /// one among possibly multiple resources.
+    pub resource: ArtworkResource,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ArtworkResource {
+    /// A single, implicitly selected embedded resource
+    ///
+    /// Clients are responsible for selecting the default resource
+    /// if multiple resources are available.
+    EmbeddedDefault,
+
+    /// One out of multiple embedded resources, e.g. "front"
+    /// or "cover"
+    Embedded(String),
+
+    /// The URI of an external resource
+    URI(String)
+}
+
+impl Default for ArtworkResource {
+    fn default() -> Self {
+        ArtworkResource::EmbeddedDefault
+    }
 }
 
 impl Artwork {
@@ -89,16 +118,17 @@ impl Artwork {
             size,
             color,
             digest,
-            uri,
+            ..
         } = self;
-        size.is_none() && color.is_none() && digest.is_none() && uri.is_none()
+        size.is_none() && color.is_none() && digest.is_none()
     }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ArtworkInvalidity {
-    Empty,
     ImageSize(ImageSizeInvalidity),
+    DigestEmpty,
+    ContentTypeEmpty,
 }
 
 impl Validate for Artwork {
@@ -107,7 +137,8 @@ impl Validate for Artwork {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
             .validate_with(&self.size, ArtworkInvalidity::ImageSize)
-            .invalidate_if(self.is_empty(), ArtworkInvalidity::Empty)
+            .invalidate_if(self.digest.as_ref().map(String::is_empty).unwrap_or(false), ArtworkInvalidity::DigestEmpty)
+            .invalidate_if(self.content_type.as_ref().map(String::is_empty).unwrap_or(false), ArtworkInvalidity::ContentTypeEmpty)
             .into()
     }
 }

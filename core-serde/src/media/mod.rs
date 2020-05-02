@@ -69,8 +69,20 @@ pub struct Artwork {
     #[serde(rename = "dig", skip_serializing_if = "Option::is_none")]
     digest: Option<String>,
 
-    #[serde(rename = "uri", skip_serializing_if = "Option::is_none")]
-    uri: Option<String>,
+    #[serde(rename = "typ", skip_serializing_if = "Option::is_none")]
+    content_type: Option<String>,
+
+    #[serde(flatten, skip_serializing_if = "Option::is_none")]
+    resource: Option<ArtworkResource>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ArtworkResource {
+    #[serde(rename = "res")]
+    Embedded(String),
+
+    #[serde(rename = "uri")]
+    URI(String),
 }
 
 impl From<_core::Artwork> for Artwork {
@@ -79,17 +91,25 @@ impl From<_core::Artwork> for Artwork {
             size,
             color,
             digest,
-            uri,
+            content_type,
+            resource,
         } = from;
         let size = size.map(|size| {
             let _core::ImageSize { width, height } = size;
             ImageSize(width, height)
         });
+        use _core::ArtworkResource::*;
+        let resource = match resource {
+            EmbeddedDefault => None,
+            Embedded(res) => Some(ArtworkResource::Embedded(res)),
+            URI(uri) => Some(ArtworkResource::URI(uri)),
+        };
         Self {
             size,
             color: color.map(Into::into),
             digest,
-            uri,
+            content_type,
+            resource,
         }
     }
 }
@@ -100,17 +120,28 @@ impl From<Artwork> for _core::Artwork {
             size,
             color,
             digest,
-            uri,
+            content_type,
+            resource,
         } = from;
         let size = size.map(|size| {
             let ImageSize(width, height) = size;
             _core::ImageSize { width, height }
         });
+        use _core::ArtworkResource::*;
+        let resource = if let Some(resource) = resource {
+            match resource {
+                ArtworkResource::Embedded(res) => Embedded(res),
+                ArtworkResource::URI(uri) => URI(uri),
+            }
+        } else {
+            EmbeddedDefault
+        };
         Self {
             size,
             color: color.map(Into::into),
             digest,
-            uri,
+            content_type,
+            resource,
         }
     }
 }
@@ -168,3 +199,10 @@ impl From<Source> for _core::Source {
         }
     }
 }
+
+///////////////////////////////////////////////////////////////////////
+// Tests
+///////////////////////////////////////////////////////////////////////
+
+#[cfg(test)]
+mod tests;
