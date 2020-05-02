@@ -21,7 +21,9 @@
 ###############################################################################
 # Define global ARGs for all stages
 
-ARG WORKDIR_ROOT=/usr/src
+# clux/muslrust: /usr/src
+# ekidd/rust-musl-builder: /usr/src
+ARG WORKDIR_ROOT=/home/rust/src
 
 ARG PROJECT_NAME=aoide
 
@@ -34,7 +36,7 @@ ARG BUILD_BIN=aoide
 
 ###############################################################################
 # 1st Build Stage
-FROM clux/muslrust:stable AS build
+FROM ekidd/rust-musl-builder:stable AS build
 
 # Import global ARGs
 ARG WORKDIR_ROOT
