@@ -1340,24 +1340,24 @@ components:
         * 1 - read-only (locked)
       type: integer
       enum: [0, 1]
-    MediaContent:
+    MediaContentProperties:
       oneOf:
-        - type: object
-          properties:
-            aud:
-              $ref: '#/components/schemas/AudioContent'
+        - $ref: '#/components/schemas/MediaContentAudioProperty'
+    MediaContentAudioProperty:
+      properties:
+        aud:
+          $ref: '#/components/schemas/AudioContent'
     MediaSource:
       properties:
         art:
           $ref: '#/components/schemas/Artwork'
-        con:
-          $ref: '#/components/schemas/MediaContent'
         typ:
           $ref: '#/components/schemas/MediaType'
         uri:
           $ref: '#/components/schemas/Uri'
+      additionalProperties:
+        $ref: '#/components/schemas/MediaContentProperties'
       required:
-        - con
         - typ
         - uri
     MediaType:
