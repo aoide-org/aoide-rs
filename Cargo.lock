@@ -39,6 +39,7 @@ dependencies = [
  "diesel_migrations",
  "env_logger",
  "futures",
+ "libsqlite3-sys",
  "log",
  "semval",
  "serde",
@@ -210,6 +211,12 @@ checksum = "4b9434b9a5aa1450faa3f9cb14ea0e8c53bb5d2b3c1bfd1ab4fc03e9f33fbfb0"
 dependencies = [
  "rustc_version",
 ]
+
+[[package]]
+name = "cc"
+version = "1.0.52"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3d87b23d6a92cd03af510a5ade527033f6aa6fa92161e2d5863a907d4c5e31d"
 
 [[package]]
 name = "cfg-if"
@@ -762,6 +769,7 @@ version = "0.17.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56d90181c2904c287e5390186be820e5ef311a3c62edebb7d6ca3d6a48ce041d"
 dependencies = [
+ "cc",
  "pkg-config",
  "vcpkg",
 ]

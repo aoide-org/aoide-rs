@@ -39,6 +39,7 @@ log = "*"
 semval = "*"
 serde = "*"
 serde_json = "*"
+libsqlite3-sys = { version = "0.17", features = ["bundled"] }
 tokio = { version = "*", default-features = false, features = ["macros", "rt-threaded"] }
 warp = { version = "*", default-features = false }
 
