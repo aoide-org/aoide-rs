@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Seperated properties for referencing embedded and external artwork resources
+- Separated properties for referencing embedded and external artwork resources
 - Flattened content property in media source
 
 ## [0.7.1] - 2020-04-27
