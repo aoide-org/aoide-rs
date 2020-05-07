@@ -986,12 +986,46 @@ components:
     AvgTagScore:
       oneOf:
         - $ref: '#/components/schemas/TagScore'
+    BarCount:
+      description: |
+        The bar 1..n counted from the start of the track.
+      type: integer
+      format: int32
+      minimum: 1
+      maximum: 2147483647
+      example: 30
+    BarInPhraseNumber:
+      description: |
+        The bar 1..n in a phrase.
+
+        Phrases are typically consisting of n = 2^m bars.
+      oneOf:
+        - $ref: '#/components/schemas/BeatNumber'
+    BeatCount:
+      description: |
+        The beat 1..n counted from the start of the track.
+      type: integer
+      format: int32
+      minimum: 1
+      maximum: 2147483647
+      example: 16
+    BeatInBarNumber:
+      description: |
+        The beat 1..n in a bar.
+      oneOf:
+        - $ref: '#/components/schemas/BeatNumber'
     BeatMarker:
       properties:
         bpm:
           $ref: '#/components/schemas/TempoBpm'
+        bti:
+          $ref: '#/components/schemas/BeatInBarNumber'
         btn:
-          $ref: '#/components/schemas/BeatNumber'
+          $ref: '#/components/schemas/BeatCount'
+        bri:
+          $ref: '#/components/schemas/BarInPhraseNumber'
+        brn:
+          $ref: '#/components/schemas/BarCount'
         end:
           $ref: '#/components/schemas/PositionEndMs'
         pos:
@@ -1001,12 +1035,16 @@ components:
       required:
         - pos
       description: |
-        Section of a beat grid with uniform tempo and timiming.
+        Section of a beat grid with uniform tempo and timining.
 
-        Either tempo or time signature is required. If the end position is
-        missing the section ends with the start of the following marker or
-        at the end of the track. The beat number must fit into the time
-        signature.
+        The start position of a beat marker is supposed to mark a single
+        beat. If the end position is missing the section ends with the
+        start of the following marker or at the end of the track.
+
+        If the tempo or time signature is missing those values are
+        inherited from the preceding beat marker.
+
+        The *beat in bar* number must fit into the time signature.
     BeatMarkers:
       properties:
         mkl:
@@ -1023,7 +1061,7 @@ components:
       maximum: 65535
       example: 1
       description: |
-        The beat 1..n in a bar.
+        A number for counting beats (in a bar) or bars (in a phrase).
     BitRateBps:
       type: integer
       format: int32

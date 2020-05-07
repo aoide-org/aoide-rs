@@ -21,7 +21,10 @@ fn base_marker() -> Marker {
         end: None,
         tempo: None,
         timing: None,
-        beat_at_start: None,
+        beat_in_bar: None,
+        bar_in_phrase: None,
+        beat_count: None,
+        bar_count: None,
     }
 }
 
@@ -50,7 +53,7 @@ fn invalid_markers() {
             top: 4,
             bottom: Some(4),
         }),
-        beat_at_start: Some(5),
+        beat_in_bar: Some(5),
         ..base_marker()
     };
     assert!(!mk1.is_valid());
