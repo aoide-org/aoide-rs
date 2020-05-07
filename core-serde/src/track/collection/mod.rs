@@ -21,7 +21,7 @@ mod _core {
 
 use aoide_core::util::clock::{TickInstant, TickType, Ticks};
 
-use crate::{entity::EntityUid, util::color::ColorRgb};
+use crate::{entity::EntityUid, util::color::Color};
 
 ///////////////////////////////////////////////////////////////////////
 // Collection
@@ -37,7 +37,7 @@ pub struct Collection {
     added_at: TickType,
 
     #[serde(rename = "col", skip_serializing_if = "Option::is_none")]
-    color: Option<ColorRgb>,
+    color: Option<Color>,
 
     #[serde(rename = "plc", skip_serializing_if = "Option::is_none")]
     play_count: Option<usize>,

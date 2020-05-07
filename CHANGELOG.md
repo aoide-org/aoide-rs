@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Renamed *beat at start* to *beat in  bar* in beat marker
+- Split track/marker colors into an RGB color code and a color index
 
 ## [0.7.2] - 2020-05-03
 
@@ -339,7 +340,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial public release
 
-[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.7.2...development
+[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.7.3...development
+[0.7.3]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.7.3
 [0.7.2]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.7.2
 [0.7.1]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.7.1
 [0.7.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.7.0

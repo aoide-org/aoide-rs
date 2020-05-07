@@ -1,6 +1,6 @@
-openapi: 3.0.2
+openapi: 3.0.3
 info:
-  version: 0.7.2
+  version: 0.7.3
   title: aoide
   description: Music library management
   license:
@@ -950,7 +950,7 @@ components:
       description: |
         A solid (background) color, e.g. the average color of the artwork image
       oneOf:
-        - $ref: '#/components/schemas/Color'
+        - $ref: '#/components/schemas/RgbColor'
     ArtworkResourceProperties:
       oneOf:
         - $ref: '#/components/schemas/ArtworkResourcePropertyEmbedded'
@@ -1137,12 +1137,22 @@ components:
       oneOf:
         - $ref: '#/components/schemas/EntityUid'
     Color:
-      type: string
-      minLength: 7
-      maxLength: 7
-      example: '#808080'
+      oneOf:
+        - $ref: '#/components/schemas/RgbColorVariant'
+        - $ref: '#/components/schemas/ColorIndexVariant'
       description: |
-        A hexadecimal RGB color code `#RRGGBB` with 8 bits per channel.
+        Either an RGB color value or a color index.
+    ColorIndex:
+      type: integer
+      minimum: 0
+      maximum: 65535
+      example: 5
+      description: |
+        A color palette index.
+    ColorIndexVariant:
+      properties:
+        idx:
+          $ref: '#/components/schemas/ColorIndex'
     CountTracksByAlbumParams:
       properties:
         minReleaseDate:
@@ -1936,6 +1946,17 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TrackReplacement'
+    RgbColor:
+      type: string
+      minLength: 7
+      maxLength: 7
+      example: '#808080'
+      description: |
+        A hexadecimal RGB color code `#RRGGBB` with 8 bits per channel.
+    RgbColorVariant:
+      properties:
+        rgb:
+          $ref: '#/components/schemas/RgbColor'
     SampleRateHz:
       type: integer
       format: int32

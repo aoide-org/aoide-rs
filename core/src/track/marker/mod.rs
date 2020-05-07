@@ -15,9 +15,13 @@
 
 use super::*;
 
+use crate::util::color::*;
+
 pub mod beat;
 pub mod key;
 pub mod position;
+
+pub type Number = i32;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum State {

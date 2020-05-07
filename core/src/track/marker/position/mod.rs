@@ -15,10 +15,7 @@
 
 use super::*;
 
-use crate::{
-    audio::{PositionMs, PositionMsInvalidity},
-    util::color::*,
-};
+use crate::audio::{PositionMs, PositionMsInvalidity};
 
 ///////////////////////////////////////////////////////////////////////
 // Marker
@@ -56,9 +53,9 @@ pub struct MarkerData {
 
     pub end: Option<PositionMs>,
 
-    pub number: Option<i32>,
+    pub number: Option<Number>,
 
-    pub color: Option<ColorRgb>,
+    pub color: Option<Color>,
 
     pub label: Option<String>,
 }

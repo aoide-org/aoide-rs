@@ -34,7 +34,8 @@ table! {
         playlist_id -> BigInt,
         name -> Text,
         playlist_type -> Nullable<Text>, // r#type doesn't work in macro expansion
-        color_code -> Nullable<Integer>,
+        color_rgb -> Nullable<Integer>,
+        color_idx -> Nullable<SmallInt>,
         geoloc_lat -> Nullable<Double>,
         geoloc_lon -> Nullable<Double>,
         desc -> Nullable<Text>,

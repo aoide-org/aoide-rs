@@ -15,7 +15,7 @@
 
 use super::*;
 
-use crate::{entity::EntityUid, util::color::ColorRgb};
+use crate::{entity::EntityUid, util::color::Color};
 
 use aoide_core::util::{
     clock::{TickInstant, TickType, Ticks},
@@ -120,7 +120,7 @@ pub struct Playlist {
     r#type: Option<String>,
 
     #[serde(rename = "col", skip_serializing_if = "Option::is_none")]
-    color: Option<ColorRgb>,
+    color: Option<Color>,
 
     #[serde(rename = "geo", skip_serializing_if = "Option::is_none")]
     geo_location: Option<(GeoCoord, GeoCoord)>,
@@ -255,7 +255,7 @@ pub struct PlaylistBrief {
     r#type: Option<String>,
 
     #[serde(rename = "col", skip_serializing_if = "Option::is_none")]
-    color: Option<ColorRgb>,
+    color: Option<Color>,
 
     #[serde(rename = "geo", skip_serializing_if = "Option::is_none")]
     geo_location: Option<(GeoCoord, GeoCoord)>,

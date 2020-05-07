@@ -129,7 +129,8 @@ pub struct QueryableBrief {
     pub name: String,
     pub desc: Option<String>,
     pub playlist_type: Option<String>,
-    pub color_code: Option<i32>,
+    pub color_rgb: Option<i32>,
+    pub color_idx: Option<i16>,
     pub geoloc_lat: Option<f64>,
     pub geoloc_lon: Option<f64>,
     pub tracks_count: i64,
@@ -148,7 +149,8 @@ impl From<QueryableBrief> for (RepoId, EntityHeader, PlaylistBrief) {
             name,
             desc,
             playlist_type,
-            color_code,
+            color_rgb,
+            color_idx,
             geoloc_lat,
             geoloc_lon,
             tracks_count,
@@ -183,11 +185,19 @@ impl From<QueryableBrief> for (RepoId, EntityHeader, PlaylistBrief) {
             added_minmax: entries_added_minmax,
             tracks,
         };
+        let color = if let Some(color_rgb) = color_rgb {
+            debug_assert!(color_idx.is_none());
+            Some(Color::Rgb(RgbColor(color_rgb as RgbColorCode)))
+        } else if let Some(color_idx) = color_idx {
+            Some(Color::Index(color_idx))
+        } else {
+            None
+        };
         let brief = PlaylistBrief {
             name,
             description: desc,
             r#type: playlist_type,
-            color: color_code.map(|c| ColorRgb(c as ColorCode)),
+            color,
             geo_location,
             entries,
         };
@@ -202,7 +212,8 @@ pub struct InsertableBrief<'a> {
     pub name: &'a str,
     pub desc: Option<&'a str>,
     pub playlist_type: Option<&'a str>,
-    pub color_code: Option<i32>,
+    pub color_rgb: Option<i32>,
+    pub color_idx: Option<i16>,
     pub geoloc_lat: Option<f64>,
     pub geoloc_lon: Option<f64>,
     pub tracks_count: i64,
@@ -234,7 +245,16 @@ impl<'a> InsertableBrief<'a> {
             name,
             desc: description,
             playlist_type: r#type,
-            color_code: color.map(|color| color.code() as i32),
+            color_rgb: if let Some(Color::Rgb(color)) = color {
+                Some(color.code() as i32)
+            } else {
+                None
+            },
+            color_idx: if let Some(Color::Index(index)) = color {
+                Some(index)
+            } else {
+                None
+            },
             geoloc_lat: geo_location.as_ref().map(|p| p.lat),
             geoloc_lon: geo_location.as_ref().map(|p| p.lon),
             tracks_count: *tracks_count as i64,

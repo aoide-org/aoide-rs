@@ -21,7 +21,7 @@ use crate::{
     entity::{EntityUid, EntityUidInvalidity},
     util::{
         clock::TickInstant,
-        color::ColorRgb,
+        color::Color,
         geo::{GeoPoint, GeoPointInvalidity},
     },
 };
@@ -131,7 +131,7 @@ pub struct Playlist {
     pub r#type: Option<String>,
 
     /// Optional color for display purposes.
-    pub color: Option<ColorRgb>,
+    pub color: Option<Color>,
 
     /// An optional geographical location, e.g. to identify the place where
     /// the playlist has been composed or recorded during an event.
@@ -259,7 +259,7 @@ pub struct PlaylistBrief {
 
     pub r#type: Option<String>,
 
-    pub color: Option<ColorRgb>,
+    pub color: Option<Color>,
 
     pub geo_location: Option<GeoPoint>,
 
@@ -274,7 +274,7 @@ pub struct PlaylistBriefRef<'a> {
 
     pub r#type: Option<&'a str>,
 
-    pub color: Option<ColorRgb>,
+    pub color: Option<Color>,
 
     pub geo_location: Option<&'a GeoPoint>,
 

@@ -30,12 +30,12 @@ mod _core {
     };
 }
 
-use aoide_core::util::IsDefault;
+use aoide_core::{track::marker::Number, util::IsDefault};
 
 use crate::{
     audio::PositionMs,
     music::{key::*, time::*},
-    util::color::ColorRgb,
+    util::color::Color,
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -190,10 +190,10 @@ pub struct PositionMarker {
     pub r#type: PositionMarkerType,
 
     #[serde(rename = "num", skip_serializing_if = "Option::is_none")]
-    pub number: Option<i32>,
+    pub number: Option<Number>,
 
     #[serde(rename = "col", skip_serializing_if = "Option::is_none")]
-    pub color: Option<ColorRgb>,
+    pub color: Option<Color>,
 
     #[serde(rename = "lbl", skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,

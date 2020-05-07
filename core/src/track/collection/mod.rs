@@ -24,13 +24,13 @@ use crate::{
 // Collection
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Collection {
     pub uid: EntityUid,
 
     pub added_at: TickInstant,
 
-    pub color: Option<ColorRgb>,
+    pub color: Option<Color>,
 
     pub play_count: Option<usize>,
 
