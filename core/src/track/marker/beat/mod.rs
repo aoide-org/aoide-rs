@@ -20,6 +20,8 @@ use crate::{
     music::time::*,
 };
 
+pub type BeatCount = u32;
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Marker {
     pub start: PositionMs,
@@ -32,7 +34,17 @@ pub struct Marker {
 
     /// The beat 1..n in a bar (with n = `timing.beats_per_measure()`)
     /// at the start position.
-    pub beat_at_start: Option<BeatNumber>,
+    pub beat_in_bar: Option<BeatNumber>,
+
+    /// The bar 1..n in a phrase (consisting of typically n = 2^m bars)
+    /// at the start position.
+    pub bar_in_phrase: Option<BeatNumber>,
+
+    /// The total beat count 1..n since the start of the track.
+    pub beat_count: Option<BeatNumber>,
+
+    /// The total bar count 1..n since the start of the track.
+    pub bar_count: Option<BeatNumber>,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -66,7 +78,7 @@ impl Validate for Marker {
             )
             .invalidate_if(
                 self.timing
-                    .and_then(|t| self.beat_at_start.map(|b| b < 1 || b > t.top))
+                    .and_then(|t| self.beat_in_bar.map(|b| b < 1 || b > t.top))
                     .unwrap_or_default(),
                 MarkerInvalidity::StartBeatInvalid,
             )

@@ -284,8 +284,17 @@ pub struct BeatMarker {
     #[serde(rename = "sig", skip_serializing_if = "Option::is_none")]
     pub timing: Option<TimeSignature>,
 
+    #[serde(rename = "bti", skip_serializing_if = "Option::is_none")]
+    pub beat_in_bar: Option<_core::BeatNumber>,
+
+    #[serde(rename = "bri", skip_serializing_if = "Option::is_none")]
+    pub bar_in_phrase: Option<_core::BeatNumber>,
+
     #[serde(rename = "btn", skip_serializing_if = "Option::is_none")]
-    pub beat_at_start: Option<_core::BeatNumber>,
+    pub beat_count: Option<_core::BeatNumber>,
+
+    #[serde(rename = "brn", skip_serializing_if = "Option::is_none")]
+    pub bar_count: Option<_core::BeatNumber>,
 }
 
 impl From<_core::BeatMarker> for BeatMarker {
@@ -295,14 +304,20 @@ impl From<_core::BeatMarker> for BeatMarker {
             end,
             tempo,
             timing,
-            beat_at_start,
+            beat_in_bar,
+            bar_in_phrase,
+            beat_count,
+            bar_count,
         } = from;
         Self {
             start: start.into(),
             end: end.map(Into::into),
             tempo: tempo.map(Into::into),
             timing: timing.map(Into::into),
-            beat_at_start: beat_at_start.map(Into::into),
+            beat_in_bar: beat_in_bar.map(Into::into),
+            bar_in_phrase: bar_in_phrase.map(Into::into),
+            beat_count: beat_count.map(Into::into),
+            bar_count: bar_count.map(Into::into),
         }
     }
 }
@@ -314,14 +329,20 @@ impl From<BeatMarker> for _core::BeatMarker {
             end,
             tempo,
             timing,
-            beat_at_start,
+            beat_in_bar,
+            bar_in_phrase,
+            beat_count,
+            bar_count,
         } = from;
         Self {
             start: start.into(),
             end: end.map(Into::into),
             tempo: tempo.map(Into::into),
             timing: timing.map(Into::into),
-            beat_at_start: beat_at_start.map(Into::into),
+            beat_in_bar: beat_in_bar.map(Into::into),
+            bar_in_phrase: bar_in_phrase.map(Into::into),
+            beat_count: beat_count.map(Into::into),
+            bar_count: bar_count.map(Into::into),
         }
     }
 }
