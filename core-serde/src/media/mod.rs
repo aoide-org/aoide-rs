@@ -19,7 +19,7 @@ mod _core {
     pub use aoide_core::media::*;
 }
 
-use crate::{audio::AudioContent, util::color::ColorRgb};
+use crate::{audio::AudioContent, util::color::RgbColor};
 
 ///////////////////////////////////////////////////////////////////////
 // Content
@@ -64,7 +64,7 @@ pub struct Artwork {
     size: Option<ImageSize>,
 
     #[serde(rename = "col", skip_serializing_if = "Option::is_none")]
-    color: Option<ColorRgb>,
+    color: Option<RgbColor>,
 
     #[serde(rename = "dig", skip_serializing_if = "Option::is_none")]
     digest: Option<String>,

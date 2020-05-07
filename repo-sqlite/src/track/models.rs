@@ -27,7 +27,7 @@ use aoide_core::{
         release::YYYYMMDD,
         *,
     },
-    util::clock::*,
+    util::{clock::*, color::Color},
 };
 
 use aoide_repo::{entity::*, RepoId};
@@ -141,7 +141,8 @@ pub struct InsertableCollection<'a> {
     pub track_id: RepoId,
     pub collection_uid: &'a [u8],
     pub added_at: NaiveDateTime,
-    pub color_code: Option<i32>,
+    pub color_rgb: Option<i32>,
+    pub color_idx: Option<i16>,
     pub play_count: Option<i32>,
     pub last_played_at: Option<NaiveDateTime>,
 }
@@ -152,7 +153,16 @@ impl<'a> InsertableCollection<'a> {
             track_id,
             collection_uid: collection.uid.as_ref(),
             added_at: DateTime::from(collection.added_at).naive_utc(),
-            color_code: collection.color.map(|color| color.code() as i32),
+            color_rgb: if let Some(Color::Rgb(color)) = collection.color {
+                Some(color.code() as i32)
+            } else {
+                None
+            },
+            color_idx: if let Some(Color::Index(index)) = collection.color {
+                Some(index)
+            } else {
+                None
+            },
             play_count: collection.play_count.map(|count| count as i32),
             last_played_at: collection
                 .last_played_at

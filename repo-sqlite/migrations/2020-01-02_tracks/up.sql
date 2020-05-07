@@ -34,7 +34,8 @@ CREATE TABLE aux_track_collection (
     track_id                 INTEGER NOT NULL,
     collection_uid           BINARY(24) NOT NULL,
     added_at                 DATETIME NOT NULL, -- UTC
-    color_code               INTEGER,           -- 0xRRGGBB (hex)
+    color_rgb                INTEGER,           -- 0xRRGGBB (hex)
+    color_idx                INTEGER,           -- palette index
     play_count               INTEGER,
     last_played_at           DATETIME,          -- UTC
     FOREIGN KEY(track_id) REFERENCES tbl_track(id),

@@ -36,7 +36,8 @@ table! {
         track_id -> BigInt,
         collection_uid -> Binary,
         added_at -> Timestamp,
-        color_code -> Nullable<Integer>,
+        color_rgb -> Nullable<Integer>,
+        color_idx -> Nullable<SmallInt>,
         play_count -> Nullable<Integer>,
         last_played_at -> Nullable<Timestamp>,
     }

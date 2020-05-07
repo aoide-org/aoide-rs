@@ -17,7 +17,7 @@ use super::*;
 
 use crate::{
     audio::{AudioContent, AudioContentInvalidity},
-    util::color::ColorRgb,
+    util::color::RgbColor,
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -71,7 +71,7 @@ pub struct Artwork {
     /// An optional (background) color can be used to quickly display
     /// a preliminary view before the actual image has been loaded and
     /// for selecting a matching color scheme.
-    pub color: Option<ColorRgb>,
+    pub color: Option<RgbColor>,
 
     /// Identifies the actual content for cache lookup and to decide
     /// about modifications, e.g. a base64-encoded SHA256 hash of the
@@ -103,7 +103,7 @@ pub enum ArtworkResource {
     Embedded(String),
 
     /// The URI of an external resource
-    URI(String)
+    URI(String),
 }
 
 impl Default for ArtworkResource {
@@ -137,8 +137,17 @@ impl Validate for Artwork {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
             .validate_with(&self.size, ArtworkInvalidity::ImageSize)
-            .invalidate_if(self.digest.as_ref().map(String::is_empty).unwrap_or(false), ArtworkInvalidity::DigestEmpty)
-            .invalidate_if(self.content_type.as_ref().map(String::is_empty).unwrap_or(false), ArtworkInvalidity::ContentTypeEmpty)
+            .invalidate_if(
+                self.digest.as_ref().map(String::is_empty).unwrap_or(false),
+                ArtworkInvalidity::DigestEmpty,
+            )
+            .invalidate_if(
+                self.content_type
+                    .as_ref()
+                    .map(String::is_empty)
+                    .unwrap_or(false),
+                ArtworkInvalidity::ContentTypeEmpty,
+            )
             .into()
     }
 }
