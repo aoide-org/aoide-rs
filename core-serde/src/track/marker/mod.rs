@@ -19,14 +19,13 @@ mod _core {
     pub use aoide_core::{
         music::time::TimeSignature,
         track::marker::{
-            Position,
             beat::{Marker as BeatMarker, Markers as BeatMarkers},
             key::{Marker as KeyMarker, Markers as KeyMarkers},
             position::{
                 Marker as PositionMarker, MarkerData as PositionMarkerData,
                 MarkerType as PositionMarkerType, Markers as PositionMarkers,
             },
-            Markers, State,
+            Markers, Position, State,
         },
     };
 }
@@ -36,7 +35,7 @@ pub use aoide_core::{music::time::BeatNumber, track::marker::beat::BeatCount};
 use aoide_core::{track::marker::Number, util::IsDefault};
 
 use crate::{
-    audio::{PositionMs, sample::SamplePosition},
+    audio::{sample::SamplePosition, PositionMs},
     music::{key::*, time::*},
     util::color::Color,
 };
@@ -70,10 +69,7 @@ impl From<Position> for _core::Position {
 
 impl From<_core::Position> for Position {
     fn from(from: _core::Position) -> Self {
-        let _core::Position {
-            millis,
-            samples,
-        } = from;
+        let _core::Position { millis, samples } = from;
         if let Some(samples) = samples {
             Position::MillisSamples(millis.into(), samples.into())
         } else {
@@ -317,10 +313,7 @@ impl From<PositionMarkers> for _core::PositionMarkers {
 #[serde(deny_unknown_fields)]
 pub struct BeatMarker {
     #[serde(rename = "pos")]
-    pub start: Position,
-
-    #[serde(rename = "end", skip_serializing_if = "Option::is_none")]
-    pub end: Option<Position>,
+    pub position: Position,
 
     #[serde(rename = "bpm", skip_serializing_if = "Option::is_none")]
     pub tempo: Option<TempoBpm>,
@@ -344,8 +337,7 @@ pub struct BeatMarker {
 impl From<_core::BeatMarker> for BeatMarker {
     fn from(from: _core::BeatMarker) -> Self {
         let _core::BeatMarker {
-            start,
-            end,
+            position,
             tempo,
             timing,
             beat_in_bar,
@@ -354,8 +346,7 @@ impl From<_core::BeatMarker> for BeatMarker {
             bar_count,
         } = from;
         Self {
-            start: start.into(),
-            end: end.map(Into::into),
+            position: position.into(),
             tempo: tempo.map(Into::into),
             timing: timing.map(Into::into),
             beat_in_bar: beat_in_bar.map(Into::into),
@@ -369,8 +360,7 @@ impl From<_core::BeatMarker> for BeatMarker {
 impl From<BeatMarker> for _core::BeatMarker {
     fn from(from: BeatMarker) -> Self {
         let BeatMarker {
-            start,
-            end,
+            position,
             tempo,
             timing,
             beat_in_bar,
@@ -379,8 +369,7 @@ impl From<BeatMarker> for _core::BeatMarker {
             bar_count,
         } = from;
         Self {
-            start: start.into(),
-            end: end.map(Into::into),
+            position: position.into(),
             tempo: tempo.map(Into::into),
             timing: timing.map(Into::into),
             beat_in_bar: beat_in_bar.map(Into::into),
@@ -425,10 +414,7 @@ impl From<BeatMarkers> for _core::BeatMarkers {
 #[serde(deny_unknown_fields)]
 pub struct KeyMarker {
     #[serde(rename = "pos")]
-    pub start: Position,
-
-    #[serde(rename = "end", skip_serializing_if = "Option::is_none")]
-    pub end: Option<Position>,
+    pub position: Position,
 
     #[serde(rename = "sig")]
     pub signature: KeySignature,
@@ -437,13 +423,11 @@ pub struct KeyMarker {
 impl From<_core::KeyMarker> for KeyMarker {
     fn from(from: _core::KeyMarker) -> Self {
         let _core::KeyMarker {
-            start,
-            end,
+            position,
             signature,
         } = from;
         Self {
-            start: start.into(),
-            end: end.map(Into::into),
+            position: position.into(),
             signature: signature.into(),
         }
     }
@@ -452,13 +436,11 @@ impl From<_core::KeyMarker> for KeyMarker {
 impl From<KeyMarker> for _core::KeyMarker {
     fn from(from: KeyMarker) -> Self {
         let KeyMarker {
-            start,
-            end,
+            position,
             signature,
         } = from;
         Self {
-            start: start.into(),
-            end: end.map(Into::into),
+            position: position.into(),
             signature: signature.into(),
         }
     }

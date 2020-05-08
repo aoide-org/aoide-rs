@@ -21,9 +21,7 @@ pub type BeatCount = u32;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Marker {
-    pub start: Position,
-
-    pub end: Option<Position>,
+    pub position: Position,
 
     pub tempo: Option<TempoBpm>,
 
@@ -46,8 +44,7 @@ pub struct Marker {
 
 #[derive(Copy, Clone, Debug)]
 pub enum MarkerInvalidity {
-    Start(PositionInvalidity),
-    End(PositionInvalidity),
+    Position(PositionInvalidity),
     ReverseDirection,
     Tempo(TempoBpmInvalidity),
     Timing(TimeSignatureInvalidity),
@@ -59,17 +56,8 @@ impl Validate for Marker {
     type Invalidity = MarkerInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        let mut context = ValidationContext::new();
-        if let Some(end) = self.end.as_ref() {
-            context = context
-                .validate_with(end, MarkerInvalidity::End)
-                .invalidate_if(
-                    self.start.millis > end.millis,
-                    MarkerInvalidity::ReverseDirection,
-                );
-        }
-        context
-            .validate_with(&self.start, MarkerInvalidity::Start)
+        ValidationContext::new()
+            .validate_with(&self.position, MarkerInvalidity::Position)
             .validate_with(&self.tempo, MarkerInvalidity::Tempo)
             .validate_with(&self.timing, MarkerInvalidity::Timing)
             .invalidate_if(
@@ -133,23 +121,15 @@ impl Markers {
 #[derive(Copy, Clone, Debug)]
 pub enum MarkersInvalidity {
     Marker(MarkerInvalidity),
-    Ranges,
 }
 
 fn validate_markers<'a>(
     markers: impl Iterator<Item = &'a Marker>,
 ) -> ValidationResult<MarkersInvalidity> {
-    let mut min_pos = PositionMs(f64::NEG_INFINITY);
-    let mut ranges_violation = false;
     markers
         .fold(ValidationContext::new(), |context, marker| {
-            if min_pos > marker.start.millis {
-                ranges_violation = true;
-            }
-            min_pos = marker.start.millis;
             context.validate_with(marker, MarkersInvalidity::Marker)
         })
-        .invalidate_if(ranges_violation, MarkersInvalidity::Ranges)
         .into()
 }
 

@@ -27,6 +27,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Split track/marker colors into an RGB color code and a color index
 - Add optional sample position to marker positions
 
+### Removed
+
+- Removed end position of key and beat marker, i.e. store only a single position
+  for each beat and key marker
+
 ## [0.7.2] - 2020-05-03
 
 **This release breaks backward compatibility with old versions! Existing databases need to be rebuilt.**
