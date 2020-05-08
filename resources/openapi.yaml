@@ -1026,10 +1026,8 @@ components:
           $ref: '#/components/schemas/BarInPhraseNumber'
         brn:
           $ref: '#/components/schemas/BarCount'
-        end:
-          $ref: '#/components/schemas/PositionEndMs'
         pos:
-          $ref: '#/components/schemas/PositionStartMs'
+          $ref: '#/components/schemas/MarkerPosition'
         sig:
           $ref: '#/components/schemas/TimeSignature'
       required:
@@ -1301,10 +1299,8 @@ components:
           $ref: '#/components/schemas/TrackIndex'
     KeyMarker:
       properties:
-        end:
-          $ref: '#/components/schemas/PositionEndMs'
         pos:
-          $ref: '#/components/schemas/PositionStartMs'
+          $ref: '#/components/schemas/MarkerPosition'
         sig:
           $ref: '#/components/schemas/KeySignature'
       required:
@@ -1389,6 +1385,16 @@ components:
 
         Either the position in milliseconds or the position in both
         milliseconds and samples.
+    MarkerPositionEnd:
+      description: |
+        The end/out position of a marker.
+      oneOf:
+        - $ref: '#/components/schemas/MarkerPosition'
+    MarkerPositionStart:
+      description: |
+        The start/in position of a marker.
+      oneOf:
+        - $ref: '#/components/schemas/MarkerPosition'
     MarkerPositionMillis:
       oneOf:
         - $ref: '#/components/schemas/PositionMs'
@@ -1833,13 +1839,15 @@ components:
         col:
           $ref: '#/components/schemas/Color'
         end:
-          $ref: '#/components/schemas/PositionEndMs'
+          $ref: '#/components/schemas/MarkerPositionEnd'
         lbl:
           $ref: '#/components/schemas/MarkerLabel'
         num:
           $ref: '#/components/schemas/MarkerNumber'
         pos:
-          $ref: '#/components/schemas/PositionStartMs'
+          oneOf:
+            - $ref: '#/components/schemas/MarkerPosition'
+            - $ref: '#/components/schemas/MarkerPositionStart'
         typ:
           $ref: '#/components/schemas/PositionMarkerType'
       required:
@@ -1872,22 +1880,12 @@ components:
         * 9 (`phrase`) - range that limits a distinct musical part of the track
       type: integer
       enum: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    PositionEndMs:
-      description: |
-        The end position of a marker.
-      oneOf:
-        - $ref: '#/components/schemas/PositionMs'
     PositionMs:
       type: number
       format: double
       example: 210387.576
       description: |
         The position in an audio stream in milliseconds
-    PositionStartMs:
-      description: |
-        The (start) position of a marker.
-      oneOf:
-        - $ref: '#/components/schemas/PositionMs'
     PurgeTracksParams:
       type: array
       items:

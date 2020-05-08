@@ -15,23 +15,22 @@
 
 use super::*;
 
-use crate::{
-    music::key::*,
-};
+use crate::music::key::*;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Marker {
-    pub start: Position,
+    pub position: Position,
 
-    pub end: Option<Position>,
-
+    /// The signature at this position
+    ///
+    /// The signature is valid until the next marker or until
+    /// the end of a track.
     pub signature: KeySignature,
 }
 
 #[derive(Copy, Clone, Debug)]
 pub enum MarkerInvalidity {
-    Start(PositionInvalidity),
-    End(PositionInvalidity),
+    Position(PositionInvalidity),
     ReverseDirection,
     KeySignature(KeySignatureInvalidity),
 }
@@ -40,14 +39,8 @@ impl Validate for Marker {
     type Invalidity = MarkerInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        let mut context = ValidationContext::new();
-        if let Some(end) = self.end.as_ref() {
-            context = context
-                .validate_with(end, MarkerInvalidity::End)
-                .invalidate_if(self.start.millis > end.millis, MarkerInvalidity::ReverseDirection);
-        }
-        context
-            .validate_with(&self.start, MarkerInvalidity::Start)
+        ValidationContext::new()
+            .validate_with(&self.position, MarkerInvalidity::Position)
             .validate_with(&self.signature, MarkerInvalidity::KeySignature)
             .into()
     }
@@ -91,10 +84,10 @@ fn validate_markers<'a>(
     let mut ranges_violation = false;
     markers
         .fold(ValidationContext::new(), |context, marker| {
-            if min_pos > marker.start.millis {
+            if min_pos > marker.position.millis {
                 ranges_violation = true;
             }
-            min_pos = marker.start.millis;
+            min_pos = marker.position.millis;
             context.validate_with(marker, MarkersInvalidity::Marker)
         })
         .invalidate_if(ranges_violation, MarkersInvalidity::Ranges)
