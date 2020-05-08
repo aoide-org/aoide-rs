@@ -2154,32 +2154,37 @@ components:
     TimeSignature:
       oneOf:
         - $ref: '#/components/schemas/TimeSignatureTop'
-        - type: array
-          minLength: 2
-          maxLength: 2
-          items:
-            oneOf:
-              - $ref: '#/components/schemas/TimeSignatureTop'
-              - $ref: '#/components/schemas/TimeSignatureBottom'
-      description: |
-        Either the number of beats per bar (top) or a tuple with
-        both the top and bottom values of the time signature.
+        - $ref: '#/components/schemas/TimeSignatureTopBottom'
     TimeSignatureTop:
-      type: integer
-      minimum: 1
-      maximum: 65535
-      example: 3
+      oneOf:
+        - $ref: '#/components/schemas/TimeSignatureBeatsPerBar'
+    TimeSignatureTopBottom:
+      type: array
+      minLength: 2
+      maxLength: 2
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/TimeSignatureBeatsPerBar'
+          - $ref: '#/components/schemas/TimeSignatureBeatUnit'
       description: |
-        The top number of the time signature that denotes the number of beats in
-        each measure or bar.
-    TimeSignatureBottom:
-      type: integer
-      minimum: 1
-      maximum: 65535
-      example: 4
+        An array with exactly 2 elements: The number of beats per bar
+        followed by the beat unit.
+    TimeSignatureBeatsPerBar:
       description: |
-        The bottom number of the time signature that denotes which type of note
-        is getting the beat.
+        The number of beats in each measure unit or bar.
+
+        This number appears as the nominator/upper value in the stacked notation.
+      oneOf:
+        - $ref: '#/components/schemas/BeatNumber'
+    TimeSignatureBeatUnit:
+      description: |
+        The note value that counts as one beat (denominator)
+
+        This number appears as the denominator/lower value in the stacked notation.
+
+        Example: 4 for a quarter-note
+      oneOf:
+        - $ref: '#/components/schemas/BeatNumber'
     TimeStamp:
       type: string
       format: date-time
