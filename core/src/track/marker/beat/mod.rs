@@ -41,10 +41,10 @@ pub struct Marker {
     pub bar_in_phrase: Option<BeatNumber>,
 
     /// The total beat count 1..n since the start of the track.
-    pub beat_count: Option<BeatNumber>,
+    pub beat_count: Option<BeatCount>,
 
     /// The total bar count 1..n since the start of the track.
-    pub bar_count: Option<BeatNumber>,
+    pub bar_count: Option<BeatCount>,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -78,7 +78,7 @@ impl Validate for Marker {
             )
             .invalidate_if(
                 self.timing
-                    .and_then(|t| self.beat_in_bar.map(|b| b < 1 || b > t.top))
+                    .and_then(|t| self.beat_in_bar.map(|b| b < 1 || b > t.beats_per_bar))
                     .unwrap_or_default(),
                 MarkerInvalidity::StartBeatInvalid,
             )

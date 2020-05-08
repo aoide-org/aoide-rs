@@ -17,7 +17,7 @@ use super::*;
 
 mod _core {
     pub use aoide_core::{
-        music::time::*,
+        music::time::TimeSignature,
         track::marker::{
             beat::{Marker as BeatMarker, Markers as BeatMarkers},
             key::{Marker as KeyMarker, Markers as KeyMarkers},
@@ -29,6 +29,8 @@ mod _core {
         },
     };
 }
+
+pub use aoide_core::{music::time::BeatNumber, track::marker::beat::BeatCount};
 
 use aoide_core::{track::marker::Number, util::IsDefault};
 
@@ -285,16 +287,16 @@ pub struct BeatMarker {
     pub timing: Option<TimeSignature>,
 
     #[serde(rename = "bti", skip_serializing_if = "Option::is_none")]
-    pub beat_in_bar: Option<_core::BeatNumber>,
+    pub beat_in_bar: Option<BeatNumber>,
 
     #[serde(rename = "bri", skip_serializing_if = "Option::is_none")]
-    pub bar_in_phrase: Option<_core::BeatNumber>,
+    pub bar_in_phrase: Option<BeatNumber>,
 
     #[serde(rename = "btn", skip_serializing_if = "Option::is_none")]
-    pub beat_count: Option<_core::BeatNumber>,
+    pub beat_count: Option<BeatCount>,
 
     #[serde(rename = "brn", skip_serializing_if = "Option::is_none")]
-    pub bar_count: Option<_core::BeatNumber>,
+    pub bar_count: Option<BeatCount>,
 }
 
 impl From<_core::BeatMarker> for BeatMarker {
