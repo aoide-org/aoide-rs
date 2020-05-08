@@ -28,11 +28,11 @@ fn uniform_key() {
     let signature = KeySignature::from_code(KeySignature::min_code());
     let markers = [
         Marker {
-            start: PositionMs(0.0),
+            start: PositionMs(0.0).into(),
             ..base_marker(signature)
         },
         Marker {
-            start: PositionMs(1.0),
+            start: PositionMs(1.0).into(),
             ..base_marker(signature)
         },
     ];
@@ -43,11 +43,11 @@ fn uniform_key() {
 fn non_uniform_key() {
     let markers = [
         Marker {
-            start: PositionMs(0.0),
+            start: PositionMs(0.0).into(),
             ..base_marker(KeySignature::from_code(KeySignature::min_code()))
         },
         Marker {
-            start: PositionMs(1.0),
+            start: PositionMs(1.0).into(),
             ..base_marker(KeySignature::from_code(KeySignature::max_code()))
         },
     ];

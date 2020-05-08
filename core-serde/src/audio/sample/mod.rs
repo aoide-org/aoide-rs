@@ -23,8 +23,7 @@ mod _core {
 // SamplePosition
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(PartialEq))]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SamplePosition(_core::SamplePositionType);
 
 impl From<_core::SamplePosition> for SamplePosition {

@@ -15,7 +15,7 @@
 
 use super::*;
 
-use crate::audio::{PositionMs, PositionMsInvalidity};
+use crate::util::color::Color;
 
 ///////////////////////////////////////////////////////////////////////
 // Marker
@@ -49,9 +49,9 @@ use crate::audio::{PositionMs, PositionMsInvalidity};
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct MarkerData {
-    pub start: Option<PositionMs>,
+    pub start: Option<Position>,
 
-    pub end: Option<PositionMs>,
+    pub end: Option<Position>,
 
     pub number: Option<Number>,
 
@@ -75,14 +75,14 @@ impl MarkerData {
                 }
             }
             MarkerType::Main | MarkerType::Intro | MarkerType::Outro | MarkerType::Phrase => {
-                if let (Some(start), Some(end)) = (self.start, self.end) {
-                    if start >= end {
+                if let (Some(start), Some(end)) = (self.start.as_ref(), self.end.as_ref()) {
+                    if start.millis >= end.millis {
                         return Err(MarkerRangeInvalidity::Empty);
                     }
                 }
             }
             MarkerType::Loop | MarkerType::Sample => {
-                if let (Some(start), Some(end)) = (self.start, self.end) {
+                if let (Some(start), Some(end)) = (self.start.as_ref(), self.end.as_ref()) {
                     if start == end {
                         return Err(MarkerRangeInvalidity::Empty);
                     }
@@ -98,8 +98,8 @@ impl MarkerData {
 
 #[derive(Copy, Clone, Debug)]
 pub enum MarkerDataInvalidity {
-    Start(PositionMsInvalidity),
-    End(PositionMsInvalidity),
+    Start(PositionInvalidity),
+    End(PositionInvalidity),
     LabelEmpty,
 }
 

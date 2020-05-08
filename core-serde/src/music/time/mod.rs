@@ -53,7 +53,10 @@ impl From<TimeSignature> for _core::TimeSignature {
     fn from(from: TimeSignature) -> Self {
         use TimeSignature::*;
         match from {
-            Top(beats_per_bar) => _core::TimeSignature { beats_per_bar, beat_unit: None },
+            Top(beats_per_bar) => _core::TimeSignature {
+                beats_per_bar,
+                beat_unit: None,
+            },
             TopBottom(beats_per_bar, beat_unit) => _core::TimeSignature {
                 beats_per_bar,
                 beat_unit: Some(beat_unit),
@@ -64,7 +67,10 @@ impl From<TimeSignature> for _core::TimeSignature {
 
 impl From<_core::TimeSignature> for TimeSignature {
     fn from(from: _core::TimeSignature) -> Self {
-        let _core::TimeSignature { beats_per_bar, beat_unit } = from;
+        let _core::TimeSignature {
+            beats_per_bar,
+            beat_unit,
+        } = from;
         if let Some(beat_unit) = beat_unit {
             TimeSignature::TopBottom(beats_per_bar, beat_unit)
         } else {
