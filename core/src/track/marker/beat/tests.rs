@@ -65,16 +65,16 @@ fn uniform_tempo() {
     let tempo = Some(TempoBpm(123.0));
     let markers = [
         Marker {
-            start: PositionMs(0.0),
+            start: PositionMs(0.0).into(),
             ..base_marker()
         },
         Marker {
-            start: PositionMs(1.0),
+            start: PositionMs(1.0).into(),
             tempo,
             ..base_marker()
         },
         Marker {
-            start: PositionMs(2.0),
+            start: PositionMs(2.0).into(),
             ..base_marker()
         },
     ];
@@ -86,20 +86,20 @@ fn non_uniform_tempo() {
     assert!(!base_marker().is_valid());
     let markers = [
         Marker {
-            start: PositionMs(0.0),
+            start: PositionMs(0.0).into(),
             ..base_marker()
         },
         Marker {
-            start: PositionMs(1.0),
+            start: PositionMs(1.0).into(),
             tempo: Some(TempoBpm(123.0)),
             ..base_marker()
         },
         Marker {
-            start: PositionMs(2.0),
+            start: PositionMs(2.0).into(),
             ..base_marker()
         },
         Marker {
-            start: PositionMs(3.0),
+            start: PositionMs(3.0).into(),
             tempo: Some(TempoBpm(123.1)),
             ..base_marker()
         },

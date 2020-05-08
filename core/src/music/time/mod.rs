@@ -90,7 +90,10 @@ pub struct TimeSignature {
 
 impl TimeSignature {
     pub fn new(beats_per_bar: BeatNumber, beat_unit: Option<BeatNumber>) -> Self {
-        Self { beats_per_bar, beat_unit }
+        Self {
+            beats_per_bar,
+            beat_unit,
+        }
     }
 }
 
@@ -107,7 +110,9 @@ impl Validate for TimeSignature {
         ValidationContext::new()
             .invalidate_if(self.beats_per_bar < 1, TimeSignatureInvalidity::Top)
             .invalidate_if(
-                self.beat_unit.map(|beat_unit| beat_unit < 1).unwrap_or_default(),
+                self.beat_unit
+                    .map(|beat_unit| beat_unit < 1)
+                    .unwrap_or_default(),
                 TimeSignatureInvalidity::Bottom,
             )
             .into()

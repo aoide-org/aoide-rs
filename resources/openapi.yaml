@@ -1380,6 +1380,29 @@ components:
         EBU R128 proposes a target level of -23 LUFS while the ReplayGain v2
         specification (RG2) proposes -18 LUFS for achieving similar perceptive
         results compared to ReplayGain v1 (RG1).
+    MarkerPosition:
+      oneOf:
+        - $ref: '#/components/schemas/MarkerPositionMillis'
+        - $ref: '#/components/schemas/MarkerPositionMillisSamples'
+      description: |
+        The position of a track marker.
+
+        Either the position in milliseconds or the position in both
+        milliseconds and samples.
+    MarkerPositionMillis:
+      oneOf:
+        - $ref: '#/components/schemas/PositionMs'
+    MarkerPositionMillisSamples:
+      type: array
+      minLength: 2
+      maxLength: 2
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/PositionMs'
+          - $ref: '#/components/schemas/SamplePosition'
+      description: |
+        An array with exactly 2 elements: The position in milliseconds
+        followed by the position in samples.
     MarkerFilter:
       properties:
         modifier:
@@ -1957,6 +1980,16 @@ components:
       properties:
         rgb:
           $ref: '#/components/schemas/RgbColor'
+    SamplePosition:
+      type: number
+      format: double
+      example: 440287.91876
+      description: |
+        The position in an audio stream in samples.
+
+        The samples are counted separately for each channel, i.e. the
+        sample position equals the number of sample frames for a signal
+        with an interleaved channel layout!
     SampleRateHz:
       type: integer
       format: int32
@@ -2155,6 +2188,12 @@ components:
       oneOf:
         - $ref: '#/components/schemas/TimeSignatureTop'
         - $ref: '#/components/schemas/TimeSignatureTopBottom'
+      description: |
+        The time signature of a track.
+
+        Either an incomplete signature with only the beats per bar
+        or a complete signature with both beats per bar and note
+        value.
     TimeSignatureTop:
       oneOf:
         - $ref: '#/components/schemas/TimeSignatureBeatsPerBar'

@@ -15,7 +15,10 @@
 
 use super::*;
 
-use crate::util::color::*;
+use crate::audio::{
+    sample::{SamplePosition, SamplePositionInvalidity},
+    PositionMs, PositionMsInvalidity,
+};
 
 pub mod beat;
 pub mod key;
@@ -38,6 +41,45 @@ impl State {
 impl Default for State {
     fn default() -> Self {
         State::default()
+    }
+}
+
+pub type FrameOffset = i64;
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Position {
+    /// The offset from the start of the track in milliseconds
+    pub millis: PositionMs,
+
+    /// The offset from the start of the track in sample frames
+    ///
+    /// The samples are counted separately for each channel!
+    pub samples: Option<SamplePosition>,
+}
+
+impl From<PositionMs> for Position {
+    fn from(millis: PositionMs) -> Self {
+        Self {
+            millis,
+            samples: None,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum PositionInvalidity {
+    PositionMs(PositionMsInvalidity),
+    SamplePosition(SamplePositionInvalidity),
+}
+
+impl Validate for Position {
+    type Invalidity = PositionInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .validate_with(&self.millis, PositionInvalidity::PositionMs)
+            .validate_with(&self.samples, PositionInvalidity::SamplePosition)
+            .into()
     }
 }
 

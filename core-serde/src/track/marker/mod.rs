@@ -19,6 +19,7 @@ mod _core {
     pub use aoide_core::{
         music::time::TimeSignature,
         track::marker::{
+            Position,
             beat::{Marker as BeatMarker, Markers as BeatMarkers},
             key::{Marker as KeyMarker, Markers as KeyMarkers},
             position::{
@@ -35,10 +36,51 @@ pub use aoide_core::{music::time::BeatNumber, track::marker::beat::BeatCount};
 use aoide_core::{track::marker::Number, util::IsDefault};
 
 use crate::{
-    audio::PositionMs,
+    audio::{PositionMs, sample::SamplePosition},
     music::{key::*, time::*},
     util::color::Color,
 };
+
+///////////////////////////////////////////////////////////////////////
+// Position
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged, deny_unknown_fields)]
+pub enum Position {
+    Millis(PositionMs),
+    MillisSamples(PositionMs, SamplePosition),
+}
+
+impl From<Position> for _core::Position {
+    fn from(from: Position) -> Self {
+        use Position::*;
+        match from {
+            Millis(millis) => _core::Position {
+                millis: millis.into(),
+                samples: None,
+            },
+            MillisSamples(millis, samples) => _core::Position {
+                millis: millis.into(),
+                samples: Some(samples.into()),
+            },
+        }
+    }
+}
+
+impl From<_core::Position> for Position {
+    fn from(from: _core::Position) -> Self {
+        let _core::Position {
+            millis,
+            samples,
+        } = from;
+        if let Some(samples) = samples {
+            Position::MillisSamples(millis.into(), samples.into())
+        } else {
+            Position::Millis(millis.into())
+        }
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////
 // State
@@ -183,10 +225,10 @@ impl From<PositionMarkerType> for _core::PositionMarkerType {
 #[serde(deny_unknown_fields)]
 pub struct PositionMarker {
     #[serde(rename = "pos", skip_serializing_if = "Option::is_none")]
-    pub start: Option<PositionMs>,
+    pub start: Option<Position>,
 
     #[serde(rename = "end", skip_serializing_if = "Option::is_none")]
-    pub end: Option<PositionMs>,
+    pub end: Option<Position>,
 
     #[serde(rename = "typ")]
     pub r#type: PositionMarkerType,
@@ -275,10 +317,10 @@ impl From<PositionMarkers> for _core::PositionMarkers {
 #[serde(deny_unknown_fields)]
 pub struct BeatMarker {
     #[serde(rename = "pos")]
-    pub start: PositionMs,
+    pub start: Position,
 
     #[serde(rename = "end", skip_serializing_if = "Option::is_none")]
-    pub end: Option<PositionMs>,
+    pub end: Option<Position>,
 
     #[serde(rename = "bpm", skip_serializing_if = "Option::is_none")]
     pub tempo: Option<TempoBpm>,
@@ -383,10 +425,10 @@ impl From<BeatMarkers> for _core::BeatMarkers {
 #[serde(deny_unknown_fields)]
 pub struct KeyMarker {
     #[serde(rename = "pos")]
-    pub start: PositionMs,
+    pub start: Position,
 
     #[serde(rename = "end", skip_serializing_if = "Option::is_none")]
-    pub end: Option<PositionMs>,
+    pub end: Option<Position>,
 
     #[serde(rename = "sig")]
     pub signature: KeySignature,
@@ -451,3 +493,6 @@ impl From<KeyMarkers> for _core::KeyMarkers {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;
