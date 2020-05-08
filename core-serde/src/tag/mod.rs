@@ -226,12 +226,10 @@ impl From<PlainTag> for _core::PlainTag {
             LabelIntScoreFallback(label, iscore) => _core::PlainTag {
                 label: Some(label.into()),
                 score: _core::Score::from_inner(iscore as f64),
-                ..Default::default()
             },
             LabelScore(label, score) => _core::PlainTag {
                 label: Some(label.into()),
                 score: score.into(),
-                ..Default::default()
             },
         }
     }
