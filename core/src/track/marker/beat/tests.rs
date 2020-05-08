@@ -37,8 +37,8 @@ fn valid_markers() {
     assert!(mk1.is_valid());
     let mk2 = Marker {
         timing: Some(TimeSignature {
-            top: 4,
-            bottom: None,
+            beats_per_bar: 4,
+            beat_unit: None,
         }),
         ..base_marker()
     };
@@ -50,8 +50,8 @@ fn invalid_markers() {
     assert!(!base_marker().is_valid());
     let mk1 = Marker {
         timing: Some(TimeSignature {
-            top: 4,
-            bottom: Some(4),
+            beats_per_bar: 4,
+            beat_unit: Some(4),
         }),
         beat_in_bar: Some(5),
         ..base_marker()

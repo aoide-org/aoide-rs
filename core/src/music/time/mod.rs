@@ -70,18 +70,27 @@ impl fmt::Display for TempoBpm {
 
 pub type BeatNumber = u16;
 
+/// Musical time signature
+///
+/// https://en.wikipedia.org/wiki/Time_signature
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct TimeSignature {
-    // number of beats in each measure unit or bar, 0 = default/undefined
-    pub top: BeatNumber,
+    /// The number of beats in each measure unit or bar
+    ///
+    /// This number appears as the nominator/upper value in the stacked notation.
+    pub beats_per_bar: BeatNumber,
 
-    // beat value (the note that counts as one beat), 0 = default/undefined
-    pub bottom: Option<BeatNumber>,
+    /// The note value that counts as one beat (denominator)
+    ///
+    /// This number appears as the denominator/lower value in the stacked notation.
+    ///
+    /// Example: 4 for a quarter-note
+    pub beat_unit: Option<BeatNumber>,
 }
 
 impl TimeSignature {
-    pub fn new(top: BeatNumber, bottom: Option<BeatNumber>) -> Self {
-        Self { top, bottom }
+    pub fn new(beats_per_bar: BeatNumber, beat_unit: Option<BeatNumber>) -> Self {
+        Self { beats_per_bar, beat_unit }
     }
 }
 
@@ -96,9 +105,9 @@ impl Validate for TimeSignature {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(self.top < 1, TimeSignatureInvalidity::Top)
+            .invalidate_if(self.beats_per_bar < 1, TimeSignatureInvalidity::Top)
             .invalidate_if(
-                self.bottom.map(|bottom| bottom < 1).unwrap_or_default(),
+                self.beat_unit.map(|beat_unit| beat_unit < 1).unwrap_or_default(),
                 TimeSignatureInvalidity::Bottom,
             )
             .into()
@@ -107,10 +116,10 @@ impl Validate for TimeSignature {
 
 impl fmt::Display for TimeSignature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(bottom) = self.bottom {
-            write!(f, "{}/{}", self.top, bottom)
+        if let Some(beat_unit) = self.beat_unit {
+            write!(f, "{}/{}", self.beats_per_bar, beat_unit)
         } else {
-            write!(f, "{}/", self.top)
+            write!(f, "{}/", self.beats_per_bar)
         }
     }
 }
