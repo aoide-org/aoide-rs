@@ -21,7 +21,7 @@ use crate::util::color::Color;
 // Marker
 ///////////////////////////////////////////////////////////////////////
 
-/// Position markers identify distinctive points or ranges/sections
+/// Cue markers identify distinctive points or ranges/sections
 /// within the audio stream.
 ///
 /// Points as well as the boundary points of ranges are measured from
@@ -30,9 +30,9 @@ use crate::util::color::Color;
 /// Both _loop_ and _sample_ markers allow to set _start_ > _end_ for
 /// reversing the playback direction.
 ///
-/// # Position marker rules
+/// # Cue marker rules
 ///
-/// The following restrictions apply to the different types of position markers:
+/// The following restrictions apply to the different types of cue markers:
 ///
 /// | Type    | Extent    | Start    | End     | Constraints  | Direction | Cardinality |
 /// |---------|-----------|----------|---------|--------------|-----------|-------------|
@@ -40,9 +40,7 @@ use crate::util::color::Color;
 /// |main     |range      |some      |some     |start<end     | fwd       |0..1         |
 /// |intro    |point/range|none/some |none/some|start<end     | fwd       |0..1         |
 /// |outro    |point/range|none/some |none/some|start<end     | fwd       |0..1         |
-/// |beacon   |point      |some      |none     |              |           |*            |
-/// |phrase   |range      |some      |some     |start<end     | fwd       |*            |
-/// |jump     |point      |some      |none     |              |           |*            |
+/// |hotcue   |point      |some      |none     |              |           |*            |
 /// |loop     |range      |some      |some     |start<>end    | fwd/bkwd  |*            |
 /// |sample   |range      |some      |some     |start<>end    | fwd/bkwd  |*            |
 /// |custom   |point/range|none/some |none/some|start<>end    | fwd/bkwd  |*            |
@@ -68,20 +66,21 @@ pub enum MarkerRangeInvalidity {
 
 impl MarkerData {
     fn validate_range_by_type(&self, r#type: MarkerType) -> Result<(), MarkerRangeInvalidity> {
+        use MarkerType::*;
         match r#type {
-            MarkerType::Load | MarkerType::Jump | MarkerType::Beacon => {
+            Load | HotCue => {
                 if self.end.is_some() {
                     return Err(MarkerRangeInvalidity::Invalid);
                 }
             }
-            MarkerType::Main | MarkerType::Intro | MarkerType::Outro | MarkerType::Phrase => {
+            Main | Intro | Outro => {
                 if let (Some(start), Some(end)) = (self.start.as_ref(), self.end.as_ref()) {
                     if start.millis >= end.millis {
                         return Err(MarkerRangeInvalidity::Empty);
                     }
                 }
             }
-            MarkerType::Loop | MarkerType::Sample => {
+            Loop | Sample => {
                 if let (Some(start), Some(end)) = (self.start.as_ref(), self.end.as_ref()) {
                     if start == end {
                         return Err(MarkerRangeInvalidity::Empty);
@@ -90,7 +89,7 @@ impl MarkerData {
                     return Err(MarkerRangeInvalidity::Invalid);
                 }
             }
-            MarkerType::Custom => (), // unrestricted
+            Custom => (), // unrestricted
         }
         Ok(())
     }
@@ -136,14 +135,8 @@ pub enum MarkerType {
     /// Starting point, endpoint, or range of the track's outro part
     Outro,
 
-    /// A point that marks a custom, musical event in the track
-    Beacon,
-
-    /// A range that limits a distinct musical part of the track
-    Phrase,
-
     /// Custom start/cue points in a track for direct access while continuing playback, i.e. hot cues
-    Jump,
+    HotCue,
 
     /// Range that could be played in a loop, either forward or backward
     Loop,

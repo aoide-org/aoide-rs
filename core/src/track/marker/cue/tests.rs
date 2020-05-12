@@ -16,7 +16,7 @@
 use super::*;
 
 #[test]
-fn default_position_marker() {
+fn default_cue_marker() {
     assert!(Marker(MarkerType::Load, Default::default())
         .validate()
         .is_ok());
