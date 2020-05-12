@@ -20,7 +20,7 @@ use crate::collection::{schema::tbl_collection, Repository as CollectionReposito
 use aoide_core::{
     collection::{Collection, Entity as CollectionEntity},
     tag::*,
-    track::{marker::position::MarkerData as PositionMarkerData, Entity as TrackEntity},
+    track::{marker::cue::MarkerData as CueMarkerData, Entity as TrackEntity},
 };
 
 use aoide_repo::{
@@ -331,8 +331,8 @@ impl<'a> RepositoryHelper<'a> {
     }
 
     fn insert_markers(&self, repo_id: RepoId, track: &Track) -> RepoResult<()> {
-        for marker in &track.markers.positions.markers {
-            let data: &PositionMarkerData = marker.data();
+        for marker in &track.markers.cues.markers {
+            let data: &CueMarkerData = marker.data();
             if let Some(ref label) = data.label {
                 let label_id = self.resolve_marker_label(&label)?;
                 let insertable = InsertableTracksMarker::bind(repo_id, label_id);

@@ -1425,7 +1425,7 @@ components:
     Markers:
       properties:
         pos:
-          $ref: '#/components/schemas/PositionMarkers'
+          $ref: '#/components/schemas/CueMarkers'
         bpm:
           $ref: '#/components/schemas/BeatMarkers'
         key:
@@ -1834,7 +1834,7 @@ components:
     PlaylistUid:
       oneOf:
         - $ref: '#/components/schemas/EntityUid'
-    PositionMarker:
+    CueMarker:
       properties:
         col:
           $ref: '#/components/schemas/Color'
@@ -1849,35 +1849,33 @@ components:
             - $ref: '#/components/schemas/MarkerPosition'
             - $ref: '#/components/schemas/MarkerPositionStart'
         typ:
-          $ref: '#/components/schemas/PositionMarkerType'
+          $ref: '#/components/schemas/CueMarkerType'
       required:
         - typ
       description: |
         Marker to identify points (either start or end) or sections (both start
         and end) within a track
-    PositionMarkers:
+    CueMarkers:
       properties:
         mkl:
           description: |
-            Position marker list
+            Cue marker list
           type: array
           items:
-            $ref: '#/components/schemas/PositionMarker'
+            $ref: '#/components/schemas/CueMarker'
         mks:
           $ref: '#/components/schemas/MarkerState'
-    PositionMarkerType:
+    CueMarkerType:
       description: |
-        Multiple position markers of the same type per track are only allowed for non-singular types:
+        Multiple cue markers of the same type per track are only allowed for non-singular types:
         * 0 (`custom`) - custom sections (forward only) or points without predefined semantics
         * 1 (`load`) - singular initial position when loading a track (and return point after stopping)
         * 2 (`main`) - singular main audio section (forward only) of the track, i.e. without leading/trailing silence
         * 3 (`intro`) - singular intro section (forward only) or point of a track for fade-in or mixing
         * 4 (`outro`) - singular outro section (forward only) or point of a track for fade-out or mixing
-        * 5 (`jump`) - custom start/cue points in a track for direct access while continuing playback, i.e. classical hot cues
+        * 5 (`hotcue`) - custom start/cue points in a track for direct access while continuing playback, i.e. classical hot cues
         * 6 (`loop`) - sections that are played as loops (forward or backward)
         * 7 (`sample`) - sections that are played as samples (forward or backward)
-        * 8 (`beacon`) - point that marks a custom, musical event in the track
-        * 9 (`phrase`) - range that limits a distinct musical part of the track
       type: integer
       enum: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     PositionMs:
