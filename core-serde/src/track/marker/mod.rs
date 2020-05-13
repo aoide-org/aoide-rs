@@ -122,7 +122,7 @@ impl From<State> for _core::State {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Markers {
-    #[serde(rename = "bpm", skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(rename = "bea", skip_serializing_if = "IsDefault::is_default", default)]
     pub beats: BeatMarkers,
 
     #[serde(rename = "cue", skip_serializing_if = "IsDefault::is_default", default)]

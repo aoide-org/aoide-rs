@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Split track/marker colors into an RGB color code and a color index
 - Add optional sample position to marker positions
 - Renamed *position marker* to *cue marker*
+- Renamed *beat markers* field from "bpm" to "bea"
 
 ### Removed
 
