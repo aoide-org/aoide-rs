@@ -21,12 +21,7 @@ use aoide_core::{
     music::time::Beats,
     tag::*,
     title::*,
-    track::{
-        self,
-        marker::{beat, key},
-        release::YYYYMMDD,
-        *,
-    },
+    track::{self, marker::bnk, release::YYYYMMDD, *},
     util::{clock::*, color::Color},
 };
 
@@ -283,8 +278,9 @@ impl<'a> InsertableBrief<'a> {
             track_total: track.indexes.track.total().map(|cnt| cnt as i16),
             disc_number: track.indexes.disc.number().map(|idx| idx as i16),
             disc_total: track.indexes.disc.total().map(|cnt| cnt as i16),
-            music_tempo: beat::Markers::uniform_tempo(&track.markers.beats).map(|tempo| tempo.0),
-            music_key: key::Markers::uniform_key(&track.markers.keys)
+            music_tempo: bnk::Markers::uniform_tempo(&track.markers.beats_and_keys)
+                .map(|tempo| tempo.0),
+            music_key: bnk::Markers::uniform_key_signature(&track.markers.beats_and_keys)
                 .map(|key| i16::from(key.code())),
         }
     }

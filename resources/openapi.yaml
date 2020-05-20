@@ -905,7 +905,7 @@ components:
         - tit
         - cnt
     ArtistName:
-      oneOf:
+      allOf:
         - $ref: '#/components/schemas/ActorName'
       example: The Beatles
     ImageDigest:
@@ -949,7 +949,7 @@ components:
     ArtworkColor:
       description: |
         A solid (background) color, e.g. the average color of the artwork image
-      oneOf:
+      allOf:
         - $ref: '#/components/schemas/RgbColor'
     ArtworkResourceProperties:
       oneOf:
@@ -967,7 +967,7 @@ components:
         External artwork resource referenced by an URI
       properties:
         uri:
-          oneOf:
+          allOf:
             - $ref: '#/components/schemas/Uri'
     AudioContent:
       properties:
@@ -984,23 +984,8 @@ components:
         shz:
           $ref: '#/components/schemas/SampleRateHz'
     AvgTagScore:
-      oneOf:
+      allOf:
         - $ref: '#/components/schemas/TagScore'
-    BarCount:
-      description: |
-        The bar 1..n counted from the start of the track.
-      type: integer
-      format: int32
-      minimum: 1
-      maximum: 2147483647
-      example: 30
-    BarInPhraseNumber:
-      description: |
-        The bar 1..n in a phrase.
-
-        Phrases are typically consisting of n = 2^m bars.
-      oneOf:
-        - $ref: '#/components/schemas/BeatNumber'
     BeatCount:
       description: |
         The beat 1..n counted from the start of the track.
@@ -1009,23 +994,19 @@ components:
       minimum: 1
       maximum: 2147483647
       example: 16
-    BeatInBarNumber:
+    BeatInMeasureNumber:
       description: |
         The beat 1..n in a bar.
-      oneOf:
+      allOf:
         - $ref: '#/components/schemas/BeatNumber'
     BeatMarker:
       properties:
         bpm:
           $ref: '#/components/schemas/TempoBpm'
-        bti:
-          $ref: '#/components/schemas/BeatInBarNumber'
+        btm:
+          $ref: '#/components/schemas/BeatInMeasureNumber'
         btn:
           $ref: '#/components/schemas/BeatCount'
-        bri:
-          $ref: '#/components/schemas/BarInPhraseNumber'
-        brn:
-          $ref: '#/components/schemas/BarCount'
         pos:
           $ref: '#/components/schemas/MarkerPosition'
         sig:
@@ -1132,7 +1113,7 @@ components:
       required:
         - totalCount
     CollectionUid:
-      oneOf:
+      allOf:
         - $ref: '#/components/schemas/EntityUid'
     Color:
       oneOf:
@@ -1193,7 +1174,7 @@ components:
           items:
             $ref: '#/components/schemas/TagSortOrder'
     DiscIndex:
-      oneOf:
+      allOf:
         - $ref: '#/components/schemas/Index'
     DurationMs:
       type: number
@@ -1228,7 +1209,7 @@ components:
       description: |
         Tuple of 2 elements containing a version number and a time stamp.
     EntityRevisionInstant:
-      oneOf:
+      allOf:
         - $ref: '#/components/schemas/TimeStampTicks'
     EntityVersionNumber:
       type: integer
@@ -1245,34 +1226,6 @@ components:
       type: string
       enum:
         - complement
-    GeoLatDegrees:
-      type: number
-      format: double
-      minimum: -90
-      maximum: 90
-      example: 40.712784
-      description: |
-        The latitude of a geographical point in degrees.
-    GeoLonDegrees:
-      type: number
-      format: double
-      minimum: -180
-      maximum: 180
-      example: -74.005941
-      description: |
-        The longitude of a geographical point in degrees.
-    GeoPointDegrees:
-      type: array
-      minLength: 2
-      maxLength: 2
-      items:
-        oneOf:
-          - $ref: '#/components/schemas/GeoLatDegrees'
-          - $ref: '#/components/schemas/GeoLonDegrees'
-      example: [40.712784, -74.005941]
-      description: |
-        A flat WGS 84 point [lat, lon] in degrees without height/elevation
-        on the surface of the earth.
     Index:
       oneOf:
         - type: integer
@@ -1388,15 +1341,15 @@ components:
     MarkerPositionEnd:
       description: |
         The end/out position of a marker.
-      oneOf:
+      allOf:
         - $ref: '#/components/schemas/MarkerPosition'
     MarkerPositionStart:
       description: |
         The start/in position of a marker.
-      oneOf:
+      allOf:
         - $ref: '#/components/schemas/MarkerPosition'
     MarkerPositionMillis:
-      oneOf:
+      allOf:
         - $ref: '#/components/schemas/PositionMs'
     MarkerPositionMillisSamples:
       type: array
@@ -1438,7 +1391,7 @@ components:
       type: integer
       enum: [0, 1]
     MediaContentProperties:
-      oneOf:
+      allOf:
         - $ref: '#/components/schemas/MediaContentAudioProperty'
     MediaContentAudioProperty:
       properties:
@@ -1480,7 +1433,7 @@ components:
           * audio/ogg; codecs=opus
           * audio/opus
     MovementIndex:
-      oneOf:
+      allOf:
         - $ref: '#/components/schemas/Index'
     NumericField:
       type: string
@@ -1601,8 +1554,6 @@ components:
           $ref: '#/components/schemas/Color'
         dsc:
           $ref: '#/components/schemas/PlaylistDescription'
-        geo:
-          $ref: '#/components/schemas/PlaylistGeoLocation'
         lst:
           $ref: '#/components/schemas/PlaylistEntries'
         nam:
@@ -1618,8 +1569,6 @@ components:
           $ref: '#/components/schemas/Color'
         dsc:
           $ref: '#/components/schemas/PlaylistDescription'
-        geo:
-          $ref: '#/components/schemas/PlaylistGeoLocation'
         lst:
           $ref: '#/components/schemas/PlaylistBriefEntries'
         nam:
@@ -1669,7 +1618,7 @@ components:
             $ref: '#/components/schemas/PlaylistEntryAdded'
         cnt:
           description: Number of entries in the playlist
-          oneOf:
+          allOf:
             - $ref: '#/components/schemas/PlaylistEntryCount'
         trk:
           $ref: '#/components/schemas/PlaylistBriefTracks'
@@ -1702,13 +1651,13 @@ components:
     PlaylistTrackCount:
       description: |
         Number of tracks in the playlist
-      oneOf:
+      allOf:
         - $ref: '#/components/schemas/PlaylistEntryCount'
     PlaylistEntryAdded:
       description: |
         Time stamp since when an entry is part of the playlist,
         i.e. when it has been created and added.
-      oneOf:
+      allOf:
         - $ref: '#/components/schemas/TimeStampTicks'
     PlaylistEntryPosition:
       description: |
@@ -1809,19 +1758,10 @@ components:
             $ref: '#/components/schemas/PlaylistPatchOperation'
       required:
         - ops
-    PlaylistGeoLocation:
-      oneOf:
-        - $ref: '#/components/schemas/GeoPointDegrees'
-      description: |
-        The geographical point of a location, e.g. to identify the place where
-        the playlist has been composed or recorded during an event.
-
-        This information could also be used to restore the time zone for the
-        time stamps of the entries.
     PlaylistTrack:
       description: |
         The UID of the referenced track
-      oneOf:
+      allOf:
         - $ref: '#/components/schemas/TrackUid'
     PlaylistType:
       description: |
@@ -1832,7 +1772,7 @@ components:
         session.
       type: string
     PlaylistUid:
-      oneOf:
+      allOf:
         - $ref: '#/components/schemas/EntityUid'
     CueMarker:
       properties:
@@ -1912,7 +1852,7 @@ components:
         - $ref: '#/components/schemas/YYYY'
         - $ref: '#/components/schemas/YYYYMMDD'
     ReleaseDateTime:
-      oneOf:
+      allOf:
         - $ref: '#/components/schemas/TimeStamp'
     RelocateTracksParams:
       type: array
@@ -2191,7 +2131,7 @@ components:
         or a complete signature with both beats per bar and note
         value.
     TimeSignatureTop:
-      oneOf:
+      allOf:
         - $ref: '#/components/schemas/TimeSignatureBeatsPerBar'
     TimeSignatureTopBottom:
       type: array
@@ -2209,7 +2149,7 @@ components:
         The number of beats in each measure unit or bar.
 
         This number appears as the nominator/upper value in the stacked notation.
-      oneOf:
+      allOf:
         - $ref: '#/components/schemas/BeatNumber'
     TimeSignatureBeatUnit:
       description: |
@@ -2218,7 +2158,7 @@ components:
         This number appears as the denominator/lower value in the stacked notation.
 
         Example: 4 for a quarter-note
-      oneOf:
+      allOf:
         - $ref: '#/components/schemas/BeatNumber'
     TimeStamp:
       type: string
@@ -2280,7 +2220,7 @@ components:
     TotalTrackCount:
       description: |
         Total number of tracks.
-      oneOf:
+      allOf:
         - $ref: '#/components/schemas/TotalCount'
     TrackCollection:
       description: |
@@ -2290,7 +2230,7 @@ components:
           description: |
             Time stamp since when the track is part of this collection,
             i.e. when it has been added.
-          oneOf:
+          allOf:
             - $ref: '#/components/schemas/TimeStampTicks'
         col:
           $ref: '#/components/schemas/Color'
@@ -2304,7 +2244,7 @@ components:
         plt:
           description: |
             Last played time stamp
-          oneOf:
+          allOf:
             - $ref: '#/components/schemas/TimeStampTicks'
         uid:
           $ref: '#/components/schemas/CollectionUid'
@@ -2358,7 +2298,7 @@ components:
           items:
             $ref: '#/components/schemas/Title'
     TrackIndex:
-      oneOf:
+      allOf:
         - $ref: '#/components/schemas/Index'
     TrackReplacement:
       properties:
@@ -2454,7 +2394,7 @@ components:
           - $ref: '#/components/schemas/TrackSortField'
           - $ref: '#/components/schemas/SortDirection'
     TrackUid:
-      oneOf:
+      allOf:
         - $ref: '#/components/schemas/EntityUid'
     Uri:
       type: string

@@ -19,18 +19,17 @@ mod _core {
     pub use aoide_core::{
         music::time::TimeSignature,
         track::marker::{
-            beat::{Marker as BeatMarker, Markers as BeatMarkers},
+            bnk::{Marker as BeatAndKeyMarker, Markers as BeatAndKeyMarkers},
             cue::{
                 Marker as CueMarker, MarkerData as CueMarkerData, MarkerType as CueMarkerType,
                 Markers as CueMarkers,
             },
-            key::{Marker as KeyMarker, Markers as KeyMarkers},
             Markers, Position, State,
         },
     };
 }
 
-pub use aoide_core::{music::time::BeatNumber, track::marker::beat::BeatCount};
+pub use aoide_core::music::time::{BeatCount, BeatNumber};
 
 use aoide_core::{track::marker::Number, util::IsDefault};
 
@@ -122,34 +121,35 @@ impl From<State> for _core::State {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Markers {
-    #[serde(rename = "bea", skip_serializing_if = "IsDefault::is_default", default)]
-    pub beats: BeatMarkers,
+    #[serde(rename = "bnk", skip_serializing_if = "IsDefault::is_default", default)]
+    pub beats_and_keys: BeatAndKeyMarkers,
 
     #[serde(rename = "cue", skip_serializing_if = "IsDefault::is_default", default)]
     pub cues: CueMarkers,
-
-    #[serde(rename = "key", skip_serializing_if = "IsDefault::is_default", default)]
-    pub keys: KeyMarkers,
 }
 
 impl From<_core::Markers> for Markers {
     fn from(from: _core::Markers) -> Self {
-        let _core::Markers { beats, cues, keys } = from;
+        let _core::Markers {
+            beats_and_keys,
+            cues,
+        } = from;
         Self {
-            beats: beats.into(),
+            beats_and_keys: beats_and_keys.into(),
             cues: cues.into(),
-            keys: keys.into(),
         }
     }
 }
 
 impl From<Markers> for _core::Markers {
     fn from(from: Markers) -> Self {
-        let Markers { beats, cues, keys } = from;
+        let Markers {
+            beats_and_keys,
+            cues,
+        } = from;
         Self {
-            beats: beats.into(),
+            beats_and_keys: beats_and_keys.into(),
             cues: cues.into(),
-            keys: keys.into(),
         }
     }
 }
@@ -162,11 +162,11 @@ impl From<Markers> for _core::Markers {
 #[repr(u8)]
 pub enum CueMarkerType {
     Custom = 0,
-    Load = 1,
-    Main = 2,
-    Intro = 3,
-    Outro = 4,
-    HotCue = 5,
+    LoadCue = 1,
+    HotCue = 2,
+    Main = 3,
+    Intro = 4,
+    Outro = 5,
     Loop = 6,
     Sample = 7,
 }
@@ -176,11 +176,11 @@ impl From<_core::CueMarkerType> for CueMarkerType {
         use _core::CueMarkerType::*;
         match from {
             Custom => CueMarkerType::Custom,
-            Load => CueMarkerType::Load,
+            LoadCue => CueMarkerType::LoadCue,
+            HotCue => CueMarkerType::HotCue,
             Main => CueMarkerType::Main,
             Intro => CueMarkerType::Intro,
             Outro => CueMarkerType::Outro,
-            HotCue => CueMarkerType::HotCue,
             Loop => CueMarkerType::Loop,
             Sample => CueMarkerType::Sample,
         }
@@ -192,11 +192,11 @@ impl From<CueMarkerType> for _core::CueMarkerType {
         use _core::CueMarkerType::*;
         match from {
             CueMarkerType::Custom => Custom,
-            CueMarkerType::Load => Load,
+            CueMarkerType::LoadCue => LoadCue,
+            CueMarkerType::HotCue => HotCue,
             CueMarkerType::Main => Main,
             CueMarkerType::Intro => Intro,
             CueMarkerType::Outro => Outro,
-            CueMarkerType::HotCue => HotCue,
             CueMarkerType::Loop => Loop,
             CueMarkerType::Sample => Sample,
         }
@@ -244,11 +244,11 @@ impl From<CueMarker> for _core::CueMarker {
         use _core::CueMarkerType::*;
         let r#type = match from.r#type {
             CueMarkerType::Custom => Custom,
-            CueMarkerType::Load => Load,
+            CueMarkerType::LoadCue => LoadCue,
+            CueMarkerType::HotCue => HotCue,
             CueMarkerType::Main => Main,
             CueMarkerType::Intro => Intro,
             CueMarkerType::Outro => Outro,
-            CueMarkerType::HotCue => HotCue,
             CueMarkerType::Loop => Loop,
             CueMarkerType::Sample => Sample,
         };
@@ -295,88 +295,81 @@ impl From<CueMarkers> for _core::CueMarkers {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct BeatMarker {
+pub struct BeatAndKeyMarker {
     #[serde(rename = "pos")]
     pub position: Position,
 
     #[serde(rename = "bpm", skip_serializing_if = "Option::is_none")]
     pub tempo: Option<TempoBpm>,
 
-    #[serde(rename = "sig", skip_serializing_if = "Option::is_none")]
-    pub timing: Option<TimeSignature>,
+    #[serde(rename = "tim", skip_serializing_if = "Option::is_none")]
+    pub time_signature: Option<TimeSignature>,
 
-    #[serde(rename = "bti", skip_serializing_if = "Option::is_none")]
-    pub beat_in_bar: Option<BeatNumber>,
+    #[serde(rename = "key", skip_serializing_if = "Option::is_none")]
+    pub key_signature: Option<KeySignature>,
 
-    #[serde(rename = "bri", skip_serializing_if = "Option::is_none")]
-    pub bar_in_phrase: Option<BeatNumber>,
+    #[serde(rename = "btm", skip_serializing_if = "Option::is_none")]
+    pub beat_in_measure: Option<BeatNumber>,
 
     #[serde(rename = "btn", skip_serializing_if = "Option::is_none")]
     pub beat_count: Option<BeatCount>,
-
-    #[serde(rename = "brn", skip_serializing_if = "Option::is_none")]
-    pub bar_count: Option<BeatCount>,
 }
 
-impl From<_core::BeatMarker> for BeatMarker {
-    fn from(from: _core::BeatMarker) -> Self {
-        let _core::BeatMarker {
+impl From<_core::BeatAndKeyMarker> for BeatAndKeyMarker {
+    fn from(from: _core::BeatAndKeyMarker) -> Self {
+        let _core::BeatAndKeyMarker {
             position,
             tempo,
-            timing,
-            beat_in_bar,
-            bar_in_phrase,
+            time_signature,
+            key_signature,
+            beat_in_measure,
             beat_count,
-            bar_count,
         } = from;
         Self {
             position: position.into(),
             tempo: tempo.map(Into::into),
-            timing: timing.map(Into::into),
-            beat_in_bar: beat_in_bar.map(Into::into),
-            bar_in_phrase: bar_in_phrase.map(Into::into),
+            time_signature: time_signature.map(Into::into),
+            key_signature: key_signature.map(Into::into),
+            beat_in_measure: beat_in_measure.map(Into::into),
             beat_count: beat_count.map(Into::into),
-            bar_count: bar_count.map(Into::into),
         }
     }
 }
 
-impl From<BeatMarker> for _core::BeatMarker {
-    fn from(from: BeatMarker) -> Self {
-        let BeatMarker {
+impl From<BeatAndKeyMarker> for _core::BeatAndKeyMarker {
+    fn from(from: BeatAndKeyMarker) -> Self {
+        let BeatAndKeyMarker {
             position,
             tempo,
-            timing,
-            beat_in_bar,
-            bar_in_phrase,
+            time_signature,
+            key_signature,
+            beat_in_measure,
             beat_count,
-            bar_count,
         } = from;
         Self {
             position: position.into(),
             tempo: tempo.map(Into::into),
-            timing: timing.map(Into::into),
-            beat_in_bar: beat_in_bar.map(Into::into),
-            bar_in_phrase: bar_in_phrase.map(Into::into),
+            time_signature: time_signature.map(Into::into),
+            key_signature: key_signature.map(Into::into),
+            beat_in_measure: beat_in_measure.map(Into::into),
             beat_count: beat_count.map(Into::into),
-            bar_count: bar_count.map(Into::into),
         }
     }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct BeatMarkers {
+pub struct BeatAndKeyMarkers {
     #[serde(rename = "mks", skip_serializing_if = "IsDefault::is_default", default)]
     pub state: State,
 
     #[serde(rename = "mkl", skip_serializing_if = "IsDefault::is_default", default)]
-    pub markers: Vec<BeatMarker>,
+    pub markers: Vec<BeatAndKeyMarker>,
 }
 
-impl From<_core::BeatMarkers> for BeatMarkers {
-    fn from(from: _core::BeatMarkers) -> Self {
-        let _core::BeatMarkers { state, markers } = from;
+impl From<_core::BeatAndKeyMarkers> for BeatAndKeyMarkers {
+    fn from(from: _core::BeatAndKeyMarkers) -> Self {
+        let _core::BeatAndKeyMarkers { state, markers } = from;
         Self {
             state: state.into(),
             markers: markers.into_iter().map(Into::into).collect(),
@@ -384,75 +377,9 @@ impl From<_core::BeatMarkers> for BeatMarkers {
     }
 }
 
-impl From<BeatMarkers> for _core::BeatMarkers {
-    fn from(from: BeatMarkers) -> Self {
-        let BeatMarkers { state, markers } = from;
-        Self {
-            state: state.into(),
-            markers: markers.into_iter().map(Into::into).collect(),
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct KeyMarker {
-    #[serde(rename = "pos")]
-    pub position: Position,
-
-    #[serde(rename = "sig")]
-    pub signature: KeySignature,
-}
-
-impl From<_core::KeyMarker> for KeyMarker {
-    fn from(from: _core::KeyMarker) -> Self {
-        let _core::KeyMarker {
-            position,
-            signature,
-        } = from;
-        Self {
-            position: position.into(),
-            signature: signature.into(),
-        }
-    }
-}
-
-impl From<KeyMarker> for _core::KeyMarker {
-    fn from(from: KeyMarker) -> Self {
-        let KeyMarker {
-            position,
-            signature,
-        } = from;
-        Self {
-            position: position.into(),
-            signature: signature.into(),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct KeyMarkers {
-    #[serde(rename = "mks", skip_serializing_if = "IsDefault::is_default", default)]
-    pub state: State,
-
-    #[serde(rename = "mkl", skip_serializing_if = "IsDefault::is_default", default)]
-    pub markers: Vec<KeyMarker>,
-}
-
-impl From<_core::KeyMarkers> for KeyMarkers {
-    fn from(from: _core::KeyMarkers) -> Self {
-        let _core::KeyMarkers { state, markers } = from;
-        Self {
-            state: state.into(),
-            markers: markers.into_iter().map(Into::into).collect(),
-        }
-    }
-}
-
-impl From<KeyMarkers> for _core::KeyMarkers {
-    fn from(from: KeyMarkers) -> Self {
-        let KeyMarkers { state, markers } = from;
+impl From<BeatAndKeyMarkers> for _core::BeatAndKeyMarkers {
+    fn from(from: BeatAndKeyMarkers) -> Self {
+        let BeatAndKeyMarkers { state, markers } = from;
         Self {
             state: state.into(),
             markers: markers.into_iter().map(Into::into).collect(),

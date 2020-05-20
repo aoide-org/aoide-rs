@@ -20,9 +20,11 @@ use crate::audio::{
     PositionMs, PositionMsInvalidity,
 };
 
-pub mod beat;
+/// Beats & Keys
+pub mod bnk;
+
+/// Cues
 pub mod cue;
-pub mod key;
 
 pub type Number = i32;
 
@@ -85,16 +87,14 @@ impl Validate for Position {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Markers {
-    pub beats: beat::Markers,
+    pub beats_and_keys: bnk::Markers,
     pub cues: cue::Markers,
-    pub keys: key::Markers,
 }
 
 #[derive(Copy, Clone, Debug)]
 pub enum MarkersInvalidity {
-    Beats(beat::MarkersInvalidity),
+    BeatsAndKeys(bnk::MarkersInvalidity),
     Cues(cue::MarkersInvalidity),
-    Keys(key::MarkersInvalidity),
 }
 
 impl Validate for Markers {
@@ -102,9 +102,8 @@ impl Validate for Markers {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .validate_with(&self.beats, MarkersInvalidity::Beats)
+            .validate_with(&self.beats_and_keys, MarkersInvalidity::BeatsAndKeys)
             .validate_with(&self.cues, MarkersInvalidity::Cues)
-            .validate_with(&self.keys, MarkersInvalidity::Keys)
             .into()
     }
 }

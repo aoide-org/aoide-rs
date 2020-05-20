@@ -19,11 +19,7 @@ use super::*;
 
 use crate::{
     entity::{EntityUid, EntityUidInvalidity},
-    util::{
-        clock::TickInstant,
-        color::Color,
-        geo::{GeoPoint, GeoPointInvalidity},
-    },
+    util::{clock::TickInstant, color::Color},
 };
 
 use rand::{seq::SliceRandom, thread_rng};
@@ -133,13 +129,6 @@ pub struct Playlist {
     /// Optional color for display purposes.
     pub color: Option<Color>,
 
-    /// An optional geographical location, e.g. to identify the place where
-    /// the playlist has been composed or recorded during an event.
-    ///
-    /// This information could also be used to restore the time zone for the
-    /// time stamps of the entries.
-    pub geo_location: Option<GeoPoint>,
-
     /// Ordered list of playlist entries.
     pub entries: Vec<PlaylistEntry>,
 }
@@ -212,7 +201,6 @@ impl Playlist {
 #[derive(Copy, Clone, Debug)]
 pub enum PlaylistInvalidity {
     Name,
-    Location(GeoPointInvalidity),
     Entry(usize, PlaylistEntryInvalidity),
 }
 
@@ -220,9 +208,8 @@ impl Validate for Playlist {
     type Invalidity = PlaylistInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        let context = ValidationContext::new()
-            .invalidate_if(self.name.is_empty(), PlaylistInvalidity::Name)
-            .validate_with(&self.geo_location, PlaylistInvalidity::Location);
+        let context =
+            ValidationContext::new().invalidate_if(self.name.is_empty(), PlaylistInvalidity::Name);
         self.entries
             .iter()
             .enumerate()
@@ -261,8 +248,6 @@ pub struct PlaylistBrief {
 
     pub color: Option<Color>,
 
-    pub geo_location: Option<GeoPoint>,
-
     pub entries: PlaylistBriefEntries,
 }
 
@@ -275,8 +260,6 @@ pub struct PlaylistBriefRef<'a> {
     pub r#type: Option<&'a str>,
 
     pub color: Option<Color>,
-
-    pub geo_location: Option<&'a GeoPoint>,
 
     pub entries: PlaylistBriefEntries,
 }
@@ -300,7 +283,6 @@ impl<'a> Playlist {
             ref description,
             r#type,
             color,
-            ref geo_location,
             entries: _entries,
         } = self;
         PlaylistBriefRef {
@@ -308,7 +290,6 @@ impl<'a> Playlist {
             description: description.as_deref(),
             r#type: r#type.as_deref(),
             color: *color,
-            geo_location: geo_location.as_ref(),
             entries,
         }
     }

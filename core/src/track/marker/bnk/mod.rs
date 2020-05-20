@@ -15,31 +15,38 @@
 
 use super::*;
 
-use crate::music::time::*;
-
-pub type BeatCount = u32;
+use crate::music::{key::*, time::*};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Marker {
     pub position: Position,
 
+    /// The current tempo valid from this position onwards
     pub tempo: Option<TempoBpm>,
 
-    pub timing: Option<TimeSignature>,
+    /// The current time signature valid from this position onwards
+    ///
+    /// The time signature is valid until the next marker or until
+    /// the end of a track.
+    pub time_signature: Option<TimeSignature>,
 
-    /// The beat 1..n in a bar (with n = `timing.beats_per_measure()`)
-    /// at the start position.
-    pub beat_in_bar: Option<BeatNumber>,
+    /// The current key signature valid from this position onwards
+    ///
+    /// The key signature is valid until the next marker or until
+    /// the end of a track.
+    pub key_signature: Option<KeySignature>,
 
-    /// The bar 1..n in a phrase (consisting of typically n = 2^m bars)
-    /// at the start position.
-    pub bar_in_phrase: Option<BeatNumber>,
+    /// The beat in the current measure at this position
+    ///
+    /// Beat number 1 marks a downbeat. The maximum valid number is
+    /// `time_signature.beats_per_measure`.
+    pub beat_in_measure: Option<BeatNumber>,
 
-    /// The total beat count 1..n since the start of the track.
+    /// The total beat count since the start of the track
+    /// up to this position
+    ///
+    /// The first beat starts with number 1, i.e. 1-based counting.
     pub beat_count: Option<BeatCount>,
-
-    /// The total bar count 1..n since the start of the track.
-    pub bar_count: Option<BeatCount>,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -47,8 +54,9 @@ pub enum MarkerInvalidity {
     Position(PositionInvalidity),
     ReverseDirection,
     Tempo(TempoBpmInvalidity),
-    Timing(TimeSignatureInvalidity),
-    BothTempoAndTimingMissing,
+    TimeSignature(TimeSignatureInvalidity),
+    KeySignature(KeySignatureInvalidity),
+    MissingFields,
     StartBeatInvalid,
 }
 
@@ -59,14 +67,20 @@ impl Validate for Marker {
         ValidationContext::new()
             .validate_with(&self.position, MarkerInvalidity::Position)
             .validate_with(&self.tempo, MarkerInvalidity::Tempo)
-            .validate_with(&self.timing, MarkerInvalidity::Timing)
+            .validate_with(&self.time_signature, MarkerInvalidity::TimeSignature)
+            .validate_with(&self.key_signature, MarkerInvalidity::KeySignature)
             .invalidate_if(
-                self.tempo.is_none() && self.timing.is_none(),
-                MarkerInvalidity::BothTempoAndTimingMissing,
+                self.tempo.is_none()
+                    && self.time_signature.is_none()
+                    && self.key_signature.is_none(),
+                MarkerInvalidity::MissingFields,
             )
             .invalidate_if(
-                self.timing
-                    .and_then(|t| self.beat_in_bar.map(|b| b < 1 || b > t.beats_per_bar))
+                self.time_signature
+                    .and_then(|t| {
+                        self.beat_in_measure
+                            .map(|b| b < 1 || b > t.beats_per_measure)
+                    })
                     .unwrap_or_default(),
                 MarkerInvalidity::StartBeatInvalid,
             )
@@ -87,17 +101,32 @@ fn uniform_tempo_from_markers<'a>(markers: impl Iterator<Item = &'a Marker>) -> 
     None
 }
 
-fn uniform_timing_from_markers<'a>(
+fn uniform_time_signature_from_markers<'a>(
     markers: impl Iterator<Item = &'a Marker>,
 ) -> Option<TimeSignature> {
-    let mut with_timing = markers.filter_map(|m| m.timing);
-    if let Some(timing) = with_timing.next() {
-        for t in with_timing {
-            if t != timing {
+    let mut with_time_signature = markers.filter_map(|marker| marker.time_signature);
+    if let Some(time_signature) = with_time_signature.next() {
+        for t in with_time_signature {
+            if t != time_signature {
                 return None;
             }
         }
-        return Some(timing);
+        return Some(time_signature);
+    }
+    None
+}
+
+fn uniform_key_signature_from_markers<'a>(
+    markers: impl Iterator<Item = &'a Marker>,
+) -> Option<KeySignature> {
+    let mut with_key_signature = markers.filter_map(|marker| marker.key_signature);
+    if let Some(key_signature) = with_key_signature.next() {
+        for k in with_key_signature {
+            if k != key_signature {
+                return None;
+            }
+        }
+        return Some(key_signature);
     }
     None
 }
@@ -113,8 +142,12 @@ impl Markers {
         uniform_tempo_from_markers(self.markers.iter())
     }
 
-    pub fn uniform_timing(&self) -> Option<TimeSignature> {
-        uniform_timing_from_markers(self.markers.iter())
+    pub fn uniform_time_signature(&self) -> Option<TimeSignature> {
+        uniform_time_signature_from_markers(self.markers.iter())
+    }
+
+    pub fn uniform_key_signature(&self) -> Option<KeySignature> {
+        uniform_key_signature_from_markers(self.markers.iter())
     }
 }
 

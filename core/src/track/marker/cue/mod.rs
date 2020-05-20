@@ -34,16 +34,16 @@ use crate::util::color::Color;
 ///
 /// The following restrictions apply to the different types of cue markers:
 ///
-/// | Type    | Extent    | Start    | End     | Constraints  | Direction | Cardinality |
-/// |---------|-----------|----------|---------|--------------|-----------|-------------|
-/// |load     |point      |some      |none     |              |           |0..1         |
-/// |main     |range      |some      |some     |start<end     | fwd       |0..1         |
-/// |intro    |point/range|none/some |none/some|start<end     | fwd       |0..1         |
-/// |outro    |point/range|none/some |none/some|start<end     | fwd       |0..1         |
-/// |hotcue   |point      |some      |none     |              |           |*            |
-/// |loop     |range      |some      |some     |start<>end    | fwd/bkwd  |*            |
-/// |sample   |range      |some      |some     |start<>end    | fwd/bkwd  |*            |
-/// |custom   |point/range|none/some |none/some|start<>end    | fwd/bkwd  |*            |
+/// | Type         | Extent    | Start    | End     | Constraints  | Direction | Cardinality |
+/// |--------------|-----------|----------|---------|--------------|-----------|-------------|
+/// |custom        |point / (open/closed) section|none/some |none/some|start<>end    | fwd/bkwd  |*            |
+/// |load cue      |point      |some      |none     |              |           |0..1         |
+/// |hot cue       |point      |some      |none     |              |           |*            |
+/// |main section  |section      |some      |some     |start<end     | fwd       |0..1         |
+/// |intro         |point / (open/closed) section|none/some |none/some|start<end     | fwd       |0..1         |
+/// |outro         |point / (open/closed) section|none/some |none/some|start<end     | fwd       |0..1         |
+/// |loop          |section      |some      |some     |start<>end    | fwd/bkwd  |*            |
+/// |sample   |section      |some      |some     |start<>end    | fwd/bkwd  |*            |
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct MarkerData {
@@ -68,7 +68,7 @@ impl MarkerData {
     fn validate_range_by_type(&self, r#type: MarkerType) -> Result<(), MarkerRangeInvalidity> {
         use MarkerType::*;
         match r#type {
-            Load | HotCue => {
+            LoadCue | HotCue => {
                 if self.end.is_some() {
                     return Err(MarkerRangeInvalidity::Invalid);
                 }
@@ -119,36 +119,37 @@ impl Validate for MarkerData {
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum MarkerType {
-    /// Custom starting point, endpoint or range within the track, e.g. to label and color musical phrases
+    /// Custom starting point, end point or section within the track, e.g. to label and color
+    /// musical phrases or for importing memory cues from Rekordbox
     Custom,
 
     /// The initial position when loading a track (and the return point after stopping)
-    Load,
-
-    /// The audible range between the first and last sound, i.e. after leading/trailing
-    /// silence has been stripped
-    Main,
-
-    /// Starting point, endpoint, or range of the track's intro part
-    Intro,
-
-    /// Starting point, endpoint, or range of the track's outro part
-    Outro,
+    LoadCue,
 
     /// Custom start/cue points in a track for direct access while continuing playback, i.e. hot cues
     HotCue,
 
-    /// Range that could be played in a loop, either forward or backward
+    /// The audible section between the first and last sound, i.e. after leading/trailing
+    /// silence has been stripped
+    Main,
+
+    /// Starting point, end point, or section of the track's intro part
+    Intro,
+
+    /// Starting point, end point, or section of the track's outro part
+    Outro,
+
+    /// Section that could be played in a loop, either forward or backward
     Loop,
 
-    /// Range that could be played as a sample, either forward or backward
+    /// Section that could be played as a sample, either forward or backward
     Sample,
 }
 
 impl MarkerType {
     pub fn is_singular(self) -> bool {
         match self {
-            MarkerType::Load | MarkerType::Main | MarkerType::Intro | MarkerType::Outro => true, // cardinality = 0..1
+            MarkerType::LoadCue | MarkerType::Main | MarkerType::Intro | MarkerType::Outro => true, // cardinality = 0..1
             _ => false, // cardinality = *
         }
     }

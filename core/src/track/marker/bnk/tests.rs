@@ -19,11 +19,10 @@ fn base_marker() -> Marker {
     Marker {
         position: Default::default(),
         tempo: None,
-        timing: None,
-        beat_in_bar: None,
-        bar_in_phrase: None,
+        time_signature: None,
+        key_signature: None,
+        beat_in_measure: None,
         beat_count: None,
-        bar_count: None,
     }
 }
 
@@ -35,8 +34,8 @@ fn valid_markers() {
     };
     assert!(mk1.is_valid());
     let mk2 = Marker {
-        timing: Some(TimeSignature {
-            beats_per_bar: 4,
+        time_signature: Some(TimeSignature {
+            beats_per_measure: 4,
             beat_unit: None,
         }),
         ..base_marker()
@@ -48,11 +47,11 @@ fn valid_markers() {
 fn invalid_markers() {
     assert!(!base_marker().is_valid());
     let mk1 = Marker {
-        timing: Some(TimeSignature {
-            beats_per_bar: 4,
+        time_signature: Some(TimeSignature {
+            beats_per_measure: 4,
             beat_unit: Some(4),
         }),
-        beat_in_bar: Some(5),
+        beat_in_measure: Some(5),
         ..base_marker()
     };
     assert!(!mk1.is_valid());
@@ -104,4 +103,42 @@ fn non_uniform_tempo() {
         },
     ];
     assert_eq!(None, uniform_tempo_from_markers(markers.iter()));
+}
+
+#[test]
+fn uniform_key() {
+    let signature = KeySignature::from_code(KeySignature::min_code());
+    let markers = [
+        Marker {
+            position: PositionMs(0.0).into(),
+            key_signature: Some(signature),
+            ..base_marker()
+        },
+        Marker {
+            position: PositionMs(1.0).into(),
+            key_signature: Some(signature),
+            ..base_marker()
+        },
+    ];
+    assert_eq!(
+        Some(signature),
+        uniform_key_signature_from_markers(markers.iter())
+    );
+}
+
+#[test]
+fn non_uniform_key() {
+    let markers = [
+        Marker {
+            position: PositionMs(0.0).into(),
+            key_signature: Some(KeySignature::from_code(KeySignature::min_code())),
+            ..base_marker()
+        },
+        Marker {
+            position: PositionMs(1.0).into(),
+            key_signature: Some(KeySignature::from_code(KeySignature::max_code())),
+            ..base_marker()
+        },
+    ];
+    assert_eq!(None, uniform_key_signature_from_markers(markers.iter()));
 }
