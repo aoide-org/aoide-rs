@@ -36,8 +36,6 @@ table! {
         playlist_type -> Nullable<Text>, // r#type doesn't work in macro expansion
         color_rgb -> Nullable<Integer>,
         color_idx -> Nullable<SmallInt>,
-        geoloc_lat -> Nullable<Double>,
-        geoloc_lon -> Nullable<Double>,
         desc -> Nullable<Text>,
         tracks_count -> BigInt,
         entries_count -> BigInt,

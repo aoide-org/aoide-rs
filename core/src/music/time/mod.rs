@@ -68,19 +68,23 @@ impl fmt::Display for TempoBpm {
 // TimeSignature
 ///////////////////////////////////////////////////////////////////////
 
+// For counting beats within a measure, phrase, or section
 pub type BeatNumber = u16;
+
+// For counting the total number of beats
+pub type BeatCount = u32;
 
 /// Musical time signature
 ///
 /// https://en.wikipedia.org/wiki/Time_signature
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct TimeSignature {
-    /// The number of beats in each measure unit or bar
+    /// The number of beats in each measure or bar
     ///
     /// This number appears as the nominator/upper value in the stacked notation.
-    pub beats_per_bar: BeatNumber,
+    pub beats_per_measure: BeatNumber,
 
-    /// The note value that counts as one beat (denominator)
+    /// The note value that counts as one beat
     ///
     /// This number appears as the denominator/lower value in the stacked notation.
     ///
@@ -89,9 +93,9 @@ pub struct TimeSignature {
 }
 
 impl TimeSignature {
-    pub fn new(beats_per_bar: BeatNumber, beat_unit: Option<BeatNumber>) -> Self {
+    pub fn new(beats_per_measure: BeatNumber, beat_unit: Option<BeatNumber>) -> Self {
         Self {
-            beats_per_bar,
+            beats_per_measure,
             beat_unit,
         }
     }
@@ -99,8 +103,8 @@ impl TimeSignature {
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum TimeSignatureInvalidity {
-    Top,
-    Bottom,
+    BeatsPerMeasure,
+    BeatUnit,
 }
 
 impl Validate for TimeSignature {
@@ -108,12 +112,15 @@ impl Validate for TimeSignature {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(self.beats_per_bar < 1, TimeSignatureInvalidity::Top)
+            .invalidate_if(
+                self.beats_per_measure < 1,
+                TimeSignatureInvalidity::BeatsPerMeasure,
+            )
             .invalidate_if(
                 self.beat_unit
                     .map(|beat_unit| beat_unit < 1)
                     .unwrap_or_default(),
-                TimeSignatureInvalidity::Bottom,
+                TimeSignatureInvalidity::BeatUnit,
             )
             .into()
     }
@@ -122,9 +129,9 @@ impl Validate for TimeSignature {
 impl fmt::Display for TimeSignature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(beat_unit) = self.beat_unit {
-            write!(f, "{}/{}", self.beats_per_bar, beat_unit)
+            write!(f, "{}/{}", self.beats_per_measure, beat_unit)
         } else {
-            write!(f, "{}/", self.beats_per_bar)
+            write!(f, "{}/", self.beats_per_measure)
         }
     }
 }

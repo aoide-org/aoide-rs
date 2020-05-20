@@ -17,7 +17,7 @@ use super::*;
 
 #[test]
 fn default_cue_marker() {
-    assert!(Marker(MarkerType::Load, Default::default())
+    assert!(Marker(MarkerType::LoadCue, Default::default())
         .validate()
         .is_ok());
 }

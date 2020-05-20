@@ -223,8 +223,6 @@ impl<'a> Repo for Repository<'a> {
                 aux_playlist_brief::playlist_type,
                 aux_playlist_brief::color_rgb,
                 aux_playlist_brief::color_idx,
-                aux_playlist_brief::geoloc_lat,
-                aux_playlist_brief::geoloc_lon,
                 aux_playlist_brief::tracks_count,
                 aux_playlist_brief::entries_count,
                 aux_playlist_brief::entries_added_min,

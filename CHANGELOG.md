@@ -27,12 +27,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Split track/marker colors into an RGB color code and a color index
 - Add optional sample position to marker positions
 - Renamed *position marker* to *cue marker*
-- Renamed *beat markers* field from "bpm" to "bea"
+- Combine *beat* and *key* markers as *beat&key* (bnk) markers
 
 ### Removed
 
 - Removed end position of key and beat marker, i.e. store only a single position
   for each beat and key marker
+- Removed optional (geographical) location field for playlists
 
 ## [0.7.2] - 2020-05-03
 

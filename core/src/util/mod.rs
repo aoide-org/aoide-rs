@@ -13,11 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
-
 pub mod clock;
 pub mod color;
-pub mod geo;
 
 pub trait IsInteger {
     fn is_integer(&self) -> bool;

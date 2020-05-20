@@ -15,7 +15,7 @@
 
 use super::*;
 
-use aoide_core::util::{clock::*, color::*, geo::*};
+use aoide_core::util::{clock::*, color::*};
 
 use aoide_repo::{entity::*, RepoId};
 
@@ -131,8 +131,6 @@ pub struct QueryableBrief {
     pub playlist_type: Option<String>,
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
-    pub geoloc_lat: Option<f64>,
-    pub geoloc_lon: Option<f64>,
     pub tracks_count: i64,
     pub entries_count: i64,
     pub entries_added_min: Option<NaiveDateTime>,
@@ -151,8 +149,6 @@ impl From<QueryableBrief> for (RepoId, EntityHeader, PlaylistBrief) {
             playlist_type,
             color_rgb,
             color_idx,
-            geoloc_lat,
-            geoloc_lon,
             tracks_count,
             entries_count,
             entries_added_min,
@@ -164,11 +160,6 @@ impl From<QueryableBrief> for (RepoId, EntityHeader, PlaylistBrief) {
                 no: rev_no as u64,
                 ts: TickInstant(Ticks(rev_ts)),
             },
-        };
-        debug_assert_eq!(geoloc_lat.is_some(), geoloc_lon.is_some());
-        let geo_location = match (geoloc_lat, geoloc_lon) {
-            (Some(lat), Some(lon)) => Some(GeoPoint { lat, lon }),
-            _ => None,
         };
         let entries_added_min = entries_added_min.map(|min| DateTime::from_utc(min, Utc).into());
         let entries_added_max = entries_added_max.map(|max| DateTime::from_utc(max, Utc).into());
@@ -198,7 +189,6 @@ impl From<QueryableBrief> for (RepoId, EntityHeader, PlaylistBrief) {
             description: desc,
             r#type: playlist_type,
             color,
-            geo_location,
             entries,
         };
         (id, hdr, brief)
@@ -214,8 +204,6 @@ pub struct InsertableBrief<'a> {
     pub playlist_type: Option<&'a str>,
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
-    pub geoloc_lat: Option<f64>,
-    pub geoloc_lon: Option<f64>,
     pub tracks_count: i64,
     pub entries_count: i64,
     pub entries_added_min: Option<NaiveDateTime>,
@@ -229,7 +217,6 @@ impl<'a> InsertableBrief<'a> {
             description,
             r#type,
             color,
-            geo_location,
             ref entries,
         } = brief_ref;
         let PlaylistBriefEntries {
@@ -255,8 +242,6 @@ impl<'a> InsertableBrief<'a> {
             } else {
                 None
             },
-            geoloc_lat: geo_location.as_ref().map(|p| p.lat),
-            geoloc_lon: geo_location.as_ref().map(|p| p.lon),
             tracks_count: *tracks_count as i64,
             entries_count: *entries_count as i64,
             entries_added_min: entries_added_minmax

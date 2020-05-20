@@ -17,10 +17,7 @@ use super::*;
 
 use crate::{entity::EntityUid, util::color::Color};
 
-use aoide_core::util::{
-    clock::{TickInstant, TickType, Ticks},
-    geo::*,
-};
+use aoide_core::util::clock::{TickInstant, TickType, Ticks};
 
 mod _core {
     pub use aoide_core::{entity::EntityHeader, playlist::*};
@@ -122,9 +119,6 @@ pub struct Playlist {
     #[serde(rename = "col", skip_serializing_if = "Option::is_none")]
     color: Option<Color>,
 
-    #[serde(rename = "geo", skip_serializing_if = "Option::is_none")]
-    geo_location: Option<(GeoCoord, GeoCoord)>,
-
     #[serde(rename = "lst")]
     entries: Vec<PlaylistEntry>,
 }
@@ -136,7 +130,6 @@ impl From<Playlist> for _core::Playlist {
             description,
             r#type,
             color,
-            geo_location,
             entries,
         } = from;
         Self {
@@ -144,7 +137,6 @@ impl From<Playlist> for _core::Playlist {
             description,
             r#type,
             color: color.map(Into::into),
-            geo_location: geo_location.map(|(lat, lon)| GeoPoint { lat, lon }),
             entries: entries.into_iter().map(Into::into).collect(),
         }
     }
@@ -157,7 +149,6 @@ impl From<_core::Playlist> for Playlist {
             description,
             r#type,
             color,
-            geo_location,
             entries,
         } = from;
         Self {
@@ -165,7 +156,6 @@ impl From<_core::Playlist> for Playlist {
             description,
             r#type,
             color: color.map(Into::into),
-            geo_location: geo_location.map(|p| (p.lat, p.lon)),
             entries: entries.into_iter().map(Into::into).collect(),
         }
     }
@@ -257,9 +247,6 @@ pub struct PlaylistBrief {
     #[serde(rename = "col", skip_serializing_if = "Option::is_none")]
     color: Option<Color>,
 
-    #[serde(rename = "geo", skip_serializing_if = "Option::is_none")]
-    geo_location: Option<(GeoCoord, GeoCoord)>,
-
     #[serde(rename = "lst")]
     entries: PlaylistBriefEntries,
 }
@@ -272,7 +259,6 @@ impl From<_core::Playlist> for PlaylistBrief {
             description,
             r#type,
             color,
-            geo_location,
             entries: _entries,
         } = from;
         Self {
@@ -280,7 +266,6 @@ impl From<_core::Playlist> for PlaylistBrief {
             description,
             r#type,
             color: color.map(Into::into),
-            geo_location: geo_location.map(|p| (p.lat, p.lon)),
             entries,
         }
     }
@@ -293,7 +278,6 @@ impl From<_core::PlaylistBrief> for PlaylistBrief {
             description,
             r#type,
             color,
-            geo_location,
             entries,
         } = from;
         Self {
@@ -301,7 +285,6 @@ impl From<_core::PlaylistBrief> for PlaylistBrief {
             description,
             r#type,
             color: color.map(Into::into),
-            geo_location: geo_location.map(|p| (p.lat, p.lon)),
             entries: entries.into(),
         }
     }
