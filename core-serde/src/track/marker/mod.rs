@@ -21,8 +21,8 @@ mod _core {
         track::marker::{
             bnk::{Marker as BeatAndKeyMarker, Markers as BeatAndKeyMarkers},
             cue::{
-                Marker as CueMarker, MarkerData as CueMarkerData, MarkerType as CueMarkerType,
-                Markers as CueMarkers,
+                OutBehavior, MarkerExtent, Marker as CueMarker, MarkerData as CueMarkerData,
+                MarkerType as CueMarkerType, Markers as CueMarkers,
             },
             Markers, Position, State,
         },
@@ -76,6 +76,74 @@ impl From<_core::Position> for Position {
             Position::MillisSamples(millis.into(), samples.into())
         } else {
             Position::Millis(millis.into())
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// OutBehavior
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize_repr, Deserialize_repr)]
+#[repr(u8)]
+pub enum OutBehavior {
+    Stop = 1,
+    Loop = 2,
+    Next = 3,
+}
+
+impl From<_core::OutBehavior> for OutBehavior {
+    fn from(from: _core::OutBehavior) -> Self {
+        use _core::OutBehavior::*;
+        match from {
+            Stop => OutBehavior::Stop,
+            Loop => OutBehavior::Loop,
+            Next => OutBehavior::Next,
+        }
+    }
+}
+
+impl From<OutBehavior> for _core::OutBehavior {
+    fn from(from: OutBehavior) -> Self {
+        use _core::OutBehavior::*;
+        match from {
+            OutBehavior::Stop => Stop,
+            OutBehavior::Loop => Loop,
+            OutBehavior::Next => Next,
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// MarkerExtent
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub enum MarkerExtent {
+    #[serde(rename = "end")]
+    EndPosition(Position),
+
+    #[serde(rename = "b32")]
+    BeatCountX32(BeatNumber),
+}
+
+impl From<_core::MarkerExtent> for MarkerExtent {
+    fn from(from: _core::MarkerExtent) -> Self {
+        use _core::MarkerExtent::*;
+        match from {
+            EndPosition(end) => MarkerExtent::EndPosition(end.into()),
+            BeatCountX32(x32) => MarkerExtent::BeatCountX32(x32),
+        }
+    }
+}
+
+impl From<MarkerExtent> for _core::MarkerExtent {
+    fn from(from: MarkerExtent) -> Self {
+        use _core::MarkerExtent::*;
+        match from {
+            MarkerExtent::EndPosition(end) => EndPosition(end.into()),
+            MarkerExtent::BeatCountX32(x32) => BeatCountX32(x32),
         }
     }
 }
@@ -165,13 +233,11 @@ impl From<Markers> for _core::Markers {
 #[repr(u8)]
 pub enum CueMarkerType {
     Custom = 0,
-    LoadCue = 1,
-    HotCue = 2,
-    Main = 3,
-    Intro = 4,
-    Outro = 5,
-    Loop = 6,
-    Sample = 7,
+    HotCue = 1,
+    LoadCue = 2,
+    Intro = 3,
+    Outro = 4,
+    Section = 5,
 }
 
 impl From<_core::CueMarkerType> for CueMarkerType {
@@ -179,13 +245,11 @@ impl From<_core::CueMarkerType> for CueMarkerType {
         use _core::CueMarkerType::*;
         match from {
             Custom => CueMarkerType::Custom,
-            LoadCue => CueMarkerType::LoadCue,
             HotCue => CueMarkerType::HotCue,
-            Main => CueMarkerType::Main,
+            LoadCue => CueMarkerType::LoadCue,
             Intro => CueMarkerType::Intro,
             Outro => CueMarkerType::Outro,
-            Loop => CueMarkerType::Loop,
-            Sample => CueMarkerType::Sample,
+            Section => CueMarkerType::Section,
         }
     }
 }
@@ -195,13 +259,11 @@ impl From<CueMarkerType> for _core::CueMarkerType {
         use _core::CueMarkerType::*;
         match from {
             CueMarkerType::Custom => Custom,
-            CueMarkerType::LoadCue => LoadCue,
             CueMarkerType::HotCue => HotCue,
-            CueMarkerType::Main => Main,
+            CueMarkerType::LoadCue => LoadCue,
             CueMarkerType::Intro => Intro,
             CueMarkerType::Outro => Outro,
-            CueMarkerType::Loop => Loop,
-            CueMarkerType::Sample => Sample,
+            CueMarkerType::Section => Section,
         }
     }
 }
@@ -212,8 +274,11 @@ pub struct CueMarker {
     #[serde(rename = "pos", skip_serializing_if = "Option::is_none")]
     pub start: Option<Position>,
 
-    #[serde(rename = "end", skip_serializing_if = "Option::is_none")]
-    pub end: Option<Position>,
+    #[serde(flatten, skip_serializing_if = "Option::is_none")]
+    pub extent: Option<MarkerExtent>,
+
+    #[serde(rename = "out", skip_serializing_if = "Option::is_none")]
+    pub out_behavior: Option<OutBehavior>,
 
     #[serde(rename = "typ")]
     pub r#type: CueMarkerType,
@@ -233,7 +298,8 @@ impl From<_core::CueMarker> for CueMarker {
         let _core::CueMarker(r#type, data) = from;
         Self {
             start: data.start.map(Into::into),
-            end: data.end.map(Into::into),
+            extent: data.extent.map(Into::into),
+            out_behavior: data.out_behavior.map(Into::into),
             r#type: r#type.into(),
             number: data.number.map(Into::into),
             color: data.color.map(Into::into),
@@ -247,17 +313,16 @@ impl From<CueMarker> for _core::CueMarker {
         use _core::CueMarkerType::*;
         let r#type = match from.r#type {
             CueMarkerType::Custom => Custom,
-            CueMarkerType::LoadCue => LoadCue,
             CueMarkerType::HotCue => HotCue,
-            CueMarkerType::Main => Main,
+            CueMarkerType::LoadCue => LoadCue,
             CueMarkerType::Intro => Intro,
             CueMarkerType::Outro => Outro,
-            CueMarkerType::Loop => Loop,
-            CueMarkerType::Sample => Sample,
+            CueMarkerType::Section => Section,
         };
         let data = _core::CueMarkerData {
             start: from.start.map(Into::into),
-            end: from.end.map(Into::into),
+            extent: from.extent.map(Into::into),
+            out_behavior: from.out_behavior.map(Into::into),
             number: from.number.map(Into::into),
             color: from.color.map(Into::into),
             label: from.label.map(Into::into),

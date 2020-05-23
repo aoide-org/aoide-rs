@@ -15,7 +15,7 @@
 
 use super::*;
 
-use crate::util::color::Color;
+use crate::{music::time::BeatNumber, util::color::Color};
 
 ///////////////////////////////////////////////////////////////////////
 // Marker
@@ -34,22 +34,45 @@ use crate::util::color::Color;
 ///
 /// The following restrictions apply to the different types of cue markers:
 ///
-/// | Type         | Extent    | Start    | End     | Constraints  | Direction | Cardinality |
-/// |--------------|-----------|----------|---------|--------------|-----------|-------------|
-/// |custom        |point / (open/closed) section|none/some |none/some|start<>end    | fwd/bkwd  |*            |
-/// |load cue      |point      |some      |none     |              |           |0..1         |
-/// |hot cue       |point      |some      |none     |              |           |*            |
-/// |main section  |section      |some      |some     |start<end     | fwd       |0..1         |
-/// |intro         |point / (open/closed) section|none/some |none/some|start<end     | fwd       |0..1         |
-/// |outro         |point / (open/closed) section|none/some |none/some|start<end     | fwd       |0..1         |
-/// |loop          |section      |some      |some     |start<>end    | fwd/bkwd  |*            |
-/// |sample   |section      |some      |some     |start<>end    | fwd/bkwd  |*            |
+/// | Type         | Start    | End     | Constraints  | Direction | Cardinality |
+/// |--------------|----------|---------|--------------|-----------|-------------|
+/// |custom        |none/some |none/some|start<>end    | fwd/bkwd  |*            |
+/// |load cue      |some      |none     |              |           |0..1         |
+/// |hot cue       |some      |none/some|start<>end    | fwd/bkwd  |*            |
+/// |intro         |none/some |none/some|start<end     | fwd       |0..1         |
+/// |outro         |none/some |none/some|start<end     | fwd       |0..1         |
+/// |section       |some      |some     |start<end     | fwd       |*            |
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum OutBehavior {
+    /// Stop playback when reaching the end position.
+    Stop,
+
+    /// Continue playback at the start position when reaching
+    /// the end positon.
+    Loop,
+
+    /// Continue playback at the start position of the cue marker
+    /// with the next number, i.e. number + 1 (if available).
+    ///
+    /// If no such marker exists or if that marker has no start
+    /// position then playback continues until the end of the track.
+    Next,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum MarkerExtent {
+    EndPosition(Position),
+    BeatCountX32(BeatNumber),
+}
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct MarkerData {
     pub start: Option<Position>,
 
-    pub end: Option<Position>,
+    pub extent: Option<MarkerExtent>,
+
+    pub out_behavior: Option<OutBehavior>,
 
     pub number: Option<Number>,
 
@@ -68,20 +91,41 @@ impl MarkerData {
     fn validate_range_by_type(&self, r#type: MarkerType) -> Result<(), MarkerRangeInvalidity> {
         use MarkerType::*;
         match r#type {
-            LoadCue | HotCue => {
-                if self.end.is_some() {
+            LoadCue => {
+                if self.extent.is_some() {
                     return Err(MarkerRangeInvalidity::Invalid);
                 }
             }
-            Main | Intro | Outro => {
-                if let (Some(start), Some(end)) = (self.start.as_ref(), self.end.as_ref()) {
+            HotCue => {
+                if let (
+                    Some(start),
+                    Some(MarkerExtent::EndPosition(end)),
+                ) = (self.start.as_ref(), self.extent.as_ref())
+                {
+                    if start == end {
+                        return Err(MarkerRangeInvalidity::Empty);
+                    }
+                } else {
+                    return Err(MarkerRangeInvalidity::Invalid);
+                }
+            }
+            Intro | Outro => {
+                if let (
+                    Some(start),
+                    Some(MarkerExtent::EndPosition(end)),
+                ) = (self.start.as_ref(), self.extent.as_ref())
+                {
                     if start.millis >= end.millis {
                         return Err(MarkerRangeInvalidity::Empty);
                     }
                 }
             }
-            Loop | Sample => {
-                if let (Some(start), Some(end)) = (self.start.as_ref(), self.end.as_ref()) {
+            Section => {
+                if let (
+                    Some(start),
+                    Some(MarkerExtent::EndPosition(end)),
+                ) = (self.start.as_ref(), self.extent.as_ref())
+                {
                     if start == end {
                         return Err(MarkerRangeInvalidity::Empty);
                     }
@@ -108,7 +152,17 @@ impl Validate for MarkerData {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         let mut context = ValidationContext::new()
             .validate_with(&self.start, MarkerDataInvalidity::Start)
-            .validate_with(&self.end, MarkerDataInvalidity::End);
+            .validate_with(
+                &self.extent.as_ref().and_then(|extent| {
+                    if let MarkerExtent::EndPosition(end) = extent
+                    {
+                        Some(end)
+                    } else {
+                        None
+                    }
+                }),
+                MarkerDataInvalidity::End,
+            );
         if let Some(ref label) = self.label {
             context =
                 context.invalidate_if(label.trim().is_empty(), MarkerDataInvalidity::LabelEmpty)
@@ -119,19 +173,14 @@ impl Validate for MarkerData {
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum MarkerType {
-    /// Custom starting point, end point or section within the track, e.g. to label and color
-    /// musical phrases or for importing memory cues from Rekordbox
     Custom,
 
     /// The initial position when loading a track (and the return point after stopping)
     LoadCue,
 
-    /// Custom start/cue points in a track for direct access while continuing playback, i.e. hot cues
+    /// Custom start/cue points in a track for direct access that may also
+    /// be used for looping or sampling by defining an end/out point.
     HotCue,
-
-    /// The audible section between the first and last sound, i.e. after leading/trailing
-    /// silence has been stripped
-    Main,
 
     /// Starting point, end point, or section of the track's intro part
     Intro,
@@ -139,18 +188,15 @@ pub enum MarkerType {
     /// Starting point, end point, or section of the track's outro part
     Outro,
 
-    /// Section that could be played in a loop, either forward or backward
-    Loop,
-
-    /// Section that could be played as a sample, either forward or backward
-    Sample,
+    /// Non-empty section
+    Section,
 }
 
 impl MarkerType {
     pub fn is_singular(self) -> bool {
         match self {
-            MarkerType::LoadCue | MarkerType::Main | MarkerType::Intro | MarkerType::Outro => true, // cardinality = 0..1
-            _ => false, // cardinality = *
+            MarkerType::LoadCue | MarkerType::Intro | MarkerType::Outro => true, // cardinality = 0..1
+            _ => false,                                                          // cardinality = *
         }
     }
 }
