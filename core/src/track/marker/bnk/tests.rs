@@ -21,8 +21,8 @@ fn base_marker() -> Marker {
         tempo: None,
         time_signature: None,
         key_signature: None,
-        beat_in_measure: None,
-        beat_count: None,
+        beat_number: None,
+        measure_number: None,
     }
 }
 
@@ -51,7 +51,7 @@ fn invalid_markers() {
             beats_per_measure: 4,
             beat_unit: Some(4),
         }),
-        beat_in_measure: Some(5),
+        beat_number: Some(5),
         ..base_marker()
     };
     assert!(!mk1.is_valid());

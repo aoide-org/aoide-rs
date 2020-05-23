@@ -986,52 +986,51 @@ components:
     AvgTagScore:
       allOf:
         - $ref: '#/components/schemas/TagScore'
-    BeatCount:
+    MeasureNumber:
       description: |
-        The beat 1..n counted from the start of the track.
+        The measure 1..n counted from the start of the track.
       type: integer
       format: int32
       minimum: 1
-      maximum: 2147483647
-      example: 16
-    BeatInMeasureNumber:
-      description: |
-        The beat 1..n in a bar.
-      allOf:
-        - $ref: '#/components/schemas/BeatNumber'
-    BeatMarker:
+      maximum: 65535
+      example: 24
+    BeatAndKeyMarker:
       properties:
         bpm:
           $ref: '#/components/schemas/TempoBpm'
-        btm:
-          $ref: '#/components/schemas/BeatInMeasureNumber'
         btn:
-          $ref: '#/components/schemas/BeatCount'
+          $ref: '#/components/schemas/BeatNumber'
+        key:
+          $ref: '#/components/schemas/KeySignature'
+        msn:
+          $ref: '#/components/schemas/MeasureNumber'
         pos:
           $ref: '#/components/schemas/MarkerPosition'
-        sig:
+        tim:
           $ref: '#/components/schemas/TimeSignature'
       required:
         - pos
       description: |
-        Section of a beat grid with uniform tempo and timining.
+        Marks the beginning of a section with uniform tempo, timining,
+        and musical key.
 
-        The start position of a beat marker is supposed to mark a single
-        beat. If the end position is missing the section ends with the
-        start of the following marker or at the end of the track.
+        The position is supposed to be collocated with a single beat.
 
-        If the tempo or time signature is missing those values are
-        inherited from the preceding beat marker.
-
-        The *beat in bar* number must fit into the time signature.
-    BeatMarkers:
+        If any of the properties are missing their values are extrapolated
+        from the preceding markers until a new value is defined explicitly.
+        Both measure and beat number can be calculated from a single, initial
+        value if both tempo and beats per measure (as of the time signature)
+        are known.
+    BeatAndKeyMarkers:
       properties:
         mkl:
           description: |
-            List of beat markers, sorted by their non-overlapping positions
+            List of *beat & key* markers.
+
+            The markers are sorted by their positions in ascending order.
           type: array
           items:
-            $ref: '#/components/schemas/BeatMarker'
+            $ref: '#/components/schemas/BeatAndKeyMarker'
         mks:
           $ref: '#/components/schemas/MarkerState'
     BeatNumber:
@@ -1040,7 +1039,19 @@ components:
       maximum: 65535
       example: 1
       description: |
-        A number for counting beats (in a bar) or bars (in a phrase).
+        A number for counting beats in a measure.
+    BeatUnit:
+      type: integer
+      minimum: 1
+      maximum: 65535
+      example: 4
+      description: |
+        The note value that counts as one beat.
+
+        This number appears as the denominator/lower value in the
+        stacked notation for time signature.
+
+        Example: 4 for a quarter note
     BitRateBps:
       type: integer
       format: int32
@@ -1250,30 +1261,6 @@ components:
           $ref: '#/components/schemas/MovementIndex'
         tri:
           $ref: '#/components/schemas/TrackIndex'
-    KeyMarker:
-      properties:
-        pos:
-          $ref: '#/components/schemas/MarkerPosition'
-        sig:
-          $ref: '#/components/schemas/KeySignature'
-      required:
-        - pos
-        - sig
-      description: |
-        Section with a uniform musical key signature.
-
-        If the end position is missing the section ends with the start
-        of the following marker or at the end of the track.
-    KeyMarkers:
-      properties:
-        mkl:
-          description: |
-            Key markers, sorted by their non-overlapping positions
-          type: array
-          items:
-            $ref: '#/components/schemas/KeyMarker'
-        mks:
-          $ref: '#/components/schemas/MarkerState'
     KeySignature:
       type: integer
       enum:
@@ -1377,12 +1364,10 @@ components:
       example: 1
     Markers:
       properties:
-        pos:
+        cue:
           $ref: '#/components/schemas/CueMarkers'
-        bpm:
-          $ref: '#/components/schemas/BeatMarkers'
-        key:
-          $ref: '#/components/schemas/KeyMarkers'
+        bnk:
+          $ref: '#/components/schemas/BeatAndKeyMarkers'
     MarkerState:
       description: |
         The (optional) state of markers
@@ -2127,37 +2112,30 @@ components:
       description: |
         The time signature of a track.
 
-        Either an incomplete signature with only the beats per bar
-        or a complete signature with both beats per bar and note
-        value.
+        Either an incomplete signature with only the beats per measure
+        or a complete signature with both beats per measure and beat
+        unit / note value.
     TimeSignatureTop:
       allOf:
-        - $ref: '#/components/schemas/TimeSignatureBeatsPerBar'
+        - $ref: '#/components/schemas/BeatsPerMeasure'
     TimeSignatureTopBottom:
       type: array
       minLength: 2
       maxLength: 2
       items:
         oneOf:
-          - $ref: '#/components/schemas/TimeSignatureBeatsPerBar'
-          - $ref: '#/components/schemas/TimeSignatureBeatUnit'
+          - $ref: '#/components/schemas/BeatsPerMeasure'
+          - $ref: '#/components/schemas/BeatUnit'
       description: |
-        An array with exactly 2 elements: The number of beats per bar
+        An array with exactly 2 elements: The number of beats per measure
         followed by the beat unit.
-    TimeSignatureBeatsPerBar:
+      example: [3, 4]
+    BeatsPerMeasure:
       description: |
-        The number of beats in each measure unit or bar.
+        The number of beats in each measure.
 
-        This number appears as the nominator/upper value in the stacked notation.
-      allOf:
-        - $ref: '#/components/schemas/BeatNumber'
-    TimeSignatureBeatUnit:
-      description: |
-        The note value that counts as one beat (denominator)
-
-        This number appears as the denominator/lower value in the stacked notation.
-
-        Example: 4 for a quarter-note
+        This number appears as the nominator/upper value in the
+        stacked notation for time signature.
       allOf:
         - $ref: '#/components/schemas/BeatNumber'
     TimeStamp:

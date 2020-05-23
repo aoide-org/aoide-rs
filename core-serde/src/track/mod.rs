@@ -29,7 +29,16 @@ mod _core {
     pub use aoide_core::track::*;
 }
 
+use aoide_core::track::YYYYMMDD;
+
 use aoide_core::util::IsDefault;
+
+use semval::Validate;
+use serde::{
+    de::{self, Visitor as SerdeDeserializeVisitor},
+    Deserializer, Serializer,
+};
+use std::fmt;
 
 ///////////////////////////////////////////////////////////////////////
 // Track
@@ -116,3 +125,152 @@ impl From<_core::Entity> for Entity {
         Self(from.hdr.into(), from.body.into())
     }
 }
+
+///////////////////////////////////////////////////////////////////////
+// DateTime
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Copy, Clone, Debug)]
+#[cfg_attr(test, derive(Eq, PartialEq))]
+pub struct Date(_core::Date);
+
+// Serialize (and deserialize) as string for maximum compatibility and portability
+impl Serialize for Date {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let value = if self.0.is_year() {
+            i32::from(self.0.year())
+        } else {
+            self.0.into()
+        };
+        serializer.serialize_i32(value)
+    }
+}
+
+struct DateDeserializeVisitor;
+
+impl<'de> SerdeDeserializeVisitor<'de> for DateDeserializeVisitor {
+    type Value = Date;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_fmt(format_args!("4-digit YYYY or 8-digit YYYYMMDD integer"))
+    }
+
+    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        let value = value as YYYYMMDD;
+        let value = if value < _core::Date::min().into()
+            && value >= YYYYMMDD::from(_core::Date::min().year())
+            && value <= YYYYMMDD::from(_core::Date::max().year())
+        {
+            // Special case handling: YYYY
+            _core::Date::from_year(value as _core::YearType)
+        } else {
+            _core::Date::new(value)
+        };
+        value
+            .validate()
+            .map_err(|e| E::custom(format!("{:?}", e)))
+            .map(|()| Date(value))
+    }
+}
+
+impl<'de> Deserialize<'de> for Date {
+    fn deserialize<D>(deserializer: D) -> Result<Date, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_u64(DateDeserializeVisitor)
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// DateTime
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Copy, Clone, Debug)]
+#[cfg_attr(test, derive(Eq, PartialEq))]
+pub struct DateTime(_core::DateTime);
+
+// Serialize (and deserialize) as string for maximum compatibility and portability
+impl Serialize for DateTime {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // TODO: Avoid creating a temporary string
+        let encoded = self.0.to_string();
+        serializer.serialize_str(&encoded)
+    }
+}
+
+struct DateTimeDeserializeVisitor;
+
+impl<'de> SerdeDeserializeVisitor<'de> for DateTimeDeserializeVisitor {
+    type Value = DateTime;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_fmt(format_args!("RFC 3339 date/time string"))
+    }
+
+    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        value
+            .parse::<_core::DateTime>()
+            .map(DateTime)
+            .map_err(|e| E::custom(format!("{:?}", e)))
+    }
+}
+
+impl<'de> Deserialize<'de> for DateTime {
+    fn deserialize<D>(deserializer: D) -> Result<DateTime, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_str(DateTimeDeserializeVisitor)
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// DateOrDateTime
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(Eq, PartialEq))]
+#[serde(untagged)]
+pub enum DateOrDateTime {
+    Date(Date),
+    DateTime(DateTime),
+}
+
+impl From<_core::DateOrDateTime> for DateOrDateTime {
+    fn from(from: _core::DateOrDateTime) -> Self {
+        match from {
+            _core::DateOrDateTime::Date(from) => DateOrDateTime::Date(Date(from)),
+            _core::DateOrDateTime::DateTime(from) => DateOrDateTime::DateTime(DateTime(from)),
+        }
+    }
+}
+
+impl From<DateOrDateTime> for _core::DateOrDateTime {
+    fn from(from: DateOrDateTime) -> Self {
+        use _core::DateOrDateTime::*;
+        match from {
+            DateOrDateTime::Date(from) => Date(from.0),
+            DateOrDateTime::DateTime(from) => DateTime(from.0),
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// Tests
+///////////////////////////////////////////////////////////////////////
+
+#[cfg(test)]
+mod tests;

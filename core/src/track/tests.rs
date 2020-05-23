@@ -15,5 +15,76 @@
 
 ///////////////////////////////////////////////////////////////////////
 
-// TODO
-//use super::*;
+use super::*;
+
+#[test]
+fn min_max_date_year() {
+    assert!(YEAR_MIN <= Date::min().year());
+    assert!(YEAR_MAX <= Date::max().year());
+}
+
+#[test]
+fn into_release_yyyymmdd() {
+    assert_eq!(
+        19_961_219,
+        Date::from("1996-12-19T02:00:57Z".parse::<DateTime>().unwrap()).into()
+    );
+    assert_eq!(
+        19_961_219,
+        Date::from("1996-12-19T02:00:57-12:00".parse::<DateTime>().unwrap()).into()
+    );
+    assert_eq!(
+        19_961_219,
+        Date::from("1996-12-19T02:00:57+12:00".parse::<DateTime>().unwrap()).into()
+    );
+}
+
+#[test]
+fn from_to_string() {
+    assert_eq!(
+        "1996-12-19T02:00:57Z",
+        "1996-12-19T02:00:57Z"
+            .parse::<DateTime>()
+            .unwrap()
+            .to_string()
+    );
+    assert_eq!(
+        "1996-12-19T02:00:57Z",
+        "1996-12-19T02:00:57+00:00"
+            .parse::<DateTime>()
+            .unwrap()
+            .to_string()
+    );
+    assert_eq!(
+        "1996-12-19T02:00:57Z",
+        "1996-12-19T02:00:57-00:00"
+            .parse::<DateTime>()
+            .unwrap()
+            .to_string()
+    );
+    assert_eq!(
+        "1996-12-19T02:00:57-12:00",
+        "1996-12-19T02:00:57-12:00"
+            .parse::<DateTime>()
+            .unwrap()
+            .to_string()
+    );
+    assert_eq!(
+        "1996-12-19T02:00:57+12:00",
+        "1996-12-19T02:00:57+12:00"
+            .parse::<DateTime>()
+            .unwrap()
+            .to_string()
+    );
+}
+
+#[test]
+fn validate_date() {
+    assert!(Date::new(19_960_000).validate().is_ok());
+    assert!(Date::new(19_960_101).validate().is_ok());
+    assert!(Date::new(19_961_231).validate().is_ok());
+    assert!(Date::new(19_960_230).validate().is_err()); // 1996-02-30
+    assert!(Date::new(19_960_001).validate().is_err()); // 1996-00-01
+    assert!(Date::new(1_996_000).validate().is_err());
+    assert!(Date::new(119_960_001).validate().is_err());
+}

@@ -71,9 +71,6 @@ impl fmt::Display for TempoBpm {
 // For counting beats within a measure, phrase, or section
 pub type BeatNumber = u16;
 
-// For counting the total number of beats
-pub type BeatCount = u32;
-
 /// Musical time signature
 ///
 /// https://en.wikipedia.org/wiki/Time_signature

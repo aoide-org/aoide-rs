@@ -16,163 +16,7 @@
 use super::*;
 
 mod _core {
-    pub use aoide_core::track::release::{
-        Release, ReleaseDate, ReleaseDateTime, ReleaseYear, ReleasedAt,
-    };
-}
-
-use aoide_core::track::release::YYYYMMDD;
-
-use semval::Validate;
-
-use serde::{
-    de::{self, Visitor as SerdeDeserializeVisitor},
-    Deserializer, Serializer,
-};
-
-use std::fmt;
-
-///////////////////////////////////////////////////////////////////////
-// ReleaseDateTime
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Copy, Clone, Debug)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
-pub struct ReleaseDate(_core::ReleaseDate);
-
-// Serialize (and deserialize) as string for maximum compatibility and portability
-impl Serialize for ReleaseDate {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let value = if self.0.is_year() {
-            i32::from(self.0.year())
-        } else {
-            self.0.into()
-        };
-        serializer.serialize_i32(value)
-    }
-}
-
-struct ReleaseDateDeserializeVisitor;
-
-impl<'de> SerdeDeserializeVisitor<'de> for ReleaseDateDeserializeVisitor {
-    type Value = ReleaseDate;
-
-    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_fmt(format_args!("4-digit YYYY or 8-digit YYYYMMDD integer"))
-    }
-
-    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
-    where
-        E: de::Error,
-    {
-        let value = value as YYYYMMDD;
-        let value = if value < _core::ReleaseDate::min().into()
-            && value >= YYYYMMDD::from(_core::ReleaseDate::min().year())
-            && value <= YYYYMMDD::from(_core::ReleaseDate::max().year())
-        {
-            // Special case handling: YYYY
-            _core::ReleaseDate::from_year(value as _core::ReleaseYear)
-        } else {
-            _core::ReleaseDate::new(value)
-        };
-        value
-            .validate()
-            .map_err(|e| E::custom(format!("{:?}", e)))
-            .map(|()| ReleaseDate(value))
-    }
-}
-
-impl<'de> Deserialize<'de> for ReleaseDate {
-    fn deserialize<D>(deserializer: D) -> Result<ReleaseDate, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserializer.deserialize_u64(ReleaseDateDeserializeVisitor)
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-// ReleaseDateTime
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Copy, Clone, Debug)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
-pub struct ReleaseDateTime(_core::ReleaseDateTime);
-
-// Serialize (and deserialize) as string for maximum compatibility and portability
-impl Serialize for ReleaseDateTime {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        // TODO: Avoid creating a temporary string
-        let encoded = self.0.to_string();
-        serializer.serialize_str(&encoded)
-    }
-}
-
-struct ReleaseDateTimeDeserializeVisitor;
-
-impl<'de> SerdeDeserializeVisitor<'de> for ReleaseDateTimeDeserializeVisitor {
-    type Value = ReleaseDateTime;
-
-    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_fmt(format_args!("RFC 3339 date/time string"))
-    }
-
-    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-    where
-        E: de::Error,
-    {
-        value
-            .parse::<_core::ReleaseDateTime>()
-            .map(ReleaseDateTime)
-            .map_err(|e| E::custom(format!("{:?}", e)))
-    }
-}
-
-impl<'de> Deserialize<'de> for ReleaseDateTime {
-    fn deserialize<D>(deserializer: D) -> Result<ReleaseDateTime, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserializer.deserialize_str(ReleaseDateTimeDeserializeVisitor)
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-// ReleasedAt
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
-#[serde(untagged)]
-pub enum ReleasedAt {
-    Date(ReleaseDate),
-    DateTime(ReleaseDateTime),
-}
-
-impl From<_core::ReleasedAt> for ReleasedAt {
-    fn from(from: _core::ReleasedAt) -> Self {
-        use _core::ReleasedAt::*;
-        match from {
-            Date(from) => ReleasedAt::Date(ReleaseDate(from)),
-            DateTime(from) => ReleasedAt::DateTime(ReleaseDateTime(from)),
-        }
-    }
-}
-
-impl From<ReleasedAt> for _core::ReleasedAt {
-    fn from(from: ReleasedAt) -> Self {
-        use _core::ReleasedAt::*;
-        match from {
-            ReleasedAt::Date(from) => Date(from.0),
-            ReleasedAt::DateTime(from) => DateTime(from.0),
-        }
-    }
+    pub use aoide_core::track::release::Release;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -187,7 +31,7 @@ pub struct Release {
     released_by: Option<String>,
 
     #[serde(rename = "dat", skip_serializing_if = "Option::is_none")]
-    released_at: Option<ReleasedAt>,
+    released_at: Option<DateOrDateTime>,
 
     #[serde(rename = "cpy", skip_serializing_if = "Option::is_none")]
     copyright: Option<String>,
@@ -229,10 +73,3 @@ impl From<Release> for _core::Release {
         }
     }
 }
-
-///////////////////////////////////////////////////////////////////////
-// Tests
-///////////////////////////////////////////////////////////////////////
-
-#[cfg(test)]
-mod tests;

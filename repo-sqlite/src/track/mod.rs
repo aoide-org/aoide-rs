@@ -35,8 +35,7 @@ use aoide_core::{
     },
     tag::{Facet, Label},
     track::{
-        release::{ReleaseDate, YYYYMMDD},
-        *,
+        *, {Date, YYYYMMDD},
     },
     util::clock::{TickInstant, TickType, Ticks},
 };
@@ -790,7 +789,7 @@ impl<'a> Albums for Repository<'a> {
             .map(|row| AlbumCountResults {
                 title: row.0,
                 artist: row.1,
-                release_date: row.2.map(ReleaseDate::new),
+                release_date: row.2.map(Date::new),
                 total_count: row.3 as usize,
             })
             .collect())

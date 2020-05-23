@@ -15,7 +15,7 @@
 
 use super::*;
 
-use aoide_core::track::release::YYYYMMDD;
+use aoide_core::track::YYYYMMDD;
 
 use aoide_repo::{tag::Filter as TagFilter, track::SearchFilter};
 
