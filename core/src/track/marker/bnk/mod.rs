@@ -17,6 +17,9 @@ use super::*;
 
 use crate::music::{key::*, time::*};
 
+// Count the total number of measures in a track or musical score
+pub type MeasureNumber = u16;
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Marker {
     pub position: Position,
@@ -36,17 +39,26 @@ pub struct Marker {
     /// the end of a track.
     pub key_signature: Option<KeySignature>,
 
-    /// The beat in the current measure at this position
+    /// The beat number within the current measure at this position
     ///
-    /// Beat number 1 marks a downbeat. The maximum valid number is
-    /// `time_signature.beats_per_measure`.
-    pub beat_in_measure: Option<BeatNumber>,
+    /// Beat number 1 marks a *downbeat*. The maximum valid number is
+    /// `time_signature.beats_per_measure` for the current time signature
+    /// and marks an *upbeat* for the subsequent measure.
+    ///
+    /// If this fields is missing all subsequent beat numbers are
+    /// calculated using the current tempo and time signature starting
+    /// from the last known beat number.
+    pub beat_number: Option<BeatNumber>,
 
-    /// The total beat count since the start of the track
+    /// The measure number since the start of the track (or musical score)
     /// up to this position
     ///
-    /// The first beat starts with number 1, i.e. 1-based counting.
-    pub beat_count: Option<BeatCount>,
+    /// The first identifiable measure of the track starts with number 1.
+    ///
+    /// If this fields is missing all subsequent measure numbers are calculated
+    /// using the current tempo and time signature starting from the last
+    /// known measure and beat number.
+    pub measure_number: Option<MeasureNumber>,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -56,8 +68,9 @@ pub enum MarkerInvalidity {
     Tempo(TempoBpmInvalidity),
     TimeSignature(TimeSignatureInvalidity),
     KeySignature(KeySignatureInvalidity),
+    BeatNumber,
+    MeasureNumber,
     MissingFields,
-    StartBeatInvalid,
 }
 
 impl Validate for Marker {
@@ -72,17 +85,25 @@ impl Validate for Marker {
             .invalidate_if(
                 self.tempo.is_none()
                     && self.time_signature.is_none()
-                    && self.key_signature.is_none(),
+                    && self.key_signature.is_none()
+                    && self.measure_number.is_none()
+                    && self.beat_number.is_none(),
                 MarkerInvalidity::MissingFields,
             )
             .invalidate_if(
                 self.time_signature
                     .and_then(|t| {
-                        self.beat_in_measure
-                            .map(|b| b < 1 || b > t.beats_per_measure)
+                        self.beat_number
+                            .map(|beat_number| beat_number < 1 || beat_number > t.beats_per_measure)
                     })
                     .unwrap_or_default(),
-                MarkerInvalidity::StartBeatInvalid,
+                MarkerInvalidity::BeatNumber,
+            )
+            .invalidate_if(
+                self.measure_number
+                    .map(|measure_number| measure_number < 1)
+                    .unwrap_or_default(),
+                MarkerInvalidity::MeasureNumber,
             )
             .into()
     }

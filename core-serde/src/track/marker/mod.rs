@@ -29,9 +29,12 @@ mod _core {
     };
 }
 
-pub use aoide_core::music::time::{BeatCount, BeatNumber};
+pub use aoide_core::music::time::BeatNumber;
 
-use aoide_core::{track::marker::Number, util::IsDefault};
+use aoide_core::{
+    track::marker::{bnk::MeasureNumber, Number},
+    util::IsDefault,
+};
 
 use crate::{
     audio::{sample::SamplePosition, PositionMs},
@@ -308,11 +311,11 @@ pub struct BeatAndKeyMarker {
     #[serde(rename = "key", skip_serializing_if = "Option::is_none")]
     pub key_signature: Option<KeySignature>,
 
-    #[serde(rename = "btm", skip_serializing_if = "Option::is_none")]
-    pub beat_in_measure: Option<BeatNumber>,
-
     #[serde(rename = "btn", skip_serializing_if = "Option::is_none")]
-    pub beat_count: Option<BeatCount>,
+    pub beat_number: Option<BeatNumber>,
+
+    #[serde(rename = "msn", skip_serializing_if = "Option::is_none")]
+    pub measure_number: Option<MeasureNumber>,
 }
 
 impl From<_core::BeatAndKeyMarker> for BeatAndKeyMarker {
@@ -322,16 +325,16 @@ impl From<_core::BeatAndKeyMarker> for BeatAndKeyMarker {
             tempo,
             time_signature,
             key_signature,
-            beat_in_measure,
-            beat_count,
+            beat_number,
+            measure_number,
         } = from;
         Self {
             position: position.into(),
             tempo: tempo.map(Into::into),
             time_signature: time_signature.map(Into::into),
             key_signature: key_signature.map(Into::into),
-            beat_in_measure: beat_in_measure.map(Into::into),
-            beat_count: beat_count.map(Into::into),
+            beat_number: beat_number.map(Into::into),
+            measure_number: measure_number.map(Into::into),
         }
     }
 }
@@ -343,16 +346,16 @@ impl From<BeatAndKeyMarker> for _core::BeatAndKeyMarker {
             tempo,
             time_signature,
             key_signature,
-            beat_in_measure,
-            beat_count,
+            beat_number,
+            measure_number,
         } = from;
         Self {
             position: position.into(),
             tempo: tempo.map(Into::into),
             time_signature: time_signature.map(Into::into),
             key_signature: key_signature.map(Into::into),
-            beat_in_measure: beat_in_measure.map(Into::into),
-            beat_count: beat_count.map(Into::into),
+            beat_number: beat_number.map(Into::into),
+            measure_number: measure_number.map(Into::into),
         }
     }
 }

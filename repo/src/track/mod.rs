@@ -19,7 +19,7 @@ use crate::{collection, entity::*, tag};
 
 use aoide_core::{
     entity::{EntityRevisionUpdateResult, EntityUid},
-    track::{album::*, collection::Collections, release::ReleaseDate, *},
+    track::{album::*, collection::Collections, *},
 };
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -284,8 +284,8 @@ pub trait Repo {
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct CountTracksByAlbumParams {
-    pub min_release_date: Option<ReleaseDate>,
-    pub max_release_date: Option<ReleaseDate>,
+    pub min_release_date: Option<Date>,
+    pub max_release_date: Option<Date>,
 
     pub ordering: Vec<SortOrder>,
 }
@@ -296,7 +296,7 @@ pub struct AlbumCountResults {
 
     pub artist: Option<String>,
 
-    pub release_date: Option<ReleaseDate>,
+    pub release_date: Option<Date>,
 
     pub total_count: usize,
 }
@@ -304,7 +304,7 @@ pub struct AlbumCountResults {
 impl AlbumCountResults {
     pub fn new_for_album(
         album: &Album,
-        release_date: impl Into<Option<ReleaseDate>>,
+        release_date: impl Into<Option<Date>>,
         total_count: usize,
     ) -> Self {
         let title = album.main_title().map(|title| title.name.to_string());

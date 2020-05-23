@@ -58,10 +58,7 @@ mod _repo {
 use aoide_core::{
     entity::{EntityHeader, EntityRevisionUpdateResult, EntityUid},
     tag::ScoreValue as TagScoreValue,
-    track::{
-        release::{ReleaseDate, YYYYMMDD},
-        Entity,
-    },
+    track::{Date, Entity, YYYYMMDD},
 };
 
 use aoide_repo::{Pagination, PaginationLimit, PaginationOffset};
@@ -590,8 +587,8 @@ pub struct CountTracksByAlbumParams {
 impl From<CountTracksByAlbumParams> for _repo::CountTracksByAlbumParams {
     fn from(from: CountTracksByAlbumParams) -> Self {
         Self {
-            min_release_date: from.min_release_date.map(ReleaseDate::new),
-            max_release_date: from.max_release_date.map(ReleaseDate::new),
+            min_release_date: from.min_release_date.map(Date::new),
+            max_release_date: from.max_release_date.map(Date::new),
             ordering: from.ordering.into_iter().map(Into::into).collect(),
         }
     }
