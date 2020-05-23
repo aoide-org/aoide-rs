@@ -1325,14 +1325,58 @@ components:
 
         Either the position in milliseconds or the position in both
         milliseconds and samples.
-    MarkerPositionEnd:
+    MarkerOutBehavior:
       description: |
-        The end/out position of a marker.
-      allOf:
-        - $ref: '#/components/schemas/MarkerPosition'
-    MarkerPositionStart:
+        The playback behavior at the end position.
+
+        Possible values:
+          * 1 - stop: Stop playback when reaching the end position.
+          * 2 - loop: Continue playback at the start position when reaching
+                      the end positon.
+          * 3 - next: Continue playback at the start position of the cue marker
+                      with the next number, i.e. number + 1 (if available).
+                      If no such marker exists or if that marker has no start
+                      position then playback continues until the end of the track.
+        type: integer
+        enum: [1, 2, 3]
+    MarkerExtent:
+      description: |
+        The end/out side of a marker.
+      oneOf:
+        - $ref: '#/components/schemas/MarkerExtentEndPosition'
+        - $ref: '#/components/schemas/MarkerExtentBeatCountX32'
+    MarkerExtentEndPosition:
+      type: object
+      properties:
+        end:
+          $ref: '#/components/schemas/MarkerEndPosition'
+      required:
+        - end
+    MarkerExtentBeatCountX32:
+      type: object
+      properties:
+        b32:
+          $ref: '#/components/schemas/BeatCountX32'
+      required:
+        - b32
+    BeatCountX32:
+      description: |
+        The length of a section or loop in beats * 32.
+
+        * min. value: 1 -> 1 / 32 = 1/32 beat
+        * max. value: 32768 -> 32768 / 32 = 1024 beats
+      type: integer
+      format: int32
+      minimum: 1
+      maximum: 32768
+    MarkerStartPosition:
       description: |
         The start/in position of a marker.
+      allOf:
+        - $ref: '#/components/schemas/MarkerPosition'
+    MarkerEndPosition:
+      description: |
+        The end/out position of a marker.
       allOf:
         - $ref: '#/components/schemas/MarkerPosition'
     MarkerPositionMillis:
@@ -1763,18 +1807,20 @@ components:
       properties:
         col:
           $ref: '#/components/schemas/Color'
-        end:
-          $ref: '#/components/schemas/MarkerPositionEnd'
         lbl:
           $ref: '#/components/schemas/MarkerLabel'
         num:
           $ref: '#/components/schemas/MarkerNumber'
+        out:
+          $ref: '#/components/schemas/MarkerOutBehavior'
         pos:
           oneOf:
             - $ref: '#/components/schemas/MarkerPosition'
-            - $ref: '#/components/schemas/MarkerPositionStart'
+            - $ref: '#/components/schemas/MarkerStartPosition'
         typ:
           $ref: '#/components/schemas/CueMarkerType'
+      additionalProperties:
+        $ref: '#/components/schemas/MarkerExtent'
       required:
         - typ
       description: |
@@ -1794,13 +1840,11 @@ components:
       description: |
         Multiple cue markers of the same type per track are only allowed for non-singular types:
         * 0 (`custom`) - custom sections (forward only) or points without predefined semantics
-        * 1 (`load`) - singular initial position when loading a track (and return point after stopping)
-        * 2 (`main`) - singular main audio section (forward only) of the track, i.e. without leading/trailing silence
+        * 1 (`hot cue`) - custom start/cue points in a track for direct access while continuing playback, i.e. classical hot cues
+        * 2 (`load cue`) - singular initial position when loading a track (and return point after stopping)
         * 3 (`intro`) - singular intro section (forward only) or point of a track for fade-in or mixing
         * 4 (`outro`) - singular outro section (forward only) or point of a track for fade-out or mixing
-        * 5 (`hotcue`) - custom start/cue points in a track for direct access while continuing playback, i.e. classical hot cues
-        * 6 (`loop`) - sections that are played as loops (forward or backward)
-        * 7 (`sample`) - sections that are played as samples (forward or backward)
+        * 5 (`section`) - section (forward only) with both a start and an end position
       type: integer
       enum: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     PositionMs:

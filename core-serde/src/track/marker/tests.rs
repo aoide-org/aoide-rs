@@ -47,3 +47,64 @@ fn deserialize_millis_samples() {
     );
     assert_eq!(json, serde_json::to_string(&position).unwrap());
 }
+
+#[test]
+fn deserialize_hotcue_end_marker() {
+    let millis = 1001.75;
+    let samples = 44177175.5;
+    let end_millis = 1234.0;
+    let json = format!(
+        "{{\"pos\":[{millis},{samples}],\"end\":1234.0,\"typ\":1}}",
+        millis = millis,
+        samples = samples,
+    );
+    let beatloop_marker: CueMarker = serde_json::from_str(&json).unwrap();
+    assert_eq!(
+        CueMarker {
+            r#type: CueMarkerType::HotCue,
+            start: Some(Position::MillisSamples(
+                PositionMs(millis).into(),
+                SamplePosition(samples).into()
+            )),
+            extent: Some(MarkerExtent::EndPosition(Position::Millis(
+                PositionMs(f64::from(end_millis)).into()
+            ))),
+            out_behavior: None,
+            color: None,
+            number: None,
+            label: None,
+        },
+        beatloop_marker
+    );
+    assert_eq!(json, serde_json::to_string(&beatloop_marker).unwrap());
+}
+
+#[test]
+fn deserialize_hotcue_beatloop_marker() {
+    let millis = 1001.75;
+    let samples = 44177175.5;
+    let beatloop_len_x32 = 8; // 1/4 beat
+    let json = format!(
+        "{{\"pos\":[{millis},{samples}],\"b32\":{b32},\"out\":2,\"typ\":1}}",
+        millis = millis,
+        samples = samples,
+        b32 = beatloop_len_x32,
+    );
+    let beatloop_marker: CueMarker = serde_json::from_str(&json).unwrap();
+    assert_eq!(
+        CueMarker {
+            r#type: CueMarkerType::HotCue,
+            start: Some(Position::MillisSamples(
+                PositionMs(millis).into(),
+                SamplePosition(samples).into()
+            )),
+            extent: Some(MarkerExtent::BeatCountX32(beatloop_len_x32)),
+            out_behavior: Some(OutBehavior::Loop),
+            color: None,
+            number: None,
+            label: None,
+        },
+        beatloop_marker
+    );
+    assert_eq!(json, serde_json::to_string(&beatloop_marker).unwrap());
+}

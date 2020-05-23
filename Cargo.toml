@@ -36,7 +36,7 @@ env_logger = "*"
 futures = "*"
 anyhow = "*"
 log = "*"
-semval = "*"
+semval = { version = ">= 0.1.5" }
 serde = "*"
 serde_json = "*"
 libsqlite3-sys = { version = "0.17", features = ["bundled"] }

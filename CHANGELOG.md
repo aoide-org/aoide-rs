@@ -19,15 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added *beat in bar*/*bar in phrase* numbers and *beat/phrase count* to beat marker
+- Added *beat in measure* number and *measure count* to beat marker
+- Added support for beat loops to *cue markers*
+- Added optional *out behavior* (stop/loop/next) to cue markers for
+  quick edits and loops
 
 ### Changed
 
-- Renamed *beat at start* to *beat in  bar* in beat marker
 - Split track/marker colors into an RGB color code and a color index
 - Add optional sample position to marker positions
 - Renamed *position marker* to *cue marker*
-- Combine *beat* and *key* markers as *beat&key* (bnk) markers
+- Combined *beat* and *key* markers as *beat&key* (bnk) markers
 
 ### Removed
 
