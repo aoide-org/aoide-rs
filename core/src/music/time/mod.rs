@@ -134,6 +134,102 @@ impl fmt::Display for TimeSignature {
 }
 
 ///////////////////////////////////////////////////////////////////////
+// ScorePosition
+///////////////////////////////////////////////////////////////////////
+
+/// Total number of measures in a musical score
+///
+/// Counting start with the first measure at offset 0.
+pub type MeasureOffset = i32;
+
+/// Fractional beat delta
+pub type BeatDelta = f64;
+
+/// Musical score/sheet position in measures and beats
+#[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
+pub struct ScorePosition {
+    /// The measure number since the start of the track (or musical score)
+    /// up to this position
+    ///
+    /// The first identifiable measure of the track starts at offset 0,
+    /// i.e. 0-based counting. The corresponding measure number is 1.
+    pub measure_offset: MeasureOffset,
+
+    /// The beat number within the current measure at this position
+    ///
+    /// The minimum value 0.0 marks a *downbeat* in the current measure
+    /// and the beat delta must be strictly less than *beats per measure*
+    /// for the current time signature.
+    pub beat_offset: BeatDelta,
+}
+
+impl ScorePosition {
+    pub fn is_valid_in_measure(self, beats_per_measure: BeatNumber) -> bool {
+        debug_assert!(beats_per_measure > 0);
+        self.beat_offset < BeatDelta::from(beats_per_measure)
+    }
+
+    pub fn total_beat_offset(self, beats_per_measure: BeatNumber) -> BeatDelta {
+        self.total_beat_offset_with_incomplete_first_measure(beats_per_measure, 0.0)
+    }
+
+    pub fn total_beat_offset_with_incomplete_first_measure(
+        self,
+        beats_per_measure: BeatNumber,
+        first_beat_offset: BeatDelta,
+    ) -> BeatDelta {
+        debug_assert!(self.is_valid());
+        debug_assert!(self.is_valid_in_measure(beats_per_measure));
+        let Self {
+            measure_offset,
+            beat_offset,
+        } = self;
+        debug_assert!(first_beat_offset >= 0.0);
+        debug_assert!(first_beat_offset < BeatDelta::from(beats_per_measure));
+        let beats_in_full_preceding_measures =
+            BeatDelta::from(measure_offset) * BeatDelta::from(beats_per_measure);
+        let beat_count =
+            (beats_in_full_preceding_measures - first_beat_offset) + BeatDelta::from(beat_offset);
+        debug_assert!(beat_count >= 0.0);
+        beat_count
+    }
+
+    pub fn move_by_beats(self, beats_per_measure: BeatNumber, beat_delta: BeatDelta) -> Self {
+        debug_assert!(self.is_valid_in_measure(beats_per_measure));
+        let old_total_beat_offset = self.total_beat_offset(beats_per_measure);
+        let new_total_beat_offset = old_total_beat_offset + beat_delta;
+        let new_measure_offset =
+            new_total_beat_offset.div_euclid(BeatDelta::from(beats_per_measure));
+        // TODO: Handle overflow
+        debug_assert!(new_measure_offset >= BeatDelta::from(MeasureOffset::min_value()));
+        debug_assert!(new_measure_offset <= BeatDelta::from(MeasureOffset::max_value()));
+        debug_assert!(new_measure_offset == new_measure_offset.round());
+        let new_beat_offset = new_total_beat_offset.rem_euclid(BeatDelta::from(beats_per_measure));
+        debug_assert!(new_beat_offset >= 0.0);
+        debug_assert!(new_beat_offset < BeatDelta::from(beats_per_measure));
+        Self {
+            measure_offset: new_measure_offset as MeasureOffset,
+            beat_offset: new_beat_offset,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum ScorePositionInvalidity {
+    BeatOffset,
+}
+
+impl Validate for ScorePosition {
+    type Invalidity = ScorePositionInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(self.beat_offset < 0.0, Self::Invalidity::BeatOffset)
+            .into()
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
 // Tests
 ///////////////////////////////////////////////////////////////////////
 
