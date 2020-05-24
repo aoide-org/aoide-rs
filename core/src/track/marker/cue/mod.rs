@@ -97,10 +97,8 @@ impl MarkerData {
                 }
             }
             HotCue => {
-                if let (
-                    Some(start),
-                    Some(MarkerExtent::EndPosition(end)),
-                ) = (self.start.as_ref(), self.extent.as_ref())
+                if let (Some(start), Some(MarkerExtent::EndPosition(end))) =
+                    (self.start.as_ref(), self.extent.as_ref())
                 {
                     if start == end {
                         return Err(MarkerRangeInvalidity::Empty);
@@ -110,10 +108,8 @@ impl MarkerData {
                 }
             }
             Intro | Outro => {
-                if let (
-                    Some(start),
-                    Some(MarkerExtent::EndPosition(end)),
-                ) = (self.start.as_ref(), self.extent.as_ref())
+                if let (Some(start), Some(MarkerExtent::EndPosition(end))) =
+                    (self.start.as_ref(), self.extent.as_ref())
                 {
                     if start.millis >= end.millis {
                         return Err(MarkerRangeInvalidity::Empty);
@@ -121,10 +117,8 @@ impl MarkerData {
                 }
             }
             Section => {
-                if let (
-                    Some(start),
-                    Some(MarkerExtent::EndPosition(end)),
-                ) = (self.start.as_ref(), self.extent.as_ref())
+                if let (Some(start), Some(MarkerExtent::EndPosition(end))) =
+                    (self.start.as_ref(), self.extent.as_ref())
                 {
                     if start == end {
                         return Err(MarkerRangeInvalidity::Empty);
@@ -154,8 +148,7 @@ impl Validate for MarkerData {
             .validate_with(&self.start, MarkerDataInvalidity::Start)
             .validate_with(
                 &self.extent.as_ref().and_then(|extent| {
-                    if let MarkerExtent::EndPosition(end) = extent
-                    {
+                    if let MarkerExtent::EndPosition(end) = extent {
                         Some(end)
                     } else {
                         None
