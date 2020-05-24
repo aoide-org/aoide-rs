@@ -32,19 +32,23 @@ fn score_position_is_valid_in_measure() {
     assert!(ScorePosition {
         measure_offset: 2,
         beat_offset: 0.99
-    }.is_valid_in_measure(1));
+    }
+    .is_valid_in_measure(1));
     assert!(!ScorePosition {
         measure_offset: 2,
         beat_offset: 1.0
-    }.is_valid_in_measure(1));
+    }
+    .is_valid_in_measure(1));
     assert!(ScorePosition {
         measure_offset: 2,
         beat_offset: 3.999
-    }.is_valid_in_measure(4));
+    }
+    .is_valid_in_measure(4));
     assert!(!ScorePosition {
         measure_offset: 2,
         beat_offset: 4.001
-    }.is_valid_in_measure(4));
+    }
+    .is_valid_in_measure(4));
 }
 
 #[test]
@@ -133,7 +137,7 @@ fn score_position_move_by_beats() {
     assert_eq!(
         ScorePosition {
             measure_offset: 10,
-            beat_offset: BeatDelta::from(beats_per_measure) - 1.0
+            beat_offset: BeatOffsetInMeasure::from(beats_per_measure) - 1.0
         },
         origin.move_by_beats(beats_per_measure, -1.0)
     );

@@ -997,7 +997,7 @@ components:
       example: 23
     BeatOffsetInMeasure:
       type: number
-      format: double
+      format: float
       minimum: 0
       example: 3.0
       description: |

@@ -17,12 +17,12 @@ use super::*;
 
 mod _core {
     pub use aoide_core::{
-        music::time::{TimeSignature, ScorePosition},
+        music::time::{ScorePosition, TimeSignature},
         track::marker::{
             bnk::{Marker as BeatAndKeyMarker, Markers as BeatAndKeyMarkers},
             cue::{
-                OutBehavior, MarkerExtent, Marker as CueMarker, MarkerData as CueMarkerData,
-                MarkerType as CueMarkerType, Markers as CueMarkers,
+                Marker as CueMarker, MarkerData as CueMarkerData, MarkerExtent,
+                MarkerType as CueMarkerType, Markers as CueMarkers, OutBehavior,
             },
             Markers, Position, State,
         },
@@ -32,7 +32,7 @@ mod _core {
 pub use aoide_core::music::time::BeatNumber;
 
 use aoide_core::{
-    music::time::{MeasureOffset, BeatDelta},
+    music::time::{BeatOffsetInMeasure, MeasureOffset},
     track::marker::Number,
     util::IsDefault,
 };
@@ -49,11 +49,14 @@ use crate::{
 
 #[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct ScorePosition(MeasureOffset, BeatDelta);
+pub struct ScorePosition(MeasureOffset, BeatOffsetInMeasure);
 
 impl From<_core::ScorePosition> for ScorePosition {
     fn from(from: _core::ScorePosition) -> Self {
-        let _core::ScorePosition { measure_offset, beat_offset } = from;
+        let _core::ScorePosition {
+            measure_offset,
+            beat_offset,
+        } = from;
         ScorePosition(measure_offset, beat_offset)
     }
 }
@@ -63,7 +66,7 @@ impl From<ScorePosition> for _core::ScorePosition {
         let ScorePosition(measure_offset, beat_offset) = from;
         Self {
             measure_offset,
-            beat_offset
+            beat_offset,
         }
     }
 }
@@ -405,7 +408,6 @@ pub struct BeatAndKeyMarker {
     /// Musical score/sheet position in measures and beats
     #[serde(rename = "msp", skip_serializing_if = "Option::is_none")]
     pub score_position: Option<ScorePosition>,
-
 }
 
 impl From<_core::BeatAndKeyMarker> for BeatAndKeyMarker {
