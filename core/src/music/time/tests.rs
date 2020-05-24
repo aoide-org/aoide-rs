@@ -26,3 +26,115 @@ fn validate_time_sig() {
     assert!(TimeSignature::new(4, Some(4)).validate().is_ok());
     assert!(TimeSignature::new(4, Some(3)).validate().is_ok());
 }
+
+#[test]
+fn score_position_is_valid_in_measure() {
+    assert!(ScorePosition {
+        measure_offset: 2,
+        beat_offset: 0.99
+    }.is_valid_in_measure(1));
+    assert!(!ScorePosition {
+        measure_offset: 2,
+        beat_offset: 1.0
+    }.is_valid_in_measure(1));
+    assert!(ScorePosition {
+        measure_offset: 2,
+        beat_offset: 3.999
+    }.is_valid_in_measure(4));
+    assert!(!ScorePosition {
+        measure_offset: 2,
+        beat_offset: 4.001
+    }.is_valid_in_measure(4));
+}
+
+#[test]
+fn score_position_total_beat_offset() {
+    let beats_per_measure = 3;
+    assert_eq!(
+        6.0,
+        ScorePosition {
+            measure_offset: 2,
+            beat_offset: 0.0
+        }
+        .total_beat_offset(beats_per_measure)
+    );
+    assert_eq!(
+        6.0,
+        ScorePosition {
+            measure_offset: 2,
+            beat_offset: 0.0
+        }
+        .total_beat_offset_with_incomplete_first_measure(beats_per_measure, 0.0)
+    );
+    assert_eq!(
+        5.0,
+        ScorePosition {
+            measure_offset: 2,
+            beat_offset: 0.0
+        }
+        .total_beat_offset_with_incomplete_first_measure(beats_per_measure, 1.0)
+    );
+    assert_eq!(
+        4.0,
+        ScorePosition {
+            measure_offset: 2,
+            beat_offset: 0.0
+        }
+        .total_beat_offset_with_incomplete_first_measure(beats_per_measure, 2.0)
+    );
+    assert_eq!(
+        8.0,
+        ScorePosition {
+            measure_offset: 2,
+            beat_offset: 2.0
+        }
+        .total_beat_offset(beats_per_measure)
+    );
+    assert_eq!(
+        8.0,
+        ScorePosition {
+            measure_offset: 2,
+            beat_offset: 2.0
+        }
+        .total_beat_offset_with_incomplete_first_measure(beats_per_measure, 0.0)
+    );
+    assert_eq!(
+        7.0,
+        ScorePosition {
+            measure_offset: 2,
+            beat_offset: 2.0
+        }
+        .total_beat_offset_with_incomplete_first_measure(beats_per_measure, 1.0)
+    );
+    assert_eq!(
+        6.0,
+        ScorePosition {
+            measure_offset: 2,
+            beat_offset: 2.0
+        }
+        .total_beat_offset_with_incomplete_first_measure(beats_per_measure, 2.0)
+    );
+}
+
+#[test]
+fn score_position_move_by_beats() {
+    let beats_per_measure = 3;
+    let origin = ScorePosition {
+        measure_offset: 11,
+        beat_offset: 0.0,
+    };
+    assert_eq!(
+        ScorePosition {
+            measure_offset: 11,
+            beat_offset: origin.beat_offset + 1.0
+        },
+        origin.move_by_beats(beats_per_measure, 1.0)
+    );
+    assert_eq!(
+        ScorePosition {
+            measure_offset: 10,
+            beat_offset: BeatDelta::from(beats_per_measure) - 1.0
+        },
+        origin.move_by_beats(beats_per_measure, -1.0)
+    );
+}

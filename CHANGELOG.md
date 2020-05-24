@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added *beat in measure* number and *measure count* to beat marker
+- Added *musical score position* to beat marker
 - Added support for beat loops to *cue markers*
 - Added optional *out behavior* (stop/loop/next) to cue markers for
   quick edits and loops

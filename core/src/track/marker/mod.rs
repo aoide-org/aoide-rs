@@ -48,7 +48,7 @@ impl Default for State {
 
 pub type FrameOffset = i64;
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct Position {
     /// The offset from the start of the track in milliseconds
     pub millis: PositionMs,

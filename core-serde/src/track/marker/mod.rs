@@ -17,7 +17,7 @@ use super::*;
 
 mod _core {
     pub use aoide_core::{
-        music::time::TimeSignature,
+        music::time::{TimeSignature, ScorePosition},
         track::marker::{
             bnk::{Marker as BeatAndKeyMarker, Markers as BeatAndKeyMarkers},
             cue::{
@@ -32,7 +32,8 @@ mod _core {
 pub use aoide_core::music::time::BeatNumber;
 
 use aoide_core::{
-    track::marker::{bnk::MeasureNumber, Number},
+    music::time::{MeasureOffset, BeatDelta},
+    track::marker::Number,
     util::IsDefault,
 };
 
@@ -41,6 +42,31 @@ use crate::{
     music::{key::*, time::*},
     util::color::Color,
 };
+
+///////////////////////////////////////////////////////////////////////
+// ScorePosition
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ScorePosition(MeasureOffset, BeatDelta);
+
+impl From<_core::ScorePosition> for ScorePosition {
+    fn from(from: _core::ScorePosition) -> Self {
+        let _core::ScorePosition { measure_offset, beat_offset } = from;
+        ScorePosition(measure_offset, beat_offset)
+    }
+}
+
+impl From<ScorePosition> for _core::ScorePosition {
+    fn from(from: ScorePosition) -> Self {
+        let ScorePosition(measure_offset, beat_offset) = from;
+        Self {
+            measure_offset,
+            beat_offset
+        }
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////
 // Position
@@ -368,7 +394,7 @@ pub struct BeatAndKeyMarker {
     pub position: Position,
 
     #[serde(rename = "bpm", skip_serializing_if = "Option::is_none")]
-    pub tempo: Option<TempoBpm>,
+    pub tempo_bpm: Option<TempoBpm>,
 
     #[serde(rename = "tim", skip_serializing_if = "Option::is_none")]
     pub time_signature: Option<TimeSignature>,
@@ -376,30 +402,27 @@ pub struct BeatAndKeyMarker {
     #[serde(rename = "key", skip_serializing_if = "Option::is_none")]
     pub key_signature: Option<KeySignature>,
 
-    #[serde(rename = "btn", skip_serializing_if = "Option::is_none")]
-    pub beat_number: Option<BeatNumber>,
+    /// Musical score/sheet position in measures and beats
+    #[serde(rename = "msp", skip_serializing_if = "Option::is_none")]
+    pub score_position: Option<ScorePosition>,
 
-    #[serde(rename = "msn", skip_serializing_if = "Option::is_none")]
-    pub measure_number: Option<MeasureNumber>,
 }
 
 impl From<_core::BeatAndKeyMarker> for BeatAndKeyMarker {
     fn from(from: _core::BeatAndKeyMarker) -> Self {
         let _core::BeatAndKeyMarker {
             position,
-            tempo,
+            tempo_bpm,
             time_signature,
             key_signature,
-            beat_number,
-            measure_number,
+            score_position,
         } = from;
         Self {
             position: position.into(),
-            tempo: tempo.map(Into::into),
+            tempo_bpm: tempo_bpm.map(Into::into),
             time_signature: time_signature.map(Into::into),
             key_signature: key_signature.map(Into::into),
-            beat_number: beat_number.map(Into::into),
-            measure_number: measure_number.map(Into::into),
+            score_position: score_position.map(Into::into),
         }
     }
 }
@@ -408,19 +431,17 @@ impl From<BeatAndKeyMarker> for _core::BeatAndKeyMarker {
     fn from(from: BeatAndKeyMarker) -> Self {
         let BeatAndKeyMarker {
             position,
-            tempo,
+            tempo_bpm,
             time_signature,
             key_signature,
-            beat_number,
-            measure_number,
+            score_position,
         } = from;
         Self {
             position: position.into(),
-            tempo: tempo.map(Into::into),
+            tempo_bpm: tempo_bpm.map(Into::into),
             time_signature: time_signature.map(Into::into),
             key_signature: key_signature.map(Into::into),
-            beat_number: beat_number.map(Into::into),
-            measure_number: measure_number.map(Into::into),
+            score_position: score_position.map(Into::into),
         }
     }
 }

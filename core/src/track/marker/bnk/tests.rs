@@ -18,18 +18,17 @@ use super::*;
 fn base_marker() -> Marker {
     Marker {
         position: Default::default(),
-        tempo: None,
+        tempo_bpm: None,
         time_signature: None,
         key_signature: None,
-        beat_number: None,
-        measure_number: None,
+        score_position: None,
     }
 }
 
 #[test]
 fn valid_markers() {
     let mk1 = Marker {
-        tempo: Some(TempoBpm(1f64)),
+        tempo_bpm: Some(TempoBpm(1f64)),
         ..base_marker()
     };
     assert!(mk1.is_valid());
@@ -51,7 +50,10 @@ fn invalid_markers() {
             beats_per_measure: 4,
             beat_unit: Some(4),
         }),
-        beat_number: Some(5),
+        score_position: Some(ScorePosition {
+            measure_offset: 0,
+            beat_offset: 4.0,
+        }),
         ..base_marker()
     };
     assert!(!mk1.is_valid());
@@ -60,7 +62,7 @@ fn invalid_markers() {
 #[test]
 fn uniform_tempo() {
     assert!(!base_marker().is_valid());
-    let tempo = Some(TempoBpm(123.0));
+    let tempo_bpm = Some(TempoBpm(123.0));
     let markers = [
         Marker {
             position: PositionMs(0.0).into(),
@@ -68,7 +70,7 @@ fn uniform_tempo() {
         },
         Marker {
             position: PositionMs(1.0).into(),
-            tempo,
+            tempo_bpm,
             ..base_marker()
         },
         Marker {
@@ -76,7 +78,7 @@ fn uniform_tempo() {
             ..base_marker()
         },
     ];
-    assert_eq!(tempo, uniform_tempo_from_markers(markers.iter()));
+    assert_eq!(tempo_bpm, uniform_tempo_from_markers(markers.iter()));
 }
 
 #[test]
@@ -89,7 +91,7 @@ fn non_uniform_tempo() {
         },
         Marker {
             position: PositionMs(1.0).into(),
-            tempo: Some(TempoBpm(123.0)),
+            tempo_bpm: Some(TempoBpm(123.0)),
             ..base_marker()
         },
         Marker {
@@ -98,7 +100,7 @@ fn non_uniform_tempo() {
         },
         Marker {
             position: PositionMs(3.0).into(),
-            tempo: Some(TempoBpm(123.1)),
+            tempo_bpm: Some(TempoBpm(123.1)),
             ..base_marker()
         },
     ];
