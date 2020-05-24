@@ -21,27 +21,66 @@ use crate::music::{key::*, time::*};
 pub struct Marker {
     pub position: Position,
 
-    /// The current tempo valid from this position onwards
+    /// The current tempo
+    ///
+    /// This tempo is supposed to be constant and valid from the
+    /// current position onwards until the next marker or until
+    /// the end of a track.
     pub tempo_bpm: Option<TempoBpm>,
 
-    /// The current time signature valid from this position onwards
+    /// The current time signature
     ///
-    /// The time signature is valid until the next marker or until
-    /// the end of a track.
+    /// This time signature is valid from the current position onwards
+    /// until the next marker or until the end of a track.
     pub time_signature: Option<TimeSignature>,
 
-    /// The current key signature valid from this position onwards
+    /// The current key signature valid from this position onwards.
     ///
-    /// The key signature is valid until the next marker or until
-    /// the end of a track.
+    /// This key signature is valid from the current position onwards
+    /// until the next marker or until the end of a track.
     pub key_signature: Option<KeySignature>,
 
-    /// The position within musical score at this position
+    /// The current position within musical score (measure + beat in measure)
     ///
-    /// If this fields is missing all subsequent score positions are
-    /// calculated using the current tempo and time signature starting
-    /// from the last known score position.
+    /// If this fields is missing it can be extrapolated from a
+    /// preceding score position using the current tempo and time
+    /// signature if available.
     pub score_position: Option<ScorePosition>,
+}
+
+impl Marker {
+    pub fn extrapolate_score_position(
+        &self,
+        next_position_millis: PositionMs,
+    ) -> Option<ScorePosition> {
+        let Self {
+            position:
+                Position {
+                    millis: position_millis,
+                    samples: _,
+                },
+            tempo_bpm,
+            time_signature,
+            key_signature: _,
+            score_position,
+        } = self;
+        debug_assert!(*position_millis <= next_position_millis);
+        if *position_millis == next_position_millis {
+            return *score_position;
+        }
+        if let (Some(score_position), Some(tempo_bpm), Some(beats_per_measure)) = (
+            score_position,
+            tempo_bpm,
+            time_signature.map(|ts| ts.beats_per_measure),
+        ) {
+            let delta_millis = next_position_millis.0 - position_millis.0;
+            let delta_minutes = delta_millis / 60_000.0;
+            let delta_beats = tempo_bpm.0 * delta_minutes;
+            Some(score_position.move_by_beats(beats_per_measure, delta_beats))
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -149,15 +188,39 @@ impl Markers {
     pub fn uniform_key_signature(&self) -> Option<KeySignature> {
         uniform_key_signature_from_markers(self.markers.iter())
     }
+
+    /// Reduce and extrapolate the information from all preceding markers
+    /// up to the given position.
+    pub fn reduce(&self, position_millis: PositionMs) -> Option<Marker> {
+        self.markers
+            .iter()
+            .take_while(|m| m.position.millis <= position_millis)
+            .fold(MarkerReducer::new(), |reducer, next_marker| {
+                reducer.reduce(next_marker)
+            })
+            .finish()
+    }
+
+    fn is_on_beat(beat_offset: BeatOffsetInMeasure) -> bool {
+        (beat_offset - beat_offset.round()).abs() <= 0.0125
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct VirtualMarker {
-    pub marker: Option<Marker>,
+pub struct MarkerReducer {
+    marker: Option<Marker>,
 }
 
-impl VirtualMarker {
-    pub fn apply_next(&mut self, next_marker: &Marker) {
+impl MarkerReducer {
+    pub const fn new() -> Self {
+        Self { marker: None }
+    }
+
+    pub fn current_marker(&self) -> Option<&Marker> {
+        self.marker.as_ref()
+    }
+
+    pub fn reduce(mut self, next_marker: &Marker) -> Self {
         if let Some(marker) = &mut self.marker {
             let Marker {
                 position: next_position,
@@ -167,23 +230,18 @@ impl VirtualMarker {
                 score_position: next_score_position,
             } = next_marker;
             debug_assert!(&marker.position <= next_position);
-            // Calculate the new score position BEFORE updating tempo
-            // and time signature!!
-            if let Some(next_score_position) = next_score_position {
+            marker.score_position = if let Some(next_score_position) = next_score_position {
                 if next_score_position.is_valid() {
-                    marker.score_position = Some(*next_score_position);
+                    Some(*next_score_position)
                 } else {
                     // Reset
-                    marker.score_position = None;
+                    None
                 }
             } else {
-                if let (Some(score_position), Some(tempo_bpm), Some(beats_per_measure)) = (&mut marker.score_position, marker.tempo_bpm, marker.time_signature.map(|ts| ts.beats_per_measure)) {
-                    let delta_millis = next_position.millis.0 - marker.position.millis.0;
-                    let delta_minutes = delta_millis / 60_000.0;
-                    let delta_beats = tempo_bpm.0 * delta_minutes;
-                    *score_position = score_position.move_by_beats(beats_per_measure, delta_beats);
-                }
-            }
+                // Extrapolate the score position BEFORE updating tempo
+                // and time signature!!
+                marker.extrapolate_score_position(next_position.millis)
+            };
             if let Some(next_tempo_bpm) = next_tempo_bpm {
                 if next_tempo_bpm.is_valid() {
                     marker.tempo_bpm = Some(*next_tempo_bpm);
@@ -211,6 +269,18 @@ impl VirtualMarker {
         } else {
             self.marker = Some(next_marker.clone())
         }
+        self
+    }
+
+    pub const fn finish(self) -> Option<Marker> {
+        let Self { marker } = self;
+        marker
+    }
+}
+
+impl From<MarkerReducer> for Option<Marker> {
+    fn from(from: MarkerReducer) -> Self {
+        from.finish()
     }
 }
 
