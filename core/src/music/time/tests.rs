@@ -29,116 +29,113 @@ fn validate_time_sig() {
 
 #[test]
 fn score_position_is_valid_in_measure() {
-    assert!(ScorePosition {
-        measure_offset: 2,
-        beat_offset: 0.99
-    }
-    .is_valid_in_measure(1));
-    assert!(!ScorePosition {
-        measure_offset: 2,
-        beat_offset: 1.0
-    }
-    .is_valid_in_measure(1));
-    assert!(ScorePosition {
-        measure_offset: 2,
-        beat_offset: 3.999
-    }
-    .is_valid_in_measure(4));
-    assert!(!ScorePosition {
-        measure_offset: 2,
-        beat_offset: 4.001
-    }
-    .is_valid_in_measure(4));
+    assert!(ScorePosition::from_measure_number_and_beat_offset(2, 0.99).is_valid_in_measure(1));
+    assert!(!ScorePosition::from_measure_number_and_beat_offset(2, 1.0).is_valid_in_measure(1));
+    assert!(ScorePosition::from_measure_number_and_beat_offset(2, 3.99).is_valid_in_measure(4));
+    assert!(!ScorePosition::from_measure_number_and_beat_offset(2, 4.001).is_valid_in_measure(4));
 }
 
 #[test]
 fn score_position_total_beat_offset() {
-    let beats_per_measure = 3;
     assert_eq!(
-        6.0,
-        ScorePosition {
-            measure_offset: 2,
-            beat_offset: 0.0
-        }
-        .total_beat_offset(beats_per_measure)
+        3.0,
+        ScorePosition::from_measure_number_and_beat_offset(2, 0.0).total_beat_offset(3)
     );
     assert_eq!(
-        6.0,
-        ScorePosition {
-            measure_offset: 2,
-            beat_offset: 0.0
-        }
-        .total_beat_offset_with_incomplete_first_measure(beats_per_measure, 0.0)
-    );
-    assert_eq!(
-        5.0,
-        ScorePosition {
-            measure_offset: 2,
-            beat_offset: 0.0
-        }
-        .total_beat_offset_with_incomplete_first_measure(beats_per_measure, 1.0)
+        1.0,
+        ScorePosition::from_measure_number_and_beat_offset(1, 1.0).total_beat_offset(3)
     );
     assert_eq!(
         4.0,
-        ScorePosition {
-            measure_offset: 2,
-            beat_offset: 0.0
-        }
-        .total_beat_offset_with_incomplete_first_measure(beats_per_measure, 2.0)
+        ScorePosition::from_measure_number_and_beat_offset(2, 1.0).total_beat_offset(3)
     );
     assert_eq!(
-        8.0,
-        ScorePosition {
-            measure_offset: 2,
-            beat_offset: 2.0
-        }
-        .total_beat_offset(beats_per_measure)
+        4.75,
+        ScorePosition::from_measure_number_and_beat_offset(2, 1.75).total_beat_offset(3)
     );
     assert_eq!(
-        8.0,
-        ScorePosition {
-            measure_offset: 2,
-            beat_offset: 2.0
-        }
-        .total_beat_offset_with_incomplete_first_measure(beats_per_measure, 0.0)
+        5.125,
+        ScorePosition::from_measure_number_and_beat_offset(2, 2.125).total_beat_offset(3)
     );
     assert_eq!(
-        7.0,
-        ScorePosition {
-            measure_offset: 2,
-            beat_offset: 2.0
-        }
-        .total_beat_offset_with_incomplete_first_measure(beats_per_measure, 1.0)
+        -5.0,
+        ScorePosition::from_measure_number_and_beat_offset(-2, 1.0).total_beat_offset(3)
     );
     assert_eq!(
-        6.0,
-        ScorePosition {
-            measure_offset: 2,
-            beat_offset: 2.0
-        }
-        .total_beat_offset_with_incomplete_first_measure(beats_per_measure, 2.0)
+        -0.5,
+        ScorePosition::from_measure_number_and_beat_offset(-1, 2.5).total_beat_offset(3)
+    );
+}
+
+#[test]
+fn score_position_from_total_beat_offset() {
+    assert_eq!(
+        ScorePosition::from_total_beat_offset(3.0, 4),
+        ScorePosition::from_measure_number_and_beat_offset(1, 3.0)
+    );
+    assert_eq!(
+        ScorePosition::from_total_beat_offset(4.0, 4),
+        ScorePosition::from_measure_number_and_beat_offset(2, 0.0)
+    );
+    assert_eq!(
+        ScorePosition::from_total_beat_offset(5.25, 4),
+        ScorePosition::from_measure_number_and_beat_offset(2, 1.25)
+    );
+    assert_eq!(
+        ScorePosition::from_total_beat_offset(-0.25, 3),
+        ScorePosition::from_measure_number_and_beat_offset(-1, 2.75)
+    );
+    assert_eq!(
+        ScorePosition::from_total_beat_offset(-4.25, 4),
+        ScorePosition::from_measure_number_and_beat_offset(-2, 3.75)
+    );
+}
+
+#[test]
+fn score_position_measure_number() {
+    assert_eq!(
+        2,
+        ScorePosition::from_measure_number_and_beat_offset(2, 0.0).measure_number()
+    );
+    assert_eq!(
+        1,
+        ScorePosition::from_measure_number_and_beat_offset(1, 1.0).measure_number()
+    );
+    assert_eq!(
+        2,
+        ScorePosition::from_measure_number_and_beat_offset(2, 1.0).measure_number()
+    );
+    assert_eq!(
+        2,
+        ScorePosition::from_measure_number_and_beat_offset(2, 1.75).measure_number()
+    );
+    assert_eq!(
+        2,
+        ScorePosition::from_measure_number_and_beat_offset(2, 2.125).measure_number()
+    );
+    assert_eq!(
+        -2,
+        ScorePosition::from_measure_number_and_beat_offset(-2, 1.0).measure_number()
+    );
+    assert_eq!(
+        -1,
+        ScorePosition::from_measure_number_and_beat_offset(-1, 2.5).measure_number()
     );
 }
 
 #[test]
 fn score_position_move_by_beats() {
     let beats_per_measure = 3;
-    let origin = ScorePosition {
-        measure_offset: 11,
-        beat_offset: 0.0,
-    };
+    let origin = ScorePosition::from_measure_number_and_beat_offset(11, 0.0);
     assert_eq!(
-        ScorePosition {
-            measure_offset: 11,
-            beat_offset: origin.beat_offset + 1.0
-        },
+        ScorePosition::from_measure_number_and_beat_offset(11, origin.beat_offset_in_measure + 1.0),
         origin.move_by_beats(beats_per_measure, 1.0)
     );
     assert_eq!(
-        ScorePosition {
-            measure_offset: 10,
-            beat_offset: BeatOffsetInMeasure::from(beats_per_measure) - 1.0
-        },
+        ScorePosition::from_measure_number_and_beat_offset(
+            10,
+            BeatOffsetInMeasure::from(beats_per_measure - 1)
+        ),
         origin.move_by_beats(beats_per_measure, -1.0)
     );
 }

@@ -50,10 +50,7 @@ fn invalid_markers() {
             beats_per_measure: 4,
             beat_unit: Some(4),
         }),
-        score_position: Some(ScorePosition {
-            measure_offset: 0,
-            beat_offset: 4.0,
-        }),
+        score_position: Some(ScorePosition::from_measure_number_and_beat_offset(0, 4.0)),
         ..base_marker()
     };
     assert!(!mk1.is_valid());

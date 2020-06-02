@@ -200,10 +200,6 @@ impl Markers {
             })
             .finish()
     }
-
-    fn is_on_beat(beat_offset: BeatOffsetInMeasure) -> bool {
-        (beat_offset - beat_offset.round()).abs() <= 0.0125
-    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

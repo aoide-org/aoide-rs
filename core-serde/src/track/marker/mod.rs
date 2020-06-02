@@ -55,18 +55,18 @@ impl From<_core::ScorePosition> for ScorePosition {
     fn from(from: _core::ScorePosition) -> Self {
         let _core::ScorePosition {
             measure_offset,
-            beat_offset,
+            beat_offset_in_measure,
         } = from;
-        ScorePosition(measure_offset, beat_offset)
+        ScorePosition(measure_offset, beat_offset_in_measure)
     }
 }
 
 impl From<ScorePosition> for _core::ScorePosition {
     fn from(from: ScorePosition) -> Self {
-        let ScorePosition(measure_offset, beat_offset) = from;
+        let ScorePosition(measure_offset, beat_offset_in_measure) = from;
         Self {
             measure_offset,
-            beat_offset,
+            beat_offset_in_measure,
         }
     }
 }
