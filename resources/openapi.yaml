@@ -988,28 +988,26 @@ components:
         - $ref: '#/components/schemas/TagScore'
     MeasureOffset:
       description: |
-        The offset in measures counted from the start of the track.
+        The (absolute) measure offset.
 
-        The 1st measure starts at offset 0, i.e. 0-based instead of
-        1-based counting!
-      type: integer
-      format: int32
-      example: 23
+        The offset in measures since the 1st beat in the 1st measure
+        in a musical score.
+      type: number
+      format: float
+      example: 23.25
     BeatOffsetInMeasure:
       type: number
       format: float
       minimum: 0
-      example: 3.0
+      example: 3.25
       description: |
-        The beat offset within a measure.
+        The (relative) beat offset within the current measure.
 
-        The 1st beat in a measure (= downbeat) starts at offset 0,
-        i.e. 0-based instead of 1-based counting!
+        The offset in beats since the start of the current measure.
 
-        The beat offset in a measure must be strictly less than
-        the number of beats per measure of the corresponding time
-        signature! A measure with n beats has beats at the offsets
-        0, 1, ..., n - 1.
+        The minimum value 0.0 marks the 1st beat or *downbeat* in the
+        current measure. The maximm value must be strictly less than
+        the value of *beats per measure* for the current time signature.
     MusicalScorePosition:
       type: array
       minLength: 2
