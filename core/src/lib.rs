@@ -16,7 +16,7 @@
 ///////////////////////////////////////////////////////////////////////
 
 #![deny(missing_debug_implementations)]
-#![warn(rust_2018_idioms)]
+#![deny(rust_2018_idioms)]
 
 pub mod actor;
 pub mod audio;
