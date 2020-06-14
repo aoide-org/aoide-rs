@@ -1008,7 +1008,7 @@ components:
         The minimum value 0.0 marks the 1st beat or *downbeat* in the
         current measure. The maximm value must be strictly less than
         the value of *beats per measure* for the current time signature.
-    MusicalScorePosition:
+    MusicalMeasurePosition:
       type: array
       minLength: 2
       maxLength: 2
@@ -1028,7 +1028,7 @@ components:
         key:
           $ref: '#/components/schemas/KeySignature'
         msp:
-          $ref: '#/components/schemas/MusicalScorePosition'
+          $ref: '#/components/schemas/MusicalMeasurePosition'
         pos:
           $ref: '#/components/schemas/MarkerPosition'
         tim:

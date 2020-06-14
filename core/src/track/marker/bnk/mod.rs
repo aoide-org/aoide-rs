@@ -43,16 +43,16 @@ pub struct Marker {
     /// The current position within musical score (measure + beat in measure)
     ///
     /// If this fields is missing it can be extrapolated from a
-    /// preceding score position using the current tempo and time
+    /// preceding measure position using the current tempo and time
     /// signature if available.
-    pub score_position: Option<ScorePosition>,
+    pub measure_position: Option<MeasurePosition>,
 }
 
 impl Marker {
-    pub fn extrapolate_score_position(
+    pub fn extrapolate_measure_position(
         &self,
         next_position_millis: PositionMs,
-    ) -> Option<ScorePosition> {
+    ) -> Option<MeasurePosition> {
         let Self {
             position:
                 Position {
@@ -62,21 +62,21 @@ impl Marker {
             tempo_bpm,
             time_signature,
             key_signature: _,
-            score_position,
+            measure_position,
         } = self;
         debug_assert!(*position_millis <= next_position_millis);
         if *position_millis == next_position_millis {
-            return *score_position;
+            return *measure_position;
         }
-        if let (Some(score_position), Some(tempo_bpm), Some(beats_per_measure)) = (
-            score_position,
+        if let (Some(measure_position), Some(tempo_bpm), Some(beats_per_measure)) = (
+            measure_position,
             tempo_bpm,
             time_signature.map(|ts| ts.beats_per_measure),
         ) {
             let delta_millis = next_position_millis.0 - position_millis.0;
             let delta_minutes = delta_millis / 60_000.0;
             let delta_beats = tempo_bpm.0 * delta_minutes;
-            Some(score_position.move_by_beats(beats_per_measure, delta_beats))
+            Some(measure_position.move_by_beats(beats_per_measure, delta_beats))
         } else {
             None
         }
@@ -90,8 +90,8 @@ pub enum MarkerInvalidity {
     Tempo(TempoBpmInvalidity),
     TimeSignature(TimeSignatureInvalidity),
     KeySignature(KeySignatureInvalidity),
-    ScorePosition(ScorePositionInvalidity),
-    ScorePositionInvalidBeatsPerMeasure,
+    MeasurePosition(MeasurePositionInvalidity),
+    MeasurePositionInvalidBeatsPerMeasure,
     MissingFields,
 }
 
@@ -104,23 +104,23 @@ impl Validate for Marker {
             .validate_with(&self.tempo_bpm, MarkerInvalidity::Tempo)
             .validate_with(&self.time_signature, MarkerInvalidity::TimeSignature)
             .validate_with(&self.key_signature, MarkerInvalidity::KeySignature)
-            .validate_with(&self.score_position, MarkerInvalidity::ScorePosition)
+            .validate_with(&self.measure_position, MarkerInvalidity::MeasurePosition)
             .invalidate_if(
-                if let (Some(score_position), Some(beats_per_measure)) = (
-                    self.score_position,
+                if let (Some(measure_position), Some(beats_per_measure)) = (
+                    self.measure_position,
                     self.time_signature.map(|ts| ts.beats_per_measure),
                 ) {
-                    !score_position.is_valid_in_measure(beats_per_measure)
+                    !measure_position.is_valid_in_measure(beats_per_measure)
                 } else {
                     false
                 },
-                MarkerInvalidity::ScorePositionInvalidBeatsPerMeasure,
+                MarkerInvalidity::MeasurePositionInvalidBeatsPerMeasure,
             )
             .invalidate_if(
                 self.tempo_bpm.is_none()
                     && self.time_signature.is_none()
                     && self.key_signature.is_none()
-                    && self.score_position.is_none(),
+                    && self.measure_position.is_none(),
                 MarkerInvalidity::MissingFields,
             )
             .into()
@@ -223,20 +223,20 @@ impl MarkerReducer {
                 tempo_bpm: next_tempo_bpm,
                 time_signature: next_time_signature,
                 key_signature: next_key_signature,
-                score_position: next_score_position,
+                measure_position: next_measure_position,
             } = next_marker;
             debug_assert!(&marker.position <= next_position);
-            marker.score_position = if let Some(next_score_position) = next_score_position {
-                if next_score_position.is_valid() {
-                    Some(*next_score_position)
+            marker.measure_position = if let Some(next_measure_position) = next_measure_position {
+                if next_measure_position.is_valid() {
+                    Some(*next_measure_position)
                 } else {
                     // Reset
                     None
                 }
             } else {
-                // Extrapolate the score position BEFORE updating tempo
+                // Extrapolate the measure position BEFORE updating tempo
                 // and time signature!!
-                marker.extrapolate_score_position(next_position.millis)
+                marker.extrapolate_measure_position(next_position.millis)
             };
             if let Some(next_tempo_bpm) = next_tempo_bpm {
                 if next_tempo_bpm.is_valid() {
