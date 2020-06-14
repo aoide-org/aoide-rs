@@ -170,7 +170,7 @@ pub async fn main() -> Result<(), Error> {
     log::info!("Creating service routes");
 
     let pooled_connection = warp::any()
-        .map({ move || sqlite_exec.pooled_connection() })
+        .map(move || sqlite_exec.pooled_connection())
         .and_then(|res: Result<_, _>| async { res.map_err(reject_from_anyhow) });
 
     // POST /shutdown
