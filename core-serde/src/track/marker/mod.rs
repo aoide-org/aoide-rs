@@ -17,7 +17,7 @@ use super::*;
 
 mod _core {
     pub use aoide_core::{
-        music::time::{ScorePosition, TimeSignature},
+        music::time::{MeasurePosition, TimeSignature},
         track::marker::{
             bnk::{Marker as BeatAndKeyMarker, Markers as BeatAndKeyMarkers},
             cue::{
@@ -44,26 +44,26 @@ use crate::{
 };
 
 ///////////////////////////////////////////////////////////////////////
-// ScorePosition
+// MeasurePosition
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct ScorePosition(MeasureOffset, BeatOffsetInMeasure);
+pub struct MeasurePosition(MeasureOffset, BeatOffsetInMeasure);
 
-impl From<_core::ScorePosition> for ScorePosition {
-    fn from(from: _core::ScorePosition) -> Self {
-        let _core::ScorePosition {
+impl From<_core::MeasurePosition> for MeasurePosition {
+    fn from(from: _core::MeasurePosition) -> Self {
+        let _core::MeasurePosition {
             measure_offset,
             beat_offset_in_measure,
         } = from;
-        ScorePosition(measure_offset, beat_offset_in_measure)
+        MeasurePosition(measure_offset, beat_offset_in_measure)
     }
 }
 
-impl From<ScorePosition> for _core::ScorePosition {
-    fn from(from: ScorePosition) -> Self {
-        let ScorePosition(measure_offset, beat_offset_in_measure) = from;
+impl From<MeasurePosition> for _core::MeasurePosition {
+    fn from(from: MeasurePosition) -> Self {
+        let MeasurePosition(measure_offset, beat_offset_in_measure) = from;
         Self {
             measure_offset,
             beat_offset_in_measure,
@@ -407,7 +407,7 @@ pub struct BeatAndKeyMarker {
 
     /// Musical score/sheet position in measures and beats
     #[serde(rename = "msp", skip_serializing_if = "Option::is_none")]
-    pub score_position: Option<ScorePosition>,
+    pub measure_position: Option<MeasurePosition>,
 }
 
 impl From<_core::BeatAndKeyMarker> for BeatAndKeyMarker {
@@ -417,14 +417,14 @@ impl From<_core::BeatAndKeyMarker> for BeatAndKeyMarker {
             tempo_bpm,
             time_signature,
             key_signature,
-            score_position,
+            measure_position,
         } = from;
         Self {
             position: position.into(),
             tempo_bpm: tempo_bpm.map(Into::into),
             time_signature: time_signature.map(Into::into),
             key_signature: key_signature.map(Into::into),
-            score_position: score_position.map(Into::into),
+            measure_position: measure_position.map(Into::into),
         }
     }
 }
@@ -436,14 +436,14 @@ impl From<BeatAndKeyMarker> for _core::BeatAndKeyMarker {
             tempo_bpm,
             time_signature,
             key_signature,
-            score_position,
+            measure_position,
         } = from;
         Self {
             position: position.into(),
             tempo_bpm: tempo_bpm.map(Into::into),
             time_signature: time_signature.map(Into::into),
             key_signature: key_signature.map(Into::into),
-            score_position: score_position.map(Into::into),
+            measure_position: measure_position.map(Into::into),
         }
     }
 }

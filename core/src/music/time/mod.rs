@@ -146,7 +146,7 @@ impl fmt::Display for TimeSignature {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// ScorePosition
+// MeasurePosition
 ///////////////////////////////////////////////////////////////////////
 
 /// Total number of measures in a musical score
@@ -185,7 +185,7 @@ pub type BeatDelta = f64;
 
 /// Musical score/sheet position in measures and beats
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
-pub struct ScorePosition {
+pub struct MeasurePosition {
     /// The (absolute) measure offset
     ///
     /// The offset in measures since the 1st beat in the 1st measure.
@@ -201,7 +201,7 @@ pub struct ScorePosition {
     pub beat_offset_in_measure: BeatOffsetInMeasure,
 }
 
-impl ScorePosition {
+impl MeasurePosition {
     pub fn from_measure_number_and_beat_offset(
         measure_number: MeasureNumber,
         beat_offset_in_measure: BeatOffsetInMeasure,
@@ -299,12 +299,12 @@ impl ScorePosition {
 }
 
 #[derive(Copy, Clone, Debug)]
-pub enum ScorePositionInvalidity {
+pub enum MeasurePositionInvalidity {
     BeatOffset,
 }
 
-impl Validate for ScorePosition {
-    type Invalidity = ScorePositionInvalidity;
+impl Validate for MeasurePosition {
+    type Invalidity = MeasurePositionInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
