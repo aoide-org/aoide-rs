@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-## [0.7.3] - 2020-05-dd
+## [0.7.3] - 2020-06-14
 
 **This release breaks backward compatibility with old versions! Existing databases need to be rebuilt.**
 
