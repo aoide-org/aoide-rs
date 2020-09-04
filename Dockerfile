@@ -33,6 +33,9 @@ ARG BUILD_MODE=release
 
 ARG BUILD_BIN=aoide
 
+# e.g. to enable optional features
+ARG BUILD_EXTRA_ARGS=""
+
 
 ###############################################################################
 # 1st Build Stage
@@ -105,11 +108,13 @@ COPY [ \
     "./repo-sqlite/" ]
 
 # Build the dummy project(s), then delete all build artefacts that must(!) not be cached
-RUN cargo build --${BUILD_MODE} --target ${BUILD_TARGET} --workspace \
+RUN tree \
+    && \
+    cargo build --${BUILD_MODE} --target ${BUILD_TARGET} ${BUILD_EXTRA_ARGS} --workspace \
+    && \
+    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/${PROJECT_NAME}* \
     && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/${PROJECT_NAME}-* \
-    && \
-    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/${PROJECT_NAME}_* \
     && \
     rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/${PROJECT_NAME}-*
 
@@ -136,10 +141,24 @@ COPY [ \
     "repo-sqlite/migrations", \
     "./repo-sqlite/migrations/" ]
 
-# Test and build the actual project
-RUN cargo test --${BUILD_MODE} --target ${BUILD_TARGET} --workspace \
+
+# 1. Build and check all sub-projects / crates standalone to detect missing dependencies
+# 2. Build and test the complete workspace
+# 3. Build the target binary
+# 4. Strip debug infos from the executable
+RUN tree \
     && \
-    cargo build --${BUILD_MODE} --target ${BUILD_TARGET} --bin ${BUILD_BIN} \
+    cd core && cargo check --${BUILD_MODE} --target ${BUILD_TARGET} ${BUILD_EXTRA_ARGS} && cd .. \
+    && \
+    cd core-serde && cargo check --${BUILD_MODE} --target ${BUILD_TARGET} ${BUILD_EXTRA_ARGS} && cd .. \
+    && \
+    cd repo && cargo check --${BUILD_MODE} --target ${BUILD_TARGET} ${BUILD_EXTRA_ARGS} && cd .. \
+    && \
+    cd repo-sqlite && cargo check --${BUILD_MODE} --target ${BUILD_TARGET} ${BUILD_EXTRA_ARGS} && cd .. \
+    && \
+    cargo test --${BUILD_MODE} --target ${BUILD_TARGET} ${BUILD_EXTRA_ARGS} --workspace \
+    && \
+    cargo build --${BUILD_MODE} --target ${BUILD_TARGET} ${BUILD_EXTRA_ARGS} --bin ${BUILD_BIN} \
     && \
     strip ./target/${BUILD_TARGET}/${BUILD_MODE}/${BUILD_BIN}
 
