@@ -21,9 +21,9 @@
 ###############################################################################
 # Define global ARGs for all stages
 
-# clux/muslrust: /usr/src
+# rust:stable-slim, clux/muslrust: /usr/src
 # ekidd/rust-musl-builder: /home/rust/src
-ARG WORKDIR_ROOT=/home/rust/src
+ARG WORKDIR_ROOT=/usr/src
 
 ARG PROJECT_NAME=aoide
 
@@ -36,7 +36,7 @@ ARG BUILD_BIN=aoide
 
 ###############################################################################
 # 1st Build Stage
-FROM ekidd/rust-musl-builder:stable AS build
+FROM rust:slim AS build
 
 # Import global ARGs
 ARG WORKDIR_ROOT
@@ -44,6 +44,17 @@ ARG PROJECT_NAME
 ARG BUILD_TARGET
 ARG BUILD_MODE
 ARG BUILD_BIN
+
+# Prepare for musl libc build target
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y \
+        musl-tools \
+        tree \
+        llvm-dev \
+        libclang-dev \
+        clang \
+    && rm -rf /var/lib/apt/lists/* \
+    && rustup target add ${BUILD_TARGET}
 
 WORKDIR ${WORKDIR_ROOT}
 
