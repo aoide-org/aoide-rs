@@ -39,7 +39,8 @@ log = "*"
 semval = { version = ">= 0.1.5" }
 serde = "*"
 serde_json = "*"
-libsqlite3-sys = { version = "*", features = ["bundled"] }
+# Required version of libsqlite3-sys depends on Diesel
+libsqlite3-sys = { version = "0.9", features = ["bundled"] }
 tokio = { version = "*", default-features = false, features = ["macros", "rt-threaded"] }
 warp = { version = "*", default-features = false }
 
