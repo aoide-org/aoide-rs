@@ -9,7 +9,8 @@ edition = "2018"
 [dependencies]
 aoide-core = "*"
 aoide-repo = "*"
-bigdecimal = "*"
+# TODO: Unpin num-bigint after Diesel update!
+bigdecimal = "0.1"
 chrono = { version = "*", default-features = false }
 diesel = { version = "*", features = ["chrono", "sqlite", "numeric"] }
 anyhow = "*"
