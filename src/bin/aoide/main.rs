@@ -212,39 +212,39 @@ pub async fn main() -> Result<(), Error> {
         .and(warp::path::end())
         .and(warp::body::json())
         .and(pooled_connection.clone())
-        .and_then(|body, pooled_connection| {
-            async { CollectionsHandler::new(pooled_connection).handle_create(body) }
+        .and_then(|body, pooled_connection| async {
+            CollectionsHandler::new(pooled_connection).handle_create(body)
         });
     let collections_update = warp::put()
         .and(collections_uid)
         .and(warp::path::end())
         .and(warp::body::json())
         .and(pooled_connection.clone())
-        .and_then(|query, body, pooled_connection| {
-            async { CollectionsHandler::new(pooled_connection).handle_update(query, body) }
+        .and_then(|query, body, pooled_connection| async {
+            CollectionsHandler::new(pooled_connection).handle_update(query, body)
         });
     let collections_delete = warp::delete()
         .and(collections_uid)
         .and(warp::path::end())
         .and(pooled_connection.clone())
-        .and_then(|uid, pooled_connection| {
-            async { CollectionsHandler::new(pooled_connection).handle_delete(uid) }
+        .and_then(|uid, pooled_connection| async {
+            CollectionsHandler::new(pooled_connection).handle_delete(uid)
         });
     let collections_list = warp::get()
         .and(collections)
         .and(warp::path::end())
         .and(warp::query())
         .and(pooled_connection.clone())
-        .and_then(|query, pooled_connection| {
-            async { CollectionsHandler::new(pooled_connection).handle_list(query) }
+        .and_then(|query, pooled_connection| async {
+            CollectionsHandler::new(pooled_connection).handle_list(query)
         });
     let collections_load = warp::get()
         .and(collections_uid)
         .and(warp::path::end())
         .and(warp::query())
         .and(pooled_connection.clone())
-        .and_then(|uid, query, pooled_connection| {
-            async { CollectionsHandler::new(pooled_connection).handle_load(uid, query) }
+        .and_then(|uid, query, pooled_connection| async {
+            CollectionsHandler::new(pooled_connection).handle_load(uid, query)
         });
     let collections_filters = collections_list
         .or(collections_load)
@@ -260,46 +260,46 @@ pub async fn main() -> Result<(), Error> {
         .and(warp::path::end())
         .and(warp::body::json())
         .and(pooled_connection.clone())
-        .and_then(|body, pooled_connection| {
-            async { PlaylistsHandler::new(pooled_connection).handle_create(body) }
+        .and_then(|body, pooled_connection| async {
+            PlaylistsHandler::new(pooled_connection).handle_create(body)
         });
     let playlists_update = warp::put()
         .and(playlists_uid)
         .and(warp::path::end())
         .and(warp::body::json())
         .and(pooled_connection.clone())
-        .and_then(|query, body, pooled_connection| {
-            async { PlaylistsHandler::new(pooled_connection).handle_update(query, body) }
+        .and_then(|query, body, pooled_connection| async {
+            PlaylistsHandler::new(pooled_connection).handle_update(query, body)
         });
     let playlists_patch = warp::patch()
         .and(playlists_uid)
         .and(warp::path::end())
         .and(warp::body::json())
         .and(pooled_connection.clone())
-        .and_then(|query, body, pooled_connection| {
-            async { PlaylistsHandler::new(pooled_connection).handle_patch(query, body) }
+        .and_then(|query, body, pooled_connection| async {
+            PlaylistsHandler::new(pooled_connection).handle_patch(query, body)
         });
     let playlists_delete = warp::delete()
         .and(playlists_uid)
         .and(warp::path::end())
         .and(pooled_connection.clone())
-        .and_then(|uid, pooled_connection| {
-            async { PlaylistsHandler::new(pooled_connection).handle_delete(uid) }
+        .and_then(|uid, pooled_connection| async {
+            PlaylistsHandler::new(pooled_connection).handle_delete(uid)
         });
     let playlists_list = warp::get()
         .and(playlists)
         .and(warp::path::end())
         .and(warp::query())
         .and(pooled_connection.clone())
-        .and_then(move |query, pooled_connection| {
-            async move { PlaylistsHandler::new(pooled_connection).handle_list(query) }
+        .and_then(move |query, pooled_connection| async move {
+            PlaylistsHandler::new(pooled_connection).handle_list(query)
         });
     let playlists_load = warp::get()
         .and(playlists_uid)
         .and(warp::path::end())
         .and(pooled_connection.clone())
-        .and_then(|uid, pooled_connection| {
-            async { PlaylistsHandler::new(pooled_connection).handle_load(uid) }
+        .and_then(|uid, pooled_connection| async {
+            PlaylistsHandler::new(pooled_connection).handle_load(uid)
         });
     let playlists_filters = playlists_create
         .or(playlists_update)
@@ -316,30 +316,30 @@ pub async fn main() -> Result<(), Error> {
         .and(warp::path::end())
         .and(warp::body::json())
         .and(pooled_connection.clone())
-        .and_then(|body, pooled_connection| {
-            async { TracksHandler::new(pooled_connection).handle_create(body) }
+        .and_then(|body, pooled_connection| async {
+            TracksHandler::new(pooled_connection).handle_create(body)
         });
     let tracks_update = warp::put()
         .and(tracks_uid)
         .and(warp::path::end())
         .and(warp::body::json())
         .and(pooled_connection.clone())
-        .and_then(|uid, body, pooled_connection| {
-            async { TracksHandler::new(pooled_connection).handle_update(uid, body) }
+        .and_then(|uid, body, pooled_connection| async {
+            TracksHandler::new(pooled_connection).handle_update(uid, body)
         });
     let tracks_delete = warp::delete()
         .and(tracks_uid)
         .and(warp::path::end())
         .and(pooled_connection.clone())
-        .and_then(|uid, pooled_connection| {
-            async { TracksHandler::new(pooled_connection).handle_delete(uid) }
+        .and_then(|uid, pooled_connection| async {
+            TracksHandler::new(pooled_connection).handle_delete(uid)
         });
     let tracks_load = warp::get()
         .and(tracks_uid)
         .and(warp::path::end())
         .and(pooled_connection.clone())
-        .and_then(|uid, pooled_connection| {
-            async { TracksHandler::new(pooled_connection).handle_load(uid) }
+        .and_then(|uid, pooled_connection| async {
+            TracksHandler::new(pooled_connection).handle_load(uid)
         });
     let tracks_load_batch = warp::post()
         .and(tracks)
@@ -347,19 +347,17 @@ pub async fn main() -> Result<(), Error> {
         .and(warp::path::end())
         .and(warp::body::json())
         .and(pooled_connection.clone())
-        .and_then(|body: Vec<_serde::EntityUid>, pooled_connection| {
-            async {
-                TracksHandler::new(pooled_connection)
-                    .handle_load_batch(body.into_iter().map(Into::into))
-            }
+        .and_then(|body: Vec<_serde::EntityUid>, pooled_connection| async {
+            TracksHandler::new(pooled_connection)
+                .handle_load_batch(body.into_iter().map(Into::into))
         });
     let tracks_list = warp::get()
         .and(tracks)
         .and(warp::path::end())
         .and(warp::query())
         .and(pooled_connection.clone())
-        .and_then(|query, pooled_connection| {
-            async { TracksHandler::new(pooled_connection).handle_list(query) }
+        .and_then(|query, pooled_connection| async {
+            TracksHandler::new(pooled_connection).handle_list(query)
         });
     let tracks_locate = warp::post()
         .and(tracks)
@@ -368,8 +366,8 @@ pub async fn main() -> Result<(), Error> {
         .and(warp::query())
         .and(warp::body::json())
         .and(pooled_connection.clone())
-        .and_then(move |query, body, pooled_connection| {
-            async move { TracksHandler::new(pooled_connection).handle_locate(query, body) }
+        .and_then(move |query, body, pooled_connection| async move {
+            TracksHandler::new(pooled_connection).handle_locate(query, body)
         });
     let tracks_resolve = warp::post()
         .and(tracks)
@@ -378,8 +376,8 @@ pub async fn main() -> Result<(), Error> {
         .and(warp::query())
         .and(warp::body::json())
         .and(pooled_connection.clone())
-        .and_then(move |query, body, pooled_connection| {
-            async move { TracksHandler::new(pooled_connection).handle_resolve(query, body) }
+        .and_then(move |query, body, pooled_connection| async move {
+            TracksHandler::new(pooled_connection).handle_resolve(query, body)
         });
     let tracks_search = warp::post()
         .and(tracks)
@@ -388,8 +386,8 @@ pub async fn main() -> Result<(), Error> {
         .and(warp::query())
         .and(warp::body::json())
         .and(pooled_connection.clone())
-        .and_then(|query, body, pooled_connection| {
-            async { TracksHandler::new(pooled_connection).handle_search(query, body) }
+        .and_then(|query, body, pooled_connection| async {
+            TracksHandler::new(pooled_connection).handle_search(query, body)
         });
     let tracks_replace = warp::post()
         .and(tracks)
@@ -398,8 +396,8 @@ pub async fn main() -> Result<(), Error> {
         .and(warp::query())
         .and(warp::body::json())
         .and(pooled_connection.clone())
-        .and_then(|query, body, pooled_connection| {
-            async { TracksHandler::new(pooled_connection).handle_replace(query, body) }
+        .and_then(|query, body, pooled_connection| async {
+            TracksHandler::new(pooled_connection).handle_replace(query, body)
         });
     let tracks_purge = warp::post()
         .and(tracks)
@@ -408,8 +406,8 @@ pub async fn main() -> Result<(), Error> {
         .and(warp::query())
         .and(warp::body::json())
         .and(pooled_connection.clone())
-        .and_then(|query, uri_predicates, pooled_connection| {
-            async { TracksHandler::new(pooled_connection).handle_purge(query, uri_predicates) }
+        .and_then(|query, uri_predicates, pooled_connection| async {
+            TracksHandler::new(pooled_connection).handle_purge(query, uri_predicates)
         });
     let tracks_relocate = warp::post()
         .and(tracks)
@@ -419,11 +417,9 @@ pub async fn main() -> Result<(), Error> {
         .and(warp::body::json())
         .and(pooled_connection.clone())
         .and_then(
-            |query, uri_relocations: Vec<UriRelocation>, pooled_connection| {
-                async {
-                    TracksHandler::new(pooled_connection)
-                        .handle_relocate(query, uri_relocations.into_iter())
-                }
+            |query, uri_relocations: Vec<UriRelocation>, pooled_connection| async {
+                TracksHandler::new(pooled_connection)
+                    .handle_relocate(query, uri_relocations.into_iter())
             },
         );
     let tracks_filters = tracks_create
@@ -446,8 +442,8 @@ pub async fn main() -> Result<(), Error> {
         .and(warp::query())
         .and(warp::body::json())
         .and(pooled_connection.clone())
-        .and_then(|query, body, pooled_connection| {
-            async { TracksHandler::new(pooled_connection).handle_albums_count_tracks(query, body) }
+        .and_then(|query, body, pooled_connection| async {
+            TracksHandler::new(pooled_connection).handle_albums_count_tracks(query, body)
         });
     let albums_filters = albums_count_tracks;
 
@@ -459,8 +455,8 @@ pub async fn main() -> Result<(), Error> {
         .and(warp::query())
         .and(warp::body::json())
         .and(pooled_connection.clone())
-        .and_then(|query, body, pooled_connection| {
-            async { TracksHandler::new(pooled_connection).handle_tags_count_tracks(query, body) }
+        .and_then(|query, body, pooled_connection| async {
+            TracksHandler::new(pooled_connection).handle_tags_count_tracks(query, body)
         });
     let tags_facets_count_tracks = warp::post()
         .and(warp::path("tags"))
@@ -470,10 +466,8 @@ pub async fn main() -> Result<(), Error> {
         .and(warp::query())
         .and(warp::body::json())
         .and(pooled_connection)
-        .and_then(|query, body, pooled_connection| {
-            async {
-                TracksHandler::new(pooled_connection).handle_tags_facets_count_tracks(query, body)
-            }
+        .and_then(|query, body, pooled_connection| async {
+            TracksHandler::new(pooled_connection).handle_tags_facets_count_tracks(query, body)
         });
     let tags_filters = tags_count_tracks.or(tags_facets_count_tracks);
 

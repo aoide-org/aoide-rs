@@ -128,7 +128,10 @@ fn measure_position_move_by_beats() {
     let beats_per_measure = 3;
     let origin = MeasurePosition::from_measure_number_and_beat_offset(11, 0.0);
     assert_eq!(
-        MeasurePosition::from_measure_number_and_beat_offset(11, origin.beat_offset_in_measure + 1.0),
+        MeasurePosition::from_measure_number_and_beat_offset(
+            11,
+            origin.beat_offset_in_measure + 1.0
+        ),
         origin.move_by_beats(beats_per_measure, 1.0)
     );
     assert_eq!(
