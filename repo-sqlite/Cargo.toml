@@ -13,6 +13,7 @@ aoide-repo = "*"
 bigdecimal = "0.1"
 chrono = { version = "*", default-features = false }
 diesel = { version = "*", features = ["chrono", "sqlite", "numeric"] }
+libsqlite3-sys = { version = "*", features = ["bundled"] }
 anyhow = "*"
 log = "*"
 # TODO: Unpin num-bigint after Diesel update!

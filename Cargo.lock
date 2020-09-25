@@ -94,6 +94,7 @@ dependencies = [
  "chrono",
  "diesel",
  "diesel_migrations",
+ "libsqlite3-sys",
  "log",
  "num-bigint",
  "num-traits",
@@ -808,9 +809,9 @@ checksum = "f2f96b10ec2560088a8e76961b00d47107b3a625fecb76dedb29ee7ccbf98235"
 
 [[package]]
 name = "libsqlite3-sys"
-version = "0.9.3"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3711dfd91a1081d2458ad2d06ea30a8755256e74038be2ad927d94e1c955ca8"
+checksum = "0e9eb7b8e152b6a01be6a4a2917248381875758250dc3df5d46caf9250341dda"
 dependencies = [
  "cc",
  "pkg-config",
