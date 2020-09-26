@@ -1,6 +1,6 @@
 [package]
 name = "aoide"
-version = "0.7.3"
+version = "0.7.4"
 authors = [ "Uwe Klotz <uwe.klotz@gmail>", "et al." ]
 license = "AGPL-3.0-or-later"
 description = "A web service for managing and exploring music collections"
@@ -39,10 +39,16 @@ log = "*"
 semval = { version = ">= 0.1.5" }
 serde = "*"
 serde_json = "*"
-# Required version of libsqlite3-sys depends on Diesel
-libsqlite3-sys = { version = "0.9", features = ["bundled"] }
 tokio = { version = "*", default-features = false, features = ["macros", "rt-threaded"] }
 warp = { version = "*", default-features = false }
+
+[features]
+default = []
+experimental-bnk-markers = [
+  "aoide-core/experimental-bnk-markers",
+  "aoide-core-serde/experimental-bnk-markers",
+  "aoide-repo/experimental-bnk-markers", "aoide-repo-sqlite/experimental-bnk-markers",
+]
 
 [dev-dependencies]
 serde_urlencoded = "*"

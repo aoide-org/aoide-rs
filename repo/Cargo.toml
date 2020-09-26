@@ -9,3 +9,7 @@ edition = "2018"
 [dependencies]
 aoide-core = "*"
 anyhow = "*"
+
+[features]
+default = []
+experimental-bnk-markers = ["aoide-core/experimental-bnk-markers"]

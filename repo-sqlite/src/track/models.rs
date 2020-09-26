@@ -21,9 +21,12 @@ use aoide_core::{
     music::time::Beats,
     tag::*,
     title::*,
-    track::{self, marker::bnk, YYYYMMDD, *},
+    track::{self, YYYYMMDD, *},
     util::{clock::*, color::Color},
 };
+
+#[cfg(feature = "experimental-bnk-markers")]
+use aoide_core::track::marker::bnk;
 
 use aoide_repo::{entity::*, RepoId};
 
@@ -246,12 +249,29 @@ pub struct InsertableBrief<'a> {
     pub track_total: Option<i16>,
     pub disc_number: Option<i16>,
     pub disc_total: Option<i16>,
-    pub music_tempo: Option<Beats>,
+    pub music_bpm: Option<Beats>,
     pub music_key: Option<i16>,
 }
 
 impl<'a> InsertableBrief<'a> {
     pub fn bind(track_id: RepoId, track: &'a Track) -> Self {
+        let music_bpm = track.musical_signature.tempo_bpm.map(|bpm| bpm.0);
+        let music_key = track
+            .musical_signature
+            .key_signature
+            .map(|key| i16::from(key.code()));
+
+        #[cfg(feature = "experimental-bnk-markers")]
+        let (music_bpm, music_key) = (
+            music_bpm.or_else(|| {
+                bnk::Markers::uniform_tempo(&track.markers.beats_and_keys).map(|tempo| tempo.0)
+            }),
+            music_key.or_else(|| {
+                bnk::Markers::uniform_key_signature(&track.markers.beats_and_keys)
+                    .map(|key| i16::from(key.code()))
+            }),
+        );
+
         Self {
             track_id,
             track_title: Titles::main_title(&track.titles).map(|title| title.name.as_str()),
@@ -278,10 +298,8 @@ impl<'a> InsertableBrief<'a> {
             track_total: track.indexes.track.total().map(|cnt| cnt as i16),
             disc_number: track.indexes.disc.number().map(|idx| idx as i16),
             disc_total: track.indexes.disc.total().map(|cnt| cnt as i16),
-            music_tempo: bnk::Markers::uniform_tempo(&track.markers.beats_and_keys)
-                .map(|tempo| tempo.0),
-            music_key: bnk::Markers::uniform_key_signature(&track.markers.beats_and_keys)
-                .map(|key| i16::from(key.code())),
+            music_bpm,
+            music_key,
         }
     }
 }

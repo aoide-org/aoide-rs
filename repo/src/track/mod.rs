@@ -46,7 +46,7 @@ pub enum NumericField {
     DiscNumber,
     DiscTotal,
     ReleaseDate,
-    MusicTempo,
+    MusicBpm,
     MusicKey,
 }
 
@@ -90,7 +90,7 @@ pub enum SortField {
     AlbumTitle,
     AlbumArtist,
     ReleaseDate,
-    MusicTempo,
+    MusicBpm,
     MusicKey,
 }
 

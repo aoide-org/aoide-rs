@@ -161,7 +161,7 @@ pub enum SortField {
     AlbumTitle,
     AlbumArtist,
     ReleaseDate,
-    MusicTempo,
+    MusicBpm,
     MusicKey,
 }
 
@@ -199,7 +199,7 @@ impl From<SortField> for _repo::SortField {
             SortField::AlbumTitle => AlbumTitle,
             SortField::AlbumArtist => AlbumArtist,
             SortField::ReleaseDate => ReleaseDate,
-            SortField::MusicTempo => MusicTempo,
+            SortField::MusicBpm => MusicBpm,
             SortField::MusicKey => MusicKey,
         }
     }
@@ -291,7 +291,7 @@ pub enum NumericField {
     DiscNumber,
     DiscTotal,
     ReleaseDate,
-    MusicTempo,
+    MusicBpm,
     MusicKey,
 }
 
@@ -309,7 +309,7 @@ impl From<NumericField> for _repo::NumericField {
             NumericField::DiscNumber => DiscNumber,
             NumericField::DiscTotal => DiscTotal,
             NumericField::ReleaseDate => ReleaseDate,
-            NumericField::MusicTempo => MusicTempo,
+            NumericField::MusicBpm => MusicBpm,
             NumericField::MusicKey => MusicKey,
         }
     }

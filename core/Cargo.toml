@@ -8,11 +8,16 @@ edition = "2018"
 
 [dependencies]
 bs58 = "*"
+bitflags = "*"
 chrono = "*"
 lazy_static = "*"
 num-traits = "*"
 rand = "*"
 semval = "*"
+
+[features]
+default = []
+experimental-bnk-markers = []
 
 [dev-dependencies]
 criterion = "*"

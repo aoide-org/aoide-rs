@@ -96,7 +96,7 @@ pub enum ChannelLayout {
 }
 
 impl ChannelLayout {
-    pub fn channel_count(self) -> ChannelCount {
+    pub const fn channel_count(self) -> ChannelCount {
         match self {
             ChannelLayout::Mono => ChannelCount(1),
             ChannelLayout::DualMono => ChannelCount(2),
@@ -134,7 +134,7 @@ pub enum Channels {
 }
 
 impl Channels {
-    pub fn count(self) -> ChannelCount {
+    pub const fn count(self) -> ChannelCount {
         use Channels::*;
         match self {
             Count(count) => count,

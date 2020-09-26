@@ -15,7 +15,7 @@
 
 use super::*;
 
-use crate::util::{IsEmpty, IsInteger};
+use crate::util::IsInteger;
 
 use std::fmt;
 
@@ -157,55 +157,5 @@ impl From<SampleLength> for NumberOfSamples {
 impl IsInteger for SampleLength {
     fn is_integer(&self) -> bool {
         self.0.is_integer()
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-// SampleRange
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub struct SampleRange {
-    pub start: SamplePosition,
-
-    pub end: SamplePosition,
-}
-
-impl SampleRange {
-    pub fn reverse(self) -> Self {
-        Self {
-            start: self.end,
-            end: self.start,
-        }
-    }
-
-    pub fn is_forward(&self) -> bool {
-        self.start < self.end
-    }
-
-    pub fn is_backward(&self) -> bool {
-        self.start > self.end
-    }
-
-    pub fn length(&self) -> SampleLength {
-        SampleLength((self.end.0 - self.start.0).abs())
-    }
-}
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum SampleRangeInvalidity {
-    Start,
-    End,
-}
-
-impl IsEmpty for SampleRange {
-    fn is_empty(&self) -> bool {
-        self.start == self.end
-    }
-}
-
-impl IsInteger for SampleRange {
-    fn is_integer(&self) -> bool {
-        self.start.is_integer() && self.end.is_integer()
     }
 }

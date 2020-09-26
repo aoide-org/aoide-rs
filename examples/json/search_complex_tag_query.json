@@ -68,7 +68,7 @@
             {
                 "not": {
                     "numeric": {
-                        "field": "musicTempo",
+                        "field": "musicBpm",
                         "value": {
                             "gt": 80
                         }

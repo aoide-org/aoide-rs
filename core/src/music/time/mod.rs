@@ -140,7 +140,7 @@ impl fmt::Display for TimeSignature {
         if let Some(beat_unit) = self.beat_unit {
             write!(f, "{}/{}", self.beats_per_measure, beat_unit)
         } else {
-            write!(f, "{}/", self.beats_per_measure)
+            write!(f, "{}", self.beats_per_measure)
         }
     }
 }

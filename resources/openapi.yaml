@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  version: 0.7.3
+  version: 0.7.4
   title: aoide
   description: Music library management
   license:
@@ -1021,8 +1021,37 @@ components:
 
         An array with exactly 2 elements: The measure offset
         followed by the beat offset within this measure.
+    MusicalSignature:
+      properties:
+        bpm:
+          $ref: '#/components/schemas/TempoBpm'
+        bar:
+          $ref: '#/components/schemas/TimeSignature'
+        key:
+          $ref: '#/components/schemas/KeySignature'
+        lck:
+          $ref: '#/components/schemas/MusicalSignatureLocks'
+      description: |
+        Musical signature including tempo/speed, timining, and key.
+    MusicalSignatureLocks:
+      type: integer
+      format: i32
+      minimum: 0
+      maximum: 7
+      example: 5
+      description: |
+        A bitmask for locking selected properties of the musical signature.
+
+        Bits:
+          - 0x01: Tempo/BPM is locked
+          - 0x02: Time signature is locked
+          - 0x04: Key signature is locked
+
+        Example: A value of 5 = 1 | 4 locks both the tempo and the key signature
     BeatAndKeyMarker:
       properties:
+        bar:
+          $ref: '#/components/schemas/TimeSignature'
         bpm:
           $ref: '#/components/schemas/TempoBpm'
         key:
@@ -1031,8 +1060,6 @@ components:
           $ref: '#/components/schemas/MusicalMeasurePosition'
         pos:
           $ref: '#/components/schemas/MarkerPosition'
-        tim:
-          $ref: '#/components/schemas/TimeSignature'
       required:
         - pos
       description: |
@@ -1326,6 +1353,7 @@ components:
           * ...
           * 23 = F maj
           * 24 = D min
+
         The numbering follows the Circle of fifth / Open Key notation in
         clock-wise orientation, alternating between major and minor keys.
     MediaSourceFilterParams:
@@ -1434,6 +1462,13 @@ components:
       format: int32
       example: 1
     Markers:
+      description: |
+        Position-dependent properties
+
+        NOTE: Beat and key markersare an experiemntal feature that is
+        disabled by default. Don't use the corresponding "bnk" property!
+        It is reserved for future use and only documented for the sake
+        of completeness.
       properties:
         cue:
           $ref: '#/components/schemas/CueMarkers'
@@ -1504,7 +1539,7 @@ components:
         - discNumber
         - discTotal
         - releaseYear
-        - musicTempo
+        - musicBpm
         - musicKey
     NumericFieldFilter:
       type: array
@@ -2330,6 +2365,8 @@ components:
           $ref: '#/components/schemas/Indexes'
         mrk:
           $ref: '#/components/schemas/Markers'
+        msc:
+          $ref: '#/components/schemas/MusicalSignature'
         rel:
           $ref: '#/components/schemas/Release'
         src:
@@ -2432,7 +2469,7 @@ components:
         - albumTitle
         - albumArtist
         - releaseDate
-        - musicTempo
+        - musicBpm
         - musicKey
     TrackSortOrder:
       type: array

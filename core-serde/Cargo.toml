@@ -13,5 +13,9 @@ semval = "*"
 serde = { version = "*", features = ["derive"] }
 serde_repr = "*"
 
+[features]
+default = []
+experimental-bnk-markers = ["aoide-core/experimental-bnk-markers"]
+
 [dev-dependencies]
 serde_json = "*"

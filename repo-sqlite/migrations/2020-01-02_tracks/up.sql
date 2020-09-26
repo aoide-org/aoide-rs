@@ -114,8 +114,8 @@ CREATE TABLE aux_track_brief (
     track_total              INTEGER, -- > 0
     disc_number              INTEGER, -- > 0
     disc_total               INTEGER, -- > 0
-    music_tempo              REAL, -- beats per minute (bpm)
-    music_key                TINYINT, -- {(0), 1, ..., 24}
+    music_bpm                REAL, -- tempo in beats per minute
+    music_key                TINYINT, -- musical key code {(0), 1, ..., 24}
     FOREIGN KEY(track_id) REFERENCES tbl_track(id),
     UNIQUE (track_id)
 );
@@ -140,8 +140,8 @@ CREATE INDEX IF NOT EXISTS idx_track_brief_release_date ON aux_track_brief (
     release_date
 );
 
-CREATE INDEX IF NOT EXISTS idx_track_brief_music_tempo ON aux_track_brief (
-    music_tempo
+CREATE INDEX IF NOT EXISTS idx_track_brief_music_bpm ON aux_track_brief (
+    music_bpm
 );
 
 CREATE INDEX IF NOT EXISTS idx_track_brief_music_key ON aux_track_brief (

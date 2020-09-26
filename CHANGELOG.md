@@ -13,6 +13,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.7.4] - 2020-09-26
+
+**This release breaks backward compatibility with old versions! Existing databases need to be rebuilt.**
+
+### Added
+
+- Added musical signature to tracks
+
+### Changed
+
+- Renamed numeric/sort field of tracks: musicTempo -> musicBpm
+
+### Removed
+
+- Disabled _beat & key_ markers
+
 ## [0.7.3] - 2020-06-14
 
 **This release breaks backward compatibility with old versions! Existing databases need to be rebuilt.**
@@ -351,7 +367,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial public release
 
-[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.7.3...development
+[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.7.4...development
+[0.7.4]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.7.4
 [0.7.3]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.7.3
 [0.7.2]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.7.2
 [0.7.1]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.7.1

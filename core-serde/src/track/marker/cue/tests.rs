@@ -58,10 +58,10 @@ fn deserialize_hotcue_end_marker() {
         millis = millis,
         samples = samples,
     );
-    let beatloop_marker: CueMarker = serde_json::from_str(&json).unwrap();
+    let beatloop_marker: Marker = serde_json::from_str(&json).unwrap();
     assert_eq!(
-        CueMarker {
-            r#type: CueMarkerType::HotCue,
+        Marker {
+            r#type: MarkerType::HotCue,
             start: Some(Position::MillisSamples(
                 PositionMs(millis).into(),
                 SamplePosition(samples).into()
@@ -90,10 +90,10 @@ fn deserialize_hotcue_beatloop_marker() {
         samples = samples,
         b32 = beatloop_len_x32,
     );
-    let beatloop_marker: CueMarker = serde_json::from_str(&json).unwrap();
+    let beatloop_marker: Marker = serde_json::from_str(&json).unwrap();
     assert_eq!(
-        CueMarker {
-            r#type: CueMarkerType::HotCue,
+        Marker {
+            r#type: MarkerType::HotCue,
             start: Some(Position::MillisSamples(
                 PositionMs(millis).into(),
                 SamplePosition(samples).into()

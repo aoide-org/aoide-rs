@@ -21,10 +21,11 @@ pub mod album;
 pub mod collection;
 pub mod index;
 pub mod marker;
+pub mod music;
 pub mod release;
 pub mod tag;
 
-use self::{album::*, collection::*, index::*, marker::*, release::*};
+use self::{album::*, collection::*, index::*, marker::*, music::*, release::*};
 
 use crate::{actor::*, media, tag::*, title::*};
 
@@ -43,6 +44,8 @@ pub struct Track {
     pub collections: Vec<Collection>,
 
     pub media_sources: Vec<media::Source>,
+
+    pub musical_signature: MusicalSignature,
 
     pub release: Option<Release>,
 
@@ -112,6 +115,7 @@ impl Track {
 pub enum TrackInvalidity {
     Collections(CollectionsInvalidity),
     MediaSources(media::SourcesInvalidity),
+    MusicalSignature(MusicalSignatureInvalidity),
     Release(ReleaseInvalidity),
     Album(AlbumInvalidity),
     Titles(TitlesInvalidity),
@@ -130,6 +134,7 @@ impl Validate for Track {
                 Collections::validate(self.collections.iter()),
                 TrackInvalidity::Collections,
             )
+            .validate_with(&self.musical_signature, TrackInvalidity::MusicalSignature)
             .merge_result_with(
                 media::Sources::validate(self.media_sources.iter()),
                 TrackInvalidity::MediaSources,

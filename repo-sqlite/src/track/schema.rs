@@ -91,7 +91,7 @@ table! {
         track_total -> Nullable<SmallInt>,
         disc_number -> Nullable<SmallInt>,
         disc_total -> Nullable<SmallInt>,
-        music_tempo -> Nullable<Double>,
+        music_bpm -> Nullable<Double>,
         music_key -> Nullable<SmallInt>,
     }
 }

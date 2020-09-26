@@ -21,6 +21,7 @@ use crate::audio::{
 };
 
 /// Beats & Keys
+#[cfg(feature = "experimental-bnk-markers")]
 pub mod bnk;
 
 /// Cues
@@ -87,13 +88,17 @@ impl Validate for Position {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Markers {
+    #[cfg(feature = "experimental-bnk-markers")]
     pub beats_and_keys: bnk::Markers,
+
     pub cues: cue::Markers,
 }
 
 #[derive(Copy, Clone, Debug)]
 pub enum MarkersInvalidity {
+    #[cfg(feature = "experimental-bnk-markers")]
     BeatsAndKeys(bnk::MarkersInvalidity),
+
     Cues(cue::MarkersInvalidity),
 }
 
@@ -101,10 +106,12 @@ impl Validate for Markers {
     type Invalidity = MarkersInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        ValidationContext::new()
-            .validate_with(&self.beats_and_keys, MarkersInvalidity::BeatsAndKeys)
-            .validate_with(&self.cues, MarkersInvalidity::Cues)
-            .into()
+        let ctx = ValidationContext::new().validate_with(&self.cues, MarkersInvalidity::Cues);
+
+        #[cfg(feature = "experimental-bnk-markers")]
+        let ctx = ctx.validate_with(&self.beats_and_keys, MarkersInvalidity::BeatsAndKeys);
+
+        ctx.into()
     }
 }
 

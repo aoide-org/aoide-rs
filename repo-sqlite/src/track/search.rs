@@ -234,11 +234,9 @@ impl TrackSearchQueryTransform for SortOrder {
                     query.then_order_by(aux_track_brief::release_date.desc())
                 }
             },
-            SortField::MusicTempo => match direction {
-                SortDirection::Ascending => query.then_order_by(aux_track_brief::music_tempo.asc()),
-                SortDirection::Descending => {
-                    query.then_order_by(aux_track_brief::music_tempo.desc())
-                }
+            SortField::MusicBpm => match direction {
+                SortDirection::Ascending => query.then_order_by(aux_track_brief::music_bpm.asc()),
+                SortDirection::Descending => query.then_order_by(aux_track_brief::music_bpm.desc()),
             },
             SortField::MusicKey => match direction {
                 SortDirection::Ascending => query.then_order_by(aux_track_brief::music_key.asc()),
@@ -635,23 +633,23 @@ fn build_numeric_field_filter_expression(
                 }
             }
         },
-        MusicTempo => match filter.value {
-            LessThan(value) => Box::new(aux_track_brief::music_tempo.lt(value)),
-            LessOrEqual(value) => Box::new(aux_track_brief::music_tempo.le(value)),
-            GreaterThan(value) => Box::new(aux_track_brief::music_tempo.gt(value)),
-            GreaterOrEqual(value) => Box::new(aux_track_brief::music_tempo.ge(value)),
+        MusicBpm => match filter.value {
+            LessThan(value) => Box::new(aux_track_brief::music_bpm.lt(value)),
+            LessOrEqual(value) => Box::new(aux_track_brief::music_bpm.le(value)),
+            GreaterThan(value) => Box::new(aux_track_brief::music_bpm.gt(value)),
+            GreaterOrEqual(value) => Box::new(aux_track_brief::music_bpm.ge(value)),
             Equal(value) => {
                 if let Some(value) = value {
-                    Box::new(aux_track_brief::music_tempo.eq(value))
+                    Box::new(aux_track_brief::music_bpm.eq(value))
                 } else {
-                    Box::new(aux_track_brief::music_tempo.is_null())
+                    Box::new(aux_track_brief::music_bpm.is_null())
                 }
             }
             NotEqual(value) => {
                 if let Some(value) = value {
-                    Box::new(aux_track_brief::music_tempo.ne(value))
+                    Box::new(aux_track_brief::music_bpm.ne(value))
                 } else {
-                    Box::new(aux_track_brief::music_tempo.is_not_null())
+                    Box::new(aux_track_brief::music_bpm.is_not_null())
                 }
             }
         },

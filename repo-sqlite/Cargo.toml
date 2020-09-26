@@ -9,17 +9,20 @@ edition = "2018"
 [dependencies]
 aoide-core = "*"
 aoide-repo = "*"
-# TODO: Unpin num-bigint after Diesel update!
-bigdecimal = "0.1"
-chrono = { version = "*", default-features = false }
-diesel = { version = "*", features = ["chrono", "sqlite", "numeric"] }
-libsqlite3-sys = { version = "*", features = ["bundled"] }
 anyhow = "*"
+chrono = { version = "*", default-features = false }
 log = "*"
-# TODO: Unpin num-bigint after Diesel update!
-num-bigint = { version = "0.2" }
 num-traits = "*"
 percent-encoding = "*"
+diesel = { version = "*", features = ["chrono", "sqlite", "numeric"] }
+# TODO: Unpin num-bigint after Diesel update!
+libsqlite3-sys = { version = "0.9", features = ["bundled"] }
+bigdecimal = "0.1"
+num-bigint = "0.2"
+
+[features]
+default = []
+experimental-bnk-markers = ["aoide-core/experimental-bnk-markers"]
 
 [dev-dependencies]
 diesel_migrations =  { version = "*", features = ["sqlite"] }
