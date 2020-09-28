@@ -54,13 +54,8 @@ ARG WORKSPACE_BUILD_FEATURES=""
 ARG PROJECT_CHECK_FEATURES="--all-targets --all-features"
 
 # Prepare for musl libc build target
-RUN apt-get update \
-    && apt-get install --no-install-recommends -y \
-        musl-tools \
-        tree \
-        llvm-dev \
-        libclang-dev \
-        clang \
+RUN apt update \
+    && apt install --no-install-recommends -y musl-tools tree \
     && rm -rf /var/lib/apt/lists/* \
     && rustup target add ${BUILD_TARGET}
 
