@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use semval::prelude::*;
-
 pub mod clock;
 pub mod color;
 
@@ -60,70 +58,6 @@ where
 {
     fn is_default(&self) -> bool {
         self == &Default::default()
-    }
-}
-
-#[derive(Debug, Copy, Clone, Default, Eq, PartialEq)]
-pub struct LockableValue<T> {
-    pub value: T,
-
-    pub locked: bool,
-}
-
-impl<T> LockableValue<T> {
-    pub const fn locked(value: T) -> Self {
-        Self {
-            value,
-            locked: true,
-        }
-    }
-
-    pub const fn unlocked(value: T) -> Self {
-        Self {
-            value,
-            locked: false,
-        }
-    }
-
-    pub const fn is_locked(&self) -> bool {
-        self.locked
-    }
-
-    pub const fn value(&self) -> &T {
-        &self.value
-    }
-
-    pub fn value_mut(&mut self) -> &mut T {
-        &mut self.value
-    }
-
-    pub fn into_value(self) -> T {
-        self.value
-    }
-
-    pub fn set_locked(&mut self, locked: bool) {
-        self.locked = locked;
-    }
-
-    pub fn lock(&mut self) {
-        self.locked = true;
-    }
-
-    pub fn unlock(&mut self) {
-        self.locked = false;
-    }
-}
-
-impl<T> Validate for LockableValue<T>
-where
-    T: Validate,
-{
-    type Invalidity = <T as Validate>::Invalidity;
-
-    fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        // Validation is transparent, i.e. the lock flag does not affect
-        // the validity
-        self.value.validate()
     }
 }
 
