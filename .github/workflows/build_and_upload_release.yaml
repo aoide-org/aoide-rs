@@ -1,0 +1,61 @@
+name: Build and upload release
+
+on:
+  push:
+    tags:
+      - v[0-9]+.[0-9]+.[0-9]+
+  workflow_dispatch:
+    ref: master
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+        include:
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: aoide
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            artifact_name: aoide
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: aoide.exe
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          components: rustfmt, clippy
+          target: ${{ matrix.target }}
+
+      - name: Build project
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+
+      - name: Upload tagged version
+        id: upload_tagged_version
+        if: ${{ github.ref }} == 'v[0-9]+.[0-9]+.[0-9]+'
+        uses: actions/upload-artifact@v2
+        with:
+          name: aoide_${{ matrix.target }}_latest
+          path: target/release/${{ matrix.artifact_name }}
+
+      - name: Upload latest version
+        id: upload_latest_version
+        if: ${{ github.ref }} == 'master'
+        uses: actions/upload-artifact@v2
+        with:
+          name: aoide_${{ matrix.target }}_latest
+          path: target/release/${{ matrix.artifact_name }}
