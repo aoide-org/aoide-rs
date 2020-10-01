@@ -13,7 +13,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+pub mod playlist;
+pub mod track;
+
 use super::*;
+
+use crate::util::clock::TickInstant;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Collection {
@@ -38,3 +43,51 @@ impl Validate for Collection {
 }
 
 pub type Entity = crate::entity::Entity<CollectionInvalidity, Collection>;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum CollectionItem {
+    Track(track::Item),
+    Playlist(playlist::Item),
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum CollectionItemInvalidity {
+    Track(track::ItemInvalidity),
+    Playlist(playlist::ItemInvalidity),
+}
+
+impl Validate for CollectionItem {
+    type Invalidity = CollectionItemInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        let context = ValidationContext::new();
+        use CollectionItem::*;
+        match self {
+            Track(ref track) => context.validate_with(track, Self::Invalidity::Track),
+            Playlist(ref playlist) => context.validate_with(playlist, Self::Invalidity::Playlist),
+        }
+        .into()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CollectionEntry {
+    pub added_at: TickInstant,
+
+    pub item: CollectionItem,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum CollectionEntryInvalidity {
+    Item(CollectionItemInvalidity),
+}
+
+impl Validate for CollectionEntry {
+    type Invalidity = CollectionEntryInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .validate_with(&self.item, Self::Invalidity::Item)
+            .into()
+    }
+}

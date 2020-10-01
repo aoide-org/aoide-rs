@@ -15,10 +15,34 @@
 
 use super::*;
 
-#[test]
-fn deserialize_playlist() {
-    let playlist: Playlist = serde_json::from_str(r#"{"nam":"test","typ":"type","lst":[{"itm":{"trk":{"uid":"MAdeyPtrDVSMnwpriPA5anaD66xw5iP1s"}},"add":1578221715728131},{"itm":"sep","add":1578221715728132}]}"#).unwrap();
-    assert_eq!("test", playlist.name);
-    assert_eq!(Some("type".into()), playlist.r#type);
-    assert_eq!(2, playlist.entries.len());
+use crate::entity::EntityUid;
+
+mod _core {
+    pub use aoide_core::collection::playlist::*;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Item
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(Eq, PartialEq))]
+#[serde(deny_unknown_fields)]
+pub struct Item {
+    #[serde(rename = "uid")]
+    uid: EntityUid,
+}
+
+impl From<Item> for _core::Item {
+    fn from(from: Item) -> Self {
+        let Item { uid } = from;
+        Self { uid: uid.into() }
+    }
+}
+
+impl From<_core::Item> for Item {
+    fn from(from: _core::Item) -> Self {
+        let _core::Item { uid } = from;
+        Self { uid: uid.into() }
+    }
 }

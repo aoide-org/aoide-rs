@@ -13,9 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+pub mod track;
+
 use super::*;
 
-use crate::{entity::EntityUid, util::color::Color};
+use crate::util::color::Color;
 
 use aoide_core::util::clock::{TickInstant, TickType, Ticks};
 
@@ -38,7 +40,7 @@ pub enum PlaylistItem {
     Separator,
 
     #[serde(rename = "trk")]
-    Track(EntityUid),
+    Track(track::Item),
     //
     // TODO: Add other kinds of playlist items
     //#[serde(rename = "x")]
@@ -50,9 +52,7 @@ impl From<PlaylistItem> for _core::PlaylistItem {
         use PlaylistItem::*;
         match from {
             Separator => Self::Separator,
-            Track(track_uid) => Self::Track(_core::track::Item {
-                uid: track_uid.into(),
-            }),
+            Track(item) => Self::Track(item.into()),
         }
     }
 }
@@ -62,7 +62,7 @@ impl From<_core::PlaylistItem> for PlaylistItem {
         use _core::PlaylistItem::*;
         match from {
             Separator => Self::Separator,
-            Track(track) => Self::Track(track.uid.into()),
+            Track(item) => Self::Track(item.into()),
         }
     }
 }

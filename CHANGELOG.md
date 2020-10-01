@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.7.5] - 2020-mm-dd
+
+### Added
+
+### Changed
+
+- New format for collection and playlist entries
+
+### Removed
+
 ## [0.7.4] - 2020-09-26
 
 **This release breaks backward compatibility with old versions! Existing databases need to be rebuilt.**

@@ -13,12 +13,29 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+///////////////////////////////////////////////////////////////////////
+
 use super::*;
 
-#[test]
-fn deserialize_playlist() {
-    let playlist: Playlist = serde_json::from_str(r#"{"nam":"test","typ":"type","lst":[{"itm":{"trk":{"uid":"MAdeyPtrDVSMnwpriPA5anaD66xw5iP1s"}},"add":1578221715728131},{"itm":"sep","add":1578221715728132}]}"#).unwrap();
-    assert_eq!("test", playlist.name);
-    assert_eq!(Some("type".into()), playlist.r#type);
-    assert_eq!(2, playlist.entries.len());
+use crate::entity::{EntityUid, EntityUidInvalidity};
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Item {
+    /// References the playlist
+    pub uid: EntityUid,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum ItemInvalidity {
+    Uid(EntityUidInvalidity),
+}
+
+impl Validate for Item {
+    type Invalidity = ItemInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .validate_with(&self.uid, Self::Invalidity::Uid)
+            .into()
+    }
 }

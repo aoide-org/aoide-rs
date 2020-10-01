@@ -13,10 +13,88 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+pub mod playlist;
+pub mod track;
+
 use super::*;
 
+use aoide_core::util::clock::{TickInstant, TickType, Ticks};
+
 mod _core {
-    pub use aoide_core::{collection::*, entity::EntityHeader};
+    pub use aoide_core::{
+        collection::{playlist, track, *},
+        entity::EntityHeader,
+    };
+}
+
+///////////////////////////////////////////////////////////////////////
+// CollectionItem
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(Eq, PartialEq))]
+#[serde(deny_unknown_fields)]
+pub enum CollectionItem {
+    #[serde(rename = "trk")]
+    Track(track::Item),
+
+    #[serde(rename = "pll")]
+    Playlist(playlist::Item),
+}
+
+impl From<CollectionItem> for _core::CollectionItem {
+    fn from(from: CollectionItem) -> Self {
+        use CollectionItem::*;
+        match from {
+            Track(item) => Self::Track(item.into()),
+            Playlist(item) => Self::Playlist(item.into()),
+        }
+    }
+}
+
+impl From<_core::CollectionItem> for CollectionItem {
+    fn from(from: _core::CollectionItem) -> Self {
+        use _core::CollectionItem::*;
+        match from {
+            Track(item) => Self::Track(item.into()),
+            Playlist(item) => Self::Playlist(item.into()),
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// CollectionEntry
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(Eq, PartialEq))]
+#[serde(deny_unknown_fields)]
+pub struct CollectionEntry {
+    #[serde(rename = "add")]
+    added_at: TickType,
+
+    #[serde(rename = "itm")]
+    item: CollectionItem,
+}
+
+impl From<CollectionEntry> for _core::CollectionEntry {
+    fn from(from: CollectionEntry) -> Self {
+        let CollectionEntry { item, added_at } = from;
+        Self {
+            item: item.into(),
+            added_at: TickInstant(Ticks(added_at)),
+        }
+    }
+}
+
+impl From<_core::CollectionEntry> for CollectionEntry {
+    fn from(from: _core::CollectionEntry) -> Self {
+        let _core::CollectionEntry { item, added_at } = from;
+        Self {
+            item: item.into(),
+            added_at: (added_at.0).0,
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////

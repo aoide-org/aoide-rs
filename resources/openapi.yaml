@@ -1184,6 +1184,67 @@ components:
         - $ref: '#/components/schemas/ColorIndexVariant'
       description: |
         Either an RGB color value or a color index.
+    CollectionEntry:
+      properties:
+        add:
+          $ref: '#/components/schemas/CollectionEntryAddedAt'
+        itm:
+          $ref: '#/components/schemas/CollectionItem'
+      required:
+        - add
+        - itm
+    CollectionEntryAddedAt:
+      description: |
+        Time stamp since when an entry is part of the collection,
+        i.e. has been added.
+      allOf:
+        - $ref: '#/components/schemas/TimeStampTicks'
+    CollectionItem:
+      oneOf:
+        - $ref: '#/components/schemas/CollectionPlaylistItem'
+        - $ref: '#/components/schemas/CollectionTrackItem'
+    CollectionPlaylistItem:
+      properties:
+        pll:
+          $ref: '#/components/schemas/CollectionPlaylist'
+      required:
+        - pll
+    CollectionTrackItem:
+      properties:
+        trk:
+          $ref: '#/components/schemas/CollectionTrack'
+      required:
+        - trk
+    CollectionPlaylist:
+      description: |
+        Additional properties of a playlist as part of a collection.
+      properties:
+        uid:
+          $ref: '#/components/schemas/PlaylistUid'
+      required:
+        - uid
+    CollectionTrack:
+      description: |
+        Additional properties of a track as part of a collection.
+      properties:
+        col:
+          $ref: '#/components/schemas/Color'
+        plc:
+          description: |
+            Play count, i.e. the number of times this track has been played
+          type: integer
+          format: int64
+          minimum: 0
+          example: 4
+        plt:
+          description: |
+            Last played time stamp
+          allOf:
+            - $ref: '#/components/schemas/TimeStampTicks'
+        uid:
+          $ref: '#/components/schemas/TrackUid'
+      required:
+        - uid
     ColorIndex:
       type: integer
       minimum: 0
@@ -1706,7 +1767,7 @@ components:
           minLength: 2
           maxLength: 2
           items:
-            $ref: '#/components/schemas/PlaylistEntryAdded'
+            $ref: '#/components/schemas/PlaylistEntryAddedAt'
         cnt:
           description: Number of entries in the playlist
           allOf:
@@ -1725,16 +1786,12 @@ components:
     PlaylistEntry:
       properties:
         add:
-          $ref: '#/components/schemas/PlaylistEntryAdded'
+          $ref: '#/components/schemas/PlaylistEntryAddedAt'
         itm:
           $ref: '#/components/schemas/PlaylistItem'
       required:
         - add
         - itm
-    PlaylistEntryComment:
-      description: |
-        Custom comments and notes to annotate a playlist entry
-      type: string
     PlaylistEntryCount:
       type: integer
       format: int64
@@ -1744,7 +1801,7 @@ components:
         Number of tracks in the playlist
       allOf:
         - $ref: '#/components/schemas/PlaylistEntryCount'
-    PlaylistEntryAdded:
+    PlaylistEntryAddedAt:
       description: |
         Time stamp since when an entry is part of the playlist,
         i.e. when it has been created and added.
@@ -1759,12 +1816,12 @@ components:
     PlaylistItem:
       oneOf:
         - $ref: '#/components/schemas/PlaylistItemSeparator'
-        - $ref: '#/components/schemas/PlaylistItemTrack'
+        - $ref: '#/components/schemas/PlaylistTrackItem'
     PlaylistItemSeparator:
       type: string
       enum:
         - sep
-    PlaylistItemTrack:
+    PlaylistTrackItem:
       properties:
         trk:
           $ref: '#/components/schemas/PlaylistTrack'
