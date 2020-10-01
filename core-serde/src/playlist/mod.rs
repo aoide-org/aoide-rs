@@ -20,7 +20,10 @@ use crate::{entity::EntityUid, util::color::Color};
 use aoide_core::util::clock::{TickInstant, TickType, Ticks};
 
 mod _core {
-    pub use aoide_core::{entity::EntityHeader, playlist::*};
+    pub use aoide_core::{
+        entity::EntityHeader,
+        playlist::{track, *},
+    };
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -47,7 +50,7 @@ impl From<PlaylistItem> for _core::PlaylistItem {
         use PlaylistItem::*;
         match from {
             Separator => Self::Separator,
-            Track(track_uid) => Self::Track(_core::PlaylistTrack {
+            Track(track_uid) => Self::Track(_core::track::Item {
                 uid: track_uid.into(),
             }),
         }
@@ -72,29 +75,29 @@ impl From<_core::PlaylistItem> for PlaylistItem {
 #[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(deny_unknown_fields)]
 pub struct PlaylistEntry {
+    #[serde(rename = "add")]
+    added_at: TickType,
+
     #[serde(rename = "itm")]
     item: PlaylistItem,
-
-    #[serde(rename = "add")]
-    added: TickType,
 }
 
 impl From<PlaylistEntry> for _core::PlaylistEntry {
     fn from(from: PlaylistEntry) -> Self {
-        let PlaylistEntry { item, added } = from;
+        let PlaylistEntry { item, added_at } = from;
         Self {
             item: item.into(),
-            added: TickInstant(Ticks(added)),
+            added_at: TickInstant(Ticks(added_at)),
         }
     }
 }
 
 impl From<_core::PlaylistEntry> for PlaylistEntry {
     fn from(from: _core::PlaylistEntry) -> Self {
-        let _core::PlaylistEntry { item, added } = from;
+        let _core::PlaylistEntry { item, added_at } = from;
         Self {
             item: item.into(),
-            added: (added.0).0,
+            added_at: (added_at.0).0,
         }
     }
 }

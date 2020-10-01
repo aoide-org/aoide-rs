@@ -15,41 +15,19 @@
 
 ///////////////////////////////////////////////////////////////////////
 
+pub mod track;
+
 use super::*;
 
-use crate::{
-    entity::{EntityUid, EntityUidInvalidity},
-    util::{clock::TickInstant, color::Color},
-};
+use crate::util::{clock::TickInstant, color::Color};
 
 use rand::{seq::SliceRandom, thread_rng};
 use std::ops::RangeBounds;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PlaylistTrack {
-    /// A reference to the track.
-    pub uid: EntityUid,
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum PlaylistTrackInvalidity {
-    Uid(EntityUidInvalidity),
-}
-
-impl Validate for PlaylistTrack {
-    type Invalidity = PlaylistTrackInvalidity;
-
-    fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        ValidationContext::new()
-            .validate_with(&self.uid, Self::Invalidity::Uid)
-            .into()
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PlaylistItem {
     Separator, // empty
-    Track(PlaylistTrack),
+    Track(track::Item),
     // TODO: Add more items like an optional transition between
     // two subsequent track items?
     //Transition(PlaylistTransition),
@@ -67,7 +45,7 @@ impl PlaylistItem {
 
 #[derive(Copy, Clone, Debug)]
 pub enum PlaylistItemInvalidity {
-    Track(PlaylistTrackInvalidity),
+    Track(track::ItemInvalidity),
 }
 
 impl Validate for PlaylistItem {
@@ -86,13 +64,13 @@ impl Validate for PlaylistItem {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PlaylistEntry {
+    /// Time stamp added when this entry is part of the playlist,
+    /// i.e. when it has been created and added.
+    pub added_at: TickInstant,
+
     /// The actual item, e.g. a single track or a transition between
     /// two subsequent tracks.
     pub item: PlaylistItem,
-
-    /// Time stamp added when this entry is part of the playlist,
-    /// i.e. when it has been created and added.
-    pub added: TickInstant,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -136,12 +114,12 @@ pub struct Playlist {
 impl Playlist {
     pub fn entries_added_minmax(&self) -> Option<(TickInstant, TickInstant)> {
         let mut entries = self.entries.iter();
-        if let Some(first_added) = entries.next().map(|e| e.added) {
+        if let Some(first_added) = entries.next().map(|e| e.added_at) {
             let mut added_min = first_added;
             let mut added_max = first_added;
             for e in entries {
-                added_min = added_min.min(e.added);
-                added_max = added_max.max(e.added);
+                added_min = added_min.min(e.added_at);
+                added_max = added_max.max(e.added_at);
             }
             Some((added_min, added_max))
         } else {
@@ -190,7 +168,7 @@ impl Playlist {
     // Sort entries by their creation time stamp, preserving the
     // order of entries with equal time stamps.
     pub fn sort_entries_chronologically(&mut self) {
-        self.entries.sort_by_key(|e| e.added);
+        self.entries.sort_by_key(|e| e.added_at);
     }
 
     pub fn count_tracks(&self) -> usize {
