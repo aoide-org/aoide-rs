@@ -23,3 +23,16 @@ table! {
         desc -> Nullable<Text>,
     }
 }
+
+table! {
+    tbl_collection_track (id) {
+        id -> BigInt,
+        collection_id -> BigInt,
+        track_id -> BigInt,
+        added_ts -> BigInt,
+        color_rgb -> Nullable<Integer>,
+        color_idx -> Nullable<SmallInt>,
+        play_count -> Nullable<BigInt>,
+        last_played_ts -> Nullable<BigInt>,
+    }
+}

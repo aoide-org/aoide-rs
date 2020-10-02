@@ -28,9 +28,51 @@ extern crate diesel;
 extern crate diesel_migrations;
 
 use anyhow::anyhow;
-use diesel::prelude::*;
+use diesel::{prelude::*, SqliteConnection};
+use std::ops::Deref;
 
 pub mod collection;
 pub mod playlist;
 pub mod track;
 pub mod util;
+
+#[derive(Clone, Copy)]
+#[allow(missing_debug_implementations)]
+pub struct Connection<'db>(pub &'db SqliteConnection);
+
+impl<'db> Connection<'db> {
+    pub const fn from_inner(inner: &'db SqliteConnection) -> Self {
+        Self(inner)
+    }
+
+    pub const fn into_inner(self) -> &'db SqliteConnection {
+        let Self(inner) = self;
+        inner
+    }
+}
+
+impl<'db> From<&'db SqliteConnection> for Connection<'db> {
+    fn from(inner: &'db SqliteConnection) -> Self {
+        Self::from_inner(inner)
+    }
+}
+
+impl<'db> From<Connection<'db>> for &'db SqliteConnection {
+    fn from(from: Connection<'db>) -> Self {
+        from.into_inner()
+    }
+}
+
+impl<'db> AsRef<SqliteConnection> for Connection<'db> {
+    fn as_ref(&self) -> &SqliteConnection {
+        &self.0
+    }
+}
+
+impl<'db> Deref for Connection<'db> {
+    type Target = SqliteConnection;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
+}

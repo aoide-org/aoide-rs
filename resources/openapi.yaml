@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  version: 0.7.4
+  version: 0.7.5
   title: aoide
   description: Music library management
   license:
@@ -313,7 +313,9 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/TrackEntity'
+                  oneOf:
+                    - $ref: '#/components/schemas/TrackEntity'
+                    - $ref: '#/components/schemas/TrackEntityInCollection'
         '400':
           $ref: '#/components/responses/400BadRequest'
         '404':
@@ -448,7 +450,9 @@ paths:
       summary: Load multiple tracks matching a media source filter
       description: |
         Locate and load tracks according to their (percent-encoded) media URI.
-        Optionally the URI lookup can be restricted to a single collection.
+
+        Optionally the URI lookup can be restricted to a single collection and
+        for disambiguation.
       operationId: locateTracks
       tags:
         - Tracks
@@ -471,7 +475,9 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/TrackEntity'
+                  oneOf:
+                    - $ref: '#/components/schemas/TrackEntity'
+                    - $ref: '#/components/schemas/TrackEntityInCollection'
         '500':
           $ref: '#/components/responses/500InternalServerError'
   /tracks/resolve:
@@ -611,7 +617,9 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/TrackEntity'
+                  oneOf:
+                    - $ref: '#/components/schemas/TrackEntity'
+                    - $ref: '#/components/schemas/TrackEntityInCollection'
         '500':
           $ref: '#/components/responses/500InternalServerError'
   /albums/count-tracks:
@@ -882,6 +890,8 @@ components:
           * 11 = remixer
           * 12 = writer
     Album:
+      description: |
+        Album properties
       properties:
         act:
           type: array
@@ -916,24 +926,6 @@ components:
       allOf:
         - $ref: '#/components/schemas/ActorName'
       example: The Beatles
-    ImageDigest:
-      description: |
-        Fingerprint that identifies the contents of an image for cache lookup
-        and to decide about modifications, e.g. a base64-encoded SHA256
-        hash of the image data.
-      type: string
-      minLength: 1
-    ImageSize:
-      description: |
-        Width and height of an image in pixels
-      type: array
-      minLength: 2
-      maxLength: 2
-      items:
-        type: integer
-        minimum: 1
-        maximum: 65535
-        example: 600
     Artwork:
       description: |
         An image that is embedded in the media content or referenced as
@@ -994,15 +986,6 @@ components:
     AvgTagScore:
       allOf:
         - $ref: '#/components/schemas/TagScore'
-    MeasureOffset:
-      description: |
-        The (absolute) measure offset.
-
-        The offset in measures since the 1st beat in the 1st measure
-        in a musical score.
-      type: number
-      format: float
-      example: 23.25
     BeatOffsetInMeasure:
       type: number
       format: float
@@ -1016,46 +999,6 @@ components:
         The minimum value 0.0 marks the 1st beat or *downbeat* in the
         current measure. The maximm value must be strictly less than
         the value of *beats per measure* for the current time signature.
-    MusicalMeasurePosition:
-      type: array
-      minLength: 2
-      maxLength: 2
-      items:
-        oneOf:
-          - $ref: '#/components/schemas/MeasureOffset'
-          - $ref: '#/components/schemas/BeatOffsetInMeasure'
-      description: |
-        The position in a musical score or sheet music.
-
-        An array with exactly 2 elements: The measure offset
-        followed by the beat offset within this measure.
-    MusicalSignature:
-      properties:
-        bpm:
-          $ref: '#/components/schemas/TempoBpm'
-        bar:
-          $ref: '#/components/schemas/TimeSignature'
-        key:
-          $ref: '#/components/schemas/KeySignature'
-        lck:
-          $ref: '#/components/schemas/MusicalSignatureLocks'
-      description: |
-        Musical signature including tempo/speed, timining, and key.
-    MusicalSignatureLocks:
-      type: integer
-      format: i32
-      minimum: 0
-      maximum: 7
-      example: 5
-      description: |
-        A bitmask for locking selected properties of the musical signature.
-
-        Bits:
-          - 0x01: Tempo/BPM is locked
-          - 0x02: Time signature is locked
-          - 0x04: Key signature is locked
-
-        Example: A value of 5 = 1 | 4 locks both the tempo and the key signature
     BeatAndKeyMarker:
       properties:
         bar:
@@ -1173,6 +1116,35 @@ components:
           $ref: '#/components/schemas/CollectionEntity'
         stats:
           $ref: '#/components/schemas/CollectionStats'
+    CollectionEntryAddedAt:
+      description: |
+        Time stamp since when an entry is part of the collection,
+        i.e. has been added.
+      allOf:
+        - $ref: '#/components/schemas/TimeStampTicks'
+    CollectionSingleTrackEntry:
+      description: |
+        Additional properties of a single track as part of a collection.
+
+        Both the affected collection and track are implicit and defined
+        by the outer context.
+      properties:
+        add:
+          $ref: '#/components/schemas/CollectionEntryAddedAt'
+        col:
+          $ref: '#/components/schemas/Color'
+        plc:
+          description: |
+            Play count, i.e. the number of times this track has been played
+          type: integer
+          format: int64
+          minimum: 0
+          example: 4
+        plt:
+          description: |
+            Last played time stamp
+          allOf:
+            - $ref: '#/components/schemas/TimeStampTicks'
     CollectionStats:
       properties:
         tracks:
@@ -1192,67 +1164,6 @@ components:
         - $ref: '#/components/schemas/ColorIndexVariant'
       description: |
         Either an RGB color value or a color index.
-    CollectionEntry:
-      properties:
-        add:
-          $ref: '#/components/schemas/CollectionEntryAddedAt'
-        itm:
-          $ref: '#/components/schemas/CollectionItem'
-      required:
-        - add
-        - itm
-    CollectionEntryAddedAt:
-      description: |
-        Time stamp since when an entry is part of the collection,
-        i.e. has been added.
-      allOf:
-        - $ref: '#/components/schemas/TimeStampTicks'
-    CollectionItem:
-      oneOf:
-        - $ref: '#/components/schemas/CollectionPlaylistItem'
-        - $ref: '#/components/schemas/CollectionTrackItem'
-    CollectionPlaylistItem:
-      properties:
-        pll:
-          $ref: '#/components/schemas/CollectionPlaylist'
-      required:
-        - pll
-    CollectionTrackItem:
-      properties:
-        trk:
-          $ref: '#/components/schemas/CollectionTrack'
-      required:
-        - trk
-    CollectionPlaylist:
-      description: |
-        Additional properties of a playlist as part of a collection.
-      properties:
-        uid:
-          $ref: '#/components/schemas/PlaylistUid'
-      required:
-        - uid
-    CollectionTrack:
-      description: |
-        Additional properties of a track as part of a collection.
-      properties:
-        col:
-          $ref: '#/components/schemas/Color'
-        plc:
-          description: |
-            Play count, i.e. the number of times this track has been played
-          type: integer
-          format: int64
-          minimum: 0
-          example: 4
-        plt:
-          description: |
-            Last played time stamp
-          allOf:
-            - $ref: '#/components/schemas/TimeStampTicks'
-        uid:
-          $ref: '#/components/schemas/TrackUid'
-      required:
-        - uid
     ColorIndex:
       type: integer
       minimum: 0
@@ -1358,6 +1269,24 @@ components:
       type: string
       enum:
         - complement
+    ImageDigest:
+      description: |
+        Fingerprint that identifies the contents of an image for cache lookup
+        and to decide about modifications, e.g. a base64-encoded SHA256
+        hash of the image data.
+      type: string
+      minLength: 1
+    ImageSize:
+      description: |
+        Width and height of an image in pixels
+      type: array
+      minLength: 2
+      maxLength: 2
+      items:
+        type: integer
+        minimum: 1
+        maximum: 65535
+        example: 600
     Index:
       oneOf:
         - type: integer
@@ -1550,6 +1479,15 @@ components:
         * 1 - read-only (locked)
       type: integer
       enum: [0, 1]
+    MeasureOffset:
+      description: |
+        The (absolute) measure offset.
+
+        The offset in measures since the 1st beat in the 1st measure
+        in a musical score.
+      type: number
+      format: float
+      example: 23.25
     MediaContentProperties:
       allOf:
         - $ref: '#/components/schemas/MediaContentAudioProperty'
@@ -1595,6 +1533,46 @@ components:
     MovementIndex:
       allOf:
         - $ref: '#/components/schemas/Index'
+    MusicalMeasurePosition:
+      type: array
+      minLength: 2
+      maxLength: 2
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/MeasureOffset'
+          - $ref: '#/components/schemas/BeatOffsetInMeasure'
+      description: |
+        The position in a musical score or sheet music.
+
+        An array with exactly 2 elements: The measure offset
+        followed by the beat offset within this measure.
+    MusicalSignature:
+      properties:
+        bpm:
+          $ref: '#/components/schemas/TempoBpm'
+        bar:
+          $ref: '#/components/schemas/TimeSignature'
+        key:
+          $ref: '#/components/schemas/KeySignature'
+        lck:
+          $ref: '#/components/schemas/MusicalSignatureLocks'
+      description: |
+        Musical signature including tempo/speed, timining, and key.
+    MusicalSignatureLocks:
+      type: integer
+      format: i32
+      minimum: 0
+      maximum: 7
+      example: 5
+      description: |
+        A bitmask for locking selected properties of the musical signature.
+
+        Bits:
+          - 0x01: Tempo/BPM is locked
+          - 0x02: Time signature is locked
+          - 0x04: Key signature is locked
+
+        Example: A value of 5 = 1 | 4 locks both the tempo and the key signature
     NumericField:
       type: string
       enum:
@@ -2371,38 +2349,9 @@ components:
         Total number of tracks.
       allOf:
         - $ref: '#/components/schemas/TotalCount'
-    TrackCollection:
-      description: |
-        Track properties that are dependent on the collection.
-      properties:
-        add:
-          description: |
-            Time stamp since when the track is part of this collection,
-            i.e. when it has been added.
-          allOf:
-            - $ref: '#/components/schemas/TimeStampTicks'
-        col:
-          $ref: '#/components/schemas/Color'
-        plc:
-          description: |
-            Play count
-          type: integer
-          format: int64
-          minimum: 0
-          example: 4
-        plt:
-          description: |
-            Last played time stamp
-          allOf:
-            - $ref: '#/components/schemas/TimeStampTicks'
-        uid:
-          $ref: '#/components/schemas/CollectionUid'
-      required:
-        - add
-        - uid
     TrackEntity:
       description: |
-        Entity header and body
+        Entity header followed by entity body
       type: array
       minLength: 2
       maxLength: 2
@@ -2410,6 +2359,17 @@ components:
         oneOf:
           - $ref: '#/components/schemas/EntityHeader'
           - $ref: '#/components/schemas/TrackEntityBody'
+    TrackEntityInCollection:
+      description: |
+        Entity header followed by entity body followed by collection entry properties
+      type: array
+      minLength: 3
+      maxLength: 3
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/EntityHeader'
+          - $ref: '#/components/schemas/TrackEntityBody'
+          - $ref: '#/components/schemas/CollectionSingleTrackEntry'
     TrackEntityBody:
       properties:
         alb:
@@ -2420,12 +2380,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Actor'
-        col:
-          description: |
-            An array of collections
-          type: array
-          items:
-            $ref: '#/components/schemas/TrackCollection'
         idx:
           $ref: '#/components/schemas/Indexes'
         mrk:
@@ -2457,6 +2411,8 @@ components:
           $ref: '#/components/schemas/Uri'
         track:
           $ref: '#/components/schemas/TrackEntityBody'
+        collection:
+          $ref: '#/components/schemas/CollectionSingleTrackEntry'
       required:
         - mediaUri
         - track

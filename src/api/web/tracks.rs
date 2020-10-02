@@ -26,10 +26,13 @@ mod json {
 
 mod _serde {
     pub use aoide_core_serde::{
+        collection::SingleTrackEntry as CollectionSingleTrackEntry,
         entity::{EntityHeader, EntityUid},
         track::Entity,
     };
 }
+
+pub use aoide_core_serde::collection::SingleTrackEntry as CollectionSingleTrackEntry;
 
 // NOTE: This additional module is just a workaround, because
 // otherwise _serde::EntityUid (see above) is not found!?!?
@@ -46,7 +49,7 @@ mod _repo {
         },
         track::{
             AlbumCountResults, CountTracksByAlbumParams, MediaSourceFilterParams, NumericField,
-            NumericFieldFilter, PhraseFieldFilter, ReplaceMode, ReplaceResult, SearchFilter,
+            NumericFieldFilter, PhraseFieldFilter, ReplaceMode, ReplaceOutcome, SearchFilter,
             SearchParams, SortField, SortOrder, StringField,
         },
         util::{UriPredicate, UriRelocation},
@@ -68,6 +71,8 @@ use aoide_core_serde::track::Track;
 use warp::http::StatusCode;
 
 ///////////////////////////////////////////////////////////////////////
+
+const ESTIMATED_COLLECTION_TRACK_JSON_SIZE_IN_BYTES: usize = 128;
 
 #[derive(Debug, Default, Deserialize)]
 #[cfg_attr(test, derive(Serialize))]
@@ -656,13 +661,22 @@ pub struct TrackReplacement {
     media_uri: String,
 
     track: Track,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    collection_entry: Option<(_serde2::EntityUid, CollectionSingleTrackEntry)>,
 }
 
 impl From<TrackReplacement> for UcTrackReplacement {
     fn from(from: TrackReplacement) -> Self {
+        let TrackReplacement {
+            media_uri,
+            track,
+            collection_entry,
+        } = from;
         Self {
-            media_uri: from.media_uri,
-            track: from.track,
+            media_uri,
+            track,
+            collection_entry: collection_entry.map(|(uid, entry)| (uid.into(), entry.into())),
         }
     }
 }
@@ -821,10 +835,27 @@ impl TracksHandler {
         query_params: TracksQueryParams,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         let (collection_uid, pagination) = query_params.into();
-        list_tracks(&self.db, collection_uid, pagination)
-            .and_then(|x| json::load_entity_data_array_blob(x.into_iter()))
-            .map_err(reject_from_anyhow)
-            .map(json::reply_with_content_type)
+        if let Some(collection_uid) = collection_uid {
+            list_tracks_in_collection(&self.db, collection_uid, pagination)
+                .and_then(|x| {
+                    json::load_entity_data_ext_array_blob(
+                        x.into_iter().map(|(entity_data, collection_entry)| {
+                            (
+                                entity_data,
+                                collection_entry.map(CollectionSingleTrackEntry::from),
+                            )
+                        }),
+                        ESTIMATED_COLLECTION_TRACK_JSON_SIZE_IN_BYTES,
+                    )
+                })
+                .map_err(reject_from_anyhow)
+                .map(json::reply_with_content_type)
+        } else {
+            list_tracks(&self.db, pagination)
+                .and_then(|x| json::load_entity_data_array_blob(x.into_iter()))
+                .map_err(reject_from_anyhow)
+                .map(json::reply_with_content_type)
+        }
     }
 
     pub fn handle_search(
@@ -833,10 +864,27 @@ impl TracksHandler {
         search_params: SearchParams,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         let (collection_uid, pagination) = query_params.into();
-        search_tracks(&self.db, collection_uid, pagination, search_params.into())
-            .and_then(|x| json::load_entity_data_array_blob(x.into_iter()))
-            .map_err(reject_from_anyhow)
-            .map(json::reply_with_content_type)
+        if let Some(collection_uid) = collection_uid {
+            search_tracks_in_collection(&self.db, collection_uid, pagination, search_params.into())
+                .and_then(|x| {
+                    json::load_entity_data_ext_array_blob(
+                        x.into_iter().map(|(entity_data, collection_entry)| {
+                            (
+                                entity_data,
+                                collection_entry.map(CollectionSingleTrackEntry::from),
+                            )
+                        }),
+                        ESTIMATED_COLLECTION_TRACK_JSON_SIZE_IN_BYTES,
+                    )
+                })
+                .map_err(reject_from_anyhow)
+                .map(json::reply_with_content_type)
+        } else {
+            search_tracks(&self.db, pagination, search_params.into())
+                .and_then(|x| json::load_entity_data_array_blob(x.into_iter()))
+                .map_err(reject_from_anyhow)
+                .map(json::reply_with_content_type)
+        }
     }
 
     pub fn handle_locate(
@@ -845,10 +893,27 @@ impl TracksHandler {
         filter_params: MediaSourceFilterParams,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
         let (collection_uid, pagination) = query_params.into();
-        locate_tracks(&self.db, collection_uid, pagination, filter_params.into())
-            .and_then(|x| json::load_entity_data_array_blob(x.into_iter()))
-            .map_err(reject_from_anyhow)
-            .map(json::reply_with_content_type)
+        if let Some(collection_uid) = collection_uid {
+            locate_tracks_in_collection(&self.db, collection_uid, pagination, filter_params.into())
+                .and_then(|x| {
+                    json::load_entity_data_ext_array_blob(
+                        x.into_iter().map(|(entity_data, collection_entry)| {
+                            (
+                                entity_data,
+                                collection_entry.map(CollectionSingleTrackEntry::from),
+                            )
+                        }),
+                        ESTIMATED_COLLECTION_TRACK_JSON_SIZE_IN_BYTES,
+                    )
+                })
+                .map_err(reject_from_anyhow)
+                .map(json::reply_with_content_type)
+        } else {
+            locate_tracks(&self.db, pagination, filter_params.into())
+                .and_then(|x| json::load_entity_data_array_blob(x.into_iter()))
+                .map_err(reject_from_anyhow)
+                .map(json::reply_with_content_type)
+        }
     }
 
     pub fn handle_resolve(
@@ -869,14 +934,11 @@ impl TracksHandler {
 
     pub fn handle_replace(
         &self,
-        query_params: TracksQueryParams,
         replace_params: ReplaceTracksParams,
     ) -> Result<impl warp::Reply, warp::reject::Rejection> {
-        let (collection_uid, _) = query_params.into();
         let mode = replace_params.mode.into();
         replace_tracks(
             &self.db,
-            collection_uid,
             mode,
             replace_params.replacements.into_iter().map(Into::into),
         )

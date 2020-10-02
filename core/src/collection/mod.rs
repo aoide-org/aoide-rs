@@ -20,6 +20,8 @@ use super::*;
 
 use crate::util::clock::TickInstant;
 
+use std::fmt::Debug;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Collection {
     pub name: String,
@@ -45,45 +47,25 @@ impl Validate for Collection {
 pub type Entity = crate::entity::Entity<CollectionInvalidity, Collection>;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum CollectionItem {
-    Track(track::Item),
-    Playlist(playlist::Item),
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum CollectionItemInvalidity {
-    Track(track::ItemInvalidity),
-    Playlist(playlist::ItemInvalidity),
-}
-
-impl Validate for CollectionItem {
-    type Invalidity = CollectionItemInvalidity;
-
-    fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        let context = ValidationContext::new();
-        use CollectionItem::*;
-        match self {
-            Track(ref track) => context.validate_with(track, Self::Invalidity::Track),
-            Playlist(ref playlist) => context.validate_with(playlist, Self::Invalidity::Playlist),
-        }
-        .into()
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct CollectionEntry {
+pub struct CollectionEntry<T> {
     pub added_at: TickInstant,
 
-    pub item: CollectionItem,
+    pub item: T,
 }
 
 #[derive(Copy, Clone, Debug)]
-pub enum CollectionEntryInvalidity {
-    Item(CollectionItemInvalidity),
+pub enum CollectionEntryInvalidity<T>
+where
+    T: Validate + Debug + 'static,
+{
+    Item(T::Invalidity),
 }
 
-impl Validate for CollectionEntry {
-    type Invalidity = CollectionEntryInvalidity;
+impl<T> Validate for CollectionEntry<T>
+where
+    T: Validate + Debug + 'static,
+{
+    type Invalidity = CollectionEntryInvalidity<T>;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
@@ -91,3 +73,9 @@ impl Validate for CollectionEntry {
             .into()
     }
 }
+
+pub type SingleTrackEntry = CollectionEntry<track::ItemBody>;
+
+pub type TrackEntry = CollectionEntry<track::Item>;
+
+pub type PlaylistEntry = CollectionEntry<playlist::Item>;

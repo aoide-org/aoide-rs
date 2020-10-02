@@ -16,51 +16,33 @@
 use super::*;
 
 mod models;
-pub mod schema;
+pub(crate) mod schema;
 
 use self::{models::*, schema::*};
 
-use crate::util::*;
+use crate::{track::schema::tbl_track, util::*};
 
 use aoide_core::{
-    collection::*,
+    collection::{track::ItemBody as TrackItemBody, *},
     entity::{EntityHeader, EntityRevision, EntityUid},
 };
 
-use aoide_repo::{collection::*, entity::Repo as EntityRepo, *};
+use aoide_repo::{collection::*, track::Repo as _, *};
 
-///////////////////////////////////////////////////////////////////////
-// Repository
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone)]
-#[allow(missing_debug_implementations)]
-pub struct Repository<'a> {
-    connection: &'a diesel::SqliteConnection,
-}
-
-impl<'a> Repository<'a> {
-    pub fn new(connection: &'a diesel::SqliteConnection) -> Self {
-        Self { connection }
-    }
-}
-
-impl<'a> EntityRepo for Repository<'a> {
-    fn resolve_repo_id(&self, uid: &EntityUid) -> RepoResult<Option<RepoId>> {
+impl<'db> Repo for crate::Connection<'db> {
+    fn resolve_collection_id(&self, uid: &EntityUid) -> RepoResult<Option<RepoId>> {
         tbl_collection::table
             .select(tbl_collection::id)
             .filter(tbl_collection::uid.eq(uid.as_ref()))
-            .first::<RepoId>(self.connection)
+            .first::<RepoId>(self.as_ref())
             .optional()
             .map_err(Into::into)
     }
-}
 
-impl<'a> Repo for Repository<'a> {
     fn insert_collection(&self, entity: &Entity) -> RepoResult<()> {
         let insertable = InsertableEntity::bind(entity);
         let query = diesel::insert_into(tbl_collection::table).values(&insertable);
-        query.execute(self.connection)?;
+        query.execute(self.as_ref())?;
         Ok(())
     }
 
@@ -79,7 +61,7 @@ impl<'a> Repo for Repository<'a> {
                     .and(tbl_collection::rev_ts.eq((prev_rev.ts.0).0)),
             );
             let query = diesel::update(target).set(&updatable);
-            let rows_affected: usize = query.execute(self.connection)?;
+            let rows_affected: usize = query.execute(self.as_ref())?;
             debug_assert!(rows_affected <= 1);
             if rows_affected < 1 {
                 return Ok((prev_rev, None));
@@ -91,7 +73,7 @@ impl<'a> Repo for Repository<'a> {
     fn delete_collection(&self, uid: &EntityUid) -> RepoResult<Option<()>> {
         let target = tbl_collection::table.filter(tbl_collection::uid.eq(uid.as_ref()));
         let query = diesel::delete(target);
-        let rows_affected: usize = query.execute(self.connection)?;
+        let rows_affected: usize = query.execute(self.as_ref())?;
         debug_assert!(rows_affected <= 1);
         if rows_affected < 1 {
             Ok(None)
@@ -103,7 +85,7 @@ impl<'a> Repo for Repository<'a> {
     fn load_collection(&self, uid: &EntityUid) -> RepoResult<Option<Entity>> {
         tbl_collection::table
             .filter(tbl_collection::uid.eq(uid.as_ref()))
-            .first::<QueryableEntity>(self.connection)
+            .first::<QueryableEntity>(self.as_ref())
             .optional()
             .map(|o| o.map(Into::into))
             .map_err(Into::into)
@@ -118,7 +100,7 @@ impl<'a> Repo for Repository<'a> {
         target = apply_pagination(target, pagination);
 
         target
-            .load::<QueryableEntity>(self.connection)
+            .load::<QueryableEntity>(self.as_ref())
             .map(|v| v.into_iter().map(Into::into).collect())
             .map_err(Into::into)
     }
@@ -126,7 +108,7 @@ impl<'a> Repo for Repository<'a> {
     fn find_collections_by_name(&self, name: &str) -> RepoResult<Vec<Entity>> {
         tbl_collection::table
             .filter(tbl_collection::name.eq(name))
-            .load::<QueryableEntity>(self.connection)
+            .load::<QueryableEntity>(self.as_ref())
             .map(|v| v.into_iter().map(Into::into).collect())
             .map_err(Into::into)
     }
@@ -145,7 +127,7 @@ impl<'a> Repo for Repository<'a> {
         target = apply_pagination(target, pagination);
 
         target
-            .load::<QueryableEntity>(self.connection)
+            .load::<QueryableEntity>(self.as_ref())
             .map(|v| v.into_iter().map(Into::into).collect())
             .map_err(Into::into)
     }
@@ -164,8 +146,107 @@ impl<'a> Repo for Repository<'a> {
         target = apply_pagination(target, pagination);
 
         target
-            .load::<QueryableEntity>(self.connection)
+            .load::<QueryableEntity>(self.as_ref())
             .map(|v| v.into_iter().map(Into::into).collect())
+            .map_err(Into::into)
+    }
+}
+
+impl<'db> TrackEntryRepo for crate::Connection<'db> {
+    fn replace_track_entry(
+        &self,
+        collection_uid: &EntityUid,
+        track_uid: &EntityUid,
+        entry: SingleTrackEntry,
+    ) -> RepoResult<()> {
+        let SingleTrackEntry {
+            added_at,
+            item: item_body,
+        } = entry;
+        let collection_id =
+            self.resolve_collection_id(collection_uid)
+                .and_then(|collection_id| {
+                    collection_id.ok_or_else(|| anyhow!("collection {} not found", collection_uid))
+                })?;
+        let track_id = self.resolve_track_id(&track_uid).and_then(|track_id| {
+            track_id.ok_or_else(|| anyhow!("track {} not found", track_uid))
+        })?;
+        let updatable = UpdatableCollectionTrack::bind(&item_body);
+        let update_query = diesel::update(tbl_collection_track::table).set(&updatable);
+        let rows_updated: usize = update_query.execute(self.as_ref())?;
+        debug_assert!(rows_updated <= 1);
+        if rows_updated > 0 {
+            return Ok(());
+        }
+        let insertable =
+            InsertableCollectionTrack::bind(collection_id, track_id, added_at, &item_body);
+        let query = diesel::insert_into(tbl_collection_track::table).values(&insertable);
+        query.execute(self.as_ref())?;
+        Ok(())
+    }
+
+    fn remove_track_entry(
+        &self,
+        collection_uid: &EntityUid,
+        track_uid: &EntityUid,
+    ) -> RepoResult<bool> {
+        let target = tbl_collection_track::table
+            .filter(
+                tbl_collection_track::collection_id.eq_any(
+                    tbl_collection::table
+                        .select(tbl_collection::id)
+                        .filter(tbl_collection::uid.eq(collection_uid.as_ref())),
+                ),
+            )
+            .filter(
+                tbl_collection_track::track_id.eq_any(
+                    tbl_track::table
+                        .select(tbl_track::id)
+                        .filter(tbl_track::uid.eq(track_uid.as_ref())),
+                ),
+            );
+        let query = diesel::delete(target);
+        let rows_affected: usize = query.execute(self.as_ref())?;
+        debug_assert!(rows_affected <= 1);
+        Ok(rows_affected > 0)
+    }
+
+    fn remove_all_track_entries(&self, collection_uid: &EntityUid) -> RepoResult<usize> {
+        let target = tbl_collection_track::table.filter(
+            tbl_collection_track::collection_id.eq_any(
+                tbl_collection::table
+                    .select(tbl_collection::id)
+                    .filter(tbl_collection::uid.eq(collection_uid.as_ref())),
+            ),
+        );
+        let query = diesel::delete(target);
+        let rows_affected: usize = query.execute(self.as_ref())?;
+        Ok(rows_affected)
+    }
+
+    fn load_track_entry(
+        &self,
+        collection_uid: &EntityUid,
+        track_uid: &EntityUid,
+    ) -> RepoResult<Option<SingleTrackEntry>> {
+        tbl_collection_track::table
+            .filter(
+                tbl_collection_track::collection_id.eq_any(
+                    tbl_collection::table
+                        .select(tbl_collection::id)
+                        .filter(tbl_collection::uid.eq(collection_uid.as_ref())),
+                ),
+            )
+            .filter(
+                tbl_collection_track::track_id.eq_any(
+                    tbl_track::table
+                        .select(tbl_track::id)
+                        .filter(tbl_track::uid.eq(track_uid.as_ref())),
+                ),
+            )
+            .first::<QueryableCollectionTrack>(self.as_ref())
+            .optional()
+            .map(|o| o.map(Into::into))
             .map_err(Into::into)
     }
 }

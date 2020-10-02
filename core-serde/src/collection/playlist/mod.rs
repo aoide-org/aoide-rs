@@ -36,13 +36,17 @@ pub struct Item {
 impl From<Item> for _core::Item {
     fn from(from: Item) -> Self {
         let Item { uid } = from;
-        Self { uid: uid.into() }
+        let body = _core::ItemBody;
+        Self {
+            uid: uid.into(),
+            body,
+        }
     }
 }
 
 impl From<_core::Item> for Item {
     fn from(from: _core::Item) -> Self {
-        let _core::Item { uid } = from;
+        let _core::Item { uid, body: _ } = from;
         Self { uid: uid.into() }
     }
 }

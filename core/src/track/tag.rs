@@ -43,15 +43,22 @@ lazy_static! {
     // Atmosphere of the situation, e.g. "bouncy", "driving", "dreamy", "poppy", "punchy", "spiritual", "tropical", "uplifting" ...
     pub static ref FACET_VIBE: Facet = Facet::from_inner("vibe".into());
 
-    // Facets for various musical features. These tags are only scored,
-    // but should not be labeled.
+    // Predefined musical or audio feature scores (as of Spotify/EchoNest).
+    // A label is optional and could be used for identifying the source of
+    // the score.
+    //
+    // The combination of FACET_AROUSAL and FACET_VALENCE could
+    // be used for classifying emotion (= mood) according to Thayer's
+    // arousel-valence emotion plane.
+    //
     // See also: [Spotify Audio Features](https://developer.spotify.com/documentation/web-api/reference/tracks/get-audio-features/)
-    pub static ref FACET_ENERGY: Label = Label::from_inner("energy".into());
-    pub static ref FACET_DANCEABILITY: Label = Label::from_inner("danceability".into());
-    pub static ref FACET_VALENCE: Label = Label::from_inner("valence".into()); // a measure for happiness
     pub static ref FACET_ACOUSTICNESS: Label = Label::from_inner("acousticness".into());
+    pub static ref FACET_AROUSAL: Label = Label::from_inner("arousal".into());
+    pub static ref FACET_DANCEABILITY: Label = Label::from_inner("danceability".into());
+    pub static ref FACET_ENERGY: Label = Label::from_inner("energy".into());
     pub static ref FACET_INSTRUMENTALNESS: Label = Label::from_inner("instrumentalness".into());
     pub static ref FACET_LIVENESS: Label = Label::from_inner("liveness".into());
-    pub static ref FACET_SPEECHINESS: Label = Label::from_inner("speechiness".into());
     pub static ref FACET_POPULARITY: Label = Label::from_inner("popularity".into());
+    pub static ref FACET_SPEECHINESS: Label = Label::from_inner("speechiness".into());
+    pub static ref FACET_VALENCE: Label = Label::from_inner("valence".into()); // a measure for happiness
 }

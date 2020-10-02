@@ -15,12 +15,6 @@
 
 use super::*;
 
-use aoide_core::entity::EntityUid;
-
-pub trait Repo {
-    fn resolve_repo_id(&self, uid: &EntityUid) -> RepoResult<Option<RepoId>>;
-}
-
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum EntityDataFormat {
     JSON = 1,
@@ -67,3 +61,5 @@ impl fmt::Display for EntityDataVersion {
 pub type EntityBodyData = (EntityDataFormat, EntityDataVersion, Vec<u8>);
 
 pub type EntityData = (EntityHeader, EntityBodyData);
+
+pub type EntityDataExt<T> = (EntityData, T);

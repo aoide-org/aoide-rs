@@ -24,7 +24,9 @@ pub mod release;
 
 use self::{album::*, collection::*, index::*, marker::*, music::*, release::*};
 
-use crate::{actor::*, media, tag::*, title::*};
+use crate::{
+    actor::*, collection::SingleTrackEntry as CollectionSingleTrackEntry, media, tag::*, title::*,
+};
 
 mod _core {
     pub use aoide_core::track::*;
@@ -155,6 +157,11 @@ impl From<_core::Entity> for Entity {
         Self(from.hdr.into(), from.body.into())
     }
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
+#[serde(deny_unknown_fields)]
+pub struct EntityInCollection(pub Entity, pub CollectionSingleTrackEntry);
 
 ///////////////////////////////////////////////////////////////////////
 // DateTime

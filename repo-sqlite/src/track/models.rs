@@ -21,16 +21,14 @@ use aoide_core::{
     music::time::Beats,
     tag::*,
     title::*,
-    track::{self, YYYYMMDD, *},
-    util::{clock::*, color::Color},
+    track::{YYYYMMDD, *},
+    util::clock::*,
 };
 
 #[cfg(feature = "experimental-bnk-markers")]
 use aoide_core::track::marker::bnk;
 
 use aoide_repo::{entity::*, RepoId};
-
-use chrono::{naive::NaiveDateTime, DateTime};
 
 use percent_encoding::percent_decode;
 
@@ -130,42 +128,6 @@ impl From<QueryableEntityData> for EntityData {
             minor: from.data_vmin as EntityDataVersionNumber,
         };
         (hdr, (fmt, ver, from.data_blob))
-    }
-}
-
-#[derive(Debug, Insertable)]
-#[table_name = "aux_track_collection"]
-pub struct InsertableCollection<'a> {
-    pub track_id: RepoId,
-    pub collection_uid: &'a [u8],
-    pub added_at: NaiveDateTime,
-    pub color_rgb: Option<i32>,
-    pub color_idx: Option<i16>,
-    pub play_count: Option<i32>,
-    pub last_played_at: Option<NaiveDateTime>,
-}
-
-impl<'a> InsertableCollection<'a> {
-    pub fn bind(track_id: RepoId, collection: &'a track::collection::Collection) -> Self {
-        Self {
-            track_id,
-            collection_uid: collection.uid.as_ref(),
-            added_at: DateTime::from(collection.added_at).naive_utc(),
-            color_rgb: if let Some(Color::Rgb(color)) = collection.color {
-                Some(color.code() as i32)
-            } else {
-                None
-            },
-            color_idx: if let Some(Color::Index(index)) = collection.color {
-                Some(index)
-            } else {
-                None
-            },
-            play_count: collection.play_count.map(|count| count as i32),
-            last_played_at: collection
-                .last_played_at
-                .map(|last_played_at| DateTime::from(last_played_at).naive_utc()),
-        }
     }
 }
 

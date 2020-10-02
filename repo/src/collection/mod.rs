@@ -21,6 +21,8 @@ use aoide_core::{
 };
 
 pub trait Repo {
+    fn resolve_collection_id(&self, uid: &EntityUid) -> RepoResult<Option<RepoId>>;
+
     fn insert_collection(&self, entity: &Entity) -> RepoResult<()>;
 
     fn update_collection(
@@ -47,6 +49,33 @@ pub trait Repo {
         name: &str,
         pagination: Pagination,
     ) -> RepoResult<Vec<Entity>>;
+}
+
+pub trait TrackEntryRepo {
+    /// Insert or update the given entry
+    fn replace_track_entry(
+        &self,
+        collection_uid: &EntityUid,
+        track_uid: &EntityUid,
+        entry: SingleTrackEntry,
+    ) -> RepoResult<()>;
+
+    /// Remove the given entry
+    fn remove_track_entry(
+        &self,
+        collection_uid: &EntityUid,
+        track_uid: &EntityUid,
+    ) -> RepoResult<bool>;
+
+    /// Remove the given entry
+    fn remove_all_track_entries(&self, collection_uid: &EntityUid) -> RepoResult<usize>;
+
+    /// Try to load the given entry if it exists
+    fn load_track_entry(
+        &self,
+        collection_uid: &EntityUid,
+        track_uid: &EntityUid,
+    ) -> RepoResult<Option<SingleTrackEntry>>;
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]

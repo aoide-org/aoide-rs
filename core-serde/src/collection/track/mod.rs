@@ -24,16 +24,13 @@ mod _core {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Item
+// ItemBody
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(deny_unknown_fields)]
-pub struct Item {
-    #[serde(rename = "uid")]
-    uid: EntityUid,
-
+pub struct ItemBody {
     #[serde(rename = "col", skip_serializing_if = "Option::is_none")]
     color: Option<Color>,
 
@@ -44,16 +41,29 @@ pub struct Item {
     last_played_at: Option<TickType>,
 }
 
-impl From<Item> for _core::Item {
-    fn from(from: Item) -> Self {
-        let Item {
-            uid,
+impl From<_core::ItemBody> for ItemBody {
+    fn from(from: _core::ItemBody) -> Self {
+        let _core::ItemBody {
             color,
             play_count,
             last_played_at,
         } = from;
         Self {
-            uid: uid.into(),
+            color: color.map(Into::into),
+            play_count: play_count.map(Into::into),
+            last_played_at: last_played_at.map(|last_played_at| (last_played_at.0).0),
+        }
+    }
+}
+
+impl From<ItemBody> for _core::ItemBody {
+    fn from(from: ItemBody) -> Self {
+        let ItemBody {
+            color,
+            play_count,
+            last_played_at,
+        } = from;
+        Self {
             color: color.map(Into::into),
             play_count: play_count.map(Into::into),
             last_played_at: last_played_at.map(|last_played_at| TickInstant(Ticks(last_played_at))),
@@ -61,19 +71,27 @@ impl From<Item> for _core::Item {
     }
 }
 
-impl From<_core::Item> for Item {
-    fn from(from: _core::Item) -> Self {
-        let _core::Item {
-            uid,
-            color,
-            play_count,
-            last_played_at,
-        } = from;
+///////////////////////////////////////////////////////////////////////
+// Item
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(Eq, PartialEq))]
+pub struct Item(EntityUid, ItemBody);
+
+impl From<Item> for _core::Item {
+    fn from(from: Item) -> Self {
+        let Item(uid, body) = from;
         Self {
             uid: uid.into(),
-            color: color.map(Into::into),
-            play_count: play_count.map(Into::into),
-            last_played_at: last_played_at.map(|last_played_at| (last_played_at.0).0),
+            body: body.into(),
         }
+    }
+}
+
+impl From<_core::Item> for Item {
+    fn from(from: _core::Item) -> Self {
+        let _core::Item { uid, body } = from;
+        Self(uid.into(), body.into())
     }
 }

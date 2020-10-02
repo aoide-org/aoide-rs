@@ -34,7 +34,7 @@ use aoide_repo::{
     Pagination, RepoResult,
 };
 
-use aoide_repo_sqlite::playlist::Repository;
+use aoide_repo_sqlite::Connection as DbConnection;
 
 use serde::Deserialize;
 
@@ -86,23 +86,27 @@ pub fn load_json_entity_data(entity_data: EntityData) -> Fallible<(EntityHeader,
 }
 
 pub fn create_playlist(
-    conn: &SqlitePooledConnection,
+    db: &SqlitePooledConnection,
     new_playlist: Playlist,
     body_data: EntityBodyData,
 ) -> RepoResult<Entity> {
-    let repo = Repository::new(&*conn);
     let hdr = EntityHeader::initial_random();
     let entity = Entity::new(hdr, new_playlist);
-    conn.transaction::<_, Error, _>(|| repo.insert_playlist(&entity, body_data).map(|()| entity))
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
+        repo.insert_playlist(&entity, body_data).map(|()| entity)
+    })
 }
 
 pub fn update_playlist(
-    conn: &SqlitePooledConnection,
+    db: &SqlitePooledConnection,
     entity: &Entity,
     body_data: EntityBodyData,
 ) -> RepoResult<EntityRevisionUpdateResult> {
-    let repo = Repository::new(&*conn);
-    conn.transaction::<_, Error, _>(|| repo.update_playlist(entity, body_data))
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
+        repo.update_playlist(entity, body_data)
+    })
 }
 
 #[derive(Debug, Deserialize)]
@@ -132,13 +136,13 @@ pub enum PlaylistPatchOperation {
 }
 
 pub fn patch_playlist(
-    conn: &SqlitePooledConnection,
+    db: &SqlitePooledConnection,
     uid: &EntityUid,
     rev: Option<EntityRevision>,
     operations: impl IntoIterator<Item = PlaylistPatchOperation>,
 ) -> RepoResult<(EntityRevisionUpdateResult, Option<Playlist>)> {
-    let repo = Repository::new(&*conn);
-    conn.transaction::<_, Error, _>(|| {
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
         let entity_data = repo.load_playlist(uid)?;
         if let Some(entity_data) = entity_data {
             let Entity {
@@ -292,33 +296,41 @@ pub fn patch_playlist(
     })
 }
 
-pub fn delete_playlist(conn: &SqlitePooledConnection, uid: &EntityUid) -> RepoResult<Option<()>> {
-    let repo = Repository::new(&*conn);
-    conn.transaction::<_, Error, _>(|| repo.delete_playlist(uid))
+pub fn delete_playlist(db: &SqlitePooledConnection, uid: &EntityUid) -> RepoResult<Option<()>> {
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
+        repo.delete_playlist(uid)
+    })
 }
 
 pub fn load_playlist(
-    conn: &SqlitePooledConnection,
+    db: &SqlitePooledConnection,
     uid: &EntityUid,
 ) -> RepoResult<Option<EntityData>> {
-    let repo = Repository::new(&*conn);
-    conn.transaction::<_, Error, _>(|| repo.load_playlist(uid))
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
+        repo.load_playlist(uid)
+    })
 }
 
 pub fn list_playlists(
-    conn: &SqlitePooledConnection,
+    db: &SqlitePooledConnection,
     r#type: Option<&str>,
     pagination: Pagination,
 ) -> RepoResult<Vec<EntityData>> {
-    let repo = Repository::new(&*conn);
-    conn.transaction::<_, Error, _>(|| repo.list_playlists(r#type, pagination))
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
+        repo.list_playlists(r#type, pagination)
+    })
 }
 
 pub fn list_playlist_briefs(
-    conn: &SqlitePooledConnection,
+    db: &SqlitePooledConnection,
     r#type: Option<&str>,
     pagination: Pagination,
 ) -> RepoResult<Vec<(EntityHeader, PlaylistBrief)>> {
-    let repo = Repository::new(&*conn);
-    conn.transaction::<_, Error, _>(|| repo.list_playlist_briefs(r#type, pagination))
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
+        repo.list_playlist_briefs(r#type, pagination)
+    })
 }

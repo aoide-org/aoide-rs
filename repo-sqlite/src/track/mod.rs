@@ -16,7 +16,7 @@
 use super::*;
 
 mod models;
-mod schema;
+pub(crate) mod schema;
 mod search;
 pub mod util;
 
@@ -24,12 +24,16 @@ use self::{
     models::*,
     schema::*,
     search::{TrackSearchBoxedExpressionBuilder, TrackSearchQueryTransform},
-    util::RepositoryHelper,
+    util::*,
 };
 
-use crate::util::*;
+use crate::{
+    collection::schema::{tbl_collection, tbl_collection_track},
+    util::*,
+};
 
 use aoide_core::{
+    collection::SingleTrackEntry as CollectionSingleTrackEntry,
     entity::{
         EntityHeader, EntityRevision, EntityRevisionUpdateResult, EntityUid, EntityVersionNumber,
     },
@@ -42,7 +46,7 @@ use aoide_core::{
 
 use aoide_repo::{
     collection::TrackStats as CollectionTrackStats,
-    entity::{EntityBodyData, EntityData, Repo as EntityRepo},
+    entity::{EntityBodyData, EntityData, EntityDataExt},
     tag::{
         AvgScoreCount, CountParams as TagCountParams, FacetCount, FacetCountParams,
         Filter as TagFilter, SortField as TagSortField,
@@ -52,37 +56,6 @@ use aoide_repo::{
 };
 
 use diesel::dsl::*;
-
-///////////////////////////////////////////////////////////////////////
-// Repository
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone)]
-#[allow(missing_debug_implementations)]
-pub struct Repository<'a> {
-    connection: &'a diesel::SqliteConnection,
-    helper: RepositoryHelper<'a>,
-}
-
-impl<'a> Repository<'a> {
-    pub fn new(connection: &'a diesel::SqliteConnection) -> Self {
-        Self {
-            connection,
-            helper: RepositoryHelper::new(connection),
-        }
-    }
-}
-
-impl<'a> EntityRepo for Repository<'a> {
-    fn resolve_repo_id(&self, uid: &EntityUid) -> RepoResult<Option<RepoId>> {
-        tbl_track::table
-            .select(tbl_track::id)
-            .filter(tbl_track::uid.eq(uid.as_ref()))
-            .first::<RepoId>(self.connection)
-            .optional()
-            .map_err(Into::into)
-    }
-}
 
 fn select_track_ids_matching_tag_filter<'a, DB>(
     tag_filter: &'a TagFilter,
@@ -277,15 +250,147 @@ enum EitherEqualOrLike {
     Like(String),
 }
 
-impl<'a> Repo for Repository<'a> {
+fn locate_track_rows<'db>(
+    db: &crate::Connection<'db>,
+    collection_uid: Option<&EntityUid>,
+    pagination: Pagination,
+    filter_params: MediaSourceFilterParams,
+) -> RepoResult<Vec<QueryableEntityData>> {
+    // URI filter
+    let (cmp, val, dir) = (&filter_params.media_uri).into();
+    let either_eq_or_like = match cmp {
+        // Equal comparison without escape characters
+        StringCompare::Equals => EitherEqualOrLike::Equal(val.to_owned()),
+        // Like comparison: Escape wildcard character with backslash (see below)
+        StringCompare::StartsWith => EitherEqualOrLike::Like(format!(
+            "{}%",
+            val.replace('\\', "\\\\").replace('%', "\\%")
+        )),
+        StringCompare::EndsWith => EitherEqualOrLike::Like(format!(
+            "%{}",
+            val.replace('\\', "\\\\").replace('%', "\\%")
+        )),
+        StringCompare::Contains => EitherEqualOrLike::Like(format!(
+            "%{}%",
+            val.replace('\\', "\\\\").replace('%', "\\%")
+        )),
+        StringCompare::Matches => {
+            EitherEqualOrLike::Like(val.replace('\\', "\\\\").replace('%', "\\%"))
+        }
+    };
+
+    let mut target = tbl_track::table
+        .select(tbl_track::all_columns)
+        .order_by(tbl_track::id) // preserve relative order of results
+        .into_boxed();
+
+    // A subselect has proven to be much more efficient than
+    // joining the aux_track_location table for filtering by URI!
+    let mut track_id_subselect = aux_track_location::table
+        .select(aux_track_location::track_id)
+        .into_boxed();
+    // URI filtering
+    track_id_subselect = match either_eq_or_like {
+        EitherEqualOrLike::Equal(eq) => {
+            if dir {
+                track_id_subselect.filter(aux_track_location::uri.eq(eq))
+            } else {
+                track_id_subselect.filter(aux_track_location::uri.ne(eq))
+            }
+        }
+        EitherEqualOrLike::Like(like) => {
+            if dir {
+                track_id_subselect.filter(aux_track_location::uri.like(like).escape('\\'))
+            } else {
+                track_id_subselect.filter(aux_track_location::uri.not_like(like).escape('\\'))
+            }
+        }
+    };
+    // Collection filtering
+    if let Some(collection_uid) = collection_uid {
+        track_id_subselect = track_id_subselect
+            .filter(aux_track_location::collection_uid.eq(collection_uid.as_ref()));
+    }
+    target = if dir {
+        target.filter(tbl_track::id.eq_any(track_id_subselect))
+    } else {
+        target.filter(tbl_track::id.ne_all(track_id_subselect))
+    };
+
+    // Pagination
+    target = apply_pagination(target, pagination);
+
+    Ok(target.load::<QueryableEntityData>(db.as_ref())?)
+}
+
+fn search_track_rows<'db>(
+    db: &crate::Connection<'db>,
+    collection_uid: Option<&EntityUid>,
+    pagination: Pagination,
+    search_params: SearchParams,
+) -> RepoResult<Vec<QueryableEntityData>> {
+    // TODO: Joins are very expensive and should only be used
+    // when the results need to be ordered. For filtering
+    // subselects have proven to be much more efficient.
+    //
+    // In general queries with joins are not suitable to be
+    // executed efficiently as batch operations. Since search
+    // operations are expected to be executed standalone the
+    // joins are acceptable in this case.
+    let mut target = tbl_track::table
+        .select(tbl_track::all_columns)
+        .distinct()
+        .inner_join(aux_track_brief::table)
+        .left_outer_join(aux_track_media::table)
+        .left_outer_join(tbl_collection_track::table)
+        .into_boxed();
+
+    if let Some(ref filter) = search_params.filter {
+        target = target.filter(filter.build_expression(collection_uid));
+    }
+
+    // Collection filter
+    if let Some(uid) = collection_uid {
+        target = target.filter(
+            tbl_collection_track::collection_id.eq_any(
+                tbl_collection::table
+                    .select(tbl_collection::id)
+                    .filter(tbl_collection::uid.eq(uid.as_ref())),
+            ),
+        );
+    };
+
+    for sort_order in &search_params.ordering {
+        target = sort_order.apply_to_query(target, collection_uid);
+    }
+    // Finally order by PK to preserve the relative order of results
+    // even if no sorting was requested.
+    target = target.then_order_by(tbl_track::id);
+
+    // Pagination
+    target = apply_pagination(target, pagination);
+
+    Ok(target.load::<QueryableEntityData>(db.as_ref())?)
+}
+
+impl<'db> Repo for crate::Connection<'db> {
+    fn resolve_track_id(&self, uid: &EntityUid) -> RepoResult<Option<RepoId>> {
+        tbl_track::table
+            .select(tbl_track::id)
+            .filter(tbl_track::uid.eq(uid.as_ref()))
+            .first::<RepoId>(self.as_ref())
+            .optional()
+            .map_err(Into::into)
+    }
+
     fn insert_track(&self, entity: Entity, body_data: EntityBodyData) -> RepoResult<()> {
         {
             let (data_fmt, data_ver, data_blob) = body_data;
             let insertable = InsertableEntity::bind(&entity.hdr, data_fmt, data_ver, &data_blob);
             let query = diesel::insert_into(tbl_track::table).values(&insertable);
-            query.execute(self.connection)?;
+            query.execute(self.as_ref())?;
         }
-        self.helper.after_entity_inserted(&entity)?;
+        after_entity_inserted(self, &entity)?;
         Ok(())
     }
 
@@ -305,17 +410,15 @@ impl<'a> Repo for Repository<'a> {
                     .and(tbl_track::rev_no.eq(prev_rev.no as i64))
                     .and(tbl_track::rev_ts.eq((prev_rev.ts.0).0)),
             );
-            let repo_id = self
-                .helper
-                .before_entity_updated_or_removed(&entity.hdr.uid)?;
+            let repo_id = before_entity_updated_or_removed(self, &entity.hdr.uid)?;
             let query = diesel::update(target).set(&updatable);
-            let rows_affected: usize = query.execute(self.connection)?;
+            let rows_affected: usize = query.execute(self.as_ref())?;
             debug_assert!(rows_affected <= 1);
             if rows_affected < 1 {
                 let row = tbl_track::table
                     .select((tbl_track::rev_no, tbl_track::rev_ts))
                     .filter(tbl_track::uid.eq(entity.hdr.uid.as_ref()))
-                    .first::<(i64, TickType)>(self.connection)
+                    .first::<(i64, TickType)>(self.as_ref())
                     .optional()?;
                 if let Some(row) = row {
                     let rev = EntityRevision {
@@ -327,7 +430,7 @@ impl<'a> Repo for Repository<'a> {
                     return Ok(EntityRevisionUpdateResult::NotFound);
                 }
             }
-            self.helper.after_entity_updated(repo_id, &entity.body)?;
+            after_entity_updated(self, repo_id, &entity.body)?;
         }
         Ok(EntityRevisionUpdateResult::Updated(prev_rev, next_rev))
     }
@@ -335,8 +438,8 @@ impl<'a> Repo for Repository<'a> {
     fn delete_track(&self, uid: &EntityUid) -> RepoResult<Option<()>> {
         let target = tbl_track::table.filter(tbl_track::uid.eq(uid.as_ref()));
         let query = diesel::delete(target);
-        self.helper.before_entity_updated_or_removed(uid)?;
-        let rows_affected: usize = query.execute(self.connection)?;
+        before_entity_updated_or_removed(self, uid)?;
+        let rows_affected: usize = query.execute(self.as_ref())?;
         debug_assert!(rows_affected <= 1);
         debug_assert!(rows_affected <= 1);
         if rows_affected < 1 {
@@ -349,7 +452,7 @@ impl<'a> Repo for Repository<'a> {
     fn load_track(&self, uid: &EntityUid) -> RepoResult<Option<EntityData>> {
         tbl_track::table
             .filter(tbl_track::uid.eq(uid.as_ref()))
-            .first::<QueryableEntityData>(self.connection)
+            .first::<QueryableEntityData>(self.as_ref())
             .optional()
             .map(|o| o.map(Into::into))
             .map_err(Into::into)
@@ -358,7 +461,7 @@ impl<'a> Repo for Repository<'a> {
     fn load_tracks(&self, uids: &[EntityUid]) -> RepoResult<Vec<EntityData>> {
         tbl_track::table
             .filter(tbl_track::uid.eq_any(uids.iter().map(AsRef::as_ref)))
-            .load::<QueryableEntityData>(self.connection)
+            .load::<QueryableEntityData>(self.as_ref())
             .map(|v| v.into_iter().map(Into::into).collect())
             .map_err(Into::into)
     }
@@ -369,74 +472,18 @@ impl<'a> Repo for Repository<'a> {
         pagination: Pagination,
         filter_params: MediaSourceFilterParams,
     ) -> RepoResult<Vec<EntityData>> {
-        // URI filter
-        let (cmp, val, dir) = (&filter_params.media_uri).into();
-        let either_eq_or_like = match cmp {
-            // Equal comparison without escape characters
-            StringCompare::Equals => EitherEqualOrLike::Equal(val.to_owned()),
-            // Like comparison: Escape wildcard character with backslash (see below)
-            StringCompare::StartsWith => EitherEqualOrLike::Like(format!(
-                "{}%",
-                val.replace('\\', "\\\\").replace('%', "\\%")
-            )),
-            StringCompare::EndsWith => EitherEqualOrLike::Like(format!(
-                "%{}",
-                val.replace('\\', "\\\\").replace('%', "\\%")
-            )),
-            StringCompare::Contains => EitherEqualOrLike::Like(format!(
-                "%{}%",
-                val.replace('\\', "\\\\").replace('%', "\\%")
-            )),
-            StringCompare::Matches => {
-                EitherEqualOrLike::Like(val.replace('\\', "\\\\").replace('%', "\\%"))
-            }
-        };
+        let rows = locate_track_rows(self, collection_uid, pagination, filter_params)?;
+        Ok(rows.into_iter().map(Into::into).collect())
+    }
 
-        let mut target = tbl_track::table
-            .select(tbl_track::all_columns)
-            .order_by(tbl_track::id) // preserve relative order of results
-            .into_boxed();
-
-        // A subselect has proven to be much more efficient than
-        // joining the aux_track_location table for filtering by URI!
-        let mut track_id_subselect = aux_track_location::table
-            .select(aux_track_location::track_id)
-            .into_boxed();
-        // URI filtering
-        track_id_subselect = match either_eq_or_like {
-            EitherEqualOrLike::Equal(eq) => {
-                if dir {
-                    track_id_subselect.filter(aux_track_location::uri.eq(eq))
-                } else {
-                    track_id_subselect.filter(aux_track_location::uri.ne(eq))
-                }
-            }
-            EitherEqualOrLike::Like(like) => {
-                if dir {
-                    track_id_subselect.filter(aux_track_location::uri.like(like).escape('\\'))
-                } else {
-                    track_id_subselect.filter(aux_track_location::uri.not_like(like).escape('\\'))
-                }
-            }
-        };
-        // Collection filtering
-        if let Some(collection_uid) = collection_uid {
-            track_id_subselect = track_id_subselect
-                .filter(aux_track_location::collection_uid.eq(collection_uid.as_ref()));
-        }
-        target = if dir {
-            target.filter(tbl_track::id.eq_any(track_id_subselect))
-        } else {
-            target.filter(tbl_track::id.ne_all(track_id_subselect))
-        };
-
-        // Pagination
-        target = apply_pagination(target, pagination);
-
-        target
-            .load::<QueryableEntityData>(self.connection)
-            .map(|v| v.into_iter().map(Into::into).collect())
-            .map_err(Into::into)
+    fn locate_tracks_in_collection(
+        &self,
+        collection_uid: &EntityUid,
+        pagination: Pagination,
+        filter_params: MediaSourceFilterParams,
+    ) -> RepoResult<Vec<EntityDataExt<Option<CollectionSingleTrackEntry>>>> {
+        let rows = locate_track_rows(self, Some(collection_uid), pagination, filter_params)?;
+        collect_entries_from_rows(rows, collection_uid, self)
     }
 
     fn resolve_tracks_by_media_source_uri(
@@ -450,7 +497,7 @@ impl<'a> Repo for Repository<'a> {
             .filter(aux_track_location::uri.eq_any(media_uris))
             .order_by(tbl_track::uid)
             .select((aux_track_location::uri, tbl_track::uid))
-            .load::<(String, Vec<u8>)>(self.connection)
+            .load::<(String, Vec<u8>)>(self.as_ref())
             .map(|v| {
                 v.into_iter()
                     .map(|(uri, uid)| (uri, EntityUid::from_slice(&uid)))
@@ -465,43 +512,18 @@ impl<'a> Repo for Repository<'a> {
         pagination: Pagination,
         search_params: SearchParams,
     ) -> RepoResult<Vec<EntityData>> {
-        // TODO: Joins are very expensive and should only be used
-        // when the results need to be ordered. For filtering
-        // subselects have proven to be much more efficient.
-        //
-        // In general queries with joins are not suitable to be
-        // executed efficiently as batch operations. Since search
-        // operations are expected to be executed standalone the
-        // joins are acceptable in this case.
-        let mut target = tbl_track::table
-            .select(tbl_track::all_columns)
-            .distinct()
-            .inner_join(aux_track_brief::table)
-            .left_outer_join(aux_track_media::table)
-            .left_outer_join(aux_track_collection::table)
-            .into_boxed();
+        let rows = search_track_rows(self, collection_uid, pagination, search_params)?;
+        Ok(rows.into_iter().map(Into::into).collect())
+    }
 
-        if let Some(ref filter) = search_params.filter {
-            target = target.filter(filter.build_expression(collection_uid));
-        }
-
-        // Collection filter
-        if let Some(uid) = collection_uid {
-            target = target.filter(aux_track_collection::collection_uid.eq(uid.as_ref()));
-        };
-
-        for sort_order in &search_params.ordering {
-            target = sort_order.apply_to_query(target, collection_uid);
-        }
-        // Finally order by PK to preserve the relative order of results
-        // even if no sorting was requested.
-        target = target.then_order_by(tbl_track::id);
-
-        // Pagination
-        target = apply_pagination(target, pagination);
-
-        let res = target.load::<QueryableEntityData>(self.connection)?;
-        Ok(res.into_iter().map(Into::into).collect())
+    fn search_tracks_in_collection(
+        &self,
+        collection_uid: &EntityUid,
+        pagination: Pagination,
+        search_params: SearchParams,
+    ) -> RepoResult<Vec<EntityDataExt<Option<CollectionSingleTrackEntry>>>> {
+        let rows = search_track_rows(self, Some(collection_uid), pagination, search_params)?;
+        collect_entries_from_rows(rows, collection_uid, self)
     }
 
     fn count_track_field_strings(
@@ -511,9 +533,15 @@ impl<'a> Repo for Repository<'a> {
         pagination: Pagination,
     ) -> RepoResult<StringFieldCounts> {
         let track_id_subselect = collection_uid.map(|collection_uid| {
-            aux_track_collection::table
-                .select(aux_track_collection::track_id)
-                .filter(aux_track_collection::collection_uid.eq(collection_uid.as_ref()))
+            tbl_collection_track::table
+                .select(tbl_collection_track::track_id)
+                .filter(
+                    tbl_collection_track::collection_id.eq_any(
+                        tbl_collection::table
+                            .select(tbl_collection::id)
+                            .filter(tbl_collection::uid.eq(collection_uid.as_ref())),
+                    ),
+                )
         });
         let rows = match field {
             StringField::MediaUri => {
@@ -534,7 +562,7 @@ impl<'a> Repo for Repository<'a> {
                 // Pagination
                 target = apply_pagination(target, pagination);
 
-                target.load::<(Option<String>, i64)>(self.connection)?
+                target.load::<(Option<String>, i64)>(self.as_ref())?
             }
             StringField::MediaUriDecoded => {
                 let mut target = aux_track_media::table
@@ -554,7 +582,7 @@ impl<'a> Repo for Repository<'a> {
                 // Pagination
                 target = apply_pagination(target, pagination);
 
-                target.load::<(Option<String>, i64)>(self.connection)?
+                target.load::<(Option<String>, i64)>(self.as_ref())?
             }
             StringField::MediaType => {
                 let mut target = aux_track_media::table
@@ -574,7 +602,7 @@ impl<'a> Repo for Repository<'a> {
                 // Pagination
                 target = apply_pagination(target, pagination);
 
-                target.load::<(Option<String>, i64)>(self.connection)?
+                target.load::<(Option<String>, i64)>(self.as_ref())?
             }
             StringField::TrackTitle => {
                 let mut target = aux_track_brief::table
@@ -594,7 +622,7 @@ impl<'a> Repo for Repository<'a> {
                 // Pagination
                 target = apply_pagination(target, pagination);
 
-                target.load::<(Option<String>, i64)>(self.connection)?
+                target.load::<(Option<String>, i64)>(self.as_ref())?
             }
             StringField::TrackArtist => {
                 let mut target = aux_track_brief::table
@@ -614,7 +642,7 @@ impl<'a> Repo for Repository<'a> {
                 // Pagination
                 target = apply_pagination(target, pagination);
 
-                target.load::<(Option<String>, i64)>(self.connection)?
+                target.load::<(Option<String>, i64)>(self.as_ref())?
             }
             StringField::TrackComposer => {
                 let mut target = aux_track_brief::table
@@ -634,7 +662,7 @@ impl<'a> Repo for Repository<'a> {
                 // Pagination
                 target = apply_pagination(target, pagination);
 
-                target.load::<(Option<String>, i64)>(self.connection)?
+                target.load::<(Option<String>, i64)>(self.as_ref())?
             }
             StringField::AlbumTitle => {
                 let mut target = aux_track_brief::table
@@ -654,7 +682,7 @@ impl<'a> Repo for Repository<'a> {
                 // Pagination
                 target = apply_pagination(target, pagination);
 
-                target.load::<(Option<String>, i64)>(self.connection)?
+                target.load::<(Option<String>, i64)>(self.as_ref())?
             }
             StringField::AlbumArtist => {
                 let mut target = aux_track_brief::table
@@ -674,7 +702,7 @@ impl<'a> Repo for Repository<'a> {
                 // Pagination
                 target = apply_pagination(target, pagination);
 
-                target.load::<(Option<String>, i64)>(self.connection)?
+                target.load::<(Option<String>, i64)>(self.as_ref())?
             }
         };
         let counts = rows
@@ -693,16 +721,22 @@ impl<'a> Repo for Repository<'a> {
         &self,
         collection_uid: &EntityUid,
     ) -> RepoResult<CollectionTrackStats> {
-        let total_count = aux_track_collection::table
+        let total_count = tbl_collection_track::table
             .select(diesel::dsl::count_star())
-            .filter(aux_track_collection::collection_uid.eq(collection_uid.as_ref()))
-            .first::<i64>(self.connection)? as usize;
+            .filter(
+                tbl_collection_track::collection_id.eq_any(
+                    tbl_collection::table
+                        .select(tbl_collection::id)
+                        .filter(tbl_collection::uid.eq(collection_uid.as_ref())),
+                ),
+            )
+            .first::<i64>(self.as_ref())? as usize;
 
         Ok(CollectionTrackStats { total_count })
     }
 }
 
-impl<'a> Albums for Repository<'a> {
+impl<'db> Albums for crate::Connection<'db> {
     fn count_tracks_by_album(
         &self,
         collection_uid: Option<&EntityUid>,
@@ -724,9 +758,15 @@ impl<'a> Albums for Repository<'a> {
             .into_boxed();
 
         if let Some(collection_uid) = collection_uid {
-            let track_id_subselect = aux_track_collection::table
-                .select(aux_track_collection::track_id)
-                .filter(aux_track_collection::collection_uid.eq(collection_uid.as_ref()));
+            let track_id_subselect = tbl_collection_track::table
+                .select(tbl_collection_track::track_id)
+                .filter(
+                    tbl_collection_track::collection_id.eq_any(
+                        tbl_collection::table
+                            .select(tbl_collection::id)
+                            .filter(tbl_collection::uid.eq(collection_uid.as_ref())),
+                    ),
+                );
             target = target.filter(aux_track_brief::track_id.eq_any(track_id_subselect));
         }
 
@@ -782,7 +822,7 @@ impl<'a> Albums for Repository<'a> {
         target = apply_pagination(target, pagination);
 
         let res = target
-            .load::<(Option<String>, Option<String>, Option<YYYYMMDD>, i64)>(self.connection)?;
+            .load::<(Option<String>, Option<String>, Option<YYYYMMDD>, i64)>(self.as_ref())?;
 
         Ok(res
             .into_iter()
@@ -796,7 +836,7 @@ impl<'a> Albums for Repository<'a> {
     }
 }
 
-impl<'a> Tags for Repository<'a> {
+impl<'db> Tags for crate::Connection<'db> {
     fn count_tracks_by_tag_facet(
         &self,
         collection_uid: Option<&EntityUid>,
@@ -821,9 +861,15 @@ impl<'a> Tags for Repository<'a> {
 
         // Collection filtering
         if let Some(collection_uid) = collection_uid {
-            let track_id_subselect = aux_track_collection::table
-                .select(aux_track_collection::track_id)
-                .filter(aux_track_collection::collection_uid.eq(collection_uid.as_ref()));
+            let track_id_subselect = tbl_collection_track::table
+                .select(tbl_collection_track::track_id)
+                .filter(
+                    tbl_collection_track::collection_id.eq_any(
+                        tbl_collection::table
+                            .select(tbl_collection::id)
+                            .filter(tbl_collection::uid.eq(collection_uid.as_ref())),
+                    ),
+                );
             target = target.filter(aux_track_tag::track_id.eq_any(track_id_subselect));
         }
 
@@ -869,7 +915,7 @@ impl<'a> Tags for Repository<'a> {
         // Pagination
         target = apply_pagination(target, pagination);
 
-        let rows = target.load::<(String, i64)>(self.connection)?;
+        let rows = target.load::<(String, i64)>(self.as_ref())?;
         Ok(rows
             .into_iter()
             .map(|row| FacetCount {
@@ -918,9 +964,15 @@ impl<'a> Tags for Repository<'a> {
 
         // Collection filtering
         if let Some(collection_uid) = collection_uid {
-            let track_id_subselect = aux_track_collection::table
-                .select(aux_track_collection::track_id)
-                .filter(aux_track_collection::collection_uid.eq(collection_uid.as_ref()));
+            let track_id_subselect = tbl_collection_track::table
+                .select(tbl_collection_track::track_id)
+                .filter(
+                    tbl_collection_track::collection_id.eq_any(
+                        tbl_collection::table
+                            .select(tbl_collection::id)
+                            .filter(tbl_collection::uid.eq(collection_uid.as_ref())),
+                    ),
+                );
             target = target.filter(aux_track_tag::track_id.eq_any(track_id_subselect));
         }
 
@@ -984,7 +1036,7 @@ impl<'a> Tags for Repository<'a> {
         // Pagination
         target = apply_pagination(target, pagination);
 
-        let rows = target.load::<(Option<String>, Option<String>, f64, i64)>(self.connection)?;
+        let rows = target.load::<(Option<String>, Option<String>, f64, i64)>(self.as_ref())?;
         Ok(rows
             .into_iter()
             .map(|row| AvgScoreCount {

@@ -17,164 +17,168 @@ use super::*;
 
 use aoide_core::playlist::Entity as PlaylistEntity;
 
-use aoide_repo::{entity::Repo as EntityRepo, RepoId, RepoResult};
+use aoide_repo::{RepoId, RepoResult};
 
 use std::collections::{hash_map, HashMap};
 
 ///////////////////////////////////////////////////////////////////////
-// RepositoryHelper
+// Utility functions
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone)]
-#[allow(missing_debug_implementations)]
-pub struct RepositoryHelper<'a> {
-    connection: &'a diesel::SqliteConnection,
+fn cleanup_brief<'db>(connection: &crate::Connection<'db>) -> RepoResult<()> {
+    let query = diesel::delete(aux_playlist_brief::table.filter(
+        aux_playlist_brief::playlist_id.ne_all(tbl_playlist::table.select(tbl_playlist::id)),
+    ));
+    query.execute(connection.as_ref())?;
+    Ok(())
 }
 
-impl<'a> RepositoryHelper<'a> {
-    pub fn new(connection: &'a diesel::SqliteConnection) -> Self {
-        Self { connection }
-    }
+fn delete_brief<'db>(connection: &crate::Connection<'db>, repo_id: RepoId) -> RepoResult<()> {
+    let query = diesel::delete(
+        aux_playlist_brief::table.filter(aux_playlist_brief::playlist_id.eq(repo_id)),
+    );
+    query.execute(connection.as_ref())?;
+    Ok(())
+}
 
-    fn cleanup_brief(&self) -> RepoResult<()> {
-        let query = diesel::delete(aux_playlist_brief::table.filter(
-            aux_playlist_brief::playlist_id.ne_all(tbl_playlist::table.select(tbl_playlist::id)),
-        ));
-        query.execute(self.connection)?;
-        Ok(())
-    }
+fn insert_brief<'db, 'a>(
+    connection: &crate::Connection<'db>,
+    repo_id: RepoId,
+    playlist: &'a PlaylistBriefRef<'a>,
+) -> RepoResult<()> {
+    let insertable = playlist::InsertableBrief::bind(repo_id, playlist);
+    let query = diesel::insert_into(aux_playlist_brief::table).values(&insertable);
+    query.execute(connection.as_ref())?;
+    Ok(())
+}
 
-    fn delete_brief(&self, repo_id: RepoId) -> RepoResult<()> {
-        let query = diesel::delete(
-            aux_playlist_brief::table.filter(aux_playlist_brief::playlist_id.eq(repo_id)),
-        );
-        query.execute(self.connection)?;
-        Ok(())
-    }
+fn cleanup_tracks<'db>(connection: &crate::Connection<'db>) -> RepoResult<()> {
+    // Orphaned tracks from entries with unknown playlist
+    diesel::delete(aux_playlist_track::table.filter(
+        aux_playlist_track::playlist_id.ne_all(tbl_playlist::table.select(tbl_playlist::id)),
+    ))
+    .execute(connection.as_ref())?;
+    // Orphaned tracks from entries with invalid reference count
+    diesel::delete(aux_playlist_track::table.filter(aux_playlist_track::track_ref_count.le(0)))
+        .execute(connection.as_ref())?;
+    Ok(())
+}
 
-    fn insert_brief(&self, repo_id: RepoId, playlist: &'a PlaylistBriefRef<'a>) -> RepoResult<()> {
-        let insertable = playlist::InsertableBrief::bind(repo_id, playlist);
-        let query = diesel::insert_into(aux_playlist_brief::table).values(&insertable);
-        query.execute(self.connection)?;
-        Ok(())
-    }
+fn delete_tracks<'db>(connection: &crate::Connection<'db>, repo_id: RepoId) -> RepoResult<()> {
+    diesel::delete(aux_playlist_track::table.filter(aux_playlist_track::playlist_id.eq(repo_id)))
+        .execute(connection.as_ref())?;
+    Ok(())
+}
 
-    fn cleanup_tracks(&self) -> RepoResult<()> {
-        // Orphaned tracks from entries with unknown playlist
-        diesel::delete(aux_playlist_track::table.filter(
-            aux_playlist_track::playlist_id.ne_all(tbl_playlist::table.select(tbl_playlist::id)),
-        ))
-        .execute(self.connection)?;
-        // Orphaned tracks from entries with invalid reference count
-        diesel::delete(aux_playlist_track::table.filter(aux_playlist_track::track_ref_count.le(0)))
-            .execute(self.connection)?;
-        Ok(())
-    }
-
-    fn delete_tracks(&self, repo_id: RepoId) -> RepoResult<()> {
-        diesel::delete(
-            aux_playlist_track::table.filter(aux_playlist_track::playlist_id.eq(repo_id)),
-        )
-        .execute(self.connection)?;
-        Ok(())
-    }
-
-    fn insert_tracks(&self, repo_id: RepoId, playlist_entries: &[PlaylistEntry]) -> RepoResult<()> {
-        let mut tracks: HashMap<EntityUid, usize> =
-            HashMap::with_capacity(playlist_entries.len() + 100);
-        for playlist_entry in playlist_entries {
-            use PlaylistItem::*;
-            match &playlist_entry.item {
-                Separator => {}
-                Track(track) => match tracks.entry(track.uid.clone()) {
-                    hash_map::Entry::Occupied(mut entry) => {
-                        debug_assert!(*entry.get() > 0);
-                        *entry.get_mut() += 1;
-                    }
-                    hash_map::Entry::Vacant(entry) => {
-                        entry.insert(1);
-                    }
-                },
-            }
-        }
-        debug_assert!(tracks.len() <= playlist_entries.len());
-        for (track_uid, ref_count) in tracks {
-            let insertable = playlist::InsertableTrack::bind(repo_id, &track_uid, ref_count);
-            let query = diesel::insert_into(aux_playlist_track::table).values(&insertable);
-            query.execute(self.connection)?;
-        }
-        Ok(())
-    }
-
-    pub fn cleanup(&self) -> RepoResult<()> {
-        self.cleanup_tracks()?;
-        self.cleanup_brief()?;
-        Ok(())
-    }
-
-    fn on_insert(&self, repo_id: RepoId, playlist: &Playlist) -> RepoResult<()> {
-        self.insert_brief(repo_id, &playlist.brief_ref())?;
-        self.insert_tracks(repo_id, &playlist.entries)?;
-        Ok(())
-    }
-
-    fn on_delete(&self, repo_id: RepoId) -> RepoResult<()> {
-        self.delete_tracks(repo_id)?;
-        self.delete_brief(repo_id)?;
-        Ok(())
-    }
-
-    fn on_refresh(&self, repo_id: RepoId, playlist: &Playlist) -> RepoResult<()> {
-        self.on_delete(repo_id)?;
-        self.on_insert(repo_id, playlist)?;
-        Ok(())
-    }
-
-    pub fn refresh_entity(&self, entity: &PlaylistEntity) -> RepoResult<RepoId> {
-        let uid = &entity.hdr.uid;
-        match self.resolve_repo_id(uid)? {
-            Some(repo_id) => {
-                self.on_refresh(repo_id, &entity.body)?;
-                Ok(repo_id)
-            }
-            None => Err(anyhow!("Entity not found: {}", uid)),
+fn insert_tracks<'db>(
+    connection: &crate::Connection<'db>,
+    repo_id: RepoId,
+    playlist_entries: &[PlaylistEntry],
+) -> RepoResult<()> {
+    let mut tracks: HashMap<EntityUid, usize> =
+        HashMap::with_capacity(playlist_entries.len() + 100);
+    for playlist_entry in playlist_entries {
+        use PlaylistItem::*;
+        match &playlist_entry.item {
+            Separator => {}
+            Track(track) => match tracks.entry(track.uid.clone()) {
+                hash_map::Entry::Occupied(mut entry) => {
+                    debug_assert!(*entry.get() > 0);
+                    *entry.get_mut() += 1;
+                }
+                hash_map::Entry::Vacant(entry) => {
+                    entry.insert(1);
+                }
+            },
         }
     }
-
-    pub fn after_entity_inserted(&self, entity: &PlaylistEntity) -> RepoResult<RepoId> {
-        let uid = &entity.hdr.uid;
-        match self.resolve_repo_id(uid)? {
-            Some(repo_id) => {
-                self.on_insert(repo_id, &entity.body)?;
-                Ok(repo_id)
-            }
-            None => Err(anyhow!("Entity not found: {}", uid)),
-        }
+    debug_assert!(tracks.len() <= playlist_entries.len());
+    for (track_uid, ref_count) in tracks {
+        let insertable = playlist::InsertableTrack::bind(repo_id, &track_uid, ref_count);
+        let query = diesel::insert_into(aux_playlist_track::table).values(&insertable);
+        query.execute(connection.as_ref())?;
     }
+    Ok(())
+}
 
-    pub fn before_entity_updated_or_removed(&self, uid: &EntityUid) -> RepoResult<RepoId> {
-        match self.resolve_repo_id(uid)? {
-            Some(repo_id) => {
-                self.on_delete(repo_id)?;
-                Ok(repo_id)
-            }
-            None => Err(anyhow!("Entity not found: {}", uid)),
+pub fn cleanup<'db>(connection: &crate::Connection<'db>) -> RepoResult<()> {
+    cleanup_tracks(connection)?;
+    cleanup_brief(connection)?;
+    Ok(())
+}
+
+fn on_insert<'db>(
+    connection: &crate::Connection<'db>,
+    repo_id: RepoId,
+    playlist: &Playlist,
+) -> RepoResult<()> {
+    insert_brief(connection, repo_id, &playlist.brief_ref())?;
+    insert_tracks(connection, repo_id, &playlist.entries)?;
+    Ok(())
+}
+
+fn on_delete<'db>(connection: &crate::Connection<'db>, repo_id: RepoId) -> RepoResult<()> {
+    delete_tracks(connection, repo_id)?;
+    delete_brief(connection, repo_id)?;
+    Ok(())
+}
+
+fn on_refresh<'db>(
+    connection: &crate::Connection<'db>,
+    repo_id: RepoId,
+    playlist: &Playlist,
+) -> RepoResult<()> {
+    on_delete(connection, repo_id)?;
+    on_insert(connection, repo_id, playlist)?;
+    Ok(())
+}
+
+pub fn refresh_entity<'db>(
+    connection: &crate::Connection<'db>,
+    entity: &PlaylistEntity,
+) -> RepoResult<RepoId> {
+    let uid = &entity.hdr.uid;
+    match connection.resolve_playlist_id(uid)? {
+        Some(repo_id) => {
+            on_refresh(connection, repo_id, &entity.body)?;
+            Ok(repo_id)
         }
-    }
-
-    pub fn after_entity_updated(&self, repo_id: RepoId, playlist: &Playlist) -> RepoResult<()> {
-        self.on_insert(repo_id, playlist)?;
-        Ok(())
+        None => Err(anyhow!("Entity not found: {}", uid)),
     }
 }
 
-impl<'a> EntityRepo for RepositoryHelper<'a> {
-    fn resolve_repo_id(&self, uid: &EntityUid) -> RepoResult<Option<RepoId>> {
-        tbl_playlist::table
-            .select(tbl_playlist::id)
-            .filter(tbl_playlist::uid.eq(uid.as_ref()))
-            .first::<RepoId>(self.connection)
-            .optional()
-            .map_err(Into::into)
+pub fn after_entity_inserted<'db>(
+    connection: &crate::Connection<'db>,
+    entity: &PlaylistEntity,
+) -> RepoResult<RepoId> {
+    let uid = &entity.hdr.uid;
+    match connection.resolve_playlist_id(uid)? {
+        Some(repo_id) => {
+            on_insert(connection, repo_id, &entity.body)?;
+            Ok(repo_id)
+        }
+        None => Err(anyhow!("Entity not found: {}", uid)),
     }
+}
+
+pub fn before_entity_updated_or_removed<'db>(
+    connection: &crate::Connection<'db>,
+    uid: &EntityUid,
+) -> RepoResult<RepoId> {
+    match connection.resolve_playlist_id(uid)? {
+        Some(repo_id) => {
+            on_delete(connection, repo_id)?;
+            Ok(repo_id)
+        }
+        None => Err(anyhow!("Entity not found: {}", uid)),
+    }
+}
+
+pub fn after_entity_updated<'db>(
+    connection: &crate::Connection<'db>,
+    repo_id: RepoId,
+    playlist: &Playlist,
+) -> RepoResult<()> {
+    on_insert(connection, repo_id, playlist)?;
+    Ok(())
 }

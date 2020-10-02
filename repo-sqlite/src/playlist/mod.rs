@@ -19,7 +19,7 @@ mod models;
 mod schema;
 pub mod util;
 
-use self::{models::*, schema::*, util::RepositoryHelper};
+use self::{models::*, schema::*, util::*};
 
 use crate::util::*;
 
@@ -32,7 +32,7 @@ use aoide_core::{
 };
 
 use aoide_repo::{
-    entity::{EntityBodyData, EntityData, Repo as EntityRepo},
+    entity::{EntityBodyData, EntityData},
     playlist::*,
     *,
 };
@@ -43,45 +43,27 @@ use num_bigint::{Sign, ToBigInt};
 use num_traits::cast::ToPrimitive;
 
 ///////////////////////////////////////////////////////////////////////
-// Repository
+// Repo
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone)]
-#[allow(missing_debug_implementations)]
-pub struct Repository<'a> {
-    connection: &'a diesel::SqliteConnection,
-    helper: RepositoryHelper<'a>,
-}
-
-impl<'a> Repository<'a> {
-    pub fn new(connection: &'a diesel::SqliteConnection) -> Self {
-        Self {
-            connection,
-            helper: RepositoryHelper::new(connection),
-        }
-    }
-}
-
-impl<'a> EntityRepo for Repository<'a> {
-    fn resolve_repo_id(&self, uid: &EntityUid) -> RepoResult<Option<RepoId>> {
+impl<'db> Repo for crate::Connection<'db> {
+    fn resolve_playlist_id(&self, uid: &EntityUid) -> RepoResult<Option<RepoId>> {
         tbl_playlist::table
             .select(tbl_playlist::id)
             .filter(tbl_playlist::uid.eq(uid.as_ref()))
-            .first::<RepoId>(self.connection)
+            .first::<RepoId>(self.as_ref())
             .optional()
             .map_err(Into::into)
     }
-}
 
-impl<'a> Repo for Repository<'a> {
     fn insert_playlist(&self, entity: &Entity, body_data: EntityBodyData) -> RepoResult<()> {
         {
             let (data_fmt, data_ver, data_blob) = body_data;
             let insertable = InsertableEntity::bind(&entity.hdr, data_fmt, data_ver, &data_blob);
             let query = diesel::insert_into(tbl_playlist::table).values(&insertable);
-            query.execute(self.connection)?;
+            query.execute(self.as_ref())?;
         }
-        self.helper.after_entity_inserted(&entity)?;
+        after_entity_inserted(self, &entity)?;
         Ok(())
     }
 
@@ -101,17 +83,15 @@ impl<'a> Repo for Repository<'a> {
                     .and(tbl_playlist::rev_no.eq(prev_rev.no as i64))
                     .and(tbl_playlist::rev_ts.eq((prev_rev.ts.0).0)),
             );
-            let repo_id = self
-                .helper
-                .before_entity_updated_or_removed(&entity.hdr.uid)?;
+            let repo_id = before_entity_updated_or_removed(self, &entity.hdr.uid)?;
             let query = diesel::update(target).set(&updatable);
-            let rows_affected: usize = query.execute(self.connection)?;
+            let rows_affected: usize = query.execute(self.as_ref())?;
             debug_assert!(rows_affected <= 1);
             if rows_affected < 1 {
                 let row = tbl_playlist::table
                     .select((tbl_playlist::rev_no, tbl_playlist::rev_ts))
                     .filter(tbl_playlist::uid.eq(entity.hdr.uid.as_ref()))
-                    .first::<(i64, TickType)>(self.connection)
+                    .first::<(i64, TickType)>(self.as_ref())
                     .optional()?;
                 if let Some(row) = row {
                     let rev = EntityRevision {
@@ -123,7 +103,7 @@ impl<'a> Repo for Repository<'a> {
                     return Ok(EntityRevisionUpdateResult::NotFound);
                 }
             }
-            self.helper.after_entity_updated(repo_id, &entity.body)?;
+            after_entity_updated(self, repo_id, &entity.body)?;
         }
         Ok(EntityRevisionUpdateResult::Updated(prev_rev, next_rev))
     }
@@ -131,8 +111,8 @@ impl<'a> Repo for Repository<'a> {
     fn delete_playlist(&self, uid: &EntityUid) -> RepoResult<Option<()>> {
         let target = tbl_playlist::table.filter(tbl_playlist::uid.eq(uid.as_ref()));
         let query = diesel::delete(target);
-        self.helper.before_entity_updated_or_removed(uid)?;
-        let rows_affected: usize = query.execute(self.connection)?;
+        before_entity_updated_or_removed(self, uid)?;
+        let rows_affected: usize = query.execute(self.as_ref())?;
         debug_assert!(rows_affected <= 1);
         debug_assert!(rows_affected <= 1);
         if rows_affected < 1 {
@@ -145,7 +125,7 @@ impl<'a> Repo for Repository<'a> {
     fn load_playlist(&self, uid: &EntityUid) -> RepoResult<Option<EntityData>> {
         tbl_playlist::table
             .filter(tbl_playlist::uid.eq(uid.as_ref()))
-            .first::<QueryableEntityData>(self.connection)
+            .first::<QueryableEntityData>(self.as_ref())
             .optional()
             .map(|o| o.map(Into::into))
             .map_err(Into::into)
@@ -159,7 +139,7 @@ impl<'a> Repo for Repository<'a> {
                     .and(tbl_playlist::rev_no.eq(hdr.rev.no as i64))
                     .and(tbl_playlist::rev_ts.eq((hdr.rev.ts.0).0)),
             )
-            .first::<QueryableEntityData>(self.connection)
+            .first::<QueryableEntityData>(self.as_ref())
             .optional()
             .map(|o| o.map(Into::into))
             .map_err(Into::into)
@@ -189,7 +169,7 @@ impl<'a> Repo for Repository<'a> {
         target = apply_pagination(target, pagination);
 
         target
-            .load::<QueryableEntityData>(self.connection)
+            .load::<QueryableEntityData>(self.as_ref())
             .map(|v| v.into_iter().map(Into::into).collect())
             .map_err(Into::into)
     }
@@ -228,7 +208,7 @@ impl<'a> Repo for Repository<'a> {
                 aux_playlist_brief::entries_added_min,
                 aux_playlist_brief::entries_added_max,
             ))
-            .load::<QueryableBrief>(self.connection)
+            .load::<QueryableBrief>(self.as_ref())
             .map(|v| {
                 v.into_iter()
                     .map(Into::into)
@@ -248,7 +228,7 @@ impl<'a> Repo for Repository<'a> {
                 ),
             )
             .select(dsl::sum(aux_playlist_track::track_ref_count))
-            .first::<Option<BigDecimal>>(self.connection)
+            .first::<Option<BigDecimal>>(self.as_ref())
             .optional()
             .map(|opt_sum| {
                 opt_sum.flatten().map(|sum| {

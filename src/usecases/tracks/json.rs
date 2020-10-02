@@ -15,6 +15,8 @@
 
 use super::*;
 
+use serde::Serialize;
+
 use crate::usecases::json;
 
 use aoide_core::{
@@ -54,4 +56,18 @@ pub fn load_entity_data_array_blob(
     entity_data_iter: impl Iterator<Item = EntityData> + Clone,
 ) -> Fallible<Vec<u8>> {
     json::load_entity_data_array_blob(entity_data_iter, ENTITY_DATA_VERSION)
+}
+
+pub fn load_entity_data_ext_array_blob<T>(
+    entity_data_ext_iter: impl Iterator<Item = EntityDataExt<Option<T>>> + Clone,
+    estimated_ext_json_size_in_bytes: usize,
+) -> Fallible<Vec<u8>>
+where
+    T: Serialize,
+{
+    json::load_entity_data_ext_array_blob(
+        entity_data_ext_iter,
+        ENTITY_DATA_VERSION,
+        estimated_ext_json_size_in_bytes,
+    )
 }

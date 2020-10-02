@@ -17,7 +17,9 @@ use super::*;
 
 pub use aoide_core::entity::EntityHeader;
 
-use aoide_repo::entity::{EntityBodyData, EntityData, EntityDataFormat, EntityDataVersion};
+use aoide_repo::entity::{
+    EntityBodyData, EntityData, EntityDataExt, EntityDataFormat, EntityDataVersion,
+};
 
 mod _serde {
     pub use aoide_core_serde::entity::EntityHeader;
@@ -81,6 +83,28 @@ fn load_and_write_entity_data(
     Ok(())
 }
 
+fn load_and_write_entity_data_ext<T>(
+    mut json_writer: &mut impl Write,
+    entity_data: EntityData,
+    expected_data_ver: EntityDataVersion,
+    ext: Option<&T>,
+) -> Fallible<()>
+where
+    T: Serialize,
+{
+    let (hdr, json_data) = load_entity_data(entity_data, expected_data_ver)?;
+    json_writer.write_all(b"[")?;
+    serde_json::to_writer(&mut json_writer, &_serde::EntityHeader::from(hdr))?;
+    json_writer.write_all(b",")?;
+    json_writer.write_all(&json_data)?;
+    if let Some(ext) = ext {
+        json_writer.write_all(b",")?;
+        serde_json::to_writer(&mut json_writer, ext)?;
+    }
+    json_writer.write_all(b"]")?;
+    Ok(())
+}
+
 fn entity_data_blob_size(entity_data: &EntityData) -> usize {
     let uid_bytes = 33;
     let rev_no_bytes = ((entity_data.0).rev.no as f64).log10().ceil() as usize;
@@ -114,6 +138,38 @@ pub fn load_entity_data_array_blob(
             json_writer.write_all(b",")?;
         }
         load_and_write_entity_data(&mut json_writer, entity_data, expected_data_ver)?;
+    }
+    json_writer.write_all(b"]")?;
+    json_writer.flush()?;
+    Ok(json_writer)
+}
+
+pub fn load_entity_data_ext_array_blob<T>(
+    entity_data_ext_iter: impl Iterator<Item = EntityDataExt<Option<T>>> + Clone,
+    expected_data_ver: EntityDataVersion,
+    estimated_ext_json_size_in_bytes: usize,
+) -> Fallible<Vec<u8>>
+where
+    T: Serialize,
+{
+    let mut json_writer = Vec::with_capacity(entity_data_ext_iter.clone().fold(
+        /*closing bracket*/ 1,
+        |acc, (ref entity_data, ref ext)| {
+            let estimated_ext_json_size_in_bytes = ext.as_ref().map(|_| /*extra comma*/ 1 + estimated_ext_json_size_in_bytes).unwrap_or(0);
+            acc + entity_data_blob_size(&entity_data) + estimated_ext_json_size_in_bytes + /*opening bracket or comma*/ 1
+        },
+    ));
+    json_writer.write_all(b"[")?;
+    for (i, (entity_data, ext)) in entity_data_ext_iter.enumerate() {
+        if i > 0 {
+            json_writer.write_all(b",")?;
+        }
+        load_and_write_entity_data_ext(
+            &mut json_writer,
+            entity_data,
+            expected_data_ver,
+            ext.as_ref(),
+        )?;
     }
     json_writer.write_all(b"]")?;
     json_writer.flush()?;

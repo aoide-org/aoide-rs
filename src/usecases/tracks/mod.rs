@@ -18,39 +18,46 @@ use super::*;
 pub mod json;
 
 mod _serde {
-    pub use aoide_core_serde::track::Track;
+    pub use aoide_core_serde::{
+        collection::SingleTrackEntry as CollectionSingleTrackEntry, track::Track,
+    };
 }
 
 use aoide_core::{
+    collection::SingleTrackEntry as CollectionSingleTrackEntry,
     entity::{EntityHeader, EntityRevisionUpdateResult, EntityUid},
     track::{Entity, Track},
 };
 
 use aoide_repo::{
-    entity::{EntityBodyData, EntityData},
+    collection::TrackEntryRepo as _,
+    entity::{EntityBodyData, EntityData, EntityDataExt},
     tag::{
         AvgScoreCount as TagAvgScoreCount, CountParams as TagCountParams,
         FacetCount as TagFacetCount, FacetCountParams as TagFacetCountParams,
     },
     track::{
         AlbumCountResults, Albums as _, CountTracksByAlbumParams, MediaSourceFilterParams,
-        ReplaceMode, ReplaceResult, Repo as _, SearchParams, Tags as _,
+        ReplaceMode, ReplaceOutcome, Repo as _, SearchParams, Tags as _,
     },
     util::{UriPredicate, UriRelocation},
     Pagination, RepoResult, StringPredicate,
 };
 
-use aoide_repo_sqlite::track::Repository;
+use aoide_repo_sqlite::Connection as DbConnection;
 
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug)]
 pub struct TrackReplacement {
-    // The URI for locating any existing track that is supposed
-    // to replaced by the provided track.
+    /// The URI for locating any existing track that is supposed
+    /// to replaced by the provided track.
     pub media_uri: String,
 
     pub track: _serde::Track,
+
+    /// Optional collection entry that gets replaced
+    pub collection_entry: Option<(EntityUid, CollectionSingleTrackEntry)>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -63,113 +70,173 @@ pub struct ReplacedTracks {
 }
 
 pub fn create_track(
-    conn: &SqlitePooledConnection,
+    db: &SqlitePooledConnection,
     new_track: Track,
     body_data: EntityBodyData,
 ) -> RepoResult<EntityHeader> {
-    let repo = Repository::new(&*conn);
     let hdr = EntityHeader::initial_random();
     let entity = Entity::new(hdr.clone(), new_track);
-    conn.transaction::<_, Error, _>(|| repo.insert_track(entity, body_data).map(|()| hdr))
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
+        repo.insert_track(entity, body_data).map(|()| hdr)
+    })
 }
 
 pub fn update_track(
-    conn: &SqlitePooledConnection,
+    db: &SqlitePooledConnection,
     track: Entity,
     body_data: EntityBodyData,
 ) -> RepoResult<EntityRevisionUpdateResult> {
-    let repo = Repository::new(&*conn);
-    conn.transaction::<_, Error, _>(|| repo.update_track(track, body_data))
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
+        repo.update_track(track, body_data)
+    })
 }
 
-pub fn delete_track(conn: &SqlitePooledConnection, uid: &EntityUid) -> RepoResult<Option<()>> {
-    let repo = Repository::new(&*conn);
-    conn.transaction::<_, Error, _>(|| repo.delete_track(uid))
+pub fn delete_track(db: &SqlitePooledConnection, uid: &EntityUid) -> RepoResult<Option<()>> {
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
+        repo.delete_track(uid)
+    })
 }
 
-pub fn load_track(
-    conn: &SqlitePooledConnection,
-    uid: &EntityUid,
-) -> RepoResult<Option<EntityData>> {
-    let repo = Repository::new(&*conn);
-    conn.transaction::<_, Error, _>(|| repo.load_track(uid))
+pub fn load_track(db: &SqlitePooledConnection, uid: &EntityUid) -> RepoResult<Option<EntityData>> {
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
+        repo.load_track(uid)
+    })
 }
 
 pub fn load_tracks(
-    conn: &SqlitePooledConnection,
+    db: &SqlitePooledConnection,
     uids: impl Iterator<Item = EntityUid>,
 ) -> RepoResult<Vec<EntityData>> {
-    let repo = Repository::new(&*conn);
-    conn.transaction::<_, Error, _>(|| repo.load_tracks(&uids.collect::<Vec<_>>()))
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
+        repo.load_tracks(&uids.collect::<Vec<_>>())
+    })
 }
 
 pub fn list_tracks(
-    conn: &SqlitePooledConnection,
-    collection_uid: Option<EntityUid>,
+    db: &SqlitePooledConnection,
     pagination: Pagination,
 ) -> RepoResult<Vec<EntityData>> {
-    let repo = Repository::new(&*conn);
-    conn.transaction::<_, Error, _>(|| {
-        repo.search_tracks(collection_uid.as_ref(), pagination, Default::default())
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
+        repo.search_tracks(None, pagination, Default::default())
+    })
+}
+
+pub fn list_tracks_in_collection(
+    db: &SqlitePooledConnection,
+    collection_uid: EntityUid,
+    pagination: Pagination,
+) -> RepoResult<Vec<EntityDataExt<Option<CollectionSingleTrackEntry>>>> {
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
+        repo.search_tracks_in_collection(&collection_uid, pagination, Default::default())
     })
 }
 
 pub fn search_tracks(
-    conn: &SqlitePooledConnection,
-    collection_uid: Option<EntityUid>,
+    db: &SqlitePooledConnection,
     pagination: Pagination,
     params: SearchParams,
 ) -> RepoResult<Vec<EntityData>> {
-    let repo = Repository::new(&*conn);
-    conn.transaction::<_, Error, _>(|| {
-        repo.search_tracks(collection_uid.as_ref(), pagination, params)
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
+        repo.search_tracks(None, pagination, params)
+    })
+}
+
+pub fn search_tracks_in_collection(
+    db: &SqlitePooledConnection,
+    collection_uid: EntityUid,
+    pagination: Pagination,
+    params: SearchParams,
+) -> RepoResult<Vec<EntityDataExt<Option<CollectionSingleTrackEntry>>>> {
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
+        repo.search_tracks_in_collection(&collection_uid, pagination, params)
     })
 }
 
 pub fn locate_tracks(
-    conn: &SqlitePooledConnection,
-    collection_uid: Option<EntityUid>,
+    db: &SqlitePooledConnection,
     pagination: Pagination,
     params: MediaSourceFilterParams,
 ) -> RepoResult<Vec<EntityData>> {
-    let repo = Repository::new(&*conn);
-    conn.transaction::<_, Error, _>(|| {
-        repo.locate_tracks(collection_uid.as_ref(), pagination, params)
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
+        repo.locate_tracks(None, pagination, params)
+    })
+}
+
+pub fn locate_tracks_in_collection(
+    db: &SqlitePooledConnection,
+    collection_uid: EntityUid,
+    pagination: Pagination,
+    params: MediaSourceFilterParams,
+) -> RepoResult<Vec<EntityDataExt<Option<CollectionSingleTrackEntry>>>> {
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
+        repo.locate_tracks_in_collection(&collection_uid, pagination, params)
     })
 }
 
 pub fn resolve_tracks_by_media_source_uri(
-    conn: &SqlitePooledConnection,
+    db: &SqlitePooledConnection,
     collection_uid: &EntityUid,
     uris: &[String],
 ) -> RepoResult<Vec<(String, EntityUid)>> {
-    let repo = Repository::new(&*conn);
-    conn.transaction::<_, Error, _>(|| {
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
         repo.resolve_tracks_by_media_source_uri(&collection_uid, &uris)
     })
 }
 
 pub fn replace_tracks(
-    conn: &SqlitePooledConnection,
-    collection_uid: Option<EntityUid>,
+    db: &SqlitePooledConnection,
     mode: ReplaceMode,
     replacements: impl Iterator<Item = TrackReplacement>,
 ) -> RepoResult<ReplacedTracks> {
-    let repo = Repository::new(&*conn);
-    conn.transaction::<_, Error, _>(|| {
+    db.transaction::<_, Error, _>(|| {let repo = DbConnection::from_inner(&*db);
         let mut results = ReplacedTracks::default();
         for replacement in replacements {
-            let body_data = json::serialize_entity_body_data(&replacement.track)?;
+            let TrackReplacement {
+                media_uri,
+                track: new_track,
+                collection_entry,
+            } = replacement;
+            let (collection_uid, new_collection_entry) = collection_entry.map(|(uid, entry)| (Some(uid), Some(entry.into()))).unwrap_or((None, None));
+            let body_data = json::serialize_entity_body_data(&new_track)?;
             let (data_fmt, data_ver, _) = body_data;
-            let media_uri = replacement.media_uri;
-            let replace_result = repo.replace_track(
+            let media_uri = media_uri;
+            let (replace_result, old_collection_entry) = repo.replace_track(
                 collection_uid.as_ref(),
                 media_uri.clone(),
                 mode,
-                replacement.track.into(),
+                new_track.into(),
                 body_data,
             )?;
-            use ReplaceResult::*;
+            fn replace_collection_track_entry<'db>(
+                repo: &DbConnection<'db>,
+                collection_uid: Option<&EntityUid>,
+                track_uid: &EntityUid,
+                old_collection_entry: Option<CollectionSingleTrackEntry>,
+                new_collection_entry: Option<CollectionSingleTrackEntry>,
+            ) -> RepoResult<bool> {
+                debug_assert!(collection_uid.is_some() || old_collection_entry.is_none());
+                debug_assert!(collection_uid.is_some() == new_collection_entry.is_some());
+                debug_assert!(collection_uid.is_some() || old_collection_entry != new_collection_entry);
+                if old_collection_entry == new_collection_entry {
+                    return Ok(false);
+                }
+                let collection_uid = collection_uid.unwrap();
+                repo.replace_track_entry(collection_uid, track_uid, new_collection_entry.unwrap())?;
+                Ok(true)
+            }
+            use ReplaceOutcome::*;
             match replace_result {
                 AmbiguousMediaUri(count) => {
                     log::warn!(
@@ -201,12 +268,18 @@ pub fn replace_tracks(
                     results.discarded.push(media_uri);
                 }
                 Unchanged(hdr) => {
-                    results.skipped.push(hdr);
+                    if replace_collection_track_entry(&repo, collection_uid.as_ref(), &hdr.uid, old_collection_entry, new_collection_entry)? {
+                        results.updated.push(hdr);
+                    } else {
+                        results.skipped.push(hdr);
+                    }
                 }
                 Created(hdr) => {
+                    replace_collection_track_entry(&repo, collection_uid.as_ref(), &hdr.uid, old_collection_entry, new_collection_entry)?;
                     results.created.push(hdr);
                 }
                 Updated(hdr) => {
+                    replace_collection_track_entry(&repo, collection_uid.as_ref(), &hdr.uid, old_collection_entry, new_collection_entry)?;
                     results.updated.push(hdr);
                 }
             }
@@ -216,12 +289,12 @@ pub fn replace_tracks(
 }
 
 pub fn purge_tracks(
-    conn: &SqlitePooledConnection,
+    db: &SqlitePooledConnection,
     collection_uid: Option<EntityUid>,
     uri_predicates: impl IntoIterator<Item = UriPredicate>,
 ) -> RepoResult<()> {
-    let repo = Repository::new(&*conn);
-    conn.transaction::<_, Error, _>(|| {
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
         for uri_predicate in uri_predicates {
             use StringPredicate::*;
             use UriPredicate::*;
@@ -277,12 +350,12 @@ pub fn purge_tracks(
 }
 
 pub fn relocate_tracks(
-    conn: &SqlitePooledConnection,
+    db: &SqlitePooledConnection,
     collection_uid: Option<EntityUid>,
     uri_relocations: impl IntoIterator<Item = UriRelocation>,
 ) -> RepoResult<()> {
-    let repo = Repository::new(&*conn);
-    conn.transaction::<_, Error, _>(|| {
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
         for uri_relocation in uri_relocations {
             let filter_params = match &uri_relocation.predicate {
                 UriPredicate::Prefix(uri_prefix) => MediaSourceFilterParams {
@@ -335,39 +408,41 @@ pub fn relocate_tracks(
 }
 
 pub fn count_tracks_by_album(
-    conn: &SqlitePooledConnection,
+    db: &SqlitePooledConnection,
     collection_uid: Option<EntityUid>,
     pagination: Pagination,
     params: &CountTracksByAlbumParams,
 ) -> RepoResult<Vec<AlbumCountResults>> {
-    let repo = Repository::new(&*conn);
-    conn.transaction::<_, Error, _>(|| {
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
         repo.count_tracks_by_album(collection_uid.as_ref(), params, pagination)
     })
 }
 
 pub fn count_tracks_by_tag(
-    conn: &SqlitePooledConnection,
+    db: &SqlitePooledConnection,
     collection_uid: Option<EntityUid>,
     pagination: Pagination,
     mut params: TagCountParams,
 ) -> RepoResult<Vec<TagAvgScoreCount>> {
     params.dedup_facets();
-    let repo = Repository::new(&*conn);
-    conn.transaction::<_, Error, _>(|| {
+
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
         repo.count_tracks_by_tag(collection_uid.as_ref(), &params, pagination)
     })
 }
 
 pub fn count_tracks_by_tag_facet(
-    conn: &SqlitePooledConnection,
+    db: &SqlitePooledConnection,
     collection_uid: Option<EntityUid>,
     pagination: Pagination,
     mut params: TagFacetCountParams,
 ) -> RepoResult<Vec<TagFacetCount>> {
     params.dedup_facets();
-    let repo = Repository::new(&*conn);
-    conn.transaction::<_, Error, _>(|| {
+
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
         repo.count_tracks_by_tag_facet(collection_uid.as_ref(), &params, pagination)
     })
 }

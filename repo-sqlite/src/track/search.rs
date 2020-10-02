@@ -59,11 +59,11 @@ type TrackSearchBoxedQuery<'a> = diesel::query_builder::BoxedSelectStatement<
                     diesel::expression::nullable::Nullable<tbl_track::columns::id>,
                 >,
             >,
-            aux_track_collection::table,
+            tbl_collection_track::table,
             diesel::query_source::joins::LeftOuter,
         >,
         diesel::expression::operators::Eq<
-            diesel::expression::nullable::Nullable<aux_track_collection::columns::track_id>,
+            diesel::expression::nullable::Nullable<tbl_collection_track::columns::track_id>,
             diesel::expression::nullable::Nullable<tbl_track::columns::id>,
         >,
     >,
@@ -93,11 +93,11 @@ type TrackSearchQuery = diesel::query_source::joins::JoinOn<
                 diesel::expression::nullable::Nullable<tbl_track::columns::id>,
             >,
         >,
-        aux_track_collection::table,
+        tbl_collection_track::table,
         diesel::query_source::joins::LeftOuter,
     >,
     diesel::expression::operators::Eq<
-        diesel::expression::nullable::Nullable<aux_track_collection::columns::track_id>,
+        diesel::expression::nullable::Nullable<tbl_collection_track::columns::track_id>,
         diesel::expression::nullable::Nullable<tbl_track::columns::id>,
     >,
 >;
@@ -147,10 +147,10 @@ impl TrackSearchQueryTransform for SortOrder {
                 if collection_uid.is_some() {
                     match direction {
                         SortDirection::Ascending => {
-                            query.then_order_by(aux_track_collection::added_at.asc())
+                            query.then_order_by(tbl_collection_track::added_ts.asc())
                         }
                         SortDirection::Descending => {
-                            query.then_order_by(aux_track_collection::added_at.desc())
+                            query.then_order_by(tbl_collection_track::added_ts.desc())
                         }
                     }
                 } else {

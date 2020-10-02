@@ -23,7 +23,12 @@ use crate::entity::{EntityUid, EntityUidInvalidity};
 pub struct Item {
     /// References the playlist
     pub uid: EntityUid,
+
+    pub body: ItemBody,
 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ItemBody;
 
 #[derive(Copy, Clone, Debug)]
 pub enum ItemInvalidity {

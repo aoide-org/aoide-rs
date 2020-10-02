@@ -13,9 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::collection::schema::tbl_collection;
-
 ///////////////////////////////////////////////////////////////////////
+
+use crate::collection::schema::{tbl_collection, tbl_collection_track};
 
 table! {
     tbl_track (id) {
@@ -30,22 +30,7 @@ table! {
     }
 }
 
-table! {
-    aux_track_collection (id) {
-        id -> BigInt,
-        track_id -> BigInt,
-        collection_uid -> Binary,
-        added_at -> Timestamp,
-        color_rgb -> Nullable<Integer>,
-        color_idx -> Nullable<SmallInt>,
-        play_count -> Nullable<Integer>,
-        last_played_at -> Nullable<Timestamp>,
-    }
-}
-
-joinable!(aux_track_collection -> tbl_track (track_id));
-
-allow_tables_to_appear_in_same_query!(aux_track_collection, tbl_collection);
+joinable!(tbl_collection_track -> tbl_track (track_id));
 
 table! {
     aux_track_media (id) {
@@ -147,7 +132,6 @@ joinable!(aux_track_marker -> aux_marker_label (label_id));
 allow_tables_to_appear_in_same_query!(
     tbl_track,
     aux_track_brief,
-    aux_track_collection,
     aux_track_location,
     aux_track_marker,
     aux_track_media,
@@ -155,4 +139,6 @@ allow_tables_to_appear_in_same_query!(
     aux_tag_facet,
     aux_tag_label,
     aux_marker_label,
+    tbl_collection,
+    tbl_collection_track,
 );

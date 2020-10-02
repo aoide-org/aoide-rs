@@ -26,7 +26,7 @@ use aoide_repo::{
     Pagination, RepoResult,
 };
 
-use aoide_repo_sqlite::{collection::Repository, track::Repository as TrackRepository};
+use aoide_repo_sqlite::Connection as DbConnection;
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -34,23 +34,29 @@ pub fn create_collection(
     db: &SqlitePooledConnection,
     new_collection: Collection,
 ) -> RepoResult<EntityHeader> {
-    let repo = Repository::new(&*db);
     let hdr = EntityHeader::initial_random();
     let entity = Entity::new(hdr, new_collection);
-    db.transaction::<_, Error, _>(|| repo.insert_collection(&entity).map(|()| entity.hdr))
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
+        repo.insert_collection(&entity).map(|()| entity.hdr)
+    })
 }
 
 pub fn update_collection(
     db: &SqlitePooledConnection,
     entity: &Entity,
 ) -> RepoResult<(EntityRevision, Option<EntityRevision>)> {
-    let repo = Repository::new(&*db);
-    db.transaction::<_, Error, _>(|| repo.update_collection(entity))
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
+        repo.update_collection(entity)
+    })
 }
 
 pub fn delete_collection(db: &SqlitePooledConnection, uid: &EntityUid) -> RepoResult<Option<()>> {
-    let repo = Repository::new(&*db);
-    db.transaction::<_, Error, _>(|| repo.delete_collection(uid))
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
+        repo.delete_collection(uid)
+    })
 }
 
 pub fn load_collection(
@@ -58,13 +64,12 @@ pub fn load_collection(
     uid: &EntityUid,
     with_track_stats: bool,
 ) -> RepoResult<Option<(Entity, Option<TrackStats>)>> {
-    let repo = Repository::new(&*db);
     db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
         let entity = repo.load_collection(uid)?;
         if let Some(entity) = entity {
             let track_stats = if with_track_stats {
-                let track_repo = TrackRepository::new(&*db);
-                Some(track_repo.collect_collection_track_stats(uid)?)
+                Some(repo.collect_collection_track_stats(uid)?)
             } else {
                 None
             };
@@ -76,9 +81,11 @@ pub fn load_collection(
 }
 
 pub fn list_collections(
-    conn: &SqlitePooledConnection,
+    db: &SqlitePooledConnection,
     pagination: Pagination,
 ) -> RepoResult<Vec<Entity>> {
-    let repo = Repository::new(&*conn);
-    conn.transaction::<_, Error, _>(|| repo.list_collections(pagination))
+    db.transaction::<_, Error, _>(|| {
+        let repo = DbConnection::from_inner(&*db);
+        repo.list_collections(pagination)
+    })
 }

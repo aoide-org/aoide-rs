@@ -18,6 +18,7 @@ use super::*;
 use crate::{collection, entity::*, tag};
 
 use aoide_core::{
+    collection::SingleTrackEntry as CollectionSingleTrackEntry,
     entity::{EntityRevisionUpdateResult, EntityUid},
     track::{album::*, collection::Collections, *},
 };
@@ -123,15 +124,6 @@ pub struct StringFieldCounts {
     pub counts: Vec<StringCount>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct Replacement {
-    // The URI for looking up the existing track (if any)
-    // that gets replaced.
-    pub media_uri: String,
-
-    pub track: Track,
-}
-
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ReplaceMode {
     UpdateOnly,
@@ -142,7 +134,7 @@ pub enum ReplaceMode {
 // handle conflicts on an outer level. Only technical
 // failures are considered as errors!
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum ReplaceResult {
+pub enum ReplaceOutcome {
     AmbiguousMediaUri(usize),
     IncompatibleFormat(EntityDataFormat),
     IncompatibleVersion(EntityDataVersion),
@@ -152,7 +144,28 @@ pub enum ReplaceResult {
     Updated(EntityHeader),
 }
 
+pub fn collect_entries_from_rows<T, R>(
+    rows: Vec<T>,
+    collection_uid: &EntityUid,
+    collection_entry_repo: &R,
+) -> RepoResult<Vec<EntityDataExt<Option<CollectionSingleTrackEntry>>>>
+where
+    T: Into<EntityData>,
+    R: collection::TrackEntryRepo,
+{
+    let mut entries = Vec::with_capacity(rows.len());
+    for row in rows {
+        let entity_data = row.into();
+        let track_uid = &entity_data.0.uid;
+        let collection_entry = collection_entry_repo.load_track_entry(collection_uid, track_uid)?;
+        entries.push((entity_data, collection_entry));
+    }
+    Ok(entries)
+}
+
 pub trait Repo {
+    fn resolve_track_id(&self, uid: &EntityUid) -> RepoResult<Option<RepoId>>;
+
     fn insert_track(&self, entity: Entity, body_data: EntityBodyData) -> RepoResult<()>;
 
     fn update_track(
@@ -180,6 +193,13 @@ pub trait Repo {
         filter_params: MediaSourceFilterParams,
     ) -> RepoResult<Vec<EntityData>>;
 
+    fn locate_tracks_in_collection(
+        &self,
+        collection_uid: &EntityUid,
+        pagination: Pagination,
+        filter_params: MediaSourceFilterParams,
+    ) -> RepoResult<Vec<EntityDataExt<Option<CollectionSingleTrackEntry>>>>;
+
     fn resolve_tracks_by_media_source_uri(
         &self,
         collection_uid: &EntityUid, // for disambiguation
@@ -192,6 +212,13 @@ pub trait Repo {
         pagination: Pagination,
         search_params: SearchParams,
     ) -> RepoResult<Vec<EntityData>>;
+
+    fn search_tracks_in_collection(
+        &self,
+        collection_uid: &EntityUid,
+        pagination: Pagination,
+        search_params: SearchParams,
+    ) -> RepoResult<Vec<EntityDataExt<Option<CollectionSingleTrackEntry>>>>;
 
     fn count_track_field_strings(
         &self,
@@ -212,7 +239,7 @@ pub trait Repo {
         mode: ReplaceMode,
         track: Track,
         body_data: EntityBodyData,
-    ) -> RepoResult<ReplaceResult> {
+    ) -> RepoResult<(ReplaceOutcome, Option<CollectionSingleTrackEntry>)> {
         if let Some(collection_uid) = collection_uid {
             if Collections::find_by_uid(track.collections.iter(), collection_uid).is_none() {
                 bail!(
@@ -229,24 +256,55 @@ pub trait Repo {
         let locate_params = MediaSourceFilterParams {
             media_uri: StringPredicate::Equals(media_uri),
         };
-        let located_tracks =
-            self.locate_tracks(collection_uid, Pagination::default(), locate_params)?;
-        if located_tracks.len() > 1 {
-            return Ok(ReplaceResult::AmbiguousMediaUri(located_tracks.len()));
-        }
+        let (entity_data, collection_entry) = if let Some(collection_uid) = collection_uid {
+            let located_tracks = self.locate_tracks_in_collection(
+                collection_uid,
+                Pagination::default(),
+                locate_params,
+            )?;
+            if located_tracks.len() > 1 {
+                return Ok((
+                    ReplaceOutcome::AmbiguousMediaUri(located_tracks.len()),
+                    None,
+                ));
+            }
+            located_tracks
+                .into_iter()
+                .next()
+                .map(|(a, b)| (Some(a), b))
+                .unwrap_or((None, None))
+        } else {
+            let located_tracks =
+                self.locate_tracks(collection_uid, Pagination::default(), locate_params)?;
+            if located_tracks.len() > 1 {
+                return Ok((
+                    ReplaceOutcome::AmbiguousMediaUri(located_tracks.len()),
+                    None,
+                ));
+            }
+            located_tracks
+                .into_iter()
+                .next()
+                .map(|item| (Some(item), None))
+                .unwrap_or((None, None))
+        };
         let (data_fmt, data_ver, data_blob) = body_data;
-        if let Some((entity_hdr, (entity_fmt, entity_ver, entity_blob))) =
-            located_tracks.into_iter().next()
-        {
+        if let Some((entity_hdr, (entity_fmt, entity_ver, entity_blob))) = entity_data {
             // Update
             if entity_fmt != data_fmt {
-                return Ok(ReplaceResult::IncompatibleFormat(entity_fmt));
+                return Ok((
+                    ReplaceOutcome::IncompatibleFormat(entity_fmt),
+                    collection_entry,
+                ));
             }
             if entity_ver != data_ver {
-                return Ok(ReplaceResult::IncompatibleVersion(entity_ver));
+                return Ok((
+                    ReplaceOutcome::IncompatibleVersion(entity_ver),
+                    collection_entry,
+                ));
             }
             if entity_blob == data_blob {
-                return Ok(ReplaceResult::Unchanged(entity_hdr));
+                return Ok((ReplaceOutcome::Unchanged(entity_hdr), collection_entry));
             }
             let old_hdr = entity_hdr;
             let entity = Entity::new(old_hdr.clone(), track);
@@ -264,18 +322,18 @@ pub trait Repo {
                 EntityRevisionUpdateResult::Updated(_, rev) => {
                     let uid = old_hdr.uid;
                     let new_hdr = EntityHeader { uid, rev };
-                    Ok(ReplaceResult::Updated(new_hdr))
+                    Ok((ReplaceOutcome::Updated(new_hdr), collection_entry))
                 }
             }
         } else {
             // Create
             match mode {
-                ReplaceMode::UpdateOnly => Ok(ReplaceResult::NotCreated),
+                ReplaceMode::UpdateOnly => Ok((ReplaceOutcome::NotCreated, None)),
                 ReplaceMode::UpdateOrCreate => {
                     let hdr = EntityHeader::initial_random();
                     let entity = Entity::new(hdr.clone(), track);
                     self.insert_track(entity, (data_fmt, data_ver, data_blob))?;
-                    Ok(ReplaceResult::Created(hdr))
+                    Ok((ReplaceOutcome::Created(hdr), None))
                 }
             }
         }

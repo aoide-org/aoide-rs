@@ -28,76 +28,6 @@ mod _core {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// CollectionItem
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
-#[serde(deny_unknown_fields)]
-pub enum CollectionItem {
-    #[serde(rename = "trk")]
-    Track(track::Item),
-
-    #[serde(rename = "pll")]
-    Playlist(playlist::Item),
-}
-
-impl From<CollectionItem> for _core::CollectionItem {
-    fn from(from: CollectionItem) -> Self {
-        use CollectionItem::*;
-        match from {
-            Track(item) => Self::Track(item.into()),
-            Playlist(item) => Self::Playlist(item.into()),
-        }
-    }
-}
-
-impl From<_core::CollectionItem> for CollectionItem {
-    fn from(from: _core::CollectionItem) -> Self {
-        use _core::CollectionItem::*;
-        match from {
-            Track(item) => Self::Track(item.into()),
-            Playlist(item) => Self::Playlist(item.into()),
-        }
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-// CollectionEntry
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
-#[serde(deny_unknown_fields)]
-pub struct CollectionEntry {
-    #[serde(rename = "add")]
-    added_at: TickType,
-
-    #[serde(rename = "itm")]
-    item: CollectionItem,
-}
-
-impl From<CollectionEntry> for _core::CollectionEntry {
-    fn from(from: CollectionEntry) -> Self {
-        let CollectionEntry { item, added_at } = from;
-        Self {
-            item: item.into(),
-            added_at: TickInstant(Ticks(added_at)),
-        }
-    }
-}
-
-impl From<_core::CollectionEntry> for CollectionEntry {
-    fn from(from: _core::CollectionEntry) -> Self {
-        let _core::CollectionEntry { item, added_at } = from;
-        Self {
-            item: item.into(),
-            added_at: (added_at.0).0,
-        }
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
 // Collection
 ///////////////////////////////////////////////////////////////////////
 
@@ -125,6 +55,53 @@ impl From<_core::Collection> for Collection {
         Self { name, description }
     }
 }
+
+///////////////////////////////////////////////////////////////////////
+// CollectionEntry
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(Eq, PartialEq))]
+#[serde(deny_unknown_fields)]
+pub struct CollectionEntry<T> {
+    #[serde(rename = "add")]
+    added_at: TickType,
+
+    #[serde(flatten)]
+    item: T,
+}
+
+impl<T, U> From<CollectionEntry<T>> for _core::CollectionEntry<U>
+where
+    T: Into<U>,
+{
+    fn from(from: CollectionEntry<T>) -> Self {
+        let CollectionEntry { item, added_at } = from;
+        Self {
+            added_at: TickInstant(Ticks(added_at)),
+            item: item.into(),
+        }
+    }
+}
+
+impl<T, U> From<_core::CollectionEntry<T>> for CollectionEntry<U>
+where
+    T: Into<U>,
+{
+    fn from(from: _core::CollectionEntry<T>) -> Self {
+        let _core::CollectionEntry { item, added_at } = from;
+        Self {
+            added_at: (added_at.0).0,
+            item: item.into(),
+        }
+    }
+}
+
+pub type SingleTrackEntry = CollectionEntry<track::ItemBody>;
+
+pub type TrackEntry = CollectionEntry<track::Item>;
+
+pub type PlaylistEntry = CollectionEntry<playlist::Item>;
 
 ///////////////////////////////////////////////////////////////////////
 // Entity

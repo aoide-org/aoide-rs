@@ -24,9 +24,12 @@ use crate::{
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Item {
-    /// References the track
     pub uid: EntityUid,
+    pub body: ItemBody,
+}
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ItemBody {
     pub color: Option<Color>,
 
     pub play_count: Option<usize>,

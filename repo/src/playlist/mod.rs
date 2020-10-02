@@ -23,6 +23,8 @@ use aoide_core::{
 };
 
 pub trait Repo {
+    fn resolve_playlist_id(&self, uid: &EntityUid) -> RepoResult<Option<RepoId>>;
+
     fn insert_playlist(&self, entity: &Entity, body_data: EntityBodyData) -> RepoResult<()>;
 
     fn update_playlist(

@@ -23,15 +23,14 @@ use aoide::{
     *,
 };
 
-use aoide_core::{collection::Collection, entity::EntityUid};
+use aoide_core::entity::EntityUid;
 
 mod _serde {
     pub use aoide_core_serde::entity::EntityUid;
 }
 
 use aoide_repo_sqlite::{
-    playlist::util::RepositoryHelper as PlaylistRepositoryHelper,
-    track::util::RepositoryHelper as TrackRepositoryHelper,
+    playlist as playlist_repo, track as track_repo, Connection as DbConnection,
 };
 
 use anyhow::Error;
@@ -89,28 +88,15 @@ fn migrate_database_schema(connection_pool: &SqliteConnectionPool) -> Result<(),
 fn cleanup_database_storage(connection_pool: &SqliteConnectionPool) -> Result<(), Error> {
     log::info!("Cleaning up database storage");
     let connection = &*connection_pool.get()?;
-    {
-        let helper = TrackRepositoryHelper::new(connection);
-        connection.transaction::<_, Error, _>(|| helper.cleanup())?;
-    }
-    {
-        let helper = PlaylistRepositoryHelper::new(connection);
-        connection.transaction::<_, Error, _>(|| helper.cleanup())?;
-    }
+    let db = DbConnection(connection);
+    connection.transaction::<_, Error, _>(|| track_repo::util::cleanup(&db))?;
+    connection.transaction::<_, Error, _>(|| playlist_repo::util::cleanup(&db))?;
     Ok(())
 }
 
-fn restore_database_storage(connection_pool: &SqliteConnectionPool) -> Result<(), Error> {
+fn restore_database_storage(_connection_pool: &SqliteConnectionPool) -> Result<(), Error> {
     log::info!("Restoring database storage");
-    let collection_prototype = Collection {
-        name: "Missing Collection".into(),
-        description: Some("Recreated by aoide".into()),
-    };
-    let connection = &*connection_pool.get()?;
-    let helper = TrackRepositoryHelper::new(connection);
-    connection.transaction::<_, Error, _>(|| {
-        helper.recreate_missing_collections(&collection_prototype)
-    })?;
+    // TODO: Nothing to do right now
     Ok(())
 }
 
@@ -393,11 +379,10 @@ pub async fn main() -> Result<(), Error> {
         .and(tracks)
         .and(warp::path("replace"))
         .and(warp::path::end())
-        .and(warp::query())
         .and(warp::body::json())
         .and(pooled_connection.clone())
-        .and_then(|query, body, pooled_connection| async {
-            TracksHandler::new(pooled_connection).handle_replace(query, body)
+        .and_then(|body, pooled_connection| async {
+            TracksHandler::new(pooled_connection).handle_replace(body)
         });
     let tracks_purge = warp::post()
         .and(tracks)

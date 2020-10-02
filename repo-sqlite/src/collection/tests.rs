@@ -31,10 +31,10 @@ fn create_collection(repo: &dyn Repo, collection: Collection) -> RepoResult<Enti
 
 #[test]
 fn insert_collection() {
-    let connection = establish_connection();
-    let repository = Repository::new(&connection);
+    let db_connection = establish_connection();
+    let connection = crate::Connection::from(&db_connection);
     let entity = create_collection(
-        &repository,
+        &connection,
         Collection {
             name: "Test Collection".into(),
             description: Some("Description".into()),
@@ -46,10 +46,10 @@ fn insert_collection() {
 
 #[test]
 fn update_collection() {
-    let connection = establish_connection();
-    let repository = Repository::new(&connection);
+    let db_connection = establish_connection();
+    let connection = crate::Connection::from(&db_connection);
     let mut entity = create_collection(
-        &repository,
+        &connection,
         Collection {
             name: "Test Collection".into(),
             description: Some("Description".into()),
@@ -59,7 +59,7 @@ fn update_collection() {
     println!("Created entity: {:?}", entity);
     let prev_rev = entity.hdr.rev;
     entity.body.name = "Renamed Collection".into();
-    let (prev_rev2, next_rev) = repository.update_collection(&entity).unwrap();
+    let (prev_rev2, next_rev) = connection.update_collection(&entity).unwrap();
     println!("Updated entity: {:?}", entity);
     assert!(prev_rev == prev_rev2);
     assert!(prev_rev < next_rev.unwrap());
@@ -68,10 +68,10 @@ fn update_collection() {
 
 #[test]
 fn delete_collection() {
-    let connection = establish_connection();
-    let repository = Repository::new(&connection);
+    let db_connection = establish_connection();
+    let connection = crate::Connection::from(&db_connection);
     let entity = create_collection(
-        &repository,
+        &connection,
         Collection {
             name: "Test Collection".into(),
             description: None,
@@ -81,7 +81,7 @@ fn delete_collection() {
     println!("Created entity: {:?}", entity);
     assert_eq!(
         Some(()),
-        repository.delete_collection(&entity.hdr.uid).unwrap()
+        connection.delete_collection(&entity.hdr.uid).unwrap()
     );
     println!("Removed entity: {}", entity.hdr.uid);
 }
