@@ -325,6 +325,14 @@ paths:
       operationId: createTrack
       tags:
         - Tracks
+      requestBody:
+        description: |
+          The `body` of the new track entity.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrackEntityBody'
       responses:
         '201':
           description: |
