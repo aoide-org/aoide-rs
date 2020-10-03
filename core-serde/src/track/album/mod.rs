@@ -25,8 +25,7 @@ use crate::{actor::*, title::*};
 // Album
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Album {
     #[serde(rename = "tit", skip_serializing_if = "Vec::is_empty", default)]

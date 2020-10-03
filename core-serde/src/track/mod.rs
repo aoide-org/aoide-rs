@@ -57,11 +57,11 @@ pub struct Track {
     #[serde(rename = "msc", skip_serializing_if = "IsDefault::is_default", default)]
     pub musical_signature: MusicalSignature,
 
-    #[serde(rename = "rel", skip_serializing_if = "Option::is_none")]
-    pub release: Option<Release>,
+    #[serde(rename = "rel", skip_serializing_if = "IsDefault::is_default", default)]
+    pub release: Release,
 
-    #[serde(rename = "alb", skip_serializing_if = "Option::is_none")]
-    pub album: Option<Album>,
+    #[serde(rename = "alb", skip_serializing_if = "IsDefault::is_default", default)]
+    pub album: Album,
 
     #[serde(rename = "tit", skip_serializing_if = "IsDefault::is_default", default)]
     pub titles: Vec<Title>,
@@ -99,8 +99,8 @@ impl From<_core::Track> for Track {
         Self {
             media_sources: media_sources.into_iter().map(Into::into).collect(),
             musical_signature: musical_signature.into(),
-            release: release.map(Into::into),
-            album: album.map(Into::into),
+            release: release.into(),
+            album: album.into(),
             titles: titles.into_iter().map(Into::into).collect(),
             actors: actors.into_iter().map(Into::into).collect(),
             indexes: indexes.into(),
@@ -128,8 +128,8 @@ impl From<Track> for _core::Track {
         Self {
             media_sources: media_sources.into_iter().map(Into::into).collect(),
             musical_signature: musical_signature.into(),
-            release: release.map(Into::into),
-            album: album.map(Into::into),
+            release: release.into(),
+            album: album.into(),
             titles: titles.into_iter().map(Into::into).collect(),
             actors: actors.into_iter().map(Into::into).collect(),
             indexes: indexes.into(),
@@ -167,8 +167,7 @@ pub struct EntityInCollection(pub Entity, pub CollectionSingleTrackEntry);
 // DateTime
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct Date(_core::Date);
 
 // Serialize (and deserialize) as string for maximum compatibility and portability
@@ -229,8 +228,7 @@ impl<'de> Deserialize<'de> for Date {
 // DateTime
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct DateTime(_core::DateTime);
 
 // Serialize (and deserialize) as string for maximum compatibility and portability
@@ -278,8 +276,7 @@ impl<'de> Deserialize<'de> for DateTime {
 // DateOrDateTime
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum DateOrDateTime {
     Date(Date),

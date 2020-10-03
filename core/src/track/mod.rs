@@ -47,9 +47,9 @@ pub struct Track {
 
     pub musical_signature: MusicalSignature,
 
-    pub release: Option<Release>,
+    pub release: Release,
 
-    pub album: Option<Album>,
+    pub album: Album,
 
     pub titles: Vec<Title>,
 

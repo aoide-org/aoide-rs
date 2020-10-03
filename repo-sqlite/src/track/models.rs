@@ -241,21 +241,11 @@ impl<'a> InsertableBrief<'a> {
                 .map(|actor| actor.name.as_str()),
             track_composer: Actors::main_actor(track.actors.iter(), ActorRole::Composer)
                 .map(|actor| actor.name.as_str()),
-            album_title: track
-                .album
-                .as_ref()
-                .and_then(|album| Titles::main_title(album.titles.iter()))
+            album_title: Titles::main_title(track.album.titles.iter())
                 .map(|title| title.name.as_str()),
-            album_artist: track
-                .album
-                .as_ref()
-                .and_then(|album| Actors::main_actor(album.actors.iter(), ActorRole::Artist))
+            album_artist: Actors::main_actor(track.album.actors.iter(), ActorRole::Artist)
                 .map(|actor| actor.name.as_str()),
-            release_date: track
-                .release
-                .as_ref()
-                .and_then(|release| release.date())
-                .map(Into::into),
+            release_date: track.release.date().map(Into::into),
             track_number: track.indexes.track.number().map(|idx| idx as i16),
             track_total: track.indexes.track.total().map(|cnt| cnt as i16),
             disc_number: track.indexes.disc.number().map(|idx| idx as i16),
