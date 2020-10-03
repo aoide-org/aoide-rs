@@ -41,6 +41,8 @@ use std::str::FromStr;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Track {
+    // TODO: Move into track collection entry with a single media source
+    // for each track in a collection
     pub media_sources: Vec<media::Source>,
 
     pub musical_signature: MusicalSignature,
