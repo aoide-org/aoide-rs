@@ -73,19 +73,15 @@ fn delete_location<'db>(connection: &crate::Connection<'db>, repo_id: RepoId) ->
 
 fn insert_location<'db>(
     connection: &crate::Connection<'db>,
+    collection_uid: &EntityUid,
     repo_id: RepoId,
     track: &Track,
 ) -> RepoResult<()> {
-    for collection in &track.collections {
-        for media_source in &track.media_sources {
-            let insertable = track::InsertableLocation::bind(
-                repo_id,
-                collection.uid.as_ref(),
-                &media_source.uri,
-            );
-            let query = diesel::insert_into(aux_track_location::table).values(&insertable);
-            query.execute(connection.as_ref())?;
-        }
+    for media_source in &track.media_sources {
+        let insertable =
+            track::InsertableLocation::bind(repo_id, collection_uid.as_ref(), &media_source.uri);
+        let query = diesel::insert_into(aux_track_location::table).values(&insertable);
+        query.execute(connection.as_ref())?;
     }
     Ok(())
 }
@@ -323,11 +319,14 @@ pub fn cleanup<'db>(connection: &crate::Connection<'db>) -> RepoResult<()> {
 
 fn on_insert<'db>(
     connection: &crate::Connection<'db>,
+    collection_uid: Option<&EntityUid>,
     repo_id: RepoId,
     track: &Track,
 ) -> RepoResult<()> {
     insert_media(connection, repo_id, track)?;
-    insert_location(connection, repo_id, track)?;
+    if let Some(collection_uid) = collection_uid {
+        insert_location(connection, collection_uid, repo_id, track)?;
+    }
     insert_brief(connection, repo_id, track)?;
     insert_markers(connection, repo_id, track)?;
     insert_tags(connection, repo_id, track)?;
@@ -345,22 +344,24 @@ fn on_delete<'db>(connection: &crate::Connection<'db>, repo_id: RepoId) -> RepoR
 
 fn on_refresh<'db>(
     connection: &crate::Connection<'db>,
+    collection_uid: Option<&EntityUid>,
     repo_id: RepoId,
     track: &Track,
 ) -> RepoResult<()> {
     on_delete(connection, repo_id)?;
-    on_insert(connection, repo_id, track)?;
+    on_insert(connection, collection_uid, repo_id, track)?;
     Ok(())
 }
 
 pub fn refresh_entity<'db>(
     connection: &crate::Connection<'db>,
+    collection_uid: Option<&EntityUid>,
     entity: &TrackEntity,
 ) -> RepoResult<RepoId> {
     let uid = &entity.hdr.uid;
     match connection.resolve_track_id(uid)? {
         Some(repo_id) => {
-            on_refresh(connection, repo_id, &entity.body)?;
+            on_refresh(connection, collection_uid, repo_id, &entity.body)?;
             Ok(repo_id)
         }
         None => Err(anyhow!("Entity not found: {}", uid)),
@@ -369,12 +370,13 @@ pub fn refresh_entity<'db>(
 
 pub fn after_entity_inserted<'db>(
     connection: &crate::Connection<'db>,
+    collection_uid: Option<&EntityUid>,
     entity: &TrackEntity,
 ) -> RepoResult<RepoId> {
     let uid = &entity.hdr.uid;
     match connection.resolve_track_id(uid)? {
         Some(repo_id) => {
-            on_insert(connection, repo_id, &entity.body)?;
+            on_insert(connection, collection_uid, repo_id, &entity.body)?;
             Ok(repo_id)
         }
         None => Err(anyhow!("Entity not found: {}", uid)),
@@ -396,9 +398,10 @@ pub fn before_entity_updated_or_removed<'db>(
 
 pub fn after_entity_updated<'db>(
     connection: &crate::Connection<'db>,
+    collection_uid: Option<&EntityUid>,
     repo_id: RepoId,
     track: &Track,
 ) -> RepoResult<()> {
-    on_insert(connection, repo_id, track)?;
+    on_insert(connection, collection_uid, repo_id, track)?;
     Ok(())
 }

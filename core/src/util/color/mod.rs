@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use super::*;
+
 use std::{fmt, num::ParseIntError, str::FromStr};
 
 ///////////////////////////////////////////////////////////////////////
@@ -23,6 +25,25 @@ use std::{fmt, num::ParseIntError, str::FromStr};
 pub enum Color {
     Rgb(RgbColor),
     Index(ColorIndex),
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum ColorInvalidity {
+    Rgb(RgbColorInvalidity),
+}
+
+impl Validate for Color {
+    type Invalidity = ColorInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        let context = ValidationContext::new();
+        use Color::*;
+        match self {
+            Rgb(rgb_color) => context.validate_with(rgb_color, ColorInvalidity::Rgb),
+            Index(_) => context,
+        }
+        .into()
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -117,6 +138,24 @@ impl FromStr for RgbColor {
         u32::from_str_radix(&hex_code, 16)
             .map(RgbColor)
             .map_err(ParseError::ParseIntError)
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum RgbColorInvalidity {
+    CodeOutOfRange,
+}
+
+impl Validate for RgbColor {
+    type Invalidity = RgbColorInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(
+                self.code() < Self::min_code() || self.code() > Self::max_code(),
+                RgbColorInvalidity::CodeOutOfRange,
+            )
+            .into()
     }
 }
 

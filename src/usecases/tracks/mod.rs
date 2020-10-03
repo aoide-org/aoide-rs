@@ -78,7 +78,7 @@ pub fn create_track(
     let entity = Entity::new(hdr.clone(), new_track);
     db.transaction::<_, Error, _>(|| {
         let repo = DbConnection::from_inner(&*db);
-        repo.insert_track(entity, body_data).map(|()| hdr)
+        repo.insert_track(None, entity, body_data).map(|()| hdr)
     })
 }
 
@@ -89,7 +89,7 @@ pub fn update_track(
 ) -> RepoResult<EntityRevisionUpdateResult> {
     db.transaction::<_, Error, _>(|| {
         let repo = DbConnection::from_inner(&*db);
-        repo.update_track(track, body_data)
+        repo.update_track(None, track, body_data)
     })
 }
 
@@ -208,7 +208,7 @@ pub fn replace_tracks(
                 track: new_track,
                 collection_entry,
             } = replacement;
-            let (collection_uid, new_collection_entry) = collection_entry.map(|(uid, entry)| (Some(uid), Some(entry.into()))).unwrap_or((None, None));
+            let (collection_uid, new_collection_entry) = collection_entry.map(|(uid, entry)| (Some(uid), Some(entry))).unwrap_or((None, None));
             let body_data = json::serialize_entity_body_data(&new_track)?;
             let (data_fmt, data_ver, _) = body_data;
             let media_uri = media_uri;
@@ -337,7 +337,8 @@ pub fn purge_tracks(
                         // TODO: Avoid temporary clone
                         let json_data = json::serialize_entity_body_data(&body.clone().into())?;
                         let entity = Entity::new(hdr, body);
-                        let _update_result = repo.update_track(entity, json_data)?;
+                        let _update_result =
+                            repo.update_track(collection_uid.as_ref(), entity, json_data)?;
                         debug_assert!(_update_result.is_updated());
                     }
                 } else {
@@ -396,7 +397,8 @@ pub fn relocate_tracks(
                     // TODO: Avoid temporary clone
                     let json_data = json::serialize_entity_body_data(&track.clone().into())?;
                     let entity = Entity::new(hdr, track);
-                    let _update_result = repo.update_track(entity, json_data)?;
+                    let _update_result =
+                        repo.update_track(collection_uid.as_ref(), entity, json_data)?;
                     debug_assert!(_update_result.is_updated());
                 } else {
                     log::debug!("No sources relocated for track {}", hdr.uid);

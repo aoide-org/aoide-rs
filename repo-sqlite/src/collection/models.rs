@@ -17,10 +17,7 @@ use super::{schema::tbl_collection, *};
 
 use aoide_core::{
     collection::{self, *},
-    util::{
-        clock::*,
-        color::{Color, RgbColor, RgbColorCode},
-    },
+    util::clock::*,
 };
 
 use aoide_repo::RepoId;
@@ -101,8 +98,6 @@ pub struct QueryableCollectionTrack {
     pub collection_id: RepoId,
     pub track_id: RepoId,
     pub added_ts: TickType,
-    pub color_rgb: Option<i32>,
-    pub color_idx: Option<i16>,
     pub play_count: Option<i64>,
     pub last_played_ts: Option<TickType>,
 }
@@ -114,24 +109,13 @@ impl From<QueryableCollectionTrack> for SingleTrackEntry {
             collection_id: _,
             track_id: _,
             added_ts,
-            color_rgb,
-            color_idx,
             play_count,
             last_played_ts,
         } = from;
         let added_at = TickInstant(Ticks(added_ts as TickType));
-        let color = if let Some(color_rgb) = color_rgb {
-            debug_assert!(color_idx.is_none());
-            Some(Color::Rgb(RgbColor(color_rgb as RgbColorCode)))
-        } else if let Some(color_idx) = color_idx {
-            Some(Color::Index(color_idx))
-        } else {
-            None
-        };
         let last_played_at = last_played_ts.map(|ts| TickInstant(Ticks(ts as TickType)));
         let play_count = play_count.map(|count| count as usize);
         let item = TrackItemBody {
-            color,
             last_played_at,
             play_count,
         };
@@ -145,8 +129,6 @@ pub struct InsertableCollectionTrack {
     pub collection_id: RepoId,
     pub track_id: RepoId,
     pub added_ts: TickType,
-    pub color_rgb: Option<i32>,
-    pub color_idx: Option<i16>,
     pub play_count: Option<i64>,
     pub last_played_ts: Option<TickType>,
 }
@@ -159,7 +141,6 @@ impl<'a> InsertableCollectionTrack {
         item: &collection::track::ItemBody,
     ) -> Self {
         let collection::track::ItemBody {
-            color,
             last_played_at,
             play_count,
         } = item;
@@ -167,16 +148,6 @@ impl<'a> InsertableCollectionTrack {
             collection_id,
             track_id,
             added_ts: (added_at.0).0,
-            color_rgb: if let Some(Color::Rgb(color)) = color {
-                Some(color.code() as i32)
-            } else {
-                None
-            },
-            color_idx: if let Some(Color::Index(index)) = color {
-                Some(*index)
-            } else {
-                None
-            },
             play_count: play_count.map(|count| count as i64),
             last_played_ts: last_played_at.map(|at| (at.0).0),
         }
@@ -186,8 +157,6 @@ impl<'a> InsertableCollectionTrack {
 #[derive(Debug, AsChangeset)]
 #[table_name = "tbl_collection_track"]
 pub struct UpdatableCollectionTrack {
-    pub color_rgb: Option<i32>,
-    pub color_idx: Option<i16>,
     pub play_count: Option<i64>,
     pub last_played_ts: Option<TickType>,
 }
@@ -195,21 +164,10 @@ pub struct UpdatableCollectionTrack {
 impl UpdatableCollectionTrack {
     pub fn bind(item: &collection::track::ItemBody) -> Self {
         let collection::track::ItemBody {
-            color,
             last_played_at,
             play_count,
         } = item;
         Self {
-            color_rgb: if let Some(Color::Rgb(color)) = color {
-                Some(color.code() as i32)
-            } else {
-                None
-            },
-            color_idx: if let Some(Color::Index(index)) = color {
-                Some(*index)
-            } else {
-                None
-            },
             play_count: play_count.map(|count| count as i64),
             last_played_ts: last_played_at.map(|at| (at.0).0),
         }

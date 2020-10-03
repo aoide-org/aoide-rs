@@ -20,8 +20,6 @@ CREATE TABLE tbl_collection_track (
     collection_id            INTEGER NOT NULL,
     track_id                 INTEGER NOT NULL,
     added_ts                 INTEGER NOT NULL,
-    color_rgb                INTEGER, -- 0xRRGGBB (hex)
-    color_idx                INTEGER, -- palette index
     play_count               INTEGER,
     last_played_ts           INTEGER,
     FOREIGN KEY(collection_id) REFERENCES tbl_collection(id),

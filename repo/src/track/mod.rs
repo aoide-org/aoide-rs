@@ -20,7 +20,7 @@ use crate::{collection, entity::*, tag};
 use aoide_core::{
     collection::SingleTrackEntry as CollectionSingleTrackEntry,
     entity::{EntityRevisionUpdateResult, EntityUid},
-    track::{album::*, collection::Collections, *},
+    track::{album::*, *},
 };
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -166,10 +166,16 @@ where
 pub trait Repo {
     fn resolve_track_id(&self, uid: &EntityUid) -> RepoResult<Option<RepoId>>;
 
-    fn insert_track(&self, entity: Entity, body_data: EntityBodyData) -> RepoResult<()>;
+    fn insert_track(
+        &self,
+        collection_uid: Option<&EntityUid>,
+        entity: Entity,
+        body_data: EntityBodyData,
+    ) -> RepoResult<()>;
 
     fn update_track(
         &self,
+        collection_uid: Option<&EntityUid>,
         entity: Entity,
         body_data: EntityBodyData,
     ) -> RepoResult<EntityRevisionUpdateResult>;
@@ -240,19 +246,6 @@ pub trait Repo {
         track: Track,
         body_data: EntityBodyData,
     ) -> RepoResult<(ReplaceOutcome, Option<CollectionSingleTrackEntry>)> {
-        if let Some(collection_uid) = collection_uid {
-            if Collections::find_by_uid(track.collections.iter(), collection_uid).is_none() {
-                bail!(
-                    "Invalid collection '{}': {:?}",
-                    collection_uid,
-                    track
-                        .collections
-                        .iter()
-                        .map(|c| c.uid.to_string())
-                        .collect::<Vec<_>>()
-                );
-            }
-        }
         let locate_params = MediaSourceFilterParams {
             media_uri: StringPredicate::Equals(media_uri),
         };
@@ -308,7 +301,7 @@ pub trait Repo {
             }
             let old_hdr = entity_hdr;
             let entity = Entity::new(old_hdr.clone(), track);
-            match self.update_track(entity, (data_fmt, data_ver, data_blob))? {
+            match self.update_track(collection_uid, entity, (data_fmt, data_ver, data_blob))? {
                 EntityRevisionUpdateResult::NotFound => {
                     bail!("Failed to update track {:?}: Not found", old_hdr);
                 }
@@ -332,7 +325,7 @@ pub trait Repo {
                 ReplaceMode::UpdateOrCreate => {
                     let hdr = EntityHeader::initial_random();
                     let entity = Entity::new(hdr.clone(), track);
-                    self.insert_track(entity, (data_fmt, data_ver, data_blob))?;
+                    self.insert_track(collection_uid, entity, (data_fmt, data_ver, data_blob))?;
                     Ok((ReplaceOutcome::Created(hdr), None))
                 }
             }

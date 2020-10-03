@@ -18,14 +18,14 @@
 use super::*;
 
 pub mod album;
-pub mod collection;
+pub mod extra;
 pub mod index;
 pub mod marker;
 pub mod music;
 pub mod release;
 pub mod tag;
 
-use self::{album::*, collection::*, index::*, marker::*, music::*, release::*};
+use self::{album::*, extra::*, index::*, marker::*, music::*, release::*};
 
 use crate::{actor::*, media, tag::*, title::*};
 
@@ -41,8 +41,6 @@ use std::str::FromStr;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Track {
-    pub collections: Vec<Collection>,
-
     pub media_sources: Vec<media::Source>,
 
     pub musical_signature: MusicalSignature,
@@ -60,6 +58,8 @@ pub struct Track {
     pub markers: Markers,
 
     pub tags: Tags,
+
+    pub extra: Extra,
 }
 
 impl Track {
@@ -113,7 +113,6 @@ impl Track {
 
 #[derive(Copy, Clone, Debug)]
 pub enum TrackInvalidity {
-    Collections(CollectionsInvalidity),
     MediaSources(media::SourcesInvalidity),
     MusicalSignature(MusicalSignatureInvalidity),
     Release(ReleaseInvalidity),
@@ -123,6 +122,7 @@ pub enum TrackInvalidity {
     Indexes(IndexesInvalidity),
     Markers(MarkersInvalidity),
     Tags(TagsInvalidity),
+    Extra(ExtraInvalidity),
 }
 
 impl Validate for Track {
@@ -130,10 +130,6 @@ impl Validate for Track {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .merge_result_with(
-                Collections::validate(self.collections.iter()),
-                TrackInvalidity::Collections,
-            )
             .validate_with(&self.musical_signature, TrackInvalidity::MusicalSignature)
             .merge_result_with(
                 media::Sources::validate(self.media_sources.iter()),
@@ -152,6 +148,7 @@ impl Validate for Track {
             .validate_with(&self.indexes, TrackInvalidity::Indexes)
             .validate_with(&self.markers, TrackInvalidity::Markers)
             .validate_with(&self.tags, TrackInvalidity::Tags)
+            .validate_with(&self.extra, TrackInvalidity::Extra)
             .into()
     }
 }

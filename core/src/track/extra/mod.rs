@@ -13,24 +13,30 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-table! {
-    tbl_collection (id) {
-        id -> BigInt,
-        uid -> Binary,
-        rev_no -> BigInt,
-        rev_ts -> BigInt,
-        name -> Text,
-        desc -> Nullable<Text>,
-    }
+use super::*;
+
+use crate::util::color::*;
+
+///////////////////////////////////////////////////////////////////////
+// Extra
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct Extra {
+    pub color: Option<Color>,
 }
 
-table! {
-    tbl_collection_track (id) {
-        id -> BigInt,
-        collection_id -> BigInt,
-        track_id -> BigInt,
-        added_ts -> BigInt,
-        play_count -> Nullable<BigInt>,
-        last_played_ts -> Nullable<BigInt>,
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum ExtraInvalidity {
+    Color(ColorInvalidity),
+}
+
+impl Validate for Extra {
+    type Invalidity = ExtraInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .validate_with(&self.color, ExtraInvalidity::Color)
+            .into()
     }
 }

@@ -19,7 +19,7 @@ use super::*;
 
 use crate::{
     entity::{EntityUid, EntityUidInvalidity},
-    util::{clock::TickInstant, color::Color},
+    util::clock::TickInstant,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -30,8 +30,6 @@ pub struct Item {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ItemBody {
-    pub color: Option<Color>,
-
     pub play_count: Option<usize>,
 
     pub last_played_at: Option<TickInstant>,

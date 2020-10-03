@@ -892,6 +892,7 @@ components:
     Album:
       description: |
         Album properties
+      type: object
       properties:
         act:
           type: array
@@ -910,6 +911,7 @@ components:
           items:
             $ref: '#/components/schemas/Title'
     AlbumTrackCount:
+      type: object
       properties:
         art:
           $ref: '#/components/schemas/ArtistName'
@@ -935,6 +937,7 @@ components:
         The optional background color can be used to quickly display
         a preliminary view before the actual image has been loaded and
         for selecting a matching color scheme.
+      type: object
       properties:
         col:
           $ref: '#/components/schemas/ArtworkColor'
@@ -958,6 +961,7 @@ components:
     ArtworkResourcePropertyEmbedded:
       description: |
         Embedded artwork resource referenced by a string selector
+      type: object
       properties:
         res:
           type: string
@@ -965,11 +969,13 @@ components:
     ArtworkResourcePropertyUri:
       description: |
         External artwork resource referenced by an URI
+      type: object
       properties:
         uri:
           allOf:
             - $ref: '#/components/schemas/Uri'
     AudioContent:
+      type: object
       properties:
         bps:
           $ref: '#/components/schemas/BitRateBps'
@@ -1000,6 +1006,7 @@ components:
         current measure. The maximm value must be strictly less than
         the value of *beats per measure* for the current time signature.
     BeatAndKeyMarker:
+      type: object
       properties:
         bar:
           $ref: '#/components/schemas/TimeSignature'
@@ -1025,6 +1032,7 @@ components:
         value if both tempo and beats per measure (as of the time signature)
         are known.
     BeatAndKeyMarkers:
+      type: object
       properties:
         mkl:
           description: |
@@ -1100,6 +1108,7 @@ components:
           - $ref: '#/components/schemas/EntityHeader'
           - $ref: '#/components/schemas/CollectionEntityBody'
     CollectionEntityBody:
+      type: object
       properties:
         dsc:
           description: Description
@@ -1111,6 +1120,7 @@ components:
       required:
         - nam
     CollectionEntityWithStats:
+      type: object
       properties:
         entity:
           $ref: '#/components/schemas/CollectionEntity'
@@ -1128,6 +1138,7 @@ components:
 
         Both the affected collection and track are implicit and defined
         by the outer context.
+      type: object
       properties:
         add:
           $ref: '#/components/schemas/CollectionEntryAddedAt'
@@ -1146,10 +1157,12 @@ components:
           allOf:
             - $ref: '#/components/schemas/TimeStampTicks'
     CollectionStats:
+      type: object
       properties:
         tracks:
           $ref: '#/components/schemas/CollectionTrackStats'
     CollectionTrackStats:
+      type: object
       properties:
         totalCount:
           $ref: '#/components/schemas/TotalTrackCount'
@@ -1172,10 +1185,12 @@ components:
       description: |
         A color palette index.
     ColorIndexVariant:
+      type: object
       properties:
         idx:
           $ref: '#/components/schemas/ColorIndex'
     CountTracksByAlbumParams:
+      type: object
       properties:
         minReleaseDate:
           $ref: '#/components/schemas/ReleaseDate'
@@ -1190,6 +1205,7 @@ components:
 
         Results can be ordered by album title, album artist, and release year.
     CountTracksByTagFacetParams:
+      type: object
       properties:
         facets:
           $ref: '#/components/schemas/TagFacetFilter'
@@ -1200,6 +1216,7 @@ components:
           items:
             $ref: '#/components/schemas/TagSortOrder'
     CountTracksByTagParams:
+      type: object
       properties:
         facets:
           $ref: '#/components/schemas/TagFacetFilter'
@@ -1225,6 +1242,7 @@ components:
       minimum: 0
       example: 210387.576
     Encoder:
+      type: object
       properties:
         nam:
           description: Name
@@ -1304,6 +1322,7 @@ components:
           description: |
             Identifies the number of the current item (1st) and the number of total items (2nd).
     Indexes:
+      type: object
       properties:
         dsi:
           $ref: '#/components/schemas/DiscIndex'
@@ -1355,6 +1374,7 @@ components:
         The numbering follows the Circle of fifth / Open Key notation in
         clock-wise orientation, alternating between major and minor keys.
     MediaSourceFilterParams:
+      type: object
       properties:
         mediaUri:
           $ref: '#/components/schemas/StringPredicate'
@@ -1447,6 +1467,7 @@ components:
         An array with exactly 2 elements: The position in milliseconds
         followed by the position in samples.
     MarkerFilter:
+      type: object
       properties:
         modifier:
           $ref: '#/components/schemas/FilterModifier'
@@ -1467,6 +1488,7 @@ components:
         disabled by default. Don't use the corresponding "bnk" property!
         It is reserved for future use and only documented for the sake
         of completeness.
+      type: object
       properties:
         cue:
           $ref: '#/components/schemas/CueMarkers'
@@ -1492,10 +1514,12 @@ components:
       allOf:
         - $ref: '#/components/schemas/MediaContentAudioProperty'
     MediaContentAudioProperty:
+      type: object
       properties:
         aud:
           $ref: '#/components/schemas/AudioContent'
     MediaSource:
+      type: object
       properties:
         art:
           $ref: '#/components/schemas/Artwork'
@@ -1547,6 +1571,7 @@ components:
         An array with exactly 2 elements: The measure offset
         followed by the beat offset within this measure.
     MusicalSignature:
+      type: object
       properties:
         bpm:
           $ref: '#/components/schemas/TempoBpm'
@@ -1605,6 +1630,7 @@ components:
         - $ref: '#/components/schemas/NumericPredicateEqual'
         - $ref: '#/components/schemas/NumericPredicateNotEqual'
     NumericPredicateLessThan:
+      type: object
       properties:
         lt:
           type: number
@@ -1612,6 +1638,7 @@ components:
       required:
         - lt
     NumericPredicateLessOrEqual:
+      type: object
       properties:
         le:
           type: number
@@ -1619,6 +1646,7 @@ components:
       required:
         - le
     NumericPredicateGreaterThan:
+      type: object
       properties:
         gt:
           type: number
@@ -1626,6 +1654,7 @@ components:
       required:
         - gt
     NumericPredicateGreaterOrEqual:
+      type: object
       properties:
         ge:
           type: number
@@ -1633,11 +1662,13 @@ components:
       required:
         - ge
     NumericPredicateEqual:
+      type: object
       properties:
         eq:
           type: number
           format: double
     NumericPredicateNotEqual:
+      type: object
       properties:
         ne:
           type: number
@@ -1687,6 +1718,7 @@ components:
       items:
         $ref: '#/components/schemas/PlainTag'
     PlaylistEntityBody:
+      type: object
       properties:
         col:
           $ref: '#/components/schemas/Color'
@@ -1702,6 +1734,7 @@ components:
         - lst
         - nam
     PlaylistBrief:
+      type: object
       properties:
         col:
           $ref: '#/components/schemas/Color'
@@ -1744,6 +1777,7 @@ components:
       items:
         $ref: '#/components/schemas/PlaylistEntry'
     PlaylistBriefEntries:
+      type: object
       properties:
         add:
           description: |
@@ -1764,12 +1798,14 @@ components:
         - cnt
         - trk
     PlaylistBriefTracks:
+      type: object
       properties:
         cnt:
           $ref: '#/components/schemas/PlaylistTrackCount'
       required:
         - cnt
     PlaylistEntry:
+      type: object
       properties:
         add:
           $ref: '#/components/schemas/PlaylistEntryAddedAt'
@@ -1808,6 +1844,7 @@ components:
       enum:
         - sep
     PlaylistTrackItem:
+      type: object
       properties:
         trk:
           $ref: '#/components/schemas/PlaylistTrack'
@@ -1883,6 +1920,7 @@ components:
             - shuffleEntries
             - sortEntriesChronologically
     PlaylistPatchParams:
+      type: object
       properties:
         rev:
           $ref: '#/components/schemas/EntityRevision'
@@ -1909,6 +1947,7 @@ components:
       allOf:
         - $ref: '#/components/schemas/EntityUid'
     CueMarker:
+      type: object
       properties:
         col:
           $ref: '#/components/schemas/Color'
@@ -1932,6 +1971,7 @@ components:
         Marker to identify points (either start or end) or sections (both start
         and end) within a track
     CueMarkers:
+      type: object
       properties:
         mkl:
           description: |
@@ -1963,6 +2003,7 @@ components:
       items:
         $ref: '#/components/schemas/UriPredicate'
     Release:
+      type: object
       properties:
         cpy:
           description: Copyright
@@ -1993,6 +2034,7 @@ components:
       items:
         $ref: '#/components/schemas/UriRelocation'
     ReplacedTracks:
+      type: object
       properties:
         created:
           type: array
@@ -2032,6 +2074,7 @@ components:
           * `update-only` - only update existing entities and discard new entities that need to be created
           * `update-or-create` - create a new entity if no existing entity could be found/located
     ReplaceTracksParams:
+      type: object
       properties:
         mode:
           $ref: '#/components/schemas/ReplacementMode'
@@ -2047,6 +2090,7 @@ components:
       description: |
         A hexadecimal RGB color code `#RRGGBB` with 8 bits per channel.
     RgbColorVariant:
+      type: object
       properties:
         rgb:
           $ref: '#/components/schemas/RgbColor'
@@ -2068,6 +2112,7 @@ components:
       description: |
         The sample rate in Hertz (Hz).
     SearchParams:
+      type: object
       properties:
         filter:
           $ref: '#/components/schemas/TrackSearchFilterNode'
@@ -2114,56 +2159,67 @@ components:
         - $ref: '#/components/schemas/StringPredicateEquals'
         - $ref: '#/components/schemas/StringPredicateEqualsNot'
     StringPredicateStartsWith:
+      type: object
       properties:
         startsWith:
           type: string
       description: Matches the head of a string (case-insensitive)
     StringPredicateStartsNotWith:
+      type: object
       properties:
         startsNotWith:
           type: string
       description: Mismatches the head of a string (case-insensitive)
     StringPredicateEndsWith:
+      type: object
       properties:
         endsWith:
           type: string
       description: Matches the tail of a string (case-insensitive)
     StringPredicateEndsNotWith:
+      type: object
       properties:
         endsNotWith:
           type: string
       description: Mismatches the tail of a string (case-insensitive)
     StringPredicateContains:
+      type: object
       properties:
         contains:
           type: string
       description: Matches the middle of the string with arbitrary head/tail (case-insensitive)
     StringPredicateContainsNot:
+      type: object
       properties:
         containsNot:
           type: string
       description: Mismatches the middle of the string with arbitrary head/tail (case-insensitive)
     StringPredicateMatches:
+      type: object
       properties:
         matches:
           type: string
       description: Matches the whole string (case-insensitive)
     StringPredicateMatchesNot:
+      type: object
       properties:
         matchesNot:
           type: string
       description: Mismatches the whole string (case-insensitive)
     StringPredicateEquals:
+      type: object
       properties:
         equals:
           type: string
       description: Exact match (case-sensitive)
     StringPredicateEqualsNot:
+      type: object
       properties:
         equals:
           type: string
       description: Exact mismatch (case-sensitive)
     TagAvgScoreCount:
+      type: object
       properties:
         fct:
           $ref: '#/components/schemas/TagFacet'
@@ -2206,6 +2262,7 @@ components:
         faceted tags.
       example: ['genre', 'comment']
     TagFilter:
+      type: object
       properties:
         modifier:
           $ref: '#/components/schemas/FilterModifier'
@@ -2371,6 +2428,7 @@ components:
           - $ref: '#/components/schemas/TrackEntityBody'
           - $ref: '#/components/schemas/CollectionSingleTrackEntry'
     TrackEntityBody:
+      type: object
       properties:
         alb:
           $ref: '#/components/schemas/Album'
@@ -2380,6 +2438,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Actor'
+        ext:
+          $ref: '#/components/schemas/TrackExtra'
         idx:
           $ref: '#/components/schemas/Indexes'
         mrk:
@@ -2402,10 +2462,16 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Title'
+    TrackExtra:
+      type: object
+      properties:
+        col:
+          $ref: '#/components/schemas/Color'
     TrackIndex:
       allOf:
         - $ref: '#/components/schemas/Index'
     TrackReplacement:
+      type: object
       properties:
         mediaUri:
           $ref: '#/components/schemas/Uri'
@@ -2420,6 +2486,7 @@ components:
         The URI is used for looking up the existing track (if any) that gets
         replaced.
     TrackSearchAllFilterNode:
+      type: object
       properties:
         all:
           type: array
@@ -2428,6 +2495,7 @@ components:
       required:
         - all
     TrackSearchAnyFilterNode:
+      type: object
       properties:
         any:
           type: array
@@ -2445,30 +2513,35 @@ components:
         - $ref: '#/components/schemas/TrackSearchAnyFilterNode'
         - $ref: '#/components/schemas/TrackSearchNotFilterNode'
     TrackSearchMarkerFilterNode:
+      type: object
       properties:
         tag:
           $ref: '#/components/schemas/MarkerFilter'
       required:
         - tag
     TrackSearchNotFilterNode:
+      type: object
       properties:
         not:
           $ref: '#/components/schemas/TrackSearchFilterNode'
       required:
         - not
     TrackSearchNumericFieldFilterNode:
+      type: object
       properties:
         numeric:
           $ref: '#/components/schemas/NumericFieldFilter'
       required:
         - numeric
     TrackSearchPhraseFieldFilterNode:
+      type: object
       properties:
         phrase:
           $ref: '#/components/schemas/PhraseFieldFilter'
       required:
         - phrase
     TrackSearchTagFilterNode:
+      type: object
       properties:
         tag:
           $ref: '#/components/schemas/TagFilter'
@@ -2515,16 +2588,19 @@ components:
         - $ref: '#/components/schemas/UriPredicatePrefix'
         - $ref: '#/components/schemas/UriPredicateExact'
     UriPredicatePrefix:
+      type: object
       properties:
         prefix:
           type: string
       description: Matches the head of an URI (case-sensitive)
     UriPredicateExact:
+      type: object
       properties:
         exact:
           type: string
       description: Matches a single URI (case-sensitive)
     UriRelocation:
+      type: object
       properties:
         predicate:
           $ref: '#/components/schemas/UriPredicate'

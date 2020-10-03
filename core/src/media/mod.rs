@@ -17,7 +17,7 @@ use super::*;
 
 use crate::{
     audio::{AudioContent, AudioContentInvalidity},
-    util::color::RgbColor,
+    util::color::{RgbColor, RgbColorInvalidity},
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -127,6 +127,7 @@ impl Artwork {
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ArtworkInvalidity {
     ImageSize(ImageSizeInvalidity),
+    Color(RgbColorInvalidity),
     DigestEmpty,
     ContentTypeEmpty,
 }
@@ -137,6 +138,7 @@ impl Validate for Artwork {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
             .validate_with(&self.size, ArtworkInvalidity::ImageSize)
+            .validate_with(&self.color, ArtworkInvalidity::Color)
             .invalidate_if(
                 self.digest.as_ref().map(String::is_empty).unwrap_or(false),
                 ArtworkInvalidity::DigestEmpty,

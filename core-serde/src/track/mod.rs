@@ -16,13 +16,13 @@
 use super::*;
 
 pub mod album;
-pub mod collection;
+pub mod extra;
 pub mod index;
 pub mod marker;
 pub mod music;
 pub mod release;
 
-use self::{album::*, collection::*, index::*, marker::*, music::*, release::*};
+use self::{album::*, extra::*, index::*, marker::*, music::*, release::*};
 
 use crate::{
     actor::*, collection::SingleTrackEntry as CollectionSingleTrackEntry, media, tag::*, title::*,
@@ -51,9 +51,6 @@ use std::fmt;
 #[cfg_attr(test, derive(PartialEq))]
 #[serde(deny_unknown_fields)]
 pub struct Track {
-    #[serde(rename = "col", skip_serializing_if = "IsDefault::is_default", default)]
-    pub collections: Vec<Collection>,
-
     #[serde(rename = "src", skip_serializing_if = "IsDefault::is_default", default)]
     pub media_sources: Vec<media::Source>,
 
@@ -80,12 +77,14 @@ pub struct Track {
 
     #[serde(rename = "tag", skip_serializing_if = "IsDefault::is_default", default)]
     pub tags: Tags,
+
+    #[serde(rename = "ext", skip_serializing_if = "IsDefault::is_default", default)]
+    pub extra: Extra,
 }
 
 impl From<_core::Track> for Track {
     fn from(from: _core::Track) -> Self {
         let _core::Track {
-            collections,
             media_sources,
             musical_signature,
             release,
@@ -95,9 +94,9 @@ impl From<_core::Track> for Track {
             indexes,
             markers,
             tags,
+            extra,
         } = from;
         Self {
-            collections: collections.into_iter().map(Into::into).collect(),
             media_sources: media_sources.into_iter().map(Into::into).collect(),
             musical_signature: musical_signature.into(),
             release: release.map(Into::into),
@@ -107,6 +106,7 @@ impl From<_core::Track> for Track {
             indexes: indexes.into(),
             markers: markers.into(),
             tags: tags.into(),
+            extra: extra.into(),
         }
     }
 }
@@ -114,7 +114,6 @@ impl From<_core::Track> for Track {
 impl From<Track> for _core::Track {
     fn from(from: Track) -> Self {
         let Track {
-            collections,
             media_sources,
             musical_signature,
             release,
@@ -124,9 +123,9 @@ impl From<Track> for _core::Track {
             indexes,
             markers,
             tags,
+            extra,
         } = from;
         Self {
-            collections: collections.into_iter().map(Into::into).collect(),
             media_sources: media_sources.into_iter().map(Into::into).collect(),
             musical_signature: musical_signature.into(),
             release: release.map(Into::into),
@@ -136,6 +135,7 @@ impl From<Track> for _core::Track {
             indexes: indexes.into(),
             markers: markers.into(),
             tags: tags.into(),
+            extra: extra.into(),
         }
     }
 }

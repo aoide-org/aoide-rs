@@ -15,7 +15,7 @@
 
 use super::*;
 
-use crate::{entity::EntityUid, util::color::Color};
+use crate::entity::EntityUid;
 
 use aoide_core::util::clock::{TickInstant, TickType, Ticks};
 
@@ -31,9 +31,6 @@ mod _core {
 #[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(deny_unknown_fields)]
 pub struct ItemBody {
-    #[serde(rename = "col", skip_serializing_if = "Option::is_none")]
-    color: Option<Color>,
-
     #[serde(rename = "plc", skip_serializing_if = "Option::is_none")]
     play_count: Option<usize>,
 
@@ -44,12 +41,10 @@ pub struct ItemBody {
 impl From<_core::ItemBody> for ItemBody {
     fn from(from: _core::ItemBody) -> Self {
         let _core::ItemBody {
-            color,
             play_count,
             last_played_at,
         } = from;
         Self {
-            color: color.map(Into::into),
             play_count: play_count.map(Into::into),
             last_played_at: last_played_at.map(|last_played_at| (last_played_at.0).0),
         }
@@ -59,12 +54,10 @@ impl From<_core::ItemBody> for ItemBody {
 impl From<ItemBody> for _core::ItemBody {
     fn from(from: ItemBody) -> Self {
         let ItemBody {
-            color,
             play_count,
             last_played_at,
         } = from;
         Self {
-            color: color.map(Into::into),
             play_count: play_count.map(Into::into),
             last_played_at: last_played_at.map(|last_played_at| TickInstant(Ticks(last_played_at))),
         }

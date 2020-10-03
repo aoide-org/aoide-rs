@@ -383,19 +383,25 @@ impl<'db> Repo for crate::Connection<'db> {
             .map_err(Into::into)
     }
 
-    fn insert_track(&self, entity: Entity, body_data: EntityBodyData) -> RepoResult<()> {
+    fn insert_track(
+        &self,
+        collection_uid: Option<&EntityUid>,
+        entity: Entity,
+        body_data: EntityBodyData,
+    ) -> RepoResult<()> {
         {
             let (data_fmt, data_ver, data_blob) = body_data;
             let insertable = InsertableEntity::bind(&entity.hdr, data_fmt, data_ver, &data_blob);
             let query = diesel::insert_into(tbl_track::table).values(&insertable);
             query.execute(self.as_ref())?;
         }
-        after_entity_inserted(self, &entity)?;
+        after_entity_inserted(self, collection_uid, &entity)?;
         Ok(())
     }
 
     fn update_track(
         &self,
+        collection_uid: Option<&EntityUid>,
         entity: Entity,
         body_data: EntityBodyData,
     ) -> RepoResult<EntityRevisionUpdateResult> {
@@ -430,7 +436,7 @@ impl<'db> Repo for crate::Connection<'db> {
                     return Ok(EntityRevisionUpdateResult::NotFound);
                 }
             }
-            after_entity_updated(self, repo_id, &entity.body)?;
+            after_entity_updated(self, collection_uid, repo_id, &entity.body)?;
         }
         Ok(EntityRevisionUpdateResult::Updated(prev_rev, next_rev))
     }
