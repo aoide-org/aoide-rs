@@ -1,6 +1,6 @@
 [package]
 name = "aoide"
-version = "0.7.5"
+version = "0.8.0"
 authors = [ "Uwe Klotz <uwe.klotz@gmail>", "et al." ]
 license = "AGPL-3.0-or-later"
 description = "A web service for managing and exploring music collections"
@@ -29,9 +29,9 @@ aoide-core-serde = "*"
 aoide-repo = "*"
 aoide-repo-sqlite = "*"
 chrono = { version = "*", default-features = false }
-clap = "*"
 diesel = { version = "*", default-features = false, features = ["r2d2", "sqlite"] }
 diesel_migrations =  { version = "*", default-features = false, features = ["sqlite"] }
+dotenv = "*"
 env_logger = "*"
 futures = "*"
 anyhow = "*"
@@ -44,11 +44,6 @@ warp = { version = "*", default-features = false }
 
 [features]
 default = []
-experimental-bnk-markers = [
-  "aoide-core/experimental-bnk-markers",
-  "aoide-core-serde/experimental-bnk-markers",
-  "aoide-repo/experimental-bnk-markers", "aoide-repo-sqlite/experimental-bnk-markers",
-]
 
 [dev-dependencies]
 serde_urlencoded = "*"

@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use crate::prelude::*;
 
 pub mod channel;
 pub mod sample;
@@ -65,7 +65,7 @@ impl fmt::Display for PositionMs {
 
 pub type DurationInMilliseconds = f64;
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
+#[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
 pub struct DurationMs(pub DurationInMilliseconds);
 
 impl DurationMs {
@@ -114,29 +114,26 @@ impl fmt::Display for DurationMs {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// AudioEncoder
+// Encoder
 ///////////////////////////////////////////////////////////////////////
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct AudioEncoder {
+pub struct Encoder {
     pub name: String,
 
     pub settings: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum AudioEncoderInvalidity {
+pub enum EncoderInvalidity {
     NameEmpty,
 }
 
-impl Validate for AudioEncoder {
-    type Invalidity = AudioEncoderInvalidity;
+impl Validate for Encoder {
+    type Invalidity = EncoderInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(
-                self.name.trim().is_empty(),
-                AudioEncoderInvalidity::NameEmpty,
-            )
+            .invalidate_if(self.name.trim().is_empty(), EncoderInvalidity::NameEmpty)
             .into()
     }
 }
@@ -147,27 +144,27 @@ impl Validate for AudioEncoder {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AudioContent {
-    pub channels: Channels,
+    pub duration: Option<DurationMs>,
 
-    pub duration: DurationMs,
+    pub channels: Option<Channels>,
 
-    pub sample_rate: SampleRateHz,
+    pub sample_rate: Option<SampleRateHz>,
 
-    pub bit_rate: BitRateBps,
+    pub bit_rate: Option<BitRateBps>,
 
     pub loudness: Option<LoudnessLufs>,
 
-    pub encoder: Option<AudioEncoder>,
+    pub encoder: Option<Encoder>,
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum AudioContentInvalidity {
-    Channels(ChannelsInvalidity),
     Duration(DurationMsInvalidity),
+    Channels(ChannelsInvalidity),
     SampleRate(SampleRateHzInvalidity),
     BitRate(BitRateBpsInvalidity),
     Loudness(LoudnessLufsInvalidity),
-    Encoder(AudioEncoderInvalidity),
+    Encoder(EncoderInvalidity),
 }
 
 impl Validate for AudioContent {
@@ -175,8 +172,8 @@ impl Validate for AudioContent {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .validate_with(&self.channels, AudioContentInvalidity::Channels)
             .validate_with(&self.duration, AudioContentInvalidity::Duration)
+            .validate_with(&self.channels, AudioContentInvalidity::Channels)
             .validate_with(&self.sample_rate, AudioContentInvalidity::SampleRate)
             .validate_with(&self.bit_rate, AudioContentInvalidity::BitRate)
             .validate_with(&self.loudness, AudioContentInvalidity::Loudness)

@@ -13,7 +13,52 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use crate::prelude::*;
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum DateOrDateTime {
+    Date(DateYYYYMMDD),
+    DateTime(DateTime),
+}
+
+impl From<DateTime> for DateOrDateTime {
+    fn from(from: DateTime) -> Self {
+        Self::DateTime(from)
+    }
+}
+
+impl From<DateYYYYMMDD> for DateOrDateTime {
+    fn from(from: DateYYYYMMDD) -> Self {
+        Self::Date(from)
+    }
+}
+
+impl From<DateOrDateTime> for DateYYYYMMDD {
+    fn from(from: DateOrDateTime) -> Self {
+        match from {
+            DateOrDateTime::Date(date) => date,
+            DateOrDateTime::DateTime(dt) => dt.into(),
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum DateOrDateTimeInvalidity {
+    Date(DateYYYYMMDDInvalidity),
+}
+
+impl Validate for DateOrDateTime {
+    type Invalidity = DateOrDateTimeInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        let context = ValidationContext::new();
+        match self {
+            DateOrDateTime::Date(date) => context.validate_with(date, Self::Invalidity::Date),
+            DateOrDateTime::DateTime(_) => context,
+        }
+        .into()
+    }
+}
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Release {
@@ -22,18 +67,6 @@ pub struct Release {
     pub released_by: Option<String>, // record label
 
     pub copyright: Option<String>,
-
-    pub licenses: Vec<String>,
-}
-
-impl Release {
-    pub fn date(&self) -> Option<Date> {
-        self.released_at.map(Into::into)
-    }
-
-    pub fn year(&self) -> Option<YearType> {
-        self.date().map(Date::year)
-    }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -41,7 +74,6 @@ pub enum ReleaseInvalidity {
     ReleasedAt(DateOrDateTimeInvalidity),
     ReleasedByEmpty,
     CopyrightEmpty,
-    LicenseEmpty,
 }
 
 impl Validate for Release {
@@ -62,11 +94,6 @@ impl Validate for Release {
                 ReleaseInvalidity::CopyrightEmpty,
             );
         }
-        self.licenses
-            .iter()
-            .fold(context, |context, license| {
-                context.invalidate_if(license.trim().is_empty(), ReleaseInvalidity::LicenseEmpty)
-            })
-            .into()
+        context.into()
     }
 }

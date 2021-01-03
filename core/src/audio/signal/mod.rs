@@ -13,19 +13,23 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use crate::{
+    audio::{
+        sample::BitsPerSample, ChannelLayout, ChannelLayoutInvalidity, SampleLayout,
+        SampleLayoutInvalidity, SampleLength,
+    },
+    prelude::*,
+};
 
-use crate::audio::sample::BitsPerSample;
-
-use std::{fmt, u32};
+use std::{f64, fmt};
 
 ///////////////////////////////////////////////////////////////////////
 // BitRate
 ///////////////////////////////////////////////////////////////////////
 
-pub type BitsPerSecond = u32;
+pub type BitsPerSecond = f64;
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct BitRateBps(pub BitsPerSecond);
 
 impl BitRateBps {
@@ -34,15 +38,15 @@ impl BitRateBps {
     }
 
     pub const fn min() -> Self {
-        Self(1)
+        Self(f64::MIN_POSITIVE)
     }
 
     pub const fn max() -> Self {
-        Self(u32::MAX)
+        Self(f64::MAX)
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum BitRateBpsInvalidity {
     Min(BitRateBps),
     Max(BitRateBps),
@@ -69,9 +73,9 @@ impl fmt::Display for BitRateBps {
 // SampleRate
 ///////////////////////////////////////////////////////////////////////
 
-pub type SamplesPerSecond = u32;
+pub type SamplesPerSecond = f64;
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
 pub struct SampleRateHz(pub SamplesPerSecond);
 
 impl SampleRateHz {
@@ -80,31 +84,31 @@ impl SampleRateHz {
     }
 
     pub const fn min() -> Self {
-        Self(1)
+        Self(f64::MIN_POSITIVE)
     }
 
     pub const fn max() -> Self {
-        Self(u32::MAX)
+        Self(192_000.0)
     }
 
     pub const fn of_compact_disc() -> Self {
-        Self(44_100)
+        Self(44_100.0)
     }
 
     pub const fn of_studio_48k() -> Self {
-        Self(48_000)
+        Self(48_000.0)
     }
 
     pub const fn of_studio_96k() -> Self {
-        Self(96_000)
+        Self(96_000.0)
     }
 
     pub const fn of_studio_192k() -> Self {
-        Self(192_000)
+        Self(192_000.0)
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum SampleRateHzInvalidity {
     Min(SampleRateHz),
     Max(SampleRateHz),
@@ -150,13 +154,13 @@ impl PcmSignal {
     pub fn bitrate(self, bits_per_sample: BitsPerSample) -> BitRateBps {
         debug_assert!(self.validate().is_ok());
         let bps = BitsPerSecond::from(self.channel_layout.channel_count().0)
-            * self.sample_rate.0
+            * (self.sample_rate.0.round() as BitsPerSecond)
             * BitsPerSecond::from(bits_per_sample);
         BitRateBps(bps)
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum PcmSignalInvalidity {
     ChannelLayout(ChannelLayoutInvalidity),
     SampleLayout(SampleLayoutInvalidity),
@@ -200,10 +204,7 @@ impl LatencyMs {
     pub fn from_samples(sample_length: SampleLength, sample_rate: SampleRateHz) -> LatencyMs {
         debug_assert!(sample_length.validate().is_ok());
         debug_assert!(sample_rate.validate().is_ok());
-        Self(
-            (sample_length.0 * Self::units_per_second())
-                / LatencyInMilliseconds::from(sample_rate.0),
-        )
+        Self((sample_length.0 * Self::units_per_second()) / sample_rate.0)
     }
 }
 

@@ -17,43 +17,37 @@
 
 pub mod track;
 
-use super::*;
-
-use crate::util::{clock::TickInstant, color::Color};
+use crate::prelude::*;
 
 use rand::{seq::SliceRandom, thread_rng};
 use std::ops::RangeBounds;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum PlaylistItem {
-    Separator, // empty
+pub enum Item {
+    Separator,
     Track(track::Item),
     // TODO: Add more items like an optional transition between
     // two subsequent track items?
-    //Transition(PlaylistTransition),
+    //Transition(transition::Item),
 }
 
-impl PlaylistItem {
+impl Item {
     pub fn is_track(&self) -> bool {
-        if let Self::Track(_) = self {
-            true
-        } else {
-            false
-        }
+        matches!(self, Self::Track(_))
     }
 }
 
 #[derive(Copy, Clone, Debug)]
-pub enum PlaylistItemInvalidity {
+pub enum ItemInvalidity {
     Track(track::ItemInvalidity),
 }
 
-impl Validate for PlaylistItem {
-    type Invalidity = PlaylistItemInvalidity;
+impl Validate for Item {
+    type Invalidity = ItemInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         let context = ValidationContext::new();
-        use PlaylistItem::*;
+        use Item::*;
         match self {
             Separator => context,
             Track(ref track) => context.validate_with(track, Self::Invalidity::Track),
@@ -62,39 +56,53 @@ impl Validate for PlaylistItem {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PlaylistEntry {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Entry {
     /// Time stamp added when this entry is part of the playlist,
     /// i.e. when it has been created and added.
-    pub added_at: TickInstant,
+    pub added_at: DateTime,
 
-    /// The actual item, e.g. a single track or a transition between
-    /// two subsequent tracks.
-    pub item: PlaylistItem,
+    /// Optional title for display.
+    pub title: Option<String>,
+
+    /// Optional personal notes.
+    pub notes: Option<String>,
+
+    /// The actual item, currently just a reference to a single track.
+    pub item: Item,
 }
 
 #[derive(Copy, Clone, Debug)]
-pub enum PlaylistEntryInvalidity {
-    Item(PlaylistItemInvalidity),
+pub enum EntryInvalidity {
+    TitleEmpty,
+    Item(ItemInvalidity),
 }
 
-impl Validate for PlaylistEntry {
-    type Invalidity = PlaylistEntryInvalidity;
+impl Validate for Entry {
+    type Invalidity = EntryInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        let Self { title, item, .. } = self;
         ValidationContext::new()
-            .validate_with(&self.item, Self::Invalidity::Item)
+            .invalidate_if(
+                title
+                    .as_ref()
+                    .map(|title| title.trim().is_empty())
+                    .unwrap_or(false),
+                Self::Invalidity::TitleEmpty,
+            )
+            .validate_with(item, Self::Invalidity::Item)
             .into()
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Playlist {
-    /// Mandatory name.
-    pub name: String,
+    /// Playlists always belong to a collection.
+    pub collected_at: DateTime,
 
-    /// Optional description.
-    pub description: Option<String>,
+    /// Mandatory name.
+    pub title: String,
 
     /// Custom type of the playlist.
     ///
@@ -102,17 +110,54 @@ pub struct Playlist {
     /// different kinds of playlists for different purposes and depending
     /// on their use case, e.g. generated session or history playlists for
     /// logging all tracks that have been played during this session.
-    pub r#type: Option<String>,
+    pub kind: Option<String>,
+
+    /// Optional notes.
+    pub notes: Option<String>,
 
     /// Optional color for display purposes.
     pub color: Option<Color>,
-
-    /// Ordered list of playlist entries.
-    pub entries: Vec<PlaylistEntry>,
 }
 
-impl Playlist {
-    pub fn entries_added_minmax(&self) -> Option<(TickInstant, TickInstant)> {
+#[derive(Copy, Clone, Debug)]
+pub enum PlaylistInvalidity {
+    TitleEmpty,
+    KindEmpty,
+    Color(ColorInvalidity),
+}
+
+impl Validate for Playlist {
+    type Invalidity = PlaylistInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        let Self {
+            title, kind, color, ..
+        } = self;
+        ValidationContext::new()
+            .invalidate_if(title.trim().is_empty(), Self::Invalidity::TitleEmpty)
+            .invalidate_if(
+                kind.as_ref()
+                    .map(|kind| kind.trim().is_empty())
+                    .unwrap_or(false),
+                Self::Invalidity::KindEmpty,
+            )
+            .validate_with(color, Self::Invalidity::Color)
+            .into()
+    }
+}
+
+pub type Entity = crate::entity::Entity<PlaylistInvalidity, Playlist>;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlaylistWithEntries {
+    pub playlist: Playlist,
+
+    /// Ordered list of playlist entries.
+    pub entries: Vec<Entry>,
+}
+
+impl PlaylistWithEntries {
+    pub fn entries_added_at_minmax(&self) -> Option<(DateTime, DateTime)> {
         let mut entries = self.entries.iter();
         if let Some(first_added) = entries.next().map(|e| e.added_at) {
             let mut added_min = first_added;
@@ -127,22 +172,18 @@ impl Playlist {
         }
     }
 
-    pub fn append_entries(&mut self, new_entries: impl IntoIterator<Item = PlaylistEntry>) {
+    pub fn append_entries(&mut self, new_entries: impl IntoIterator<Item = Entry>) {
         self.replace_entries(self.entries.len().., new_entries);
     }
 
-    pub fn insert_entries(
-        &mut self,
-        before: usize,
-        new_entries: impl IntoIterator<Item = PlaylistEntry>,
-    ) {
+    pub fn insert_entries(&mut self, before: usize, new_entries: impl IntoIterator<Item = Entry>) {
         self.replace_entries(before..before, new_entries);
     }
 
     pub fn replace_entries(
         &mut self,
         range: impl RangeBounds<usize>,
-        new_entries: impl IntoIterator<Item = PlaylistEntry>,
+        new_entries: impl IntoIterator<Item = Entry>,
     ) {
         self.entries.splice(range, new_entries.into_iter());
     }
@@ -177,100 +218,77 @@ impl Playlist {
 }
 
 #[derive(Copy, Clone, Debug)]
-pub enum PlaylistInvalidity {
-    Name,
-    Entry(usize, PlaylistEntryInvalidity),
+pub enum PlaylistWithEntriesInvalidity {
+    Playlist(PlaylistInvalidity),
+    Entry(usize, EntryInvalidity),
 }
 
-impl Validate for Playlist {
-    type Invalidity = PlaylistInvalidity;
+impl Validate for PlaylistWithEntries {
+    type Invalidity = PlaylistWithEntriesInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        let context =
-            ValidationContext::new().invalidate_if(self.name.is_empty(), PlaylistInvalidity::Name);
-        self.entries
+        let Self { playlist, entries } = self;
+        let context = ValidationContext::new().validate_with(playlist, Self::Invalidity::Playlist);
+        entries
             .iter()
             .enumerate()
             .fold(context, |context, (index, entry)| {
                 context.validate_with(entry, |invalidity| {
-                    PlaylistInvalidity::Entry(index, invalidity)
+                    Self::Invalidity::Entry(index, invalidity)
                 })
             })
             .into()
     }
 }
 
-pub type Entity = crate::entity::Entity<PlaylistInvalidity, Playlist>;
+pub type EntityWithEntries =
+    crate::entity::Entity<PlaylistWithEntriesInvalidity, PlaylistWithEntries>;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PlaylistBriefEntries {
-    pub count: usize,
-
-    pub added_minmax: Option<(TickInstant, TickInstant)>,
-
-    pub tracks: PlaylistBriefTracks,
+impl From<(Entity, Vec<Entry>)> for EntityWithEntries {
+    fn from(from: (Entity, Vec<Entry>)) -> Self {
+        let (entity, entries) = from;
+        Self::new(
+            entity.hdr,
+            PlaylistWithEntries {
+                playlist: entity.body,
+                entries,
+            },
+        )
+    }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PlaylistBriefTracks {
-    pub count: usize,
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EntriesSummary {
+    pub total_count: usize,
+
+    pub added_at_minmax: Option<(DateTime, DateTime)>,
+
+    pub tracks: TracksSummary,
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct PlaylistBrief {
-    pub name: String,
-
-    pub description: Option<String>,
-
-    pub r#type: Option<String>,
-
-    pub color: Option<Color>,
-
-    pub entries: PlaylistBriefEntries,
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TracksSummary {
+    pub total_count: usize,
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct PlaylistBriefRef<'a> {
-    pub name: &'a str,
-
-    pub description: Option<&'a str>,
-
-    pub r#type: Option<&'a str>,
-
-    pub color: Option<Color>,
-
-    pub entries: PlaylistBriefEntries,
-}
-
-impl<'a> Playlist {
-    pub fn entries_brief(&self) -> PlaylistBriefEntries {
-        let tracks = PlaylistBriefTracks {
-            count: self.count_tracks(),
-        };
-        PlaylistBriefEntries {
-            count: self.entries.len(),
-            added_minmax: self.entries_added_minmax(),
-            tracks,
+impl PlaylistWithEntries {
+    pub fn entries_summary(&self) -> EntriesSummary {
+        EntriesSummary {
+            total_count: self.entries.len(),
+            added_at_minmax: self.entries_added_at_minmax(),
+            tracks: TracksSummary {
+                total_count: self.count_tracks(),
+            },
         }
     }
+}
 
-    pub fn brief_ref(&'a self) -> PlaylistBriefRef<'a> {
-        let entries = self.entries_brief();
-        let Playlist {
-            ref name,
-            ref description,
-            r#type,
-            color,
-            entries: _entries,
-        } = self;
-        PlaylistBriefRef {
-            name,
-            description: description.as_deref(),
-            r#type: r#type.as_deref(),
-            color: *color,
-            entries,
-        }
-    }
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlaylistWithEntriesSummary {
+    pub playlist: Playlist,
+
+    /// Ordered list of playlist entries.
+    pub entries: EntriesSummary,
 }
 
 ///////////////////////////////////////////////////////////////////////

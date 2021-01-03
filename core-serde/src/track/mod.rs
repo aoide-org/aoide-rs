@@ -13,100 +13,94 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use crate::{prelude::*, tag::*};
 
+pub mod actor;
 pub mod album;
-pub mod extra;
+pub mod cue;
 pub mod index;
-pub mod marker;
-pub mod music;
+pub mod metric;
 pub mod release;
+pub mod title;
 
-use self::{album::*, extra::*, index::*, marker::*, music::*, release::*};
+use self::{actor::*, album::*, cue::*, index::*, metric::*, release::*, title::*};
 
-use crate::{
-    actor::*, collection::SingleTrackEntry as CollectionSingleTrackEntry, media, tag::*, title::*,
-};
+use crate::media::Source;
 
 mod _core {
     pub use aoide_core::track::*;
 }
 
-use aoide_core::track::YYYYMMDD;
-
-use aoide_core::util::IsDefault;
-
-use semval::Validate;
-use serde::{
-    de::{self, Visitor as SerdeDeserializeVisitor},
-    Deserializer, Serializer,
-};
-use std::fmt;
+use aoide_core::{track::PlayCount, util::IsDefault};
 
 ///////////////////////////////////////////////////////////////////////
 // Track
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq))]
-#[serde(deny_unknown_fields)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Track {
-    #[serde(rename = "src", skip_serializing_if = "IsDefault::is_default", default)]
-    pub media_sources: Vec<media::Source>,
+    pub media_source: Source,
 
-    #[serde(rename = "msc", skip_serializing_if = "IsDefault::is_default", default)]
-    pub musical_signature: MusicalSignature,
-
-    #[serde(rename = "rel", skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
     pub release: Release,
 
-    #[serde(rename = "alb", skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
     pub album: Album,
 
-    #[serde(rename = "tit", skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
     pub titles: Vec<Title>,
 
-    #[serde(rename = "act", skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
     pub actors: Vec<Actor>,
 
-    #[serde(rename = "idx", skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
     pub indexes: Indexes,
 
-    #[serde(rename = "mrk", skip_serializing_if = "IsDefault::is_default", default)]
-    pub markers: Markers,
-
-    #[serde(rename = "tag", skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
     pub tags: Tags,
 
-    #[serde(rename = "ext", skip_serializing_if = "IsDefault::is_default", default)]
-    pub extra: Extra,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub color: Option<Color>,
+
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    pub metrics: Metrics,
+
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    pub cues: Vec<Cue>,
+
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    pub play_counter: PlayCounter,
 }
 
 impl From<_core::Track> for Track {
     fn from(from: _core::Track) -> Self {
         let _core::Track {
-            media_sources,
-            musical_signature,
+            media_source,
             release,
             album,
             titles,
             actors,
             indexes,
-            markers,
             tags,
-            extra,
+            color,
+            metrics,
+            cues,
+            play_counter,
         } = from;
         Self {
-            media_sources: media_sources.into_iter().map(Into::into).collect(),
-            musical_signature: musical_signature.into(),
+            media_source: media_source.into(),
             release: release.into(),
             album: album.into(),
             titles: titles.into_iter().map(Into::into).collect(),
             actors: actors.into_iter().map(Into::into).collect(),
             indexes: indexes.into(),
-            markers: markers.into(),
             tags: tags.into(),
-            extra: extra.into(),
+            color: color.map(Into::into),
+            metrics: metrics.into(),
+            cues: cues.into_iter().map(Into::into).collect(),
+            play_counter: play_counter.into(),
         }
     }
 }
@@ -114,28 +108,30 @@ impl From<_core::Track> for Track {
 impl From<Track> for _core::Track {
     fn from(from: Track) -> Self {
         let Track {
-            media_sources,
-            musical_signature,
+            media_source,
             release,
             album,
             titles,
             actors,
             indexes,
-            markers,
             tags,
-            extra,
+            color,
+            metrics,
+            cues,
+            play_counter,
         } = from;
         Self {
-            media_sources: media_sources.into_iter().map(Into::into).collect(),
-            musical_signature: musical_signature.into(),
+            media_source: media_source.into(),
             release: release.into(),
             album: album.into(),
             titles: titles.into_iter().map(Into::into).collect(),
             actors: actors.into_iter().map(Into::into).collect(),
             indexes: indexes.into(),
-            markers: markers.into(),
             tags: tags.into(),
-            extra: extra.into(),
+            color: color.map(Into::into),
+            metrics: metrics.into(),
+            cues: cues.into_iter().map(Into::into).collect(),
+            play_counter: play_counter.into(),
         }
     }
 }
@@ -158,153 +154,48 @@ impl From<_core::Entity> for Entity {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(PartialEq))]
-#[serde(deny_unknown_fields)]
-pub struct EntityInCollection(pub Entity, pub CollectionSingleTrackEntry);
-
 ///////////////////////////////////////////////////////////////////////
-// DateTime
+// EntityOrHeader
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub struct Date(_core::Date);
-
-// Serialize (and deserialize) as string for maximum compatibility and portability
-impl Serialize for Date {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let value = if self.0.is_year() {
-            i32::from(self.0.year())
-        } else {
-            self.0.into()
-        };
-        serializer.serialize_i32(value)
-    }
-}
-
-struct DateDeserializeVisitor;
-
-impl<'de> SerdeDeserializeVisitor<'de> for DateDeserializeVisitor {
-    type Value = Date;
-
-    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_fmt(format_args!("4-digit YYYY or 8-digit YYYYMMDD integer"))
-    }
-
-    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
-    where
-        E: de::Error,
-    {
-        let value = value as YYYYMMDD;
-        let value = if value < _core::Date::min().into()
-            && value >= YYYYMMDD::from(_core::Date::min().year())
-            && value <= YYYYMMDD::from(_core::Date::max().year())
-        {
-            // Special case handling: YYYY
-            _core::Date::from_year(value as _core::YearType)
-        } else {
-            _core::Date::new(value)
-        };
-        value
-            .validate()
-            .map_err(|e| E::custom(format!("{:?}", e)))
-            .map(|()| Date(value))
-    }
-}
-
-impl<'de> Deserialize<'de> for Date {
-    fn deserialize<D>(deserializer: D) -> Result<Date, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserializer.deserialize_u64(DateDeserializeVisitor)
-    }
-}
+pub type EntityOrHeader = crate::entity::EntityOrHeader<Track>;
 
 ///////////////////////////////////////////////////////////////////////
-// DateTime
+// PlayCounter
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub struct DateTime(_core::DateTime);
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PlayCounter {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    last_played_at: Option<DateTime>,
 
-// Serialize (and deserialize) as string for maximum compatibility and portability
-impl Serialize for DateTime {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        // TODO: Avoid creating a temporary string
-        let encoded = self.0.to_string();
-        serializer.serialize_str(&encoded)
-    }
+    #[serde(skip_serializing_if = "Option::is_none")]
+    times_played: Option<PlayCount>,
 }
 
-struct DateTimeDeserializeVisitor;
-
-impl<'de> SerdeDeserializeVisitor<'de> for DateTimeDeserializeVisitor {
-    type Value = DateTime;
-
-    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_fmt(format_args!("RFC 3339 date/time string"))
-    }
-
-    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-    where
-        E: de::Error,
-    {
-        value
-            .parse::<_core::DateTime>()
-            .map(DateTime)
-            .map_err(|e| E::custom(format!("{:?}", e)))
-    }
-}
-
-impl<'de> Deserialize<'de> for DateTime {
-    fn deserialize<D>(deserializer: D) -> Result<DateTime, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserializer.deserialize_str(DateTimeDeserializeVisitor)
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-// DateOrDateTime
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum DateOrDateTime {
-    Date(Date),
-    DateTime(DateTime),
-}
-
-impl From<_core::DateOrDateTime> for DateOrDateTime {
-    fn from(from: _core::DateOrDateTime) -> Self {
-        match from {
-            _core::DateOrDateTime::Date(from) => DateOrDateTime::Date(Date(from)),
-            _core::DateOrDateTime::DateTime(from) => DateOrDateTime::DateTime(DateTime(from)),
+impl From<_core::PlayCounter> for PlayCounter {
+    fn from(from: _core::PlayCounter) -> Self {
+        let _core::PlayCounter {
+            last_played_at,
+            times_played,
+        } = from;
+        Self {
+            last_played_at: last_played_at.map(Into::into),
+            times_played: times_played.map(Into::into),
         }
     }
 }
 
-impl From<DateOrDateTime> for _core::DateOrDateTime {
-    fn from(from: DateOrDateTime) -> Self {
-        use _core::DateOrDateTime::*;
-        match from {
-            DateOrDateTime::Date(from) => Date(from.0),
-            DateOrDateTime::DateTime(from) => DateTime(from.0),
+impl From<PlayCounter> for _core::PlayCounter {
+    fn from(from: PlayCounter) -> Self {
+        let PlayCounter {
+            last_played_at,
+            times_played,
+        } = from;
+        Self {
+            last_played_at: last_played_at.map(Into::into),
+            times_played: times_played.map(Into::into),
         }
     }
 }
-
-///////////////////////////////////////////////////////////////////////
-// Tests
-///////////////////////////////////////////////////////////////////////
-
-#[cfg(test)]
-mod tests;

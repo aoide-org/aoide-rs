@@ -15,17 +15,25 @@
 
 use super::*;
 
+mod _repo {
+    pub use aoide_repo::prelude::*;
+}
+
+use aoide_repo::prelude::{Pagination, PaginationLimit, PaginationOffset, RepoResult};
+
+use aoide_core_serde::entity::EntityRevision;
+
 use serde::{Deserialize, Serialize};
-
-pub mod collections;
-pub mod playlists;
-pub mod tracks;
-
-mod json;
 
 use warp::reject::{self, Reject, Rejection};
 
 use std::{error::Error as StdError, fmt};
+
+///////////////////////////////////////////////////////////////////////
+
+pub mod collections;
+pub mod playlists;
+pub mod tracks;
 
 #[derive(Debug)]
 struct RejectAnyhowError(anyhow::Error);
@@ -50,22 +58,66 @@ pub fn reject_from_anyhow(err: anyhow::Error) -> Rejection {
     reject::custom(RejectAnyhowError(err))
 }
 
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Debug, Default, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct PaginationQueryParams {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub offset: Option<aoide_repo::PaginationOffset>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub limit: Option<aoide_repo::PaginationLimit>,
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EntityRevQueryParams {
+    pub rev: EntityRevision,
 }
 
-impl From<PaginationQueryParams> for aoide_repo::Pagination {
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PaginationQueryParams {
+    pub limit: Option<PaginationLimit>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub offset: Option<PaginationOffset>,
+}
+
+impl From<PaginationQueryParams> for Option<Pagination> {
     fn from(from: PaginationQueryParams) -> Self {
-        let PaginationQueryParams { offset, limit } = from;
-        Self { offset, limit }
+        let PaginationQueryParams { limit, offset } = from;
+        if let Some(limit) = limit {
+            Some(Pagination { limit, offset })
+        } else {
+            if let Some(offset) = offset {
+                log::warn!("Ignoring pagination offset = {} without limit", offset);
+            }
+            None
+        }
+    }
+}
+
+/// Predicates for matching strings
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum StringPredicate {
+    StartsWith(String),
+    StartsNotWith(String),
+    EndsWith(String),
+    EndsNotWith(String),
+    Contains(String),
+    ContainsNot(String),
+    Matches(String),
+    MatchesNot(String),
+    Equals(String),
+    EqualsNot(String),
+}
+
+impl From<StringPredicate> for _repo::StringPredicate {
+    fn from(from: StringPredicate) -> Self {
+        use StringPredicate::*;
+        match from {
+            StartsWith(s) => Self::StartsWith(s),
+            StartsNotWith(s) => Self::StartsNotWith(s),
+            EndsWith(s) => Self::EndsWith(s),
+            EndsNotWith(s) => Self::EndsNotWith(s),
+            Contains(s) => Self::Contains(s),
+            ContainsNot(s) => Self::ContainsNot(s),
+            Matches(s) => Self::Matches(s),
+            MatchesNot(s) => Self::MatchesNot(s),
+            Equals(s) => Self::Equals(s),
+            EqualsNot(s) => Self::EqualsNot(s),
+        }
     }
 }
 

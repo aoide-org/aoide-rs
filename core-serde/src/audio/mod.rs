@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use crate::prelude::*;
 
 pub mod channel;
 pub mod sample;
@@ -31,18 +31,20 @@ use self::{channel::*, signal::*};
 // Position
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct PositionMs(_core::PositionInMilliseconds);
 
 impl From<_core::PositionMs> for PositionMs {
     fn from(from: _core::PositionMs) -> Self {
-        Self(from.0)
+        let _core::PositionMs(ms) = from;
+        Self(ms)
     }
 }
 
 impl From<PositionMs> for _core::PositionMs {
     fn from(from: PositionMs) -> Self {
-        Self(from.0)
+        let PositionMs(ms) = from;
+        Self(ms)
     }
 }
 
@@ -50,49 +52,53 @@ impl From<PositionMs> for _core::PositionMs {
 // Duration
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct DurationMs(_core::DurationInMilliseconds);
 
 impl From<_core::DurationMs> for DurationMs {
     fn from(from: _core::DurationMs) -> Self {
-        Self(from.0)
+        let _core::DurationMs(ms) = from;
+        Self(ms)
     }
 }
 
 impl From<DurationMs> for _core::DurationMs {
     fn from(from: DurationMs) -> Self {
-        Self(from.0)
+        let DurationMs(ms) = from;
+        Self(ms)
     }
 }
 
 ///////////////////////////////////////////////////////////////////////
-// AudioEncoder
+// Encoder
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct AudioEncoder {
-    #[serde(rename = "nam", skip_serializing_if = "IsDefault::is_default", default)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Encoder {
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
     name: String,
 
-    #[serde(rename = "cfg", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     settings: Option<String>,
 }
 
-impl From<AudioEncoder> for _core::AudioEncoder {
-    fn from(from: AudioEncoder) -> Self {
+impl From<Encoder> for _core::Encoder {
+    fn from(from: Encoder) -> Self {
+        let Encoder { name, settings } = from;
         Self {
-            name: from.name,
-            settings: from.settings.map(Into::into),
+            name,
+            settings: settings.map(Into::into),
         }
     }
 }
 
-impl From<_core::AudioEncoder> for AudioEncoder {
-    fn from(from: _core::AudioEncoder) -> Self {
+impl From<_core::Encoder> for Encoder {
+    fn from(from: _core::Encoder) -> Self {
+        let _core::Encoder { name, settings } = from;
         Self {
-            name: from.name,
-            settings: from.settings.map(Into::into),
+            name,
+            settings: settings.map(Into::into),
         }
     }
 }
@@ -101,66 +107,65 @@ impl From<_core::AudioEncoder> for AudioEncoder {
 // AudioContent
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AudioContent {
-    #[serde(rename = "chn", skip_serializing_if = "Option::is_none")]
+    duration_ms: Option<DurationMs>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     channels: Option<Channels>,
 
-    #[serde(rename = "len", skip_serializing_if = "Option::is_none")]
-    duration: Option<DurationMs>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    samplerate_hz: Option<SampleRateHz>,
 
-    #[serde(rename = "shz", skip_serializing_if = "Option::is_none")]
-    sample_rate: Option<SampleRateHz>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    bitrate_bps: Option<BitRateBps>,
 
-    #[serde(rename = "bps", skip_serializing_if = "Option::is_none")]
-    bit_rate: Option<BitRateBps>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    loudness_lufs: Option<LoudnessLufs>,
 
-    #[serde(rename = "lou", skip_serializing_if = "Option::is_none")]
-    loudness: Option<LoudnessLufs>,
-
-    #[serde(rename = "enc", skip_serializing_if = "Option::is_none")]
-    encoder: Option<AudioEncoder>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    encoder: Option<Encoder>,
 }
 
 impl From<AudioContent> for _core::AudioContent {
     fn from(from: AudioContent) -> Self {
+        let AudioContent {
+            duration_ms,
+            channels,
+            samplerate_hz,
+            bitrate_bps,
+            loudness_lufs,
+            encoder,
+        } = from;
         Self {
-            channels: from.channels.map(Into::into).unwrap_or_default(),
-            duration: from.duration.map(Into::into).unwrap_or_default(),
-            sample_rate: from.sample_rate.map(Into::into).unwrap_or_default(),
-            bit_rate: from.bit_rate.map(Into::into).unwrap_or_default(),
-            loudness: from.loudness.map(Into::into),
-            encoder: from.encoder.map(Into::into),
+            duration: duration_ms.map(Into::into),
+            channels: channels.map(Into::into),
+            sample_rate: samplerate_hz.map(Into::into),
+            bit_rate: bitrate_bps.map(Into::into),
+            loudness: loudness_lufs.map(Into::into),
+            encoder: encoder.map(Into::into),
         }
     }
 }
 
 impl From<_core::AudioContent> for AudioContent {
     fn from(from: _core::AudioContent) -> Self {
+        let _core::AudioContent {
+            duration,
+            channels,
+            sample_rate,
+            bit_rate,
+            loudness,
+            encoder,
+        } = from;
         Self {
-            channels: if from.channels == Default::default() {
-                None
-            } else {
-                Some(from.channels.into())
-            },
-            duration: if from.duration == Default::default() {
-                None
-            } else {
-                Some(from.duration.into())
-            },
-            sample_rate: if from.sample_rate == Default::default() {
-                None
-            } else {
-                Some(from.sample_rate.into())
-            },
-            bit_rate: if from.bit_rate == Default::default() {
-                None
-            } else {
-                Some(from.bit_rate.into())
-            },
-            loudness: from.loudness.map(Into::into),
-            encoder: from.encoder.map(Into::into),
+            duration_ms: duration.map(Into::into),
+            channels: channels.map(Into::into),
+            samplerate_hz: sample_rate.map(Into::into),
+            bitrate_bps: bit_rate.map(Into::into),
+            loudness_lufs: loudness.map(Into::into),
+            encoder: encoder.map(Into::into),
         }
     }
 }

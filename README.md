@@ -10,40 +10,84 @@ A local HTTP/REST service for managing and exploring music collections. Independ
 
 ## Fundamentals
 
-### Collections and tracks
+### Overview
 
-A music _collection_ is an aggregation of _tracks_ or songs. Tracks can
-belong to multiple collections.
+A music _collection_ is an aggregation of both _tracks_ (aka songs) and _playlists_:
+
+```plantuml
+@startuml
+
+class Collection <<entity>> {
+    uid
+    rev
+}
+
+class MediaSource {
+    uri
+}
+MediaSource "0..*" -up-> "1" Collection
+
+class Track <<entity>> {
+    uid
+    rev
+}
+Track "1" -up-> "1" MediaSource
+
+class Playlist <<entity>> {
+    uid
+    rev
+}
+Playlist "0..*" -up-> "1" Collection
+
+@enduml
+```
+
+_Media sources_ are the glue objects between _tracks_ and their _collection_. The URI of a _media source_ is unique within a collection.
+
+The top-level entities _collection_, _track_, and _playlist_ are identified by a _**u**nique **id**entifier_ or short _uid_. This identifier is generated and guaranteed to be globally unique. Modifications are tracked by a revision number _rev_.
+
+### Playlists
+
+Traditionally music collections are organized into subsets of tracks, namely
+_playlists_ (ordered) or _crates_ (unordered). Both playlists and crates are
+_static_, i.e. the tracks are assigned to them independent of their metadata.
+Modifying the metadata will not change the membership to playlists and crates.
+
+Playlists are an ordered collection of _entries_. Most entries reference a track.
+Entries without a track reference act as separators to partition the playlist
+into sections. All tracks in a playlist must be contained in the same collection.
+
+```plantuml
+@startuml
+
+class Playlist
+class PlaylistEntry
+class Track
+
+Playlist "1" *-- "0..* {ordered}" PlaylistEntry
+PlaylistEntry --> "0..1" Track
+
+@enduml
+```
+
+Unordered crates are currently not supported.
 
 ### Tracks
 
-The nature of tracks is twofold. The actual content of a track is the
-audio stream, encoded with some _audio codec_. The other part is metadata
-about this content, like an _artist_ or a _title_.
+Tracks and their media sources are characterized by metadata like _artist_
+, _title_, or _duration_. This metadata is stored in the database.
 
-Some or all of this metadata could be stored together with the audio stream
-in a file format like _MP3_ with _ID3v2_ tags or an _MP4_ container with
-_atoms_. If the audio stream is not stored locally but provided by a streaming
-service then this metadata might be obtained separately through an API
-request.
-
-### Playlists and crates
-
-Traditionally music collections are organized into _playlists_ (ordered) or
-_crates_ (unordered). Both playlists and crates are _static_, i.e. tracks
-are assigned independent of their metadata. Modifying the metadata will not
-change the membership to playlists and crates.
-
-Some applications allow defining _dynamic_ playlists or crates. In this
-case, the membership is defined by a _selection criteria_. Their internal
-ordering (in case of playlists) is defined by a _sort criteria_.
+Some or all of this metadata might have been imported from the media source's URI,
+e.g. from an _MP3_ file with _ID3v2_ tags or an _MP4_ container with _atoms_.
+If the media source is not stored locally but provided by a streaming service
+then this metadata might have been obtained separately by API calls.
 
 ### Tags
 
-Metadata is usually restricted to predefined properties that are not
+Track metadata is usually restricted to predefined properties that are not
 extensible. Aoide allows assigning custom metadata through _tags_.
 
-Only a basic set of properties is predefined, everything else can be
+Only a basic set of track properties is predefined, everything else can be
 covered by tags. Even the common property _genre_ is encoded as a tag
 and allows one to assign multiple values. We will revisit this example in
 a moment.
@@ -75,11 +119,15 @@ and to perform clustering on this data.
 
 ### Queries
 
-Aoide does neither support playlists nor crates (yet). Instead, powerful
-queries with filtering and sorting criteria can be defined by clients.
-The criteria of those queries can refer to both predefined textual or
-numerical properties as well as all custom tags with their facet, label,
-and score.
+Powerful queries with filtering and sorting criteria can be defined by clients
+and executed on the database. The criteria of those queries can refer to both
+predefined textual or numerical properties as well as all custom tags with their
+facet, label, and score.
+
+Some applications allow defining _dynamic_ playlists or crates. In this
+case, the membership is defined by a _selection criteria_. Their internal
+ordering (in case of playlists) is defined by a _sort criteria_. In aoide
+queries are used for this purpose.
 
 ## Integrations
 
@@ -90,42 +138,43 @@ is available in this [PR #2282](https://github.com/mixxxdj/mixxx/pull/2282)
 for testing.
 
 ## Build & run
-[Build & run]: #build-and-run
+
+[build & run]: #build-and-run
 
 ### Executable
 
 The server executable is built with the following command:
 
 ```bash
-cargo build --bin aoide
+cargo build
 ```
+
+> Use `cargo build --release ...` for an optimized release build instead of a debug build!
 
 During development it is handy to build and run the executable in a single step:
 
 ```bash
-cargo run --bin aoide -- -vv --listen "[::1]:0" /tmp/aoide.sqlite
+cargo run
 ```
 
-In this example the following command line parameters are passed through to the executable:
+The configuration is controlled by environment variables. Please refer to the
+file [.env](.env) in the project folder for an example configuration.
 
-| Parameter        | Description |
-| -----------------|-------------|
-|-vv               | Log level INFO |
-|--listen [::1]:0  | Listen on IPv6 loopback device and bind to an ephemeral port for incoming HTTP requests |
-|/tmp/aoide.sqlite | Open or create the SQLite database file and perform any necessary maintenance tasks |
+#### Configuration examples
 
-The actual socket address with the bound (ephemeral) port will be printed on the first line to *stdout*
+| Configuration                    | Description                                           |
+| -------------------------------- | ----------------------------------------------------- |
+| `LOG_LEVEL=debug`                | Log level DEBUG (trace/debug/info/warn/error)         |
+| `ENDPOINT_IP=::`                 | Listen on IPv6 loopback device                        |
+| `ENDPOINT_PORT=0`                | Bind to an ephemeral port for incoming HTTP requests  |
+| `ENDPOINT_PORT=8080`             | Bind to port 8080 for incoming HTTP requests          |
+| `DATABASE_URL=:memory:`          | Use an in-memory database for testing purposes        |
+| `DATABASE_URL=/tmp/aoide.sqlite` | Open or create the corresponding SQLite database file |
+
+The actual socket address with the bound (ephemeral) port will be printed on the first line to _stdout_
 where the client can pick it up for connecting. You may also bind the service to some predefined port.
 
-Logs messages are printed to *stderr*.
-
-Use _--help_ for a list and description of all available command line parameters:
-
-```bash
-cargo run --bin aoide -- --help
-```
-
-> Use `cargo run --release ...` to build and run an optimized release build!
+Logs messages are printed to _stderr_.
 
 ### Tests
 
@@ -162,21 +211,16 @@ Example:
 
 ```sh
 docker run --rm \
-    -e RUST_LOG=info \
+    -e LOG_LEVEL=info \
+    -e DATABASE_URL=aoide.sqlite \
     -p 7878:8080 \
     -v .:/data:Z \
     aoide:latest
 ```
 
-This will start the instance with the database file stored in the current working directory.
+This will start the instance with the database file _aoide.sqlite_ in the current working directory.
 
-## API
-
-### CLI
-
-The server is configured at startup with various command line parameters. Use the command-line argument `--help` for an overview.
-
-### REST
+## REST API
 
 Once started the server will respond with a static HTML page when sending a GET request
 to the root path _/_ or _/index.html_. This page contains a link to the embedded
@@ -195,17 +239,17 @@ License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU Affero General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
+along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
 ## One more thing...
 
-*Ἀοιδή* - the muse of voice and song in Greek mythology.
+_Ἀοιδή_ - the muse of voice and song in Greek mythology.
 
 > There are only two hard things in Computer Science: cache invalidation and naming things.
 >

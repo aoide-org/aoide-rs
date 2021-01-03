@@ -13,134 +13,245 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use chrono::{DateTime, TimeZone, Utc};
-use std::fmt;
+use crate::prelude::*;
 
-pub type TickType = i64;
+use chrono::{
+    Datelike, Duration, DurationRound, FixedOffset, Local, NaiveDate, NaiveDateTime, ParseError,
+    SecondsFormat, TimeZone, Utc,
+};
+use std::str::FromStr;
 
-const MILLIS_PER_SEC: TickType = 1_000;
-const MICROS_PER_SEC: TickType = 1_000_000;
-const NANOS_PER_SEC: TickType = 1_000_000_000;
+pub type DateTimeInner = chrono::DateTime<FixedOffset>;
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
-pub struct Ticks(pub TickType);
+pub type TimestampMillis = i64;
 
-// Resolution = microseconds
-impl Ticks {
-    pub const fn per_second() -> Self {
-        Self(MICROS_PER_SEC)
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub struct DateTime(DateTimeInner);
+
+/// A DateTime with truncated millisecond precision.
+impl DateTime {
+    pub fn new(inner: DateTimeInner) -> Self {
+        Self(
+            inner
+                .duration_trunc(Duration::milliseconds(1))
+                .expect("truncated to milliseconds"),
+        )
     }
 
-    pub const fn per_millisec() -> Self {
-        Self(MICROS_PER_SEC / MILLIS_PER_SEC)
+    pub fn new_timestamp_millis(timestamp_millis: TimestampMillis) -> Self {
+        Utc.timestamp_millis(timestamp_millis).into()
     }
 
-    #[allow(clippy::eq_op)]
-    pub const fn per_microsec() -> Self {
-        Self(MICROS_PER_SEC / MICROS_PER_SEC)
-    }
-}
-
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
-pub struct TickDuration(pub Ticks);
-
-impl TickDuration {
-    pub fn from_secs(secs: TickType) -> Self {
-        Self(Ticks(secs * Ticks::per_second().0))
+    pub const fn to_inner(self) -> DateTimeInner {
+        let Self(inner) = self;
+        inner
     }
 
-    pub fn from_millis(millis: Ticks) -> Self {
-        Self(Ticks(millis.0 * Ticks::per_millisec().0))
+    pub fn now_utc() -> Self {
+        Utc::now().into()
     }
-}
 
-impl From<chrono::Duration> for TickDuration {
-    fn from(from: chrono::Duration) -> Self {
-        // TODO: Check for overflow and use TryFrom?
-        debug_assert!(Ticks::per_microsec().0 == 1);
-        Self(Ticks(from.num_microseconds().unwrap()))
+    pub fn now_local() -> Self {
+        Local::now().into()
     }
-}
 
-impl From<TickDuration> for chrono::Duration {
-    fn from(from: TickDuration) -> Self {
-        debug_assert!(Ticks::per_microsec().0 == 1);
-        Self::microseconds((from.0).0)
+    pub fn naive_date(self) -> NaiveDate {
+        self.to_inner().naive_local().date()
+    }
+
+    pub fn timestamp_millis(self) -> TimestampMillis {
+        self.to_inner().timestamp_millis()
     }
 }
 
-impl From<std::time::Duration> for TickDuration {
-    fn from(from: std::time::Duration) -> Self {
-        // TODO: Check for overflow and use TryFrom?
-        debug_assert!(Ticks::per_microsec().0 == 1);
-        Self(Ticks(
-            from.as_secs() as TickType * MICROS_PER_SEC + i64::from(from.subsec_micros()),
-        ))
+impl AsRef<DateTimeInner> for DateTime {
+    fn as_ref(&self) -> &DateTimeInner {
+        &self.0
     }
 }
 
-impl From<TickDuration> for std::time::Duration {
-    fn from(from: TickDuration) -> Self {
-        debug_assert!(Ticks::per_microsec().0 == 1);
-        assert!(from >= Default::default());
-        Self::from_micros((from.0).0 as u64)
+impl From<DateTimeInner> for DateTime {
+    fn from(from: DateTimeInner) -> Self {
+        Self::new(from)
     }
 }
 
-impl fmt::Display for TickDuration {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", chrono::Duration::from(*self))
+impl From<DateTime> for DateTimeInner {
+    fn from(from: DateTime) -> Self {
+        from.to_inner()
     }
 }
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
-pub struct TickInstant(pub Ticks);
-
-impl TickInstant {
-    pub fn now() -> Self {
-        Self::from(Utc::now())
-    }
-
-    pub fn elapsed(self) -> TickDuration {
-        let now = Self::now();
-        debug_assert!(now >= self);
-        TickDuration(Ticks((now.0).0 - (self.0).0))
-    }
-
-    /// Time is "tick"ing.
-    pub fn tick(self) -> Self {
-        Self(Ticks((self.0).0 + 1))
+impl From<chrono::DateTime<Utc>> for DateTime {
+    fn from(from: chrono::DateTime<Utc>) -> Self {
+        Self::new(from.into())
     }
 }
 
-impl From<DateTime<Utc>> for TickInstant {
-    fn from(from: DateTime<Utc>) -> Self {
-        debug_assert!(Ticks::per_second().0 >= MICROS_PER_SEC);
-        debug_assert!(Ticks::per_second().0 % MICROS_PER_SEC == 0);
-        let secs = from.timestamp();
-        let subsec_micros = from.timestamp_subsec_micros();
-        let micros = (secs * MICROS_PER_SEC) + TickType::from(subsec_micros);
-        let ticks = micros * (Ticks::per_second().0 / MICROS_PER_SEC);
-        Self(Ticks(ticks))
+impl From<DateTime> for chrono::DateTime<Utc> {
+    fn from(from: DateTime) -> Self {
+        from.to_inner().into()
     }
 }
 
-impl From<TickInstant> for DateTime<Utc> {
-    fn from(from: TickInstant) -> Self {
-        let secs = (from.0).0 / Ticks::per_second().0;
-        let subsec_ticks = (from.0).0 % Ticks::per_second().0;
-        debug_assert!(NANOS_PER_SEC >= Ticks::per_second().0);
-        debug_assert!(NANOS_PER_SEC % Ticks::per_second().0 == 0);
-        let nsecs = subsec_ticks * (NANOS_PER_SEC / Ticks::per_second().0);
-        debug_assert!(nsecs >= 0);
-        debug_assert!(nsecs < NANOS_PER_SEC);
-        Utc.timestamp(secs, nsecs as u32)
+impl From<chrono::DateTime<Local>> for DateTime {
+    fn from(from: chrono::DateTime<Local>) -> Self {
+        Self::new(from.into())
     }
 }
 
-impl fmt::Display for TickInstant {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", DateTime::<Utc>::from(*self))
+impl From<DateTime> for chrono::DateTime<Local> {
+    fn from(from: DateTime) -> Self {
+        from.to_inner().into()
+    }
+}
+
+impl FromStr for DateTime {
+    type Err = ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self::new(s.parse()?))
+    }
+}
+
+impl ToString for DateTime {
+    fn to_string(&self) -> String {
+        self.to_inner().to_rfc3339_opts(SecondsFormat::AutoSi, true)
+    }
+}
+
+// 4-digit year
+pub type YearType = i16;
+
+// 2-digit month
+pub type MonthType = i8;
+
+// 2-digit day of month
+pub type DayOfMonthType = i8;
+
+pub const YEAR_MIN: YearType = 1;
+pub const YEAR_MAX: YearType = 9999;
+
+// 8-digit year+month+day (YYYYMMDD)
+pub type YYYYMMDD = i32;
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub struct DateYYYYMMDD(YYYYMMDD);
+
+impl DateYYYYMMDD {
+    pub const fn min() -> Self {
+        Self(10_000)
+    }
+
+    pub const fn max() -> Self {
+        Self(99_999_999)
+    }
+
+    pub const fn new(val: YYYYMMDD) -> Self {
+        Self(val)
+    }
+
+    pub const fn to_inner(self) -> YYYYMMDD {
+        let Self(inner) = self;
+        inner
+    }
+
+    pub fn year(self) -> YearType {
+        (self.0 / 10_000) as YearType
+    }
+
+    pub fn month(self) -> MonthType {
+        ((self.0 % 10_000) / 100) as MonthType
+    }
+
+    pub fn day_of_month(self) -> DayOfMonthType {
+        (self.0 % 100) as DayOfMonthType
+    }
+
+    pub fn from_year(year: YearType) -> Self {
+        Self(YYYYMMDD::from(year) * 10_000)
+    }
+
+    pub fn is_year(self) -> bool {
+        Self::from_year(self.year()) == self
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum DateYYYYMMDDInvalidity {
+    Min,
+    Max,
+    MonthOutOfRange,
+    DayOfMonthOutOfRange,
+    DayWithoutMonth,
+    Invalid,
+}
+
+impl Validate for DateYYYYMMDD {
+    type Invalidity = DateYYYYMMDDInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(*self < Self::min(), Self::Invalidity::Min)
+            .invalidate_if(*self > Self::max(), Self::Invalidity::Min)
+            .invalidate_if(
+                self.month() < 0 || self.month() > 12,
+                Self::Invalidity::MonthOutOfRange,
+            )
+            .invalidate_if(
+                self.day_of_month() < 0 || self.day_of_month() > 31,
+                Self::Invalidity::DayOfMonthOutOfRange,
+            )
+            .invalidate_if(
+                self.month() < 1 && self.day_of_month() > 0,
+                Self::Invalidity::DayWithoutMonth,
+            )
+            .invalidate_if(
+                self.month() > 0
+                    && self.day_of_month() > 0
+                    && NaiveDate::from_ymd_opt(
+                        i32::from(self.year()),
+                        self.month() as u32,
+                        self.day_of_month() as u32,
+                    )
+                    .is_none(),
+                Self::Invalidity::Invalid,
+            )
+            .into()
+    }
+}
+
+impl From<YYYYMMDD> for DateYYYYMMDD {
+    fn from(from: YYYYMMDD) -> Self {
+        Self::new(from)
+    }
+}
+
+impl From<DateYYYYMMDD> for YYYYMMDD {
+    fn from(from: DateYYYYMMDD) -> Self {
+        from.to_inner()
+    }
+}
+
+impl From<DateTime> for DateYYYYMMDD {
+    fn from(from: DateTime) -> Self {
+        from.naive_date().into()
+    }
+}
+
+impl From<NaiveDate> for DateYYYYMMDD {
+    fn from(from: NaiveDate) -> Self {
+        Self(
+            from.year() as YYYYMMDD * 10_000
+                + from.month() as YYYYMMDD * 100
+                + from.day() as YYYYMMDD,
+        )
+    }
+}
+
+impl From<NaiveDateTime> for DateYYYYMMDD {
+    fn from(from: NaiveDateTime) -> Self {
+        from.date().into()
     }
 }
 
@@ -148,4 +259,5 @@ impl fmt::Display for TickInstant {
 // Tests
 ///////////////////////////////////////////////////////////////////////
 
-// TODO
+#[cfg(test)]
+mod tests;

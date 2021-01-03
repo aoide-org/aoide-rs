@@ -13,21 +13,91 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
-
 mod _core {
     pub use aoide_core::media::*;
 }
 
-use crate::{audio::AudioContent, util::color::RgbColor};
+use aoide_core::util::IsDefault;
+
+use crate::{audio::AudioContent, prelude::*, util::clock::DateTime};
+
+use std::convert::TryFrom;
 
 ///////////////////////////////////////////////////////////////////////
 // Content
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct Digest(String);
+
+impl Digest {
+    pub fn encode(bytes: impl AsRef<[u8]>) -> Self {
+        let encoded = base64::encode_config(bytes.as_ref(), base64::URL_SAFE_NO_PAD);
+        Self(encoded)
+    }
+
+    pub fn try_decode(&self) -> Result<Vec<u8>, base64::DecodeError> {
+        let Digest(encoded) = self;
+        Self::try_decode_impl(encoded)
+    }
+
+    fn try_decode_impl(encoded: impl AsRef<str>) -> Result<Vec<u8>, base64::DecodeError> {
+        base64::decode_config(encoded.as_ref(), base64::URL_SAFE_NO_PAD)
+    }
+
+    pub fn from_encoded(encoded: impl Into<String>) -> Self {
+        let encoded = encoded.into();
+        debug_assert!(Self::try_decode_impl(&encoded).is_ok());
+        Self(encoded)
+    }
+}
+
+impl AsRef<str> for Digest {
+    fn as_ref(&self) -> &str {
+        let Digest(encoded) = self;
+        encoded
+    }
+}
+
+impl<T> From<T> for Digest
+where
+    T: AsRef<[u8]>,
+{
+    fn from(from: T) -> Self {
+        Digest::encode(from)
+    }
+}
+
+impl TryFrom<&Digest> for Vec<u8> {
+    type Error = base64::DecodeError;
+
+    fn try_from(from: &Digest) -> Result<Self, Self::Error> {
+        from.try_decode()
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct DigestRef<'a>(&'a str);
+
+impl<'a> AsRef<str> for DigestRef<'a> {
+    fn as_ref(&self) -> &str {
+        let DigestRef(ref encoded) = self;
+        encoded
+    }
+}
+
+impl<'a> TryFrom<DigestRef<'a>> for Vec<u8> {
+    type Error = base64::DecodeError;
+
+    fn try_from(from: DigestRef<'a>) -> Result<Self, Self::Error> {
+        let DigestRef(encoded) = from;
+        Digest::try_decode_impl(encoded)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "kebab-case")]
 pub enum Content {
-    #[serde(rename = "aud")]
     Audio(AudioContent),
 }
 
@@ -53,63 +123,48 @@ impl From<_core::Content> for Content {
 // Artwork
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ImageSize(u16, u16);
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Artwork {
-    #[serde(rename = "dim", skip_serializing_if = "Option::is_none")]
+    #[serde(flatten, skip_serializing_if = "Option::is_none")]
+    uri: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    media_type: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    digest: Option<Digest>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     size: Option<ImageSize>,
 
-    #[serde(rename = "col", skip_serializing_if = "Option::is_none")]
-    color: Option<RgbColor>,
-
-    #[serde(rename = "dig", skip_serializing_if = "Option::is_none")]
-    digest: Option<String>,
-
-    #[serde(rename = "typ", skip_serializing_if = "Option::is_none")]
-    content_type: Option<String>,
-
-    #[serde(flatten, skip_serializing_if = "Option::is_none")]
-    resource: Option<ArtworkResource>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ArtworkResource {
-    #[serde(rename = "res")]
-    Embedded(String),
-
-    #[serde(rename = "uri")]
-    URI(String),
+    #[serde(skip_serializing_if = "Option::is_none")]
+    color_rgb: Option<RgbColor>,
 }
 
 impl From<_core::Artwork> for Artwork {
     fn from(from: _core::Artwork) -> Self {
         let _core::Artwork {
-            size,
-            color,
+            uri,
+            media_type,
             digest,
-            content_type,
-            resource,
+            size,
+            color_rgb,
         } = from;
         let size = size.map(|size| {
             let _core::ImageSize { width, height } = size;
             ImageSize(width, height)
         });
-        use _core::ArtworkResource::*;
-        let resource = match resource {
-            EmbeddedDefault => None,
-            Embedded(res) => Some(ArtworkResource::Embedded(res)),
-            URI(uri) => Some(ArtworkResource::URI(uri)),
-        };
         Self {
+            uri,
+            media_type,
+            digest: digest.as_ref().map(Into::into),
             size,
-            color: color.map(Into::into),
-            digest,
-            content_type,
-            resource,
+            color_rgb: color_rgb.map(Into::into),
         }
     }
 }
@@ -117,31 +172,22 @@ impl From<_core::Artwork> for Artwork {
 impl From<Artwork> for _core::Artwork {
     fn from(from: Artwork) -> Self {
         let Artwork {
-            size,
-            color,
+            uri,
+            media_type,
             digest,
-            content_type,
-            resource,
+            size,
+            color_rgb,
         } = from;
         let size = size.map(|size| {
             let ImageSize(width, height) = size;
             _core::ImageSize { width, height }
         });
-        use _core::ArtworkResource::*;
-        let resource = if let Some(resource) = resource {
-            match resource {
-                ArtworkResource::Embedded(res) => Embedded(res),
-                ArtworkResource::URI(uri) => URI(uri),
-            }
-        } else {
-            EmbeddedDefault
-        };
         Self {
+            uri,
+            media_type,
+            digest: digest.as_ref().map(TryFrom::try_from).and_then(Result::ok),
             size,
-            color: color.map(Into::into),
-            digest,
-            content_type,
-            resource,
+            color_rgb: color_rgb.map(Into::into),
         }
     }
 }
@@ -150,35 +196,47 @@ impl From<Artwork> for _core::Artwork {
 // Source
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Source {
-    #[serde(rename = "uri")]
+    collected_at: DateTime,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    synchronized_at: Option<DateTime>,
+
     uri: String,
 
-    #[serde(rename = "typ")]
     content_type: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    content_digest: Option<Digest>,
 
     #[serde(flatten)]
     content: Content,
 
-    #[serde(rename = "art", skip_serializing_if = "Option::is_none")]
-    artwork: Option<Artwork>,
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    artwork: Artwork,
 }
 
 impl From<_core::Source> for Source {
     fn from(from: _core::Source) -> Self {
         let _core::Source {
+            collected_at,
+            synchronized_at,
             uri,
             content_type,
+            content_digest,
             content,
             artwork,
         } = from;
         Self {
+            collected_at: collected_at.into(),
+            synchronized_at: synchronized_at.map(Into::into),
             uri,
             content_type,
+            content_digest: content_digest.as_ref().map(Into::into),
             content: content.into(),
-            artwork: artwork.map(Into::into),
+            artwork: artwork.into(),
         }
     }
 }
@@ -186,16 +244,72 @@ impl From<_core::Source> for Source {
 impl From<Source> for _core::Source {
     fn from(from: Source) -> Self {
         let Source {
+            collected_at,
+            synchronized_at,
             uri,
             content_type,
+            content_digest,
             content,
             artwork,
         } = from;
         Self {
+            collected_at: collected_at.into(),
+            synchronized_at: synchronized_at.map(Into::into),
             uri,
             content_type,
+            content_digest: content_digest
+                .as_ref()
+                .map(TryFrom::try_from)
+                .and_then(Result::ok),
             content: content.into(),
-            artwork: artwork.map(Into::into),
+            artwork: artwork.into(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SourceUri {
+    uri: String,
+}
+
+impl From<_core::SourceUri> for SourceUri {
+    fn from(from: _core::SourceUri) -> Self {
+        let _core::SourceUri { uri } = from;
+        Self { uri }
+    }
+}
+
+impl From<SourceUri> for _core::SourceUri {
+    fn from(from: SourceUri) -> Self {
+        let SourceUri { uri } = from;
+        Self { uri }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum SourceOrUri {
+    Source(Source),
+    Uri(SourceUri),
+}
+
+impl From<_core::SourceOrUri> for SourceOrUri {
+    fn from(from: _core::SourceOrUri) -> Self {
+        use _core::SourceOrUri::*;
+        match from {
+            Source(source) => Self::Source(source.into()),
+            Uri(source_uri) => Self::Uri(source_uri.into()),
+        }
+    }
+}
+
+impl From<SourceOrUri> for _core::SourceOrUri {
+    fn from(from: SourceOrUri) -> Self {
+        use SourceOrUri::*;
+        match from {
+            Source(source) => Self::Source(source.into()),
+            Uri(source_uri) => Self::Uri(source_uri.into()),
         }
     }
 }

@@ -39,11 +39,15 @@ fn should_encode_decode_uid() {
 
 #[test]
 fn should_fail_to_decode_too_long_string() {
+    // TODO: This test seems to fail infrequently!?
     let uid = EntityUid::random();
     let mut encoded = uid.encode_to_string();
-    while encoded.len() <= EntityUid::MAX_STR_LEN {
-        encoded.push(char::from(EntityUid::BASE58_ALPHABET[57]));
+    while encoded.len() < EntityUid::MAX_STR_LEN {
+        encoded.push(char::from('a'));
     }
+    assert!(EntityUid::decode_from_str(&encoded).is_ok());
+    // Append one more character
+    encoded.push(char::from('a'));
     assert!(EntityUid::decode_from_str(&encoded).is_err());
 }
 
@@ -59,28 +63,23 @@ fn should_fail_to_decode_too_short_string() {
 fn rev_sequence() {
     let initial = EntityRevision::initial();
     assert!(initial.validate().is_ok());
-    assert!(initial.is_initial());
 
     let next = initial.next();
     assert!(next.validate().is_ok());
-    assert!(!next.is_initial());
+    assert_ne!(EntityRevision::initial(), next);
     assert!(initial < next);
-    assert!(initial.no < next.no);
-    assert!(initial.ts <= next.ts);
 
     let nextnext = next.next();
     assert!(nextnext.validate().is_ok());
-    assert!(!nextnext.is_initial());
+    assert_ne!(EntityRevision::initial(), next);
     assert!(next < nextnext);
-    assert!(next.no < nextnext.no);
-    assert!(next.ts <= nextnext.ts);
 }
 
 #[test]
 fn hdr_without_uid() {
     let hdr = EntityHeader::initial_with_uid(EntityUid::default());
     assert!(!hdr.validate().is_ok());
-    assert!(hdr.rev.is_initial());
+    assert_eq!(EntityRevision::initial(), hdr.rev);
 }
 
 #[test]
@@ -88,10 +87,9 @@ fn should_generate_unique_initial_hdrs() {
     let hdr1 = EntityHeader::initial_random();
     let hdr2 = EntityHeader::initial_random();
     assert!(hdr1.validate().is_ok());
-    assert!(hdr1.rev.is_initial());
+    assert_eq!(EntityRevision::initial(), hdr1.rev);
     assert!(hdr2.validate().is_ok());
-    assert!(hdr2.rev.is_initial());
+    assert_eq!(EntityRevision::initial(), hdr2.rev);
     assert_ne!(hdr1.uid, hdr2.uid);
-    assert_eq!(hdr1.rev.no, hdr2.rev.no);
-    assert!(hdr1.rev.ts <= hdr2.rev.ts);
+    assert_eq!(hdr1.rev, hdr2.rev);
 }

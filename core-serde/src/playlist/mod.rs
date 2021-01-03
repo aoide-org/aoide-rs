@@ -15,11 +15,7 @@
 
 pub mod track;
 
-use super::*;
-
-use crate::util::color::Color;
-
-use aoide_core::util::clock::{TickInstant, TickType, Ticks};
+use crate::{prelude::*, util::clock::DateTime};
 
 mod _core {
     pub use aoide_core::{
@@ -29,75 +25,91 @@ mod _core {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// PlaylistItem
+// Item
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(Eq, PartialEq))]
-#[serde(deny_unknown_fields)]
-pub enum PlaylistItem {
-    #[serde(rename = "sep")]
-    Separator,
+pub struct SeparatorDummy {}
 
-    #[serde(rename = "trk")]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(Eq, PartialEq))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub enum Item {
+    Separator(SeparatorDummy),
     Track(track::Item),
-    //
-    // TODO: Add other kinds of playlist items
-    //#[serde(rename = "x")]
-    //Transition(PlaylistTransition),
 }
 
-impl From<PlaylistItem> for _core::PlaylistItem {
-    fn from(from: PlaylistItem) -> Self {
-        use PlaylistItem::*;
+impl From<Item> for _core::Item {
+    fn from(from: Item) -> Self {
+        use Item::*;
         match from {
-            Separator => Self::Separator,
+            Separator(SeparatorDummy {}) => Self::Separator,
             Track(item) => Self::Track(item.into()),
         }
     }
 }
 
-impl From<_core::PlaylistItem> for PlaylistItem {
-    fn from(from: _core::PlaylistItem) -> Self {
-        use _core::PlaylistItem::*;
+impl From<_core::Item> for Item {
+    fn from(from: _core::Item) -> Self {
+        use _core::Item::*;
         match from {
-            Separator => Self::Separator,
+            Separator => Self::Separator(SeparatorDummy {}),
             Track(item) => Self::Track(item.into()),
         }
     }
 }
 
 ///////////////////////////////////////////////////////////////////////
-// PlaylistEntry
+// Entry
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(Eq, PartialEq))]
-#[serde(deny_unknown_fields)]
-pub struct PlaylistEntry {
-    #[serde(rename = "add")]
-    added_at: TickType,
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Entry {
+    added_at: DateTime,
 
-    #[serde(rename = "itm")]
-    item: PlaylistItem,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    title: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    notes: Option<String>,
+
+    #[serde(flatten)]
+    item: Item,
 }
 
-impl From<PlaylistEntry> for _core::PlaylistEntry {
-    fn from(from: PlaylistEntry) -> Self {
-        let PlaylistEntry { item, added_at } = from;
+impl From<Entry> for _core::Entry {
+    fn from(from: Entry) -> Self {
+        let Entry {
+            added_at,
+            title,
+            notes,
+            item,
+        } = from;
         Self {
+            added_at: added_at.into(),
+            title,
+            notes,
             item: item.into(),
-            added_at: TickInstant(Ticks(added_at)),
         }
     }
 }
 
-impl From<_core::PlaylistEntry> for PlaylistEntry {
-    fn from(from: _core::PlaylistEntry) -> Self {
-        let _core::PlaylistEntry { item, added_at } = from;
+impl From<_core::Entry> for Entry {
+    fn from(from: _core::Entry) -> Self {
+        let _core::Entry {
+            added_at,
+            title,
+            notes,
+            item,
+        } = from;
         Self {
+            added_at: added_at.into(),
+            title,
+            notes,
             item: item.into(),
-            added_at: (added_at.0).0,
         }
     }
 }
@@ -106,41 +118,39 @@ impl From<_core::PlaylistEntry> for PlaylistEntry {
 // Playlist
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq))]
-#[serde(deny_unknown_fields)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Playlist {
-    #[serde(rename = "nam")]
-    name: String,
+    collected_at: DateTime,
 
-    #[serde(rename = "dsc", skip_serializing_if = "Option::is_none")]
-    description: Option<String>,
+    title: String,
 
-    #[serde(rename = "typ", skip_serializing_if = "Option::is_none")]
-    r#type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    kind: Option<String>,
 
-    #[serde(rename = "col", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    notes: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     color: Option<Color>,
-
-    #[serde(rename = "lst")]
-    entries: Vec<PlaylistEntry>,
 }
 
 impl From<Playlist> for _core::Playlist {
     fn from(from: Playlist) -> Self {
         let Playlist {
-            name,
-            description,
-            r#type,
+            collected_at,
+            title,
+            kind,
+            notes,
             color,
-            entries,
         } = from;
         Self {
-            name,
-            description,
-            r#type,
+            collected_at: collected_at.into(),
+            title,
+            kind,
+            notes,
             color: color.map(Into::into),
-            entries: entries.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -148,17 +158,47 @@ impl From<Playlist> for _core::Playlist {
 impl From<_core::Playlist> for Playlist {
     fn from(from: _core::Playlist) -> Self {
         let _core::Playlist {
-            name,
-            description,
-            r#type,
+            collected_at,
+            title,
+            kind,
+            notes,
             color,
-            entries,
         } = from;
         Self {
-            name,
-            description,
-            r#type,
+            collected_at: collected_at.into(),
+            title,
+            kind,
+            notes,
             color: color.map(Into::into),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PlaylistWithEntries {
+    #[serde(flatten)]
+    playlist: Playlist,
+
+    entries: Vec<Entry>,
+}
+
+impl From<PlaylistWithEntries> for _core::PlaylistWithEntries {
+    fn from(from: PlaylistWithEntries) -> Self {
+        let PlaylistWithEntries { playlist, entries } = from;
+        Self {
+            playlist: playlist.into(),
+            entries: entries.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<_core::PlaylistWithEntries> for PlaylistWithEntries {
+    fn from(from: _core::PlaylistWithEntries) -> Self {
+        let _core::PlaylistWithEntries { playlist, entries } = from;
+        Self {
+            playlist: playlist.into(),
             entries: entries.into_iter().map(Into::into).collect(),
         }
     }
@@ -182,126 +222,103 @@ impl From<_core::Entity> for Entity {
     }
 }
 
-///////////////////////////////////////////////////////////////////////
-// PlaylistBriefEntries
-///////////////////////////////////////////////////////////////////////
+pub type EntityWithEntries = crate::entity::Entity<PlaylistWithEntries>;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
-#[serde(deny_unknown_fields)]
-pub struct PlaylistBriefEntries {
-    #[serde(rename = "cnt")]
-    count: usize,
-
-    #[serde(rename = "add", skip_serializing_if = "Option::is_none")]
-    added_minmax: Option<(TickType, TickType)>,
-
-    #[serde(rename = "trk")]
-    tracks: PlaylistBriefTracks,
+impl From<EntityWithEntries> for _core::EntityWithEntries {
+    fn from(from: EntityWithEntries) -> Self {
+        Self::new(from.0, from.1)
+    }
 }
 
-impl From<_core::PlaylistBriefEntries> for PlaylistBriefEntries {
-    fn from(from: _core::PlaylistBriefEntries) -> Self {
-        let _core::PlaylistBriefEntries {
-            count,
-            added_minmax,
+impl From<_core::EntityWithEntries> for EntityWithEntries {
+    fn from(from: _core::EntityWithEntries) -> Self {
+        Self(from.hdr.into(), from.body.into())
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// EntriesSummary
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(Eq, PartialEq))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EntriesSummary {
+    total_count: usize,
+
+    #[serde(rename = "addedAtMinMax", skip_serializing_if = "Option::is_none")]
+    added_at_minmax: Option<(DateTime, DateTime)>,
+
+    tracks: TracksSummary,
+}
+
+impl From<_core::EntriesSummary> for EntriesSummary {
+    fn from(from: _core::EntriesSummary) -> Self {
+        let _core::EntriesSummary {
+            total_count,
+            added_at_minmax,
             tracks,
         } = from;
         Self {
-            count,
-            added_minmax: added_minmax.map(|(min, max)| ((min.0).0, (max.0).0)),
+            total_count,
+            added_at_minmax: added_at_minmax.map(|(min, max)| (min.into(), max.into())),
             tracks: tracks.into(),
         }
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+///////////////////////////////////////////////////////////////////////
+// TracksSummary
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(Eq, PartialEq))]
-#[serde(deny_unknown_fields)]
-pub struct PlaylistBriefTracks {
-    #[serde(rename = "cnt")]
-    count: usize,
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TracksSummary {
+    total_count: usize,
 }
 
-impl From<_core::PlaylistBriefTracks> for PlaylistBriefTracks {
-    fn from(from: _core::PlaylistBriefTracks) -> Self {
-        let _core::PlaylistBriefTracks { count } = from;
-        Self { count }
+impl From<_core::TracksSummary> for TracksSummary {
+    fn from(from: _core::TracksSummary) -> Self {
+        let _core::TracksSummary { total_count } = from;
+        Self { total_count }
     }
 }
 
 ///////////////////////////////////////////////////////////////////////
-// PlaylistBrief
+// PlaylistWithEntriesSummary
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(PartialEq))]
-#[serde(deny_unknown_fields)]
-pub struct PlaylistBrief {
-    #[serde(rename = "nam")]
-    name: String,
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PlaylistWithEntriesSummary {
+    #[serde(flatten)]
+    pub playlist: Playlist,
 
-    #[serde(rename = "dsc", skip_serializing_if = "Option::is_none")]
-    description: Option<String>,
-
-    #[serde(rename = "typ", skip_serializing_if = "Option::is_none")]
-    r#type: Option<String>,
-
-    #[serde(rename = "col", skip_serializing_if = "Option::is_none")]
-    color: Option<Color>,
-
-    #[serde(rename = "lst")]
-    entries: PlaylistBriefEntries,
+    pub entries: EntriesSummary,
 }
 
-impl From<_core::Playlist> for PlaylistBrief {
-    fn from(from: _core::Playlist) -> Self {
-        let entries = from.entries_brief().into();
-        let _core::Playlist {
-            name,
-            description,
-            r#type,
-            color,
-            entries: _entries,
-        } = from;
+impl From<_core::PlaylistWithEntriesSummary> for PlaylistWithEntriesSummary {
+    fn from(from: _core::PlaylistWithEntriesSummary) -> Self {
+        let _core::PlaylistWithEntriesSummary { playlist, entries } = from;
         Self {
-            name,
-            description,
-            r#type,
-            color: color.map(Into::into),
-            entries,
-        }
-    }
-}
-
-impl From<_core::PlaylistBrief> for PlaylistBrief {
-    fn from(from: _core::PlaylistBrief) -> Self {
-        let _core::PlaylistBrief {
-            name,
-            description,
-            r#type,
-            color,
-            entries,
-        } = from;
-        Self {
-            name,
-            description,
-            r#type,
-            color: color.map(Into::into),
+            playlist: playlist.into(),
             entries: entries.into(),
         }
     }
 }
 
-///////////////////////////////////////////////////////////////////////
-// BriefEntity
-///////////////////////////////////////////////////////////////////////
+pub type EntityWithEntriesSummary = crate::entity::Entity<PlaylistWithEntriesSummary>;
 
-pub type BriefEntity = crate::entity::Entity<PlaylistBrief>;
-
-impl From<_core::Entity> for BriefEntity {
-    fn from(from: _core::Entity) -> Self {
-        Self(from.hdr.into(), from.body.into())
+impl From<(_core::Entity, _core::EntriesSummary)> for EntityWithEntriesSummary {
+    fn from(from: (_core::Entity, _core::EntriesSummary)) -> Self {
+        let (entity, entries) = from;
+        let body = PlaylistWithEntriesSummary {
+            playlist: entity.body.into(),
+            entries: entries.into(),
+        };
+        Self(entity.hdr.into(), body)
     }
 }
 

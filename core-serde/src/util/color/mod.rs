@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use crate::prelude::*;
 
 mod _core {
     pub use aoide_core::util::color::{Color, RgbColor};
@@ -21,6 +21,7 @@ mod _core {
 
 use aoide_core::util::color::ColorIndex;
 
+use schemars::{gen::SchemaGenerator, schema::Schema};
 use serde::{
     de::{self, Visitor as SerdeDeserializeVisitor},
     Deserializer, Serializer,
@@ -31,7 +32,8 @@ use std::{fmt, str::FromStr};
 // Color
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// Either a color code or a color index.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub enum Color {
     #[serde(rename = "rgb")]
     Rgb(RgbColor),
@@ -66,6 +68,23 @@ impl From<Color> for _core::Color {
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct RgbColor(_core::RgbColor);
+
+impl JsonSchema for RgbColor {
+    fn schema_name() -> String {
+        "RgbColor".to_string()
+    }
+
+    fn json_schema(gen: &mut SchemaGenerator) -> Schema {
+        let mut schema = gen.subschema_for::<String>();
+        if let Schema::Object(mut schema_object) = schema {
+            schema_object.metadata().title = Some("RGB color code".into());
+            schema_object.metadata().description = Some("A hexadecimal RGB color code \"#RRGGBB\" encoded as a string with 8 bits per channel.".into());
+            schema_object.metadata().examples = vec!["#808080".into()];
+            schema = Schema::Object(schema_object)
+        }
+        schema
+    }
+}
 
 impl From<_core::RgbColor> for RgbColor {
     fn from(from: _core::RgbColor) -> Self {

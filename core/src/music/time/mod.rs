@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use crate::prelude::*;
 
 use std::{f64, fmt};
 
@@ -101,11 +101,45 @@ pub struct TimeSignature {
     pub beat_unit: Option<BeatUnit>,
 }
 
+fn gcd(nom: BeatNumber, denom: BeatNumber) -> BeatNumber {
+    debug_assert!(nom > 0);
+    debug_assert!(denom > 0);
+    let mut a = nom;
+    let mut b = denom;
+    loop {
+        let c = a % b;
+        if c == 0 {
+            return b;
+        }
+        a = b;
+        b = c;
+    }
+}
+
 impl TimeSignature {
     pub fn new(beats_per_measure: BeatsPerMeasure, beat_unit: Option<BeatUnit>) -> Self {
         Self {
             beats_per_measure,
             beat_unit,
+        }
+    }
+
+    #[allow(clippy::absurd_extreme_comparisons)]
+    pub fn primary_beat_count(self) -> BeatNumber {
+        let Self {
+            beats_per_measure,
+            beat_unit,
+        } = self;
+        if beats_per_measure <= 0 {
+            return 0;
+        }
+        if let Some(beat_unit) = beat_unit {
+            if beat_unit <= 0 {
+                return beats_per_measure;
+            }
+            beats_per_measure / gcd(beats_per_measure, beat_unit)
+        } else {
+            beats_per_measure
         }
     }
 }
@@ -140,7 +174,7 @@ impl fmt::Display for TimeSignature {
         if let Some(beat_unit) = self.beat_unit {
             write!(f, "{}/{}", self.beats_per_measure, beat_unit)
         } else {
-            write!(f, "{}", self.beats_per_measure)
+            self.beats_per_measure.fmt(f)
         }
     }
 }

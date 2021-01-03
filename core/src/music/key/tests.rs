@@ -137,40 +137,34 @@ fn convert_key_sigs() {
 fn display_key_sigs() {
     assert_eq!(
         "1d",
-        format!("{}", OpenKeySignature::from(KeySignature::from_code(1)))
+        OpenKeySignature::from(KeySignature::from_code(1)).to_string()
     ); // C maj
     assert_eq!(
         "8B",
-        format!("{}", LancelotKeySignature::from(KeySignature::from_code(1)))
+        LancelotKeySignature::from(KeySignature::from_code(1)).to_string()
     ); // C maj
     assert_eq!(
         "1m",
-        format!("{}", OpenKeySignature::from(KeySignature::from_code(2)))
+        OpenKeySignature::from(KeySignature::from_code(2)).to_string()
     ); // A min
     assert_eq!(
         "8A",
-        format!("{}", LancelotKeySignature::from(KeySignature::from_code(2)))
+        LancelotKeySignature::from(KeySignature::from_code(2)).to_string()
     ); // A min
     assert_eq!(
         "12d",
-        format!("{}", OpenKeySignature::from(KeySignature::from_code(23)))
+        OpenKeySignature::from(KeySignature::from_code(23)).to_string()
     ); // F maj
     assert_eq!(
         "7B",
-        format!(
-            "{}",
-            LancelotKeySignature::from(KeySignature::from_code(23))
-        )
+        LancelotKeySignature::from(KeySignature::from_code(23)).to_string()
     ); // F maj
     assert_eq!(
         "12m",
-        format!("{}", OpenKeySignature::from(KeySignature::from_code(24)))
+        OpenKeySignature::from(KeySignature::from_code(24)).to_string()
     ); // D min
     assert_eq!(
         "7A",
-        format!(
-            "{}",
-            LancelotKeySignature::from(KeySignature::from_code(24))
-        )
+        LancelotKeySignature::from(KeySignature::from_code(24)).to_string()
     ); // D min
 }

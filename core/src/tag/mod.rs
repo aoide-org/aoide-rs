@@ -15,7 +15,7 @@
 
 ///////////////////////////////////////////////////////////////////////
 
-use super::*;
+use crate::prelude::*;
 
 use std::{
     cmp::Ordering,
@@ -223,6 +223,8 @@ impl Labeled for Label {
 pub type FacetValue = String;
 
 /// Identifier for a category of tags.
+///
+/// See also: Spotify categories
 ///
 /// Format: ASCII string, no uppercase characters, no whitespace
 #[derive(Clone, Default, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -485,6 +487,18 @@ impl Tags {
 
     pub fn into_inner(self) -> TagsMap {
         self.0
+    }
+
+    pub fn insert(&mut self, key: FacetKey, tag: PlainTag) {
+        use std::collections::hash_map::*;
+        match self.0.entry(key) {
+            Entry::Occupied(mut entry) => {
+                entry.get_mut().push(tag);
+            }
+            Entry::Vacant(entry) => {
+                entry.insert(vec![tag]);
+            }
+        }
     }
 }
 

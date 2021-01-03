@@ -16,122 +16,216 @@
 #![deny(missing_debug_implementations)]
 #![warn(rust_2018_idioms)]
 
-use aoide_core::entity::EntityHeader;
-
-use anyhow::bail;
-
-use std::fmt;
+#[macro_use]
+mod macros;
 
 pub mod collection;
-pub mod entity;
+pub mod media;
 pub mod playlist;
 pub mod tag;
 pub mod track;
-pub mod util;
 
-pub type RepoId = i64;
+use aoide_core::util::clock::DateTime;
 
-pub type RepoError = anyhow::Error;
+pub type RecordId = i64;
 
-pub type RepoResult<T> = Result<T, RepoError>;
-
-pub type PaginationOffset = u64;
-
-pub type PaginationLimit = u64;
-
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
-pub struct Pagination {
-    pub offset: Option<PaginationOffset>,
-    pub limit: Option<PaginationLimit>,
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecordHeader<Id> {
+    pub id: Id,
+    pub created_at: DateTime,
+    pub updated_at: DateTime,
 }
 
-impl Pagination {
-    pub fn none() -> Self {
-        Pagination {
-            offset: None,
-            limit: None,
+pub mod prelude {
+    use aoide_core::util::clock::DateTime;
+    use thiserror::Error;
+
+    pub trait RecordCollector {
+        type Header;
+        type Record;
+
+        /// Collect a new element
+        fn collect(&mut self, header: Self::Header, record: Self::Record);
+    }
+
+    pub trait ReservableRecordCollector: RecordCollector {
+        /// Reserve additional capacity for new elements
+        fn reserve(&mut self, additional: usize);
+    }
+
+    pub type PaginationOffset = u64;
+
+    pub type PaginationLimit = u64;
+
+    #[derive(Clone, Debug, Default, Eq, PartialEq)]
+    pub struct Pagination {
+        pub limit: PaginationLimit,
+        pub offset: Option<PaginationOffset>,
+    }
+
+    #[derive(Error, Debug)]
+    pub enum RepoError {
+        #[error("not found")]
+        NotFound,
+
+        #[error("conflict")]
+        Conflict,
+
+        #[error(transparent)]
+        Other(#[from] anyhow::Error),
+    }
+
+    pub type RepoResult<T> = Result<T, RepoError>;
+
+    pub trait OptionalRepoResult<T> {
+        fn optional(self) -> RepoResult<Option<T>>;
+    }
+
+    impl<T> OptionalRepoResult<T> for Result<T, RepoError> {
+        fn optional(self) -> RepoResult<Option<T>> {
+            self.map_or_else(
+                |err| {
+                    if matches!(err, RepoError::NotFound) {
+                        Ok(None)
+                    } else {
+                        Err(err)
+                    }
+                },
+                |val| Ok(Some(val)),
+            )
         }
     }
 
-    pub fn is_none(&self) -> bool {
-        self == &Self::none()
+    #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+    pub enum SortDirection {
+        Ascending,
+        Descending,
     }
-}
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub enum SortDirection {
-    Ascending,
-    Descending,
-}
+    #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+    pub enum FilterModifier {
+        Complement,
+    }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub enum FilterModifier {
-    Complement,
-}
+    #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+    pub enum StringCompare {
+        StartsWith, // head (case-insensitive)
+        EndsWith,   // tail (case-insensitive)
+        Contains,   // part (case-insensitive)
+        Matches,    // all (case-insensitive)
+        Equals,     // all (case-sensitive)
+    }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum StringCompare {
-    StartsWith, // head (case-insensitive)
-    EndsWith,   // tail (case-insensitive)
-    Contains,   // part (case-insensitive)
-    Matches,    // all (case-insensitive)
-    Equals,     // all (case-sensitive)
-}
+    /// Predicates for matching strings
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub enum StringPredicateBorrowed<'s> {
+        // Case-sensitive comparison
+        StartsWith(&'s str),
+        StartsNotWith(&'s str),
+        EndsWith(&'s str),
+        EndsNotWith(&'s str),
+        Contains(&'s str),
+        ContainsNot(&'s str),
+        Matches(&'s str),
+        MatchesNot(&'s str),
+        // Case-sensitive comparison
+        Equals(&'s str),
+        EqualsNot(&'s str),
+    }
 
-/// Predicates for matching strings
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum StringPredicate {
-    // Case-sensitive comparison
-    StartsWith(String),
-    StartsNotWith(String),
-    EndsWith(String),
-    EndsNotWith(String),
-    Contains(String),
-    ContainsNot(String),
-    Matches(String),
-    MatchesNot(String),
-    // Case-sensitive comparison
-    Equals(String),
-    EqualsNot(String),
-}
+    /// Predicates for matching strings
+    #[derive(Clone, Debug, Eq, PartialEq)]
+    pub enum StringPredicate {
+        // Case-sensitive comparison
+        StartsWith(String),
+        StartsNotWith(String),
+        EndsWith(String),
+        EndsNotWith(String),
+        Contains(String),
+        ContainsNot(String),
+        Matches(String),
+        MatchesNot(String),
+        // Case-sensitive comparison
+        Equals(String),
+        EqualsNot(String),
+    }
 
-impl<'a> From<&'a StringPredicate> for (StringCompare, &'a String, bool) {
-    fn from(from: &'a StringPredicate) -> (StringCompare, &'a String, bool) {
-        match from {
-            StringPredicate::StartsWith(s) => (StringCompare::StartsWith, s, true),
-            StringPredicate::StartsNotWith(s) => (StringCompare::StartsWith, s, false),
-            StringPredicate::EndsWith(s) => (StringCompare::EndsWith, s, true),
-            StringPredicate::EndsNotWith(s) => (StringCompare::EndsWith, s, false),
-            StringPredicate::Contains(s) => (StringCompare::Contains, s, true),
-            StringPredicate::ContainsNot(s) => (StringCompare::Contains, s, false),
-            StringPredicate::Matches(s) => (StringCompare::Matches, s, true),
-            StringPredicate::MatchesNot(s) => (StringCompare::Matches, s, false),
-            StringPredicate::Equals(s) => (StringCompare::Equals, s, true),
-            StringPredicate::EqualsNot(s) => (StringCompare::Equals, s, false),
+    impl StringPredicate {
+        pub fn borrow(&self) -> StringPredicateBorrowed<'_> {
+            match self {
+                Self::StartsWith(s) => StringPredicateBorrowed::StartsWith(s.as_str()),
+                Self::StartsNotWith(s) => StringPredicateBorrowed::StartsNotWith(s.as_str()),
+                Self::EndsWith(s) => StringPredicateBorrowed::EndsWith(s.as_str()),
+                Self::EndsNotWith(s) => StringPredicateBorrowed::EndsNotWith(s.as_str()),
+                Self::Contains(s) => StringPredicateBorrowed::Contains(s.as_str()),
+                Self::ContainsNot(s) => StringPredicateBorrowed::ContainsNot(s.as_str()),
+                Self::Matches(s) => StringPredicateBorrowed::Matches(s.as_str()),
+                Self::MatchesNot(s) => StringPredicateBorrowed::MatchesNot(s.as_str()),
+                Self::Equals(s) => StringPredicateBorrowed::Equals(s.as_str()),
+                Self::EqualsNot(s) => StringPredicateBorrowed::EqualsNot(s.as_str()),
+            }
         }
     }
-}
 
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct StringFilter {
-    pub modifier: Option<FilterModifier>,
-    pub value: Option<StringPredicate>,
-}
+    impl<'s> From<StringPredicateBorrowed<'s>> for (StringCompare, &'s str, bool) {
+        fn from(from: StringPredicateBorrowed<'s>) -> (StringCompare, &'s str, bool) {
+            use StringPredicateBorrowed::*;
+            match from {
+                StartsWith(s) => (StringCompare::StartsWith, s, true),
+                StartsNotWith(s) => (StringCompare::StartsWith, s, false),
+                EndsWith(s) => (StringCompare::EndsWith, s, true),
+                EndsNotWith(s) => (StringCompare::EndsWith, s, false),
+                Contains(s) => (StringCompare::Contains, s, true),
+                ContainsNot(s) => (StringCompare::Contains, s, false),
+                Matches(s) => (StringCompare::Matches, s, true),
+                MatchesNot(s) => (StringCompare::Matches, s, false),
+                Equals(s) => (StringCompare::Equals, s, true),
+                EqualsNot(s) => (StringCompare::Equals, s, false),
+            }
+        }
+    }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct StringCount {
-    pub value: Option<String>,
-    pub total_count: usize,
-}
+    #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+    pub struct StringFilterBorrowed<'s> {
+        pub modifier: Option<FilterModifier>,
+        pub value: Option<StringPredicateBorrowed<'s>>,
+    }
 
-pub type NumericValue = f64;
+    #[derive(Clone, Debug, Default, Eq, PartialEq)]
+    pub struct StringFilter {
+        pub modifier: Option<FilterModifier>,
+        pub value: Option<StringPredicate>,
+    }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum NumericPredicate {
-    LessThan(NumericValue),
-    LessOrEqual(NumericValue),
-    GreaterThan(NumericValue),
-    GreaterOrEqual(NumericValue),
-    Equal(Option<NumericValue>),
-    NotEqual(Option<NumericValue>),
+    impl StringFilter {
+        pub fn borrow(&self) -> StringFilterBorrowed<'_> {
+            let Self { modifier, value } = self;
+            StringFilterBorrowed {
+                modifier: *modifier,
+                value: value.as_ref().map(StringPredicate::borrow),
+            }
+        }
+    }
+
+    #[derive(Clone, Debug, Eq, PartialEq)]
+    pub struct StringCount {
+        pub value: Option<String>,
+        pub total_count: usize,
+    }
+
+    #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+    pub enum ScalarPredicate<V> {
+        LessThan(V),
+        LessOrEqual(V),
+        GreaterThan(V),
+        GreaterOrEqual(V),
+        Equal(Option<V>),    // nullable
+        NotEqual(Option<V>), // nullable
+    }
+
+    pub type NumericValue = f64;
+
+    pub type NumericPredicate = ScalarPredicate<NumericValue>;
+
+    pub type DateTimePredicate = ScalarPredicate<DateTime>;
 }

@@ -62,13 +62,8 @@ fn channel_count_default_layout() {
 }
 
 #[test]
-fn duration_default() {
-    assert_eq!(DurationMs::empty(), DurationMs::default());
-}
-
-#[test]
 fn duration_to_string() {
-    assert!(DurationMs::default()
+    assert!(DurationMs(123.4)
         .to_string()
         .ends_with(DurationMs::unit_of_measure()));
 }

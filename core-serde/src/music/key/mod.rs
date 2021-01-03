@@ -13,23 +13,23 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use crate::prelude::*;
 
 mod _core {
     pub use aoide_core::music::key::*;
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct KeySignature(_core::KeyCode);
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct KeyCode(_core::KeyCode);
 
-impl From<_core::KeySignature> for KeySignature {
+impl From<_core::KeySignature> for KeyCode {
     fn from(from: _core::KeySignature) -> Self {
         Self(from.code())
     }
 }
 
-impl From<KeySignature> for _core::KeySignature {
-    fn from(from: KeySignature) -> Self {
+impl From<KeyCode> for _core::KeySignature {
+    fn from(from: KeyCode) -> Self {
         Self::from_code(from.0)
     }
 }

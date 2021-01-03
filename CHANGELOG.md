@@ -13,19 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-## [0.7.5] - 2020-mm-dd
-
-### Added
-
-- Added support for tracks as collection entries
+## [0.8.0] - 2021-01-04
 
 ### Changed
 
-- New format for collection and playlist entries
-
-### Removed
-
-- Removed collection information from tracks
+- New REST API
+- New JSON schema
+- New database schema (100% relational)
+- Replace command-line arguments with environment variables and [dotenv](https://crates.io/crates/dotenv)
 
 ## [0.7.4] - 2020-09-26
 
@@ -381,8 +376,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial public release
 
-[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.7.5...development
-[0.7.5]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.7.5
+[Unreleased]: https://gitlab.com/uklotzde/aoide-rs/compare/v0.8.0...development
+[0.8.0]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.7.4
 [0.7.4]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.7.4
 [0.7.3]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.7.3
 [0.7.2]: https://gitlab.com/uklotzde/aoide-rs/releases/v0.7.2

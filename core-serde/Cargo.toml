@@ -8,14 +8,15 @@ edition = "2018"
 
 [dependencies]
 aoide-core = "*"
+base64 = "*"
 chrono = { version = "*", features = ["serde"] }
+schemars = { version = "*", features = ["chrono"] }
 semval = "*"
 serde = { version = "*", features = ["derive"] }
 serde_repr = "*"
 
 [features]
 default = []
-experimental-bnk-markers = ["aoide-core/experimental-bnk-markers"]
 
 [dev-dependencies]
 serde_json = "*"

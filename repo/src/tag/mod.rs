@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use crate::prelude::*;
 
 use aoide_core::tag::*;
 
@@ -62,22 +62,22 @@ pub struct SortOrder {
     pub direction: SortDirection,
 }
 
-fn dedup_facets(facets: &mut Vec<tag::Facet>) {
+fn dedup_facets(facets: &mut Vec<Facet>) {
     facets.sort_unstable();
     facets.dedup();
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct CountParams {
-    pub facets: Option<Vec<tag::Facet>>,
+    pub facets: Option<Vec<Facet>>,
     pub include_non_faceted_tags: Option<bool>,
-    pub ordering: Vec<tag::SortOrder>,
+    pub ordering: Vec<SortOrder>,
 }
 
 impl CountParams {
     pub fn dedup_facets(&mut self) {
         if let Some(ref mut facets) = self.facets {
-            tag::dedup_facets(facets);
+            dedup_facets(facets);
         }
     }
 
@@ -88,14 +88,14 @@ impl CountParams {
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct FacetCountParams {
-    pub facets: Option<Vec<tag::Facet>>,
-    pub ordering: Vec<tag::SortOrder>,
+    pub facets: Option<Vec<Facet>>,
+    pub ordering: Vec<SortOrder>,
 }
 
 impl FacetCountParams {
     pub fn dedup_facets(&mut self) {
         if let Some(ref mut facets) = self.facets {
-            tag::dedup_facets(facets);
+            dedup_facets(facets);
         }
     }
 }

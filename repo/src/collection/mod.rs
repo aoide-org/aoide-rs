@@ -13,83 +13,55 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+record_id_newtype!(RecordId);
 
-use aoide_core::{
-    collection::*,
-    entity::{EntityRevision, EntityUid},
-};
+pub type RecordHeader = crate::RecordHeader<RecordId>;
 
-pub trait Repo {
-    fn resolve_collection_id(&self, uid: &EntityUid) -> RepoResult<Option<RepoId>>;
+use crate::prelude::*;
 
-    fn insert_collection(&self, entity: &Entity) -> RepoResult<()>;
+use aoide_core::{collection::*, util::clock::DateTime};
 
-    fn update_collection(
+pub trait EntityRepo {
+    entity_repo_trait_common_functions!(RecordId, Entity, Collection);
+
+    fn insert_collection_entity(
         &self,
-        entity: &Entity,
-    ) -> RepoResult<(EntityRevision, Option<EntityRevision>)>;
+        created_at: DateTime,
+        created_entity: &Entity,
+    ) -> RepoResult<RecordId>;
 
-    fn delete_collection(&self, uid: &EntityUid) -> RepoResult<Option<()>>;
-
-    fn load_collection(&self, uid: &EntityUid) -> RepoResult<Option<Entity>>;
-
-    fn list_collections(&self, pagination: Pagination) -> RepoResult<Vec<Entity>>;
-
-    fn find_collections_by_name(&self, name: &str) -> RepoResult<Vec<Entity>>;
-
-    fn find_collections_by_name_starting_with(
+    fn load_collection_entities(
         &self,
-        name: &str,
-        pagination: Pagination,
-    ) -> RepoResult<Vec<Entity>>;
-
-    fn find_collections_by_name_containing(
-        &self,
-        name: &str,
-        pagination: Pagination,
-    ) -> RepoResult<Vec<Entity>>;
-}
-
-pub trait TrackEntryRepo {
-    /// Insert or update the given entry
-    fn replace_track_entry(
-        &self,
-        collection_uid: &EntityUid,
-        track_uid: &EntityUid,
-        entry: SingleTrackEntry,
+        kind: Option<&str>,
+        with_summary: bool,
+        pagination: Option<&Pagination>,
+        collector: &mut dyn ReservableRecordCollector<
+            Header = RecordHeader,
+            Record = (Entity, Option<Summary>),
+        >,
     ) -> RepoResult<()>;
 
-    /// Remove the given entry
-    fn remove_track_entry(
-        &self,
-        collection_uid: &EntityUid,
-        track_uid: &EntityUid,
-    ) -> RepoResult<bool>;
-
-    /// Remove the given entry
-    fn remove_all_track_entries(&self, collection_uid: &EntityUid) -> RepoResult<usize>;
-
-    /// Try to load the given entry if it exists
-    fn load_track_entry(
-        &self,
-        collection_uid: &EntityUid,
-        track_uid: &EntityUid,
-    ) -> RepoResult<Option<SingleTrackEntry>>;
+    fn load_collection_summary(&self, id: RecordId) -> RepoResult<Summary>;
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub struct TrackStats {
-    pub total_count: usize,
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MediaSourceSummary {
+    pub total_count: u64,
 }
 
-#[derive(Copy, Clone, Debug, Default, PartialEq)]
-pub struct Stats {
-    pub tracks: Option<TrackStats>,
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TrackSummary {
+    pub total_count: u64,
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct EntityWithStats {
-    pub entity: Entity,
-    pub stats: Stats,
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlaylistSummary {
+    pub total_count: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
+pub struct Summary {
+    pub media_sources: Option<MediaSourceSummary>,
+    pub tracks: Option<TrackSummary>,
+    pub playlists: Option<PlaylistSummary>,
 }

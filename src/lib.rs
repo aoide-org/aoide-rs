@@ -24,9 +24,14 @@ use diesel::{
     r2d2::{ConnectionManager, Pool, PooledConnection},
 };
 
-use anyhow::{anyhow, Error, Result as Fallible};
+#[macro_use]
+extern crate diesel_migrations;
 
-pub type SqliteConnectionManager = ConnectionManager<SqliteConnection>;
+use aoide_repo_sqlite::prelude::{Connection as SqliteConnection, *};
+
+use anyhow::Error;
+
+pub type SqliteConnectionManager = ConnectionManager<diesel::SqliteConnection>;
 pub type SqliteConnectionPool = Pool<SqliteConnectionManager>;
 pub type SqlitePooledConnection = PooledConnection<SqliteConnectionManager>;
 

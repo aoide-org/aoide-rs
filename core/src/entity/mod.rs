@@ -13,12 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
-
-use crate::util::clock::TickInstant;
+use crate::prelude::*;
 
 use rand::{thread_rng, RngCore};
-
 use std::{fmt, marker::PhantomData, mem, str};
 
 ///////////////////////////////////////////////////////////////////////
@@ -38,7 +35,7 @@ impl EntityUid {
     pub const SLICE_LEN: usize = mem::size_of::<Self>();
     pub const MIN_STR_LEN: usize = 32;
     pub const MAX_STR_LEN: usize = 33;
-    pub const BASE58_ALPHABET: &'static [u8; 58] = bs58::alphabet::BITCOIN;
+    pub const BASE58_ALPHABET: &'static bs58::alphabet::Alphabet = bs58::Alphabet::BITCOIN;
 
     pub fn random() -> Self {
         // Generate 24 random bytes
@@ -110,7 +107,7 @@ impl AsMut<[u8]> for EntityUid {
 
 impl fmt::Display for EntityUid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.encode_to_string())
+        self.encode_to_string().fmt(f)
     }
 }
 
@@ -126,52 +123,54 @@ impl std::str::FromStr for EntityUid {
 // EntityRevision
 ///////////////////////////////////////////////////////////////////////
 
-pub type EntityVersionNumber = u64;
-
-pub type EntityRevisionInstant = TickInstant;
+// A 1-based, non-negative, monotone increasing number
+pub type EntityRevisionNumber = u64;
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
-pub struct EntityRevision {
-    // A non-negative, monotone-increasing version number
-    pub no: EntityVersionNumber,
-
-    // A time stamp for tracing
-    pub ts: EntityRevisionInstant,
-}
+pub struct EntityRevision(EntityRevisionNumber);
 
 impl EntityRevision {
-    const fn initial_ver() -> EntityVersionNumber {
-        1
+    const fn initial() -> Self {
+        Self(1)
     }
 
-    pub fn initial() -> Self {
-        Self {
-            no: Self::initial_ver(),
-            ts: TickInstant::now(),
-        }
+    pub fn is_initial(self) -> bool {
+        self == Self::initial()
     }
 
-    pub fn next(&self) -> Self {
+    pub fn next(self) -> Self {
         debug_assert!(self.validate().is_ok());
-        let no = self
-            .no
-            .checked_add(1)
-            // TODO: Return `Option<Self>`?
-            .unwrap();
-        Self {
-            no,
-            ts: TickInstant::now(),
-        }
+        let Self(prev) = self;
+        // TODO: Return `Option<Self>`?
+        let next = prev.checked_add(1).unwrap();
+        Self(next)
     }
 
-    pub fn is_initial(&self) -> bool {
-        self.no == Self::initial_ver()
+    pub const fn from_inner(inner: EntityRevisionNumber) -> Self {
+        Self(inner)
+    }
+
+    pub const fn to_inner(self) -> EntityRevisionNumber {
+        let Self(inner) = self;
+        inner
+    }
+}
+
+impl From<EntityRevisionNumber> for EntityRevision {
+    fn from(from: EntityRevisionNumber) -> Self {
+        Self::from_inner(from)
+    }
+}
+
+impl From<EntityRevision> for EntityRevisionNumber {
+    fn from(from: EntityRevision) -> Self {
+        from.to_inner()
     }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum EntityRevisionInvalidity {
-    VersionOutOfRange,
+    OutOfRange,
 }
 
 impl Validate for EntityRevision {
@@ -180,8 +179,8 @@ impl Validate for EntityRevision {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
             .invalidate_if(
-                self.no < Self::initial_ver(),
-                EntityRevisionInvalidity::VersionOutOfRange,
+                *self < Self::initial(),
+                EntityRevisionInvalidity::OutOfRange,
             )
             .into()
     }
@@ -189,7 +188,8 @@ impl Validate for EntityRevision {
 
 impl fmt::Display for EntityRevision {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}@{}", self.no, self.ts)
+        let Self(number) = self;
+        number.fmt(f)
     }
 }
 
@@ -209,9 +209,10 @@ impl EntityHeader {
     }
 
     pub fn initial_with_uid<T: Into<EntityUid>>(uid: T) -> Self {
+        let initial_rev = EntityRevision::initial();
         Self {
             uid: uid.into(),
-            rev: EntityRevision::initial(),
+            rev: initial_rev,
         }
     }
 }
@@ -227,8 +228,8 @@ impl Validate for EntityHeader {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .validate_with(&self.uid, EntityHeaderInvalidity::Uid)
-            .validate_with(&self.rev, EntityHeaderInvalidity::Revision)
+            .validate_with(&self.uid, Self::Invalidity::Uid)
+            .validate_with(&self.rev, Self::Invalidity::Revision)
             .into()
     }
 }
@@ -254,7 +255,29 @@ impl<T, B> Entity<T, B> {
     }
 }
 
-#[derive(Debug)]
+impl<T, B> From<Entity<T, B>> for (EntityHeader, B) {
+    fn from(from: Entity<T, B>) -> Self {
+        let Entity {
+            hdr,
+            body,
+            _phantom,
+        } = from;
+        (hdr, body)
+    }
+}
+
+impl<'a, T, B> From<&'a Entity<T, B>> for (&'a EntityHeader, &'a B) {
+    fn from(from: &'a Entity<T, B>) -> Self {
+        let Entity {
+            hdr,
+            body,
+            _phantom,
+        } = from;
+        (hdr, body)
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum EntityInvalidity<T: Invalidity> {
     Header(EntityHeaderInvalidity),
     Body(T),
@@ -275,20 +298,36 @@ where
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum EntityRevisionUpdateResult {
-    NotFound,
-    Current(EntityRevision), // conflict or no changes
-    Updated(EntityRevision, EntityRevision),
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum EntityOrHeader<T, B> {
+    Entity(Entity<T, B>),
+    Header(EntityHeader),
 }
 
-impl EntityRevisionUpdateResult {
-    pub fn is_updated(self) -> bool {
-        if let Self::Updated(_, _) = self {
-            true
-        } else {
-            false
+#[derive(Debug)]
+pub enum EntityOrHeaderInvalidity<T>
+where
+    T: fmt::Debug + 'static,
+{
+    Entity(EntityInvalidity<T>),
+    Header(EntityHeaderInvalidity),
+}
+
+impl<T, B> Validate for EntityOrHeader<T, B>
+where
+    T: Invalidity,
+    B: Validate<Invalidity = T>,
+{
+    type Invalidity = EntityOrHeaderInvalidity<T>;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        let context = ValidationContext::new();
+        use EntityOrHeader::*;
+        match self {
+            Entity(entity) => context.validate_with(entity, Self::Invalidity::Entity),
+            Header(header) => context.validate_with(header, Self::Invalidity::Header),
         }
+        .into()
     }
 }
 

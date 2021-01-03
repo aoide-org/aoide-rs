@@ -16,27 +16,55 @@
 use super::*;
 
 mod _core {
-    pub use aoide_core::track::release::Release;
+    pub use aoide_core::track::release::{DateOrDateTime, Release};
+}
+
+///////////////////////////////////////////////////////////////////////
+// DateOrDateTime
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum DateOrDateTime {
+    Date(DateYYYYMMDD),
+    DateTime(DateTime),
+}
+
+impl From<_core::DateOrDateTime> for DateOrDateTime {
+    fn from(from: _core::DateOrDateTime) -> Self {
+        use _core::DateOrDateTime::*;
+        match from {
+            Date(from) => Self::Date(from.into()),
+            DateTime(from) => Self::DateTime(from.into()),
+        }
+    }
+}
+
+impl From<DateOrDateTime> for _core::DateOrDateTime {
+    fn from(from: DateOrDateTime) -> Self {
+        use DateOrDateTime::*;
+        match from {
+            Date(from) => Self::Date(from.into()),
+            DateTime(from) => Self::DateTime(from.into()),
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////
 // Release
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Release {
-    #[serde(rename = "own", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     released_by: Option<String>,
 
-    #[serde(rename = "dat", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     released_at: Option<DateOrDateTime>,
 
-    #[serde(rename = "cpy", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     copyright: Option<String>,
-
-    #[serde(rename = "lic", skip_serializing_if = "Vec::is_empty", default)]
-    licenses: Vec<String>,
 }
 
 impl From<_core::Release> for Release {
@@ -45,13 +73,11 @@ impl From<_core::Release> for Release {
             released_at,
             released_by,
             copyright,
-            licenses,
         } = from;
         Self {
             released_at: released_at.map(Into::into),
             released_by,
             copyright,
-            licenses,
         }
     }
 }
@@ -62,13 +88,18 @@ impl From<Release> for _core::Release {
             released_at,
             released_by,
             copyright,
-            licenses,
         } = from;
         Self {
             released_at: released_at.map(Into::into),
             released_by,
             copyright,
-            licenses,
         }
     }
 }
+
+///////////////////////////////////////////////////////////////////////
+// Tests
+///////////////////////////////////////////////////////////////////////
+
+#[cfg(test)]
+mod tests;

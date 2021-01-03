@@ -13,95 +13,67 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod playlist;
-pub mod track;
+use crate::prelude::*;
 
-use super::*;
-
-use aoide_core::util::clock::{TickInstant, TickType, Ticks};
+use crate::util::color::Color;
 
 mod _core {
-    pub use aoide_core::{
-        collection::{playlist, track, *},
-        entity::EntityHeader,
-    };
+    pub use aoide_core::{collection::*, entity::EntityHeader};
 }
 
 ///////////////////////////////////////////////////////////////////////
 // Collection
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(Eq, PartialEq))]
-#[serde(deny_unknown_fields)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Collection {
-    #[serde(rename = "nam")]
-    name: String,
+    title: String,
 
-    #[serde(rename = "dsc", skip_serializing_if = "Option::is_none")]
-    description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    notes: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    kind: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    color: Option<Color>,
 }
 
 impl From<Collection> for _core::Collection {
     fn from(from: Collection) -> Self {
-        let Collection { name, description } = from;
-        Self { name, description }
+        let Collection {
+            title,
+            notes,
+            kind,
+            color,
+        } = from;
+        Self {
+            title,
+            notes,
+            kind,
+            color: color.map(Into::into),
+        }
     }
 }
 
 impl From<_core::Collection> for Collection {
     fn from(from: _core::Collection) -> Self {
-        let _core::Collection { name, description } = from;
-        Self { name, description }
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
-// CollectionEntry
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
-#[serde(deny_unknown_fields)]
-pub struct CollectionEntry<T> {
-    #[serde(rename = "add")]
-    added_at: TickType,
-
-    #[serde(flatten)]
-    item: T,
-}
-
-impl<T, U> From<CollectionEntry<T>> for _core::CollectionEntry<U>
-where
-    T: Into<U>,
-{
-    fn from(from: CollectionEntry<T>) -> Self {
-        let CollectionEntry { item, added_at } = from;
+        let _core::Collection {
+            title,
+            notes,
+            kind,
+            color,
+        } = from;
         Self {
-            added_at: TickInstant(Ticks(added_at)),
-            item: item.into(),
+            title,
+            notes,
+            kind,
+            color: color.map(Into::into),
         }
     }
 }
-
-impl<T, U> From<_core::CollectionEntry<T>> for CollectionEntry<U>
-where
-    T: Into<U>,
-{
-    fn from(from: _core::CollectionEntry<T>) -> Self {
-        let _core::CollectionEntry { item, added_at } = from;
-        Self {
-            added_at: (added_at.0).0,
-            item: item.into(),
-        }
-    }
-}
-
-pub type SingleTrackEntry = CollectionEntry<track::ItemBody>;
-
-pub type TrackEntry = CollectionEntry<track::Item>;
-
-pub type PlaylistEntry = CollectionEntry<playlist::Item>;
 
 ///////////////////////////////////////////////////////////////////////
 // Entity
@@ -120,3 +92,9 @@ impl From<_core::Entity> for Entity {
         Self(from.hdr.into(), from.body.into())
     }
 }
+
+///////////////////////////////////////////////////////////////////////
+// EntityOrHeader
+///////////////////////////////////////////////////////////////////////
+
+pub type EntityOrHeader = crate::entity::EntityOrHeader<Collection>;

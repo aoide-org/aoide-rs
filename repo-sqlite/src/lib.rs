@@ -27,52 +27,99 @@ extern crate diesel;
 #[macro_use]
 extern crate diesel_migrations;
 
-use anyhow::anyhow;
-use diesel::{prelude::*, SqliteConnection};
-use std::ops::Deref;
+pub mod prelude {
+    pub(crate) use crate::util::{clock::*, entity::*, *};
+    pub(crate) use aoide_repo::prelude::*;
+    pub(crate) use diesel::{prelude::*, result::Error as DieselError, SqliteConnection};
+    pub(crate) use semval::prelude::*;
+    pub(crate) use std::ops::Deref;
 
-pub mod collection;
-pub mod playlist;
-pub mod track;
-pub mod util;
+    pub use diesel::Connection as _;
 
-#[derive(Clone, Copy)]
-#[allow(missing_debug_implementations)]
-pub struct Connection<'db>(pub &'db SqliteConnection);
+    #[derive(Clone, Copy)]
+    #[allow(missing_debug_implementations)]
+    pub struct Connection<'db>(&'db SqliteConnection);
 
-impl<'db> Connection<'db> {
-    pub const fn from_inner(inner: &'db SqliteConnection) -> Self {
-        Self(inner)
+    impl<'db> Connection<'db> {
+        pub const fn new(inner: &'db SqliteConnection) -> Self {
+            Self(inner)
+        }
     }
 
-    pub const fn into_inner(self) -> &'db SqliteConnection {
-        let Self(inner) = self;
-        inner
+    impl<'db> From<&'db SqliteConnection> for Connection<'db> {
+        fn from(inner: &'db SqliteConnection) -> Self {
+            Self::new(inner)
+        }
+    }
+
+    impl<'db> AsRef<SqliteConnection> for Connection<'db> {
+        fn as_ref(&self) -> &SqliteConnection {
+            &self.0
+        }
+    }
+
+    impl<'db> Deref for Connection<'db> {
+        type Target = SqliteConnection;
+
+        fn deref(&self) -> &Self::Target {
+            self.as_ref()
+        }
+    }
+
+    pub(crate) fn repo_error(err: DieselError) -> RepoError {
+        use DieselError::*;
+        match err {
+            NotFound => RepoError::NotFound,
+            err => anyhow::Error::from(err).into(),
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct DieselRepoError(pub RepoError);
+
+    impl From<DieselError> for DieselRepoError {
+        fn from(err: DieselError) -> Self {
+            Self(repo_error(err))
+        }
+    }
+
+    impl From<DieselRepoError> for RepoError {
+        fn from(err: DieselRepoError) -> Self {
+            let DieselRepoError(err) = err;
+            err
+        }
+    }
+
+    impl From<RepoError> for DieselRepoError {
+        fn from(err: RepoError) -> Self {
+            Self(err)
+        }
+    }
+
+    pub(crate) use aoide_repo::RecordId as RowId;
+
+    #[cfg(test)]
+    pub mod tests {
+        use super::SqliteConnection;
+
+        use diesel::Connection as _;
+
+        pub type TestResult<T> = anyhow::Result<T>;
+
+        embed_migrations!("migrations");
+
+        pub fn establish_connection() -> TestResult<SqliteConnection> {
+            let connection =
+                SqliteConnection::establish(":memory:").expect("in-memory database connection");
+            embedded_migrations::run(&connection)?;
+            Ok(connection)
+        }
     }
 }
 
-impl<'db> From<&'db SqliteConnection> for Connection<'db> {
-    fn from(inner: &'db SqliteConnection) -> Self {
-        Self::from_inner(inner)
-    }
-}
+pub mod repo;
 
-impl<'db> From<Connection<'db>> for &'db SqliteConnection {
-    fn from(from: Connection<'db>) -> Self {
-        from.into_inner()
-    }
-}
+mod db;
+mod util;
 
-impl<'db> AsRef<SqliteConnection> for Connection<'db> {
-    fn as_ref(&self) -> &SqliteConnection {
-        &self.0
-    }
-}
-
-impl<'db> Deref for Connection<'db> {
-    type Target = SqliteConnection;
-
-    fn deref(&self) -> &Self::Target {
-        self.as_ref()
-    }
-}
+use prelude::Connection;

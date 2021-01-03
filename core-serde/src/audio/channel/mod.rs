@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use crate::prelude::*;
 
 mod _core {
     pub use aoide_core::audio::channel::*;
@@ -23,7 +23,7 @@ mod _core {
 // ChannelCount
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ChannelCount(_core::NumberOfChannels);
 
 impl From<_core::ChannelCount> for ChannelCount {
@@ -48,8 +48,8 @@ impl Default for ChannelCount {
 // ChannelLayout
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case")]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub enum ChannelLayout {
     Mono,
     DualMono,
@@ -83,7 +83,7 @@ impl From<ChannelLayout> for _core::ChannelLayout {
 // Channels
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged, deny_unknown_fields)]
 pub enum Channels {
     Count(ChannelCount),

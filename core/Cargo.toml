@@ -7,17 +7,17 @@ publish = false
 edition = "2018"
 
 [dependencies]
-bs58 = "*"
+bs58 = "^0.4"
 bitflags = "*"
 chrono = "*"
 lazy_static = "*"
+num-derive = "*"
 num-traits = "*"
 rand = "*"
 semval = "*"
 
 [features]
 default = []
-experimental-bnk-markers = []
 
 [dev-dependencies]
 criterion = "*"

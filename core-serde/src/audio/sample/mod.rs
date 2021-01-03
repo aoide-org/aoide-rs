@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use crate::prelude::*;
 
 mod _core {
     pub use aoide_core::audio::sample::*;
@@ -23,17 +23,19 @@ mod _core {
 // SamplePosition
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct SamplePosition(_core::SamplePositionType);
 
 impl From<_core::SamplePosition> for SamplePosition {
     fn from(from: _core::SamplePosition) -> Self {
-        Self(from.0)
+        let _core::SamplePosition(sample) = from;
+        Self(sample)
     }
 }
 
 impl From<SamplePosition> for _core::SamplePosition {
     fn from(from: SamplePosition) -> Self {
-        Self(from.0)
+        let SamplePosition(sample) = from;
+        Self(sample)
     }
 }

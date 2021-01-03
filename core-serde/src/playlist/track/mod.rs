@@ -25,12 +25,11 @@ mod _core {
 // Item
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(Eq, PartialEq))]
-#[serde(deny_unknown_fields)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Item {
-    #[serde(rename = "uid")]
-    uid: EntityUid,
+    pub(crate) uid: EntityUid,
 }
 
 impl From<Item> for _core::Item {

@@ -23,7 +23,7 @@ mod _core {
 // Index
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum Index {
     Number(u16),
@@ -32,12 +32,10 @@ pub enum Index {
 
 impl Index {
     fn encode(from: _core::Index) -> Option<Self> {
-        match (from.number(), from.total()) {
+        match (from.number, from.total) {
             (None, None) => None,
             (Some(number), None) => Some(Index::Number(number)),
-            (None, Some(total)) => {
-                Some(Index::NumberAndTotal(_core::Index::default().number, total))
-            }
+            (None, Some(total)) => Some(Index::NumberAndTotal(0, total)),
             (Some(number), Some(total)) => Some(Index::NumberAndTotal(number, total)),
         }
     }
@@ -47,10 +45,13 @@ impl Index {
             use Index::*;
             match from {
                 Number(number) => _core::Index {
-                    number,
+                    number: Some(number),
                     ..Default::default()
                 },
-                NumberAndTotal(number, total) => _core::Index { number, total },
+                NumberAndTotal(number, total) => _core::Index {
+                    number: Some(number),
+                    total: Some(total),
+                },
             }
         } else {
             Default::default()
@@ -62,16 +63,16 @@ impl Index {
 // Indexes
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Indexes {
-    #[serde(rename = "dsi", skip_serializing_if = "Option::is_none")]
-    pub disc: Option<Index>,
-
-    #[serde(rename = "tri", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub track: Option<Index>,
 
-    #[serde(rename = "mvi", skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub disc: Option<Index>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub movement: Option<Index>,
 }
 

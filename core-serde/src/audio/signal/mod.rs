@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use crate::prelude::*;
 
 mod _core {
     pub use aoide_core::audio::signal::*;
@@ -23,7 +23,7 @@ mod _core {
 // BitRate
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct BitRateBps(_core::BitsPerSecond);
 
 impl From<_core::BitRateBps> for BitRateBps {
@@ -42,18 +42,20 @@ impl From<BitRateBps> for _core::BitRateBps {
 // SampleRate
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct SampleRateHz(_core::SamplesPerSecond);
 
 impl From<_core::SampleRateHz> for SampleRateHz {
     fn from(from: _core::SampleRateHz) -> Self {
-        Self(from.0)
+        let _core::SampleRateHz(hz) = from;
+        Self(hz)
     }
 }
 
 impl From<SampleRateHz> for _core::SampleRateHz {
     fn from(from: SampleRateHz) -> Self {
-        Self(from.0)
+        let SampleRateHz(hz) = from;
+        Self(hz)
     }
 }
 
@@ -61,17 +63,19 @@ impl From<SampleRateHz> for _core::SampleRateHz {
 // Loudness
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct LoudnessLufs(_core::LufsValue);
 
 impl From<_core::LoudnessLufs> for LoudnessLufs {
     fn from(from: _core::LoudnessLufs) -> Self {
-        Self(from.0)
+        let _core::LoudnessLufs(lufs) = from;
+        Self(lufs)
     }
 }
 
 impl From<LoudnessLufs> for _core::LoudnessLufs {
     fn from(from: LoudnessLufs) -> Self {
-        Self(from.0)
+        let LoudnessLufs(lufs) = from;
+        Self(lufs)
     }
 }

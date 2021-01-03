@@ -1,104 +1,115 @@
 openapi: 3.0.3
 info:
-  version: 0.7.5
+  version: 0.8.0
   title: aoide
   description: Music library management
   license:
     name: AGPL-3.0-or-later
     url: 'https://www.gnu.org/licenses/agpl-3.0.html'
 servers:
-  - url: 'http://[::1]:8080/'
+  - url: 'http://[::1]:8080'
     description: Local development server
+tags:
+  - name: Collections
+  - name: Collected Tracks
+  - name: Tracks
+  - name: Collected Playlists
+  - name: Playlists
+  - name: Playlist Entries
+  - name: Administration
 paths:
-  /collections:
+  /c:
     get:
+      operationId: listCollections
       summary: List collections
       description: |
-        List all collections that have recently been created/modified.
-      operationId: listCollections
+        Load collections that have recently been modified (created/updated).
       tags:
         - Collections
       parameters:
+        - $ref: '#/components/parameters/collectionKindQuery'
+        - $ref: '#/components/parameters/collectionSummaryQuery'
         - $ref: '#/components/parameters/paginationOffsetQuery'
         - $ref: '#/components/parameters/paginationLimitQuery'
       responses:
         '200':
           description: |
-            An array of collection entities.
-
-            Results are sorted in descending order of the revision
-            time stamp.
+            An array of collection entities, optional with a summary.
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/CollectionEntity'
+                  $ref: '#/components/schemas/CollectionWithSummaryEntity'
         '400':
           $ref: '#/components/responses/400BadRequest'
         '500':
           $ref: '#/components/responses/500InternalServerError'
     post:
-      summary: Create a new collection
       operationId: createCollection
+      summary: Create a new collection
+      description: |
+        Create a new collection.
       tags:
         - Collections
       requestBody:
         description: |
-          Properties of the new collection.
+          The new collection.
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CollectionEntityBody'
+              $ref: '#/components/schemas/Collection'
       responses:
         '201':
           description: |
-            The header of the newly created collection entity.
+            The newly created collection entity.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EntityHeader'
+                $ref: '#/components/schemas/CollectionEntity'
         '400':
           $ref: '#/components/responses/400BadRequest'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  '/collections/{collectionUid}':
+
+  /c/{collectionUid}:
     get:
+      operationId: loadCollection
       summary: Load a collection
       description: |
         Load a collection entity referenced by its UID.
-      operationId: loadCollection
       tags:
         - Collections
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
-        - $ref: '#/components/parameters/collectionWithQuery'
+        - $ref: '#/components/parameters/collectionSummaryQuery'
       responses:
         '200':
           description: |
-            The loaded collection entity, optionally with additional statistics.
+            The loaded collection entity, optionally with a summary.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CollectionEntityWithStats'
+                $ref: '#/components/schemas/CollectionWithSummaryEntity'
         '404':
           $ref: '#/components/responses/404NotFound'
         '500':
           $ref: '#/components/responses/500InternalServerError'
     put:
+      operationId: updateCollection
       summary: Update a collection
       description: |
-        Update a collection entity after validating that the provided `header`
+        Update a collection entity after validating that the provided `rev`
         matches that of the current entity (optimistic locking).
-      operationId: updateCollection
       tags:
         - Collections
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
+        - $ref: '#/components/parameters/entityRevisionQuery'
       requestBody:
         description: |
-          A collection entity with the current `header` and and updated `body`.
+          The updated collection entity.
         required: true
         content:
           application/json:
@@ -107,7 +118,7 @@ paths:
       responses:
         '200':
           description: |
-            The header of the updated collection entity.
+            The updated collection entity.
           content:
             application/json:
               schema:
@@ -116,11 +127,15 @@ paths:
           $ref: '#/components/responses/400BadRequest'
         '404':
           $ref: '#/components/responses/404NotFound'
+        '409':
+          $ref: '#/components/responses/409Conflict'
         '500':
           $ref: '#/components/responses/500InternalServerError'
     delete:
-      summary: Delete a collection
       operationId: deleteCollection
+      summary: Delete a collection
+      description: |
+        Delete a collection.
       tags:
         - Collections
       parameters:
@@ -132,44 +147,219 @@ paths:
           $ref: '#/components/responses/400BadRequest'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /playlists:
-    get:
-      summary: List playlists
+
+  /c/{collectionUid}/tracks/resolve:
+    post:
+      summary: Resolve the UIDs of tracks from a list of media source URIs
       description: |
-        List all playlists that have recently been created/modified.
-      operationId: listPlaylists
+        Resolve the UID of tracks from a list of media source URIs.
+
+        The result list is unordered and contains only those tracks
+        that have been found.
+      operationId: resolveCollectedTracks
       tags:
-        - Playlists
+        - Collected Tracks
       parameters:
-        - $ref: '#/components/parameters/playlistBriefQuery'
-        - $ref: '#/components/parameters/playlistTypeQuery'
-        - $ref: '#/components/parameters/paginationOffsetQuery'
-        - $ref: '#/components/parameters/paginationLimitQuery'
+        - $ref: '#/components/parameters/collectionUidPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Uri'
       responses:
         '200':
           description: |
-            An array of playlist entities, either with all entries
-            or only a brief summary without any entries.
-
-            Results are sorted in descending order of the revision
-            time stamp.
+            An array of track [URI, [UID, Revision]] tuples.
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  oneOf:
-                    - $ref: '#/components/schemas/PlaylistEntity'
-                    - $ref: '#/components/schemas/PlaylistBriefEntity'
+                  type: array
+                  minLength: 2
+                  maxLength: 2
+                  items:
+                    oneOf:
+                      - $ref: '#/components/schemas/Uri'
+                      - $ref: '#/components/schemas/EntityHeader'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /c/{collectionUid}/tracks/search:
+    post:
+      operationId: searchCollectedTracks
+      summary: Search collected tracks and their media sources
+      description: |
+        Search collected tracks and their media sources by evaluating
+        filter conditions and sorting the results.
+      tags:
+        - Collected Tracks
+      parameters:
+        - $ref: '#/components/parameters/collectionUidPath'
+        - $ref: '#/components/parameters/paginationOffsetQuery'
+        - $ref: '#/components/parameters/paginationLimitQuery'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchCollectedTracksRequestBody'
+      responses:
+        '200':
+          description: |
+            An array of matching tracks in the requested order.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchCollectedTracksResponseBody'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /c/{collectionUid}/tracks/replace:
+    post:
+      operationId: replaceCollectedTracks
+      summary: Replace collected tracks and media sources by URI
+      description: |
+        Create or update multiple, collected tracks and their media sources by locating them
+        through their (percent-encoded) URI.
+      tags:
+        - Collected Tracks
+      parameters:
+        - $ref: '#/components/parameters/collectionUidPath'
+        - $ref: '#/components/parameters/replaceCollectedTrackModeQuery'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplaceCollectedTracksRequestBody'
+      responses:
+        '200':
+          description: |
+            Batch operation succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReplaceCollectedTracksResponseBody'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /c/{collectionUid}/tracks/purge:
+    post:
+      operationId: purgeCollectedTracks
+      summary: Purge collected tracks and media sources by URI
+      description: |
+        Purge multiple, collected tracks and their media sources by locating them
+        through their (percent-encoded) URI.
+      tags:
+        - Collected Tracks
+      parameters:
+        - $ref: '#/components/parameters/collectionUidPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurgeCollectedTracksRequestBody'
+      responses:
+        '204':
+          description: |
+            Batch operation succeeded.
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+
+  /tracks/{trackUid}:
+    get:
+      operationId: loadTrack
+      summary: Load a track
+      description: |
+        Load a single track entity including its media source.
+      tags:
+        - Tracks
+      parameters:
+        - $ref: '#/components/parameters/trackUidPath'
+      responses:
+        '200':
+          description: |
+            The loaded track entity.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrackEntity'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /tracks/load:
+    post:
+      operationId: loadTracks
+      summary: Load multiple tracks
+      description: |
+        Load multiple track entities including their media sources.
+
+        The result may contain fewer tracks than requested if some
+        tracks do not exist. The order of the given UIDs is not preserved
+        in the result set, i.e. the ordering of tracks is undefined!
+      tags:
+        - Tracks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/TrackUid'
+      responses:
+        '200':
+          description: |
+            An unordered array of loaded tracks.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrackEntity'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+
+  /c/{collectionUid}/playlists:
+    get:
+      operationId: listCollectedPlaylists
+      summary: List collected playlists
+      description: |
+        Load collected playlists that have recently been modified (created/updated).
+      tags:
+        - Collected Playlists
+      parameters:
+        - $ref: '#/components/parameters/collectionUidPath'
+        - $ref: '#/components/parameters/playlistKindQuery'
+        - $ref: '#/components/parameters/paginationOffsetQuery'
+        - $ref: '#/components/parameters/paginationLimitQuery'
+      responses:
+        '200':
+          description: |
+            An array of playlist entities with a summary of their
+            entries.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaylistWithEntriesSummaryEntity'
         '400':
           $ref: '#/components/responses/400BadRequest'
         '500':
           $ref: '#/components/responses/500InternalServerError'
     post:
-      summary: Create a new playlist
-      operationId: createPlaylist
+      operationId: createCollectedPlaylist
+      summary: Create a new, collected playlist
+      description: |
+        Create a new playlist in a collection.
       tags:
-        - Playlists
+        - Collected Playlists
+      parameters:
+        - $ref: '#/components/parameters/collectionUidPath'
       requestBody:
         description: |
           Properties and entries of the new playlist.
@@ -177,25 +367,26 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PlaylistEntityBody'
+              $ref: '#/components/schemas/Playlist'
       responses:
         '201':
           description: |
-            A brief summary of the newly created playlist entity.
+            The newly created playlist entity.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaylistBriefEntity'
+                $ref: '#/components/schemas/PlaylistEntity'
         '400':
           $ref: '#/components/responses/400BadRequest'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  '/playlists/{playlistUid}':
+
+  /playlists/{playlistUid}:
     get:
+      operationId: loadPlaylist
       summary: Load a playlist
       description: |
         Load a playlist entity with all entries referenced by its UID.
-      operationId: loadPlaylist
       tags:
         - Playlists
       parameters:
@@ -213,15 +404,16 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
     put:
+      operationId: updatePlaylist
       summary: Update a playlist
       description: |
         Update a playlist entity after validating that the provided `header`
         matches that of the current entity (optimistic locking).
-      operationId: updatePlaylist
       tags:
         - Playlists
       parameters:
         - $ref: '#/components/parameters/playlistUidPath'
+        - $ref: '#/components/parameters/entityRevisionQuery'
       requestBody:
         description: |
           A playlist entity with the current `header` and and updated `body`.
@@ -233,49 +425,24 @@ paths:
       responses:
         '200':
           description: |
-            A brief summary of the updated playlist entity.
+            The updated playlist entity.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaylistBriefEntity'
+                $ref: '#/components/schemas/PlaylistWithEntriesSummaryEntity'
         '400':
           $ref: '#/components/responses/400BadRequest'
         '404':
           $ref: '#/components/responses/404NotFound'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-    patch:
-      summary: Patch a playlist
-      description: |
-        Modify a playlist by applying a sequence of operations.
-      operationId: patchPlaylist
-      tags:
-        - Playlists
-      parameters:
-        - $ref: '#/components/parameters/playlistUidPath'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PlaylistPatchParams'
-      responses:
-        '200':
-          description: |
-            A brief summary of the patched playlist entity.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PlaylistBriefEntity'
-        '400':
-          $ref: '#/components/responses/400BadRequest'
-        '404':
-          $ref: '#/components/responses/404NotFound'
+        '409':
+          $ref: '#/components/responses/409Conflict'
         '500':
           $ref: '#/components/responses/500InternalServerError'
     delete:
-      summary: Delete a playlist
       operationId: deletePlaylist
+      summary: Delete a playlist
+      description: |
+        Delete a playlist.
       tags:
         - Playlists
       parameters:
@@ -287,144 +454,18 @@ paths:
           $ref: '#/components/responses/400BadRequest'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /tracks:
-    get:
-      summary: List tracks
-      description: |
-        List all tracks that have either recently been created/modified if no
-        collection is specified or that have recently been added to the given
-        collection.
-      operationId: listTracks
-      tags:
-        - Tracks
-      parameters:
-        - $ref: '#/components/parameters/collectionUidQuery'
-        - $ref: '#/components/parameters/paginationOffsetQuery'
-        - $ref: '#/components/parameters/paginationLimitQuery'
-      responses:
-        '200':
-          description: |
-            An array of track entities.
 
-            Results are sorted in descending order of the revision
-            time stamp.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  oneOf:
-                    - $ref: '#/components/schemas/TrackEntity'
-                    - $ref: '#/components/schemas/TrackEntityInCollection'
-        '400':
-          $ref: '#/components/responses/400BadRequest'
-        '404':
-          $ref: '#/components/responses/404NotFound'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-    post:
-      summary: Create a new track
-      operationId: createTrack
-      tags:
-        - Tracks
-      requestBody:
-        description: |
-          The `body` of the new track entity.
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TrackEntityBody'
-      responses:
-        '201':
-          description: |
-            The header of the newly created track entity.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EntityHeader'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-  '/tracks/{trackUid}':
-    get:
-      summary: Load a track
+  /playlists/{playlistUid}/entries:
+    patch:
+      operationId: patchPlaylistEntries
+      summary: Patch playlist entries
       description: |
-        Load a track entity referenced by its UID.
-      operationId: loadTrack
+        Modify the playlist's entries by applying a sequence of operations.
       tags:
-        - Tracks
+        - Playlist Entries
       parameters:
-        - $ref: '#/components/parameters/trackUidPath'
-      responses:
-        '200':
-          description: |
-            The loaded track entity.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TrackEntity'
-        '404':
-          $ref: '#/components/responses/404NotFound'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-    put:
-      summary: Update a track
-      description: |
-        Update a track entity after validating that the provided `header`
-        matches that of the current entity (optimistic locking).
-      operationId: updateTrack
-      tags:
-        - Tracks
-      parameters:
-        - $ref: '#/components/parameters/trackUidPath'
-      requestBody:
-        description: |
-          A track entity with the current `header` and and updated `body`.
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TrackEntity'
-      responses:
-        '200':
-          description: |
-            The header of the updated track entity.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EntityHeader'
-        '400':
-          $ref: '#/components/responses/400BadRequest'
-        '404':
-          $ref: '#/components/responses/404NotFound'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-    delete:
-      summary: Delete a track
-      operationId: deleteTrack
-      tags:
-        - Tracks
-      parameters:
-        - $ref: '#/components/parameters/trackUidPath'
-      responses:
-        '204':
-          $ref: '#/components/responses/204NoContent'
-        '400':
-          $ref: '#/components/responses/400BadRequest'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-  /tracks/load:
-    post:
-      summary: Load multiple tracks by UID
-      description: |
-        Load multiple tracks by their UID.
-
-        The result may contain fewer tracks than requested if some
-        tracks do not exist. The order of the given UIDs is not preserved
-        in the result set, i.e. the ordering of tracks is undefined!!
-      operationId: loadTracks
-      tags:
-        - Tracks
+        - $ref: '#/components/parameters/playlistUidPath'
+        - $ref: '#/components/parameters/entityRevisionQuery'
       requestBody:
         required: true
         content:
@@ -432,321 +473,110 @@ paths:
             schema:
               type: array
               items:
-                $ref: '#/components/schemas/EntityUid'
+                $ref: '#/components/schemas/PlaylistWithEntriesSummaryEntity'
       responses:
         '200':
           description: |
-            An array of found tracks in arbitrary order.
+            The new entity revision.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/TrackEntity'
+                $ref: '#/components/schemas/EntityRevision'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '409':
+          $ref: '#/components/responses/409Conflict'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /tracks/locate:
-    post:
-      summary: Load multiple tracks matching a media source filter
-      description: |
-        Locate and load tracks according to their (percent-encoded) media URI.
 
-        Optionally the URI lookup can be restricted to a single collection and
-        for disambiguation.
-      operationId: locateTracks
+  /about:
+    get:
+      operationId: about
+      summary: Report service properties
       tags:
-        - Tracks
-      parameters:
-        - $ref: '#/components/parameters/collectionUidQuery'
-        - $ref: '#/components/parameters/paginationOffsetQuery'
-        - $ref: '#/components/parameters/paginationLimitQuery'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MediaSourceFilterParams'
+        - Administration
       responses:
         '200':
           description: |
-            An array of matching tracks.
+            Command succeeded.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  oneOf:
-                    - $ref: '#/components/schemas/TrackEntity'
-                    - $ref: '#/components/schemas/TrackEntityInCollection'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-  /tracks/resolve:
-    post:
-      summary: Resolve the UIDs of tracks from a list of URIs
-      description: |
-        Resolve the UID of tracks from a list of URIs.
-        The result list is unordered and contains only those tracks
-        that have been found.
-      operationId: resolveTracks
-      tags:
-        - Tracks
-      parameters:
-        - $ref: '#/components/parameters/collectionUidRequiredQuery'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: array
-              items:
-                $ref: '#/components/schemas/Uri'
-      responses:
-        '200':
-          description: |
-            An array of matching tracks.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/TrackEntity'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-  /tracks/replace:
-    post:
-      summary: Replace tracks by URI
-      description: |
-        Replace tracks with a new revision by locating them through their
-        (percent-encoded) media URI. Optionally the URI lookup can be
-        restricted to a single collection.
-      operationId: replaceTracks
-      tags:
-        - Tracks
-      parameters:
-        - $ref: '#/components/parameters/collectionUidQuery'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ReplaceTracksParams'
-      responses:
-        '200':
-          description: |
-            An array of matching tracks.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ReplacedTracks'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-  /tracks/purge:
-    post:
-      summary: Purge track sources and tracks by URI
-      description: |
-        Purge all track sources that equal one of the given URIs.
-        If the purged source was the last source of a track the
-        entire track is deleted.
-      operationId: purgeTrackSources
-      tags:
-        - Tracks
-      parameters:
-        - $ref: '#/components/parameters/collectionUidQuery'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PurgeTracksParams'
-      responses:
-        '204':
-          description: |
-            Track sources and tracks have been purged.
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-  /tracks/relocate:
-    post:
-      summary: Relocate track sources and tracks by their URI prefixes
-      description: |
-        Relocate all track sources that equal one of the given URI prefixes.
-        Old URI prefixes are replaced by the given new URI prefixes.
-      operationId: relocateTrackSources
-      tags:
-        - Tracks
-      parameters:
-        - $ref: '#/components/parameters/collectionUidQuery'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RelocateTracksParams'
-      responses:
-        '204':
-          description: |
-            Track sources have been relocated.
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-  /tracks/search:
-    post:
-      summary: Search tracks
-      description: |
-        Search tracks by evaluating various filter conditions and sort the
-        results.
-      operationId: searchTracks
-      tags:
-        - Tracks
-      parameters:
-        - $ref: '#/components/parameters/collectionUidQuery'
-        - $ref: '#/components/parameters/paginationOffsetQuery'
-        - $ref: '#/components/parameters/paginationLimitQuery'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SearchParams'
-      responses:
-        '200':
-          description: |
-            An array of matching tracks in the requested order.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  oneOf:
-                    - $ref: '#/components/schemas/TrackEntity'
-                    - $ref: '#/components/schemas/TrackEntityInCollection'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-  /albums/count-tracks:
-    post:
-      summary: Count tracks per album
-      description: |
-        List albums (title, (main) artist, release year) together with their corresponding number of tracks.
-      operationId: countTracksByAlbum
-      tags:
-        - Albums
-      parameters:
-        - $ref: '#/components/parameters/collectionUidQuery'
-        - $ref: '#/components/parameters/paginationOffsetQuery'
-        - $ref: '#/components/parameters/paginationLimitQuery'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CountTracksByAlbumParams'
-      responses:
-        '200':
-          description: |
-            Album track statistics.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/AlbumTrackCount'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-  /tags/count-tracks:
-    post:
-      summary: Count tracks per tag
-      description: |
-        Count the number of occurrences and avg. score of tags
-        discriminated by their facet and label. Optionally the
-        evaluation can be restricted to a single collection.
-      operationId: countTracksByTag
-      tags:
-        - Tags
-      parameters:
-        - $ref: '#/components/parameters/collectionUidQuery'
-        - $ref: '#/components/parameters/paginationOffsetQuery'
-        - $ref: '#/components/parameters/paginationLimitQuery'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CountTracksByTagParams'
-      responses:
-        '200':
-          description: |
-            Tag frequencies.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/TagAvgScoreCount'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-  /tags/facets/count-tracks:
-    post:
-      summary: Count tracks per tag facet
-      description: |
-        Count the number of occurrences of tag facets. Optionally
-        the evaluation can be restricted to a single collection.
-      operationId: countTracksByTagFacet
-      tags:
-        - Tags
-      parameters:
-        - $ref: '#/components/parameters/collectionUidQuery'
-        - $ref: '#/components/parameters/paginationOffsetQuery'
-        - $ref: '#/components/parameters/paginationLimitQuery'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CountTracksByTagFacetParams'
-      responses:
-        '200':
-          description: |
-            Tag facet frequencies.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/TagFacetCount'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-  /shutdown:
-    post:
-      summary: Shut down gracefully
-      operationId: shutdown
-      tags:
-        - Shutdown
-      responses:
-        '202':
-          description: |
-            Shutdown has been initiated.
+                type: object
         '500':
           $ref: '#/components/responses/500InternalServerError'
         '502':
-          description: |
-            Failed to forward the request.
+          $ref: '#/components/responses/502InternalCommunicationError'
+  /storage/groom:
+    post:
+      operationId: groomStorage
+      summary: Groom the database storage
+      tags:
+        - Administration
+      responses:
+        '204':
+          $ref: '#/components/responses/204NoContent'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+        '502':
+          $ref: '#/components/responses/502InternalCommunicationError'
+  /storage/optimize:
+    post:
+      operationId: optimizeStorage
+      summary: Optimize the database storage
+      tags:
+        - Administration
+      responses:
+        '204':
+          $ref: '#/components/responses/204NoContent'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+        '502':
+          $ref: '#/components/responses/502InternalCommunicationError'
+  /shutdown:
+    post:
+      operationId: shutdown
+      summary: Shut down gracefully
+      description: |
+        Shut down the server after finishing all pending requests.
+      tags:
+        - Administration
+      responses:
+        '202':
+          $ref: '#/components/responses/202Accepted'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+        '502':
+          $ref: '#/components/responses/502InternalCommunicationError'
+
 components:
   responses:
     201Created:
       description: |
         The resource has been created.
+    202Accepted:
+      description: |
+        The request/command has been accepted.
     204NoContent:
       description: |
-        The request has been processed, no response available.
+        The request/command has been processed, no response available.
     400BadRequest:
       description: |
         The request with the provided parameters was invalid.
     404NotFound:
       description: |
         The specified resource was not found.
+    409Conflict:
+      description: |
+        The specified resource could not be updated or patched due to a conflict.
     500InternalServerError:
       description: |
         The server failed to process the request.
+    502InternalCommunicationError:
+      description: |
+        Internal communication error.
   parameters:
     paginationOffsetQuery:
       name: offset
@@ -772,23 +602,12 @@ components:
         When this parameter is specified its value is evaluated and
         applied, i.e. a value of 0 will result in an empty set of
         returned items.
-    collectionUidQuery:
-      name: collectionUid
+    replaceCollectedTrackModeQuery:
+      name: mode
       in: query
       required: false
       schema:
-        $ref: '#/components/schemas/CollectionUid'
-      description: |
-        An optional UID for selecting a single collection or none for all
-        collections.
-    collectionUidRequiredQuery:
-      name: collectionUid
-      in: query
-      required: true
-      schema:
-        $ref: '#/components/schemas/CollectionUid'
-      description: |
-        A UID for selecting a single collection.
+        $ref: '#/components/schemas/ReplaceCollectedTrackMode'
     collectionUidPath:
       name: collectionUid
       in: path
@@ -797,32 +616,37 @@ components:
         $ref: '#/components/schemas/CollectionUid'
       description: |
         The UID of the collection.
-    collectionWithQuery:
-      name: with
+    entityRevisionQuery:
+      name: rev
+      in: query
+      required: true
+      schema:
+        $ref: '#/components/schemas/EntityRevision'
+    collectionKindQuery:
+      name: kind
       in: query
       required: false
       schema:
-        type: string
+        $ref: '#/components/schemas/CollectionKind'
       description: |
-        Comma-separated list of boolean options:
-          * `track-stats` - Include track statistics
-    playlistBriefQuery:
-      name: brief
+        The desired kind of the collection.
+    collectionSummaryQuery:
+      name: summary
       in: query
       required: false
       description: |
-        Allows to request only a brief playlist representation
-        without individual entries
+        Request a summary of the collection.
       schema:
         type: boolean
-    playlistTypeQuery:
-      name: type
+      example: true
+    playlistKindQuery:
+      name: kind
       in: query
       required: false
       schema:
-        $ref: '#/components/schemas/PlaylistType'
+        $ref: '#/components/schemas/PlaylistKind'
       description: |
-        The desired custom type of the playlist.
+        The desired kind of the playlist.
     playlistUidPath:
       name: playlistUid
       in: path
@@ -841,21 +665,20 @@ components:
         The UID of the track.
   schemas:
     Actor:
-      oneOf:
-        - $ref: '#/components/schemas/ActorName'
-        - type: array
-          items:
-            oneOf:
-              - $ref: '#/components/schemas/ActorName'
-              - $ref: '#/components/schemas/ActorRole'
-              - $ref: '#/components/schemas/ActorPrecedence'
+      type: object
+      properties:
+        name:
+          $ref: '#/components/schemas/ActorName'
+        kind:
+          $ref: '#/components/schemas/ActorKind'
+        role:
+          $ref: '#/components/schemas/ActorRole'
+        roleNotes:
+          type: string
+      required:
+        - name
       description: |
-        Mandatory name, followed by optional role and optional precedence.
-
-        Some actor naming examples for the role _artist_:
-          * summary = 'Michael Jackson'
-          * summary = 'Bill Medley & Jennifer Warnes', primary = 'Bill Medley', primary = 'Jennifer Warnes'
-          * summary = 'Nick Jonas ft. Anne-Marie & Mike Posner', primary = 'Nick Jonas', secondary = 'Anne-Marie', secondary = 'Mike Posner'
+        Named actor, categorized by *kind* and *role*.
 
         Only a single `summary` name is allowed while both `primary` and `secondary`
         names may appear multiple times.
@@ -863,17 +686,19 @@ components:
       type: string
       minLength: 1
       example: The Beatles
-    ActorPrecedence:
+    ActorKind:
       type: integer
       enum: [0, 1, 2]
+      default: 0
       description: |
-        Optional actor precedence that defaults to 0 = summary if missing:
+        Optional actor rank that defaults to 0 = summary if missing:
           * 0 = summary actor
           * 1 = primary actor(s)
           * 2 = secondary actor(s)
     ActorRole:
       type: integer
       enum: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+      default: 0
       description: |
         Optional actor role that defaults to 0 = artist if missing:
           * 0 = artist
@@ -889,45 +714,32 @@ components:
           * 10 = publisher
           * 11 = remixer
           * 12 = writer
+    AlbumKind:
+      type: integer
+      enum: [0, 1, 2]
+      description: |
+        * 0 = album
+        * 1 = single
+        * 2 = compilation
     Album:
       description: |
         Album properties
       type: object
       properties:
-        act:
-          type: array
-          description: |
-            An array of acting participants/people
-          items:
-            $ref: '#/components/schemas/Actor'
-        cpl:
-          type: boolean
-          description: |
-            Indicates whether this album is a compilation with various artists.
-        tit:
+        titles:
           type: array
           description: |
             An array of titles
           items:
             $ref: '#/components/schemas/Title'
-    AlbumTrackCount:
-      type: object
-      properties:
-        art:
-          $ref: '#/components/schemas/ArtistName'
-        rel:
-          $ref: '#/components/schemas/ReleaseDate'
-        tit:
-          $ref: '#/components/schemas/TitleName'
-        cnt:
-          $ref: '#/components/schemas/TotalTrackCount'
-      required:
-        - tit
-        - cnt
-    ArtistName:
-      allOf:
-        - $ref: '#/components/schemas/ActorName'
-      example: The Beatles
+        actors:
+          type: array
+          description: |
+            An array of acting participants/people
+          items:
+            $ref: '#/components/schemas/Actor'
+        kind:
+          $ref: '#/components/schemas/AlbumKind'
     Artwork:
       description: |
         An image that is embedded in the media content or referenced as
@@ -939,111 +751,71 @@ components:
         for selecting a matching color scheme.
       type: object
       properties:
-        col:
+        colorRgb:
           $ref: '#/components/schemas/ArtworkColor'
-        dig:
+        digest:
           $ref: '#/components/schemas/ImageDigest'
-        dim:
+        size:
           $ref: '#/components/schemas/ImageSize'
-        typ:
+        uri:
+          $ref: '#/components/schemas/Uri'
+        mediaType:
           $ref: '#/components/schemas/MediaType'
-      additionalProperties:
-        $ref: '#/components/schemas/ArtworkResourceProperties'
     ArtworkColor:
       description: |
         A solid (background) color, e.g. the average color of the artwork image
       allOf:
         - $ref: '#/components/schemas/RgbColor'
-    ArtworkResourceProperties:
-      oneOf:
-        - $ref: '#/components/schemas/ArtworkResourcePropertyEmbedded'
-        - $ref: '#/components/schemas/ArtworkResourcePropertyUri'
-    ArtworkResourcePropertyEmbedded:
-      description: |
-        Embedded artwork resource referenced by a string selector
-      type: object
-      properties:
-        res:
-          type: string
-          minLength: 1
-    ArtworkResourcePropertyUri:
-      description: |
-        External artwork resource referenced by an URI
-      type: object
-      properties:
-        uri:
-          allOf:
-            - $ref: '#/components/schemas/Uri'
     AudioContent:
       type: object
       properties:
-        bps:
-          $ref: '#/components/schemas/BitRateBps'
-        chn:
-          $ref: '#/components/schemas/Channels'
-        len:
+        durationMs:
           $ref: '#/components/schemas/DurationMs'
-        enc:
+        bitrateBps:
+          $ref: '#/components/schemas/BitRateBps'
+        channels:
+          $ref: '#/components/schemas/Channels'
+        encoder:
           $ref: '#/components/schemas/Encoder'
-        lou:
+        loudnessLufs:
           $ref: '#/components/schemas/LoudnessLufs'
-        shz:
+        samplerateHz:
           $ref: '#/components/schemas/SampleRateHz'
-    AvgTagScore:
-      allOf:
-        - $ref: '#/components/schemas/TagScore'
-    BeatOffsetInMeasure:
+    CueBankIndex:
       type: number
-      format: float
-      minimum: 0
-      example: 3.25
+      format: int32
+      minimum: -32368
+      maximum: 32767
+      example: 0
       description: |
-        The (relative) beat offset within the current measure.
+        The bank index.
 
-        The offset in beats since the start of the current measure.
-
-        The minimum value 0.0 marks the 1st beat or *downbeat* in the
-        current measure. The maximm value must be strictly less than
-        the value of *beats per measure* for the current time signature.
-    BeatAndKeyMarker:
+        Banks are used for distinguishing different kinds of cues.
+    CueSlotIndex:
+      type: number
+      format: int32
+      minimum: -32368
+      maximum: 32767
+      example: 3
+      description: |
+        The slot index within a bank.
+    TrackCue:
       type: object
       properties:
-        bar:
-          $ref: '#/components/schemas/TimeSignature'
-        bpm:
-          $ref: '#/components/schemas/TempoBpm'
-        key:
-          $ref: '#/components/schemas/KeySignature'
-        msp:
-          $ref: '#/components/schemas/MusicalMeasurePosition'
-        pos:
-          $ref: '#/components/schemas/MarkerPosition'
-      required:
-        - pos
-      description: |
-        Marks the beginning of a section with uniform tempo, timining,
-        and musical key.
-
-        The position is supposed to be collocated with a single beat.
-
-        If any of the properties are missing their values are extrapolated
-        from the preceding markers until a new value is defined explicitly.
-        Both measure and beat number can be calculated from a single, initial
-        value if both tempo and beats per measure (as of the time signature)
-        are known.
-    BeatAndKeyMarkers:
-      type: object
-      properties:
-        mkl:
-          description: |
-            List of *beat & key* markers.
-
-            The markers are sorted by their positions in ascending order.
-          type: array
-          items:
-            $ref: '#/components/schemas/BeatAndKeyMarker'
-        mks:
-          $ref: '#/components/schemas/MarkerState'
+        bankIndex:
+          $ref: '#/components/schemas/CueBankIndex'
+        slotIndex:
+          $ref: '#/components/schemas/CueSlotIndex'
+        inPositionMs:
+          $ref: '#/components/schemas/PositionMs'
+        outPositionMs:
+          $ref: '#/components/schemas/PositionMs'
+        outMode:
+          $ref: '#/components/schemas/CueOutMode'
+        label:
+          $ref: '#/components/schemas/CueLabel'
+        color:
+          $ref: '#/components/schemas/Color'
     BeatNumber:
       type: integer
       minimum: 0
@@ -1106,62 +878,73 @@ components:
       items:
         oneOf:
           - $ref: '#/components/schemas/EntityHeader'
-          - $ref: '#/components/schemas/CollectionEntityBody'
-    CollectionEntityBody:
+          - $ref: '#/components/schemas/Collection'
+    Collection:
       type: object
       properties:
-        dsc:
-          description: Description
-          type: string
-        nam:
-          description: Name
-          type: string
-          minLength: 1
-      required:
-        - nam
-    CollectionEntityWithStats:
-      type: object
-      properties:
-        entity:
-          $ref: '#/components/schemas/CollectionEntity'
-        stats:
-          $ref: '#/components/schemas/CollectionStats'
-    CollectionEntryAddedAt:
-      description: |
-        Time stamp since when an entry is part of the collection,
-        i.e. has been added.
-      allOf:
-        - $ref: '#/components/schemas/TimeStampTicks'
-    CollectionSingleTrackEntry:
-      description: |
-        Additional properties of a single track as part of a collection.
-
-        Both the affected collection and track are implicit and defined
-        by the outer context.
-      type: object
-      properties:
-        add:
-          $ref: '#/components/schemas/CollectionEntryAddedAt'
-        col:
+        title:
+          $ref: '#/components/schemas/CollectionTitle'
+        kind:
+          $ref: '#/components/schemas/CollectionKind'
+        notes:
+          $ref: '#/components/schemas/CollectionNotes'
+        color:
           $ref: '#/components/schemas/Color'
-        plc:
-          description: |
-            Play count, i.e. the number of times this track has been played
-          type: integer
-          format: int64
-          minimum: 0
-          example: 4
-        plt:
-          description: |
-            Last played time stamp
-          allOf:
-            - $ref: '#/components/schemas/TimeStampTicks'
-    CollectionStats:
+      required:
+        - title
+    CollectionKind:
+      type: string
+      minLength: 1
+      description: |
+        A custom identifier to distinguish different kinds of collections.
+      example: 'local'
+    CollectionTitle:
+      type: string
+      minLength: 1
+      description: |
+        A concise title.
+      example: 'Collection #1'
+    CollectionWithSummary:
+      allOf:
+        - $ref: '#/components/schemas/Collection'
+        - type: object
+          properties:
+            summary:
+              $ref: '#/components/schemas/CollectionSummary'
+    CollectionWithSummaryEntity:
+      description: |
+        Entity header and body
+      type: array
+      minLength: 2
+      maxLength: 2
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/EntityHeader'
+          - $ref: '#/components/schemas/CollectionWithSummary'
+    CollectionSummary:
       type: object
       properties:
+        mediaSources:
+          $ref: '#/components/schemas/CollectionMediaSourceSummary'
         tracks:
-          $ref: '#/components/schemas/CollectionTrackStats'
-    CollectionTrackStats:
+          $ref: '#/components/schemas/CollectionTrackSummary'
+        playlists:
+          $ref: '#/components/schemas/CollectionPlaylistSummary'
+    CollectionMediaSourceSummary:
+      type: object
+      properties:
+        totalCount:
+          $ref: '#/components/schemas/TotalMediaSourceCount'
+      required:
+        - totalCount
+    CollectionPlaylistSummary:
+      type: object
+      properties:
+        totalCount:
+          $ref: '#/components/schemas/TotalPlaylistCount'
+      required:
+        - totalCount
+    CollectionTrackSummary:
       type: object
       properties:
         totalCount:
@@ -1171,6 +954,21 @@ components:
     CollectionUid:
       allOf:
         - $ref: '#/components/schemas/EntityUid'
+    CollectionNotes:
+      type: string
+      description: |
+        Lengthy, personal notes.
+      example: 'Lengthy, personal notes'
+    PlaylistNotes:
+      type: string
+      description: |
+        Lengthy, personal notes.
+      example: 'Lengthy, personal notes'
+    PlaylistEntryNotes:
+      type: string
+      description: |
+        Lengthy, personal notes.
+      example: 'Lengthy, personal notes'
     Color:
       oneOf:
         - $ref: '#/components/schemas/RgbColorVariant'
@@ -1189,50 +987,6 @@ components:
       properties:
         idx:
           $ref: '#/components/schemas/ColorIndex'
-    CountTracksByAlbumParams:
-      type: object
-      properties:
-        minReleaseDate:
-          $ref: '#/components/schemas/ReleaseDate'
-        maxReleaseDate:
-          $ref: '#/components/schemas/ReleaseDate'
-        ordering:
-          type: array
-          items:
-            $ref: '#/components/schemas/TrackSortOrder'
-      description: |
-        Albums can be filtered by release year (inclusive).
-
-        Results can be ordered by album title, album artist, and release year.
-    CountTracksByTagFacetParams:
-      type: object
-      properties:
-        facets:
-          $ref: '#/components/schemas/TagFacetFilter'
-        ordering:
-          type: array
-          description: |
-            Results can be sorted by facet or count. All other fields are ignored.
-          items:
-            $ref: '#/components/schemas/TagSortOrder'
-    CountTracksByTagParams:
-      type: object
-      properties:
-        facets:
-          $ref: '#/components/schemas/TagFacetFilter'
-        includeNonFacetedTags:
-          type: boolean
-          default: false
-          description: |
-            Applies the query to all non-faceted tags with no facet
-            and just a label. Each distinct label will be scored and
-            counted.
-        ordering:
-          type: array
-          description: |
-            Results can be sorted by all available fields.
-          items:
-            $ref: '#/components/schemas/TagSortOrder'
     DiscIndex:
       allOf:
         - $ref: '#/components/schemas/Index'
@@ -1244,11 +998,11 @@ components:
     Encoder:
       type: object
       properties:
-        nam:
+        name:
           description: Name
           type: string
           minLength: 1
-        cfg:
+        settings:
           description: Encoder settings or configuration
           type: string
     EntityHeader:
@@ -1260,19 +1014,6 @@ components:
           - $ref: '#/components/schemas/EntityUid'
           - $ref: '#/components/schemas/EntityRevision'
     EntityRevision:
-      type: array
-      minItems: 2
-      maxItems: 2
-      items:
-        oneOf:
-          - $ref: '#/components/schemas/EntityVersionNumber'
-          - $ref: '#/components/schemas/EntityRevisionInstant'
-      description: |
-        Tuple of 2 elements containing a version number and a time stamp.
-    EntityRevisionInstant:
-      allOf:
-        - $ref: '#/components/schemas/TimeStampTicks'
-    EntityVersionNumber:
       type: integer
       format: int64
       minimum: 1
@@ -1287,13 +1028,21 @@ components:
       type: string
       enum:
         - complement
+    ContentDigest:
+      description: |
+        A crypographic hash encoded as *base64url* (RFC 4648) without padding
+        that can be used as a fingerprint of arbitrary, variable-length content
+        (audio/video/image/text/...).
+      type: string
+      format: base64url
+      minLength: 1
     ImageDigest:
       description: |
-        Fingerprint that identifies the contents of an image for cache lookup
-        and to decide about modifications, e.g. a base64-encoded SHA256
-        hash of the image data.
-      type: string
-      minLength: 1
+        A binary fingerprint encoded as *base64url* (RFC 4648) without padding that
+        identifies the contents of an image for cache lookup and to decide about
+        modifications, e.g. a SHA256 hash of the raw image data.
+      allOf:
+        - $ref: '#/components/schemas/ContentDigest'
     ImageSize:
       description: |
         Width and height of an image in pixels
@@ -1324,13 +1073,13 @@ components:
     Indexes:
       type: object
       properties:
-        dsi:
-          $ref: '#/components/schemas/DiscIndex'
-        mvi:
-          $ref: '#/components/schemas/MovementIndex'
-        tri:
+        track:
           $ref: '#/components/schemas/TrackIndex'
-    KeySignature:
+        disc:
+          $ref: '#/components/schemas/DiscIndex'
+        movement:
+          $ref: '#/components/schemas/MovementIndex'
+    KeySignatureCode:
       type: integer
       enum:
         [
@@ -1373,11 +1122,6 @@ components:
 
         The numbering follows the Circle of fifth / Open Key notation in
         clock-wise orientation, alternating between major and minor keys.
-    MediaSourceFilterParams:
-      type: object
-      properties:
-        mediaUri:
-          $ref: '#/components/schemas/StringPredicate'
     LoudnessLufs:
       type: number
       format: double
@@ -1389,148 +1133,60 @@ components:
         EBU R128 proposes a target level of -23 LUFS while the ReplayGain v2
         specification (RG2) proposes -18 LUFS for achieving similar perceptive
         results compared to ReplayGain v1 (RG1).
-    MarkerPosition:
-      oneOf:
-        - $ref: '#/components/schemas/MarkerPositionMillis'
-        - $ref: '#/components/schemas/MarkerPositionMillisSamples'
+    CueOutMode:
       description: |
-        The position of a track marker.
-
-        Either the position in milliseconds or the position in both
-        milliseconds and samples.
-    MarkerOutBehavior:
-      description: |
-        The playback behavior at the end position.
+        The playback behavior when reaching the out position.
 
         Possible values:
-          * 1 - stop: Stop playback when reaching the end position.
-          * 2 - loop: Continue playback at the start position when reaching
-                      the end positon.
-          * 3 - next: Continue playback at the start position of the cue marker
-                      with the next number, i.e. number + 1 (if available).
-                      If no such marker exists or if that marker has no start
-                      position then playback continues until the end of the track.
+          * 0 - stop: Stop playback when reaching the out position.
+          * 1 - next: Continue playback at the in position of the cue
+                      with the next slot index, i.e. slot index + 1.
+                      If next slot is empty or if that cue has no in
+                      position then playback continues (default behavior).
+          * 2 - loop: Continue playback at the in position when reaching
+                      the out positon. If no in position is defined then
+                      playback continues (default behavior).
         type: integer
-        enum: [1, 2, 3]
-    MarkerExtent:
-      description: |
-        The end/out side of a marker.
-      oneOf:
-        - $ref: '#/components/schemas/MarkerExtentEndPosition'
-        - $ref: '#/components/schemas/MarkerExtentBeatCountX32'
-    MarkerExtentEndPosition:
-      type: object
-      properties:
-        end:
-          $ref: '#/components/schemas/MarkerEndPosition'
-      required:
-        - end
-    MarkerExtentBeatCountX32:
-      type: object
-      properties:
-        b32:
-          $ref: '#/components/schemas/BeatCountX32'
-      required:
-        - b32
-    BeatCountX32:
-      description: |
-        The length of a section or loop in beats * 32.
-
-        * min. value: 1 -> 1 / 32 = 1/32 beat
-        * max. value: 32768 -> 32768 / 32 = 1024 beats
-      type: integer
-      format: int32
-      minimum: 1
-      maximum: 32768
-    MarkerStartPosition:
-      description: |
-        The start/in position of a marker.
-      allOf:
-        - $ref: '#/components/schemas/MarkerPosition'
-    MarkerEndPosition:
-      description: |
-        The end/out position of a marker.
-      allOf:
-        - $ref: '#/components/schemas/MarkerPosition'
-    MarkerPositionMillis:
-      allOf:
-        - $ref: '#/components/schemas/PositionMs'
-    MarkerPositionMillisSamples:
-      type: array
-      minLength: 2
-      maxLength: 2
-      items:
-        oneOf:
-          - $ref: '#/components/schemas/PositionMs'
-          - $ref: '#/components/schemas/SamplePosition'
-      description: |
-        An array with exactly 2 elements: The position in milliseconds
-        followed by the position in samples.
-    MarkerFilter:
+        enum: [0, 1, 2]
+    CueLabel:
+      type: string
+      example: Intro Loop
+    CueLabelFilter:
       type: object
       properties:
         modifier:
           $ref: '#/components/schemas/FilterModifier'
-        label:
+        value:
           $ref: '#/components/schemas/StringPredicate'
-    MarkerLabel:
-      type: string
-      example: my marker
-    MarkerNumber:
-      type: integer
-      format: int32
-      example: 1
-    Markers:
-      description: |
-        Position-dependent properties
-
-        NOTE: Beat and key markersare an experiemntal feature that is
-        disabled by default. Don't use the corresponding "bnk" property!
-        It is reserved for future use and only documented for the sake
-        of completeness.
-      type: object
-      properties:
-        cue:
-          $ref: '#/components/schemas/CueMarkers'
-        bnk:
-          $ref: '#/components/schemas/BeatAndKeyMarkers'
-    MarkerState:
-      description: |
-        The (optional) state of markers
-        * 0 - read/write (default)
-        * 1 - read-only (locked)
-      type: integer
-      enum: [0, 1]
-    MeasureOffset:
-      description: |
-        The (absolute) measure offset.
-
-        The offset in measures since the 1st beat in the 1st measure
-        in a musical score.
-      type: number
-      format: float
-      example: 23.25
-    MediaContentProperties:
+    MediaSourceContent:
       allOf:
-        - $ref: '#/components/schemas/MediaContentAudioProperty'
-    MediaContentAudioProperty:
+        - $ref: '#/components/schemas/MediaSourceAudioContent'
+    MediaSourceAudioContent:
       type: object
       properties:
-        aud:
+        audio:
           $ref: '#/components/schemas/AudioContent'
     MediaSource:
       type: object
       properties:
-        art:
-          $ref: '#/components/schemas/Artwork'
-        typ:
-          $ref: '#/components/schemas/MediaType'
+        collectedAt:
+          type: string
+          format: date-time
+        synchronizedAt:
+          type: string
+          format: date-time
         uri:
           $ref: '#/components/schemas/Uri'
+        contentType:
+          $ref: '#/components/schemas/MediaType'
+        contentDigest:
+          $ref: '#/components/schemas/ContentDigest'
+        artwork:
+          $ref: '#/components/schemas/Artwork'
       additionalProperties:
-        $ref: '#/components/schemas/MediaContentProperties'
+        $ref: '#/components/schemas/MediaSourceContent'
       required:
-        - typ
+        - collectedAt
         - uri
     MediaType:
       type: string
@@ -1557,33 +1213,20 @@ components:
     MovementIndex:
       allOf:
         - $ref: '#/components/schemas/Index'
-    MusicalMeasurePosition:
-      type: array
-      minLength: 2
-      maxLength: 2
-      items:
-        oneOf:
-          - $ref: '#/components/schemas/MeasureOffset'
-          - $ref: '#/components/schemas/BeatOffsetInMeasure'
-      description: |
-        The position in a musical score or sheet music.
-
-        An array with exactly 2 elements: The measure offset
-        followed by the beat offset within this measure.
-    MusicalSignature:
+    Metrics:
       type: object
       properties:
-        bpm:
+        tempoBpm:
           $ref: '#/components/schemas/TempoBpm'
-        bar:
+        keyCode:
+          $ref: '#/components/schemas/KeySignatureCode'
+        timeSignature:
           $ref: '#/components/schemas/TimeSignature'
-        key:
-          $ref: '#/components/schemas/KeySignature'
-        lck:
-          $ref: '#/components/schemas/MusicalSignatureLocks'
+        bitflags:
+          $ref: '#/components/schemas/MetricsBitflags'
       description: |
         Musical signature including tempo/speed, timining, and key.
-    MusicalSignatureLocks:
+    MetricsBitflags:
       type: integer
       format: i32
       minimum: 0
@@ -1594,25 +1237,92 @@ components:
 
         Bits:
           - 0x01: Tempo/BPM is locked
-          - 0x02: Time signature is locked
-          - 0x04: Key signature is locked
+          - 0x02: Key signature is locked
+          - 0x04: Time signature is locked
 
-        Example: A value of 5 = 1 | 4 locks both the tempo and the key signature
+        Example: A value of 3 = 1 | 2 locks both the tempo and the key signature
+    DateTimeField:
+      type: string
+      enum:
+        - lastPlayedAt
+        - releasedAt
+        - sourceCollectedAt
+        - sourceSynchronizedAt
+    DateTimeFieldFilter:
+      type: array
+      minLength: 2
+      maxLength: 2
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/DateTimeField'
+          - $ref: '#/components/schemas/DateTimePredicate'
+    DateTimePredicate:
+      oneOf:
+        - $ref: '#/components/schemas/DateTimePredicateLessThan'
+        - $ref: '#/components/schemas/DateTimePredicateLessOrEqual'
+        - $ref: '#/components/schemas/DateTimePredicateGreaterThan'
+        - $ref: '#/components/schemas/DateTimePredicateGreaterOrEqual'
+        - $ref: '#/components/schemas/DateTimePredicateEqual'
+        - $ref: '#/components/schemas/DateTimePredicateNotEqual'
+    DateTimePredicateLessThan:
+      type: object
+      properties:
+        lt:
+          type: string
+          format: date-time
+      required:
+        - lt
+    DateTimePredicateLessOrEqual:
+      type: object
+      properties:
+        le:
+          type: string
+          format: date-time
+      required:
+        - le
+    DateTimePredicateGreaterThan:
+      type: object
+      properties:
+        gt:
+          type: string
+          format: date-time
+      required:
+        - gt
+    DateTimePredicateGreaterOrEqual:
+      type: object
+      properties:
+        ge:
+          type: string
+          format: date-time
+      required:
+        - ge
+    DateTimePredicateEqual:
+      type: object
+      properties:
+        eq:
+          type: string
+          format: date-time
+    DateTimePredicateNotEqual:
+      type: object
+      properties:
+        ne:
+          type: string
+          format: date-time
     NumericField:
       type: string
       enum:
-        - audioBitRate
+        - audioBitRateBps
         - audioChannelCount
-        - audioDuration
-        - audioLoudness
-        - audioSampleRate
-        - trackNumber
-        - trackTotal
+        - audioDurationMs
+        - audioLoudnessLufs
+        - audioSampleRateHz
         - discNumber
         - discTotal
-        - releaseYear
-        - musicBpm
-        - musicKey
+        - musicTempoBpm
+        - musicKeyCode
+        - releaseDate
+        - trackNumber
+        - trackTotal
     NumericFieldFilter:
       type: array
       minLength: 2
@@ -1717,50 +1427,37 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/PlainTag'
-    PlaylistEntityBody:
+    Playlist:
       type: object
       properties:
-        col:
+        collectedAt:
+          type: string
+          format: date-time
+        title:
+          $ref: '#/components/schemas/PlaylistTitle'
+        color:
           $ref: '#/components/schemas/Color'
-        dsc:
-          $ref: '#/components/schemas/PlaylistDescription'
-        lst:
-          $ref: '#/components/schemas/PlaylistEntries'
-        nam:
-          $ref: '#/components/schemas/PlaylistName'
-        typ:
-          $ref: '#/components/schemas/PlaylistType'
+        notes:
+          $ref: '#/components/schemas/PlaylistNotes'
+        kind:
+          $ref: '#/components/schemas/PlaylistKind'
       required:
-        - lst
-        - nam
-    PlaylistBrief:
-      type: object
-      properties:
-        col:
-          $ref: '#/components/schemas/Color'
-        dsc:
-          $ref: '#/components/schemas/PlaylistDescription'
-        lst:
-          $ref: '#/components/schemas/PlaylistBriefEntries'
-        nam:
-          $ref: '#/components/schemas/PlaylistName'
-        typ:
-          $ref: '#/components/schemas/PlaylistType'
-      required:
-        - lst
-        - nam
-    PlaylistBriefEntity:
-      description: Entity header and body
-      type: array
-      minLength: 2
-      maxLength: 2
-      items:
-        oneOf:
-          - $ref: '#/components/schemas/EntityHeader'
-          - $ref: '#/components/schemas/PlaylistBrief'
-    PlaylistDescription:
-      description: Optional playlist description
-      type: string
+        - collectedAt
+        - title
+    PlaylistWithEntriesSummary:
+      allOf:
+        - $ref: '#/components/schemas/Playlist'
+        - type: object
+          properties:
+            entries:
+              $ref: '#/components/schemas/PlaylistEntriesSummary'
+    PlaylistWithEntries:
+      allOf:
+        - $ref: '#/components/schemas/Playlist'
+        - type: object
+          properties:
+            entries:
+              $ref: '#/components/schemas/PlaylistEntries'
     PlaylistEntity:
       description: Entity header and body
       type: array
@@ -1769,51 +1466,72 @@ components:
       items:
         oneOf:
           - $ref: '#/components/schemas/EntityHeader'
-          - $ref: '#/components/schemas/PlaylistEntityBody'
+          - $ref: '#/components/schemas/Playlist'
+    PlaylistWithEntriesEntity:
+      description: Entity header and body
+      type: array
+      minLength: 2
+      maxLength: 2
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/EntityHeader'
+          - $ref: '#/components/schemas/PlaylistWithEntries'
+    PlaylistWithEntriesSummaryEntity:
+      description: Entity header and body
+      type: array
+      minLength: 2
+      maxLength: 2
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/EntityHeader'
+          - $ref: '#/components/schemas/PlaylistWithEntriesSummary'
     PlaylistEntries:
       description: |
         A sequence of playlist entries
       type: array
       items:
         $ref: '#/components/schemas/PlaylistEntry'
-    PlaylistBriefEntries:
+    PlaylistEntriesSummary:
       type: object
       properties:
-        add:
+        addedAtMinMax:
           description: |
-            Minimum (lower bound) and maximum (upper bound) `add`
+            Minimum (lower bound) and maximum (upper bound) `addedAt`
             time stamp of all playlist entries
           type: array
           minLength: 2
           maxLength: 2
           items:
             $ref: '#/components/schemas/PlaylistEntryAddedAt'
-        cnt:
+        totalCount:
           description: Number of entries in the playlist
           allOf:
             - $ref: '#/components/schemas/PlaylistEntryCount'
-        trk:
-          $ref: '#/components/schemas/PlaylistBriefTracks'
+        tracks:
+          $ref: '#/components/schemas/PlaylistTracksSummary'
       required:
-        - cnt
-        - trk
-    PlaylistBriefTracks:
+        - totalCount
+        - tracks
+    PlaylistTracksSummary:
       type: object
       properties:
-        cnt:
+        totalCount:
           $ref: '#/components/schemas/PlaylistTrackCount'
       required:
-        - cnt
+        - totalCount
     PlaylistEntry:
       type: object
       properties:
-        add:
+        addedAt:
           $ref: '#/components/schemas/PlaylistEntryAddedAt'
-        itm:
+        title:
+          $ref: '#/components/schemas/PlaylistEntryTitle'
+        notes:
+          $ref: '#/components/schemas/PlaylistEntryNotes'
+        item:
           $ref: '#/components/schemas/PlaylistItem'
       required:
-        - add
-        - itm
+        - item
     PlaylistEntryCount:
       type: integer
       format: int64
@@ -1835,6 +1553,11 @@ components:
       type: integer
       format: int64
       minimum: 0
+    PlaylistEntryPositionDelta:
+      description: |
+        The signed difference between two playlist entry positions
+      type: integer
+      format: int64
     PlaylistItem:
       oneOf:
         - $ref: '#/components/schemas/PlaylistItemSeparator'
@@ -1842,23 +1565,27 @@ components:
     PlaylistItemSeparator:
       type: string
       enum:
-        - sep
+        - separator
     PlaylistTrackItem:
       type: object
       properties:
-        trk:
+        track:
           $ref: '#/components/schemas/PlaylistTrack'
       required:
-        - trk
-    PlaylistName:
-      description: Mandatory playlist name
+        - track
+    PlaylistTitle:
+      description: Mandatory playlist title
       type: string
       minLength: 1
-    PlaylistPatchOperation:
+    PlaylistEntryTitle:
+      description: Optional playlist entry title
+      type: string
+      minLength: 1
+    PlaylistEntriesPatchOperation:
       oneOf:
         - type: object
           properties:
-            appendEntries:
+            append:
               type: object
               properties:
                 entries:
@@ -1868,10 +1595,23 @@ components:
               required:
                 - entries
           required:
-            - appendEntries
+            - append
         - type: object
           properties:
-            insertEntries:
+            prepend:
+              type: object
+              properties:
+                entries:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/PlaylistEntry'
+              required:
+                - entries
+          required:
+            - prepend
+        - type: object
+          properties:
+            insert:
               type: object
               properties:
                 before:
@@ -1884,58 +1624,49 @@ components:
                 - before
                 - entries
           required:
-            - insertEntries
+            - insert
         - type: object
           properties:
-            replaceEntries:
+            move:
               type: object
               properties:
                 start:
                   $ref: '#/components/schemas/PlaylistEntryPosition'
                 end:
                   $ref: '#/components/schemas/PlaylistEntryPosition'
-                entries:
-                  type: array
-                  items:
-                    $ref: '#/components/schemas/PlaylistEntry'
+                delta:
+                  $ref: '#/components/schemas/PlaylistEntryPositionDelta'
               required:
-                - entries
+                - start
+                - end
+                - delta
           required:
-            - replaceEntries
+            - move
         - type: object
           properties:
-            removeEntries:
+            remove:
               type: object
               properties:
                 start:
                   $ref: '#/components/schemas/PlaylistEntryPosition'
                 end:
                   $ref: '#/components/schemas/PlaylistEntryPosition'
+              required:
+                - start
+                - end
           required:
-            - removeEntries
+            - remove
         - type: string
           enum:
-            - removeAllEntries
-            - reverseEntries
-            - shuffleEntries
-            - sortEntriesChronologically
-    PlaylistPatchParams:
-      type: object
-      properties:
-        rev:
-          $ref: '#/components/schemas/EntityRevision'
-        ops:
-          type: array
-          items:
-            $ref: '#/components/schemas/PlaylistPatchOperation'
-      required:
-        - ops
+            - clear
+            - reverse
+            - shuffle
     PlaylistTrack:
       description: |
         The UID of the referenced track
       allOf:
         - $ref: '#/components/schemas/TrackUid'
-    PlaylistType:
+    PlaylistKind:
       description: |
         Custom type of to the playlist. This allows 3rd party applications
         to distinguish different kinds of playlists for different purposes
@@ -1946,77 +1677,23 @@ components:
     PlaylistUid:
       allOf:
         - $ref: '#/components/schemas/EntityUid'
-    CueMarker:
-      type: object
-      properties:
-        col:
-          $ref: '#/components/schemas/Color'
-        lbl:
-          $ref: '#/components/schemas/MarkerLabel'
-        num:
-          $ref: '#/components/schemas/MarkerNumber'
-        out:
-          $ref: '#/components/schemas/MarkerOutBehavior'
-        pos:
-          oneOf:
-            - $ref: '#/components/schemas/MarkerPosition'
-            - $ref: '#/components/schemas/MarkerStartPosition'
-        typ:
-          $ref: '#/components/schemas/CueMarkerType'
-      additionalProperties:
-        $ref: '#/components/schemas/MarkerExtent'
-      required:
-        - typ
-      description: |
-        Marker to identify points (either start or end) or sections (both start
-        and end) within a track
-    CueMarkers:
-      type: object
-      properties:
-        mkl:
-          description: |
-            Cue marker list
-          type: array
-          items:
-            $ref: '#/components/schemas/CueMarker'
-        mks:
-          $ref: '#/components/schemas/MarkerState'
-    CueMarkerType:
-      description: |
-        Multiple cue markers of the same type per track are only allowed for non-singular types:
-        * 0 (`custom`) - custom sections (forward only) or points without predefined semantics
-        * 1 (`hot cue`) - custom start/cue points in a track for direct access while continuing playback, i.e. classical hot cues
-        * 2 (`load cue`) - singular initial position when loading a track (and return point after stopping)
-        * 3 (`intro`) - singular intro section (forward only) or point of a track for fade-in or mixing
-        * 4 (`outro`) - singular outro section (forward only) or point of a track for fade-out or mixing
-        * 5 (`section`) - section (forward only) with both a start and an end position
-      type: integer
-      enum: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     PositionMs:
       type: number
       format: double
       example: 210387.576
       description: |
         The position in an audio stream in milliseconds
-    PurgeTracksParams:
-      type: array
-      items:
-        $ref: '#/components/schemas/UriPredicate'
     Release:
       type: object
       properties:
-        cpy:
-          description: Copyright
-          type: string
-        dat:
+        releasedAt:
           $ref: '#/components/schemas/ReleasedAt'
-        lic:
-          description: Licenses
-          type: array
-          items:
-            type: string
-        own:
-          description: Released by, e.g. a record label or owner
+        releasedBy:
+          type: string
+          description: |
+            Record label or owner
+        copyright:
+          description: Copyright
           type: string
     ReleasedAt:
       oneOf:
@@ -2029,59 +1706,45 @@ components:
     ReleaseDateTime:
       allOf:
         - $ref: '#/components/schemas/TimeStamp'
-    RelocateTracksParams:
+    ReplaceCollectedTrackMode:
+      type: string
+      enum:
+        - create-only
+        - update-only
+        - update-or-create
+      example: update-or-create
+      default: update-or-create
+    ReplaceCollectedTracksRequestBody:
       type: array
       items:
-        $ref: '#/components/schemas/UriRelocation'
-    ReplacedTracks:
+        $ref: '#/components/schemas/Track'
+    ReplaceCollectedTracksResponseBody:
       type: object
       properties:
         created:
           type: array
           items:
-            $ref: '#/components/schemas/EntityHeader'
+            $ref: '#/components/schemas/TrackEntity'
         updated:
           type: array
           items:
-            $ref: '#/components/schemas/EntityHeader'
-        skipped:
-          description: |
-            Unchanged tracks that don't need to be updated.
+            $ref: '#/components/schemas/TrackEntity'
+        unchanged:
           type: array
           items:
-            $ref: '#/components/schemas/EntityHeader'
-        rejected:
-          description: |
-            Informational messages about ambiguous or inconsistent tracks.
+            $ref: '#/components/schemas/TrackEntity'
+        notCreated:
           type: array
           items:
-            type: string
-        discarded:
-          description: |
-            Informational messages about nonexistent tracks that need to be
-            created.
+            $ref: '#/components/schemas/Track'
+        notUpdated:
           type: array
           items:
-            type: string
-    ReplacementMode:
-      type: string
-      enum:
-        - update-only
-        - update-or-create
-      example: update-or-create
-      description: |
-        Operational mode for resolving conflicts during replacement
-          * `update-only` - only update existing entities and discard new entities that need to be created
-          * `update-or-create` - create a new entity if no existing entity could be found/located
-    ReplaceTracksParams:
-      type: object
-      properties:
-        mode:
-          $ref: '#/components/schemas/ReplacementMode'
-        replacements:
-          type: array
-          items:
-            $ref: '#/components/schemas/TrackReplacement'
+            $ref: '#/components/schemas/Track'
+    PurgeCollectedTracksRequestBody:
+      type: array
+      items:
+        $ref: '#/components/schemas/Uri'
     RgbColor:
       type: string
       minLength: 7
@@ -2094,16 +1757,6 @@ components:
       properties:
         rgb:
           $ref: '#/components/schemas/RgbColor'
-    SamplePosition:
-      type: number
-      format: double
-      example: 440287.91876
-      description: |
-        The position in an audio stream in samples.
-
-        The samples are counted separately for each channel, i.e. the
-        sample position equals the number of sample frames for a signal
-        with an interleaved channel layout!
     SampleRateHz:
       type: integer
       format: int32
@@ -2111,7 +1764,7 @@ components:
       example: 44100
       description: |
         The sample rate in Hertz (Hz).
-    SearchParams:
+    SearchCollectedTracksRequestBody:
       type: object
       properties:
         filter:
@@ -2120,6 +1773,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TrackSortOrder'
+    SearchCollectedTracksResponseBody:
+      type: array
+      items:
+        $ref: '#/components/schemas/TrackEntity'
     SortDirection:
       type: string
       enum:
@@ -2128,22 +1785,22 @@ components:
       description: |
         Direction for sorting results.
           * `asc` - ascending
-          * `dsc` - descending
+          * `desc` - descending
     StringField:
       type: string
       enum:
-        - mediaUri
-        - mediaUriDecoded
+        - albumArtist
+        - albumTitle
         - mediaType
-        - trackTitle
+        - sourceUri
+        - sourceUriDecoded
         - trackArtist
         - trackComposer
-        - albumTitle
-        - albumArtist
+        - trackTitle
       description: |
         Selectable fields, including
-          * `mediaUri` - percent-encoded URI (RFC 3986)
-          * `mediaUriDecoded` - fully decoded URI (might be ambiguous)
+          * `sourceUri` - percent-encoded URI (RFC 3986)
+          * `sourceUriDecoded` - fully decoded URI (might be ambiguous)
           * `mediaType` - media type (RFC 6838)
           * ...
     StringPredicate:
@@ -2218,23 +1875,6 @@ components:
         equals:
           type: string
       description: Exact mismatch (case-sensitive)
-    TagAvgScoreCount:
-      type: object
-      properties:
-        fct:
-          $ref: '#/components/schemas/TagFacet'
-        lbl:
-          $ref: '#/components/schemas/TagLabel'
-        avg:
-          $ref: '#/components/schemas/AvgTagScore'
-        cnt:
-          $ref: '#/components/schemas/TotalTrackCount'
-      required:
-        - avg
-        - cnt
-      description: |
-        Selective tag properties (facet, label) with an average score among
-        all occurrences and the total number of occurrences.
     TagFacet:
       type: string
       minLength: 1
@@ -2242,25 +1882,6 @@ components:
       description: |
         Non-empty, lowercase, string that defines the facet of a tag.
         Tag facets must not contain any whitespace characters.
-    TagFacetCount:
-      type: array
-      minLength: 2
-      maxLength: 2
-      items:
-        oneOf:
-          - $ref: '#/components/schemas/TagFacet'
-          - $ref: '#/components/schemas/TotalCount'
-      description: |
-        Tag facet with the total number of occurrences.
-    TagFacetFilter:
-      type: array
-      items:
-        $ref: '#/components/schemas/TagFacet'
-      description: |
-        Selects a subset of tags per facet. An empty array **excludes**
-        all faceted tags whereas a missing/null array **includes** all
-        faceted tags.
-      example: ['genre', 'comment']
     TagFilter:
       type: object
       properties:
@@ -2356,21 +1977,6 @@ components:
       example: 1578221715728131
       description: |
         A time stamp in microseconds that have passed since 1970-01-01T00:00:00.000000Z.
-    TagSortField:
-      type: string
-      enum:
-        - facet
-        - label
-        - score
-        - count
-    TagSortOrder:
-      type: array
-      minLength: 2
-      maxLength: 2
-      items:
-        oneOf:
-          - $ref: '#/components/schemas/TagSortField'
-          - $ref: '#/components/schemas/SortDirection'
     Title:
       oneOf:
         - $ref: '#/components/schemas/TitleName'
@@ -2378,10 +1984,10 @@ components:
           items:
             oneOf:
               - $ref: '#/components/schemas/TitleName'
-              - $ref: '#/components/schemas/TitleLevel'
+              - $ref: '#/components/schemas/TitleKind'
       description: |
         Mandatory name, followed by optional level
-    TitleLevel:
+    TitleKind:
       type: integer
       enum: [0, 1, 2, 3]
       description: |
@@ -2401,6 +2007,16 @@ components:
       example: 1746
       description: |
         Total number of occurrences.
+    TotalMediaSourceCount:
+      description: |
+        Total number of media sources.
+      allOf:
+        - $ref: '#/components/schemas/TotalCount'
+    TotalPlaylistCount:
+      description: |
+        Total number of playlists.
+      allOf:
+        - $ref: '#/components/schemas/TotalCount'
     TotalTrackCount:
       description: |
         Total number of tracks.
@@ -2415,76 +2031,45 @@ components:
       items:
         oneOf:
           - $ref: '#/components/schemas/EntityHeader'
-          - $ref: '#/components/schemas/TrackEntityBody'
-    TrackEntityInCollection:
-      description: |
-        Entity header followed by entity body followed by collection entry properties
-      type: array
-      minLength: 3
-      maxLength: 3
-      items:
-        oneOf:
-          - $ref: '#/components/schemas/EntityHeader'
-          - $ref: '#/components/schemas/TrackEntityBody'
-          - $ref: '#/components/schemas/CollectionSingleTrackEntry'
-    TrackEntityBody:
+          - $ref: '#/components/schemas/Track'
+    Track:
       type: object
       properties:
-        alb:
-          $ref: '#/components/schemas/Album'
-        act:
-          description: |
-            An array of actors
-          type: array
-          items:
-            $ref: '#/components/schemas/Actor'
-        ext:
-          $ref: '#/components/schemas/TrackExtra'
-        idx:
-          $ref: '#/components/schemas/Indexes'
-        mrk:
-          $ref: '#/components/schemas/Markers'
-        msc:
-          $ref: '#/components/schemas/MusicalSignature'
-        rel:
-          $ref: '#/components/schemas/Release'
-        src:
-          description: |
-            An array of media sources
-          type: array
-          items:
-            $ref: '#/components/schemas/MediaSource'
-        tag:
-          $ref: '#/components/schemas/Tags'
-        tit:
+        mediaSource:
+          $ref: '#/components/schemas/MediaSource'
+        tites:
           description: |
             An array of titles
           type: array
           items:
             $ref: '#/components/schemas/Title'
-    TrackExtra:
-      type: object
-      properties:
-        col:
+        actors:
+          description: |
+            An array of actors
+          type: array
+          items:
+            $ref: '#/components/schemas/Actor'
+        album:
+          $ref: '#/components/schemas/Album'
+        release:
+          $ref: '#/components/schemas/Release'
+        indexes:
+          $ref: '#/components/schemas/Indexes'
+        metrics:
+          $ref: '#/components/schemas/Metrics'
+        cues:
+          description: |
+            An array of cues
+          type: array
+          items:
+            $ref: '#/components/schemas/TrackCue'
+        color:
           $ref: '#/components/schemas/Color'
+        tags:
+          $ref: '#/components/schemas/Tags'
     TrackIndex:
       allOf:
         - $ref: '#/components/schemas/Index'
-    TrackReplacement:
-      type: object
-      properties:
-        mediaUri:
-          $ref: '#/components/schemas/Uri'
-        track:
-          $ref: '#/components/schemas/TrackEntityBody'
-        collection:
-          $ref: '#/components/schemas/CollectionSingleTrackEntry'
-      required:
-        - mediaUri
-        - track
-      description: |
-        The URI is used for looking up the existing track (if any) that gets
-        replaced.
     TrackSearchAllFilterNode:
       type: object
       properties:
@@ -2507,18 +2092,19 @@ components:
       oneOf:
         - $ref: '#/components/schemas/TrackSearchPhraseFieldFilterNode'
         - $ref: '#/components/schemas/TrackSearchNumericFieldFilterNode'
+        - $ref: '#/components/schemas/TrackSearchDateTimeFieldFilterNode'
         - $ref: '#/components/schemas/TrackSearchTagFilterNode'
-        - $ref: '#/components/schemas/TrackSearchMarkerFilterNode'
+        - $ref: '#/components/schemas/TrackSearchCueLabelFilterNode'
         - $ref: '#/components/schemas/TrackSearchAllFilterNode'
         - $ref: '#/components/schemas/TrackSearchAnyFilterNode'
         - $ref: '#/components/schemas/TrackSearchNotFilterNode'
-    TrackSearchMarkerFilterNode:
+    TrackSearchCueLabelFilterNode:
       type: object
       properties:
-        tag:
-          $ref: '#/components/schemas/MarkerFilter'
+        cueLabel:
+          $ref: '#/components/schemas/CueLabelFilter'
       required:
-        - tag
+        - cueLabel
     TrackSearchNotFilterNode:
       type: object
       properties:
@@ -2533,6 +2119,13 @@ components:
           $ref: '#/components/schemas/NumericFieldFilter'
       required:
         - numeric
+    TrackSearchDateTimeFieldFilterNode:
+      type: object
+      properties:
+        dateTime:
+          $ref: '#/components/schemas/DateTimeFieldFilter'
+      required:
+        - dateTime
     TrackSearchPhraseFieldFilterNode:
       type: object
       properties:
@@ -2550,21 +2143,29 @@ components:
     TrackSortField:
       type: string
       enum:
-        - inCollectionSince
-        - lastRevisionedAt
-        - mediaUri
-        - mediaUriDecoded
-        - trackTitle
-        - trackArtist
-        - trackNumber
-        - trackTotal
+        - albumArtist
+        - albumTitle
+        - audioBitRate
+        - audioChannelCount
+        - audioDuration
+        - audioLoudness
+        - audioSampleRate
+        - createdAt
         - discNumber
         - discTotal
-        - albumTitle
-        - albumArtist
-        - releaseDate
-        - musicBpm
+        - lastPlayedAt
+        - musicTempo
         - musicKey
+        - releaseDate
+        - sourceCollectedAt
+        - sourceSynchronizedAt
+        - sourceUri
+        - sourceUriDecoded
+        - timesPlayed
+        - trackArtist
+        - trackNumber
+        - trackTitle
+        - trackTotal
     TrackSortOrder:
       type: array
       minLength: 2
@@ -2583,29 +2184,6 @@ components:
         file:///home/user/Music/album%20artist/album%20title/01%20the%20first%20track.mp3
       description: |
         A percent-encoded URI (RFC 3986).
-    UriPredicate:
-      oneOf:
-        - $ref: '#/components/schemas/UriPredicatePrefix'
-        - $ref: '#/components/schemas/UriPredicateExact'
-    UriPredicatePrefix:
-      type: object
-      properties:
-        prefix:
-          type: string
-      description: Matches the head of an URI (case-sensitive)
-    UriPredicateExact:
-      type: object
-      properties:
-        exact:
-          type: string
-      description: Matches a single URI (case-sensitive)
-    UriRelocation:
-      type: object
-      properties:
-        predicate:
-          $ref: '#/components/schemas/UriPredicate'
-        replacement:
-          type: string
     YYYY:
       type: integer
       format: int32

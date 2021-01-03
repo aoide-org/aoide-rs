@@ -13,13 +13,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use super::{actor::*, title::*};
 
-use crate::{actor::*, title::*};
+use crate::prelude::*;
 
-///////////////////////////////////////////////////////////////////////
-// Album
-///////////////////////////////////////////////////////////////////////
+use num_derive::{FromPrimitive, ToPrimitive};
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, FromPrimitive, ToPrimitive)]
+pub enum AlbumKind {
+    Album = 0,
+    Single = 1,
+    Compilation = 2,
+}
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Album {
@@ -27,7 +32,7 @@ pub struct Album {
 
     pub actors: Vec<Actor>,
 
-    pub compilation: Option<bool>,
+    pub kind: Option<AlbumKind>,
 }
 
 impl Album {
@@ -69,10 +74,6 @@ impl Validate for Album {
             .into()
     }
 }
-
-///////////////////////////////////////////////////////////////////////
-// Tests
-///////////////////////////////////////////////////////////////////////
 
 #[cfg(test)]
 mod tests;

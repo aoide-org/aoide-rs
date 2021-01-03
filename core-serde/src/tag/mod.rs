@@ -15,17 +15,28 @@
 
 ///////////////////////////////////////////////////////////////////////
 
-use super::*;
+use crate::prelude::*;
 
 mod _core {
     pub use aoide_core::tag::*;
 }
 
+use schemars::{gen::SchemaGenerator, schema::Schema};
 use serde::{de::Visitor, Deserializer, Serializer};
 use std::{collections::HashMap, fmt};
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct FacetKey(_core::FacetKey);
+
+impl JsonSchema for FacetKey {
+    fn schema_name() -> String {
+        "FacetKey".to_string()
+    }
+
+    fn json_schema(gen: &mut SchemaGenerator) -> Schema {
+        gen.subschema_for::<String>()
+    }
+}
 
 impl From<_core::FacetKey> for FacetKey {
     fn from(from: _core::FacetKey) -> Self {
@@ -85,6 +96,16 @@ impl<'de> Deserialize<'de> for FacetKey {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Label(_core::Label);
 
+impl JsonSchema for Label {
+    fn schema_name() -> String {
+        "Label".to_string()
+    }
+
+    fn json_schema(gen: &mut SchemaGenerator) -> Schema {
+        gen.subschema_for::<String>()
+    }
+}
+
 impl From<_core::Label> for Label {
     fn from(from: _core::Label) -> Self {
         Self(from)
@@ -143,6 +164,16 @@ impl<'de> Deserialize<'de> for Label {
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Score(_core::Score);
 
+impl JsonSchema for Score {
+    fn schema_name() -> String {
+        "Score".to_string()
+    }
+
+    fn json_schema(gen: &mut SchemaGenerator) -> Schema {
+        gen.subschema_for::<f64>()
+    }
+}
+
 impl From<_core::Score> for Score {
     fn from(from: _core::Score) -> Self {
         Self(from)
@@ -196,7 +227,7 @@ impl<'de> Deserialize<'de> for Score {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged, deny_unknown_fields)]
 pub enum PlainTag {
     Label(Label),
@@ -253,7 +284,7 @@ impl From<_core::PlainTag> for PlainTag {
 
 pub type TagsMap = HashMap<FacetKey, Vec<PlainTag>>;
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Tags(TagsMap);
 
 impl Tags {

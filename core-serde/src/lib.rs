@@ -18,10 +18,16 @@
 #![deny(missing_debug_implementations)]
 #![warn(rust_2018_idioms)]
 
-use serde::{Deserialize, Serialize};
-use serde_repr::*;
+pub mod prelude {
+    pub use serde::{Deserialize, Serialize};
 
-pub mod actor;
+    pub(crate) use serde_repr::*;
+
+    pub(crate) use crate::util::{clock::*, color::*};
+
+    pub(crate) use schemars::JsonSchema;
+}
+
 pub mod audio;
 pub mod collection;
 pub mod entity;
@@ -29,6 +35,5 @@ pub mod media;
 pub mod music;
 pub mod playlist;
 pub mod tag;
-pub mod title;
 pub mod track;
 pub mod util;

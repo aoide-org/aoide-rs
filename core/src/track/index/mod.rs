@@ -15,14 +15,14 @@
 
 ///////////////////////////////////////////////////////////////////////
 
-use super::*;
+use crate::prelude::*;
 
 use std::fmt;
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Index {
-    pub number: u16,
-    pub total: u16,
+    pub number: Option<u16>,
+    pub total: Option<u16>,
 }
 
 impl Index {
@@ -33,27 +33,13 @@ impl Index {
     pub const fn min_total() -> u16 {
         1
     }
-
-    pub fn number(self) -> Option<u16> {
-        if self.number < Self::min_number() {
-            None
-        } else {
-            Some(self.number)
-        }
-    }
-
-    pub fn total(self) -> Option<u16> {
-        if self.total < Self::min_total() {
-            None
-        } else {
-            Some(self.total)
-        }
-    }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum IndexInvalidity {
-    SingleExceedsTotal,
+    NumberInvalid,
+    TotalInvalid,
+    NumberExceedsTotal,
 }
 
 impl Validate for Index {
@@ -61,8 +47,16 @@ impl Validate for Index {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         let mut context = ValidationContext::new();
-        if let (Some(number), Some(total)) = (self.number(), self.total()) {
-            context = context.invalidate_if(number > total, IndexInvalidity::SingleExceedsTotal);
+        if let Some(number) = self.number {
+            context =
+                context.invalidate_if(number < Self::min_number(), Self::Invalidity::NumberInvalid);
+        }
+        if let Some(total) = self.total {
+            context =
+                context.invalidate_if(total < Self::min_total(), Self::Invalidity::TotalInvalid);
+        }
+        if let (Some(number), Some(total)) = (self.number, self.total) {
+            context = context.invalidate_if(number > total, Self::Invalidity::NumberExceedsTotal);
         }
         context.into()
     }
@@ -70,7 +64,7 @@ impl Validate for Index {
 
 impl fmt::Display for Index {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match (self.number(), self.total()) {
+        match (self.number, self.total) {
             (None, None) => f.write_str(""),
             (Some(number), None) => write!(f, "{}", number),
             (None, Some(total)) => write!(f, "/{}", total),
@@ -86,7 +80,7 @@ pub struct Indexes {
     pub movement: Index,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum IndexesInvalidity {
     Disc(IndexInvalidity),
     Track(IndexInvalidity),

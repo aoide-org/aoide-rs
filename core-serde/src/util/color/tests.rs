@@ -17,6 +17,16 @@ use super::*;
 
 use aoide_core::util::color::RgbColor as CoreRgbColor;
 
+use schemars::schema_for;
+
+#[test]
+fn generate_json_schema() {
+    let json_schema = schema_for!(Color);
+    let schema_string = serde_json::to_string_pretty(&json_schema).unwrap();
+    println!("{}", schema_string);
+    assert!(!schema_string.is_empty());
+}
+
 #[test]
 fn deserialize_json() {
     assert_eq!(

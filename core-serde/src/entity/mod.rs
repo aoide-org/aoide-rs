@@ -13,19 +13,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use crate::prelude::*;
 
 mod _core {
     pub use aoide_core::entity::*;
 }
-
-use aoide_core::util::clock::{TickInstant, TickType, Ticks};
 
 use serde::{
     de::{self, Visitor as SerdeDeserializeVisitor},
     Deserializer, Serializer,
 };
 
+use schemars::{gen::SchemaGenerator, schema::Schema};
 use std::{fmt, str};
 
 ///////////////////////////////////////////////////////////////////////
@@ -33,7 +32,17 @@ use std::{fmt, str};
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct EntityUid(pub _core::EntityUid);
+pub struct EntityUid(_core::EntityUid);
+
+impl JsonSchema for EntityUid {
+    fn schema_name() -> String {
+        "EntityUid".to_string()
+    }
+
+    fn json_schema(gen: &mut SchemaGenerator) -> Schema {
+        gen.subschema_for::<String>()
+    }
+}
 
 // Serialize (and deserialize) as string for maximum compatibility and portability
 impl Serialize for EntityUid {
@@ -75,9 +84,17 @@ impl<'de> Deserialize<'de> for EntityUid {
     }
 }
 
+impl AsRef<_core::EntityUid> for EntityUid {
+    fn as_ref(&self) -> &_core::EntityUid {
+        let Self(inner) = self;
+        inner
+    }
+}
+
 impl From<EntityUid> for _core::EntityUid {
     fn from(from: EntityUid) -> Self {
-        from.0
+        let EntityUid(inner) = from;
+        inner
     }
 }
 
@@ -91,22 +108,20 @@ impl From<_core::EntityUid> for EntityUid {
 // EntityRevision
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(Eq, PartialEq))]
-pub struct EntityRevision(_core::EntityVersionNumber, TickType);
+pub struct EntityRevision(_core::EntityRevisionNumber);
 
 impl From<EntityRevision> for _core::EntityRevision {
     fn from(from: EntityRevision) -> Self {
-        Self {
-            no: from.0,
-            ts: TickInstant(Ticks(from.1)),
-        }
+        let EntityRevision(number) = from;
+        Self::from_inner(number)
     }
 }
 
 impl From<_core::EntityRevision> for EntityRevision {
     fn from(from: _core::EntityRevision) -> Self {
-        Self(from.no, (from.ts.0).0)
+        Self(from.to_inner())
     }
 }
 
@@ -114,22 +129,24 @@ impl From<_core::EntityRevision> for EntityRevision {
 // EntityHeader
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(Eq, PartialEq))]
 pub struct EntityHeader(EntityUid, EntityRevision);
 
 impl From<EntityHeader> for _core::EntityHeader {
     fn from(from: EntityHeader) -> Self {
+        let EntityHeader(uid, rev) = from;
         Self {
-            uid: from.0.into(),
-            rev: from.1.into(),
+            uid: uid.into(),
+            rev: rev.into(),
         }
     }
 }
 
 impl From<_core::EntityHeader> for EntityHeader {
     fn from(from: _core::EntityHeader) -> Self {
-        Self(from.uid.into(), from.rev.into())
+        let _core::EntityHeader { uid, rev } = from;
+        Self(uid.into(), rev.into())
     }
 }
 
@@ -137,6 +154,44 @@ impl From<_core::EntityHeader> for EntityHeader {
 // Entity
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(test, derive(Eq, PartialEq))]
 pub struct Entity<B>(pub EntityHeader, pub B);
+
+///////////////////////////////////////////////////////////////////////
+// EntityOrHeader
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(Eq, PartialEq))]
+#[serde(untagged)]
+pub enum EntityOrHeader<E> {
+    Entity(E),
+    Header(EntityHeader),
+}
+
+impl<E, T, B> From<EntityOrHeader<E>> for _core::EntityOrHeader<T, B>
+where
+    E: Into<_core::Entity<T, B>>,
+{
+    fn from(from: EntityOrHeader<E>) -> Self {
+        use EntityOrHeader::*;
+        match from {
+            Entity(entity) => Self::Entity(entity.into()),
+            Header(header) => Self::Header(header.into()),
+        }
+    }
+}
+
+impl<E, T, B> From<_core::EntityOrHeader<T, B>> for EntityOrHeader<E>
+where
+    E: From<_core::Entity<T, B>>,
+{
+    fn from(from: _core::EntityOrHeader<T, B>) -> Self {
+        use _core::EntityOrHeader::*;
+        match from {
+            Entity(entity) => Self::Entity(entity.into()),
+            Header(header) => Self::Header(header.into()),
+        }
+    }
+}

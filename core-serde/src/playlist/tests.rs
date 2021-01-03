@@ -16,9 +16,64 @@
 use super::*;
 
 #[test]
+fn serialize_item_separator_dummy() {
+    assert_eq!("{}", serde_json::to_string(&SeparatorDummy {}).unwrap());
+}
+
+#[test]
 fn deserialize_playlist() {
-    let playlist: Playlist = serde_json::from_str(r#"{"nam":"test","typ":"type","lst":[{"itm":{"trk":{"uid":"MAdeyPtrDVSMnwpriPA5anaD66xw5iP1s"}},"add":1578221715728131},{"itm":"sep","add":1578221715728132}]}"#).unwrap();
-    assert_eq!("test", playlist.name);
-    assert_eq!(Some("type".into()), playlist.r#type);
-    assert_eq!(2, playlist.entries.len());
+    let uid: aoide_core::entity::EntityUid = "MAdeyPtrDVSMnwpriPA5anaD66xw5iP1s".parse().unwrap();
+    let added_at1: aoide_core::util::clock::DateTime = "2020-12-18T21:27:15Z".parse().unwrap();
+    let added_at2 = aoide_core::util::clock::DateTime::now_utc();
+    let playlist = PlaylistWithEntries {
+        playlist: Playlist {
+            collected_at: added_at1.into(),
+            title: "Title".to_string(),
+            kind: Some("Kind".to_string()),
+            notes: None,
+            color: None,
+        },
+        entries: vec![
+            Entry {
+                added_at: added_at1.into(),
+                item: Item::Track(track::Item {
+                    uid: uid.clone().into(),
+                }),
+                title: None,
+                notes: None,
+            },
+            Entry {
+                added_at: added_at2.into(),
+                item: Item::Separator(SeparatorDummy {}),
+                title: None,
+                notes: None,
+            },
+        ],
+    };
+    let playlist_json = serde_json::json!({
+        "collectedAt": added_at1.to_string(),
+        "title": playlist.playlist.title.clone(),
+        "kind": playlist.playlist.kind.clone(),
+        "entries": [
+            {
+                "track": {
+                    "uid": uid.to_string()
+                },
+                "addedAt": added_at1.to_string()
+            },
+            {
+                "separator": {},
+                "addedAt": added_at2.to_string()
+            }
+        ]
+    })
+    .to_string();
+    let playlist_deserialized = serde_json::from_str(&playlist_json).unwrap();
+    assert_eq!(playlist, playlist_deserialized);
+    // Roundtrip
+    let playlist_serialized = serde_json::to_string(&playlist).unwrap();
+    assert_eq!(
+        playlist,
+        serde_json::from_str(&playlist_serialized).unwrap()
+    );
 }

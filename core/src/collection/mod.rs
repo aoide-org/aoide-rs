@@ -13,69 +13,47 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod playlist;
-pub mod track;
-
-use super::*;
-
-use crate::util::clock::TickInstant;
+use crate::prelude::*;
 
 use std::fmt::Debug;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Collection {
-    pub name: String,
+    pub title: String,
 
-    pub description: Option<String>,
+    pub kind: Option<String>,
+
+    pub notes: Option<String>,
+
+    pub color: Option<Color>,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum CollectionInvalidity {
-    NameEmpty,
+    TitleEmpty,
+    KindEmpty,
+    Color(ColorInvalidity),
 }
 
 impl Validate for Collection {
     type Invalidity = CollectionInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        let Self {
+            title, kind, color, ..
+        } = self;
         ValidationContext::new()
-            .invalidate_if(self.name.trim().is_empty(), CollectionInvalidity::NameEmpty)
+            .invalidate_if(title.trim().is_empty(), Self::Invalidity::TitleEmpty)
+            .invalidate_if(
+                kind.as_ref()
+                    .map(|kind| kind.trim().is_empty())
+                    .unwrap_or(false),
+                Self::Invalidity::KindEmpty,
+            )
+            .validate_with(color, Self::Invalidity::Color)
             .into()
     }
 }
 
 pub type Entity = crate::entity::Entity<CollectionInvalidity, Collection>;
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct CollectionEntry<T> {
-    pub added_at: TickInstant,
-
-    pub item: T,
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum CollectionEntryInvalidity<T>
-where
-    T: Validate + Debug + 'static,
-{
-    Item(T::Invalidity),
-}
-
-impl<T> Validate for CollectionEntry<T>
-where
-    T: Validate + Debug + 'static,
-{
-    type Invalidity = CollectionEntryInvalidity<T>;
-
-    fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        ValidationContext::new()
-            .validate_with(&self.item, Self::Invalidity::Item)
-            .into()
-    }
-}
-
-pub type SingleTrackEntry = CollectionEntry<track::ItemBody>;
-
-pub type TrackEntry = CollectionEntry<track::Item>;
-
-pub type PlaylistEntry = CollectionEntry<playlist::Item>;
+pub type EntityOrHeader = crate::entity::EntityOrHeader<CollectionInvalidity, Collection>;

@@ -20,14 +20,14 @@ fn validate_main_title() {
     let mut album = Album {
         titles: vec![Title {
             name: "main".to_string(),
-            level: TitleLevel::Main,
+            kind: TitleKind::Main,
         }],
         ..Default::default()
     };
     assert!(album.validate().is_ok());
     album.titles = vec![Title {
         name: "sub".to_string(),
-        level: TitleLevel::Sub,
+        kind: TitleKind::Sub,
     }];
     assert!(album.validate().is_err());
 }
@@ -37,7 +37,7 @@ fn validate_main_actor() {
     let mut album = Album {
         titles: vec![Title {
             name: "main".to_string(),
-            level: TitleLevel::Main,
+            kind: TitleKind::Main,
         }],
         actors: vec![Actor {
             name: "artist".to_string(),

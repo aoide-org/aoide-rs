@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use crate::prelude::*;
 
 mod _core {
     pub use aoide_core::music::time::*;
@@ -23,7 +23,7 @@ mod _core {
 // Tempo
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct TempoBpm(_core::Beats);
 
 impl From<_core::TempoBpm> for TempoBpm {
@@ -42,7 +42,7 @@ impl From<TempoBpm> for _core::TempoBpm {
 // TimeSignature
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged, deny_unknown_fields)]
 pub enum TimeSignature {
     Top(_core::BeatNumber),

@@ -1,0 +1,521 @@
+// aoide.org - Copyright (C) 2018-2021 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+use std::ops::Range;
+
+use crate::{
+    db::{
+        playlist::{models::*, schema::*},
+        playlist_entry as playlist_entry_db,
+        track::schema as track_schema,
+    },
+    prelude::*,
+};
+
+use anyhow::anyhow;
+use aoide_core::{
+    entity::{EntityHeader, EntityRevision, EntityUid},
+    playlist::{track::Item as TrackItem, *},
+    util::clock::*,
+};
+
+use aoide_repo::{collection::RecordId as CollectionId, playlist::*, track::EntityRepo as _};
+use diesel::dsl::count_star;
+
+impl<'db> EntityRepo for crate::Connection<'db> {
+    fn resolve_playlist_entity_revision(
+        &self,
+        uid: &EntityUid,
+    ) -> RepoResult<(RecordHeader, EntityRevision)> {
+        playlist::table
+            .select((
+                playlist::row_id,
+                playlist::row_created_ms,
+                playlist::row_updated_ms,
+                playlist::entity_rev,
+            ))
+            .filter(playlist::entity_uid.eq(uid.as_ref()))
+            .first::<(RowId, TimestampMillis, TimestampMillis, i64)>(self.as_ref())
+            .map_err(repo_error)
+            .map(|(row_id, row_created_ms, row_updated_ms, entity_rev)| {
+                let header = RecordHeader {
+                    id: row_id.into(),
+                    created_at: DateTime::new_timestamp_millis(row_created_ms),
+                    updated_at: DateTime::new_timestamp_millis(row_updated_ms),
+                };
+                (header, entity_revision_from_sql(entity_rev))
+            })
+    }
+
+    fn insert_collected_playlist_entity(
+        &self,
+        collection_id: CollectionId,
+        created_at: DateTime,
+        created_entity: &Entity,
+    ) -> RepoResult<RecordId> {
+        let insertable = InsertableRecord::bind(collection_id, created_at, created_entity);
+        let query = diesel::insert_into(playlist::table).values(&insertable);
+        let _rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
+        debug_assert_eq!(1, _rows_affected);
+        self.resolve_playlist_id(&created_entity.hdr.uid)
+    }
+
+    fn touch_playlist_entity_revision(
+        &self,
+        entity_header: &EntityHeader,
+        updated_at: DateTime,
+    ) -> RepoResult<(RecordHeader, EntityRevision)> {
+        let EntityHeader {
+            uid,
+            rev: current_rev,
+        } = entity_header;
+        let next_rev = current_rev.next();
+        let touchable = TouchableRecord::bind(updated_at, next_rev);
+        let target = playlist::table
+            .filter(playlist::entity_uid.eq(uid.as_ref()))
+            .filter(playlist::entity_rev.eq(entity_revision_to_sql(*current_rev)));
+        let query = diesel::update(target).set(&touchable);
+        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
+        debug_assert!(rows_affected <= 1);
+        let resolved = self.resolve_playlist_entity_revision(uid)?;
+        if rows_affected < 1 {
+            // Successfully resolved by UID, but not touched due to revision conflict
+            return Err(RepoError::Conflict);
+        }
+        Ok(resolved)
+    }
+
+    fn update_playlist_entity(
+        &self,
+        id: RecordId,
+        updated_at: DateTime,
+        updated_entity: &Entity,
+    ) -> RepoResult<()> {
+        let updatable =
+            UpdatableRecord::bind(updated_at, updated_entity.hdr.rev, &updated_entity.body);
+        let target = playlist::table.filter(playlist::row_id.eq(RowId::from(id)));
+        let query = diesel::update(target).set(&updatable);
+        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
+        debug_assert!(rows_affected <= 1);
+        if rows_affected < 1 {
+            return Err(RepoError::NotFound);
+        }
+        Ok(())
+    }
+
+    fn delete_playlist_entity(&self, id: RecordId) -> RepoResult<()> {
+        let target = playlist::table.filter(playlist::row_id.eq(RowId::from(id)));
+        let query = diesel::delete(target);
+        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
+        debug_assert!(rows_affected <= 1);
+        if rows_affected < 1 {
+            return Err(RepoError::NotFound);
+        }
+        Ok(())
+    }
+
+    fn load_playlist_entity(&self, id: RecordId) -> RepoResult<(RecordHeader, Entity)> {
+        let record = playlist::table
+            .filter(playlist::row_id.eq(RowId::from(id)))
+            .first::<QueryableRecord>(self.as_ref())
+            .map_err(repo_error)?;
+        let (record_header, _, entity) = record.into();
+        Ok((record_header, entity))
+    }
+}
+
+impl<'db> EntryRepo for crate::Connection<'db> {
+    fn load_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<Vec<Entry>> {
+        use playlist_entry_db::{models::*, schema::*};
+        use track_schema::*;
+        let records = playlist_entry::table
+            .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)))
+            .left_outer_join(track_schema::track::table)
+            .select((
+                playlist_entry::playlist_id,
+                track::entity_uid.nullable(),
+                playlist_entry::added_at,
+                playlist_entry::added_ms,
+                playlist_entry::title,
+                playlist_entry::notes,
+            ))
+            .order_by(playlist_entry::ordering)
+            .load::<QueryableEntryRecord>(self.as_ref())
+            .map_err(repo_error)?;
+        let mut entries = Vec::with_capacity(records.len());
+        for record in records {
+            let (_playlist_id, entry) = record.into();
+            debug_assert_eq!(_playlist_id, playlist_id);
+            entries.push(entry);
+        }
+        Ok(entries)
+    }
+
+    fn load_playlist_entries_summary(&self, playlist_id: RecordId) -> RepoResult<EntriesSummary> {
+        use playlist_entry_db::schema::*;
+        let entries_count = playlist_entry::table
+            .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)))
+            .select(count_star())
+            .first::<i64>(self.as_ref())
+            .map_err(repo_error)?;
+        let tracks_count = playlist_entry::table
+            .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)))
+            .select(count_star())
+            .filter(playlist_entry::track_id.is_not_null())
+            .first::<i64>(self.as_ref())
+            .map_err(repo_error)?;
+        debug_assert!(tracks_count <= entries_count);
+        let added_at_minmax = if entries_count > 0 {
+            let added_at_min = playlist_entry::table
+                .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)))
+                .select((playlist_entry::added_at, playlist_entry::added_ms))
+                .order_by(playlist_entry::added_ms.asc())
+                .first::<(String, TimestampMillis)>(self.as_ref())
+                .optional()
+                .map(|opt| opt.map(|(at, ms)| parse_datetime(&at, ms)))
+                .map_err(repo_error)?;
+            let added_at_max = playlist_entry::table
+                .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)))
+                .select((playlist_entry::added_at, playlist_entry::added_ms))
+                .order_by(playlist_entry::added_ms.desc())
+                .first::<(String, TimestampMillis)>(self.as_ref())
+                .optional()
+                .map(|opt| opt.map(|(at, ms)| parse_datetime(&at, ms)))
+                .map_err(repo_error)?;
+            debug_assert_eq!(added_at_min.is_some(), added_at_max.is_some());
+            if let (Some(added_at_min), Some(added_at_max)) = (added_at_min, added_at_max) {
+                Some((added_at_min, added_at_max))
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        Ok(EntriesSummary {
+            total_count: entries_count as usize,
+            added_at_minmax,
+            tracks: TracksSummary {
+                total_count: tracks_count as usize,
+            },
+        })
+    }
+
+    fn append_playlist_entries(
+        &self,
+        playlist_id: RecordId,
+        new_entries: Vec<Entry>,
+    ) -> RepoResult<()> {
+        if new_entries.is_empty() {
+            return Ok(());
+        }
+        use playlist_entry_db::{models::*, schema::*};
+        let max_ordering = playlist_entry::table
+            .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)))
+            .select(playlist_entry::ordering)
+            .order_by(playlist_entry::ordering.desc())
+            .first::<i64>(self.as_ref())
+            .optional()
+            .map_err(repo_error)?
+            .unwrap_or(-1);
+        let mut ordering = max_ordering;
+        let created_at = DateTime::now_utc();
+        for entry in new_entries {
+            ordering = ordering.saturating_add(1);
+            let track_id = match &entry.item {
+                Item::Separator => None,
+                Item::Track(TrackItem { uid }) => Some(self.resolve_track_id(uid)?),
+            };
+            let insertable =
+                InsertableRecord::bind(playlist_id, track_id, ordering, created_at, &entry);
+            let _rows_affected = diesel::insert_into(playlist_entry::table)
+                .values(&insertable)
+                .execute(self.as_ref())
+                .map_err(repo_error)?;
+            debug_assert_eq!(1, _rows_affected);
+        }
+        Ok(())
+    }
+
+    fn prepend_playlist_entries(
+        &self,
+        playlist_id: RecordId,
+        new_entries: Vec<Entry>,
+    ) -> RepoResult<()> {
+        if new_entries.is_empty() {
+            return Ok(());
+        }
+        use playlist_entry_db::{models::*, schema::*};
+        let min_ordering = playlist_entry::table
+            .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)))
+            .select(playlist_entry::ordering)
+            .order_by(playlist_entry::ordering)
+            .first::<i64>(self.as_ref())
+            .optional()
+            .map_err(repo_error)?
+            .unwrap_or(0);
+        // TODO: Ordering range checks and adjustments when needed!
+        debug_assert!(new_entries.len() as i64 >= 0);
+        let mut ordering = min_ordering.saturating_sub(new_entries.len() as i64);
+        let created_at = DateTime::now_utc();
+        for entry in new_entries {
+            let track_id = match &entry.item {
+                Item::Separator => None,
+                Item::Track(TrackItem { uid }) => Some(self.resolve_track_id(uid)?),
+            };
+            let insertable =
+                InsertableRecord::bind(playlist_id, track_id, ordering, created_at, &entry);
+            let _rows_affected = diesel::insert_into(playlist_entry::table)
+                .values(&insertable)
+                .execute(self.as_ref())
+                .map_err(repo_error)?;
+            debug_assert_eq!(1, _rows_affected);
+            ordering = ordering.saturating_add(1);
+        }
+        Ok(())
+    }
+
+    fn remove_playlist_entries(
+        &self,
+        playlist_id: RecordId,
+        index_range: &Range<usize>,
+    ) -> RepoResult<usize> {
+        if index_range.is_empty() {
+            return Ok(0);
+        }
+        use playlist_entry_db::schema::*;
+        let offset = index_range.start as i64;
+        debug_assert!(offset >= 0);
+        let limit = index_range.len() as i64;
+        debug_assert!(limit >= 0);
+        let delete_row_ids_subselect = playlist_entry::table
+            .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)))
+            .select(playlist_entry::row_id)
+            .order_by(playlist_entry::ordering)
+            .offset(offset)
+            .limit(limit);
+        // TODO: Using the subelect in the delete statement without temporarily
+        // loading the corresponding row ids didn't work.
+        // let delete_target =
+        //    playlist_entry::table.filter(playlist_entry::row_id.eq_any(delete_row_ids_subselect));
+        let delete_target = playlist_entry::table.filter(
+            playlist_entry::row_id.eq_any(
+                delete_row_ids_subselect
+                    .load::<i64>(self.as_ref())
+                    .map_err(repo_error)?,
+            ),
+        );
+        let rows_deleted: usize = diesel::delete(delete_target)
+            .execute(self.as_ref())
+            .map_err(repo_error)?;
+        debug_assert!(rows_deleted <= index_range.len());
+        Ok(rows_deleted)
+    }
+
+    fn clear_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<usize> {
+        use playlist_entry_db::schema::*;
+        let rows_deleted: usize = diesel::delete(
+            playlist_entry::table.filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id))),
+        )
+        .execute(self.as_ref())
+        .map_err(repo_error)?;
+        Ok(rows_deleted)
+    }
+
+    fn reverse_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<usize> {
+        use playlist_entry_db::schema::*;
+        let target =
+            playlist_entry::table.filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)));
+        let rows_updated = diesel::update(target)
+            .set(playlist_entry::ordering.eq(diesel::dsl::sql("-ordering")))
+            .execute(self.as_ref())
+            .map_err(repo_error)?;
+        Ok(rows_updated)
+    }
+
+    fn move_playlist_entries(
+        &self,
+        id: RecordId,
+        index_range: &Range<usize>,
+        delta_index: isize,
+    ) -> RepoResult<()> {
+        if index_range.is_empty() || delta_index == 0 {
+            return Ok(());
+        }
+        log::warn!(
+            "TODO: Only adjust the internal ordering instead of loading, purging, and reinserting entries"
+        );
+        EntryRepo::move_playlist_entries(self, id, index_range, delta_index)
+    }
+
+    fn insert_playlist_entries(
+        &self,
+        playlist_id: RecordId,
+        before_index: usize,
+        new_entries: Vec<Entry>,
+    ) -> RepoResult<()> {
+        if new_entries.is_empty() {
+            return Ok(());
+        }
+        use playlist_entry_db::{models::*, schema::*};
+        let offset = before_index as i64;
+        debug_assert!(offset >= 0);
+        // The newly inserted entries will be assigned ordering numbers
+        // from prev_ordering + 1 to prev_ordering + new_entries.len()
+        let prev_ordering = if offset > 0 {
+            playlist_entry::table
+                .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)))
+                .select(playlist_entry::ordering)
+                .order_by(playlist_entry::ordering)
+                .offset(offset - 1)
+                .first::<i64>(self.as_ref())
+                .optional()
+                .map_err(repo_error)?
+        } else {
+            None
+        };
+        // Reordering is only needed if one or more entries follow the deleted range
+        let next_ordering = playlist_entry::table
+            .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)))
+            .select(playlist_entry::ordering)
+            .order_by(playlist_entry::ordering)
+            .offset(offset)
+            .first::<i64>(self.as_ref())
+            .optional()
+            .map_err(repo_error)?;
+        let new_ordering_range = if let Some(next_ordering) = next_ordering {
+            // TODO: Ordering range checks and adjustments when needed!
+            debug_assert!(new_entries.len() as i64 >= 0);
+            let prev_ordering =
+                prev_ordering.unwrap_or((next_ordering - 1) - new_entries.len() as i64);
+            let new_ordering_range =
+                (prev_ordering + 1)..(prev_ordering + 1 + new_entries.len() as i64);
+            debug_assert!(new_ordering_range.start <= new_ordering_range.end);
+            if next_ordering < new_ordering_range.end {
+                // Shift subsequent entries
+                let delta_ordering = new_ordering_range.end - next_ordering;
+                debug_assert!(delta_ordering > 0);
+                let target = playlist_entry::table
+                    .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)))
+                    .filter(playlist_entry::ordering.ge(next_ordering));
+                let rows_updated = diesel::update(target)
+                    .set(
+                        playlist_entry::ordering
+                            .eq(diesel::dsl::sql(&format!("ordering+{}", delta_ordering))),
+                    )
+                    .execute(self.as_ref())
+                    .map_err(repo_error)?;
+                log::debug!(
+                    "Reordered {} entries of playlist {} before inserting {} entries",
+                    rows_updated,
+                    RowId::from(playlist_id),
+                    new_entries.len()
+                );
+            }
+            new_ordering_range
+        } else {
+            // TODO: Ordering range checks and adjustments when needed!
+            debug_assert!(new_entries.len() as i64 >= 0);
+            let prev_ordering = prev_ordering.unwrap_or(-1);
+            let new_ordering_range =
+                (prev_ordering + 1)..((prev_ordering + 1) + new_entries.len() as i64);
+            debug_assert!(new_ordering_range.start <= new_ordering_range.end);
+            new_ordering_range
+        };
+        let mut ordering = new_ordering_range.start;
+        let created_at = DateTime::now_utc();
+        for entry in new_entries {
+            let track_id = match &entry.item {
+                Item::Separator => None,
+                Item::Track(TrackItem { uid }) => Some(self.resolve_track_id(uid)?),
+            };
+            let insertable =
+                InsertableRecord::bind(playlist_id, track_id, ordering, created_at, &entry);
+            let _rows_affected = diesel::insert_into(playlist_entry::table)
+                .values(&insertable)
+                .execute(self.as_ref())
+                .map_err(repo_error)?;
+            debug_assert_eq!(1, _rows_affected);
+            ordering = ordering.saturating_add(1);
+        }
+        Ok(())
+    }
+
+    fn shuffle_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<()> {
+        log::error!("TODO: shuffle_playlist_entries({:?})", playlist_id);
+        Err(anyhow!("Shuffling of playlist entries not yet implemented").into())
+    }
+
+    fn delete_playlist_entries_with_tracks_from_other_collections(&self) -> RepoResult<usize> {
+        use crate::db::{media_source::schema::*, playlist_entry::schema::*, track::schema::*};
+        let delete_row_ids_subselect = playlist_entry::table
+            .inner_join(playlist::table)
+            .inner_join(track::table.inner_join(media_source::table))
+            .select(playlist_entry::row_id)
+            .filter(media_source::collection_id.ne(playlist::collection_id));
+        let delete_target =
+            playlist_entry::table.filter(playlist_entry::row_id.eq_any(delete_row_ids_subselect));
+        let rows_deleted: usize = diesel::delete(delete_target)
+            .execute(self.as_ref())
+            .map_err(repo_error)?;
+        Ok(rows_deleted)
+    }
+}
+
+impl<'db> Repo for crate::Connection<'db> {
+    fn load_collected_playlist_entities_with_entries_summary(
+        &self,
+        collection_id: CollectionId,
+        kind: Option<&str>,
+        pagination: Option<&Pagination>,
+        collector: &mut dyn ReservableRecordCollector<
+            Header = RecordHeader,
+            Record = (Entity, EntriesSummary),
+        >,
+    ) -> RepoResult<()> {
+        let mut target = playlist::table
+            .filter(playlist::collection_id.eq(RowId::from(collection_id)))
+            .order_by(playlist::row_updated_ms.desc())
+            .into_boxed();
+
+        // Kind
+        if let Some(kind) = kind {
+            target = target.filter(playlist::kind.eq(kind));
+        }
+
+        // Pagination
+        if let Some(pagination) = pagination {
+            target = apply_pagination(target, pagination);
+        }
+
+        let records = target
+            .load::<QueryableRecord>(self.as_ref())
+            .map_err(repo_error)?;
+
+        collector.reserve(records.len());
+        for record in records {
+            let (record_header, _collection_id, entity) = record.into();
+            debug_assert_eq!(collection_id, _collection_id);
+            let entries = self.load_playlist_entries_summary(record_header.id)?;
+            collector.collect(record_header, (entity, entries));
+        }
+        Ok(())
+    }
+
+    fn load_playlist_entity_with_entries(&self, id: RecordId) -> RepoResult<EntityWithEntries> {
+        let (_, entity) = self.load_playlist_entity(id)?;
+        let entries = self.load_playlist_entries(id)?;
+        Ok((entity, entries).into())
+    }
+}

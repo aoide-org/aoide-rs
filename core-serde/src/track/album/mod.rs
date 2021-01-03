@@ -13,29 +13,57 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use super::{actor::*, title::*, *};
 
 mod _core {
     pub use aoide_core::track::album::*;
 }
 
-use crate::{actor::*, title::*};
-
 ///////////////////////////////////////////////////////////////////////
 // Album
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize_repr, Deserialize_repr, JsonSchema)]
+#[repr(u8)]
+pub enum AlbumKind {
+    Album = 0,
+    Single = 1,
+    Compilation = 2,
+}
+
+impl From<AlbumKind> for _core::AlbumKind {
+    fn from(from: AlbumKind) -> Self {
+        use _core::AlbumKind::*;
+        match from {
+            AlbumKind::Album => Album,
+            AlbumKind::Single => Single,
+            AlbumKind::Compilation => Compilation,
+        }
+    }
+}
+
+impl From<_core::AlbumKind> for AlbumKind {
+    fn from(from: _core::AlbumKind) -> Self {
+        use _core::AlbumKind::*;
+        match from {
+            Album => AlbumKind::Album,
+            Single => AlbumKind::Single,
+            Compilation => AlbumKind::Compilation,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Album {
-    #[serde(rename = "tit", skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub titles: Vec<Title>,
 
-    #[serde(rename = "act", skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub actors: Vec<Actor>,
 
-    #[serde(rename = "cpl", skip_serializing_if = "Option::is_none")]
-    pub compilation: Option<bool>,
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
+    pub kind: Option<AlbumKind>,
 }
 
 impl From<_core::Album> for Album {
@@ -43,12 +71,12 @@ impl From<_core::Album> for Album {
         let _core::Album {
             titles,
             actors,
-            compilation,
+            kind,
         } = from;
         Self {
             titles: titles.into_iter().map(Into::into).collect(),
             actors: actors.into_iter().map(Into::into).collect(),
-            compilation,
+            kind: kind.map(Into::into),
         }
     }
 }
@@ -58,12 +86,12 @@ impl From<Album> for _core::Album {
         let Album {
             titles,
             actors,
-            compilation,
+            kind,
         } = from;
         Self {
             titles: titles.into_iter().map(Into::into).collect(),
             actors: actors.into_iter().map(Into::into).collect(),
-            compilation,
+            kind: kind.map(Into::into),
         }
     }
 }
