@@ -16,8 +16,8 @@
 use crate::prelude::*;
 
 use chrono::{
-    Datelike, Duration, DurationRound, FixedOffset, Local, NaiveDate, NaiveDateTime, ParseError,
-    SecondsFormat, TimeZone, Utc,
+    Datelike, Duration, FixedOffset, Local, NaiveDate, NaiveDateTime, ParseError, SecondsFormat,
+    TimeZone, Utc,
 };
 use std::str::FromStr;
 
@@ -28,14 +28,19 @@ pub type TimestampMillis = i64;
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct DateTime(DateTimeInner);
 
+const NANOS_PER_MILLISECOND: u32 = 1_000_000;
+
 /// A DateTime with truncated millisecond precision.
 impl DateTime {
     pub fn new(inner: DateTimeInner) -> Self {
-        Self(
-            inner
-                .duration_trunc(Duration::milliseconds(1))
-                .expect("truncated to milliseconds"),
-        )
+        let subsec_duration_since_last_millis_boundary =
+            Duration::nanoseconds((inner.timestamp_subsec_nanos() % NANOS_PER_MILLISECOND).into());
+        let truncated = inner - subsec_duration_since_last_millis_boundary;
+        debug_assert_eq!(
+            0,
+            truncated.timestamp_subsec_nanos() % NANOS_PER_MILLISECOND
+        );
+        Self(truncated)
     }
 
     pub fn new_timestamp_millis(timestamp_millis: TimestampMillis) -> Self {
