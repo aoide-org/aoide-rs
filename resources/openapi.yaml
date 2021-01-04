@@ -2145,17 +2145,17 @@ components:
       enum:
         - albumArtist
         - albumTitle
-        - audioBitRate
+        - audioBitRateBps
         - audioChannelCount
-        - audioDuration
-        - audioLoudness
-        - audioSampleRate
+        - audioDurationMs
+        - audioLoudnessLufs
+        - audioSampleRateHz
         - createdAt
         - discNumber
         - discTotal
         - lastPlayedAt
-        - musicTempo
-        - musicKey
+        - musicTempoBpm
+        - musicKeyCode
         - releaseDate
         - sourceCollectedAt
         - sourceSynchronizedAt

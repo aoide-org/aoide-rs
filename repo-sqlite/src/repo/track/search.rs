@@ -134,7 +134,7 @@ impl TrackSearchQueryTransform for SortOrder {
                 SortDirection::Ascending => query.then_order_by(track::aux_album_title.asc()),
                 SortDirection::Descending => query.then_order_by(track::aux_album_title.desc()),
             },
-            SortField::AudioBitRate => match direction {
+            SortField::AudioBitRateBps => match direction {
                 SortDirection::Ascending => {
                     query.then_order_by(media_source::audio_bitrate_bps.asc())
                 }
@@ -150,7 +150,7 @@ impl TrackSearchQueryTransform for SortOrder {
                     query.then_order_by(media_source::audio_channel_count.desc())
                 }
             },
-            SortField::AudioDuration => match direction {
+            SortField::AudioDurationMs => match direction {
                 SortDirection::Ascending => {
                     query.then_order_by(media_source::audio_duration_ms.asc())
                 }
@@ -158,7 +158,7 @@ impl TrackSearchQueryTransform for SortOrder {
                     query.then_order_by(media_source::audio_duration_ms.desc())
                 }
             },
-            SortField::AudioLoudness => match direction {
+            SortField::AudioLoudnessLufs => match direction {
                 SortDirection::Ascending => {
                     query.then_order_by(media_source::audio_loudness_lufs.asc())
                 }
@@ -166,7 +166,7 @@ impl TrackSearchQueryTransform for SortOrder {
                     query.then_order_by(media_source::audio_loudness_lufs.desc())
                 }
             },
-            SortField::AudioSampleRate => match direction {
+            SortField::AudioSampleRateHz => match direction {
                 SortDirection::Ascending => {
                     query.then_order_by(media_source::audio_samplerate_hz.asc())
                 }
@@ -190,11 +190,11 @@ impl TrackSearchQueryTransform for SortOrder {
                 SortDirection::Ascending => query.then_order_by(track::last_played_ms.asc()),
                 SortDirection::Descending => query.then_order_by(track::last_played_ms.desc()),
             },
-            SortField::MusicTempo => match direction {
+            SortField::MusicTempoBpm => match direction {
                 SortDirection::Ascending => query.then_order_by(track::music_tempo_bpm.asc()),
                 SortDirection::Descending => query.then_order_by(track::music_tempo_bpm.desc()),
             },
-            SortField::MusicKey => match direction {
+            SortField::MusicKeyCode => match direction {
                 SortDirection::Ascending => query.then_order_by(track::music_key_code.asc()),
                 SortDirection::Descending => query.then_order_by(track::music_key_code.desc()),
             },
