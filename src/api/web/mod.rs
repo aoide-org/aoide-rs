@@ -19,15 +19,21 @@ mod _repo {
     pub use aoide_repo::prelude::*;
 }
 
-use aoide_repo::prelude::{Pagination, PaginationLimit, PaginationOffset, RepoResult};
+use aoide_repo::prelude::{Pagination, PaginationLimit, PaginationOffset, RepoError, RepoResult};
 
 use aoide_core_serde::entity::EntityRevision;
 
+use reject::MethodNotAllowed;
 use serde::{Deserialize, Serialize};
 
-use warp::reject::{self, Reject, Rejection};
+use warp::{
+    body::BodyDeserializeError,
+    http::StatusCode,
+    reject::{self, Reject, Rejection},
+    Reply,
+};
 
-use std::{error::Error as StdError, fmt};
+use std::{convert::Infallible, error::Error as StdError};
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -38,24 +44,95 @@ pub mod tracks;
 #[derive(Debug)]
 struct RejectAnyhowError(anyhow::Error);
 
-impl fmt::Display for RejectAnyhowError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.0.fmt(f)
-    }
-}
-
 impl Reject for RejectAnyhowError {}
-
-impl StdError for RejectAnyhowError {}
-
-impl From<anyhow::Error> for RejectAnyhowError {
-    fn from(err: anyhow::Error) -> Self {
-        RejectAnyhowError(err)
-    }
-}
 
 pub fn reject_from_anyhow(err: anyhow::Error) -> Rejection {
     reject::custom(RejectAnyhowError(err))
+}
+
+#[derive(Debug)]
+struct RejectConflictError;
+
+impl Reject for RejectConflictError {}
+
+pub fn reject_from_repo_error(err: RepoError) -> Rejection {
+    match err {
+        RepoError::NotFound => warp::reject::not_found(),
+        RepoError::Conflict => warp::reject::custom(RejectConflictError),
+        err => reject_from_anyhow(err.into()),
+    }
+}
+
+#[derive(Debug)]
+struct CustomReject {
+    code: StatusCode,
+    message: String,
+}
+
+impl Reject for CustomReject {}
+
+pub fn reject_status_code_message(code: StatusCode, message: String) -> Rejection {
+    warp::reject::custom(CustomReject { code, message })
+}
+
+/// An API error serializable to JSON.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ErrorResponseBody {
+    code: u16,
+    message: String,
+}
+
+fn status_code_to_string(code: StatusCode) -> String {
+    code.canonical_reason()
+        .unwrap_or_else(|| code.as_str())
+        .to_string()
+}
+
+pub async fn handle_rejection(reject: Rejection) -> Result<impl Reply, Infallible> {
+    let code;
+    let message;
+
+    if reject.is_not_found() {
+        code = StatusCode::NOT_FOUND;
+        message = status_code_to_string(code);
+    } else if let Some(RejectConflictError) = reject.find() {
+        code = StatusCode::CONFLICT;
+        message = status_code_to_string(code);
+    } else if let Some(CustomReject {
+        code: custom_code,
+        message: custom_message,
+    }) = reject.find()
+    {
+        code = custom_code.to_owned();
+        message = custom_message.to_owned();
+    } else if let Some(err) = reject.find::<BodyDeserializeError>() {
+        code = StatusCode::BAD_REQUEST;
+        message = err
+            .source()
+            .map(ToString::to_string)
+            .unwrap_or_else(|| err.to_string());
+    } else if let Some(err) = reject.find::<MethodNotAllowed>() {
+        code = StatusCode::METHOD_NOT_ALLOWED;
+        message = err.to_string();
+    } else if let Some(RejectAnyhowError(err)) = reject.find() {
+        code = StatusCode::INTERNAL_SERVER_ERROR;
+        message = err.to_string();
+    } else if let Some(err) = reject.find::<Error>() {
+        code = StatusCode::INTERNAL_SERVER_ERROR;
+        message = err.to_string();
+    } else {
+        log::error!("Unhandled rejection {:?}", reject);
+        code = StatusCode::INTERNAL_SERVER_ERROR;
+        message = format!("{:?}", reject);
+    }
+
+    let json_reply = warp::reply::json(&ErrorResponseBody {
+        code: code.as_u16(),
+        message: message.into(),
+    });
+
+    Ok(warp::reply::with_status(json_reply, code))
 }
 
 #[derive(Debug, Deserialize)]

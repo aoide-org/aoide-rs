@@ -507,8 +507,6 @@ paths:
                 type: object
         '500':
           $ref: '#/components/responses/500InternalServerError'
-        '502':
-          $ref: '#/components/responses/502InternalCommunicationError'
   /storage/groom:
     post:
       operationId: groomStorage
@@ -520,8 +518,6 @@ paths:
           $ref: '#/components/responses/204NoContent'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-        '502':
-          $ref: '#/components/responses/502InternalCommunicationError'
   /storage/optimize:
     post:
       operationId: optimizeStorage
@@ -533,8 +529,6 @@ paths:
           $ref: '#/components/responses/204NoContent'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-        '502':
-          $ref: '#/components/responses/502InternalCommunicationError'
   /shutdown:
     post:
       operationId: shutdown
@@ -565,18 +559,34 @@ components:
     400BadRequest:
       description: |
         The request with the provided parameters was invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
     404NotFound:
       description: |
         The specified resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
     409Conflict:
       description: |
         The specified resource could not be updated or patched due to a conflict.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
     500InternalServerError:
       description: |
         The server failed to process the request.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
     502InternalCommunicationError:
       description: |
-        Internal communication error.
+        The server failed to forward the request.
   parameters:
     paginationOffsetQuery:
       name: offset
@@ -781,41 +791,6 @@ components:
           $ref: '#/components/schemas/LoudnessLufs'
         samplerateHz:
           $ref: '#/components/schemas/SampleRateHz'
-    CueBankIndex:
-      type: number
-      format: int32
-      minimum: -32368
-      maximum: 32767
-      example: 0
-      description: |
-        The bank index.
-
-        Banks are used for distinguishing different kinds of cues.
-    CueSlotIndex:
-      type: number
-      format: int32
-      minimum: -32368
-      maximum: 32767
-      example: 3
-      description: |
-        The slot index within a bank.
-    TrackCue:
-      type: object
-      properties:
-        bankIndex:
-          $ref: '#/components/schemas/CueBankIndex'
-        slotIndex:
-          $ref: '#/components/schemas/CueSlotIndex'
-        inPositionMs:
-          $ref: '#/components/schemas/PositionMs'
-        outPositionMs:
-          $ref: '#/components/schemas/PositionMs'
-        outMode:
-          $ref: '#/components/schemas/CueOutMode'
-        label:
-          $ref: '#/components/schemas/CueLabel'
-        color:
-          $ref: '#/components/schemas/Color'
     BeatNumber:
       type: integer
       minimum: 0
@@ -823,6 +798,14 @@ components:
       example: 3
       description: |
         A number for counting beats in a measure.
+    BeatsPerMeasure:
+      description: |
+        The number of beats in each measure.
+
+        This number appears as the nominator/upper value in the
+        stacked notation for time signature.
+      allOf:
+        - $ref: '#/components/schemas/BeatNumber'
     BeatUnit:
       type: integer
       minimum: 0
@@ -959,16 +942,6 @@ components:
       description: |
         Lengthy, personal notes.
       example: 'Lengthy, personal notes'
-    PlaylistNotes:
-      type: string
-      description: |
-        Lengthy, personal notes.
-      example: 'Lengthy, personal notes'
-    PlaylistEntryNotes:
-      type: string
-      description: |
-        Lengthy, personal notes.
-      example: 'Lengthy, personal notes'
     Color:
       oneOf:
         - $ref: '#/components/schemas/RgbColorVariant'
@@ -987,6 +960,32 @@ components:
       properties:
         idx:
           $ref: '#/components/schemas/ColorIndex'
+    ContentDigest:
+      description: |
+        A crypographic hash encoded as *base64url* (RFC 4648) without padding
+        that can be used as a fingerprint of arbitrary, variable-length content
+        (audio/video/image/text/...).
+      type: string
+      format: base64url
+      minLength: 1
+    CueBankIndex:
+      type: number
+      format: int32
+      minimum: -32368
+      maximum: 32767
+      example: 0
+      description: |
+        The bank index.
+
+        Banks are used for distinguishing different kinds of cues.
+    CueSlotIndex:
+      type: number
+      format: int32
+      minimum: -32368
+      maximum: 32767
+      example: 3
+      description: |
+        The slot index within a bank.
     DiscIndex:
       allOf:
         - $ref: '#/components/schemas/Index'
@@ -1024,18 +1023,26 @@ components:
       maxLength: 33
       example: 4L9v84JeigpHxEdtVHUkL6JASD92sDwdW
       description: A unique identifier (UID) for entities in base-58 encoding.
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: number
+          format: int32
+          description: |
+            A HTTP status code
+        message:
+          type: string
+          minLength: 1
+          description: |
+            A textual description of the error.
+      required:
+        - code
+        - message
     FilterModifier:
       type: string
       enum:
         - complement
-    ContentDigest:
-      description: |
-        A crypographic hash encoded as *base64url* (RFC 4648) without padding
-        that can be used as a fingerprint of arbitrary, variable-length content
-        (audio/video/image/text/...).
-      type: string
-      format: base64url
-      minLength: 1
     ImageDigest:
       description: |
         A binary fingerprint encoded as *base64url* (RFC 4648) without padding that
@@ -1170,11 +1177,9 @@ components:
       type: object
       properties:
         collectedAt:
-          type: string
-          format: date-time
+          $ref: '#/components/schemas/DateTime'
         synchronizedAt:
-          type: string
-          format: date-time
+          $ref: '#/components/schemas/DateTime'
         uri:
           $ref: '#/components/schemas/Uri'
         contentType:
@@ -1268,46 +1273,40 @@ components:
       type: object
       properties:
         lt:
-          type: string
-          format: date-time
+          $ref: '#/components/schemas/DateTime'
       required:
         - lt
     DateTimePredicateLessOrEqual:
       type: object
       properties:
         le:
-          type: string
-          format: date-time
+          $ref: '#/components/schemas/DateTime'
       required:
         - le
     DateTimePredicateGreaterThan:
       type: object
       properties:
         gt:
-          type: string
-          format: date-time
+          $ref: '#/components/schemas/DateTime'
       required:
         - gt
     DateTimePredicateGreaterOrEqual:
       type: object
       properties:
         ge:
-          type: string
-          format: date-time
+          $ref: '#/components/schemas/DateTime'
       required:
         - ge
     DateTimePredicateEqual:
       type: object
       properties:
         eq:
-          type: string
-          format: date-time
+          $ref: '#/components/schemas/DateTime'
     DateTimePredicateNotEqual:
       type: object
       properties:
         ne:
-          type: string
-          format: date-time
+          $ref: '#/components/schemas/DateTime'
     NumericField:
       type: string
       enum:
@@ -1431,8 +1430,7 @@ components:
       type: object
       properties:
         collectedAt:
-          type: string
-          format: date-time
+          $ref: '#/components/schemas/DateTime'
         title:
           $ref: '#/components/schemas/PlaylistTitle'
         color:
@@ -1444,20 +1442,6 @@ components:
       required:
         - collectedAt
         - title
-    PlaylistWithEntriesSummary:
-      allOf:
-        - $ref: '#/components/schemas/Playlist'
-        - type: object
-          properties:
-            entries:
-              $ref: '#/components/schemas/PlaylistEntriesSummary'
-    PlaylistWithEntries:
-      allOf:
-        - $ref: '#/components/schemas/Playlist'
-        - type: object
-          properties:
-            entries:
-              $ref: '#/components/schemas/PlaylistEntries'
     PlaylistEntity:
       description: Entity header and body
       type: array
@@ -1467,120 +1451,12 @@ components:
         oneOf:
           - $ref: '#/components/schemas/EntityHeader'
           - $ref: '#/components/schemas/Playlist'
-    PlaylistWithEntriesEntity:
-      description: Entity header and body
-      type: array
-      minLength: 2
-      maxLength: 2
-      items:
-        oneOf:
-          - $ref: '#/components/schemas/EntityHeader'
-          - $ref: '#/components/schemas/PlaylistWithEntries'
-    PlaylistWithEntriesSummaryEntity:
-      description: Entity header and body
-      type: array
-      minLength: 2
-      maxLength: 2
-      items:
-        oneOf:
-          - $ref: '#/components/schemas/EntityHeader'
-          - $ref: '#/components/schemas/PlaylistWithEntriesSummary'
     PlaylistEntries:
       description: |
         A sequence of playlist entries
       type: array
       items:
         $ref: '#/components/schemas/PlaylistEntry'
-    PlaylistEntriesSummary:
-      type: object
-      properties:
-        addedAtMinMax:
-          description: |
-            Minimum (lower bound) and maximum (upper bound) `addedAt`
-            time stamp of all playlist entries
-          type: array
-          minLength: 2
-          maxLength: 2
-          items:
-            $ref: '#/components/schemas/PlaylistEntryAddedAt'
-        totalCount:
-          description: Number of entries in the playlist
-          allOf:
-            - $ref: '#/components/schemas/PlaylistEntryCount'
-        tracks:
-          $ref: '#/components/schemas/PlaylistTracksSummary'
-      required:
-        - totalCount
-        - tracks
-    PlaylistTracksSummary:
-      type: object
-      properties:
-        totalCount:
-          $ref: '#/components/schemas/PlaylistTrackCount'
-      required:
-        - totalCount
-    PlaylistEntry:
-      type: object
-      properties:
-        addedAt:
-          $ref: '#/components/schemas/PlaylistEntryAddedAt'
-        title:
-          $ref: '#/components/schemas/PlaylistEntryTitle'
-        notes:
-          $ref: '#/components/schemas/PlaylistEntryNotes'
-        item:
-          $ref: '#/components/schemas/PlaylistItem'
-      required:
-        - item
-    PlaylistEntryCount:
-      type: integer
-      format: int64
-      minimum: 0
-    PlaylistTrackCount:
-      description: |
-        Number of tracks in the playlist
-      allOf:
-        - $ref: '#/components/schemas/PlaylistEntryCount'
-    PlaylistEntryAddedAt:
-      description: |
-        Time stamp since when an entry is part of the playlist,
-        i.e. when it has been created and added.
-      allOf:
-        - $ref: '#/components/schemas/TimeStampTicks'
-    PlaylistEntryPosition:
-      description: |
-        0-based position number to locate a playlist entry
-      type: integer
-      format: int64
-      minimum: 0
-    PlaylistEntryPositionDelta:
-      description: |
-        The signed difference between two playlist entry positions
-      type: integer
-      format: int64
-    PlaylistItem:
-      oneOf:
-        - $ref: '#/components/schemas/PlaylistItemSeparator'
-        - $ref: '#/components/schemas/PlaylistTrackItem'
-    PlaylistItemSeparator:
-      type: string
-      enum:
-        - separator
-    PlaylistTrackItem:
-      type: object
-      properties:
-        track:
-          $ref: '#/components/schemas/PlaylistTrack'
-      required:
-        - track
-    PlaylistTitle:
-      description: Mandatory playlist title
-      type: string
-      minLength: 1
-    PlaylistEntryTitle:
-      description: Optional playlist entry title
-      type: string
-      minLength: 1
     PlaylistEntriesPatchOperation:
       oneOf:
         - type: object
@@ -1661,11 +1537,78 @@ components:
             - clear
             - reverse
             - shuffle
-    PlaylistTrack:
+    PlaylistEntriesSummary:
+      type: object
+      properties:
+        addedAtMinMax:
+          description: |
+            Minimum (lower bound) and maximum (upper bound) `addedAt`
+            time stamp of all playlist entries
+          type: array
+          minLength: 2
+          maxLength: 2
+          items:
+            $ref: '#/components/schemas/PlaylistEntryAddedAt'
+        totalCount:
+          description: Number of entries in the playlist
+          allOf:
+            - $ref: '#/components/schemas/PlaylistEntryCount'
+        tracks:
+          $ref: '#/components/schemas/PlaylistTracksSummary'
+      required:
+        - totalCount
+        - tracks
+    PlaylistEntry:
+      type: object
+      properties:
+        addedAt:
+          $ref: '#/components/schemas/PlaylistEntryAddedAt'
+        title:
+          $ref: '#/components/schemas/PlaylistEntryTitle'
+        notes:
+          $ref: '#/components/schemas/PlaylistEntryNotes'
+        item:
+          $ref: '#/components/schemas/PlaylistItem'
+      required:
+        - item
+    PlaylistEntryAddedAt:
       description: |
-        The UID of the referenced track
+        Time stamp since when an entry is part of the playlist,
+        i.e. when it has been added by the client.
       allOf:
-        - $ref: '#/components/schemas/TrackUid'
+        - $ref: '#/components/schemas/DateTime'
+    PlaylistEntryCount:
+      type: integer
+      format: int64
+      minimum: 0
+    PlaylistEntryNotes:
+      type: string
+      description: |
+        Lengthy, personal notes.
+      example: 'Lengthy, personal notes'
+    PlaylistEntryPosition:
+      description: |
+        0-based position number to locate a playlist entry
+      type: integer
+      format: int64
+      minimum: 0
+    PlaylistEntryPositionDelta:
+      description: |
+        The signed difference between two playlist entry positions
+      type: integer
+      format: int64
+    PlaylistEntryTitle:
+      description: Optional playlist entry title
+      type: string
+      minLength: 1
+    PlaylistItem:
+      oneOf:
+        - $ref: '#/components/schemas/PlaylistItemSeparator'
+        - $ref: '#/components/schemas/PlaylistTrackItem'
+    PlaylistItemSeparator:
+      type: string
+      enum:
+        - separator
     PlaylistKind:
       description: |
         Custom type of to the playlist. This allows 3rd party applications
@@ -1674,15 +1617,84 @@ components:
         playlists for logging all tracks that have been played during this
         session.
       type: string
+    PlaylistNotes:
+      type: string
+      description: |
+        Lengthy, personal notes.
+      example: 'Lengthy, personal notes'
+    PlaylistTitle:
+      description: Mandatory playlist title
+      type: string
+      minLength: 1
+    PlaylistTrack:
+      description: |
+        The UID of the referenced track
+      allOf:
+        - $ref: '#/components/schemas/TrackUid'
+    PlaylistTrackCount:
+      description: |
+        Number of tracks in the playlist
+      allOf:
+        - $ref: '#/components/schemas/PlaylistEntryCount'
+    PlaylistTrackItem:
+      type: object
+      properties:
+        track:
+          $ref: '#/components/schemas/PlaylistTrack'
+      required:
+        - track
+    PlaylistTracksSummary:
+      type: object
+      properties:
+        totalCount:
+          $ref: '#/components/schemas/PlaylistTrackCount'
+      required:
+        - totalCount
     PlaylistUid:
       allOf:
         - $ref: '#/components/schemas/EntityUid'
+    PlaylistWithEntriesSummary:
+      allOf:
+        - $ref: '#/components/schemas/Playlist'
+        - type: object
+          properties:
+            entries:
+              $ref: '#/components/schemas/PlaylistEntriesSummary'
+    PlaylistWithEntries:
+      allOf:
+        - $ref: '#/components/schemas/Playlist'
+        - type: object
+          properties:
+            entries:
+              $ref: '#/components/schemas/PlaylistEntries'
+    PlaylistWithEntriesEntity:
+      description: Entity header and body
+      type: array
+      minLength: 2
+      maxLength: 2
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/EntityHeader'
+          - $ref: '#/components/schemas/PlaylistWithEntries'
+    PlaylistWithEntriesSummaryEntity:
+      description: Entity header and body
+      type: array
+      minLength: 2
+      maxLength: 2
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/EntityHeader'
+          - $ref: '#/components/schemas/PlaylistWithEntriesSummary'
     PositionMs:
       type: number
       format: double
       example: 210387.576
       description: |
         The position in an audio stream in milliseconds
+    PurgeCollectedTracksRequestBody:
+      type: array
+      items:
+        $ref: '#/components/schemas/Uri'
     Release:
       type: object
       properties:
@@ -1705,7 +1717,7 @@ components:
         - $ref: '#/components/schemas/YYYYMMDD'
     ReleaseDateTime:
       allOf:
-        - $ref: '#/components/schemas/TimeStamp'
+        - $ref: '#/components/schemas/DateTime'
     ReplaceCollectedTrackMode:
       type: string
       enum:
@@ -1741,10 +1753,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Track'
-    PurgeCollectedTracksRequestBody:
-      type: array
-      items:
-        $ref: '#/components/schemas/Uri'
     RgbColor:
       type: string
       minLength: 7
@@ -1957,26 +1965,13 @@ components:
         An array with exactly 2 elements: The number of beats per measure
         followed by the beat unit.
       example: [3, 4]
-    BeatsPerMeasure:
-      description: |
-        The number of beats in each measure.
-
-        This number appears as the nominator/upper value in the
-        stacked notation for time signature.
-      allOf:
-        - $ref: '#/components/schemas/BeatNumber'
-    TimeStamp:
+    DateTime:
       type: string
       format: date-time
-      example: '2018-06-10T12:19:50.758Z'
       description: |
-        A time stamp with up to millisecond precision according to RFC 3339.
-    TimeStampTicks:
-      type: integer
-      format: int64
-      example: 1578221715728131
-      description: |
-        A time stamp in microseconds that have passed since 1970-01-01T00:00:00.000000Z.
+        A time stamp.
+
+        Values are truncated to millisecond precision.
     Title:
       oneOf:
         - $ref: '#/components/schemas/TitleName'
@@ -2067,6 +2062,23 @@ components:
           $ref: '#/components/schemas/Color'
         tags:
           $ref: '#/components/schemas/Tags'
+    TrackCue:
+      type: object
+      properties:
+        bankIndex:
+          $ref: '#/components/schemas/CueBankIndex'
+        slotIndex:
+          $ref: '#/components/schemas/CueSlotIndex'
+        inPositionMs:
+          $ref: '#/components/schemas/PositionMs'
+        outPositionMs:
+          $ref: '#/components/schemas/PositionMs'
+        outMode:
+          $ref: '#/components/schemas/CueOutMode'
+        label:
+          $ref: '#/components/schemas/CueLabel'
+        color:
+          $ref: '#/components/schemas/Color'
     TrackIndex:
       allOf:
         - $ref: '#/components/schemas/Index'

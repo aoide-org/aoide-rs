@@ -18,7 +18,10 @@
 mod env;
 
 use aoide::{
-    api::web::{collections, playlists, reject_from_anyhow, tracks},
+    api::web::{
+        collections, handle_rejection, playlists, reject_from_anyhow, reject_from_repo_error,
+        tracks,
+    },
     usecases as uc, *,
 };
 
@@ -27,8 +30,6 @@ use aoide_core::entity::EntityUid;
 mod _serde {
     pub use aoide_core_serde::entity::EntityUid;
 }
-
-use aoide_repo::prelude::RepoError;
 
 use anyhow::Error;
 use futures::future::{join, FutureExt};
@@ -140,8 +141,7 @@ pub async fn main() -> Result<(), Error> {
                 .map(|response_body| {
                     warp::reply::with_status(warp::reply::json(&response_body), StatusCode::CREATED)
                 })
-                .map_err(anyhow::Error::from)
-                .map_err(reject_from_anyhow)
+                .map_err(reject_from_repo_error)
         });
     let collections_update = warp::put()
         .and(collections_path)
@@ -161,17 +161,7 @@ pub async fn main() -> Result<(), Error> {
                 .map(|response_body| {
                     warp::reply::with_status(warp::reply::json(&response_body), StatusCode::OK)
                 })
-                .or_else(|err| match err {
-                    RepoError::NotFound => Ok(warp::reply::with_status(
-                        warp::reply::json(&()),
-                        StatusCode::NOT_FOUND,
-                    )),
-                    RepoError::Conflict => Ok(warp::reply::with_status(
-                        warp::reply::json(&()),
-                        StatusCode::CONFLICT,
-                    )),
-                    err => Err(reject_from_anyhow(err.into())),
-                })
+                .map_err(reject_from_repo_error)
             },
         );
     let collections_delete = warp::delete()
@@ -182,12 +172,7 @@ pub async fn main() -> Result<(), Error> {
         .and_then(|uid, pooled_connection| async move {
             collections::delete::handle_request(&pooled_connection, &uid)
                 .map(|()| StatusCode::NO_CONTENT)
-                .or_else(|err| match err {
-                    RepoError::NotFound => Ok(StatusCode::NOT_FOUND),
-                    err => Err(err),
-                })
-                .map_err(anyhow::Error::from)
-                .map_err(reject_from_anyhow)
+                .map_err(reject_from_repo_error)
         });
     let collections_list = warp::get()
         .and(collections_path)
@@ -197,8 +182,7 @@ pub async fn main() -> Result<(), Error> {
         .and_then(|query_params, pooled_connection| async move {
             collections::load_all::handle_request(&pooled_connection, query_params)
                 .map(|response_body| warp::reply::json(&response_body))
-                .map_err(anyhow::Error::from)
-                .map_err(reject_from_anyhow)
+                .map_err(reject_from_repo_error)
         });
     let collections_get = warp::get()
         .and(collections_path)
@@ -211,13 +195,7 @@ pub async fn main() -> Result<(), Error> {
                 .map(|response_body| {
                     warp::reply::with_status(warp::reply::json(&response_body), StatusCode::OK)
                 })
-                .or_else(|err| match err {
-                    RepoError::NotFound => Ok(warp::reply::with_status(
-                        warp::reply::json(&()),
-                        StatusCode::NOT_FOUND,
-                    )),
-                    err => Err(reject_from_anyhow(err.into())),
-                })
+                .map_err(reject_from_repo_error)
         });
     let collections_filters = collections_list
         .or(collections_get)
@@ -236,8 +214,7 @@ pub async fn main() -> Result<(), Error> {
         .and_then(|uid, request_body, pooled_connection| async move {
             tracks::resolve_collected::handle_request(&pooled_connection, &uid, request_body)
                 .map(|response_body| warp::reply::json(&response_body))
-                .map_err(anyhow::Error::from)
-                .map_err(reject_from_anyhow)
+                .map_err(reject_from_repo_error)
         });
     let collected_tracks_search = warp::post()
         .and(collections_path)
@@ -257,8 +234,7 @@ pub async fn main() -> Result<(), Error> {
                     request_body,
                 )
                 .map(|response_body| warp::reply::json(&response_body))
-                .map_err(anyhow::Error::from)
-                .map_err(reject_from_anyhow)
+                .map_err(reject_from_repo_error)
             },
         );
     let collected_tracks_replace = warp::post()
@@ -279,8 +255,7 @@ pub async fn main() -> Result<(), Error> {
                     request_body,
                 )
                 .map(|response_body| warp::reply::json(&response_body))
-                .map_err(anyhow::Error::from)
-                .map_err(reject_from_anyhow)
+                .map_err(reject_from_repo_error)
             },
         );
     let collected_tracks_purge = warp::post()
@@ -294,8 +269,7 @@ pub async fn main() -> Result<(), Error> {
         .and_then(|uid, request_body, pooled_connection| async move {
             tracks::purge_collected::handle_request(&pooled_connection, &uid, request_body)
                 .map(|response_body| warp::reply::json(&response_body))
-                .map_err(anyhow::Error::from)
-                .map_err(reject_from_anyhow)
+                .map_err(reject_from_repo_error)
         });
     let collected_tracks_filters = collected_tracks_resolve
         .or(collected_tracks_search)
@@ -313,13 +287,7 @@ pub async fn main() -> Result<(), Error> {
                 .map(|response_body| {
                     warp::reply::with_status(warp::reply::json(&response_body), StatusCode::OK)
                 })
-                .or_else(|err| match err {
-                    RepoError::NotFound => Ok(warp::reply::with_status(
-                        warp::reply::json(&()),
-                        StatusCode::NOT_FOUND,
-                    )),
-                    err => Err(reject_from_anyhow(err.into())),
-                })
+                .map_err(reject_from_repo_error)
         });
     let tracks_load_many = warp::post()
         .and(tracks_path)
@@ -330,8 +298,7 @@ pub async fn main() -> Result<(), Error> {
         .and_then(|request_body, pooled_connection| async move {
             tracks::load_many::handle_request(&pooled_connection, request_body)
                 .map(|response_body| warp::reply::json(&response_body))
-                .map_err(anyhow::Error::from)
-                .map_err(reject_from_anyhow)
+                .map_err(reject_from_repo_error)
         });
     let tracks_filters = tracks_load_many.or(tracks_load_one);
 
@@ -352,8 +319,7 @@ pub async fn main() -> Result<(), Error> {
                 .map(|response_body| {
                     warp::reply::with_status(warp::reply::json(&response_body), StatusCode::CREATED)
                 })
-                .map_err(anyhow::Error::from)
-                .map_err(reject_from_anyhow)
+                .map_err(reject_from_repo_error)
             },
         );
     let collected_playlists_list = warp::get()
@@ -371,8 +337,7 @@ pub async fn main() -> Result<(), Error> {
                     query_params,
                 )
                 .map(|response_body| warp::reply::json(&response_body))
-                .map_err(anyhow::Error::from)
-                .map_err(reject_from_anyhow)
+                .map_err(reject_from_repo_error)
             },
         );
     let collected_playlists_filters = collected_playlists_list.or(collected_playlists_create);
@@ -395,17 +360,7 @@ pub async fn main() -> Result<(), Error> {
                 .map(|response_body| {
                     warp::reply::with_status(warp::reply::json(&response_body), StatusCode::OK)
                 })
-                .or_else(|err| match err {
-                    RepoError::NotFound => Ok(warp::reply::with_status(
-                        warp::reply::json(&()),
-                        StatusCode::NOT_FOUND,
-                    )),
-                    RepoError::Conflict => Ok(warp::reply::with_status(
-                        warp::reply::json(&()),
-                        StatusCode::CONFLICT,
-                    )),
-                    err => Err(reject_from_anyhow(err.into())),
-                })
+                .map_err(reject_from_repo_error)
             },
         );
     let playlists_delete = warp::delete()
@@ -416,12 +371,7 @@ pub async fn main() -> Result<(), Error> {
         .and_then(|uid, pooled_connection| async move {
             playlists::delete::handle_request(&pooled_connection, &uid)
                 .map(|()| StatusCode::NO_CONTENT)
-                .or_else(|err| match err {
-                    RepoError::NotFound => Ok(StatusCode::NOT_FOUND),
-                    err => Err(err),
-                })
-                .map_err(anyhow::Error::from)
-                .map_err(reject_from_anyhow)
+                .map_err(reject_from_repo_error)
         });
     let playlists_entries_patch = warp::patch()
         .and(playlists_path)
@@ -442,19 +392,7 @@ pub async fn main() -> Result<(), Error> {
                 .map(|response_body| {
                     warp::reply::with_status(warp::reply::json(&response_body), StatusCode::OK)
                 })
-                .or_else(|err| match err {
-                    RepoError::NotFound => Ok(warp::reply::with_status(
-                        warp::reply::json(&()),
-                        StatusCode::NOT_FOUND,
-                    )),
-                    RepoError::Conflict => Ok(warp::reply::with_status(
-                        warp::reply::json(&()),
-                        StatusCode::CONFLICT,
-                    )),
-                    err => Err(err),
-                })
-                .map_err(anyhow::Error::from)
-                .map_err(reject_from_anyhow)
+                .map_err(reject_from_repo_error)
             },
         );
     let playlists_filters = playlists_update
@@ -470,7 +408,6 @@ pub async fn main() -> Result<(), Error> {
         .and_then(|pooled_connection: SqlitePooledConnection| async move {
             uc::database::groom(&*pooled_connection)
                 .map(|()| StatusCode::NO_CONTENT)
-                .map_err(Into::into)
                 .map_err(reject_from_anyhow)
         });
     let storage_optimize = warp::post()
@@ -498,7 +435,6 @@ pub async fn main() -> Result<(), Error> {
 
     log::info!("Initializing server");
 
-    let cors = warp::cors().allow_any_origin();
     let server = warp::serve(
         collections_filters
             .or(collected_tracks_filters)
@@ -509,7 +445,8 @@ pub async fn main() -> Result<(), Error> {
             .or(static_filters)
             .or(shutdown_filter)
             .or(about_filter)
-            .with(cors),
+            .with(warp::cors().allow_any_origin())
+            .recover(handle_rejection),
     );
 
     log::info!("Starting");
