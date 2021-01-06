@@ -298,39 +298,6 @@ where
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum EntityOrHeader<T, B> {
-    Entity(Entity<T, B>),
-    Header(EntityHeader),
-}
-
-#[derive(Debug)]
-pub enum EntityOrHeaderInvalidity<T>
-where
-    T: fmt::Debug + 'static,
-{
-    Entity(EntityInvalidity<T>),
-    Header(EntityHeaderInvalidity),
-}
-
-impl<T, B> Validate for EntityOrHeader<T, B>
-where
-    T: Invalidity,
-    B: Validate<Invalidity = T>,
-{
-    type Invalidity = EntityOrHeaderInvalidity<T>;
-
-    fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        let context = ValidationContext::new();
-        use EntityOrHeader::*;
-        match self {
-            Entity(entity) => context.validate_with(entity, Self::Invalidity::Entity),
-            Header(header) => context.validate_with(header, Self::Invalidity::Header),
-        }
-        .into()
-    }
-}
-
 ///////////////////////////////////////////////////////////////////////
 // Tests
 ///////////////////////////////////////////////////////////////////////

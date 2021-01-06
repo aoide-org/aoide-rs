@@ -143,7 +143,6 @@ impl Validate for Track {
 }
 
 pub type Entity = crate::entity::Entity<TrackInvalidity, Track>;
-pub type EntityOrHeader = crate::entity::EntityOrHeader<TrackInvalidity, Track>;
 
 ///////////////////////////////////////////////////////////////////////
 // PlayCounter

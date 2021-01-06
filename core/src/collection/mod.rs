@@ -56,4 +56,3 @@ impl Validate for Collection {
 }
 
 pub type Entity = crate::entity::Entity<CollectionInvalidity, Collection>;
-pub type EntityOrHeader = crate::entity::EntityOrHeader<CollectionInvalidity, Collection>;
