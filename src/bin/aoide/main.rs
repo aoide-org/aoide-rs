@@ -77,6 +77,9 @@ pub async fn main() -> Result<(), Error> {
 
     // Workaround: Use a pool of size 1 to avoid 'database is locked'
     // errors due to multi-threading.
+    // TODO: Use an (async?) read/write lock, to allow access for multiple, shared
+    // readers and a single, exclusive writer. The maximum size of the pool must
+    // match the maximum number of readers.
     let connection_pool = create_connection_pool(&database_url, 1)
         .expect("Failed to create database connection pool");
 
@@ -84,7 +87,7 @@ pub async fn main() -> Result<(), Error> {
     uc::database::migrate_schema(&*connection_pool.get()?)
         .expect("Failed to migrate database schema");
 
-    let sqlite_exec = SqliteExecutor::new(connection_pool.clone());
+    let sqlite_exec = SqliteExecutor::new(connection_pool);
 
     log::info!("Creating service routes");
 
