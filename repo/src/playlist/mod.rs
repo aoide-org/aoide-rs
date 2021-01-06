@@ -58,28 +58,77 @@ pub trait EntityRepo {
     ) -> RepoResult<RecordId>;
 }
 
+pub fn prepend_playlist_entries_default<R: EntryRepo + ?Sized>(
+    entry_repo: &R,
+    playlist_id: RecordId,
+    new_entries: &[Entry],
+) -> RepoResult<()> {
+    entry_repo.insert_playlist_entries(playlist_id, 0, new_entries)
+}
+
+pub fn append_playlist_entries_default<R: EntryRepo + ?Sized>(
+    entry_repo: &R,
+    playlist_id: RecordId,
+    new_entries: &[Entry],
+) -> RepoResult<()> {
+    if new_entries.is_empty() {
+        return Ok(());
+    }
+    let entries_count = entry_repo.count_playlist_entries(playlist_id)?;
+    entry_repo.insert_playlist_entries(playlist_id, entries_count, new_entries)
+}
+
+pub fn move_playlist_entries_default<R: EntryRepo + ?Sized>(
+    entry_repo: &R,
+    playlist_id: RecordId,
+    index_range: &Range<usize>,
+    delta_index: isize,
+) -> RepoResult<()> {
+    if index_range.is_empty() || delta_index == 0 {
+        return Ok(());
+    }
+    let mut moved_entries = entry_repo.load_playlist_entries(playlist_id)?;
+    moved_entries.truncate(index_range.end.min(moved_entries.len()));
+    moved_entries.drain(0..index_range.start.min(moved_entries.len()));
+    debug_assert_eq!(moved_entries.len(), index_range.len());
+    let _removed_count = entry_repo.remove_playlist_entries(playlist_id, index_range)?;
+    debug_assert_eq!(_removed_count, index_range.len());
+    let insert_index = if delta_index > 0 {
+        (index_range.start + delta_index as usize)
+            .min(entry_repo.count_playlist_entries(playlist_id)?)
+    } else {
+        debug_assert!(delta_index < 0);
+        index_range.start - (-delta_index as usize).min(index_range.start)
+    };
+    entry_repo.insert_playlist_entries(playlist_id, insert_index, &moved_entries)
+}
+
+pub fn clear_playlist_entries_default<R: EntryRepo + ?Sized>(
+    entry_repo: &R,
+    playlist_id: RecordId,
+) -> RepoResult<usize> {
+    let entries_count = entry_repo.count_playlist_entries(playlist_id)?;
+    if entries_count == 0 {
+        return Ok(entries_count);
+    }
+    entry_repo.remove_playlist_entries(playlist_id, &(0..entries_count))
+}
+
 pub trait EntryRepo {
     fn prepend_playlist_entries(
         &self,
         playlist_id: RecordId,
-        new_entries: Vec<Entry>,
+        new_entries: &[Entry],
     ) -> RepoResult<()> {
-        self.insert_playlist_entries(playlist_id, 0, new_entries)
+        prepend_playlist_entries_default(self, playlist_id, new_entries)
     }
 
     fn append_playlist_entries(
         &self,
         playlist_id: RecordId,
-        new_entries: Vec<Entry>,
+        new_entries: &[Entry],
     ) -> RepoResult<()> {
-        if new_entries.is_empty() {
-            return Ok(());
-        }
-        let EntriesSummary {
-            total_count: entries_count,
-            ..
-        } = self.load_playlist_entries_summary(playlist_id)?;
-        self.insert_playlist_entries(playlist_id, entries_count, new_entries)
+        append_playlist_entries_default(self, playlist_id, new_entries)
     }
 
     fn move_playlist_entries(
@@ -88,21 +137,11 @@ pub trait EntryRepo {
         index_range: &Range<usize>,
         delta_index: isize,
     ) -> RepoResult<()> {
-        if index_range.is_empty() || delta_index == 0 {
-            return Ok(());
-        }
-        let mut moved_entries = self.load_playlist_entries(playlist_id)?;
-        moved_entries.truncate(index_range.end.min(moved_entries.len()));
-        moved_entries.drain(0..index_range.start.min(moved_entries.len()));
-        let _removed_count = self.remove_playlist_entries(playlist_id, index_range)?;
-        debug_assert_eq!(_removed_count, moved_entries.len());
-        let insert_index = if delta_index > 0 {
-            index_range.start + delta_index as usize
-        } else {
-            debug_assert!(delta_index < 0);
-            index_range.start - (-delta_index as usize).min(index_range.start)
-        };
-        self.insert_playlist_entries(playlist_id, insert_index, moved_entries)
+        move_playlist_entries_default(self, playlist_id, index_range, delta_index)
+    }
+
+    fn clear_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<usize> {
+        clear_playlist_entries_default(self, playlist_id)
     }
 
     fn remove_playlist_entries(
@@ -111,27 +150,18 @@ pub trait EntryRepo {
         index_range: &Range<usize>,
     ) -> RepoResult<usize>;
 
-    fn clear_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<usize> {
-        let EntriesSummary {
-            total_count: entries_count,
-            ..
-        } = self.load_playlist_entries_summary(playlist_id)?;
-        if entries_count == 0 {
-            return Ok(entries_count);
-        }
-        self.remove_playlist_entries(playlist_id, &(0..entries_count))
-    }
-
     fn reverse_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<usize>;
 
     fn insert_playlist_entries(
         &self,
         playlist_id: RecordId,
         before_index: usize,
-        new_entries: Vec<Entry>,
+        new_entries: &[Entry],
     ) -> RepoResult<()>;
 
     fn shuffle_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<()>;
+
+    fn count_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<usize>;
 
     fn load_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<Vec<Entry>>;
 

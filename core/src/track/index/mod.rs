@@ -73,7 +73,7 @@ impl fmt::Display for Index {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Indexes {
     pub disc: Index,
     pub track: Index,

@@ -50,19 +50,19 @@ pub fn patch(
                     if entries.is_empty() {
                         continue;
                     }
-                    db.append_playlist_entries(record_header.id, entries)?;
+                    db.append_playlist_entries(record_header.id, &entries)?;
                 }
                 Prepend { entries } => {
                     if entries.is_empty() {
                         continue;
                     }
-                    db.prepend_playlist_entries(record_header.id, entries)?;
+                    db.prepend_playlist_entries(record_header.id, &entries)?;
                 }
                 Insert { before, entries } => {
                     if entries.is_empty() {
                         continue;
                     }
-                    db.insert_playlist_entries(record_header.id, before, entries)?;
+                    db.insert_playlist_entries(record_header.id, before, &entries)?;
                 }
                 Move { range, delta } => {
                     if range.is_empty() || delta == 0 {

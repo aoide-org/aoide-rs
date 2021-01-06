@@ -32,6 +32,10 @@ pub enum Item {
 }
 
 impl Item {
+    pub fn is_separator(&self) -> bool {
+        matches!(self, Self::Separator)
+    }
+
     pub fn is_track(&self) -> bool {
         matches!(self, Self::Track(_))
     }

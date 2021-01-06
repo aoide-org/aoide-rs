@@ -163,18 +163,25 @@ impl<'db> EntryRepo for crate::Connection<'db> {
         Ok(entries)
     }
 
-    fn load_playlist_entries_summary(&self, playlist_id: RecordId) -> RepoResult<EntriesSummary> {
+    fn count_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<usize> {
         use playlist_entry_db::schema::*;
-        let entries_count = playlist_entry::table
+        playlist_entry::table
             .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)))
             .select(count_star())
             .first::<i64>(self.as_ref())
-            .map_err(repo_error)?;
+            .map(|count| count as usize)
+            .map_err(repo_error)
+    }
+
+    fn load_playlist_entries_summary(&self, playlist_id: RecordId) -> RepoResult<EntriesSummary> {
+        use playlist_entry_db::schema::*;
+        let entries_count = self.count_playlist_entries(playlist_id)?;
         let tracks_count = playlist_entry::table
             .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)))
             .select(count_star())
             .filter(playlist_entry::track_id.is_not_null())
             .first::<i64>(self.as_ref())
+            .map(|count| count as usize)
             .map_err(repo_error)?;
         debug_assert!(tracks_count <= entries_count);
         let added_at_minmax = if entries_count > 0 {
@@ -204,10 +211,10 @@ impl<'db> EntryRepo for crate::Connection<'db> {
             None
         };
         Ok(EntriesSummary {
-            total_count: entries_count as usize,
+            total_count: entries_count,
             added_at_minmax,
             tracks: TracksSummary {
-                total_count: tracks_count as usize,
+                total_count: tracks_count,
             },
         })
     }
@@ -215,7 +222,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
     fn append_playlist_entries(
         &self,
         playlist_id: RecordId,
-        new_entries: Vec<Entry>,
+        new_entries: &[Entry],
     ) -> RepoResult<()> {
         if new_entries.is_empty() {
             return Ok(());
@@ -238,7 +245,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
                 Item::Track(TrackItem { uid }) => Some(self.resolve_track_id(uid)?),
             };
             let insertable =
-                InsertableRecord::bind(playlist_id, track_id, ordering, created_at, &entry);
+                InsertableRecord::bind(playlist_id, track_id, ordering, created_at, entry);
             let _rows_affected = diesel::insert_into(playlist_entry::table)
                 .values(&insertable)
                 .execute(self.as_ref())
@@ -251,7 +258,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
     fn prepend_playlist_entries(
         &self,
         playlist_id: RecordId,
-        new_entries: Vec<Entry>,
+        new_entries: &[Entry],
     ) -> RepoResult<()> {
         if new_entries.is_empty() {
             return Ok(());
@@ -275,7 +282,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
                 Item::Track(TrackItem { uid }) => Some(self.resolve_track_id(uid)?),
             };
             let insertable =
-                InsertableRecord::bind(playlist_id, track_id, ordering, created_at, &entry);
+                InsertableRecord::bind(playlist_id, track_id, ordering, created_at, entry);
             let _rows_affected = diesel::insert_into(playlist_entry::table)
                 .values(&insertable)
                 .execute(self.as_ref())
@@ -356,14 +363,14 @@ impl<'db> EntryRepo for crate::Connection<'db> {
         log::warn!(
             "TODO: Only adjust the internal ordering instead of loading, purging, and reinserting entries"
         );
-        EntryRepo::move_playlist_entries(self, id, index_range, delta_index)
+        move_playlist_entries_default(self, id, index_range, delta_index)
     }
 
     fn insert_playlist_entries(
         &self,
         playlist_id: RecordId,
         before_index: usize,
-        new_entries: Vec<Entry>,
+        new_entries: &[Entry],
     ) -> RepoResult<()> {
         if new_entries.is_empty() {
             return Ok(());
@@ -406,16 +413,29 @@ impl<'db> EntryRepo for crate::Connection<'db> {
                 // Shift subsequent entries
                 let delta_ordering = new_ordering_range.end - next_ordering;
                 debug_assert!(delta_ordering > 0);
-                let target = playlist_entry::table
+                // Unfortunately, the ordering column cannot be incremented by
+                // a single SQL state. The update fails with a UNIQUE constraint
+                // violation if the entries are not updated in descending order
+                // of the ordering column.
+                let row_ids = playlist_entry::table
+                    .select(playlist_entry::row_id)
                     .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)))
-                    .filter(playlist_entry::ordering.ge(next_ordering));
-                let rows_updated = diesel::update(target)
+                    .filter(playlist_entry::ordering.ge(next_ordering))
+                    .order_by(playlist_entry::ordering.desc())
+                    .load::<RowId>(self.as_ref())
+                    .map_err(repo_error)?;
+                let mut rows_updated = 0;
+                for row_id in row_ids {
+                    rows_updated += diesel::update(
+                        playlist_entry::table.filter(playlist_entry::row_id.eq(row_id)),
+                    )
                     .set(
                         playlist_entry::ordering
                             .eq(diesel::dsl::sql(&format!("ordering+{}", delta_ordering))),
                     )
                     .execute(self.as_ref())
                     .map_err(repo_error)?;
+                }
                 log::debug!(
                     "Reordered {} entries of playlist {} before inserting {} entries",
                     rows_updated,
@@ -441,7 +461,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
                 Item::Track(TrackItem { uid }) => Some(self.resolve_track_id(uid)?),
             };
             let insertable =
-                InsertableRecord::bind(playlist_id, track_id, ordering, created_at, &entry);
+                InsertableRecord::bind(playlist_id, track_id, ordering, created_at, entry);
             let _rows_affected = diesel::insert_into(playlist_entry::table)
                 .values(&insertable)
                 .execute(self.as_ref())
@@ -519,3 +539,10 @@ impl<'db> Repo for crate::Connection<'db> {
         Ok((entity, entries).into())
     }
 }
+
+///////////////////////////////////////////////////////////////////////
+// Tests
+///////////////////////////////////////////////////////////////////////
+
+#[cfg(test)]
+mod tests;
