@@ -22,7 +22,10 @@ mod _core {
     };
 }
 
-use aoide_core::track::cue::{BankIndex, SlotIndex};
+use aoide_core::{
+    track::cue::{BankIndex, CueFlags, SlotIndex},
+    util::IsDefault,
+};
 
 ///////////////////////////////////////////////////////////////////////
 // OutMode
@@ -80,6 +83,9 @@ pub struct Cue {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub color: Option<Color>,
+
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    flags: u8,
 }
 
 impl From<_core::Cue> for Cue {
@@ -92,6 +98,7 @@ impl From<_core::Cue> for Cue {
             out_mode,
             label,
             color,
+            flags,
         } = from;
         Self {
             bank_index,
@@ -101,6 +108,7 @@ impl From<_core::Cue> for Cue {
             out_mode: out_mode.map(Into::into),
             label: label.map(Into::into),
             color: color.map(Into::into),
+            flags: flags.bits(),
         }
     }
 }
@@ -115,6 +123,7 @@ impl From<Cue> for _core::Cue {
             out_mode,
             label,
             color,
+            flags,
         } = from;
         Self {
             bank_index,
@@ -124,6 +133,7 @@ impl From<Cue> for _core::Cue {
             out_mode: out_mode.map(Into::into),
             label: label.map(Into::into),
             color: color.map(Into::into),
+            flags: CueFlags::from_bits_truncate(flags),
         }
     }
 }

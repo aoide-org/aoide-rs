@@ -46,6 +46,39 @@ pub enum OutMode {
     Loop = 2,
 }
 
+use bitflags::bitflags;
+
+bitflags! {
+    pub struct CueFlags: u8 {
+        const LOCKED = 0b00000001;
+    }
+}
+
+impl CueFlags {
+    pub fn is_valid(self) -> bool {
+        Self::all().contains(self)
+    }
+}
+
+impl Default for CueFlags {
+    fn default() -> Self {
+        Self::empty()
+    }
+}
+
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
+pub struct CueFlagsInvalidity;
+
+impl Validate for CueFlags {
+    type Invalidity = CueFlagsInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(!CueFlags::is_valid(*self), CueFlagsInvalidity)
+            .into()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Cue {
     pub bank_index: BankIndex,
@@ -61,22 +94,27 @@ pub struct Cue {
     pub label: Option<String>,
 
     pub color: Option<Color>,
+
+    pub flags: CueFlags,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum CueInvalidity {
     InOrOutPositionMissing,
     LabelEmpty,
+    Flags(CueFlagsInvalidity),
 }
 
 impl Validate for Cue {
     type Invalidity = CueInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        let mut context = ValidationContext::new().invalidate_if(
-            self.in_position.is_none() && self.out_position.is_none(),
-            CueInvalidity::InOrOutPositionMissing,
-        );
+        let mut context = ValidationContext::new()
+            .invalidate_if(
+                self.in_position.is_none() && self.out_position.is_none(),
+                CueInvalidity::InOrOutPositionMissing,
+            )
+            .validate_with(&self.flags, CueInvalidity::Flags);
         if let Some(ref label) = self.label {
             context = context.invalidate_if(label.trim().is_empty(), CueInvalidity::LabelEmpty)
         }

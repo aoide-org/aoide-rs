@@ -1140,6 +1140,17 @@ components:
         EBU R128 proposes a target level of -23 LUFS while the ReplayGain v2
         specification (RG2) proposes -18 LUFS for achieving similar perceptive
         results compared to ReplayGain v1 (RG1).
+    CueFlags:
+      type: integer
+      format: i32
+      minimum: 0
+      maximum: 1
+      example: 1
+      description: |
+        A bitmask with flags, e.g. for locking to prevent unintended changes.
+
+        Bits:
+          - 0x01: Locked
     CueOutMode:
       description: |
         The playback behavior when reaching the out position.
@@ -2079,6 +2090,8 @@ components:
           $ref: '#/components/schemas/CueLabel'
         color:
           $ref: '#/components/schemas/Color'
+        flags:
+          $ref: '#/components/schemas/CueFlags'
     TrackIndex:
       allOf:
         - $ref: '#/components/schemas/Index'

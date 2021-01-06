@@ -29,6 +29,7 @@ table! {
         label -> Nullable<Text>,
         color_rgb -> Nullable<Integer>,
         color_idx -> Nullable<SmallInt>,
+        flags -> SmallInt,
     }
 }
 

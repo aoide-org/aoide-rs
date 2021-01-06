@@ -38,6 +38,7 @@ pub struct QueryableRecord {
     pub label: Option<String>,
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
+    pub flags: i16,
 }
 
 impl From<QueryableRecord> for (RecordId, Record) {
@@ -53,6 +54,7 @@ impl From<QueryableRecord> for (RecordId, Record) {
             label,
             color_rgb,
             color_idx,
+            flags,
         } = from;
         let cue = Cue {
             bank_index: bank_idx,
@@ -71,6 +73,7 @@ impl From<QueryableRecord> for (RecordId, Record) {
             } else {
                 None
             },
+            flags: CueFlags::from_bits(flags as u8).unwrap_or_default(),
         };
         let record = Record {
             track_id: track_id.into(),
@@ -92,6 +95,7 @@ pub struct InsertableRecord<'a> {
     pub label: Option<&'a str>,
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
+    pub flags: i16,
 }
 
 impl<'a> InsertableRecord<'a> {
@@ -104,6 +108,7 @@ impl<'a> InsertableRecord<'a> {
             out_mode,
             label,
             color,
+            flags,
         } = cue;
         Self {
             track_id: track_id.into(),
@@ -123,6 +128,7 @@ impl<'a> InsertableRecord<'a> {
             } else {
                 None
             },
+            flags: flags.bits() as i16,
         }
     }
 }
