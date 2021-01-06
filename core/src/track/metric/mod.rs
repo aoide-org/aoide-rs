@@ -24,34 +24,34 @@ use crate::{
 use bitflags::bitflags;
 
 bitflags! {
-    pub struct MetricsBitflags: u8 {
+    pub struct MetricsFlags: u8 {
         const TEMPO_BPM_LOCKED      = 0b00000001;
         const KEY_SIGNATURE_LOCKED  = 0b00000010;
         const TIME_SIGNATURE_LOCKED = 0b00000100;
     }
 }
 
-impl MetricsBitflags {
+impl MetricsFlags {
     pub fn is_valid(self) -> bool {
         Self::all().contains(self)
     }
 }
 
-impl Default for MetricsBitflags {
+impl Default for MetricsFlags {
     fn default() -> Self {
         Self::empty()
     }
 }
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
-pub struct MetricsBitflagsInvalidity;
+pub struct MetricsFlagsInvalidity;
 
-impl Validate for MetricsBitflags {
-    type Invalidity = MetricsBitflagsInvalidity;
+impl Validate for MetricsFlags {
+    type Invalidity = MetricsFlagsInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(!MetricsBitflags::is_valid(*self), MetricsBitflagsInvalidity)
+            .invalidate_if(!MetricsFlags::is_valid(*self), MetricsFlagsInvalidity)
             .into()
     }
 }
@@ -71,7 +71,7 @@ pub struct Metrics {
     /// The nominal or main musical time signature of the track
     pub time_signature: Option<TimeSignature>,
 
-    pub bitflags: MetricsBitflags,
+    pub flags: MetricsFlags,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -79,7 +79,7 @@ pub enum MetricsInvalidity {
     TempoBpm(TempoBpmInvalidity),
     TimeSignature(TimeSignatureInvalidity),
     KeySignature(KeySignatureInvalidity),
-    Bitflags(MetricsBitflagsInvalidity),
+    Flags(MetricsFlagsInvalidity),
 }
 
 impl Validate for Metrics {
@@ -90,7 +90,7 @@ impl Validate for Metrics {
             .validate_with(&self.tempo_bpm, MetricsInvalidity::TempoBpm)
             .validate_with(&self.time_signature, MetricsInvalidity::TimeSignature)
             .validate_with(&self.key_signature, MetricsInvalidity::KeySignature)
-            .validate_with(&self.bitflags, MetricsInvalidity::Bitflags)
+            .validate_with(&self.flags, MetricsInvalidity::Flags)
             .into()
     }
 }

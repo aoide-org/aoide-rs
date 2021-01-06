@@ -30,7 +30,7 @@ mod _core {
     };
 }
 
-use aoide_core::track::metric::MetricsBitflags;
+use aoide_core::track::metric::MetricsFlags;
 
 ///////////////////////////////////////////////////////////////////////
 // Metrics
@@ -49,7 +49,7 @@ pub struct Metrics {
     time_signature: Option<TimeSignature>,
 
     #[serde(skip_serializing_if = "IsDefault::is_default", default)]
-    bitflags: u8,
+    flags: u8,
 }
 
 impl From<_core::Metrics> for Metrics {
@@ -58,13 +58,13 @@ impl From<_core::Metrics> for Metrics {
             tempo_bpm,
             key_signature,
             time_signature,
-            bitflags,
+            flags,
         } = from;
         Self {
             tempo_bpm: tempo_bpm.map(Into::into),
             key_code: key_signature.map(Into::into),
             time_signature: time_signature.map(Into::into),
-            bitflags: bitflags.bits(),
+            flags: flags.bits(),
         }
     }
 }
@@ -75,13 +75,13 @@ impl From<Metrics> for _core::Metrics {
             tempo_bpm,
             key_code,
             time_signature,
-            bitflags,
+            flags,
         } = from;
         Self {
             tempo_bpm: tempo_bpm.map(Into::into),
             key_signature: key_code.map(Into::into),
             time_signature: time_signature.map(Into::into),
-            bitflags: MetricsBitflags::from_bits_truncate(bitflags),
+            flags: MetricsFlags::from_bits_truncate(flags),
         }
     }
 }

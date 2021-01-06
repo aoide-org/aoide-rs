@@ -58,7 +58,7 @@ pub struct QueryableRecord {
     pub music_key_code: Option<i16>,
     pub music_beats_per_measure: Option<i16>,
     pub music_beat_unit: Option<i16>,
-    pub music_bitflags: i16,
+    pub music_flags: i16,
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
     pub last_played_at: Option<String>,
@@ -129,7 +129,7 @@ pub fn load_repo_entity(
         music_key_code,
         music_beats_per_measure,
         music_beat_unit,
-        music_bitflags,
+        music_flags,
         color_rgb,
         color_idx,
         last_played_at,
@@ -206,7 +206,7 @@ pub fn load_repo_entity(
         tempo_bpm: music_tempo_bpm.map(TempoBpm),
         key_signature: music_key_code.map(|code| KeySignature::from_code(code as KeyCode)),
         time_signature,
-        bitflags: MetricsBitflags::from_bits(music_bitflags as u8).unwrap_or_default(),
+        flags: MetricsFlags::from_bits(music_flags as u8).unwrap_or_default(),
     };
     let color = if let Some(color_rgb) = color_rgb {
         debug_assert!(color_idx.is_none());
@@ -263,7 +263,7 @@ pub struct InsertableRecord<'a> {
     pub music_key_code: Option<i16>,
     pub music_beats_per_measure: Option<i16>,
     pub music_beat_unit: Option<i16>,
-    pub music_bitflags: i16,
+    pub music_flags: i16,
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
     pub last_played_at: Option<String>,
@@ -322,7 +322,7 @@ impl<'a> InsertableRecord<'a> {
             tempo_bpm,
             key_signature,
             time_signature,
-            bitflags: music_bitflags,
+            flags: music_flags,
         } = metrics;
         Self {
             row_created_ms: row_created_updated_ms,
@@ -349,7 +349,7 @@ impl<'a> InsertableRecord<'a> {
             music_beat_unit: time_signature
                 .and_then(|time_sig| time_sig.beat_unit)
                 .map(|beat_unit| beat_unit as i16),
-            music_bitflags: music_bitflags.bits() as i16,
+            music_flags: music_flags.bits() as i16,
             color_rgb: if let Some(Color::Rgb(color)) = color {
                 Some(color.code() as i32)
             } else {
@@ -395,7 +395,7 @@ pub struct UpdatableRecord<'a> {
     pub music_key_code: Option<i16>,
     pub music_beats_per_measure: Option<i16>,
     pub music_beat_unit: Option<i16>,
-    pub music_bitflags: i16,
+    pub music_flags: i16,
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
     pub last_played_at: Option<String>,
@@ -458,7 +458,7 @@ impl<'a> UpdatableRecord<'a> {
             tempo_bpm,
             key_signature,
             time_signature,
-            bitflags: music_bitflags,
+            flags: music_flags,
         } = metrics;
         Self {
             row_updated_ms: updated_at.timestamp_millis(),
@@ -483,7 +483,7 @@ impl<'a> UpdatableRecord<'a> {
             music_beat_unit: time_signature
                 .and_then(|time_sig| time_sig.beat_unit)
                 .map(|beat_unit| beat_unit as i16),
-            music_bitflags: music_bitflags.bits() as i16,
+            music_flags: music_flags.bits() as i16,
             color_rgb: if let Some(Color::Rgb(color)) = color {
                 Some(color.code() as i32)
             } else {

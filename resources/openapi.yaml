@@ -1227,11 +1227,11 @@ components:
           $ref: '#/components/schemas/KeySignatureCode'
         timeSignature:
           $ref: '#/components/schemas/TimeSignature'
-        bitflags:
-          $ref: '#/components/schemas/MetricsBitflags'
+        flags:
+          $ref: '#/components/schemas/MetricsFlags'
       description: |
         Musical signature including tempo/speed, timining, and key.
-    MetricsBitflags:
+    MetricsFlags:
       type: integer
       format: i32
       minimum: 0

@@ -41,7 +41,7 @@ table! {
         music_key_code -> Nullable<SmallInt>,
         music_beats_per_measure -> Nullable<SmallInt>,
         music_beat_unit -> Nullable<SmallInt>,
-        music_bitflags -> SmallInt,
+        music_flags -> SmallInt,
         color_rgb -> Nullable<Integer>,
         color_idx -> Nullable<SmallInt>,
         last_played_at -> Nullable<Text>,
