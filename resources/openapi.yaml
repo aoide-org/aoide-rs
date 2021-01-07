@@ -473,7 +473,7 @@ paths:
             schema:
               type: array
               items:
-                $ref: '#/components/schemas/PlaylistWithEntriesSummaryEntity'
+                $ref: '#/components/schemas/PlaylistEntriesPatchOperation'
       responses:
         '200':
           description: |
@@ -1516,6 +1516,17 @@ components:
             - insert
         - type: object
           properties:
+            copyAll:
+              type: object
+              properties:
+                sourcePlaylist:
+                  $ref: '#/components/schemas/PlaylistRef'
+              required:
+                - sourcePlaylist
+          required:
+            - copyAll
+        - type: object
+          properties:
             move:
               type: object
               properties:
@@ -1646,6 +1657,13 @@ components:
       description: |
         Lengthy, personal notes.
       example: 'Lengthy, personal notes'
+    PlaylistRef:
+      type: object
+      properties:
+        uid:
+          $ref: '#/components/schemas/PlaylistUid'
+      required:
+        - uid
     PlaylistTitle:
       description: Mandatory playlist title
       type: string

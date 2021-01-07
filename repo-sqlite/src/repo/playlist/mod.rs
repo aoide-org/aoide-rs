@@ -223,27 +223,36 @@ fn reverse_all_playlist_entries_tail<'db>(
     Ok(rows_updated)
 }
 
+fn load_playlist_entry_records<'db>(
+    db: &crate::Connection<'db>,
+    playlist_id: RecordId,
+) -> RepoResult<Vec<playlist_entry_db::models::QueryableRecord>> {
+    use playlist_entry_db::{models::*, schema::*};
+    use track_schema::*;
+    playlist_entry::table
+        .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)))
+        .left_outer_join(track_schema::track::table)
+        .select((
+            playlist_entry::playlist_id,
+            playlist_entry::ordering,
+            playlist_entry::track_id,
+            track::entity_uid.nullable(),
+            playlist_entry::added_at,
+            playlist_entry::added_ms,
+            playlist_entry::title,
+            playlist_entry::notes,
+        ))
+        .order_by(playlist_entry::ordering)
+        .load::<QueryableRecord>(db.as_ref())
+        .map_err(repo_error)
+}
+
 impl<'db> EntryRepo for crate::Connection<'db> {
     fn load_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<Vec<Entry>> {
-        use playlist_entry_db::{models::*, schema::*};
-        use track_schema::*;
-        let records = playlist_entry::table
-            .filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id)))
-            .left_outer_join(track_schema::track::table)
-            .select((
-                playlist_entry::playlist_id,
-                track::entity_uid.nullable(),
-                playlist_entry::added_at,
-                playlist_entry::added_ms,
-                playlist_entry::title,
-                playlist_entry::notes,
-            ))
-            .order_by(playlist_entry::ordering)
-            .load::<QueryableEntryRecord>(self.as_ref())
-            .map_err(repo_error)?;
+        let records = load_playlist_entry_records(self, playlist_id)?;
         let mut entries = Vec::with_capacity(records.len());
         for record in records {
-            let (_playlist_id, entry) = record.into();
+            let (_playlist_id, _ordering, _track_id, entry) = record.into();
             debug_assert_eq!(_playlist_id, playlist_id);
             entries.push(entry);
         }
@@ -555,6 +564,28 @@ impl<'db> EntryRepo for crate::Connection<'db> {
             ordering = ordering.saturating_add(1);
         }
         Ok(())
+    }
+
+    fn copy_all_playlist_entries(
+        &self,
+        source_playlist_id: RecordId,
+        target_playlist_id: RecordId,
+    ) -> RepoResult<usize> {
+        use playlist_entry_db::{models::*, schema::*};
+        let records = load_playlist_entry_records(self, source_playlist_id)?;
+        let copied_count = records.len();
+        let created_at = DateTime::now_utc();
+        for record in records {
+            let (_playlist_id, ordering, track_id, entry) = record.into();
+            let insertable =
+                InsertableRecord::bind(target_playlist_id, track_id, ordering, created_at, &entry);
+            let _rows_affected = diesel::insert_into(playlist_entry::table)
+                .values(&insertable)
+                .execute(self.as_ref())
+                .map_err(repo_error)?;
+            debug_assert_eq!(1, _rows_affected);
+        }
+        Ok(copied_count)
     }
 
     fn delete_playlist_entries_with_tracks_from_other_collections(&self) -> RepoResult<usize> {

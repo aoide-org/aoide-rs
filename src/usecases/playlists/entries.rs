@@ -26,6 +26,7 @@ pub enum PatchOperation {
     Append { entries: Vec<Entry> },
     Prepend { entries: Vec<Entry> },
     Insert { before: usize, entries: Vec<Entry> },
+    CopyAll { source_playlist_uid: EntityUid },
     Move { range: Range<usize>, delta: isize },
     Remove { range: Range<usize> },
     RemoveAll,
@@ -63,6 +64,12 @@ pub fn patch(
                         continue;
                     }
                     db.insert_playlist_entries(record_header.id, before, &entries)?;
+                }
+                CopyAll {
+                    source_playlist_uid,
+                } => {
+                    let source_playlist_id = db.resolve_playlist_id(&source_playlist_uid)?;
+                    db.copy_all_playlist_entries(source_playlist_id, record_header.id)?;
                 }
                 Move { range, delta } => {
                     if range.is_empty() || delta == 0 {

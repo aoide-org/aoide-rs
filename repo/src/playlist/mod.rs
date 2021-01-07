@@ -176,6 +176,17 @@ pub trait EntryRepo {
         shuffle_all_playlist_entries_default(self, playlist_id)
     }
 
+    /// Copy all entries from the source playlist into the target playlist.
+    ///
+    /// The order among the copied entries is preserved. If the target playlist
+    /// already contains entries copying may fail and the ordering of existing
+    /// and copied entries is undefined.
+    fn copy_all_playlist_entries(
+        &self,
+        source_playlist_id: RecordId,
+        target_playlist_id: RecordId,
+    ) -> RepoResult<usize>;
+
     fn count_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<usize>;
 
     fn load_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<Vec<Entry>>;

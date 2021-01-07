@@ -28,8 +28,10 @@ use aoide_repo::{playlist::RecordId as PlaylistId, track::RecordId as TrackId};
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Queryable)]
-pub struct QueryableEntryRecord {
+pub struct QueryableRecord {
     pub playlist_id: RowId,
+    pub ordering: i64,
+    pub track_id: Option<RowId>,
     pub track_uid: Option<Vec<u8>>,
     pub added_at: String,
     pub added_ms: TimestampMillis,
@@ -37,10 +39,12 @@ pub struct QueryableEntryRecord {
     pub notes: Option<String>,
 }
 
-impl From<QueryableEntryRecord> for (PlaylistId, Entry) {
-    fn from(from: QueryableEntryRecord) -> Self {
-        let QueryableEntryRecord {
+impl From<QueryableRecord> for (PlaylistId, i64, Option<TrackId>, Entry) {
+    fn from(from: QueryableRecord) -> Self {
+        let QueryableRecord {
             playlist_id,
+            ordering,
+            track_id,
             track_uid,
             added_at,
             added_ms,
@@ -60,7 +64,12 @@ impl From<QueryableEntryRecord> for (PlaylistId, Entry) {
             notes,
             item,
         };
-        (playlist_id.into(), entry)
+        (
+            playlist_id.into(),
+            ordering,
+            track_id.map(Into::into),
+            entry,
+        )
     }
 }
 

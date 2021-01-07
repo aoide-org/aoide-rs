@@ -17,7 +17,16 @@ use super::*;
 
 use crate::usecases::playlists::entries as uc;
 
+use aoide_core_serde::entity::EntityUid as SerdeEntityUid;
+
 ///////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(serde::Serialize))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct PlaylistRef {
+    uid: SerdeEntityUid,
+}
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(test, derive(serde::Serialize))]
@@ -32,6 +41,9 @@ pub enum PatchOperation {
     Insert {
         before: usize,
         entries: Vec<Entry>,
+    },
+    CopyAll {
+        source_playlist: PlaylistRef,
     },
     Move {
         start: usize,
@@ -61,6 +73,12 @@ impl From<PatchOperation> for uc::PatchOperation {
                 before,
                 entries: entries.into_iter().map(Into::into).collect(),
             },
+            CopyAll { source_playlist } => {
+                let PlaylistRef { uid } = source_playlist;
+                Self::CopyAll {
+                    source_playlist_uid: uid.into(),
+                }
+            }
             Move { start, end, delta } => Self::Move {
                 range: start..end,
                 delta,
