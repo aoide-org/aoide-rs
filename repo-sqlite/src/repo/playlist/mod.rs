@@ -248,7 +248,7 @@ fn load_playlist_entry_records<'db>(
 }
 
 impl<'db> EntryRepo for crate::Connection<'db> {
-    fn load_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<Vec<Entry>> {
+    fn load_all_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<Vec<Entry>> {
         let records = load_playlist_entry_records(self, playlist_id)?;
         let mut entries = Vec::with_capacity(records.len());
         for record in records {
@@ -646,7 +646,7 @@ impl<'db> Repo for crate::Connection<'db> {
 
     fn load_playlist_entity_with_entries(&self, id: RecordId) -> RepoResult<EntityWithEntries> {
         let (_, entity) = self.load_playlist_entity(id)?;
-        let entries = self.load_playlist_entries(id)?;
+        let entries = self.load_all_playlist_entries(id)?;
         Ok((entity, entries).into())
     }
 }

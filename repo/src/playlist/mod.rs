@@ -89,7 +89,7 @@ pub fn move_playlist_entries_default<R: EntryRepo + ?Sized>(
     if index_range.is_empty() || delta_index == 0 {
         return Ok(());
     }
-    let mut moved_entries = entry_repo.load_playlist_entries(playlist_id)?;
+    let mut moved_entries = entry_repo.load_all_playlist_entries(playlist_id)?;
     moved_entries.truncate(index_range.end.min(moved_entries.len()));
     moved_entries.drain(0..index_range.start.min(moved_entries.len()));
     debug_assert_eq!(moved_entries.len(), index_range.len());
@@ -120,7 +120,7 @@ pub fn shuffle_all_playlist_entries_default<R: EntryRepo + ?Sized>(
     entry_repo: &R,
     playlist_id: RecordId,
 ) -> RepoResult<()> {
-    let mut entries = entry_repo.load_playlist_entries(playlist_id)?;
+    let mut entries = entry_repo.load_all_playlist_entries(playlist_id)?;
     entries.shuffle(&mut thread_rng());
     entry_repo.remove_all_playlist_entries(playlist_id)?;
     entry_repo.append_playlist_entries(playlist_id, &entries)?;
@@ -189,7 +189,7 @@ pub trait EntryRepo {
 
     fn count_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<usize>;
 
-    fn load_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<Vec<Entry>>;
+    fn load_all_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<Vec<Entry>>;
 
     fn load_playlist_entries_summary(&self, playlist_id: RecordId) -> RepoResult<EntriesSummary>;
 
