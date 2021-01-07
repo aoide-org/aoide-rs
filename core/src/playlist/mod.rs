@@ -19,6 +19,7 @@ pub mod track;
 
 use crate::prelude::*;
 
+use bitflags::bitflags;
 use rand::{seq::SliceRandom, thread_rng};
 use std::ops::RangeBounds;
 
@@ -100,6 +101,37 @@ impl Validate for Entry {
     }
 }
 
+bitflags! {
+    pub struct Flags: u8 {
+        const LOCKED = 0b00000001;
+    }
+}
+
+impl Flags {
+    pub fn is_valid(self) -> bool {
+        Self::all().contains(self)
+    }
+}
+
+impl Default for Flags {
+    fn default() -> Self {
+        Self::empty()
+    }
+}
+
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
+pub struct FlagsInvalidity;
+
+impl Validate for Flags {
+    type Invalidity = FlagsInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(!Flags::is_valid(*self), FlagsInvalidity)
+            .into()
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Playlist {
     /// Playlists always belong to a collection.
@@ -121,6 +153,8 @@ pub struct Playlist {
 
     /// Optional color for display purposes.
     pub color: Option<Color>,
+
+    pub flags: Flags,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -128,6 +162,7 @@ pub enum PlaylistInvalidity {
     TitleEmpty,
     KindEmpty,
     Color(ColorInvalidity),
+    Flags(FlagsInvalidity),
 }
 
 impl Validate for Playlist {
@@ -146,6 +181,7 @@ impl Validate for Playlist {
                 Self::Invalidity::KindEmpty,
             )
             .validate_with(color, Self::Invalidity::Color)
+            .validate_with(&self.flags, PlaylistInvalidity::Flags)
             .into()
     }
 }

@@ -24,6 +24,8 @@ mod _core {
     };
 }
 
+use aoide_core::{playlist::Flags, util::IsDefault};
+
 ///////////////////////////////////////////////////////////////////////
 // Item
 ///////////////////////////////////////////////////////////////////////
@@ -134,6 +136,9 @@ pub struct Playlist {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     color: Option<Color>,
+
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    flags: u8,
 }
 
 impl From<Playlist> for _core::Playlist {
@@ -144,6 +149,7 @@ impl From<Playlist> for _core::Playlist {
             kind,
             notes,
             color,
+            flags,
         } = from;
         Self {
             collected_at: collected_at.into(),
@@ -151,6 +157,7 @@ impl From<Playlist> for _core::Playlist {
             kind,
             notes,
             color: color.map(Into::into),
+            flags: Flags::from_bits_truncate(flags),
         }
     }
 }
@@ -163,6 +170,7 @@ impl From<_core::Playlist> for Playlist {
             kind,
             notes,
             color,
+            flags,
         } = from;
         Self {
             collected_at: collected_at.into(),
@@ -170,6 +178,7 @@ impl From<_core::Playlist> for Playlist {
             kind,
             notes,
             color: color.map(Into::into),
+            flags: flags.bits(),
         }
     }
 }

@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS playlist (
     notes                    TEXT,
     color_rgb                INTEGER, -- 0xRRGGBB (hex)
     color_idx                INTEGER, -- palette index
+    flags                    INTEGER NOT NULL, -- bitmask of flags, e.g. locking to prevent unintended modifications
     --
     UNIQUE (entity_uid), -- only the last revision is stored
     FOREIGN KEY(collection_id) REFERENCES collection(row_id)

@@ -1450,6 +1450,8 @@ components:
           $ref: '#/components/schemas/PlaylistNotes'
         kind:
           $ref: '#/components/schemas/PlaylistKind'
+        flags:
+          $ref: '#/components/schemas/PlaylistFlags'
       required:
         - collectedAt
         - title
@@ -1612,6 +1614,17 @@ components:
       description: Optional playlist entry title
       type: string
       minLength: 1
+    PlaylistFlags:
+      type: integer
+      format: i32
+      minimum: 0
+      maximum: 1
+      example: 1
+      description: |
+        A bitmask with flags, e.g. for locking to prevent unintended changes.
+
+        Bits:
+          - 0x01: Locked
     PlaylistItem:
       oneOf:
         - $ref: '#/components/schemas/PlaylistItemSeparator'

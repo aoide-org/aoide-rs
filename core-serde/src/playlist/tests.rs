@@ -32,6 +32,7 @@ fn deserialize_playlist() {
             kind: Some("Kind".to_string()),
             notes: None,
             color: None,
+            flags: 0,
         },
         entries: vec![
             Entry {

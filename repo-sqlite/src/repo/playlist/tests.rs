@@ -108,6 +108,7 @@ impl Fixture {
             notes: None,
             kind: None,
             color: None,
+            flags: Default::default(),
         };
         let playlist_entity = Entity::new(EntityHeader::initial_random(), playlist);
         let playlist_id = db.insert_collected_playlist_entity(

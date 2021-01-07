@@ -43,6 +43,7 @@ pub struct QueryableRecord {
     pub notes: Option<String>,
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
+    pub flags: i16,
 }
 
 impl From<QueryableRecord> for (RecordHeader, CollectionId, Entity) {
@@ -61,6 +62,7 @@ impl From<QueryableRecord> for (RecordHeader, CollectionId, Entity) {
             notes,
             color_rgb,
             color_idx,
+            flags,
         } = from;
         let header = RecordHeader {
             id: id.into(),
@@ -84,6 +86,7 @@ impl From<QueryableRecord> for (RecordHeader, CollectionId, Entity) {
             } else {
                 None
             },
+            flags: Flags::from_bits(flags as u8).unwrap_or_default(),
         };
         (header, collection_id, Entity::new(entity_hdr, entity_body))
     }
@@ -104,6 +107,7 @@ pub struct InsertableRecord<'a> {
     pub notes: Option<&'a str>,
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
+    pub flags: i16,
 }
 
 impl<'a> InsertableRecord<'a> {
@@ -117,6 +121,7 @@ impl<'a> InsertableRecord<'a> {
             kind,
             notes,
             color,
+            flags,
         } = body;
         Self {
             row_created_ms: row_created_updated_ms,
@@ -139,6 +144,7 @@ impl<'a> InsertableRecord<'a> {
             } else {
                 None
             },
+            flags: flags.bits() as i16,
         }
     }
 }
@@ -174,6 +180,7 @@ pub struct UpdatableRecord<'a> {
     pub notes: Option<&'a str>,
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
+    pub flags: i16,
 }
 
 impl<'a> UpdatableRecord<'a> {
@@ -185,6 +192,7 @@ impl<'a> UpdatableRecord<'a> {
             kind,
             notes,
             color,
+            flags,
         } = playlist;
         Self {
             row_updated_ms: updated_at.timestamp_millis(),
@@ -204,6 +212,7 @@ impl<'a> UpdatableRecord<'a> {
             } else {
                 None
             },
+            flags: flags.bits() as i16,
         }
     }
 }
