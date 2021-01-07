@@ -238,7 +238,7 @@ pub trait EntityRepo: MediaSourceRepo {
         filter: Option<SearchFilter>,
         ordering: Vec<SortOrder>,
         collector: &mut dyn ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
-    ) -> RepoResult<()>;
+    ) -> RepoResult<usize>;
 
     fn count_collected_tracks(&self, collection_id: CollectionId) -> RepoResult<u64>;
 }

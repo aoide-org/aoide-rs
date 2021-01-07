@@ -596,7 +596,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         filter: Option<SearchFilter>,
         ordering: Vec<SortOrder>,
         collector: &mut dyn ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
-    ) -> RepoResult<()> {
+    ) -> RepoResult<usize> {
         let mut query =
             track::table
                 .inner_join(media_source::table)
@@ -623,7 +623,8 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         let queryables = query
             .load::<QueryableRecord>(self.as_ref())
             .map_err(repo_error)?;
-        collector.reserve(queryables.len());
+        let count = queryables.len();
+        collector.reserve(count);
         for queryable in queryables {
             let media_source_id = queryable.media_source_id.into();
             let (_, media_source) = self.load_media_source(media_source_id)?;
@@ -631,7 +632,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             let (record_header, entity) = load_repo_entity(preload, queryable);
             collector.collect(record_header, entity);
         }
-        Ok(())
+        Ok(count)
     }
 
     fn count_collected_tracks(&self, collection_id: CollectionId) -> RepoResult<u64> {

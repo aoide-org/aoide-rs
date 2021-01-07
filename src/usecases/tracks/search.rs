@@ -20,6 +20,8 @@ use aoide_repo::{
     track::{SearchFilter, SortOrder},
 };
 
+use std::time::Instant;
+
 ///////////////////////////////////////////////////////////////////////
 
 pub fn search(
@@ -29,10 +31,19 @@ pub fn search(
     filter: Option<SearchFilter>,
     ordering: Vec<SortOrder>,
     collector: &mut impl ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
-) -> RepoResult<()> {
+) -> RepoResult<usize> {
     let db = SqliteConnection::new(&*pooled_connection);
     let collection_id = db.resolve_collection_id(collection_uid)?;
     Ok(db.transaction::<_, DieselRepoError, _>(|| {
-        Ok(db.search_collected_tracks(collection_id, pagination, filter, ordering, collector)?)
+        let started = Instant::now();
+        let count =
+            db.search_collected_tracks(collection_id, pagination, filter, ordering, collector)?;
+        let elapsed = started.elapsed();
+        log::debug!(
+            "Search returned {} tracks and took {} ms",
+            count,
+            (elapsed.as_micros() / 1000) as f64,
+        );
+        Ok(count)
     })?)
 }
