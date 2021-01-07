@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS playlist_entry (
     playlist_id              INTEGER NOT NULL,
     track_id                 INTEGER, -- NULL for separators
     -- private properties
-    ordering                 INTEGER NOT NULL,
+    ordering                 INTEGER NOT NULL, -- does not affect row_created_ms/row_updated_ms
     -- properties
     added_at                 TEXT NOT NULL,
     added_ms                 INTEGER NOT NULL,
@@ -35,8 +35,16 @@ CREATE TABLE IF NOT EXISTS playlist_entry (
     FOREIGN KEY(track_id) REFERENCES track(row_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_playlist_entry_added_ms ON playlist_entry (
-    added_ms
+CREATE INDEX IF NOT EXISTS idx_playlist_entry_row_created_ms_desc ON playlist (
+    row_created_ms DESC
+);
+
+CREATE INDEX IF NOT EXISTS idx_playlist_entry_row_updated_ms_desc ON playlist (
+    row_updated_ms DESC
+);
+
+CREATE INDEX IF NOT EXISTS idx_playlist_entry_added_ms_desc ON playlist_entry (
+    added_ms DESC
 );
 
 CREATE INDEX IF NOT EXISTS idx_playlist_entry_playlist_id_track_id ON playlist_entry (

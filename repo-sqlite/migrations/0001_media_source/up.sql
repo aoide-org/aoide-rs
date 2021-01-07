@@ -51,20 +51,24 @@ CREATE TABLE IF NOT EXISTS media_source (
     UNIQUE (collection_id, uri)
 );
 
-CREATE INDEX idx_media_source_row_created_ms ON media_source (
-    row_created_ms
+CREATE INDEX idx_media_source_row_created_ms_desc ON media_source (
+    row_created_ms DESC
 );
 
-CREATE INDEX idx_media_source_row_updated_ms ON media_source (
-    row_updated_ms
+CREATE INDEX idx_media_source_row_updated_ms_desc ON media_source (
+    row_updated_ms DESC
 );
 
-CREATE INDEX IF NOT EXISTS idx_media_source_collected_ms ON media_source (
-    collected_ms
+CREATE INDEX IF NOT EXISTS idx_media_source_collected_ms_desc ON media_source (
+    collected_ms DESC
 );
 
 CREATE INDEX idx_media_source_synchronized_ms ON media_source (
     synchronized_ms
+);
+
+CREATE INDEX idx_media_source_synchronized_ms_desc ON media_source (
+    synchronized_ms DESC
 );
 
 CREATE INDEX idx_media_source_uri_decoded ON media_source (

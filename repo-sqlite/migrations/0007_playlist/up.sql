@@ -38,17 +38,17 @@ CREATE TABLE IF NOT EXISTS playlist (
     FOREIGN KEY(collection_id) REFERENCES collection(row_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_playlist_row_created_ms ON playlist (
-    row_created_ms
+CREATE INDEX IF NOT EXISTS idx_playlist_row_created_ms_desc ON playlist (
+    row_created_ms DESC
 );
 
-CREATE INDEX IF NOT EXISTS idx_playlist_row_updated_ms ON playlist (
-    row_updated_ms
+CREATE INDEX IF NOT EXISTS idx_playlist_row_updated_ms_desc ON playlist (
+    row_updated_ms DESC
 );
 
-CREATE INDEX IF NOT EXISTS idx_playlist_collection_id_collected_ms ON playlist (
+CREATE INDEX IF NOT EXISTS idx_playlist_collection_id_collected_ms_desc ON playlist (
     collection_id,
-    collected_ms
+    collected_ms DESC
 );
 
 CREATE INDEX IF NOT EXISTS idx_playlist_kind_title ON playlist (

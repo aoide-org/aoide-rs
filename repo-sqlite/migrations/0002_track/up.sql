@@ -63,12 +63,12 @@ CREATE TABLE IF NOT EXISTS track (
     UNIQUE (entity_uid) -- only the last revision is stored
 );
 
-CREATE INDEX IF NOT EXISTS idx_track_row_created_ms ON track (
-    row_created_ms
+CREATE INDEX IF NOT EXISTS idx_track_row_created_ms_desc ON track (
+    row_created_ms DESC
 );
 
-CREATE INDEX IF NOT EXISTS idx_track_row_updated_ms ON track (
-    row_updated_ms
+CREATE INDEX IF NOT EXISTS idx_track_row_updated_ms_desc ON track (
+    row_updated_ms DESC
 );
 
 CREATE INDEX IF NOT EXISTS idx_track_media_source_id ON track (
@@ -79,8 +79,16 @@ CREATE INDEX IF NOT EXISTS idx_track_released_at_yyyymmdd ON track (
     released_at_yyyymmdd
 );
 
+CREATE INDEX IF NOT EXISTS idx_track_released_at_yyyymmdd_desc ON track (
+    released_at_yyyymmdd DESC
+);
+
 CREATE INDEX IF NOT EXISTS idx_track_music_tempo_bpm ON track (
     music_tempo_bpm
+);
+
+CREATE INDEX IF NOT EXISTS idx_track_music_tempo_bpm_desc ON track (
+    music_tempo_bpm DESC
 );
 
 CREATE INDEX IF NOT EXISTS idx_track_music_key_code ON track (
@@ -107,6 +115,6 @@ CREATE INDEX IF NOT EXISTS idx_track_aux_album_artist ON track (
     aux_album_artist
 );
 
-CREATE INDEX IF NOT EXISTS idx_track_last_played_ms ON track (
-    last_played_ms
+CREATE INDEX IF NOT EXISTS idx_track_last_played_ms_desc ON track (
+    last_played_ms DESC
 );

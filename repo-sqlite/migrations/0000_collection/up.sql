@@ -33,12 +33,12 @@ CREATE TABLE IF NOT EXISTS collection (
     UNIQUE (entity_uid) -- only the last revision is stored
 );
 
-CREATE INDEX IF NOT EXISTS idx_collection_row_created_ms ON collection (
-    row_created_ms
+CREATE INDEX IF NOT EXISTS idx_collection_row_created_ms_desc ON collection (
+    row_created_ms DESC
 );
 
-CREATE INDEX IF NOT EXISTS idx_collection_row_updated_ms ON collection (
-    row_updated_ms
+CREATE INDEX IF NOT EXISTS idx_collection_row_updated_ms_desc ON collection (
+    row_updated_ms DESC
 );
 
 CREATE INDEX IF NOT EXISTS idx_collection_kind_title ON collection (
