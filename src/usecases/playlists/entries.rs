@@ -28,9 +28,9 @@ pub enum PatchOperation {
     Insert { before: usize, entries: Vec<Entry> },
     Move { range: Range<usize>, delta: isize },
     Remove { range: Range<usize> },
-    Clear,
-    Reverse,
-    Shuffle,
+    RemoveAll,
+    ReverseAll,
+    ShuffleAll,
 }
 
 pub fn patch(
@@ -76,14 +76,14 @@ pub fn patch(
                     }
                     db.remove_playlist_entries(record_header.id, &range)?;
                 }
-                Clear => {
-                    db.clear_playlist_entries(record_header.id)?;
+                RemoveAll => {
+                    db.remove_all_playlist_entries(record_header.id)?;
                 }
-                Reverse => {
-                    db.reverse_playlist_entries(record_header.id)?;
+                ReverseAll => {
+                    db.reverse_all_playlist_entries(record_header.id)?;
                 }
-                Shuffle => {
-                    db.shuffle_playlist_entries(record_header.id)?;
+                ShuffleAll => {
+                    db.shuffle_all_playlist_entries(record_header.id)?;
                 }
             }
         }

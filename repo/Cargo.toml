@@ -10,6 +10,7 @@ edition = "2018"
 aoide-core = "*"
 anyhow = "*"
 paste = "*"
+rand = "*"
 thiserror = "*"
 
 [features]

@@ -42,9 +42,9 @@ pub enum PatchOperation {
         start: usize,
         end: usize,
     },
-    Clear,
-    Reverse,
-    Shuffle,
+    RemoveAll,
+    ReverseAll,
+    ShuffleAll,
 }
 
 impl From<PatchOperation> for uc::PatchOperation {
@@ -66,9 +66,9 @@ impl From<PatchOperation> for uc::PatchOperation {
                 delta,
             },
             Remove { start, end } => Self::Remove { range: start..end },
-            Clear => Self::Clear,
-            Reverse => Self::Reverse,
-            Shuffle => Self::Shuffle,
+            RemoveAll => Self::RemoveAll,
+            ReverseAll => Self::ReverseAll,
+            ShuffleAll => Self::ShuffleAll,
         }
     }
 }

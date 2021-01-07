@@ -76,6 +76,7 @@ dependencies = [
  "anyhow",
  "aoide-core",
  "paste",
+ "rand 0.8.1",
  "thiserror",
 ]
 

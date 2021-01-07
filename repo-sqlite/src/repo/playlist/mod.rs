@@ -24,7 +24,6 @@ use crate::{
     prelude::*,
 };
 
-use anyhow::anyhow;
 use aoide_core::{
     entity::{EntityHeader, EntityRevision, EntityUid},
     playlist::{track::Item as TrackItem, *},
@@ -193,7 +192,7 @@ fn shift_playlist_entries_forward<'db>(
     Ok(rows_updated)
 }
 
-fn reverse_playlist_entries_tail<'db>(
+fn reverse_all_playlist_entries_tail<'db>(
     db: &crate::Connection<'db>,
     playlist_id: RecordId,
     old_min_ordering: i64,
@@ -404,7 +403,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
         Ok(rows_deleted)
     }
 
-    fn clear_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<usize> {
+    fn remove_all_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<usize> {
         use playlist_entry_db::schema::*;
         let rows_deleted: usize = diesel::delete(
             playlist_entry::table.filter(playlist_entry::playlist_id.eq(RowId::from(playlist_id))),
@@ -414,7 +413,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
         Ok(rows_deleted)
     }
 
-    fn reverse_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<usize> {
+    fn reverse_all_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<usize> {
         use playlist_entry_db::schema::*;
         let min_ordering = min_playlist_entry_ordering(self, playlist_id)?;
         let max_ordering = max_playlist_entry_ordering(self, playlist_id)?;
@@ -429,7 +428,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
                         .saturating_add(1)
                         .max(self.count_playlist_entries(playlist_id)? as i64);
                     debug_assert!(new_max_ordering > max_ordering);
-                    rows_updated = reverse_playlist_entries_tail(
+                    rows_updated = reverse_all_playlist_entries_tail(
                         self,
                         playlist_id,
                         min_ordering,
@@ -556,11 +555,6 @@ impl<'db> EntryRepo for crate::Connection<'db> {
             ordering = ordering.saturating_add(1);
         }
         Ok(())
-    }
-
-    fn shuffle_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<()> {
-        log::error!("TODO: shuffle_playlist_entries({:?})", playlist_id);
-        Err(anyhow!("Shuffling of playlist entries not yet implemented").into())
     }
 
     fn delete_playlist_entries_with_tracks_from_other_collections(&self) -> RepoResult<usize> {

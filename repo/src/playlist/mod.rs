@@ -23,6 +23,8 @@ use crate::{collection::RecordId as CollectionId, prelude::*};
 
 use aoide_core::{playlist::*, util::clock::DateTime};
 
+use rand::{seq::SliceRandom, thread_rng};
+
 pub trait Repo: EntityRepo + EntryRepo {
     fn load_playlist_entity_with_entries(&self, id: RecordId) -> RepoResult<EntityWithEntries>;
 
@@ -103,7 +105,7 @@ pub fn move_playlist_entries_default<R: EntryRepo + ?Sized>(
     entry_repo.insert_playlist_entries(playlist_id, insert_index, &moved_entries)
 }
 
-pub fn clear_playlist_entries_default<R: EntryRepo + ?Sized>(
+pub fn remove_all_playlist_entries_default<R: EntryRepo + ?Sized>(
     entry_repo: &R,
     playlist_id: RecordId,
 ) -> RepoResult<usize> {
@@ -114,7 +116,31 @@ pub fn clear_playlist_entries_default<R: EntryRepo + ?Sized>(
     entry_repo.remove_playlist_entries(playlist_id, &(0..entries_count))
 }
 
+pub fn shuffle_all_playlist_entries_default<R: EntryRepo + ?Sized>(
+    entry_repo: &R,
+    playlist_id: RecordId,
+) -> RepoResult<()> {
+    let mut entries = entry_repo.load_playlist_entries(playlist_id)?;
+    entries.shuffle(&mut thread_rng());
+    entry_repo.remove_all_playlist_entries(playlist_id)?;
+    entry_repo.append_playlist_entries(playlist_id, &entries)?;
+    Ok(())
+}
+
 pub trait EntryRepo {
+    fn insert_playlist_entries(
+        &self,
+        playlist_id: RecordId,
+        before_index: usize,
+        new_entries: &[Entry],
+    ) -> RepoResult<()>;
+
+    fn remove_playlist_entries(
+        &self,
+        playlist_id: RecordId,
+        index_range: &Range<usize>,
+    ) -> RepoResult<usize>;
+
     fn prepend_playlist_entries(
         &self,
         playlist_id: RecordId,
@@ -140,26 +166,15 @@ pub trait EntryRepo {
         move_playlist_entries_default(self, playlist_id, index_range, delta_index)
     }
 
-    fn clear_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<usize> {
-        clear_playlist_entries_default(self, playlist_id)
+    fn remove_all_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<usize> {
+        remove_all_playlist_entries_default(self, playlist_id)
     }
 
-    fn remove_playlist_entries(
-        &self,
-        playlist_id: RecordId,
-        index_range: &Range<usize>,
-    ) -> RepoResult<usize>;
+    fn reverse_all_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<usize>;
 
-    fn reverse_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<usize>;
-
-    fn insert_playlist_entries(
-        &self,
-        playlist_id: RecordId,
-        before_index: usize,
-        new_entries: &[Entry],
-    ) -> RepoResult<()>;
-
-    fn shuffle_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<()>;
+    fn shuffle_all_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<()> {
+        shuffle_all_playlist_entries_default(self, playlist_id)
+    }
 
     fn count_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<usize>;
 

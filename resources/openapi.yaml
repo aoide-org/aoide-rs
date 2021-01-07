@@ -1545,9 +1545,9 @@ components:
             - remove
         - type: string
           enum:
-            - clear
-            - reverse
-            - shuffle
+            - removeAll
+            - reverseAll
+            - shuffleAll
     PlaylistEntriesSummary:
       type: object
       properties:
