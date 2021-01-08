@@ -508,10 +508,10 @@ paths:
                 type: object
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /storage/groom:
+  /storage/cleanse:
     post:
-      operationId: groomStorage
-      summary: Groom the database storage
+      operationId: cleanseStorage
+      summary: Cleanse the database(s)
       tags:
         - Administration
       responses:
@@ -522,7 +522,7 @@ paths:
   /storage/optimize:
     post:
       operationId: optimizeStorage
-      summary: Optimize the database storage
+      summary: Optimize the database(s)
       tags:
         - Administration
       responses:

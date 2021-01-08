@@ -46,7 +46,7 @@ pub fn migrate_schema(connection: &SqliteConnection) -> Result<()> {
     Ok(())
 }
 
-pub fn groom(connection: &SqliteConnection) -> Result<()> {
+pub fn cleanse(connection: &SqliteConnection) -> Result<()> {
     log::info!("Grooming database");
     let db = RepoConnection::new(&*connection);
     db.transaction::<_, DieselRepoError, _>(|| {

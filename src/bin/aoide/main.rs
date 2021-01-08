@@ -551,15 +551,15 @@ pub async fn main() -> Result<(), Error> {
         .or(playlists_entries_patch);
 
     // Storage
-    let storage_groom = warp::post()
+    let storage_cleanse = warp::post()
         .and(storage_path)
-        .and(warp::path("groom"))
+        .and(warp::path("cleanse"))
         .and(warp::path::end())
         .and(guarded_connection_pool.clone())
         .and_then(
             |guarded_connection_pool: GuardedConnectionPool| async move {
                 spawn_blocking_database_write_task(guarded_connection_pool, |pooled_connection| {
-                    Ok(uc::database::groom(&pooled_connection)?)
+                    Ok(uc::database::cleanse(&pooled_connection)?)
                 })
                 .await
                 .map_err(reject_on_error)
@@ -581,7 +581,7 @@ pub async fn main() -> Result<(), Error> {
                 .map(|()| StatusCode::NO_CONTENT)
             },
         );
-    let storage_filters = storage_groom.or(storage_optimize);
+    let storage_filters = storage_cleanse.or(storage_optimize);
 
     // Static content
     let index_html = warp::path::end().map(|| warp::reply::html(INDEX_HTML));
