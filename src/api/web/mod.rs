@@ -138,9 +138,6 @@ pub async fn handle_rejection(reject: Rejection) -> StdResult<impl Reply, Infall
             .source()
             .map(ToString::to_string)
             .unwrap_or_else(|| err.to_string());
-    } else if let Some(err) = reject.find::<MethodNotAllowed>() {
-        code = StatusCode::METHOD_NOT_ALLOWED;
-        message = err.to_string();
     } else if let Some(err) = reject.find::<Error>() {
         match err {
             Error::TaskScheduling(err) => {
@@ -176,6 +173,11 @@ pub async fn handle_rejection(reject: Rejection) -> StdResult<impl Reply, Infall
         }
     } else if let Some(err) = reject.find::<Error>() {
         code = StatusCode::INTERNAL_SERVER_ERROR;
+        message = err.to_string();
+    } else if let Some(err) = reject.find::<MethodNotAllowed>() {
+        // This must have the least priority, because most rejections
+        // contain a MethodNotAllowed element!
+        code = StatusCode::METHOD_NOT_ALLOWED;
         message = err.to_string();
     } else {
         log::error!("Unhandled rejection {:?}", reject);
