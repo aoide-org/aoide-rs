@@ -15,8 +15,10 @@
 
 mod search;
 
-use diesel::dsl::count_star;
 use search::{TrackSearchBoxedExpressionBuilder as _, TrackSearchQueryTransform as _};
+
+use diesel::dsl::count_star;
+use std::time::Instant;
 
 use crate::{
     db::{
@@ -620,18 +622,32 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         // Pagination
         query = apply_pagination(query, pagination);
 
-        let queryables = query
+        let timed = Instant::now();
+        let records = query
             .load::<QueryableRecord>(self.as_ref())
             .map_err(repo_error)?;
-        let count = queryables.len();
+        let count = records.len();
+        log::debug!(
+            "Executing search query returned {} records and took {} ms",
+            count,
+            (timed.elapsed().as_micros() / 1000) as f64,
+        );
+
+        let timed = Instant::now();
         collector.reserve(count);
-        for queryable in queryables {
-            let media_source_id = queryable.media_source_id.into();
+        for record in records {
+            let media_source_id = record.media_source_id.into();
             let (_, media_source) = self.load_media_source(media_source_id)?;
-            let preload = preload_entity(self, queryable.id.into(), media_source)?;
-            let (record_header, entity) = load_repo_entity(preload, queryable);
+            let preload = preload_entity(self, record.id.into(), media_source)?;
+            let (record_header, entity) = load_repo_entity(preload, record);
             collector.collect(record_header, entity);
         }
+        log::debug!(
+            "Loading and collecting {} tracks from database took {} ms",
+            count,
+            (timed.elapsed().as_micros() / 1000) as f64,
+        );
+
         Ok(count)
     }
 
