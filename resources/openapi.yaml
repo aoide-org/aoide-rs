@@ -324,7 +324,7 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /c/{collectionUid}/playlists:
+  /c/{collectionUid}/p:
     get:
       operationId: listCollectedPlaylists
       summary: List collected playlists
