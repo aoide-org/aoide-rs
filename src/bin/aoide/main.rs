@@ -24,10 +24,6 @@ use aoide::{
 
 use aoide_core::entity::EntityUid;
 
-mod _serde {
-    pub use aoide_core_serde::entity::EntityUid;
-}
-
 use futures::future::{join, FutureExt};
 use std::{env::current_exe, sync::Arc, time::Duration};
 use tokio::{sync::mpsc, sync::RwLock, time::delay_for};
@@ -130,8 +126,8 @@ pub async fn main() -> Result<(), Error> {
     let path_param_uid = warp::path::param::<EntityUid>();
 
     let collections_path = warp::path("c");
-    let tracks_path = warp::path("tracks");
-    let playlists_path = warp::path("playlists");
+    let tracks_path = warp::path("t");
+    let playlists_path = warp::path("p");
     let storage_path = warp::path("storage");
 
     // Collections

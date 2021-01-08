@@ -106,7 +106,7 @@ paths:
         - Collections
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
-        - $ref: '#/components/parameters/entityRevisionQuery'
+        - $ref: '#/components/parameters/currentEntityRevisionQuery'
       requestBody:
         description: |
           The updated collection entity.
@@ -148,11 +148,12 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /c/{collectionUid}/tracks/resolve:
+  /c/{collectionUid}/t/resolve:
     post:
       summary: Resolve the UIDs of tracks from a list of media source URIs
       description: |
-        Resolve the UID of tracks from a list of media source URIs.
+        Resolve the UID and current revision of tracks from a list of
+        media source URIs.
 
         The result list is unordered and contains only those tracks
         that have been found.
@@ -187,7 +188,7 @@ paths:
                       - $ref: '#/components/schemas/EntityHeader'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /c/{collectionUid}/tracks/search:
+  /c/{collectionUid}/t/search:
     post:
       operationId: searchCollectedTracks
       summary: Search collected tracks and their media sources
@@ -216,7 +217,7 @@ paths:
                 $ref: '#/components/schemas/SearchCollectedTracksResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /c/{collectionUid}/tracks/replace:
+  /c/{collectionUid}/t/replace:
     post:
       operationId: replaceCollectedTracks
       summary: Replace collected tracks and media sources by URI
@@ -244,7 +245,7 @@ paths:
                 $ref: '#/components/schemas/ReplaceCollectedTracksResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /c/{collectionUid}/tracks/purge:
+  /c/{collectionUid}/t/purge:
     post:
       operationId: purgeCollectedTracks
       summary: Purge collected tracks and media sources by URI
@@ -268,7 +269,7 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /tracks/{trackUid}:
+  /t/{trackUid}:
     get:
       operationId: loadTrack
       summary: Load a track
@@ -290,7 +291,7 @@ paths:
           $ref: '#/components/responses/404NotFound'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /tracks/load:
+  /t/load:
     post:
       operationId: loadTracks
       summary: Load multiple tracks
@@ -381,7 +382,7 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /playlists/{playlistUid}:
+  /p/{playlistUid}:
     get:
       operationId: loadPlaylist
       summary: Load a playlist
@@ -413,7 +414,7 @@ paths:
         - Playlists
       parameters:
         - $ref: '#/components/parameters/playlistUidPath'
-        - $ref: '#/components/parameters/entityRevisionQuery'
+        - $ref: '#/components/parameters/currentEntityRevisionQuery'
       requestBody:
         description: |
           A playlist entity with the current `header` and and updated `body`.
@@ -455,7 +456,7 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /playlists/{playlistUid}/entries:
+  /p/{playlistUid}/entries:
     patch:
       operationId: patchPlaylistEntries
       summary: Patch playlist entries
@@ -465,7 +466,7 @@ paths:
         - Playlist Entries
       parameters:
         - $ref: '#/components/parameters/playlistUidPath'
-        - $ref: '#/components/parameters/entityRevisionQuery'
+        - $ref: '#/components/parameters/currentEntityRevisionQuery'
       requestBody:
         required: true
         content:
@@ -626,12 +627,15 @@ components:
         $ref: '#/components/schemas/CollectionUid'
       description: |
         The UID of the collection.
-    entityRevisionQuery:
+    currentEntityRevisionQuery:
       name: rev
       in: query
       required: true
       schema:
         $ref: '#/components/schemas/EntityRevision'
+      description: |
+        The current entity revision for optimistic locking when
+        modifying an entity.
     collectionKindQuery:
       name: kind
       in: query
