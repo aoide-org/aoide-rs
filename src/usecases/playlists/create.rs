@@ -22,14 +22,14 @@ use aoide_repo::collection::EntityRepo as _;
 ///////////////////////////////////////////////////////////////////////
 
 pub fn create(
-    pooled_connection: &SqlitePooledConnection,
+    connection: &SqliteConnection,
     collection_uid: &EntityUid,
     new_playlist: Playlist,
 ) -> RepoResult<Entity> {
     let hdr = EntityHeader::initial_random();
     let entity = Entity::new(hdr, new_playlist);
     let created_at = DateTime::now_utc();
-    let db = SqliteConnection::new(&*pooled_connection);
+    let db = RepoConnection::new(connection);
     Ok(db.transaction::<_, DieselRepoError, _>(|| {
         let collection_id = db.resolve_collection_id(collection_uid)?;
         db.insert_collected_playlist_entity(collection_id, created_at, &entity)?;

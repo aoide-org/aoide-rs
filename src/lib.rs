@@ -27,30 +27,12 @@ use diesel::{
 #[macro_use]
 extern crate diesel_migrations;
 
-use aoide_repo_sqlite::prelude::{Connection as SqliteConnection, *};
+use aoide_repo_sqlite::prelude::{Connection as RepoConnection, *};
 
-use anyhow::Error;
-
-pub type SqliteConnectionManager = ConnectionManager<diesel::SqliteConnection>;
+pub type SqliteConnectionManager = ConnectionManager<SqliteConnection>;
 pub type SqliteConnectionPool = Pool<SqliteConnectionManager>;
 pub type SqlitePooledConnection = PooledConnection<SqliteConnectionManager>;
 
-#[derive(Clone)]
-#[allow(missing_debug_implementations)]
-pub struct SqliteExecutor {
-    connection_pool: SqliteConnectionPool,
-}
-
-impl SqliteExecutor {
-    pub fn new(connection_pool: SqliteConnectionPool) -> Self {
-        Self { connection_pool }
-    }
-
-    pub fn connection_pool(&self) -> SqliteConnectionPool {
-        self.connection_pool.clone()
-    }
-
-    pub fn pooled_connection(&self) -> Result<SqlitePooledConnection, Error> {
-        self.connection_pool.get().map_err(Into::into)
-    }
-}
+// Maximum number of concurrent readers, only a single
+// concurrent writer.
+pub const DB_CONNECTION_POOL_SIZE: u32 = 8;

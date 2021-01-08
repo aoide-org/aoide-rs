@@ -35,9 +35,9 @@ pub struct QueryParams {
 pub type ResponseBody = Vec<EntityWithSummary>;
 
 pub fn handle_request(
-    pooled_connection: &SqlitePooledConnection,
+    pooled_connection: SqlitePooledConnection,
     query_params: QueryParams,
-) -> RepoResult<ResponseBody> {
+) -> Result<ResponseBody> {
     let QueryParams {
         kind,
         summary,
@@ -47,7 +47,7 @@ pub fn handle_request(
     let pagination: Option<_> = pagination.into();
     let mut collector = EntityCollector::default();
     uc::load_all(
-        pooled_connection,
+        &pooled_connection,
         kind.as_deref(),
         with_summary,
         pagination.as_ref(),

@@ -25,14 +25,14 @@ use std::time::Instant;
 ///////////////////////////////////////////////////////////////////////
 
 pub fn search(
-    pooled_connection: &SqlitePooledConnection,
+    pooled_connection: SqlitePooledConnection,
     collection_uid: &EntityUid,
     pagination: &Pagination,
     filter: Option<SearchFilter>,
     ordering: Vec<SortOrder>,
     collector: &mut impl ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
 ) -> RepoResult<usize> {
-    let db = SqliteConnection::new(&*pooled_connection);
+    let db = RepoConnection::new(&pooled_connection);
     let collection_id = db.resolve_collection_id(collection_uid)?;
     Ok(db.transaction::<_, DieselRepoError, _>(|| {
         let started = Instant::now();

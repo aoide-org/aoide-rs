@@ -15,11 +15,13 @@
 
 use super::*;
 
+use crate::usecases as uc;
+
 mod _repo {
     pub use aoide_repo::prelude::*;
 }
 
-use aoide_repo::prelude::{Pagination, PaginationLimit, PaginationOffset, RepoError, RepoResult};
+use aoide_repo::prelude::{Pagination, PaginationLimit, PaginationOffset, RepoError};
 
 use aoide_core_serde::entity::EntityRevision;
 
@@ -33,7 +35,9 @@ use warp::{
     Reply,
 };
 
-use std::{convert::Infallible, error::Error as StdError};
+use std::{convert::Infallible, error::Error as StdError, result::Result as StdResult};
+
+use thiserror::Error;
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -41,26 +45,51 @@ pub mod collections;
 pub mod playlists;
 pub mod tracks;
 
-#[derive(Debug)]
-struct RejectAnyhowError(anyhow::Error);
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error(transparent)]
+    TaskScheduling(#[from] tokio::task::JoinError),
 
-impl Reject for RejectAnyhowError {}
+    #[error(transparent)]
+    Database(#[from] diesel::result::Error),
 
-pub fn reject_from_anyhow(err: anyhow::Error) -> Rejection {
-    reject::custom(RejectAnyhowError(err))
+    #[error(transparent)]
+    DatabaseConnection(#[from] r2d2::Error),
+
+    #[error(transparent)]
+    Repository(#[from] RepoError),
+
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
 }
 
-#[derive(Debug)]
-struct RejectConflictError;
+impl From<uc::Error> for Error {
+    fn from(err: uc::Error) -> Self {
+        use uc::Error::*;
+        match err {
+            Database(err) => Self::Database(err),
+            DatabaseMigration(err) => Self::Other(err.into()), // does not occur for the web API
+            DatabaseConnection(err) => Self::DatabaseConnection(err),
+            Repository(err) => Self::Repository(err),
+            Other(err) => Self::Other(err),
+        }
+    }
+}
 
-impl Reject for RejectConflictError {}
+pub type Result<T> = StdResult<T, Error>;
+
+impl Reject for Error {}
+
+pub fn reject_on_error(err: impl Into<Error>) -> Rejection {
+    reject::custom(err.into())
+}
+
+pub fn reject_from_anyhow(err: impl Into<anyhow::Error>) -> Rejection {
+    reject_on_error(err.into())
+}
 
 pub fn reject_from_repo_error(err: RepoError) -> Rejection {
-    match err {
-        RepoError::NotFound => warp::reject::not_found(),
-        RepoError::Conflict => warp::reject::custom(RejectConflictError),
-        err => reject_from_anyhow(err.into()),
-    }
+    reject_on_error(err)
 }
 
 #[derive(Debug)]
@@ -89,15 +118,12 @@ fn status_code_to_string(code: StatusCode) -> String {
         .to_string()
 }
 
-pub async fn handle_rejection(reject: Rejection) -> Result<impl Reply, Infallible> {
+pub async fn handle_rejection(reject: Rejection) -> StdResult<impl Reply, Infallible> {
     let code;
     let message;
 
     if reject.is_not_found() {
         code = StatusCode::NOT_FOUND;
-        message = status_code_to_string(code);
-    } else if let Some(RejectConflictError) = reject.find() {
-        code = StatusCode::CONFLICT;
         message = status_code_to_string(code);
     } else if let Some(CustomReject {
         code: custom_code,
@@ -115,9 +141,39 @@ pub async fn handle_rejection(reject: Rejection) -> Result<impl Reply, Infallibl
     } else if let Some(err) = reject.find::<MethodNotAllowed>() {
         code = StatusCode::METHOD_NOT_ALLOWED;
         message = err.to_string();
-    } else if let Some(RejectAnyhowError(err)) = reject.find() {
-        code = StatusCode::INTERNAL_SERVER_ERROR;
-        message = err.to_string();
+    } else if let Some(err) = reject.find::<Error>() {
+        match err {
+            Error::TaskScheduling(err) => {
+                code = StatusCode::INTERNAL_SERVER_ERROR;
+                message = err.to_string();
+            }
+            Error::Database(err) => {
+                code = StatusCode::INTERNAL_SERVER_ERROR;
+                message = err.to_string();
+            }
+            Error::DatabaseConnection(err) => {
+                code = StatusCode::INTERNAL_SERVER_ERROR;
+                message = err.to_string();
+            }
+            Error::Repository(err) => match err {
+                RepoError::NotFound => {
+                    code = StatusCode::NOT_FOUND;
+                    message = status_code_to_string(code);
+                }
+                RepoError::Conflict => {
+                    code = StatusCode::CONFLICT;
+                    message = status_code_to_string(code);
+                }
+                err => {
+                    code = StatusCode::INTERNAL_SERVER_ERROR;
+                    message = err.to_string();
+                }
+            },
+            Error::Other(err) => {
+                code = StatusCode::INTERNAL_SERVER_ERROR;
+                message = err.to_string();
+            }
+        }
     } else if let Some(err) = reject.find::<Error>() {
         code = StatusCode::INTERNAL_SERVER_ERROR;
         message = err.to_string();

@@ -20,7 +20,7 @@ use aoide_core::util::clock::DateTime;
 ///////////////////////////////////////////////////////////////////////
 
 pub fn update(
-    pooled_connection: &SqlitePooledConnection,
+    connection: &SqliteConnection,
     updated_entity_with_current_rev: Entity,
 ) -> RepoResult<Entity> {
     let (hdr, body) = updated_entity_with_current_rev.into();
@@ -32,7 +32,7 @@ pub fn update(
     let next_hdr = EntityHeader { uid, rev: next_rev };
     let updated_entity_with_next_rev = Entity::new(next_hdr, body);
     let updated_at = DateTime::now_utc();
-    let db = SqliteConnection::new(&*pooled_connection);
+    let db = RepoConnection::new(connection);
     Ok(db.transaction::<_, DieselRepoError, _>(|| {
         db.update_playlist_entity_revision(
             &current_rev,

@@ -17,8 +17,8 @@ use super::*;
 
 ///////////////////////////////////////////////////////////////////////
 
-pub fn load_one(pooled_connection: &SqlitePooledConnection, uid: &EntityUid) -> RepoResult<Entity> {
-    let db = SqliteConnection::new(&*pooled_connection);
+pub fn load_one(connection: &SqliteConnection, uid: &EntityUid) -> RepoResult<Entity> {
+    let db = RepoConnection::new(connection);
     Ok(db.transaction::<_, DieselRepoError, _>(|| {
         let (_, entity) = db.load_track_entity_by_uid(uid)?;
         Ok(entity)
@@ -26,11 +26,11 @@ pub fn load_one(pooled_connection: &SqlitePooledConnection, uid: &EntityUid) -> 
 }
 
 pub fn load_many(
-    pooled_connection: &SqlitePooledConnection,
+    connection: &SqliteConnection,
     uid_iter: impl IntoIterator<Item = EntityUid>,
     collector: &mut impl RecordCollector<Header = RecordHeader, Record = Entity>,
 ) -> RepoResult<()> {
-    let db = SqliteConnection::new(&*pooled_connection);
+    let db = RepoConnection::new(connection);
     Ok(db.transaction::<_, DieselRepoError, _>(|| {
         for uid in uid_iter.into_iter() {
             match db.load_track_entity_by_uid(&uid) {

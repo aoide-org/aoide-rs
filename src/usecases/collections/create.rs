@@ -19,14 +19,11 @@ use aoide_core::util::clock::DateTime;
 
 ///////////////////////////////////////////////////////////////////////
 
-pub fn create(
-    pooled_connection: &SqlitePooledConnection,
-    new_collection: Collection,
-) -> RepoResult<Entity> {
+pub fn create(connection: &SqliteConnection, new_collection: Collection) -> Result<Entity> {
     let hdr = EntityHeader::initial_random();
     let entity = Entity::new(hdr, new_collection);
     let created_at = DateTime::now_utc();
-    let db = SqliteConnection::new(&*pooled_connection);
+    let db = RepoConnection::new(connection);
     Ok(db.transaction::<_, DieselRepoError, _>(|| {
         db.insert_collection_entity(created_at, &entity)?;
         Ok(entity)

@@ -425,11 +425,11 @@ const DEFAULT_PAGINATION: Pagination = Pagination {
 };
 
 pub fn handle_request(
-    pooled_connection: &SqlitePooledConnection,
+    pooled_connection: SqlitePooledConnection,
     collection_uid: &_core::EntityUid,
     query_params: PaginationQueryParams,
     request_body: RequestBody,
-) -> RepoResult<ResponseBody> {
+) -> Result<ResponseBody> {
     let RequestBody { filter, ordering } = request_body;
     let mut collector = EntityCollector::default();
     uc::search(

@@ -20,11 +20,11 @@ use aoide_repo::collection::Summary;
 ///////////////////////////////////////////////////////////////////////
 
 pub fn load_one(
-    pooled_connection: &SqlitePooledConnection,
+    connection: &SqliteConnection,
     uid: &EntityUid,
     with_summary: bool,
 ) -> RepoResult<(Entity, Option<Summary>)> {
-    let db = SqliteConnection::new(&*pooled_connection);
+    let db = RepoConnection::new(connection);
     Ok(db.transaction::<_, DieselRepoError, _>(|| {
         let id = db.resolve_collection_id(uid)?;
         let (record_hdr, entity) = db.load_collection_entity(id)?;
@@ -38,7 +38,7 @@ pub fn load_one(
 }
 
 pub fn load_all(
-    pooled_connection: &SqlitePooledConnection,
+    connection: &SqliteConnection,
     kind: Option<&str>,
     with_summary: bool,
     pagination: Option<&Pagination>,
@@ -47,7 +47,7 @@ pub fn load_all(
         Record = (Entity, Option<Summary>),
     >,
 ) -> RepoResult<()> {
-    let db = SqliteConnection::new(&*pooled_connection);
+    let db = RepoConnection::new(connection);
     Ok(db.transaction::<_, DieselRepoError, _>(|| {
         Ok(db.load_collection_entities(kind, with_summary, pagination, collector)?)
     })?)

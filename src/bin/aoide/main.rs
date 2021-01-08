@@ -18,11 +18,8 @@
 mod env;
 
 use aoide::{
-    api::web::{
-        collections, handle_rejection, playlists, reject_from_anyhow, reject_from_repo_error,
-        tracks,
-    },
-    usecases as uc, *,
+    api::web::{collections, handle_rejection, playlists, reject_on_error, tracks, Error},
+    usecases as uc, DB_CONNECTION_POOL_SIZE, *,
 };
 
 use aoide_core::entity::EntityUid;
@@ -31,10 +28,9 @@ mod _serde {
     pub use aoide_core_serde::entity::EntityUid;
 }
 
-use anyhow::Error;
 use futures::future::{join, FutureExt};
-use std::{env::current_exe, time::Duration};
-use tokio::{sync::mpsc, time::delay_for};
+use std::{env::current_exe, sync::Arc, time::Duration};
+use tokio::{sync::mpsc, sync::RwLock, time::delay_for};
 use warp::{http::StatusCode, Filter};
 
 ///////////////////////////////////////////////////////////////////////
@@ -55,6 +51,13 @@ fn create_connection_pool(
         .build(manager)?;
     Ok(pool)
 }
+
+// Let only a single writer at any time get access to the
+// connection pool to prevent both synchronous locking when
+// obtaining a connection and timeouts when concurrently
+// trying to execute write operations on the shared SQLite
+// database.
+type GuardedConnectionPool = Arc<RwLock<SqliteConnectionPool>>;
 
 #[tokio::main]
 pub async fn main() -> Result<(), Error> {
@@ -80,20 +83,18 @@ pub async fn main() -> Result<(), Error> {
     // TODO: Use an (async?) read/write lock, to allow access for multiple, shared
     // readers and a single, exclusive writer. The maximum size of the pool must
     // match the maximum number of readers.
-    let connection_pool = create_connection_pool(&database_url, 1)
+    let connection_pool = create_connection_pool(&database_url, DB_CONNECTION_POOL_SIZE)
         .expect("Failed to create database connection pool");
 
     uc::database::initialize(&*connection_pool.get()?).expect("Failed to initialize database");
     uc::database::migrate_schema(&*connection_pool.get()?)
         .expect("Failed to migrate database schema");
 
-    let sqlite_exec = SqliteExecutor::new(connection_pool);
+    let guarded_connection_pool = Arc::new(RwLock::new(connection_pool));
 
     log::info!("Creating service routes");
 
-    let pooled_connection = warp::any()
-        .map(move || sqlite_exec.pooled_connection())
-        .and_then(|res: Result<_, _>| async { res.map_err(reject_from_anyhow) });
+    let guarded_connection_pool = warp::any().map(move || guarded_connection_pool.clone());
 
     // POST /shutdown
     let (server_shutdown_tx, mut server_shutdown_rx) = mpsc::unbounded_channel::<()>();
@@ -138,68 +139,135 @@ pub async fn main() -> Result<(), Error> {
         .and(collections_path)
         .and(warp::path::end())
         .and(warp::body::json())
-        .and(pooled_connection.clone())
-        .and_then(|request_body, pooled_connection| async move {
-            collections::create::handle_request(&pooled_connection, request_body)
+        .and(guarded_connection_pool.clone())
+        .and_then(
+            |request_body, guarded_connection_pool: GuardedConnectionPool| async move {
+                let write_guard = guarded_connection_pool.write().await;
+                let connection_pool = write_guard.clone();
+                tokio::task::spawn_blocking(move || {
+                    collections::create::handle_request(connection_pool.get()?, request_body)
+                        .map_err(Error::from)
+                })
+                .await
+                .map(move |res| {
+                    drop(write_guard);
+                    res
+                })
+                .map_err(reject_on_error)?
+                .map_err(reject_on_error)
                 .map(|response_body| {
                     warp::reply::with_status(warp::reply::json(&response_body), StatusCode::CREATED)
                 })
-                .map_err(reject_from_repo_error)
-        });
-    let collections_update = warp::put()
-        .and(collections_path)
-        .and(path_param_uid)
-        .and(warp::path::end())
-        .and(warp::query())
-        .and(warp::body::json())
-        .and(pooled_connection.clone())
-        .and_then(
-            |uid, query_params, request_body, pooled_connection| async move {
-                collections::update::handle_request(
-                    &pooled_connection,
-                    uid,
-                    query_params,
-                    request_body,
-                )
-                .map(|response_body| {
-                    warp::reply::with_status(warp::reply::json(&response_body), StatusCode::OK)
-                })
-                .map_err(reject_from_repo_error)
             },
         );
+    let collections_update =
+        warp::put()
+            .and(collections_path)
+            .and(path_param_uid)
+            .and(warp::path::end())
+            .and(warp::query())
+            .and(warp::body::json())
+            .and(guarded_connection_pool.clone())
+            .and_then(
+                |uid,
+                 query_params,
+                 request_body,
+                 guarded_connection_pool: GuardedConnectionPool| async move {
+                    let write_guard = guarded_connection_pool.write().await;
+                    let connection_pool = write_guard.clone();
+                    tokio::task::spawn_blocking(move || {
+                        collections::update::handle_request(
+                            connection_pool.get()?,
+                            uid,
+                            query_params,
+                            request_body,
+                        )
+                        .map_err(Error::from)
+                    })
+                    .await
+                    .map(move |res| {
+                        drop(write_guard);
+                        res
+                    })
+                    .map_err(reject_on_error)?
+                    .map_err(reject_on_error)
+                    .map(|response_body| warp::reply::json(&response_body))
+                },
+            );
     let collections_delete = warp::delete()
         .and(collections_path)
         .and(path_param_uid)
         .and(warp::path::end())
-        .and(pooled_connection.clone())
-        .and_then(|uid, pooled_connection| async move {
-            collections::delete::handle_request(&pooled_connection, &uid)
+        .and(guarded_connection_pool.clone())
+        .and_then(
+            |uid, guarded_connection_pool: GuardedConnectionPool| async move {
+                let write_guard = guarded_connection_pool.write().await;
+                let connection_pool = write_guard.clone();
+                tokio::task::spawn_blocking(move || {
+                    collections::delete::handle_request(connection_pool.get()?, &uid)
+                        .map_err(Error::from)
+                })
+                .await
+                .map(move |res| {
+                    drop(write_guard);
+                    res
+                })
+                .map_err(reject_on_error)?
+                .map_err(reject_on_error)
                 .map(|()| StatusCode::NO_CONTENT)
-                .map_err(reject_from_repo_error)
-        });
+            },
+        );
     let collections_list = warp::get()
         .and(collections_path)
         .and(warp::path::end())
         .and(warp::query())
-        .and(pooled_connection.clone())
-        .and_then(|query_params, pooled_connection| async move {
-            collections::load_all::handle_request(&pooled_connection, query_params)
+        .and(guarded_connection_pool.clone())
+        .and_then(
+            |query_params, guarded_connection_pool: GuardedConnectionPool| async move {
+                let read_guard = guarded_connection_pool.read().await;
+                let connection_pool = read_guard.clone();
+                tokio::task::spawn_blocking(move || {
+                    collections::load_all::handle_request(connection_pool.get()?, query_params)
+                        .map_err(Error::from)
+                })
+                .await
+                .map(move |res| {
+                    drop(read_guard);
+                    res
+                })
+                .map_err(reject_on_error)?
+                .map_err(reject_on_error)
                 .map(|response_body| warp::reply::json(&response_body))
-                .map_err(reject_from_repo_error)
-        });
+            },
+        );
     let collections_get = warp::get()
         .and(collections_path)
         .and(path_param_uid)
         .and(warp::path::end())
         .and(warp::query())
-        .and(pooled_connection.clone())
-        .and_then(|uid, query_params, pooled_connection| async move {
-            collections::load_one::handle_request(&pooled_connection, &uid, query_params)
-                .map(|response_body| {
-                    warp::reply::with_status(warp::reply::json(&response_body), StatusCode::OK)
+        .and(guarded_connection_pool.clone())
+        .and_then(
+            |uid, query_params, guarded_connection_pool: GuardedConnectionPool| async move {
+                let read_guard = guarded_connection_pool.read().await;
+                let connection_pool = read_guard.clone();
+                tokio::task::spawn_blocking(move || {
+                    collections::load_one::handle_request(
+                        connection_pool.get()?,
+                        &uid,
+                        query_params,
+                    )
+                    .map_err(Error::from)
                 })
-                .map_err(reject_from_repo_error)
-        });
+                .await
+                .map(move |res| {
+                    drop(read_guard);
+                    res
+                })
+                .map_err(reject_on_error)?
+                .map_err(reject_on_error)
+                .map(|response_body| warp::reply::json(&response_body))
+            },
+        );
     let collections_filters = collections_list
         .or(collections_get)
         .or(collections_create)
@@ -213,54 +281,101 @@ pub async fn main() -> Result<(), Error> {
         .and(warp::path("resolve"))
         .and(warp::path::end())
         .and(warp::body::json())
-        .and(pooled_connection.clone())
-        .and_then(|uid, request_body, pooled_connection| async move {
-            tracks::resolve_collected::handle_request(&pooled_connection, &uid, request_body)
-                .map(|response_body| warp::reply::json(&response_body))
-                .map_err(reject_from_repo_error)
-        });
-    let collected_tracks_search = warp::post()
-        .and(collections_path)
-        .and(path_param_uid)
-        .and(tracks_path)
-        .and(warp::path("search"))
-        .and(warp::path::end())
-        .and(warp::query())
-        .and(warp::body::json())
-        .and(pooled_connection.clone())
+        .and(guarded_connection_pool.clone())
         .and_then(
-            |uid, query_params, request_body, pooled_connection| async move {
-                tracks::search_collected::handle_request(
-                    &pooled_connection,
-                    &uid,
-                    query_params,
-                    request_body,
-                )
+            |uid, request_body, guarded_connection_pool: GuardedConnectionPool| async move {
+                let read_guard = guarded_connection_pool.read().await;
+                let connection_pool = read_guard.clone();
+                tokio::task::spawn_blocking(move || {
+                    tracks::resolve_collected::handle_request(
+                        connection_pool.get()?,
+                        &uid,
+                        request_body,
+                    )
+                    .map_err(Error::from)
+                })
+                .await
+                .map(move |res| {
+                    drop(read_guard);
+                    res
+                })
+                .map_err(reject_on_error)?
+                .map_err(reject_on_error)
                 .map(|response_body| warp::reply::json(&response_body))
-                .map_err(reject_from_repo_error)
             },
         );
-    let collected_tracks_replace = warp::post()
-        .and(collections_path)
-        .and(path_param_uid)
-        .and(tracks_path)
-        .and(warp::path("replace"))
-        .and(warp::path::end())
-        .and(warp::query())
-        .and(warp::body::json())
-        .and(pooled_connection.clone())
-        .and_then(
-            |uid, query_params, request_body, pooled_connection| async move {
-                tracks::replace_collected::handle_request(
-                    &pooled_connection,
-                    &uid,
-                    query_params,
-                    request_body,
-                )
-                .map(|response_body| warp::reply::json(&response_body))
-                .map_err(reject_from_repo_error)
-            },
-        );
+    let collected_tracks_search =
+        warp::post()
+            .and(collections_path)
+            .and(path_param_uid)
+            .and(tracks_path)
+            .and(warp::path("search"))
+            .and(warp::path::end())
+            .and(warp::query())
+            .and(warp::body::json())
+            .and(guarded_connection_pool.clone())
+            .and_then(
+                |uid,
+                 query_params,
+                 request_body,
+                 guarded_connection_pool: GuardedConnectionPool| async move {
+                    let read_guard = guarded_connection_pool.read().await;
+                    let connection_pool = read_guard.clone();
+                    tokio::task::spawn_blocking(move || {
+                        tracks::search_collected::handle_request(
+                            connection_pool.get()?,
+                            &uid,
+                            query_params,
+                            request_body,
+                        )
+                        .map_err(Error::from)
+                    })
+                    .await
+                    .map(move |res| {
+                        drop(read_guard);
+                        res
+                    })
+                    .map_err(reject_on_error)? // join blocking
+                    .map_err(reject_on_error)
+                    .map(|response_body| warp::reply::json(&response_body))
+                },
+            );
+    let collected_tracks_replace =
+        warp::post()
+            .and(collections_path)
+            .and(path_param_uid)
+            .and(tracks_path)
+            .and(warp::path("replace"))
+            .and(warp::path::end())
+            .and(warp::query())
+            .and(warp::body::json())
+            .and(guarded_connection_pool.clone())
+            .and_then(
+                |uid,
+                 query_params,
+                 request_body,
+                 guarded_connection_pool: GuardedConnectionPool| async move {
+                    let write_guard = guarded_connection_pool.write().await;
+                    let connection_pool = write_guard.clone();
+                    tokio::task::spawn_blocking(move || {
+                        tracks::replace_collected::handle_request(
+                            connection_pool.get()?,
+                            &uid,
+                            query_params,
+                            request_body,
+                        )
+                        .map_err(Error::from)
+                    })
+                    .await
+                    .map(move |res| {
+                        drop(write_guard);
+                        res
+                    })
+                    .map_err(reject_on_error)? // join blocking
+                    .map_err(reject_on_error)
+                    .map(|response_body| warp::reply::json(&response_body))
+                },
+            );
     let collected_tracks_purge = warp::post()
         .and(collections_path)
         .and(path_param_uid)
@@ -268,12 +383,29 @@ pub async fn main() -> Result<(), Error> {
         .and(warp::path("purge"))
         .and(warp::path::end())
         .and(warp::body::json())
-        .and(pooled_connection.clone())
-        .and_then(|uid, request_body, pooled_connection| async move {
-            tracks::purge_collected::handle_request(&pooled_connection, &uid, request_body)
+        .and(guarded_connection_pool.clone())
+        .and_then(
+            |uid, request_body, guarded_connection_pool: GuardedConnectionPool| async move {
+                let write_guard = guarded_connection_pool.write().await;
+                let connection_pool = write_guard.clone();
+                tokio::task::spawn_blocking(move || {
+                    tracks::purge_collected::handle_request(
+                        connection_pool.get()?,
+                        &uid,
+                        request_body,
+                    )
+                    .map_err(Error::from)
+                })
+                .await
+                .map(move |res| {
+                    drop(write_guard);
+                    res
+                })
+                .map_err(reject_on_error)? // join blocking
+                .map_err(reject_on_error)
                 .map(|response_body| warp::reply::json(&response_body))
-                .map_err(reject_from_repo_error)
-        });
+            },
+        );
     let collected_tracks_filters = collected_tracks_resolve
         .or(collected_tracks_search)
         .or(collected_tracks_replace)
@@ -284,25 +416,49 @@ pub async fn main() -> Result<(), Error> {
         .and(tracks_path)
         .and(path_param_uid)
         .and(warp::path::end())
-        .and(pooled_connection.clone())
-        .and_then(|uid, pooled_connection| async move {
-            tracks::load_one::handle_request(&pooled_connection, &uid)
-                .map(|response_body| {
-                    warp::reply::with_status(warp::reply::json(&response_body), StatusCode::OK)
+        .and(guarded_connection_pool.clone())
+        .and_then(
+            |uid, guarded_connection_pool: GuardedConnectionPool| async move {
+                let read_guard = guarded_connection_pool.read().await;
+                let connection_pool = read_guard.clone();
+                tokio::task::spawn_blocking(move || {
+                    tracks::load_one::handle_request(connection_pool.get()?, &uid)
+                        .map_err(Error::from)
                 })
-                .map_err(reject_from_repo_error)
-        });
+                .await
+                .map(move |res| {
+                    drop(read_guard);
+                    res
+                })
+                .map_err(reject_on_error)? // join blocking
+                .map_err(reject_on_error)
+                .map(|response_body| warp::reply::json(&response_body))
+            },
+        );
     let tracks_load_many = warp::post()
         .and(tracks_path)
         .and(warp::path("load"))
         .and(warp::path::end())
         .and(warp::body::json())
-        .and(pooled_connection.clone())
-        .and_then(|request_body, pooled_connection| async move {
-            tracks::load_many::handle_request(&pooled_connection, request_body)
+        .and(guarded_connection_pool.clone())
+        .and_then(
+            |request_body, guarded_connection_pool: GuardedConnectionPool| async move {
+                let read_guard = guarded_connection_pool.read().await;
+                let connection_pool = read_guard.clone();
+                tokio::task::spawn_blocking(move || {
+                    tracks::load_many::handle_request(connection_pool.get()?, request_body)
+                        .map_err(Error::from)
+                })
+                .await
+                .map(move |res| {
+                    drop(read_guard);
+                    res
+                })
+                .map_err(reject_on_error)? // join blocking
+                .map_err(reject_on_error)
                 .map(|response_body| warp::reply::json(&response_body))
-                .map_err(reject_from_repo_error)
-        });
+            },
+        );
     let tracks_filters = tracks_load_many.or(tracks_load_one);
 
     let collected_playlists_create = warp::post()
@@ -311,18 +467,25 @@ pub async fn main() -> Result<(), Error> {
         .and(playlists_path)
         .and(warp::path::end())
         .and(warp::body::json())
-        .and(pooled_connection.clone())
+        .and(guarded_connection_pool.clone())
         .and_then(
-            |collection_uid, request_body, pooled_connection| async move {
-                playlists::create_collected::handle_request(
-                    &pooled_connection,
-                    &collection_uid,
-                    request_body,
-                )
+            |collection_uid, request_body, guarded_connection_pool: GuardedConnectionPool| async move {
+                let write_guard = guarded_connection_pool.write().await;
+                let connection_pool = write_guard.clone();
+                tokio::task::spawn_blocking(move || {
+                    playlists::create_collected::handle_request(connection_pool.get()?, &collection_uid, request_body)
+                        .map_err(Error::from)
+                })
+                .await
+                .map(move |res| {
+                    drop(write_guard);
+                    res
+                })
+                .map_err(reject_on_error)?
+                .map_err(reject_on_error)
                 .map(|response_body| {
                     warp::reply::with_status(warp::reply::json(&response_body), StatusCode::CREATED)
                 })
-                .map_err(reject_from_repo_error)
             },
         );
     let collected_playlists_list = warp::get()
@@ -331,73 +494,121 @@ pub async fn main() -> Result<(), Error> {
         .and(playlists_path)
         .and(warp::path::end())
         .and(warp::query())
-        .and(pooled_connection.clone())
+        .and(guarded_connection_pool.clone())
         .and_then(
-            |collection_uid, query_params, pooled_connection| async move {
-                playlists::list_collected::handle_request(
-                    &pooled_connection,
-                    &collection_uid,
-                    query_params,
-                )
+            |collection_uid, query_params, guarded_connection_pool: GuardedConnectionPool| async move {
+                let read_guard = guarded_connection_pool.read().await;
+                let connection_pool = read_guard.clone();
+                tokio::task::spawn_blocking(move || {
+                    playlists::list_collected::handle_request(
+                        connection_pool.get()?,
+                        &collection_uid,
+                        query_params,
+                    ).map_err(Error::from)
+                }).await
+                .map(move |res| {
+                    drop(read_guard);
+                    res
+                })
+                .map_err(reject_on_error)? // join blocking
+                .map_err(reject_on_error)
                 .map(|response_body| warp::reply::json(&response_body))
-                .map_err(reject_from_repo_error)
             },
         );
     let collected_playlists_filters = collected_playlists_list.or(collected_playlists_create);
 
-    let playlists_update = warp::put()
-        .and(playlists_path)
-        .and(path_param_uid)
-        .and(warp::path::end())
-        .and(warp::query())
-        .and(warp::body::json())
-        .and(pooled_connection.clone())
-        .and_then(
-            |uid, query_params, request_body, pooled_connection| async move {
-                playlists::update::handle_request(
-                    &pooled_connection,
-                    uid,
-                    query_params,
-                    request_body,
-                )
-                .map(|response_body| {
-                    warp::reply::with_status(warp::reply::json(&response_body), StatusCode::OK)
-                })
-                .map_err(reject_from_repo_error)
-            },
-        );
+    let playlists_update =
+        warp::put()
+            .and(playlists_path)
+            .and(path_param_uid)
+            .and(warp::path::end())
+            .and(warp::query())
+            .and(warp::body::json())
+            .and(guarded_connection_pool.clone())
+            .and_then(
+                |uid,
+                 query_params,
+                 request_body,
+                 guarded_connection_pool: GuardedConnectionPool| async move {
+                    let write_guard = guarded_connection_pool.write().await;
+                    let connection_pool = write_guard.clone();
+                    tokio::task::spawn_blocking(move || {
+                        playlists::update::handle_request(
+                            connection_pool.get()?,
+                            uid,
+                            query_params,
+                            request_body,
+                        )
+                        .map_err(Error::from)
+                    })
+                    .await
+                    .map(move |res| {
+                        drop(write_guard);
+                        res
+                    })
+                    .map_err(reject_on_error)?
+                    .map_err(reject_on_error)
+                    .map(|response_body| warp::reply::json(&response_body))
+                },
+            );
     let playlists_delete = warp::delete()
         .and(playlists_path)
         .and(path_param_uid)
         .and(warp::path::end())
-        .and(pooled_connection.clone())
-        .and_then(|uid, pooled_connection| async move {
-            playlists::delete::handle_request(&pooled_connection, &uid)
-                .map(|()| StatusCode::NO_CONTENT)
-                .map_err(reject_from_repo_error)
-        });
-    let playlists_entries_patch = warp::patch()
-        .and(playlists_path)
-        .and(path_param_uid)
-        .and(warp::path("entries"))
-        .and(warp::path::end())
-        .and(warp::query())
-        .and(warp::body::json())
-        .and(pooled_connection.clone())
+        .and(guarded_connection_pool.clone())
         .and_then(
-            |uid, query_params, request_body, pooled_connection| async move {
-                playlists::patch_entries::handle_request(
-                    &pooled_connection,
-                    uid,
-                    query_params,
-                    request_body,
-                )
-                .map(|response_body| {
-                    warp::reply::with_status(warp::reply::json(&response_body), StatusCode::OK)
+            |uid, guarded_connection_pool: GuardedConnectionPool| async move {
+                let write_guard = guarded_connection_pool.write().await;
+                let connection_pool = write_guard.clone();
+                tokio::task::spawn_blocking(move || {
+                    playlists::delete::handle_request(connection_pool.get()?, &uid)
+                        .map_err(Error::from)
                 })
-                .map_err(reject_from_repo_error)
+                .await
+                .map(move |res| {
+                    drop(write_guard);
+                    res
+                })
+                .map_err(reject_on_error)?
+                .map_err(reject_on_error)
+                .map(|()| StatusCode::NO_CONTENT)
             },
         );
+    let playlists_entries_patch =
+        warp::patch()
+            .and(playlists_path)
+            .and(path_param_uid)
+            .and(warp::path("entries"))
+            .and(warp::path::end())
+            .and(warp::query())
+            .and(warp::body::json())
+            .and(guarded_connection_pool.clone())
+            .and_then(
+                |uid,
+                 query_params,
+                 request_body,
+                 guarded_connection_pool: GuardedConnectionPool| async move {
+                    let write_guard = guarded_connection_pool.write().await;
+                    let connection_pool = write_guard.clone();
+                    tokio::task::spawn_blocking(move || {
+                        playlists::patch_entries::handle_request(
+                            connection_pool.get()?,
+                            uid,
+                            query_params,
+                            request_body,
+                        )
+                        .map_err(Error::from)
+                    })
+                    .await
+                    .map(move |res| {
+                        drop(write_guard);
+                        res
+                    })
+                    .map_err(reject_on_error)?
+                    .map_err(reject_on_error)
+                    .map(|response_body| warp::reply::json(&response_body))
+                },
+            );
     let playlists_filters = playlists_update
         .or(playlists_delete)
         .or(playlists_entries_patch);
@@ -407,22 +618,48 @@ pub async fn main() -> Result<(), Error> {
         .and(storage_path)
         .and(warp::path("groom"))
         .and(warp::path::end())
-        .and(pooled_connection.clone())
-        .and_then(|pooled_connection: SqlitePooledConnection| async move {
-            uc::database::groom(&*pooled_connection)
+        .and(guarded_connection_pool.clone())
+        .and_then(
+            |guarded_connection_pool: GuardedConnectionPool| async move {
+                let write_guard = guarded_connection_pool.write().await;
+                let connection_pool = write_guard.clone();
+                tokio::task::spawn_blocking(move || {
+                    let pooled_connection = connection_pool.get()?;
+                    uc::database::groom(&pooled_connection).map_err(Error::from)
+                })
+                .await
+                .map(move |res| {
+                    drop(write_guard);
+                    res
+                })
+                .map_err(reject_on_error)?
+                .map_err(reject_on_error)
                 .map(|()| StatusCode::NO_CONTENT)
-                .map_err(reject_from_anyhow)
-        });
+            },
+        );
     let storage_optimize = warp::post()
         .and(storage_path)
         .and(warp::path("optimize"))
         .and(warp::path::end())
-        .and(pooled_connection.clone())
-        .and_then(|pooled_connection: SqlitePooledConnection| async move {
-            uc::database::optimize(&*pooled_connection)
+        .and(guarded_connection_pool.clone())
+        .and_then(
+            |guarded_connection_pool: GuardedConnectionPool| async move {
+                let write_guard = guarded_connection_pool.write().await;
+                let connection_pool = write_guard.clone();
+                tokio::task::spawn_blocking(move || {
+                    let pooled_connection = connection_pool.get()?;
+                    uc::database::optimize(&pooled_connection).map_err(Error::from)
+                })
+                .await
+                .map(move |res| {
+                    drop(write_guard);
+                    res
+                })
+                .map_err(reject_on_error)?
+                .map_err(reject_on_error)
                 .map(|()| StatusCode::NO_CONTENT)
-                .map_err(reject_from_anyhow)
-        });
+            },
+        );
     let storage_filters = storage_groom.or(storage_optimize);
 
     // Static content
@@ -439,10 +676,10 @@ pub async fn main() -> Result<(), Error> {
     log::info!("Initializing server");
 
     let server = warp::serve(
-        collections_filters
-            .or(collected_tracks_filters)
-            .or(tracks_filters)
+        collected_tracks_filters
             .or(collected_playlists_filters)
+            .or(collections_filters)
+            .or(tracks_filters)
             .or(playlists_filters)
             .or(storage_filters)
             .or(static_filters)

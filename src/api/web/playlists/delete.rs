@@ -22,8 +22,8 @@ use crate::usecases::playlists::delete as uc;
 pub type ResponseBody = ();
 
 pub fn handle_request(
-    pooled_connection: &SqlitePooledConnection,
+    pooled_connection: SqlitePooledConnection,
     uid: &EntityUid,
-) -> RepoResult<ResponseBody> {
-    uc::delete(pooled_connection, uid)
+) -> Result<ResponseBody> {
+    Ok(uc::delete(&pooled_connection, uid)?)
 }

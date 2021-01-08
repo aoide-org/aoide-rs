@@ -29,13 +29,13 @@ pub struct QueryParams {
 pub type ResponseBody = EntityWithSummary;
 
 pub fn handle_request(
-    pooled_connection: &SqlitePooledConnection,
+    pooled_connection: SqlitePooledConnection,
     uid: &EntityUid,
     query_params: QueryParams,
-) -> RepoResult<EntityWithSummary> {
+) -> Result<EntityWithSummary> {
     let QueryParams { summary } = query_params;
     let with_summary = summary.unwrap_or(false);
-    let (entity, summary) = uc::load_one(pooled_connection, uid, with_summary)?;
+    let (entity, summary) = uc::load_one(&pooled_connection, uid, with_summary)?;
     Ok(merge_entity_with_summary(
         entity.into(),
         summary.map(Into::into),

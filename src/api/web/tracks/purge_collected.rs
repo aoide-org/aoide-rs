@@ -33,14 +33,14 @@ pub type RequestBody = Vec<StringPredicate>;
 pub type ResponseBody = u64;
 
 pub fn handle_request(
-    pooled_connection: &SqlitePooledConnection,
+    pooled_connection: SqlitePooledConnection,
     collection_uid: &_core::EntityUid,
     request_body: RequestBody,
-) -> RepoResult<ResponseBody> {
-    uc::purge_by_media_source_uri_predicates(
-        pooled_connection,
+) -> Result<ResponseBody> {
+    Ok(uc::purge_by_media_source_uri_predicates(
+        &pooled_connection,
         collection_uid,
         request_body.into_iter().map(Into::into).collect(),
     )
-    .map(|count| count as u64)
+    .map(|count| count as u64)?)
 }

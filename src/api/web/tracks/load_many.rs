@@ -28,12 +28,12 @@ pub type RequestBody = Vec<EntityUid>;
 pub type ResponseBody = Vec<Entity>;
 
 pub fn handle_request(
-    pooled_connection: &SqlitePooledConnection,
+    pooled_connection: SqlitePooledConnection,
     request_body: RequestBody,
-) -> RepoResult<ResponseBody> {
+) -> Result<ResponseBody> {
     let mut collector = EntityCollector::with_capacity(request_body.len());
     uc::load_many(
-        pooled_connection,
+        &pooled_connection,
         request_body.into_iter().map(Into::into),
         &mut collector,
     )?;

@@ -24,9 +24,9 @@ pub type RequestBody = Playlist;
 pub type ResponseBody = Entity;
 
 pub fn handle_request(
-    pooled_connection: &SqlitePooledConnection,
+    pooled_connection: SqlitePooledConnection,
     collection_uid: &EntityUid,
     request_body: RequestBody,
-) -> RepoResult<ResponseBody> {
-    uc::create(pooled_connection, collection_uid, request_body.into()).map(Into::into)
+) -> Result<ResponseBody> {
+    Ok(uc::create(&pooled_connection, collection_uid, request_body.into()).map(Into::into)?)
 }

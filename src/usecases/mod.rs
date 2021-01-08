@@ -15,9 +15,40 @@
 
 use super::*;
 
+use aoide_repo::prelude::RepoError;
+
+use std::result::Result as StdResult;
+use thiserror::Error;
+
 ///////////////////////////////////////////////////////////////////////
 
 pub mod collections;
 pub mod database;
 pub mod playlists;
 pub mod tracks;
+
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error(transparent)]
+    Database(#[from] diesel::result::Error),
+
+    #[error(transparent)]
+    DatabaseMigration(#[from] diesel_migrations::RunMigrationsError),
+
+    #[error(transparent)]
+    DatabaseConnection(#[from] r2d2::Error),
+
+    #[error(transparent)]
+    Repository(#[from] RepoError),
+
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
+}
+
+impl From<DieselRepoError> for Error {
+    fn from(err: DieselRepoError) -> Self {
+        Self::Repository(err.into())
+    }
+}
+
+pub type Result<T> = StdResult<T, Error>;

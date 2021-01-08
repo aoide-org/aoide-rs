@@ -24,11 +24,11 @@ pub type RequestBody = Collection;
 pub type ResponseBody = Entity;
 
 pub fn handle_request(
-    pooled_connection: &SqlitePooledConnection,
+    pooled_connection: SqlitePooledConnection,
     uid: EntityUid,
     query_params: EntityRevQueryParams,
     request_body: RequestBody,
-) -> RepoResult<ResponseBody> {
+) -> Result<ResponseBody> {
     let EntityRevQueryParams { rev } = query_params;
     let updated_entity_with_current_rev = _core::Entity::new(
         _core::EntityHeader {
@@ -37,5 +37,5 @@ pub fn handle_request(
         },
         request_body,
     );
-    uc::update(pooled_connection, updated_entity_with_current_rev).map(Into::into)
+    Ok(uc::update(&pooled_connection, updated_entity_with_current_rev).map(Into::into)?)
 }

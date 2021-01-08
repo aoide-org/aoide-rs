@@ -32,12 +32,12 @@ pub struct Outcome {
 }
 
 pub fn replace_by_media_source_uri(
-    pooled_connection: &SqlitePooledConnection,
+    connection: &SqliteConnection,
     collection_uid: &EntityUid,
     replace_mode: ReplaceMode,
     tracks: impl Iterator<Item = Track>,
 ) -> RepoResult<Outcome> {
-    let db = SqliteConnection::new(&*pooled_connection);
+    let db = RepoConnection::new(connection);
     db.transaction::<_, DieselRepoError, _>(|| {
         let mut outcome = Outcome::default();
         let collection_id = db.resolve_collection_id(collection_uid)?;

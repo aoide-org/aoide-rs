@@ -36,10 +36,12 @@ env_logger = "*"
 futures = "*"
 anyhow = "*"
 log = "*"
+r2d2 = "*"
 semval = { version = ">= 0.1.5" }
 serde = "*"
 serde_json = "*"
-tokio = { version = "*", default-features = false, features = ["macros", "rt-threaded"] }
+thiserror = "*"
+tokio = { version = "*", default-features = false, features = ["macros", "rt-threaded", "parking_lot"] }
 warp = { version = "*", default-features = false }
 
 [features]

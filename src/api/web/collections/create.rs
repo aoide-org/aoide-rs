@@ -24,8 +24,8 @@ pub type RequestBody = Collection;
 pub type ResponseBody = Entity;
 
 pub fn handle_request(
-    pooled_connection: &SqlitePooledConnection,
+    pooled_connection: SqlitePooledConnection,
     request_body: RequestBody,
-) -> RepoResult<ResponseBody> {
-    uc::create(pooled_connection, request_body.into()).map(Into::into)
+) -> Result<ResponseBody> {
+    Ok(uc::create(&pooled_connection, request_body.into()).map(Into::into)?)
 }

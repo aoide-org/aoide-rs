@@ -20,10 +20,10 @@ use aoide_repo::collection::EntityRepo as _;
 ///////////////////////////////////////////////////////////////////////
 
 pub fn load_entity_with_entries(
-    pooled_connection: &SqlitePooledConnection,
+    connection: &SqliteConnection,
     uid: &EntityUid,
 ) -> RepoResult<EntityWithEntries> {
-    let db = SqliteConnection::new(&*pooled_connection);
+    let db = RepoConnection::new(connection);
     Ok(db.transaction::<_, DieselRepoError, _>(|| {
         let id = db.resolve_playlist_id(uid)?;
         Ok(db.load_playlist_entity_with_entries(id)?)
@@ -31,7 +31,7 @@ pub fn load_entity_with_entries(
 }
 
 pub fn load_entities_with_entries_summary(
-    pooled_connection: &SqlitePooledConnection,
+    connection: &SqliteConnection,
     collection_uid: &EntityUid,
     kind: Option<&str>,
     pagination: Option<&Pagination>,
@@ -40,7 +40,7 @@ pub fn load_entities_with_entries_summary(
         Record = (Entity, EntriesSummary),
     >,
 ) -> RepoResult<()> {
-    let db = SqliteConnection::new(&*pooled_connection);
+    let db = RepoConnection::new(connection);
     Ok(db.transaction::<_, DieselRepoError, _>(|| {
         let collection_id = db.resolve_collection_id(collection_uid)?;
         Ok(db.load_collected_playlist_entities_with_entries_summary(

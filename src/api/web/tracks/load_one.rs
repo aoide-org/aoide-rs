@@ -28,8 +28,8 @@ use aoide_core_serde::track::Entity;
 pub type ResponseBody = Entity;
 
 pub fn handle_request(
-    pooled_connection: &SqlitePooledConnection,
+    pooled_connection: SqlitePooledConnection,
     uid: &EntityUid,
-) -> RepoResult<ResponseBody> {
-    uc::load_one(pooled_connection, uid).map(Into::into)
+) -> Result<ResponseBody> {
+    Ok(uc::load_one(&pooled_connection, uid).map(Into::into)?)
 }

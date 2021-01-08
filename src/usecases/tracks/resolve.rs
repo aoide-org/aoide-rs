@@ -20,11 +20,11 @@ use aoide_repo::collection::EntityRepo as _;
 ///////////////////////////////////////////////////////////////////////
 
 pub fn resolve_by_media_source_uris(
-    pooled_connection: &SqlitePooledConnection,
+    connection: &SqliteConnection,
     collection_uid: &EntityUid,
     media_source_uris: Vec<String>,
 ) -> RepoResult<Vec<(String, EntityHeader)>> {
-    let db = SqliteConnection::new(&*pooled_connection);
+    let db = RepoConnection::new(connection);
     Ok(db.transaction::<_, DieselRepoError, _>(|| {
         let mut resolved = Vec::with_capacity(media_source_uris.len());
         let collection_id = db.resolve_collection_id(collection_uid)?;

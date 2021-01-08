@@ -15,7 +15,7 @@
 
 use super::*;
 
-use aoide_repo::{playlist::EntryRepo as _, prelude::*};
+use aoide_repo::playlist::EntryRepo as _;
 
 use aoide_repo_sqlite::prelude::*;
 
@@ -25,7 +25,7 @@ use diesel::sql_query;
 
 diesel_migrations::embed_migrations!("repo-sqlite/migrations");
 
-pub fn initialize(connection: &diesel::SqliteConnection) -> Result<(), Error> {
+pub fn initialize(connection: &SqliteConnection) -> Result<()> {
     log::info!("Initializing database");
     sql_query(r#"
 PRAGMA journal_mode = WAL;        -- better write-concurrency
@@ -40,15 +40,15 @@ PRAGMA encoding = 'UTF-8';
     Ok(())
 }
 
-pub fn migrate_schema(connection: &diesel::SqliteConnection) -> Result<(), Error> {
+pub fn migrate_schema(connection: &SqliteConnection) -> Result<()> {
     log::info!("Migrating database schema");
     embedded_migrations::run(connection)?;
     Ok(())
 }
 
-pub fn groom(connection: &diesel::SqliteConnection) -> Result<(), Error> {
+pub fn groom(connection: &SqliteConnection) -> Result<()> {
     log::info!("Grooming database");
-    let db = SqliteConnection::new(&*connection);
+    let db = RepoConnection::new(&*connection);
     db.transaction::<_, DieselRepoError, _>(|| {
         let deleted_playlist_entries =
             db.delete_playlist_entries_with_tracks_from_other_collections()?;
@@ -65,7 +65,7 @@ pub fn groom(connection: &diesel::SqliteConnection) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn optimize(connection: &diesel::SqliteConnection) -> Result<(), Error> {
+pub fn optimize(connection: &SqliteConnection) -> Result<()> {
     log::info!("Optimizing database");
     sql_query("PRAGMA optimize;").execute(connection)?;
     Ok(())

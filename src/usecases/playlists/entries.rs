@@ -35,12 +35,12 @@ pub enum PatchOperation {
 }
 
 pub fn patch(
-    pooled_connection: &SqlitePooledConnection,
+    connection: &SqliteConnection,
     entity_header: &EntityHeader,
     operations: impl IntoIterator<Item = PatchOperation>,
 ) -> RepoResult<(RecordHeader, EntityWithEntriesSummary)> {
     let updated_at = DateTime::now_utc();
-    let db = SqliteConnection::new(&*pooled_connection);
+    let db = RepoConnection::new(connection);
     Ok(db.transaction::<_, DieselRepoError, _>(|| {
         let (record_header, _next_rev) =
             db.touch_playlist_entity_revision(&entity_header, updated_at)?;

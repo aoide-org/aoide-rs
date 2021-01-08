@@ -20,11 +20,11 @@ use aoide_repo::{collection::EntityRepo as _, media::source::Repo as _};
 ///////////////////////////////////////////////////////////////////////
 
 pub fn purge_by_media_source_uri_predicates(
-    pooled_connection: &SqlitePooledConnection,
+    connection: &SqliteConnection,
     collection_uid: &EntityUid,
     uri_predicates: Vec<StringPredicate>,
 ) -> RepoResult<usize> {
-    let db = SqliteConnection::new(&*pooled_connection);
+    let db = RepoConnection::new(connection);
     db.transaction::<_, DieselRepoError, _>(|| {
         let collection_id = db.resolve_collection_id(collection_uid)?;
         let mut total_purged_tracks = 0;

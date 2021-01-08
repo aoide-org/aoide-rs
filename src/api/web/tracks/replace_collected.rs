@@ -86,18 +86,18 @@ impl From<uc::Outcome> for ResponseBody {
 }
 
 pub fn handle_request(
-    pooled_connection: &SqlitePooledConnection,
+    pooled_connection: SqlitePooledConnection,
     collection_uid: &_core::EntityUid,
     query_params: QueryParams,
     request_body: RequestBody,
-) -> RepoResult<ResponseBody> {
+) -> Result<ResponseBody> {
     let QueryParams { mode } = query_params;
     let mode = mode.unwrap_or(ReplaceMode::UpdateOrCreate);
-    uc::replace_by_media_source_uri(
-        pooled_connection,
+    Ok(uc::replace_by_media_source_uri(
+        &pooled_connection,
         collection_uid,
         mode.into(),
         request_body.into_iter().map(Into::into),
     )
-    .map(Into::into)
+    .map(Into::into)?)
 }

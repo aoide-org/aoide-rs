@@ -96,22 +96,22 @@ pub type RequestBody = Vec<PatchOperation>;
 pub type ResponseBody = EntityWithEntriesSummary;
 
 pub fn handle_request(
-    pooled_connection: &SqlitePooledConnection,
+    pooled_connection: SqlitePooledConnection,
     uid: EntityUid,
     query_params: EntityRevQueryParams,
     request_body: RequestBody,
-) -> RepoResult<ResponseBody> {
+) -> Result<ResponseBody> {
     let EntityRevQueryParams { rev } = query_params;
     let entity_header = _core::EntityHeader {
         uid,
         rev: rev.into(),
     };
-    uc::patch(
-        pooled_connection,
+    Ok(uc::patch(
+        &pooled_connection,
         &entity_header,
         request_body.into_iter().map(Into::into),
     )
-    .map(|(_, entity_with_entries_summary)| entity_with_entries_summary)
+    .map(|(_, entity_with_entries_summary)| entity_with_entries_summary)?)
 }
 
 ///////////////////////////////////////////////////////////////////////

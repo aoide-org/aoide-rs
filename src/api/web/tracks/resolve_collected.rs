@@ -33,14 +33,14 @@ pub type RequestBody = Vec<String>;
 pub type ResponseBody = Vec<(String, EntityHeader)>;
 
 pub fn handle_request(
-    pooled_connection: &SqlitePooledConnection,
+    pooled_connection: SqlitePooledConnection,
     collection_uid: &_core::EntityUid,
     request_body: RequestBody,
-) -> RepoResult<ResponseBody> {
-    uc::resolve_by_media_source_uris(
-        pooled_connection,
+) -> Result<ResponseBody> {
+    Ok(uc::resolve_by_media_source_uris(
+        &pooled_connection,
         collection_uid,
         request_body.into_iter().map(Into::into).collect(),
     )
-    .map(|v| v.into_iter().map(|(uri, hdr)| (uri, hdr.into())).collect())
+    .map(|v| v.into_iter().map(|(uri, hdr)| (uri, hdr.into())).collect())?)
 }
