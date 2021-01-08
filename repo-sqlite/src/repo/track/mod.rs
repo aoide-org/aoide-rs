@@ -599,14 +599,11 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         ordering: Vec<SortOrder>,
         collector: &mut dyn ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
     ) -> RepoResult<usize> {
-        let mut query =
-            track::table
-                .inner_join(media_source::table)
-                .select(track::all_columns)
-                .filter(track::media_source_id.eq_any(
-                    media_source_subselect::filter_by_collection_id(collection_id),
-                ))
-                .into_boxed();
+        let mut query = track::table
+            .inner_join(media_source::table)
+            .select(track::all_columns)
+            .filter(media_source::collection_id.eq(RowId::from(collection_id)))
+            .into_boxed();
 
         if let Some(ref filter) = filter {
             query = query.filter(filter.build_expression());
