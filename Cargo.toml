@@ -13,6 +13,7 @@ members = [
   "./",
   "core",
   "core-serde",
+  "media",
   "repo",
   "repo-sqlite",
 ]
@@ -20,12 +21,14 @@ members = [
 [patch.crates-io]
 aoide-core = { path = "core" }
 aoide-core-serde = { path = "core-serde" }
+aoide-media = { path = "media" }
 aoide-repo = { path = "repo" }
 aoide-repo-sqlite = { path = "repo-sqlite" }
 
 [dependencies]
 aoide-core = "*"
 aoide-core-serde = "*"
+aoide-media = "*"
 aoide-repo = "*"
 aoide-repo-sqlite = "*"
 chrono = { version = "*", default-features = false }

@@ -1,0 +1,28 @@
+[package]
+name = "aoide-media"
+version = "0.0.0"
+authors = [ "Uwe Klotz <uwe.klotz@gmail>", "et al." ]
+license = "AGPL-3.0-or-later"
+publish = false
+edition = "2018"
+
+[dependencies]
+aoide-core = "*"
+
+anyhow = "*"
+thiserror = "*"
+
+hound = { version = "*", optional = true }
+id3 = { version = "*", optional = true }
+lewton = { version = "*", optional = true }
+metaflac = { version = "*", optional = true }
+mp4 = { version = "*", optional = true }
+mp3-duration = { version = "*", optional = true }
+
+[features]
+feature-flac = [ "metaflac" ]
+feature-mp4 = [ "mp4" ]
+feature-mp3 = [ "id3", "mp3-duration" ]
+feature-ogg = [ "lewton" ]
+feature-wav = [ "hound" ]
+default = [ "feature-flac", "feature-mp3", "feature-mp4", "feature-ogg", "feature-wav" ]
