@@ -110,6 +110,7 @@ impl From<_core::Encoder> for Encoder {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AudioContent {
+    #[serde(skip_serializing_if = "Option::is_none")]
     duration_ms: Option<DurationMs>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
