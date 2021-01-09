@@ -31,7 +31,7 @@ pub fn search(
     filter: Option<SearchFilter>,
     ordering: Vec<SortOrder>,
     collector: &mut impl ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
-) -> RepoResult<usize> {
+) -> Result<usize> {
     let db = RepoConnection::new(&pooled_connection);
     let collection_id = db.resolve_collection_id(collection_uid)?;
     Ok(db.transaction::<_, DieselRepoError, _>(|| {

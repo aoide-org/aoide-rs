@@ -17,7 +17,7 @@ use super::*;
 
 ///////////////////////////////////////////////////////////////////////
 
-pub fn delete(connection: &SqliteConnection, uid: &EntityUid) -> RepoResult<()> {
+pub fn delete(connection: &SqliteConnection, uid: &EntityUid) -> Result<()> {
     let db = RepoConnection::new(&connection);
     Ok(db.transaction::<_, DieselRepoError, _>(|| {
         let id = db.resolve_collection_id(uid)?;

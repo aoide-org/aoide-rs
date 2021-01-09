@@ -22,7 +22,7 @@ use aoide_core::util::clock::DateTime;
 pub fn update(
     connection: &SqliteConnection,
     updated_entity_with_current_rev: Entity,
-) -> RepoResult<Entity> {
+) -> Result<Entity> {
     let (hdr, body) = updated_entity_with_current_rev.into();
     let EntityHeader {
         uid,

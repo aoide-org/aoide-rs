@@ -25,7 +25,7 @@ pub fn create(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
     new_playlist: Playlist,
-) -> RepoResult<Entity> {
+) -> Result<Entity> {
     let hdr = EntityHeader::initial_random();
     let entity = Entity::new(hdr, new_playlist);
     let created_at = DateTime::now_utc();

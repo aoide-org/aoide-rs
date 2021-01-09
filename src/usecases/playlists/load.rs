@@ -22,7 +22,7 @@ use aoide_repo::collection::EntityRepo as _;
 pub fn load_entity_with_entries(
     connection: &SqliteConnection,
     uid: &EntityUid,
-) -> RepoResult<EntityWithEntries> {
+) -> Result<EntityWithEntries> {
     let db = RepoConnection::new(connection);
     Ok(db.transaction::<_, DieselRepoError, _>(|| {
         let id = db.resolve_playlist_id(uid)?;
@@ -39,7 +39,7 @@ pub fn load_entities_with_entries_summary(
         Header = RecordHeader,
         Record = (Entity, EntriesSummary),
     >,
-) -> RepoResult<()> {
+) -> Result<()> {
     let db = RepoConnection::new(connection);
     Ok(db.transaction::<_, DieselRepoError, _>(|| {
         let collection_id = db.resolve_collection_id(collection_uid)?;

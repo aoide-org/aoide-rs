@@ -23,7 +23,7 @@ pub fn resolve_by_media_source_uris(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
     media_source_uris: Vec<String>,
-) -> RepoResult<Vec<(String, EntityHeader)>> {
+) -> Result<Vec<(String, EntityHeader)>> {
     let db = RepoConnection::new(connection);
     Ok(db.transaction::<_, DieselRepoError, _>(|| {
         let mut resolved = Vec::with_capacity(media_source_uris.len());

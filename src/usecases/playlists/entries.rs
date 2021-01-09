@@ -38,7 +38,7 @@ pub fn patch(
     connection: &SqliteConnection,
     entity_header: &EntityHeader,
     operations: impl IntoIterator<Item = PatchOperation>,
-) -> RepoResult<(RecordHeader, EntityWithEntriesSummary)> {
+) -> Result<(RecordHeader, EntityWithEntriesSummary)> {
     let updated_at = DateTime::now_utc();
     let db = RepoConnection::new(connection);
     Ok(db.transaction::<_, DieselRepoError, _>(|| {

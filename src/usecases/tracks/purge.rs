@@ -23,7 +23,7 @@ pub fn purge_by_media_source_uri_predicates(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
     uri_predicates: Vec<StringPredicate>,
-) -> RepoResult<usize> {
+) -> Result<usize> {
     let db = RepoConnection::new(connection);
     db.transaction::<_, DieselRepoError, _>(|| {
         let collection_id = db.resolve_collection_id(collection_uid)?;

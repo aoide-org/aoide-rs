@@ -23,7 +23,7 @@ pub fn load_one(
     connection: &SqliteConnection,
     uid: &EntityUid,
     with_summary: bool,
-) -> RepoResult<(Entity, Option<Summary>)> {
+) -> Result<(Entity, Option<Summary>)> {
     let db = RepoConnection::new(connection);
     Ok(db.transaction::<_, DieselRepoError, _>(|| {
         let id = db.resolve_collection_id(uid)?;
@@ -46,7 +46,7 @@ pub fn load_all(
         Header = RecordHeader,
         Record = (Entity, Option<Summary>),
     >,
-) -> RepoResult<()> {
+) -> Result<()> {
     let db = RepoConnection::new(connection);
     Ok(db.transaction::<_, DieselRepoError, _>(|| {
         Ok(db.load_collection_entities(kind, with_summary, pagination, collector)?)

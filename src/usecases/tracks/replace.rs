@@ -36,7 +36,7 @@ pub fn replace_by_media_source_uri(
     collection_uid: &EntityUid,
     replace_mode: ReplaceMode,
     tracks: impl Iterator<Item = Track>,
-) -> RepoResult<Outcome> {
+) -> Result<Outcome> {
     let db = RepoConnection::new(connection);
     db.transaction::<_, DieselRepoError, _>(|| {
         let mut outcome = Outcome::default();
