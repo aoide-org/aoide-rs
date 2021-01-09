@@ -21,13 +21,13 @@ use super::*;
 fn score_valid() {
     assert!(Score::min().validate().is_ok());
     assert!(Score::max().validate().is_ok());
-    assert!(Score::from_inner(Score::min().0 + Score::max().0)
+    assert!(Score::new(Score::min().0 + Score::max().0)
         .validate()
         .is_ok());
-    assert!(!Score::from_inner(Score::min().0 - Score::max().0)
+    assert!(!Score::new(Score::min().0 - Score::max().0)
         .validate()
         .is_ok());
-    assert!(!Score::from_inner(Score::max().0 + Score::max().0)
+    assert!(!Score::new(Score::max().0 + Score::max().0)
         .validate()
         .is_ok());
 }
@@ -42,10 +42,7 @@ fn score_display() {
 
 #[test]
 fn parse_label() {
-    assert_eq!(
-        Ok(Label::from_inner("A Label".into())),
-        "A Label".parse::<Label>()
-    );
+    assert_eq!(Ok(Label::new("A Label".into())), "A Label".parse::<Label>());
 }
 
 #[test]
@@ -55,19 +52,19 @@ fn clamp_label_value() {
 
 #[test]
 fn validate_label() {
-    assert!(Label::from_inner("A Term".into()).validate().is_ok());
-    assert!(Label::from_inner("\tA Term  ".into()).validate().is_err());
+    assert!(Label::new("A Term".into()).validate().is_ok());
+    assert!(Label::new("\tA Term  ".into()).validate().is_err());
 }
 
 #[test]
 fn validate_facet() {
-    assert!(Facet::from_inner(
+    assert!(Facet::new(
         "!\"#$%&'()*+,-./0123456789:;<=>?@[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~".into()
     )
     .validate()
     .is_ok());
-    assert!(Facet::from_inner("Facet".into()).validate().is_err());
-    assert!(Facet::from_inner("a facet".into()).validate().is_err());
+    assert!(Facet::new("Facet".into()).validate().is_err());
+    assert!(Facet::new("a facet".into()).validate().is_err());
 }
 
 #[test]
@@ -77,7 +74,7 @@ fn default_facet_is_invalid() {
 
 #[test]
 fn empty_facet_is_invalid() {
-    assert!(Facet::from_inner("".into()).validate().is_err());
+    assert!(Facet::new("".into()).validate().is_err());
 }
 
 #[test]
@@ -92,7 +89,7 @@ fn default_label_is_invalid() {
 
 #[test]
 fn empty_label_is_invalid() {
-    assert!(Label::from_inner("".into()).validate().is_err());
+    assert!(Label::new("".into()).validate().is_err());
     assert!("".parse::<Label>().unwrap().validate().is_err());
 }
 
@@ -108,16 +105,16 @@ fn default_plain_tag_is_valid() {
 
 #[test]
 fn duplicate_labels() {
-    let tags = Tags::from_inner(
+    let tags = Tags::new(
         vec![(
             None.into(),
             vec![
                 PlainTag {
-                    label: Some(Label::from_inner("label1".into())),
+                    label: Some(Label::new("label1".into())),
                     ..Default::default()
                 },
                 PlainTag {
-                    label: Some(Label::from_inner("label2".into())),
+                    label: Some(Label::new("label2".into())),
                     ..Default::default()
                 },
             ],
@@ -127,20 +124,20 @@ fn duplicate_labels() {
     );
     assert!(tags.validate().is_ok());
 
-    let tags = Tags::from_inner(
+    let tags = Tags::new(
         vec![(
             None.into(),
             vec![
                 PlainTag {
-                    label: Some(Label::from_inner("label1".into())),
+                    label: Some(Label::new("label1".into())),
                     ..Default::default()
                 },
                 PlainTag {
-                    label: Some(Label::from_inner("label2".into())),
+                    label: Some(Label::new("label2".into())),
                     ..Default::default()
                 },
                 PlainTag {
-                    label: Some(Label::from_inner("label1".into())),
+                    label: Some(Label::new("label1".into())),
                     ..Default::default()
                 },
             ],
@@ -150,32 +147,32 @@ fn duplicate_labels() {
     );
     assert_eq!(1, tags.validate().err().unwrap().into_iter().count());
 
-    let tags = Tags::from_inner(
+    let tags = Tags::new(
         vec![
             (
                 None.into(),
                 vec![
                     PlainTag {
-                        label: Some(Label::from_inner("label1".into())),
+                        label: Some(Label::new("label1".into())),
                         ..Default::default()
                     },
                     PlainTag {
-                        label: Some(Label::from_inner("label2".into())),
+                        label: Some(Label::new("label2".into())),
                         ..Default::default()
                     },
                 ],
             ),
             (
-                Facet::from_inner("facet1".into()).into(),
+                Facet::new("facet1".into()).into(),
                 vec![PlainTag {
-                    label: Some(Label::from_inner("label1".into())),
+                    label: Some(Label::new("label1".into())),
                     ..Default::default()
                 }],
             ),
             (
-                Facet::from_inner("facet2".into()).into(),
+                Facet::new("facet2".into()).into(),
                 vec![PlainTag {
-                    label: Some(Label::from_inner("label2".into())),
+                    label: Some(Label::new("label2".into())),
                     ..Default::default()
                 }],
             ),
@@ -185,36 +182,36 @@ fn duplicate_labels() {
     );
     assert!(tags.validate().is_ok());
 
-    let tags = Tags::from_inner(
+    let tags = Tags::new(
         vec![
             (
                 None.into(),
                 vec![
                     PlainTag {
-                        label: Some(Label::from_inner("label2".into())),
+                        label: Some(Label::new("label2".into())),
                         ..Default::default()
                     },
                     PlainTag {
-                        label: Some(Label::from_inner("label1".into())),
+                        label: Some(Label::new("label1".into())),
                         ..Default::default()
                     },
                     PlainTag {
-                        label: Some(Label::from_inner("label2".into())),
+                        label: Some(Label::new("label2".into())),
                         ..Default::default()
                     },
                 ],
             ),
             (
-                Facet::from_inner("facet1".into()).into(),
+                Facet::new("facet1".into()).into(),
                 vec![PlainTag {
-                    label: Some(Label::from_inner("label1".into())),
+                    label: Some(Label::new("label1".into())),
                     ..Default::default()
                 }],
             ),
             (
-                Facet::from_inner("facet2".into()).into(),
+                Facet::new("facet2".into()).into(),
                 vec![PlainTag {
-                    label: Some(Label::from_inner("label2".into())),
+                    label: Some(Label::new("label2".into())),
                     ..Default::default()
                 }],
             ),
@@ -224,37 +221,37 @@ fn duplicate_labels() {
     );
     assert_eq!(1, tags.validate().err().unwrap().into_iter().count());
 
-    let tags = Tags::from_inner(
+    let tags = Tags::new(
         vec![
             (
                 None.into(),
                 vec![
                     PlainTag {
-                        label: Some(Label::from_inner("label1".into())),
+                        label: Some(Label::new("label1".into())),
                         ..Default::default()
                     },
                     PlainTag {
-                        label: Some(Label::from_inner("label2".into())),
+                        label: Some(Label::new("label2".into())),
                         ..Default::default()
                     },
                 ],
             ),
             (
-                Facet::from_inner("facet1".into()).into(),
+                Facet::new("facet1".into()).into(),
                 vec![PlainTag {
-                    label: Some(Label::from_inner("label1".into())),
+                    label: Some(Label::new("label1".into())),
                     ..Default::default()
                 }],
             ),
             (
-                Facet::from_inner("facet2".into()).into(),
+                Facet::new("facet2".into()).into(),
                 vec![
                     PlainTag {
-                        label: Some(Label::from_inner("label2".into())),
+                        label: Some(Label::new("label2".into())),
                         ..Default::default()
                     },
                     PlainTag {
-                        label: Some(Label::from_inner("label2".into())),
+                        label: Some(Label::new("label2".into())),
                         ..Default::default()
                     },
                 ],
@@ -265,51 +262,51 @@ fn duplicate_labels() {
     );
     assert_eq!(1, tags.validate().err().unwrap().into_iter().count());
 
-    let tags = Tags::from_inner(
+    let tags = Tags::new(
         vec![
             (
                 None.into(),
                 vec![
                     PlainTag {
-                        label: Some(Label::from_inner("label2".into())),
+                        label: Some(Label::new("label2".into())),
                         ..Default::default()
                     },
                     PlainTag {
-                        label: Some(Label::from_inner("label1".into())),
+                        label: Some(Label::new("label1".into())),
                         ..Default::default()
                     },
                     PlainTag {
-                        label: Some(Label::from_inner("label2".into())),
-                        ..Default::default()
-                    },
-                ],
-            ),
-            (
-                Facet::from_inner("facet1".into()).into(),
-                vec![
-                    PlainTag {
-                        label: Some(Label::from_inner("label1".into())),
-                        ..Default::default()
-                    },
-                    PlainTag {
-                        label: Some(Label::from_inner("label2".into())),
+                        label: Some(Label::new("label2".into())),
                         ..Default::default()
                     },
                 ],
             ),
             (
-                Facet::from_inner("facet2".into()).into(),
+                Facet::new("facet1".into()).into(),
                 vec![
                     PlainTag {
-                        label: Some(Label::from_inner("label2".into())),
+                        label: Some(Label::new("label1".into())),
                         ..Default::default()
                     },
                     PlainTag {
-                        label: Some(Label::from_inner("label2".into())),
+                        label: Some(Label::new("label2".into())),
+                        ..Default::default()
+                    },
+                ],
+            ),
+            (
+                Facet::new("facet2".into()).into(),
+                vec![
+                    PlainTag {
+                        label: Some(Label::new("label2".into())),
                         ..Default::default()
                     },
                     PlainTag {
-                        label: Some(Label::from_inner("label2".into())),
+                        label: Some(Label::new("label2".into())),
+                        ..Default::default()
+                    },
+                    PlainTag {
+                        label: Some(Label::new("label2".into())),
                         ..Default::default()
                     },
                 ],

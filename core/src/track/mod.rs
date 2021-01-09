@@ -54,6 +54,22 @@ pub struct Track {
 }
 
 impl Track {
+    pub fn new_from_media_source(media_source: Source) -> Self {
+        Self {
+            media_source,
+            release: Default::default(),
+            album: Default::default(),
+            indexes: Default::default(),
+            titles: Default::default(),
+            actors: Default::default(),
+            tags: Default::default(),
+            color: Default::default(),
+            metrics: Default::default(),
+            cues: Default::default(),
+            play_counter: Default::default(),
+        }
+    }
+
     pub fn track_title(&self) -> Option<&str> {
         Titles::main_title(&self.titles).map(|title| title.name.as_str())
     }

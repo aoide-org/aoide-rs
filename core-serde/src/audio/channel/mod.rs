@@ -54,6 +54,11 @@ pub enum ChannelLayout {
     Mono,
     DualMono,
     Stereo,
+    Three,
+    Four,
+    Five,
+    FiveOne,
+    SevenOne,
     // ...to be continued
 }
 
@@ -64,6 +69,11 @@ impl From<_core::ChannelLayout> for ChannelLayout {
             Mono => ChannelLayout::Mono,
             DualMono => ChannelLayout::DualMono,
             Stereo => ChannelLayout::Stereo,
+            Three => ChannelLayout::Three,
+            Four => ChannelLayout::Four,
+            Five => ChannelLayout::Five,
+            FiveOne => ChannelLayout::FiveOne,
+            SevenOne => ChannelLayout::SevenOne,
         }
     }
 }
@@ -75,6 +85,11 @@ impl From<ChannelLayout> for _core::ChannelLayout {
             ChannelLayout::Mono => Mono,
             ChannelLayout::DualMono => DualMono,
             ChannelLayout::Stereo => Stereo,
+            ChannelLayout::Three => Three,
+            ChannelLayout::Four => Four,
+            ChannelLayout::Five => Five,
+            ChannelLayout::FiveOne => FiveOne,
+            ChannelLayout::SevenOne => SevenOne,
         }
     }
 }

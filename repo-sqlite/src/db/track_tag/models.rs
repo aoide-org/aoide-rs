@@ -62,7 +62,7 @@ impl<'a> InsertableRecord<'a> {
             track_id: track_id.into(),
             facet: facet.as_ref().map(Facet::as_ref),
             label: label.as_ref().map(Label::as_ref),
-            score: score.into_inner(),
+            score: score.value(),
         }
     }
 }

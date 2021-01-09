@@ -44,7 +44,8 @@ semval = { version = ">= 0.1.5" }
 serde = "*"
 serde_json = "*"
 thiserror = "*"
-tokio = { version = "*", default-features = false, features = ["macros", "rt-threaded", "parking_lot"] }
+tokio = { version = "*", default-features = false, features = ["macros", "rt-threaded"] }
+url = { version = "*", features = ["serde"] }
 warp = { version = "*", default-features = false }
 
 [features]

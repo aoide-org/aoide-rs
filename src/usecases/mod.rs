@@ -15,6 +15,7 @@
 
 use super::*;
 
+use aoide_media::Error as MediaError;
 use aoide_repo::prelude::RepoError;
 
 use std::result::Result as StdResult;
@@ -24,11 +25,15 @@ use thiserror::Error;
 
 pub mod collections;
 pub mod database;
+pub mod media;
 pub mod playlists;
 pub mod tracks;
 
 #[derive(Error, Debug)]
 pub enum Error {
+    #[error(transparent)]
+    Media(#[from] MediaError),
+
     #[error(transparent)]
     Database(#[from] diesel::result::Error),
 

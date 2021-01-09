@@ -45,6 +45,7 @@ dependencies = [
  "serde_urlencoded 0.7.0",
  "thiserror",
  "tokio",
+ "url",
  "warp",
 ]
 
@@ -84,13 +85,20 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-core",
+ "bitflags",
  "hound",
  "id3",
  "lewton",
+ "log",
  "metaflac",
+ "mime",
+ "mime_guess",
  "mp3-duration",
  "mp4",
+ "mp4ameta",
+ "semval",
  "thiserror",
+ "url",
 ]
 
 [[package]]
@@ -1146,6 +1154,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "mp4ameta"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d80cda2befe32b9a0bceff98a767325a8982133b89e94f5f73bd84003b2d74b3"
+dependencies = [
+ "lazy_static",
+ "mp4ameta_proc",
+]
+
+[[package]]
+name = "mp4ameta_proc"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df1356420603b4954ba29a451336ef5b32eb24527dfea8af1b3034b0a517c02b"
+
+[[package]]
 name = "net2"
 version = "0.2.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1887,7 +1911,6 @@ dependencies = [
  "memchr",
  "mio",
  "num_cpus",
- "parking_lot",
  "pin-project-lite 0.1.11",
  "slab",
  "tokio-macros",
@@ -2016,6 +2039,7 @@ dependencies = [
  "idna",
  "matches",
  "percent-encoding",
+ "serde",
 ]
 
 [[package]]

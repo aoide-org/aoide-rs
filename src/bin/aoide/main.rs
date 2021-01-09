@@ -18,7 +18,7 @@
 mod env;
 
 use aoide::{
-    api::web::{collections, handle_rejection, playlists, reject_on_error, tracks, Error},
+    api::web::{collections, handle_rejection, media, playlists, reject_on_error, tracks, Error},
     usecases as uc, DB_CONNECTION_POOL_SIZE, *,
 };
 
@@ -154,6 +154,7 @@ pub async fn main() -> Result<(), Error> {
     let collections_path = warp::path("c");
     let tracks_path = warp::path("t");
     let playlists_path = warp::path("p");
+    let media_path = warp::path("m");
     let storage_path = warp::path("storage");
 
     // Collections
@@ -550,6 +551,19 @@ pub async fn main() -> Result<(), Error> {
         .or(playlists_delete)
         .or(playlists_entries_patch);
 
+    let media_import_track = warp::post()
+        .and(media_path)
+        .and(warp::path("import-track"))
+        .and(warp::path::end())
+        .and(warp::query())
+        .and_then(|query_params| async move {
+            tokio::task::spawn_blocking(move || media::import_track::handle_request(query_params))
+                .await
+                .map_err(reject_on_error)? // JoinError
+                .map_err(reject_on_error)
+                .map(|response_body| warp::reply::json(&response_body))
+        });
+
     // Storage
     let storage_cleanse = warp::post()
         .and(storage_path)
@@ -602,6 +616,7 @@ pub async fn main() -> Result<(), Error> {
             .or(collections_filters)
             .or(tracks_filters)
             .or(playlists_filters)
+            .or(media_import_track)
             .or(storage_filters)
             .or(static_filters)
             .or(shutdown_filter)

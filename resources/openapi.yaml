@@ -840,6 +840,11 @@ components:
         - mono
         - dual-mono
         - stereo
+        - three
+        - four
+        - five
+        - five-one
+        - seven-one
       description: |
         The layout of the channels.
 
@@ -850,6 +855,11 @@ components:
           * mono (1 channel)
           * dual-mono (2 channels)
           * stereo (2 channels)
+          * three (3 channels)
+          * four (4 channels)
+          * five (5 channels)
+          * five-one (6 channels)
+          * seven-one (8 channels)
     Channels:
       description: |
         Either a channel count or a channel layout.

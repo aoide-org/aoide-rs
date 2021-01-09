@@ -92,15 +92,26 @@ pub enum ChannelLayout {
     Mono,
     DualMono,
     Stereo,
+    Three,
+    Four,
+    Five,
+    FiveOne,
+    SevenOne,
     // ...to be continued
 }
 
 impl ChannelLayout {
     pub const fn channel_count(self) -> ChannelCount {
+        use ChannelLayout::*;
         match self {
-            ChannelLayout::Mono => ChannelCount(1),
-            ChannelLayout::DualMono => ChannelCount(2),
-            ChannelLayout::Stereo => ChannelCount(2),
+            Mono => ChannelCount(1),
+            DualMono => ChannelCount(2),
+            Stereo => ChannelCount(2),
+            Three => ChannelCount(3),
+            Four => ChannelCount(4),
+            Five => ChannelCount(5),
+            FiveOne => ChannelCount(6),
+            SevenOne => ChannelCount(8),
         }
     }
 }

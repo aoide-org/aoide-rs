@@ -13,33 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod models;
-pub mod schema;
+use super::*;
 
-use crate::prelude::*;
+///////////////////////////////////////////////////////////////////////
 
-use aoide_core::tag::*;
-
-use aoide_repo::track::RecordId;
-
-#[derive(Debug)]
-pub struct Record {
-    pub track_id: RecordId,
-    pub facet: Option<Facet>,
-    pub label: Option<Label>,
-    pub score: Score,
-}
-
-impl From<Record> for (FacetKey, PlainTag) {
-    fn from(from: Record) -> Self {
-        let Record {
-            track_id: _,
-            facet,
-            label,
-            score,
-        } = from;
-        let facet_key = FacetKey::new(facet);
-        let plain_tag = PlainTag { label, score };
-        (facet_key, plain_tag)
-    }
-}
+pub mod import_track;

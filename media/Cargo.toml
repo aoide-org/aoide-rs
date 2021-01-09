@@ -10,18 +10,25 @@ edition = "2018"
 aoide-core = "*"
 
 anyhow = "*"
+bitflags = "*"
+log = "*"
+mime = "*"
+mime_guess = "*"
+semval = "*"
 thiserror = "*"
+url = "*"
 
 hound = { version = "*", optional = true }
 id3 = { version = "*", optional = true }
 lewton = { version = "*", optional = true }
 metaflac = { version = "*", optional = true }
 mp4 = { version = "*", optional = true }
+mp4ameta = { version = "*", optional = true }
 mp3-duration = { version = "*", optional = true }
 
 [features]
 feature-flac = [ "metaflac" ]
-feature-mp4 = [ "mp4" ]
+feature-mp4 = [ "mp4", "mp4ameta" ]
 feature-mp3 = [ "id3", "mp3-duration" ]
 feature-ogg = [ "lewton" ]
 feature-wav = [ "hound" ]

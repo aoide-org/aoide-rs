@@ -19,7 +19,7 @@ use chrono::{
     Datelike, Duration, FixedOffset, Local, NaiveDate, NaiveDateTime, ParseError, SecondsFormat,
     TimeZone, Utc,
 };
-use std::str::FromStr;
+use std::{str::FromStr, time::SystemTime};
 
 pub type DateTimeInner = chrono::DateTime<FixedOffset>;
 
@@ -108,6 +108,12 @@ impl From<chrono::DateTime<Local>> for DateTime {
 impl From<DateTime> for chrono::DateTime<Local> {
     fn from(from: DateTime) -> Self {
         from.to_inner().into()
+    }
+}
+
+impl From<SystemTime> for DateTime {
+    fn from(from: SystemTime) -> Self {
+        chrono::DateTime::<Utc>::from(from).into()
     }
 }
 

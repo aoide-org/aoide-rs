@@ -251,12 +251,12 @@ impl From<PlainTag> for _core::PlainTag {
                 ..Default::default()
             },
             IntScoreFallback(iscore) => _core::PlainTag {
-                score: _core::Score::from_inner(iscore as f64),
+                score: _core::Score::new(iscore as f64),
                 ..Default::default()
             },
             LabelIntScoreFallback(label, iscore) => _core::PlainTag {
                 label: Some(label.into()),
-                score: _core::Score::from_inner(iscore as f64),
+                score: _core::Score::new(iscore as f64),
             },
             LabelScore(label, score) => _core::PlainTag {
                 label: Some(label.into()),
@@ -288,7 +288,7 @@ pub type TagsMap = HashMap<FacetKey, Vec<PlainTag>>;
 pub struct Tags(TagsMap);
 
 impl Tags {
-    pub const fn from_inner(inner: TagsMap) -> Self {
+    pub const fn new(inner: TagsMap) -> Self {
         Self(inner)
     }
 
@@ -299,7 +299,7 @@ impl Tags {
 
 impl From<TagsMap> for Tags {
     fn from(inner: TagsMap) -> Self {
-        Self::from_inner(inner)
+        Self::new(inner)
     }
 }
 
@@ -319,7 +319,7 @@ impl From<_core::Tags> for Tags {
                 plain_tags.into_iter().map(Into::into).collect::<Vec<_>>(),
             );
         }
-        Self::from_inner(into)
+        Self::new(into)
     }
 }
 
@@ -333,7 +333,7 @@ impl From<Tags> for _core::Tags {
                 plain_tags.into_iter().map(Into::into).collect::<Vec<_>>(),
             );
         }
-        Self::from_inner(into)
+        Self::new(into)
     }
 }
 

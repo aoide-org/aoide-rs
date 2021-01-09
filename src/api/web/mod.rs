@@ -21,6 +21,8 @@ mod _repo {
     pub use aoide_repo::prelude::*;
 }
 
+use aoide_media::Error as MediaError;
+
 use aoide_repo::prelude::{Pagination, PaginationLimit, PaginationOffset, RepoError};
 
 use aoide_core_serde::entity::EntityRevision;
@@ -42,6 +44,7 @@ use thiserror::Error;
 ///////////////////////////////////////////////////////////////////////
 
 pub mod collections;
+pub mod media;
 pub mod playlists;
 pub mod tracks;
 
@@ -49,6 +52,9 @@ pub mod tracks;
 pub enum Error {
     #[error(transparent)]
     TaskScheduling(#[from] tokio::task::JoinError),
+
+    #[error(transparent)]
+    Media(#[from] MediaError),
 
     #[error(transparent)]
     Database(#[from] diesel::result::Error),
@@ -67,6 +73,7 @@ impl From<uc::Error> for Error {
     fn from(err: uc::Error) -> Self {
         use uc::Error::*;
         match err {
+            Media(err) => Self::Media(err),
             Database(err) => Self::Database(err),
             DatabaseMigration(err) => Self::Other(err.into()), // does not occur for the web API
             DatabaseConnection(err) => Self::DatabaseConnection(err),
@@ -141,6 +148,10 @@ pub async fn handle_rejection(reject: Rejection) -> StdResult<impl Reply, Infall
     } else if let Some(err) = reject.find::<Error>() {
         match err {
             Error::TaskScheduling(err) => {
+                code = StatusCode::INTERNAL_SERVER_ERROR;
+                message = err.to_string();
+            }
+            Error::Media(err) => {
                 code = StatusCode::INTERNAL_SERVER_ERROR;
                 message = err.to_string();
             }

@@ -31,7 +31,7 @@ use std::{
 
 pub type ScoreValue = f64;
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
+#[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
 pub struct Score(ScoreValue);
 
 impl Score {
@@ -43,9 +43,18 @@ impl Score {
         1.0
     }
 
-    pub fn clamp_value(value: ScoreValue) -> ScoreValue {
+    pub const fn default_value() -> ScoreValue {
+        Self::max_value()
+    }
+
+    pub fn clamp_value(value: impl Into<ScoreValue>) -> ScoreValue {
         //value.clamp(Self::min(), Self::max())
+        let value = value.into();
         value.min(Self::max_value()).max(Self::min_value())
+    }
+
+    pub fn clamp_from(value: impl Into<ScoreValue>) -> Score {
+        Self::clamp_value(value).into()
     }
 
     pub const fn min() -> Self {
@@ -56,24 +65,35 @@ impl Score {
         Self(Self::max_value())
     }
 
-    pub const fn from_inner(inner: ScoreValue) -> Self {
+    pub const fn default() -> Self {
+        Self(Self::default_value())
+    }
+
+    pub const fn new(inner: ScoreValue) -> Self {
         Self(inner)
     }
 
-    pub const fn into_inner(self) -> ScoreValue {
-        self.0
+    pub const fn value(self) -> ScoreValue {
+        let Self(value) = self;
+        value
     }
 
     // Convert to percentage value with a single decimal digit
     pub fn to_percentage(self) -> ScoreValue {
         debug_assert!(self.validate().is_ok());
-        (self.0 * ScoreValue::from(1_000)).round() / ScoreValue::from(10)
+        (self.value() * ScoreValue::from(1_000)).round() / ScoreValue::from(10)
     }
 
     // Convert to an integer permille value
     pub fn to_permille(self) -> u16 {
         debug_assert!(self.validate().is_ok());
-        (self.0 * ScoreValue::from(1_000)).round() as u16
+        (self.value() * ScoreValue::from(1_000)).round() as u16
+    }
+}
+
+impl Default for Score {
+    fn default() -> Self {
+        Self::default()
     }
 }
 
@@ -97,13 +117,13 @@ impl Validate for Score {
 
 impl From<Score> for ScoreValue {
     fn from(from: Score) -> Self {
-        from.into_inner()
+        from.value()
     }
 }
 
 impl From<ScoreValue> for Score {
-    fn from(from: ScoreValue) -> Self {
-        Self::from_inner(from)
+    fn from(value: ScoreValue) -> Self {
+        Self::new(value)
     }
 }
 
@@ -137,17 +157,36 @@ pub type LabelValue = String;
 pub struct Label(LabelValue);
 
 impl Label {
+    pub fn clamp_str(value: &str) -> &str {
+        value.trim()
+    }
+
     pub fn clamp_value(value: impl Into<LabelValue>) -> LabelValue {
-        // TODO: Truncate the given string instead of creating a new string
-        value.into().trim().to_string()
+        let value = value.into();
+        let clamped = Self::clamp_str(&value);
+        if clamped == &value {
+            value
+        } else {
+            clamped.into()
+        }
     }
 
-    pub const fn from_inner(inner: LabelValue) -> Self {
-        Self(inner)
+    pub fn clamp_from(value: impl Into<LabelValue>) -> Label {
+        Self::clamp_value(value).into()
     }
 
-    pub fn into_inner(self) -> LabelValue {
-        self.0
+    pub const fn new(value: LabelValue) -> Self {
+        Self(value)
+    }
+
+    pub const fn value(&self) -> &LabelValue {
+        let Self(value) = self;
+        value
+    }
+
+    pub fn into_value(self) -> LabelValue {
+        let Self(value) = self;
+        value
     }
 }
 
@@ -162,33 +201,38 @@ impl Validate for Label {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(self.0.is_empty(), LabelInvalidity::Empty)
-            .invalidate_if(self.0.trim().len() != self.0.len(), LabelInvalidity::Format)
+            .invalidate_if(self.value().is_empty(), LabelInvalidity::Empty)
+            .invalidate_if(
+                Self::clamp_str(self.as_ref()) != self.value().as_str(),
+                LabelInvalidity::Format,
+            )
             .into()
     }
 }
 
 impl From<LabelValue> for Label {
-    fn from(from: LabelValue) -> Self {
-        Self::from_inner(from)
+    fn from(value: LabelValue) -> Self {
+        Self::new(value)
     }
 }
 
 impl From<Label> for LabelValue {
     fn from(from: Label) -> Self {
-        from.into_inner()
+        from.into_value()
     }
 }
 
 impl AsRef<LabelValue> for Label {
     fn as_ref(&self) -> &LabelValue {
-        &self.0
+        let Self(value) = self;
+        value
     }
 }
 
 impl AsRef<str> for Label {
     fn as_ref(&self) -> &str {
-        &self.0
+        let Self(value) = self;
+        value
     }
 }
 
@@ -196,7 +240,7 @@ impl FromStr for Label {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(s.into()))
+        Ok(Self::clamp_str(s).to_owned().into())
     }
 }
 
@@ -231,17 +275,28 @@ pub type FacetValue = String;
 pub struct Facet(FacetValue);
 
 impl Facet {
-    pub fn clamp_value(mut value: FacetValue) -> FacetValue {
+    pub fn clamp_value(value: impl Into<FacetValue>) -> FacetValue {
+        let mut value = value.into();
         value.retain(Self::is_valid_char);
         value
     }
 
-    pub const fn from_inner(inner: FacetValue) -> Self {
-        Self(inner)
+    pub fn clamp_from(value: impl Into<FacetValue>) -> Label {
+        Self::clamp_value(value).into()
     }
 
-    pub fn into_inner(self) -> FacetValue {
-        self.0
+    pub const fn new(value: FacetValue) -> Self {
+        Self(value)
+    }
+
+    pub fn into_value(self) -> FacetValue {
+        let Self(value) = self;
+        value
+    }
+
+    pub const fn value(&self) -> &FacetValue {
+        let Self(value) = self;
+        value
     }
 
     fn is_invalid_char(c: char) -> bool {
@@ -264,9 +319,9 @@ impl Validate for Facet {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(self.0.is_empty(), FacetInvalidity::Empty)
+            .invalidate_if(self.value().is_empty(), FacetInvalidity::Empty)
             .invalidate_if(
-                self.0.chars().any(Facet::is_invalid_char),
+                self.value().chars().any(Facet::is_invalid_char),
                 FacetInvalidity::Format,
             )
             .into()
@@ -275,25 +330,27 @@ impl Validate for Facet {
 
 impl From<FacetValue> for Facet {
     fn from(from: FacetValue) -> Self {
-        Self::from_inner(from)
+        Self::new(from)
     }
 }
 
 impl From<Facet> for FacetValue {
     fn from(from: Facet) -> Self {
-        from.into_inner()
+        from.into_value()
     }
 }
 
 impl AsRef<FacetValue> for Facet {
     fn as_ref(&self) -> &FacetValue {
-        &self.0
+        let Self(value) = self;
+        value
     }
 }
 
 impl AsRef<str> for Facet {
     fn as_ref(&self) -> &str {
-        &self.0
+        let Self(value) = self;
+        value
     }
 }
 
@@ -301,13 +358,13 @@ impl FromStr for Facet {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(s.into()))
+        Ok(Self::clamp_value(s).into())
     }
 }
 
 impl fmt::Display for Facet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.0)
+        f.write_str(self.value())
     }
 }
 
@@ -325,18 +382,19 @@ impl Faceted for Facet {
 pub struct FacetKey(Option<Facet>);
 
 impl FacetKey {
-    pub const fn from_inner(inner: Option<Facet>) -> Self {
+    pub const fn new(inner: Option<Facet>) -> Self {
         Self(inner)
     }
 
     pub fn into_inner(self) -> Option<Facet> {
-        self.0
+        let Self(inner) = self;
+        inner
     }
 }
 
 impl From<Option<Facet>> for FacetKey {
-    fn from(from: Option<Facet>) -> Self {
-        FacetKey::from_inner(from)
+    fn from(inner: Option<Facet>) -> Self {
+        FacetKey::new(inner)
     }
 }
 
@@ -354,13 +412,15 @@ impl From<Facet> for FacetKey {
 
 impl AsRef<Option<Facet>> for FacetKey {
     fn as_ref(&self) -> &Option<Facet> {
-        &self.0
+        let Self(inner) = self;
+        inner
     }
 }
 
 impl AsRef<str> for FacetKey {
     fn as_ref(&self) -> &str {
-        match &self.0 {
+        let Self(inner) = self;
+        match inner {
             Some(facet) => facet.as_ref(),
             None => "",
         }
@@ -371,11 +431,13 @@ impl FromStr for FacetKey {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(if s.is_empty() {
-            None.into()
+        let value = Facet::clamp_value(s);
+        let inner = if value.is_empty() {
+            None
         } else {
-            Some(Facet::from_inner(s.into())).into()
-        })
+            Some(Facet::new(value))
+        };
+        Ok(inner.into())
     }
 }
 
@@ -481,17 +543,19 @@ pub type TagsMap = HashMap<FacetKey, Vec<PlainTag>>;
 pub struct Tags(TagsMap);
 
 impl Tags {
-    pub const fn from_inner(inner: TagsMap) -> Self {
+    pub const fn new(inner: TagsMap) -> Self {
         Self(inner)
     }
 
     pub fn into_inner(self) -> TagsMap {
-        self.0
+        let Self(inner) = self;
+        inner
     }
 
     pub fn insert(&mut self, key: FacetKey, tag: PlainTag) {
         use std::collections::hash_map::*;
-        match self.0.entry(key) {
+        let Self(inner) = self;
+        match inner.entry(key) {
             Entry::Occupied(mut entry) => {
                 entry.get_mut().push(tag);
             }
@@ -504,7 +568,7 @@ impl Tags {
 
 impl From<TagsMap> for Tags {
     fn from(from: TagsMap) -> Self {
-        Self::from_inner(from)
+        Self::new(from)
     }
 }
 
@@ -516,7 +580,8 @@ impl From<Tags> for TagsMap {
 
 impl AsRef<TagsMap> for Tags {
     fn as_ref(&self) -> &TagsMap {
-        &self.0
+        let Self(inner) = self;
+        inner
     }
 }
 
@@ -559,7 +624,8 @@ impl Validate for Tags {
     type Invalidity = TagsInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        Self::validate_iter(ValidationContext::new(), self.0.iter())
+        let Self(inner) = self;
+        Self::validate_iter(ValidationContext::new(), inner.iter())
     }
 }
 
