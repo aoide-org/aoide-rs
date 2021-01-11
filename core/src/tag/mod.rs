@@ -18,6 +18,7 @@
 use crate::prelude::*;
 
 use std::{
+    borrow::Borrow,
     cmp::Ordering,
     collections::HashMap,
     fmt,
@@ -427,6 +428,12 @@ impl AsRef<str> for FacetKey {
     }
 }
 
+impl Borrow<str> for FacetKey {
+    fn borrow(&self) -> &str {
+        self.as_ref()
+    }
+}
+
 impl FromStr for FacetKey {
     type Err = ();
 
@@ -488,6 +495,30 @@ pub struct PlainTag {
     pub score: Score,
 }
 
+impl CanonicalOrd for PlainTag {
+    fn canonical_cmp(&self, other: &Self) -> Ordering {
+        let Self {
+            label: lhs_label,
+            score: lhs_score,
+        } = self;
+        let Self {
+            label: rhs_label,
+            score: rhs_score,
+        } = other;
+        let label_ord = match (lhs_label, rhs_label) {
+            (Some(lhs_label), Some(rhs_label)) => lhs_label.cmp(rhs_label),
+            (None, Some(_)) => Ordering::Less,
+            (Some(_), None) => Ordering::Greater,
+            (None, None) => Ordering::Equal,
+        };
+        if label_ord != Ordering::Equal {
+            return label_ord;
+        }
+        debug_assert!(lhs_score.partial_cmp(rhs_score).is_some());
+        lhs_score.partial_cmp(rhs_score).unwrap_or(Ordering::Equal)
+    }
+}
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum PlainTagInvalidity {
     Label(LabelInvalidity),
@@ -498,9 +529,10 @@ impl Validate for PlainTag {
     type Invalidity = PlainTagInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        let Self { label, score } = self;
         ValidationContext::new()
-            .validate_with(&self.label, PlainTagInvalidity::Label)
-            .validate_with(&self.score, PlainTagInvalidity::Score)
+            .validate_with(label, Self::Invalidity::Label)
+            .validate_with(score, Self::Invalidity::Score)
             .into()
     }
 }
@@ -529,6 +561,60 @@ impl Labeled for PlainTag {
 impl Scored for PlainTag {
     fn score(&self) -> Score {
         self.score
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// FacetedTags
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct FacetedTags {
+    pub facet: Facet,
+    pub tags: Vec<PlainTag>,
+}
+
+impl CanonicalOrd for FacetedTags {
+    fn canonical_cmp(&self, other: &Self) -> Ordering {
+        let Self {
+            facet: lhs_facet,
+            tags: _,
+        } = self;
+        let Self {
+            facet: rhs_facet,
+            tags: _,
+        } = other;
+        lhs_facet.cmp(rhs_facet)
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum FacetedTagInvalidity {
+    Facet(FacetInvalidity),
+    Tag(PlainTagInvalidity),
+}
+
+impl Validate for FacetedTags {
+    type Invalidity = FacetedTagInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        let Self { facet, tags } = self;
+        ValidationContext::new()
+            .validate_with(facet, Self::Invalidity::Facet)
+            .merge_result(
+                tags.iter()
+                    .fold(ValidationContext::new(), |ctx, next| {
+                        ctx.validate_with(next, Self::Invalidity::Tag)
+                    })
+                    .into(),
+            )
+            .into()
+    }
+}
+
+impl Faceted for FacetedTags {
+    fn facet(&self) -> Option<&Facet> {
+        Some(&self.facet)
     }
 }
 
@@ -618,6 +704,26 @@ impl Tags {
             })
             .into()
     }
+
+    fn take_plain_tags(&mut self) -> Vec<PlainTag> {
+        let Tags(all_tags) = self;
+        let mut plain_tags = all_tags.remove(&FacetKey::new(None)).unwrap_or_default();
+        sort_slice_canonically(&mut plain_tags);
+        plain_tags
+    }
+
+    pub fn take_faceted_tags(&mut self, facet: &Facet) -> Option<FacetedTags> {
+        let Tags(all_tags) = self;
+        all_tags
+            .remove_entry(facet.value().as_str())
+            .map(|(key, mut tags)| {
+                let FacetKey(facet) = key;
+                debug_assert!(facet.is_some());
+                let facet = facet.expect("facet");
+                sort_slice_canonically(&mut tags);
+                FacetedTags { facet, tags }
+            })
+    }
 }
 
 impl Validate for Tags {
@@ -626,6 +732,24 @@ impl Validate for Tags {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         let Self(inner) = self;
         Self::validate_iter(ValidationContext::new(), inner.iter())
+    }
+}
+
+impl From<Tags> for (Vec<PlainTag>, Vec<FacetedTags>) {
+    fn from(mut from: Tags) -> Self {
+        let plain_tags = from.take_plain_tags();
+        let Tags(faceted_tags) = from;
+        let faceted_tags = faceted_tags
+            .into_iter()
+            .map(|(key, mut tags)| {
+                let FacetKey(facet) = key;
+                debug_assert!(facet.is_some());
+                let facet = facet.expect("facet");
+                sort_slice_canonically(&mut tags);
+                FacetedTags { facet, tags }
+            })
+            .collect();
+        (plain_tags, faceted_tags)
     }
 }
 

@@ -16,7 +16,7 @@
 use crate::prelude::*;
 
 use num_derive::{FromPrimitive, ToPrimitive};
-use std::iter::once;
+use std::{cmp::Ordering, iter::once};
 
 ///////////////////////////////////////////////////////////////////////
 // ActorRole
@@ -69,15 +69,41 @@ impl Default for ActorKind {
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Actor {
+    pub role: ActorRole,
+
     pub kind: ActorKind,
 
     pub name: String,
 
-    pub role: ActorRole,
-
     /// A textual annotation for the role, e.g. the role of or
     /// the instrument played by the performer.
     pub role_notes: Option<String>,
+}
+
+impl CanonicalOrd for Actor {
+    fn canonical_cmp(&self, other: &Self) -> Ordering {
+        let Self {
+            role: lhs_role,
+            kind: lhs_kind,
+            name: lhs_name,
+            role_notes: _,
+        } = self;
+        let Self {
+            role: rhs_role,
+            kind: rhs_kind,
+            name: rhs_name,
+            role_notes: _,
+        } = other;
+        let role_ord = lhs_role.cmp(rhs_role);
+        if role_ord != Ordering::Equal {
+            return role_ord;
+        }
+        let kind_ord = lhs_kind.cmp(rhs_kind);
+        if kind_ord != Ordering::Equal {
+            return kind_ord;
+        }
+        lhs_name.cmp(rhs_name)
+    }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]

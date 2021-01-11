@@ -158,6 +158,36 @@ impl Validate for Track {
     }
 }
 
+impl Canonicalize for Track {
+    fn canonicalize(&mut self) {
+        let Self {
+            actors,
+            titles,
+            cues,
+            // FIXME: How to canonicalize tags?
+            tags,
+            ..
+        } = self;
+        sort_slice_canonically(actors);
+        sort_slice_canonically(titles);
+        sort_slice_canonically(cues);
+    }
+
+    fn is_canonicalized(&self) -> bool {
+        let Self {
+            actors,
+            titles,
+            cues,
+            // FIXME: How to canonicalize tags?
+            tags,
+            ..
+        } = self;
+        is_slice_sorted_canonically(actors)
+            && is_slice_sorted_canonically(titles)
+            && is_slice_sorted_canonically(cues)
+    }
+}
+
 pub type Entity = crate::entity::Entity<TrackInvalidity, Track>;
 
 ///////////////////////////////////////////////////////////////////////

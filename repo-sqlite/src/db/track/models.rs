@@ -24,7 +24,7 @@ use aoide_core::{
         time::{BeatUnit, Beats, BeatsPerMeasure, TempoBpm, TimeSignature},
     },
     track::{actor::*, album::*, index::*, metric::*, release::*, title::*, *},
-    util::{clock::*, color::*},
+    util::{clock::*, color::*, Canonicalize},
 };
 
 use aoide_repo::media::source::RecordId as MediaSourceId;
@@ -235,6 +235,7 @@ pub fn load_repo_entity(
         cues,
         play_counter,
     };
+    debug_assert!(entity_body.is_canonicalized());
     let entity = Entity::new(entity_hdr, entity_body);
     (header, entity)
 }

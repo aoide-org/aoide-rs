@@ -37,3 +37,26 @@ pub mod prelude {
 
     pub(crate) use semval::prelude::*;
 }
+
+mod compat {
+    use std::cmp::Ordering;
+
+    // TODO: Remove after https://github.com/rust-lang/rust/issues/53485
+    // has been stabilized.
+    pub fn is_slice_sorted_by<T, F>(slice: &[T], mut cmp: F) -> bool
+    where
+        F: FnMut(&T, &T) -> Ordering,
+    {
+        let mut iter = slice.iter();
+        if let Some(first) = iter.next() {
+            let mut prev = first;
+            while let Some(next) = iter.next() {
+                if cmp(prev, next) == Ordering::Greater {
+                    return false;
+                }
+                prev = next;
+            }
+        }
+        true
+    }
+}

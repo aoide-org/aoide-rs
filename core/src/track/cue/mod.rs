@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::cmp::Ordering;
+
 use crate::{audio::PositionMs, prelude::*};
 
 use num_derive::{FromPrimitive, ToPrimitive};
@@ -96,6 +98,26 @@ pub struct Cue {
     pub color: Option<Color>,
 
     pub flags: CueFlags,
+}
+
+impl CanonicalOrd for Cue {
+    fn canonical_cmp(&self, other: &Self) -> Ordering {
+        let Self {
+            bank_index: lhs_bank_index,
+            slot_index: lhs_slot_index,
+            ..
+        } = self;
+        let Self {
+            bank_index: rhs_bank_index,
+            slot_index: rhs_slot_index,
+            ..
+        } = other;
+        let bank_ord = lhs_bank_index.cmp(rhs_bank_index);
+        if bank_ord != Ordering::Equal {
+            return bank_ord;
+        }
+        lhs_slot_index.cmp(rhs_slot_index)
+    }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]

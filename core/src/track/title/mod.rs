@@ -16,7 +16,7 @@
 use crate::prelude::*;
 
 use num_derive::{FromPrimitive, ToPrimitive};
-use std::iter::once;
+use std::{cmp::Ordering, iter::once};
 
 ///////////////////////////////////////////////////////////////////////
 // TitleKind
@@ -47,6 +47,24 @@ pub struct Title {
     pub kind: TitleKind,
 
     pub name: String,
+}
+
+impl CanonicalOrd for Title {
+    fn canonical_cmp(&self, other: &Self) -> Ordering {
+        let Self {
+            kind: lhs_kind,
+            name: lhs_name,
+        } = self;
+        let Self {
+            kind: rhs_kind,
+            name: rhs_name,
+        } = other;
+        let kind_ord = lhs_kind.cmp(rhs_kind);
+        if kind_ord != Ordering::Equal {
+            return kind_ord;
+        }
+        lhs_name.cmp(rhs_name)
+    }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]

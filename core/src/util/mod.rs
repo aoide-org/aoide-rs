@@ -1,3 +1,7 @@
+use std::cmp::Ordering;
+
+use crate::compat::is_slice_sorted_by;
+
 // aoide.org - Copyright (C) 2018-2021 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -59,6 +63,25 @@ where
     fn is_default(&self) -> bool {
         self == &Default::default()
     }
+}
+
+pub trait CanonicalOrd {
+    fn canonical_cmp(&self, other: &Self) -> Ordering;
+}
+
+pub fn sort_slice_canonically<T: CanonicalOrd>(slice: &mut [T]) {
+    slice.sort_unstable_by(|lhs, rhs| lhs.canonical_cmp(rhs));
+    debug_assert!(is_slice_sorted_canonically(slice));
+}
+
+pub fn is_slice_sorted_canonically<T: CanonicalOrd>(slice: &[T]) -> bool {
+    is_slice_sorted_by(slice, |lhs, rhs| lhs.canonical_cmp(rhs))
+}
+
+pub trait Canonicalize {
+    fn canonicalize(&mut self);
+
+    fn is_canonicalized(&self) -> bool;
 }
 
 ///////////////////////////////////////////////////////////////////////
