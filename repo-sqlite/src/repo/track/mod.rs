@@ -49,7 +49,7 @@ fn load_track_and_album_titles(
     use crate::db::track_title::{models::*, schema::*, *};
     let queryables = track_title::table
         .filter(track_title::track_id.eq(RowId::from(id)))
-        // Consistent ordering on load!
+        // Establish canonical ordering on load!
         .order_by(track_title::scope)
         .order_by(track_title::kind)
         .order_by(track_title::name)
@@ -136,7 +136,7 @@ fn load_track_and_album_actors(
     use crate::db::track_actor::{models::*, schema::*, *};
     let queryables = track_actor::table
         .filter(track_actor::track_id.eq(RowId::from(id)))
-        // Consistent ordering on load!
+        // Establish canonical ordering on load!
         .order_by(track_actor::scope)
         .order_by(track_actor::role)
         .order_by(track_actor::kind)
@@ -222,7 +222,7 @@ fn load_track_cues(db: &crate::Connection<'_>, track_id: RecordId) -> RepoResult
     use crate::db::track_cue::{models::*, schema::*, *};
     track_cue::table
         .filter(track_cue::track_id.eq(RowId::from(track_id)))
-        // Consistent ordering on load!
+        // Establish canonical ordering on load!
         .order_by(track_cue::bank_idx)
         .order_by(track_cue::slot_idx)
         .load::<QueryableRecord>(db.as_ref())
@@ -283,7 +283,7 @@ fn load_track_tags(db: &crate::Connection<'_>, track_id: RecordId) -> RepoResult
     use crate::db::track_tag::{models::*, schema::*};
     track_tag::table
         .filter(track_tag::track_id.eq(RowId::from(track_id)))
-        // Consistent ordering on load!
+        // Establish canonical ordering on load!
         .order_by(track_tag::facet)
         .order_by(track_tag::label)
         .order_by(track_tag::score.desc())

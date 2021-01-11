@@ -32,9 +32,9 @@ CREATE INDEX IF NOT EXISTS idx_track_actor_track_id ON track_actor (
 );
 
 -- Ordering on load
-CREATE INDEX IF NOT EXISTS idx_track_actor_scope_kind_role_name ON track_actor (
+CREATE INDEX IF NOT EXISTS idx_track_actor_scope_role_kind_name ON track_actor (
     scope,
-    kind,
     role,
+    kind,
     name
 );
