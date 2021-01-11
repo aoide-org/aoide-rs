@@ -77,6 +77,8 @@ RUN mkdir -p "./src/bin/${BUILD_BIN}" && \
     mv ${PROJECT_NAME}-core core && \
     USER=root cargo new --lib ${PROJECT_NAME}-core-serde && \
     mv ${PROJECT_NAME}-core-serde core-serde && \
+    USER=root cargo new --lib ${PROJECT_NAME}-media && \
+    mv ${PROJECT_NAME}-media media && \
     USER=root cargo new --lib ${PROJECT_NAME}-repo && \
     mv ${PROJECT_NAME}-repo repo && \
     USER=root cargo new --lib ${PROJECT_NAME}-repo-sqlite && \
@@ -95,6 +97,9 @@ COPY [ \
 COPY [ \
     "core-serde/Cargo.toml", \
     "./core-serde/" ]
+COPY [ \
+    "media/Cargo.toml", \
+    "./media/" ]
 COPY [ \
     "repo/Cargo.toml", \
     "./repo/" ]
@@ -120,6 +125,8 @@ RUN tree && \
     rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-core-* && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_core_serde-* && \
     rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-core-serde-* && \
+    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_media-* && \
+    rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-media-* && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_repo-* && \
     rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-repo-* && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_repo_sqlite-* && \
@@ -140,6 +147,9 @@ COPY [ \
     "core-serde/src", \
     "./core-serde/src/" ]
 COPY [ \
+    "media/src", \
+    "./media/src/" ]
+COPY [ \
     "repo/src", \
     "./repo/src/" ]
 COPY [ \
@@ -156,6 +166,7 @@ COPY [ \
 RUN tree && \
     cargo check -p aoide-core --manifest-path core/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
     cargo check -p aoide-core-serde --manifest-path core-serde/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
+    cargo check -p aoide-media --manifest-path media/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
     cargo check -p aoide-repo --manifest-path repo/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
     cargo check -p aoide-repo-sqlite --manifest-path repo-sqlite/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
     cargo test --workspace --${BUILD_MODE} --target ${BUILD_TARGET} ${WORKSPACE_BUILD_FEATURES} && \
