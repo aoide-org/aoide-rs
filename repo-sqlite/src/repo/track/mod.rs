@@ -47,9 +47,12 @@ fn load_track_and_album_titles(
     id: RecordId,
 ) -> RepoResult<(Vec<Title>, Vec<Title>)> {
     use crate::db::track_title::{models::*, schema::*, *};
-    // TODO: Optimize
     let queryables = track_title::table
         .filter(track_title::track_id.eq(RowId::from(id)))
+        // Consistent ordering on load!
+        .order_by(track_title::scope)
+        .order_by(track_title::kind)
+        .order_by(track_title::name)
         .load::<QueryableRecord>(db.as_ref())
         .map_err(repo_error)?;
     let (mut track_titles, mut album_titles) = (
@@ -131,9 +134,13 @@ fn load_track_and_album_actors(
     id: RecordId,
 ) -> RepoResult<(Vec<Actor>, Vec<Actor>)> {
     use crate::db::track_actor::{models::*, schema::*, *};
-    // TODO: Optimize
     let queryables = track_actor::table
         .filter(track_actor::track_id.eq(RowId::from(id)))
+        // Consistent ordering on load!
+        .order_by(track_actor::scope)
+        .order_by(track_actor::role)
+        .order_by(track_actor::kind)
+        .order_by(track_actor::name)
         .load::<QueryableRecord>(db.as_ref())
         .map_err(repo_error)?;
     let (mut track_actors, mut album_actors) = (
@@ -196,17 +203,18 @@ fn insert_track_and_album_actors(
 fn update_track_and_album_actors(
     db: &crate::Connection<'_>,
     track_id: RecordId,
-    track_actors: &[Actor],
-    album_actors: &[Actor],
+    new_track_actors: &[Actor],
+    new_album_actors: &[Actor],
 ) -> RepoResult<()> {
-    // TODO: Is this preliminary check effective?
     let (old_track_actors, old_album_actors) = load_track_and_album_actors(db, track_id)?;
-    if (&old_track_actors[..], &old_album_actors[..]) == (track_actors, album_actors) {
+    // TODO: This preliminary check only works if `new_track_actors` and
+    // `new_album_actors` are sorted in load order!
+    if (&old_track_actors[..], &old_album_actors[..]) == (new_track_actors, new_album_actors) {
         log::debug!("Keeping unmodified track/album actors");
         return Ok(());
     }
     delete_track_and_album_actors(db, track_id)?;
-    insert_track_and_album_actors(db, track_id, track_actors, album_actors)?;
+    insert_track_and_album_actors(db, track_id, new_track_actors, new_album_actors)?;
     Ok(())
 }
 
@@ -214,6 +222,9 @@ fn load_track_cues(db: &crate::Connection<'_>, track_id: RecordId) -> RepoResult
     use crate::db::track_cue::{models::*, schema::*, *};
     track_cue::table
         .filter(track_cue::track_id.eq(RowId::from(track_id)))
+        // Consistent ordering on load!
+        .order_by(track_cue::bank_idx)
+        .order_by(track_cue::slot_idx)
         .load::<QueryableRecord>(db.as_ref())
         .map_err(repo_error)
         .map(|queryables| {
@@ -254,16 +265,17 @@ fn insert_track_cues(
 fn update_track_cues(
     db: &crate::Connection<'_>,
     track_id: RecordId,
-    cues: &[Cue],
+    new_cues: &[Cue],
 ) -> RepoResult<()> {
-    // TODO: Is this preliminary check effective?
     let old_cues = load_track_cues(db, track_id)?;
-    if old_cues == cues {
+    // TODO: This preliminary check only works if `new_cues` are
+    // sorted in load order!
+    if old_cues == new_cues {
         log::debug!("Keeping unmodified track cues");
         return Ok(());
     }
     delete_track_cues(db, track_id)?;
-    insert_track_cues(db, track_id, cues)?;
+    insert_track_cues(db, track_id, new_cues)?;
     Ok(())
 }
 
@@ -271,7 +283,10 @@ fn load_track_tags(db: &crate::Connection<'_>, track_id: RecordId) -> RepoResult
     use crate::db::track_tag::{models::*, schema::*};
     track_tag::table
         .filter(track_tag::track_id.eq(RowId::from(track_id)))
+        // Consistent ordering on load!
         .order_by(track_tag::facet)
+        .order_by(track_tag::label)
+        .order_by(track_tag::score.desc())
         .load::<QueryableRecord>(db.as_ref())
         .map_err(repo_error)
         .map(|queryables| {
@@ -314,16 +329,17 @@ fn insert_track_tags(
 fn update_track_tags(
     db: &crate::Connection<'_>,
     track_id: RecordId,
-    tags: &Tags,
+    new_tags: &Tags,
 ) -> RepoResult<()> {
-    // TODO: Is this preliminary check effective?
     let old_tags = load_track_tags(db, track_id)?;
-    if &old_tags == tags {
+    // TODO: This preliminary check only works if `new_tags` are
+    // sorted in load order!
+    if &old_tags == new_tags {
         log::debug!("Keeping unmodified track tags");
         return Ok(());
     }
     delete_track_tags(db, track_id)?;
-    insert_track_tags(db, track_id, tags)?;
+    insert_track_tags(db, track_id, new_tags)?;
     Ok(())
 }
 

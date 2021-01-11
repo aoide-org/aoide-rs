@@ -22,12 +22,12 @@ CREATE TABLE IF NOT EXISTS track_title (
     kind                     TINYINT NOT NULL,
     name                     TEXT NOT NULL,
     --
-    FOREIGN KEY(track_id) REFERENCES track(row_id),
-    UNIQUE (track_id, name, scope, kind)
+    FOREIGN KEY(track_id) REFERENCES track(row_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_track_title_name_scope_kind ON track_title (
-    name,
+-- Ordering on load
+CREATE INDEX IF NOT EXISTS idx_track_title_scope_kind_name ON track_title (
     scope,
-    kind
+    kind,
+    name
 );

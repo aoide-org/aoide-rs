@@ -20,8 +20,8 @@ CREATE TABLE IF NOT EXISTS track_actor (
     -- properties
     scope                    TINYINT NOT NULL, -- 0: track, 1: album
     kind                     TINYINT NOT NULL,
-    name                     TEXT NOT NULL,
     role                     TINYINT NOT NULL,
+    name                     TEXT NOT NULL,
     role_notes               TEXT,
     --
     FOREIGN KEY(track_id) REFERENCES track(row_id)
@@ -31,9 +31,10 @@ CREATE INDEX IF NOT EXISTS idx_track_actor_track_id ON track_actor (
     track_id
 );
 
-CREATE INDEX IF NOT EXISTS idx_track_actor_name_scope_kind_role ON track_actor (
-    name,
+-- Ordering on load
+CREATE INDEX IF NOT EXISTS idx_track_actor_scope_kind_role_name ON track_actor (
     scope,
     kind,
-    role
+    role,
+    name
 );
