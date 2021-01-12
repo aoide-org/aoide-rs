@@ -32,7 +32,3 @@ use aoide_repo_sqlite::prelude::{Connection as RepoConnection, *};
 pub type SqliteConnectionManager = ConnectionManager<SqliteConnection>;
 pub type SqliteConnectionPool = Pool<SqliteConnectionManager>;
 pub type SqlitePooledConnection = PooledConnection<SqliteConnectionManager>;
-
-// Maximum number of concurrent readers, only a single
-// concurrent writer.
-pub const DB_CONNECTION_POOL_SIZE: u32 = 8;

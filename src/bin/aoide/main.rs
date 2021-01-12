@@ -19,7 +19,7 @@ mod env;
 
 use aoide::{
     api::web::{collections, handle_rejection, media, playlists, reject_on_error, tracks, Error},
-    usecases as uc, DB_CONNECTION_POOL_SIZE, *,
+    usecases as uc, *,
 };
 
 use aoide_core::entity::EntityUid;
@@ -100,18 +100,21 @@ pub async fn main() -> Result<(), Error> {
     let database_url = env::parse_database_url();
     log::info!("Database URL: {}", database_url);
 
-    // Workaround: Use a pool of size 1 to avoid 'database is locked'
-    // errors due to multi-threading.
-    // TODO: Use an (async?) read/write lock, to allow access for multiple, shared
-    // readers and a single, exclusive writer. The maximum size of the pool must
-    // match the maximum number of readers.
-    let connection_pool = create_connection_pool(&database_url, DB_CONNECTION_POOL_SIZE)
+    // The maximum size of the pool defines the maximum number of
+    // allowed readers while writers require exclusive access.
+    let database_connection_pool_size = env::parse_database_connection_pool_size();
+    let connection_pool = create_connection_pool(&database_url, database_connection_pool_size)
         .expect("Failed to create database connection pool");
 
     uc::database::initialize(&*connection_pool.get()?).expect("Failed to initialize database");
     uc::database::migrate_schema(&*connection_pool.get()?)
         .expect("Failed to migrate database schema");
 
+    // Readers and writers are distinguished by an asynchronous RwLock
+    // guard. This lock has to be acquired before requesting a connection
+    // from the pool. Requesting a pooled connection may block the current
+    // thread and has to be done in a spawned thread to prevent locking of
+    // executor threads!
     let guarded_connection_pool = Arc::new(RwLock::new(connection_pool));
 
     log::info!("Creating service routes");

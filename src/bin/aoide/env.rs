@@ -112,3 +112,42 @@ pub fn parse_database_url() -> String {
         })
         .unwrap_or_else(|_| DEFAULT_DATABASE_URL.into())
 }
+
+const DATABASE_CONNECTION_POOL_SIZE_ENV: &str = "DATABASE_CONNECTION_POOL_SIZE";
+const MIN_DATABASE_CONNECTION_POOL_SIZE: u32 = 1;
+const DEFAULT_DATABASE_CONNECTION_POOL_SIZE: u32 = MIN_DATABASE_CONNECTION_POOL_SIZE;
+
+pub fn parse_database_connection_pool_size() -> u32 {
+    env::var(DATABASE_CONNECTION_POOL_SIZE_ENV)
+        .map_err(Into::into)
+        .and_then(|var| {
+            log::debug!("{} = {}", DATABASE_CONNECTION_POOL_SIZE_ENV, var);
+            if var.trim().is_empty() {
+                Ok(MIN_DATABASE_CONNECTION_POOL_SIZE)
+            } else {
+                var.parse()
+                    .map(|val| {
+                        if val < MIN_DATABASE_CONNECTION_POOL_SIZE {
+                            log::warn!(
+                                "Invalid {} = {} < {}",
+                                DATABASE_CONNECTION_POOL_SIZE_ENV,
+                                val,
+                                MIN_DATABASE_CONNECTION_POOL_SIZE
+                            );
+                            MIN_DATABASE_CONNECTION_POOL_SIZE
+                        } else {
+                            val
+                        }
+                    })
+                    .map_err(|err| {
+                        log::warn!(
+                            "Failed to parse {}: {}",
+                            DATABASE_CONNECTION_POOL_SIZE_ENV,
+                            err
+                        );
+                        Error::from(err)
+                    })
+            }
+        })
+        .unwrap_or(DEFAULT_DATABASE_CONNECTION_POOL_SIZE)
+}

@@ -47,7 +47,7 @@ pub fn migrate_schema(connection: &SqliteConnection) -> Result<()> {
 }
 
 pub fn cleanse(connection: &SqliteConnection) -> Result<()> {
-    log::info!("Grooming database");
+    log::info!("Cleansing database");
     let db = RepoConnection::new(&*connection);
     db.transaction::<_, DieselRepoError, _>(|| {
         let deleted_playlist_entries =
