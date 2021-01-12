@@ -84,6 +84,53 @@ pub trait Canonicalize {
     fn is_canonicalized(&self) -> bool;
 }
 
+pub fn is_slice_canonicalized(slice: &[impl Canonicalize]) -> bool {
+    slice.iter().all(Canonicalize::is_canonicalized)
+}
+
+impl<T> Canonicalize for Option<T>
+where
+    T: Canonicalize,
+{
+    fn canonicalize(&mut self) {
+        self.as_mut().map(Canonicalize::canonicalize);
+    }
+
+    fn is_canonicalized(&self) -> bool {
+        self.as_ref()
+            .map(Canonicalize::is_canonicalized)
+            .unwrap_or(true)
+    }
+}
+
+impl<T> Canonicalize for &mut [T]
+where
+    T: Canonicalize,
+{
+    fn canonicalize(&mut self) {
+        for elem in self.iter_mut() {
+            elem.canonicalize();
+        }
+    }
+
+    fn is_canonicalized(&self) -> bool {
+        is_slice_canonicalized(self)
+    }
+}
+
+impl<T> Canonicalize for Vec<T>
+where
+    T: Canonicalize,
+{
+    fn canonicalize(&mut self) {
+        self.as_mut_slice().canonicalize();
+    }
+
+    fn is_canonicalized(&self) -> bool {
+        is_slice_canonicalized(self)
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////
 // Tests
 ///////////////////////////////////////////////////////////////////////

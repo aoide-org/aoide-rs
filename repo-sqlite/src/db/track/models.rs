@@ -24,7 +24,7 @@ use aoide_core::{
         time::{BeatUnit, Beats, BeatsPerMeasure, TempoBpm, TimeSignature},
     },
     track::{actor::*, album::*, index::*, metric::*, release::*, title::*, *},
-    util::{clock::*, color::*, Canonicalize},
+    util::{clock::*, color::*, Canonicalize as _},
 };
 
 use aoide_repo::media::source::RecordId as MediaSourceId;

@@ -30,7 +30,7 @@ pub struct Record {
     pub score: Score,
 }
 
-impl From<Record> for (FacetKey, PlainTag) {
+impl From<Record> for (Option<Facet>, PlainTag) {
     fn from(from: Record) -> Self {
         let Record {
             track_id: _,
@@ -38,8 +38,7 @@ impl From<Record> for (FacetKey, PlainTag) {
             label,
             score,
         } = from;
-        let facet_key = FacetKey::new(facet);
         let plain_tag = PlainTag { label, score };
-        (facet_key, plain_tag)
+        (facet, plain_tag)
     }
 }

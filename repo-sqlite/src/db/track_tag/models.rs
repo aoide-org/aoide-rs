@@ -56,11 +56,11 @@ pub struct InsertableRecord<'a> {
 }
 
 impl<'a> InsertableRecord<'a> {
-    pub fn bind(track_id: RecordId, facet: &'a Option<Facet>, plain_tag: &'a PlainTag) -> Self {
+    pub fn bind(track_id: RecordId, facet: Option<&'a Facet>, plain_tag: &'a PlainTag) -> Self {
         let PlainTag { label, score } = plain_tag;
         Self {
             track_id: track_id.into(),
-            facet: facet.as_ref().map(Facet::as_ref),
+            facet: facet.map(Facet::as_ref),
             label: label.as_ref().map(Label::as_ref),
             score: score.value(),
         }

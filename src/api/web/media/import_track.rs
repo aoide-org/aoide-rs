@@ -21,8 +21,7 @@ mod uc {
 
 use aoide_core::track::tag::{FACET_GENRE, FACET_MOOD};
 use aoide_media::{
-    FacetedTagMappingConfig, FacetedTagMappingConfigInner, ImportTrackConfig, ImportTrackOptions,
-    TagMappingConfig,
+    FacetedTagMappingConfigInner, ImportTrackConfig, ImportTrackOptions, TagMappingConfig,
 };
 
 use url::Url;

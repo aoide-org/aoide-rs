@@ -15,7 +15,7 @@
 
 ///////////////////////////////////////////////////////////////////////
 
-use crate::prelude::*;
+use crate::{compat::is_slice_sorted_by, prelude::*};
 
 use std::{
     borrow::Borrow,
@@ -23,6 +23,7 @@ use std::{
     collections::HashMap,
     fmt,
     hash::{Hash, Hasher},
+    iter::once,
     str::FromStr,
 };
 
@@ -622,18 +623,153 @@ impl Faceted for FacetedTags {
 // Tags
 ///////////////////////////////////////////////////////////////////////
 
-/// Unified map of both plain and faceted tags
-pub type TagsMap = HashMap<FacetKey, Vec<PlainTag>>;
-
-#[derive(Debug, Default, Clone, PartialEq)]
-pub struct Tags(TagsMap);
+#[derive(Debug, Default, Clone)]
+pub struct Tags {
+    pub plain: Vec<PlainTag>,
+    pub facets: Vec<FacetedTags>,
+}
 
 impl Tags {
-    pub const fn new(inner: TagsMap) -> Self {
+    pub fn is_empty(&self) -> bool {
+        self.total_count() == 0
+    }
+
+    pub fn total_count(&self) -> usize {
+        let Self { plain, facets } = self;
+        facets
+            .iter()
+            .fold(plain.len(), |sum, faceted| sum + faceted.tags.len())
+    }
+}
+
+impl PartialEq for Tags {
+    fn eq(&self, other: &Self) -> bool {
+        debug_assert!(self.is_canonicalized());
+        let Self { plain, facets } = self;
+        plain.eq(&other.plain) && facets.eq(&other.facets)
+    }
+}
+
+impl Canonicalize for Tags {
+    fn canonicalize(&mut self) {
+        let Self { plain, facets } = self;
+        sort_slice_canonically(plain);
+        sort_slice_canonically(facets);
+    }
+
+    fn is_canonicalized(&self) -> bool {
+        let Self { plain, facets } = self;
+        is_slice_sorted_canonically(plain) && is_slice_sorted_canonically(facets)
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum TagsInvalidity {
+    Facet(FacetInvalidity),
+    PlainTag(PlainTagInvalidity),
+    DuplicateFacets,
+    DuplicateLabels,
+}
+
+fn check_for_duplicates_in_canonically_sorted_plain_tags_slice(
+    plain_tags: &[PlainTag],
+) -> Option<TagsInvalidity> {
+    debug_assert!(is_slice_sorted_canonically(plain_tags));
+    debug_assert!(is_slice_sorted_by(plain_tags, |lhs, rhs| lhs
+        .label
+        .cmp(&rhs.label)));
+    let mut iter = plain_tags.iter();
+    if let Some(mut prev) = iter.next() {
+        for next in iter {
+            if prev.label == next.label {
+                return Some(TagsInvalidity::DuplicateLabels);
+            }
+            prev = next;
+        }
+    }
+    None
+}
+
+fn check_for_duplicates_in_canonically_sorted_faceted_tags_slice(
+    faceted_tags: &[FacetedTags],
+) -> Option<TagsInvalidity> {
+    debug_assert!(is_slice_sorted_canonically(faceted_tags));
+    debug_assert!(is_slice_sorted_by(faceted_tags, |lhs, rhs| lhs
+        .facet
+        .cmp(&rhs.facet)));
+    let mut iter = faceted_tags.iter();
+    if let Some(mut prev) = iter.next() {
+        let duplicate_labels =
+            check_for_duplicates_in_canonically_sorted_plain_tags_slice(&prev.tags);
+        if duplicate_labels.is_some() {
+            return duplicate_labels;
+        }
+        for next in iter {
+            if prev.facet == next.facet {
+                return Some(TagsInvalidity::DuplicateFacets);
+            }
+            prev = next;
+            let duplicate_labels =
+                check_for_duplicates_in_canonically_sorted_plain_tags_slice(&next.tags);
+            if duplicate_labels.is_some() {
+                return duplicate_labels;
+            }
+        }
+    }
+    None
+}
+
+impl Validate for Tags {
+    type Invalidity = TagsInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        debug_assert!(self.is_canonicalized());
+        let Self {
+            plain: plain_tags,
+            facets,
+        } = self;
+        let mut context = ValidationContext::new()
+            .validate_with(&plain_tags, Self::Invalidity::PlainTag)
+            .merge_result(
+                facets
+                    .iter()
+                    .fold(ValidationContext::new(), |ctx, faceted_tags| {
+                        let FacetedTags { facet, tags } = faceted_tags;
+                        ctx.validate_with(facet, Self::Invalidity::Facet)
+                            .validate_with(tags, Self::Invalidity::PlainTag)
+                    })
+                    .into(),
+            );
+        if let Some(duplicates) =
+            check_for_duplicates_in_canonically_sorted_plain_tags_slice(plain_tags)
+        {
+            context = context.invalidate(duplicates);
+        }
+        if let Some(duplicates) =
+            check_for_duplicates_in_canonically_sorted_faceted_tags_slice(facets)
+        {
+            context = context.invalidate(duplicates);
+        }
+        context.into()
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// TagsMap
+///////////////////////////////////////////////////////////////////////
+
+/// Unified map of both plain and faceted tags
+pub type TagsMapInner = HashMap<FacetKey, Vec<PlainTag>>;
+
+#[derive(Debug, Default, Clone, PartialEq)]
+pub struct TagsMap(TagsMapInner);
+
+impl TagsMap {
+    pub const fn new(inner: TagsMapInner) -> Self {
         Self(inner)
     }
 
-    pub fn into_inner(self) -> TagsMap {
+    pub fn into_inner(self) -> TagsMapInner {
         let Self(inner) = self;
         inner
     }
@@ -650,106 +786,85 @@ impl Tags {
             }
         }
     }
+
+    pub fn total_count(&self) -> usize {
+        let Self(inner) = self;
+        inner.values().fold(0, |sum, tags| sum + tags.len())
+    }
 }
 
-impl From<TagsMap> for Tags {
-    fn from(from: TagsMap) -> Self {
+impl From<TagsMapInner> for TagsMap {
+    fn from(from: TagsMapInner) -> Self {
         Self::new(from)
     }
 }
 
-impl From<Tags> for TagsMap {
-    fn from(from: Tags) -> Self {
+impl From<TagsMap> for TagsMapInner {
+    fn from(from: TagsMap) -> Self {
         from.into_inner()
     }
 }
 
-impl AsRef<TagsMap> for Tags {
-    fn as_ref(&self) -> &TagsMap {
+impl AsRef<TagsMapInner> for TagsMap {
+    fn as_ref(&self) -> &TagsMapInner {
         let Self(inner) = self;
         inner
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum TagsInvalidity {
-    Facet(FacetInvalidity),
-    PlainTag(PlainTagInvalidity),
-    DuplicateLabels,
-}
-
-impl Tags {
-    fn validate_iter<'a, 'b, I>(
-        context: ValidationContext<TagsInvalidity>,
-        tags_iter: I,
-    ) -> ValidationResult<TagsInvalidity>
-    where
-        I: Iterator<Item = (&'a FacetKey, &'b Vec<PlainTag>)>,
-    {
-        tags_iter
-            .fold(context, |mut context, (facet_key, plain_tags)| {
-                let facet: &Option<Facet> = facet_key.as_ref();
-                context = context.validate_with(facet, TagsInvalidity::Facet);
-                for plain_tag in plain_tags {
-                    context = context.validate_with(plain_tag, TagsInvalidity::PlainTag);
-                }
-                let mut unique_labels: Vec<_> = plain_tags.iter().map(|t| &t.label).collect();
-                unique_labels.sort_unstable();
-                unique_labels.dedup();
-                context = context.invalidate_if(
-                    unique_labels.len() < plain_tags.len(),
-                    TagsInvalidity::DuplicateLabels,
-                );
-                context
-            })
-            .into()
-    }
-
+impl TagsMap {
     fn take_plain_tags(&mut self) -> Vec<PlainTag> {
-        let Tags(all_tags) = self;
-        let mut plain_tags = all_tags.remove(&FacetKey::new(None)).unwrap_or_default();
-        sort_slice_canonically(&mut plain_tags);
-        plain_tags
+        let Self(all_tags) = self;
+        all_tags.remove(&FacetKey::new(None)).unwrap_or_default()
     }
 
     pub fn take_faceted_tags(&mut self, facet: &Facet) -> Option<FacetedTags> {
-        let Tags(all_tags) = self;
+        let Self(all_tags) = self;
         all_tags
             .remove_entry(facet.value().as_str())
-            .map(|(key, mut tags)| {
+            .map(|(key, tags)| {
                 let FacetKey(facet) = key;
                 debug_assert!(facet.is_some());
                 let facet = facet.expect("facet");
-                sort_slice_canonically(&mut tags);
                 FacetedTags { facet, tags }
             })
     }
 }
 
-impl Validate for Tags {
-    type Invalidity = TagsInvalidity;
-
-    fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        let Self(inner) = self;
-        Self::validate_iter(ValidationContext::new(), inner.iter())
+impl From<Tags> for TagsMap {
+    fn from(from: Tags) -> Self {
+        let Tags {
+            plain: plain_tags,
+            facets,
+        } = from;
+        let plain_iter = once((None.into(), plain_tags));
+        let faceted_iter = facets.into_iter().map(|faceted_tags| {
+            let FacetedTags { facet, tags } = faceted_tags;
+            (facet.into(), tags)
+        });
+        Self::new(plain_iter.chain(faceted_iter).collect())
     }
 }
 
-impl From<Tags> for (Vec<PlainTag>, Vec<FacetedTags>) {
-    fn from(mut from: Tags) -> Self {
+impl From<TagsMap> for Tags {
+    fn from(mut from: TagsMap) -> Self {
         let plain_tags = from.take_plain_tags();
-        let Tags(faceted_tags) = from;
-        let faceted_tags = faceted_tags
+        let TagsMap(faceted_tags) = from;
+        let facets = faceted_tags
             .into_iter()
-            .map(|(key, mut tags)| {
+            .map(|(key, tags)| {
                 let FacetKey(facet) = key;
                 debug_assert!(facet.is_some());
                 let facet = facet.expect("facet");
-                sort_slice_canonically(&mut tags);
                 FacetedTags { facet, tags }
             })
             .collect();
-        (plain_tags, faceted_tags)
+        let mut tags = Self {
+            plain: plain_tags,
+            facets,
+        };
+        tags.canonicalize();
+        tags
     }
 }
 

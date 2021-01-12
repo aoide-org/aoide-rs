@@ -105,147 +105,128 @@ fn default_plain_tag_is_valid() {
 
 #[test]
 fn duplicate_labels() {
-    let tags = Tags::new(
-        vec![(
-            None.into(),
-            vec![
-                PlainTag {
-                    label: Some(Label::new("label1".into())),
-                    ..Default::default()
-                },
-                PlainTag {
-                    label: Some(Label::new("label2".into())),
-                    ..Default::default()
-                },
-            ],
-        )]
-        .into_iter()
-        .collect(),
-    );
+    let tags = Tags {
+        plain: vec![
+            PlainTag {
+                label: Some(Label::new("label1".into())),
+                ..Default::default()
+            },
+            PlainTag {
+                label: Some(Label::new("label2".into())),
+                ..Default::default()
+            },
+        ],
+        ..Default::default()
+    };
     assert!(tags.validate().is_ok());
 
-    let tags = Tags::new(
-        vec![(
-            None.into(),
-            vec![
-                PlainTag {
-                    label: Some(Label::new("label1".into())),
-                    ..Default::default()
-                },
-                PlainTag {
-                    label: Some(Label::new("label2".into())),
-                    ..Default::default()
-                },
-                PlainTag {
-                    label: Some(Label::new("label1".into())),
-                    ..Default::default()
-                },
-            ],
-        )]
-        .into_iter()
-        .collect(),
-    );
+    let mut tags = Tags {
+        plain: vec![
+            PlainTag {
+                label: Some(Label::new("label1".into())),
+                ..Default::default()
+            },
+            PlainTag {
+                label: Some(Label::new("label2".into())),
+                ..Default::default()
+            },
+            PlainTag {
+                label: Some(Label::new("label1".into())),
+                ..Default::default()
+            },
+        ],
+        ..Default::default()
+    };
+    tags.canonicalize();
     assert_eq!(1, tags.validate().err().unwrap().into_iter().count());
 
-    let tags = Tags::new(
-        vec![
-            (
-                None.into(),
-                vec![
-                    PlainTag {
-                        label: Some(Label::new("label1".into())),
-                        ..Default::default()
-                    },
-                    PlainTag {
-                        label: Some(Label::new("label2".into())),
-                        ..Default::default()
-                    },
-                ],
-            ),
-            (
-                Facet::new("facet1".into()).into(),
-                vec![PlainTag {
+    let tags = Tags {
+        plain: vec![
+            PlainTag {
+                label: Some(Label::new("label1".into())),
+                ..Default::default()
+            },
+            PlainTag {
+                label: Some(Label::new("label2".into())),
+                ..Default::default()
+            },
+        ],
+        facets: vec![
+            FacetedTags {
+                facet: Facet::new("facet1".into()).into(),
+                tags: vec![PlainTag {
                     label: Some(Label::new("label1".into())),
                     ..Default::default()
                 }],
-            ),
-            (
-                Facet::new("facet2".into()).into(),
-                vec![PlainTag {
+            },
+            FacetedTags {
+                facet: Facet::new("facet2".into()).into(),
+                tags: vec![PlainTag {
                     label: Some(Label::new("label2".into())),
                     ..Default::default()
                 }],
-            ),
-        ]
-        .into_iter()
-        .collect(),
-    );
+            },
+        ],
+    };
     assert!(tags.validate().is_ok());
 
-    let tags = Tags::new(
-        vec![
-            (
-                None.into(),
-                vec![
-                    PlainTag {
-                        label: Some(Label::new("label2".into())),
-                        ..Default::default()
-                    },
-                    PlainTag {
-                        label: Some(Label::new("label1".into())),
-                        ..Default::default()
-                    },
-                    PlainTag {
-                        label: Some(Label::new("label2".into())),
-                        ..Default::default()
-                    },
-                ],
-            ),
-            (
-                Facet::new("facet1".into()).into(),
-                vec![PlainTag {
+    let mut tags = Tags {
+        plain: vec![
+            PlainTag {
+                label: Some(Label::new("label2".into())),
+                ..Default::default()
+            },
+            PlainTag {
+                label: Some(Label::new("label1".into())),
+                ..Default::default()
+            },
+            PlainTag {
+                label: Some(Label::new("label2".into())),
+                ..Default::default()
+            },
+        ],
+        facets: vec![
+            FacetedTags {
+                facet: Facet::new("facet1".into()).into(),
+                tags: vec![PlainTag {
                     label: Some(Label::new("label1".into())),
                     ..Default::default()
                 }],
-            ),
-            (
-                Facet::new("facet2".into()).into(),
-                vec![PlainTag {
+            },
+            FacetedTags {
+                facet: Facet::new("facet2".into()).into(),
+                tags: vec![PlainTag {
                     label: Some(Label::new("label2".into())),
                     ..Default::default()
                 }],
-            ),
-        ]
-        .into_iter()
-        .collect(),
-    );
+            },
+        ],
+    };
+    tags.canonicalize();
     assert_eq!(1, tags.validate().err().unwrap().into_iter().count());
 
-    let tags = Tags::new(
-        vec![
-            (
-                None.into(),
-                vec![
-                    PlainTag {
-                        label: Some(Label::new("label1".into())),
-                        ..Default::default()
-                    },
-                    PlainTag {
-                        label: Some(Label::new("label2".into())),
-                        ..Default::default()
-                    },
-                ],
-            ),
-            (
-                Facet::new("facet1".into()).into(),
-                vec![PlainTag {
+    let tags = Tags {
+        plain: vec![
+            PlainTag {
+                label: Some(Label::new("label1".into())),
+                ..Default::default()
+            },
+            PlainTag {
+                label: Some(Label::new("label2".into())),
+                ..Default::default()
+            },
+        ],
+        facets: vec![
+            FacetedTags {
+                facet: Facet::new("facet1".into()).into(),
+                tags: vec![PlainTag {
                     label: Some(Label::new("label1".into())),
                     ..Default::default()
                 }],
-            ),
-            (
-                Facet::new("facet2".into()).into(),
-                vec![
+            },
+            FacetedTags {
+                facet: Facet::new("facet2".into()).into(),
+                tags: vec![
                     PlainTag {
                         label: Some(Label::new("label2".into())),
                         ..Default::default()
@@ -255,35 +236,30 @@ fn duplicate_labels() {
                         ..Default::default()
                     },
                 ],
-            ),
-        ]
-        .into_iter()
-        .collect(),
-    );
+            },
+        ],
+    };
     assert_eq!(1, tags.validate().err().unwrap().into_iter().count());
 
-    let tags = Tags::new(
-        vec![
-            (
-                None.into(),
-                vec![
-                    PlainTag {
-                        label: Some(Label::new("label2".into())),
-                        ..Default::default()
-                    },
-                    PlainTag {
-                        label: Some(Label::new("label1".into())),
-                        ..Default::default()
-                    },
-                    PlainTag {
-                        label: Some(Label::new("label2".into())),
-                        ..Default::default()
-                    },
-                ],
-            ),
-            (
-                Facet::new("facet1".into()).into(),
-                vec![
+    let mut tags = Tags {
+        plain: vec![
+            PlainTag {
+                label: Some(Label::new("label2".into())),
+                ..Default::default()
+            },
+            PlainTag {
+                label: Some(Label::new("label1".into())),
+                ..Default::default()
+            },
+            PlainTag {
+                label: Some(Label::new("label2".into())),
+                ..Default::default()
+            },
+        ],
+        facets: vec![
+            FacetedTags {
+                facet: Facet::new("facet1".into()).into(),
+                tags: vec![
                     PlainTag {
                         label: Some(Label::new("label1".into())),
                         ..Default::default()
@@ -293,10 +269,10 @@ fn duplicate_labels() {
                         ..Default::default()
                     },
                 ],
-            ),
-            (
-                Facet::new("facet2".into()).into(),
-                vec![
+            },
+            FacetedTags {
+                facet: Facet::new("facet2".into()).into(),
+                tags: vec![
                     PlainTag {
                         label: Some(Label::new("label2".into())),
                         ..Default::default()
@@ -310,10 +286,9 @@ fn duplicate_labels() {
                         ..Default::default()
                     },
                 ],
-            ),
-        ]
-        .into_iter()
-        .collect(),
-    );
+            },
+        ],
+    };
+    tags.canonicalize();
     assert_eq!(2, tags.validate().err().unwrap().into_iter().count());
 }

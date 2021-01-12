@@ -247,6 +247,8 @@ impl super::ImportTrack for ImportTrack {
         debug_assert!(track.release.copyright.is_none());
         track.release.copyright = mp4_tag.take_copyright();
 
+        let mut tags_map = TagsMap::default();
+
         // Genres
         let mut genre_count = 0;
         if mp4_tag.custom_genres().next().is_some() {
@@ -254,7 +256,7 @@ impl super::ImportTrack for ImportTrack {
             let mut next_score_value = TagScore::max_value();
             for genre in mp4_tag.take_custom_genres() {
                 genre_count += import_faceted_tags(
-                    &mut track.tags,
+                    &mut tags_map,
                     &mut next_score_value,
                     &FACET_GENRE,
                     tag_mapping_config,
@@ -272,7 +274,7 @@ impl super::ImportTrack for ImportTrack {
                     .next();
                 if let Some(genre) = genre {
                     genre_count += import_faceted_tags(
-                        &mut track.tags,
+                        &mut tags_map,
                         &mut next_score_value,
                         &FACET_GENRE,
                         None,
@@ -288,7 +290,7 @@ impl super::ImportTrack for ImportTrack {
             let mut next_score_value = TagScore::max_value();
             for grouping in mp4_tag.take_groupings() {
                 import_faceted_tags(
-                    &mut track.tags,
+                    &mut tags_map,
                     &mut next_score_value,
                     &FACET_CGROUP,
                     tag_mapping_config,
@@ -301,13 +303,16 @@ impl super::ImportTrack for ImportTrack {
         if let Some(comment) = mp4_tag.take_comment() {
             let mut next_score_value = TagScore::default_value();
             import_faceted_tags(
-                &mut track.tags,
+                &mut tags_map,
                 &mut next_score_value,
                 &FACET_COMMENT,
                 None,
                 comment,
             );
         }
+
+        debug_assert!(track.tags.is_empty());
+        track.tags = tags_map.into();
 
         // Indexes
         debug_assert!(track.indexes.track.number.is_none());

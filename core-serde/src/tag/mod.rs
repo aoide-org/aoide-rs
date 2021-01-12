@@ -18,8 +18,10 @@
 use crate::prelude::*;
 
 mod _core {
-    pub use aoide_core::tag::*;
+    pub use aoide_core::tag::{Facet, FacetKey, Label, PlainTag, Score, Tags};
 }
+
+use aoide_core::tag::FacetedTags;
 
 use schemars::{gen::SchemaGenerator, schema::Schema};
 use serde::{de::Visitor, Deserializer, Serializer};
@@ -311,12 +313,20 @@ impl From<Tags> for TagsMap {
 
 impl From<_core::Tags> for Tags {
     fn from(from: _core::Tags) -> Self {
-        let from = from.into_inner();
-        let mut into = HashMap::with_capacity(from.capacity());
-        for (facet_key, plain_tags) in from.into_iter() {
+        let mut into = HashMap::with_capacity(from.total_count());
+        let _core::Tags {
+            plain: plain_tags,
+            facets,
+        } = from;
+        into.insert(
+            _core::FacetKey::from(None).into(),
+            plain_tags.into_iter().map(Into::into).collect(),
+        );
+        for faceted_tags in facets.into_iter() {
+            let FacetedTags { facet, tags } = faceted_tags;
             into.insert(
-                facet_key.into(),
-                plain_tags.into_iter().map(Into::into).collect::<Vec<_>>(),
+                _core::FacetKey::from(facet).into(),
+                tags.into_iter().map(Into::into).collect(),
             );
         }
         Self::new(into)
@@ -326,14 +336,22 @@ impl From<_core::Tags> for Tags {
 impl From<Tags> for _core::Tags {
     fn from(from: Tags) -> Self {
         let from = from.into_inner();
-        let mut into = HashMap::with_capacity(from.capacity());
-        for (facet_key, plain_tags) in from.into_iter() {
-            into.insert(
-                facet_key.into(),
-                plain_tags.into_iter().map(Into::into).collect::<Vec<_>>(),
-            );
+        let mut plain_tags = vec![];
+        let mut facets = Vec::with_capacity(from.len());
+        for (key, tags) in from.into_iter() {
+            let tags = tags.into_iter().map(Into::into).collect();
+            let FacetKey(key) = key;
+            if let Some(facet) = key.into() {
+                facets.push(FacetedTags { facet, tags })
+            } else {
+                debug_assert!(plain_tags.is_empty());
+                plain_tags = tags;
+            }
         }
-        Self::new(into)
+        _core::Tags {
+            plain: plain_tags,
+            facets,
+        }
     }
 }
 

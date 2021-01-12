@@ -33,7 +33,7 @@ use aoide_core::{
     media::Source,
     tag::*,
     track::{actor::Actor, cue::Cue, title::Title, *},
-    util::clock::*,
+    util::{clock::*, is_slice_sorted_canonically, Canonicalize as _},
 };
 
 use aoide_repo::{
@@ -75,6 +75,8 @@ fn load_track_and_album_titles(
             }
         }
     }
+    debug_assert!(is_slice_sorted_canonically(&track_titles));
+    debug_assert!(is_slice_sorted_canonically(&album_titles));
     Ok((track_titles, album_titles))
 }
 
@@ -115,17 +117,19 @@ fn insert_track_and_album_titles(
 fn update_track_and_album_titles(
     db: &crate::Connection<'_>,
     track_id: RecordId,
-    track_titles: &[Title],
-    album_titles: &[Title],
+    new_track_titles: &[Title],
+    new_album_titles: &[Title],
 ) -> RepoResult<()> {
     // TODO: Is this preliminary check effective?
+    debug_assert!(is_slice_sorted_canonically(new_track_titles));
+    debug_assert!(is_slice_sorted_canonically(new_album_titles));
     let (old_track_titles, old_album_titles) = load_track_and_album_titles(db, track_id)?;
-    if (&old_track_titles[..], &old_album_titles[..]) == (track_titles, album_titles) {
+    if (&old_track_titles[..], &old_album_titles[..]) == (new_track_titles, new_album_titles) {
         log::debug!("Keeping unmodified track/album titles");
         return Ok(());
     }
     delete_track_and_album_titles(db, track_id)?;
-    insert_track_and_album_titles(db, track_id, track_titles, album_titles)?;
+    insert_track_and_album_titles(db, track_id, new_track_titles, new_album_titles)?;
     Ok(())
 }
 
@@ -163,6 +167,8 @@ fn load_track_and_album_actors(
             }
         }
     }
+    debug_assert!(is_slice_sorted_canonically(&track_actors));
+    debug_assert!(is_slice_sorted_canonically(&album_actors));
     Ok((track_actors, album_actors))
 }
 
@@ -206,6 +212,8 @@ fn update_track_and_album_actors(
     new_track_actors: &[Actor],
     new_album_actors: &[Actor],
 ) -> RepoResult<()> {
+    debug_assert!(is_slice_sorted_canonically(new_track_actors));
+    debug_assert!(is_slice_sorted_canonically(new_album_actors));
     let (old_track_actors, old_album_actors) = load_track_and_album_actors(db, track_id)?;
     // TODO: This preliminary check only works if `new_track_actors` and
     // `new_album_actors` are sorted in load order!
@@ -220,7 +228,7 @@ fn update_track_and_album_actors(
 
 fn load_track_cues(db: &crate::Connection<'_>, track_id: RecordId) -> RepoResult<Vec<Cue>> {
     use crate::db::track_cue::{models::*, schema::*, *};
-    track_cue::table
+    let cues = track_cue::table
         .filter(track_cue::track_id.eq(RowId::from(track_id)))
         // Establish canonical ordering on load!
         .order_by(track_cue::bank_idx)
@@ -235,8 +243,10 @@ fn load_track_cues(db: &crate::Connection<'_>, track_id: RecordId) -> RepoResult
                     let Record { track_id: _, cue } = record;
                     cue
                 })
-                .collect()
-        })
+                .collect::<Vec<_>>()
+        })?;
+    debug_assert!(is_slice_sorted_canonically(&cues));
+    Ok(cues)
 }
 
 fn delete_track_cues(db: &crate::Connection<'_>, track_id: RecordId) -> RepoResult<usize> {
@@ -267,9 +277,8 @@ fn update_track_cues(
     track_id: RecordId,
     new_cues: &[Cue],
 ) -> RepoResult<()> {
+    debug_assert!(is_slice_sorted_canonically(&new_cues));
     let old_cues = load_track_cues(db, track_id)?;
-    // TODO: This preliminary check only works if `new_cues` are
-    // sorted in load order!
     if old_cues == new_cues {
         log::debug!("Keeping unmodified track cues");
         return Ok(());
@@ -290,13 +299,32 @@ fn load_track_tags(db: &crate::Connection<'_>, track_id: RecordId) -> RepoResult
         .load::<QueryableRecord>(db.as_ref())
         .map_err(repo_error)
         .map(|queryables| {
-            // TODO: Optimize
-            let mut tags = Tags::from(TagsMap::new());
+            let mut plain_tags = vec![];
+            let mut facets: Vec<FacetedTags> = vec![];
             for queryable in queryables {
                 let (_, record) = queryable.into();
-                let (key, tag) = record.into();
-                tags.insert(key, tag);
+                let (facet, tag) = record.into();
+                if let Some(facet) = facet {
+                    if let Some(faceted_tags) = facets.last_mut() {
+                        if &faceted_tags.facet == &facet {
+                            faceted_tags.tags.push(tag);
+                            continue;
+                        }
+                    }
+                    facets.push(FacetedTags {
+                        facet,
+                        tags: vec![tag],
+                    });
+                } else {
+                    plain_tags.push(tag);
+                }
             }
+            let tags = Tags {
+                plain: plain_tags,
+                facets,
+            };
+            debug_assert!(tags.is_canonicalized());
+            debug_assert!(tags.is_valid());
             tags
         })
 }
@@ -314,9 +342,21 @@ fn insert_track_tags(
     tags: &Tags,
 ) -> RepoResult<()> {
     use crate::db::track_tag::{models::*, schema::*};
-    for (facet_key, plain_tags) in tags.as_ref() {
-        for plain_tag in plain_tags {
-            let insertable = InsertableRecord::bind(track_id, facet_key.as_ref(), plain_tag);
+    let Tags {
+        plain: plain_tags,
+        facets,
+    } = tags;
+    for plain_tag in plain_tags {
+        let insertable = InsertableRecord::bind(track_id, None, plain_tag);
+        diesel::insert_into(track_tag::table)
+            .values(&insertable)
+            .execute(db.as_ref())
+            .map_err(repo_error)?;
+    }
+    for faceted_tags in facets {
+        let FacetedTags { facet, tags } = faceted_tags;
+        for tag in tags {
+            let insertable = InsertableRecord::bind(track_id, Some(facet), tag);
             diesel::insert_into(track_tag::table)
                 .values(&insertable)
                 .execute(db.as_ref())
@@ -331,6 +371,7 @@ fn update_track_tags(
     track_id: RecordId,
     new_tags: &Tags,
 ) -> RepoResult<()> {
+    debug_assert!(new_tags.is_canonicalized());
     let old_tags = load_track_tags(db, track_id)?;
     // TODO: This preliminary check only works if `new_tags` are
     // sorted in load order!
@@ -550,7 +591,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         &self,
         collection_id: CollectionId,
         replace_mode: ReplaceMode,
-        track: Track,
+        mut track: Track,
     ) -> RepoResult<ReplaceOutcome> {
         let loaded = self
             .load_track_entity_by_media_source_uri(collection_id, &track.media_source.uri)
@@ -561,10 +602,12 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             if replace_mode == ReplaceMode::CreateOnly {
                 return Ok(ReplaceOutcome::NotUpdated(id, track));
             }
-            let updated_at = DateTime::now_utc();
+            debug_assert!(entity.body.is_canonicalized());
+            track.canonicalize();
             if entity.body == track {
                 return Ok(ReplaceOutcome::Unchanged(id, entity));
             }
+            let updated_at = DateTime::now_utc();
             if track.media_source != entity.body.media_source {
                 self.update_media_source(media_source_id, updated_at, &track.media_source)?;
             }
@@ -578,6 +621,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             if replace_mode == ReplaceMode::UpdateOnly {
                 return Ok(ReplaceOutcome::NotCreated(track));
             }
+            track.canonicalize();
             let created_at = DateTime::now_utc();
             let media_source_id = self
                 .insert_media_source(created_at, collection_id, &track.media_source)?

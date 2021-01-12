@@ -22,7 +22,7 @@ use aoide_core::{
     media::{Content, Source},
     tag::{
         Facet as TagFacet, FacetValue, Label as TagLabel, LabelValue, PlainTag, Score as TagScore,
-        ScoreValue, Tags,
+        ScoreValue, TagsMap,
     },
     track::{
         actor::{Actor, ActorKind, ActorRole},
@@ -258,7 +258,7 @@ fn try_import_plain_tag(
 }
 
 fn import_faceted_tags(
-    tags: &mut Tags,
+    tags_map: &mut TagsMap,
     next_score_value: &mut ScoreValue,
     facet: &TagFacet,
     tag_mapping_config: Option<&TagMappingConfig>,
@@ -273,7 +273,7 @@ fn import_faceted_tags(
             {
                 match try_import_plain_tag(split_label_value, *next_score_value) {
                     Ok(plain_tag) => {
-                        tags.insert(facet.to_owned().into(), plain_tag);
+                        tags_map.insert(facet.to_owned().into(), plain_tag);
                         import_count += 1;
                         *next_score_value = tag_mapping_config.next_score_value(*next_score_value);
                     }
@@ -287,7 +287,7 @@ fn import_faceted_tags(
     if import_count == 0 {
         match try_import_plain_tag(label_value, *next_score_value) {
             Ok(plain_tag) => {
-                tags.insert(facet.to_owned().into(), plain_tag);
+                tags_map.insert(facet.to_owned().into(), plain_tag);
                 import_count += 1;
                 if let Some(tag_mapping_config) = tag_mapping_config {
                     *next_score_value = tag_mapping_config.next_score_value(*next_score_value);
