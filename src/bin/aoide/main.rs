@@ -25,7 +25,7 @@ use aoide::{
 use aoide_core::entity::EntityUid;
 
 use futures::future::{join, FutureExt};
-use std::{env::current_exe, sync::Arc, time::Duration};
+use std::{collections::HashMap, env::current_exe, sync::Arc, time::Duration};
 use tokio::{sync::mpsc, sync::RwLock, time::delay_for};
 use warp::{http::StatusCode, Filter};
 
@@ -87,7 +87,7 @@ pub async fn main() -> Result<(), Error> {
 
     env::init_environment();
 
-    env::init_logging();
+    let log_level = env::init_logging();
 
     if let Ok(exe_path) = current_exe() {
         log::info!("Executable: {}", exe_path.display());
@@ -145,10 +145,26 @@ pub async fn main() -> Result<(), Error> {
             "name": env!("CARGO_PKG_NAME"),
             "description": env!("CARGO_PKG_DESCRIPTION"),
             "version": env!("CARGO_PKG_VERSION"),
-            "authors": env!("CARGO_PKG_AUTHORS"),
             "instance": {
                 "startedAt": started_at,
+                "environment": {
+                    "vars": std::env::vars().fold(HashMap::new(), |mut vars, (key, val)| {
+                        debug_assert!(!vars.contains_key(&key));
+                        vars.insert(key, val);
+                        vars}),
+                    "currentWorkingDirectory": std::env::current_dir().unwrap_or_default(),
+                },
+                "logging": {
+                    "level": log_level.to_string().to_lowercase(),
+                },
+                "networking": {
+                    "endpointAddress": endpoint_addr,
+                },
+                "database": {
+                    "url": database_url,
+                    "connectionPoolSize": database_connection_pool_size,
                 }
+            }
             }))
         });
 

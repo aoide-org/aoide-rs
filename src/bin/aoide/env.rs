@@ -47,7 +47,7 @@ fn parse_log_level_filter(log_level: &str) -> Option<LogLevelFilter> {
     }
 }
 
-pub fn init_logging() {
+pub fn init_logging() -> LogLevelFilter {
     let mut builder = env_logger::Builder::from_default_env();
     let log_level_filter = env::var(LOG_LEVEL_ENV)
         .map_err(Error::from)
@@ -60,9 +60,13 @@ pub fn init_logging() {
     builder.filter(None, log_level_filter);
     builder.init();
 
+    let log_level = log::max_level();
+
     // Print this message unconditionally to stderr to bypass the
     // actual logger for diagnostic purposes
-    eprintln!("Log level: {}", log::max_level());
+    eprintln!("Log level: {}", log_level);
+
+    log_level
 }
 
 const ENDPOINT_IP_ENV: &str = "ENDPOINT_IP";
