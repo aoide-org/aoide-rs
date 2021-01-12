@@ -26,7 +26,7 @@ pub enum AlbumKind {
     Compilation = 2,
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq)]
 pub struct Album {
     pub titles: Vec<Title>,
 
@@ -72,6 +72,31 @@ impl Validate for Album {
                 AlbumInvalidity::Actors,
             )
             .into()
+    }
+}
+
+impl Canonicalize for Album {
+    fn canonicalize(&mut self) {
+        let Self { actors, titles, .. } = self;
+        sort_slice_canonically(actors);
+        sort_slice_canonically(titles);
+    }
+
+    fn is_canonicalized(&self) -> bool {
+        let Self { actors, titles, .. } = self;
+        is_slice_sorted_canonically(actors) && is_slice_sorted_canonically(titles)
+    }
+}
+
+impl PartialEq for Album {
+    fn eq(&self, other: &Album) -> bool {
+        debug_assert!(self.is_canonicalized());
+        let Self {
+            kind,
+            titles,
+            actors,
+        } = self;
+        kind.eq(&other.kind) && titles.eq(&other.titles) && actors.eq(&other.actors)
     }
 }
 

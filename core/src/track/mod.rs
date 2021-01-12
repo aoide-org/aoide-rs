@@ -28,7 +28,7 @@ use self::{actor::*, album::*, cue::*, index::*, metric::*, release::*, title::*
 
 use crate::{media::*, prelude::*, tag::*};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct Track {
     pub media_source: Source,
 
@@ -51,6 +51,36 @@ pub struct Track {
     pub cues: Vec<Cue>,
 
     pub play_counter: PlayCounter,
+}
+
+impl PartialEq for Track {
+    fn eq(&self, other: &Track) -> bool {
+        debug_assert!(self.is_canonicalized());
+        let Self {
+            media_source,
+            release,
+            album,
+            indexes,
+            titles,
+            actors,
+            tags,
+            color,
+            metrics,
+            cues,
+            play_counter,
+        } = self;
+        media_source.eq(&other.media_source)
+            && release.eq(&other.release)
+            && album.eq(&other.album)
+            && indexes.eq(&other.indexes)
+            && titles.eq(&other.titles)
+            && actors.eq(&other.actors)
+            && tags.eq(&other.tags)
+            && color.eq(&other.color)
+            && metrics.eq(&other.metrics)
+            && cues.eq(&other.cues)
+            && play_counter.eq(&other.play_counter)
+    }
 }
 
 impl Track {
@@ -175,6 +205,7 @@ impl Canonicalize for Track {
 
     fn is_canonicalized(&self) -> bool {
         let Self {
+            album,
             actors,
             titles,
             cues,
@@ -182,7 +213,8 @@ impl Canonicalize for Track {
             tags,
             ..
         } = self;
-        is_slice_sorted_canonically(actors)
+        album.is_canonicalized()
+            && is_slice_sorted_canonically(actors)
             && is_slice_sorted_canonically(titles)
             && is_slice_sorted_canonically(cues)
     }
