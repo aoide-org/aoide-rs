@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS track_title (
     FOREIGN KEY(track_id) REFERENCES track(row_id)
 );
 
--- Ordering on load
+-- Canonical ordering on load
 CREATE INDEX IF NOT EXISTS idx_track_title_scope_kind_name ON track_title (
     scope,
     kind,

@@ -31,7 +31,7 @@ CREATE INDEX IF NOT EXISTS idx_track_actor_track_id ON track_actor (
     track_id
 );
 
--- Ordering on load
+-- Canonical ordering on load
 CREATE INDEX IF NOT EXISTS idx_track_actor_scope_role_kind_name ON track_actor (
     scope,
     role,
