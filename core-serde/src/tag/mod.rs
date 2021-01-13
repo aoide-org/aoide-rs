@@ -318,16 +318,20 @@ impl From<_core::Tags> for Tags {
             plain: plain_tags,
             facets,
         } = from;
-        into.insert(
-            _core::FacetKey::from(None).into(),
-            plain_tags.into_iter().map(Into::into).collect(),
-        );
+        if !plain_tags.is_empty() {
+            into.insert(
+                _core::FacetKey::from(None).into(),
+                plain_tags.into_iter().map(Into::into).collect(),
+            );
+        }
         for faceted_tags in facets.into_iter() {
             let FacetedTags { facet, tags } = faceted_tags;
-            into.insert(
-                _core::FacetKey::from(facet).into(),
-                tags.into_iter().map(Into::into).collect(),
-            );
+            if !tags.is_empty() {
+                into.insert(
+                    _core::FacetKey::from(facet).into(),
+                    tags.into_iter().map(Into::into).collect(),
+                );
+            }
         }
         Self::new(into)
     }

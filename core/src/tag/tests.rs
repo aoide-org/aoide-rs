@@ -292,3 +292,48 @@ fn duplicate_labels() {
     tags.canonicalize();
     assert_eq!(2, tags.validate().err().unwrap().into_iter().count());
 }
+
+#[test]
+fn canonicalize_should_remove_facets_without_tags() {
+    let expected_tags = Tags {
+        plain: vec![],
+        facets: vec![
+            FacetedTags {
+                facet: Facet::new("facet1".into()).into(),
+                tags: vec![
+                    PlainTag {
+                        label: Some(Label::new("label1".into())),
+                        ..Default::default()
+                    },
+                    PlainTag {
+                        label: Some(Label::new("label2".into())),
+                        ..Default::default()
+                    },
+                ],
+            },
+            FacetedTags {
+                facet: Facet::new("facet3".into()).into(),
+                tags: vec![PlainTag {
+                    label: Some(Label::new("label1".into())),
+                    ..Default::default()
+                }],
+            },
+        ],
+    };
+    assert!(expected_tags.is_canonicalized());
+
+    let mut actual_tags = expected_tags.clone();
+    actual_tags.facets.insert(
+        1,
+        FacetedTags {
+            facet: Facet::new("facet2".into()).into(),
+            tags: vec![],
+        },
+    );
+    assert!(!actual_tags.is_canonicalized());
+    assert!(is_slice_sorted_canonically(&actual_tags.facets));
+
+    actual_tags.canonicalize();
+    assert!(actual_tags.is_canonicalized());
+    assert_eq!(expected_tags, actual_tags);
+}

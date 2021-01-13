@@ -654,12 +654,15 @@ impl Canonicalize for Tags {
     fn canonicalize(&mut self) {
         let Self { plain, facets } = self;
         sort_slice_canonically(plain);
+        facets.retain(|f| !f.tags.is_empty());
         sort_slice_canonically(facets);
     }
 
     fn is_canonicalized(&self) -> bool {
         let Self { plain, facets } = self;
-        is_slice_sorted_canonically(plain) && is_slice_sorted_canonically(facets)
+        is_slice_sorted_canonically(plain)
+            && facets.iter().find(|f| f.tags.is_empty()).is_none()
+            && is_slice_sorted_canonically(facets)
     }
 }
 
