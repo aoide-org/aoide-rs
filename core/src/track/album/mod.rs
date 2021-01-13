@@ -75,22 +75,24 @@ impl Validate for Album {
     }
 }
 
+impl IsCanonical for Album {
+    fn is_canonical(&self) -> bool {
+        let Self { actors, titles, .. } = self;
+        actors.is_canonical() && titles.is_canonical()
+    }
+}
+
 impl Canonicalize for Album {
     fn canonicalize(&mut self) {
         let Self { actors, titles, .. } = self;
-        sort_slice_canonically(actors);
-        sort_slice_canonically(titles);
-    }
-
-    fn is_canonicalized(&self) -> bool {
-        let Self { actors, titles, .. } = self;
-        is_slice_sorted_canonically(actors) && is_slice_sorted_canonically(titles)
+        actors.canonicalize();
+        titles.canonicalize();
     }
 }
 
 impl PartialEq for Album {
     fn eq(&self, other: &Album) -> bool {
-        debug_assert!(self.is_canonicalized());
+        debug_assert!(self.is_canonical());
         let Self {
             kind,
             titles,

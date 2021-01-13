@@ -120,6 +120,18 @@ impl CanonicalOrd for Cue {
     }
 }
 
+impl IsCanonical for Cue {
+    fn is_canonical(&self) -> bool {
+        true
+    }
+}
+
+impl Canonicalize for Cue {
+    fn canonicalize(&mut self) {
+        debug_assert!(self.is_canonical())
+    }
+}
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum CueInvalidity {
     InOrOutPositionMissing,

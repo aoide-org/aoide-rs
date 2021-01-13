@@ -55,7 +55,7 @@ pub struct Track {
 
 impl PartialEq for Track {
     fn eq(&self, other: &Self) -> bool {
-        debug_assert!(self.is_canonicalized());
+        debug_assert!(self.is_canonical());
         let Self {
             media_source,
             release,
@@ -188,37 +188,40 @@ impl Validate for Track {
     }
 }
 
+impl IsCanonical for Track {
+    fn is_canonical(&self) -> bool {
+        let Self {
+            album,
+            titles,
+            actors,
+            tags,
+            cues,
+            ..
+        } = self;
+        album.is_canonical()
+            && titles.is_canonical()
+            && actors.is_canonical()
+            && tags.is_canonical()
+            && tags.is_canonical()
+            && cues.is_canonical()
+    }
+}
+
 impl Canonicalize for Track {
     fn canonicalize(&mut self) {
         let Self {
             album,
-            tags,
-            actors,
             titles,
+            actors,
+            tags,
             cues,
             ..
         } = self;
         album.canonicalize();
+        titles.canonicalize();
+        actors.canonicalize();
         tags.canonicalize();
-        sort_slice_canonically(actors);
-        sort_slice_canonically(titles);
-        sort_slice_canonically(cues);
-    }
-
-    fn is_canonicalized(&self) -> bool {
-        let Self {
-            album,
-            tags,
-            actors,
-            titles,
-            cues,
-            ..
-        } = self;
-        album.is_canonicalized()
-            && tags.is_canonicalized()
-            && is_slice_sorted_canonically(actors)
-            && is_slice_sorted_canonically(titles)
-            && is_slice_sorted_canonically(cues)
+        cues.canonicalize();
     }
 }
 

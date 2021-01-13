@@ -24,7 +24,7 @@ use aoide_core::{
         time::{BeatUnit, Beats, BeatsPerMeasure, TempoBpm, TimeSignature},
     },
     track::{actor::*, album::*, index::*, metric::*, release::*, title::*, *},
-    util::{clock::*, color::*, Canonicalize as _},
+    util::{clock::*, color::*, IsCanonical as _},
 };
 
 use aoide_repo::media::source::RecordId as MediaSourceId;
@@ -235,7 +235,7 @@ pub fn load_repo_entity(
         cues,
         play_counter,
     };
-    debug_assert!(entity_body.is_canonicalized());
+    debug_assert!(entity_body.is_canonical());
     let entity = Entity::new(entity_hdr, entity_body);
     (header, entity)
 }
@@ -279,6 +279,7 @@ pub struct InsertableRecord<'a> {
 
 impl<'a> InsertableRecord<'a> {
     pub fn bind(created_at: DateTime, media_source_id: MediaSourceId, entity: &'a Entity) -> Self {
+        debug_assert!(entity.is_canonical());
         let row_created_updated_ms = created_at.timestamp_millis();
         let EntityHeader { uid, rev } = &entity.hdr;
         let Track {
@@ -416,6 +417,7 @@ impl<'a> UpdatableRecord<'a> {
         media_source_id: MediaSourceId,
         track: &'a Track,
     ) -> Self {
+        debug_assert!(track.is_canonical());
         let entity_rev = entity_revision_to_sql(next_rev);
         let Track {
             media_source: _,

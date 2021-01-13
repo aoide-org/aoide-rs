@@ -320,7 +320,7 @@ fn canonicalize_should_remove_facets_without_tags() {
             },
         ],
     };
-    assert!(expected_tags.is_canonicalized());
+    assert!(expected_tags.is_canonical());
 
     let mut actual_tags = expected_tags.clone();
     actual_tags.facets.insert(
@@ -330,10 +330,9 @@ fn canonicalize_should_remove_facets_without_tags() {
             tags: vec![],
         },
     );
-    assert!(!actual_tags.is_canonicalized());
-    assert!(is_slice_sorted_canonically(&actual_tags.facets));
+    assert!(!actual_tags.is_canonical());
 
     actual_tags.canonicalize();
-    assert!(actual_tags.is_canonicalized());
+    assert!(actual_tags.is_canonical());
     assert_eq!(expected_tags, actual_tags);
 }

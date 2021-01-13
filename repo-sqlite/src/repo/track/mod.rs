@@ -33,7 +33,7 @@ use aoide_core::{
     media::Source,
     tag::*,
     track::{actor::Actor, cue::Cue, title::Title, *},
-    util::{clock::*, is_slice_sorted_canonically, Canonicalize as _},
+    util::{clock::*, Canonicalize as _, IsCanonical as _},
 };
 
 use aoide_repo::{
@@ -75,8 +75,8 @@ fn load_track_and_album_titles(
             }
         }
     }
-    debug_assert!(is_slice_sorted_canonically(&track_titles));
-    debug_assert!(is_slice_sorted_canonically(&album_titles));
+    debug_assert!(track_titles.is_canonical());
+    debug_assert!(album_titles.is_canonical());
     Ok((track_titles, album_titles))
 }
 
@@ -96,6 +96,8 @@ fn insert_track_and_album_titles(
     track_titles: &[Title],
     album_titles: &[Title],
 ) -> RepoResult<()> {
+    debug_assert!(track_titles.is_canonical());
+    debug_assert!(album_titles.is_canonical());
     use crate::db::track_title::{models::*, schema::*};
     for track_title in track_titles {
         let insertable = InsertableRecord::bind(track_id, Scope::Track, track_title);
@@ -120,9 +122,8 @@ fn update_track_and_album_titles(
     new_track_titles: &[Title],
     new_album_titles: &[Title],
 ) -> RepoResult<()> {
-    // TODO: Is this preliminary check effective?
-    debug_assert!(is_slice_sorted_canonically(new_track_titles));
-    debug_assert!(is_slice_sorted_canonically(new_album_titles));
+    debug_assert!(new_track_titles.is_canonical());
+    debug_assert!(new_album_titles.is_canonical());
     let (old_track_titles, old_album_titles) = load_track_and_album_titles(db, track_id)?;
     if (&old_track_titles[..], &old_album_titles[..]) == (new_track_titles, new_album_titles) {
         log::debug!("Keeping unmodified track/album titles");
@@ -167,8 +168,8 @@ fn load_track_and_album_actors(
             }
         }
     }
-    debug_assert!(is_slice_sorted_canonically(&track_actors));
-    debug_assert!(is_slice_sorted_canonically(&album_actors));
+    debug_assert!(track_actors.is_canonical());
+    debug_assert!(album_actors.is_canonical());
     Ok((track_actors, album_actors))
 }
 
@@ -188,6 +189,8 @@ fn insert_track_and_album_actors(
     track_actors: &[Actor],
     album_actors: &[Actor],
 ) -> RepoResult<()> {
+    debug_assert!(track_actors.is_canonical());
+    debug_assert!(album_actors.is_canonical());
     use crate::db::track_actor::{models::*, schema::*};
     for track_actor in track_actors {
         let insertable = InsertableRecord::bind(track_id, Scope::Track, track_actor);
@@ -212,11 +215,9 @@ fn update_track_and_album_actors(
     new_track_actors: &[Actor],
     new_album_actors: &[Actor],
 ) -> RepoResult<()> {
-    debug_assert!(is_slice_sorted_canonically(new_track_actors));
-    debug_assert!(is_slice_sorted_canonically(new_album_actors));
+    debug_assert!(new_track_actors.is_canonical());
+    debug_assert!(new_album_actors.is_canonical());
     let (old_track_actors, old_album_actors) = load_track_and_album_actors(db, track_id)?;
-    // TODO: This preliminary check only works if `new_track_actors` and
-    // `new_album_actors` are sorted in load order!
     if (&old_track_actors[..], &old_album_actors[..]) == (new_track_actors, new_album_actors) {
         log::debug!("Keeping unmodified track/album actors");
         return Ok(());
@@ -245,7 +246,7 @@ fn load_track_cues(db: &crate::Connection<'_>, track_id: RecordId) -> RepoResult
                 })
                 .collect::<Vec<_>>()
         })?;
-    debug_assert!(is_slice_sorted_canonically(&cues));
+    debug_assert!(cues.is_canonical());
     Ok(cues)
 }
 
@@ -261,6 +262,7 @@ fn insert_track_cues(
     track_id: RecordId,
     cues: &[Cue],
 ) -> RepoResult<()> {
+    debug_assert!(cues.is_canonical());
     use crate::db::track_cue::{models::*, schema::*};
     for cue in cues {
         let insertable = InsertableRecord::bind(track_id, cue);
@@ -277,7 +279,7 @@ fn update_track_cues(
     track_id: RecordId,
     new_cues: &[Cue],
 ) -> RepoResult<()> {
-    debug_assert!(is_slice_sorted_canonically(&new_cues));
+    debug_assert!(new_cues.is_canonical());
     let old_cues = load_track_cues(db, track_id)?;
     if old_cues == new_cues {
         log::debug!("Keeping unmodified track cues");
@@ -323,8 +325,7 @@ fn load_track_tags(db: &crate::Connection<'_>, track_id: RecordId) -> RepoResult
                 plain: plain_tags,
                 facets,
             };
-            debug_assert!(tags.is_canonicalized());
-            debug_assert!(tags.is_valid());
+            debug_assert!(tags.is_canonical());
             tags
         })
 }
@@ -341,6 +342,7 @@ fn insert_track_tags(
     track_id: RecordId,
     tags: &Tags,
 ) -> RepoResult<()> {
+    debug_assert!(tags.is_canonical());
     use crate::db::track_tag::{models::*, schema::*};
     let Tags {
         plain: plain_tags,
@@ -371,10 +373,8 @@ fn update_track_tags(
     track_id: RecordId,
     new_tags: &Tags,
 ) -> RepoResult<()> {
-    debug_assert!(new_tags.is_canonicalized());
+    debug_assert!(new_tags.is_canonical());
     let old_tags = load_track_tags(db, track_id)?;
-    // TODO: This preliminary check only works if `new_tags` are
-    // sorted in load order!
     if &old_tags == new_tags {
         log::debug!("Keeping unmodified track tags");
         return Ok(());
@@ -602,7 +602,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             if replace_mode == ReplaceMode::CreateOnly {
                 return Ok(ReplaceOutcome::NotUpdated(id, track));
             }
-            debug_assert!(entity.body.is_canonicalized());
+            debug_assert!(entity.body.is_canonical());
             track.canonicalize();
             if entity.body == track {
                 return Ok(ReplaceOutcome::Unchanged(id, entity));

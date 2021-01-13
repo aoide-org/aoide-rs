@@ -67,6 +67,18 @@ impl CanonicalOrd for Title {
     }
 }
 
+impl IsCanonical for Title {
+    fn is_canonical(&self) -> bool {
+        true
+    }
+}
+
+impl Canonicalize for Title {
+    fn canonicalize(&mut self) {
+        debug_assert!(self.is_canonical());
+    }
+}
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum TitleInvalidity {
     NameEmpty,

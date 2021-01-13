@@ -277,6 +277,24 @@ impl<'a, T, B> From<&'a Entity<T, B>> for (&'a EntityHeader, &'a B) {
     }
 }
 
+impl<T, B> IsCanonical for Entity<T, B>
+where
+    B: IsCanonical,
+{
+    fn is_canonical(&self) -> bool {
+        self.body.is_canonical()
+    }
+}
+
+impl<T, B> Canonicalize for Entity<T, B>
+where
+    B: Canonicalize,
+{
+    fn canonicalize(&mut self) {
+        self.body.canonicalize();
+    }
+}
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum EntityInvalidity<T: Invalidity> {
     Header(EntityHeaderInvalidity),

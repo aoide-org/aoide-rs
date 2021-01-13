@@ -106,6 +106,18 @@ impl CanonicalOrd for Actor {
     }
 }
 
+impl IsCanonical for Actor {
+    fn is_canonical(&self) -> bool {
+        true
+    }
+}
+
+impl Canonicalize for Actor {
+    fn canonicalize(&mut self) {
+        debug_assert!(self.is_canonical());
+    }
+}
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ActorInvalidity {
     NameEmpty,

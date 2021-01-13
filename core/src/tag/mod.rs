@@ -565,6 +565,18 @@ impl Scored for PlainTag {
     }
 }
 
+impl IsCanonical for PlainTag {
+    fn is_canonical(&self) -> bool {
+        true
+    }
+}
+
+impl Canonicalize for PlainTag {
+    fn canonicalize(&mut self) {
+        debug_assert!(self.is_canonical());
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////
 // FacetedTags
 ///////////////////////////////////////////////////////////////////////
@@ -619,6 +631,18 @@ impl Faceted for FacetedTags {
     }
 }
 
+impl IsCanonical for FacetedTags {
+    fn is_canonical(&self) -> bool {
+        !self.tags.is_empty()
+    }
+}
+
+impl Canonicalize for FacetedTags {
+    fn canonicalize(&mut self) {
+        debug_assert!(self.is_canonical());
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////
 // Tags
 ///////////////////////////////////////////////////////////////////////
@@ -644,25 +668,31 @@ impl Tags {
 
 impl PartialEq for Tags {
     fn eq(&self, other: &Self) -> bool {
-        debug_assert!(self.is_canonicalized());
+        debug_assert!(self.is_canonical());
         let Self { plain, facets } = self;
         plain.eq(&other.plain) && facets.eq(&other.facets)
     }
 }
 
+impl IsCanonical for Tags {
+    fn is_canonical(&self) -> bool {
+        let Self {
+            plain: plain_tags,
+            facets,
+        } = self;
+        plain_tags.is_canonical() && facets.is_canonical()
+    }
+}
+
 impl Canonicalize for Tags {
     fn canonicalize(&mut self) {
-        let Self { plain, facets } = self;
-        sort_slice_canonically(plain);
+        let Self {
+            plain: plain_tags,
+            facets,
+        } = self;
+        plain_tags.canonicalize();
         facets.retain(|f| !f.tags.is_empty());
-        sort_slice_canonically(facets);
-    }
-
-    fn is_canonicalized(&self) -> bool {
-        let Self { plain, facets } = self;
-        is_slice_sorted_canonically(plain)
-            && facets.iter().find(|f| f.tags.is_empty()).is_none()
-            && is_slice_sorted_canonically(facets)
+        facets.canonicalize();
     }
 }
 
@@ -674,10 +704,9 @@ pub enum TagsInvalidity {
     DuplicateLabels,
 }
 
-fn check_for_duplicates_in_canonically_sorted_plain_tags_slice(
+fn check_for_duplicates_in_sorted_plain_tags_slice(
     plain_tags: &[PlainTag],
 ) -> Option<TagsInvalidity> {
-    debug_assert!(is_slice_sorted_canonically(plain_tags));
     debug_assert!(is_slice_sorted_by(plain_tags, |lhs, rhs| lhs
         .label
         .cmp(&rhs.label)));
@@ -693,17 +722,15 @@ fn check_for_duplicates_in_canonically_sorted_plain_tags_slice(
     None
 }
 
-fn check_for_duplicates_in_canonically_sorted_faceted_tags_slice(
+fn check_for_duplicates_in_sorted_faceted_tags_slice(
     faceted_tags: &[FacetedTags],
 ) -> Option<TagsInvalidity> {
-    debug_assert!(is_slice_sorted_canonically(faceted_tags));
     debug_assert!(is_slice_sorted_by(faceted_tags, |lhs, rhs| lhs
         .facet
         .cmp(&rhs.facet)));
     let mut iter = faceted_tags.iter();
     if let Some(mut prev) = iter.next() {
-        let duplicate_labels =
-            check_for_duplicates_in_canonically_sorted_plain_tags_slice(&prev.tags);
+        let duplicate_labels = check_for_duplicates_in_sorted_plain_tags_slice(&prev.tags);
         if duplicate_labels.is_some() {
             return duplicate_labels;
         }
@@ -712,8 +739,7 @@ fn check_for_duplicates_in_canonically_sorted_faceted_tags_slice(
                 return Some(TagsInvalidity::DuplicateFacets);
             }
             prev = next;
-            let duplicate_labels =
-                check_for_duplicates_in_canonically_sorted_plain_tags_slice(&next.tags);
+            let duplicate_labels = check_for_duplicates_in_sorted_plain_tags_slice(&next.tags);
             if duplicate_labels.is_some() {
                 return duplicate_labels;
             }
@@ -726,7 +752,7 @@ impl Validate for Tags {
     type Invalidity = TagsInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        debug_assert!(self.is_canonicalized());
+        debug_assert!(self.is_canonical());
         let Self {
             plain: plain_tags,
             facets,
@@ -743,14 +769,10 @@ impl Validate for Tags {
                     })
                     .into(),
             );
-        if let Some(duplicates) =
-            check_for_duplicates_in_canonically_sorted_plain_tags_slice(plain_tags)
-        {
+        if let Some(duplicates) = check_for_duplicates_in_sorted_plain_tags_slice(plain_tags) {
             context = context.invalidate(duplicates);
         }
-        if let Some(duplicates) =
-            check_for_duplicates_in_canonically_sorted_faceted_tags_slice(facets)
-        {
+        if let Some(duplicates) = check_for_duplicates_in_sorted_faceted_tags_slice(facets) {
             context = context.invalidate(duplicates);
         }
         context.into()

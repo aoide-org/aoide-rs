@@ -69,23 +69,50 @@ pub trait CanonicalOrd {
     fn canonical_cmp(&self, other: &Self) -> Ordering;
 }
 
-pub fn sort_slice_canonically<T: CanonicalOrd>(slice: &mut [T]) {
-    slice.sort_unstable_by(|lhs, rhs| lhs.canonical_cmp(rhs));
-    debug_assert!(is_slice_sorted_canonically(slice));
+pub trait IsCanonical {
+    fn is_canonical(&self) -> bool;
 }
 
-pub fn is_slice_sorted_canonically<T: CanonicalOrd>(slice: &[T]) -> bool {
-    is_slice_sorted_by(slice, |lhs, rhs| lhs.canonical_cmp(rhs))
+impl<T> IsCanonical for Option<T>
+where
+    T: IsCanonical,
+{
+    fn is_canonical(&self) -> bool {
+        self.as_ref().map(T::is_canonical).unwrap_or(true)
+    }
 }
 
-pub trait Canonicalize {
+impl<T> IsCanonical for [T]
+where
+    T: IsCanonical + CanonicalOrd,
+{
+    fn is_canonical(&self) -> bool {
+        self.iter().all(T::is_canonical)
+            && is_slice_sorted_by(self, |lhs, rhs| lhs.canonical_cmp(rhs))
+    }
+}
+
+impl<T> IsCanonical for &mut [T]
+where
+    T: IsCanonical + CanonicalOrd,
+{
+    fn is_canonical(&self) -> bool {
+        let immutable_slice: &[T] = self;
+        immutable_slice.is_canonical()
+    }
+}
+
+impl<T> IsCanonical for Vec<T>
+where
+    T: IsCanonical + CanonicalOrd,
+{
+    fn is_canonical(&self) -> bool {
+        self.as_slice().is_canonical()
+    }
+}
+
+pub trait Canonicalize: IsCanonical {
     fn canonicalize(&mut self);
-
-    fn is_canonicalized(&self) -> bool;
-}
-
-pub fn is_slice_canonicalized(slice: &[impl Canonicalize]) -> bool {
-    slice.iter().all(Canonicalize::is_canonicalized)
 }
 
 impl<T> Canonicalize for Option<T>
@@ -94,40 +121,30 @@ where
 {
     fn canonicalize(&mut self) {
         self.as_mut().map(Canonicalize::canonicalize);
-    }
-
-    fn is_canonicalized(&self) -> bool {
-        self.as_ref()
-            .map(Canonicalize::is_canonicalized)
-            .unwrap_or(true)
+        debug_assert!(self.is_canonical());
     }
 }
 
 impl<T> Canonicalize for &mut [T]
 where
-    T: Canonicalize,
+    T: Canonicalize + CanonicalOrd,
 {
     fn canonicalize(&mut self) {
         for elem in self.iter_mut() {
             elem.canonicalize();
         }
-    }
-
-    fn is_canonicalized(&self) -> bool {
-        is_slice_canonicalized(self)
+        self.sort_unstable_by(|lhs, rhs| lhs.canonical_cmp(rhs));
+        debug_assert!(self.is_canonical());
     }
 }
 
 impl<T> Canonicalize for Vec<T>
 where
-    T: Canonicalize,
+    T: Canonicalize + CanonicalOrd,
 {
     fn canonicalize(&mut self) {
         self.as_mut_slice().canonicalize();
-    }
-
-    fn is_canonicalized(&self) -> bool {
-        is_slice_canonicalized(self)
+        debug_assert!(self.is_canonical());
     }
 }
 
