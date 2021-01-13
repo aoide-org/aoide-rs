@@ -33,7 +33,7 @@ use aoide_core::{
     media::Source,
     tag::*,
     track::{actor::Actor, cue::Cue, title::Title, *},
-    util::{clock::*, Canonicalize as _, IsCanonical as _},
+    util::{clock::*, Canonical},
 };
 
 use aoide_repo::{
@@ -45,14 +45,14 @@ use aoide_repo::{
 fn load_track_and_album_titles(
     db: &crate::Connection<'_>,
     id: RecordId,
-) -> RepoResult<(Vec<Title>, Vec<Title>)> {
+) -> RepoResult<(Canonical<Vec<Title>>, Canonical<Vec<Title>>)> {
     use crate::db::track_title::{models::*, schema::*, *};
     let queryables = track_title::table
         .filter(track_title::track_id.eq(RowId::from(id)))
         // Establish canonical ordering on load!
-        .order_by(track_title::scope)
-        .order_by(track_title::kind)
-        .order_by(track_title::name)
+        .then_order_by(track_title::scope)
+        .then_order_by(track_title::kind)
+        .then_order_by(track_title::name)
         .load::<QueryableRecord>(db.as_ref())
         .map_err(repo_error)?;
     let (mut track_titles, mut album_titles) = (
@@ -75,9 +75,7 @@ fn load_track_and_album_titles(
             }
         }
     }
-    debug_assert!(track_titles.is_canonical());
-    debug_assert!(album_titles.is_canonical());
-    Ok((track_titles, album_titles))
+    Ok((Canonical::tie(track_titles), Canonical::tie(album_titles)))
 }
 
 fn delete_track_and_album_titles(
@@ -93,20 +91,18 @@ fn delete_track_and_album_titles(
 fn insert_track_and_album_titles(
     db: &crate::Connection<'_>,
     track_id: RecordId,
-    track_titles: &[Title],
-    album_titles: &[Title],
+    track_titles: Canonical<&[Title]>,
+    album_titles: Canonical<&[Title]>,
 ) -> RepoResult<()> {
-    debug_assert!(track_titles.is_canonical());
-    debug_assert!(album_titles.is_canonical());
     use crate::db::track_title::{models::*, schema::*};
-    for track_title in track_titles {
+    for track_title in track_titles.iter() {
         let insertable = InsertableRecord::bind(track_id, Scope::Track, track_title);
         diesel::insert_into(track_title::table)
             .values(&insertable)
             .execute(db.as_ref())
             .map_err(repo_error)?;
     }
-    for album_title in album_titles {
+    for album_title in album_titles.iter() {
         let insertable = InsertableRecord::bind(track_id, Scope::Album, album_title);
         diesel::insert_into(track_title::table)
             .values(&insertable)
@@ -119,13 +115,13 @@ fn insert_track_and_album_titles(
 fn update_track_and_album_titles(
     db: &crate::Connection<'_>,
     track_id: RecordId,
-    new_track_titles: &[Title],
-    new_album_titles: &[Title],
+    new_track_titles: Canonical<&[Title]>,
+    new_album_titles: Canonical<&[Title]>,
 ) -> RepoResult<()> {
-    debug_assert!(new_track_titles.is_canonical());
-    debug_assert!(new_album_titles.is_canonical());
     let (old_track_titles, old_album_titles) = load_track_and_album_titles(db, track_id)?;
-    if (&old_track_titles[..], &old_album_titles[..]) == (new_track_titles, new_album_titles) {
+    if (old_track_titles.as_slice(), old_album_titles.as_slice())
+        == (new_track_titles, new_album_titles)
+    {
         log::debug!("Keeping unmodified track/album titles");
         return Ok(());
     }
@@ -137,15 +133,15 @@ fn update_track_and_album_titles(
 fn load_track_and_album_actors(
     db: &crate::Connection<'_>,
     id: RecordId,
-) -> RepoResult<(Vec<Actor>, Vec<Actor>)> {
+) -> RepoResult<(Canonical<Vec<Actor>>, Canonical<Vec<Actor>>)> {
     use crate::db::track_actor::{models::*, schema::*, *};
     let queryables = track_actor::table
         .filter(track_actor::track_id.eq(RowId::from(id)))
         // Establish canonical ordering on load!
-        .order_by(track_actor::scope)
-        .order_by(track_actor::role)
-        .order_by(track_actor::kind)
-        .order_by(track_actor::name)
+        .then_order_by(track_actor::scope)
+        .then_order_by(track_actor::role)
+        .then_order_by(track_actor::kind)
+        .then_order_by(track_actor::name)
         .load::<QueryableRecord>(db.as_ref())
         .map_err(repo_error)?;
     let (mut track_actors, mut album_actors) = (
@@ -168,9 +164,7 @@ fn load_track_and_album_actors(
             }
         }
     }
-    debug_assert!(track_actors.is_canonical());
-    debug_assert!(album_actors.is_canonical());
-    Ok((track_actors, album_actors))
+    Ok((Canonical::tie(track_actors), Canonical::tie(album_actors)))
 }
 
 fn delete_track_and_album_actors(
@@ -186,20 +180,18 @@ fn delete_track_and_album_actors(
 fn insert_track_and_album_actors(
     db: &crate::Connection<'_>,
     track_id: RecordId,
-    track_actors: &[Actor],
-    album_actors: &[Actor],
+    track_actors: Canonical<&[Actor]>,
+    album_actors: Canonical<&[Actor]>,
 ) -> RepoResult<()> {
-    debug_assert!(track_actors.is_canonical());
-    debug_assert!(album_actors.is_canonical());
     use crate::db::track_actor::{models::*, schema::*};
-    for track_actor in track_actors {
+    for track_actor in track_actors.iter() {
         let insertable = InsertableRecord::bind(track_id, Scope::Track, track_actor);
         diesel::insert_into(track_actor::table)
             .values(&insertable)
             .execute(db.as_ref())
             .map_err(repo_error)?;
     }
-    for album_actor in album_actors {
+    for album_actor in album_actors.iter() {
         let insertable = InsertableRecord::bind(track_id, Scope::Album, album_actor);
         diesel::insert_into(track_actor::table)
             .values(&insertable)
@@ -212,13 +204,13 @@ fn insert_track_and_album_actors(
 fn update_track_and_album_actors(
     db: &crate::Connection<'_>,
     track_id: RecordId,
-    new_track_actors: &[Actor],
-    new_album_actors: &[Actor],
+    new_track_actors: Canonical<&[Actor]>,
+    new_album_actors: Canonical<&[Actor]>,
 ) -> RepoResult<()> {
-    debug_assert!(new_track_actors.is_canonical());
-    debug_assert!(new_album_actors.is_canonical());
     let (old_track_actors, old_album_actors) = load_track_and_album_actors(db, track_id)?;
-    if (&old_track_actors[..], &old_album_actors[..]) == (new_track_actors, new_album_actors) {
+    if (old_track_actors.as_slice(), old_album_actors.as_slice())
+        == (new_track_actors, new_album_actors)
+    {
         log::debug!("Keeping unmodified track/album actors");
         return Ok(());
     }
@@ -227,13 +219,16 @@ fn update_track_and_album_actors(
     Ok(())
 }
 
-fn load_track_cues(db: &crate::Connection<'_>, track_id: RecordId) -> RepoResult<Vec<Cue>> {
+fn load_track_cues(
+    db: &crate::Connection<'_>,
+    track_id: RecordId,
+) -> RepoResult<Canonical<Vec<Cue>>> {
     use crate::db::track_cue::{models::*, schema::*, *};
     let cues = track_cue::table
         .filter(track_cue::track_id.eq(RowId::from(track_id)))
         // Establish canonical ordering on load!
-        .order_by(track_cue::bank_idx)
-        .order_by(track_cue::slot_idx)
+        .then_order_by(track_cue::bank_idx)
+        .then_order_by(track_cue::slot_idx)
         .load::<QueryableRecord>(db.as_ref())
         .map_err(repo_error)
         .map(|queryables| {
@@ -246,8 +241,7 @@ fn load_track_cues(db: &crate::Connection<'_>, track_id: RecordId) -> RepoResult
                 })
                 .collect::<Vec<_>>()
         })?;
-    debug_assert!(cues.is_canonical());
-    Ok(cues)
+    Ok(Canonical::tie(cues))
 }
 
 fn delete_track_cues(db: &crate::Connection<'_>, track_id: RecordId) -> RepoResult<usize> {
@@ -260,11 +254,10 @@ fn delete_track_cues(db: &crate::Connection<'_>, track_id: RecordId) -> RepoResu
 fn insert_track_cues(
     db: &crate::Connection<'_>,
     track_id: RecordId,
-    cues: &[Cue],
+    cues: Canonical<&[Cue]>,
 ) -> RepoResult<()> {
-    debug_assert!(cues.is_canonical());
     use crate::db::track_cue::{models::*, schema::*};
-    for cue in cues {
+    for cue in cues.iter() {
         let insertable = InsertableRecord::bind(track_id, cue);
         diesel::insert_into(track_cue::table)
             .values(&insertable)
@@ -277,11 +270,10 @@ fn insert_track_cues(
 fn update_track_cues(
     db: &crate::Connection<'_>,
     track_id: RecordId,
-    new_cues: &[Cue],
+    new_cues: Canonical<&[Cue]>,
 ) -> RepoResult<()> {
-    debug_assert!(new_cues.is_canonical());
     let old_cues = load_track_cues(db, track_id)?;
-    if old_cues == new_cues {
+    if old_cues.as_slice() == new_cues {
         log::debug!("Keeping unmodified track cues");
         return Ok(());
     }
@@ -290,14 +282,14 @@ fn update_track_cues(
     Ok(())
 }
 
-fn load_track_tags(db: &crate::Connection<'_>, track_id: RecordId) -> RepoResult<Tags> {
+fn load_track_tags(db: &crate::Connection<'_>, track_id: RecordId) -> RepoResult<Canonical<Tags>> {
     use crate::db::track_tag::{models::*, schema::*};
     track_tag::table
         .filter(track_tag::track_id.eq(RowId::from(track_id)))
         // Establish canonical ordering on load!
-        .order_by(track_tag::facet)
-        .order_by(track_tag::label)
-        .order_by(track_tag::score.desc())
+        .then_order_by(track_tag::facet)
+        .then_order_by(track_tag::label)
+        .then_order_by(track_tag::score.desc())
         .load::<QueryableRecord>(db.as_ref())
         .map_err(repo_error)
         .map(|queryables| {
@@ -308,7 +300,7 @@ fn load_track_tags(db: &crate::Connection<'_>, track_id: RecordId) -> RepoResult
                 let (facet, tag) = record.into();
                 if let Some(facet) = facet {
                     if let Some(faceted_tags) = facets.last_mut() {
-                        if &faceted_tags.facet == &facet {
+                        if faceted_tags.facet == facet {
                             faceted_tags.tags.push(tag);
                             continue;
                         }
@@ -325,8 +317,7 @@ fn load_track_tags(db: &crate::Connection<'_>, track_id: RecordId) -> RepoResult
                 plain: plain_tags,
                 facets,
             };
-            debug_assert!(tags.is_canonical());
-            tags
+            Canonical::tie(tags)
         })
 }
 
@@ -340,14 +331,13 @@ fn delete_track_tags(db: &crate::Connection<'_>, track_id: RecordId) -> RepoResu
 fn insert_track_tags(
     db: &crate::Connection<'_>,
     track_id: RecordId,
-    tags: &Tags,
+    tags: &Canonical<Tags>,
 ) -> RepoResult<()> {
-    debug_assert!(tags.is_canonical());
     use crate::db::track_tag::{models::*, schema::*};
     let Tags {
         plain: plain_tags,
         facets,
-    } = tags;
+    } = tags.as_ref();
     for plain_tag in plain_tags {
         let insertable = InsertableRecord::bind(track_id, None, plain_tag);
         diesel::insert_into(track_tag::table)
@@ -371,9 +361,8 @@ fn insert_track_tags(
 fn update_track_tags(
     db: &crate::Connection<'_>,
     track_id: RecordId,
-    new_tags: &Tags,
+    new_tags: &Canonical<Tags>,
 ) -> RepoResult<()> {
-    debug_assert!(new_tags.is_canonical());
     let old_tags = load_track_tags(db, track_id)?;
     if &old_tags == new_tags {
         log::debug!("Keeping unmodified track tags");
@@ -441,16 +430,16 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         insert_track_and_album_titles(
             self,
             id,
-            &created_entity.body.titles,
-            &created_entity.body.album.titles,
+            created_entity.body.titles.as_slice(),
+            created_entity.body.album.titles.as_slice(),
         )?;
         insert_track_and_album_actors(
             self,
             id,
-            &created_entity.body.actors,
-            &created_entity.body.album.actors,
+            created_entity.body.actors.as_slice(),
+            created_entity.body.album.actors.as_slice(),
         )?;
-        insert_track_cues(self, id, &created_entity.body.cues)?;
+        insert_track_cues(self, id, created_entity.body.cues.as_slice())?;
         insert_track_tags(self, id, &created_entity.body.tags)?;
         Ok(id)
     }
@@ -478,16 +467,16 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         update_track_and_album_titles(
             self,
             id,
-            &updated_entity.body.titles,
-            &updated_entity.body.album.titles,
+            updated_entity.body.titles.as_slice(),
+            updated_entity.body.album.titles.as_slice(),
         )?;
         update_track_and_album_actors(
             self,
             id,
-            &updated_entity.body.actors,
-            &updated_entity.body.album.actors,
+            updated_entity.body.actors.as_slice(),
+            updated_entity.body.album.actors.as_slice(),
         )?;
-        update_track_cues(self, id, &updated_entity.body.cues)?;
+        update_track_cues(self, id, updated_entity.body.cues.as_slice())?;
         update_track_tags(self, id, &updated_entity.body.tags)?;
         Ok(())
     }
@@ -591,7 +580,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         &self,
         collection_id: CollectionId,
         replace_mode: ReplaceMode,
-        mut track: Track,
+        track: Track,
     ) -> RepoResult<ReplaceOutcome> {
         let loaded = self
             .load_track_entity_by_media_source_uri(collection_id, &track.media_source.uri)
@@ -602,8 +591,6 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             if replace_mode == ReplaceMode::CreateOnly {
                 return Ok(ReplaceOutcome::NotUpdated(id, track));
             }
-            debug_assert!(entity.body.is_canonical());
-            track.canonicalize();
             if entity.body == track {
                 return Ok(ReplaceOutcome::Unchanged(id, entity));
             }
@@ -621,7 +608,6 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             if replace_mode == ReplaceMode::UpdateOnly {
                 return Ok(ReplaceOutcome::NotCreated(track));
             }
-            track.canonicalize();
             let created_at = DateTime::now_utc();
             let media_source_id = self
                 .insert_media_source(created_at, collection_id, &track.media_source)?

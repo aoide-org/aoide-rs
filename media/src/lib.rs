@@ -109,8 +109,7 @@ pub fn guess_mime_from_url(url: &Url) -> Result<Mime> {
     }
     mime_guess
         .into_iter()
-        .filter(|mime| mime.type_() == mime::AUDIO)
-        .next()
+        .find(|mime| mime.type_() == mime::AUDIO)
         .ok_or(Error::UnsupportedContentType)
 }
 
@@ -248,7 +247,7 @@ fn try_import_plain_tag(
     let score = TagScore::clamp_from(score_value);
     let plain_tag = PlainTag {
         label: Some(label),
-        score: score,
+        score,
     };
     if plain_tag.is_valid() {
         Ok(plain_tag)

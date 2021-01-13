@@ -647,7 +647,7 @@ impl Canonicalize for FacetedTags {
 // Tags
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct Tags {
     pub plain: Vec<PlainTag>,
     pub facets: Vec<FacetedTags>,
@@ -663,14 +663,6 @@ impl Tags {
         facets
             .iter()
             .fold(plain.len(), |sum, faceted| sum + faceted.tags.len())
-    }
-}
-
-impl PartialEq for Tags {
-    fn eq(&self, other: &Self) -> bool {
-        debug_assert!(self.is_canonical());
-        let Self { plain, facets } = self;
-        plain.eq(&other.plain) && facets.eq(&other.facets)
     }
 }
 

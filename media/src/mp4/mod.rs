@@ -32,7 +32,7 @@ use aoide_core::{
         tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE},
         title::{Title, TitleKind},
     },
-    util::clock::DateTimeInner,
+    util::{clock::DateTimeInner, Canonical, CanonicalizeInto as _},
 };
 use mp4ameta::{atom::read_tag_from, Ident, STANDARD_GENRES};
 
@@ -104,8 +104,7 @@ impl super::ImportTrack for ImportTrack {
         let audio_track = if let Some(audio_track) = reader
             .tracks()
             .iter()
-            .filter(|t| t.track_type().ok() == Some(TrackType::Audio))
-            .next()
+            .find(|t| t.track_type().ok() == Some(TrackType::Audio))
         {
             audio_track
         } else {
@@ -148,66 +147,74 @@ impl super::ImportTrack for ImportTrack {
         track.media_source.content = Content::Audio(audio_content);
 
         // Track titles
-        debug_assert!(track.titles.is_empty());
+        let mut track_titles = Vec::with_capacity(3);
         if let Some(name) = mp4_tag.take_title() {
             let title = Title {
                 name,
                 kind: TitleKind::Main,
             };
-            track.titles.push(title);
+            track_titles.push(title);
         }
         if let Some(name) = mp4_tag.take_work() {
             let title = Title {
                 name,
                 kind: TitleKind::Work,
             };
-            track.titles.push(title);
+            track_titles.push(title);
         }
         if let Some(name) = mp4_tag.take_movement() {
             let title = Title {
                 name,
                 kind: TitleKind::Movement,
             };
-            track.titles.push(title);
+            track_titles.push(title);
         }
+        debug_assert!(track.titles.is_empty());
+        track.titles = Canonical::tie(track_titles.canonicalize_into());
 
         // Track actors
-        debug_assert!(track.actors.is_empty());
+        let mut track_actors = Vec::with_capacity(4);
         for name in mp4_tag.take_artists() {
             let role = ActorRole::Artist;
-            let kind = adjust_last_actor_kind(&mut track.actors, role);
+            let kind = adjust_last_actor_kind(&mut track_actors, role);
             let actor = Actor {
                 name,
                 kind,
                 role,
                 role_notes: None,
             };
-            track.actors.push(actor);
+            track_actors.push(actor);
         }
         for name in mp4_tag.take_composers() {
             let role = ActorRole::Composer;
-            let kind = adjust_last_actor_kind(&mut track.actors, role);
+            let kind = adjust_last_actor_kind(&mut track_actors, role);
             let actor = Actor {
                 name,
                 kind,
                 role,
                 role_notes: None,
             };
-            track.actors.push(actor);
+            track_actors.push(actor);
         }
+        debug_assert!(track.actors.is_empty());
+        track.actors = Canonical::tie(track_actors.canonicalize_into());
+
+        let mut album = track.album.untie();
 
         // Album titles
-        debug_assert!(track.album.titles.is_empty());
+        let mut album_titles = Vec::with_capacity(1);
         if let Some(name) = mp4_tag.take_album() {
             let title = Title {
-                name: name,
+                name,
                 kind: TitleKind::Main,
             };
-            track.album.titles.push(title);
+            album_titles.push(title);
         }
+        debug_assert!(album.titles.is_empty());
+        album.titles = Canonical::tie(album_titles.canonicalize_into());
 
         // Album actors
-        debug_assert!(track.album.actors.is_empty());
+        let mut album_actors = Vec::with_capacity(4);
         if mp4_tag.album_artists().count() > 1 {
             for name in mp4_tag.take_album_artists() {
                 let actor = Actor {
@@ -216,7 +223,7 @@ impl super::ImportTrack for ImportTrack {
                     role: ActorRole::Artist,
                     role_notes: None,
                 };
-                track.album.actors.push(actor);
+                album_actors.push(actor);
             }
         } else if let Some(name) = mp4_tag.take_album_artist() {
             debug_assert!(mp4_tag.take_album_artist().is_none());
@@ -226,14 +233,18 @@ impl super::ImportTrack for ImportTrack {
                 role: ActorRole::Artist,
                 role_notes: None,
             };
-            track.album.actors.push(actor);
+            album_actors.push(actor);
         }
+        debug_assert!(album.actors.is_empty());
+        album.actors = Canonical::tie(album_actors.canonicalize_into());
 
         // Album properties
         if mp4_tag.compilation() {
-            debug_assert!(track.album.kind.is_none());
-            track.album.kind = Some(AlbumKind::Compilation);
+            debug_assert!(album.kind.is_none());
+            album.kind = Some(AlbumKind::Compilation);
         }
+
+        track.album = Canonical::tie(album);
 
         // Release properties
         if let Some(year) = mp4_tag.year() {
@@ -312,7 +323,7 @@ impl super::ImportTrack for ImportTrack {
         }
 
         debug_assert!(track.tags.is_empty());
-        track.tags = tags_map.into();
+        track.tags = Canonical::tie(tags_map.into());
 
         // Indexes
         debug_assert!(track.indexes.track.number.is_none());

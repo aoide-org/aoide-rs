@@ -28,59 +28,29 @@ use self::{actor::*, album::*, cue::*, index::*, metric::*, release::*, title::*
 
 use crate::{media::*, prelude::*, tag::*};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Track {
     pub media_source: Source,
 
     pub release: Release,
 
-    pub album: Album,
+    pub album: Canonical<Album>,
 
     pub indexes: Indexes,
 
-    pub titles: Vec<Title>,
+    pub titles: Canonical<Vec<Title>>,
 
-    pub actors: Vec<Actor>,
+    pub actors: Canonical<Vec<Actor>>,
 
-    pub tags: Tags,
+    pub tags: Canonical<Tags>,
 
     pub color: Option<Color>,
 
     pub metrics: Metrics,
 
-    pub cues: Vec<Cue>,
+    pub cues: Canonical<Vec<Cue>>,
 
     pub play_counter: PlayCounter,
-}
-
-impl PartialEq for Track {
-    fn eq(&self, other: &Self) -> bool {
-        debug_assert!(self.is_canonical());
-        let Self {
-            media_source,
-            release,
-            album,
-            indexes,
-            titles,
-            actors,
-            tags,
-            color,
-            metrics,
-            cues,
-            play_counter,
-        } = self;
-        media_source.eq(&other.media_source)
-            && release.eq(&other.release)
-            && album.eq(&other.album)
-            && indexes.eq(&other.indexes)
-            && titles.eq(&other.titles)
-            && actors.eq(&other.actors)
-            && tags.eq(&other.tags)
-            && color.eq(&other.color)
-            && metrics.eq(&other.metrics)
-            && cues.eq(&other.cues)
-            && play_counter.eq(&other.play_counter)
-    }
 }
 
 impl Track {
@@ -101,11 +71,14 @@ impl Track {
     }
 
     pub fn track_title(&self) -> Option<&str> {
-        Titles::main_title(&self.titles).map(|title| title.name.as_str())
+        Titles::main_title(self.titles.as_ref()).map(|title| title.name.as_str())
     }
 
     pub fn set_track_title(&mut self, track_title: impl Into<String>) -> bool {
-        Titles::set_main_title(&mut self.titles, track_title)
+        let mut titles = std::mem::take(&mut self.titles).untie();
+        let res = Titles::set_main_title(&mut titles, track_title);
+        drop(std::mem::replace(&mut self.titles, Canonical::tie(titles)));
+        res
     }
 
     pub fn track_artist(&self) -> Option<&str> {
@@ -113,7 +86,10 @@ impl Track {
     }
 
     pub fn set_track_artist(&mut self, track_artist: impl Into<String>) -> bool {
-        Actors::set_main_actor(&mut self.actors, ActorRole::Artist, track_artist)
+        let mut actors = std::mem::take(&mut self.actors).untie();
+        let res = Actors::set_main_actor(&mut actors, ActorRole::Artist, track_artist);
+        drop(std::mem::replace(&mut self.actors, Canonical::tie(actors)));
+        res
     }
 
     pub fn track_composer(&self) -> Option<&str> {
@@ -121,15 +97,23 @@ impl Track {
     }
 
     pub fn set_track_composer(&mut self, track_composer: impl Into<String>) -> bool {
-        Actors::set_main_actor(&mut self.actors, ActorRole::Composer, track_composer)
+        let mut actors = std::mem::take(&mut self.actors).untie();
+        let res = Actors::set_main_actor(&mut actors, ActorRole::Composer, track_composer);
+        drop(std::mem::replace(&mut self.actors, Canonical::tie(actors)));
+        res
     }
 
     pub fn album_title(&self) -> Option<&str> {
-        Titles::main_title(&self.album.titles).map(|title| title.name.as_str())
+        Titles::main_title(self.album.titles.as_ref()).map(|title| title.name.as_str())
     }
 
     pub fn set_album_title(&mut self, album_title: impl Into<String>) -> bool {
-        Titles::set_main_title(&mut self.album.titles, album_title)
+        let mut album = std::mem::take(&mut self.album).untie();
+        let mut titles = album.titles.untie();
+        let res = Titles::set_main_title(&mut titles, album_title);
+        album.titles = Canonical::tie(titles);
+        drop(std::mem::replace(&mut self.album, Canonical::tie(album)));
+        res
     }
 
     pub fn album_artist(&self) -> Option<&str> {
@@ -138,7 +122,12 @@ impl Track {
     }
 
     pub fn set_album_artist(&mut self, album_artist: impl Into<String>) -> bool {
-        Actors::set_main_actor(&mut self.album.actors, ActorRole::Artist, album_artist)
+        let mut album = std::mem::take(&mut self.album).untie();
+        let mut actors = album.actors.untie();
+        let res = Actors::set_main_actor(&mut actors, ActorRole::Artist, album_artist);
+        album.actors = Canonical::tie(actors);
+        drop(std::mem::replace(&mut self.album, Canonical::tie(album)));
+        res
     }
 }
 
@@ -163,7 +152,7 @@ impl Validate for Track {
         ValidationContext::new()
             .validate_with(&self.media_source, Self::Invalidity::MediaSource)
             .validate_with(&self.release, Self::Invalidity::Release)
-            .validate_with(&self.album, Self::Invalidity::Album)
+            .validate_with(self.album.as_ref(), Self::Invalidity::Album)
             .merge_result_with(
                 Titles::validate(self.titles.iter()),
                 Self::Invalidity::Titles,
@@ -173,7 +162,7 @@ impl Validate for Track {
                 Self::Invalidity::Actors,
             )
             .validate_with(&self.indexes, Self::Invalidity::Indexes)
-            .validate_with(&self.tags, Self::Invalidity::Tags)
+            .validate_with(self.tags.as_ref(), Self::Invalidity::Tags)
             .validate_with(&self.color, Self::Invalidity::Color)
             .validate_with(&self.metrics, Self::Invalidity::Metrics)
             .merge_result(
@@ -190,38 +179,7 @@ impl Validate for Track {
 
 impl IsCanonical for Track {
     fn is_canonical(&self) -> bool {
-        let Self {
-            album,
-            titles,
-            actors,
-            tags,
-            cues,
-            ..
-        } = self;
-        album.is_canonical()
-            && titles.is_canonical()
-            && actors.is_canonical()
-            && tags.is_canonical()
-            && tags.is_canonical()
-            && cues.is_canonical()
-    }
-}
-
-impl Canonicalize for Track {
-    fn canonicalize(&mut self) {
-        let Self {
-            album,
-            titles,
-            actors,
-            tags,
-            cues,
-            ..
-        } = self;
-        album.canonicalize();
-        titles.canonicalize();
-        actors.canonicalize();
-        tags.canonicalize();
-        cues.canonicalize();
+        true
     }
 }
 

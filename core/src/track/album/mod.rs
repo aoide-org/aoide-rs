@@ -28,9 +28,9 @@ pub enum AlbumKind {
 
 #[derive(Clone, Debug, Default, Eq)]
 pub struct Album {
-    pub titles: Vec<Title>,
+    pub titles: Canonical<Vec<Title>>,
 
-    pub actors: Vec<Actor>,
+    pub actors: Canonical<Vec<Actor>>,
 
     pub kind: Option<AlbumKind>,
 }
@@ -77,16 +77,7 @@ impl Validate for Album {
 
 impl IsCanonical for Album {
     fn is_canonical(&self) -> bool {
-        let Self { actors, titles, .. } = self;
-        actors.is_canonical() && titles.is_canonical()
-    }
-}
-
-impl Canonicalize for Album {
-    fn canonicalize(&mut self) {
-        let Self { actors, titles, .. } = self;
-        actors.canonicalize();
-        titles.canonicalize();
+        true
     }
 }
 

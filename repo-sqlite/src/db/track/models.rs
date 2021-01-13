@@ -24,7 +24,7 @@ use aoide_core::{
         time::{BeatUnit, Beats, BeatsPerMeasure, TempoBpm, TimeSignature},
     },
     track::{actor::*, album::*, index::*, metric::*, release::*, title::*, *},
-    util::{clock::*, color::*, IsCanonical as _},
+    util::{clock::*, color::*},
 };
 
 use aoide_repo::media::source::RecordId as MediaSourceId;
@@ -164,7 +164,7 @@ pub fn load_repo_entity(
         released_by,
         copyright,
     };
-    let album = Album {
+    let album = Canonical::tie(Album {
         actors: album_actors,
         titles: album_titles,
         kind: album_kind.and_then(|val| {
@@ -173,7 +173,7 @@ pub fn load_repo_entity(
                 None
             })
         }),
-    };
+    });
     let track_index = Index {
         number: track_number.map(|number| number as u16),
         total: track_total.map(|total| total as u16),
@@ -222,7 +222,7 @@ pub fn load_repo_entity(
         last_played_at: parse_datetime_opt(&last_played_at, last_played_ms),
         times_played: times_played.map(|val| val as PlayCount),
     };
-    let entity_body = Track {
+    let track = Track {
         media_source,
         release,
         album,
@@ -235,8 +235,7 @@ pub fn load_repo_entity(
         cues,
         play_counter,
     };
-    debug_assert!(entity_body.is_canonical());
-    let entity = Entity::new(entity_hdr, entity_body);
+    let entity = Entity::new(entity_hdr, track);
     (header, entity)
 }
 
@@ -279,7 +278,6 @@ pub struct InsertableRecord<'a> {
 
 impl<'a> InsertableRecord<'a> {
     pub fn bind(created_at: DateTime, media_source_id: MediaSourceId, entity: &'a Entity) -> Self {
-        debug_assert!(entity.is_canonical());
         let row_created_updated_ms = created_at.timestamp_millis();
         let EntityHeader { uid, rev } = &entity.hdr;
         let Track {
@@ -314,7 +312,7 @@ impl<'a> InsertableRecord<'a> {
             actors: _,
             titles: _,
             kind: album_kind,
-        } = album;
+        } = album.as_ref();
         let Indexes {
             track: track_index,
             disc: disc_index,
@@ -417,7 +415,6 @@ impl<'a> UpdatableRecord<'a> {
         media_source_id: MediaSourceId,
         track: &'a Track,
     ) -> Self {
-        debug_assert!(track.is_canonical());
         let entity_rev = entity_revision_to_sql(next_rev);
         let Track {
             media_source: _,
@@ -451,7 +448,7 @@ impl<'a> UpdatableRecord<'a> {
             actors: album_actors,
             titles: album_titles,
             kind: album_kind,
-        } = album;
+        } = album.as_ref();
         let Indexes {
             track: track_index,
             disc: disc_index,
@@ -500,12 +497,14 @@ impl<'a> UpdatableRecord<'a> {
             last_played_at: last_played_at.as_ref().map(ToString::to_string),
             last_played_ms: last_played_at.map(DateTime::timestamp_millis),
             times_played: times_played.map(|count| count as i64),
-            aux_track_title: Titles::main_title(track_titles).map(|title| title.name.as_str()),
+            aux_track_title: Titles::main_title(track_titles.as_ref())
+                .map(|title| title.name.as_str()),
             aux_track_artist: Actors::main_actor(track_actors.iter(), ActorRole::Artist)
                 .map(|actor| actor.name.as_str()),
             aux_track_composer: Actors::main_actor(track_actors.iter(), ActorRole::Composer)
                 .map(|actor| actor.name.as_str()),
-            aux_album_title: Titles::main_title(album_titles).map(|title| title.name.as_str()),
+            aux_album_title: Titles::main_title(album_titles.as_ref())
+                .map(|title| title.name.as_str()),
             aux_album_artist: Actors::main_actor(album_actors.iter(), ActorRole::Artist)
                 .map(|actor| actor.name.as_str()),
         }

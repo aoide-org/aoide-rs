@@ -74,24 +74,36 @@ impl From<_core::Album> for Album {
             kind,
         } = from;
         Self {
-            titles: titles.into_iter().map(Into::into).collect(),
-            actors: actors.into_iter().map(Into::into).collect(),
+            titles: titles.untie().into_iter().map(Into::into).collect(),
+            actors: actors.untie().into_iter().map(Into::into).collect(),
             kind: kind.map(Into::into),
         }
     }
 }
 
-impl From<Album> for _core::Album {
+impl From<Album> for Canonical<_core::Album> {
     fn from(from: Album) -> Self {
         let Album {
             titles,
             actors,
             kind,
         } = from;
-        Self {
-            titles: titles.into_iter().map(Into::into).collect(),
-            actors: actors.into_iter().map(Into::into).collect(),
+        Self::tie(_core::Album {
+            titles: Canonical::tie(
+                titles
+                    .into_iter()
+                    .map(Into::into)
+                    .collect::<Vec<_>>()
+                    .canonicalize_into(),
+            ),
+            actors: Canonical::tie(
+                actors
+                    .into_iter()
+                    .map(Into::into)
+                    .collect::<Vec<_>>()
+                    .canonicalize_into(),
+            ),
             kind: kind.map(Into::into),
-        }
+        })
     }
 }

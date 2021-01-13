@@ -20,6 +20,7 @@ use aoide_core::{
     media::Source,
     tag::Tags,
     track::{actor::Actor, cue::Cue, title::Title},
+    util::Canonical,
 };
 
 use num_derive::{FromPrimitive, ToPrimitive};
@@ -35,10 +36,10 @@ use aoide_repo::track::RecordHeader;
 #[derive(Debug)]
 pub struct EntityPreload {
     pub media_source: Source,
-    pub track_titles: Vec<Title>,
-    pub track_actors: Vec<Actor>,
-    pub album_titles: Vec<Title>,
-    pub album_actors: Vec<Actor>,
-    pub tags: Tags,
-    pub cues: Vec<Cue>,
+    pub track_titles: Canonical<Vec<Title>>,
+    pub track_actors: Canonical<Vec<Actor>>,
+    pub album_titles: Canonical<Vec<Title>>,
+    pub album_actors: Canonical<Vec<Actor>>,
+    pub tags: Canonical<Tags>,
+    pub cues: Canonical<Vec<Cue>>,
 }

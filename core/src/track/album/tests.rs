@@ -18,39 +18,39 @@ use super::*;
 #[test]
 fn validate_main_title() {
     let mut album = Album {
-        titles: vec![Title {
+        titles: Canonical::tie(vec![Title {
             name: "main".to_string(),
             kind: TitleKind::Main,
-        }],
+        }]),
         ..Default::default()
     };
     assert!(album.validate().is_ok());
-    album.titles = vec![Title {
+    album.titles = Canonical::tie(vec![Title {
         name: "sub".to_string(),
         kind: TitleKind::Sub,
-    }];
+    }]);
     assert!(album.validate().is_err());
 }
 
 #[test]
 fn validate_main_actor() {
     let mut album = Album {
-        titles: vec![Title {
+        titles: Canonical::tie(vec![Title {
             name: "main".to_string(),
             kind: TitleKind::Main,
-        }],
-        actors: vec![Actor {
+        }]),
+        actors: Canonical::tie(vec![Actor {
             name: "artist".to_string(),
             role: ActorRole::Artist,
             ..Default::default()
-        }],
+        }]),
         ..Default::default()
     };
     assert!(album.validate().is_ok());
-    album.actors = vec![Actor {
+    album.actors = Canonical::tie(vec![Actor {
         name: "composer".to_string(),
         role: ActorRole::Composer,
         ..Default::default()
-    }];
+    }]);
     assert!(album.validate().is_err());
 }

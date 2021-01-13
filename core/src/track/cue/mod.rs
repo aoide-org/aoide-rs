@@ -155,3 +155,6 @@ impl Validate for Cue {
         context.into()
     }
 }
+
+#[cfg(test)]
+mod tests;

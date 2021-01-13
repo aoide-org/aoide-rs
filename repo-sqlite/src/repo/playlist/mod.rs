@@ -135,8 +135,8 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     }
 }
 
-fn min_playlist_entry_ordering<'db>(
-    db: &crate::Connection<'db>,
+fn min_playlist_entry_ordering(
+    db: &crate::Connection<'_>,
     playlist_id: RecordId,
 ) -> RepoResult<Option<i64>> {
     use playlist_entry_db::schema::*;
@@ -147,8 +147,8 @@ fn min_playlist_entry_ordering<'db>(
         .map_err(repo_error)
 }
 
-fn max_playlist_entry_ordering<'db>(
-    db: &crate::Connection<'db>,
+fn max_playlist_entry_ordering(
+    db: &crate::Connection<'_>,
     playlist_id: RecordId,
 ) -> RepoResult<Option<i64>> {
     use playlist_entry_db::schema::*;
@@ -159,8 +159,8 @@ fn max_playlist_entry_ordering<'db>(
         .map_err(repo_error)
 }
 
-fn shift_playlist_entries_forward<'db>(
-    db: &crate::Connection<'db>,
+fn shift_playlist_entries_forward(
+    db: &crate::Connection<'_>,
     playlist_id: RecordId,
     old_min_ordering: i64,
     delta_ordering: i64,
@@ -192,8 +192,8 @@ fn shift_playlist_entries_forward<'db>(
     Ok(rows_updated)
 }
 
-fn reverse_all_playlist_entries_tail<'db>(
-    db: &crate::Connection<'db>,
+fn reverse_all_playlist_entries_tail(
+    db: &crate::Connection<'_>,
     playlist_id: RecordId,
     old_min_ordering: i64,
     new_max_ordering: i64,
@@ -223,8 +223,8 @@ fn reverse_all_playlist_entries_tail<'db>(
     Ok(rows_updated)
 }
 
-fn load_playlist_entry_records<'db>(
-    db: &crate::Connection<'db>,
+fn load_playlist_entry_records(
+    db: &crate::Connection<'_>,
     playlist_id: RecordId,
 ) -> RepoResult<Vec<playlist_entry_db::models::QueryableRecord>> {
     use playlist_entry_db::{models::*, schema::*};

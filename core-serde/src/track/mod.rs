@@ -28,10 +28,13 @@ use self::{actor::*, album::*, cue::*, index::*, metric::*, release::*, title::*
 use crate::media::Source;
 
 mod _core {
-    pub use aoide_core::track::*;
+    pub use aoide_core::{tag::Tags, track::*};
 }
 
-use aoide_core::{track::PlayCount, util::IsDefault};
+use aoide_core::{
+    track::PlayCount,
+    util::{Canonical, CanonicalizeInto as _, IsDefault},
+};
 
 ///////////////////////////////////////////////////////////////////////
 // Track
@@ -92,14 +95,14 @@ impl From<_core::Track> for Track {
         Self {
             media_source: media_source.into(),
             release: release.into(),
-            album: album.into(),
-            titles: titles.into_iter().map(Into::into).collect(),
-            actors: actors.into_iter().map(Into::into).collect(),
+            album: album.untie().into(),
+            titles: titles.untie().into_iter().map(Into::into).collect(),
+            actors: actors.untie().into_iter().map(Into::into).collect(),
             indexes: indexes.into(),
-            tags: tags.into(),
+            tags: tags.untie().into(),
             color: color.map(Into::into),
             metrics: metrics.into(),
-            cues: cues.into_iter().map(Into::into).collect(),
+            cues: cues.untie().into_iter().map(Into::into).collect(),
             play_counter: play_counter.into(),
         }
     }
@@ -124,13 +127,30 @@ impl From<Track> for _core::Track {
             media_source: media_source.into(),
             release: release.into(),
             album: album.into(),
-            titles: titles.into_iter().map(Into::into).collect(),
-            actors: actors.into_iter().map(Into::into).collect(),
+            titles: Canonical::tie(
+                titles
+                    .into_iter()
+                    .map(Into::into)
+                    .collect::<Vec<_>>()
+                    .canonicalize_into(),
+            ),
+            actors: Canonical::tie(
+                actors
+                    .into_iter()
+                    .map(Into::into)
+                    .collect::<Vec<_>>()
+                    .canonicalize_into(),
+            ),
             indexes: indexes.into(),
-            tags: tags.into(),
+            tags: Canonical::tie(_core::Tags::from(tags).canonicalize_into()),
             color: color.map(Into::into),
             metrics: metrics.into(),
-            cues: cues.into_iter().map(Into::into).collect(),
+            cues: Canonical::tie(
+                cues.into_iter()
+                    .map(Into::into)
+                    .collect::<Vec<_>>()
+                    .canonicalize_into(),
+            ),
             play_counter: play_counter.into(),
         }
     }
