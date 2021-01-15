@@ -19,7 +19,7 @@ use crate::prelude::*;
 
 use std::fmt;
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
 pub struct Index {
     pub number: Option<u16>,
     pub total: Option<u16>,

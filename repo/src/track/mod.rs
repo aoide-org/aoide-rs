@@ -30,7 +30,7 @@ use aoide_core::{
     util::clock::DateTime,
 };
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum StringField {
     AlbumArtist,
     AlbumTitle,
@@ -58,7 +58,7 @@ pub enum NumericField {
     TrackTotal,
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum DateTimeField {
     LastPlayedAt,
     ReleasedAt,

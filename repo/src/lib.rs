@@ -96,13 +96,13 @@ pub mod prelude {
         }
     }
 
-    #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+    #[derive(Copy, Clone, Debug, Eq, PartialEq)]
     pub enum SortDirection {
         Ascending,
         Descending,
     }
 
-    #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+    #[derive(Copy, Clone, Debug, Eq, PartialEq)]
     pub enum FilterModifier {
         Complement,
     }

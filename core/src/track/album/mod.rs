@@ -19,7 +19,7 @@ use crate::prelude::*;
 
 use num_derive::{FromPrimitive, ToPrimitive};
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, FromPrimitive, ToPrimitive)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, FromPrimitive, ToPrimitive)]
 pub enum AlbumKind {
     Unknown = 0,
     Album = 1,

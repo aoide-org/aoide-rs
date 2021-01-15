@@ -58,7 +58,7 @@ pub type ColorIndex = i16;
 
 pub type RgbColorCode = u32;
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct RgbColor(pub RgbColorCode); // 0xRRGGBB
 
 impl RgbColor {

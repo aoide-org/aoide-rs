@@ -48,7 +48,7 @@ impl Filter {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum SortField {
     Facet,
     Label,

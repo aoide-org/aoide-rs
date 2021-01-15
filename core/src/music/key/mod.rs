@@ -159,7 +159,7 @@ impl From<KeyCode> for KeyCodeValue {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum KeyMode {
     Major,
     Minor,

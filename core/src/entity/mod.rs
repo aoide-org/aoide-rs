@@ -197,7 +197,7 @@ impl fmt::Display for EntityRevision {
 // EntityHeader
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct EntityHeader {
     pub uid: EntityUid,
     pub rev: EntityRevision,

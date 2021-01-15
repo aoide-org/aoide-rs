@@ -24,7 +24,11 @@ use num_derive::{FromPrimitive, ToPrimitive};
 // Content
 ///////////////////////////////////////////////////////////////////////
 
-/// Reliability of content metadata.
+/// Reliability level of content metadata.
+///
+/// Metadata from a less reliable source SHALL NOT overwrite metadata
+/// that is considered more reliable to prevent loss of accuracy and
+/// precision.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, FromPrimitive, ToPrimitive)]
 pub enum ContentMetadataStatus {
     Unknown = 0,
@@ -180,6 +184,14 @@ pub struct Source {
 
     pub content_type: String,
 
+    /// Content digest for identifying sources independent of their
+    /// URI, e.g. to detect moved files.
+    ///
+    /// The digest should be calculated from the raw stream data
+    /// that is supposed to be read-only and immutable over time.
+    /// Additional metadata like file tags that is modified
+    /// frequently is not suitable to be included in the digest
+    /// calculation.
     pub content_digest: Option<Vec<u8>>,
 
     pub content_metadata_status: ContentMetadataStatus,

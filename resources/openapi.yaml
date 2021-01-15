@@ -980,14 +980,20 @@ components:
         A crypographic hash encoded as *base64url* (RFC 4648) without padding
         that can be used as a fingerprint of arbitrary, variable-length content
         (audio/video/image/text/...).
+
+        The digest should be calculated from the raw stream data (audio/video)
+        or image data that is supposed to be read-only and immutable over time.
+        Additional metadata like file tags that is modified frequently is not
+        suitable to be included in the digest calculation.
       type: string
       format: base64url
       minLength: 1
     ContentMetadataStatus:
       type: integer
-      enum: [1, 2, 3]
+      enum: [0, 1, 2, 3]
       description: |
-        * 1 = unreliable.
+        * 0 = unknown (default if missing)
+        * 1 = unreliable
         * 2 = reliable
         * 3 = locked
 
