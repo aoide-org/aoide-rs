@@ -30,22 +30,31 @@ pub type SlotIndex = i16;
 /// out position.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, ToPrimitive, FromPrimitive)]
 pub enum OutMode {
+    /// Continue playback when reaching the out position.
+    Cont = 0,
+
     /// Stop playback when reaching the out position.
-    Stop = 0,
+    Stop = 1,
 
     /// Continue playback at the in position of the cue with
     /// the next slot index, i.e. current slot index + 1.
     ///
     /// If the next slot is empty or if that next cue has no in
     /// position then playback continues (default behavior).
-    Next = 1,
+    Next = 2,
 
     /// Continue playback at the in position when reaching
     /// the out positon, i.e. repeat and loop.
     ///
     /// If the cue has no in position then playback continues
     /// (default behavior).
-    Loop = 2,
+    Loop = 3,
+}
+
+impl Default for OutMode {
+    fn default() -> Self {
+        OutMode::Cont
+    }
 }
 
 use bitflags::bitflags;

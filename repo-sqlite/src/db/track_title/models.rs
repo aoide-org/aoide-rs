@@ -15,7 +15,7 @@
 
 use super::{schema::*, *};
 
-use num_traits::FromPrimitive;
+use num_traits::FromPrimitive as _;
 
 ///////////////////////////////////////////////////////////////////////
 

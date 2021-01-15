@@ -16,119 +16,108 @@
 use super::*;
 
 #[test]
-fn invalid_key_code() {
-    assert!(KeySignature(KeySignature::min_code() - 1)
-        .validate()
-        .is_err());
-    assert!(KeySignature(KeySignature::max_code() + 1)
-        .validate()
-        .is_err());
-}
-
-#[test]
 fn convert_key_sigs() {
-    // C maj
     assert_eq!(
-        KeySignature::from_code(1),
+        KeySignature::new(KeyCode::Cmaj),
         OpenKeySignature::new(1, KeyMode::Major).into()
     );
     assert_eq!(
-        KeySignature::from_code(1),
+        KeySignature::new(KeyCode::Cmaj),
         LancelotKeySignature::new(8, KeyMode::Major).into()
     );
     assert_eq!(
-        KeySignature::from_code(1),
+        KeySignature::new(KeyCode::Cmaj),
         EngineKeySignature::from_code(24).into()
     );
-    // A min
+
     assert_eq!(
-        KeySignature::from_code(2),
+        KeySignature::new(KeyCode::Amin),
         OpenKeySignature::new(1, KeyMode::Minor).into()
     );
     assert_eq!(
-        KeySignature::from_code(2),
+        KeySignature::new(KeyCode::Amin),
         LancelotKeySignature::new(8, KeyMode::Minor).into()
     );
     assert_eq!(
-        KeySignature::from_code(2),
+        KeySignature::new(KeyCode::Amin),
         EngineKeySignature::from_code(1).into()
     );
-    // E maj
+
     assert_eq!(
-        KeySignature::from_code(9),
+        KeySignature::new(KeyCode::Emaj),
         OpenKeySignature::new(5, KeyMode::Major).into()
     );
     assert_eq!(
-        KeySignature::from_code(9),
+        KeySignature::new(KeyCode::Emaj),
         LancelotKeySignature::new(12, KeyMode::Major).into()
     );
     assert_eq!(
-        KeySignature::from_code(9),
+        KeySignature::new(KeyCode::Emaj),
         EngineKeySignature::from_code(8).into()
     );
-    // Db min
+
     assert_eq!(
-        KeySignature::from_code(10),
+        KeySignature::new(KeyCode::Dbmin),
         OpenKeySignature::new(5, KeyMode::Minor).into()
     );
     assert_eq!(
-        KeySignature::from_code(10),
+        KeySignature::new(KeyCode::Dbmin),
         LancelotKeySignature::new(12, KeyMode::Minor).into()
     );
     assert_eq!(
-        KeySignature::from_code(10),
+        KeySignature::new(KeyCode::Dbmin),
         EngineKeySignature::from_code(9).into()
     );
-    // B maj
+
     assert_eq!(
-        KeySignature::from_code(11),
+        KeySignature::new(KeyCode::Bmaj),
         OpenKeySignature::new(6, KeyMode::Major).into()
     );
     assert_eq!(
-        KeySignature::from_code(11),
+        KeySignature::new(KeyCode::Bmaj),
         LancelotKeySignature::new(1, KeyMode::Major).into()
     );
     assert_eq!(
-        KeySignature::from_code(11),
+        KeySignature::new(KeyCode::Bmaj),
         EngineKeySignature::from_code(10).into()
     );
-    // Ab min
+
     assert_eq!(
-        KeySignature::from_code(12),
+        KeySignature::new(KeyCode::Abmin),
         OpenKeySignature::new(6, KeyMode::Minor).into()
     );
     assert_eq!(
-        KeySignature::from_code(12),
+        KeySignature::new(KeyCode::Abmin),
         LancelotKeySignature::new(1, KeyMode::Minor).into()
     );
     assert_eq!(
-        KeySignature::from_code(12),
+        KeySignature::new(KeyCode::Abmin),
         EngineKeySignature::from_code(11).into()
     );
-    // F maj
+
     assert_eq!(
-        KeySignature::from_code(23),
+        KeySignature::new(KeyCode::Fmaj),
         OpenKeySignature::new(12, KeyMode::Major).into()
     );
     assert_eq!(
-        KeySignature::from_code(23),
+        KeySignature::new(KeyCode::Fmaj),
         LancelotKeySignature::new(7, KeyMode::Major).into()
     );
     assert_eq!(
-        KeySignature::from_code(23),
+        KeySignature::new(KeyCode::Fmaj),
         EngineKeySignature::from_code(22).into()
     );
-    // D min
+
     assert_eq!(
-        KeySignature::from_code(24),
+        KeySignature::new(KeyCode::Dmin),
         OpenKeySignature::new(12, KeyMode::Minor).into()
     );
     assert_eq!(
-        KeySignature::from_code(24),
+        KeySignature::new(KeyCode::Dmin),
         LancelotKeySignature::new(7, KeyMode::Minor).into()
     );
     assert_eq!(
-        KeySignature::from_code(24),
+        KeySignature::new(KeyCode::Dmin),
         EngineKeySignature::from_code(23).into()
     );
 }
@@ -137,34 +126,37 @@ fn convert_key_sigs() {
 fn display_key_sigs() {
     assert_eq!(
         "1d",
-        OpenKeySignature::from(KeySignature::from_code(1)).to_string()
-    ); // C maj
+        OpenKeySignature::from(KeySignature::new(KeyCode::Cmaj)).to_string()
+    );
     assert_eq!(
         "8B",
-        LancelotKeySignature::from(KeySignature::from_code(1)).to_string()
-    ); // C maj
+        LancelotKeySignature::from(KeySignature::new(KeyCode::Cmaj)).to_string()
+    );
+
     assert_eq!(
         "1m",
-        OpenKeySignature::from(KeySignature::from_code(2)).to_string()
-    ); // A min
+        OpenKeySignature::from(KeySignature::new(KeyCode::Amin)).to_string()
+    );
     assert_eq!(
         "8A",
-        LancelotKeySignature::from(KeySignature::from_code(2)).to_string()
-    ); // A min
+        LancelotKeySignature::from(KeySignature::new(KeyCode::Amin)).to_string()
+    );
+
     assert_eq!(
         "12d",
-        OpenKeySignature::from(KeySignature::from_code(23)).to_string()
-    ); // F maj
+        OpenKeySignature::from(KeySignature::new(KeyCode::Fmaj)).to_string()
+    );
     assert_eq!(
         "7B",
-        LancelotKeySignature::from(KeySignature::from_code(23)).to_string()
-    ); // F maj
+        LancelotKeySignature::from(KeySignature::new(KeyCode::Fmaj)).to_string()
+    );
+
     assert_eq!(
         "12m",
-        OpenKeySignature::from(KeySignature::from_code(24)).to_string()
-    ); // D min
+        OpenKeySignature::from(KeySignature::new(KeyCode::Dmin)).to_string()
+    );
     assert_eq!(
         "7A",
-        LancelotKeySignature::from(KeySignature::from_code(24)).to_string()
-    ); // D min
+        LancelotKeySignature::from(KeySignature::new(KeyCode::Dmin)).to_string()
+    );
 }

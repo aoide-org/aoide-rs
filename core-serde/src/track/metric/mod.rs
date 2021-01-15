@@ -23,14 +23,14 @@ use crate::music::{
 mod _core {
     pub use aoide_core::{
         music::{
-            key::KeySignature,
+            key::KeyCode,
             time::{TempoBpm, TimeSignature},
         },
         track::metric::Metrics,
     };
 }
 
-use aoide_core::track::metric::MetricsFlags;
+use aoide_core::{music::key::KeySignature, track::metric::MetricsFlags};
 
 ///////////////////////////////////////////////////////////////////////
 // Metrics
@@ -62,7 +62,11 @@ impl From<_core::Metrics> for Metrics {
         } = from;
         Self {
             tempo_bpm: tempo_bpm.map(Into::into),
-            key_code: key_signature.map(Into::into),
+            key_code: if key_signature.is_unknown() {
+                None
+            } else {
+                Some(key_signature.code().into())
+            },
             time_signature: time_signature.map(Into::into),
             flags: flags.bits(),
         }
@@ -79,7 +83,10 @@ impl From<Metrics> for _core::Metrics {
         } = from;
         Self {
             tempo_bpm: tempo_bpm.map(Into::into),
-            key_signature: key_code.map(Into::into),
+            key_signature: key_code
+                .map(Into::into)
+                .map(KeySignature::new)
+                .unwrap_or(KeySignature::unknown()),
             time_signature: time_signature.map(Into::into),
             flags: MetricsFlags::from_bits_truncate(flags),
         }

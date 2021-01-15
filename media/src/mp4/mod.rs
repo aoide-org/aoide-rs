@@ -240,8 +240,8 @@ impl super::ImportTrack for ImportTrack {
 
         // Album properties
         if mp4_tag.compilation() {
-            debug_assert!(album.kind.is_none());
-            album.kind = Some(AlbumKind::Compilation);
+            debug_assert_eq!(album.kind, AlbumKind::Unknown);
+            album.kind = AlbumKind::Compilation;
         }
 
         track.album = Canonical::tie(album);

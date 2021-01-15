@@ -15,7 +15,7 @@
 
 use crate::{
     music::{
-        key::{KeySignature, KeySignatureInvalidity},
+        key::KeySignature,
         time::{TempoBpm, TempoBpmInvalidity, TimeSignature, TimeSignatureInvalidity},
     },
     prelude::*,
@@ -66,7 +66,7 @@ pub struct Metrics {
     ///
     /// For tracks with varying keys often only the initial key
     /// is mentioned and stored in file tags.
-    pub key_signature: Option<KeySignature>,
+    pub key_signature: KeySignature,
 
     /// The nominal or main musical time signature of the track
     pub time_signature: Option<TimeSignature>,
@@ -78,7 +78,6 @@ pub struct Metrics {
 pub enum MetricsInvalidity {
     TempoBpm(TempoBpmInvalidity),
     TimeSignature(TimeSignatureInvalidity),
-    KeySignature(KeySignatureInvalidity),
     Flags(MetricsFlagsInvalidity),
 }
 
@@ -89,7 +88,6 @@ impl Validate for Metrics {
         ValidationContext::new()
             .validate_with(&self.tempo_bpm, MetricsInvalidity::TempoBpm)
             .validate_with(&self.time_signature, MetricsInvalidity::TimeSignature)
-            .validate_with(&self.key_signature, MetricsInvalidity::KeySignature)
             .validate_with(&self.flags, MetricsInvalidity::Flags)
             .into()
     }

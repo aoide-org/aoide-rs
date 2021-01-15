@@ -21,18 +21,25 @@ use num_derive::{FromPrimitive, ToPrimitive};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, FromPrimitive, ToPrimitive)]
 pub enum AlbumKind {
-    Album = 0,
-    Single = 1,
-    Compilation = 2,
+    Unknown = 0,
+    Album = 1,
+    Single = 2,
+    Compilation = 3,
+}
+
+impl Default for AlbumKind {
+    fn default() -> Self {
+        Self::Unknown
+    }
 }
 
 #[derive(Clone, Debug, Default, Eq)]
 pub struct Album {
+    pub kind: AlbumKind,
+
     pub titles: Canonical<Vec<Title>>,
 
     pub actors: Canonical<Vec<Actor>>,
-
-    pub kind: Option<AlbumKind>,
 }
 
 impl Album {

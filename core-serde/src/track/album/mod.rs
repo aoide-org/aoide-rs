@@ -26,57 +26,70 @@ mod _core {
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize_repr, Deserialize_repr, JsonSchema)]
 #[repr(u8)]
 pub enum AlbumKind {
-    Album = 0,
-    Single = 1,
-    Compilation = 2,
-}
-
-impl From<AlbumKind> for _core::AlbumKind {
-    fn from(from: AlbumKind) -> Self {
-        use _core::AlbumKind::*;
-        match from {
-            AlbumKind::Album => Album,
-            AlbumKind::Single => Single,
-            AlbumKind::Compilation => Compilation,
-        }
-    }
+    Unknown = 0,
+    Album = 1,
+    Single = 2,
+    Compilation = 3,
 }
 
 impl From<_core::AlbumKind> for AlbumKind {
     fn from(from: _core::AlbumKind) -> Self {
         use _core::AlbumKind::*;
         match from {
-            Album => AlbumKind::Album,
-            Single => AlbumKind::Single,
-            Compilation => AlbumKind::Compilation,
+            Unknown => Self::Unknown,
+            Album => Self::Album,
+            Single => Self::Single,
+            Compilation => Self::Compilation,
         }
+    }
+}
+
+impl From<AlbumKind> for _core::AlbumKind {
+    fn from(from: AlbumKind) -> Self {
+        use AlbumKind::*;
+        match from {
+            Unknown => Self::Unknown,
+            Album => Self::Album,
+            Single => Self::Single,
+            Compilation => Self::Compilation,
+        }
+    }
+}
+
+impl Default for AlbumKind {
+    fn default() -> Self {
+        _core::AlbumKind::default().into()
     }
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Album {
+    #[serde(
+        rename = "type",
+        skip_serializing_if = "IsDefault::is_default",
+        default
+    )]
+    pub kind: AlbumKind,
+
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub titles: Vec<Title>,
 
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub actors: Vec<Actor>,
-
-    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
-    pub kind: Option<AlbumKind>,
 }
 
 impl From<_core::Album> for Album {
     fn from(from: _core::Album) -> Self {
         let _core::Album {
+            kind,
             titles,
             actors,
-            kind,
         } = from;
         Self {
+            kind: kind.into(),
             titles: titles.untie().into_iter().map(Into::into).collect(),
             actors: actors.untie().into_iter().map(Into::into).collect(),
-            kind: kind.map(Into::into),
         }
     }
 }
@@ -84,11 +97,12 @@ impl From<_core::Album> for Album {
 impl From<Album> for Canonical<_core::Album> {
     fn from(from: Album) -> Self {
         let Album {
+            kind,
             titles,
             actors,
-            kind,
         } = from;
         Self::tie(_core::Album {
+            kind: kind.into(),
             titles: Canonical::tie(
                 titles
                     .into_iter()
@@ -103,7 +117,6 @@ impl From<Album> for Canonical<_core::Album> {
                     .collect::<Vec<_>>()
                     .canonicalize_into(),
             ),
-            kind: kind.map(Into::into),
         })
     }
 }

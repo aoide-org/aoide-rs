@@ -18,7 +18,7 @@ pub mod entity;
 
 use crate::prelude::*;
 
-use num_traits::ToPrimitive;
+use num_traits::ToPrimitive as _;
 use percent_encoding::percent_decode;
 use std::i64;
 

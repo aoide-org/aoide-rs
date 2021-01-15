@@ -16,20 +16,23 @@
 use crate::prelude::*;
 
 mod _core {
-    pub use aoide_core::music::key::*;
+    pub use aoide_core::music::key::KeyCode;
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
-pub struct KeyCode(_core::KeyCode);
+use aoide_core::music::key::KeyCodeValue;
 
-impl From<_core::KeySignature> for KeyCode {
-    fn from(from: _core::KeySignature) -> Self {
-        Self(from.code())
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct KeyCode(KeyCodeValue);
+
+impl From<_core::KeyCode> for KeyCode {
+    fn from(from: _core::KeyCode) -> Self {
+        Self(from.to_value())
     }
 }
 
-impl From<KeyCode> for _core::KeySignature {
+impl From<KeyCode> for _core::KeyCode {
     fn from(from: KeyCode) -> Self {
-        Self::from_code(from.0)
+        let KeyCode(val) = from;
+        Self::from_value(val)
     }
 }

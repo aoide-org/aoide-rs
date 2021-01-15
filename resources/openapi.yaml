@@ -706,7 +706,7 @@ components:
       default: 0
       description: |
         Optional actor rank that defaults to 0 = summary if missing:
-          * 0 = summary actor
+          * 0 = summary actor (default if missing)
           * 1 = primary actor(s)
           * 2 = secondary actor(s)
     ActorRole:
@@ -715,26 +715,27 @@ components:
       default: 0
       description: |
         Optional actor role that defaults to 0 = artist if missing:
-          * 0 = artist
-          * 1 = arranger
-          * 2 = composer
-          * 3 = conductor
-          * 4 = djmixer
-          * 5 = engineer
-          * 6 = lyricist
-          * 7 = mixer
-          * 8 = performer
-          * 9 = producer
-          * 10 = publisher
-          * 11 = remixer
-          * 12 = writer
+          * 0 = Artist (default if missing)
+          * 1 = Arranger
+          * 2 = Composer
+          * 3 = Conductor
+          * 4 = DJ Mixer
+          * 5 = Engineer
+          * 6 = Lyricist
+          * 7 = Mixer
+          * 8 = Performer
+          * 9 = Producer
+          * 10 = Publisher
+          * 11 = Remixer
+          * 12 = Writer
     AlbumKind:
       type: integer
-      enum: [0, 1, 2]
+      enum: [0, 1, 2, 3]
       description: |
-        * 0 = album
-        * 1 = single
-        * 2 = compilation
+        * 0 = undefined (default if missing)
+        * 1 = Album
+        * 2 = Single
+        * 3 = Compilation
     Album:
       description: |
         Album properties
@@ -1132,7 +1133,7 @@ components:
         ]
       description: |
         The key signature is denoted by a code with one of the following values:
-          * 0 = Invalid
+          * 0 = unknown (default if missing)
           * 1 = C maj
           * 2 = A min
           * 3 = G maj
@@ -1166,20 +1167,21 @@ components:
         Bits:
           - 0x01: Locked
     CueOutMode:
+      enum: [0, 1, 2, 3]
       description: |
         The playback behavior when reaching the out position.
 
         Possible values:
-          * 0 - stop: Stop playback when reaching the out position.
-          * 1 - next: Continue playback at the in position of the cue
+          * 0 - cont: Continue playback when reaching the out position (default if missing).
+          * 1 - stop: Stop playback when reaching the out position.
+          * 2 - next: Continue playback at the in position of the cue
                       with the next slot index, i.e. slot index + 1.
                       If next slot is empty or if that cue has no in
                       position then playback continues (default behavior).
-          * 2 - loop: Continue playback at the in position when reaching
+          * 3 - loop: Continue playback at the in position when reaching
                       the out positon. If no in position is defined then
                       playback continues (default behavior).
         type: integer
-        enum: [0, 1, 2]
     CueLabel:
       type: string
       example: Intro Loop
@@ -1218,6 +1220,7 @@ components:
       required:
         - collectedAt
         - uri
+        - contentType
     MediaType:
       type: string
       minLength: 1

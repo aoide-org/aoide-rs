@@ -34,15 +34,17 @@ use aoide_core::{
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize_repr, Deserialize_repr, JsonSchema)]
 #[repr(u8)]
 pub enum OutMode {
-    Stop = 0,
-    Next = 1,
-    Loop = 2,
+    Cont = 0,
+    Stop = 1,
+    Next = 2,
+    Loop = 3,
 }
 
 impl From<_core::OutMode> for OutMode {
     fn from(from: _core::OutMode) -> Self {
         use _core::OutMode::*;
         match from {
+            Cont => OutMode::Cont,
             Stop => OutMode::Stop,
             Loop => OutMode::Loop,
             Next => OutMode::Next,
@@ -54,6 +56,7 @@ impl From<OutMode> for _core::OutMode {
     fn from(from: OutMode) -> Self {
         use _core::OutMode::*;
         match from {
+            OutMode::Cont => Cont,
             OutMode::Stop => Stop,
             OutMode::Loop => Loop,
             OutMode::Next => Next,

@@ -20,7 +20,7 @@ use crate::prelude::*;
 use aoide_core::{
     entity::{EntityHeader, EntityRevision},
     music::{
-        key::{KeyCode, KeySignature},
+        key::{KeyCode, KeyCodeValue, KeySignature},
         time::{BeatUnit, Beats, BeatsPerMeasure, TempoBpm, TimeSignature},
     },
     track::{actor::*, album::*, index::*, metric::*, release::*, title::*, *},
@@ -29,7 +29,7 @@ use aoide_core::{
 
 use aoide_repo::media::source::RecordId as MediaSourceId;
 
-use num_traits::FromPrimitive;
+use num_traits::FromPrimitive as _;
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -47,7 +47,7 @@ pub struct QueryableRecord {
     pub released_at_yyyymmdd: Option<YYYYMMDD>,
     pub released_by: Option<String>,
     pub copyright: Option<String>,
-    pub album_kind: Option<i16>,
+    pub album_kind: i16,
     pub track_number: Option<i16>,
     pub track_total: Option<i16>,
     pub disc_number: Option<i16>,
@@ -55,7 +55,7 @@ pub struct QueryableRecord {
     pub movement_number: Option<i16>,
     pub movement_total: Option<i16>,
     pub music_tempo_bpm: Option<Beats>,
-    pub music_key_code: Option<i16>,
+    pub music_key_code: i16,
     pub music_beats_per_measure: Option<i16>,
     pub music_beat_unit: Option<i16>,
     pub music_flags: i16,
@@ -165,14 +165,12 @@ pub fn load_repo_entity(
         copyright,
     };
     let album = Canonical::tie(Album {
+        kind: AlbumKind::from_i16(album_kind).unwrap_or_else(|| {
+            log::error!("Invalid album kind value: {}", album_kind);
+            AlbumKind::Unknown
+        }),
         actors: album_actors,
         titles: album_titles,
-        kind: album_kind.and_then(|val| {
-            AlbumKind::from_i16(val).or_else(|| {
-                log::error!("Invalid album kind value: {}", val);
-                None
-            })
-        }),
     });
     let track_index = Index {
         number: track_number.map(|number| number as u16),
@@ -204,7 +202,7 @@ pub fn load_repo_entity(
     };
     let metrics = Metrics {
         tempo_bpm: music_tempo_bpm.map(TempoBpm),
-        key_signature: music_key_code.map(|code| KeySignature::from_code(code as KeyCode)),
+        key_signature: KeySignature::new(KeyCode::from_value(music_key_code as KeyCodeValue)),
         time_signature,
         flags: MetricsFlags::from_bits(music_flags as u8).unwrap_or_default(),
     };
@@ -252,7 +250,7 @@ pub struct InsertableRecord<'a> {
     pub released_at_yyyymmdd: Option<YYYYMMDD>,
     pub released_by: Option<&'a str>,
     pub copyright: Option<&'a str>,
-    pub album_kind: Option<i16>,
+    pub album_kind: i16,
     pub track_number: Option<i16>,
     pub track_total: Option<i16>,
     pub disc_number: Option<i16>,
@@ -260,7 +258,7 @@ pub struct InsertableRecord<'a> {
     pub movement_number: Option<i16>,
     pub movement_total: Option<i16>,
     pub music_tempo_bpm: Option<Beats>,
-    pub music_key_code: Option<i16>,
+    pub music_key_code: i16,
     pub music_beats_per_measure: Option<i16>,
     pub music_beat_unit: Option<i16>,
     pub music_flags: i16,
@@ -335,7 +333,7 @@ impl<'a> InsertableRecord<'a> {
             released_at_yyyymmdd: released_at_yyyymmdd.map(Into::into),
             released_by: released_by.as_ref().map(String::as_str),
             copyright: copyright.as_ref().map(String::as_str),
-            album_kind: album_kind.map(|val| val as i16),
+            album_kind: *album_kind as i16,
             track_number: track_index.number.map(|idx| idx as i16),
             track_total: track_index.total.map(|idx| idx as i16),
             disc_number: disc_index.number.map(|idx| idx as i16),
@@ -343,7 +341,7 @@ impl<'a> InsertableRecord<'a> {
             movement_number: movement_index.number.map(|idx| idx as i16),
             movement_total: movement_index.total.map(|idx| idx as i16),
             music_tempo_bpm: tempo_bpm.map(|bpm| bpm.0),
-            music_key_code: key_signature.map(|key_sig| i16::from(key_sig.code())),
+            music_key_code: key_signature.code().to_value() as i16,
             music_beats_per_measure: time_signature
                 .map(|time_sig| time_sig.beats_per_measure as i16),
             music_beat_unit: time_signature
@@ -384,7 +382,7 @@ pub struct UpdatableRecord<'a> {
     pub released_at_yyyymmdd: Option<YYYYMMDD>,
     pub released_by: Option<&'a str>,
     pub copyright: Option<&'a str>,
-    pub album_kind: Option<i16>,
+    pub album_kind: i16,
     pub track_number: Option<i16>,
     pub track_total: Option<i16>,
     pub disc_number: Option<i16>,
@@ -392,7 +390,7 @@ pub struct UpdatableRecord<'a> {
     pub movement_number: Option<i16>,
     pub movement_total: Option<i16>,
     pub music_tempo_bpm: Option<Beats>,
-    pub music_key_code: Option<i16>,
+    pub music_key_code: i16,
     pub music_beats_per_measure: Option<i16>,
     pub music_beat_unit: Option<i16>,
     pub music_flags: i16,
@@ -469,7 +467,7 @@ impl<'a> UpdatableRecord<'a> {
             released_at_yyyymmdd: released_at_yyyymmdd.map(Into::into),
             released_by: released_by.as_ref().map(String::as_str),
             copyright: copyright.as_ref().map(String::as_str),
-            album_kind: album_kind.map(|val| val as i16),
+            album_kind: *album_kind as i16,
             track_number: track_index.number.map(|number| number as i16),
             track_total: track_index.total.map(|total| total as i16),
             disc_number: disc_index.number.map(|number| number as i16),
@@ -477,7 +475,7 @@ impl<'a> UpdatableRecord<'a> {
             movement_number: movement_index.number.map(|number| number as i16),
             movement_total: movement_index.total.map(|total| total as i16),
             music_tempo_bpm: tempo_bpm.map(|bpm| bpm.0),
-            music_key_code: key_signature.map(|key_sig| i16::from(key_sig.code())),
+            music_key_code: key_signature.code().to_value() as i16,
             music_beats_per_measure: time_signature
                 .map(|time_sig| time_sig.beats_per_measure as i16),
             music_beat_unit: time_signature
