@@ -23,7 +23,7 @@ use aoide_core::{
         signal::{BitRateBps, BitsPerSecond, LoudnessLufs, SampleRateHz, SamplesPerSecond},
         AudioContent, DurationInMilliseconds, DurationMs, Encoder as AudioEncoder,
     },
-    media::{Artwork, Content, ContentMetadataStatus, ImageDimension, ImageSize, Source},
+    media::{Artwork, Content, ContentMetadataFlags, ImageDimension, ImageSize, Source},
     util::{
         clock::*,
         color::{RgbColor, RgbColorCode},
@@ -31,8 +31,6 @@ use aoide_core::{
 };
 
 use aoide_repo::collection::RecordId as CollectionId;
-
-use num_traits::FromPrimitive as _;
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -51,7 +49,7 @@ pub struct QueryableRecord {
     pub uri_decoded: String,
     pub content_type: String,
     pub content_digest: Option<Vec<u8>>,
-    pub content_metadata_status: i16,
+    pub content_metadata_flags: i16,
     pub audio_duration_ms: Option<f64>,
     pub audio_channel_count: Option<i16>,
     pub audio_samplerate_hz: Option<f64>,
@@ -82,7 +80,7 @@ impl From<QueryableRecord> for (RecordHeader, Source) {
             uri_decoded: _,
             content_type,
             content_digest,
-            content_metadata_status,
+            content_metadata_flags,
             audio_duration_ms,
             audio_channel_count,
             audio_samplerate_hz,
@@ -137,14 +135,9 @@ impl From<QueryableRecord> for (RecordHeader, Source) {
             uri,
             content_type,
             content_digest,
-            content_metadata_status: ContentMetadataStatus::from_i16(content_metadata_status)
-                .unwrap_or_else(|| {
-                    log::error!(
-                        "Invalid content metadata status: {}",
-                        content_metadata_status
-                    );
-                    ContentMetadataStatus::Unknown
-                }),
+            content_metadata_flags: ContentMetadataFlags::from_bits_truncate(
+                content_metadata_flags as u8,
+            ),
             content: Content::Audio(audio_content),
             artwork,
         };
@@ -166,7 +159,7 @@ pub struct InsertableRecord<'a> {
     pub uri_decoded: String,
     pub content_type: &'a str,
     pub content_digest: Option<&'a [u8]>,
-    pub content_metadata_status: i16,
+    pub content_metadata_flags: i16,
     pub audio_duration_ms: Option<f64>,
     pub audio_channel_count: Option<i16>,
     pub audio_samplerate_hz: Option<f64>,
@@ -194,7 +187,7 @@ impl<'a> InsertableRecord<'a> {
             uri,
             content_type,
             content_digest,
-            content_metadata_status,
+            content_metadata_flags,
             content,
             artwork,
         } = created_source;
@@ -223,7 +216,7 @@ impl<'a> InsertableRecord<'a> {
             uri_decoded: decode_uri(&uri),
             content_type: content_type.as_str(),
             content_digest: content_digest.as_ref().map(Vec::as_slice),
-            content_metadata_status: *content_metadata_status as i16,
+            content_metadata_flags: content_metadata_flags.bits() as i16,
             audio_duration_ms: audio_content
                 .and_then(|audio| audio.duration)
                 .map(|sample_rate| sample_rate.0),
@@ -269,7 +262,7 @@ pub struct UpdatableRecord<'a> {
     pub uri_decoded: String,
     pub content_type: &'a str,
     pub content_digest: Option<&'a [u8]>,
-    pub content_metadata_status: i16,
+    pub content_metadata_flags: i16,
     pub audio_duration_ms: Option<f64>,
     pub audio_channel_count: Option<i16>,
     pub audio_samplerate_hz: Option<f64>,
@@ -293,7 +286,7 @@ impl<'a> UpdatableRecord<'a> {
             uri,
             content_type,
             content_digest,
-            content_metadata_status,
+            content_metadata_flags,
             content,
             artwork,
         } = updated_source;
@@ -319,7 +312,7 @@ impl<'a> UpdatableRecord<'a> {
             uri_decoded: decode_uri(&uri),
             content_type: content_type.as_str(),
             content_digest: content_digest.as_ref().map(Vec::as_slice),
-            content_metadata_status: *content_metadata_status as i16,
+            content_metadata_flags: content_metadata_flags.bits() as i16,
             audio_duration_ms: audio_content
                 .and_then(|audio| audio.duration)
                 .map(|sample_rate| sample_rate.0),

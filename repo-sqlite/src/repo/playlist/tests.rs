@@ -31,7 +31,6 @@ use aoide_repo::{
     media::source::{RecordId as MediaSourceId, Repo as _},
     track::RecordId as TrackId,
 };
-use media::ContentMetadataStatus;
 
 struct Fixture {
     db: SqliteConnection,
@@ -67,7 +66,7 @@ impl Fixture {
                 uri: format!("file:///home/test/file{}.mp3", i),
                 content_type: "audio/mpeg".to_string(),
                 content_digest: None,
-                content_metadata_status: ContentMetadataStatus::Unknown,
+                content_metadata_flags: Default::default(),
                 content: AudioContent {
                     duration: Some(DurationMs(i as f64)),
                     ..Default::default()

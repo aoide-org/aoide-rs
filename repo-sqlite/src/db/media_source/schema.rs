@@ -31,7 +31,7 @@ table! {
         uri_decoded -> Text,
         content_type -> Text,
         content_digest -> Nullable<Binary>,
-        content_metadata_status -> SmallInt,
+        content_metadata_flags -> SmallInt,
         audio_duration_ms -> Nullable<Double>,
         audio_channel_count -> Nullable<SmallInt>,
         audio_samplerate_hz -> Nullable<Double>,

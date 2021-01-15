@@ -73,7 +73,7 @@ impl From<QueryableRecord> for (RecordId, Record) {
             } else {
                 None
             },
-            flags: CueFlags::from_bits(flags as u8).unwrap_or_default(),
+            flags: CueFlags::from_bits_truncate(flags as u8),
         };
         let record = Record {
             track_id: track_id.into(),

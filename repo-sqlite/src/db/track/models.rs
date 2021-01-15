@@ -204,7 +204,7 @@ pub fn load_repo_entity(
         tempo_bpm: music_tempo_bpm.map(TempoBpm),
         key_signature: KeySignature::new(KeyCode::from_value(music_key_code as KeyCodeValue)),
         time_signature,
-        flags: MetricsFlags::from_bits(music_flags as u8).unwrap_or_default(),
+        flags: MetricsFlags::from_bits_truncate(music_flags as u8),
     };
     let color = if let Some(color_rgb) = color_rgb {
         debug_assert!(color_idx.is_none());

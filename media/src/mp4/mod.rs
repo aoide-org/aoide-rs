@@ -26,6 +26,7 @@ use aoide_core::{
         signal::{BitRateBps, BitsPerSecond, SampleRateHz},
         AudioContent, Encoder,
     },
+    media::ContentMetadataFlags,
     track::{
         actor::{Actor, ActorKind, ActorRole},
         album::AlbumKind,
@@ -116,8 +117,11 @@ impl super::ImportTrack for ImportTrack {
             track.media_source.content
         );
 
-        if track.media_source.content_metadata_status <= ContentMetadataStatus::Unreliable {
-            track.media_source.content_metadata_status = ContentMetadataStatus::Unreliable;
+        if track
+            .media_source
+            .content_metadata_flags
+            .reset_stale(ContentMetadataFlags::UNRELIABLE)
+        {
             let audio_content = AudioContent {
                 duration: Some(audio_track.duration().into()),
                 sample_rate: Some(

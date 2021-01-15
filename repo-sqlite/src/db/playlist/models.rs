@@ -86,7 +86,7 @@ impl From<QueryableRecord> for (RecordHeader, CollectionId, Entity) {
             } else {
                 None
             },
-            flags: Flags::from_bits(flags as u8).unwrap_or_default(),
+            flags: Flags::from_bits_truncate(flags as u8),
         };
         (header, collection_id, Entity::new(entity_hdr, entity_body))
     }

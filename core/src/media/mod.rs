@@ -18,44 +18,78 @@ use crate::{
     prelude::*,
 };
 
-use num_derive::{FromPrimitive, ToPrimitive};
+use bitflags::bitflags;
 
 ///////////////////////////////////////////////////////////////////////
 // Content
 ///////////////////////////////////////////////////////////////////////
 
-/// Reliability level of content metadata.
-///
-/// Metadata from a less reliable source SHALL NOT overwrite metadata
-/// that is considered more reliable to prevent loss of accuracy and
-/// precision.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, FromPrimitive, ToPrimitive)]
-pub enum ContentMetadataStatus {
-    Unknown = 0,
-
-    /// Unreliable
-    ///
-    /// Example: Parsed from file tags which are considered inaccurate
-    /// and are often imprecise.
-    Unreliable = 1,
-
-    /// Reliable
-    ///
-    /// Example: Reported by a decoder when opening an audio/video
-    /// stream for reading. Nevertheless different decoders may report
-    /// slightly differing values.
-    Reliable = 2,
-
-    /// Confirmed, acknowledged, or manually set.
-    ///
-    /// Locked metadata will not be updated automatically, neither when
-    /// parsing file tags nor when decoding an audio/video stream.
-    Locked = 3,
+bitflags! {
+    /// A bitmask for controlling how and if content metadata is
+    /// re-imported from the source.
+    pub struct ContentMetadataFlags: u8 {
+        const UNRELIABLE = 0b00000000;
+        const RELIABLE   = 0b00000001;
+        const LOCKED     = 0b00000010;
+        const STALE      = 0b00000100;
+    }
 }
 
-impl Default for ContentMetadataStatus {
+impl ContentMetadataFlags {
+    pub fn is_valid(self) -> bool {
+        Self::all().contains(self)
+    }
+
+    pub fn is_unreliable(self) -> bool {
+        !self.intersects(Self::RELIABLE | Self::LOCKED)
+    }
+
+    pub fn is_reliable(self) -> bool {
+        self.intersects(Self::RELIABLE)
+    }
+
+    pub fn is_locked(self) -> bool {
+        self.intersects(Self::LOCKED)
+    }
+
+    pub fn is_stale(self) -> bool {
+        self.intersects(Self::STALE)
+    }
+
+    pub fn reset_stale(&mut self, target: Self) -> bool {
+        debug_assert!(!target.is_stale());
+        if (*self - Self::STALE) == target
+            || target.is_locked()
+            || (!self.is_locked() && target.is_reliable())
+        {
+            *self = target;
+            true
+        } else {
+            *self |= Self::STALE;
+            false
+        }
+    }
+}
+
+impl Default for ContentMetadataFlags {
     fn default() -> Self {
-        Self::Unknown
+        Self::UNRELIABLE
+    }
+}
+
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
+pub struct ContentMetadataFlagsInvalidity;
+
+impl Validate for ContentMetadataFlags {
+    type Invalidity = ContentMetadataFlagsInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(
+                !ContentMetadataFlags::is_valid(*self),
+                ContentMetadataFlagsInvalidity,
+            )
+            .into()
     }
 }
 
@@ -194,7 +228,7 @@ pub struct Source {
     /// calculation.
     pub content_digest: Option<Vec<u8>>,
 
-    pub content_metadata_status: ContentMetadataStatus,
+    pub content_metadata_flags: ContentMetadataFlags,
 
     pub content: Content,
 
@@ -205,6 +239,7 @@ pub struct Source {
 pub enum SourceInvalidity {
     UriEmpty,
     ContentTypeEmpty,
+    ContentMetadataFlags(ContentMetadataFlagsInvalidity),
     AudioContent(AudioContentInvalidity),
     Artwork(ArtworkInvalidity),
 }
@@ -218,6 +253,10 @@ impl Validate for Source {
             .invalidate_if(
                 self.content_type.trim().is_empty(),
                 Self::Invalidity::ContentTypeEmpty,
+            )
+            .validate_with(
+                &self.content_metadata_flags,
+                Self::Invalidity::ContentMetadataFlags,
             )
             .validate_with(&self.artwork, Self::Invalidity::Artwork);
         // TODO: Validate MIME type
@@ -275,3 +314,10 @@ impl Validate for SourceOrUri {
         .into()
     }
 }
+
+///////////////////////////////////////////////////////////////////////
+// Tests
+///////////////////////////////////////////////////////////////////////
+
+#[cfg(test)]
+mod tests;

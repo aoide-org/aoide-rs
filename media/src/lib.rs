@@ -19,7 +19,7 @@
 #![deny(rust_2018_idioms)]
 
 use aoide_core::{
-    media::{Content, ContentMetadataStatus, Source},
+    media::{Content, Source},
     tag::{
         Facet as TagFacet, FacetValue, Label as TagLabel, LabelValue, PlainTag, Score as TagScore,
         ScoreValue, TagsMap,
@@ -125,7 +125,7 @@ impl ImportTrackInput {
             uri: url.to_string(),
             content_type: mime.to_string(),
             content_digest: None,
-            content_metadata_status: ContentMetadataStatus::Unknown,
+            content_metadata_flags: Default::default(),
             content: Content::Audio(Default::default()),
             artwork: Default::default(),
         };

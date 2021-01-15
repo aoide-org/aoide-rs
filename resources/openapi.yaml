@@ -988,25 +988,53 @@ components:
       type: string
       format: base64url
       minLength: 1
-    ContentMetadataStatus:
+    MetricsFlags:
       type: integer
-      enum: [0, 1, 2, 3]
+      format: i32
+      minimum: 0
+      maximum: 7
+      example: 5
       description: |
-        * 0 = unknown (default if missing)
-        * 1 = unreliable
-        * 2 = reliable
-        * 3 = locked
+        A bitmask for locking selected properties of the musical signature.
+
+        Bits:
+          - 0x01: Tempo/BPM is locked
+          - 0x02: Key signature is locked
+          - 0x04: Time signature is locked
+
+        Example: A value of 3 = 1 | 2 locks both the tempo and the key signature
+    ContentMetadataFlags:
+      type: integer
+      format: i32
+      minimum: 0
+      maximum: 7
+      example: 5
+      description: |
+        A bitmask for controlling how and if content metadata is re-imported
+        from the source.
+
+        Bits:
+          - 0x01: Metadata is reliable
+          - 0x02: Metadata is locked
+          - 0x04: Metadata might be stale
 
         Unreliable: Parsed from file tags which are considered inaccurate
         and are often imprecise.
 
-        Reliable: Reported by a decoder when opening an audio/video
+        Reliable: Reported by a decoder when opening the audio/video
         stream for reading. Nevertheless different decoders may report
-        slightly differing values.
+        slightly differing values. Reliable metadata cannot be updated
+        by unreliable metadata. Instead it could be marked as *stale* if
+        a re-import is desired.
 
-        Locked: Confirmed, acknowledged, or manually set. Locked metadata
-        will not be updated automatically, neither when parsing file tags
-        nor when decoding an audio/video stream.
+        Locked: Locked metadata will not be updated automatically, independent
+        of the *reliable* flag. Neither when parsing file tags nor when decoding
+        the audio/video stream. Instead it could be marked as *stale* if a
+        re-import is desired.
+
+        STALE: This flag signals that the content metadata should be
+        re-imported depending on the reliability flag. Alternatively
+        the *stale* flag could be reset manually.
     CueBankIndex:
       type: number
       format: int32
@@ -1237,8 +1265,8 @@ components:
           $ref: '#/components/schemas/MediaType'
         contentDigest:
           $ref: '#/components/schemas/ContentDigest'
-        contentMetadataStatus:
-          $ref: '#/components/schemas/ContentMetadataStatus'
+        ContentMetadataFlags:
+          $ref: '#/components/schemas/ContentMetadataFlags'
         artwork:
           $ref: '#/components/schemas/Artwork'
       additionalProperties:
