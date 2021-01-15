@@ -70,16 +70,20 @@ impl ContentMetadataFlags {
         self.intersects(Self::STALE)
     }
 
-    /// Reset the stale flag if given target bits are considered
-    /// more reliable than the current state.
+    /// Update the current state
     ///
-    /// Otherwise the current state is preserved and instead the stale
-    /// flag is set.
+    /// If the given target state is considered at least as reliable
+    /// as the current state then modifications are allowed by returning
+    /// `true` and the new target state is established.
     ///
-    /// Metadata from a less reliable source SHALL NOT overwrite metadata
-    /// that is considered more reliable to prevent loss of accuracy and
-    /// precision.
-    pub fn reset_stale(&mut self, target: Self) -> bool {
+    /// Otherwise the current state is preserved. The return value
+    /// `false` indicates that modification of metadata is not desired
+    /// to prevent loss of accuracy or precision. Instead the stale flag
+    /// is set (only if currently not locked) to indicate that an update
+    /// from a more reliable source of metadata should be considered.
+    ///
+    /// The given target state MUST NOT be marked as stale!
+    pub fn update(&mut self, target: Self) -> bool {
         debug_assert!(!target.is_stale());
         if (*self - Self::STALE) == target
             || target.is_locked()

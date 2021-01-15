@@ -25,22 +25,22 @@ fn unreliable_is_empty_default() {
 }
 
 #[test]
-fn given_unreliable_reset_stale() {
+fn given_unreliable_update() {
     for stale_flag in &[ContentMetadataFlags::empty(), ContentMetadataFlags::STALE] {
         let mut flags = ContentMetadataFlags::UNRELIABLE | *stale_flag;
-        assert!(flags.reset_stale(ContentMetadataFlags::UNRELIABLE));
+        assert!(flags.update(ContentMetadataFlags::UNRELIABLE));
         assert_eq!(flags, ContentMetadataFlags::UNRELIABLE);
 
         let mut flags = ContentMetadataFlags::UNRELIABLE | *stale_flag;
-        assert!(flags.reset_stale(ContentMetadataFlags::RELIABLE));
+        assert!(flags.update(ContentMetadataFlags::RELIABLE));
         assert_eq!(flags, ContentMetadataFlags::RELIABLE);
 
         let mut flags = ContentMetadataFlags::UNRELIABLE | *stale_flag;
-        assert!(flags.reset_stale(ContentMetadataFlags::LOCKED));
+        assert!(flags.update(ContentMetadataFlags::LOCKED));
         assert_eq!(flags, ContentMetadataFlags::LOCKED);
 
         let mut flags = ContentMetadataFlags::UNRELIABLE | *stale_flag;
-        assert!(flags.reset_stale(ContentMetadataFlags::RELIABLE | ContentMetadataFlags::LOCKED));
+        assert!(flags.update(ContentMetadataFlags::RELIABLE | ContentMetadataFlags::LOCKED));
         assert_eq!(
             flags,
             ContentMetadataFlags::RELIABLE | ContentMetadataFlags::LOCKED
@@ -49,25 +49,25 @@ fn given_unreliable_reset_stale() {
 }
 
 #[test]
-fn given_reliable_reset_stale() {
+fn given_reliable_update() {
     for stale_flag in &[ContentMetadataFlags::empty(), ContentMetadataFlags::STALE] {
         let mut flags = ContentMetadataFlags::RELIABLE | *stale_flag;
-        assert!(!flags.reset_stale(ContentMetadataFlags::UNRELIABLE));
+        assert!(!flags.update(ContentMetadataFlags::UNRELIABLE));
         assert_eq!(
             flags,
             ContentMetadataFlags::RELIABLE | ContentMetadataFlags::STALE
         );
 
         let mut flags = ContentMetadataFlags::RELIABLE | *stale_flag;
-        assert!(flags.reset_stale(ContentMetadataFlags::RELIABLE));
+        assert!(flags.update(ContentMetadataFlags::RELIABLE));
         assert_eq!(flags, ContentMetadataFlags::RELIABLE);
 
         let mut flags = ContentMetadataFlags::RELIABLE | *stale_flag;
-        assert!(flags.reset_stale(ContentMetadataFlags::LOCKED));
+        assert!(flags.update(ContentMetadataFlags::LOCKED));
         assert_eq!(flags, ContentMetadataFlags::LOCKED);
 
         let mut flags = ContentMetadataFlags::RELIABLE | *stale_flag;
-        assert!(flags.reset_stale(ContentMetadataFlags::RELIABLE | ContentMetadataFlags::LOCKED));
+        assert!(flags.update(ContentMetadataFlags::RELIABLE | ContentMetadataFlags::LOCKED));
         assert_eq!(
             flags,
             ContentMetadataFlags::RELIABLE | ContentMetadataFlags::LOCKED
@@ -76,14 +76,14 @@ fn given_reliable_reset_stale() {
 }
 
 #[test]
-fn given_locked_reset_stale() {
+fn given_locked_update() {
     for reliable_flag in &[
         ContentMetadataFlags::empty(),
         ContentMetadataFlags::RELIABLE,
     ] {
         for stale_flag in &[ContentMetadataFlags::empty(), ContentMetadataFlags::STALE] {
             let mut flags = ContentMetadataFlags::LOCKED | *reliable_flag | *stale_flag;
-            assert!(!flags.reset_stale(ContentMetadataFlags::UNRELIABLE));
+            assert!(!flags.update(ContentMetadataFlags::UNRELIABLE));
             assert_eq!(
                 flags,
                 // The stale flag is not set, but the current stale flag is preserved
@@ -91,7 +91,7 @@ fn given_locked_reset_stale() {
             );
 
             let mut flags = ContentMetadataFlags::LOCKED | *reliable_flag | *stale_flag;
-            assert!(!flags.reset_stale(ContentMetadataFlags::RELIABLE));
+            assert!(!flags.update(ContentMetadataFlags::RELIABLE));
             assert_eq!(
                 flags,
                 // The stale flag is not set, but the current stale flag is preserved
@@ -99,13 +99,11 @@ fn given_locked_reset_stale() {
             );
 
             let mut flags = ContentMetadataFlags::LOCKED | *reliable_flag | *stale_flag;
-            assert!(flags.reset_stale(ContentMetadataFlags::LOCKED));
+            assert!(flags.update(ContentMetadataFlags::LOCKED));
             assert_eq!(flags, ContentMetadataFlags::LOCKED);
 
             let mut flags = ContentMetadataFlags::LOCKED | *reliable_flag | *stale_flag;
-            assert!(
-                flags.reset_stale(ContentMetadataFlags::RELIABLE | ContentMetadataFlags::LOCKED)
-            );
+            assert!(flags.update(ContentMetadataFlags::RELIABLE | ContentMetadataFlags::LOCKED));
             assert_eq!(
                 flags,
                 ContentMetadataFlags::RELIABLE | ContentMetadataFlags::LOCKED

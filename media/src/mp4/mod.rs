@@ -120,7 +120,7 @@ impl super::ImportTrack for ImportTrack {
         if track
             .media_source
             .content_metadata_flags
-            .reset_stale(ContentMetadataFlags::UNRELIABLE)
+            .update(ContentMetadataFlags::UNRELIABLE)
         {
             let audio_content = AudioContent {
                 duration: Some(audio_track.duration().into()),
