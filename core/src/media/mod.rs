@@ -18,9 +18,42 @@ use crate::{
     prelude::*,
 };
 
+use num_derive::{FromPrimitive, ToPrimitive};
+
 ///////////////////////////////////////////////////////////////////////
 // Content
 ///////////////////////////////////////////////////////////////////////
+
+/// Reliability of content metadata.
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, FromPrimitive, ToPrimitive)]
+pub enum ContentMetadataStatus {
+    Unknown = 0,
+
+    /// Unreliable
+    ///
+    /// Example: Parsed from file tags which are considered inaccurate
+    /// and are often imprecise.
+    Unreliable = 1,
+
+    /// Reliable
+    ///
+    /// Example: Reported by a decoder when opening an audio/video
+    /// stream for reading. Nevertheless different decoders may report
+    /// slightly differing values.
+    Reliable = 2,
+
+    /// Confirmed, acknowledged, or manually set.
+    ///
+    /// Locked metadata will not be updated automatically, neither when
+    /// parsing file tags nor when decoding an audio/video stream.
+    Locked = 3,
+}
+
+impl Default for ContentMetadataStatus {
+    fn default() -> Self {
+        Self::Unknown
+    }
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Content {
@@ -148,6 +181,8 @@ pub struct Source {
     pub content_type: String,
 
     pub content_digest: Option<Vec<u8>>,
+
+    pub content_metadata_status: ContentMetadataStatus,
 
     pub content: Content,
 

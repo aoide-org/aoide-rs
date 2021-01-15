@@ -27,6 +27,45 @@ use std::convert::TryFrom;
 // Content
 ///////////////////////////////////////////////////////////////////////
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize_repr, Deserialize_repr, JsonSchema)]
+#[repr(u8)]
+pub enum ContentMetadataStatus {
+    Unknown = 0,
+    Unreliable = 1,
+    Reliable = 2,
+    Locked = 3,
+}
+
+impl From<_core::ContentMetadataStatus> for ContentMetadataStatus {
+    fn from(from: _core::ContentMetadataStatus) -> Self {
+        use _core::ContentMetadataStatus::*;
+        match from {
+            Unknown => Self::Unknown,
+            Unreliable => Self::Unreliable,
+            Reliable => Self::Reliable,
+            Locked => Self::Locked,
+        }
+    }
+}
+
+impl From<ContentMetadataStatus> for _core::ContentMetadataStatus {
+    fn from(from: ContentMetadataStatus) -> Self {
+        use ContentMetadataStatus::*;
+        match from {
+            Unknown => Self::Unknown,
+            Unreliable => Self::Unreliable,
+            Reliable => Self::Reliable,
+            Locked => Self::Locked,
+        }
+    }
+}
+
+impl Default for ContentMetadataStatus {
+    fn default() -> Self {
+        _core::ContentMetadataStatus::default().into()
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Digest(String);
 
@@ -211,6 +250,9 @@ pub struct Source {
     #[serde(skip_serializing_if = "Option::is_none")]
     content_digest: Option<Digest>,
 
+    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    content_metadata_status: ContentMetadataStatus,
+
     #[serde(flatten)]
     content: Content,
 
@@ -226,6 +268,7 @@ impl From<_core::Source> for Source {
             uri,
             content_type,
             content_digest,
+            content_metadata_status,
             content,
             artwork,
         } = from;
@@ -235,6 +278,7 @@ impl From<_core::Source> for Source {
             uri,
             content_type,
             content_digest: content_digest.as_ref().map(Into::into),
+            content_metadata_status: content_metadata_status.into(),
             content: content.into(),
             artwork: artwork.into(),
         }
@@ -249,6 +293,7 @@ impl From<Source> for _core::Source {
             uri,
             content_type,
             content_digest,
+            content_metadata_status,
             content,
             artwork,
         } = from;
@@ -261,6 +306,7 @@ impl From<Source> for _core::Source {
                 .as_ref()
                 .map(TryFrom::try_from)
                 .and_then(Result::ok),
+            content_metadata_status: content_metadata_status.into(),
             content: content.into(),
             artwork: artwork.into(),
         }

@@ -39,6 +39,7 @@ fn deserialize_audio_source() {
             content_digest: Digest::from_encoded("aGVsbG8gaW50ZXJuZXR-Cg")
                 .try_decode()
                 .ok(),
+            content_metadata_status: _core::ContentMetadataStatus::Unknown,
             content: _core::Content::Audio(Default::default()),
             artwork: Default::default(),
         },

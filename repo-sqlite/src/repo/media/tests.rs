@@ -27,7 +27,7 @@ use aoide_core::{
 
 use aoide_repo::collection::{EntityRepo as _, RecordId as CollectionId};
 
-use media::Artwork;
+use media::{Artwork, ContentMetadataStatus};
 
 struct Fixture {
     db: SqliteConnection,
@@ -69,6 +69,7 @@ fn insert_media_source() -> anyhow::Result<()> {
         uri: "file:///home/test/file.mp3".to_string(),
         content_type: "audio/mpeg".to_string(),
         content_digest: None,
+        content_metadata_status: ContentMetadataStatus::Unreliable,
         content: AudioContent {
             duration: Some(DurationMs(543.0)),
             ..Default::default()
@@ -107,6 +108,7 @@ fn filter_by_uri_predicate_case_sensitive() -> anyhow::Result<()> {
         uri: "file:///home/file.mp3".to_string(),
         content_type: "audio/mpeg".to_string(),
         content_digest: None,
+        content_metadata_status: ContentMetadataStatus::Unknown,
         content: AudioContent {
             duration: Some(DurationMs(1.0)),
             ..Default::default()
@@ -123,6 +125,7 @@ fn filter_by_uri_predicate_case_sensitive() -> anyhow::Result<()> {
         uri: "file:///Home/File.mp3".to_string(),
         content_type: "audio/mpeg".to_string(),
         content_digest: None,
+        content_metadata_status: ContentMetadataStatus::Reliable,
         content: AudioContent {
             duration: Some(DurationMs(1.0)),
             ..Default::default()

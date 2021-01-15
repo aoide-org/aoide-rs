@@ -34,7 +34,7 @@ use aoide_core::{
     },
     util::{clock::DateTimeInner, Canonical, CanonicalizeInto as _},
 };
-use mp4ameta::{atom::read_tag_from, Ident, STANDARD_GENRES};
+use mp4ameta::{atom::read_tag_from, STANDARD_GENRES};
 
 #[derive(Debug)]
 pub struct ImportTrack;
@@ -116,35 +116,32 @@ impl super::ImportTrack for ImportTrack {
             track.media_source.content
         );
 
-        // TODO: Remove debug logs
-        log::debug!("filetype = {}", mp4_tag.filetype().unwrap());
-        for ext_data_atom in mp4_tag.take_data(Ident(*b"----")) {
-            log::debug!("ext_data_atom = {:?}", ext_data_atom);
+        if track.media_source.content_metadata_status <= ContentMetadataStatus::Unreliable {
+            track.media_source.content_metadata_status = ContentMetadataStatus::Unreliable;
+            let audio_content = AudioContent {
+                duration: Some(audio_track.duration().into()),
+                sample_rate: Some(
+                    audio_track
+                        .sample_freq_index()
+                        .map(read_sample_rate)
+                        .map_err(anyhow::Error::from)?,
+                ),
+                bit_rate: read_bit_rate(audio_track.bitrate()),
+                channels: Some(
+                    audio_track
+                        .channel_config()
+                        .map(read_channels)
+                        .map_err(anyhow::Error::from)?,
+                ),
+                encoder: mp4_tag.take_encoder().map(|name| Encoder {
+                    name,
+                    settings: None,
+                }),
+                // TODO: Parse loudness from "----:com.apple.iTunes:replaygain_track_gain"
+                ..Default::default()
+            };
+            track.media_source.content = Content::Audio(audio_content);
         }
-
-        let audio_content = AudioContent {
-            duration: Some(audio_track.duration().into()),
-            sample_rate: Some(
-                audio_track
-                    .sample_freq_index()
-                    .map(read_sample_rate)
-                    .map_err(anyhow::Error::from)?,
-            ),
-            bit_rate: read_bit_rate(audio_track.bitrate()),
-            channels: Some(
-                audio_track
-                    .channel_config()
-                    .map(read_channels)
-                    .map_err(anyhow::Error::from)?,
-            ),
-            encoder: mp4_tag.take_encoder().map(|name| Encoder {
-                name,
-                settings: None,
-            }),
-            // TODO: Parse loudness from "----:com.apple.iTunes:replaygain_track_gain"
-            ..Default::default()
-        };
-        track.media_source.content = Content::Audio(audio_content);
 
         // Track titles
         let mut track_titles = Vec::with_capacity(3);

@@ -983,6 +983,24 @@ components:
       type: string
       format: base64url
       minLength: 1
+    ContentMetadataStatus:
+      type: integer
+      enum: [1, 2, 3]
+      description: |
+        * 1 = unreliable.
+        * 2 = reliable
+        * 3 = locked
+
+        Unreliable: Parsed from file tags which are considered inaccurate
+        and are often imprecise.
+
+        Reliable: Reported by a decoder when opening an audio/video
+        stream for reading. Nevertheless different decoders may report
+        slightly differing values.
+
+        Locked: Confirmed, acknowledged, or manually set. Locked metadata
+        will not be updated automatically, neither when parsing file tags
+        nor when decoding an audio/video stream.
     CueBankIndex:
       type: number
       format: int32
@@ -1213,6 +1231,8 @@ components:
           $ref: '#/components/schemas/MediaType'
         contentDigest:
           $ref: '#/components/schemas/ContentDigest'
+        contentMetadataStatus:
+          $ref: '#/components/schemas/ContentMetadataStatus'
         artwork:
           $ref: '#/components/schemas/Artwork'
       additionalProperties:
