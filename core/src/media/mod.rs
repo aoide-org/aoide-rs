@@ -28,9 +28,23 @@ bitflags! {
     /// A bitmask for controlling how and if content metadata is
     /// re-imported from the source.
     pub struct ContentMetadataFlags: u8 {
+        /// Example: Parsed from file tags which are considered inaccurate
+        /// and are often imprecise.
         const UNRELIABLE = 0b00000000;
+
+        /// Example: Reported by a decoder when opening an audio/video
+        /// stream for reading. Nevertheless different decoders may report
+        /// slightly differing values.
         const RELIABLE   = 0b00000001;
+
+        /// Locked metadata will not be updated automatically, neither when
+        /// parsing file tags nor when decoding an audio/video stream.
+        ///
+        /// While locked the stale flag is never set.
         const LOCKED     = 0b00000010;
+
+        /// Stale metadata should be re-imported depending on the other
+        /// flags.
         const STALE      = 0b00000100;
     }
 }
@@ -56,6 +70,15 @@ impl ContentMetadataFlags {
         self.intersects(Self::STALE)
     }
 
+    /// Reset the stale flag if given target bits are considered
+    /// more reliable than the current state.
+    ///
+    /// Otherwise the current state is preserved and instead the stale
+    /// flag is set.
+    ///
+    /// Metadata from a less reliable source SHALL NOT overwrite metadata
+    /// that is considered more reliable to prevent loss of accuracy and
+    /// precision.
     pub fn reset_stale(&mut self, target: Self) -> bool {
         debug_assert!(!target.is_stale());
         if (*self - Self::STALE) == target
@@ -65,7 +88,10 @@ impl ContentMetadataFlags {
             *self = target;
             true
         } else {
-            *self |= Self::STALE;
+            // Metadata does not get stale while locked
+            if !self.is_locked() {
+                *self |= Self::STALE;
+            }
             false
         }
     }

@@ -86,14 +86,16 @@ fn given_locked_reset_stale() {
             assert!(!flags.reset_stale(ContentMetadataFlags::UNRELIABLE));
             assert_eq!(
                 flags,
-                ContentMetadataFlags::LOCKED | *reliable_flag | ContentMetadataFlags::STALE
+                // The stale flag is not set, but the current stale flag is preserved
+                ContentMetadataFlags::LOCKED | *reliable_flag | *stale_flag
             );
 
             let mut flags = ContentMetadataFlags::LOCKED | *reliable_flag | *stale_flag;
             assert!(!flags.reset_stale(ContentMetadataFlags::RELIABLE));
             assert_eq!(
                 flags,
-                ContentMetadataFlags::LOCKED | *reliable_flag | ContentMetadataFlags::STALE
+                // The stale flag is not set, but the current stale flag is preserved
+                ContentMetadataFlags::LOCKED | *reliable_flag | *stale_flag
             );
 
             let mut flags = ContentMetadataFlags::LOCKED | *reliable_flag | *stale_flag;
