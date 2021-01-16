@@ -26,7 +26,7 @@ use aoide_core::entity::EntityUid;
 
 use futures::future::{join, FutureExt};
 use std::{collections::HashMap, env::current_exe, sync::Arc, time::Duration};
-use tokio::{sync::mpsc, sync::RwLock, time::delay_for};
+use tokio::{sync::mpsc, sync::RwLock, time::sleep};
 use warp::{http::StatusCode, Filter};
 
 ///////////////////////////////////////////////////////////////////////
@@ -658,7 +658,7 @@ pub async fn main() -> Result<(), Error> {
         // an ephemeral port. The delay might need to be tuned depending
         // on how long the startup actually takes. Unfortunately warp does
         // not provide any signal when the server has started listening.
-        delay_for(WEB_SERVER_LISTENING_DELAY).await;
+        sleep(WEB_SERVER_LISTENING_DELAY).await;
 
         // -> stderr
         log::info!("Listening on {}", socket_addr);

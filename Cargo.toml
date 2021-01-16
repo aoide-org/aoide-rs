@@ -24,6 +24,8 @@ aoide-core-serde = { path = "core-serde" }
 aoide-media = { path = "media" }
 aoide-repo = { path = "repo" }
 aoide-repo-sqlite = { path = "repo-sqlite" }
+warp= { branch = "master", git = "https://github.com/seanmonstar/warp.git" }
+#mp4ameta= { branch = "master", git = "https://github.com/Saecki/rust-mp4ameta.git" }
 
 [dependencies]
 aoide-core = "*"
@@ -44,7 +46,7 @@ semval = { version = ">= 0.1.7" }
 serde = "*"
 serde_json = "*"
 thiserror = "*"
-tokio = { version = "*", default-features = false, features = ["macros", "rt-threaded"] }
+tokio = { version = "1", default-features = false, features = ["macros", "rt-multi-thread"] }
 url = { version = "*", features = ["serde"] }
 warp = { version = "*", default-features = false }
 
