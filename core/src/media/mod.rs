@@ -28,11 +28,11 @@ bitflags! {
     /// A bitmask for controlling how and if content metadata is
     /// re-imported from the source.
     pub struct ContentMetadataFlags: u8 {
-        /// Example: Parsed from file tags which are considered inaccurate
+        /// Use case: Parsed from file tags which are considered inaccurate
         /// and are often imprecise.
         const UNRELIABLE = 0b00000000;
 
-        /// Example: Reported by a decoder when opening an audio/video
+        /// Use case: Reported by a decoder when opening an audio/video
         /// stream for reading. Nevertheless different decoders may report
         /// slightly differing values.
         const RELIABLE   = 0b00000001;
@@ -195,12 +195,17 @@ pub struct Artwork {
 impl Artwork {
     pub fn is_empty(&self) -> bool {
         let Self {
+            uri,
+            media_type,
             digest,
             size,
             color_rgb,
-            ..
         } = self;
-        digest.is_none() && size.is_none() && color_rgb.is_none()
+        uri.is_none()
+            && media_type.is_none()
+            && digest.is_none()
+            && size.is_none()
+            && color_rgb.is_none()
     }
 }
 
