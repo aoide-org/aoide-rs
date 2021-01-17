@@ -17,7 +17,7 @@
 
 use super::*;
 
-use crate::util::{import_faceted_tags, push_next_actor_role_name};
+use crate::util::{import_faceted_tags, parse_key_signature, push_next_actor_role_name};
 
 use std::io::SeekFrom;
 
@@ -29,6 +29,7 @@ use aoide_core::{
         AudioContent, Encoder,
     },
     media::ContentMetadataFlags,
+    music::time::{Beats, TempoBpm},
     track::{
         actor::ActorRole,
         album::AlbumKind,
@@ -38,7 +39,8 @@ use aoide_core::{
     util::{clock::DateTimeInner, Canonical, CanonicalizeInto as _},
 };
 use mp4ameta::{atom::read_tag_from, FreeformIdent, STANDARD_GENRES};
-use util::parse_replay_gain;
+use semval::IsValid as _;
+use util::{parse_replay_gain, parse_tempo_bpm};
 
 #[derive(Debug)]
 pub struct ImportTrack;
@@ -161,6 +163,29 @@ impl super::ImportTrack for ImportTrack {
                 loudness,
             };
             track.media_source.content = Content::Audio(audio_content);
+        }
+
+        let tempo_bpm = mp4_tag
+            .string(&FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "BPM"))
+            .flat_map(parse_tempo_bpm)
+            .next()
+            .or_else(|| mp4_tag.bpm().map(|bpm| TempoBpm(Beats::from(bpm))));
+        if let Some(tempo_bpm) = tempo_bpm {
+            debug_assert!(tempo_bpm.is_valid());
+            track.metrics.tempo_bpm = Some(tempo_bpm);
+        }
+
+        let key_signature = mp4_tag
+            .string(&FreeformIdent::new(
+                COM_APPLE_ITUNES_FREEFORM_MEAN,
+                "initialkey",
+            ))
+            // alternative name (conforms to Rapid Evolution)
+            .chain(mp4_tag.string(&FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "KEY")))
+            .flat_map(parse_key_signature)
+            .next();
+        if let Some(key_signature) = key_signature {
+            track.metrics.key_signature = key_signature;
         }
 
         // Track titles

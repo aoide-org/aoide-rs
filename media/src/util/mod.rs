@@ -15,10 +15,16 @@
 
 ///////////////////////////////////////////////////////////////////////
 
+use std::unreachable;
+
 use super::TagMappingConfig;
 
 use aoide_core::{
     audio::signal::LoudnessLufs,
+    music::{
+        key::{KeyCodeValue, KeyMode, KeySignature, LancelotKeySignature, OpenKeySignature},
+        time::TempoBpm,
+    },
     tag::{
         Facet as TagFacet, Label as TagLabel, LabelValue, PlainTag, Score as TagScore, ScoreValue,
         TagsMap,
@@ -27,11 +33,10 @@ use aoide_core::{
 };
 
 use nom::{
-    bytes::complete::{tag, tag_no_case},
-    character::complete::multispace0,
-    multi::many_m_n,
+    bytes::complete::tag_no_case,
+    character::complete::{digit1, one_of, space0},
     number::complete::double,
-    sequence::tuple,
+    sequence::{preceded, separated_pair, terminated},
     IResult,
 };
 use semval::IsValid;
@@ -136,30 +141,146 @@ fn db2lufs(relative_gain_db: f64) -> LoudnessLufs {
     LoudnessLufs(EBU_R128_REFERENCE_LUFS - relative_gain_db)
 }
 
-fn parse_replay_gain_ratio_db(input: &str) -> IResult<&str, f64> {
-    let (input, (_, ratio, _, _, _)) = tuple((
-        multispace0,
-        double,
-        multispace0,
-        tag_no_case("dB"),
-        multispace0,
-    ))(input)?;
-    Ok((input, ratio))
+fn parse_replay_gain_db(input: &str) -> IResult<&str, f64> {
+    let mut parser = separated_pair(
+        preceded(space0, double),
+        space0,
+        terminated(tag_no_case("dB"), space0),
+    );
+    let (input, (replay_gain_db, _)) = parser(input)?;
+    Ok((input, replay_gain_db))
 }
 
 pub fn parse_replay_gain(input: &str) -> Option<LoudnessLufs> {
-    match parse_replay_gain_ratio_db(input) {
-        Ok((input, relative_gain_db)) => {
-            if !input.is_empty() {
-                log::info!("Unparsed replay gain input: {}", input);
+    match parse_replay_gain_db(input) {
+        Ok((remainder, relative_gain_db)) => {
+            if !remainder.is_empty() {
+                log::warn!(
+                    "Unexpected remainder '{}' after parsing replay gain input '{}'",
+                    remainder,
+                    input
+                );
             }
-            Some(db2lufs(relative_gain_db))
+            let loudness_lufs = db2lufs(relative_gain_db);
+            if !loudness_lufs.is_valid() {
+                log::warn!(
+                    "Invalid loudness parsed from replay gain input '{}': {}",
+                    input,
+                    loudness_lufs
+                );
+                return None;
+            }
+            log::debug!(
+                "Parsed loudness from replay gain input '{}': {}",
+                input,
+                loudness_lufs
+            );
+            Some(loudness_lufs)
         }
         Err(err) => {
-            log::warn!("Failed to parse replay gain from '{}': {}", input, err);
+            log::warn!(
+                "Failed to parse replay gain (dB) from input '{}': {}",
+                input,
+                err
+            );
             None
         }
     }
+}
+
+pub fn parse_tempo_bpm(input: &str) -> Option<TempoBpm> {
+    match input.parse() {
+        Ok(bpm) => {
+            let tempo_bpm = TempoBpm(bpm);
+            if !tempo_bpm.is_valid() {
+                log::warn!("Invalid tempo parsed from input '{}': {}", input, tempo_bpm);
+                return None;
+            }
+            log::debug!("Parsed tempo from input '{}': {}", input, tempo_bpm);
+            Some(tempo_bpm)
+        }
+        Err(err) => {
+            log::warn!(
+                "Failed to parse tempo (BPM) from input '{}': {}",
+                input,
+                err
+            );
+            None
+        }
+    }
+}
+
+pub fn parse_key_signature(input: &str) -> Option<KeySignature> {
+    let mut parser = separated_pair(
+        preceded(space0, digit1),
+        space0,
+        terminated(one_of("dmAB"), space0),
+    );
+    let res: IResult<_, (_, _)> = parser(input);
+    if let Ok((remainder, (code_input, mode_input))) = res {
+        if !remainder.is_empty() {
+            log::warn!(
+                "Unexpected remainder '{}' after parsing key signature '{}'",
+                remainder,
+                input
+            );
+        }
+        if let Ok(key_code) = code_input.parse::<KeyCodeValue>() {
+            match mode_input {
+                mode_input @ 'd' | mode_input @ 'm' => {
+                    // Open Key
+                    if key_code >= OpenKeySignature::min_code()
+                        && key_code <= OpenKeySignature::max_code()
+                    {
+                        let key_mode = if mode_input == 'd' {
+                            KeyMode::Major
+                        } else {
+                            KeyMode::Minor
+                        };
+                        let key_signature = OpenKeySignature::new(key_code, key_mode);
+                        log::debug!(
+                            "Parsed key signature from input '{}': {}",
+                            input,
+                            key_signature
+                        );
+                        return Some(key_signature.into());
+                    }
+                }
+                mode_input @ 'A' | mode_input @ 'B' => {
+                    // Lancelot
+                    if key_code >= LancelotKeySignature::min_code()
+                        && key_code <= LancelotKeySignature::max_code()
+                    {
+                        let key_mode = if mode_input == 'A' {
+                            KeyMode::Minor
+                        } else {
+                            KeyMode::Major
+                        };
+                        let key_signature = LancelotKeySignature::new(key_code, key_mode);
+                        log::debug!(
+                            "Parsed key signature from input '{}': {}",
+                            input,
+                            key_signature
+                        );
+                        return Some(key_signature.into());
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
+    if let Ok(key_code) = input.parse::<KeyCodeValue>() {
+        // Fallback: Raw key code
+        let key_signature = KeySignature::new(key_code.into());
+        log::debug!(
+            "Parsed key signature from input '{}': {}",
+            input,
+            key_signature
+        );
+        return Some(key_signature);
+    }
+    log::warn!("Failed to parse key signature from input '{}'", input);
+    None
 }
 
 ///////////////////////////////////////////////////////////////////////
