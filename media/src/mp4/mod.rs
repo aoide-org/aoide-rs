@@ -17,11 +17,11 @@
 
 use super::*;
 
-use crate::util::{import_faceted_tags, parse_key_signature, push_next_actor_role_name};
+use crate::util::{
+    import_faceted_tags, parse_key_signature, parse_replay_gain, parse_tempo_bpm, parse_year_tag,
+    push_next_actor_role_name,
+};
 
-use std::io::SeekFrom;
-
-use ::mp4::{ChannelConfig, MediaType, Mp4Reader, SampleFreqIndex, TrackType};
 use aoide_core::{
     audio::{
         channel::{ChannelCount, ChannelLayout, Channels},
@@ -37,12 +37,15 @@ use aoide_core::{
         tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE, FACET_MOOD},
         title::{Title, TitleKind},
     },
-    util::{clock::DateTimeInner, Canonical, CanonicalizeInto as _},
+    util::{Canonical, CanonicalizeInto as _},
 };
+
 use aoide_core_serde::tag::Tags as SerdeTags;
+
+use ::mp4::{ChannelConfig, MediaType, Mp4Reader, SampleFreqIndex, TrackType};
 use mp4ameta::{atom::read_tag_from, Data, FreeformIdent, STANDARD_GENRES};
 use semval::IsValid as _;
-use util::{parse_replay_gain, parse_tempo_bpm};
+use std::io::SeekFrom;
 
 #[derive(Debug)]
 pub struct ImportTrack;
@@ -94,16 +97,12 @@ const ORG_MIXXX_DJ_FREEFORM_MEAN: &str = "org.mixxx.dj";
 impl super::ImportTrack for ImportTrack {
     fn import_track(
         &self,
-        url: &Url,
-        mime: &Mime,
         config: &ImportTrackConfig,
         options: ImportTrackOptions,
-        input: NewTrackInput,
+        mut track: Track,
         reader: &mut Box<dyn Reader>,
         size: u64,
     ) -> Result<Track> {
-        let mut track = input.try_from_url_into_new_track(url, mime)?;
-
         // Extract metadata with mp4ameta
         let mut mp4_tag = read_tag_from(reader).map_err(anyhow::Error::from)?;
 
@@ -122,10 +121,6 @@ impl super::ImportTrack for ImportTrack {
             return Err(Error::Other(anyhow!("No audio track found")));
         };
         debug_assert_eq!(Some(MediaType::AAC), audio_track.media_type().ok());
-        debug_assert_eq!(
-            Content::Audio(Default::default()),
-            track.media_source.content
-        );
 
         if track
             .media_source
@@ -192,7 +187,7 @@ impl super::ImportTrack for ImportTrack {
         }
 
         // Track titles
-        let mut track_titles = Vec::with_capacity(3);
+        let mut track_titles = Vec::with_capacity(4);
         if let Some(name) = mp4_tag.take_title() {
             let title = Title {
                 name,
@@ -214,11 +209,26 @@ impl super::ImportTrack for ImportTrack {
             };
             track_titles.push(title);
         }
-        debug_assert!(track.titles.is_empty());
-        track.titles = Canonical::tie(track_titles.canonicalize_into());
+        if let Some(name) = mp4_tag
+            .take_string(&FreeformIdent::new(
+                COM_APPLE_ITUNES_FREEFORM_MEAN,
+                "SUBTITLE",
+            ))
+            .next()
+        {
+            let title = Title {
+                name,
+                kind: TitleKind::Sub,
+            };
+            track_titles.push(title);
+        }
+        let track_titles = track_titles.canonicalize_into();
+        if !track_titles.is_empty() {
+            track.titles = Canonical::tie(track_titles.canonicalize_into());
+        }
 
         // Track actors
-        let mut track_actors = Vec::with_capacity(4);
+        let mut track_actors = Vec::with_capacity(8);
         for name in mp4_tag.take_artists() {
             push_next_actor_role_name(&mut track_actors, ActorRole::Artist, name);
         }
@@ -231,8 +241,22 @@ impl super::ImportTrack for ImportTrack {
         )) {
             push_next_actor_role_name(&mut track_actors, ActorRole::Remixer, name);
         }
-        debug_assert!(track.actors.is_empty());
-        track.actors = Canonical::tie(track_actors.canonicalize_into());
+        for name in mp4_tag.take_string(&FreeformIdent::new(
+            COM_APPLE_ITUNES_FREEFORM_MEAN,
+            "LYRICIST",
+        )) {
+            push_next_actor_role_name(&mut track_actors, ActorRole::Lyricist, name);
+        }
+        for name in mp4_tag.take_string(&FreeformIdent::new(
+            COM_APPLE_ITUNES_FREEFORM_MEAN,
+            "CONDUCTOR",
+        )) {
+            push_next_actor_role_name(&mut track_actors, ActorRole::Conductor, name);
+        }
+        let track_actors = track_actors.canonicalize_into();
+        if !track_actors.is_empty() {
+            track.actors = Canonical::tie(track_actors);
+        }
 
         let mut album = track.album.untie();
 
@@ -245,20 +269,23 @@ impl super::ImportTrack for ImportTrack {
             };
             album_titles.push(title);
         }
-        debug_assert!(album.titles.is_empty());
-        album.titles = Canonical::tie(album_titles.canonicalize_into());
+        let album_titles = album_titles.canonicalize_into();
+        if !album_titles.is_empty() {
+            album.titles = Canonical::tie(album_titles);
+        }
 
         // Album actors
         let mut album_actors = Vec::with_capacity(4);
         for name in mp4_tag.take_album_artists() {
             push_next_actor_role_name(&mut album_actors, ActorRole::Artist, name);
         }
-        debug_assert!(album.actors.is_empty());
-        album.actors = Canonical::tie(album_actors.canonicalize_into());
+        let album_actors = album_actors.canonicalize_into();
+        if !album_actors.is_empty() {
+            album.actors = Canonical::tie(album_actors);
+        }
 
         // Album properties
         if mp4_tag.compilation() {
-            debug_assert_eq!(album.kind, AlbumKind::Unknown);
             album.kind = AlbumKind::Compilation;
         }
 
@@ -266,15 +293,13 @@ impl super::ImportTrack for ImportTrack {
 
         // Release properties
         if let Some(year) = mp4_tag.year() {
-            debug_assert!(track.release.released_at.is_none());
-            if let Ok(released_at) = year.parse::<DateTimeInner>() {
-                track.release.released_at = Some(DateTime::from(released_at).into());
-            } else {
-                log::warn!("Release date not recognized: {}", year);
+            if let Some(released_at) = parse_year_tag(year) {
+                track.release.released_at = Some(released_at);
             }
         }
-        debug_assert!(track.release.copyright.is_none());
-        track.release.copyright = mp4_tag.take_copyright();
+        if let Some(copyright) = mp4_tag.take_copyright() {
+            track.release.copyright = Some(copyright);
+        }
         if let Some(label) = mp4_tag
             .take_string(&FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "LABEL"))
             .next()
@@ -399,19 +424,19 @@ impl super::ImportTrack for ImportTrack {
         debug_assert!(track.tags.is_empty());
         track.tags = Canonical::tie(tags_map.into());
 
-        // Indexes
-        debug_assert!(track.indexes.track.number.is_none());
-        track.indexes.track.number = mp4_tag.track_number();
-        debug_assert!(track.indexes.track.total.is_none());
-        track.indexes.track.total = mp4_tag.total_tracks();
-        debug_assert!(track.indexes.disc.number.is_none());
-        track.indexes.disc.number = mp4_tag.disc_number();
-        debug_assert!(track.indexes.disc.total.is_none());
-        track.indexes.disc.total = mp4_tag.total_discs();
-        debug_assert!(track.indexes.movement.number.is_none());
-        track.indexes.movement.number = mp4_tag.movement_index();
-        debug_assert!(track.indexes.movement.total.is_none());
-        track.indexes.movement.total = mp4_tag.movement_count();
+        // Indexes (in pairs)
+        if mp4_tag.track_number().is_some() || mp4_tag.total_tracks().is_some() {
+            track.indexes.track.number = mp4_tag.track_number();
+            track.indexes.track.total = mp4_tag.total_tracks();
+        }
+        if mp4_tag.disc_number().is_some() || mp4_tag.total_discs().is_some() {
+            track.indexes.disc.number = mp4_tag.disc_number();
+            track.indexes.disc.total = mp4_tag.total_discs();
+        }
+        if mp4_tag.movement_index().is_some() || mp4_tag.movement_count().is_some() {
+            track.indexes.movement.number = mp4_tag.movement_index();
+            track.indexes.movement.total = mp4_tag.movement_count();
+        }
 
         Ok(track)
     }

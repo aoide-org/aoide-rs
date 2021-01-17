@@ -50,7 +50,7 @@ pub enum Error {
     UnknownContentType,
 
     #[error("unsupported content type")]
-    UnsupportedContentType,
+    UnsupportedContentType(Mime),
 
     #[error("unsupported import options")]
     UnsupportedImportOptions,
@@ -105,7 +105,7 @@ pub fn guess_mime_from_url(url: &Url) -> Result<Mime> {
     mime_guess
         .into_iter()
         .find(|mime| mime.type_() == mime::AUDIO)
-        .ok_or(Error::UnsupportedContentType)
+        .ok_or(Error::UnknownContentType)
 }
 
 impl NewTrackInput {
@@ -128,18 +128,6 @@ impl NewTrackInput {
     }
 }
 
-pub fn import_track_default(
-    url: &Url,
-    mime: &Mime,
-    input: NewTrackInput,
-    options: ImportTrackOptions,
-) -> Result<Track> {
-    if !options.is_empty() {
-        return Err(Error::UnsupportedImportOptions);
-    }
-    input.try_from_url_into_new_track(url, mime)
-}
-
 pub trait Reader: Read + Seek + 'static {}
 
 impl<T> Reader for T where T: Read + Seek + 'static {}
@@ -147,16 +135,12 @@ impl<T> Reader for T where T: Read + Seek + 'static {}
 pub trait ImportTrack {
     fn import_track(
         &self,
-        url: &Url,
-        mime: &Mime,
         _config: &ImportTrackConfig,
         options: ImportTrackOptions,
-        input: NewTrackInput,
+        track: Track,
         _reader: &mut Box<dyn Reader>,
         _size: u64,
-    ) -> Result<Track> {
-        import_track_default(url, mime, input, options)
-    }
+    ) -> Result<Track>;
 }
 
 pub fn open_local_file_url_for_reading(url: &Url) -> Result<File> {

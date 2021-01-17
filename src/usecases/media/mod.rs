@@ -28,11 +28,6 @@ use url::Url;
 
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
-pub struct DummyImportTrack;
-
-impl ImportTrack for DummyImportTrack {}
-
 pub fn import_track_from_url(
     url: &Url,
     config: &ImportTrackConfig,
@@ -55,25 +50,10 @@ pub fn import_track_from_url(
     };
     let mut reader: Box<dyn Reader> = Box::new(BufReader::new(file));
     let file_size = file_metadata.len();
+    let track = input.try_from_url_into_new_track(url, &mime)?;
     if mime == "audio/m4a" {
-        Ok(mp4::ImportTrack.import_track(
-            url,
-            &mime,
-            config,
-            options,
-            input,
-            &mut reader,
-            file_size,
-        )?)
+        Ok(mp4::ImportTrack.import_track(config, options, track, &mut reader, file_size)?)
     } else {
-        Ok(DummyImportTrack.import_track(
-            url,
-            &mime,
-            config,
-            options,
-            input,
-            &mut reader,
-            file_size,
-        )?)
+        return Err(Error::Media(MediaError::UnsupportedContentType(mime)));
     }
 }
