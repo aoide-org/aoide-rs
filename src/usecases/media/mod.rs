@@ -21,7 +21,7 @@ use aoide_core::{track::Track, util::clock::DateTime};
 
 use aoide_media::{
     guess_mime_from_url, mp4, open_local_file_url_for_reading, ImportTrack, ImportTrackConfig,
-    ImportTrackInput, ImportTrackOptions, Reader,
+    ImportTrackOptions, NewTrackInput, Reader,
 };
 
 use url::Url;
@@ -49,7 +49,7 @@ pub fn import_track_from_url(
             log::debug!("Using current time instead of inaccessible last modification time");
             DateTime::now_utc()
         });
-    let input = ImportTrackInput {
+    let input = NewTrackInput {
         collected_at,
         synchronized_at,
     };

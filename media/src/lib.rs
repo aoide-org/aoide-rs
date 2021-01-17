@@ -18,22 +18,17 @@
 #![deny(missing_debug_implementations)]
 #![deny(rust_2018_idioms)]
 
+pub mod util;
+
 use aoide_core::{
     media::{Content, Source},
-    tag::{
-        Facet as TagFacet, FacetValue, Label as TagLabel, LabelValue, PlainTag, Score as TagScore,
-        ScoreValue, TagsMap,
-    },
-    track::{
-        actor::{Actor, ActorKind, ActorRole},
-        Track,
-    },
+    tag::{FacetValue, LabelValue, Score as TagScore, ScoreValue, TagsMap},
+    track::Track,
     util::clock::DateTime,
 };
 
 use anyhow::anyhow;
 use bitflags::bitflags;
-use semval::IsValid;
 use std::{
     collections::HashMap,
     fs::File,
@@ -97,7 +92,7 @@ pub struct ImportTrackConfig {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct ImportTrackInput {
+pub struct NewTrackInput {
     pub collected_at: DateTime,
     pub synchronized_at: DateTime,
 }
@@ -113,7 +108,7 @@ pub fn guess_mime_from_url(url: &Url) -> Result<Mime> {
         .ok_or(Error::UnsupportedContentType)
 }
 
-impl ImportTrackInput {
+impl NewTrackInput {
     pub fn try_from_url_into_new_track(self, url: &Url, mime: &Mime) -> Result<Track> {
         let Self {
             collected_at,
@@ -136,7 +131,7 @@ impl ImportTrackInput {
 pub fn import_track_default(
     url: &Url,
     mime: &Mime,
-    input: ImportTrackInput,
+    input: NewTrackInput,
     options: ImportTrackOptions,
 ) -> Result<Track> {
     if !options.is_empty() {
@@ -156,7 +151,7 @@ pub trait ImportTrack {
         mime: &Mime,
         _config: &ImportTrackConfig,
         options: ImportTrackOptions,
-        input: ImportTrackInput,
+        input: NewTrackInput,
         _reader: &mut Box<dyn Reader>,
         _size: u64,
     ) -> Result<Track> {
@@ -238,78 +233,6 @@ impl DerefMut for FacetedTagMappingConfig {
         let Self(inner) = self;
         inner
     }
-}
-
-fn try_import_plain_tag(
-    label_value: impl Into<LabelValue>,
-    score_value: impl Into<ScoreValue>,
-) -> StdResult<PlainTag, PlainTag> {
-    let label = TagLabel::clamp_from(label_value);
-    let score = TagScore::clamp_from(score_value);
-    let plain_tag = PlainTag {
-        label: Some(label),
-        score,
-    };
-    if plain_tag.is_valid() {
-        Ok(plain_tag)
-    } else {
-        Err(plain_tag)
-    }
-}
-
-fn import_faceted_tags(
-    tags_map: &mut TagsMap,
-    next_score_value: &mut ScoreValue,
-    facet: &TagFacet,
-    tag_mapping_config: Option<&TagMappingConfig>,
-    label_value: impl Into<LabelValue>,
-) -> usize {
-    let mut import_count = 0;
-    let label_value = label_value.into();
-    if let Some(tag_mapping_config) = tag_mapping_config {
-        if !tag_mapping_config.label_separator.is_empty() {
-            for (_, split_label_value) in
-                label_value.match_indices(&tag_mapping_config.label_separator)
-            {
-                match try_import_plain_tag(split_label_value, *next_score_value) {
-                    Ok(plain_tag) => {
-                        tags_map.insert(facet.to_owned().into(), plain_tag);
-                        import_count += 1;
-                        *next_score_value = tag_mapping_config.next_score_value(*next_score_value);
-                    }
-                    Err(plain_tag) => {
-                        log::warn!("Failed to import faceted '{}' tag: {:?}", facet, plain_tag,);
-                    }
-                }
-            }
-        }
-    }
-    if import_count == 0 {
-        match try_import_plain_tag(label_value, *next_score_value) {
-            Ok(plain_tag) => {
-                tags_map.insert(facet.to_owned().into(), plain_tag);
-                import_count += 1;
-                if let Some(tag_mapping_config) = tag_mapping_config {
-                    *next_score_value = tag_mapping_config.next_score_value(*next_score_value);
-                }
-            }
-            Err(plain_tag) => {
-                log::warn!("Failed to import faceted '{}' tag: {:?}", facet, plain_tag,);
-            }
-        }
-    }
-    import_count
-}
-
-fn adjust_last_actor_kind(actors: &mut [Actor], role: ActorRole) -> ActorKind {
-    if let Some(last_actor) = actors.last_mut() {
-        if last_actor.role == role {
-            // ActorKind::Summary is only allowed once for each role
-            last_actor.kind = ActorKind::Primary;
-            return ActorKind::Primary;
-        }
-    }
-    ActorKind::Summary
 }
 
 #[cfg(feature = "feature-flac")]

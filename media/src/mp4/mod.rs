@@ -17,6 +17,8 @@
 
 use super::*;
 
+use crate::util::{import_faceted_tags, push_next_actor_role_name};
+
 use std::io::SeekFrom;
 
 use ::mp4::{ChannelConfig, MediaType, Mp4Reader, SampleFreqIndex, TrackType};
@@ -28,14 +30,15 @@ use aoide_core::{
     },
     media::ContentMetadataFlags,
     track::{
-        actor::{Actor, ActorKind, ActorRole},
+        actor::ActorRole,
         album::AlbumKind,
         tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE},
         title::{Title, TitleKind},
     },
     util::{clock::DateTimeInner, Canonical, CanonicalizeInto as _},
 };
-use mp4ameta::{atom::read_tag_from, STANDARD_GENRES};
+use mp4ameta::{atom::read_tag_from, FreeformIdent, STANDARD_GENRES};
+use util::parse_replay_gain;
 
 #[derive(Debug)]
 pub struct ImportTrack;
@@ -81,6 +84,8 @@ fn read_channels(channel_config: ChannelConfig) -> Channels {
     }
 }
 
+const COM_APPLE_ITUNES_FREEFORM_MEAN: &str = "com.apple.iTunes";
+
 impl super::ImportTrack for ImportTrack {
     fn import_track(
         &self,
@@ -88,7 +93,7 @@ impl super::ImportTrack for ImportTrack {
         mime: &Mime,
         config: &ImportTrackConfig,
         options: ImportTrackOptions,
-        input: ImportTrackInput,
+        input: NewTrackInput,
         reader: &mut Box<dyn Reader>,
         size: u64,
     ) -> Result<Track> {
@@ -122,27 +127,38 @@ impl super::ImportTrack for ImportTrack {
             .content_metadata_flags
             .update(ContentMetadataFlags::UNRELIABLE)
         {
+            let duration = Some(audio_track.duration().into());
+            let channels = Some(
+                audio_track
+                    .channel_config()
+                    .map(read_channels)
+                    .map_err(anyhow::Error::from)?,
+            );
+            let sample_rate = Some(
+                audio_track
+                    .sample_freq_index()
+                    .map(read_sample_rate)
+                    .map_err(anyhow::Error::from)?,
+            );
+            let bit_rate = read_bit_rate(audio_track.bitrate());
+            let loudness = mp4_tag
+                .string(&FreeformIdent::new(
+                    COM_APPLE_ITUNES_FREEFORM_MEAN,
+                    "replaygain_track_gain",
+                ))
+                .next()
+                .and_then(parse_replay_gain);
+            let encoder = mp4_tag.take_encoder().map(|name| Encoder {
+                name,
+                settings: None,
+            });
             let audio_content = AudioContent {
-                duration: Some(audio_track.duration().into()),
-                sample_rate: Some(
-                    audio_track
-                        .sample_freq_index()
-                        .map(read_sample_rate)
-                        .map_err(anyhow::Error::from)?,
-                ),
-                bit_rate: read_bit_rate(audio_track.bitrate()),
-                channels: Some(
-                    audio_track
-                        .channel_config()
-                        .map(read_channels)
-                        .map_err(anyhow::Error::from)?,
-                ),
-                encoder: mp4_tag.take_encoder().map(|name| Encoder {
-                    name,
-                    settings: None,
-                }),
-                // TODO: Parse loudness from "----:com.apple.iTunes:replaygain_track_gain"
-                ..Default::default()
+                duration,
+                channels,
+                sample_rate,
+                bit_rate,
+                encoder,
+                loudness,
             };
             track.media_source.content = Content::Audio(audio_content);
         }
@@ -176,26 +192,10 @@ impl super::ImportTrack for ImportTrack {
         // Track actors
         let mut track_actors = Vec::with_capacity(4);
         for name in mp4_tag.take_artists() {
-            let role = ActorRole::Artist;
-            let kind = adjust_last_actor_kind(&mut track_actors, role);
-            let actor = Actor {
-                name,
-                kind,
-                role,
-                role_notes: None,
-            };
-            track_actors.push(actor);
+            push_next_actor_role_name(&mut track_actors, ActorRole::Artist, name);
         }
         for name in mp4_tag.take_composers() {
-            let role = ActorRole::Composer;
-            let kind = adjust_last_actor_kind(&mut track_actors, role);
-            let actor = Actor {
-                name,
-                kind,
-                role,
-                role_notes: None,
-            };
-            track_actors.push(actor);
+            push_next_actor_role_name(&mut track_actors, ActorRole::Composer, name);
         }
         debug_assert!(track.actors.is_empty());
         track.actors = Canonical::tie(track_actors.canonicalize_into());
@@ -216,25 +216,8 @@ impl super::ImportTrack for ImportTrack {
 
         // Album actors
         let mut album_actors = Vec::with_capacity(4);
-        if mp4_tag.album_artists().count() > 1 {
-            for name in mp4_tag.take_album_artists() {
-                let actor = Actor {
-                    name,
-                    kind: ActorKind::Primary,
-                    role: ActorRole::Artist,
-                    role_notes: None,
-                };
-                album_actors.push(actor);
-            }
-        } else if let Some(name) = mp4_tag.take_album_artist() {
-            debug_assert!(mp4_tag.take_album_artist().is_none());
-            let actor = Actor {
-                name,
-                kind: ActorKind::Summary,
-                role: ActorRole::Artist,
-                role_notes: None,
-            };
-            album_actors.push(actor);
+        for name in mp4_tag.take_album_artists() {
+            push_next_actor_role_name(&mut album_actors, ActorRole::Artist, name);
         }
         debug_assert!(album.actors.is_empty());
         album.actors = Canonical::tie(album_actors.canonicalize_into());
