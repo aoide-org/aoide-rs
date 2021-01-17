@@ -846,6 +846,14 @@ impl TagsMap {
                 FacetedTags { facet, tags }
             })
     }
+
+    pub fn remove_faceted_tags(&mut self, facet: &Facet) -> usize {
+        let Self(all_tags) = self;
+        all_tags
+            .remove(facet.value().as_str())
+            .map(|tags| tags.len())
+            .unwrap_or(0)
+    }
 }
 
 impl From<Tags> for TagsMap {

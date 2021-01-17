@@ -44,3 +44,42 @@ fn parse_replay_gain_invalid() {
     assert!(parse_replay_gain("+ 0.178062 dB").is_none());
     assert!(parse_replay_gain("+0.178062").is_none());
 }
+
+#[test]
+fn parse_year_tag_valid() {
+    assert_eq!(
+        Some(DateYYYYMMDD::new(19780000).into()),
+        parse_year_tag(" 1978 ")
+    );
+    assert_eq!(
+        Some(DateYYYYMMDD::new(20041200).into()),
+        parse_year_tag(" 200412 ")
+    );
+    assert_eq!(
+        Some(DateYYYYMMDD::new(20010900).into()),
+        parse_year_tag(" 2001 - 9 ")
+    );
+    assert_eq!(
+        Some(DateYYYYMMDD::new(19990702).into()),
+        parse_year_tag(" 1999 - 7 - 2 ")
+    );
+    assert_eq!(
+        Some(DateYYYYMMDD::new(19991231).into()),
+        parse_year_tag(" 1999 - 12 - 31 ")
+    );
+    assert_eq!(
+        Some(DateYYYYMMDD::new(20200229).into()),
+        parse_year_tag(" 20200229 ")
+    );
+    assert_eq!(
+        "2009-09-18T07:00:00Z".to_string(),
+        parse_year_tag(" 2009-09-18T07:00:00Z ")
+            .unwrap()
+            .to_string()
+    );
+    // No time zone offset
+    assert_eq!(
+        "2009-09-18T07:00:00Z".to_string(),
+        parse_year_tag(" 2009-09-18T07:00:00 ").unwrap().to_string()
+    );
+}

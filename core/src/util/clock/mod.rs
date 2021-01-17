@@ -19,7 +19,7 @@ use chrono::{
     Datelike, Duration, FixedOffset, Local, NaiveDate, NaiveDateTime, ParseError, SecondsFormat,
     TimeZone, Utc,
 };
-use std::{str::FromStr, time::SystemTime};
+use std::{fmt, str::FromStr, time::SystemTime};
 
 pub type DateTimeInner = chrono::DateTime<FixedOffset>;
 
@@ -125,9 +125,13 @@ impl FromStr for DateTime {
     }
 }
 
-impl ToString for DateTime {
-    fn to_string(&self) -> String {
-        self.to_inner().to_rfc3339_opts(SecondsFormat::AutoSi, true)
+impl fmt::Display for DateTime {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.to_inner().to_rfc3339_opts(SecondsFormat::AutoSi, true)
+        )
     }
 }
 
@@ -263,6 +267,27 @@ impl From<NaiveDate> for DateYYYYMMDD {
 impl From<NaiveDateTime> for DateYYYYMMDD {
     fn from(from: NaiveDateTime) -> Self {
         from.date().into()
+    }
+}
+
+impl fmt::Display for DateYYYYMMDD {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.is_year() {
+            return write!(f, "{:04}", self.year());
+        }
+        if let Some(date) = NaiveDate::from_ymd_opt(
+            self.year().into(),
+            self.month() as u32,
+            self.day_of_month() as u32,
+        ) {
+            return write!(f, "{}", date.format("%Y-%m-%d"));
+        }
+        if self.day_of_month() == 0 {
+            return write!(f, "{:04}-{:02}", self.year(), self.month());
+        }
+        // Fallback
+        let Self(inner) = self;
+        write!(f, "{:08}", inner)
     }
 }
 

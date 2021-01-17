@@ -15,6 +15,8 @@
 
 use crate::prelude::*;
 
+use std::fmt;
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum DateOrDateTime {
     Date(DateYYYYMMDD),
@@ -38,6 +40,15 @@ impl From<DateOrDateTime> for DateYYYYMMDD {
         match from {
             DateOrDateTime::Date(date) => date,
             DateOrDateTime::DateTime(dt) => dt.into(),
+        }
+    }
+}
+
+impl fmt::Display for DateOrDateTime {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Date(date) => write!(f, "{}", date),
+            Self::DateTime(datetime) => write!(f, "{}", datetime),
         }
     }
 }

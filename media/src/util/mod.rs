@@ -29,14 +29,19 @@ use aoide_core::{
         Facet as TagFacet, Label as TagLabel, LabelValue, PlainTag, Score as TagScore, ScoreValue,
         TagsMap,
     },
-    track::actor::{Actor, ActorKind, ActorRole},
+    track::{
+        actor::{Actor, ActorKind, ActorRole},
+        release::DateOrDateTime,
+    },
+    util::clock::{DateTime, DateTimeInner, DateYYYYMMDD, YYYYMMDD},
 };
 
+use chrono::{NaiveDateTime, Utc};
 use nom::{
-    bytes::complete::tag_no_case,
+    bytes::complete::{tag, tag_no_case},
     character::complete::{digit1, one_of, space0},
     number::complete::double,
-    sequence::{preceded, separated_pair, terminated},
+    sequence::{delimited, pair, preceded, separated_pair, terminated},
     IResult,
 };
 use semval::IsValid;
@@ -280,6 +285,80 @@ pub fn parse_key_signature(input: &str) -> Option<KeySignature> {
         return Some(key_signature);
     }
     log::warn!("Failed to parse key signature from input '{}'", input);
+    None
+}
+
+pub fn parse_year_tag(input: &str) -> Option<DateOrDateTime> {
+    let mut digits_parser = delimited(space0, digit1, space0);
+    let digits_parsed: IResult<_, _> = digits_parser(input);
+    if let Ok((remainder, digits_input)) = digits_parsed {
+        if remainder.is_empty()
+            && (/*YYYY*/digits_input.len() == 4 ||
+            /*YYYYMM*/ digits_input.len() == 6 ||
+            /*YYYYMMDD*/ digits_input.len() == 8)
+        {
+            if let Ok(yyyymmdd) =
+                digits_input
+                    .parse::<YYYYMMDD>()
+                    .map(|val| match digits_input.len() {
+                        4 => val * 10000,
+                        6 => val * 100,
+                        8 => val,
+                        _ => unreachable!(),
+                    })
+            {
+                let date = DateYYYYMMDD::new(yyyymmdd);
+                if date.is_valid() {
+                    return Some(date.into());
+                }
+            }
+        }
+    }
+    let mut year_month_parser = separated_pair(
+        delimited(space0, digit1, space0),
+        tag("-"),
+        delimited(space0, digit1, space0),
+    );
+    let year_month_parsed: IResult<_, _> = year_month_parser(input);
+    if let Ok((remainder, (year_input, month_input))) = year_month_parsed {
+        if year_input.len() == 4 && month_input.len() <= 2 {
+            if let (Ok(year), Ok(month)) = (
+                year_input.parse::<YYYYMMDD>(),
+                month_input.parse::<YYYYMMDD>(),
+            ) {
+                if remainder.is_empty() {
+                    let date = DateYYYYMMDD::new(year * 10000 + month * 100);
+                    if date.is_valid() {
+                        return Some(date.into());
+                    }
+                }
+                let mut day_of_month_parser = delimited(pair(tag("-"), space0), digit1, space0);
+                let day_of_month_parsed: IResult<_, _> = day_of_month_parser(remainder);
+                if let Ok((remainder, day_of_month_input)) = day_of_month_parsed {
+                    if remainder.is_empty() {
+                        if let Ok(day_of_month) = day_of_month_input.parse::<YYYYMMDD>() {
+                            if day_of_month >= 0 && day_of_month <= 31 {
+                                let date =
+                                    DateYYYYMMDD::new(year * 10000 + month * 100 + day_of_month);
+                                if date.is_valid() {
+                                    return Some(date.into());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if let Ok(datetime) = input.parse::<DateTimeInner>() {
+        return Some(DateTime::from(datetime).into());
+    }
+    if let Ok(datetime) = input.parse::<NaiveDateTime>() {
+        // Assume UTC if time zone is missing
+        let datetime_utc: chrono::DateTime<Utc> = chrono::DateTime::from_utc(datetime, Utc);
+        return Some(DateTime::from(datetime_utc).into());
+    }
+    log::warn!("Year tag not recognized: {}", input);
     None
 }
 

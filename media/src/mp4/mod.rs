@@ -30,15 +30,17 @@ use aoide_core::{
     },
     media::ContentMetadataFlags,
     music::time::{Beats, TempoBpm},
+    tag::Tags,
     track::{
         actor::ActorRole,
         album::AlbumKind,
-        tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE},
+        tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE, FACET_MOOD},
         title::{Title, TitleKind},
     },
     util::{clock::DateTimeInner, Canonical, CanonicalizeInto as _},
 };
-use mp4ameta::{atom::read_tag_from, FreeformIdent, STANDARD_GENRES};
+use aoide_core_serde::tag::Tags as SerdeTags;
+use mp4ameta::{atom::read_tag_from, Data, FreeformIdent, STANDARD_GENRES};
 use semval::IsValid as _;
 use util::{parse_replay_gain, parse_tempo_bpm};
 
@@ -87,6 +89,7 @@ fn read_channels(channel_config: ChannelConfig) -> Channels {
 }
 
 const COM_APPLE_ITUNES_FREEFORM_MEAN: &str = "com.apple.iTunes";
+const ORG_MIXXX_DJ_FREEFORM_MEAN: &str = "org.mixxx.dj";
 
 impl super::ImportTrack for ImportTrack {
     fn import_track(
@@ -222,6 +225,12 @@ impl super::ImportTrack for ImportTrack {
         for name in mp4_tag.take_composers() {
             push_next_actor_role_name(&mut track_actors, ActorRole::Composer, name);
         }
+        for name in mp4_tag.take_string(&FreeformIdent::new(
+            COM_APPLE_ITUNES_FREEFORM_MEAN,
+            "REMIXER",
+        )) {
+            push_next_actor_role_name(&mut track_actors, ActorRole::Remixer, name);
+        }
         debug_assert!(track.actors.is_empty());
         track.actors = Canonical::tie(track_actors.canonicalize_into());
 
@@ -266,12 +275,48 @@ impl super::ImportTrack for ImportTrack {
         }
         debug_assert!(track.release.copyright.is_none());
         track.release.copyright = mp4_tag.take_copyright();
+        if let Some(label) = mp4_tag
+            .take_string(&FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "LABEL"))
+            .next()
+        {
+            track.release.released_by = Some(label);
+        }
 
         let mut tags_map = TagsMap::default();
 
-        // Genres
+        // Mixxx CustomTags
+        if options.contains(ImportTrackOptions::MIXXX_CUSTOM_TAGS) {
+            if let Some(data) = mp4_tag
+                .data(&FreeformIdent::new(
+                    ORG_MIXXX_DJ_FREEFORM_MEAN,
+                    "CustomTags",
+                ))
+                .next()
+            {
+                if let Some(custom_tags) = match data {
+                    Data::Utf8(input) => serde_json::from_str::<SerdeTags>(input)
+                        .map_err(|err| {
+                            log::warn!("Failed to parse Mixxx custom tags: {}", err);
+                            err
+                        })
+                        .ok(),
+                    data => {
+                        log::warn!("Unexpected data for Mixxx custom tags: {:?}", data);
+                        None
+                    }
+                }
+                .map(Tags::from)
+                {
+                    // Initialize map with all existing custom tags as starting point
+                    tags_map = custom_tags.into();
+                }
+            }
+        }
+
+        // Genre tags
         let mut genre_count = 0;
         if mp4_tag.custom_genres().next().is_some() {
+            tags_map.remove_faceted_tags(&FACET_GENRE);
             let tag_mapping_config = config.faceted_tag_mapping.get(FACET_GENRE.value());
             let mut next_score_value = TagScore::max_value();
             for genre in mp4_tag.take_custom_genres() {
@@ -284,8 +329,9 @@ impl super::ImportTrack for ImportTrack {
                 );
             }
         }
-        if genre_count == 0 {
+        if genre_count == 0 && mp4_tag.standard_genres().next().is_some() {
             // Import legacy/standard genres instead
+            tags_map.remove_faceted_tags(&FACET_GENRE);
             let mut next_score_value = TagScore::max_value();
             for genre_id in mp4_tag.standard_genres() {
                 let genre = STANDARD_GENRES
@@ -304,8 +350,26 @@ impl super::ImportTrack for ImportTrack {
             }
         }
 
-        // Groupings
+        // Mood tags
+        let mood_ident = FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "MOOD");
+        if mp4_tag.string(&mood_ident).next().is_some() {
+            tags_map.remove_faceted_tags(&FACET_MOOD);
+            let tag_mapping_config = config.faceted_tag_mapping.get(FACET_MOOD.value());
+            let mut next_score_value = TagScore::max_value();
+            for mood in mp4_tag.take_string(&mood_ident) {
+                import_faceted_tags(
+                    &mut tags_map,
+                    &mut next_score_value,
+                    &FACET_MOOD,
+                    tag_mapping_config,
+                    mood,
+                );
+            }
+        }
+
+        // Grouping tags
         if mp4_tag.groupings().next().is_some() {
+            tags_map.remove_faceted_tags(&FACET_CGROUP);
             let tag_mapping_config = config.faceted_tag_mapping.get(FACET_CGROUP.value());
             let mut next_score_value = TagScore::max_value();
             for grouping in mp4_tag.take_groupings() {
@@ -319,8 +383,9 @@ impl super::ImportTrack for ImportTrack {
             }
         }
 
-        // Comment
+        // Comment tag
         if let Some(comment) = mp4_tag.take_comment() {
+            tags_map.remove_faceted_tags(&FACET_COMMENT);
             let mut next_score_value = TagScore::default_value();
             import_faceted_tags(
                 &mut tags_map,

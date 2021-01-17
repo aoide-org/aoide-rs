@@ -85,7 +85,9 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-core",
+ "aoide-core-serde",
  "bitflags",
+ "chrono",
  "hound",
  "id3",
  "lewton",
@@ -98,6 +100,7 @@ dependencies = [
  "mp4ameta",
  "nom",
  "semval",
+ "serde_json",
  "thiserror",
  "url",
 ]
@@ -1128,7 +1131,7 @@ dependencies = [
 [[package]]
 name = "mp4ameta"
 version = "0.8.0"
-source = "git+https://github.com/Saecki/rust-mp4ameta.git?branch=borrowed-ident#4a4bd9c5204e8ae6abdfb2edcbd58a4a25849445"
+source = "git+https://github.com/Saecki/rust-mp4ameta.git?branch=master#ba1c870e3538801a776a5d720c10250bc2b57bbd"
 dependencies = [
  "lazy_static",
  "mp4ameta_proc",
@@ -1137,7 +1140,7 @@ dependencies = [
 [[package]]
 name = "mp4ameta_proc"
 version = "0.2.1"
-source = "git+https://github.com/Saecki/rust-mp4ameta.git?branch=borrowed-ident#4a4bd9c5204e8ae6abdfb2edcbd58a4a25849445"
+source = "git+https://github.com/Saecki/rust-mp4ameta.git?branch=master#ba1c870e3538801a776a5d720c10250bc2b57bbd"
 
 [[package]]
 name = "nom"

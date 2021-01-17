@@ -8,14 +8,17 @@ edition = "2018"
 
 [dependencies]
 aoide-core = "*"
+aoide-core-serde = "*"
 
 anyhow = "*"
 bitflags = "*"
+chrono = "*"
 log = "*"
 mime = "*"
 mime_guess = "*"
 nom = "*"
 semval = "*"
+serde_json = "*"
 thiserror = "*"
 url = "*"
 
