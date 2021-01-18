@@ -28,7 +28,7 @@ use aoide_core::{
         signal::{BitRateBps, BitsPerSecond, SampleRateHz},
         AudioContent, Encoder,
     },
-    media::{Artwork, ContentMetadataFlags, ImageDimension, ImageSize},
+    media::ContentMetadataFlags,
     music::time::{Beats, TempoBpm},
     tag::Tags,
     track::{
@@ -37,21 +37,17 @@ use aoide_core::{
         tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE, FACET_MOOD},
         title::{Title, TitleKind},
     },
-    util::{
-        color::{RgbColor, RgbColorCode},
-        Canonical, CanonicalizeInto as _,
-    },
+    util::{Canonical, CanonicalizeInto as _},
 };
 
 use aoide_core_serde::tag::Tags as SerdeTags;
 
 use ::mp4::{ChannelConfig, MediaType, Mp4Reader, SampleFreqIndex, TrackType};
-use image::{load_from_memory, load_from_memory_with_format, GenericImageView as _, Pixel as _};
-use mime::{IMAGE_JPEG, IMAGE_PNG, IMAGE_STAR};
+use image::ImageFormat;
 use mp4ameta::{atom::read_tag_from, Data, FourCC, FreeformIdent, STANDARD_GENRES};
 use semval::IsValid as _;
-use sha2::{Digest as _, Sha256};
 use std::io::SeekFrom;
+use util::{parse_artwork_from_embedded_image, ContentDigest};
 
 #[derive(Debug)]
 pub struct ImportTrack;
@@ -445,69 +441,33 @@ impl super::ImportTrack for ImportTrack {
         }
 
         // Artwork
-        // TODO: Extract common function(s) for transforming image data into Artwork
-        if let Some(image_data) = mp4_tag.data(&FourCC(*b"covr")).next() {
-            // Use SHA-256 for compatibility with Mixxx instead of `Sha512Trunc256`
-            let mut hasher = Sha256::new();
-            if let Some((image, media_type)) = match image_data {
-                Data::Jpeg(bytes) => load_from_memory_with_format(bytes, image::ImageFormat::Jpeg)
-                    .map_err(|err| {
-                        log::warn!("Failed to load JPEG image: {}", err);
-                        err
-                    })
-                    .map(|img| {
-                        hasher.update(bytes);
-                        (img, IMAGE_JPEG)
-                    })
-                    .ok(),
-                Data::Png(bytes) => load_from_memory_with_format(bytes, image::ImageFormat::Png)
-                    .map_err(|err| {
-                        log::warn!("Failed to load png image: {}", err);
-                        err
-                    })
-                    .map(|img| {
-                        hasher.update(bytes);
-                        (img, IMAGE_PNG)
-                    })
-                    .ok(),
-                Data::Reserved(bytes) => load_from_memory(bytes)
-                    .map_err(|err| {
-                        log::warn!("Failed to load generic image: {}", err);
-                        err
-                    })
-                    .map(|img| {
-                        hasher.update(bytes);
-                        (img, IMAGE_STAR)
-                    })
-                    .ok(),
-                _ => None,
-            } {
-                let (width, height) = image.dimensions();
-                let clamped_with = width as ImageDimension;
-                let clamped_height = height as ImageDimension;
-                if width == clamped_with as u32 && height == clamped_height as u32 {
-                    let size = ImageSize {
-                        width: clamped_with,
-                        height: clamped_height,
-                    };
-                    let digest = Some(hasher.finalize().into_iter().collect());
-                    let rgb8_single_pixel_image = image
-                        .resize_exact(1, 1, image::imageops::FilterType::Nearest)
-                        .to_rgb8();
-                    let rgb8_pixel = rgb8_single_pixel_image.get_pixel(0, 0);
-                    let color_rgb = Some(RgbColor(
-                        ((rgb8_pixel.channels()[0] as RgbColorCode) << 16)
-                            + ((rgb8_pixel.channels()[1] as RgbColorCode) << 8)
-                            + rgb8_pixel.channels()[2] as RgbColorCode,
-                    ));
-                    let artwork = Artwork {
-                        size: Some(size),
-                        digest,
-                        color_rgb,
-                        media_type: Some(media_type.to_string()),
-                        uri: None, // embedded
-                    };
+        if options.contains(ImportTrackOptions::ARTWORK) {
+            let mut image_digest = if options.contains(ImportTrackOptions::ARTWORK_DIGEST) {
+                if options.contains(ImportTrackOptions::MIXXX_ARTWORK_DIGEST_SHA256) {
+                    // Compatibility
+                    ContentDigest::sha256()
+                } else {
+                    // Default
+                    ContentDigest::new()
+                }
+            } else {
+                Default::default()
+            };
+            for image_data in mp4_tag.data(&FourCC(*b"covr")) {
+                let (image_data, image_format) = match image_data {
+                    Data::Jpeg(bytes) => (bytes, Some(ImageFormat::Jpeg)),
+                    Data::Png(bytes) => (bytes, Some(ImageFormat::Png)),
+                    Data::Reserved(bytes) => (bytes, None),
+                    _ => {
+                        log::warn!("Unexpected cover art data");
+                        break;
+                    }
+                };
+                if let Some(artwork) =
+                    parse_artwork_from_embedded_image(image_data, image_format, &mut image_digest)
+                {
                     track.media_source.artwork = artwork;
+                    break;
                 }
             }
         }

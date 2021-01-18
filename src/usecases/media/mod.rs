@@ -13,20 +13,51 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::io::BufReader;
+use std::{
+    io::BufReader,
+    path::{Path, PathBuf},
+};
 
 use super::*;
 
 use aoide_core::{track::Track, util::clock::DateTime};
 
 use aoide_media::{
-    guess_mime_from_url, mp4, open_local_file_url_for_reading, ImportTrack, ImportTrackConfig,
-    ImportTrackOptions, NewTrackInput, Reader,
+    digest as media_digest, guess_mime_from_url, mp4, open_local_file_url_for_reading, ImportTrack,
+    ImportTrackConfig, ImportTrackOptions, NewTrackInput, Reader,
 };
 
 use url::Url;
 
 ///////////////////////////////////////////////////////////////////////
+
+pub type PathDigest = [u8; 32];
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PathWithDigest {
+    pub path: PathBuf,
+    pub digest: PathDigest,
+}
+
+pub fn index_directories_recursively(
+    root_path: &Path,
+    expected_number_of_directories: usize,
+) -> Result<Vec<PathWithDigest>> {
+    media_digest::index_directories_recursively(
+        root_path,
+        expected_number_of_directories.max(1024),
+        blake3::Hasher::new,
+    )
+    .map(|v| {
+        v.into_iter()
+            .map(|(path, digest)| PathWithDigest {
+                path,
+                digest: PathDigest::from(digest),
+            })
+            .collect()
+    })
+    .map_err(Error::Media)
+}
 
 pub fn import_track_from_url(
     url: &Url,
@@ -54,6 +85,6 @@ pub fn import_track_from_url(
     if mime == "audio/m4a" {
         Ok(mp4::ImportTrack.import_track(config, options, track, &mut reader, file_size)?)
     } else {
-        return Err(Error::Media(MediaError::UnsupportedContentType(mime)));
+        Err(Error::Media(MediaError::UnsupportedContentType(mime)))
     }
 }

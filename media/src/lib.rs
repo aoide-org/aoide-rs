@@ -18,6 +18,7 @@
 #![deny(missing_debug_implementations)]
 #![deny(rust_2018_idioms)]
 
+pub mod digest;
 pub mod util;
 
 use aoide_core::{
@@ -56,6 +57,9 @@ pub enum Error {
     UnsupportedImportOptions,
 
     #[error(transparent)]
+    WalkDir(#[from] walkdir::Error),
+
+    #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
 
@@ -64,13 +68,14 @@ pub type Result<T> = StdResult<T, Error>;
 #[rustfmt::skip]
 bitflags! {
     pub struct ImportTrackOptions: u16 {
-        const METADATA              = 0b0000000000000001;
-        const ARTWORK               = 0b0000000000000010;
-        const CONTENT_DIGEST_SHA256 = 0b0000000000000100;
-        const ARTWORK_DIGEST_SHA256 = 0b0000000000001000;
+        const METADATA                    = 0b0000000000000001;
+        const ARTWORK                     = 0b0000000000000010;
+        const CONTENT_DIGEST              = 0b0000000000000100;
+        const ARTWORK_DIGEST              = 0b0000000000001010;
         // Custom application metadata
-        const MIXXX_CUSTOM_TAGS     = 0b0000000100000000;
-        const SERATO_MARKERS        = 0b0000001000000000;
+        const MIXXX_ARTWORK_DIGEST_SHA256 = 0b0000000100001010; // Use SHA-256 instead of BLAKE3
+        const MIXXX_CUSTOM_TAGS           = 0b0000001000000001;
+        const SERATO_MARKERS              = 0b0000010000000001;
     }
 }
 

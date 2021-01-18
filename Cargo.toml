@@ -33,6 +33,7 @@ aoide-core-serde = "*"
 aoide-media = "*"
 aoide-repo = "*"
 aoide-repo-sqlite = "*"
+blake3 = "*"
 chrono = { version = "*", default-features = false }
 diesel = { version = "*", default-features = false, features = ["r2d2", "sqlite"] }
 diesel_migrations =  { version = "*", default-features = false, features = ["sqlite"] }
@@ -46,7 +47,7 @@ semval = { version = ">= 0.1.7" }
 serde = "*"
 serde_json = "*"
 thiserror = "*"
-tokio = { version = "1", default-features = false, features = ["macros", "rt-multi-thread"] }
+tokio = { version = "*", default-features = false, features = ["macros", "rt-multi-thread"] }
 url = { version = "*", features = ["serde"] }
 warp = { version = "*", default-features = false }
 

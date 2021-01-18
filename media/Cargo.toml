@@ -11,8 +11,12 @@ aoide-core = "*"
 aoide-core-serde = "*"
 
 anyhow = "*"
+base64 = "*"
+blake3 = "*"
 bitflags = "*"
+bytes = "*"
 chrono = "*"
+digest = "*"
 image = "*"
 log = "*"
 mime = "*"
@@ -23,6 +27,7 @@ serde_json = "*"
 sha2 = "*"
 thiserror = "*"
 url = "*"
+walkdir = "*"
 
 hound = { version = "*", optional = true }
 id3 = { version = "*", optional = true }

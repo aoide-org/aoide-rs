@@ -570,6 +570,20 @@ pub async fn main() -> Result<(), Error> {
         .or(playlists_delete)
         .or(playlists_entries_patch);
 
+    let media_index_directories = warp::post()
+        .and(media_path)
+        .and(warp::path("index-directories"))
+        .and(warp::path::end())
+        .and(warp::query())
+        .and_then(|query_params| async move {
+            tokio::task::spawn_blocking(move || {
+                media::index_directories::handle_request(query_params)
+            })
+            .await
+            .map_err(reject_on_error)? // JoinError
+            .map_err(reject_on_error)
+            .map(|response_body| warp::reply::json(&response_body))
+        });
     let media_import_track = warp::post()
         .and(media_path)
         .and(warp::path("import-track"))
@@ -635,6 +649,7 @@ pub async fn main() -> Result<(), Error> {
             .or(collections_filters)
             .or(tracks_filters)
             .or(playlists_filters)
+            .or(media_index_directories)
             .or(media_import_track)
             .or(storage_filters)
             .or(static_filters)

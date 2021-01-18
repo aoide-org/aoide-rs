@@ -21,6 +21,7 @@ use super::TagMappingConfig;
 
 use aoide_core::{
     audio::signal::LoudnessLufs,
+    media::{Artwork, ImageDimension, ImageSize},
     music::{
         key::{KeyCodeValue, KeyMode, KeySignature, LancelotKeySignature, OpenKeySignature},
         time::TempoBpm,
@@ -33,10 +34,16 @@ use aoide_core::{
         actor::{Actor, ActorKind, ActorRole},
         release::DateOrDateTime,
     },
-    util::clock::{DateTime, DateTimeInner, DateYYYYMMDD, YYYYMMDD},
+    util::{
+        clock::{DateTime, DateTimeInner, DateYYYYMMDD, YYYYMMDD},
+        color::{RgbColor, RgbColorCode},
+    },
 };
 
 use chrono::{NaiveDateTime, Utc};
+use digest::Digest;
+use image::{load_from_memory, load_from_memory_with_format, GenericImageView, ImageFormat, Pixel};
+use mime::{IMAGE_BMP, IMAGE_GIF, IMAGE_JPEG, IMAGE_PNG, IMAGE_STAR};
 use nom::{
     bytes::complete::{tag, tag_no_case},
     character::complete::{digit1, one_of, space0},
@@ -45,6 +52,7 @@ use nom::{
     IResult,
 };
 use semval::IsValid;
+use sha2::Sha256;
 
 /// Determines the next kind and adjusts the previous kind.
 ///
@@ -337,7 +345,7 @@ pub fn parse_year_tag(input: &str) -> Option<DateOrDateTime> {
                 if let Ok((remainder, day_of_month_input)) = day_of_month_parsed {
                     if remainder.is_empty() {
                         if let Ok(day_of_month) = day_of_month_input.parse::<YYYYMMDD>() {
-                            if day_of_month >= 0 && day_of_month <= 31 {
+                            if (0..=31).contains(&day_of_month) {
                                 let date =
                                     DateYYYYMMDD::new(year * 10000 + month * 100 + day_of_month);
                                 if date.is_valid() {
@@ -360,6 +368,116 @@ pub fn parse_year_tag(input: &str) -> Option<DateOrDateTime> {
     }
     log::warn!("Year tag not recognized: {}", input);
     None
+}
+
+#[derive(Debug, Default)]
+pub struct ContentDigest {
+    default_blake3: Option<blake3::Hasher>,
+    legacy_sha256: Option<Sha256>,
+}
+
+impl ContentDigest {
+    pub const fn digest_size() -> usize {
+        32
+    }
+
+    pub fn new() -> Self {
+        Self {
+            default_blake3: Some(blake3::Hasher::new()),
+            legacy_sha256: None,
+        }
+    }
+
+    pub fn sha256() -> Self {
+        Self {
+            default_blake3: Some(blake3::Hasher::new()),
+            legacy_sha256: Some(Sha256::new()),
+        }
+    }
+
+    pub fn digest_content(&mut self, content_data: &[u8]) -> Option<[u8; Self::digest_size()]> {
+        let Self {
+            default_blake3,
+            legacy_sha256,
+        } = self;
+        if let Some(digest) = default_blake3 {
+            // Default
+            digest.update(content_data);
+            Some(digest.finalize_reset().into())
+        } else {
+            // Legacy
+            legacy_sha256.as_mut().map(|digest| {
+                digest.update(content_data);
+                digest.finalize_reset().into()
+            })
+        }
+    }
+}
+
+pub fn parse_artwork_from_embedded_image(
+    image_data: &[u8],
+    image_format: Option<ImageFormat>,
+    image_digest: &mut ContentDigest,
+) -> Option<Artwork> {
+    let media_type = match image_format {
+        Some(ImageFormat::Jpeg) => IMAGE_JPEG.to_string(),
+        Some(ImageFormat::Png) => IMAGE_PNG.to_string(),
+        Some(ImageFormat::Gif) => IMAGE_GIF.to_string(),
+        Some(ImageFormat::Bmp) => IMAGE_BMP.to_string(),
+        Some(ImageFormat::WebP) => "image/webp".to_string(),
+        Some(ImageFormat::Tiff) => "image/tiff".to_string(),
+        Some(ImageFormat::Tga) => "image/tga".to_string(),
+        Some(format) => {
+            log::info!("Unusual image format {:?}", format);
+            IMAGE_STAR.to_string()
+        }
+        None => {
+            log::info!("Unknown image format");
+            IMAGE_STAR.to_string()
+        }
+    };
+    if let Some(format) = image_format {
+        load_from_memory_with_format(image_data, format)
+    } else {
+        load_from_memory(image_data)
+    }
+    .map_err(|err| {
+        log::warn!("Failed to load image: {}", err);
+        err
+    })
+    .ok()
+    .and_then(|image| {
+        let (width, height) = image.dimensions();
+        let clamped_with = width as ImageDimension;
+        let clamped_height = height as ImageDimension;
+        if width != clamped_with as u32 && height != clamped_height as u32 {
+            log::warn!("Unsupported image size: {}x{}", width, height);
+            return None;
+        }
+        let size = ImageSize {
+            width: clamped_with,
+            height: clamped_height,
+        };
+        let digest = image_digest
+            .digest_content(image_data)
+            .map(|digest| digest.to_vec());
+        let rgb8_single_pixel_image = image
+            .resize_exact(1, 1, image::imageops::FilterType::Nearest)
+            .to_rgb8();
+        let rgb8_pixel = rgb8_single_pixel_image.get_pixel(0, 0);
+        let color_rgb = Some(RgbColor(
+            ((rgb8_pixel.channels()[0] as RgbColorCode) << 16)
+                + ((rgb8_pixel.channels()[1] as RgbColorCode) << 8)
+                + rgb8_pixel.channels()[2] as RgbColorCode,
+        ));
+        Some(Artwork {
+            size: Some(size),
+            digest,
+            color_rgb,
+            media_type: Some(media_type),
+            uri: None, // embedded
+        })
+    })
 }
 
 ///////////////////////////////////////////////////////////////////////
