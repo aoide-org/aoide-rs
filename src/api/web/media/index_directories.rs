@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 
 use super::*;
 
@@ -32,20 +32,7 @@ pub struct QueryParams {
     pub expected_count: Option<u32>,
 }
 
-#[derive(Clone, Debug, Serialize)]
-pub struct PathWithDigest(String, SerdeDigest);
-
-impl From<uc::PathWithDigest> for PathWithDigest {
-    fn from(from: uc::PathWithDigest) -> Self {
-        let uc::PathWithDigest { path, digest } = from;
-        Self(
-            path.to_string_lossy().to_string(),
-            SerdeDigest::encode(&digest),
-        )
-    }
-}
-
-pub type ResponseBody = Vec<PathWithDigest>;
+pub type ResponseBody = HashMap<String, SerdeDigest>;
 
 pub fn handle_request(query_params: QueryParams) -> Result<ResponseBody> {
     let QueryParams {
@@ -55,7 +42,16 @@ pub fn handle_request(query_params: QueryParams) -> Result<ResponseBody> {
     let root_path = Path::new(&root_path);
     let expected_number_of_directories = expected_count.unwrap_or(16_384).min(65_536) as usize;
     Ok(
-        uc::index_directories_recursively(root_path, expected_number_of_directories)
-            .map(|v| v.into_iter().map(Into::into).collect())?,
+        uc::index_directories_recursively(root_path, expected_number_of_directories).map(|v| {
+            v.into_iter()
+                .map(|path_with_digest| {
+                    let uc::PathWithDigest { path, digest } = path_with_digest;
+                    (
+                        path.to_string_lossy().to_string(),
+                        SerdeDigest::encode(&digest),
+                    )
+                })
+                .collect()
+        })?,
     )
 }

@@ -43,20 +43,15 @@ pub fn index_directories_recursively(
     root_path: &Path,
     expected_number_of_directories: usize,
 ) -> Result<Vec<PathWithDigest>> {
-    media_digest::index_directories_recursively(
-        root_path,
-        expected_number_of_directories.max(1024),
-        blake3::Hasher::new,
-    )
-    .map(|v| {
-        v.into_iter()
-            .map(|(path, digest)| PathWithDigest {
-                path,
-                digest: PathDigest::from(digest),
-            })
-            .collect()
+    let mut path_with_digests = Vec::with_capacity(expected_number_of_directories);
+    media_digest::digest_directories_recursively(root_path, blake3::Hasher::new, |path, digest| {
+        path_with_digests.push(PathWithDigest {
+            path,
+            digest: PathDigest::from(digest),
+        });
     })
-    .map_err(Error::Media)
+    .map_err(Error::Media)?;
+    Ok(path_with_digests)
 }
 
 pub fn import_track_from_url(

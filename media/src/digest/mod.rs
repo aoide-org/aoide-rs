@@ -21,13 +21,12 @@ use anyhow::anyhow;
 use bytes::BufMut as _;
 use digest::Digest;
 use std::{
-    collections::HashMap,
     ffi::OsStr,
     fs, io,
     path::{Path, PathBuf},
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
-use walkdir::WalkDir;
+use walkdir::{DirEntry, WalkDir};
 
 pub fn digest_u64<D: Digest>(digest: &mut D, val: u64) {
     let mut bytes = [0u8; 8];
@@ -130,19 +129,39 @@ pub fn digest_walkdir_entry_for_detecting_changes<D: Digest>(
     Ok(())
 }
 
-pub fn index_directories_recursively<D: Digest, F: Fn() -> D>(
+fn is_hidden_dir_entry(dir_entry: &DirEntry) -> bool {
+    if dir_entry.file_type().is_dir() {
+        return dir_entry
+            .file_name()
+            .to_str()
+            .map(|dir_name| dir_name == ".DS_Store")
+            .unwrap_or(false);
+    }
+    false
+}
+pub fn digest_directories_recursively<
+    D: Digest,
+    N: FnMut() -> D,
+    R: FnMut(PathBuf, digest::Output<D>),
+>(
     root_path: &Path,
-    expected_number_of_directories: usize,
-    new_digest: F,
-) -> Result<HashMap<PathBuf, digest::Output<D>>> {
+    mut new_digest: N,
+    mut receive_dir_path_digest: R,
+) -> Result<usize> {
     if !root_path.is_dir() {
         return Err(anyhow!("Root path '{}' is not a directory", root_path.display()).into());
     }
     log::info!("Indexing all directories in '{}'", root_path.display());
+
     let started = Instant::now();
-    let mut in_progress: HashMap<PathBuf, D> = HashMap::with_capacity(32); // capacity <= max depth (contents first = depth first search)
-    let mut finished = HashMap::with_capacity(expected_number_of_directories);
-    for dir_entry in WalkDir::new(root_path).contents_first(true).into_iter() {
+    let mut ancestors: Vec<(PathBuf, D)> = Vec::with_capacity(64); // capacity <= max. expected depth
+    let mut total_count = 0;
+    for dir_entry in WalkDir::new(root_path)
+        .contents_first(false) // depth-first traversal to populate ancestors
+        .min_depth(1) // exclude root folder
+        .into_iter()
+        .filter_entry(|e| !is_hidden_dir_entry(e))
+    {
         let dir_entry = match dir_entry {
             Ok(dir_entry) => dir_entry,
             Err(err) => {
@@ -151,20 +170,6 @@ pub fn index_directories_recursively<D: Digest, F: Fn() -> D>(
                 continue;
             }
         };
-
-        if dir_entry.path() == root_path {
-            // Skip the root directory
-            // The (default) parameter min_depth=0 is still required to
-            // properly finish all in-progress child directories, i.e.
-            // performing the traversal with min_depth=1 would NOT work!
-            // The first visited child of the root directory remains
-            // in-progress until the very end and is only finished
-            // regularly with min_depth=0.
-            continue;
-        }
-
-        // TODO: Allow to pass a (regex?) pattern for excluded file names
-        // and skip those files here.
 
         // Get the relative parent path
         let parent_path = if let Some(parent_path) = dir_entry.path().parent() {
@@ -193,47 +198,43 @@ pub fn index_directories_recursively<D: Digest, F: Fn() -> D>(
         };
 
         // Exclude the root directory from indexing
-        if !parent_path.as_os_str().is_empty() {
-            // TODO: Switch to HashMap::raw_entry_mut() for maximum performance?
-            if let Some(digest) = in_progress.get_mut(parent_path) {
-                // Parent directory is already in progress
-                digest_walkdir_entry_for_detecting_changes(digest, &dir_entry)?;
-            } else {
-                // Insert a new digest for the parent directory
-                debug_assert!(!finished.contains_key(parent_path));
-                log::debug!("Found non-empty directory: {}", parent_path.display());
-                let mut digest = new_digest();
-                digest_walkdir_entry_for_detecting_changes(&mut digest, &dir_entry)?;
-                in_progress.insert(parent_path.to_path_buf(), digest);
-            }
+        if parent_path.as_os_str().is_empty() {
+            continue;
         }
 
-        // A directory is visited after all its childs have been visited (depth-first search)
-        if dir_entry.file_type().is_dir() {
-            if let Ok(path) = dir_entry.path().strip_prefix(root_path) {
-                if let Some((path, digest)) = in_progress.remove_entry(path) {
-                    debug_assert!(!finished.contains_key(&path));
-                    let digest = digest.finalize();
-                    log::debug!("Finished non-empty directory: {}", path.display());
-                    finished.insert(path, digest);
-                } else {
-                    log::debug!("Skipping empty directory: {}", path.display());
-                }
-            } else {
-                log::warn!(
-                    "Skipping directory entry with out-of-tree path: {}",
-                    dir_entry.path().display()
-                );
+        if let Some((ancestor_path, ancestor_digest)) = ancestors.last_mut() {
+            if parent_path.starts_with(&ancestor_path) {
+                // Continue this line of ancestors
+                debug_assert_eq!(parent_path.as_os_str(), ancestor_path.as_os_str());
+                digest_walkdir_entry_for_detecting_changes(ancestor_digest, &dir_entry)?;
+                continue;
             }
         }
+        if let Some((ancestor_path, ancestor_digest)) = ancestors.pop() {
+            debug_assert_ne!(parent_path.as_os_str(), ancestor_path.as_os_str());
+            let ancestor_digest = ancestor_digest.finalize();
+            log::debug!("Finished non-empty directory: {}", ancestor_path.display());
+            receive_dir_path_digest(ancestor_path, ancestor_digest);
+            total_count += 1;
+        }
+        log::debug!("Found non-empty directory: {}", parent_path.display());
+        let mut digest = new_digest();
+        digest_walkdir_entry_for_detecting_changes(&mut digest, &dir_entry)?;
+        ancestors.push((parent_path.to_path_buf(), digest));
     }
-    debug_assert!(in_progress.is_empty());
+    // Unwind the stack of remaining ancestors
+    while let Some((ancestor_path, ancestor_digest)) = ancestors.pop() {
+        let ancestor_digest = ancestor_digest.finalize();
+        log::debug!("Finished non-empty directory: {}", ancestor_path.display());
+        receive_dir_path_digest(ancestor_path, ancestor_digest);
+        total_count += 1;
+    }
     let elapsed = started.elapsed();
     log::info!(
         "Indexing {} directories in '{}' took {} s",
-        finished.len(),
+        total_count,
         root_path.display(),
         elapsed.as_millis() as f64 / 1000.0,
     );
-    Ok(finished)
+    Ok(total_count)
 }
