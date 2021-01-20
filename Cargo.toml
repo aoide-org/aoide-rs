@@ -24,7 +24,6 @@ aoide-core-serde = { path = "core-serde" }
 aoide-media = { path = "media" }
 aoide-repo = { path = "repo" }
 aoide-repo-sqlite = { path = "repo-sqlite" }
-warp= { branch = "master", git = "https://github.com/seanmonstar/warp.git" }
 mp4ameta= { branch = "master", git = "https://github.com/Saecki/rust-mp4ameta.git" }
 
 [dependencies]
