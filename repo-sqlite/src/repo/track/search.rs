@@ -212,9 +212,9 @@ impl TrackSearchQueryTransform for SortOrder {
                 SortDirection::Ascending => query.then_order_by(media_source::uri.asc()),
                 SortDirection::Descending => query.then_order_by(media_source::uri.desc()),
             },
-            SortField::SourceUriDecoded => match direction {
-                SortDirection::Ascending => query.then_order_by(media_source::uri_decoded.asc()),
-                SortDirection::Descending => query.then_order_by(media_source::uri_decoded.desc()),
+            SortField::SourceType => match direction {
+                SortDirection::Ascending => query.then_order_by(media_source::content_type.asc()),
+                SortDirection::Descending => query.then_order_by(media_source::content_type.desc()),
             },
             SortField::TimesPlayed => match direction {
                 SortDirection::Ascending => query.then_order_by(track::times_played.asc()),
@@ -292,32 +292,28 @@ fn build_phrase_field_filter_expression(
         or_expression = if like_expr.is_empty() {
             Box::new(
                 or_expression
-                    .or(media_source::uri_decoded.is_null())
-                    .or(media_source::uri_decoded.eq(String::default())),
+                    .or(media_source::uri.is_null())
+                    .or(media_source::uri.eq(String::default())),
             )
         } else {
-            Box::new(
-                or_expression.or(media_source::uri_decoded
-                    .like(like_expr.clone())
-                    .escape('\\')),
-            )
+            Box::new(or_expression.or(media_source::uri.like(like_expr.clone()).escape('\\')))
         };
     }
     if filter.fields.is_empty()
         || filter
             .fields
             .iter()
-            .any(|target| *target == StringField::MediaType)
+            .any(|target| *target == StringField::SourceType)
     {
         or_expression = if like_expr.is_empty() {
             Box::new(
                 or_expression
-                    .or(media_source::uri_decoded.is_null())
-                    .or(media_source::uri_decoded.eq(String::default())),
+                    .or(media_source::content_type.is_null())
+                    .or(media_source::content_type.eq(String::default())),
             )
         } else {
             Box::new(
-                or_expression.or(media_source::uri_decoded
+                or_expression.or(media_source::content_type
                     .like(like_expr.clone())
                     .escape('\\')),
             )

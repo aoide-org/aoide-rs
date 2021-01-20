@@ -28,7 +28,6 @@ CREATE TABLE IF NOT EXISTS media_source (
     synchronized_at        TEXT,
     synchronized_ms        INTEGER,
     uri                    TEXT NOT NULL,    -- RFC 3986, absolute (only supposed to be unique within a collection)
-    uri_decoded            TEXT NOT NULL,    -- percent-decoded URI
     content_type           TEXT NOT NULL,    -- RFC 6838 media type
     content_digest         BINARY,           -- cryptographic (audio) content hash
     content_metadata_flags TINYINT NOT NULL, -- 0x01 = reliable, 0x02 = locked, 0x04 = stale
@@ -72,10 +71,6 @@ CREATE INDEX idx_media_source_synchronized_ms_desc ON media_source (
     synchronized_ms DESC
 );
 
-CREATE INDEX idx_media_source_uri_decoded ON media_source (
-    uri_decoded
-);
-
 CREATE INDEX idx_media_source_content_type ON media_source (
     content_type
 );
@@ -84,6 +79,6 @@ CREATE INDEX idx_media_source_content_digest ON media_source (
     content_digest
 );
 
-CREATE INDEX idx_media_source_audio_duration ON media_source (
+CREATE INDEX idx_media_source_audio_duration_ms ON media_source (
     audio_duration_ms
 );

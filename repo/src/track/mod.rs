@@ -34,9 +34,8 @@ use aoide_core::{
 pub enum StringField {
     AlbumArtist,
     AlbumTitle,
-    MediaType,
-    SourceUri, // percent-encoded URI
-    SourceUriDecoded,
+    SourceType, // RFC 6838 media type
+    SourceUri,  // RFC 3986 percent-encoded URI
     TrackArtist,
     TrackComposer,
     TrackTitle,
@@ -113,8 +112,8 @@ pub enum SortField {
     ReleaseDate,
     SourceCollectedAt,
     SourceSynchronizedAt,
+    SourceType,
     SourceUri,
-    SourceUriDecoded,
     TimesPlayed,
     TrackArtist,
     TrackNumber,

@@ -1912,17 +1912,15 @@ components:
       enum:
         - albumArtist
         - albumTitle
-        - mediaType
+        - sourceType
         - sourceUri
-        - sourceUriDecoded
         - trackArtist
         - trackComposer
         - trackTitle
       description: |
         Selectable fields, including
-          * `sourceUri` - percent-encoded URI (RFC 3986)
-          * `sourceUriDecoded` - fully decoded URI (might be ambiguous)
-          * `mediaType` - media type (RFC 6838)
+          * `sourceUri` - RFC 3986 percent-encoded URI
+          * `sourceType` - RFC 6838 media type
           * ...
     StringPredicate:
       oneOf:
@@ -2286,8 +2284,8 @@ components:
         - releaseDate
         - sourceCollectedAt
         - sourceSynchronizedAt
+        - sourceType
         - sourceUri
-        - sourceUriDecoded
         - timesPlayed
         - trackArtist
         - trackNumber

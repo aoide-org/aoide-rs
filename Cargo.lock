@@ -145,7 +145,6 @@ dependencies = [
  "num-bigint 0.2.6",
  "num-derive",
  "num-traits",
- "percent-encoding",
  "semval",
 ]
 

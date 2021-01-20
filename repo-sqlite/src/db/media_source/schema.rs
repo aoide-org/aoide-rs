@@ -28,7 +28,6 @@ table! {
         synchronized_at -> Nullable<Text>,
         synchronized_ms -> Nullable<BigInt>,
         uri -> Text,
-        uri_decoded -> Text,
         content_type -> Text,
         content_digest -> Nullable<Binary>,
         content_metadata_flags -> SmallInt,

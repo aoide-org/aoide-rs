@@ -19,7 +19,6 @@ pub mod entity;
 use crate::prelude::*;
 
 use num_traits::ToPrimitive as _;
-use percent_encoding::percent_decode;
 use std::i64;
 
 ///////////////////////////////////////////////////////////////////////
@@ -85,8 +84,4 @@ pub fn escape_like_contains(arg: &str) -> String {
         escape_like_matches(arg),
         LIKE_WILDCARD_CHARACTER
     )
-}
-
-pub fn decode_uri(uri: &str) -> String {
-    percent_decode(uri.as_bytes()).decode_utf8_lossy().into()
 }
