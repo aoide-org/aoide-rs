@@ -11,6 +11,7 @@ servers:
     description: Local development server
 tags:
   - name: Collections
+  - name: Collected Media Sources
   - name: Collected Tracks
   - name: Tracks
   - name: Collected Playlists
@@ -266,6 +267,34 @@ paths:
         '204':
           description: |
             Batch operation succeeded.
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+
+  /c/{collectionUid}/m/relocate-sources:
+    post:
+      operationId: relocateCollectedMediaSources
+      summary: Relocate collected media sources by URI prefix
+      description: |
+        Relocate media sources with a common URI prefix by replacing
+        this prefix in their URI with a new prefix.
+      tags:
+        - Collected Media Sources
+      parameters:
+        - $ref: '#/components/parameters/collectionUidPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RelocateCollectedMediaSourcesRequestBody'
+      responses:
+        '200':
+          description: |
+            Batch operation succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RelocateCollectedMediaSourcesResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
@@ -1816,6 +1845,24 @@ components:
     ReleaseDateTime:
       allOf:
         - $ref: '#/components/schemas/DateTime'
+    RelocateCollectedMediaSourcesRequestBody:
+      type: object
+      properties:
+        oldUriPrefix:
+          $ref: '#/components/schemas/Uri'
+        newUriPrefix:
+          $ref: '#/components/schemas/Uri'
+      required:
+        - oldUriPrefix
+        - newUriPrefix
+    RelocateCollectedMediaSourcesResponseBody:
+      type: object
+      properties:
+        replacedCount:
+          type: number
+          format: int64
+      required:
+        - replacedCount
     ReplaceCollectedTrackMode:
       type: string
       enum:

@@ -109,12 +109,12 @@ pub mod prelude {
 
     #[derive(Copy, Clone, Debug, Eq, PartialEq)]
     pub enum StringCompare {
-        StartsWith,   // head (case-insensitive)
-        EndsWith,     // tail (case-insensitive)
-        Contains,     // part (case-insensitive)
-        Matches,      // all (case-insensitive)
-        Prefix, // head (case-sensitive)
-        Equals,       // all (case-sensitive)
+        StartsWith, // head (case-insensitive)
+        EndsWith,   // tail (case-insensitive)
+        Contains,   // part (case-insensitive)
+        Matches,    // all (case-insensitive)
+        Prefix,     // head (case-sensitive)
+        Equals,     // all (case-sensitive)
     }
 
     /// Predicates for matching strings

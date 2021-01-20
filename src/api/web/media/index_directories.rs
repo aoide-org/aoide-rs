@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{collections::HashMap, path::Path};
-
 use super::*;
 
 mod uc {
@@ -22,6 +20,8 @@ mod uc {
 }
 
 use aoide_core_serde::media::Digest as SerdeDigest;
+
+use std::{collections::HashMap, path::Path};
 
 ///////////////////////////////////////////////////////////////////////
 

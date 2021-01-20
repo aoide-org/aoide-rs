@@ -289,7 +289,8 @@ fn relocate_by_uri() -> anyhow::Result<()> {
     );
     assert_eq!(
         updated_at,
-        db.load_media_source(header_lowercase.id)?.0.updated_at);
+        db.load_media_source(header_lowercase.id)?.0.updated_at
+    );
     assert_eq!(
         vec![header_uppercase.id],
         fixture

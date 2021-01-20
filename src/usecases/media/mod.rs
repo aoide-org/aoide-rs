@@ -20,12 +20,14 @@ use std::{
 
 use super::*;
 
-use aoide_core::{track::Track, util::clock::DateTime};
+use aoide_core::{entity::EntityUid, track::Track, util::clock::DateTime};
 
 use aoide_media::{
     digest as media_digest, guess_mime_from_url, mp4, open_local_file_url_for_reading, ImportTrack,
     ImportTrackConfig, ImportTrackOptions, NewTrackInput, Reader,
 };
+
+use aoide_repo::{collection::EntityRepo as _, media::source::Repo as _};
 
 use url::Url;
 
@@ -82,4 +84,24 @@ pub fn import_track_from_url(
     } else {
         Err(Error::Media(MediaError::UnsupportedContentType(mime)))
     }
+}
+
+pub fn relocate_collected_sources(
+    connection: &SqliteConnection,
+    collection_uid: &EntityUid,
+    old_uri_prefix: &str,
+    new_uri_prefix: &str,
+) -> Result<usize> {
+    let db = RepoConnection::new(connection);
+    db.transaction::<_, DieselRepoError, _>(|| {
+        let collection_id = db.resolve_collection_id(collection_uid)?;
+        let updated_at = DateTime::now_utc();
+        Ok(db.relocate_media_sources_by_uri_prefix(
+            updated_at,
+            collection_id,
+            old_uri_prefix,
+            new_uri_prefix,
+        )?)
+    })
+    .map_err(Into::into)
 }

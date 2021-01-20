@@ -287,6 +287,32 @@ pub async fn main() -> Result<(), Error> {
         .or(collections_update)
         .or(collections_delete);
 
+    let collected_media_sources_relocate = warp::post()
+        .and(collections_path)
+        .and(path_param_uid)
+        .and(media_path)
+        .and(warp::path("relocate-sources"))
+        .and(warp::path::end())
+        .and(warp::body::json())
+        .and(guarded_connection_pool.clone())
+        .and_then(
+            |uid, request_body, guarded_connection_pool: GuardedConnectionPool| async move {
+                spawn_blocking_database_read_task(
+                    guarded_connection_pool,
+                    move |pooled_connection| {
+                        media::relocate_collected_sources::handle_request(
+                            pooled_connection,
+                            &uid,
+                            request_body,
+                        )
+                    },
+                )
+                .await
+                .map_err(reject_on_error)
+                .map(|response_body| warp::reply::json(&response_body))
+            },
+        );
+
     let collected_tracks_resolve = warp::post()
         .and(collections_path)
         .and(path_param_uid)
@@ -649,8 +675,9 @@ pub async fn main() -> Result<(), Error> {
             .or(collections_filters)
             .or(tracks_filters)
             .or(playlists_filters)
-            .or(media_index_directories)
-            .or(media_import_track)
+            .or(media_index_directories) // undocumented
+            .or(media_import_track) // undocumented
+            .or(collected_media_sources_relocate)
             .or(storage_filters)
             .or(static_filters)
             .or(shutdown_filter)
