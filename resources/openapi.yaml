@@ -988,21 +988,6 @@ components:
       type: string
       format: base64url
       minLength: 1
-    MetricsFlags:
-      type: integer
-      format: i32
-      minimum: 0
-      maximum: 7
-      example: 5
-      description: |
-        A bitmask for locking selected properties of the musical signature.
-
-        Bits:
-          - 0x01: Tempo/BPM is locked
-          - 0x02: Key signature is locked
-          - 0x04: Time signature is locked
-
-        Example: A value of 3 = 1 | 2 locks both the tempo and the key signature
     ContentMetadataFlags:
       type: integer
       format: i32

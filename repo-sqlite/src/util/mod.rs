@@ -44,8 +44,9 @@ where
     target
 }
 
-pub enum EitherEqualOrLike {
+pub enum StringCmpOp {
     Equal(String),
+    Prefix(String, usize),
     Like(String),
 }
 
@@ -67,6 +68,10 @@ pub fn escape_like_matches(arg: &str) -> String {
             LIKE_PLACEHOLDER_CHARACTER,
             LIKE_PLACEHOLDER_CHARACTER_REPLACEMENT,
         )
+}
+
+pub fn escape_single_quotes(arg: &str) -> String {
+    arg.replace('\'', "''")
 }
 
 pub fn escape_like_starts_with(arg: &str) -> String {

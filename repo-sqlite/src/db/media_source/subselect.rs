@@ -73,6 +73,22 @@ where
         StringPredicateBorrowed::MatchesNot(uri_fragment_nocase) => {
             statement.filter(media_source::uri.not_like(escape_like_matches(uri_fragment_nocase)))
         }
+        StringPredicateBorrowed::Prefix(uri_prefix) => {
+            let sql_prefix_filter = if uri_prefix.contains('\'') {
+                format!(
+                    "substr(media_source.uri,1,{})='{}'",
+                    uri_prefix.len(),
+                    escape_single_quotes(uri_prefix)
+                )
+            } else {
+                format!(
+                    "substr(media_source.uri,1,{})='{}'",
+                    uri_prefix.len(),
+                    uri_prefix
+                )
+            };
+            statement.filter(diesel::dsl::sql(&sql_prefix_filter))
+        }
         StringPredicateBorrowed::Equals(uri) => statement.filter(media_source::uri.eq(uri)),
         StringPredicateBorrowed::EqualsNot(uri) => statement.filter(media_source::uri.ne(uri)),
     }

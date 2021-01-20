@@ -61,6 +61,33 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             .map(|v| v.into_iter().map(RecordId::new).collect())
     }
 
+    fn relocate_media_sources_by_uri_prefix(
+        &self,
+        updated_at: DateTime,
+        collection_id: CollectionId,
+        old_uri_prefix: &str,
+        new_uri_prefix: &str,
+    ) -> RepoResult<usize> {
+        let target = media_source::table
+            .filter(media_source::collection_id.eq(RowId::from(collection_id)))
+            .filter(diesel::dsl::sql(&format!(
+                "substr(uri,1,{})='{}'",
+                old_uri_prefix.len(),
+                escape_single_quotes(old_uri_prefix),
+            )));
+        diesel::update(target)
+            .set((
+                media_source::row_updated_ms.eq(updated_at.timestamp_millis()),
+                media_source::uri.eq(diesel::dsl::sql(&format!(
+                    "'{}' || substr(uri,{})",
+                    escape_single_quotes(new_uri_prefix),
+                    old_uri_prefix.len() + 1
+                ))),
+            ))
+            .execute(self.as_ref())
+            .map_err(repo_error)
+    }
+
     fn purge_media_sources_by_uri_predicate(
         &self,
         collection_id: CollectionId,

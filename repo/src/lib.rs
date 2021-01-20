@@ -109,11 +109,12 @@ pub mod prelude {
 
     #[derive(Copy, Clone, Debug, Eq, PartialEq)]
     pub enum StringCompare {
-        StartsWith, // head (case-insensitive)
-        EndsWith,   // tail (case-insensitive)
-        Contains,   // part (case-insensitive)
-        Matches,    // all (case-insensitive)
-        Equals,     // all (case-sensitive)
+        StartsWith,   // head (case-insensitive)
+        EndsWith,     // tail (case-insensitive)
+        Contains,     // part (case-insensitive)
+        Matches,      // all (case-insensitive)
+        Prefix, // head (case-sensitive)
+        Equals,       // all (case-sensitive)
     }
 
     /// Predicates for matching strings
@@ -129,6 +130,7 @@ pub mod prelude {
         Matches(&'s str),
         MatchesNot(&'s str),
         // Case-sensitive comparison
+        Prefix(&'s str),
         Equals(&'s str),
         EqualsNot(&'s str),
     }
@@ -146,6 +148,7 @@ pub mod prelude {
         Matches(String),
         MatchesNot(String),
         // Case-sensitive comparison
+        Prefix(String),
         Equals(String),
         EqualsNot(String),
     }
@@ -161,6 +164,7 @@ pub mod prelude {
                 Self::ContainsNot(s) => StringPredicateBorrowed::ContainsNot(s.as_str()),
                 Self::Matches(s) => StringPredicateBorrowed::Matches(s.as_str()),
                 Self::MatchesNot(s) => StringPredicateBorrowed::MatchesNot(s.as_str()),
+                Self::Prefix(s) => StringPredicateBorrowed::Prefix(s.as_str()),
                 Self::Equals(s) => StringPredicateBorrowed::Equals(s.as_str()),
                 Self::EqualsNot(s) => StringPredicateBorrowed::EqualsNot(s.as_str()),
             }
@@ -179,6 +183,7 @@ pub mod prelude {
                 ContainsNot(s) => (StringCompare::Contains, s, false),
                 Matches(s) => (StringCompare::Matches, s, true),
                 MatchesNot(s) => (StringCompare::Matches, s, false),
+                Prefix(s) => (StringCompare::Prefix, s, true),
                 Equals(s) => (StringCompare::Equals, s, true),
                 EqualsNot(s) => (StringCompare::Equals, s, false),
             }

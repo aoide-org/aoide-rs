@@ -790,24 +790,33 @@ where
     // Filter labels
     if let Some(ref label) = tag_filter.label {
         let (cmp, val, dir) = label.borrow().into();
-        let either_eq_or_like = match cmp {
+        let string_cmp_op = match cmp {
             // Equal comparison without escape characters
-            StringCompare::Equals => EitherEqualOrLike::Equal(val.to_owned()),
+            StringCompare::Equals => StringCmpOp::Equal(val.to_owned()),
+            StringCompare::Prefix => StringCmpOp::Prefix(escape_single_quotes(val), val.len()),
             // Like comparisons with escaped wildcard character
-            StringCompare::StartsWith => EitherEqualOrLike::Like(escape_like_starts_with(val)),
-            StringCompare::EndsWith => EitherEqualOrLike::Like(escape_like_ends_with(val)),
-            StringCompare::Contains => EitherEqualOrLike::Like(escape_like_contains(val)),
-            StringCompare::Matches => EitherEqualOrLike::Like(escape_like_matches(val)),
+            StringCompare::StartsWith => StringCmpOp::Like(escape_like_starts_with(val)),
+            StringCompare::EndsWith => StringCmpOp::Like(escape_like_ends_with(val)),
+            StringCompare::Contains => StringCmpOp::Like(escape_like_contains(val)),
+            StringCompare::Matches => StringCmpOp::Like(escape_like_matches(val)),
         };
-        select = match either_eq_or_like {
-            EitherEqualOrLike::Equal(eq) => {
+        select = match string_cmp_op {
+            StringCmpOp::Equal(eq) => {
                 if dir {
                     select.filter(track_tag::label.eq(eq))
                 } else {
                     select.filter(track_tag::label.ne(eq))
                 }
             }
-            EitherEqualOrLike::Like(like) => {
+            StringCmpOp::Prefix(prefix, len) => {
+                let sql_prefix_filter = if dir {
+                    format!("substr(track_tag.label,1,{})='{}'", len, prefix)
+                } else {
+                    format!("substr(track_tag.label,1,{})<>'{}'", len, prefix)
+                };
+                select.filter(diesel::dsl::sql(&sql_prefix_filter))
+            }
+            StringCmpOp::Like(like) => {
                 if dir {
                     select.filter(track_tag::label.like(like).escape(LIKE_ESCAPE_CHARACTER))
                 } else {
@@ -885,24 +894,33 @@ where
     // Filter labels
     if let Some(label) = cue_label_filter.value {
         let (cmp, val, dir) = label.into();
-        let either_eq_or_like = match cmp {
+        let string_cmp_op = match cmp {
             // Equal comparison without escape characters
-            StringCompare::Equals => EitherEqualOrLike::Equal(val.to_owned()),
+            StringCompare::Equals => StringCmpOp::Equal(val.to_owned()),
+            StringCompare::Prefix => StringCmpOp::Prefix(escape_single_quotes(val), val.len()),
             // Like comparisons with escaped wildcard character
-            StringCompare::StartsWith => EitherEqualOrLike::Like(escape_like_starts_with(val)),
-            StringCompare::EndsWith => EitherEqualOrLike::Like(escape_like_ends_with(val)),
-            StringCompare::Contains => EitherEqualOrLike::Like(escape_like_contains(val)),
-            StringCompare::Matches => EitherEqualOrLike::Like(escape_like_matches(val)),
+            StringCompare::StartsWith => StringCmpOp::Like(escape_like_starts_with(val)),
+            StringCompare::EndsWith => StringCmpOp::Like(escape_like_ends_with(val)),
+            StringCompare::Contains => StringCmpOp::Like(escape_like_contains(val)),
+            StringCompare::Matches => StringCmpOp::Like(escape_like_matches(val)),
         };
-        select = match either_eq_or_like {
-            EitherEqualOrLike::Equal(eq) => {
+        select = match string_cmp_op {
+            StringCmpOp::Equal(eq) => {
                 if dir {
                     select.filter(track_cue::label.eq(eq))
                 } else {
                     select.filter(track_cue::label.ne(eq))
                 }
             }
-            EitherEqualOrLike::Like(like) => {
+            StringCmpOp::Prefix(prefix, len) => {
+                let sql_prefix_filter = if dir {
+                    format!("substr(track_cue.label,1,{})='{}'", len, prefix)
+                } else {
+                    format!("substr(track_cue.label,1,{})<>'{}'", len, prefix)
+                };
+                select.filter(diesel::dsl::sql(&sql_prefix_filter))
+            }
+            StringCmpOp::Like(like) => {
                 if dir {
                     select.filter(track_cue::label.like(like).escape(LIKE_ESCAPE_CHARACTER))
                 } else {

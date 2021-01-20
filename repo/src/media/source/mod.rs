@@ -54,6 +54,14 @@ pub trait Repo {
         uri: &str,
     ) -> RepoResult<(RecordHeader, Source)>;
 
+    fn relocate_media_sources_by_uri_prefix(
+        &self,
+        updated_at: DateTime,
+        collection_id: CollectionId,
+        old_uri_prefix: &str,
+        new_uri_prefix: &str,
+    ) -> RepoResult<usize>;
+
     fn purge_media_sources_by_uri_predicate(
         &self,
         collection_id: CollectionId,
