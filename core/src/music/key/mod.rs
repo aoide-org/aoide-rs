@@ -103,8 +103,14 @@ impl Default for KeyCode {
 
 impl fmt::Display for KeyCode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_traditional_str())
+    }
+}
+
+impl KeyCode {
+    pub fn as_traditional_str(self) -> &'static str {
         use KeyCode::*;
-        let as_str = match self {
+        match self {
             Unknown => "",
             Cmaj => "C",
             Amin => "a",
@@ -119,19 +125,329 @@ impl fmt::Display for KeyCode {
             Bmaj => "B",
             Abmin => "a♭/g♯",
             Gbmaj => "G♭/F♯",
-            Ebmin => "e♭/d♯m",
+            Ebmin => "e♭/d♯",
             Dbmaj => "D♭/C♯",
             Bbmin => "b♭",
             Abmaj => "A♭/G♯",
             Fmin => "f",
-            Ebmaj => "E♭/D♯m",
+            Ebmaj => "E♭/D♯",
             Cmin => "c",
             Bbmaj => "B♭",
             Gmin => "g",
             Fmaj => "F",
             Dmin => "d",
-        };
-        f.write_str(as_str)
+        }
+    }
+
+    pub fn from_traditional_str(s: &str) -> Self {
+        use KeyCode::*;
+        match s {
+            "C" => Cmaj,
+            "a" => Amin,
+            "G" => Gmaj,
+            "e" => Emin,
+            "D" => Dmaj,
+            "b" => Bmin,
+            "A" => Amaj,
+            "g♭" => Gbmin,
+            "f♯" => Gbmin,
+            "g♭/f♯" => Gbmin,
+            "E" => Emaj,
+            "d♭" => Dbmin,
+            "c♯" => Dbmin,
+            "d♭/c♯" => Dbmin,
+            "B" => Bmaj,
+            "a♭♯" => Abmin,
+            "g♯" => Abmin,
+            "a♭/g♯" => Abmin,
+            "G♭" => Gbmaj,
+            "F♯" => Gbmaj,
+            "G♭/F♯" => Gbmaj,
+            "e♭" => Ebmin,
+            "d♯" => Ebmin,
+            "e♭/d♯" => Ebmin,
+            "D♭" => Dbmaj,
+            "C♯" => Dbmaj,
+            "D♭/C♯" => Dbmaj,
+            "b♭" => Bbmin,
+            "A♭" => Abmaj,
+            "G♯" => Abmaj,
+            "A♭/G♯" => Abmaj,
+            "f" => Fmin,
+            "E♭" => Ebmaj,
+            "D♯" => Ebmaj,
+            "E♭/D♯" => Ebmaj,
+            "c" => Cmin,
+            "B♭" => Bbmaj,
+            "g" => Gmin,
+            "F" => Fmaj,
+            "d" => Dmin,
+            _ => Unknown,
+        }
+    }
+
+    pub fn as_openkey_str(self) -> &'static str {
+        use KeyCode::*;
+        match self {
+            Unknown => "",
+            Cmaj => "1d",
+            Amin => "1m",
+            Gmaj => "2d",
+            Emin => "2m",
+            Dmaj => "3d",
+            Bmin => "3m",
+            Amaj => "4d",
+            Gbmin => "4m",
+            Emaj => "5d",
+            Dbmin => "5m",
+            Bmaj => "6d",
+            Abmin => "6m",
+            Gbmaj => "7d",
+            Ebmin => "7m",
+            Dbmaj => "8d",
+            Bbmin => "8m",
+            Abmaj => "9d",
+            Fmin => "9m",
+            Ebmaj => "10d",
+            Cmin => "10m",
+            Bbmaj => "11d",
+            Gmin => "11m",
+            Fmaj => "12d",
+            Dmin => "12m",
+        }
+    }
+
+    pub fn from_openkey_str(s: &str) -> Self {
+        use KeyCode::*;
+        match s {
+            "1d" => Cmaj,
+            "1m" => Amin,
+            "2d" => Gmaj,
+            "2m" => Emin,
+            "3d" => Dmaj,
+            "3m" => Bmin,
+            "4d" => Amaj,
+            "4m" => Gbmin,
+            "5d" => Emaj,
+            "5m" => Dbmin,
+            "6d" => Bmaj,
+            "6m" => Abmin,
+            "7d" => Gbmaj,
+            "7m" => Ebmin,
+            "8d" => Dbmaj,
+            "8m" => Bbmin,
+            "9d" => Abmaj,
+            "9m" => Fmin,
+            "10d" => Ebmaj,
+            "10m" => Cmin,
+            "11d" => Bbmaj,
+            "11m" => Gmin,
+            "12d" => Fmaj,
+            "12m" => Dmin,
+            _ => Unknown,
+        }
+    }
+
+    pub fn as_lancelot_str(self) -> &'static str {
+        use KeyCode::*;
+        match self {
+            Unknown => "",
+            Cmaj => "8B",
+            Amin => "8A",
+            Gmaj => "9B",
+            Emin => "9A",
+            Dmaj => "10B",
+            Bmin => "10A",
+            Amaj => "11B",
+            Gbmin => "11A",
+            Emaj => "12B",
+            Dbmin => "12A",
+            Bmaj => "1B",
+            Abmin => "1A",
+            Gbmaj => "2B",
+            Ebmin => "2A",
+            Dbmaj => "3B",
+            Bbmin => "3A",
+            Abmaj => "4B",
+            Fmin => "4A",
+            Ebmaj => "5B",
+            Cmin => "5A",
+            Bbmaj => "6B",
+            Gmin => "6A",
+            Fmaj => "7B",
+            Dmin => "7A",
+        }
+    }
+
+    pub fn from_lancelot_str(s: &str) -> Self {
+        use KeyCode::*;
+        match s {
+            "8A" => Cmaj,
+            "8B" => Amin,
+            "9A" => Gmaj,
+            "9B" => Emin,
+            "10A" => Dmaj,
+            "10B" => Bmin,
+            "11A" => Amaj,
+            "11B" => Gbmin,
+            "12A" => Emaj,
+            "12B" => Dbmin,
+            "1A" => Bmaj,
+            "1B" => Abmin,
+            "2A" => Gbmaj,
+            "2B" => Ebmin,
+            "3A" => Dbmaj,
+            "3B" => Bbmin,
+            "4A" => Abmaj,
+            "4B" => Fmin,
+            "5A" => Ebmaj,
+            "5B" => Cmin,
+            "6A" => Bbmaj,
+            "6B" => Gmin,
+            "7A" => Fmaj,
+            "7B" => Dmin,
+            _ => Unknown,
+        }
+    }
+
+    pub fn as_tracksource_str(self) -> &'static str {
+        use KeyCode::*;
+        match self {
+            Unknown => "",
+            Cmaj => "Cmaj",
+            Amin => "Amin",
+            Gmaj => "Gmaj",
+            Emin => "Emin",
+            Dmaj => "Dmaj",
+            Bmin => "Bmin",
+            Amaj => "Amaj",
+            Gbmin => "F#min",
+            Emaj => "Emaj",
+            Dbmin => "C#min",
+            Bmaj => "Bmaj",
+            Abmin => "G#min",
+            Gbmaj => "F#maj",
+            Ebmin => "D#min",
+            Dbmaj => "C#maj",
+            Bbmin => "A#min",
+            Abmaj => "G#maj",
+            Fmin => "Fmin",
+            Ebmaj => "D#maj",
+            Cmin => "Cmin",
+            Bbmaj => "A#maj",
+            Gmin => "Gmin",
+            Fmaj => "Fmaj",
+            Dmin => "Dmin",
+        }
+    }
+
+    pub fn from_tracksource_str(s: &str) -> Self {
+        use KeyCode::*;
+        match s {
+            "Cmaj" => Cmaj,
+            "Amin" => Amin,
+            "Gmaj" => Gmaj,
+            "Emin" => Emin,
+            "Dmaj" => Dmaj,
+            "Bmin" => Bmin,
+            "Amaj" => Amaj,
+            "F#min" => Gbmin,
+            "Emaj" => Emaj,
+            "C#min" => Dbmin,
+            "Bmaj" => Bmaj,
+            "G#min" => Abmin,
+            "F#maj" => Gbmaj,
+            "D#min" => Ebmin,
+            "C#maj" => Dbmaj,
+            "A#min" => Bbmin,
+            "G#maj" => Abmaj,
+            "Fmin" => Fmin,
+            "D#maj" => Ebmaj,
+            "Cmin" => Cmin,
+            "A#maj" => Bbmaj,
+            "Gmin" => Gmin,
+            "Fmaj" => Fmaj,
+            "Dmin" => Dmin,
+            _ => Unknown,
+        }
+    }
+
+    pub fn as_beatport_str(self) -> &'static str {
+        use KeyCode::*;
+        match self {
+            Unknown => "",
+            Cmaj => "C maj",
+            Amin => "A min",
+            Gmaj => "G maj",
+            Emin => "E min",
+            Dmaj => "D maj",
+            Bmin => "B min",
+            Amaj => "Amaj",
+            Gbmin => "G♭/F♯ min",
+            Emaj => "E maj",
+            Dbmin => "D♭/C♯ min",
+            Bmaj => "B maj",
+            Abmin => "A♭/G♯ min",
+            Gbmaj => "G♭/F♯ maj",
+            Ebmin => "E♭/D♯ min",
+            Dbmaj => "D♭/C♯ maj",
+            Bbmin => "B♭/A♯ min",
+            Abmaj => "A♭/G♯ maj",
+            Fmin => "F min",
+            Ebmaj => "E♭/D♯ maj",
+            Cmin => "C min",
+            Bbmaj => "B♭/A♯ maj",
+            Gmin => "G min",
+            Fmaj => "F maj",
+            Dmin => "D min",
+        }
+    }
+
+    pub fn from_beatport_str(s: &str) -> Self {
+        use KeyCode::*;
+        match s {
+            "C maj" => Cmaj,
+            "A min" => Amin,
+            "G maj" => Gmaj,
+            "E min" => Emin,
+            "D maj" => Dmaj,
+            "B min" => Bmin,
+            "A maj" => Amaj,
+            "G♭ min" => Gbmin,
+            "F♯ min" => Gbmin,
+            "G♭/F♯ min" => Gbmin,
+            "E maj" => Emaj,
+            "D♭ min" => Dbmin,
+            "C♯ min" => Dbmin,
+            "D♭/C♯ min" => Dbmin,
+            "B maj" => Bmaj,
+            "A♭♯ min" => Abmin,
+            "G♯ min" => Abmin,
+            "A♭/G♯ min" => Abmin,
+            "G♭ maj" => Gbmaj,
+            "F♯ maj" => Gbmaj,
+            "G♭/F♯ maj" => Gbmaj,
+            "E♭ min" => Ebmin,
+            "D♯ min" => Ebmin,
+            "E♭/D♯ min" => Ebmin,
+            "D♭ maj" => Dbmaj,
+            "C♯ maj" => Dbmaj,
+            "D♭/C♯ maj" => Dbmaj,
+            "B♭ min" => Bbmin,
+            "A♭ maj" => Abmaj,
+            "G♯ maj" => Abmaj,
+            "A♭/G♯ maj" => Abmaj,
+            "F min" => Fmin,
+            "E♭ maj" => Ebmaj,
+            "D♯ maj" => Ebmaj,
+            "E♭/D♯ maj" => Ebmaj,
+            "C min" => Cmin,
+            "B♭ maj" => Bbmaj,
+            "G min" => Gmin,
+            "F maj" => Fmaj,
+            "D min" => Dmin,
+            _ => Unknown,
+        }
     }
 }
 
@@ -256,20 +572,7 @@ impl From<OpenKeySignature> for KeySignature {
 
 impl fmt::Display for OpenKeySignature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(mode) = self.mode() {
-            write!(
-                f,
-                "{}{}",
-                self.code(),
-                match mode {
-                    KeyMode::Major => 'd',
-                    KeyMode::Minor => 'm',
-                }
-            )
-        } else {
-            // Undefined
-            f.write_str("")
-        }
+        f.write_str(self.0.code().as_openkey_str())
     }
 }
 
@@ -322,20 +625,7 @@ impl From<LancelotKeySignature> for KeySignature {
 
 impl fmt::Display for LancelotKeySignature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(mode) = self.mode() {
-            write!(
-                f,
-                "{}{}",
-                self.code(),
-                match mode {
-                    KeyMode::Major => 'B',
-                    KeyMode::Minor => 'A',
-                }
-            )
-        } else {
-            // Undefined
-            f.write_str("")
-        }
+        f.write_str(self.0.code().as_lancelot_str())
     }
 }
 
