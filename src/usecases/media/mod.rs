@@ -13,10 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{
-    io::BufReader,
-    path::{Path, PathBuf},
-};
+use std::io::BufReader;
 
 use super::*;
 
@@ -27,33 +24,113 @@ use aoide_media::{
     ImportTrackConfig, ImportTrackOptions, NewTrackInput, Reader,
 };
 
-use aoide_repo::{collection::EntityRepo as _, media::source::Repo as _};
+use aoide_repo::{
+    collection::EntityRepo as _,
+    media::{
+        dir_cache::{CacheStatus, Repo as _, UpdateOutcome},
+        source::Repo as _,
+    },
+};
 
 use url::Url;
 
 ///////////////////////////////////////////////////////////////////////
 
-pub type PathDigest = [u8; 32];
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PathWithDigest {
-    pub path: PathBuf,
-    pub digest: PathDigest,
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct DirectoryScanOutcome {
+    pub current: usize,
+    pub added: usize,
+    pub modified: usize,
+    pub orphaned: usize,
 }
 
-pub fn index_directories_recursively(
-    root_path: &Path,
-    expected_number_of_directories: usize,
-) -> Result<Vec<PathWithDigest>> {
-    let mut path_with_digests = Vec::with_capacity(expected_number_of_directories);
-    media_digest::digest_directories_recursively(root_path, blake3::Hasher::new, |path, digest| {
-        path_with_digests.push(PathWithDigest {
-            path,
-            digest: PathDigest::from(digest),
-        });
-    })
-    .map_err(Error::Media)?;
-    Ok(path_with_digests)
+pub fn scan_directories_recursively(
+    connection: &SqliteConnection,
+    collection_uid: &EntityUid,
+    root_dir_url: &Url,
+) -> Result<DirectoryScanOutcome> {
+    let db = RepoConnection::new(connection);
+    if root_dir_url.scheme() != "file" {
+        return Err(Error::Media(
+            anyhow::format_err!("Unsupported URL scheme '{}'", root_dir_url.scheme()).into(),
+        ));
+    }
+    if !root_dir_url.as_str().ends_with('/') {
+        return Err(Error::Media(
+            anyhow::format_err!("URL path does not end with a trailing slash").into(),
+        ));
+    }
+    let root_path = match root_dir_url.to_file_path() {
+        Ok(file_path) => file_path,
+        Err(()) => {
+            return Err(Error::Media(
+                anyhow::format_err!("URL is not a file path '{}'", root_dir_url).into(),
+            ));
+        }
+    };
+    if !root_path.is_absolute() {
+        return Err(Error::Media(
+            anyhow::format_err!("Root file path is not absolute: {}", root_path.display()).into(),
+        ));
+    }
+    let mut outcome = DirectoryScanOutcome::default();
+    db.transaction::<_, DieselRepoError, _>(|| {
+        let collection_id = db.resolve_collection_id(collection_uid)?;
+        let updated_at = DateTime::now_utc();
+        let outdated_count = db.media_dir_cache_update_entries_status(
+            updated_at,
+            collection_id,
+            root_dir_url.as_str(),
+            None,
+            CacheStatus::Outdated,
+        )?;
+        log::debug!("Marked {} cache entries as outdated", outdated_count);
+        media_digest::digest_directories_recursively::<_, _, anyhow::Error, _>(
+            &root_path,
+            blake3::Hasher::new,
+            |path, digest| {
+                debug_assert!(path.is_relative());
+                let full_path = root_path.join(&path);
+                debug_assert!(full_path.is_absolute());
+                let url = Url::from_directory_path(&full_path).expect("URL");
+                debug_assert!(url.as_str().starts_with(root_dir_url.as_str()));
+                match db
+                    .media_dir_cache_update_entry_digest(
+                        updated_at,
+                        collection_id,
+                        url.as_str(),
+                        &digest.into(),
+                    )
+                    .map_err(anyhow::Error::from)?
+                {
+                    UpdateOutcome::Current => {
+                        outcome.current += 1;
+                    }
+                    UpdateOutcome::Inserted => {
+                        log::debug!("Found new directory: {}", full_path.display());
+                        outcome.added += 1;
+                    }
+                    UpdateOutcome::Updated => {
+                        log::debug!("Found modified directory: {}", full_path.display());
+                        outcome.modified += 1;
+                    }
+                }
+                Ok(())
+            },
+        )
+        .map_err(anyhow::Error::from)
+        .map_err(RepoError::from)?;
+        outcome.orphaned = db.media_dir_cache_update_entries_status(
+            updated_at,
+            collection_id,
+            root_dir_url.as_str(),
+            Some(CacheStatus::Outdated),
+            CacheStatus::Orphaned,
+        )?;
+        debug_assert!(outcome.orphaned <= outdated_count);
+        Ok(())
+    })?;
+    Ok(outcome)
 }
 
 pub fn import_track_from_url(

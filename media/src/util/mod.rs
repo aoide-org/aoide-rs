@@ -371,12 +371,12 @@ pub fn parse_year_tag(input: &str) -> Option<DateOrDateTime> {
 }
 
 #[derive(Debug, Default)]
-pub struct ContentDigest {
+pub struct MediaDigest {
     default_blake3: Option<blake3::Hasher>,
     legacy_sha256: Option<Sha256>,
 }
 
-impl ContentDigest {
+impl MediaDigest {
     pub const fn digest_size() -> usize {
         32
     }
@@ -417,7 +417,7 @@ impl ContentDigest {
 pub fn parse_artwork_from_embedded_image(
     image_data: &[u8],
     image_format: Option<ImageFormat>,
-    image_digest: &mut ContentDigest,
+    image_digest: &mut MediaDigest,
 ) -> Option<Artwork> {
     let media_type = match image_format {
         Some(ImageFormat::Jpeg) => IMAGE_JPEG.to_string(),

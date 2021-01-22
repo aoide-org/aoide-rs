@@ -290,8 +290,7 @@ pub async fn main() -> Result<(), Error> {
     let collected_media_sources_relocate = warp::post()
         .and(collections_path)
         .and(path_param_uid)
-        .and(media_path)
-        .and(warp::path("relocate-sources"))
+        .and(warp::path("relocate-media-sources"))
         .and(warp::path::end())
         .and(warp::body::json())
         .and(guarded_connection_pool.clone())
@@ -304,6 +303,30 @@ pub async fn main() -> Result<(), Error> {
                             pooled_connection,
                             &uid,
                             request_body,
+                        )
+                    },
+                )
+                .await
+                .map_err(reject_on_error)
+                .map(|response_body| warp::reply::json(&response_body))
+            },
+        );
+    let collected_media_sources_scan_directories = warp::post()
+        .and(collections_path)
+        .and(path_param_uid)
+        .and(warp::path("scan-media-directories"))
+        .and(warp::path::end())
+        .and(warp::query())
+        .and(guarded_connection_pool.clone())
+        .and_then(
+            |uid, query_params, guarded_connection_pool: GuardedConnectionPool| async move {
+                spawn_blocking_database_write_task(
+                    guarded_connection_pool,
+                    move |pooled_connection| {
+                        media::scan_directories::handle_request(
+                            pooled_connection,
+                            &uid,
+                            query_params,
                         )
                     },
                 )
@@ -596,20 +619,6 @@ pub async fn main() -> Result<(), Error> {
         .or(playlists_delete)
         .or(playlists_entries_patch);
 
-    let media_index_directories = warp::post()
-        .and(media_path)
-        .and(warp::path("index-directories"))
-        .and(warp::path::end())
-        .and(warp::query())
-        .and_then(|query_params| async move {
-            tokio::task::spawn_blocking(move || {
-                media::index_directories::handle_request(query_params)
-            })
-            .await
-            .map_err(reject_on_error)? // JoinError
-            .map_err(reject_on_error)
-            .map(|response_body| warp::reply::json(&response_body))
-        });
     let media_import_track = warp::post()
         .and(media_path)
         .and(warp::path("import-track"))
@@ -675,8 +684,8 @@ pub async fn main() -> Result<(), Error> {
             .or(collections_filters)
             .or(tracks_filters)
             .or(playlists_filters)
-            .or(media_index_directories) // undocumented
             .or(media_import_track) // undocumented
+            .or(collected_media_sources_scan_directories)
             .or(collected_media_sources_relocate)
             .or(storage_filters)
             .or(static_filters)

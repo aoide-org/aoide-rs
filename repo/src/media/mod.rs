@@ -13,4 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+pub mod dir_cache;
 pub mod source;
+
+pub type DigestBytes = [u8; 32];

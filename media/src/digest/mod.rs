@@ -15,15 +15,15 @@
 
 ///////////////////////////////////////////////////////////////////////
 
-use crate::Result;
+use crate::{Error, Result};
 
-use anyhow::anyhow;
 use bytes::BufMut as _;
 use digest::Digest;
 use std::{
     ffi::OsStr,
     fs, io,
     path::{Path, PathBuf},
+    result::Result as StdResult,
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 use walkdir::{DirEntry, WalkDir};
@@ -142,16 +142,14 @@ fn is_hidden_dir_entry(dir_entry: &DirEntry) -> bool {
 pub fn digest_directories_recursively<
     D: Digest,
     N: FnMut() -> D,
-    R: FnMut(PathBuf, digest::Output<D>),
+    E: Into<Error>,
+    R: FnMut(PathBuf, digest::Output<D>) -> StdResult<(), E>,
 >(
     root_path: &Path,
     mut new_digest: N,
     mut receive_dir_path_digest: R,
 ) -> Result<usize> {
-    if !root_path.is_dir() {
-        return Err(anyhow!("Root path '{}' is not a directory", root_path.display()).into());
-    }
-    log::info!("Indexing all directories in '{}'", root_path.display());
+    log::info!("Scanning all directories in '{}'", root_path.display());
 
     let started = Instant::now();
     let mut ancestors: Vec<(PathBuf, D)> = Vec::with_capacity(64); // capacity <= max. expected depth
@@ -202,31 +200,34 @@ pub fn digest_directories_recursively<
             continue;
         }
 
-        if let Some((ancestor_path, ancestor_digest)) = ancestors.last_mut() {
+        let mut push_ancestor = true;
+        while let Some((ancestor_path, ancestor_digest)) = ancestors.last_mut() {
             if parent_path.starts_with(&ancestor_path) {
-                // Continue this line of ancestors
-                debug_assert_eq!(parent_path.as_os_str(), ancestor_path.as_os_str());
-                digest_walkdir_entry_for_detecting_changes(ancestor_digest, &dir_entry)?;
-                continue;
+                if parent_path == ancestor_path {
+                    // Keep last ancestor on stack and stay in this line of ancestors
+                    digest_walkdir_entry_for_detecting_changes(ancestor_digest, &dir_entry)?;
+                    push_ancestor = false;
+                }
+                break;
             }
-        }
-        if let Some((ancestor_path, ancestor_digest)) = ancestors.pop() {
-            debug_assert_ne!(parent_path.as_os_str(), ancestor_path.as_os_str());
+            let (ancestor_path, ancestor_digest) = ancestors.pop().expect("last ancestor");
             let ancestor_digest = ancestor_digest.finalize();
-            log::debug!("Finished non-empty directory: {}", ancestor_path.display());
-            receive_dir_path_digest(ancestor_path, ancestor_digest);
+            log::trace!("Finished non-empty directory: {}", ancestor_path.display());
+            receive_dir_path_digest(ancestor_path, ancestor_digest).map_err(Into::into)?;
             total_count += 1;
         }
-        log::debug!("Found non-empty directory: {}", parent_path.display());
-        let mut digest = new_digest();
-        digest_walkdir_entry_for_detecting_changes(&mut digest, &dir_entry)?;
-        ancestors.push((parent_path.to_path_buf(), digest));
+        if push_ancestor {
+            log::trace!("Found non-empty directory: {}", parent_path.display());
+            let mut digest = new_digest();
+            digest_walkdir_entry_for_detecting_changes(&mut digest, &dir_entry)?;
+            ancestors.push((parent_path.to_path_buf(), digest));
+        }
     }
     // Unwind the stack of remaining ancestors
     while let Some((ancestor_path, ancestor_digest)) = ancestors.pop() {
         let ancestor_digest = ancestor_digest.finalize();
-        log::debug!("Finished non-empty directory: {}", ancestor_path.display());
-        receive_dir_path_digest(ancestor_path, ancestor_digest);
+        log::trace!("Finished non-empty directory: {}", ancestor_path.display());
+        receive_dir_path_digest(ancestor_path, ancestor_digest).map_err(Into::into)?;
         total_count += 1;
     }
     let elapsed = started.elapsed();

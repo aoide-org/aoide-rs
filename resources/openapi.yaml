@@ -270,13 +270,45 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /c/{collectionUid}/m/relocate-sources:
+  /c/{collectionUid}/scan-media-directories:
+    post:
+      operationId: scanCollectedMediaDirectories
+      summary: Scan a root directory for content changes
+      description: |
+        Recursively scan a root directory for content changes, i.e.
+        added/modified/removed files and directories.
+
+        For each directory a cryptographic hash is calculated and cached in
+        the database for further processing, e.g. import of track metadata.
+
+        Previously hashed directories that are not discovered again during
+        a subsequent scan are marked and counted as *orphaned*.
+
+        This operation is only provided temporarily for testing!
+      tags:
+        - Collected Media Sources
+      parameters:
+        - $ref: '#/components/parameters/collectionUidPath'
+        - $ref: '#/components/parameters/rootDirectoryUrlQuery'
+      responses:
+        '200':
+          description: |
+            Batch operation succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanCollectedMediaDirectoriesResponseBody'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /c/{collectionUid}/relocate-media-sources:
     post:
       operationId: relocateCollectedMediaSources
       summary: Relocate collected media sources by URI prefix
       description: |
         Relocate media sources with a common URI prefix by replacing
         this prefix in their URI with a new prefix.
+
+        The URI comparison is case-sensitive.
       tags:
         - Collected Media Sources
       parameters:
@@ -698,6 +730,19 @@ components:
         $ref: '#/components/schemas/PlaylistUid'
       description: |
         The UID of the playlist.
+    rootDirectoryUrlQuery:
+      name: rootDirUrl
+      in: query
+      required: true
+      schema:
+        $ref: '#/components/schemas/URI'
+      description: |
+        A percent-encoded `file://` URL ending with a trailing `/` that
+        locates a directory path on the local file system.
+
+        Please note that the percent-encoding might need to be applied twice
+        when passed as a query parameter, i.e. ':' is replaced by '%3A' and
+        '/' is replaced by '%2F'.
     trackUidPath:
       name: trackUid
       in: path
@@ -1004,7 +1049,7 @@ components:
       properties:
         idx:
           $ref: '#/components/schemas/ColorIndex'
-    ContentDigest:
+    MediaDigest:
       description: |
         A crypographic hash encoded as *base64url* (RFC 4648) without padding
         that can be used as a fingerprint of arbitrary, variable-length content
@@ -1130,7 +1175,7 @@ components:
         identifies the contents of an image for cache lookup and to decide about
         modifications, e.g. a SHA256 hash of the raw image data.
       allOf:
-        - $ref: '#/components/schemas/ContentDigest'
+        - $ref: '#/components/schemas/MediaDigest'
     ImageSize:
       description: |
         Width and height of an image in pixels
@@ -1278,7 +1323,7 @@ components:
         contentType:
           $ref: '#/components/schemas/MediaType'
         contentDigest:
-          $ref: '#/components/schemas/ContentDigest'
+          $ref: '#/components/schemas/MediaDigest'
         ContentMetadataFlags:
           $ref: '#/components/schemas/ContentMetadataFlags'
         artwork:
@@ -1845,6 +1890,30 @@ components:
     ReleaseDateTime:
       allOf:
         - $ref: '#/components/schemas/DateTime'
+    ScanCollectedMediaDirectoriesResponseBody:
+      type: object
+      properties:
+        current:
+          type: number
+          format: int
+          minimum: 0
+        added:
+          type: number
+          format: int
+          minimum: 0
+        modified:
+          type: number
+          format: int
+          minimum: 0
+        orphaned:
+          type: number
+          format: int
+          minimum: 0
+      required:
+        - current
+        - added
+        - modified
+        - orphaned
     RelocateCollectedMediaSourcesRequestBody:
       type: object
       properties:

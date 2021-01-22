@@ -47,7 +47,7 @@ use image::ImageFormat;
 use mp4ameta::{atom::read_tag_from, Data, FourCC, FreeformIdent, STANDARD_GENRES};
 use semval::IsValid as _;
 use std::io::SeekFrom;
-use util::{parse_artwork_from_embedded_image, ContentDigest};
+use util::{parse_artwork_from_embedded_image, MediaDigest};
 
 #[derive(Debug)]
 pub struct ImportTrack;
@@ -445,10 +445,10 @@ impl super::ImportTrack for ImportTrack {
             let mut image_digest = if options.contains(ImportTrackOptions::ARTWORK_DIGEST) {
                 if options.contains(ImportTrackOptions::MIXXX_ARTWORK_DIGEST_SHA256) {
                     // Compatibility
-                    ContentDigest::sha256()
+                    MediaDigest::sha256()
                 } else {
                     // Default
-                    ContentDigest::new()
+                    MediaDigest::new()
                 }
             } else {
                 Default::default()

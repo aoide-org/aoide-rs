@@ -19,39 +19,53 @@ mod uc {
     pub use crate::usecases::media::*;
 }
 
-use aoide_core_serde::media::Digest as SerdeDigest;
+use aoide_core::entity::EntityUid;
 
-use std::{collections::HashMap, path::Path};
+use url::Url;
 
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct QueryParams {
-    pub root_path: String,
-    pub expected_count: Option<u32>,
+    pub root_dir_url: Url,
 }
 
-pub type ResponseBody = HashMap<String, SerdeDigest>;
+#[derive(Debug, Clone, Serialize)]
+pub struct DirectoryScanOutcome {
+    pub current: usize,
+    pub added: usize,
+    pub modified: usize,
+    pub orphaned: usize,
+}
 
-pub fn handle_request(query_params: QueryParams) -> Result<ResponseBody> {
-    let QueryParams {
-        root_path,
-        expected_count,
-    } = query_params;
-    let root_path = Path::new(&root_path);
-    let expected_number_of_directories = expected_count.unwrap_or(16_384).min(65_536) as usize;
+impl From<uc::DirectoryScanOutcome> for DirectoryScanOutcome {
+    fn from(from: uc::DirectoryScanOutcome) -> Self {
+        let uc::DirectoryScanOutcome {
+            current,
+            added,
+            modified,
+            orphaned,
+        } = from;
+        Self {
+            current,
+            added,
+            modified,
+            orphaned,
+        }
+    }
+}
+
+pub type ResponseBody = DirectoryScanOutcome;
+
+pub fn handle_request(
+    pooled_connection: SqlitePooledConnection,
+    collection_uid: &EntityUid,
+    query_params: QueryParams,
+) -> Result<ResponseBody> {
+    let QueryParams { root_dir_url } = query_params;
     Ok(
-        uc::index_directories_recursively(root_path, expected_number_of_directories).map(|v| {
-            v.into_iter()
-                .map(|path_with_digest| {
-                    let uc::PathWithDigest { path, digest } = path_with_digest;
-                    (
-                        path.to_string_lossy().to_string(),
-                        SerdeDigest::encode(&digest),
-                    )
-                })
-                .collect()
-        })?,
+        uc::scan_directories_recursively(&pooled_connection, collection_uid, &root_dir_url)
+            .map(Into::into)?,
     )
 }

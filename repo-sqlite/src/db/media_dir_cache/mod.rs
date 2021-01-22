@@ -13,28 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod collection;
-pub mod media_dir_cache;
-pub mod media_source;
-pub mod playlist;
-pub mod playlist_entry;
-pub mod track;
-pub mod track_actor;
-pub mod track_cue;
-pub mod track_tag;
-pub mod track_title;
+pub mod models;
+pub mod schema;
 
-mod join {
-    use crate::db::{
-        collection::schema::*, media_source::schema::*, playlist::schema::*,
-        playlist_entry::schema::*, track::schema::*,
-    };
-
-    allow_tables_to_appear_in_same_query!(
-        collection,
-        media_source,
-        track,
-        playlist,
-        playlist_entry
-    );
-}
+use crate::prelude::*;

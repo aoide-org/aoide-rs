@@ -41,6 +41,7 @@ env_logger = "*"
 futures = "*"
 anyhow = "*"
 log = "*"
+percent-encoding = "*"
 r2d2 = "*"
 semval = { version = ">= 0.1.7" }
 serde = "*"

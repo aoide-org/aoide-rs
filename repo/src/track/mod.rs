@@ -162,7 +162,7 @@ pub enum ReplaceMode {
 #[derive(Clone, Debug, PartialEq)]
 pub enum ReplaceOutcome {
     NotCreated(Track),
-    NotUpdated(RecordId, Track),
+    Orphaned(RecordId, Track),
     Created(RecordId, Entity),
     Updated(RecordId, Entity),
     Unchanged(RecordId, Entity),

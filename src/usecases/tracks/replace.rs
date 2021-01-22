@@ -69,7 +69,7 @@ pub fn replace_by_media_source_uri(
                     log::debug!("Not created: {:?}", track);
                     outcome.not_created.push(track);
                 }
-                ReplaceOutcome::NotUpdated(_, track) => {
+                ReplaceOutcome::Orphaned(_, track) => {
                     debug_assert_eq!(ReplaceMode::CreateOnly, replace_mode);
                     log::debug!("Not updated: {:?}", track);
                     outcome.not_created.push(track);

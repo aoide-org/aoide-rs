@@ -589,7 +589,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             // Update existing entry
             let id = record_header.id;
             if replace_mode == ReplaceMode::CreateOnly {
-                return Ok(ReplaceOutcome::NotUpdated(id, track));
+                return Ok(ReplaceOutcome::Orphaned(id, track));
             }
             if entity.body == track {
                 return Ok(ReplaceOutcome::Unchanged(id, entity));

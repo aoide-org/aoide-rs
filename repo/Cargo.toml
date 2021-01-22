@@ -9,6 +9,8 @@ edition = "2018"
 [dependencies]
 aoide-core = "*"
 anyhow = "*"
+num-derive = "*"
+num-traits = "*"
 paste = "*"
 rand = "*"
 thiserror = "*"

@@ -27,7 +27,7 @@ use aoide_repo::prelude::{Pagination, PaginationLimit, PaginationOffset, RepoErr
 
 use aoide_core_serde::entity::EntityRevision;
 
-use reject::MethodNotAllowed;
+use reject::{InvalidHeader, InvalidQuery, MethodNotAllowed};
 use serde::{Deserialize, Serialize};
 
 use warp::{
@@ -139,6 +139,18 @@ pub async fn handle_rejection(reject: Rejection) -> StdResult<impl Reply, Infall
     {
         code = custom_code.to_owned();
         message = custom_message.to_owned();
+    } else if let Some(err) = reject.find::<InvalidHeader>() {
+        code = StatusCode::BAD_REQUEST;
+        message = err
+            .source()
+            .map(ToString::to_string)
+            .unwrap_or_else(|| err.to_string());
+    } else if let Some(err) = reject.find::<InvalidQuery>() {
+        code = StatusCode::BAD_REQUEST;
+        message = err
+            .source()
+            .map(ToString::to_string)
+            .unwrap_or_else(|| err.to_string());
     } else if let Some(err) = reject.find::<BodyDeserializeError>() {
         code = StatusCode::BAD_REQUEST;
         message = err
