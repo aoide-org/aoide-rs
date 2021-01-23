@@ -31,8 +31,9 @@ pub type DirCacheRecordHeader = crate::RecordHeader<DirCacheRecordId>;
 pub enum CacheStatus {
     Current = 0,
     Outdated = 1,
-    Updated = 2,
-    Orphaned = 3,
+    Added = 2,
+    Modified = 3,
+    Orphaned = 4,
 }
 
 pub type CacheDigest = DigestBytes;
@@ -55,8 +56,8 @@ impl UpdateOutcome {
     pub const fn resulting_status(self) -> CacheStatus {
         match self {
             Self::Current => CacheStatus::Current,
-            Self::Inserted => CacheStatus::Updated,
-            Self::Updated => CacheStatus::Updated,
+            Self::Inserted => CacheStatus::Added,
+            Self::Updated => CacheStatus::Modified,
         }
     }
 }

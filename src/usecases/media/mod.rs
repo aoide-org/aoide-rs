@@ -107,7 +107,7 @@ pub fn scan_directories_recursively(
                         outcome.current += 1;
                     }
                     UpdateOutcome::Inserted => {
-                        log::debug!("Found new directory: {}", full_path.display());
+                        log::debug!("Found added directory: {}", full_path.display());
                         outcome.added += 1;
                     }
                     UpdateOutcome::Updated => {

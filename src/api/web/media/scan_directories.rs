@@ -32,6 +32,7 @@ pub struct QueryParams {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct DirectoryScanOutcome {
     pub current: usize,
     pub added: usize,

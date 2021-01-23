@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS media_dir_cache (
     collection_id          INTEGER NOT NULL,
     -- properties
     uri                    TEXT NOT NULL,
-    status                 TINYINT NOT NULL, -- 0 = current, 1 = outdated (scheduled for updating), 2 = updated, 3 = lost (not found during updating)
+    status                 TINYINT NOT NULL, -- 0 = current, 1 = outdated, 3 = added, 3 = modified, 4 = orphaned
     digest                 BINARY,           -- cryptographic hash of the directory's contents (file metadata)
     --
     FOREIGN KEY(collection_id) REFERENCES collection(row_id),

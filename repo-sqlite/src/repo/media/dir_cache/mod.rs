@@ -90,7 +90,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             .filter(media_dir_cache::digest.ne(&digest[..]));
         let query = diesel::update(target).set((
             media_dir_cache::row_updated_ms.eq(updated_at.timestamp_millis()),
-            media_dir_cache::status.eq(CacheStatus::Updated.to_i16().expect("updated")),
+            media_dir_cache::status.eq(CacheStatus::Modified.to_i16().expect("modified")),
             media_dir_cache::digest.eq(&digest[..]),
         ));
         let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
@@ -113,7 +113,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         }
         // Finally insert a new entry, which is supposed to occur only infrequently
         let insertable =
-            InsertableRecord::bind(updated_at, collection_id, uri, CacheStatus::Updated, digest);
+            InsertableRecord::bind(updated_at, collection_id, uri, CacheStatus::Added, digest);
         let query = diesel::insert_into(media_dir_cache::table).values(&insertable);
         let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
         debug_assert!(rows_affected == 1);
