@@ -83,7 +83,26 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         uri: &str,
         digest: &CacheDigest,
     ) -> RepoResult<UpdateOutcome> {
-        // Try to update entry
+        // Try to mark outdated entry as current if digest is unchanged (most likely)
+        let target = media_dir_cache::table
+            .filter(media_dir_cache::collection_id.eq(RowId::from(collection_id)))
+            .filter(media_dir_cache::uri.eq(uri))
+            .filter(media_dir_cache::digest.eq(&digest[..]))
+            // Filtering by CacheStatus::Outdated allows to safely trigger a rescan even
+            // if entries that have previously been marked as added or modified are still
+            // pending for subsequent processing, e.g. (re-)importing their metadata.
+            // Those entries will finally be skipped (see below).
+            .filter(media_dir_cache::status.eq(CacheStatus::Outdated.to_i16().expect("outdated")));
+        let query = diesel::update(target).set((
+            media_dir_cache::row_updated_ms.eq(updated_at.timestamp_millis()),
+            media_dir_cache::status.eq(CacheStatus::Current.to_i16().expect("current")),
+        ));
+        let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
+        debug_assert!(rows_affected <= 1);
+        if rows_affected > 0 {
+            return Ok(UpdateOutcome::Current);
+        }
+        // Try to mark existing entry (with any status) as modified if digest has changed (less likely)
         let target = media_dir_cache::table
             .filter(media_dir_cache::collection_id.eq(RowId::from(collection_id)))
             .filter(media_dir_cache::uri.eq(uri))
@@ -98,25 +117,17 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         if rows_affected > 0 {
             return Ok(UpdateOutcome::Updated);
         }
-        // Try to mark entry with unmodified digest as current
-        let target = media_dir_cache::table
-            .filter(media_dir_cache::collection_id.eq(RowId::from(collection_id)))
-            .filter(media_dir_cache::uri.eq(uri));
-        let query = diesel::update(target).set((
-            media_dir_cache::row_updated_ms.eq(updated_at.timestamp_millis()),
-            media_dir_cache::status.eq(CacheStatus::Current.to_i16().expect("current")),
-        ));
+        // Try to add a new entry (least likely)
+        let insertable =
+            InsertableRecord::bind(updated_at, collection_id, uri, CacheStatus::Added, digest);
+        let query = diesel::insert_or_ignore_into(media_dir_cache::table).values(&insertable);
         let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
         if rows_affected > 0 {
-            return Ok(UpdateOutcome::Current);
+            return Ok(UpdateOutcome::Inserted);
         }
-        // Finally insert a new entry, which is supposed to occur only infrequently
-        let insertable =
-            InsertableRecord::bind(updated_at, collection_id, uri, CacheStatus::Added, digest);
-        let query = diesel::insert_into(media_dir_cache::table).values(&insertable);
-        let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
-        debug_assert!(rows_affected == 1);
-        Ok(UpdateOutcome::Inserted)
+        // Skip entries that have previously been marked as either added or
+        // modified if their digest didn't change.
+        Ok(UpdateOutcome::Skipped)
     }
 }

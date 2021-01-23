@@ -38,6 +38,7 @@ pub struct DirectoryScanOutcome {
     pub added: usize,
     pub modified: usize,
     pub orphaned: usize,
+    pub skipped: usize,
 }
 
 impl From<uc::DirectoryScanOutcome> for DirectoryScanOutcome {
@@ -47,12 +48,14 @@ impl From<uc::DirectoryScanOutcome> for DirectoryScanOutcome {
             added,
             modified,
             orphaned,
+            skipped,
         } = from;
         Self {
             current,
             added,
             modified,
             orphaned,
+            skipped,
         }
     }
 }

@@ -50,6 +50,7 @@ pub enum UpdateOutcome {
     Current,
     Inserted,
     Updated,
+    Skipped,
 }
 
 impl UpdateOutcome {
@@ -58,6 +59,7 @@ impl UpdateOutcome {
             Self::Current => CacheStatus::Current,
             Self::Inserted => CacheStatus::Added,
             Self::Updated => CacheStatus::Modified,
+            Self::Skipped => CacheStatus::Outdated,
         }
     }
 }

@@ -42,6 +42,7 @@ pub struct DirectoryScanOutcome {
     pub added: usize,
     pub modified: usize,
     pub orphaned: usize,
+    pub skipped: usize,
 }
 
 pub fn scan_directories_recursively(
@@ -81,10 +82,13 @@ pub fn scan_directories_recursively(
             updated_at,
             collection_id,
             root_dir_url.as_str(),
-            None,
+            Some(CacheStatus::Current),
             CacheStatus::Outdated,
         )?;
-        log::debug!("Marked {} cache entries as outdated", outdated_count);
+        log::debug!(
+            "Marked {} current cache entries as outdated",
+            outdated_count
+        );
         media_digest::digest_directories_recursively::<_, _, anyhow::Error, _>(
             &root_path,
             blake3::Hasher::new,
@@ -113,6 +117,10 @@ pub fn scan_directories_recursively(
                     UpdateOutcome::Updated => {
                         log::debug!("Found modified directory: {}", full_path.display());
                         outcome.modified += 1;
+                    }
+                    UpdateOutcome::Skipped => {
+                        log::debug!("Found modified directory: {}", full_path.display());
+                        outcome.skipped += 1;
                     }
                 }
                 Ok(())
