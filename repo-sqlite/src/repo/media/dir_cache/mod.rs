@@ -22,7 +22,7 @@ use aoide_core::util::clock::DateTime;
 
 use aoide_repo::{collection::RecordId as CollectionId, media::dir_cache::*};
 
-use num_traits::ToPrimitive as _;
+use num_traits::{FromPrimitive as _, ToPrimitive as _};
 
 impl<'db> Repo for crate::prelude::Connection<'db> {
     fn media_dir_cache_update_entries_status(
@@ -92,7 +92,12 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             // if entries that have previously been marked as added or modified are still
             // pending for subsequent processing, e.g. (re-)importing their metadata.
             // Those entries will finally be skipped (see below).
-            .filter(media_dir_cache::status.eq(CacheStatus::Outdated.to_i16().expect("outdated")));
+            .filter(
+                media_dir_cache::status
+                    .eq(CacheStatus::Outdated.to_i16().expect("outdated"))
+                    .or(media_dir_cache::status
+                        .eq(CacheStatus::Orphaned.to_i16().expect("orphaned"))),
+            );
         let query = diesel::update(target).set((
             media_dir_cache::row_updated_ms.eq(updated_at.timestamp_millis()),
             media_dir_cache::status.eq(CacheStatus::Current.to_i16().expect("current")),
@@ -130,4 +135,25 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         // modified if their digest didn't change.
         Ok(UpdateOutcome::Skipped)
     }
+
+    fn media_dir_cache_load_entry_status_by_uri(
+        &self,
+        collection_id: CollectionId,
+        uri: &str,
+    ) -> RepoResult<CacheStatus> {
+        media_dir_cache::table
+            .select(media_dir_cache::status)
+            .filter(media_dir_cache::collection_id.eq(RowId::from(collection_id)))
+            .filter(media_dir_cache::uri.eq(uri))
+            .first::<i16>(self.as_ref())
+            .map_err(repo_error)
+            .map(|val| CacheStatus::from_i16(val).expect("CacheStatus"))
+    }
 }
+
+///////////////////////////////////////////////////////////////////////
+// Tests
+///////////////////////////////////////////////////////////////////////
+
+#[cfg(test)]
+mod tests;

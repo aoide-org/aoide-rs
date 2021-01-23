@@ -94,6 +94,12 @@ pub trait Repo {
         uri_prefix: &str,
         old_status: Option<CacheStatus>,
     ) -> RepoResult<usize>;
+
+    fn media_dir_cache_load_entry_status_by_uri(
+        &self,
+        collection_id: CollectionId,
+        uri: &str,
+    ) -> RepoResult<CacheStatus>;
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
