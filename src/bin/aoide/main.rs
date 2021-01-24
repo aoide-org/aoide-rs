@@ -25,7 +25,12 @@ use aoide::{
 use aoide_core::entity::EntityUid;
 
 use futures::future::{join, FutureExt};
-use std::{collections::HashMap, env::current_exe, sync::Arc, time::Duration};
+use std::{
+    collections::HashMap,
+    env::current_exe,
+    sync::{atomic::AtomicBool, Arc},
+    time::Duration,
+};
 use tokio::{sync::mpsc, sync::RwLock, time::sleep};
 use warp::{http::StatusCode, Filter};
 
@@ -316,17 +321,19 @@ pub async fn main() -> Result<(), Error> {
         .and(path_param_uid)
         .and(warp::path("scan-media-directories"))
         .and(warp::path::end())
-        .and(warp::query())
+        .and(warp::body::json())
         .and(guarded_connection_pool.clone())
         .and_then(
-            |uid, query_params, guarded_connection_pool: GuardedConnectionPool| async move {
+            |uid, request_body, guarded_connection_pool: GuardedConnectionPool| async move {
+                let abort_flag = AtomicBool::new(false);
                 spawn_blocking_database_write_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
                         media::scan_directories::handle_request(
                             pooled_connection,
                             &uid,
-                            query_params,
+                            request_body,
+                            &abort_flag,
                         )
                     },
                 )

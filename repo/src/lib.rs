@@ -71,6 +71,9 @@ pub mod prelude {
         #[error("conflict")]
         Conflict,
 
+        #[error("aborted")]
+        Aborted,
+
         #[error(transparent)]
         Other(#[from] anyhow::Error),
     }

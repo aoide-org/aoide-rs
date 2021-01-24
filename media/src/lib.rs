@@ -44,9 +44,6 @@ pub use mime::Mime;
 
 #[derive(Error, Debug)]
 pub enum Error {
-    #[error(transparent)]
-    Io(#[from] IoError),
-
     #[error("unknown content type")]
     UnknownContentType,
 
@@ -57,7 +54,7 @@ pub enum Error {
     UnsupportedImportOptions,
 
     #[error(transparent)]
-    WalkDir(#[from] walkdir::Error),
+    Io(#[from] IoError),
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),

@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::sync::atomic::AtomicBool;
+
 use super::*;
 
 mod uc {
@@ -27,13 +29,16 @@ use url::Url;
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct QueryParams {
-    pub root_dir_url: Url,
+pub struct DirScanParams {
+    pub root_url: Url,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_depth: Option<usize>,
 }
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct DirectoryScanOutcome {
+pub struct DirScanSummary {
     pub current: usize,
     pub added: usize,
     pub modified: usize,
@@ -41,9 +46,9 @@ pub struct DirectoryScanOutcome {
     pub skipped: usize,
 }
 
-impl From<uc::DirectoryScanOutcome> for DirectoryScanOutcome {
-    fn from(from: uc::DirectoryScanOutcome) -> Self {
-        let uc::DirectoryScanOutcome {
+impl From<uc::DirScanSummary> for DirScanSummary {
+    fn from(from: uc::DirScanSummary) -> Self {
+        let uc::DirScanSummary {
             current,
             added,
             modified,
@@ -60,16 +65,41 @@ impl From<uc::DirectoryScanOutcome> for DirectoryScanOutcome {
     }
 }
 
-pub type ResponseBody = DirectoryScanOutcome;
+#[derive(Debug, Clone, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub enum DirScanOutcome {
+    Finished(DirScanSummary),
+    Aborted,
+}
+
+impl From<uc::DirScanOutcome> for DirScanOutcome {
+    fn from(from: uc::DirScanOutcome) -> Self {
+        match from {
+            uc::DirScanOutcome::Finished(summary) => Self::Finished(summary.into()),
+            uc::DirScanOutcome::Aborted => Self::Aborted,
+        }
+    }
+}
+
+pub type RequestBody = DirScanParams;
+pub type ResponseBody = DirScanOutcome;
 
 pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
     collection_uid: &EntityUid,
-    query_params: QueryParams,
+    request_body: RequestBody,
+    abort_flag: &AtomicBool,
 ) -> Result<ResponseBody> {
-    let QueryParams { root_dir_url } = query_params;
-    Ok(
-        uc::scan_directories_recursively(&pooled_connection, collection_uid, &root_dir_url)
-            .map(Into::into)?,
+    let RequestBody {
+        root_url,
+        max_depth,
+    } = request_body;
+    Ok(uc::scan_directories_recursively(
+        &pooled_connection,
+        collection_uid,
+        &root_url,
+        max_depth,
+        abort_flag,
     )
+    .map(Into::into)?)
 }

@@ -289,7 +289,12 @@ paths:
         - Collected Media Sources
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
-        - $ref: '#/components/parameters/rootDirectoryUrlQuery'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScanCollectedMediaDirectoriesRequestBody'
       responses:
         '200':
           description: |
@@ -730,19 +735,6 @@ components:
         $ref: '#/components/schemas/PlaylistUid'
       description: |
         The UID of the playlist.
-    rootDirectoryUrlQuery:
-      name: rootDirUrl
-      in: query
-      required: true
-      schema:
-        $ref: '#/components/schemas/URI'
-      description: |
-        A percent-encoded `file://` URL ending with a trailing `/` that
-        locates a directory path on the local file system.
-
-        Please note that the percent-encoding might need to be applied twice
-        when passed as a query parameter, i.e. ':' is replaced by '%3A' and
-        '/' is replaced by '%2F'.
     trackUidPath:
       name: trackUid
       in: path
@@ -1165,6 +1157,12 @@ components:
       required:
         - code
         - message
+    FileDirectoryUrl:
+      type: string
+      minLength: 8
+      description: |
+        A percent-encoded `file://` URL ending with a trailing `/` that
+        locates a directory path on the local file system.
     FilterModifier:
       type: string
       enum:
@@ -1890,7 +1888,18 @@ components:
     ReleaseDateTime:
       allOf:
         - $ref: '#/components/schemas/DateTime'
-    ScanCollectedMediaDirectoriesResponseBody:
+    ScanCollectedMediaDirectoriesRequestBody:
+      type: object
+      properties:
+        rootUrl:
+          $ref: '#/components/schemas/FileDirectoryUrl'
+        maxDepth:
+          type: number
+          format: int
+          minimum: 1
+      required:
+        - rootUrl
+    ScanCollectedMediaDirectoriesSummary:
       type: object
       properties:
         current:
@@ -1919,6 +1928,17 @@ components:
         - modified
         - orphaned
         - skipped
+    ScanCollectedMediaDirectoriesResponseBody:
+      oneOf:
+        - type: object
+          properties:
+            finished:
+              $ref: '#/components/schemas/ScanCollectedMediaDirectoriesSummary'
+          required:
+            - finished
+        - type: string
+          enum:
+            - aborted
     RelocateCollectedMediaSourcesRequestBody:
       type: object
       properties:

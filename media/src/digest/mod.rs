@@ -123,7 +123,7 @@ pub fn digest_dir_entry_for_detecting_changes<D: Digest>(
 pub fn digest_walkdir_entry_for_detecting_changes<D: Digest>(
     digest: &mut D,
     dir_entry: &walkdir::DirEntry,
-) -> walkdir::Result<()> {
+) -> io::Result<()> {
     digest_fs_metadata_for_detecting_changes(digest, &dir_entry.metadata()?);
     digest_os_str(digest, dir_entry.file_name());
     Ok(())
@@ -139,33 +139,70 @@ fn is_hidden_dir_entry(dir_entry: &DirEntry) -> bool {
     }
     false
 }
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum NextDirScanStep {
+    Continue,
+    Abort,
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum DirScanOutcome {
+    Finished(usize),
+    Aborted,
+}
+
 pub fn digest_directories_recursively<
     D: Digest,
     N: FnMut() -> D,
     E: Into<Error>,
-    R: FnMut(PathBuf, digest::Output<D>) -> StdResult<(), E>,
+    R: FnMut(PathBuf, digest::Output<D>) -> StdResult<NextDirScanStep, E>,
 >(
     root_path: &Path,
+    max_depth: Option<usize>,
     mut new_digest: N,
     mut receive_dir_path_digest: R,
-) -> Result<usize> {
+) -> Result<DirScanOutcome> {
     log::info!("Scanning all directories in '{}'", root_path.display());
 
     let started = Instant::now();
     let mut ancestors: Vec<(PathBuf, D)> = Vec::with_capacity(64); // capacity <= max. expected depth
     let mut total_count = 0;
-    for dir_entry in WalkDir::new(root_path)
+    let mut walkdir = WalkDir::new(root_path)
         .contents_first(false) // depth-first traversal to populate ancestors
-        .min_depth(1) // exclude root folder
+        .follow_links(true)
+        .min_depth(1);
+    if let Some(max_depth) = max_depth {
+        walkdir = walkdir.max_depth(1 + max_depth);
+    }
+    for dir_entry in walkdir // exclude root folder
         .into_iter()
         .filter_entry(|e| !is_hidden_dir_entry(e))
     {
         let dir_entry = match dir_entry {
             Ok(dir_entry) => dir_entry,
             Err(err) => {
-                log::warn!("Skipping directory entry: {}", err);
-                // Keep going
-                continue;
+                if let Some(loop_ancestor) = err.loop_ancestor() {
+                    log::info!(
+                        "Cycle detected while visiting directory: {}",
+                        loop_ancestor.display()
+                    );
+                    // Skip and continue
+                    continue;
+                }
+                debug_assert!(err.io_error().is_some());
+                debug_assert!(err.path().is_some());
+                if let Some(path) = err.path() {
+                    // The actual path is probably not mentioned in the I/O error
+                    // and should be logged here.
+                    // TODO: Propagate the path with the I/O error instead of only
+                    // logging it here
+                    log::warn!("Failed to visit directory: {}", path.display());
+                }
+                // Propagate I/O error
+                let io_error = err.into_io_error();
+                debug_assert!(io_error.is_some());
+                return Err(io_error.expect("I/O error").into());
             }
         };
 
@@ -213,8 +250,14 @@ pub fn digest_directories_recursively<
             let (ancestor_path, ancestor_digest) = ancestors.pop().expect("last ancestor");
             let ancestor_digest = ancestor_digest.finalize();
             log::trace!("Finished non-empty directory: {}", ancestor_path.display());
-            receive_dir_path_digest(ancestor_path, ancestor_digest).map_err(Into::into)?;
-            total_count += 1;
+            match receive_dir_path_digest(ancestor_path, ancestor_digest).map_err(Into::into)? {
+                NextDirScanStep::Continue => {
+                    total_count += 1;
+                }
+                NextDirScanStep::Abort => {
+                    return Ok(DirScanOutcome::Aborted);
+                }
+            }
         }
         if push_ancestor {
             log::trace!("Found non-empty directory: {}", parent_path.display());
@@ -227,8 +270,14 @@ pub fn digest_directories_recursively<
     while let Some((ancestor_path, ancestor_digest)) = ancestors.pop() {
         let ancestor_digest = ancestor_digest.finalize();
         log::trace!("Finished non-empty directory: {}", ancestor_path.display());
-        receive_dir_path_digest(ancestor_path, ancestor_digest).map_err(Into::into)?;
-        total_count += 1;
+        match receive_dir_path_digest(ancestor_path, ancestor_digest).map_err(Into::into)? {
+            NextDirScanStep::Continue => {
+                total_count += 1;
+            }
+            NextDirScanStep::Abort => {
+                return Ok(DirScanOutcome::Aborted);
+            }
+        }
     }
     let elapsed = started.elapsed();
     log::info!(
@@ -237,5 +286,5 @@ pub fn digest_directories_recursively<
         root_path.display(),
         elapsed.as_millis() as f64 / 1000.0,
     );
-    Ok(total_count)
+    Ok(DirScanOutcome::Finished(total_count))
 }

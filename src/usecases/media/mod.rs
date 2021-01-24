@@ -13,15 +13,19 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::io::BufReader;
+use std::{
+    io::BufReader,
+    sync::atomic::{AtomicBool, Ordering},
+};
 
 use super::*;
 
 use aoide_core::{entity::EntityUid, track::Track, util::clock::DateTime};
 
 use aoide_media::{
-    digest as media_digest, guess_mime_from_url, mp4, open_local_file_url_for_reading, ImportTrack,
-    ImportTrackConfig, ImportTrackOptions, NewTrackInput, Reader,
+    digest::{self as media_digest, DirScanOutcome as DigestDirScanOutcome, NextDirScanStep},
+    guess_mime_from_url, mp4, open_local_file_url_for_reading, ImportTrack, ImportTrackConfig,
+    ImportTrackOptions, NewTrackInput, Reader,
 };
 
 use aoide_repo::{
@@ -37,7 +41,7 @@ use url::Url;
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct DirectoryScanOutcome {
+pub struct DirScanSummary {
     pub current: usize,
     pub added: usize,
     pub modified: usize,
@@ -45,11 +49,19 @@ pub struct DirectoryScanOutcome {
     pub skipped: usize,
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum DirScanOutcome {
+    Finished(DirScanSummary),
+    Aborted,
+}
+
 pub fn scan_directories_recursively(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
     root_dir_url: &Url,
-) -> Result<DirectoryScanOutcome> {
+    max_depth: Option<usize>,
+    aborted_flag: &AtomicBool,
+) -> Result<DirScanOutcome> {
     let db = RepoConnection::new(connection);
     if root_dir_url.scheme() != "file" {
         return Err(Error::Media(
@@ -74,7 +86,7 @@ pub fn scan_directories_recursively(
             anyhow::format_err!("Root file path is not absolute: {}", root_path.display()).into(),
         ));
     }
-    let mut outcome = DirectoryScanOutcome::default();
+    let mut summary = DirScanSummary::default();
     db.transaction::<_, DieselRepoError, _>(|| {
         let collection_id = db.resolve_collection_id(collection_uid)?;
         let updated_at = DateTime::now_utc();
@@ -91,8 +103,12 @@ pub fn scan_directories_recursively(
         );
         media_digest::digest_directories_recursively::<_, _, anyhow::Error, _>(
             &root_path,
+            max_depth,
             blake3::Hasher::new,
             |path, digest| {
+                if aborted_flag.swap(false, Ordering::Relaxed) {
+                    return Ok(NextDirScanStep::Abort);
+                }
                 debug_assert!(path.is_relative());
                 let full_path = root_path.join(&path);
                 debug_assert!(full_path.is_absolute());
@@ -108,37 +124,43 @@ pub fn scan_directories_recursively(
                     .map_err(anyhow::Error::from)?
                 {
                     UpdateOutcome::Current => {
-                        outcome.current += 1;
+                        summary.current += 1;
                     }
                     UpdateOutcome::Inserted => {
                         log::debug!("Found added directory: {}", full_path.display());
-                        outcome.added += 1;
+                        summary.added += 1;
                     }
                     UpdateOutcome::Updated => {
                         log::debug!("Found modified directory: {}", full_path.display());
-                        outcome.modified += 1;
+                        summary.modified += 1;
                     }
                     UpdateOutcome::Skipped => {
-                        log::debug!("Found modified directory: {}", full_path.display());
-                        outcome.skipped += 1;
+                        log::debug!("Skipped directory: {}", full_path.display());
+                        summary.skipped += 1;
                     }
                 }
-                Ok(())
+                Ok(NextDirScanStep::Continue)
             },
         )
         .map_err(anyhow::Error::from)
-        .map_err(RepoError::from)?;
-        outcome.orphaned = db.media_dir_cache_update_entries_status(
+        .map_err(RepoError::from)
+        .and_then(|outcome| {
+            match outcome {
+                DigestDirScanOutcome::Finished(_) => Ok(()),
+                DigestDirScanOutcome::Aborted => Err(RepoError::Aborted), // rollback
+            }
+        })?;
+        summary.orphaned = db.media_dir_cache_update_entries_status(
             updated_at,
             collection_id,
             root_dir_url.as_str(),
             Some(CacheStatus::Outdated),
             CacheStatus::Orphaned,
         )?;
-        debug_assert!(outcome.orphaned <= outdated_count);
+        debug_assert!(summary.orphaned <= outdated_count);
         Ok(())
     })?;
-    Ok(outcome)
+    Ok(DirScanOutcome::Finished(summary))
 }
 
 pub fn import_track_from_url(
