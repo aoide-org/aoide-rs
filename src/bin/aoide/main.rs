@@ -28,7 +28,10 @@ use futures::future::{join, FutureExt};
 use std::{
     collections::HashMap,
     env::current_exe,
-    sync::{atomic::AtomicBool, Arc},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
     time::Duration,
 };
 use tokio::{sync::mpsc, sync::RwLock, time::sleep};
@@ -85,6 +88,8 @@ where
     let connection_pool = write_guard.clone();
     tokio::task::spawn_blocking(move || connection_handler(connection_pool.get()?)).await?
 }
+
+static SCAN_MEDIA_DIRECTORIES_ABORT_FLAG: AtomicBool = AtomicBool::new(false);
 
 #[tokio::main]
 pub async fn main() -> Result<(), Error> {
@@ -325,15 +330,16 @@ pub async fn main() -> Result<(), Error> {
         .and(guarded_connection_pool.clone())
         .and_then(
             |uid, request_body, guarded_connection_pool: GuardedConnectionPool| async move {
-                let abort_flag = AtomicBool::new(false);
                 spawn_blocking_database_write_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
+                        // Reset abort flag
+                        SCAN_MEDIA_DIRECTORIES_ABORT_FLAG.store(false, Ordering::Relaxed);
                         media::scan_directories::handle_request(
                             pooled_connection,
                             &uid,
                             request_body,
-                            &abort_flag,
+                            &SCAN_MEDIA_DIRECTORIES_ABORT_FLAG,
                         )
                     },
                 )
@@ -342,6 +348,13 @@ pub async fn main() -> Result<(), Error> {
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
+    let abort_directory_scan = warp::post()
+        .and(warp::path("abort-directory-scan"))
+        .and(warp::path::end())
+        .map(|| {
+            SCAN_MEDIA_DIRECTORIES_ABORT_FLAG.store(true, Ordering::Relaxed);
+            StatusCode::ACCEPTED
+        });
 
     let collected_tracks_resolve = warp::post()
         .and(collections_path)
@@ -694,6 +707,7 @@ pub async fn main() -> Result<(), Error> {
             .or(media_import_track) // undocumented
             .or(collected_media_sources_scan_directories)
             .or(collected_media_sources_relocate)
+            .or(abort_directory_scan)
             .or(storage_filters)
             .or(static_filters)
             .or(shutdown_filter)
