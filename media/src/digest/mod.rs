@@ -170,12 +170,12 @@ pub fn digest_directories_recursively<
     let mut total_count = 0;
     let mut walkdir = WalkDir::new(root_path)
         .contents_first(false) // depth-first traversal to populate ancestors
-        .follow_links(true)
-        .min_depth(1);
+        .follow_links(true) // digest metadata of actual files/directories, not symbolic links
+        .min_depth(0); // start with root directory (included)
     if let Some(max_depth) = max_depth {
-        walkdir = walkdir.max_depth(1 + max_depth);
+        walkdir = walkdir.max_depth(max_depth);
     }
-    for dir_entry in walkdir // exclude root folder
+    for dir_entry in walkdir
         .into_iter()
         .filter_entry(|e| !is_hidden_dir_entry(e))
     {
@@ -281,7 +281,7 @@ pub fn digest_directories_recursively<
     }
     let elapsed = started.elapsed();
     log::info!(
-        "Indexing {} directories in '{}' took {} s",
+        "Digesting {} directories in '{}' took {} s",
         total_count,
         root_path.display(),
         elapsed.as_millis() as f64 / 1000.0,
