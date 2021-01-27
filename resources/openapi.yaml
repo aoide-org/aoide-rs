@@ -1899,6 +1899,11 @@ components:
           minimum: 1
       required:
         - rootUrl
+    ScanCollectedMediaDirectoriesStatus:
+      type: string
+      enum:
+        - finished
+        - aborted
     ScanCollectedMediaDirectoriesSummary:
       type: object
       properties:
@@ -1932,13 +1937,13 @@ components:
       oneOf:
         - type: object
           properties:
-            finished:
+            status:
+              $ref: '#/components/schemas/ScanCollectedMediaDirectoriesStatus'
+            summary:
               $ref: '#/components/schemas/ScanCollectedMediaDirectoriesSummary'
           required:
-            - finished
-        - type: string
-          enum:
-            - aborted
+            - status
+            - summary
     RelocateCollectedMediaSourcesRequestBody:
       type: object
       properties:

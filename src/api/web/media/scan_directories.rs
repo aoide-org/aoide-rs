@@ -65,18 +65,36 @@ impl From<uc::DirScanSummary> for DirScanSummary {
     }
 }
 
+#[derive(Debug, Copy, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum DirScanStatus {
+    Finished,
+    Aborted,
+}
+
+impl From<uc::DirScanStatus> for DirScanStatus {
+    fn from(from: uc::DirScanStatus) -> Self {
+        use uc::DirScanStatus::*;
+        match from {
+            Finished => Self::Finished,
+            Aborted => Self::Aborted,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub enum DirScanOutcome {
-    Finished(DirScanSummary),
-    Aborted,
+pub struct DirScanOutcome {
+    pub status: DirScanStatus,
+    pub summary: DirScanSummary,
 }
 
 impl From<uc::DirScanOutcome> for DirScanOutcome {
     fn from(from: uc::DirScanOutcome) -> Self {
-        match from {
-            uc::DirScanOutcome::Finished(summary) => Self::Finished(summary.into()),
-            uc::DirScanOutcome::Aborted => Self::Aborted,
+        let uc::DirScanOutcome { status, summary } = from;
+        Self {
+            status: status.into(),
+            summary: summary.into(),
         }
     }
 }

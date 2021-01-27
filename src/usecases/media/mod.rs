@@ -13,18 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{
-    io::BufReader,
-    sync::atomic::{AtomicBool, Ordering},
-};
+use std::{io::BufReader, sync::atomic::AtomicBool};
 
 use super::*;
 
 use aoide_core::{entity::EntityUid, track::Track, util::clock::DateTime};
 
 use aoide_media::{
-    digest::{self as media_digest, DirScanOutcome as DigestDirScanOutcome, NextDirScanStep},
-    guess_mime_from_url, mp4, open_local_file_url_for_reading, ImportTrack, ImportTrackConfig,
+    fs, guess_mime_from_url, mp4, open_local_file_url_for_reading, ImportTrack, ImportTrackConfig,
     ImportTrackOptions, NewTrackInput, Reader,
 };
 
@@ -49,10 +45,16 @@ pub struct DirScanSummary {
     pub skipped: usize,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum DirScanOutcome {
-    Finished(DirScanSummary),
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum DirScanStatus {
+    Finished,
     Aborted,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct DirScanOutcome {
+    pub status: DirScanStatus,
+    pub summary: DirScanSummary,
 }
 
 pub fn scan_directories_recursively(
@@ -60,7 +62,7 @@ pub fn scan_directories_recursively(
     collection_uid: &EntityUid,
     root_dir_url: &Url,
     max_depth: Option<usize>,
-    aborted_flag: &AtomicBool,
+    abort_flag: &AtomicBool,
 ) -> Result<DirScanOutcome> {
     let db = RepoConnection::new(connection);
     if root_dir_url.scheme() != "file" {
@@ -86,12 +88,10 @@ pub fn scan_directories_recursively(
             anyhow::format_err!("Root file path is not absolute: {}", root_path.display()).into(),
         ));
     }
-    let mut summary = DirScanSummary::default();
-    db.transaction::<_, DieselRepoError, _>(|| {
+    Ok(db.transaction::<_, DieselRepoError, _>(|| {
         let collection_id = db.resolve_collection_id(collection_uid)?;
-        let updated_at = DateTime::now_utc();
         let outdated_count = db.media_dir_cache_update_entries_status(
-            updated_at,
+            DateTime::now_utc(),
             collection_id,
             root_dir_url.as_str(),
             Some(CacheStatus::Current),
@@ -101,14 +101,13 @@ pub fn scan_directories_recursively(
             "Marked {} current cache entries as outdated",
             outdated_count
         );
-        media_digest::digest_directories_recursively::<_, _, anyhow::Error, _>(
+        let mut summary = DirScanSummary::default();
+        let status = fs::digest_directories_recursively::<_, _, anyhow::Error, _>(
             &root_path,
             max_depth,
+            abort_flag,
             blake3::Hasher::new,
             |path, digest| {
-                if aborted_flag.swap(false, Ordering::Relaxed) {
-                    return Ok(NextDirScanStep::Abort);
-                }
                 debug_assert!(path.is_relative());
                 let full_path = root_path.join(&path);
                 debug_assert!(full_path.is_absolute());
@@ -116,7 +115,7 @@ pub fn scan_directories_recursively(
                 debug_assert!(url.as_str().starts_with(root_dir_url.as_str()));
                 match db
                     .media_dir_cache_update_entry_digest(
-                        updated_at,
+                        DateTime::now_utc(),
                         collection_id,
                         url.as_str(),
                         &digest.into(),
@@ -139,28 +138,34 @@ pub fn scan_directories_recursively(
                         summary.skipped += 1;
                     }
                 }
-                Ok(NextDirScanStep::Continue)
+                Ok(fs::NextDirScanStep::Continue)
             },
         )
         .map_err(anyhow::Error::from)
         .map_err(RepoError::from)
         .and_then(|outcome| {
             match outcome {
-                DigestDirScanOutcome::Finished(_) => Ok(()),
-                DigestDirScanOutcome::Aborted => Err(RepoError::Aborted), // rollback
+                fs::DirScanOutcome::Finished(_) => {
+                    // Mark all remaining entries that are unreachable and
+                    // have not been visited as orphaned.
+                    summary.orphaned = db.media_dir_cache_update_entries_status(
+                        DateTime::now_utc(),
+                        collection_id,
+                        root_dir_url.as_str(),
+                        Some(CacheStatus::Outdated),
+                        CacheStatus::Orphaned,
+                    )?;
+                    debug_assert!(summary.orphaned <= outdated_count);
+                    Ok(DirScanStatus::Finished)
+                }
+                fs::DirScanOutcome::Aborted => {
+                    // All partial results up to now can safely be committed.
+                    Ok(DirScanStatus::Aborted)
+                }
             }
         })?;
-        summary.orphaned = db.media_dir_cache_update_entries_status(
-            updated_at,
-            collection_id,
-            root_dir_url.as_str(),
-            Some(CacheStatus::Outdated),
-            CacheStatus::Orphaned,
-        )?;
-        debug_assert!(summary.orphaned <= outdated_count);
-        Ok(())
-    })?;
-    Ok(DirScanOutcome::Finished(summary))
+        Ok(DirScanOutcome { status, summary })
+    })?)
 }
 
 pub fn import_track_from_url(

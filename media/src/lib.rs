@@ -18,7 +18,7 @@
 #![deny(missing_debug_implementations)]
 #![deny(rust_2018_idioms)]
 
-pub mod digest;
+pub mod fs;
 pub mod util;
 
 use aoide_core::{
