@@ -267,57 +267,6 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /c/{collectionUid}/scan-media-source-directories:
-    post:
-      operationId: scanCollectedMediaSourceDirectories
-      summary: Scan a root directory for changes
-      description: |
-        Recursively scan a root directory for content changes, i.e.
-        added/modified/removed files and directories.
-
-        For each directory a cryptographic hash is calculated and cached in
-        the database for further processing, e.g. import of track metadata.
-
-        Previously hashed directories that are not discovered again during
-        a subsequent scan are marked and counted as *orphaned*.
-      tags:
-        - Media Sources
-      parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ScanCollectedMediaDirectoriesRequestBody'
-      responses:
-        '200':
-          description: |
-            Batch operation succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ScanCollectedMediaDirectoriesResponseBody'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-  /scan-media-source-directories/abort:
-    post:
-      operationId: scanMediaSourceDirectoriesAbort
-      summary: Abort any running directory scan
-      description: |
-        Stops a running directory scan before completion.
-
-        Partial results will be saved in the database.
-      tags:
-        - Media Sources
-      parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
-      responses:
-        '202':
-          description: |
-            The operation has been accepted.
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
   /c/{collectionUid}/relocate-media-sources:
     post:
       operationId: relocateCollectedMediaSources
@@ -345,6 +294,60 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RelocateCollectedMediaSourcesResponseBody'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /c/{collectionUid}/digest-media-source-directories:
+    post:
+      operationId: digestCollectedMediaSourceDirectories
+      summary: Check a directory tree for changes
+      description: |
+        Recursively scan a root directory for content changes, i.e.
+        added/modified/removed files and directories.
+
+        For each directory a cryptographic hash is calculated and cached in
+        the database for further processing, e.g. import of track metadata.
+        Results are stored on behalf of the collection.
+
+        Previously hashed directories that are not discovered again during
+        a subsequent scan are marked and counted as *orphaned*.
+
+        This operation is blocking. It can be aborted by another request
+      tags:
+        - Media Sources
+      parameters:
+        - $ref: '#/components/parameters/collectionUidPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScanCollectedMediaDirectoriesRequestBody'
+      responses:
+        '200':
+          description: |
+            Batch operation succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanCollectedMediaDirectoriesResponseBody'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /digest-media-source-directories/abort:
+    post:
+      operationId: digestMediaSourceDirectoriesAbort
+      summary: Abort any running directory digest traversal
+      description: |
+        Stops a running directory scan before completion.
+
+        Partial results will be saved in the database.
+      tags:
+        - Media Sources
+      parameters:
+        - $ref: '#/components/parameters/collectionUidPath'
+      responses:
+        '202':
+          description: |
+            The operation has been accepted.
         '500':
           $ref: '#/components/responses/500InternalServerError'
 

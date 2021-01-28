@@ -19,4 +19,4 @@ use super::*;
 
 pub mod import_track;
 pub mod relocate_collected_sources;
-pub mod scan_directories;
+pub mod digest_directories;

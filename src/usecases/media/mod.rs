@@ -20,8 +20,8 @@ use super::*;
 use aoide_core::{entity::EntityUid, track::Track, util::clock::DateTime};
 
 use aoide_media::{
-    fs, guess_mime_from_url, mp4, open_local_file_url_for_reading, ImportTrack, ImportTrackConfig,
-    ImportTrackOptions, NewTrackInput, Reader,
+    fs::dir_digest, guess_mime_from_url, mp4, open_local_file_url_for_reading, ImportTrack,
+    ImportTrackConfig, ImportTrackOptions, NewTrackInput, Reader,
 };
 
 use aoide_repo::{
@@ -57,7 +57,7 @@ pub struct DirScanOutcome {
     pub summary: DirScanSummary,
 }
 
-pub fn scan_directories_recursively(
+pub fn digest_directories_recursively(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
     root_dir_url: &Url,
@@ -102,7 +102,7 @@ pub fn scan_directories_recursively(
             outdated_count
         );
         let mut summary = DirScanSummary::default();
-        let status = fs::digest_directories_recursively::<_, _, anyhow::Error, _, _>(
+        let status = dir_digest::digest_directories_recursively::<_, anyhow::Error, _, _, _>(
             &root_path,
             max_depth,
             abort_flag,
@@ -138,7 +138,7 @@ pub fn scan_directories_recursively(
                         summary.skipped += 1;
                     }
                 }
-                Ok(fs::NextDirScanStep::Continue)
+                Ok(dir_digest::AfterDirFinished::Continue)
             },
             |progress| {
                 log::trace!("{:?}", progress);
@@ -147,8 +147,12 @@ pub fn scan_directories_recursively(
         .map_err(anyhow::Error::from)
         .map_err(RepoError::from)
         .and_then(|outcome| {
-            match outcome {
-                fs::DirScanOutcome::Finished(_) => {
+            let dir_digest::Outcome {
+                status,
+                progress: _,
+            } = outcome;
+            match status {
+                dir_digest::FinalStatus::Finished => {
                     // Mark all remaining entries that are unreachable and
                     // have not been visited as orphaned.
                     summary.orphaned = db.media_dir_cache_update_entries_status(
@@ -161,7 +165,7 @@ pub fn scan_directories_recursively(
                     debug_assert!(summary.orphaned <= outdated_count);
                     Ok(DirScanStatus::Finished)
                 }
-                fs::DirScanOutcome::Aborted => {
+                dir_digest::FinalStatus::Aborted => {
                     // All partial results up to now can safely be committed.
                     Ok(DirScanStatus::Aborted)
                 }

@@ -112,7 +112,7 @@ pub fn handle_request(
         root_url,
         max_depth,
     } = request_body;
-    Ok(uc::scan_directories_recursively(
+    Ok(uc::digest_directories_recursively(
         &pooled_connection,
         collection_uid,
         &root_url,
