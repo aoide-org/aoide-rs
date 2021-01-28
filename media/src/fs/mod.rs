@@ -147,6 +147,13 @@ pub enum NextDirScanStep {
     Abort,
 }
 
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq)]
+pub struct DirScanProgress {
+    pub entries_skipped: usize,
+    pub entries_digested: usize,
+    pub dirs_finished: usize,
+}
+
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum DirScanOutcome {
     Finished(usize),
@@ -157,19 +164,21 @@ pub fn digest_directories_recursively<
     D: Digest,
     N: FnMut() -> D,
     E: Into<Error>,
-    R: FnMut(&PathBuf, digest::Output<D>) -> StdResult<NextDirScanStep, E>,
+    F: FnMut(&PathBuf, digest::Output<D>) -> StdResult<NextDirScanStep, E>,
+    P: FnMut(&DirScanProgress),
 >(
     root_path: &Path,
     max_depth: Option<usize>,
     abort_flag: &AtomicBool,
     mut new_digest: N,
-    mut finish_dir_path_digest: R,
+    mut finish_dir_path_digest: F,
+    mut report_progress: P,
 ) -> Result<DirScanOutcome> {
     log::info!("Scanning all directories in '{}'", root_path.display());
 
     let started = Instant::now();
     let mut ancestors: Vec<(PathBuf, D)> = Vec::with_capacity(64); // capacity <= max. expected depth
-    let mut total_count = 0;
+    let mut progress = DirScanProgress::default();
     let mut walkdir = WalkDir::new(root_path)
         .contents_first(false) // depth-first traversal to populate ancestors
         .follow_links(true) // digest metadata of actual files/directories, not symbolic links
@@ -185,6 +194,7 @@ pub fn digest_directories_recursively<
             log::debug!("Aborting directory tree traversal");
             return Ok(DirScanOutcome::Aborted);
         }
+        report_progress(&progress);
         let dir_entry = match dir_entry {
             Ok(dir_entry) => dir_entry,
             Err(err) => {
@@ -194,6 +204,7 @@ pub fn digest_directories_recursively<
                         loop_ancestor.display()
                     );
                     // Skip and continue
+                    progress.entries_skipped += 1;
                     continue;
                 }
                 debug_assert!(err.io_error().is_some());
@@ -212,6 +223,12 @@ pub fn digest_directories_recursively<
             }
         };
 
+        if dir_entry.depth() == 0 {
+            // Skip root directory that has no parent
+            progress.entries_skipped += 1;
+            continue;
+        }
+
         // Get the relative parent path
         let parent_path = if let Some(parent_path) = dir_entry.path().parent() {
             match parent_path.strip_prefix(root_path) {
@@ -225,6 +242,7 @@ pub fn digest_directories_recursively<
                         dir_entry.path().display()
                     );
                     // Keep going
+                    progress.entries_skipped += 1;
                     continue;
                 }
             }
@@ -235,13 +253,9 @@ pub fn digest_directories_recursively<
                 dir_entry.path().display()
             );
             // Keep going
+            progress.entries_skipped += 1;
             continue;
         };
-
-        // Exclude the root directory from indexing
-        if parent_path.as_os_str().is_empty() {
-            continue;
-        }
 
         let mut push_ancestor = true;
         while let Some((ancestor_path, ancestor_digest)) = ancestors.last_mut() {
@@ -249,18 +263,20 @@ pub fn digest_directories_recursively<
                 if parent_path == ancestor_path {
                     // Keep last ancestor on stack and stay in this line of ancestors
                     digest_walkdir_entry_for_detecting_changes(ancestor_digest, &dir_entry)?;
+                    progress.entries_digested += 1;
                     push_ancestor = false;
                 }
                 break;
             }
             let (ancestor_path, ancestor_digest) = ancestors.pop().expect("last ancestor");
             let ancestor_digest = ancestor_digest.finalize();
-            log::trace!("Finished non-empty directory: {}", ancestor_path.display());
+            log::trace!("Finished parent directory: {}", ancestor_path.display());
             match finish_dir_path_digest(&ancestor_path, ancestor_digest).map_err(Into::into)? {
                 NextDirScanStep::Continue => {
-                    total_count += 1;
+                    progress.dirs_finished += 1;
                 }
                 NextDirScanStep::Abort => {
+                    progress.dirs_finished += 1;
                     log::debug!(
                         "Aborting directory tree traversal after finishing '{}'",
                         ancestor_path.display()
@@ -270,21 +286,23 @@ pub fn digest_directories_recursively<
             }
         }
         if push_ancestor {
-            log::trace!("Found non-empty directory: {}", parent_path.display());
+            log::trace!("Found parent directory: {}", parent_path.display());
             let mut digest = new_digest();
             digest_walkdir_entry_for_detecting_changes(&mut digest, &dir_entry)?;
+            progress.entries_digested += 1;
             ancestors.push((parent_path.to_path_buf(), digest));
         }
     }
     // Unwind the stack of remaining ancestors
     while let Some((ancestor_path, ancestor_digest)) = ancestors.pop() {
         let ancestor_digest = ancestor_digest.finalize();
-        log::trace!("Finished non-empty directory: {}", ancestor_path.display());
+        log::trace!("Finished parent directory: {}", ancestor_path.display());
         match finish_dir_path_digest(&ancestor_path, ancestor_digest).map_err(Into::into)? {
             NextDirScanStep::Continue => {
-                total_count += 1;
+                progress.dirs_finished += 1;
             }
             NextDirScanStep::Abort => {
+                progress.dirs_finished += 1;
                 return Ok(DirScanOutcome::Aborted);
             }
         }
@@ -292,9 +310,9 @@ pub fn digest_directories_recursively<
     let elapsed = started.elapsed();
     log::info!(
         "Digesting {} directories in '{}' took {} s",
-        total_count,
+        progress.dirs_finished,
         root_path.display(),
         elapsed.as_millis() as f64 / 1000.0,
     );
-    Ok(DirScanOutcome::Finished(total_count))
+    Ok(DirScanOutcome::Finished(progress.dirs_finished))
 }

@@ -15,6 +15,9 @@
 
 ///////////////////////////////////////////////////////////////////////
 
+pub mod digest;
+use self::digest::MediaDigest;
+
 use std::unreachable;
 
 use super::TagMappingConfig;
@@ -41,7 +44,6 @@ use aoide_core::{
 };
 
 use chrono::{NaiveDateTime, Utc};
-use digest::Digest;
 use image::{load_from_memory, load_from_memory_with_format, GenericImageView, ImageFormat, Pixel};
 use mime::{IMAGE_BMP, IMAGE_GIF, IMAGE_JPEG, IMAGE_PNG, IMAGE_STAR};
 use nom::{
@@ -52,7 +54,6 @@ use nom::{
     IResult,
 };
 use semval::IsValid;
-use sha2::Sha256;
 
 /// Determines the next kind and adjusts the previous kind.
 ///
@@ -368,50 +369,6 @@ pub fn parse_year_tag(input: &str) -> Option<DateOrDateTime> {
     }
     log::warn!("Year tag not recognized: {}", input);
     None
-}
-
-#[derive(Debug, Default)]
-pub struct MediaDigest {
-    default_blake3: Option<blake3::Hasher>,
-    legacy_sha256: Option<Sha256>,
-}
-
-impl MediaDigest {
-    pub const fn digest_size() -> usize {
-        32
-    }
-
-    pub fn new() -> Self {
-        Self {
-            default_blake3: Some(blake3::Hasher::new()),
-            legacy_sha256: None,
-        }
-    }
-
-    pub fn sha256() -> Self {
-        Self {
-            default_blake3: Some(blake3::Hasher::new()),
-            legacy_sha256: Some(Sha256::new()),
-        }
-    }
-
-    pub fn digest_content(&mut self, content_data: &[u8]) -> Option<[u8; Self::digest_size()]> {
-        let Self {
-            default_blake3,
-            legacy_sha256,
-        } = self;
-        if let Some(digest) = default_blake3 {
-            // Default
-            digest.update(content_data);
-            Some(digest.finalize_reset().into())
-        } else {
-            // Legacy
-            legacy_sha256.as_mut().map(|digest| {
-                digest.update(content_data);
-                digest.finalize_reset().into()
-            })
-        }
-    }
 }
 
 pub fn parse_artwork_from_embedded_image(

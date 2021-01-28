@@ -102,7 +102,7 @@ pub fn scan_directories_recursively(
             outdated_count
         );
         let mut summary = DirScanSummary::default();
-        let status = fs::digest_directories_recursively::<_, _, anyhow::Error, _>(
+        let status = fs::digest_directories_recursively::<_, _, anyhow::Error, _, _>(
             &root_path,
             max_depth,
             abort_flag,
@@ -139,6 +139,9 @@ pub fn scan_directories_recursively(
                     }
                 }
                 Ok(fs::NextDirScanStep::Continue)
+            },
+            |progress| {
+                log::trace!("{:?}", progress);
             },
         )
         .map_err(anyhow::Error::from)

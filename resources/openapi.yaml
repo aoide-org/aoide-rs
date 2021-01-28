@@ -11,12 +11,9 @@ servers:
     description: Local development server
 tags:
   - name: Collections
-  - name: Collected Media Sources
-  - name: Collected Tracks
+  - name: Media Sources
   - name: Tracks
-  - name: Collected Playlists
   - name: Playlists
-  - name: Playlist Entries
   - name: Administration
 paths:
   /c:
@@ -160,7 +157,7 @@ paths:
         that have been found.
       operationId: resolveCollectedTracks
       tags:
-        - Collected Tracks
+        - Tracks
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
       requestBody:
@@ -197,7 +194,7 @@ paths:
         Search collected tracks and their media sources by evaluating
         filter conditions and sorting the results.
       tags:
-        - Collected Tracks
+        - Tracks
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
         - $ref: '#/components/parameters/paginationOffsetQuery'
@@ -226,7 +223,7 @@ paths:
         Create or update multiple, collected tracks and their media sources by locating them
         through their (percent-encoded) URI.
       tags:
-        - Collected Tracks
+        - Tracks
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
         - $ref: '#/components/parameters/replaceCollectedTrackModeQuery'
@@ -254,7 +251,7 @@ paths:
         Purge multiple, collected tracks and their media sources by locating them
         through their (percent-encoded) URI.
       tags:
-        - Collected Tracks
+        - Tracks
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
       requestBody:
@@ -270,10 +267,10 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /c/{collectionUid}/scan-media-directories:
+  /c/{collectionUid}/scan-media-source-directories:
     post:
-      operationId: scanCollectedMediaDirectories
-      summary: Scan a root directory for content changes
+      operationId: scanCollectedMediaSourceDirectories
+      summary: Scan a root directory for changes
       description: |
         Recursively scan a root directory for content changes, i.e.
         added/modified/removed files and directories.
@@ -283,10 +280,8 @@ paths:
 
         Previously hashed directories that are not discovered again during
         a subsequent scan are marked and counted as *orphaned*.
-
-        This operation is only provided temporarily for testing!
       tags:
-        - Collected Media Sources
+        - Media Sources
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
       requestBody:
@@ -305,6 +300,24 @@ paths:
                 $ref: '#/components/schemas/ScanCollectedMediaDirectoriesResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+  /scan-media-source-directories/abort:
+    post:
+      operationId: scanMediaSourceDirectoriesAbort
+      summary: Abort any running directory scan
+      description: |
+        Stops a running directory scan before completion.
+
+        Partial results will be saved in the database.
+      tags:
+        - Media Sources
+      parameters:
+        - $ref: '#/components/parameters/collectionUidPath'
+      responses:
+        '202':
+          description: |
+            The operation has been accepted.
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
   /c/{collectionUid}/relocate-media-sources:
     post:
       operationId: relocateCollectedMediaSources
@@ -315,7 +328,7 @@ paths:
 
         The URI comparison is case-sensitive.
       tags:
-        - Collected Media Sources
+        - Media Sources
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
       requestBody:
@@ -397,7 +410,7 @@ paths:
       description: |
         Load collected playlists that have recently been modified (created/updated).
       tags:
-        - Collected Playlists
+        - Playlists
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
         - $ref: '#/components/parameters/playlistKindQuery'
@@ -424,7 +437,7 @@ paths:
       description: |
         Create a new playlist in a collection.
       tags:
-        - Collected Playlists
+        - Playlists
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
       requestBody:
@@ -529,7 +542,7 @@ paths:
       description: |
         Modify the playlist's entries by applying a sequence of operations.
       tags:
-        - Playlist Entries
+        - Playlists
       parameters:
         - $ref: '#/components/parameters/playlistUidPath'
         - $ref: '#/components/parameters/currentEntityRevisionQuery'

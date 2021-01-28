@@ -324,7 +324,7 @@ pub async fn main() -> Result<(), Error> {
     let collected_media_sources_scan_directories = warp::post()
         .and(collections_path)
         .and(path_param_uid)
-        .and(warp::path("scan-media-directories"))
+        .and(warp::path("scan-media-source-directories"))
         .and(warp::path::end())
         .and(warp::body::json())
         .and(guarded_connection_pool.clone())
@@ -349,7 +349,8 @@ pub async fn main() -> Result<(), Error> {
             },
         );
     let abort_directory_scan = warp::post()
-        .and(warp::path("abort-directory-scan"))
+        .and(warp::path("scan-media-source-directories"))
+        .and(warp::path("abort"))
         .and(warp::path::end())
         .map(|| {
             SCAN_MEDIA_DIRECTORIES_ABORT_FLAG.store(true, Ordering::Relaxed);

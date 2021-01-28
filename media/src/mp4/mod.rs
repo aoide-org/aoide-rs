@@ -47,7 +47,7 @@ use image::ImageFormat;
 use mp4ameta::{atom::read_tag_from, Data, FourCC, FreeformIdent, STANDARD_GENRES};
 use semval::IsValid as _;
 use std::io::SeekFrom;
-use util::{parse_artwork_from_embedded_image, MediaDigest};
+use util::{digest::MediaDigest, parse_artwork_from_embedded_image};
 
 #[derive(Debug)]
 pub struct ImportTrack;
