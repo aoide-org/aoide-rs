@@ -328,6 +328,7 @@ pub fn digest_directories_recursively<
                 }
             }
         }
+        progress_event.finish();
         Ok(())
     };
     match walker() {
@@ -339,6 +340,7 @@ pub fn digest_directories_recursively<
                 root_path.display(),
                 elapsed.as_millis() as f64 / 1000.0,
             );
+            report_progress(&progress_event);
             Ok(progress_event.finalize())
         }
         Err(err) => {

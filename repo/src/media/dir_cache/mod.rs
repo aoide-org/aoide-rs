@@ -28,7 +28,7 @@ record_id_newtype!(DirCacheRecordId);
 pub type DirCacheRecordHeader = crate::RecordHeader<DirCacheRecordId>;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, FromPrimitive, ToPrimitive)]
-pub enum CacheStatus {
+pub enum EntryStatus {
     Current = 0,
     Outdated = 1,
     Added = 2,
@@ -36,13 +36,13 @@ pub enum CacheStatus {
     Orphaned = 4,
 }
 
-pub type CacheDigest = DigestBytes;
+pub type EntryDigest = DigestBytes;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Entry {
     pub uri: String,
-    pub status: CacheStatus,
-    pub digest: CacheDigest,
+    pub status: EntryStatus,
+    pub digest: EntryDigest,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -54,20 +54,29 @@ pub enum UpdateOutcome {
 }
 
 impl UpdateOutcome {
-    pub const fn resulting_status(self) -> CacheStatus {
+    pub const fn resulting_status(self) -> EntryStatus {
         match self {
-            Self::Current => CacheStatus::Current,
-            Self::Inserted => CacheStatus::Added,
-            Self::Updated => CacheStatus::Modified,
-            Self::Skipped => CacheStatus::Outdated,
+            Self::Current => EntryStatus::Current,
+            Self::Inserted => EntryStatus::Added,
+            Self::Updated => EntryStatus::Modified,
+            Self::Skipped => EntryStatus::Outdated,
         }
     }
 }
 
-impl From<UpdateOutcome> for CacheStatus {
+impl From<UpdateOutcome> for EntryStatus {
     fn from(from: UpdateOutcome) -> Self {
         from.resulting_status()
     }
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct AggregateStatus {
+    pub current: usize,
+    pub outdated: usize,
+    pub added: usize,
+    pub modified: usize,
+    pub orphaned: usize,
 }
 
 pub trait Repo {
@@ -76,8 +85,8 @@ pub trait Repo {
         updated_at: DateTime,
         collection_id: CollectionId,
         uri_prefix: &str,
-        old_status: Option<CacheStatus>,
-        new_status: CacheStatus,
+        old_status: Option<EntryStatus>,
+        new_status: EntryStatus,
     ) -> RepoResult<usize>;
 
     fn media_dir_cache_update_entry_digest(
@@ -85,21 +94,69 @@ pub trait Repo {
         updated_at: DateTime,
         collection_id: CollectionId,
         uri: &str,
-        digest: &CacheDigest,
+        digest: &EntryDigest,
     ) -> RepoResult<UpdateOutcome>;
 
     fn media_dir_cache_delete_entries(
         &self,
         collection_id: CollectionId,
         uri_prefix: &str,
-        old_status: Option<CacheStatus>,
+        old_status: Option<EntryStatus>,
     ) -> RepoResult<usize>;
+
+    /// Mark all current entries as outdated before starting
+    /// a directory traversal with calculating new digests.
+    fn media_dir_cache_mark_entries_outdated(
+        &self,
+        updated_at: DateTime,
+        collection_id: CollectionId,
+        uri_prefix: &str,
+    ) -> RepoResult<usize> {
+        self.media_dir_cache_update_entries_status(
+            updated_at,
+            collection_id,
+            uri_prefix,
+            Some(EntryStatus::Current),
+            EntryStatus::Outdated,
+        )
+    }
+
+    /// Mark all outdated entries that have not been visited
+    /// as orphaned.
+    fn media_dir_cache_mark_entries_orphaned(
+        &self,
+        updated_at: DateTime,
+        collection_id: CollectionId,
+        uri_prefix: &str,
+    ) -> RepoResult<usize> {
+        self.media_dir_cache_update_entries_status(
+            updated_at,
+            collection_id,
+            uri_prefix,
+            Some(EntryStatus::Outdated),
+            EntryStatus::Orphaned,
+        )
+    }
+
+    fn media_dir_cache_reset_entry_status_to_current(
+        &self,
+        updated_at: DateTime,
+        collection_id: CollectionId,
+        uri: &str,
+        digest: &EntryDigest,
+    ) -> RepoResult<bool>;
 
     fn media_dir_cache_load_entry_status_by_uri(
         &self,
         collection_id: CollectionId,
         uri: &str,
-    ) -> RepoResult<CacheStatus>;
+    ) -> RepoResult<EntryStatus>;
+
+    fn media_dir_cache_update_load_entries_aggregate_status(
+        &self,
+        collection_id: CollectionId,
+        uri_prefix: &str,
+    ) -> RepoResult<AggregateStatus>;
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

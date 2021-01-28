@@ -54,7 +54,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
     let updated_at = DateTime::now_utc();
     let collection_id = fixture.collection_id;
     let uri = "file:///test";
-    let mut digest = CacheDigest::default();
+    let mut digest = EntryDigest::default();
 
     // -> Added
     assert_eq!(
@@ -62,7 +62,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
         db.media_dir_cache_update_entry_digest(updated_at, collection_id, uri, &digest)?
     );
     assert_eq!(
-        CacheStatus::Added,
+        EntryStatus::Added,
         db.media_dir_cache_load_entry_status_by_uri(collection_id, uri)?
     );
     // Added -> Added
@@ -71,7 +71,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
         db.media_dir_cache_update_entry_digest(updated_at, collection_id, uri, &digest)?
     );
     assert_eq!(
-        CacheStatus::Added,
+        EntryStatus::Added,
         db.media_dir_cache_load_entry_status_by_uri(collection_id, uri)?
     );
 
@@ -83,7 +83,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
         db.media_dir_cache_update_entry_digest(updated_at, collection_id, uri, &digest)?
     );
     assert_eq!(
-        CacheStatus::Modified,
+        EntryStatus::Modified,
         db.media_dir_cache_load_entry_status_by_uri(collection_id, uri)?
     );
     // Modified -> Modified
@@ -92,7 +92,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
         db.media_dir_cache_update_entry_digest(updated_at, collection_id, uri, &digest)?
     );
     assert_eq!(
-        CacheStatus::Modified,
+        EntryStatus::Modified,
         db.media_dir_cache_load_entry_status_by_uri(collection_id, uri)?
     );
 
@@ -104,11 +104,11 @@ fn update_entry_digest() -> anyhow::Result<()> {
             collection_id,
             uri,
             None,
-            CacheStatus::Orphaned
+            EntryStatus::Orphaned
         )?
     );
     assert_eq!(
-        CacheStatus::Orphaned,
+        EntryStatus::Orphaned,
         db.media_dir_cache_load_entry_status_by_uri(collection_id, uri)?
     );
     // Orphaned -> Current (digest unchanged)
@@ -117,7 +117,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
         db.media_dir_cache_update_entry_digest(updated_at, collection_id, uri, &digest)?
     );
     assert_eq!(
-        CacheStatus::Current,
+        EntryStatus::Current,
         db.media_dir_cache_load_entry_status_by_uri(collection_id, uri)?
     );
 
@@ -129,7 +129,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
         db.media_dir_cache_update_entry_digest(updated_at, collection_id, uri, &digest)?
     );
     assert_eq!(
-        CacheStatus::Modified,
+        EntryStatus::Modified,
         db.media_dir_cache_load_entry_status_by_uri(collection_id, uri)?
     );
 
@@ -141,11 +141,11 @@ fn update_entry_digest() -> anyhow::Result<()> {
             collection_id,
             uri,
             None,
-            CacheStatus::Current
+            EntryStatus::Current
         )?
     );
     assert_eq!(
-        CacheStatus::Current,
+        EntryStatus::Current,
         db.media_dir_cache_load_entry_status_by_uri(collection_id, uri)?
     );
 
@@ -157,7 +157,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
         db.media_dir_cache_update_entry_digest(updated_at, collection_id, uri, &digest)?
     );
     assert_eq!(
-        CacheStatus::Modified,
+        EntryStatus::Modified,
         db.media_dir_cache_load_entry_status_by_uri(collection_id, uri)?
     );
 
@@ -169,11 +169,11 @@ fn update_entry_digest() -> anyhow::Result<()> {
             collection_id,
             uri,
             None,
-            CacheStatus::Outdated
+            EntryStatus::Outdated
         )?
     );
     assert_eq!(
-        CacheStatus::Outdated,
+        EntryStatus::Outdated,
         db.media_dir_cache_load_entry_status_by_uri(collection_id, uri)?
     );
 
@@ -183,7 +183,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
         db.media_dir_cache_update_entry_digest(updated_at, collection_id, uri, &digest)?
     );
     assert_eq!(
-        CacheStatus::Current,
+        EntryStatus::Current,
         db.media_dir_cache_load_entry_status_by_uri(collection_id, uri)?
     );
 
@@ -195,11 +195,11 @@ fn update_entry_digest() -> anyhow::Result<()> {
             collection_id,
             uri,
             None,
-            CacheStatus::Outdated
+            EntryStatus::Outdated
         )?
     );
     assert_eq!(
-        CacheStatus::Outdated,
+        EntryStatus::Outdated,
         db.media_dir_cache_load_entry_status_by_uri(collection_id, uri)?
     );
 
@@ -211,7 +211,93 @@ fn update_entry_digest() -> anyhow::Result<()> {
         db.media_dir_cache_update_entry_digest(updated_at, collection_id, uri, &digest)?
     );
     assert_eq!(
-        CacheStatus::Modified,
+        EntryStatus::Modified,
+        db.media_dir_cache_load_entry_status_by_uri(collection_id, uri)?
+    );
+
+    Ok(())
+}
+
+#[test]
+fn reset_entry_status_to_current() -> anyhow::Result<()> {
+    let fixture = Fixture::new()?;
+    let db = crate::Connection::new(&fixture.db);
+
+    let updated_at = DateTime::now_utc();
+    let collection_id = fixture.collection_id;
+    let uri = "file:///test";
+    let digest = EntryDigest::default();
+
+    let mut other_digest = digest.clone();
+    other_digest[0] = !other_digest[0];
+
+    // -> Added
+    assert_eq!(
+        UpdateOutcome::Inserted,
+        db.media_dir_cache_update_entry_digest(updated_at, collection_id, uri, &digest)?
+    );
+    assert_eq!(
+        EntryStatus::Added,
+        db.media_dir_cache_load_entry_status_by_uri(collection_id, uri)?
+    );
+
+    // Added -> Current
+    assert!(!db.media_dir_cache_reset_entry_status_to_current(
+        updated_at,
+        collection_id,
+        uri,
+        &other_digest
+    )?);
+    assert_eq!(
+        EntryStatus::Added, // unchanged
+        db.media_dir_cache_load_entry_status_by_uri(collection_id, uri)?
+    );
+    assert!(db.media_dir_cache_reset_entry_status_to_current(
+        updated_at,
+        collection_id,
+        uri,
+        &digest
+    )?);
+    assert_eq!(
+        EntryStatus::Current, // updated
+        db.media_dir_cache_load_entry_status_by_uri(collection_id, uri)?
+    );
+
+    // -> Modified
+    assert_eq!(
+        1,
+        db.media_dir_cache_update_entries_status(
+            updated_at,
+            collection_id,
+            uri,
+            None,
+            EntryStatus::Modified
+        )?
+    );
+    assert_eq!(
+        EntryStatus::Modified,
+        db.media_dir_cache_load_entry_status_by_uri(collection_id, uri)?
+    );
+
+    // Modified -> Current
+    assert!(!db.media_dir_cache_reset_entry_status_to_current(
+        updated_at,
+        collection_id,
+        uri,
+        &other_digest
+    )?);
+    assert_eq!(
+        EntryStatus::Modified, // unchanged
+        db.media_dir_cache_load_entry_status_by_uri(collection_id, uri)?
+    );
+    assert!(db.media_dir_cache_reset_entry_status_to_current(
+        updated_at,
+        collection_id,
+        uri,
+        &digest
+    )?);
+    assert_eq!(
+        EntryStatus::Current, // updated
         db.media_dir_cache_load_entry_status_by_uri(collection_id, uri)?
     );
 

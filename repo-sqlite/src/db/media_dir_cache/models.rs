@@ -32,7 +32,7 @@ pub struct QueryableRecord {
     pub collection_id: RowId,
     pub uri: String,
     pub status: i16,
-    pub digest: CacheDigest,
+    pub digest: EntryDigest,
 }
 
 #[derive(Debug, Insertable)]
@@ -51,8 +51,8 @@ impl<'a> InsertableRecord<'a> {
         created_at: DateTime,
         collection_id: CollectionId,
         uri: &'a str,
-        status: CacheStatus,
-        digest: &'a CacheDigest,
+        status: EntryStatus,
+        digest: &'a EntryDigest,
     ) -> Self {
         let row_created_ms = created_at.timestamp_millis();
         Self {
@@ -76,7 +76,7 @@ pub struct UpdateDigest<'a> {
 }
 
 impl<'a> UpdateDigest<'a> {
-    pub fn bind(updated_at: DateTime, status: CacheStatus, digest: &'a CacheDigest) -> Self {
+    pub fn bind(updated_at: DateTime, status: EntryStatus, digest: &'a EntryDigest) -> Self {
         Self {
             row_updated_ms: updated_at.timestamp_millis(),
             status: status.to_i16().expect("status"),

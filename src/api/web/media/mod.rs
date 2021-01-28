@@ -20,3 +20,4 @@ use super::*;
 pub mod import_track;
 pub mod relocate_collected_sources;
 pub mod digest_directories;
+pub mod digest_directories_aggregate_status;

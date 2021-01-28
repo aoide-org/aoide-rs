@@ -321,15 +321,40 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ScanCollectedMediaDirectoriesRequestBody'
+              $ref: '#/components/schemas/DigestCollectedMediaDirectoriesRequestBody'
       responses:
         '200':
           description: |
-            Batch operation succeeded.
+            Operation succeeded.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ScanCollectedMediaDirectoriesResponseBody'
+                $ref: '#/components/schemas/DigestCollectedMediaDirectoriesResponseBody'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /c/{collectionUid}/digest-media-source-directories/aggregate-status:
+    post:
+      operationId: digestCollectedMediaSourceDirectoriesAggregateStatus
+      summary: Query the aggregated status of digested directories
+      description: |
+      tags:
+        - Media Sources
+      parameters:
+        - $ref: '#/components/parameters/collectionUidPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DigestCollectedMediaDirectoriesAggregateStatusRequestBody'
+      responses:
+        '200':
+          description: |
+            Operation succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DigestCollectedMediaDirectoriesAggregateStatusResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
   /digest-media-source-directories/abort:
@@ -1904,7 +1929,46 @@ components:
     ReleaseDateTime:
       allOf:
         - $ref: '#/components/schemas/DateTime'
-    ScanCollectedMediaDirectoriesRequestBody:
+    DigestCollectedMediaDirectoriesAggregateStatus:
+      type: object
+      properties:
+        current:
+          type: number
+          format: int
+          minimum: 0
+        outdated:
+          type: number
+          format: int
+          minimum: 0
+        added:
+          type: number
+          format: int
+          minimum: 0
+        modified:
+          type: number
+          format: int
+          minimum: 0
+        orphaned:
+          type: number
+          format: int
+          minimum: 0
+      required:
+        - current
+        - outdated
+        - added
+        - modified
+        - orphaned
+    DigestCollectedMediaDirectoriesAggregateStatusRequestBody:
+      type: object
+      properties:
+        rootUrl:
+          $ref: '#/components/schemas/FileDirectoryUrl'
+      required:
+        - rootUrl
+    DigestCollectedMediaDirectoriesAggregateStatusResponseBody:
+      allOf:
+        - $ref: '#/components/schemas/DigestCollectedMediaDirectoriesAggregateStatus'
+    DigestCollectedMediaDirectoriesRequestBody:
       type: object
       properties:
         rootUrl:
@@ -1915,12 +1979,12 @@ components:
           minimum: 1
       required:
         - rootUrl
-    ScanCollectedMediaDirectoriesStatus:
+    DigestCollectedMediaDirectoriesStatus:
       type: string
       enum:
         - finished
         - aborted
-    ScanCollectedMediaDirectoriesSummary:
+    DigestCollectedMediaDirectoriesSummary:
       type: object
       properties:
         current:
@@ -1949,14 +2013,14 @@ components:
         - modified
         - orphaned
         - skipped
-    ScanCollectedMediaDirectoriesResponseBody:
+    DigestCollectedMediaDirectoriesResponseBody:
       oneOf:
         - type: object
           properties:
             status:
-              $ref: '#/components/schemas/ScanCollectedMediaDirectoriesStatus'
+              $ref: '#/components/schemas/DigestCollectedMediaDirectoriesStatus'
             summary:
-              $ref: '#/components/schemas/ScanCollectedMediaDirectoriesSummary'
+              $ref: '#/components/schemas/DigestCollectedMediaDirectoriesSummary'
           required:
             - status
             - summary

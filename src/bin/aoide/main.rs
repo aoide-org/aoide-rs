@@ -321,7 +321,7 @@ pub async fn main() -> Result<(), Error> {
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
-    let collected_media_sources_scan_directories = warp::post()
+    let collected_media_sources_digest_directories = warp::post()
         .and(collections_path)
         .and(path_param_uid)
         .and(warp::path("digest-media-source-directories"))
@@ -340,6 +340,31 @@ pub async fn main() -> Result<(), Error> {
                             &uid,
                             request_body,
                             &SCAN_MEDIA_DIRECTORIES_ABORT_FLAG,
+                        )
+                    },
+                )
+                .await
+                .map_err(reject_on_error)
+                .map(|response_body| warp::reply::json(&response_body))
+            },
+        );
+    let collected_media_sources_digest_directories_aggregate_status = warp::post()
+        .and(collections_path)
+        .and(path_param_uid)
+        .and(warp::path("digest-media-source-directories"))
+        .and(warp::path("aggregate-status"))
+        .and(warp::path::end())
+        .and(warp::body::json())
+        .and(guarded_connection_pool.clone())
+        .and_then(
+            |uid, request_body, guarded_connection_pool: GuardedConnectionPool| async move {
+                spawn_blocking_database_read_task(
+                    guarded_connection_pool,
+                    move |pooled_connection| {
+                        media::digest_directories_aggregate_status::handle_request(
+                            pooled_connection,
+                            &uid,
+                            request_body,
                         )
                     },
                 )
@@ -706,7 +731,8 @@ pub async fn main() -> Result<(), Error> {
             .or(tracks_filters)
             .or(playlists_filters)
             .or(media_import_track) // undocumented
-            .or(collected_media_sources_scan_directories)
+            .or(collected_media_sources_digest_directories)
+            .or(collected_media_sources_digest_directories_aggregate_status)
             .or(collected_media_sources_relocate)
             .or(abort_directory_scan)
             .or(storage_filters)

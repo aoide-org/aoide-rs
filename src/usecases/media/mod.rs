@@ -27,7 +27,7 @@ use aoide_media::{
 use aoide_repo::{
     collection::EntityRepo as _,
     media::{
-        dir_cache::{CacheStatus, Repo as _, UpdateOutcome},
+        dir_cache::{Repo as _, UpdateOutcome},
         source::Repo as _,
     },
 };
@@ -35,6 +35,8 @@ use aoide_repo::{
 use url::Url;
 
 ///////////////////////////////////////////////////////////////////////
+
+pub use aoide_repo::media::dir_cache::AggregateStatus;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct DirScanSummary {
@@ -90,12 +92,10 @@ pub fn digest_directories_recursively(
     }
     Ok(db.transaction::<_, DieselRepoError, _>(|| {
         let collection_id = db.resolve_collection_id(collection_uid)?;
-        let outdated_count = db.media_dir_cache_update_entries_status(
+        let outdated_count = db.media_dir_cache_mark_entries_outdated(
             DateTime::now_utc(),
             collection_id,
             root_dir_url.as_str(),
-            Some(CacheStatus::Current),
-            CacheStatus::Outdated,
         )?;
         log::debug!(
             "Marked {} current cache entries as outdated",
@@ -155,12 +155,10 @@ pub fn digest_directories_recursively(
                 dir_digest::FinalStatus::Finished => {
                     // Mark all remaining entries that are unreachable and
                     // have not been visited as orphaned.
-                    summary.orphaned = db.media_dir_cache_update_entries_status(
+                    summary.orphaned = db.media_dir_cache_mark_entries_orphaned(
                         DateTime::now_utc(),
                         collection_id,
                         root_dir_url.as_str(),
-                        Some(CacheStatus::Outdated),
-                        CacheStatus::Orphaned,
                     )?;
                     debug_assert!(summary.orphaned <= outdated_count);
                     Ok(DirScanStatus::Finished)
@@ -172,6 +170,21 @@ pub fn digest_directories_recursively(
             }
         })?;
         Ok(DirScanOutcome { status, summary })
+    })?)
+}
+
+pub fn digest_directories_aggregate_status(
+    connection: &SqliteConnection,
+    collection_uid: &EntityUid,
+    root_dir_url: &Url,
+) -> Result<AggregateStatus> {
+    let db = RepoConnection::new(connection);
+    Ok(db.transaction::<_, DieselRepoError, _>(|| {
+        let collection_id = db.resolve_collection_id(collection_uid)?;
+        Ok(db.media_dir_cache_update_load_entries_aggregate_status(
+            collection_id,
+            root_dir_url.as_str(),
+        )?)
     })?)
 }
 
