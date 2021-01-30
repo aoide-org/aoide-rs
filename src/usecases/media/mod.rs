@@ -20,8 +20,10 @@ use super::*;
 use aoide_core::{entity::EntityUid, track::Track, util::clock::DateTime};
 
 use aoide_media::{
-    fs::dir_digest, guess_mime_from_url, mp4, open_local_file_url_for_reading, ImportTrack,
-    ImportTrackConfig, ImportTrackOptions, NewTrackInput, Reader,
+    fmt::mp4,
+    fs::{dir_digest, open_local_file_url_for_reading},
+    io::import::*,
+    util::guess_mime_from_url,
 };
 
 use aoide_repo::{

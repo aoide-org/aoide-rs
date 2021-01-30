@@ -38,9 +38,9 @@ mp4ameta = { version = "*", optional = true }
 mp3-duration = { version = "*", optional = true }
 
 [features]
-feature-flac = [ "metaflac" ]
-feature-mp4 = [ "mp4", "mp4ameta" ]
-feature-mp3 = [ "id3", "mp3-duration" ]
-feature-ogg = [ "lewton" ]
-feature-wav = [ "hound" ]
-default = [ "feature-flac", "feature-mp3", "feature-mp4", "feature-ogg", "feature-wav" ]
+fmt-flac = [ "metaflac" ]
+fmt-mp4 = [ "mp4", "mp4ameta" ]
+fmt-mp3 = [ "id3", "mp3-duration" ]
+fmt-ogg = [ "lewton" ]
+fmt-wav = [ "hound" ]
+default = [ "fmt-flac", "fmt-mp3", "fmt-mp4", "fmt-ogg", "fmt-wav" ]

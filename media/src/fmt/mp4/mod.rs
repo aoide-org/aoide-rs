@@ -15,11 +15,14 @@
 
 ///////////////////////////////////////////////////////////////////////
 
-use super::*;
-
-use crate::util::{
-    import_faceted_tags, parse_key_signature, parse_replay_gain, parse_tempo_bpm, parse_year_tag,
-    push_next_actor_role_name,
+use crate::{
+    io::import::{self, *},
+    util::{
+        digest::MediaDigest, parse_artwork_from_embedded_image, parse_key_signature,
+        parse_replay_gain, parse_tempo_bpm, parse_year_tag, push_next_actor_role_name,
+        tag::import_faceted_tags,
+    },
+    Error, Result,
 };
 
 use aoide_core::{
@@ -28,14 +31,15 @@ use aoide_core::{
         signal::{BitRateBps, BitsPerSecond, SampleRateHz},
         AudioContent, Encoder,
     },
-    media::ContentMetadataFlags,
+    media::{Content, ContentMetadataFlags},
     music::time::{Beats, TempoBpm},
-    tag::Tags,
+    tag::{Score as TagScore, Tags, TagsMap},
     track::{
         actor::ActorRole,
         album::AlbumKind,
         tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE, FACET_MOOD},
         title::{Title, TitleKind},
+        Track,
     },
     util::{Canonical, CanonicalizeInto as _},
 };
@@ -43,11 +47,11 @@ use aoide_core::{
 use aoide_core_serde::tag::Tags as SerdeTags;
 
 use ::mp4::{ChannelConfig, MediaType, Mp4Reader, SampleFreqIndex, TrackType};
+use anyhow::anyhow;
 use image::ImageFormat;
 use mp4ameta::{atom::read_tag_from, Data, FourCC, FreeformIdent, STANDARD_GENRES};
 use semval::IsValid as _;
 use std::io::SeekFrom;
-use util::{digest::MediaDigest, parse_artwork_from_embedded_image};
 
 #[derive(Debug)]
 pub struct ImportTrack;
@@ -96,7 +100,7 @@ fn read_channels(channel_config: ChannelConfig) -> Channels {
 const COM_APPLE_ITUNES_FREEFORM_MEAN: &str = "com.apple.iTunes";
 const ORG_MIXXX_DJ_FREEFORM_MEAN: &str = "org.mixxx.dj";
 
-impl super::ImportTrack for ImportTrack {
+impl import::ImportTrack for ImportTrack {
     fn import_track(
         &self,
         config: &ImportTrackConfig,

@@ -15,38 +15,4 @@
 
 ///////////////////////////////////////////////////////////////////////
 
-#![deny(missing_debug_implementations)]
-#![deny(rust_2018_idioms)]
-
-pub mod fmt;
-pub mod fs;
-pub mod io;
-pub mod util;
-
-use mime::Mime;
-use std::{io::Error as IoError, result::Result as StdResult};
-use thiserror::Error;
-
-#[derive(Error, Debug)]
-pub enum Error {
-    #[error("unknown content type")]
-    UnknownContentType,
-
-    #[error("unsupported content type")]
-    UnsupportedContentType(Mime),
-
-    #[error("unsupported import options")]
-    UnsupportedImportOptions,
-
-    #[error(transparent)]
-    Io(#[from] IoError),
-
-    #[error(transparent)]
-    Other(#[from] anyhow::Error),
-}
-
-pub type Result<T> = StdResult<T, Error>;
-
-pub mod prelude {
-    pub use super::{Error, Result};
-}
+pub mod import;

@@ -68,13 +68,9 @@ pub fn handle_request(
     collection_uid: &EntityUid,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
-    let RequestBody {
-        root_url,
-    } = request_body;
-    Ok(uc::digest_directories_aggregate_status(
-        &pooled_connection,
-        collection_uid,
-        &root_url,
+    let RequestBody { root_url } = request_body;
+    Ok(
+        uc::digest_directories_aggregate_status(&pooled_connection, collection_uid, &root_url)
+            .map(Into::into)?,
     )
-    .map(Into::into)?)
 }

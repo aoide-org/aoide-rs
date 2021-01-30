@@ -16,3 +16,34 @@
 ///////////////////////////////////////////////////////////////////////
 
 pub mod dir_digest;
+
+use super::{Error, IoError, Result};
+
+use anyhow::anyhow;
+use std::{fs::File, io::ErrorKind};
+use url::Url;
+
+pub use mime::Mime;
+
+pub fn open_local_file_url_for_reading(url: &Url) -> Result<File> {
+    log::debug!("Opening local file URL '{}' for reading", url);
+    if url.scheme() != "file" {
+        return Err(Error::Io(IoError::new(
+            ErrorKind::Other,
+            anyhow!("Unsupported URL scheme '{}'", url.scheme()),
+        )));
+    }
+    if let Ok(file_path) = url.to_file_path() {
+        log::debug!("Importing track from local file {:?}", file_path);
+        Ok(File::open(std::path::Path::new(&file_path))?)
+    } else {
+        log::debug!(
+            "Failed to convert URL '{}', into a local, absolute file path",
+            url
+        );
+        Err(Error::Io(IoError::new(
+            ErrorKind::Other,
+            anyhow!("Invalid or unsupported URL: {}", url),
+        )))
+    }
+}

@@ -16,11 +16,11 @@
 ///////////////////////////////////////////////////////////////////////
 
 pub mod digest;
+pub mod tag;
+
+use crate::prelude::*;
+
 use self::digest::MediaDigest;
-
-use std::unreachable;
-
-use super::TagMappingConfig;
 
 use aoide_core::{
     audio::signal::LoudnessLufs,
@@ -28,10 +28,6 @@ use aoide_core::{
     music::{
         key::{KeyCodeValue, KeyMode, KeySignature, LancelotKeySignature, OpenKeySignature},
         time::TempoBpm,
-    },
-    tag::{
-        Facet as TagFacet, Label as TagLabel, LabelValue, PlainTag, Score as TagScore, ScoreValue,
-        TagsMap,
     },
     track::{
         actor::{Actor, ActorKind, ActorRole},
@@ -45,7 +41,7 @@ use aoide_core::{
 
 use chrono::{NaiveDateTime, Utc};
 use image::{load_from_memory, load_from_memory_with_format, GenericImageView, ImageFormat, Pixel};
-use mime::{IMAGE_BMP, IMAGE_GIF, IMAGE_JPEG, IMAGE_PNG, IMAGE_STAR};
+use mime::{Mime, IMAGE_BMP, IMAGE_GIF, IMAGE_JPEG, IMAGE_PNG, IMAGE_STAR};
 use nom::{
     bytes::complete::{tag, tag_no_case},
     character::complete::{digit1, one_of, space0},
@@ -53,7 +49,19 @@ use nom::{
     sequence::{delimited, pair, preceded, separated_pair, terminated},
     IResult,
 };
-use semval::IsValid;
+use semval::IsValid as _;
+use url::Url;
+
+pub fn guess_mime_from_url(url: &Url) -> Result<Mime> {
+    let mime_guess = mime_guess::from_path(url.path());
+    if mime_guess.first().is_none() {
+        return Err(Error::UnknownContentType);
+    }
+    mime_guess
+        .into_iter()
+        .find(|mime| mime.type_() == mime::AUDIO)
+        .ok_or(Error::UnknownContentType)
+}
 
 /// Determines the next kind and adjusts the previous kind.
 ///
@@ -84,67 +92,6 @@ pub fn push_next_actor_role_name(actors: &mut Vec<Actor>, role: ActorRole, name:
         role_notes: None,
     };
     actors.push(actor);
-}
-
-pub fn try_import_plain_tag(
-    label_value: impl Into<LabelValue>,
-    score_value: impl Into<ScoreValue>,
-) -> Result<PlainTag, PlainTag> {
-    let label = TagLabel::clamp_from(label_value);
-    let score = TagScore::clamp_from(score_value);
-    let plain_tag = PlainTag {
-        label: Some(label),
-        score,
-    };
-    if plain_tag.is_valid() {
-        Ok(plain_tag)
-    } else {
-        Err(plain_tag)
-    }
-}
-
-pub fn import_faceted_tags(
-    tags_map: &mut TagsMap,
-    next_score_value: &mut ScoreValue,
-    facet: &TagFacet,
-    tag_mapping_config: Option<&TagMappingConfig>,
-    label_value: impl Into<LabelValue>,
-) -> usize {
-    let mut import_count = 0;
-    let label_value = label_value.into();
-    if let Some(tag_mapping_config) = tag_mapping_config {
-        if !tag_mapping_config.label_separator.is_empty() {
-            for (_, split_label_value) in
-                label_value.match_indices(&tag_mapping_config.label_separator)
-            {
-                match try_import_plain_tag(split_label_value, *next_score_value) {
-                    Ok(plain_tag) => {
-                        tags_map.insert(facet.to_owned().into(), plain_tag);
-                        import_count += 1;
-                        *next_score_value = tag_mapping_config.next_score_value(*next_score_value);
-                    }
-                    Err(plain_tag) => {
-                        log::warn!("Failed to import faceted '{}' tag: {:?}", facet, plain_tag,);
-                    }
-                }
-            }
-        }
-    }
-    if import_count == 0 {
-        match try_import_plain_tag(label_value, *next_score_value) {
-            Ok(plain_tag) => {
-                tags_map.insert(facet.to_owned().into(), plain_tag);
-                import_count += 1;
-                if let Some(tag_mapping_config) = tag_mapping_config {
-                    *next_score_value = tag_mapping_config.next_score_value(*next_score_value);
-                }
-            }
-            Err(plain_tag) => {
-                log::warn!("Failed to import faceted '{}' tag: {:?}", facet, plain_tag,);
-            }
-        }
-    }
-    import_count
 }
 
 // Assumption: Gain has been calculated with the EBU R128 algorithm

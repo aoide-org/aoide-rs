@@ -166,7 +166,7 @@ impl Label {
     pub fn clamp_value(value: impl Into<LabelValue>) -> LabelValue {
         let value = value.into();
         let clamped = Self::clamp_str(&value);
-        if clamped == &value {
+        if clamped == value {
             value
         } else {
             clamped.into()

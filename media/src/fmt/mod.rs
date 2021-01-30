@@ -15,38 +15,17 @@
 
 ///////////////////////////////////////////////////////////////////////
 
-#![deny(missing_debug_implementations)]
-#![deny(rust_2018_idioms)]
+#[cfg(feature = "fmt-flac")]
+pub mod flac;
 
-pub mod fmt;
-pub mod fs;
-pub mod io;
-pub mod util;
+#[cfg(feature = "fmt-mp3")]
+pub mod mp3;
 
-use mime::Mime;
-use std::{io::Error as IoError, result::Result as StdResult};
-use thiserror::Error;
+#[cfg(feature = "fmt-mp4")]
+pub mod mp4;
 
-#[derive(Error, Debug)]
-pub enum Error {
-    #[error("unknown content type")]
-    UnknownContentType,
+#[cfg(feature = "fmt-ogg")]
+pub mod ogg;
 
-    #[error("unsupported content type")]
-    UnsupportedContentType(Mime),
-
-    #[error("unsupported import options")]
-    UnsupportedImportOptions,
-
-    #[error(transparent)]
-    Io(#[from] IoError),
-
-    #[error(transparent)]
-    Other(#[from] anyhow::Error),
-}
-
-pub type Result<T> = StdResult<T, Error>;
-
-pub mod prelude {
-    pub use super::{Error, Result};
-}
+#[cfg(feature = "fmt-wav")]
+pub mod wav;
