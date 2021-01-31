@@ -29,7 +29,7 @@ use aoide_core::{
     audio::{
         channel::{ChannelCount, ChannelLayout, Channels},
         signal::{BitRateBps, BitsPerSecond, SampleRateHz},
-        AudioContent, Encoder,
+        AudioContent,
     },
     media::{Content, ContentMetadataFlags},
     music::time::{Beats, TempoBpm},
@@ -74,8 +74,8 @@ fn read_sample_rate(sample_freq_idx: SampleFreqIndex) -> SampleRateHz {
     })
 }
 
-fn read_bit_rate(bitrate: u32) -> Option<BitRateBps> {
-    let bits_per_second = bitrate as BitsPerSecond;
+fn read_bit_rate(bit_rate: u32) -> Option<BitRateBps> {
+    let bits_per_second = bit_rate as BitsPerSecond;
     let bit_rate_bps = BitRateBps(bits_per_second);
     if bit_rate_bps >= BitRateBps::min() {
         Some(bit_rate_bps)
@@ -154,17 +154,14 @@ impl import::ImportTrack for ImportTrack {
                 ))
                 .next()
                 .and_then(parse_replay_gain);
-            let encoder = mp4_tag.take_encoder().map(|name| Encoder {
-                name,
-                settings: None,
-            });
+            let encoder = mp4_tag.take_encoder();
             let audio_content = AudioContent {
                 duration,
                 channels,
                 sample_rate,
                 bit_rate,
-                encoder,
                 loudness,
+                encoder,
             };
             track.media_source.content = Content::Audio(audio_content);
         }
@@ -344,6 +341,19 @@ impl import::ImportTrack for ImportTrack {
             }
         }
 
+        // Comment tag
+        if let Some(comment) = mp4_tag.take_comment() {
+            tags_map.remove_faceted_tags(&FACET_COMMENT);
+            let mut next_score_value = TagScore::default_value();
+            import_faceted_tags(
+                &mut tags_map,
+                &mut next_score_value,
+                &FACET_COMMENT,
+                None,
+                comment,
+            );
+        }
+
         // Genre tags
         let mut genre_count = 0;
         if mp4_tag.custom_genres().next().is_some() {
@@ -414,19 +424,6 @@ impl import::ImportTrack for ImportTrack {
             }
         }
 
-        // Comment tag
-        if let Some(comment) = mp4_tag.take_comment() {
-            tags_map.remove_faceted_tags(&FACET_COMMENT);
-            let mut next_score_value = TagScore::default_value();
-            import_faceted_tags(
-                &mut tags_map,
-                &mut next_score_value,
-                &FACET_COMMENT,
-                None,
-                comment,
-            );
-        }
-
         debug_assert!(track.tags.is_empty());
         track.tags = Canonical::tie(tags_map.into());
 
@@ -447,7 +444,7 @@ impl import::ImportTrack for ImportTrack {
         // Artwork
         if options.contains(ImportTrackOptions::ARTWORK) {
             let mut image_digest = if options.contains(ImportTrackOptions::ARTWORK_DIGEST) {
-                if options.contains(ImportTrackOptions::MIXXX_ARTWORK_DIGEST_SHA256) {
+                if options.contains(ImportTrackOptions::ARTWORK_DIGEST_SHA256) {
                     // Compatibility
                     MediaDigest::sha256()
                 } else {

@@ -23,8 +23,6 @@ mod _core {
     pub use aoide_core::audio::*;
 }
 
-use aoide_core::util::IsDefault;
-
 use self::{channel::*, signal::*};
 
 ///////////////////////////////////////////////////////////////////////
@@ -70,40 +68,6 @@ impl From<DurationMs> for _core::DurationMs {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Encoder
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct Encoder {
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
-    name: String,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    settings: Option<String>,
-}
-
-impl From<Encoder> for _core::Encoder {
-    fn from(from: Encoder) -> Self {
-        let Encoder { name, settings } = from;
-        Self {
-            name,
-            settings: settings.map(Into::into),
-        }
-    }
-}
-
-impl From<_core::Encoder> for Encoder {
-    fn from(from: _core::Encoder) -> Self {
-        let _core::Encoder { name, settings } = from;
-        Self {
-            name,
-            settings: settings.map(Into::into),
-        }
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
 // AudioContent
 ///////////////////////////////////////////////////////////////////////
 
@@ -117,16 +81,16 @@ pub struct AudioContent {
     channels: Option<Channels>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    samplerate_hz: Option<SampleRateHz>,
+    sample_rate_hz: Option<SampleRateHz>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    bitrate_bps: Option<BitRateBps>,
+    bit_rate_bps: Option<BitRateBps>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     loudness_lufs: Option<LoudnessLufs>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    encoder: Option<Encoder>,
+    encoder: Option<String>,
 }
 
 impl From<AudioContent> for _core::AudioContent {
@@ -134,16 +98,16 @@ impl From<AudioContent> for _core::AudioContent {
         let AudioContent {
             duration_ms,
             channels,
-            samplerate_hz,
-            bitrate_bps,
+            sample_rate_hz,
+            bit_rate_bps,
             loudness_lufs,
             encoder,
         } = from;
         Self {
             duration: duration_ms.map(Into::into),
             channels: channels.map(Into::into),
-            sample_rate: samplerate_hz.map(Into::into),
-            bit_rate: bitrate_bps.map(Into::into),
+            sample_rate: sample_rate_hz.map(Into::into),
+            bit_rate: bit_rate_bps.map(Into::into),
             loudness: loudness_lufs.map(Into::into),
             encoder: encoder.map(Into::into),
         }
@@ -163,8 +127,8 @@ impl From<_core::AudioContent> for AudioContent {
         Self {
             duration_ms: duration.map(Into::into),
             channels: channels.map(Into::into),
-            samplerate_hz: sample_rate.map(Into::into),
-            bitrate_bps: bit_rate.map(Into::into),
+            sample_rate_hz: sample_rate.map(Into::into),
+            bit_rate_bps: bit_rate.map(Into::into),
             loudness_lufs: loudness.map(Into::into),
             encoder: encoder.map(Into::into),
         }

@@ -20,7 +20,7 @@ use super::*;
 use aoide_core::{entity::EntityUid, track::Track, util::clock::DateTime};
 
 use aoide_media::{
-    fmt::mp4,
+    fmt::{mp3, mp4},
     fs::{dir_digest, open_local_file_url_for_reading},
     io::import::*,
     util::guess_mime_from_url,
@@ -213,10 +213,14 @@ pub fn import_track_from_url(
     let mut reader: Box<dyn Reader> = Box::new(BufReader::new(file));
     let file_size = file_metadata.len();
     let track = input.try_from_url_into_new_track(url, &mime)?;
-    if mime == "audio/m4a" {
-        Ok(mp4::ImportTrack.import_track(config, options, track, &mut reader, file_size)?)
-    } else {
-        Err(Error::Media(MediaError::UnsupportedContentType(mime)))
+    match mime.as_ref() {
+        "audio/mpeg" => {
+            Ok(mp3::ImportTrack.import_track(config, options, track, &mut reader, file_size)?)
+        }
+        "audio/m4a" | "audio/mp4" => {
+            Ok(mp4::ImportTrack.import_track(config, options, track, &mut reader, file_size)?)
+        }
+        _ => Err(Error::Media(MediaError::UnsupportedContentType(mime))),
     }
 }
 

@@ -108,9 +108,7 @@ pub fn import_faceted_tags(
     let label_value = label_value.into();
     if let Some(tag_mapping_config) = tag_mapping_config {
         if !tag_mapping_config.label_separator.is_empty() {
-            for (_, split_label_value) in
-                label_value.match_indices(&tag_mapping_config.label_separator)
-            {
+            for split_label_value in label_value.split(&tag_mapping_config.label_separator) {
                 match try_import_plain_tag(split_label_value, *next_score_value) {
                     Ok(plain_tag) => {
                         tags_map.insert(facet.to_owned().into(), plain_tag);

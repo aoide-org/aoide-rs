@@ -804,6 +804,14 @@ impl TagsMap {
         }
     }
 
+    pub fn count(&mut self, facet: &Facet) -> usize {
+        let Self(inner) = self;
+        inner
+            .get(facet.value().as_str())
+            .map(|val| val.len())
+            .unwrap_or(0)
+    }
+
     pub fn total_count(&self) -> usize {
         let Self(inner) = self;
         inner.values().fold(0, |sum, tags| sum + tags.len())

@@ -893,15 +893,21 @@ components:
       properties:
         durationMs:
           $ref: '#/components/schemas/DurationMs'
-        bitrateBps:
+        bitRateBps:
           $ref: '#/components/schemas/BitRateBps'
         channels:
           $ref: '#/components/schemas/Channels'
+        encodedBy:
+          description: Encoder, either a person or an application
+          type: string
+          minLength: 1
         encoder:
-          $ref: '#/components/schemas/Encoder'
+          description: Encoder settings or configuration
+          type: string
+          minLength: 1
         loudnessLufs:
           $ref: '#/components/schemas/LoudnessLufs'
-        samplerateHz:
+        sampleRateHz:
           $ref: '#/components/schemas/SampleRateHz'
     BeatNumber:
       type: integer
@@ -1153,16 +1159,6 @@ components:
       format: double
       minimum: 0
       example: 210387.576
-    Encoder:
-      type: object
-      properties:
-        name:
-          description: Name
-          type: string
-          minLength: 1
-        settings:
-          description: Encoder settings or configuration
-          type: string
     EntityHeader:
       type: array
       minItems: 2

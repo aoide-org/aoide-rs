@@ -31,6 +31,7 @@ use aoide_core::{
     },
     track::{
         actor::{Actor, ActorKind, ActorRole},
+        index::Index,
         release::DateOrDateTime,
     },
     util::{
@@ -40,7 +41,10 @@ use aoide_core::{
 };
 
 use chrono::{NaiveDateTime, Utc};
-use image::{load_from_memory, load_from_memory_with_format, GenericImageView, ImageFormat, Pixel};
+use image::{
+    guess_format, load_from_memory, load_from_memory_with_format, GenericImageView, ImageFormat,
+    Pixel,
+};
 use mime::{Mime, IMAGE_BMP, IMAGE_GIF, IMAGE_JPEG, IMAGE_PNG, IMAGE_STAR};
 use nom::{
     bytes::complete::{tag, tag_no_case},
@@ -318,11 +322,32 @@ pub fn parse_year_tag(input: &str) -> Option<DateOrDateTime> {
     None
 }
 
+pub fn parse_index_numbers(input: &str) -> Option<Index> {
+    let mut split = if input.contains('/') {
+        input.split('/')
+    } else if input.contains('-') {
+        input.split('-')
+    } else {
+        return input.parse().ok().map(|number| Index {
+            number: Some(number),
+            total: None,
+        });
+    };
+    let number = split.next().and_then(|input| input.parse().ok());
+    let total = split.next().and_then(|input| input.parse().ok());
+    if number.is_none() && total.is_none() {
+        None
+    } else {
+        Some(Index { number, total })
+    }
+}
+
 pub fn parse_artwork_from_embedded_image(
     image_data: &[u8],
     image_format: Option<ImageFormat>,
     image_digest: &mut MediaDigest,
 ) -> Option<Artwork> {
+    let image_format = image_format.or_else(|| guess_format(image_data).ok());
     let media_type = match image_format {
         Some(ImageFormat::Jpeg) => IMAGE_JPEG.to_string(),
         Some(ImageFormat::Png) => IMAGE_PNG.to_string(),

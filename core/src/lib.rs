@@ -50,7 +50,7 @@ mod compat {
         let mut iter = slice.iter();
         if let Some(first) = iter.next() {
             let mut prev = first;
-            while let Some(next) = iter.next() {
+            for next in iter {
                 if cmp(prev, next) == Ordering::Greater {
                     return false;
                 }

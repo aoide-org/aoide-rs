@@ -151,7 +151,7 @@ pub struct PcmSignal {
 }
 
 impl PcmSignal {
-    pub fn bitrate(self, bits_per_sample: BitsPerSample) -> BitRateBps {
+    pub fn bit_rate(self, bits_per_sample: BitsPerSample) -> BitRateBps {
         debug_assert!(self.validate().is_ok());
         let bps = BitsPerSecond::from(self.channel_layout.channel_count().0)
             * (self.sample_rate.0.round() as BitsPerSecond)

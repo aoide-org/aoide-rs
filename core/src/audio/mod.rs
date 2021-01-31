@@ -114,31 +114,6 @@ impl fmt::Display for DurationMs {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// Encoder
-///////////////////////////////////////////////////////////////////////
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct Encoder {
-    pub name: String,
-
-    pub settings: Option<String>,
-}
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum EncoderInvalidity {
-    NameEmpty,
-}
-
-impl Validate for Encoder {
-    type Invalidity = EncoderInvalidity;
-
-    fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        ValidationContext::new()
-            .invalidate_if(self.name.trim().is_empty(), EncoderInvalidity::NameEmpty)
-            .into()
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
 // AudioContent
 ///////////////////////////////////////////////////////////////////////
 
@@ -154,7 +129,8 @@ pub struct AudioContent {
 
     pub loudness: Option<LoudnessLufs>,
 
-    pub encoder: Option<Encoder>,
+    // Encoder and settings
+    pub encoder: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -164,7 +140,7 @@ pub enum AudioContentInvalidity {
     SampleRate(SampleRateHzInvalidity),
     BitRate(BitRateBpsInvalidity),
     Loudness(LoudnessLufsInvalidity),
-    Encoder(EncoderInvalidity),
+    EncoderEmpty,
 }
 
 impl Validate for AudioContent {
@@ -177,7 +153,14 @@ impl Validate for AudioContent {
             .validate_with(&self.sample_rate, AudioContentInvalidity::SampleRate)
             .validate_with(&self.bit_rate, AudioContentInvalidity::BitRate)
             .validate_with(&self.loudness, AudioContentInvalidity::Loudness)
-            .validate_with(&self.encoder, AudioContentInvalidity::Encoder)
+            .invalidate_if(
+                self.encoder
+                    .as_deref()
+                    .map(str::trim)
+                    .map(str::is_empty)
+                    .unwrap_or(false),
+                AudioContentInvalidity::EncoderEmpty,
+            )
             .into()
     }
 }

@@ -21,7 +21,7 @@ use aoide_core::{
     audio::{
         channel::{ChannelCount, NumberOfChannels},
         signal::{BitRateBps, BitsPerSecond, LoudnessLufs, SampleRateHz, SamplesPerSecond},
-        AudioContent, DurationInMilliseconds, DurationMs, Encoder as AudioEncoder,
+        AudioContent, DurationInMilliseconds, DurationMs,
     },
     media::{Artwork, Content, ContentMetadataFlags, ImageDimension, ImageSize, Source},
     util::{
@@ -54,8 +54,7 @@ pub struct QueryableRecord {
     pub audio_samplerate_hz: Option<f64>,
     pub audio_bitrate_bps: Option<f64>,
     pub audio_loudness_lufs: Option<f64>,
-    pub audio_encoder_name: Option<String>,
-    pub audio_encoder_settings: Option<String>,
+    pub audio_encoder: Option<String>,
     pub artwork_uri: Option<String>,
     pub artwork_type: Option<String>,
     pub artwork_digest: Option<Vec<u8>>,
@@ -84,8 +83,7 @@ impl From<QueryableRecord> for (RecordHeader, Source) {
             audio_samplerate_hz,
             audio_bitrate_bps,
             audio_loudness_lufs,
-            audio_encoder_name,
-            audio_encoder_settings,
+            audio_encoder,
             artwork_uri,
             artwork_type,
             artwork_digest,
@@ -93,10 +91,6 @@ impl From<QueryableRecord> for (RecordHeader, Source) {
             artwork_size_height,
             artwork_color_rgb,
         } = from;
-        let audio_encoder = audio_encoder_name.map(|name| AudioEncoder {
-            name,
-            settings: audio_encoder_settings,
-        });
         let audio_content = AudioContent {
             duration: audio_duration_ms.map(|val| DurationMs(val as DurationInMilliseconds)),
             channels: audio_channel_count.map(|val| ChannelCount(val as NumberOfChannels).into()),
@@ -162,8 +156,7 @@ pub struct InsertableRecord<'a> {
     pub audio_samplerate_hz: Option<f64>,
     pub audio_bitrate_bps: Option<f64>,
     pub audio_loudness_lufs: Option<f64>,
-    pub audio_encoder_name: Option<&'a str>,
-    pub audio_encoder_settings: Option<&'a str>,
+    pub audio_encoder: Option<&'a str>,
     pub artwork_uri: Option<&'a str>,
     pub artwork_type: Option<&'a str>,
     pub artwork_digest: Option<&'a [u8]>,
@@ -228,13 +221,8 @@ impl<'a> InsertableRecord<'a> {
             audio_loudness_lufs: audio_content
                 .and_then(|audio| audio.loudness)
                 .map(|loudness| loudness.0),
-            audio_encoder_name: audio_content
-                .and_then(|audio| audio.encoder.as_ref())
-                .map(|enc| enc.name.as_str()),
-            audio_encoder_settings: audio_content
-                .and_then(|audio| audio.encoder.as_ref())
-                .and_then(|enc| enc.settings.as_ref())
-                .map(String::as_str),
+            audio_encoder: audio_content
+                .and_then(|audio| audio.encoder.as_ref().map(|s| s.as_str())),
             artwork_uri: artwork_uri.as_ref().map(String::as_str),
             artwork_type: artwork_type.as_ref().map(String::as_str),
             artwork_digest: artwork_digest.as_ref().map(Vec::as_slice),
@@ -263,8 +251,7 @@ pub struct UpdatableRecord<'a> {
     pub audio_samplerate_hz: Option<f64>,
     pub audio_bitrate_bps: Option<f64>,
     pub audio_loudness_lufs: Option<f64>,
-    pub audio_encoder_name: Option<&'a str>,
-    pub audio_encoder_settings: Option<&'a str>,
+    pub audio_encoder: Option<&'a str>,
     pub artwork_uri: Option<&'a str>,
     pub artwork_type: Option<&'a str>,
     pub artwork_digest: Option<&'a [u8]>,
@@ -322,13 +309,8 @@ impl<'a> UpdatableRecord<'a> {
             audio_loudness_lufs: audio_content
                 .and_then(|audio| audio.loudness)
                 .map(|loudness| loudness.0),
-            audio_encoder_name: audio_content
-                .and_then(|audio| audio.encoder.as_ref())
-                .map(|enc| enc.name.as_str()),
-            audio_encoder_settings: audio_content
-                .and_then(|audio| audio.encoder.as_ref())
-                .and_then(|enc| enc.settings.as_ref())
-                .map(String::as_str),
+            audio_encoder: audio_content
+                .and_then(|audio| audio.encoder.as_ref().map(|s| s.as_str())),
             artwork_uri: artwork_uri.as_ref().map(String::as_str),
             artwork_type: artwork_type.as_ref().map(String::as_str),
             artwork_digest: artwork_digest.as_ref().map(Vec::as_slice),

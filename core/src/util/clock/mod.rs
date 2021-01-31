@@ -187,6 +187,10 @@ impl DateYYYYMMDD {
         Self(YYYYMMDD::from(year) * 10_000)
     }
 
+    pub fn from_year_month(year: YearType, month: MonthType) -> Self {
+        Self(YYYYMMDD::from(year) * 10_000 + YYYYMMDD::from(month) * 100)
+    }
+
     pub fn is_year(self) -> bool {
         Self::from_year(self.year()) == self
     }
