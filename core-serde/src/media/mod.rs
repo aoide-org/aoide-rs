@@ -27,6 +27,8 @@ use std::convert::TryFrom;
 // Content
 ///////////////////////////////////////////////////////////////////////
 
+// TODO: Use a more efficient serialization
+// https://github.com/signalapp/SecureValueRecovery/blob/master/service/kbupd_util/src/base64.rs
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Digest(String);
 
