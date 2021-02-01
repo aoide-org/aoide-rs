@@ -22,7 +22,7 @@ use crate::{
         parse_replay_gain, parse_tempo_bpm, parse_year_tag, push_next_actor_role_name,
         tag::import_faceted_tags,
     },
-    Error, Result,
+    Result,
 };
 
 use aoide_core::{
@@ -46,31 +46,32 @@ use aoide_core::{
 
 use aoide_core_serde::tag::Tags as SerdeTags;
 
-use ::mp4::{ChannelConfig, MediaType, Mp4Reader, SampleFreqIndex, TrackType};
-use anyhow::anyhow;
 use image::ImageFormat;
-use mp4ameta::{atom::read_tag_from, Data, FourCC, FreeformIdent, STANDARD_GENRES};
+use mp4ameta::{
+    ChannelConfig, Data, FourCC, FreeformIdent, SampleRate as Mp4SampleRate, Tag as Mp4Tag,
+    STANDARD_GENRES,
+};
 use semval::IsValid as _;
-use std::io::SeekFrom;
+use std::time::Duration;
 
 #[derive(Debug)]
 pub struct ImportTrack;
 
-fn read_sample_rate(sample_freq_idx: SampleFreqIndex) -> SampleRateHz {
-    use SampleFreqIndex::*;
-    SampleRateHz(match sample_freq_idx {
-        Freq96000 => 96_000.0,
-        Freq88200 => 88_200.0,
-        Freq64000 => 64_000.0,
-        Freq48000 => 48_000.0,
-        Freq44100 => 44_100.0,
-        Freq32000 => 32_000.0,
-        Freq24000 => 24_000.0,
-        Freq22050 => 22_500.0,
-        Freq16000 => 16_000.0,
-        Freq12000 => 12_000.0,
-        Freq11025 => 11_025.0,
-        Freq8000 => 8_000.0,
+fn read_sample_rate(sample_rate: Mp4SampleRate) -> SampleRateHz {
+    use Mp4SampleRate::*;
+    SampleRateHz(match sample_rate {
+        F96000 => 96_000.0,
+        F88200 => 88_200.0,
+        F64000 => 64_000.0,
+        F48000 => 48_000.0,
+        F44100 => 44_100.0,
+        F32000 => 32_000.0,
+        F24000 => 24_000.0,
+        F22050 => 22_500.0,
+        F16000 => 16_000.0,
+        F12000 => 12_000.0,
+        F11025 => 11_025.0,
+        F8000 => 8_000.0,
     })
 }
 
@@ -107,46 +108,31 @@ impl import::ImportTrack for ImportTrack {
         options: ImportTrackOptions,
         mut track: Track,
         reader: &mut Box<dyn Reader>,
-        size: u64,
     ) -> Result<Track> {
         // Extract metadata with mp4ameta
-        let mut mp4_tag = read_tag_from(reader).map_err(anyhow::Error::from)?;
-
-        // Restart reader to decode basic audio properties with mp4
-        // that are not supported by mp4ameta.
-        let _start_pos = reader.seek(SeekFrom::Start(0))?;
-        debug_assert_eq!(0, _start_pos);
-        let reader = Mp4Reader::read_header(reader, size).map_err(anyhow::Error::from)?;
-        let audio_track = if let Some(audio_track) = reader
-            .tracks()
-            .iter()
-            .find(|t| t.track_type().ok() == Some(TrackType::Audio))
-        {
-            audio_track
-        } else {
-            return Err(Error::Other(anyhow!("No audio track found")));
-        };
-        debug_assert_eq!(Some(MediaType::AAC), audio_track.media_type().ok());
+        let mut mp4_tag = Mp4Tag::read_from(reader).map_err(anyhow::Error::from)?;
 
         if track
             .media_source
             .content_metadata_flags
             .update(ContentMetadataFlags::UNRELIABLE)
         {
-            let duration = Some(audio_track.duration().into());
+            let duration = Some(
+                Duration::from_secs_f64(mp4_tag.duration().map_err(anyhow::Error::from)?).into(),
+            );
             let channels = Some(
-                audio_track
+                mp4_tag
                     .channel_config()
                     .map(read_channels)
                     .map_err(anyhow::Error::from)?,
             );
             let sample_rate = Some(
-                audio_track
-                    .sample_freq_index()
+                mp4_tag
+                    .sample_rate()
                     .map(read_sample_rate)
                     .map_err(anyhow::Error::from)?,
             );
-            let bit_rate = read_bit_rate(audio_track.bitrate());
+            let bit_rate = read_bit_rate(mp4_tag.average_bitrate().map_err(anyhow::Error::from)?);
             let loudness = mp4_tag
                 .string(&FreeformIdent::new(
                     COM_APPLE_ITUNES_FREEFORM_MEAN,

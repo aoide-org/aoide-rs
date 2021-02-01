@@ -32,7 +32,7 @@ use aoide_core::{
         signal::SampleRateHz,
         AudioContent,
     },
-    media::{Content, ContentMetadataFlags},
+    media::{concat_encoder_properties, Content, ContentMetadataFlags},
     tag::{Facet, Score as TagScore, Tags, TagsMap},
     track::{
         actor::ActorRole,
@@ -54,7 +54,7 @@ use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
 use id3::{self, frame::PictureType};
 use minimp3::Decoder;
 use semval::IsValid as _;
-use std::{io::SeekFrom, time::Duration};
+use std::{borrow::Cow, io::SeekFrom, time::Duration};
 
 fn parse_timestamp(timestamp: id3::Timestamp) -> DateOrDateTime {
     match (timestamp.month, timestamp.day) {
@@ -119,8 +119,8 @@ fn id3_first_extended_text<'a>(id3_tag: &'a id3::Tag, description: &'a str) -> O
 
 fn import_faceted_text_tags(
     tags_map: &mut TagsMap,
-    facet: &Facet,
     config: &FacetedTagMappingConfig,
+    facet: &Facet,
     id3_tag: &id3::Tag,
     frame_id: &str,
 ) {
@@ -130,13 +130,13 @@ fn import_faceted_text_tags(
     }
     let tag_mapping_config = config.get(facet.value());
     let mut next_score_value = TagScore::max_value();
-    for txt in id3_text_frames(id3_tag, frame_id) {
+    for label in id3_text_frames(id3_tag, frame_id) {
         import_faceted_tags(
             tags_map,
             &mut next_score_value,
             &facet,
             tag_mapping_config,
-            txt,
+            label,
         );
     }
 }
@@ -151,7 +151,6 @@ impl import::ImportTrack for ImportTrack {
         options: ImportTrackOptions,
         mut track: Track,
         reader: &mut Box<dyn Reader>,
-        _size: u64,
     ) -> Result<Track> {
         let mut decoder = Decoder::new(reader);
         let mut channels = None;
@@ -190,6 +189,35 @@ impl import::ImportTrack for ImportTrack {
         debug_assert_eq!(0, _start_pos);
         let id3_tag = id3::Tag::read_from(reader).map_err(anyhow::Error::from)?;
 
+        if track
+            .media_source
+            .content_metadata_flags
+            .update(ContentMetadataFlags::UNRELIABLE)
+        {
+            let duration = id3_tag
+                .duration()
+                .map(|secs| Duration::from_secs(u64::from(secs)).into());
+            // TODO: Avg. bit rate needs to be calculated from all MP3 frames
+            // if not stored explicitly.
+            let bit_rate = None;
+            let loudness = id3_first_extended_text(&id3_tag, "REPLAYGAIN_TRACK_GAIN")
+                .and_then(parse_replay_gain);
+            let encoder = concat_encoder_properties(
+                id3_first_text_frame(&id3_tag, "TENC"),
+                id3_first_text_frame(&id3_tag, "TSSE"),
+            )
+            .map(Cow::into_owned);
+            let audio_content = AudioContent {
+                duration,
+                channels,
+                sample_rate,
+                bit_rate,
+                loudness,
+                encoder,
+            };
+            track.media_source.content = Content::Audio(audio_content);
+        }
+
         if let Some(tempo_bpm) = id3_first_extended_text(&id3_tag, "BPM")
             .and_then(parse_tempo_bpm)
             // Alternative: Try "TEMPO" if "BPM" is missing or invalid
@@ -205,50 +233,6 @@ impl import::ImportTrack for ImportTrack {
             id3_first_text_frame(&id3_tag, "TKEY").and_then(parse_key_signature)
         {
             track.metrics.key_signature = key_signature;
-        }
-
-        if track
-            .media_source
-            .content_metadata_flags
-            .update(ContentMetadataFlags::UNRELIABLE)
-        {
-            let duration = id3_tag
-                .duration()
-                .map(|secs| Duration::from_secs(u64::from(secs)).into());
-            // TODO: Avg. bit rate needs to be calculated from all MP3 frames
-            // if not stored explicitly.
-            let bit_rate = None;
-            let loudness = id3_first_extended_text(&id3_tag, "REPLAYGAIN_TRACK_GAIN")
-                .and_then(parse_replay_gain);
-            let encoded_by = id3_first_text_frame(&id3_tag, "TENC")
-                .map(str::trim)
-                .unwrap_or_default();
-            let encoder_settings = id3_first_text_frame(&id3_tag, "TSSE")
-                .map(str::trim)
-                .unwrap_or_default();
-            let encoder = if encoded_by.is_empty() {
-                if encoder_settings.is_empty() {
-                    None
-                } else {
-                    Some(encoder_settings.to_owned())
-                }
-            } else if encoder_settings.is_empty() {
-                Some(encoded_by.to_owned())
-            } else {
-                // Concatenate both strings into a single field
-                debug_assert!(!encoded_by.is_empty());
-                debug_assert!(!encoder_settings.is_empty());
-                Some(format!("{} {}", encoded_by, encoder_settings))
-            };
-            let audio_content = AudioContent {
-                duration,
-                channels,
-                sample_rate,
-                bit_rate,
-                loudness,
-                encoder,
-            };
-            track.media_source.content = Content::Audio(audio_content);
         }
 
         // Track titles
@@ -393,6 +377,7 @@ impl import::ImportTrack for ImportTrack {
         for comment in id3_tag
             .comments()
             .filter(|comm| comm.description.is_empty())
+            .map(|comm| comm.text.as_str())
         {
             let removed_comments = tags_map.remove_faceted_tags(&FACET_COMMENT);
             if removed_comments > 0 {
@@ -408,15 +393,15 @@ impl import::ImportTrack for ImportTrack {
                 &mut next_score_value,
                 &FACET_COMMENT,
                 None,
-                comment.text.to_owned(),
+                comment.to_owned(),
             );
         }
 
         // Genre tags
         import_faceted_text_tags(
             &mut tags_map,
-            &FACET_GENRE,
             &config.faceted_tag_mapping,
+            &FACET_GENRE,
             &id3_tag,
             "TCON",
         );
@@ -424,8 +409,8 @@ impl import::ImportTrack for ImportTrack {
         // Mood tags
         import_faceted_text_tags(
             &mut tags_map,
-            &FACET_MOOD,
             &config.faceted_tag_mapping,
+            &FACET_MOOD,
             &id3_tag,
             "TMOO",
         );
@@ -439,16 +424,16 @@ impl import::ImportTrack for ImportTrack {
         if options.contains(ImportTrackOptions::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK) {
             import_faceted_text_tags(
                 &mut tags_map,
-                &FACET_CGROUP,
                 &config.faceted_tag_mapping,
+                &FACET_CGROUP,
                 &id3_tag,
                 "GRP1",
             );
         } else {
             import_faceted_text_tags(
                 &mut tags_map,
-                &FACET_CGROUP,
                 &config.faceted_tag_mapping,
+                &FACET_CGROUP,
                 &id3_tag,
                 "TIT1",
             );

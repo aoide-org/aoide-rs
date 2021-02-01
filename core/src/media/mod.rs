@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::borrow::Cow;
+
 use crate::{
     audio::{AudioContent, AudioContentInvalidity},
     prelude::*,
@@ -131,6 +133,57 @@ pub enum Content {
 impl From<AudioContent> for Content {
     fn from(from: AudioContent) -> Self {
         Self::Audio(from)
+    }
+}
+
+///////////////////////////////////////////////////////////////////////
+// Encoder
+///////////////////////////////////////////////////////////////////////
+
+/// Concatenate encoder properties
+///
+/// Some but not all file formats specify two different encoder
+/// properties, namely *encoded by* and *encoder settings*. In
+/// aoide those properties are represented by a single string.
+///
+/// Either of the strings might be empty if unknown.
+pub fn concat_encoder_strings<'a, T>(encoded_by: &'a T, encoder_settings: &'a T) -> Cow<'a, str>
+where
+    T: AsRef<str> + ?Sized,
+{
+    let encoded_by = encoded_by.as_ref().trim();
+    let encoder_settings = encoder_settings.as_ref().trim();
+    if encoded_by.is_empty() {
+        Cow::Borrowed(encoder_settings)
+    } else if encoder_settings.is_empty() {
+        Cow::Borrowed(encoded_by)
+    } else {
+        // Concatenate both strings into a single field
+        debug_assert!(!encoded_by.is_empty());
+        debug_assert!(!encoder_settings.is_empty());
+        Cow::Owned(format!("{} {}", encoded_by, encoder_settings))
+    }
+}
+
+/// Concatenate encoder properties
+///
+/// Some but not all file formats specify two different encoder
+/// properties, namely *encoded by* and *encoder settings*. In
+/// aoide those properties are represented by a single string.
+///
+/// Both properties are optional.
+pub fn concat_encoder_properties<'a>(
+    encoded_by: Option<&'a str>,
+    encoder_settings: Option<&'a str>,
+) -> Option<Cow<'a, str>> {
+    let encoder = concat_encoder_strings(
+        encoded_by.unwrap_or_default(),
+        encoder_settings.unwrap_or_default(),
+    );
+    if encoder.is_empty() {
+        None
+    } else {
+        Some(encoder)
     }
 }
 

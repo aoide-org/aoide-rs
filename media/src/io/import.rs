@@ -93,10 +93,9 @@ impl<T> Reader for T where T: Read + Seek + 'static {}
 pub trait ImportTrack {
     fn import_track(
         &self,
-        _config: &ImportTrackConfig,
+        config: &ImportTrackConfig,
         options: ImportTrackOptions,
         track: Track,
-        _reader: &mut Box<dyn Reader>,
-        _size: u64,
+        reader: &mut Box<dyn Reader>,
     ) -> Result<Track>;
 }

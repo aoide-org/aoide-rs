@@ -97,7 +97,7 @@ dependencies = [
  "base64",
  "bitflags",
  "blake3",
- "bytes 1.0.1",
+ "bytes",
  "chrono",
  "digest 0.9.0",
  "hound",
@@ -109,7 +109,6 @@ dependencies = [
  "mime",
  "mime_guess",
  "minimp3",
- "mp4",
  "mp4ameta",
  "nom",
  "semval",
@@ -145,7 +144,7 @@ dependencies = [
  "diesel_migrations",
  "libsqlite3-sys",
  "log",
- "num-bigint 0.2.6",
+ "num-bigint",
  "num-derive",
  "num-traits",
  "semval",
@@ -192,7 +191,7 @@ version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1374191e2dd25f9ae02e3aa95041ed5d747fc77b3c102b49fe2dd9a8117a6244"
 dependencies = [
- "num-bigint 0.2.6",
+ "num-bigint",
  "num-integer",
  "num-traits",
 ]
@@ -301,12 +300,6 @@ name = "byteorder"
 version = "1.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ae44d1a3d5a19df61dd0c8beb138458ac2a53a7ac09eba97d55592540004306b"
-
-[[package]]
-name = "bytes"
-version = "0.5.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e4cec68f03f32e44924783795810fa50a7035d8c8ebe78580ad7e6c703fba38"
 
 [[package]]
 name = "bytes"
@@ -534,7 +527,7 @@ dependencies = [
  "chrono",
  "diesel_derives",
  "libsqlite3-sys",
- "num-bigint 0.2.6",
+ "num-bigint",
  "num-integer",
  "num-traits",
  "r2d2",
@@ -791,7 +784,7 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6b67e66362108efccd8ac053abafc8b7a8d86a37e6e48fc4f6f7485eb5e9e6a5"
 dependencies = [
- "bytes 1.0.1",
+ "bytes",
  "fnv",
  "futures-core",
  "futures-sink",
@@ -825,7 +818,7 @@ checksum = "62689dc57c7456e69712607ffcbd0aa1dfcccf9af73727e9b25bc1825375cac3"
 dependencies = [
  "base64",
  "bitflags",
- "bytes 1.0.1",
+ "bytes",
  "headers-core",
  "http",
  "mime",
@@ -869,7 +862,7 @@ version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7245cd7449cc792608c3c8a9eaf69bd4eabbabf802713748fd739c98b82f0747"
 dependencies = [
- "bytes 1.0.1",
+ "bytes",
  "fnv",
  "itoa",
 ]
@@ -880,7 +873,7 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2861bd27ee074e5ee891e8b539837a9430012e249d7f0ca2d795650f579c1994"
 dependencies = [
- "bytes 1.0.1",
+ "bytes",
  "http",
 ]
 
@@ -908,7 +901,7 @@ version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "12219dc884514cb4a6a03737f4413c0e01c23a1b059b0156004b23f1e19dccbe"
 dependencies = [
- "bytes 1.0.1",
+ "bytes",
  "futures-channel",
  "futures-core",
  "futures-util",
@@ -928,9 +921,9 @@ dependencies = [
 
 [[package]]
 name = "id3"
-version = "0.5.2"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fbb64ce5f16d6efa57c41e857c167e01d95a61c1275a1421177fdd6e6316f4a9"
+checksum = "8cb37ae5aa60d57c5f3412df1f3e5a48a978804f4a7e70700bb5f97e8f1a6331"
 dependencies = [
  "bitflags",
  "byteorder",
@@ -1234,23 +1227,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "mp4"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "143bbe27d1621391303c730e88f2898f8c781dbca81fdc25b3a584b3fdcc18ae"
-dependencies = [
- "byteorder",
- "bytes 0.5.6",
- "num-rational",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
 name = "mp4ameta"
 version = "0.8.0"
-source = "git+https://github.com/Saecki/rust-mp4ameta.git?branch=master#ba1c870e3538801a776a5d720c10250bc2b57bbd"
+source = "git+https://github.com/Saecki/rust-mp4ameta.git?branch=master#4bdd151d8e583896265c3d457cd5290fd5459c93"
 dependencies = [
  "lazy_static",
  "mp4ameta_proc",
@@ -1259,7 +1238,7 @@ dependencies = [
 [[package]]
 name = "mp4ameta_proc"
 version = "0.2.1"
-source = "git+https://github.com/Saecki/rust-mp4ameta.git?branch=master#ba1c870e3538801a776a5d720c10250bc2b57bbd"
+source = "git+https://github.com/Saecki/rust-mp4ameta.git?branch=master#4bdd151d8e583896265c3d457cd5290fd5459c93"
 
 [[package]]
 name = "nom"
@@ -1287,17 +1266,6 @@ name = "num-bigint"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "090c7f9998ee0ff65aa5b723e4009f7b217707f1fb5ea551329cc4d6231fb304"
-dependencies = [
- "autocfg",
- "num-integer",
- "num-traits",
-]
-
-[[package]]
-name = "num-bigint"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e9a41747ae4633fce5adffb4d2e81ffc5e89593cb19917f8fb2cc5ff76507bf"
 dependencies = [
  "autocfg",
  "num-integer",
@@ -1343,10 +1311,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "12ac428b1cb17fce6f731001d307d351ec70a6d202fc2e60f7d4c5e42d8f4f07"
 dependencies = [
  "autocfg",
- "num-bigint 0.3.1",
  "num-integer",
  "num-traits",
- "serde",
 ]
 
 [[package]]
@@ -2051,7 +2017,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6714d663090b6b0acb0fa85841c6d66233d150cdb2602c8f9b8abb03370beb3f"
 dependencies = [
  "autocfg",
- "bytes 1.0.1",
+ "bytes",
  "libc",
  "memchr",
  "mio",
@@ -2088,7 +2054,7 @@ version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebb7cb2f00c5ae8df755b252306272cd1790d39728363936e01827e11f0b017b"
 dependencies = [
- "bytes 1.0.1",
+ "bytes",
  "futures-core",
  "futures-sink",
  "log",
@@ -2245,7 +2211,7 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3dafd0aac2818a94a34df0df1100a7356c493d8ede4393875fd0b5c51bb6bc80"
 dependencies = [
- "bytes 1.0.1",
+ "bytes",
  "futures",
  "headers",
  "http",
