@@ -68,7 +68,7 @@
             {
                 "not": {
                     "numeric": {
-                        "field": "musicBpm",
+                        "field": "musicTempoBpm",
                         "value": {
                             "gt": 80
                         }
@@ -79,8 +79,8 @@
     },
     "ordering": [
         {
-            "field": "lastRevisionedAt",
-            "direction": "dsc"
+            "field": "updatedAt",
+            "direction": "desc"
         }
     ]
 }

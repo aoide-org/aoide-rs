@@ -3,7 +3,7 @@
         "all": [
             {
                 "numeric": {
-                    "field": "audioDuration",
+                    "field": "audioDurationMs",
                     "value": {
                         "ge": 180000
                     }
@@ -11,7 +11,7 @@
             },
             {
                 "numeric": {
-                    "field": "audioDuration",
+                    "field": "audioDurationMs",
                     "value": {
                         "le": 240000
                     }

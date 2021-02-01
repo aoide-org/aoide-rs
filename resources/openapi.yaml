@@ -2126,8 +2126,8 @@ components:
         - trackTitle
       description: |
         Selectable fields, including
-          * `sourceUri` - RFC 3986 percent-encoded URI
           * `sourceType` - RFC 6838 media type
+          * `sourceUri` - RFC 3986 percent-encoded URI
           * ...
     StringPredicate:
       oneOf:
@@ -2139,6 +2139,7 @@ components:
         - $ref: '#/components/schemas/StringPredicateContainsNot'
         - $ref: '#/components/schemas/StringPredicateMatches'
         - $ref: '#/components/schemas/StringPredicateMatchesNot'
+        - $ref: '#/components/schemas/StringPredicatePrefix'
         - $ref: '#/components/schemas/StringPredicateEquals'
         - $ref: '#/components/schemas/StringPredicateEqualsNot'
     StringPredicateStartsWith:
@@ -2189,6 +2190,12 @@ components:
         matchesNot:
           type: string
       description: Mismatches the whole string (case-insensitive)
+    StringPredicatePrefix:
+      type: object
+      properties:
+        equals:
+          type: string
+      description: Prefix match (case-sensitive)
     StringPredicateEquals:
       type: object
       properties:
@@ -2498,6 +2505,7 @@ components:
         - trackNumber
         - trackTitle
         - trackTotal
+        - updatedAt
     TrackSortOrder:
       type: array
       minLength: 2
