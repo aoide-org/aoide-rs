@@ -63,6 +63,11 @@ fn create_connection_pool(
 // database.
 type GuardedConnectionPool = Arc<RwLock<SqliteConnectionPool>>;
 
+const DB_CONNECTION_READ_GUARD_TIMEOUT: tokio::time::Duration =
+    tokio::time::Duration::from_secs(10);
+const DB_CONNECTION_WRITE_GUARD_TIMEOUT: tokio::time::Duration =
+    tokio::time::Duration::from_secs(30);
+
 async fn spawn_blocking_database_read_task<H, R>(
     guarded_connection_pool: GuardedConnectionPool,
     connection_handler: H,
@@ -71,9 +76,15 @@ where
     H: FnOnce(SqlitePooledConnection) -> Result<R, Error> + Send + 'static,
     R: Send + 'static,
 {
-    let read_guard = guarded_connection_pool.read().await;
-    let connection_pool = read_guard.clone();
-    tokio::task::spawn_blocking(move || connection_handler(connection_pool.get()?)).await?
+    let timeout = tokio::time::sleep(DB_CONNECTION_READ_GUARD_TIMEOUT);
+    tokio::pin!(timeout);
+    tokio::select! {
+        _ = &mut timeout => Err(Error::Timeout {reason: "database is locked".to_string() }),
+        guard = guarded_connection_pool.read() => {
+            let connection = guard.get()?;
+            return tokio::task::spawn_blocking(move || connection_handler(connection)).await?
+        },
+    }
 }
 
 async fn spawn_blocking_database_write_task<H, R>(
@@ -84,9 +95,15 @@ where
     H: FnOnce(SqlitePooledConnection) -> Result<R, Error> + Send + 'static,
     R: Send + 'static,
 {
-    let write_guard = guarded_connection_pool.write().await;
-    let connection_pool = write_guard.clone();
-    tokio::task::spawn_blocking(move || connection_handler(connection_pool.get()?)).await?
+    let timeout = tokio::time::sleep(DB_CONNECTION_WRITE_GUARD_TIMEOUT);
+    tokio::pin!(timeout);
+    tokio::select! {
+        _ = &mut timeout => Err(Error::Timeout {reason: "database is locked".to_string() }),
+        guard = guarded_connection_pool.write() => {
+            let connection = guard.get()?;
+            return tokio::task::spawn_blocking(move || connection_handler(connection)).await?
+        },
+    }
 }
 
 static SCAN_MEDIA_DIRECTORIES_ABORT_FLAG: AtomicBool = AtomicBool::new(false);

@@ -50,6 +50,9 @@ pub mod tracks;
 
 #[derive(Error, Debug)]
 pub enum Error {
+    #[error("timeout: {reason}")]
+    Timeout { reason: String },
+
     #[error(transparent)]
     TaskScheduling(#[from] tokio::task::JoinError),
 
@@ -159,6 +162,10 @@ pub async fn handle_rejection(reject: Rejection) -> StdResult<impl Reply, Infall
             .unwrap_or_else(|| err.to_string());
     } else if let Some(err) = reject.find::<Error>() {
         match err {
+            Error::Timeout { .. } => {
+                code = StatusCode::SERVICE_UNAVAILABLE;
+                message = err.to_string();
+            }
             Error::TaskScheduling(err) => {
                 code = StatusCode::INTERNAL_SERVER_ERROR;
                 message = err.to_string();
