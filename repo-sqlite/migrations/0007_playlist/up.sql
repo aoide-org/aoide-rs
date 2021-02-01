@@ -55,7 +55,7 @@ CREATE INDEX IF NOT EXISTS idx_playlist_collection_id_collected_ms_desc ON playl
 CREATE INDEX IF NOT EXISTS idx_playlist_kind_title ON playlist (
     kind,
     title
-);
+) WHERE kind IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_playlist_title ON playlist (
     title

@@ -44,7 +44,7 @@ CREATE INDEX IF NOT EXISTS idx_collection_row_updated_ms_desc ON collection (
 CREATE INDEX IF NOT EXISTS idx_collection_kind_title ON collection (
     kind,
     title
-);
+) WHERE kind IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_collection_title ON collection (
     title

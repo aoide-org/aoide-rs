@@ -76,7 +76,7 @@ CREATE INDEX idx_media_source_content_type ON media_source (
 
 CREATE INDEX idx_media_source_content_digest ON media_source (
     content_digest
-);
+) WHERE content_digest IS NOT NULL;
 
 CREATE INDEX idx_media_source_audio_duration_ms ON media_source (
     audio_duration_ms
