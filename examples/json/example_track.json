@@ -23,7 +23,7 @@
                     },
                     "duration": 301976.0,
                     "sampleRate": 44100,
-                    "bitRate": 257000,
+                    "bitrate": 257000,
                     "loudness": -7.1115999999999975
                 }
             }

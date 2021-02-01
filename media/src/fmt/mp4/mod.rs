@@ -28,7 +28,7 @@ use crate::{
 use aoide_core::{
     audio::{
         channel::{ChannelCount, ChannelLayout, Channels},
-        signal::{BitRateBps, BitsPerSecond, SampleRateHz},
+        signal::{BitrateBps, BitsPerSecond, SampleRateHz},
         AudioContent,
     },
     media::{Content, ContentMetadataFlags},
@@ -75,11 +75,11 @@ fn read_sample_rate(sample_rate: Mp4SampleRate) -> SampleRateHz {
     })
 }
 
-fn read_bit_rate(bit_rate: u32) -> Option<BitRateBps> {
-    let bits_per_second = bit_rate as BitsPerSecond;
-    let bit_rate_bps = BitRateBps(bits_per_second);
-    if bit_rate_bps >= BitRateBps::min() {
-        Some(bit_rate_bps)
+fn read_bitrate(bitrate: u32) -> Option<BitrateBps> {
+    let bits_per_second = bitrate as BitsPerSecond;
+    let bitrate_bps = BitrateBps(bits_per_second);
+    if bitrate_bps >= BitrateBps::min() {
+        Some(bitrate_bps)
     } else {
         None
     }
@@ -132,7 +132,7 @@ impl import::ImportTrack for ImportTrack {
                     .map(read_sample_rate)
                     .map_err(anyhow::Error::from)?,
             );
-            let bit_rate = read_bit_rate(mp4_tag.average_bitrate().map_err(anyhow::Error::from)?);
+            let bitrate = read_bitrate(mp4_tag.average_bitrate().map_err(anyhow::Error::from)?);
             let loudness = mp4_tag
                 .string(&FreeformIdent::new(
                     COM_APPLE_ITUNES_FREEFORM_MEAN,
@@ -145,7 +145,7 @@ impl import::ImportTrack for ImportTrack {
                 duration,
                 channels,
                 sample_rate,
-                bit_rate,
+                bitrate,
                 loudness,
                 encoder,
             };

@@ -125,7 +125,7 @@ pub struct AudioContent {
 
     pub sample_rate: Option<SampleRateHz>,
 
-    pub bit_rate: Option<BitRateBps>,
+    pub bitrate: Option<BitrateBps>,
 
     pub loudness: Option<LoudnessLufs>,
 
@@ -138,7 +138,7 @@ pub enum AudioContentInvalidity {
     Duration(DurationMsInvalidity),
     Channels(ChannelsInvalidity),
     SampleRate(SampleRateHzInvalidity),
-    BitRate(BitRateBpsInvalidity),
+    Bitrate(BitrateBpsInvalidity),
     Loudness(LoudnessLufsInvalidity),
     EncoderEmpty,
 }
@@ -151,7 +151,7 @@ impl Validate for AudioContent {
             .validate_with(&self.duration, AudioContentInvalidity::Duration)
             .validate_with(&self.channels, AudioContentInvalidity::Channels)
             .validate_with(&self.sample_rate, AudioContentInvalidity::SampleRate)
-            .validate_with(&self.bit_rate, AudioContentInvalidity::BitRate)
+            .validate_with(&self.bitrate, AudioContentInvalidity::Bitrate)
             .validate_with(&self.loudness, AudioContentInvalidity::Loudness)
             .invalidate_if(
                 self.encoder

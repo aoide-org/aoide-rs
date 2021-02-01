@@ -134,7 +134,7 @@ impl TrackSearchQueryTransform for SortOrder {
                 SortDirection::Ascending => query.then_order_by(track::aux_album_title.asc()),
                 SortDirection::Descending => query.then_order_by(track::aux_album_title.desc()),
             },
-            SortField::AudioBitRateBps => match direction {
+            SortField::AudioBitrateBps => match direction {
                 SortDirection::Ascending => {
                     query.then_order_by(media_source::audio_bitrate_bps.asc())
                 }
@@ -453,7 +453,7 @@ fn build_numeric_field_filter_expression(
                 }
             }
         },
-        AudioBitRateBps => match filter.predicate {
+        AudioBitrateBps => match filter.predicate {
             LessThan(value) => Box::new(media_source::audio_bitrate_bps.lt(value)),
             LessOrEqual(value) => Box::new(media_source::audio_bitrate_bps.le(value)),
             GreaterThan(value) => Box::new(media_source::audio_bitrate_bps.gt(value)),

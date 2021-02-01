@@ -20,20 +20,20 @@ mod _core {
 }
 
 ///////////////////////////////////////////////////////////////////////
-// BitRate
+// Bitrate
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
-pub struct BitRateBps(_core::BitsPerSecond);
+pub struct BitrateBps(_core::BitsPerSecond);
 
-impl From<_core::BitRateBps> for BitRateBps {
-    fn from(from: _core::BitRateBps) -> Self {
+impl From<_core::BitrateBps> for BitrateBps {
+    fn from(from: _core::BitrateBps) -> Self {
         Self(from.0)
     }
 }
 
-impl From<BitRateBps> for _core::BitRateBps {
-    fn from(from: BitRateBps) -> Self {
+impl From<BitrateBps> for _core::BitrateBps {
+    fn from(from: BitrateBps) -> Self {
         Self(from.0)
     }
 }

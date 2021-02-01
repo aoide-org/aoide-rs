@@ -119,7 +119,7 @@ impl import::ImportTrack for ImportTrack {
                     duration,
                     channels,
                     sample_rate,
-                    bit_rate: None,
+                    bitrate: None,
                     loudness,
                     encoder,
                 };

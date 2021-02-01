@@ -43,7 +43,7 @@ pub enum StringField {
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum NumericField {
-    AudioBitRateBps,
+    AudioBitrateBps,
     AudioChannelCount,
     AudioDurationMs,
     AudioLoudnessLufs,
@@ -98,7 +98,7 @@ pub struct SourceFilterBorrowed<'s> {
 pub enum SortField {
     AlbumArtist,
     AlbumTitle,
-    AudioBitRateBps,
+    AudioBitrateBps,
     AudioChannelCount,
     AudioDurationMs,
     AudioLoudnessLufs,

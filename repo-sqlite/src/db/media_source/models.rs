@@ -20,7 +20,7 @@ use crate::prelude::*;
 use aoide_core::{
     audio::{
         channel::{ChannelCount, NumberOfChannels},
-        signal::{BitRateBps, BitsPerSecond, LoudnessLufs, SampleRateHz, SamplesPerSecond},
+        signal::{BitrateBps, BitsPerSecond, LoudnessLufs, SampleRateHz, SamplesPerSecond},
         AudioContent, DurationInMilliseconds, DurationMs,
     },
     media::{Artwork, Content, ContentMetadataFlags, ImageDimension, ImageSize, Source},
@@ -95,7 +95,7 @@ impl From<QueryableRecord> for (RecordHeader, Source) {
             duration: audio_duration_ms.map(|val| DurationMs(val as DurationInMilliseconds)),
             channels: audio_channel_count.map(|val| ChannelCount(val as NumberOfChannels).into()),
             sample_rate: audio_samplerate_hz.map(|val| SampleRateHz(val as SamplesPerSecond)),
-            bit_rate: audio_bitrate_bps.map(|val| BitRateBps(val as BitsPerSecond)),
+            bitrate: audio_bitrate_bps.map(|val| BitrateBps(val as BitsPerSecond)),
             loudness: audio_loudness_lufs.map(LoudnessLufs),
             encoder: audio_encoder,
         };
@@ -216,8 +216,8 @@ impl<'a> InsertableRecord<'a> {
                 .and_then(|audio| audio.sample_rate)
                 .map(|sample_rate| sample_rate.0),
             audio_bitrate_bps: audio_content
-                .and_then(|audio| audio.bit_rate)
-                .map(|bit_rate| bit_rate.0),
+                .and_then(|audio| audio.bitrate)
+                .map(|bitrate| bitrate.0),
             audio_loudness_lufs: audio_content
                 .and_then(|audio| audio.loudness)
                 .map(|loudness| loudness.0),
@@ -304,8 +304,8 @@ impl<'a> UpdatableRecord<'a> {
                 .and_then(|audio| audio.sample_rate)
                 .map(|sample_rate| sample_rate.0),
             audio_bitrate_bps: audio_content
-                .and_then(|audio| audio.bit_rate)
-                .map(|bit_rate| bit_rate.0),
+                .and_then(|audio| audio.bitrate)
+                .map(|bitrate| bitrate.0),
             audio_loudness_lufs: audio_content
                 .and_then(|audio| audio.loudness)
                 .map(|loudness| loudness.0),

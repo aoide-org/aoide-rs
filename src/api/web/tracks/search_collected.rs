@@ -41,7 +41,7 @@ use aoide_core_serde::{track::Entity, util::clock::DateTime};
 pub enum SortField {
     AlbumArtist,
     AlbumTitle,
-    AudioBitRateBps,
+    AudioBitrateBps,
     AudioChannelCount,
     AudioDurationMs,
     AudioLoudnessLufs,
@@ -90,7 +90,7 @@ impl From<SortField> for _repo::SortField {
         match from {
             AlbumArtist => Self::AlbumArtist,
             AlbumTitle => Self::AlbumTitle,
-            AudioBitRateBps => Self::AudioBitRateBps,
+            AudioBitrateBps => Self::AudioBitrateBps,
             AudioChannelCount => Self::AudioChannelCount,
             AudioDurationMs => Self::AudioDurationMs,
             AudioLoudnessLufs => Self::AudioLoudnessLufs,
@@ -192,7 +192,7 @@ impl From<StringField> for _repo::StringField {
 #[derive(Copy, Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum NumericField {
-    AudioBitRateBps,
+    AudioBitrateBps,
     AudioChannelCount,
     AudioDurationMs,
     AudioSampleRateHz,
@@ -210,7 +210,7 @@ impl From<NumericField> for _repo::NumericField {
     fn from(from: NumericField) -> Self {
         use NumericField::*;
         match from {
-            AudioBitRateBps => Self::AudioBitRateBps,
+            AudioBitrateBps => Self::AudioBitrateBps,
             AudioChannelCount => Self::AudioChannelCount,
             AudioDurationMs => Self::AudioDurationMs,
             AudioSampleRateHz => Self::AudioSampleRateHz,

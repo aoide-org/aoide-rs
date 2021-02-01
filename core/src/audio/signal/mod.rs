@@ -24,15 +24,15 @@ use crate::{
 use std::{f64, fmt};
 
 ///////////////////////////////////////////////////////////////////////
-// BitRate
+// Bitrate
 ///////////////////////////////////////////////////////////////////////
 
 pub type BitsPerSecond = f64;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
-pub struct BitRateBps(pub BitsPerSecond);
+pub struct BitrateBps(pub BitsPerSecond);
 
-impl BitRateBps {
+impl BitrateBps {
     pub const fn unit_of_measure() -> &'static str {
         "bps"
     }
@@ -47,23 +47,23 @@ impl BitRateBps {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub enum BitRateBpsInvalidity {
-    Min(BitRateBps),
-    Max(BitRateBps),
+pub enum BitrateBpsInvalidity {
+    Min(BitrateBps),
+    Max(BitrateBps),
 }
 
-impl Validate for BitRateBps {
-    type Invalidity = BitRateBpsInvalidity;
+impl Validate for BitrateBps {
+    type Invalidity = BitrateBpsInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(*self < Self::min(), BitRateBpsInvalidity::Min(Self::min()))
-            .invalidate_if(*self > Self::max(), BitRateBpsInvalidity::Max(Self::max()))
+            .invalidate_if(*self < Self::min(), BitrateBpsInvalidity::Min(Self::min()))
+            .invalidate_if(*self > Self::max(), BitrateBpsInvalidity::Max(Self::max()))
             .into()
     }
 }
 
-impl fmt::Display for BitRateBps {
+impl fmt::Display for BitrateBps {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {}", self.0, Self::unit_of_measure())
     }
@@ -151,12 +151,12 @@ pub struct PcmSignal {
 }
 
 impl PcmSignal {
-    pub fn bit_rate(self, bits_per_sample: BitsPerSample) -> BitRateBps {
+    pub fn bitrate(self, bits_per_sample: BitsPerSample) -> BitrateBps {
         debug_assert!(self.validate().is_ok());
         let bps = BitsPerSecond::from(self.channel_layout.channel_count().0)
             * (self.sample_rate.0.round() as BitsPerSecond)
             * BitsPerSecond::from(bits_per_sample);
-        BitRateBps(bps)
+        BitrateBps(bps)
     }
 }
 

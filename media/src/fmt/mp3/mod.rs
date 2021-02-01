@@ -199,7 +199,7 @@ impl import::ImportTrack for ImportTrack {
                 .map(|secs| Duration::from_secs(u64::from(secs)).into());
             // TODO: Avg. bit rate needs to be calculated from all MP3 frames
             // if not stored explicitly.
-            let bit_rate = None;
+            let bitrate = None;
             let loudness = id3_first_extended_text(&id3_tag, "REPLAYGAIN_TRACK_GAIN")
                 .and_then(parse_replay_gain);
             let encoder = concat_encoder_properties(
@@ -211,7 +211,7 @@ impl import::ImportTrack for ImportTrack {
                 duration,
                 channels,
                 sample_rate,
-                bit_rate,
+                bitrate,
                 loudness,
                 encoder,
             };

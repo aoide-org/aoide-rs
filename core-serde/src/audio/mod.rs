@@ -84,7 +84,7 @@ pub struct AudioContent {
     sample_rate_hz: Option<SampleRateHz>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    bit_rate_bps: Option<BitRateBps>,
+    bitrate_bps: Option<BitrateBps>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     loudness_lufs: Option<LoudnessLufs>,
@@ -99,7 +99,7 @@ impl From<AudioContent> for _core::AudioContent {
             duration_ms,
             channels,
             sample_rate_hz,
-            bit_rate_bps,
+            bitrate_bps,
             loudness_lufs,
             encoder,
         } = from;
@@ -107,7 +107,7 @@ impl From<AudioContent> for _core::AudioContent {
             duration: duration_ms.map(Into::into),
             channels: channels.map(Into::into),
             sample_rate: sample_rate_hz.map(Into::into),
-            bit_rate: bit_rate_bps.map(Into::into),
+            bitrate: bitrate_bps.map(Into::into),
             loudness: loudness_lufs.map(Into::into),
             encoder: encoder.map(Into::into),
         }
@@ -120,7 +120,7 @@ impl From<_core::AudioContent> for AudioContent {
             duration,
             channels,
             sample_rate,
-            bit_rate,
+            bitrate,
             loudness,
             encoder,
         } = from;
@@ -128,7 +128,7 @@ impl From<_core::AudioContent> for AudioContent {
             duration_ms: duration.map(Into::into),
             channels: channels.map(Into::into),
             sample_rate_hz: sample_rate.map(Into::into),
-            bit_rate_bps: bit_rate.map(Into::into),
+            bitrate_bps: bitrate.map(Into::into),
             loudness_lufs: loudness.map(Into::into),
             encoder: encoder.map(Into::into),
         }

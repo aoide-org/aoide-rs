@@ -893,8 +893,8 @@ components:
       properties:
         durationMs:
           $ref: '#/components/schemas/DurationMs'
-        bitRateBps:
-          $ref: '#/components/schemas/BitRateBps'
+        bitrateBps:
+          $ref: '#/components/schemas/BitrateBps'
         channels:
           $ref: '#/components/schemas/Channels'
         encodedBy:
@@ -936,7 +936,7 @@ components:
         stacked notation for time signature.
 
         Example: 4 for a quarter note
-    BitRateBps:
+    BitrateBps:
       type: integer
       format: int32
       minimum: 0
@@ -1486,7 +1486,7 @@ components:
     NumericField:
       type: string
       enum:
-        - audioBitRateBps
+        - audioBitrateBps
         - audioChannelCount
         - audioDurationMs
         - audioLoudnessLufs
@@ -2477,7 +2477,7 @@ components:
       enum:
         - albumArtist
         - albumTitle
-        - audioBitRateBps
+        - audioBitrateBps
         - audioChannelCount
         - audioDurationMs
         - audioLoudnessLufs
