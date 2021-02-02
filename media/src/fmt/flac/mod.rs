@@ -19,8 +19,8 @@ use crate::{
     io::import::{self, *},
     util::{
         digest::MediaDigest,
-        parse_artwork_from_embedded_image, parse_key_signature, parse_replay_gain, parse_tempo_bpm,
-        parse_year_tag, push_next_actor_role_name,
+        parse_artwork_from_embedded_image, parse_index_numbers, parse_key_signature,
+        parse_replay_gain, parse_tempo_bpm, parse_year_tag, push_next_actor_role_name,
         tag::{import_faceted_tags, FacetedTagMappingConfig},
     },
     Result,
@@ -42,7 +42,7 @@ use aoide_core::{
 
 use aoide_core_serde::tag::Tags as SerdeTags;
 
-use image::ImageFormat;
+use metaflac::block::PictureType;
 use semval::IsValid as _;
 use std::{borrow::Cow, time::Duration};
 
@@ -286,6 +286,11 @@ impl import::ImportTrack for ImportTrack {
         }
 
         // Comment tag
+        // The original specification only defines a "DESCRIPTION" field,
+        // while MusicBrainz recommends to use "COMMENT". Mixxx follows
+        // MusicBrainz.
+        // http://www.xiph.org/vorbis/doc/v-comment.html
+        // https://picard.musicbrainz.org/docs/mappings
         if let Some(comments) = flac_tag
             .get_vorbis("COMMENT")
             .or_else(|| flac_tag.get_vorbis("DESCRIPTION"))
@@ -326,6 +331,87 @@ impl import::ImportTrack for ImportTrack {
                 &FACET_CGROUP,
                 groupings,
             );
+        }
+
+        if let Some(mut index) =
+            first_vorbis_value(&flac_tag, "TRACKNUMBER").and_then(parse_index_numbers)
+        {
+            if index.total.is_none() {
+                // According to https://wiki.xiph.org/Field_names "TRACKTOTAL" is
+                // the proposed field name, but some applications use "TOTALTRACKS".
+                index.total = first_vorbis_value(&flac_tag, "TRACKTOTAL")
+                    .and_then(|input| input.parse().ok())
+                    .or_else(|| {
+                        first_vorbis_value(&flac_tag, "TOTALTRACKS")
+                            .and_then(|input| input.parse().ok())
+                    });
+            }
+            track.indexes.track = index;
+        }
+
+        if let Some(mut index) =
+            first_vorbis_value(&flac_tag, "DISCNUMBER").and_then(parse_index_numbers)
+        {
+            if index.total.is_none() {
+                // According to https://wiki.xiph.org/Field_names "DISCTOTAL" is
+                // the proposed field name, but some applications use "TOTALDISCS".
+                index.total = first_vorbis_value(&flac_tag, "DISCTOTAL")
+                    .and_then(|input| input.parse().ok())
+                    .or_else(|| {
+                        first_vorbis_value(&flac_tag, "TOTALDISCS")
+                            .and_then(|input| input.parse().ok())
+                    });
+            }
+            track.indexes.disc = index;
+        }
+
+        if let Some(mut index) =
+            first_vorbis_value(&flac_tag, "MOVEMENT").and_then(parse_index_numbers)
+        {
+            if index.total.is_none() {
+                index.total = first_vorbis_value(&flac_tag, "MOVEMENTTOTAL")
+                    .and_then(|input| input.parse().ok());
+            }
+            track.indexes.movement = index;
+        }
+
+        if options.contains(ImportTrackOptions::ARTWORK) {
+            let mut image_digest = if options.contains(ImportTrackOptions::ARTWORK_DIGEST) {
+                if options.contains(ImportTrackOptions::ARTWORK_DIGEST_SHA256) {
+                    // Compatibility
+                    MediaDigest::sha256()
+                } else {
+                    // Default
+                    MediaDigest::new()
+                }
+            } else {
+                Default::default()
+            };
+            let artwork = flac_tag
+                .pictures()
+                .filter(|p| p.picture_type == PictureType::CoverFront)
+                .chain(
+                    flac_tag
+                        .pictures()
+                        .filter(|p| p.picture_type == PictureType::Media),
+                )
+                .chain(
+                    flac_tag
+                        .pictures()
+                        .filter(|p| p.picture_type == PictureType::Leaflet),
+                )
+                .chain(
+                    flac_tag
+                        .pictures()
+                        .filter(|p| p.picture_type == PictureType::Other),
+                )
+                // otherwise take the first picture that could be parsed
+                .chain(flac_tag.pictures())
+                .filter_map(|p| parse_artwork_from_embedded_image(&p.data, None, &mut image_digest))
+                .next();
+            if let Some(artwork) = artwork {
+                track.media_source.artwork = artwork;
+            }
         }
 
         debug_assert!(track.tags.is_empty());

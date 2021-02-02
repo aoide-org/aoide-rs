@@ -480,7 +480,7 @@ impl import::ImportTrack for ImportTrack {
                 .chain(
                     id3_tag
                         .pictures()
-                        .filter(|p| p.picture_type == PictureType::Illustration),
+                        .filter(|p| p.picture_type == PictureType::Leaflet),
                 )
                 .chain(
                     id3_tag

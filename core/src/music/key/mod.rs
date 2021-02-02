@@ -523,6 +523,18 @@ impl fmt::Display for KeySignature {
     }
 }
 
+impl From<KeyCode> for KeySignature {
+    fn from(from: KeyCode) -> Self {
+        KeySignature::new(from)
+    }
+}
+
+impl From<KeySignature> for KeyCode {
+    fn from(from: KeySignature) -> Self {
+        from.code()
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////
 // OpenKeySignature
 ///////////////////////////////////////////////////////////////////////
