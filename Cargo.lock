@@ -911,7 +911,7 @@ dependencies = [
  "httparse",
  "httpdate",
  "itoa",
- "pin-project 1.0.4",
+ "pin-project 1.0.5",
  "socket2",
  "tokio",
  "tower-service",
@@ -922,8 +922,7 @@ dependencies = [
 [[package]]
 name = "id3"
 version = "0.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8cb37ae5aa60d57c5f3412df1f3e5a48a978804f4a7e70700bb5f97e8f1a6331"
+source = "git+https://github.com/polyfloyd/rust-id3.git?branch=master#31eeb2db432cb5883a7780987f310025472f4187"
 dependencies = [
  "bitflags",
  "byteorder",
@@ -1415,11 +1414,11 @@ dependencies = [
 
 [[package]]
 name = "pin-project"
-version = "1.0.4"
+version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95b70b68509f17aa2857863b6fa00bf21fc93674c7a8893de2f469f6aa7ca2f2"
+checksum = "96fa8ebb90271c4477f144354485b8068bd8f6b78b428b01ba892ca26caf0b63"
 dependencies = [
- "pin-project-internal 1.0.4",
+ "pin-project-internal 1.0.5",
 ]
 
 [[package]]
@@ -1435,9 +1434,9 @@ dependencies = [
 
 [[package]]
 name = "pin-project-internal"
-version = "1.0.4"
+version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "caa25a6393f22ce819b0f50e0be89287292fda8d425be38ee0ca14c4931d9e71"
+checksum = "758669ae3558c6f74bd2a18b41f7ac0b5a195aea6639d6a9b5e5d1ad5ba24c0b"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2220,7 +2219,7 @@ dependencies = [
  "mime",
  "mime_guess",
  "percent-encoding",
- "pin-project 1.0.4",
+ "pin-project 1.0.5",
  "scoped-tls",
  "serde",
  "serde_json",

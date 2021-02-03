@@ -24,7 +24,9 @@ aoide-core-serde = { path = "core-serde" }
 aoide-media = { path = "media" }
 aoide-repo = { path = "repo" }
 aoide-repo-sqlite = { path = "repo-sqlite" }
-mp4ameta= { branch = "master", git = "https://github.com/Saecki/rust-mp4ameta.git" }
+
+mp4ameta = { branch = "master", git = "https://github.com/Saecki/rust-mp4ameta.git" }
+id3 = { branch = "master", git = "https://github.com/polyfloyd/rust-id3.git" }
 
 [dependencies]
 aoide-core = "*"

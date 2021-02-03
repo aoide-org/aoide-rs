@@ -354,11 +354,14 @@ impl import::ImportTrack for ImportTrack {
 
         let mut tags_map = TagsMap::default();
         if options.contains(ImportTrackOptions::MIXXX_CUSTOM_TAGS) {
-            for comment in id3_tag
-                .comments()
-                .filter(|comm| comm.description == "Mixxx CustomTags")
-            {
-                if let Some(custom_tags) = serde_json::from_str::<SerdeTags>(&comment.text)
+            for geob in id3_tag.encapsulated_objects().filter(|geob| {
+                geob.description == "Mixxx CustomTags"
+            }) {
+                if geob.mime_type != "application/json" {
+                    log::warn!("Unexpected MIME type for GEOB '{}': {}", geob.description, geob.mime_type);
+                    continue;
+                }
+                if let Some(custom_tags) = serde_json::from_slice::<SerdeTags>(&geob.data)
                     .map_err(|err| {
                         log::warn!("Failed to parse Mixxx custom tags: {}", err);
                         err
