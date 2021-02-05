@@ -35,10 +35,11 @@ lewton = { version = "*", optional = true }
 metaflac = { version = "*", optional = true }
 minimp3 = { version = "*", optional = true }
 mp4ameta = { version = "*", optional = true }
+triseratops = { version = "0.0.1", optional = true }
 
 [features]
 fmt-flac = [ "metaflac" ]
-fmt-mp4 = [ "mp4ameta" ]
+fmt-mp4 = [ "mp4ameta", "triseratops" ]
 fmt-mp3 = [ "id3", "minimp3" ]
 fmt-ogg = [ "lewton" ]
 fmt-wav = [ "hound" ]

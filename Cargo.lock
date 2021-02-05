@@ -115,6 +115,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "thiserror",
+ "triseratops",
  "url",
  "walkdir",
 ]
@@ -2097,6 +2098,17 @@ checksum = "ab7bb6f14721aa00656086e9335d363c5c8747bae02ebe32ea2c7dece5689b4c"
 dependencies = [
  "pin-project 0.4.27",
  "tracing",
+]
+
+[[package]]
+name = "triseratops"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d8ca0a1c68bef1da1d1e4ac63559b2388a01dd660229249242db942596cf0a3c"
+dependencies = [
+ "base64",
+ "nom",
+ "thiserror",
 ]
 
 [[package]]

@@ -30,6 +30,7 @@ use aoide_core::{
         channel::{ChannelCount, ChannelLayout, Channels},
         signal::{BitrateBps, BitsPerSecond, SampleRateHz},
         AudioContent,
+        PositionMs,
     },
     media::{Content, ContentMetadataFlags},
     music::time::{Beats, TempoBpm},
@@ -39,6 +40,7 @@ use aoide_core::{
         album::AlbumKind,
         tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE, FACET_MOOD},
         title::{Title, TitleKind},
+        cue::{Cue, CueFlags},
         Track,
     },
     util::{Canonical, CanonicalizeInto as _},
@@ -53,6 +55,7 @@ use mp4ameta::{
 };
 use semval::IsValid as _;
 use std::time::Duration;
+use triseratops::tag::{ TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat };
 
 #[derive(Debug)]
 pub struct ImportTrack;
@@ -297,6 +300,84 @@ impl import::ImportTrack for ImportTrack {
         }
 
         let mut tags_map = TagsMap::default();
+
+        // Serato Tags
+        if options.contains(ImportTrackOptions::SERATO_TAGS) {
+            let mut serato_tags = SeratoTagContainer::new();
+
+            if let Some(data) = mp4_tag
+                .data(&FreeformIdent::new(
+                    "com.serato.dj",
+                    "markers",
+                ))
+                .next()
+            {
+                match data {
+                    Data::Utf8(input) => {
+                        serato_tags.parse_markers(input.as_bytes(), SeratoTagFormat::MP4)
+                        .map_err(|err| {
+                            log::warn!("Failed to parse Serato Markers: {}", err);
+                        }).ok();
+                    }
+                    data => {
+                        log::warn!("Unexpected data for Serato Markers: {:?}", data);
+                    }
+                }
+            }
+
+            if let Some(data) = mp4_tag
+                .data(&FreeformIdent::new(
+                    "com.serato.dj",
+                    "markers2",
+                ))
+                .next()
+            {
+                match data {
+                    Data::Utf8(input) => {
+                        serato_tags.parse_markers2(input.as_bytes(), SeratoTagFormat::MP4)
+                        .map_err(|err| {
+                            log::warn!("Failed to parse Serato Markers2: {}", err);
+                        }).ok();
+                    }
+                    data => {
+                        log::warn!("Unexpected data for Serato Markers2: {:?}", data);
+                    }
+                }
+            }
+
+            let mut cues = vec![];
+
+            for serato_cue in serato_tags.cues() {
+                let cue = Cue {
+                    bank_index: 0,
+                    slot_index: Some(serato_cue.index.into()),
+                    in_position: Some(PositionMs(serato_cue.position_millis.into())),
+                    out_position: None,
+                    out_mode: None,
+                    label: Some(serato_cue.label),
+                    color: None, // TODO
+                    flags: CueFlags::empty(),
+                };
+                cues.push(cue);
+            }
+
+            for serato_loop in serato_tags.loops() {
+                let flags = if serato_loop.is_locked { CueFlags::LOCKED } else { CueFlags::empty() };
+                let cue = Cue {
+                    bank_index: 1,
+                    slot_index: Some(serato_loop.index.into()),
+                    in_position: Some(PositionMs(serato_loop.start_position_millis.into())),
+                    out_position: Some(PositionMs(serato_loop.start_position_millis.into())),
+                    out_mode: None,
+                    label: Some(serato_loop.label),
+                    color: None, // TODO
+                    flags,
+                };
+                cues.push(cue);
+            }
+
+            track.cues = Canonical::tie(cues);
+        }
 
         // Mixxx CustomTags
         if options.contains(ImportTrackOptions::MIXXX_CUSTOM_TAGS) {
