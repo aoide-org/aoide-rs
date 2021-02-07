@@ -47,15 +47,14 @@ pub struct SampleRateHz(_core::SamplesPerSecond);
 
 impl From<_core::SampleRateHz> for SampleRateHz {
     fn from(from: _core::SampleRateHz) -> Self {
-        let _core::SampleRateHz(hz) = from;
-        Self(hz)
+        Self(from.hz())
     }
 }
 
 impl From<SampleRateHz> for _core::SampleRateHz {
     fn from(from: SampleRateHz) -> Self {
         let SampleRateHz(hz) = from;
-        Self(hz)
+        Self::new(hz)
     }
 }
 

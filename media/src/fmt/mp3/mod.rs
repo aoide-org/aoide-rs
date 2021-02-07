@@ -152,12 +152,12 @@ impl import::ImportTrack for ImportTrack {
         mut track: Track,
         reader: &mut Box<dyn Reader>,
     ) -> Result<Track> {
-        let mut decoder = Decoder::new(reader);
-        let mut channels = None;
-        let mut sample_rate = None;
         // Read number of channels and sample rate from the first decoded
         // MP3 frame. Those properties are supposed to be constant for the
         // whole MP3 file. Decoding the whole file would take too long.
+        let mut decoder = Decoder::new(reader);
+        let mut channels = None;
+        let mut sample_rate = None;
         loop {
             let decoded_frame = decoder.next_frame();
             match decoded_frame {
@@ -173,7 +173,7 @@ impl import::ImportTrack for ImportTrack {
                         continue;
                     }
                     channels = Some(ChannelCount(frame.channels as NumberOfChannels).into());
-                    sample_rate = Some(SampleRateHz(frame.sample_rate as f64));
+                    sample_rate = Some(SampleRateHz::new(frame.sample_rate as f64));
                     // Stop decoding
                     break;
                 }
@@ -184,21 +184,35 @@ impl import::ImportTrack for ImportTrack {
         }
         let reader = decoder.into_inner();
 
+        // Restart reader after obtainig the basic audio properties from minimp3
+        let _start_pos = reader.seek(SeekFrom::Start(0))?;
+        debug_assert_eq!(0, _start_pos);
+
+        let mut duration = mp3_duration::from_read(reader).map(Into::into).ok();
+
         // Restart reader after obtainig the basic audio properties
         let _start_pos = reader.seek(SeekFrom::Start(0))?;
         debug_assert_eq!(0, _start_pos);
+
         let id3_tag = id3::Tag::read_from(reader).map_err(anyhow::Error::from)?;
 
+        let metadata_flags = if duration.is_some() {
+            // Accurate duration
+            ContentMetadataFlags::RELIABLE
+        } else {
+            duration = id3_tag
+                .duration()
+                .map(|secs| Duration::from_secs(u64::from(secs)).into());
+            ContentMetadataFlags::UNRELIABLE
+        };
         if track
             .media_source
             .content_metadata_flags
-            .update(ContentMetadataFlags::UNRELIABLE)
+            .update(metadata_flags)
         {
-            let duration = id3_tag
-                .duration()
-                .map(|secs| Duration::from_secs(u64::from(secs)).into());
-            // TODO: Avg. bit rate needs to be calculated from all MP3 frames
-            // if not stored explicitly.
+            // TODO: Avgerage bitrate needs to be calculated from all MP3 frames
+            // if not stored explicitly. mp3-duration already reads the bitrate
+            // of each frame but does not calculate and return an average bitrate.
             let bitrate = None;
             let loudness = id3_first_extended_text(&id3_tag, "REPLAYGAIN_TRACK_GAIN")
                 .and_then(parse_replay_gain);
@@ -284,7 +298,7 @@ impl import::ImportTrack for ImportTrack {
 
         // Track actors
         let mut track_actors = Vec::with_capacity(8);
-        for name in id3_tag.artist() {
+        if let Some(name) = id3_tag.artist() {
             push_next_actor_role_name(&mut track_actors, ActorRole::Artist, name.to_owned());
         }
         for name in id3_text_frames(&id3_tag, "TCOM") {
@@ -316,7 +330,7 @@ impl import::ImportTrack for ImportTrack {
 
         // Album actors
         let mut album_actors = Vec::with_capacity(4);
-        for name in id3_tag.album_artist() {
+        if let Some(name) = id3_tag.album_artist() {
             push_next_actor_role_name(&mut album_actors, ActorRole::Artist, name.to_owned());
         }
         let album_actors = album_actors.canonicalize_into();
@@ -354,11 +368,16 @@ impl import::ImportTrack for ImportTrack {
 
         let mut tags_map = TagsMap::default();
         if options.contains(ImportTrackOptions::MIXXX_CUSTOM_TAGS) {
-            for geob in id3_tag.encapsulated_objects().filter(|geob| {
-                geob.description == "Mixxx CustomTags"
-            }) {
+            for geob in id3_tag
+                .encapsulated_objects()
+                .filter(|geob| geob.description == "Mixxx CustomTags")
+            {
                 if geob.mime_type != "application/json" {
-                    log::warn!("Unexpected MIME type for GEOB '{}': {}", geob.description, geob.mime_type);
+                    log::warn!(
+                        "Unexpected MIME type for GEOB '{}': {}",
+                        geob.description,
+                        geob.mime_type
+                    );
                     continue;
                 }
                 if let Some(custom_tags) = serde_json::from_slice::<SerdeTags>(&geob.data)

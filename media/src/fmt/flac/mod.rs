@@ -17,24 +17,17 @@
 
 use crate::{
     io::import::{self, *},
-    util::{
-        digest::MediaDigest,
-        parse_artwork_from_embedded_image, parse_index_numbers, parse_key_signature,
-        parse_replay_gain, parse_tempo_bpm, parse_year_tag, push_next_actor_role_name,
-        tag::{import_faceted_tags, FacetedTagMappingConfig},
-    },
+    util::{digest::MediaDigest, parse_artwork_from_embedded_image, push_next_actor_role_name},
     Result,
 };
 
 use aoide_core::{
     audio::{channel::ChannelCount, signal::SampleRateHz, AudioContent},
-    media::{concat_encoder_properties, Content, ContentMetadataFlags},
-    tag::{Facet, Score as TagScore, Tags, TagsMap},
+    media::{Content, ContentMetadataFlags},
+    tag::{Tags, TagsMap},
     track::{
         actor::ActorRole,
-        album::AlbumKind,
         tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE, FACET_MOOD},
-        title::{Title, TitleKind},
         Track,
     },
     util::{Canonical, CanonicalizeInto as _},
@@ -43,34 +36,18 @@ use aoide_core::{
 use aoide_core_serde::tag::Tags as SerdeTags;
 
 use metaflac::block::PictureType;
-use semval::IsValid as _;
-use std::{borrow::Cow, time::Duration};
+use std::time::Duration;
+
+use super::vorbis;
+
+impl vorbis::CommentReader for metaflac::Tag {
+    fn read_first_value(&self, key: &str) -> Option<&str> {
+        self.get_vorbis(key).and_then(|mut i| i.next())
+    }
+}
 
 fn first_vorbis_value<'a>(flac_tag: &'a metaflac::Tag, key: &str) -> Option<&'a str> {
     flac_tag.get_vorbis(key).and_then(|mut i| i.next())
-}
-
-fn import_faceted_text_tags<'a>(
-    tags_map: &mut TagsMap,
-    config: &FacetedTagMappingConfig,
-    facet: &Facet,
-    label_iter: impl Iterator<Item = &'a str>,
-) {
-    let removed_tags = tags_map.remove_faceted_tags(&facet);
-    if removed_tags > 0 {
-        log::debug!("Replacing {} custom '{}' tags", removed_tags, facet.value());
-    }
-    let tag_mapping_config = config.get(facet.value());
-    let mut next_score_value = TagScore::max_value();
-    for label in label_iter {
-        import_faceted_tags(
-            tags_map,
-            &mut next_score_value,
-            &facet,
-            tag_mapping_config,
-            label,
-        );
-    }
 }
 
 #[derive(Debug)]
@@ -102,19 +79,13 @@ impl import::ImportTrack for ImportTrack {
                         )
                         .into(),
                     );
-                    sample_rate = Some(SampleRateHz(streaminfo.sample_rate.into()));
+                    sample_rate = Some(SampleRateHz::new(streaminfo.sample_rate.into()));
                 } else {
                     duration = None;
                     sample_rate = None;
                 };
-                // TODO
-                let loudness = first_vorbis_value(&flac_tag, "REPLAYGAIN_TRACK_GAIN")
-                    .and_then(parse_replay_gain);
-                let encoder = concat_encoder_properties(
-                    first_vorbis_value(&flac_tag, "ENCODEDBY"),
-                    first_vorbis_value(&flac_tag, "ENCODERSETTINGS"),
-                )
-                .map(Cow::into_owned);
+                let loudness = vorbis::import_loudness(&flac_tag);
+                let encoder = vorbis::import_encoder(&flac_tag).map(Into::into);
                 let audio_content = AudioContent {
                     duration,
                     channels,
@@ -127,55 +98,18 @@ impl import::ImportTrack for ImportTrack {
             }
         }
 
-        if let Some(tempo_bpm) = first_vorbis_value(&flac_tag, "BPM")
-            .and_then(parse_tempo_bpm)
-            // Alternative: Try "TEMPO" if "BPM" is missing or invalid
-            .or_else(|| first_vorbis_value(&flac_tag, "TEMPO").and_then(parse_tempo_bpm))
-        {
-            debug_assert!(tempo_bpm.is_valid());
+        if let Some(tempo_bpm) = vorbis::import_tempo_bpm(&flac_tag) {
             track.metrics.tempo_bpm = Some(tempo_bpm);
         }
 
-        if let Some(key_signature) = first_vorbis_value(&flac_tag, "INITIALKEY")
-            .and_then(parse_key_signature)
-            .or_else(|| first_vorbis_value(&flac_tag, "KEY").and_then(parse_key_signature))
-        {
+        if let Some(key_signature) = vorbis::import_key_signature(&flac_tag) {
             track.metrics.key_signature = key_signature;
         }
 
         // Track titles
-        let mut track_titles = Vec::with_capacity(4);
-        if let Some(name) = first_vorbis_value(&flac_tag, "TITLE") {
-            let title = Title {
-                name: name.to_owned(),
-                kind: TitleKind::Main,
-            };
-            track_titles.push(title);
-        }
-        if let Some(name) = first_vorbis_value(&flac_tag, "SUBTITLE") {
-            let title = Title {
-                name: name.to_owned(),
-                kind: TitleKind::Sub,
-            };
-            track_titles.push(title);
-        }
-        if let Some(name) = first_vorbis_value(&flac_tag, "WORK") {
-            let title = Title {
-                name: name.to_owned(),
-                kind: TitleKind::Work,
-            };
-            track_titles.push(title);
-        }
-        if let Some(name) = first_vorbis_value(&flac_tag, "MOVEMENTNAME") {
-            let title = Title {
-                name: name.to_owned(),
-                kind: TitleKind::Movement,
-            };
-            track_titles.push(title);
-        }
-        let track_titles = track_titles.canonicalize_into();
+        let track_titles = vorbis::import_track_titles(&flac_tag);
         if !track_titles.is_empty() {
-            track.titles = Canonical::tie(track_titles.canonicalize_into());
+            track.titles = Canonical::tie(track_titles);
         }
 
         // Track actors
@@ -213,15 +147,7 @@ impl import::ImportTrack for ImportTrack {
         let mut album = track.album.untie();
 
         // Album titles
-        let mut album_titles = Vec::with_capacity(1);
-        if let Some(name) = first_vorbis_value(&flac_tag, "ALBUM") {
-            let title = Title {
-                name: name.to_owned(),
-                kind: TitleKind::Main,
-            };
-            album_titles.push(title);
-        }
-        let album_titles = album_titles.canonicalize_into();
+        let album_titles = vorbis::import_album_titles(&flac_tag);
         if !album_titles.is_empty() {
             album.titles = Canonical::tie(album_titles);
         }
@@ -244,27 +170,21 @@ impl import::ImportTrack for ImportTrack {
         }
 
         // Album properties
-        if first_vorbis_value(&flac_tag, "COMPILATION")
-            .and_then(|compilation| compilation.parse::<u8>().ok())
-            .unwrap_or_default()
-            == 1
-        {
-            album.kind = AlbumKind::Compilation;
+        if let Some(album_kind) = vorbis::import_album_kind(&flac_tag) {
+            album.kind = album_kind;
         }
 
         track.album = Canonical::tie(album);
 
         // Release properties
-        // Instead of the release date "TDRL" most applications use the recording date "TDRC".
-        // See also https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
-        if let Some(released_at) = first_vorbis_value(&flac_tag, "DATE").and_then(parse_year_tag) {
+        if let Some(released_at) = vorbis::import_released_at(&flac_tag) {
             track.release.released_at = Some(released_at);
         }
-        if let Some(label) = first_vorbis_value(&flac_tag, "LABEL") {
-            track.release.released_by = Some(label.to_owned());
+        if let Some(released_by) = vorbis::import_released_by(&flac_tag) {
+            track.release.released_by = Some(released_by);
         }
-        if let Some(copyright) = first_vorbis_value(&flac_tag, "COPYRIGHT") {
-            track.release.copyright = Some(copyright.to_owned());
+        if let Some(copyright) = vorbis::import_release_copyright(&flac_tag) {
+            track.release.copyright = Some(copyright);
         }
 
         let mut tags_map = TagsMap::default();
@@ -295,7 +215,7 @@ impl import::ImportTrack for ImportTrack {
             .get_vorbis("COMMENT")
             .or_else(|| flac_tag.get_vorbis("DESCRIPTION"))
         {
-            import_faceted_text_tags(
+            vorbis::import_faceted_text_tags(
                 &mut tags_map,
                 &config.faceted_tag_mapping,
                 &FACET_COMMENT,
@@ -305,7 +225,7 @@ impl import::ImportTrack for ImportTrack {
 
         // Genre tags
         if let Some(genres) = flac_tag.get_vorbis("GENRE") {
-            import_faceted_text_tags(
+            vorbis::import_faceted_text_tags(
                 &mut tags_map,
                 &config.faceted_tag_mapping,
                 &FACET_GENRE,
@@ -315,7 +235,7 @@ impl import::ImportTrack for ImportTrack {
 
         // Mood tags
         if let Some(moods) = flac_tag.get_vorbis("MOOD") {
-            import_faceted_text_tags(
+            vorbis::import_faceted_text_tags(
                 &mut tags_map,
                 &config.faceted_tag_mapping,
                 &FACET_MOOD,
@@ -325,7 +245,7 @@ impl import::ImportTrack for ImportTrack {
 
         // Grouping tags
         if let Some(groupings) = flac_tag.get_vorbis("GROUPING") {
-            import_faceted_text_tags(
+            vorbis::import_faceted_text_tags(
                 &mut tags_map,
                 &config.faceted_tag_mapping,
                 &FACET_CGROUP,
@@ -333,45 +253,13 @@ impl import::ImportTrack for ImportTrack {
             );
         }
 
-        if let Some(mut index) =
-            first_vorbis_value(&flac_tag, "TRACKNUMBER").and_then(parse_index_numbers)
-        {
-            if index.total.is_none() {
-                // According to https://wiki.xiph.org/Field_names "TRACKTOTAL" is
-                // the proposed field name, but some applications use "TOTALTRACKS".
-                index.total = first_vorbis_value(&flac_tag, "TRACKTOTAL")
-                    .and_then(|input| input.parse().ok())
-                    .or_else(|| {
-                        first_vorbis_value(&flac_tag, "TOTALTRACKS")
-                            .and_then(|input| input.parse().ok())
-                    });
-            }
+        if let Some(index) = vorbis::import_track_index(&flac_tag) {
             track.indexes.track = index;
         }
-
-        if let Some(mut index) =
-            first_vorbis_value(&flac_tag, "DISCNUMBER").and_then(parse_index_numbers)
-        {
-            if index.total.is_none() {
-                // According to https://wiki.xiph.org/Field_names "DISCTOTAL" is
-                // the proposed field name, but some applications use "TOTALDISCS".
-                index.total = first_vorbis_value(&flac_tag, "DISCTOTAL")
-                    .and_then(|input| input.parse().ok())
-                    .or_else(|| {
-                        first_vorbis_value(&flac_tag, "TOTALDISCS")
-                            .and_then(|input| input.parse().ok())
-                    });
-            }
+        if let Some(index) = vorbis::import_disc_index(&flac_tag) {
             track.indexes.disc = index;
         }
-
-        if let Some(mut index) =
-            first_vorbis_value(&flac_tag, "MOVEMENT").and_then(parse_index_numbers)
-        {
-            if index.total.is_none() {
-                index.total = first_vorbis_value(&flac_tag, "MOVEMENTTOTAL")
-                    .and_then(|input| input.parse().ok());
-            }
+        if let Some(index) = vorbis::import_movement_index(&flac_tag) {
             track.indexes.movement = index;
         }
 

@@ -94,7 +94,7 @@ impl From<QueryableRecord> for (RecordHeader, Source) {
         let audio_content = AudioContent {
             duration: audio_duration_ms.map(|val| DurationMs(val as DurationInMilliseconds)),
             channels: audio_channel_count.map(|val| ChannelCount(val as NumberOfChannels).into()),
-            sample_rate: audio_samplerate_hz.map(|val| SampleRateHz(val as SamplesPerSecond)),
+            sample_rate: audio_samplerate_hz.map(|val| SampleRateHz::new(val as SamplesPerSecond)),
             bitrate: audio_bitrate_bps.map(|val| BitrateBps(val as BitsPerSecond)),
             loudness: audio_loudness_lufs.map(LoudnessLufs),
             encoder: audio_encoder,
@@ -214,7 +214,7 @@ impl<'a> InsertableRecord<'a> {
                 .map(|channels| channels.count().0 as i16),
             audio_samplerate_hz: audio_content
                 .and_then(|audio| audio.sample_rate)
-                .map(|sample_rate| sample_rate.0),
+                .map(|sample_rate| sample_rate.hz()),
             audio_bitrate_bps: audio_content
                 .and_then(|audio| audio.bitrate)
                 .map(|bitrate| bitrate.0),
@@ -302,7 +302,7 @@ impl<'a> UpdatableRecord<'a> {
                 .map(|channels| channels.count().0 as i16),
             audio_samplerate_hz: audio_content
                 .and_then(|audio| audio.sample_rate)
-                .map(|sample_rate| sample_rate.0),
+                .map(|sample_rate| sample_rate.hz()),
             audio_bitrate_bps: audio_content
                 .and_then(|audio| audio.bitrate)
                 .map(|bitrate| bitrate.0),

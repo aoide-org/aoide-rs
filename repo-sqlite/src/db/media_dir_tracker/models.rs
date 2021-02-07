@@ -24,7 +24,7 @@ use num_traits::ToPrimitive as _;
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Queryable, Identifiable)]
-#[table_name = "media_dir_cache"]
+#[table_name = "media_dir_tracker"]
 pub struct QueryableRecord {
     pub id: RowId,
     pub row_created_ms: TimestampMillis,
@@ -36,7 +36,7 @@ pub struct QueryableRecord {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "media_dir_cache"]
+#[table_name = "media_dir_tracker"]
 pub struct InsertableRecord<'a> {
     pub row_created_ms: TimestampMillis,
     pub row_updated_ms: TimestampMillis,
@@ -68,7 +68,7 @@ impl<'a> InsertableRecord<'a> {
 
 #[derive(Debug, AsChangeset)]
 #[changeset_options(treat_none_as_null = "true")]
-#[table_name = "media_dir_cache"]
+#[table_name = "media_dir_tracker"]
 pub struct UpdateDigest<'a> {
     pub row_updated_ms: TimestampMillis,
     pub status: i16,

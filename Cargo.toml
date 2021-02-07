@@ -25,8 +25,8 @@ aoide-media = { path = "media" }
 aoide-repo = { path = "repo" }
 aoide-repo-sqlite = { path = "repo-sqlite" }
 
-mp4ameta = { branch = "master", git = "https://github.com/Saecki/rust-mp4ameta.git" }
-id3 = { branch = "master", git = "https://github.com/polyfloyd/rust-id3.git" }
+#mp4ameta = { branch = "master", git = "https://github.com/Saecki/rust-mp4ameta.git" }
+#id3 = { branch = "master", git = "https://github.com/polyfloyd/rust-id3.git" }
 
 [dependencies]
 aoide-core = "*"
@@ -45,7 +45,7 @@ anyhow = "*"
 log = "*"
 percent-encoding = "*"
 r2d2 = "*"
-semval = { version = ">= 0.1.7" }
+semval = { version = ">=0.1.7" }
 serde = "*"
 serde_json = "*"
 thiserror = "*"

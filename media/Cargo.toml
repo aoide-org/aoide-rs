@@ -29,17 +29,16 @@ thiserror = "*"
 url = "*"
 walkdir = "*"
 
-hound = { version = "*", optional = true }
-id3 = { version = "*", optional = true }
+id3 = { version = ">=0.6", optional = true }
 lewton = { version = "*", optional = true }
 metaflac = { version = "*", optional = true }
 minimp3 = { version = "*", optional = true }
-mp4ameta = { version = "*", optional = true }
+mp3-duration = { version = "*", optional = true }
+mp4ameta = { version = ">=0.8", optional = true }
 
 [features]
 fmt-flac = [ "metaflac" ]
 fmt-mp4 = [ "mp4ameta" ]
-fmt-mp3 = [ "id3", "minimp3" ]
+fmt-mp3 = [ "id3", "minimp3", "mp3-duration" ]
 fmt-ogg = [ "lewton" ]
-fmt-wav = [ "hound" ]
-default = [ "fmt-flac", "fmt-mp3", "fmt-mp4", "fmt-ogg", "fmt-wav" ]
+default = [ "fmt-flac", "fmt-mp3", "fmt-mp4", "fmt-ogg" ]

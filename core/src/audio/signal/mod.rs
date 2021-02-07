@@ -76,7 +76,7 @@ impl fmt::Display for BitrateBps {
 pub type SamplesPerSecond = f64;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
-pub struct SampleRateHz(pub SamplesPerSecond);
+pub struct SampleRateHz(SamplesPerSecond);
 
 impl SampleRateHz {
     pub const fn unit_of_measure() -> &'static str {
@@ -105,6 +105,15 @@ impl SampleRateHz {
 
     pub const fn of_studio_192k() -> Self {
         Self(192_000.0)
+    }
+
+    pub const fn new(hz: SamplesPerSecond) -> Self {
+        Self(hz)
+    }
+
+    pub const fn hz(self) -> SamplesPerSecond {
+        let Self(hz) = self;
+        hz
     }
 }
 

@@ -28,7 +28,7 @@ use crate::{
 use aoide_core::{
     audio::{
         channel::{ChannelCount, ChannelLayout, Channels},
-        signal::{BitrateBps, BitsPerSecond, SampleRateHz},
+        signal::{BitrateBps, BitsPerSecond, SampleRateHz, SamplesPerSecond},
         AudioContent,
     },
     media::{Content, ContentMetadataFlags},
@@ -52,28 +52,9 @@ use mp4ameta::{
     STANDARD_GENRES,
 };
 use semval::IsValid as _;
-use std::time::Duration;
 
 #[derive(Debug)]
 pub struct ImportTrack;
-
-fn read_sample_rate(sample_rate: Mp4SampleRate) -> SampleRateHz {
-    use Mp4SampleRate::*;
-    SampleRateHz(match sample_rate {
-        F96000 => 96_000.0,
-        F88200 => 88_200.0,
-        F64000 => 64_000.0,
-        F48000 => 48_000.0,
-        F44100 => 44_100.0,
-        F32000 => 32_000.0,
-        F24000 => 24_000.0,
-        F22050 => 22_500.0,
-        F16000 => 16_000.0,
-        F12000 => 12_000.0,
-        F11025 => 11_025.0,
-        F8000 => 8_000.0,
-    })
-}
 
 fn read_bitrate(bitrate: u32) -> Option<BitrateBps> {
     let bits_per_second = bitrate as BitsPerSecond;
@@ -117,22 +98,14 @@ impl import::ImportTrack for ImportTrack {
             .content_metadata_flags
             .update(ContentMetadataFlags::UNRELIABLE)
         {
-            let duration = Some(
-                Duration::from_secs_f64(mp4_tag.duration().map_err(anyhow::Error::from)?).into(),
-            );
-            let channels = Some(
-                mp4_tag
-                    .channel_config()
-                    .map(read_channels)
-                    .map_err(anyhow::Error::from)?,
-            );
-            let sample_rate = Some(
-                mp4_tag
-                    .sample_rate()
-                    .map(read_sample_rate)
-                    .map_err(anyhow::Error::from)?,
-            );
-            let bitrate = read_bitrate(mp4_tag.average_bitrate().map_err(anyhow::Error::from)?);
+            let duration = mp4_tag.duration().map(Into::into);
+            let channels = mp4_tag.channel_config().map(read_channels);
+            let sample_rate = mp4_tag
+                .sample_rate()
+                .as_ref()
+                .map(Mp4SampleRate::hz)
+                .map(|hz| SampleRateHz::new(hz as SamplesPerSecond));
+            let bitrate = mp4_tag.avg_bitrate().and_then(read_bitrate);
             let loudness = mp4_tag
                 .string(&FreeformIdent::new(
                     COM_APPLE_ITUNES_FREEFORM_MEAN,

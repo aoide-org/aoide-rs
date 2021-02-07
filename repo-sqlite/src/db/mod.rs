@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 pub mod collection;
-pub mod media_dir_cache;
+pub mod media_dir_tracker;
 pub mod media_source;
 pub mod playlist;
 pub mod playlist_entry;
