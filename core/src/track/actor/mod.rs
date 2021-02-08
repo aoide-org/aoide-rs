@@ -94,15 +94,10 @@ impl CanonicalOrd for Actor {
             name: rhs_name,
             role_notes: _,
         } = other;
-        let role_ord = lhs_role.cmp(rhs_role);
-        if role_ord != Ordering::Equal {
-            return role_ord;
-        }
-        let kind_ord = lhs_kind.cmp(rhs_kind);
-        if kind_ord != Ordering::Equal {
-            return kind_ord;
-        }
-        lhs_name.cmp(rhs_name)
+        lhs_role
+            .cmp(rhs_role)
+            .then(lhs_kind.cmp(rhs_kind))
+            .then(lhs_name.cmp(rhs_name))
     }
 }
 

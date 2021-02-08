@@ -506,17 +506,16 @@ impl CanonicalOrd for PlainTag {
             label: rhs_label,
             score: rhs_score,
         } = other;
-        let label_ord = match (lhs_label, rhs_label) {
+        match (lhs_label, rhs_label) {
             (Some(lhs_label), Some(rhs_label)) => lhs_label.cmp(rhs_label),
             (None, Some(_)) => Ordering::Less,
             (Some(_), None) => Ordering::Greater,
             (None, None) => Ordering::Equal,
-        };
-        if label_ord != Ordering::Equal {
-            return label_ord;
         }
-        debug_assert!(lhs_score.partial_cmp(rhs_score).is_some());
-        lhs_score.partial_cmp(rhs_score).unwrap_or(Ordering::Equal)
+        .then_with(|| {
+            debug_assert!(lhs_score.partial_cmp(rhs_score).is_some());
+            lhs_score.partial_cmp(rhs_score).unwrap_or(Ordering::Equal)
+        })
     }
 }
 
