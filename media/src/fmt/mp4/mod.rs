@@ -186,7 +186,7 @@ impl import::ImportTrack for ImportTrack {
         }
         let track_titles = track_titles.canonicalize_into();
         if !track_titles.is_empty() {
-            track.titles = Canonical::tie(track_titles.canonicalize_into());
+            track.titles = Canonical::tie(track_titles);
         }
 
         // Track actors
