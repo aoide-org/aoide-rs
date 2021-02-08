@@ -40,5 +40,5 @@ mp4ameta = { version = ">=0.8", optional = true }
 fmt-flac = [ "metaflac" ]
 fmt-mp4 = [ "mp4ameta" ]
 fmt-mp3 = [ "id3", "minimp3", "mp3-duration" ]
-fmt-ogg = [ "lewton" ]
+fmt-ogg = [ "lewton", "metaflac" ] # metaflac for decoding FLAC picture blocks
 default = [ "fmt-flac", "fmt-mp3", "fmt-mp4", "fmt-ogg" ]

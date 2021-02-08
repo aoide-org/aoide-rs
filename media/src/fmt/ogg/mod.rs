@@ -17,7 +17,7 @@
 
 use crate::{
     io::import::{self, *},
-    util::push_next_actor_role_name,
+    util::{digest::MediaDigest, parse_artwork_from_embedded_image, push_next_actor_role_name},
     Result,
 };
 
@@ -38,14 +38,20 @@ use aoide_core::{
 };
 
 use lewton::inside_ogg::OggStreamReader;
+use metaflac::block::PictureType;
 use semval::IsValid as _;
 
 use super::vorbis;
 
 impl vorbis::CommentReader for Vec<(String, String)> {
     fn read_first_value(&self, key: &str) -> Option<&str> {
-        self.iter()
-            .find_map(|(k, v)| if k == key { Some(v.as_str()) } else { None })
+        self.iter().find_map(|(k, v)| {
+            if k.eq_ignore_ascii_case(key) {
+                Some(v.as_str())
+            } else {
+                None
+            }
+        })
     }
 }
 
@@ -53,9 +59,13 @@ fn filter_vorbis_comment_values<'a>(
     vorbis_comments: &'a [(String, String)],
     key: &'a str,
 ) -> impl Iterator<Item = &'a str> + 'a {
-    vorbis_comments
-        .iter()
-        .filter_map(move |(k, v)| if k == key { Some(v.as_str()) } else { None })
+    vorbis_comments.iter().filter_map(move |(k, v)| {
+        if k.eq_ignore_ascii_case(key) {
+            Some(v.as_str())
+        } else {
+            None
+        }
+    })
 }
 
 #[derive(Debug)]
@@ -101,9 +111,8 @@ impl import::ImportTrack for ImportTrack {
                 None
             };
             let loudness = vorbis::import_loudness(vorbis_comments);
-            let encoder = vorbis::import_encoder(vorbis_comments)
-                .map(Into::into);
-            // TODO: The duration is not available from any header
+            let encoder = vorbis::import_encoder(vorbis_comments).map(Into::into);
+            // TODO: The duration is not available from any header!?
             let duration = None;
             let audio_content = AudioContent {
                 duration,
@@ -257,7 +266,58 @@ impl import::ImportTrack for ImportTrack {
             track.indexes.movement = index;
         }
 
-        // TODO: Artwork?
+        if options.contains(ImportTrackOptions::ARTWORK) {
+            let mut image_digest = if options.contains(ImportTrackOptions::ARTWORK_DIGEST) {
+                if options.contains(ImportTrackOptions::ARTWORK_DIGEST_SHA256) {
+                    // Compatibility
+                    MediaDigest::sha256()
+                } else {
+                    // Default
+                    MediaDigest::new()
+                }
+            } else {
+                Default::default()
+            };
+            // https://wiki.xiph.org/index.php/VorbisComment#Cover_art
+            // The unofficial COVERART field in a VorbisComment tag is deprecated:
+            // https://wiki.xiph.org/VorbisComment#Unofficial_COVERART_field_.28deprecated.29
+            let picture_iter_by_type = |picture_type| {
+                filter_vorbis_comment_values(vorbis_comments, "METADATA_BLOCK_PICTURE")
+                    .chain(filter_vorbis_comment_values(vorbis_comments, "COVERART"))
+                    .filter_map(|base64_data| {
+                        base64::decode(base64_data)
+                            .map_err(|err| {
+                                log::warn!(
+                                    "Failed to decode base64 encoded picture block: {}",
+                                    err
+                                );
+                                err
+                            })
+                            .ok()
+                    })
+                    .filter_map(|decoded| {
+                        metaflac::block::Picture::from_bytes(&decoded[..])
+                            .map_err(|err| {
+                                log::warn!("Failed to decode FLAC picture block: {}", err);
+                                err
+                            })
+                            .ok()
+                    })
+                    .filter(move |picture| picture.picture_type == picture_type)
+            };
+            // Decoding and discarding the blocks multiple times is inefficient
+            // but expected to occur only infrequently. Most files will include
+            // just a front cover and nothing else.
+            if let Some(artwork) = picture_iter_by_type(PictureType::CoverFront)
+                .chain(picture_iter_by_type(PictureType::Media))
+                .chain(picture_iter_by_type(PictureType::Leaflet))
+                .chain(picture_iter_by_type(PictureType::Other))
+                .filter_map(|p| parse_artwork_from_embedded_image(&p.data, None, &mut image_digest))
+                .next()
+            {
+                track.media_source.artwork = artwork;
+            }
+        }
 
         Ok(track)
     }
