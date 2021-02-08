@@ -148,15 +148,15 @@ impl import::ImportTrack for ImportTrack {
 
         // Album actors
         let mut album_actors = Vec::with_capacity(4);
-        if let Some(artists) = flac_tag
+        for name in flac_tag
             .get_vorbis("ALBUMARTIST")
-            .or_else(|| flac_tag.get_vorbis("ALBUM_ARTIST"))
-            .or_else(|| flac_tag.get_vorbis("ALBUM ARTIST"))
-            .or_else(|| flac_tag.get_vorbis("ENSEMBLE"))
+            .into_iter()
+            .flatten()
+            .chain(flac_tag.get_vorbis("ALBUM_ARTIST").into_iter().flatten())
+            .chain(flac_tag.get_vorbis("ALBUM ARTIST").into_iter().flatten())
+            .chain(flac_tag.get_vorbis("ENSEMBLE").into_iter().flatten())
         {
-            for name in artists {
-                push_next_actor_role_name(&mut album_actors, ActorRole::Artist, name.to_owned());
-            }
+            push_next_actor_role_name(&mut album_actors, ActorRole::Artist, name.to_owned());
         }
         let album_actors = album_actors.canonicalize_into();
         if !album_actors.is_empty() {
@@ -196,17 +196,16 @@ impl import::ImportTrack for ImportTrack {
         // MusicBrainz.
         // http://www.xiph.org/vorbis/doc/v-comment.html
         // https://picard.musicbrainz.org/docs/mappings
-        if let Some(comments) = flac_tag
-            .get_vorbis("COMMENT")
-            .or_else(|| flac_tag.get_vorbis("DESCRIPTION"))
-        {
-            vorbis::import_faceted_text_tags(
-                &mut tags_map,
-                &config.faceted_tag_mapping,
-                &FACET_COMMENT,
-                comments,
-            );
-        }
+        vorbis::import_faceted_text_tags(
+            &mut tags_map,
+            &config.faceted_tag_mapping,
+            &FACET_COMMENT,
+            flac_tag
+                .get_vorbis("COMMENT")
+                .into_iter()
+                .flatten()
+                .chain(flac_tag.get_vorbis("DESCRIPTION").into_iter().flatten()),
+        );
 
         // Genre tags
         if let Some(genres) = flac_tag.get_vorbis("GENRE") {
