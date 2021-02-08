@@ -120,11 +120,11 @@ fn duplicate_labels() {
     };
     assert!(tags.validate().is_ok());
 
-    let mut tags = Tags {
+    let duplicate_labels = Tags {
         plain: vec![
             PlainTag {
                 label: Some(Label::new("label1".into())),
-                ..Default::default()
+                score: 0.7.into(),
             },
             PlainTag {
                 label: Some(Label::new("label2".into())),
@@ -132,13 +132,13 @@ fn duplicate_labels() {
             },
             PlainTag {
                 label: Some(Label::new("label1".into())),
-                ..Default::default()
+                score: 0.5.into(),
             },
         ],
         ..Default::default()
     };
-    tags.canonicalize();
-    assert_eq!(1, tags.validate().err().unwrap().into_iter().count());
+    assert!(!duplicate_labels.is_canonical());
+    assert!(duplicate_labels.canonicalize_into().validate().is_ok());
 
     let tags = Tags {
         plain: vec![
@@ -203,9 +203,10 @@ fn duplicate_labels() {
         ],
     };
     tags.canonicalize();
-    assert_eq!(1, tags.validate().err().unwrap().into_iter().count());
+    assert!(tags.validate().is_ok());
+    assert_eq!(4, tags.total_count());
 
-    let tags = Tags {
+    let mut tags = Tags {
         plain: vec![
             PlainTag {
                 label: Some(Label::new("label1".into())),
@@ -239,7 +240,9 @@ fn duplicate_labels() {
             },
         ],
     };
-    assert_eq!(1, tags.validate().err().unwrap().into_iter().count());
+    tags.canonicalize();
+    assert!(tags.validate().is_ok());
+    assert_eq!(4, tags.total_count());
 
     let mut tags = Tags {
         plain: vec![
@@ -290,7 +293,8 @@ fn duplicate_labels() {
         ],
     };
     tags.canonicalize();
-    assert_eq!(2, tags.validate().err().unwrap().into_iter().count());
+    assert!(tags.validate().is_ok());
+    assert_eq!(5, tags.total_count());
 }
 
 #[test]
@@ -328,6 +332,23 @@ fn canonicalize_should_remove_facets_without_tags() {
         FacetedTags {
             facet: Facet::new("facet2".into()).into(),
             tags: vec![],
+        },
+    );
+    actual_tags.facets.insert(
+        2,
+        FacetedTags {
+            facet: Facet::new("facet3".into()).into(),
+            tags: vec![],
+        },
+    );
+    actual_tags.facets.insert(
+        3,
+        FacetedTags {
+            facet: Facet::new("facet3".into()).into(),
+            tags: vec![PlainTag {
+                label: Some(Label::new("label1".into())),
+                ..Default::default()
+            }],
         },
     );
     assert!(!actual_tags.is_canonical());
