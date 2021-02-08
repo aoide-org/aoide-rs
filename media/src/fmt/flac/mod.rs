@@ -24,7 +24,7 @@ use crate::{
 use aoide_core::{
     audio::{channel::ChannelCount, signal::SampleRateHz, AudioContent},
     media::{Content, ContentMetadataFlags},
-    tag::{Tags, TagsMap},
+    tag::TagsMap,
     track::{
         actor::ActorRole,
         tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE, FACET_MOOD},
@@ -32,8 +32,6 @@ use aoide_core::{
     },
     util::{Canonical, CanonicalizeInto as _},
 };
-
-use aoide_core_serde::tag::Tags as SerdeTags;
 
 use metaflac::block::PictureType;
 use std::time::Duration;
@@ -44,10 +42,6 @@ impl vorbis::CommentReader for metaflac::Tag {
     fn read_first_value(&self, key: &str) -> Option<&str> {
         self.get_vorbis(key).and_then(|mut i| i.next())
     }
-}
-
-fn first_vorbis_value<'a>(flac_tag: &'a metaflac::Tag, key: &str) -> Option<&'a str> {
-    flac_tag.get_vorbis(key).and_then(|mut i| i.next())
 }
 
 #[derive(Debug)]
@@ -189,19 +183,10 @@ impl import::ImportTrack for ImportTrack {
 
         let mut tags_map = TagsMap::default();
         if options.contains(ImportTrackOptions::MIXXX_CUSTOM_TAGS) {
-            if let Some(json) = first_vorbis_value(&flac_tag, "MIXXX_CUSTOM_TAGS") {
-                if let Some(custom_tags) = serde_json::from_str::<SerdeTags>(json)
-                    .map_err(|err| {
-                        log::warn!("Failed to parse Mixxx custom tags: {}", err);
-                        err
-                    })
-                    .ok()
-                    .map(Tags::from)
-                {
-                    // Initialize map with all existing custom tags as starting point
-                    debug_assert_eq!(0, tags_map.total_count());
-                    tags_map = custom_tags.into();
-                }
+            if let Some(custom_tags) = vorbis::import_mixxx_custom_tags(&flac_tag) {
+                // Initialize map with all existing custom tags as starting point
+                debug_assert_eq!(0, tags_map.total_count());
+                tags_map = custom_tags.into();
             }
         }
 

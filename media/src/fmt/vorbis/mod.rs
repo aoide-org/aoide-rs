@@ -24,7 +24,7 @@ use aoide_core::{
     audio::signal::LoudnessLufs,
     media::concat_encoder_properties,
     music::{key::KeySignature, time::TempoBpm},
-    tag::{Facet, Score as TagScore, TagsMap},
+    tag::{Facet, Score as TagScore, Tags, TagsMap},
     track::{
         album::AlbumKind,
         index::Index,
@@ -33,6 +33,8 @@ use aoide_core::{
     },
     util::CanonicalizeInto as _,
 };
+
+use aoide_core_serde::tag::Tags as SerdeTags;
 
 use semval::IsValid as _;
 use std::borrow::Cow;
@@ -228,4 +230,18 @@ pub fn import_album_titles(reader: &impl CommentReader) -> Vec<Title> {
         album_titles.push(title);
     }
     album_titles.canonicalize_into()
+}
+
+pub fn import_mixxx_custom_tags(reader: &impl CommentReader) -> Option<Tags> {
+    reader
+        .read_first_value("MIXXX_CUSTOM_TAGS")
+        .and_then(|json| {
+            serde_json::from_str::<SerdeTags>(json)
+                .map_err(|err| {
+                    log::warn!("Failed to parse Mixxx custom tags: {}", err);
+                    err
+                })
+                .ok()
+        })
+        .map(Into::into)
 }
