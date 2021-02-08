@@ -72,7 +72,7 @@ pub fn import_loudness(reader: &impl CommentReader) -> Option<LoudnessLufs> {
         .and_then(parse_replay_gain)
 }
 
-pub fn import_encoder<'a>(reader: &'a impl CommentReader) -> Option<Cow<'a, str>> {
+pub fn import_encoder(reader: &'_ impl CommentReader) -> Option<Cow<'_, str>> {
     concat_encoder_properties(
         reader.read_first_value("ENCODEDBY"),
         reader.read_first_value("ENCODERSETTINGS"),

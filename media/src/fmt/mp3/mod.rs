@@ -282,14 +282,12 @@ impl import::ImportTrack for ImportTrack {
                 };
                 track_titles.push(title);
             }
-        } else {
-            if let Some(name) = id3_first_extended_text(&id3_tag, "WORK") {
-                let title = Title {
-                    name: name.to_owned(),
-                    kind: TitleKind::Work,
-                };
-                track_titles.push(title);
-            }
+        } else if let Some(name) = id3_first_extended_text(&id3_tag, "WORK") {
+            let title = Title {
+                name: name.to_owned(),
+                kind: TitleKind::Work,
+            };
+            track_titles.push(title);
         }
         let track_titles = track_titles.canonicalize_into();
         if !track_titles.is_empty() {

@@ -222,7 +222,7 @@ impl<'a> InsertableRecord<'a> {
                 .and_then(|audio| audio.loudness)
                 .map(|loudness| loudness.0),
             audio_encoder: audio_content
-                .and_then(|audio| audio.encoder.as_ref().map(|s| s.as_str())),
+                .and_then(|audio| audio.encoder.as_deref()),
             artwork_uri: artwork_uri.as_ref().map(String::as_str),
             artwork_type: artwork_type.as_ref().map(String::as_str),
             artwork_digest: artwork_digest.as_ref().map(Vec::as_slice),
@@ -310,7 +310,7 @@ impl<'a> UpdatableRecord<'a> {
                 .and_then(|audio| audio.loudness)
                 .map(|loudness| loudness.0),
             audio_encoder: audio_content
-                .and_then(|audio| audio.encoder.as_ref().map(|s| s.as_str())),
+                .and_then(|audio| audio.encoder.as_deref()),
             artwork_uri: artwork_uri.as_ref().map(String::as_str),
             artwork_type: artwork_type.as_ref().map(String::as_str),
             artwork_digest: artwork_digest.as_ref().map(Vec::as_slice),
