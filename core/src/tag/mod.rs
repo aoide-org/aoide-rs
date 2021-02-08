@@ -15,7 +15,7 @@
 
 ///////////////////////////////////////////////////////////////////////
 
-use crate::prelude::*;
+use crate::{compat::is_slice_sorted_by, prelude::*};
 
 use std::{
     borrow::Borrow,
@@ -590,13 +590,15 @@ impl CanonicalOrd for FacetedTags {
     fn canonical_cmp(&self, other: &Self) -> Ordering {
         let Self {
             facet: lhs_facet,
-            tags: _,
+            tags: lhs_tags,
         } = self;
         let Self {
             facet: rhs_facet,
-            tags: _,
+            tags: rhs_tags,
         } = other;
-        lhs_facet.cmp(rhs_facet)
+        lhs_facet
+            .cmp(rhs_facet)
+            .then_with(|| lhs_tags.canonical_cmp(rhs_tags))
     }
 }
 
@@ -684,6 +686,9 @@ impl Canonicalize for Tags {
         plain_tags.canonicalize();
         facets.retain(|f| !f.tags.is_empty());
         facets.canonicalize();
+        debug_assert!(is_slice_sorted_by(&facets, |lhs, rhs| {
+            lhs.facet.cmp(&rhs.facet)
+        }));
     }
 }
 
@@ -691,6 +696,52 @@ impl Canonicalize for Tags {
 pub enum TagsInvalidity {
     Facet(FacetInvalidity),
     PlainTag(PlainTagInvalidity),
+    DuplicateFacets,
+    DuplicateLabels,
+}
+
+fn check_for_duplicates_in_sorted_plain_tags_slice(
+    plain_tags: &[PlainTag],
+) -> Option<TagsInvalidity> {
+    debug_assert!(is_slice_sorted_by(plain_tags, |lhs, rhs| lhs
+        .label
+        .cmp(&rhs.label)));
+    let mut iter = plain_tags.iter();
+    if let Some(mut prev) = iter.next() {
+        for next in iter {
+            if prev.label == next.label {
+                return Some(TagsInvalidity::DuplicateLabels);
+            }
+            prev = next;
+        }
+    }
+    None
+}
+
+fn check_for_duplicates_in_sorted_faceted_tags_slice(
+    faceted_tags: &[FacetedTags],
+) -> Option<TagsInvalidity> {
+    debug_assert!(is_slice_sorted_by(faceted_tags, |lhs, rhs| lhs
+        .facet
+        .cmp(&rhs.facet)));
+    let mut iter = faceted_tags.iter();
+    if let Some(mut prev) = iter.next() {
+        let duplicate_labels = check_for_duplicates_in_sorted_plain_tags_slice(&prev.tags);
+        if duplicate_labels.is_some() {
+            return duplicate_labels;
+        }
+        for next in iter {
+            if prev.facet == next.facet {
+                return Some(TagsInvalidity::DuplicateFacets);
+            }
+            prev = next;
+            let duplicate_labels = check_for_duplicates_in_sorted_plain_tags_slice(&next.tags);
+            if duplicate_labels.is_some() {
+                return duplicate_labels;
+            }
+        }
+    }
+    None
 }
 
 impl Validate for Tags {
@@ -703,7 +754,7 @@ impl Validate for Tags {
             plain: plain_tags,
             facets,
         } = self;
-        ValidationContext::new()
+        let mut context = ValidationContext::new()
             .validate_with(&plain_tags, Self::Invalidity::PlainTag)
             .merge_result(
                 facets
@@ -714,8 +765,14 @@ impl Validate for Tags {
                             .validate_with(tags, Self::Invalidity::PlainTag)
                     })
                     .into(),
-            )
-            .into()
+            );
+        if let Some(duplicates) = check_for_duplicates_in_sorted_plain_tags_slice(plain_tags) {
+            context = context.invalidate(duplicates);
+        }
+        if let Some(duplicates) = check_for_duplicates_in_sorted_faceted_tags_slice(facets) {
+            context = context.invalidate(duplicates);
+        }
+        context.into()
     }
 }
 

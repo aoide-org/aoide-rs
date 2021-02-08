@@ -96,6 +96,24 @@ pub trait CanonicalOrd {
     fn canonical_cmp(&self, other: &Self) -> Ordering;
 }
 
+impl<T> CanonicalOrd for [T]
+where
+    T: CanonicalOrd,
+{
+    fn canonical_cmp(&self, other: &Self) -> Ordering {
+        if self.len() != other.len() {
+            return self.len().cmp(&other.len());
+        }
+        for (lhs, rhs) in self.iter().zip(other.iter()) {
+            let ord = lhs.canonical_cmp(rhs);
+            if ord != Ordering::Equal {
+                return ord;
+            }
+        }
+        Ordering::Equal
+    }
+}
+
 pub trait IsCanonical {
     fn is_canonical(&self) -> bool;
 }
