@@ -17,7 +17,9 @@
 
 use crate::{
     io::import::{self, *},
-    util::{digest::MediaDigest, parse_artwork_from_embedded_image, push_next_actor_role_name},
+    util::{
+        digest::MediaDigest, parse_artwork_from_embedded_image, push_next_actor_role_name, serato,
+    },
     Result,
 };
 
@@ -43,6 +45,11 @@ impl vorbis::CommentReader for metaflac::Tag {
         self.get_vorbis(key).and_then(|mut i| i.next())
     }
 }
+
+use triseratops::tag::{
+    format::flac::FLACTag, Markers2 as SeratoMarkers2, TagContainer as SeratoTagContainer,
+    TagFormat as SeratoTagFormat,
+};
 
 #[derive(Debug)]
 pub struct ImportTrack;
@@ -288,6 +295,28 @@ impl import::ImportTrack for ImportTrack {
 
         debug_assert!(track.tags.is_empty());
         track.tags = Canonical::tie(tags_map.into());
+
+        // Serato Tags
+        if options.contains(ImportTrackOptions::SERATO_TAGS) {
+            let mut serato_tags = SeratoTagContainer::new();
+
+            if let Some(markers2) = flac_tag
+                .get_vorbis(SeratoMarkers2::FLAC_COMMENT)
+                .and_then(|mut i| i.next())
+            {
+                serato_tags
+                    .parse_markers2(&markers2.as_bytes(), SeratoTagFormat::FLAC)
+                    .map_err(|err| {
+                        log::warn!("Failed to parse Serato Markers2: {}", err);
+                    })
+                    .ok();
+            }
+
+            let track_cues = serato::read_cues(&serato_tags)?;
+            if !track_cues.is_empty() {
+                track.cues = Canonical::tie(track_cues);
+            }
+        }
 
         Ok(track)
     }
