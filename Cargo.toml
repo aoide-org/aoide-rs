@@ -25,6 +25,7 @@ aoide-media = { path = "media" }
 aoide-repo = { path = "repo" }
 aoide-repo-sqlite = { path = "repo-sqlite" }
 mp4ameta= { branch = "master", git = "https://github.com/Saecki/rust-mp4ameta.git" }
+triseratops = { rev = "9b71e26f59d15ffe771090c5918cf150ebc7f5c5", git = "https://github.com/Holzhaus/triseratops.git" }
 
 [dependencies]
 aoide-core = "*"

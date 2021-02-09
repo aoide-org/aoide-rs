@@ -2103,8 +2103,7 @@ dependencies = [
 [[package]]
 name = "triseratops"
 version = "0.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8ca0a1c68bef1da1d1e4ac63559b2388a01dd660229249242db942596cf0a3c"
+source = "git+https://github.com/Holzhaus/triseratops.git?rev=9b71e26f59d15ffe771090c5918cf150ebc7f5c5#9b71e26f59d15ffe771090c5918cf150ebc7f5c5"
 dependencies = [
  "base64",
  "nom",
