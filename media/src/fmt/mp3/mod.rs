@@ -20,7 +20,7 @@ use crate::{
     util::{
         digest::MediaDigest,
         parse_artwork_from_embedded_image, parse_index_numbers, parse_key_signature,
-        parse_replay_gain, parse_tempo_bpm, push_next_actor_role_name,
+        parse_replay_gain, parse_tempo_bpm, push_next_actor_role_name, serato,
         tag::{import_faceted_tags, FacetedTagMappingConfig},
     },
     Result,
@@ -55,6 +55,10 @@ use id3::{self, frame::PictureType};
 use minimp3::Decoder;
 use semval::IsValid as _;
 use std::{borrow::Cow, io::SeekFrom, time::Duration};
+use triseratops::tag::{
+    format::id3::ID3Tag, Markers as SeratoMarkers, Markers2 as SeratoMarkers2,
+    TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat,
+};
 
 fn parse_timestamp(timestamp: id3::Timestamp) -> DateOrDateTime {
     match (timestamp.month, timestamp.day) {
@@ -365,6 +369,39 @@ impl import::ImportTrack for ImportTrack {
         }
 
         let mut tags_map = TagsMap::default();
+
+        // Serato Tags
+        if options.contains(ImportTrackOptions::SERATO_TAGS) {
+            let mut serato_tags = SeratoTagContainer::new();
+
+            for geob in id3_tag.encapsulated_objects() {
+                match geob.description.as_str() {
+                    SeratoMarkers::ID3_TAG => {
+                        serato_tags
+                            .parse_markers(&geob.data, SeratoTagFormat::ID3)
+                            .map_err(|err| {
+                                log::warn!("Failed to parse Serato Markers: {}", err);
+                            })
+                            .ok();
+                    }
+                    SeratoMarkers2::ID3_TAG => {
+                        serato_tags
+                            .parse_markers2(&geob.data, SeratoTagFormat::ID3)
+                            .map_err(|err| {
+                                log::warn!("Failed to parse Serato Markers2: {}", err);
+                            })
+                            .ok();
+                    }
+                    _ => (),
+                }
+            }
+
+            let track_cues = serato::read_cues(&serato_tags)?;
+            if !track_cues.is_empty() {
+                track.cues = Canonical::tie(track_cues);
+            }
+        }
+
         if options.contains(ImportTrackOptions::MIXXX_CUSTOM_TAGS) {
             for geob in id3_tag
                 .encapsulated_objects()
