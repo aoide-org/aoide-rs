@@ -19,7 +19,7 @@ use crate::{
     io::import::{self, *},
     util::{
         digest::MediaDigest, parse_artwork_from_embedded_image, parse_key_signature,
-        parse_replay_gain, parse_tempo_bpm, parse_year_tag, push_next_actor_role_name,
+        parse_replay_gain, parse_tempo_bpm, parse_year_tag, push_next_actor_role_name, serato,
         tag::import_faceted_tags,
     },
     Result,
@@ -30,7 +30,6 @@ use aoide_core::{
         channel::{ChannelCount, ChannelLayout, Channels},
         signal::{BitrateBps, BitsPerSecond, SampleRateHz},
         AudioContent,
-        PositionMs,
     },
     media::{Content, ContentMetadataFlags},
     music::time::{Beats, TempoBpm},
@@ -40,7 +39,6 @@ use aoide_core::{
         album::AlbumKind,
         tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE, FACET_MOOD},
         title::{Title, TitleKind},
-        cue::{Cue, CueFlags},
         Track,
     },
     util::{Canonical, CanonicalizeInto as _},
@@ -55,7 +53,7 @@ use mp4ameta::{
 };
 use semval::IsValid as _;
 use std::time::Duration;
-use triseratops::tag::{ TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat };
+use triseratops::tag::{TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat};
 
 #[derive(Debug)]
 pub struct ImportTrack;
@@ -345,38 +343,7 @@ impl import::ImportTrack for ImportTrack {
                 }
             }
 
-            let mut track_cues = vec![];
-
-            for serato_cue in serato_tags.cues() {
-                let cue = Cue {
-                    bank_index: 0,
-                    slot_index: Some(serato_cue.index.into()),
-                    in_position: Some(PositionMs(serato_cue.position_millis.into())),
-                    out_position: None,
-                    out_mode: None,
-                    label: Some(serato_cue.label),
-                    color: None, // TODO
-                    flags: CueFlags::empty(),
-                };
-                track_cues.push(cue);
-            }
-
-            for serato_loop in serato_tags.loops() {
-                let flags = if serato_loop.is_locked { CueFlags::LOCKED } else { CueFlags::empty() };
-                let cue = Cue {
-                    bank_index: 1,
-                    slot_index: Some(serato_loop.index.into()),
-                    in_position: Some(PositionMs(serato_loop.start_position_millis.into())),
-                    out_position: Some(PositionMs(serato_loop.start_position_millis.into())),
-                    out_mode: None,
-                    label: Some(serato_loop.label),
-                    color: None, // TODO
-                    flags,
-                };
-                track_cues.push(cue);
-            }
-
-            let track_cues = track_cues.canonicalize_into();
+            let track_cues = serato::read_cues(&serato_tags)?;
             if !track_cues.is_empty() {
                 track.cues = Canonical::tie(track_cues);
             }
