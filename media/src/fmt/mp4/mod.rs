@@ -304,18 +304,17 @@ impl import::ImportTrack for ImportTrack {
             let mut serato_tags = SeratoTagContainer::new();
 
             if let Some(data) = mp4_tag
-                .data(&FreeformIdent::new(
-                    "com.serato.dj",
-                    "markers",
-                ))
+                .data(&FreeformIdent::new("com.serato.dj", "markers"))
                 .next()
             {
                 match data {
                     Data::Utf8(input) => {
-                        serato_tags.parse_markers(input.as_bytes(), SeratoTagFormat::MP4)
-                        .map_err(|err| {
-                            log::warn!("Failed to parse Serato Markers: {}", err);
-                        }).ok();
+                        serato_tags
+                            .parse_markers(input.as_bytes(), SeratoTagFormat::MP4)
+                            .map_err(|err| {
+                                log::warn!("Failed to parse Serato Markers: {}", err);
+                            })
+                            .ok();
                     }
                     data => {
                         log::warn!("Unexpected data for Serato Markers: {:?}", data);
@@ -324,18 +323,17 @@ impl import::ImportTrack for ImportTrack {
             }
 
             if let Some(data) = mp4_tag
-                .data(&FreeformIdent::new(
-                    "com.serato.dj",
-                    "markers2",
-                ))
+                .data(&FreeformIdent::new("com.serato.dj", "markers2"))
                 .next()
             {
                 match data {
                     Data::Utf8(input) => {
-                        serato_tags.parse_markers2(input.as_bytes(), SeratoTagFormat::MP4)
-                        .map_err(|err| {
-                            log::warn!("Failed to parse Serato Markers2: {}", err);
-                        }).ok();
+                        serato_tags
+                            .parse_markers2(input.as_bytes(), SeratoTagFormat::MP4)
+                            .map_err(|err| {
+                                log::warn!("Failed to parse Serato Markers2: {}", err);
+                            })
+                            .ok();
                     }
                     data => {
                         log::warn!("Unexpected data for Serato Markers2: {:?}", data);
