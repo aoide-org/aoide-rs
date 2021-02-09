@@ -345,7 +345,7 @@ impl import::ImportTrack for ImportTrack {
                 }
             }
 
-            let mut cues = vec![];
+            let mut track_cues = vec![];
 
             for serato_cue in serato_tags.cues() {
                 let cue = Cue {
@@ -358,7 +358,7 @@ impl import::ImportTrack for ImportTrack {
                     color: None, // TODO
                     flags: CueFlags::empty(),
                 };
-                cues.push(cue);
+                track_cues.push(cue);
             }
 
             for serato_loop in serato_tags.loops() {
@@ -373,10 +373,13 @@ impl import::ImportTrack for ImportTrack {
                     color: None, // TODO
                     flags,
                 };
-                cues.push(cue);
+                track_cues.push(cue);
             }
 
-            track.cues = Canonical::tie(cues);
+            let track_cues = track_cues.canonicalize_into();
+            if !track_cues.is_empty() {
+                track.cues = Canonical::tie(track_cues);
+            }
         }
 
         // Mixxx CustomTags
