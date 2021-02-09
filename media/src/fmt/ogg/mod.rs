@@ -17,7 +17,9 @@
 
 use crate::{
     io::import::{self, *},
-    util::{digest::MediaDigest, parse_artwork_from_embedded_image, push_next_actor_role_name},
+    util::{
+        digest::MediaDigest, parse_artwork_from_embedded_image, push_next_actor_role_name, serato,
+    },
     Result,
 };
 
@@ -40,6 +42,11 @@ use aoide_core::{
 use lewton::inside_ogg::OggStreamReader;
 use metaflac::block::PictureType;
 use semval::IsValid as _;
+
+use triseratops::tag::{
+    format::ogg::OggTag, Markers2 as SeratoMarkers2, TagContainer as SeratoTagContainer,
+    TagFormat as SeratoTagFormat,
+};
 
 use super::vorbis;
 
@@ -316,6 +323,27 @@ impl import::ImportTrack for ImportTrack {
                 .next()
             {
                 track.media_source.artwork = artwork;
+            }
+        }
+
+        // Serato Tags
+        if options.contains(ImportTrackOptions::SERATO_TAGS) {
+            let mut serato_tags = SeratoTagContainer::new();
+
+            if let Some(markers2) =
+                filter_vorbis_comment_values(vorbis_comments, SeratoMarkers2::OGG_COMMENT).next()
+            {
+                serato_tags
+                    .parse_markers2(&markers2.as_bytes(), SeratoTagFormat::Ogg)
+                    .map_err(|err| {
+                        log::warn!("Failed to parse Serato Markers2: {}", err);
+                    })
+                    .ok();
+            }
+
+            let track_cues = serato::read_cues(&serato_tags)?;
+            if !track_cues.is_empty() {
+                track.cues = Canonical::tie(track_cues);
             }
         }
 
