@@ -53,7 +53,10 @@ use mp4ameta::{
 };
 use semval::IsValid as _;
 use std::time::Duration;
-use triseratops::tag::{TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat};
+use triseratops::tag::{
+    format::mp4::MP4Tag, Markers as SeratoMarkers, Markers2 as SeratoMarkers2,
+    TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat,
+};
 
 #[derive(Debug)]
 pub struct ImportTrack;
@@ -304,7 +307,10 @@ impl import::ImportTrack for ImportTrack {
             let mut serato_tags = SeratoTagContainer::new();
 
             if let Some(data) = mp4_tag
-                .data(&FreeformIdent::new("com.serato.dj", "markers"))
+                .data(&FreeformIdent::new(
+                    SeratoMarkers::MP4_ATOM_FREEFORM_MEAN,
+                    SeratoMarkers::MP4_ATOM_FREEFORM_NAME,
+                ))
                 .next()
             {
                 match data {
@@ -323,7 +329,10 @@ impl import::ImportTrack for ImportTrack {
             }
 
             if let Some(data) = mp4_tag
-                .data(&FreeformIdent::new("com.serato.dj", "markers2"))
+                .data(&FreeformIdent::new(
+                    SeratoMarkers2::MP4_ATOM_FREEFORM_MEAN,
+                    SeratoMarkers2::MP4_ATOM_FREEFORM_NAME,
+                ))
                 .next()
             {
                 match data {
