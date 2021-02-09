@@ -18,7 +18,10 @@ use crate::Result;
 use aoide_core::{
     audio::PositionMs,
     track::cue::{Cue, CueFlags},
-    util::CanonicalizeInto as _,
+    util::{
+        color::{Color, RgbColor},
+        CanonicalizeInto as _,
+    },
 };
 use triseratops::tag::TagContainer;
 
@@ -27,6 +30,10 @@ pub fn read_cues(serato_tags: &TagContainer) -> Result<Vec<Cue>> {
     let mut track_cues = vec![];
 
     for serato_cue in serato_tags.cues() {
+        let color_code = (serato_cue.color.red as u32) << 16
+            | (serato_cue.color.green as u32) << 8
+            | serato_cue.color.blue as u32;
+
         let cue = Cue {
             bank_index: 0,
             slot_index: Some(serato_cue.index.into()),
@@ -34,7 +41,7 @@ pub fn read_cues(serato_tags: &TagContainer) -> Result<Vec<Cue>> {
             out_position: None,
             out_mode: None,
             label: Some(serato_cue.label),
-            color: None, // TODO
+            color: Some(Color::Rgb(RgbColor(color_code))),
             flags: CueFlags::empty(),
         };
         track_cues.push(cue);
@@ -53,7 +60,7 @@ pub fn read_cues(serato_tags: &TagContainer) -> Result<Vec<Cue>> {
             out_position: Some(PositionMs(serato_loop.start_position_millis.into())),
             out_mode: None,
             label: Some(serato_loop.label),
-            color: None, // TODO
+            color: None,
             flags,
         };
         track_cues.push(cue);
