@@ -121,11 +121,9 @@ impl CanonicalOrd for Cue {
             slot_index: rhs_slot_index,
             ..
         } = other;
-        let bank_ord = lhs_bank_index.cmp(rhs_bank_index);
-        if bank_ord != Ordering::Equal {
-            return bank_ord;
-        }
-        lhs_slot_index.cmp(rhs_slot_index)
+        lhs_bank_index
+            .cmp(rhs_bank_index)
+            .then(lhs_slot_index.cmp(rhs_slot_index))
     }
 }
 

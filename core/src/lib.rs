@@ -18,6 +18,8 @@
 #![deny(missing_debug_implementations)]
 #![deny(rust_2018_idioms)]
 
+///////////////////////////////////////////////////////////////////////
+
 pub mod audio;
 pub mod collection;
 pub mod entity;
@@ -43,11 +45,11 @@ mod compat {
 
     // TODO: Remove after https://github.com/rust-lang/rust/issues/53485
     // has been stabilized.
-    pub fn is_slice_sorted_by<T, F>(slice: &[T], mut cmp: F) -> bool
+    pub fn is_iter_sorted_by<'a, T, F>(mut iter: impl Iterator<Item = &'a T>, mut cmp: F) -> bool
     where
-        F: FnMut(&T, &T) -> Ordering,
+        F: FnMut(&'a T, &'a T) -> Ordering,
+        T: 'a,
     {
-        let mut iter = slice.iter();
         if let Some(first) = iter.next() {
             let mut prev = first;
             for next in iter {
@@ -58,5 +60,14 @@ mod compat {
             }
         }
         true
+    }
+
+    // TODO: Remove after https://github.com/rust-lang/rust/issues/53485
+    // has been stabilized.
+    pub fn is_slice_sorted_by<T, F>(slice: &[T], cmp: F) -> bool
+    where
+        F: FnMut(&T, &T) -> Ordering,
+    {
+        is_iter_sorted_by(slice.iter(), cmp)
     }
 }

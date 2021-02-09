@@ -86,7 +86,7 @@ impl From<Metrics> for _core::Metrics {
             key_signature: key_code
                 .map(Into::into)
                 .map(KeySignature::new)
-                .unwrap_or(KeySignature::unknown()),
+                .unwrap_or_else(KeySignature::unknown),
             time_signature: time_signature.map(Into::into),
             flags: MetricsFlags::from_bits_truncate(flags),
         }

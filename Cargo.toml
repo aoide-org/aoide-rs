@@ -24,8 +24,10 @@ aoide-core-serde = { path = "core-serde" }
 aoide-media = { path = "media" }
 aoide-repo = { path = "repo" }
 aoide-repo-sqlite = { path = "repo-sqlite" }
-mp4ameta= { branch = "master", git = "https://github.com/Saecki/rust-mp4ameta.git" }
 triseratops = { rev = "9b71e26f59d15ffe771090c5918cf150ebc7f5c5", git = "https://github.com/Holzhaus/triseratops.git" }
+
+#mp4ameta = { branch = "master", git = "https://github.com/Saecki/rust-mp4ameta.git" }
+#id3 = { branch = "master", git = "https://github.com/polyfloyd/rust-id3.git" }
 
 [dependencies]
 aoide-core = "*"
@@ -44,7 +46,7 @@ anyhow = "*"
 log = "*"
 percent-encoding = "*"
 r2d2 = "*"
-semval = { version = ">= 0.1.7" }
+semval = { version = ">=0.1.7" }
 serde = "*"
 serde_json = "*"
 thiserror = "*"

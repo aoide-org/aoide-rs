@@ -27,7 +27,7 @@ use aoide_core::{
     audio::signal::LoudnessLufs,
     media::{Artwork, ImageDimension, ImageSize},
     music::{
-        key::{KeyCodeValue, KeyMode, KeySignature, LancelotKeySignature, OpenKeySignature},
+        key::{KeyCode, KeySignature},
         time::TempoBpm,
     },
     track::{
@@ -49,7 +49,7 @@ use image::{
 use mime::{Mime, IMAGE_BMP, IMAGE_GIF, IMAGE_JPEG, IMAGE_PNG, IMAGE_STAR};
 use nom::{
     bytes::complete::{tag, tag_no_case},
-    character::complete::{digit1, one_of, space0},
+    character::complete::{digit1, space0},
     number::complete::double,
     sequence::{delimited, pair, preceded, separated_pair, terminated},
     IResult,
@@ -177,73 +177,22 @@ pub fn parse_tempo_bpm(input: &str) -> Option<TempoBpm> {
 }
 
 pub fn parse_key_signature(input: &str) -> Option<KeySignature> {
-    let mut parser = separated_pair(
-        preceded(space0, digit1),
-        space0,
-        terminated(one_of("dmAB"), space0),
-    );
-    let res: IResult<_, (_, _)> = parser(input);
-    if let Ok((remainder, (code_input, mode_input))) = res {
-        if !remainder.is_empty() {
-            log::warn!(
-                "Unexpected remainder '{}' after parsing key signature '{}'",
-                remainder,
-                input
-            );
-        }
-        if let Ok(key_code) = code_input.parse::<KeyCodeValue>() {
-            match mode_input {
-                mode_input @ 'd' | mode_input @ 'm' => {
-                    // Open Key
-                    if key_code >= OpenKeySignature::min_code()
-                        && key_code <= OpenKeySignature::max_code()
-                    {
-                        let key_mode = if mode_input == 'd' {
-                            KeyMode::Major
-                        } else {
-                            KeyMode::Minor
-                        };
-                        let key_signature = OpenKeySignature::new(key_code, key_mode);
-                        log::debug!(
-                            "Parsed key signature from input '{}': {}",
-                            input,
-                            key_signature
-                        );
-                        return Some(key_signature.into());
-                    }
-                }
-                mode_input @ 'A' | mode_input @ 'B' => {
-                    // Lancelot
-                    if key_code >= LancelotKeySignature::min_code()
-                        && key_code <= LancelotKeySignature::max_code()
-                    {
-                        let key_mode = if mode_input == 'A' {
-                            KeyMode::Minor
-                        } else {
-                            KeyMode::Major
-                        };
-                        let key_signature = LancelotKeySignature::new(key_code, key_mode);
-                        log::debug!(
-                            "Parsed key signature from input '{}': {}",
-                            input,
-                            key_signature
-                        );
-                        return Some(key_signature.into());
-                    }
-                }
-                _ => unreachable!(),
-            }
-        }
+    let input = input.trim();
+    let key_code = KeyCode::from_lancelot_str(input);
+    if key_code != KeyCode::Unknown {
+        return Some(key_code.into());
     }
-    if let Ok(key_code) = input.parse::<KeyCodeValue>() {
-        // Fallback: Raw key code
-        let key_signature = KeySignature::new(key_code.into());
-        log::debug!(
-            "Parsed key signature from input '{}': {}",
-            input,
-            key_signature
-        );
-        return Some(key_signature);
+    let key_code = KeyCode::from_openkey_str(input);
+    if key_code != KeyCode::Unknown {
+        return Some(key_code.into());
+    }
+    let key_code = KeyCode::from_beatport_str(input);
+    if key_code != KeyCode::Unknown {
+        return Some(key_code.into());
+    }
+    let key_code = KeyCode::from_traditional_str(input);
+    if key_code != KeyCode::Unknown {
+        return Some(key_code.into());
     }
     log::warn!("Failed to parse key signature from input '{}'", input);
     None

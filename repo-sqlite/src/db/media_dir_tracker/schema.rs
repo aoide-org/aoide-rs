@@ -16,7 +16,7 @@
 use crate::db::collection::schema::*;
 
 table! {
-    media_dir_cache (row_id) {
+    media_dir_tracker (row_id) {
         row_id -> BigInt,
         row_created_ms -> BigInt,
         row_updated_ms -> BigInt,
@@ -27,4 +27,4 @@ table! {
     }
 }
 
-joinable!(media_dir_cache -> collection (collection_id));
+joinable!(media_dir_tracker -> collection (collection_id));

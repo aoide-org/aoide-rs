@@ -1,7 +1,3 @@
-use std::{borrow::Borrow, cmp::Ordering, ops::Deref};
-
-use crate::compat::is_slice_sorted_by;
-
 // aoide.org - Copyright (C) 2018-2021 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -16,6 +12,8 @@ use crate::compat::is_slice_sorted_by;
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+use std::{borrow::Borrow, cmp::Ordering, ops::Deref};
 
 pub mod clock;
 pub mod color;
@@ -65,8 +63,55 @@ where
     }
 }
 
+/// Check if a slice is sorted and does not contain duplicates
+pub fn is_iter_sorted_strictly_by<'a, T, F>(
+    mut iter: impl Iterator<Item = &'a T>,
+    mut cmp: F,
+) -> bool
+where
+    F: FnMut(&'a T, &'a T) -> Ordering,
+    T: 'a,
+{
+    if let Some(first) = iter.next() {
+        let mut prev = first;
+        for next in iter {
+            if cmp(prev, next) != Ordering::Less {
+                return false;
+            }
+            prev = next;
+        }
+    }
+    true
+}
+
+/// Check if a slice is sorted and does not contain duplicates
+pub fn is_slice_sorted_strictly_by<T, F>(slice: &[T], cmp: F) -> bool
+where
+    F: FnMut(&T, &T) -> Ordering,
+{
+    is_iter_sorted_strictly_by(slice.iter(), cmp)
+}
+
 pub trait CanonicalOrd {
     fn canonical_cmp(&self, other: &Self) -> Ordering;
+}
+
+impl<T> CanonicalOrd for [T]
+where
+    T: CanonicalOrd,
+{
+    fn canonical_cmp(&self, other: &Self) -> Ordering {
+        if self.len() != other.len() {
+            return self.len().cmp(&other.len());
+        }
+        for (lhs, rhs) in self.iter().zip(other.iter()) {
+            let ord = lhs.canonical_cmp(rhs);
+            if ord != Ordering::Equal {
+                return ord;
+            }
+        }
+        Ordering::Equal
+    }
 }
 
 pub trait IsCanonical {
@@ -88,7 +133,7 @@ where
 {
     fn is_canonical(&self) -> bool {
         self.iter().all(T::is_canonical)
-            && is_slice_sorted_by(self, |lhs, rhs| lhs.canonical_cmp(rhs))
+            && is_slice_sorted_strictly_by(self, |lhs, rhs| lhs.canonical_cmp(rhs))
     }
 }
 
@@ -149,7 +194,7 @@ where
     }
 }
 
-impl<T> Canonicalize for &mut [T]
+impl<T> Canonicalize for Vec<T>
 where
     T: Canonicalize + CanonicalOrd,
 {
@@ -158,16 +203,7 @@ where
             elem.canonicalize();
         }
         self.sort_unstable_by(|lhs, rhs| lhs.canonical_cmp(rhs));
-        debug_assert!(self.is_canonical());
-    }
-}
-
-impl<T> Canonicalize for Vec<T>
-where
-    T: Canonicalize + CanonicalOrd,
-{
-    fn canonicalize(&mut self) {
-        self.as_mut_slice().canonicalize();
+        self.dedup_by(|lhs, rhs| lhs.canonical_cmp(rhs) == Ordering::Equal);
         debug_assert!(self.is_canonical());
     }
 }
@@ -234,4 +270,5 @@ impl<T> Borrow<T> for Canonical<T> {
 // Tests
 ///////////////////////////////////////////////////////////////////////
 
-// TODO
+#[cfg(test)]
+mod tests;

@@ -13,7 +13,7 @@
 -- You should have received a copy of the GNU Affero General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-CREATE TABLE IF NOT EXISTS media_dir_cache (
+CREATE TABLE IF NOT EXISTS media_dir_tracker (
     -- row header (immutable)
     row_id                 INTEGER PRIMARY KEY,
     row_created_ms         INTEGER NOT NULL,

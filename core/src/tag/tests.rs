@@ -104,12 +104,12 @@ fn default_plain_tag_is_valid() {
 }
 
 #[test]
-fn duplicate_labels() {
+fn canonical_unique_labels_and_score() {
     let tags = Tags {
         plain: vec![
             PlainTag {
                 label: Some(Label::new("label1".into())),
-                ..Default::default()
+                score: 0.5.into(),
             },
             PlainTag {
                 label: Some(Label::new("label2".into())),
@@ -118,13 +118,17 @@ fn duplicate_labels() {
         ],
         ..Default::default()
     };
+    assert!(tags.is_canonical());
     assert!(tags.validate().is_ok());
+}
 
-    let mut tags = Tags {
+#[test]
+fn duplicate_labels_same_score() {
+    let tags = Tags {
         plain: vec![
             PlainTag {
                 label: Some(Label::new("label1".into())),
-                ..Default::default()
+                score: 0.5.into(),
             },
             PlainTag {
                 label: Some(Label::new("label2".into())),
@@ -132,14 +136,48 @@ fn duplicate_labels() {
             },
             PlainTag {
                 label: Some(Label::new("label1".into())),
-                ..Default::default()
+                score: 0.5.into(),
             },
         ],
         ..Default::default()
     };
-    tags.canonicalize();
-    assert_eq!(1, tags.validate().err().unwrap().into_iter().count());
+    assert!(!tags.is_canonical());
+    assert!(tags.canonicalize_into().validate().is_ok());
+}
 
+#[test]
+fn duplicate_labels_differing_score() {
+    let tags = Tags {
+        plain: vec![
+            PlainTag {
+                label: Some(Label::new("label1".into())),
+                score: 0.7.into(),
+            },
+            PlainTag {
+                label: Some(Label::new("label2".into())),
+                ..Default::default()
+            },
+            PlainTag {
+                label: Some(Label::new("label1".into())),
+                score: 0.5.into(),
+            },
+        ],
+        ..Default::default()
+    };
+    assert!(!tags.is_canonical());
+    assert_eq!(
+        1,
+        tags.canonicalize_into()
+            .validate()
+            .err()
+            .unwrap()
+            .into_iter()
+            .count()
+    );
+}
+
+#[test]
+fn canonical_faceted_tags() {
     let tags = Tags {
         plain: vec![
             PlainTag {
@@ -162,14 +200,18 @@ fn duplicate_labels() {
             FacetedTags {
                 facet: Facet::new("facet2".into()).into(),
                 tags: vec![PlainTag {
-                    label: Some(Label::new("label2".into())),
+                    label: Some(Label::new("label1".into())),
                     ..Default::default()
                 }],
             },
         ],
     };
+    assert!(tags.is_canonical());
     assert!(tags.validate().is_ok());
+}
 
+#[test]
+fn duplicate_facets() {
     let mut tags = Tags {
         plain: vec![
             PlainTag {
@@ -196,6 +238,13 @@ fn duplicate_labels() {
             FacetedTags {
                 facet: Facet::new("facet2".into()).into(),
                 tags: vec![PlainTag {
+                    label: Some(Label::new("label1".into())),
+                    ..Default::default()
+                }],
+            },
+            FacetedTags {
+                facet: Facet::new("facet1".into()).into(),
+                tags: vec![PlainTag {
                     label: Some(Label::new("label2".into())),
                     ..Default::default()
                 }],
@@ -204,8 +253,12 @@ fn duplicate_labels() {
     };
     tags.canonicalize();
     assert_eq!(1, tags.validate().err().unwrap().into_iter().count());
+    assert_eq!(5, tags.total_count());
+}
 
-    let tags = Tags {
+#[test]
+fn duplicate_facets_and_labels() {
+    let mut tags = Tags {
         plain: vec![
             PlainTag {
                 label: Some(Label::new("label1".into())),
@@ -229,17 +282,19 @@ fn duplicate_labels() {
                 tags: vec![
                     PlainTag {
                         label: Some(Label::new("label2".into())),
-                        ..Default::default()
+                        score: 0.5.into(),
                     },
                     PlainTag {
                         label: Some(Label::new("label2".into())),
-                        ..Default::default()
+                        score: 1.0.into(),
                     },
                 ],
             },
         ],
     };
+    tags.canonicalize();
     assert_eq!(1, tags.validate().err().unwrap().into_iter().count());
+    assert_eq!(5, tags.total_count());
 
     let mut tags = Tags {
         plain: vec![
@@ -290,7 +345,8 @@ fn duplicate_labels() {
         ],
     };
     tags.canonicalize();
-    assert_eq!(2, tags.validate().err().unwrap().into_iter().count());
+    assert!(tags.validate().is_ok());
+    assert_eq!(5, tags.total_count());
 }
 
 #[test]
@@ -328,6 +384,23 @@ fn canonicalize_should_remove_facets_without_tags() {
         FacetedTags {
             facet: Facet::new("facet2".into()).into(),
             tags: vec![],
+        },
+    );
+    actual_tags.facets.insert(
+        2,
+        FacetedTags {
+            facet: Facet::new("facet3".into()).into(),
+            tags: vec![],
+        },
+    );
+    actual_tags.facets.insert(
+        3,
+        FacetedTags {
+            facet: Facet::new("facet3".into()).into(),
+            tags: vec![PlainTag {
+                label: Some(Label::new("label1".into())),
+                ..Default::default()
+            }],
         },
     );
     assert!(!actual_tags.is_canonical());

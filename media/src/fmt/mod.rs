@@ -27,5 +27,5 @@ pub mod mp4;
 #[cfg(feature = "fmt-ogg")]
 pub mod ogg;
 
-#[cfg(feature = "fmt-wav")]
-pub mod wav;
+#[cfg(any(feature = "fmt-flag", feature = "fmt-ogg"))]
+pub mod vorbis;

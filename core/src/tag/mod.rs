@@ -506,17 +506,16 @@ impl CanonicalOrd for PlainTag {
             label: rhs_label,
             score: rhs_score,
         } = other;
-        let label_ord = match (lhs_label, rhs_label) {
+        match (lhs_label, rhs_label) {
             (Some(lhs_label), Some(rhs_label)) => lhs_label.cmp(rhs_label),
             (None, Some(_)) => Ordering::Less,
             (Some(_), None) => Ordering::Greater,
             (None, None) => Ordering::Equal,
-        };
-        if label_ord != Ordering::Equal {
-            return label_ord;
         }
-        debug_assert!(lhs_score.partial_cmp(rhs_score).is_some());
-        lhs_score.partial_cmp(rhs_score).unwrap_or(Ordering::Equal)
+        .then_with(|| {
+            debug_assert!(lhs_score.partial_cmp(rhs_score).is_some());
+            lhs_score.partial_cmp(rhs_score).unwrap_or(Ordering::Equal)
+        })
     }
 }
 
@@ -591,13 +590,15 @@ impl CanonicalOrd for FacetedTags {
     fn canonical_cmp(&self, other: &Self) -> Ordering {
         let Self {
             facet: lhs_facet,
-            tags: _,
+            tags: lhs_tags,
         } = self;
         let Self {
             facet: rhs_facet,
-            tags: _,
+            tags: rhs_tags,
         } = other;
-        lhs_facet.cmp(rhs_facet)
+        lhs_facet
+            .cmp(rhs_facet)
+            .then_with(|| lhs_tags.canonical_cmp(rhs_tags))
     }
 }
 
@@ -633,13 +634,13 @@ impl Faceted for FacetedTags {
 
 impl IsCanonical for FacetedTags {
     fn is_canonical(&self) -> bool {
-        !self.tags.is_empty()
+        !self.tags.is_empty() && self.tags.is_canonical()
     }
 }
 
 impl Canonicalize for FacetedTags {
     fn canonicalize(&mut self) {
-        debug_assert!(self.is_canonical());
+        self.tags.canonicalize();
     }
 }
 
@@ -685,6 +686,9 @@ impl Canonicalize for Tags {
         plain_tags.canonicalize();
         facets.retain(|f| !f.tags.is_empty());
         facets.canonicalize();
+        debug_assert!(is_slice_sorted_by(&facets, |lhs, rhs| {
+            lhs.facet.cmp(&rhs.facet)
+        }));
     }
 }
 
@@ -744,6 +748,7 @@ impl Validate for Tags {
     type Invalidity = TagsInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        // Validation only works on canonicalized data
         debug_assert!(self.is_canonical());
         let Self {
             plain: plain_tags,

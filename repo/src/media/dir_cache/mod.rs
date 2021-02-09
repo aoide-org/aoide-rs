@@ -80,7 +80,7 @@ pub struct AggregateStatus {
 }
 
 pub trait Repo {
-    fn media_dir_cache_update_entries_status(
+    fn media_dir_tracker_update_entries_status(
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
@@ -89,7 +89,7 @@ pub trait Repo {
         new_status: EntryStatus,
     ) -> RepoResult<usize>;
 
-    fn media_dir_cache_update_entry_digest(
+    fn media_dir_tracker_update_entry_digest(
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
@@ -97,7 +97,7 @@ pub trait Repo {
         digest: &EntryDigest,
     ) -> RepoResult<UpdateOutcome>;
 
-    fn media_dir_cache_delete_entries(
+    fn media_dir_tracker_delete_entries(
         &self,
         collection_id: CollectionId,
         uri_prefix: &str,
@@ -106,13 +106,13 @@ pub trait Repo {
 
     /// Mark all current entries as outdated before starting
     /// a directory traversal with calculating new digests.
-    fn media_dir_cache_mark_entries_outdated(
+    fn media_dir_tracker_mark_entries_outdated(
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
         uri_prefix: &str,
     ) -> RepoResult<usize> {
-        self.media_dir_cache_update_entries_status(
+        self.media_dir_tracker_update_entries_status(
             updated_at,
             collection_id,
             uri_prefix,
@@ -123,13 +123,13 @@ pub trait Repo {
 
     /// Mark all outdated entries that have not been visited
     /// as orphaned.
-    fn media_dir_cache_mark_entries_orphaned(
+    fn media_dir_tracker_mark_entries_orphaned(
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
         uri_prefix: &str,
     ) -> RepoResult<usize> {
-        self.media_dir_cache_update_entries_status(
+        self.media_dir_tracker_update_entries_status(
             updated_at,
             collection_id,
             uri_prefix,
@@ -138,7 +138,7 @@ pub trait Repo {
         )
     }
 
-    fn media_dir_cache_reset_entry_status_to_current(
+    fn media_dir_tracker_reset_entry_status_to_current(
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
@@ -146,13 +146,13 @@ pub trait Repo {
         digest: &EntryDigest,
     ) -> RepoResult<bool>;
 
-    fn media_dir_cache_load_entry_status_by_uri(
+    fn media_dir_tracker_load_entry_status_by_uri(
         &self,
         collection_id: CollectionId,
         uri: &str,
     ) -> RepoResult<EntryStatus>;
 
-    fn media_dir_cache_update_load_entries_aggregate_status(
+    fn media_dir_tracker_update_load_entries_aggregate_status(
         &self,
         collection_id: CollectionId,
         uri_prefix: &str,

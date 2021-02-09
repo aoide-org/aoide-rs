@@ -42,6 +42,8 @@ use aoide_repo::{
     track::*,
 };
 
+// TODO: Define a dedicated return type
+#[allow(clippy::type_complexity)]
 fn load_track_and_album_titles(
     db: &crate::Connection<'_>,
     id: RecordId,
@@ -130,6 +132,8 @@ fn update_track_and_album_titles(
     Ok(())
 }
 
+// TODO: Define a dedicated return type
+#[allow(clippy::type_complexity)]
 fn load_track_and_album_actors(
     db: &crate::Connection<'_>,
     id: RecordId,

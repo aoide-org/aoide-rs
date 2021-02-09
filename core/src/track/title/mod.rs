@@ -59,11 +59,7 @@ impl CanonicalOrd for Title {
             kind: rhs_kind,
             name: rhs_name,
         } = other;
-        let kind_ord = lhs_kind.cmp(rhs_kind);
-        if kind_ord != Ordering::Equal {
-            return kind_ord;
-        }
-        lhs_name.cmp(rhs_name)
+        lhs_kind.cmp(rhs_kind).then(lhs_name.cmp(rhs_name))
     }
 }
 

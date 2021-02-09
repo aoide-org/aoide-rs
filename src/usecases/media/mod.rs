@@ -20,7 +20,7 @@ use super::*;
 use aoide_core::{entity::EntityUid, track::Track, util::clock::DateTime};
 
 use aoide_media::{
-    fmt::{flac, mp3, mp4},
+    fmt::{flac, mp3, mp4, ogg},
     fs::{dir_digest, open_local_file_url_for_reading},
     io::import::*,
     util::guess_mime_from_url,
@@ -94,7 +94,7 @@ pub fn digest_directories_recursively(
     }
     Ok(db.transaction::<_, DieselRepoError, _>(|| {
         let collection_id = db.resolve_collection_id(collection_uid)?;
-        let outdated_count = db.media_dir_cache_mark_entries_outdated(
+        let outdated_count = db.media_dir_tracker_mark_entries_outdated(
             DateTime::now_utc(),
             collection_id,
             root_dir_url.as_str(),
@@ -116,7 +116,7 @@ pub fn digest_directories_recursively(
                 let url = Url::from_directory_path(&full_path).expect("URL");
                 debug_assert!(url.as_str().starts_with(root_dir_url.as_str()));
                 match db
-                    .media_dir_cache_update_entry_digest(
+                    .media_dir_tracker_update_entry_digest(
                         DateTime::now_utc(),
                         collection_id,
                         url.as_str(),
@@ -157,7 +157,7 @@ pub fn digest_directories_recursively(
                 dir_digest::FinalStatus::Finished => {
                     // Mark all remaining entries that are unreachable and
                     // have not been visited as orphaned.
-                    summary.orphaned = db.media_dir_cache_mark_entries_orphaned(
+                    summary.orphaned = db.media_dir_tracker_mark_entries_orphaned(
                         DateTime::now_utc(),
                         collection_id,
                         root_dir_url.as_str(),
@@ -183,7 +183,7 @@ pub fn digest_directories_aggregate_status(
     let db = RepoConnection::new(connection);
     Ok(db.transaction::<_, DieselRepoError, _>(|| {
         let collection_id = db.resolve_collection_id(collection_uid)?;
-        Ok(db.media_dir_cache_update_load_entries_aggregate_status(
+        Ok(db.media_dir_tracker_update_load_entries_aggregate_status(
             collection_id,
             root_dir_url.as_str(),
         )?)
@@ -218,6 +218,7 @@ pub fn import_track_from_url(
         "audio/m4a" | "audio/mp4" => {
             Ok(mp4::ImportTrack.import_track(config, options, track, &mut reader)?)
         }
+        "audio/ogg" => Ok(ogg::ImportTrack.import_track(config, options, track, &mut reader)?),
         _ => Err(Error::Media(MediaError::UnsupportedContentType(mime))),
     }
 }
