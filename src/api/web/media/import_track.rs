@@ -21,7 +21,7 @@ mod uc {
 
 use aoide_core::track::tag::{FACET_GENRE, FACET_MOOD};
 use aoide_media::{
-    io::import::{ImportTrackConfig, ImportTrackOptions},
+    io::import::{ImportTrackConfig, ImportTrackFlags},
     util::tag::{FacetedTagMappingConfigInner, TagMappingConfig},
 };
 
@@ -60,6 +60,6 @@ pub fn handle_request(query_params: QueryParams) -> Result<ResponseBody> {
     let config = ImportTrackConfig {
         faceted_tag_mapping: faceted_tag_mapping_config.into(),
     };
-    let track = uc::import_track_from_url(&url, &config, ImportTrackOptions::all())?;
+    let track = uc::import_track_from_url(&url, &config, ImportTrackFlags::all())?;
     Ok(track.into())
 }

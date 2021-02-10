@@ -193,7 +193,7 @@ pub fn digest_directories_aggregate_status(
 pub fn import_track_from_url(
     url: &Url,
     config: &ImportTrackConfig,
-    options: ImportTrackOptions,
+    flags: ImportTrackFlags,
 ) -> Result<Track> {
     let file = open_local_file_url_for_reading(url)?;
     let file_metadata = file.metadata().map_err(MediaError::from)?;
@@ -213,12 +213,12 @@ pub fn import_track_from_url(
     let mut reader: Box<dyn Reader> = Box::new(BufReader::new(file));
     let track = input.try_from_url_into_new_track(url, &mime)?;
     match mime.as_ref() {
-        "audio/flac" => Ok(flac::ImportTrack.import_track(config, options, track, &mut reader)?),
-        "audio/mpeg" => Ok(mp3::ImportTrack.import_track(config, options, track, &mut reader)?),
+        "audio/flac" => Ok(flac::ImportTrack.import_track(config, flags, track, &mut reader)?),
+        "audio/mpeg" => Ok(mp3::ImportTrack.import_track(config, flags, track, &mut reader)?),
         "audio/m4a" | "audio/mp4" => {
-            Ok(mp4::ImportTrack.import_track(config, options, track, &mut reader)?)
+            Ok(mp4::ImportTrack.import_track(config, flags, track, &mut reader)?)
         }
-        "audio/ogg" => Ok(ogg::ImportTrack.import_track(config, options, track, &mut reader)?),
+        "audio/ogg" => Ok(ogg::ImportTrack.import_track(config, flags, track, &mut reader)?),
         _ => Err(Error::Media(MediaError::UnsupportedContentType(mime))),
     }
 }

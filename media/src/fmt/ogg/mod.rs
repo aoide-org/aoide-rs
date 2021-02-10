@@ -79,7 +79,7 @@ impl import::ImportTrack for ImportTrack {
     fn import_track(
         &self,
         config: &ImportTrackConfig,
-        options: ImportTrackOptions,
+        flags: ImportTrackFlags,
         mut track: Track,
         reader: &mut Box<dyn Reader>,
     ) -> Result<Track> {
@@ -212,7 +212,7 @@ impl import::ImportTrack for ImportTrack {
         }
 
         let mut tags_map = TagsMap::default();
-        if options.contains(ImportTrackOptions::MIXXX_CUSTOM_TAGS) {
+        if flags.contains(ImportTrackFlags::MIXXX_CUSTOM_TAGS) {
             if let Some(custom_tags) = vorbis::import_mixxx_custom_tags(vorbis_comments) {
                 // Initialize map with all existing custom tags as starting point
                 debug_assert_eq!(0, tags_map.total_count());
@@ -270,9 +270,9 @@ impl import::ImportTrack for ImportTrack {
             track.indexes.movement = index;
         }
 
-        if options.contains(ImportTrackOptions::ARTWORK) {
-            let mut image_digest = if options.contains(ImportTrackOptions::ARTWORK_DIGEST) {
-                if options.contains(ImportTrackOptions::ARTWORK_DIGEST_SHA256) {
+        if flags.contains(ImportTrackFlags::ARTWORK) {
+            let mut image_digest = if flags.contains(ImportTrackFlags::ARTWORK_DIGEST) {
+                if flags.contains(ImportTrackFlags::ARTWORK_DIGEST_SHA256) {
                     // Compatibility
                     MediaDigest::sha256()
                 } else {
@@ -324,7 +324,7 @@ impl import::ImportTrack for ImportTrack {
         }
 
         // Serato Tags
-        if options.contains(ImportTrackOptions::SERATO_TAGS) {
+        if flags.contains(ImportTrackFlags::SERATO_TAGS) {
             let mut serato_tags = SeratoTagContainer::new();
             vorbis::import_serato_markers2(vorbis_comments, &mut serato_tags, SeratoTagFormat::Ogg);
 

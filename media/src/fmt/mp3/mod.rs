@@ -152,7 +152,7 @@ impl import::ImportTrack for ImportTrack {
     fn import_track(
         &self,
         config: &ImportTrackConfig,
-        options: ImportTrackOptions,
+        flags: ImportTrackFlags,
         mut track: Track,
         reader: &mut Box<dyn Reader>,
     ) -> Result<Track> {
@@ -276,7 +276,7 @@ impl import::ImportTrack for ImportTrack {
             };
             track_titles.push(title);
         }
-        if options.contains(ImportTrackOptions::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK) {
+        if flags.contains(ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK) {
             // Starting with iTunes 12.5.4 the "TIT1" text frame is used
             // for storing the work instead of the grouping.
             if let Some(name) = id3_first_text_frame(&id3_tag, "TIT1") {
@@ -369,8 +369,7 @@ impl import::ImportTrack for ImportTrack {
         }
 
         let mut tags_map = TagsMap::default();
-
-        if options.contains(ImportTrackOptions::MIXXX_CUSTOM_TAGS) {
+        if flags.contains(ImportTrackFlags::MIXXX_CUSTOM_TAGS) {
             for geob in id3_tag
                 .encapsulated_objects()
                 .filter(|geob| geob.description == "Mixxx CustomTags")
@@ -446,7 +445,7 @@ impl import::ImportTrack for ImportTrack {
         // frames.
         // https://discussions.apple.com/thread/7900430
         // http://blog.jthink.net/2016/11/the-reason-why-is-grouping-field-no.html
-        if options.contains(ImportTrackOptions::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK) {
+        if flags.contains(ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK) {
             import_faceted_text_tags(
                 &mut tags_map,
                 &config.faceted_tag_mapping,
@@ -482,9 +481,9 @@ impl import::ImportTrack for ImportTrack {
         }
 
         // Artwork
-        if options.contains(ImportTrackOptions::ARTWORK) {
-            let mut image_digest = if options.contains(ImportTrackOptions::ARTWORK_DIGEST) {
-                if options.contains(ImportTrackOptions::ARTWORK_DIGEST_SHA256) {
+        if flags.contains(ImportTrackFlags::ARTWORK) {
+            let mut image_digest = if flags.contains(ImportTrackFlags::ARTWORK_DIGEST) {
+                if flags.contains(ImportTrackFlags::ARTWORK_DIGEST_SHA256) {
                     // Compatibility
                     MediaDigest::sha256()
                 } else {
@@ -522,7 +521,7 @@ impl import::ImportTrack for ImportTrack {
         }
 
         // Serato Tags
-        if options.contains(ImportTrackOptions::SERATO_TAGS) {
+        if flags.contains(ImportTrackFlags::SERATO_TAGS) {
             let mut serato_tags = SeratoTagContainer::new();
 
             for geob in id3_tag.encapsulated_objects() {

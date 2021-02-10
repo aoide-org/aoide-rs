@@ -90,7 +90,7 @@ impl import::ImportTrack for ImportTrack {
     fn import_track(
         &self,
         config: &ImportTrackConfig,
-        options: ImportTrackOptions,
+        flags: ImportTrackFlags,
         mut track: Track,
         reader: &mut Box<dyn Reader>,
     ) -> Result<Track> {
@@ -276,7 +276,7 @@ impl import::ImportTrack for ImportTrack {
         let mut tags_map = TagsMap::default();
 
         // Mixxx CustomTags
-        if options.contains(ImportTrackOptions::MIXXX_CUSTOM_TAGS) {
+        if flags.contains(ImportTrackFlags::MIXXX_CUSTOM_TAGS) {
             if let Some(data) = mp4_tag
                 .data(&FreeformIdent::new(
                     ORG_MIXXX_DJ_FREEFORM_MEAN,
@@ -405,9 +405,9 @@ impl import::ImportTrack for ImportTrack {
         }
 
         // Artwork
-        if options.contains(ImportTrackOptions::ARTWORK) {
-            let mut image_digest = if options.contains(ImportTrackOptions::ARTWORK_DIGEST) {
-                if options.contains(ImportTrackOptions::ARTWORK_DIGEST_SHA256) {
+        if flags.contains(ImportTrackFlags::ARTWORK) {
+            let mut image_digest = if flags.contains(ImportTrackFlags::ARTWORK_DIGEST) {
+                if flags.contains(ImportTrackFlags::ARTWORK_DIGEST_SHA256) {
                     // Compatibility
                     MediaDigest::sha256()
                 } else {
@@ -437,7 +437,7 @@ impl import::ImportTrack for ImportTrack {
         }
 
         // Serato Tags
-        if options.contains(ImportTrackOptions::SERATO_TAGS) {
+        if flags.contains(ImportTrackFlags::SERATO_TAGS) {
             let mut serato_tags = SeratoTagContainer::new();
 
             if let Some(data) = mp4_tag
