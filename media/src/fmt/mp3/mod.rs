@@ -370,38 +370,6 @@ impl import::ImportTrack for ImportTrack {
 
         let mut tags_map = TagsMap::default();
 
-        // Serato Tags
-        if options.contains(ImportTrackOptions::SERATO_TAGS) {
-            let mut serato_tags = SeratoTagContainer::new();
-
-            for geob in id3_tag.encapsulated_objects() {
-                match geob.description.as_str() {
-                    SeratoMarkers::ID3_TAG => {
-                        serato_tags
-                            .parse_markers(&geob.data, SeratoTagFormat::ID3)
-                            .map_err(|err| {
-                                log::warn!("Failed to parse Serato Markers: {}", err);
-                            })
-                            .ok();
-                    }
-                    SeratoMarkers2::ID3_TAG => {
-                        serato_tags
-                            .parse_markers2(&geob.data, SeratoTagFormat::ID3)
-                            .map_err(|err| {
-                                log::warn!("Failed to parse Serato Markers2: {}", err);
-                            })
-                            .ok();
-                    }
-                    _ => (),
-                }
-            }
-
-            let track_cues = serato::read_cues(&serato_tags)?;
-            if !track_cues.is_empty() {
-                track.cues = Canonical::tie(track_cues);
-            }
-        }
-
         if options.contains(ImportTrackOptions::MIXXX_CUSTOM_TAGS) {
             for geob in id3_tag
                 .encapsulated_objects()
@@ -552,6 +520,39 @@ impl import::ImportTrack for ImportTrack {
                 track.media_source.artwork = artwork;
             }
         }
+
+        // Serato Tags
+        if options.contains(ImportTrackOptions::SERATO_TAGS) {
+            let mut serato_tags = SeratoTagContainer::new();
+
+            for geob in id3_tag.encapsulated_objects() {
+                match geob.description.as_str() {
+                    SeratoMarkers::ID3_TAG => {
+                        serato_tags
+                            .parse_markers(&geob.data, SeratoTagFormat::ID3)
+                            .map_err(|err| {
+                                log::warn!("Failed to parse Serato Markers: {}", err);
+                            })
+                            .ok();
+                    }
+                    SeratoMarkers2::ID3_TAG => {
+                        serato_tags
+                            .parse_markers2(&geob.data, SeratoTagFormat::ID3)
+                            .map_err(|err| {
+                                log::warn!("Failed to parse Serato Markers2: {}", err);
+                            })
+                            .ok();
+                    }
+                    _ => (),
+                }
+            }
+
+            let track_cues = serato::read_cues(&serato_tags)?;
+            if !track_cues.is_empty() {
+                track.cues = Canonical::tie(track_cues);
+            }
+        }
+
         Ok(track)
     }
 }

@@ -275,60 +275,6 @@ impl import::ImportTrack for ImportTrack {
 
         let mut tags_map = TagsMap::default();
 
-        // Serato Tags
-        if options.contains(ImportTrackOptions::SERATO_TAGS) {
-            let mut serato_tags = SeratoTagContainer::new();
-
-            if let Some(data) = mp4_tag
-                .data(&FreeformIdent::new(
-                    SeratoMarkers::MP4_ATOM_FREEFORM_MEAN,
-                    SeratoMarkers::MP4_ATOM_FREEFORM_NAME,
-                ))
-                .next()
-            {
-                match data {
-                    Data::Utf8(input) => {
-                        serato_tags
-                            .parse_markers(input.as_bytes(), SeratoTagFormat::MP4)
-                            .map_err(|err| {
-                                log::warn!("Failed to parse Serato Markers: {}", err);
-                            })
-                            .ok();
-                    }
-                    data => {
-                        log::warn!("Unexpected data for Serato Markers: {:?}", data);
-                    }
-                }
-            }
-
-            if let Some(data) = mp4_tag
-                .data(&FreeformIdent::new(
-                    SeratoMarkers2::MP4_ATOM_FREEFORM_MEAN,
-                    SeratoMarkers2::MP4_ATOM_FREEFORM_NAME,
-                ))
-                .next()
-            {
-                match data {
-                    Data::Utf8(input) => {
-                        serato_tags
-                            .parse_markers2(input.as_bytes(), SeratoTagFormat::MP4)
-                            .map_err(|err| {
-                                log::warn!("Failed to parse Serato Markers2: {}", err);
-                            })
-                            .ok();
-                    }
-                    data => {
-                        log::warn!("Unexpected data for Serato Markers2: {:?}", data);
-                    }
-                }
-            }
-
-            let track_cues = serato::read_cues(&serato_tags)?;
-            if !track_cues.is_empty() {
-                track.cues = Canonical::tie(track_cues);
-            }
-        }
-
         // Mixxx CustomTags
         if options.contains(ImportTrackOptions::MIXXX_CUSTOM_TAGS) {
             if let Some(data) = mp4_tag
@@ -489,6 +435,61 @@ impl import::ImportTrack for ImportTrack {
                 }
             }
         }
+
+        // Serato Tags
+        if options.contains(ImportTrackOptions::SERATO_TAGS) {
+            let mut serato_tags = SeratoTagContainer::new();
+
+            if let Some(data) = mp4_tag
+                .data(&FreeformIdent::new(
+                    SeratoMarkers::MP4_ATOM_FREEFORM_MEAN,
+                    SeratoMarkers::MP4_ATOM_FREEFORM_NAME,
+                ))
+                .next()
+            {
+                match data {
+                    Data::Utf8(input) => {
+                        serato_tags
+                            .parse_markers(input.as_bytes(), SeratoTagFormat::MP4)
+                            .map_err(|err| {
+                                log::warn!("Failed to parse Serato Markers: {}", err);
+                            })
+                            .ok();
+                    }
+                    data => {
+                        log::warn!("Unexpected data for Serato Markers: {:?}", data);
+                    }
+                }
+            }
+
+            if let Some(data) = mp4_tag
+                .data(&FreeformIdent::new(
+                    SeratoMarkers2::MP4_ATOM_FREEFORM_MEAN,
+                    SeratoMarkers2::MP4_ATOM_FREEFORM_NAME,
+                ))
+                .next()
+            {
+                match data {
+                    Data::Utf8(input) => {
+                        serato_tags
+                            .parse_markers2(input.as_bytes(), SeratoTagFormat::MP4)
+                            .map_err(|err| {
+                                log::warn!("Failed to parse Serato Markers2: {}", err);
+                            })
+                            .ok();
+                    }
+                    data => {
+                        log::warn!("Unexpected data for Serato Markers2: {:?}", data);
+                    }
+                }
+            }
+
+            let track_cues = serato::read_cues(&serato_tags)?;
+            if !track_cues.is_empty() {
+                track.cues = Canonical::tie(track_cues);
+            }
+        }
+
 
         Ok(track)
     }
