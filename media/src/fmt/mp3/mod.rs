@@ -52,6 +52,7 @@ use aoide_core_serde::tag::Tags as SerdeTags;
 
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
 use id3::{self, frame::PictureType};
+use mime::Mime;
 use minimp3::Decoder;
 use semval::IsValid as _;
 use std::{borrow::Cow, io::SeekFrom, time::Duration};
@@ -374,7 +375,14 @@ impl import::ImportTrack for ImportTrack {
                 .encapsulated_objects()
                 .filter(|geob| geob.description == "Mixxx CustomTags")
             {
-                if geob.mime_type != "application/json" {
+                if geob
+                    .mime_type
+                    .parse::<Mime>()
+                    .ok()
+                    .as_ref()
+                    .map(Mime::type_)
+                    != Some(mime::APPLICATION_JSON.type_())
+                {
                     log::warn!(
                         "Unexpected MIME type for GEOB '{}': {}",
                         geob.description,
