@@ -490,7 +490,6 @@ impl import::ImportTrack for ImportTrack {
             }
         }
 
-
         Ok(track)
     }
 }

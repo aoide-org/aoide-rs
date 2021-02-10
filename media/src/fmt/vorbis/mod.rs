@@ -38,6 +38,10 @@ use aoide_core_serde::tag::Tags as SerdeTags;
 
 use semval::IsValid as _;
 use std::borrow::Cow;
+use triseratops::tag::{
+    format::flac::FLACTag, format::ogg::OggTag, Markers2 as SeratoMarkers2,
+    TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat,
+};
 
 pub trait CommentReader {
     fn read_first_value(&self, key: &str) -> Option<&str>;
@@ -244,4 +248,22 @@ pub fn import_mixxx_custom_tags(reader: &impl CommentReader) -> Option<Tags> {
                 .ok()
         })
         .map(Into::into)
+}
+
+pub fn import_serato_markers2(
+    reader: &impl CommentReader,
+    serato_tags: &mut SeratoTagContainer,
+    format: SeratoTagFormat,
+) {
+    let vorbis_comment = match format {
+        SeratoTagFormat::FLAC => SeratoMarkers2::FLAC_COMMENT,
+        SeratoTagFormat::Ogg => SeratoMarkers2::OGG_COMMENT,
+        _ => {
+            return;
+        }
+    };
+
+    reader
+        .read_first_value(vorbis_comment)
+        .and_then(|data| serato_tags.parse_markers2(&data.as_bytes(), format).ok());
 }
