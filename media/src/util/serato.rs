@@ -57,7 +57,7 @@ pub fn read_cues(serato_tags: &TagContainer) -> Result<Vec<Cue>> {
             bank_index: 1,
             slot_index: Some(serato_loop.index.into()),
             in_position: Some(PositionMs(serato_loop.start_position_millis.into())),
-            out_position: Some(PositionMs(serato_loop.start_position_millis.into())),
+            out_position: Some(PositionMs(serato_loop.end_position_millis.into())),
             out_mode: None,
             label: Some(serato_loop.label),
             color: None,
