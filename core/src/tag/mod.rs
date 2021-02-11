@@ -50,9 +50,7 @@ impl Score {
     }
 
     pub fn clamp_value(value: impl Into<ScoreValue>) -> ScoreValue {
-        //value.clamp(Self::min(), Self::max())
-        let value = value.into();
-        value.min(Self::max_value()).max(Self::min_value())
+        value.into().clamp(Self::max_value(), Self::min_value())
     }
 
     pub fn clamp_from(value: impl Into<ScoreValue>) -> Score {
