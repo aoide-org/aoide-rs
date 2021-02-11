@@ -70,3 +70,10 @@ pub fn read_cues(serato_tags: &TagContainer) -> Result<Vec<Cue>> {
     let track_cues = track_cues.canonicalize_into();
     Ok(track_cues)
 }
+
+pub fn read_track_color(serato_tags: &TagContainer) -> Option<Color> {
+    match serato_tags.track_color() {
+        Some(color) => Some(color_to_rgb(&color)),
+        None => None,
+    }
+}

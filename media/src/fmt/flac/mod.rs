@@ -302,6 +302,8 @@ impl import::ImportTrack for ImportTrack {
             if !track_cues.is_empty() {
                 track.cues = Canonical::tie(track_cues);
             }
+
+            track.color = serato::read_track_color(&serato_tags);
         }
 
         Ok(track)
