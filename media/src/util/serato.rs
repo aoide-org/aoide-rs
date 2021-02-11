@@ -37,7 +37,9 @@ pub fn read_cues(serato_tags: &TagContainer) -> Result<Vec<Cue>> {
             out_position: None,
             out_mode: None,
             label: Some(serato_cue.label),
-            color: Some(Color::Rgb(RgbColor(serato_cue.color.into()))),
+            color: Some(Color::Rgb(RgbColor(
+                serato_cue.color.into_pro_hotcue_color().into(),
+            ))),
             flags: CueFlags::empty(),
         };
         track_cues.push(cue);
