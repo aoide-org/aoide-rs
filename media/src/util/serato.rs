@@ -69,13 +69,11 @@ pub fn read_cues(serato_tags: &TagContainer) -> Result<Vec<Cue>> {
 }
 
 pub fn read_track_color(serato_tags: &TagContainer) -> Option<Color> {
-    let track_color = match serato_tags.track_color() {
-        Some(color) => color.into_displayed_track_color(),
-        None => None,
-    };
-
-    match track_color {
-        Some(color) => Some(Color::Rgb(RgbColor(color.into()))),
-        None => None,
-    }
+    serato_tags.track_color().and_then(|color| {
+        color
+            .into_displayed_track_color()
+            .map(Into::into)
+            .map(RgbColor)
+            .map(Color::Rgb)
+    })
 }
