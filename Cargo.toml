@@ -24,7 +24,7 @@ aoide-core-serde = { path = "core-serde" }
 aoide-media = { path = "media" }
 aoide-repo = { path = "repo" }
 aoide-repo-sqlite = { path = "repo-sqlite" }
-triseratops = { rev = "9b71e26f59d15ffe771090c5918cf150ebc7f5c5", git = "https://github.com/Holzhaus/triseratops.git" }
+triseratops = { rev = "3744aa23862de19999df2a5098a887315298a760", git = "https://github.com/Holzhaus/triseratops.git" }
 
 #mp4ameta = { branch = "master", git = "https://github.com/Saecki/rust-mp4ameta.git" }
 #id3 = { branch = "master", git = "https://github.com/polyfloyd/rust-id3.git" }
