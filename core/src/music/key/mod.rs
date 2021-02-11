@@ -449,6 +449,68 @@ impl KeyCode {
             _ => Unknown,
         }
     }
+
+    pub fn as_serato_str(self) -> &'static str {
+        use KeyCode::*;
+        match self {
+            Unknown => "",
+            Cmaj => "C",
+            Amin => "Am",
+            Gmaj => "G",
+            Emin => "Em",
+            Dmaj => "D",
+            Bmin => "Bm",
+            Amaj => "A",
+            Gbmin => "F#m",
+            Emaj => "E",
+            Dbmin => "C#m",
+            Bmaj => "B",
+            Abmin => "G#m",
+            Gbmaj => "F#",
+            Ebmin => "Ebm",
+            Dbmaj => "C#",
+            Bbmin => "Bbm",
+            Abmaj => "G#",
+            Fmin => "Fm",
+            Ebmaj => "Eb",
+            Cmin => "Cm",
+            Bbmaj => "Bb",
+            Gmin => "Gm",
+            Fmaj => "F",
+            Dmin => "Dm",
+        }
+    }
+
+    pub fn from_serato_str(s: &str) -> Self {
+        use KeyCode::*;
+        match s {
+            "C" => Cmaj,
+            "Am" => Amin,
+            "G" => Gmaj,
+            "Em" => Emin,
+            "D" => Dmaj,
+            "Bm" => Bmin,
+            "A" => Amaj,
+            "F#m" => Gbmin,
+            "E" => Emaj,
+            "C#m" => Dbmin,
+            "B" => Bmaj,
+            "G#m" => Abmin,
+            "F#" => Gbmaj,
+            "Ebm" => Ebmin,
+            "C#" => Dbmaj,
+            "Bbm" => Bbmin,
+            "G#" => Abmaj,
+            "Fm" => Fmin,
+            "Eb" => Ebmaj,
+            "Cm" => Cmin,
+            "Bb" => Bbmaj,
+            "Gm" => Gmin,
+            "F" => Fmaj,
+            "Dm" => Dmin,
+            _ => Unknown,
+        }
+    }
 }
 
 pub type KeyCodeValue = u8;
