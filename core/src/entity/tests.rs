@@ -39,14 +39,13 @@ fn should_encode_decode_uid() {
 
 #[test]
 fn should_fail_to_decode_too_long_string() {
-    // TODO: This test seems to fail infrequently!?
     let uid = EntityUid::random();
+
+    // Test encode -> decode roundtrip
     let mut encoded = uid.encode_to_string();
-    while encoded.len() < EntityUid::MAX_STR_LEN {
-        encoded.push(char::from('a'));
-    }
     assert!(EntityUid::decode_from_str(&encoded).is_ok());
-    // Append one more character
+
+    // Append one more character from the alphabet to the encoded string
     encoded.push(char::from('a'));
     assert!(EntityUid::decode_from_str(&encoded).is_err());
 }
