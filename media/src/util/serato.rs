@@ -23,7 +23,7 @@ use aoide_core::{
         CanonicalizeInto as _,
     },
 };
-use triseratops::tag::TagContainer;
+use triseratops::tag::{color::Color as SeratoColor, TagContainer};
 
 /// Return a canonical vector of cues found in the tag container.
 pub fn read_cues(serato_tags: &TagContainer) -> Result<Vec<Cue>> {
@@ -69,11 +69,10 @@ pub fn read_cues(serato_tags: &TagContainer) -> Result<Vec<Cue>> {
 }
 
 pub fn read_track_color(serato_tags: &TagContainer) -> Option<Color> {
-    serato_tags.track_color().and_then(|color| {
-        color
-            .into_displayed_track_color()
-            .map(Into::into)
-            .map(RgbColor)
-            .map(Color::Rgb)
-    })
+    serato_tags
+        .track_color()
+        .and_then(SeratoColor::into_displayed_track_color)
+        .map(Into::into)
+        .map(RgbColor)
+        .map(Color::Rgb)
 }
