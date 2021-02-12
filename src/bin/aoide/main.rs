@@ -353,7 +353,7 @@ pub async fn main() -> Result<(), Error> {
                 spawn_blocking_database_read_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
-                        media::digest_directories_aggregate_status::handle_request(
+                        media::dir_tracker::aggregate_status::handle_request(
                             pooled_connection,
                             &uid,
                             request_body,
@@ -378,9 +378,9 @@ pub async fn main() -> Result<(), Error> {
                 spawn_blocking_database_write_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
-                        // Reset abort flag
+                        // Reset abort flag before starting the next scan
                         SCAN_MEDIA_DIRECTORIES_ABORT_FLAG.store(false, Ordering::Relaxed);
-                        media::digest_directories::handle_request(
+                        media::dir_tracker::scan::handle_request(
                             pooled_connection,
                             &uid,
                             request_body,

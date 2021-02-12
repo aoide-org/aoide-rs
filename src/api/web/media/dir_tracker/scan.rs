@@ -29,7 +29,7 @@ use url::Url;
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct DirScanParams {
+pub struct Params {
     pub root_url: Url,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -38,7 +38,7 @@ pub struct DirScanParams {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct DirScanSummary {
+pub struct Summary {
     pub current: usize,
     pub added: usize,
     pub modified: usize,
@@ -46,7 +46,7 @@ pub struct DirScanSummary {
     pub skipped: usize,
 }
 
-impl From<uc::DirScanSummary> for DirScanSummary {
+impl From<uc::DirScanSummary> for Summary {
     fn from(from: uc::DirScanSummary) -> Self {
         let uc::DirScanSummary {
             current,
@@ -86,7 +86,7 @@ impl From<uc::DirScanStatus> for DirScanStatus {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct DirScanOutcome {
     pub status: DirScanStatus,
-    pub summary: DirScanSummary,
+    pub summary: Summary,
 }
 
 impl From<uc::DirScanOutcome> for DirScanOutcome {
@@ -99,7 +99,7 @@ impl From<uc::DirScanOutcome> for DirScanOutcome {
     }
 }
 
-pub type RequestBody = DirScanParams;
+pub type RequestBody = Params;
 pub type ResponseBody = DirScanOutcome;
 
 pub fn handle_request(

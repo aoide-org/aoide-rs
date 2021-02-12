@@ -601,6 +601,13 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             }
             let updated_at = DateTime::now_utc();
             if preserve_collected_at {
+                if track.media_source.collected_at != entity.body.media_source.collected_at {
+                    log::debug!(
+                        "Preserving collected_at = {preserved}, discarding {discarded}",
+                        preserved = entity.body.media_source.collected_at,
+                        discarded = track.media_source.collected_at
+                    );
+                }
                 track.media_source.collected_at = entity.body.media_source.collected_at;
             }
             if track == entity.body {
