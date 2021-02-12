@@ -174,7 +174,7 @@ impl ProgressEvent {
     }
 }
 
-pub fn digest_directories_recursively<
+pub fn scan_directories_recursively<
     D: Digest,
     E: Into<Error>,
     NewDigest: FnMut() -> D,

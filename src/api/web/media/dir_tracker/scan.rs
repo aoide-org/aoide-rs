@@ -18,7 +18,7 @@ use std::sync::atomic::AtomicBool;
 use super::*;
 
 mod uc {
-    pub use crate::usecases::media::*;
+    pub use crate::usecases::media::dir_tracker::*;
 }
 
 use aoide_core::entity::EntityUid;
@@ -46,9 +46,9 @@ pub struct Summary {
     pub skipped: usize,
 }
 
-impl From<uc::DirScanSummary> for Summary {
-    fn from(from: uc::DirScanSummary) -> Self {
-        let uc::DirScanSummary {
+impl From<uc::ScanSummary> for Summary {
+    fn from(from: uc::ScanSummary) -> Self {
+        let uc::ScanSummary {
             current,
             added,
             modified,
@@ -67,14 +67,14 @@ impl From<uc::DirScanSummary> for Summary {
 
 #[derive(Debug, Copy, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub enum DirScanStatus {
+pub enum Status {
     Finished,
     Aborted,
 }
 
-impl From<uc::DirScanStatus> for DirScanStatus {
-    fn from(from: uc::DirScanStatus) -> Self {
-        use uc::DirScanStatus::*;
+impl From<uc::ScanStatus> for Status {
+    fn from(from: uc::ScanStatus) -> Self {
+        use uc::ScanStatus::*;
         match from {
             Finished => Self::Finished,
             Aborted => Self::Aborted,
@@ -84,14 +84,14 @@ impl From<uc::DirScanStatus> for DirScanStatus {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct DirScanOutcome {
-    pub status: DirScanStatus,
+pub struct Outcome {
+    pub status: Status,
     pub summary: Summary,
 }
 
-impl From<uc::DirScanOutcome> for DirScanOutcome {
-    fn from(from: uc::DirScanOutcome) -> Self {
-        let uc::DirScanOutcome { status, summary } = from;
+impl From<uc::ScanOutcome> for Outcome {
+    fn from(from: uc::ScanOutcome) -> Self {
+        let uc::ScanOutcome { status, summary } = from;
         Self {
             status: status.into(),
             summary: summary.into(),
@@ -100,7 +100,7 @@ impl From<uc::DirScanOutcome> for DirScanOutcome {
 }
 
 pub type RequestBody = Params;
-pub type ResponseBody = DirScanOutcome;
+pub type ResponseBody = Outcome;
 
 pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
@@ -112,7 +112,7 @@ pub fn handle_request(
         root_url,
         max_depth,
     } = request_body;
-    Ok(uc::digest_directories_recursively(
+    Ok(uc::scan_directories_recursively(
         &pooled_connection,
         collection_uid,
         &root_url,

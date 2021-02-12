@@ -16,7 +16,7 @@
 use super::*;
 
 mod uc {
-    pub use crate::usecases::media::*;
+    pub use crate::usecases::media::dir_tracker::*;
 }
 
 use aoide_core::entity::EntityUid;
@@ -69,8 +69,5 @@ pub fn handle_request(
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
     let RequestBody { root_url } = request_body;
-    Ok(
-        uc::digest_directories_aggregate_status(&pooled_connection, collection_uid, &root_url)
-            .map(Into::into)?,
-    )
+    Ok(uc::aggregate_status(&pooled_connection, collection_uid, &root_url).map(Into::into)?)
 }
