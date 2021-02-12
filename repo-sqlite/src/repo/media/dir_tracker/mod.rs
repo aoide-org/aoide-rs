@@ -263,6 +263,16 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
     ) -> RepoResult<Vec<Entry>> {
         let mut query = media_dir_tracker::table
             .filter(media_dir_tracker::collection_id.eq(RowId::from(collection_id)))
+            // Status is pending
+            .filter(
+                media_dir_tracker::status
+                    .eq(TrackingStatus::Added.to_i16().unwrap())
+                    .or(media_dir_tracker::status.eq(TrackingStatus::Modified.to_i16().unwrap())),
+            )
+            // Oldest first
+            .order_by(media_dir_tracker::row_updated_ms)
+            // then order by URI for disambiguation
+            .then_order_by(media_dir_tracker::uri)
             .into_boxed();
         if let Some(uri_prefix) = uri_prefix {
             query = query.filter(diesel::dsl::sql(&format!(
