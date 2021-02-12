@@ -15,10 +15,13 @@
 
 use super::*;
 
+use aoide_core::util::clock::DateTime;
+use aoide_media::io::import::{ImportTrackConfig, ImportTrackFlags};
 use aoide_repo::{
-    collection::EntityRepo as _,
+    collection::{EntityRepo as _, RecordId as CollectionId},
     track::{ReplaceMode, ReplaceOutcome},
 };
+use media::import_track_from_url;
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -27,8 +30,58 @@ pub struct Outcome {
     pub created: Vec<Entity>,
     pub updated: Vec<Entity>,
     pub unchanged: Vec<Entity>,
+    pub not_imported: Vec<String>,
     pub not_created: Vec<Track>,
     pub not_updated: Vec<Track>,
+}
+
+fn replace_collected_track_by_media_source_uri(
+    outcome: &mut Outcome,
+    db: &RepoConnection<'_>,
+    collection_id: CollectionId,
+    preserve_collected_at: bool,
+    replace_mode: ReplaceMode,
+    uri: &str,
+    track: Track,
+) -> RepoResult<()> {
+    let replace_outcome = db
+        .replace_collected_track_by_media_source_uri(
+            collection_id,
+            preserve_collected_at,
+            replace_mode,
+            track,
+        )
+        .map_err(|err| {
+            log::warn!("Failed to replace track by URI {}: {}", uri, err);
+            err
+        })?;
+    match replace_outcome {
+        ReplaceOutcome::Created(_, entity) => {
+            debug_assert_ne!(ReplaceMode::UpdateOnly, replace_mode);
+            log::debug!("Created {}: {:?}", entity.body.media_source.uri, entity.hdr);
+            outcome.created.push(entity);
+        }
+        ReplaceOutcome::Updated(_, entity) => {
+            debug_assert_ne!(ReplaceMode::CreateOnly, replace_mode);
+            log::debug!("Updated {}: {:?}", entity.body.media_source.uri, entity.hdr);
+            outcome.updated.push(entity);
+        }
+        ReplaceOutcome::Unchanged(_, entity) => {
+            log::debug!("Unchanged: {:?}", entity);
+            outcome.unchanged.push(entity);
+        }
+        ReplaceOutcome::NotCreated(track) => {
+            debug_assert_eq!(ReplaceMode::UpdateOnly, replace_mode);
+            log::debug!("Not created: {:?}", track);
+            outcome.not_created.push(track);
+        }
+        ReplaceOutcome::Orphaned(_, track) => {
+            debug_assert_eq!(ReplaceMode::CreateOnly, replace_mode);
+            log::debug!("Not updated: {:?}", track);
+            outcome.not_created.push(track);
+        }
+    }
+    Ok(())
 }
 
 pub fn replace_by_media_source_uri(
@@ -43,38 +96,64 @@ pub fn replace_by_media_source_uri(
         let collection_id = db.resolve_collection_id(collection_uid)?;
         for track in tracks {
             let uri = track.media_source.uri.clone();
-            let replace_outcome = db
-                .replace_collected_track_by_media_source_uri(collection_id, replace_mode, track)
-                .map_err(|err| {
-                    log::warn!("Failed to replace track by URI {}: {}", uri, err);
-                    err
-                })?;
-            match replace_outcome {
-                ReplaceOutcome::Created(_, entity) => {
-                    debug_assert_ne!(ReplaceMode::UpdateOnly, replace_mode);
-                    log::debug!("Created {}: {:?}", entity.body.media_source.uri, entity.hdr);
-                    outcome.created.push(entity);
+            replace_collected_track_by_media_source_uri(
+                &mut outcome,
+                &db,
+                collection_id,
+                false,
+                replace_mode,
+                &uri,
+                track,
+            )?;
+        }
+        Ok(outcome)
+    })
+    .map_err(Into::into)
+}
+
+pub fn import_and_replace_by_media_source_uri(
+    connection: &SqliteConnection,
+    collection_uid: &EntityUid,
+    import_config: &ImportTrackConfig,
+    import_flags: ImportTrackFlags,
+    replace_mode: ReplaceMode,
+    file_uris: impl Iterator<Item = String>,
+) -> Result<Outcome> {
+    let db = RepoConnection::new(connection);
+    db.transaction::<_, DieselRepoError, _>(|| {
+        let mut outcome = Outcome::default();
+        let collection_id = db.resolve_collection_id(collection_uid)?;
+        for file_uri in file_uris {
+            let url = match file_uri.parse() {
+                Ok(url) => url,
+                Err(err) => {
+                    log::warn!("Failed to import track from file URI {}: {}", file_uri, err);
+                    outcome.not_imported.push(file_uri);
+                    continue;
                 }
-                ReplaceOutcome::Updated(_, entity) => {
-                    debug_assert_ne!(ReplaceMode::CreateOnly, replace_mode);
-                    log::debug!("Updated {}: {:?}", entity.body.media_source.uri, entity.hdr);
-                    outcome.updated.push(entity);
+            };
+            let track = match import_track_from_url(
+                &url,
+                import_config,
+                import_flags,
+                DateTime::now_local(),
+            ) {
+                Ok(track) => track,
+                Err(err) => {
+                    log::warn!("Failed to import track from file URI {}: {}", file_uri, err);
+                    outcome.not_imported.push(file_uri);
+                    continue;
                 }
-                ReplaceOutcome::Unchanged(_, entity) => {
-                    log::debug!("Unchanged: {:?}", entity);
-                    outcome.unchanged.push(entity);
-                }
-                ReplaceOutcome::NotCreated(track) => {
-                    debug_assert_eq!(ReplaceMode::UpdateOnly, replace_mode);
-                    log::debug!("Not created: {:?}", track);
-                    outcome.not_created.push(track);
-                }
-                ReplaceOutcome::Orphaned(_, track) => {
-                    debug_assert_eq!(ReplaceMode::CreateOnly, replace_mode);
-                    log::debug!("Not updated: {:?}", track);
-                    outcome.not_created.push(track);
-                }
-            }
+            };
+            replace_collected_track_by_media_source_uri(
+                &mut outcome,
+                &db,
+                collection_id,
+                true,
+                replace_mode,
+                &file_uri,
+                track,
+            )?;
         }
         Ok(outcome)
     })

@@ -220,6 +220,7 @@ pub trait EntityRepo: MediaSourceRepo {
     fn replace_collected_track_by_media_source_uri(
         &self,
         collection_id: CollectionId,
+        preserve_collected_at: bool,
         replace_mode: ReplaceMode,
         track: Track,
     ) -> RepoResult<ReplaceOutcome>;

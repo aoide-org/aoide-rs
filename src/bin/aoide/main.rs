@@ -490,6 +490,37 @@ pub async fn main() -> Result<(), Error> {
                     .map(|response_body| warp::reply::json(&response_body))
                 },
             );
+    let collected_tracks_import_and_replace =
+        warp::post()
+            .and(collections_path)
+            .and(path_param_uid)
+            .and(tracks_path)
+            .and(warp::path("import-and-replace"))
+            .and(warp::path::end())
+            .and(warp::query())
+            .and(warp::body::json())
+            .and(guarded_connection_pool.clone())
+            .and_then(
+                |uid,
+                 query_params,
+                 request_body,
+                 guarded_connection_pool: GuardedConnectionPool| async move {
+                    spawn_blocking_database_write_task(
+                        guarded_connection_pool,
+                        move |pooled_connection| {
+                            tracks::import_and_replace::handle_request(
+                                pooled_connection,
+                                &uid,
+                                query_params,
+                                request_body,
+                            )
+                        },
+                    )
+                    .await
+                    .map_err(reject_on_error)
+                    .map(|response_body| warp::reply::json(&response_body))
+                },
+            );
     let collected_tracks_purge = warp::post()
         .and(collections_path)
         .and(path_param_uid)
@@ -518,6 +549,7 @@ pub async fn main() -> Result<(), Error> {
     let collected_tracks_filters = collected_tracks_resolve
         .or(collected_tracks_search)
         .or(collected_tracks_replace)
+        .or(collected_tracks_import_and_replace)
         .or(collected_tracks_purge);
 
     // Tracks

@@ -244,6 +244,33 @@ paths:
                 $ref: '#/components/schemas/ReplaceCollectedTracksResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+  /c/{collectionUid}/t/import-and-replace:
+    post:
+      operationId: importAndReplaceCollectedTracks
+      summary: Import and replace collected tracks and media sources by URI
+      description: |
+        TODO
+      tags:
+        - Tracks
+      parameters:
+        - $ref: '#/components/parameters/collectionUidPath'
+        - $ref: '#/components/parameters/replaceCollectedTrackModeQuery'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportAndReplaceCollectedTracksRequestBody'
+      responses:
+        '200':
+          description: |
+            Batch operation succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportAndReplaceCollectedTracksResponseBody'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
   /c/{collectionUid}/t/purge:
     post:
       operationId: purgeCollectedTracks
@@ -2052,6 +2079,10 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/Track'
+    ImportAndReplaceCollectedTracksRequestBody:
+      type: array
+      items:
+        $ref: '#/components/schemas/Uri'
     ReplaceCollectedTracksResponseBody:
       type: object
       properties:
@@ -2075,6 +2106,15 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Track'
+    ImportAndReplaceCollectedTracksResponseBody:
+      allOf:
+        - $ref: '#/components/schemas/ReplaceCollectedTracksResponseBody'
+        - type: object
+          properties:
+            notImported:
+              type: array
+              items:
+                $ref: '#/components/schemas/Uri'
     RgbColor:
       type: string
       minLength: 7

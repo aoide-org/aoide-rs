@@ -192,11 +192,11 @@ pub fn import_track_from_url(
     url: &Url,
     config: &ImportTrackConfig,
     flags: ImportTrackFlags,
+    collected_at: DateTime,
 ) -> Result<Track> {
     let file = open_local_file_url_for_reading(url)?;
     let file_metadata = file.metadata().map_err(MediaError::from)?;
     let mime = guess_mime_from_url(url)?;
-    let collected_at = DateTime::now_local();
     let synchronized_at = file_metadata
         .modified()
         .map(DateTime::from)

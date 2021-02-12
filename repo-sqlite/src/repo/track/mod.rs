@@ -583,8 +583,9 @@ impl<'db> EntityRepo for crate::Connection<'db> {
     fn replace_collected_track_by_media_source_uri(
         &self,
         collection_id: CollectionId,
+        preserve_collected_at: bool,
         replace_mode: ReplaceMode,
-        track: Track,
+        mut track: Track,
     ) -> RepoResult<ReplaceOutcome> {
         let loaded = self
             .load_track_entity_by_media_source_uri(collection_id, &track.media_source.uri)
@@ -599,6 +600,9 @@ impl<'db> EntityRepo for crate::Connection<'db> {
                 return Ok(ReplaceOutcome::Unchanged(id, entity));
             }
             let updated_at = DateTime::now_utc();
+            if preserve_collected_at {
+                track.media_source.collected_at = entity.body.media_source.collected_at;
+            }
             if track.media_source != entity.body.media_source {
                 self.update_media_source(media_source_id, updated_at, &track.media_source)?;
             }
