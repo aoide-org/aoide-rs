@@ -310,7 +310,7 @@ impl KeyCode {
         }
     }
 
-    pub fn as_tracksource_str(self) -> &'static str {
+    pub fn as_traxsource_str(self) -> &'static str {
         use KeyCode::*;
         match self {
             Unknown => "",
@@ -341,7 +341,7 @@ impl KeyCode {
         }
     }
 
-    pub fn from_tracksource_str(s: &str) -> Self {
+    pub fn from_traxsource_str(s: &str) -> Self {
         use KeyCode::*;
         match s {
             "Cmaj" => Cmaj,
