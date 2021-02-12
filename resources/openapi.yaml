@@ -12,6 +12,7 @@ servers:
 tags:
   - name: Collections
   - name: Media Sources
+  - name: Media Directory Tracker
   - name: Tracks
   - name: Playlists
   - name: Administration
@@ -296,10 +297,36 @@ paths:
                 $ref: '#/components/schemas/RelocateCollectedMediaSourcesResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /c/{collectionUid}/digest-media-source-directories:
+
+  /c/{collectionUid}/media-dir-tracker/aggregate-status:
     post:
-      operationId: digestCollectedMediaSourceDirectories
-      summary: Check a directory tree for changes
+      operationId: aggregateMediaDirectoriesTrackingStatus
+      summary: Query the aggregated status of tracked directories
+      description: |
+      tags:
+        - Media Directory Tracker
+      parameters:
+        - $ref: '#/components/parameters/collectionUidPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AggregateMediaDirectoriesTrackingStatusRequestBody'
+      responses:
+        '200':
+          description: |
+            Operation succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AggregateMediaDirectoriesTrackingStatusResponseBody'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /c/{collectionUid}/media-dir-tracker/scan:
+    post:
+      operationId: scanMediaDirectories
+      summary: Scan a directory tree for changes
       description: |
         Recursively scan a root directory for content changes, i.e.
         added/modified/removed files and directories.
@@ -313,7 +340,7 @@ paths:
 
         This operation is blocking. It can be aborted by another request
       tags:
-        - Media Sources
+        - Media Directory Tracker
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
       requestBody:
@@ -321,7 +348,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DigestCollectedMediaDirectoriesRequestBody'
+              $ref: '#/components/schemas/ScanMediaDirectoriesRequestBody'
       responses:
         '200':
           description: |
@@ -329,44 +356,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DigestCollectedMediaDirectoriesResponseBody'
+                $ref: '#/components/schemas/ScanMediaDirectoriesResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /c/{collectionUid}/digest-media-source-directories/aggregate-status:
+  /media-dir-tracker/scan/abort:
     post:
-      operationId: digestCollectedMediaSourceDirectoriesAggregateStatus
-      summary: Query the aggregated status of digested directories
-      description: |
-      tags:
-        - Media Sources
-      parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DigestCollectedMediaDirectoriesAggregateStatusRequestBody'
-      responses:
-        '200':
-          description: |
-            Operation succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DigestCollectedMediaDirectoriesAggregateStatusResponseBody'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-  /digest-media-source-directories/abort:
-    post:
-      operationId: digestMediaSourceDirectoriesAbort
-      summary: Abort any running directory digest traversal
+      operationId: scanMediaDirectoriesAbort
+      summary: Abort any running directory scan
       description: |
         Stops a running directory scan before completion.
 
         Partial results will be saved in the database.
       tags:
-        - Media Sources
+        - Media Directory Tracker
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
       responses:
@@ -1925,7 +1927,7 @@ components:
     ReleaseDateTime:
       allOf:
         - $ref: '#/components/schemas/DateTime'
-    DigestCollectedMediaDirectoriesAggregateStatus:
+    MediaDirectoriesTrackingStatusAggregated:
       type: object
       properties:
         current:
@@ -1954,17 +1956,17 @@ components:
         - added
         - modified
         - orphaned
-    DigestCollectedMediaDirectoriesAggregateStatusRequestBody:
+    AggregateMediaDirectoriesTrackingStatusRequestBody:
       type: object
       properties:
         rootUrl:
           $ref: '#/components/schemas/FileDirectoryUrl'
       required:
         - rootUrl
-    DigestCollectedMediaDirectoriesAggregateStatusResponseBody:
+    AggregateMediaDirectoriesTrackingStatusResponseBody:
       allOf:
-        - $ref: '#/components/schemas/DigestCollectedMediaDirectoriesAggregateStatus'
-    DigestCollectedMediaDirectoriesRequestBody:
+        - $ref: '#/components/schemas/MediaDirectoriesTrackingStatusAggregated'
+    ScanMediaDirectoriesRequestBody:
       type: object
       properties:
         rootUrl:
@@ -2009,7 +2011,7 @@ components:
         - modified
         - orphaned
         - skipped
-    DigestCollectedMediaDirectoriesResponseBody:
+    ScanMediaDirectoriesResponseBody:
       oneOf:
         - type: object
           properties:
@@ -2520,8 +2522,7 @@ components:
     Uri:
       type: string
       minLength: 1
-      example: |
-        file:///home/user/Music/album%20artist/album%20title/01%20the%20first%20track.mp3
+      example: file:///home/user/Music/album%20artist/album%20title/01%20the%20first%20track.mp3
       description: |
         A percent-encoded URI (RFC 3986).
     YYYY:

@@ -33,7 +33,7 @@ pub struct Params {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct AggregateStatus {
+pub struct TrackingStatusAggregated {
     pub current: usize,
     pub outdated: usize,
     pub added: usize,
@@ -41,9 +41,9 @@ pub struct AggregateStatus {
     pub orphaned: usize,
 }
 
-impl From<uc::AggregateStatus> for AggregateStatus {
-    fn from(from: uc::AggregateStatus) -> Self {
-        let uc::AggregateStatus {
+impl From<uc::TrackingStatusAggregated> for TrackingStatusAggregated {
+    fn from(from: uc::TrackingStatusAggregated) -> Self {
+        let uc::TrackingStatusAggregated {
             current,
             outdated,
             added,
@@ -61,7 +61,7 @@ impl From<uc::AggregateStatus> for AggregateStatus {
 }
 
 pub type RequestBody = Params;
-pub type ResponseBody = AggregateStatus;
+pub type ResponseBody = TrackingStatusAggregated;
 
 pub fn handle_request(
     pooled_connection: SqlitePooledConnection,

@@ -201,6 +201,7 @@ pub async fn main() -> Result<(), Error> {
     let tracks_path = warp::path("t");
     let playlists_path = warp::path("p");
     let media_path = warp::path("m");
+    let media_dir_tracker_path = warp::path("media-dir-tracker");
     let storage_path = warp::path("storage");
 
     // Collections
@@ -338,10 +339,37 @@ pub async fn main() -> Result<(), Error> {
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
-    let collected_media_sources_digest_directories = warp::post()
+
+    let media_dir_tracker_aggregate_status = warp::post()
         .and(collections_path)
         .and(path_param_uid)
-        .and(warp::path("digest-media-source-directories"))
+        .and(media_dir_tracker_path)
+        .and(warp::path("aggregate-status"))
+        .and(warp::path::end())
+        .and(warp::body::json())
+        .and(guarded_connection_pool.clone())
+        .and_then(
+            |uid, request_body, guarded_connection_pool: GuardedConnectionPool| async move {
+                spawn_blocking_database_read_task(
+                    guarded_connection_pool,
+                    move |pooled_connection| {
+                        media::digest_directories_aggregate_status::handle_request(
+                            pooled_connection,
+                            &uid,
+                            request_body,
+                        )
+                    },
+                )
+                .await
+                .map_err(reject_on_error)
+                .map(|response_body| warp::reply::json(&response_body))
+            },
+        );
+    let media_dir_tracker_scan_directories = warp::post()
+        .and(collections_path)
+        .and(path_param_uid)
+        .and(media_dir_tracker_path)
+        .and(warp::path("scan"))
         .and(warp::path::end())
         .and(warp::body::json())
         .and(guarded_connection_pool.clone())
@@ -365,33 +393,9 @@ pub async fn main() -> Result<(), Error> {
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
-    let collected_media_sources_digest_directories_aggregate_status = warp::post()
-        .and(collections_path)
-        .and(path_param_uid)
-        .and(warp::path("digest-media-source-directories"))
-        .and(warp::path("aggregate-status"))
-        .and(warp::path::end())
-        .and(warp::body::json())
-        .and(guarded_connection_pool.clone())
-        .and_then(
-            |uid, request_body, guarded_connection_pool: GuardedConnectionPool| async move {
-                spawn_blocking_database_read_task(
-                    guarded_connection_pool,
-                    move |pooled_connection| {
-                        media::digest_directories_aggregate_status::handle_request(
-                            pooled_connection,
-                            &uid,
-                            request_body,
-                        )
-                    },
-                )
-                .await
-                .map_err(reject_on_error)
-                .map(|response_body| warp::reply::json(&response_body))
-            },
-        );
-    let abort_directory_scan = warp::post()
-        .and(warp::path("digest-media-source-directories"))
+    let media_dir_tracker_scan_directories_abort = warp::post()
+        .and(media_dir_tracker_path)
+        .and(warp::path("scan"))
         .and(warp::path("abort"))
         .and(warp::path::end())
         .map(|| {
@@ -748,10 +752,10 @@ pub async fn main() -> Result<(), Error> {
             .or(tracks_filters)
             .or(playlists_filters)
             .or(media_import_track) // undocumented
-            .or(collected_media_sources_digest_directories)
-            .or(collected_media_sources_digest_directories_aggregate_status)
+            .or(media_dir_tracker_scan_directories)
+            .or(media_dir_tracker_aggregate_status)
             .or(collected_media_sources_relocate)
-            .or(abort_directory_scan)
+            .or(media_dir_tracker_scan_directories_abort)
             .or(storage_filters)
             .or(static_filters)
             .or(shutdown_filter)
@@ -765,6 +769,7 @@ pub async fn main() -> Result<(), Error> {
     let (socket_addr, server_listener) =
         server.bind_with_graceful_shutdown(endpoint_addr, async move {
             server_shutdown_rx.recv().await;
+            SCAN_MEDIA_DIRECTORIES_ABORT_FLAG.store(true, Ordering::Relaxed);
             log::info!("Stopping");
         });
 

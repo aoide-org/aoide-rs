@@ -23,7 +23,10 @@ use aoide_core::{
     util::clock::DateTime,
 };
 
-use aoide_repo::collection::{EntityRepo as _, RecordId as CollectionId};
+use aoide_repo::{
+    collection::{EntityRepo as _, RecordId as CollectionId},
+    media::DigestBytes,
+};
 
 struct Fixture {
     db: SqliteConnection,
@@ -54,7 +57,7 @@ fn update_entry_digest() -> anyhow::Result<()> {
     let updated_at = DateTime::now_utc();
     let collection_id = fixture.collection_id;
     let uri = "file:///test";
-    let mut digest = EntryDigest::default();
+    let mut digest = DigestBytes::default();
 
     // -> Added
     assert_eq!(
@@ -62,8 +65,8 @@ fn update_entry_digest() -> anyhow::Result<()> {
         db.media_dir_tracker_update_entry_digest(updated_at, collection_id, uri, &digest)?
     );
     assert_eq!(
-        EntryStatus::Added,
-        db.media_dir_tracker_load_entry_status_by_uri(collection_id, uri)?
+        TrackingStatus::Added,
+        db.media_dir_tracker_load_entry_status(collection_id, uri)?
     );
     // Added -> Added
     assert_eq!(
@@ -71,8 +74,8 @@ fn update_entry_digest() -> anyhow::Result<()> {
         db.media_dir_tracker_update_entry_digest(updated_at, collection_id, uri, &digest)?
     );
     assert_eq!(
-        EntryStatus::Added,
-        db.media_dir_tracker_load_entry_status_by_uri(collection_id, uri)?
+        TrackingStatus::Added,
+        db.media_dir_tracker_load_entry_status(collection_id, uri)?
     );
 
     digest[0] = !digest[0];
@@ -83,8 +86,8 @@ fn update_entry_digest() -> anyhow::Result<()> {
         db.media_dir_tracker_update_entry_digest(updated_at, collection_id, uri, &digest)?
     );
     assert_eq!(
-        EntryStatus::Modified,
-        db.media_dir_tracker_load_entry_status_by_uri(collection_id, uri)?
+        TrackingStatus::Modified,
+        db.media_dir_tracker_load_entry_status(collection_id, uri)?
     );
     // Modified -> Modified
     assert_eq!(
@@ -92,8 +95,8 @@ fn update_entry_digest() -> anyhow::Result<()> {
         db.media_dir_tracker_update_entry_digest(updated_at, collection_id, uri, &digest)?
     );
     assert_eq!(
-        EntryStatus::Modified,
-        db.media_dir_tracker_load_entry_status_by_uri(collection_id, uri)?
+        TrackingStatus::Modified,
+        db.media_dir_tracker_load_entry_status(collection_id, uri)?
     );
 
     // -> Orphaned
@@ -104,12 +107,12 @@ fn update_entry_digest() -> anyhow::Result<()> {
             collection_id,
             uri,
             None,
-            EntryStatus::Orphaned
+            TrackingStatus::Orphaned
         )?
     );
     assert_eq!(
-        EntryStatus::Orphaned,
-        db.media_dir_tracker_load_entry_status_by_uri(collection_id, uri)?
+        TrackingStatus::Orphaned,
+        db.media_dir_tracker_load_entry_status(collection_id, uri)?
     );
     // Orphaned -> Current (digest unchanged)
     assert_eq!(
@@ -117,8 +120,8 @@ fn update_entry_digest() -> anyhow::Result<()> {
         db.media_dir_tracker_update_entry_digest(updated_at, collection_id, uri, &digest)?
     );
     assert_eq!(
-        EntryStatus::Current,
-        db.media_dir_tracker_load_entry_status_by_uri(collection_id, uri)?
+        TrackingStatus::Current,
+        db.media_dir_tracker_load_entry_status(collection_id, uri)?
     );
 
     digest[0] = !digest[0];
@@ -129,8 +132,8 @@ fn update_entry_digest() -> anyhow::Result<()> {
         db.media_dir_tracker_update_entry_digest(updated_at, collection_id, uri, &digest)?
     );
     assert_eq!(
-        EntryStatus::Modified,
-        db.media_dir_tracker_load_entry_status_by_uri(collection_id, uri)?
+        TrackingStatus::Modified,
+        db.media_dir_tracker_load_entry_status(collection_id, uri)?
     );
 
     // -> Current
@@ -141,12 +144,12 @@ fn update_entry_digest() -> anyhow::Result<()> {
             collection_id,
             uri,
             None,
-            EntryStatus::Current
+            TrackingStatus::Current
         )?
     );
     assert_eq!(
-        EntryStatus::Current,
-        db.media_dir_tracker_load_entry_status_by_uri(collection_id, uri)?
+        TrackingStatus::Current,
+        db.media_dir_tracker_load_entry_status(collection_id, uri)?
     );
 
     digest[0] = !digest[0];
@@ -157,8 +160,8 @@ fn update_entry_digest() -> anyhow::Result<()> {
         db.media_dir_tracker_update_entry_digest(updated_at, collection_id, uri, &digest)?
     );
     assert_eq!(
-        EntryStatus::Modified,
-        db.media_dir_tracker_load_entry_status_by_uri(collection_id, uri)?
+        TrackingStatus::Modified,
+        db.media_dir_tracker_load_entry_status(collection_id, uri)?
     );
 
     // -> Outdated
@@ -169,12 +172,12 @@ fn update_entry_digest() -> anyhow::Result<()> {
             collection_id,
             uri,
             None,
-            EntryStatus::Outdated
+            TrackingStatus::Outdated
         )?
     );
     assert_eq!(
-        EntryStatus::Outdated,
-        db.media_dir_tracker_load_entry_status_by_uri(collection_id, uri)?
+        TrackingStatus::Outdated,
+        db.media_dir_tracker_load_entry_status(collection_id, uri)?
     );
 
     // Outdated -> Current (digest unchanged)
@@ -183,8 +186,8 @@ fn update_entry_digest() -> anyhow::Result<()> {
         db.media_dir_tracker_update_entry_digest(updated_at, collection_id, uri, &digest)?
     );
     assert_eq!(
-        EntryStatus::Current,
-        db.media_dir_tracker_load_entry_status_by_uri(collection_id, uri)?
+        TrackingStatus::Current,
+        db.media_dir_tracker_load_entry_status(collection_id, uri)?
     );
 
     // -> Outdated
@@ -195,12 +198,12 @@ fn update_entry_digest() -> anyhow::Result<()> {
             collection_id,
             uri,
             None,
-            EntryStatus::Outdated
+            TrackingStatus::Outdated
         )?
     );
     assert_eq!(
-        EntryStatus::Outdated,
-        db.media_dir_tracker_load_entry_status_by_uri(collection_id, uri)?
+        TrackingStatus::Outdated,
+        db.media_dir_tracker_load_entry_status(collection_id, uri)?
     );
 
     digest[0] = !digest[0];
@@ -211,8 +214,8 @@ fn update_entry_digest() -> anyhow::Result<()> {
         db.media_dir_tracker_update_entry_digest(updated_at, collection_id, uri, &digest)?
     );
     assert_eq!(
-        EntryStatus::Modified,
-        db.media_dir_tracker_load_entry_status_by_uri(collection_id, uri)?
+        TrackingStatus::Modified,
+        db.media_dir_tracker_load_entry_status(collection_id, uri)?
     );
 
     Ok(())
@@ -226,7 +229,7 @@ fn reset_entry_status_to_current() -> anyhow::Result<()> {
     let updated_at = DateTime::now_utc();
     let collection_id = fixture.collection_id;
     let uri = "file:///test";
-    let digest = EntryDigest::default();
+    let digest = DigestBytes::default();
 
     let mut other_digest = digest.clone();
     other_digest[0] = !other_digest[0];
@@ -237,30 +240,32 @@ fn reset_entry_status_to_current() -> anyhow::Result<()> {
         db.media_dir_tracker_update_entry_digest(updated_at, collection_id, uri, &digest)?
     );
     assert_eq!(
-        EntryStatus::Added,
-        db.media_dir_tracker_load_entry_status_by_uri(collection_id, uri)?
+        TrackingStatus::Added,
+        db.media_dir_tracker_load_entry_status(collection_id, uri)?
     );
 
-    // Added -> Current
-    assert!(!db.media_dir_tracker_reset_entry_status_to_current(
+    // Added -> Current: Rejected
+    assert!(!db.media_dir_tracker_confirm_entry_digest_current(
         updated_at,
         collection_id,
         uri,
         &other_digest
     )?);
     assert_eq!(
-        EntryStatus::Added, // unchanged
-        db.media_dir_tracker_load_entry_status_by_uri(collection_id, uri)?
+        TrackingStatus::Added, // unchanged
+        db.media_dir_tracker_load_entry_status(collection_id, uri)?
     );
-    assert!(db.media_dir_tracker_reset_entry_status_to_current(
+
+    // Added -> Current: Confirmed
+    assert!(db.media_dir_tracker_confirm_entry_digest_current(
         updated_at,
         collection_id,
         uri,
         &digest
     )?);
     assert_eq!(
-        EntryStatus::Current, // updated
-        db.media_dir_tracker_load_entry_status_by_uri(collection_id, uri)?
+        TrackingStatus::Current,
+        db.media_dir_tracker_load_entry_status(collection_id, uri)?
     );
 
     // -> Modified
@@ -271,34 +276,36 @@ fn reset_entry_status_to_current() -> anyhow::Result<()> {
             collection_id,
             uri,
             None,
-            EntryStatus::Modified
+            TrackingStatus::Modified
         )?
     );
     assert_eq!(
-        EntryStatus::Modified,
-        db.media_dir_tracker_load_entry_status_by_uri(collection_id, uri)?
+        TrackingStatus::Modified,
+        db.media_dir_tracker_load_entry_status(collection_id, uri)?
     );
 
-    // Modified -> Current
-    assert!(!db.media_dir_tracker_reset_entry_status_to_current(
+    // Modified -> Current: Rejected
+    assert!(!db.media_dir_tracker_confirm_entry_digest_current(
         updated_at,
         collection_id,
         uri,
         &other_digest
     )?);
     assert_eq!(
-        EntryStatus::Modified, // unchanged
-        db.media_dir_tracker_load_entry_status_by_uri(collection_id, uri)?
+        TrackingStatus::Modified,
+        db.media_dir_tracker_load_entry_status(collection_id, uri)?
     );
-    assert!(db.media_dir_tracker_reset_entry_status_to_current(
+
+    // Modified -> Current: Confirmed
+    assert!(db.media_dir_tracker_confirm_entry_digest_current(
         updated_at,
         collection_id,
         uri,
         &digest
     )?);
     assert_eq!(
-        EntryStatus::Current, // updated
-        db.media_dir_tracker_load_entry_status_by_uri(collection_id, uri)?
+        TrackingStatus::Current,
+        db.media_dir_tracker_load_entry_status(collection_id, uri)?
     );
 
     Ok(())

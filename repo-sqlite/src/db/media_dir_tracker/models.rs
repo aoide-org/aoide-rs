@@ -17,9 +17,12 @@ use super::{schema::*, *};
 
 use aoide_core::util::clock::{DateTime, TimestampMillis};
 
-use aoide_repo::{collection::RecordId as CollectionId, media::dir_cache::*};
+use aoide_repo::{
+    collection::RecordId as CollectionId,
+    media::{dir_tracker::*, read_digest_from_slice, DigestBytes},
+};
 
-use num_traits::ToPrimitive as _;
+use num_traits::{FromPrimitive as _, ToPrimitive as _};
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -32,7 +35,34 @@ pub struct QueryableRecord {
     pub collection_id: RowId,
     pub uri: String,
     pub status: i16,
-    pub digest: EntryDigest,
+    pub digest: Vec<u8>,
+}
+
+impl From<QueryableRecord> for Entry {
+    fn from(from: QueryableRecord) -> Self {
+        let QueryableRecord {
+            id: _,
+            row_created_ms: _,
+            row_updated_ms: _,
+            collection_id: _,
+            uri,
+            status,
+            digest,
+        } = from;
+        let status = TrackingStatus::from_i16(status).unwrap_or_else(|| {
+            log::error!("Invalid entry status value: {}", status);
+            TrackingStatus::Current
+        });
+        let digest = read_digest_from_slice(digest.as_slice()).unwrap_or_else(|| {
+            log::error!("Invalid digest: {:?}", digest.as_slice());
+            Default::default()
+        });
+        Self {
+            uri,
+            status,
+            digest,
+        }
+    }
 }
 
 #[derive(Debug, Insertable)]
@@ -51,8 +81,8 @@ impl<'a> InsertableRecord<'a> {
         created_at: DateTime,
         collection_id: CollectionId,
         uri: &'a str,
-        status: EntryStatus,
-        digest: &'a EntryDigest,
+        status: TrackingStatus,
+        digest: &'a DigestBytes,
     ) -> Self {
         let row_created_ms = created_at.timestamp_millis();
         Self {
@@ -76,7 +106,7 @@ pub struct UpdateDigest<'a> {
 }
 
 impl<'a> UpdateDigest<'a> {
-    pub fn bind(updated_at: DateTime, status: EntryStatus, digest: &'a EntryDigest) -> Self {
+    pub fn bind(updated_at: DateTime, status: TrackingStatus, digest: &'a DigestBytes) -> Self {
         Self {
             row_updated_ms: updated_at.timestamp_millis(),
             status: status.to_i16().expect("status"),

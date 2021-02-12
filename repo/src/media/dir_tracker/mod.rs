@@ -28,7 +28,7 @@ record_id_newtype!(DirCacheRecordId);
 pub type DirCacheRecordHeader = crate::RecordHeader<DirCacheRecordId>;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, FromPrimitive, ToPrimitive)]
-pub enum EntryStatus {
+pub enum TrackingStatus {
     Current = 0,
     Outdated = 1,
     Added = 2,
@@ -36,13 +36,32 @@ pub enum EntryStatus {
     Orphaned = 4,
 }
 
-pub type EntryDigest = DigestBytes;
+impl TrackingStatus {
+    /// Determine if an entry is stale.
+    pub fn is_stale(self) -> bool {
+        match self {
+            Self::Outdated | Self::Added | Self::Modified => true,
+            Self::Current | Self::Orphaned => false,
+        }
+    }
+
+    /// Determine if an entry is stale and requires further processing.
+    pub fn is_pending(self) -> bool {
+        match self {
+            Self::Added | Self::Modified => {
+                debug_assert!(self.is_stale());
+                true
+            }
+            Self::Current | Self::Outdated | Self::Orphaned => false,
+        }
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Entry {
     pub uri: String,
-    pub status: EntryStatus,
-    pub digest: EntryDigest,
+    pub status: TrackingStatus,
+    pub digest: DigestBytes,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -54,24 +73,24 @@ pub enum UpdateOutcome {
 }
 
 impl UpdateOutcome {
-    pub const fn resulting_status(self) -> EntryStatus {
+    pub const fn resulting_status(self) -> TrackingStatus {
         match self {
-            Self::Current => EntryStatus::Current,
-            Self::Inserted => EntryStatus::Added,
-            Self::Updated => EntryStatus::Modified,
-            Self::Skipped => EntryStatus::Outdated,
+            Self::Current => TrackingStatus::Current,
+            Self::Inserted => TrackingStatus::Added,
+            Self::Updated => TrackingStatus::Modified,
+            Self::Skipped => TrackingStatus::Outdated,
         }
     }
 }
 
-impl From<UpdateOutcome> for EntryStatus {
+impl From<UpdateOutcome> for TrackingStatus {
     fn from(from: UpdateOutcome) -> Self {
         from.resulting_status()
     }
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct AggregateStatus {
+pub struct TrackingStatusAggregated {
     pub current: usize,
     pub outdated: usize,
     pub added: usize,
@@ -85,8 +104,8 @@ pub trait Repo {
         updated_at: DateTime,
         collection_id: CollectionId,
         uri_prefix: &str,
-        old_status: Option<EntryStatus>,
-        new_status: EntryStatus,
+        old_status: Option<TrackingStatus>,
+        new_status: TrackingStatus,
     ) -> RepoResult<usize>;
 
     fn media_dir_tracker_update_entry_digest(
@@ -94,14 +113,14 @@ pub trait Repo {
         updated_at: DateTime,
         collection_id: CollectionId,
         uri: &str,
-        digest: &EntryDigest,
+        digest: &DigestBytes,
     ) -> RepoResult<UpdateOutcome>;
 
     fn media_dir_tracker_delete_entries(
         &self,
         collection_id: CollectionId,
         uri_prefix: &str,
-        old_status: Option<EntryStatus>,
+        old_status: Option<TrackingStatus>,
     ) -> RepoResult<usize>;
 
     /// Mark all current entries as outdated before starting
@@ -116,8 +135,8 @@ pub trait Repo {
             updated_at,
             collection_id,
             uri_prefix,
-            Some(EntryStatus::Current),
-            EntryStatus::Outdated,
+            Some(TrackingStatus::Current),
+            TrackingStatus::Outdated,
         )
     }
 
@@ -133,30 +152,48 @@ pub trait Repo {
             updated_at,
             collection_id,
             uri_prefix,
-            Some(EntryStatus::Outdated),
-            EntryStatus::Orphaned,
+            Some(TrackingStatus::Outdated),
+            TrackingStatus::Orphaned,
         )
     }
 
-    fn media_dir_tracker_reset_entry_status_to_current(
+    /// Confirm an entry as current.
+    ///
+    /// The digest may have changed in the meantime. If the given digest
+    /// doesn't match the current digest then the operation does nothing.
+    ///
+    /// Returns true if the entry has been confirmed and is now considered
+    /// current. Returns false if the operation has been rejected.
+    fn media_dir_tracker_confirm_entry_digest_current(
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
         uri: &str,
-        digest: &EntryDigest,
+        digest: &DigestBytes,
     ) -> RepoResult<bool>;
 
-    fn media_dir_tracker_load_entry_status_by_uri(
+    fn media_dir_tracker_load_entry_status(
         &self,
         collection_id: CollectionId,
         uri: &str,
-    ) -> RepoResult<EntryStatus>;
+    ) -> RepoResult<TrackingStatus>;
 
-    fn media_dir_tracker_update_load_entries_aggregate_status(
+    fn media_dir_tracker_update_load_aggregate_status(
         &self,
         collection_id: CollectionId,
         uri_prefix: &str,
-    ) -> RepoResult<AggregateStatus>;
+    ) -> RepoResult<TrackingStatusAggregated>;
+
+    /// Load pending entries
+    ///
+    /// Load pending entries, oldest first. Optionally entries can be
+    /// filtered by URI prefix.
+    fn media_dir_tracker_load_pending_entries(
+        &self,
+        collection_id: CollectionId,
+        uri_prefix: Option<&str>,
+        pagination: &Pagination,
+    ) -> RepoResult<Vec<Entry>>;
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

@@ -29,7 +29,7 @@ use aoide_media::{
 use aoide_repo::{
     collection::EntityRepo as _,
     media::{
-        dir_cache::{Repo as _, UpdateOutcome},
+        dir_tracker::{Repo as _, UpdateOutcome},
         source::Repo as _,
     },
 };
@@ -38,7 +38,7 @@ use url::Url;
 
 ///////////////////////////////////////////////////////////////////////
 
-pub use aoide_repo::media::dir_cache::AggregateStatus;
+pub use aoide_repo::media::dir_tracker::TrackingStatusAggregated;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct DirScanSummary {
@@ -179,14 +179,12 @@ pub fn digest_directories_aggregate_status(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
     root_dir_url: &Url,
-) -> Result<AggregateStatus> {
+) -> Result<TrackingStatusAggregated> {
     let db = RepoConnection::new(connection);
     Ok(db.transaction::<_, DieselRepoError, _>(|| {
         let collection_id = db.resolve_collection_id(collection_uid)?;
-        Ok(db.media_dir_tracker_update_load_entries_aggregate_status(
-            collection_id,
-            root_dir_url.as_str(),
-        )?)
+        Ok(db
+            .media_dir_tracker_update_load_aggregate_status(collection_id, root_dir_url.as_str())?)
     })?)
 }
 

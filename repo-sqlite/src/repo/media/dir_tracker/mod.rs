@@ -20,7 +20,10 @@ use crate::{
 
 use aoide_core::util::clock::DateTime;
 
-use aoide_repo::{collection::RecordId as CollectionId, media::dir_cache::*};
+use aoide_repo::{
+    collection::RecordId as CollectionId,
+    media::{dir_tracker::*, DigestBytes},
+};
 
 use num_traits::{FromPrimitive as _, ToPrimitive as _};
 
@@ -39,8 +42,8 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         updated_at: DateTime,
         collection_id: CollectionId,
         uri_prefix: &str,
-        old_status: Option<EntryStatus>,
-        new_status: EntryStatus,
+        old_status: Option<TrackingStatus>,
+        new_status: TrackingStatus,
     ) -> RepoResult<usize> {
         let target = media_dir_tracker::table
             .filter(media_dir_tracker::collection_id.eq(RowId::from(collection_id)))
@@ -66,7 +69,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         &self,
         collection_id: CollectionId,
         uri_prefix: &str,
-        status: Option<EntryStatus>,
+        status: Option<TrackingStatus>,
     ) -> RepoResult<usize> {
         let target = media_dir_tracker::table
             .filter(media_dir_tracker::collection_id.eq(RowId::from(collection_id)))
@@ -76,7 +79,8 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
                 escape_single_quotes(uri_prefix),
             )))
             .filter(
-                media_dir_tracker::status.eq(EntryStatus::Orphaned.to_i16().expect("not updated")),
+                media_dir_tracker::status
+                    .eq(TrackingStatus::Orphaned.to_i16().expect("not updated")),
             );
         let mut query = diesel::delete(target).into_boxed();
         if let Some(status) = status {
@@ -90,26 +94,26 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         updated_at: DateTime,
         collection_id: CollectionId,
         uri: &str,
-        digest: &EntryDigest,
+        digest: &DigestBytes,
     ) -> RepoResult<UpdateOutcome> {
         // Try to mark outdated entry as current if digest is unchanged (most likely)
         let target = media_dir_tracker::table
             .filter(media_dir_tracker::collection_id.eq(RowId::from(collection_id)))
             .filter(media_dir_tracker::uri.eq(uri))
             .filter(media_dir_tracker::digest.eq(&digest[..]))
-            // Filtering by EntryStatus::Outdated allows to safely trigger a rescan even
+            // Filtering by TrackingStatus::Outdated allows to safely trigger a rescan even
             // if entries that have previously been marked as added or modified are still
             // pending for subsequent processing, e.g. (re-)importing their metadata.
             // Those entries will finally be skipped (see below).
             .filter(
                 media_dir_tracker::status
-                    .eq(EntryStatus::Outdated.to_i16().expect("outdated"))
+                    .eq(TrackingStatus::Outdated.to_i16().expect("outdated"))
                     .or(media_dir_tracker::status
-                        .eq(EntryStatus::Orphaned.to_i16().expect("orphaned"))),
+                        .eq(TrackingStatus::Orphaned.to_i16().expect("orphaned"))),
             );
         let query = diesel::update(target).set((
             media_dir_tracker::row_updated_ms.eq(updated_at.timestamp_millis()),
-            media_dir_tracker::status.eq(EntryStatus::Current.to_i16().expect("current")),
+            media_dir_tracker::status.eq(TrackingStatus::Current.to_i16().expect("current")),
         ));
         let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
@@ -123,7 +127,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             .filter(media_dir_tracker::digest.ne(&digest[..]));
         let query = diesel::update(target).set((
             media_dir_tracker::row_updated_ms.eq(updated_at.timestamp_millis()),
-            media_dir_tracker::status.eq(EntryStatus::Modified.to_i16().expect("modified")),
+            media_dir_tracker::status.eq(TrackingStatus::Modified.to_i16().expect("modified")),
             media_dir_tracker::digest.eq(&digest[..]),
         ));
         let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
@@ -132,8 +136,13 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             return Ok(UpdateOutcome::Updated);
         }
         // Try to add a new entry (least likely)
-        let insertable =
-            InsertableRecord::bind(updated_at, collection_id, uri, EntryStatus::Added, digest);
+        let insertable = InsertableRecord::bind(
+            updated_at,
+            collection_id,
+            uri,
+            TrackingStatus::Added,
+            digest,
+        );
         let query = diesel::insert_or_ignore_into(media_dir_tracker::table).values(&insertable);
         let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
@@ -145,12 +154,12 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         Ok(UpdateOutcome::Skipped)
     }
 
-    fn media_dir_tracker_reset_entry_status_to_current(
+    fn media_dir_tracker_confirm_entry_digest_current(
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
         uri: &str,
-        digest: &EntryDigest,
+        digest: &DigestBytes,
     ) -> RepoResult<bool> {
         let target = media_dir_tracker::table
             .filter(media_dir_tracker::collection_id.eq(RowId::from(collection_id)))
@@ -158,32 +167,32 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             .filter(media_dir_tracker::digest.eq(&digest[..]));
         let query = diesel::update(target).set((
             media_dir_tracker::row_updated_ms.eq(updated_at.timestamp_millis()),
-            media_dir_tracker::status.eq(EntryStatus::Current.to_i16().expect("current")),
+            media_dir_tracker::status.eq(TrackingStatus::Current.to_i16().expect("current")),
         ));
         let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
         Ok(rows_affected > 0)
     }
 
-    fn media_dir_tracker_load_entry_status_by_uri(
+    fn media_dir_tracker_load_entry_status(
         &self,
         collection_id: CollectionId,
         uri: &str,
-    ) -> RepoResult<EntryStatus> {
+    ) -> RepoResult<TrackingStatus> {
         media_dir_tracker::table
             .select(media_dir_tracker::status)
             .filter(media_dir_tracker::collection_id.eq(RowId::from(collection_id)))
             .filter(media_dir_tracker::uri.eq(uri))
             .first::<i16>(self.as_ref())
             .map_err(repo_error)
-            .map(|val| EntryStatus::from_i16(val).expect("EntryStatus"))
+            .map(|val| TrackingStatus::from_i16(val).expect("TrackingStatus"))
     }
 
-    fn media_dir_tracker_update_load_entries_aggregate_status(
+    fn media_dir_tracker_update_load_aggregate_status(
         &self,
         collection_id: CollectionId,
         uri_prefix: &str,
-    ) -> RepoResult<AggregateStatus> {
+    ) -> RepoResult<TrackingStatusAggregated> {
         // TODO: Remove with type-safe query when group_by() is available
         /*
         media_dir_tracker::table
@@ -212,36 +221,61 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             .load::<StatusCountRow>(self.as_ref())
             .map_err(repo_error)
             .map(|v| {
-                v.into_iter()
-                    .fold(AggregateStatus::default(), |mut aggregate_status, row| {
+                v.into_iter().fold(
+                    TrackingStatusAggregated::default(),
+                    |mut aggregate_status, row| {
                         let StatusCountRow { status, count } = row;
-                        let status = EntryStatus::from_i16(status).expect("EntryStatus");
+                        let status = TrackingStatus::from_i16(status).expect("TrackingStatus");
                         let count = (count as u64) as usize;
                         match status {
-                            EntryStatus::Current => {
+                            TrackingStatus::Current => {
                                 debug_assert_eq!(aggregate_status.current, 0);
                                 aggregate_status.current = count;
                             }
-                            EntryStatus::Outdated => {
+                            TrackingStatus::Outdated => {
                                 debug_assert_eq!(aggregate_status.outdated, 0);
                                 aggregate_status.outdated = count;
                             }
-                            EntryStatus::Added => {
+                            TrackingStatus::Added => {
                                 debug_assert_eq!(aggregate_status.added, 0);
                                 aggregate_status.added = count;
                             }
-                            EntryStatus::Modified => {
+                            TrackingStatus::Modified => {
                                 debug_assert_eq!(aggregate_status.modified, 0);
                                 aggregate_status.modified = count;
                             }
-                            EntryStatus::Orphaned => {
+                            TrackingStatus::Orphaned => {
                                 debug_assert_eq!(aggregate_status.orphaned, 0);
                                 aggregate_status.orphaned = count;
                             }
                         }
                         aggregate_status
-                    })
+                    },
+                )
             })
+    }
+
+    fn media_dir_tracker_load_pending_entries(
+        &self,
+        collection_id: CollectionId,
+        uri_prefix: Option<&str>,
+        pagination: &Pagination,
+    ) -> RepoResult<Vec<Entry>> {
+        let mut query = media_dir_tracker::table
+            .filter(media_dir_tracker::collection_id.eq(RowId::from(collection_id)))
+            .into_boxed();
+        if let Some(uri_prefix) = uri_prefix {
+            query = query.filter(diesel::dsl::sql(&format!(
+                "substr(uri,1,{})='{}'",
+                uri_prefix.len(),
+                escape_single_quotes(uri_prefix),
+            )))
+        }
+        let query = apply_pagination(query, pagination);
+        query
+            .load::<QueryableRecord>(self.as_ref())
+            .map_err(repo_error)
+            .map(|v| v.into_iter().map(Into::into).collect())
     }
 }
 
