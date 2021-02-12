@@ -603,6 +603,9 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             if preserve_collected_at {
                 track.media_source.collected_at = entity.body.media_source.collected_at;
             }
+            if track == entity.body {
+                return Ok(ReplaceOutcome::Unchanged(id, entity));
+            }
             if track.media_source != entity.body.media_source {
                 self.update_media_source(media_source_id, updated_at, &track.media_source)?;
             }
