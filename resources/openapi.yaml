@@ -12,14 +12,13 @@ servers:
 tags:
   - name: Collections
   - name: Media Sources
-  - name: Media Directory Tracker
+  - name: Media Tracker
   - name: Tracks
   - name: Playlists
   - name: Administration
 paths:
   /c:
     get:
-      operationId: listCollections
       summary: List collections
       description: |
         Load collections that have recently been modified (created/updated).
@@ -45,7 +44,6 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
     post:
-      operationId: createCollection
       summary: Create a new collection
       description: |
         Create a new collection.
@@ -74,7 +72,6 @@ paths:
 
   /c/{collectionUid}:
     get:
-      operationId: loadCollection
       summary: Load a collection
       description: |
         Load a collection entity referenced by its UID.
@@ -96,7 +93,6 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
     put:
-      operationId: updateCollection
       summary: Update a collection
       description: |
         Update a collection entity after validating that the provided `rev`
@@ -131,7 +127,6 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
     delete:
-      operationId: deleteCollection
       summary: Delete a collection
       description: |
         Delete a collection.
@@ -156,7 +151,6 @@ paths:
 
         The result list is unordered and contains only those tracks
         that have been found.
-      operationId: resolveCollectedTracks
       tags:
         - Tracks
       parameters:
@@ -189,7 +183,6 @@ paths:
           $ref: '#/components/responses/500InternalServerError'
   /c/{collectionUid}/t/search:
     post:
-      operationId: searchCollectedTracks
       summary: Search collected tracks and their media sources
       description: |
         Search collected tracks and their media sources by evaluating
@@ -218,7 +211,6 @@ paths:
           $ref: '#/components/responses/500InternalServerError'
   /c/{collectionUid}/t/replace:
     post:
-      operationId: replaceCollectedTracks
       summary: Replace collected tracks and media sources by URI
       description: |
         Create or update multiple, collected tracks and their media sources by locating them
@@ -246,7 +238,6 @@ paths:
           $ref: '#/components/responses/500InternalServerError'
   /c/{collectionUid}/t/import-and-replace:
     post:
-      operationId: importAndReplaceCollectedTracks
       summary: Import and replace collected tracks and media sources by URI
       description: |
         TODO
@@ -273,7 +264,6 @@ paths:
           $ref: '#/components/responses/500InternalServerError'
   /c/{collectionUid}/t/purge:
     post:
-      operationId: purgeCollectedTracks
       summary: Purge collected tracks and media sources by URI
       description: |
         Purge multiple, collected tracks and their media sources by locating them
@@ -297,7 +287,6 @@ paths:
 
   /c/{collectionUid}/relocate-media-sources:
     post:
-      operationId: relocateCollectedMediaSources
       summary: Relocate collected media sources by URI prefix
       description: |
         Relocate media sources with a common URI prefix by replacing
@@ -325,49 +314,23 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /c/{collectionUid}/media-dir-tracker/aggregate-status:
+  /c/{collectionUid}/media-tracker/digest:
     post:
-      operationId: aggregateMediaDirectoriesTrackingStatus
-      summary: Query the aggregated status of tracked directories
-      description: |
-      tags:
-        - Media Directory Tracker
-      parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AggregateMediaDirectoriesTrackingStatusRequestBody'
-      responses:
-        '200':
-          description: |
-            Operation succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AggregateMediaDirectoriesTrackingStatusResponseBody'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-  /c/{collectionUid}/media-dir-tracker/scan:
-    post:
-      operationId: scanMediaDirectories
-      summary: Scan a directory tree for changes
+      summary: Crawl through a directory tree and record changes
       description: |
         Recursively scan a root directory for content changes, i.e.
         added/modified/removed files and directories.
 
-        For each directory a cryptographic hash is calculated and cached in
+        For each directory a cryptographic hash is calculated and stored in
         the database for further processing, e.g. import of track metadata.
         Results are stored on behalf of the collection.
 
-        Previously hashed directories that are not discovered again during
+        Previously digested directories that are not discovered again during
         a subsequent scan are marked and counted as *orphaned*.
 
-        This operation is blocking. It can be aborted by another request
+        This operation is blocking and locks the database while running.
       tags:
-        - Media Directory Tracker
+        - Media Tracker
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
       requestBody:
@@ -375,7 +338,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ScanMediaDirectoriesRequestBody'
+              $ref: '#/components/schemas/MediaTrackerDigestDirectoriesRequestBody'
       responses:
         '200':
           description: |
@@ -383,19 +346,123 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ScanMediaDirectoriesResponseBody'
+                $ref: '#/components/schemas/MediaTrackerDigestDirectoriesResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /media-dir-tracker/scan/abort:
+  /c/{collectionUid}/media-tracker/import:
     post:
-      operationId: scanMediaDirectoriesAbort
-      summary: Abort any running directory scan
+      summary: Import sources from changed directories
       description: |
-        Stops a running directory scan before completion.
+        Recursively import media sources located from directories
+        that have been marked as changed.
+
+        This operation is blocking and locks the database while running.
+      tags:
+        - Media Tracker
+      parameters:
+        - $ref: '#/components/parameters/collectionUidPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MediaTrackerImportDirectoriesRequestBody'
+      responses:
+        '200':
+          description: |
+            Operation succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaTrackerImportDirectoriesResponseBody'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /c/{collectionUid}/media-tracker/untrack:
+    post:
+      summary: Discard tracked directories and their contents
+      description: |
+        Recursively purge the tracking status of a directory subtree.
+
+        The media sources (and tracks) that are located in the subtree
+        are unaffected. As a result all these media sources and
+        corresponding tracks become *untracked*.
+
+        Untracked directories can be re-added by a starting new digest
+        operation followed by an import.
+      tags:
+        - Media Tracker
+      parameters:
+        - $ref: '#/components/parameters/collectionUidPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MediaTrackerUntrackRequestBody'
+      responses:
+        '200':
+          description: |
+            Operation succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaTrackerUntrackResponseBody'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /c/{collectionUid}/media-tracker/query-status:
+    post:
+      summary: Query the aggregated status of tracked directories
+      description: |
+      tags:
+        - Media Tracker
+      parameters:
+        - $ref: '#/components/parameters/collectionUidPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MediaTrackerQueryStatusRequestBody'
+      responses:
+        '200':
+          description: |
+            Operation succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaTrackerQueryStatusResponseBody'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /media-tracker/state:
+    get:
+      summary: Query the current state
+      tags:
+        - Media Tracker
+      responses:
+        '200':
+          description: |
+            Operation succeeded.
+          content:
+            application/json:
+              schema:
+                type: string
+                enum:
+                  - idle
+                  - digesting
+                  - importing
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /media-tracker/abort:
+    post:
+      summary: Abort any running tracker task
+      description: |
+        Aborts a running batch operation before completion.
+
+        This function will be invoked implicitly before shutting down the service.
 
         Partial results will be saved in the database.
       tags:
-        - Media Directory Tracker
+        - Media Tracker
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
       responses:
@@ -407,7 +474,6 @@ paths:
 
   /t/{trackUid}:
     get:
-      operationId: loadTrack
       summary: Load a track
       description: |
         Load a single track entity including its media source.
@@ -429,7 +495,6 @@ paths:
           $ref: '#/components/responses/500InternalServerError'
   /t/load:
     post:
-      operationId: loadTracks
       summary: Load multiple tracks
       description: |
         Load multiple track entities including their media sources.
@@ -462,7 +527,6 @@ paths:
 
   /c/{collectionUid}/p:
     get:
-      operationId: listCollectedPlaylists
       summary: List collected playlists
       description: |
         Load collected playlists that have recently been modified (created/updated).
@@ -489,7 +553,6 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
     post:
-      operationId: createCollectedPlaylist
       summary: Create a new, collected playlist
       description: |
         Create a new playlist in a collection.
@@ -520,7 +583,6 @@ paths:
 
   /p/{playlistUid}:
     get:
-      operationId: loadPlaylist
       summary: Load a playlist
       description: |
         Load a playlist entity with all entries referenced by its UID.
@@ -541,7 +603,6 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
     put:
-      operationId: updatePlaylist
       summary: Update a playlist
       description: |
         Update a playlist entity after validating that the provided `header`
@@ -576,7 +637,6 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
     delete:
-      operationId: deletePlaylist
       summary: Delete a playlist
       description: |
         Delete a playlist.
@@ -594,7 +654,6 @@ paths:
 
   /p/{playlistUid}/entries:
     patch:
-      operationId: patchPlaylistEntries
       summary: Patch playlist entries
       description: |
         Modify the playlist's entries by applying a sequence of operations.
@@ -630,7 +689,6 @@ paths:
 
   /about:
     get:
-      operationId: about
       summary: Report service properties
       tags:
         - Administration
@@ -646,7 +704,6 @@ paths:
           $ref: '#/components/responses/500InternalServerError'
   /storage/cleanse:
     post:
-      operationId: cleanseStorage
       summary: Cleanse the database(s)
       tags:
         - Administration
@@ -657,7 +714,6 @@ paths:
           $ref: '#/components/responses/500InternalServerError'
   /storage/optimize:
     post:
-      operationId: optimizeStorage
       summary: Optimize the database(s)
       tags:
         - Administration
@@ -668,7 +724,6 @@ paths:
           $ref: '#/components/responses/500InternalServerError'
   /shutdown:
     post:
-      operationId: shutdown
       summary: Shut down gracefully
       description: |
         Shut down the server after finishing all pending requests.
@@ -1354,7 +1409,7 @@ components:
                       If next slot is empty or if that cue has no in
                       position then playback continues (default behavior).
           * 3 - loop: Continue playback at the in position when reaching
-                      the out positon. If no in position is defined then
+                      the out position. If no in position is defined then
                       playback continues (default behavior).
         type: integer
     CueLabel:
@@ -1954,46 +2009,156 @@ components:
     ReleaseDateTime:
       allOf:
         - $ref: '#/components/schemas/DateTime'
-    MediaDirectoriesTrackingStatusAggregated:
+    MediaTrackerUntrackRequestBody:
       type: object
       properties:
-        current:
-          type: number
-          format: int
-          minimum: 0
-        outdated:
-          type: number
-          format: int
-          minimum: 0
-        added:
-          type: number
-          format: int
-          minimum: 0
-        modified:
-          type: number
-          format: int
-          minimum: 0
-        orphaned:
-          type: number
-          format: int
-          minimum: 0
+        rootUrl:
+          $ref: '#/components/schemas/FileDirectoryUrl'
+        status:
+          $ref: '#/components/schemas/MediaTrackerDirTrackingStatus'
       required:
+        - rootUrl
+    MediaTrackerDirTrackingStatus:
+      type: string
+      enum:
         - current
         - outdated
         - added
         - modified
         - orphaned
-    AggregateMediaDirectoriesTrackingStatusRequestBody:
+    MediaTrackerUntrackResponseBody:
+      type: object
+      properties:
+        purged:
+          type: number
+          format: int
+          minimum: 0
+      required:
+        - purged
+    MediaTrackerQueryStatusRequestBody:
       type: object
       properties:
         rootUrl:
           $ref: '#/components/schemas/FileDirectoryUrl'
-      required:
-        - rootUrl
-    AggregateMediaDirectoriesTrackingStatusResponseBody:
+    MediaTrackerQueryStatusResponseBody:
       allOf:
-        - $ref: '#/components/schemas/MediaDirectoriesTrackingStatusAggregated'
-    ScanMediaDirectoriesRequestBody:
+        - $ref: '#/components/schemas/MediaTrackerStatusSummary'
+    MediaTrackerCompletion:
+      type: string
+      enum:
+        - finished
+        - aborted
+    MediaTrackerStatusSummary:
+      type: object
+      properties:
+        directories:
+          type: object
+          properties:
+            current:
+              type: number
+              format: int
+              minimum: 0
+            outdated:
+              type: number
+              format: int
+              minimum: 0
+            added:
+              type: number
+              format: int
+              minimum: 0
+            modified:
+              type: number
+              format: int
+              minimum: 0
+            orphaned:
+              type: number
+              format: int
+              minimum: 0
+          required:
+            - current
+            - outdated
+            - added
+            - modified
+            - orphaned
+      required:
+        - directories
+    MediaTrackerImportDirectoriesRequestBody:
+      type: object
+      properties:
+        rootUrl:
+          $ref: '#/components/schemas/FileDirectoryUrl'
+        importMode:
+          $ref: '#/components/schemas/MediaImportMode'
+    MediaImportMode:
+      type: string
+      enum:
+        - once
+        - modified
+        - always
+      default: modified
+    MediaTrackerImportDirectoriesResponseBody:
+      oneOf:
+        - type: object
+          properties:
+            completion:
+              $ref: '#/components/schemas/MediaTrackerCompletion'
+            summary:
+              $ref: '#/components/schemas/MediaTrackerImportDirectoriesSummary'
+          required:
+            - completion
+            - summary
+    MediaTrackerImportDirectoriesSummary:
+      type: object
+      properties:
+        directories:
+          type: object
+          properties:
+            skipped:
+              type: number
+              format: int
+              minimum: 0
+          required:
+            - skipped
+        tracks:
+          type: object
+          properties:
+            created:
+              type: number
+              format: int
+              minimum: 0
+            updated:
+              type: number
+              format: int
+              minimum: 0
+            missing:
+              type: number
+              format: int
+              minimum: 0
+            unchanged:
+              type: number
+              format: int
+              minimum: 0
+            notImported:
+              type: number
+              format: int
+              minimum: 0
+            notCreated:
+              type: number
+              format: int
+              minimum: 0
+            notUpdated:
+              type: number
+              format: int
+              minimum: 0
+          required:
+            - created
+            - updated
+            - missing
+            - unchanged
+            - notImported
+            - notCreated
+            - notUpdated
+    MediaTrackerDigestDirectoriesRequestBody:
       type: object
       properties:
         rootUrl:
@@ -2004,12 +2169,7 @@ components:
           minimum: 1
       required:
         - rootUrl
-    DigestCollectedMediaDirectoriesStatus:
-      type: string
-      enum:
-        - finished
-        - aborted
-    DigestCollectedMediaDirectoriesSummary:
+    MediaTrackerDigestDirectoriesSummary:
       type: object
       properties:
         current:
@@ -2038,16 +2198,16 @@ components:
         - modified
         - orphaned
         - skipped
-    ScanMediaDirectoriesResponseBody:
+    MediaTrackerDigestDirectoriesResponseBody:
       oneOf:
         - type: object
           properties:
-            status:
-              $ref: '#/components/schemas/DigestCollectedMediaDirectoriesStatus'
+            completion:
+              $ref: '#/components/schemas/MediaTrackerCompletion'
             summary:
-              $ref: '#/components/schemas/DigestCollectedMediaDirectoriesSummary'
+              $ref: '#/components/schemas/MediaTrackerDigestDirectoriesSummary'
           required:
-            - status
+            - completion
             - summary
     RelocateCollectedMediaSourcesRequestBody:
       type: object
@@ -2097,7 +2257,7 @@ components:
         unchanged:
           type: array
           items:
-            $ref: '#/components/schemas/TrackEntity'
+            $ref: '#/components/schemas/Uri'
         notCreated:
           type: array
           items:
@@ -2298,7 +2458,7 @@ components:
       maximum: 1
       example: 0.83
       description: |
-        Normalized numeric value between 0 and 1 that assignes a score to the tag.
+        Normalized numeric value between 0 and 1 that assigns a score to the tag.
         If not specified the default score is 1.0, i.e. full score.
     TempoBpm:
       type: number
@@ -2474,6 +2634,7 @@ components:
         - $ref: '#/components/schemas/TrackSearchPhraseFieldFilterNode'
         - $ref: '#/components/schemas/TrackSearchNumericFieldFilterNode'
         - $ref: '#/components/schemas/TrackSearchDateTimeFieldFilterNode'
+        - $ref: '#/components/schemas/TrackSearchConditionFilterNode'
         - $ref: '#/components/schemas/TrackSearchTagFilterNode'
         - $ref: '#/components/schemas/TrackSearchCueLabelFilterNode'
         - $ref: '#/components/schemas/TrackSearchAllFilterNode'
@@ -2507,6 +2668,11 @@ components:
           $ref: '#/components/schemas/DateTimeFieldFilter'
       required:
         - dateTime
+    TrackSearchConditionFilterNode:
+      type: string
+      enum:
+        - sourceTracked
+        - sourceUntracked
     TrackSearchPhraseFieldFilterNode:
       type: object
       properties:

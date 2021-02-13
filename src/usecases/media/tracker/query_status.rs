@@ -15,7 +15,23 @@
 
 use super::*;
 
+use aoide_core::entity::EntityUid;
+
+use url::Url;
+
 ///////////////////////////////////////////////////////////////////////
 
-pub mod aggregate_status;
-pub mod scan;
+pub use aoide_repo::media::tracker::DirectoriesStatusSummary;
+
+pub fn query_directories(
+    connection: &SqliteConnection,
+    collection_uid: &EntityUid,
+    root_dir_url: &Url,
+) -> Result<DirectoriesStatusSummary> {
+    let uri_prefix = uri_path_prefix_from_url(root_dir_url)?;
+    let db = RepoConnection::new(connection);
+    Ok(db.transaction::<_, DieselRepoError, _>(|| {
+        let collection_id = db.resolve_collection_id(collection_uid)?;
+        Ok(db.media_tracker_aggregate_directories_tracking_status(collection_id, &uri_prefix)?)
+    })?)
+}

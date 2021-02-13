@@ -1,5 +1,3 @@
-use std::mem::MaybeUninit;
-
 // aoide.org - Copyright (C) 2018-2021 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -15,21 +13,26 @@ use std::mem::MaybeUninit;
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod source;
-pub mod tracker;
+use super::*;
 
-pub const DIGEST_BYTES_LEN: usize = 32;
+use aoide_core::entity::EntityUid;
 
-pub type DigestBytes = [u8; DIGEST_BYTES_LEN];
+use url::Url;
 
-pub fn read_digest_from_slice(bytes: &[u8]) -> Option<DigestBytes> {
-    if bytes.len() == DIGEST_BYTES_LEN {
-        let mut digest = MaybeUninit::<DigestBytes>::uninit();
-        Some(unsafe {
-            (*digest.as_mut_ptr()).copy_from_slice(&bytes[0..DIGEST_BYTES_LEN]);
-            digest.assume_init()
-        })
-    } else {
-        None
-    }
+///////////////////////////////////////////////////////////////////////
+
+pub use aoide_repo::media::tracker::DirTrackingStatus;
+
+pub fn untrack(
+    connection: &SqliteConnection,
+    collection_uid: &EntityUid,
+    root_dir_url: &Url,
+    status: Option<DirTrackingStatus>,
+) -> Result<usize> {
+    let uri_prefix = uri_path_prefix_from_url(root_dir_url)?;
+    let db = RepoConnection::new(connection);
+    Ok(db.transaction::<_, DieselRepoError, _>(|| {
+        let collection_id = db.resolve_collection_id(collection_uid)?;
+        Ok(db.media_tracker_untrack(collection_id, &uri_prefix, status)?)
+    })?)
 }

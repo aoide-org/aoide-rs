@@ -125,14 +125,14 @@ pub enum Status {
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum FinalStatus {
+pub enum Completion {
     Finished,
     Aborted,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Outcome {
-    pub status: FinalStatus,
+    pub completion: Completion,
     pub progress: Progress,
 }
 
@@ -160,21 +160,24 @@ impl ProgressEvent {
 
     pub fn finalize(self) -> Outcome {
         let Self { status, progress } = self;
-        let status = match status {
+        let completion = match status {
             Status::InProgress => {
                 unreachable!("still in progress");
             }
             Status::Failed => {
                 unreachable!("failed");
             }
-            Status::Finished => FinalStatus::Finished,
-            Status::Aborted => FinalStatus::Aborted,
+            Status::Finished => Completion::Finished,
+            Status::Aborted => Completion::Aborted,
         };
-        Outcome { status, progress }
+        Outcome {
+            completion,
+            progress,
+        }
     }
 }
 
-pub fn scan_directories_recursively<
+pub fn digest_directories<
     D: Digest,
     E: Into<Error>,
     NewDigest: FnMut() -> D,
@@ -188,7 +191,7 @@ pub fn scan_directories_recursively<
     mut dir_finished: DirFinished,
     mut report_progress: ReportProgress,
 ) -> Result<Outcome> {
-    log::info!("Scanning all directories in '{}'", root_path.display());
+    log::info!("Digesting all directories in '{}'", root_path.display());
 
     let started = Instant::now();
     let mut progress_event = ProgressEvent {

@@ -106,9 +106,22 @@ pub fn import_faceted_tags(
 ) -> usize {
     let mut import_count = 0;
     let label_value = label_value.into();
+    if label_value.trim().is_empty() {
+        return 0;
+    }
     if let Some(tag_mapping_config) = tag_mapping_config {
         if !tag_mapping_config.label_separator.is_empty() {
-            for split_label_value in label_value.split(&tag_mapping_config.label_separator) {
+            for split_label_value in label_value
+                .split(&tag_mapping_config.label_separator)
+                .filter_map(|s| {
+                    let s = s.trim();
+                    if s.is_empty() {
+                        None
+                    } else {
+                        Some(s)
+                    }
+                })
+            {
                 match try_import_plain_tag(split_label_value, *next_score_value) {
                     Ok(plain_tag) => {
                         tags_map.insert(facet.to_owned().into(), plain_tag);
@@ -123,7 +136,7 @@ pub fn import_faceted_tags(
         }
     }
     if import_count == 0 {
-        match try_import_plain_tag(label_value, *next_score_value) {
+        match try_import_plain_tag(label_value.trim(), *next_score_value) {
             Ok(plain_tag) => {
                 tags_map.insert(facet.to_owned().into(), plain_tag);
                 import_count += 1;

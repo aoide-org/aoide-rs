@@ -44,7 +44,7 @@ pub enum OutMode {
     Next = 2,
 
     /// Continue playback at the in position when reaching
-    /// the out positon, i.e. repeat and loop.
+    /// the out position, i.e. repeat and loop.
     ///
     /// If the cue has no in position then playback continues
     /// (default behavior).

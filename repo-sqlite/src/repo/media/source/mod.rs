@@ -26,18 +26,27 @@ use aoide_core::{media::Source, util::clock::DateTime};
 use aoide_repo::{collection::RecordId as CollectionId, media::source::*};
 
 impl<'db> Repo for crate::prelude::Connection<'db> {
-    fn resolve_media_source_id_by_uri(
+    fn resolve_media_source_id_synchronized_at_by_uri(
         &self,
         collection_id: CollectionId,
         uri: &str,
-    ) -> RepoResult<RecordId> {
+    ) -> RepoResult<(RecordId, Option<DateTime>)> {
         Ok(media_source::table
-            .select(media_source::row_id)
+            .select((
+                media_source::row_id,
+                media_source::synchronized_at,
+                media_source::synchronized_ms,
+            ))
             .filter(media_source::collection_id.eq(RowId::from(collection_id)))
             .filter(media_source::uri.eq(uri))
-            .first::<RowId>(self.as_ref())
-            .map_err(repo_error)?
-            .into())
+            .first::<(RowId, Option<String>, Option<i64>)>(self.as_ref())
+            .map(|(row_id, synchronized_at, synchronized_ms)| {
+                (
+                    row_id.into(),
+                    parse_datetime_opt(synchronized_at.as_deref(), synchronized_ms),
+                )
+            })
+            .map_err(repo_error)?)
     }
 
     fn resolve_media_source_ids_by_uri_predicate(
@@ -113,7 +122,8 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         let query = diesel::insert_into(media_source::table).values(&insertable);
         let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
         debug_assert!(rows_affected == 1);
-        let id = self.resolve_media_source_id_by_uri(collection_id, &created_source.uri)?;
+        let (id, _) = self
+            .resolve_media_source_id_synchronized_at_by_uri(collection_id, &created_source.uri)?;
         Ok(RecordHeader {
             id,
             created_at,

@@ -26,44 +26,132 @@ use aoide_media::{
 
 use aoide_repo::{collection::EntityRepo as _, media::source::Repo as _};
 
-use std::io::BufReader;
+use std::{io::BufReader, path::PathBuf};
 use url::Url;
 
 ///////////////////////////////////////////////////////////////////////
 
-pub mod dir_tracker;
+pub mod tracker;
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum ImportMode {
+    Once,
+    Modified,
+    Always,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum SynchronizedImportMode {
+    Once {
+        synchronized_before: bool,
+    },
+    Modified {
+        last_synchronized_at: Option<DateTime>,
+    },
+    Always,
+}
+
+impl SynchronizedImportMode {
+    pub const fn new(import_mode: ImportMode, last_synchronized_at: Option<DateTime>) -> Self {
+        match import_mode {
+            ImportMode::Once => Self::Once {
+                synchronized_before: last_synchronized_at.is_some(),
+            },
+            ImportMode::Modified => Self::Modified {
+                last_synchronized_at,
+            },
+            ImportMode::Always => Self::Always,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ImportTrackFromFileOutcome {
+    Imported(Track),
+    SkippedSynchronized(DateTime),
+    SkippedDirectory,
+}
 
 pub fn import_track_from_url(
     url: &Url,
+    mode: SynchronizedImportMode,
     config: &ImportTrackConfig,
     flags: ImportTrackFlags,
     collected_at: DateTime,
-) -> Result<Track> {
-    let file = open_local_file_url_for_reading(url)?;
+) -> Result<ImportTrackFromFileOutcome> {
+    let (file_path, file) = if let Some((file_path, file)) = open_local_file_url_for_reading(url)? {
+        (file_path, file)
+    } else {
+        log::debug!("URL {} is a directory", url);
+        return Ok(ImportTrackFromFileOutcome::SkippedDirectory);
+    };
     let file_metadata = file.metadata().map_err(MediaError::from)?;
     let mime = guess_mime_from_url(url)?;
-    let synchronized_at = file_metadata
+    let last_modified_at = file_metadata
         .modified()
         .map(DateTime::from)
         .unwrap_or_else(|_| {
-            log::debug!("Using current time instead of inaccessible last modification time");
+            log::error!("Using current time instead of inaccessible last modification time");
             DateTime::now_utc()
         });
+    match mode {
+        SynchronizedImportMode::Once {
+            synchronized_before,
+        } => {
+            if synchronized_before {
+                log::debug!(
+                    "Skipping reimport of file {} last modified at {}",
+                    file_path.display(),
+                    last_modified_at,
+                );
+                return Ok(ImportTrackFromFileOutcome::SkippedSynchronized(
+                    last_modified_at,
+                ));
+            }
+        }
+        SynchronizedImportMode::Modified {
+            last_synchronized_at,
+        } => {
+            if let Some(last_synchronized_at) = last_synchronized_at {
+                if last_modified_at <= last_synchronized_at {
+                    log::debug!(
+                        "Skipping reimport of synchronized file {} modified at {} <= {}",
+                        file_path.display(),
+                        last_modified_at,
+                        last_synchronized_at
+                    );
+                    return Ok(ImportTrackFromFileOutcome::SkippedSynchronized(
+                        last_modified_at,
+                    ));
+                }
+            } else {
+                log::debug!(
+                    "Last synchronization of file {} modified at {} is unknown",
+                    file_path.display(),
+                    last_modified_at
+                );
+            }
+        }
+        SynchronizedImportMode::Always => {
+            // Continue regardless of last_modified_at
+        }
+    }
     let input = NewTrackInput {
         collected_at,
-        synchronized_at,
+        synchronized_at: last_modified_at,
     };
     let mut reader: Box<dyn Reader> = Box::new(BufReader::new(file));
-    let track = input.try_from_url_into_new_track(url, &mime)?;
-    match mime.as_ref() {
-        "audio/flac" => Ok(flac::ImportTrack.import_track(config, flags, track, &mut reader)?),
-        "audio/mpeg" => Ok(mp3::ImportTrack.import_track(config, flags, track, &mut reader)?),
-        "audio/m4a" | "audio/mp4" => {
-            Ok(mp4::ImportTrack.import_track(config, flags, track, &mut reader)?)
+    let new_track = input.try_from_url_into_new_track(url, &mime)?;
+    let track = match mime.as_ref() {
+        "audio/flac" => flac::ImportTrack.import_track(config, flags, new_track, &mut reader),
+        "audio/mpeg" => mp3::ImportTrack.import_track(config, flags, new_track, &mut reader),
+        "audio/m4a" | "video/mp4" => {
+            mp4::ImportTrack.import_track(config, flags, new_track, &mut reader)
         }
-        "audio/ogg" => Ok(ogg::ImportTrack.import_track(config, flags, track, &mut reader)?),
-        _ => Err(Error::Media(MediaError::UnsupportedContentType(mime))),
-    }
+        "audio/ogg" => ogg::ImportTrack.import_track(config, flags, new_track, &mut reader),
+        _ => Err(MediaError::UnsupportedContentType(mime)),
+    }?;
+    Ok(ImportTrackFromFileOutcome::Imported(track))
 }
 
 pub fn relocate_collected_sources(

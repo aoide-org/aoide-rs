@@ -13,12 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::sync::atomic::AtomicBool;
-
 use super::*;
 
 mod uc {
-    pub use crate::usecases::media::dir_tracker::*;
+    pub use crate::usecases::media::tracker::query_status::*;
 }
 
 use aoide_core::entity::EntityUid;
@@ -31,93 +29,57 @@ use url::Url;
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Params {
     pub root_url: Url,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub max_depth: Option<usize>,
 }
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Summary {
+pub struct DirectoriesStatusSummary {
     pub current: usize,
+    pub outdated: usize,
     pub added: usize,
     pub modified: usize,
     pub orphaned: usize,
-    pub skipped: usize,
-}
-
-impl From<uc::ScanSummary> for Summary {
-    fn from(from: uc::ScanSummary) -> Self {
-        let uc::ScanSummary {
-            current,
-            added,
-            modified,
-            orphaned,
-            skipped,
-        } = from;
-        Self {
-            current,
-            added,
-            modified,
-            orphaned,
-            skipped,
-        }
-    }
-}
-
-#[derive(Debug, Copy, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub enum Status {
-    Finished,
-    Aborted,
-}
-
-impl From<uc::ScanStatus> for Status {
-    fn from(from: uc::ScanStatus) -> Self {
-        use uc::ScanStatus::*;
-        match from {
-            Finished => Self::Finished,
-            Aborted => Self::Aborted,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Outcome {
-    pub status: Status,
-    pub summary: Summary,
+pub struct StatusSummary {
+    pub directories: DirectoriesStatusSummary,
 }
 
-impl From<uc::ScanOutcome> for Outcome {
-    fn from(from: uc::ScanOutcome) -> Self {
-        let uc::ScanOutcome { status, summary } = from;
+impl From<uc::DirectoriesStatusSummary> for DirectoriesStatusSummary {
+    fn from(from: uc::DirectoriesStatusSummary) -> Self {
+        let uc::DirectoriesStatusSummary {
+            current,
+            outdated,
+            added,
+            modified,
+            orphaned,
+        } = from;
         Self {
-            status: status.into(),
-            summary: summary.into(),
+            current,
+            outdated,
+            added,
+            modified,
+            orphaned,
         }
     }
 }
 
 pub type RequestBody = Params;
-pub type ResponseBody = Outcome;
+pub type ResponseBody = StatusSummary;
 
 pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
     collection_uid: &EntityUid,
     request_body: RequestBody,
-    abort_flag: &AtomicBool,
 ) -> Result<ResponseBody> {
-    let RequestBody {
-        root_url,
-        max_depth,
-    } = request_body;
-    Ok(uc::scan_directories_recursively(
-        &pooled_connection,
-        collection_uid,
-        &root_url,
-        max_depth,
-        abort_flag,
+    let RequestBody { root_url } = request_body;
+    Ok(
+        uc::query_directories(&pooled_connection, collection_uid, &root_url).map(
+            |directories| StatusSummary {
+                directories: directories.into(),
+            },
+        )?,
     )
-    .map(Into::into)?)
 }

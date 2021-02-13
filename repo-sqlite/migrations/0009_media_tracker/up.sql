@@ -13,7 +13,7 @@
 -- You should have received a copy of the GNU Affero General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-CREATE TABLE IF NOT EXISTS media_dir_tracker (
+CREATE TABLE IF NOT EXISTS media_tracker_directory (
     -- row header (immutable)
     row_id                 INTEGER PRIMARY KEY,
     row_created_ms         INTEGER NOT NULL,
@@ -28,4 +28,18 @@ CREATE TABLE IF NOT EXISTS media_dir_tracker (
     --
     FOREIGN KEY(collection_id) REFERENCES collection(row_id),
     UNIQUE (collection_id, uri)
+);
+
+CREATE TABLE IF NOT EXISTS media_tracker_source (
+    -- relations (immutable)
+    directory_id           INTEGER NOT NULL,
+    source_id              INTEGER NOT NULL,
+    --
+    FOREIGN KEY(directory_id) REFERENCES media_tracker_directory(row_id),
+    FOREIGN KEY(source_id) REFERENCES media_source(row_id),
+    UNIQUE (directory_id, source_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_media_tracker_source_source_id ON media_tracker_source (
+    source_id
 );

@@ -63,8 +63,15 @@ pub fn guess_mime_from_url(url: &Url) -> Result<Mime> {
         return Err(Error::UnknownContentType);
     }
     mime_guess
+        .clone()
         .into_iter()
-        .find(|mime| mime.type_() == mime::AUDIO)
+        .filter(|mime| mime.type_() == mime::AUDIO)
+        .chain(
+            mime_guess
+                .into_iter()
+                .filter(|mime| mime.type_() == mime::VIDEO),
+        )
+        .next()
         .ok_or(Error::UnknownContentType)
 }
 
@@ -159,7 +166,7 @@ pub fn parse_tempo_bpm(input: &str) -> Option<TempoBpm> {
         Ok(bpm) => {
             let tempo_bpm = TempoBpm(bpm);
             if !tempo_bpm.is_valid() {
-                log::warn!("Invalid tempo parsed from input '{}': {}", input, tempo_bpm);
+                log::info!("Invalid tempo parsed from input '{}': {}", input, tempo_bpm);
                 return None;
             }
             log::debug!("Parsed tempo from input '{}': {}", input, tempo_bpm);

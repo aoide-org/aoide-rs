@@ -594,10 +594,10 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             // Update existing entry
             let id = record_header.id;
             if replace_mode == ReplaceMode::CreateOnly {
-                return Ok(ReplaceOutcome::Orphaned(id, track));
+                return Ok(ReplaceOutcome::NotUpdated(media_source_id, id, track));
             }
             if entity.body == track {
-                return Ok(ReplaceOutcome::Unchanged(id, entity));
+                return Ok(ReplaceOutcome::Unchanged(media_source_id, id, entity));
             }
             let updated_at = DateTime::now_utc();
             if preserve_collected_at {
@@ -611,8 +611,10 @@ impl<'db> EntityRepo for crate::Connection<'db> {
                 track.media_source.collected_at = entity.body.media_source.collected_at;
             }
             if track == entity.body {
-                return Ok(ReplaceOutcome::Unchanged(id, entity));
+                return Ok(ReplaceOutcome::Unchanged(media_source_id, id, entity));
             }
+            log::trace!("original = {:?}", entity.body);
+            log::trace!("updated = {:?}", track);
             if track.media_source != entity.body.media_source {
                 self.update_media_source(media_source_id, updated_at, &track.media_source)?;
             }
@@ -620,7 +622,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             entity.hdr.rev = current_rev.next();
             entity.body = track;
             self.update_track_entity(id, updated_at, media_source_id, &entity)?;
-            Ok(ReplaceOutcome::Updated(id, entity))
+            Ok(ReplaceOutcome::Updated(media_source_id, id, entity))
         } else {
             // Create new entry
             if replace_mode == ReplaceMode::UpdateOnly {
@@ -632,7 +634,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
                 .id;
             let entity = Entity::new(EntityHeader::initial_random(), track);
             let id = self.insert_track_entity(created_at, media_source_id, &entity)?;
-            Ok(ReplaceOutcome::Created(id, entity))
+            Ok(ReplaceOutcome::Created(media_source_id, id, entity))
         }
     }
 

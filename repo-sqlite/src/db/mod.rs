@@ -14,8 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 pub mod collection;
-pub mod media_dir_tracker;
 pub mod media_source;
+pub mod media_tracker;
 pub mod playlist;
 pub mod playlist_entry;
 pub mod track;
@@ -26,8 +26,8 @@ pub mod track_title;
 
 mod join {
     use crate::db::{
-        collection::schema::*, media_source::schema::*, playlist::schema::*,
-        playlist_entry::schema::*, track::schema::*,
+        collection::schema::*, media_source::schema::*, media_tracker::schema::*,
+        playlist::schema::*, playlist_entry::schema::*, track::schema::*,
     };
 
     allow_tables_to_appear_in_same_query!(
@@ -35,6 +35,8 @@ mod join {
         media_source,
         track,
         playlist,
-        playlist_entry
+        playlist_entry,
+        media_tracker_directory,
+        media_tracker_source,
     );
 }

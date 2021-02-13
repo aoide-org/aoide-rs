@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    db::media_dir_tracker::{models::*, schema::*},
+    db::media_tracker::{models::*, schema::*},
     prelude::*,
 };
 
@@ -22,7 +22,8 @@ use aoide_core::util::clock::DateTime;
 
 use aoide_repo::{
     collection::RecordId as CollectionId,
-    media::{dir_tracker::*, DigestBytes},
+    media::source::RecordId as MediaSourceId,
+    media::{tracker::*, DigestBytes},
 };
 
 use num_traits::{FromPrimitive as _, ToPrimitive as _};
@@ -37,16 +38,16 @@ struct StatusCountRow {
 }
 
 impl<'db> Repo for crate::prelude::Connection<'db> {
-    fn media_dir_tracker_update_entries_status(
+    fn media_tracker_update_directories_status(
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
         uri_prefix: &str,
-        old_status: Option<TrackingStatus>,
-        new_status: TrackingStatus,
+        old_status: Option<DirTrackingStatus>,
+        new_status: DirTrackingStatus,
     ) -> RepoResult<usize> {
-        let target = media_dir_tracker::table
-            .filter(media_dir_tracker::collection_id.eq(RowId::from(collection_id)))
+        let target = media_tracker_directory::table
+            .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
             .filter(diesel::dsl::sql(&format!(
                 "substr(uri,1,{})='{}'",
                 uri_prefix.len(),
@@ -54,150 +55,193 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             )));
         let mut query = diesel::update(target)
             .set((
-                media_dir_tracker::row_updated_ms.eq(updated_at.timestamp_millis()),
-                media_dir_tracker::status.eq(new_status.to_i16().expect("new_status")),
+                media_tracker_directory::row_updated_ms.eq(updated_at.timestamp_millis()),
+                media_tracker_directory::status.eq(new_status.to_i16().expect("new_status")),
             ))
             .into_boxed();
         if let Some(old_status) = old_status {
-            query = query
-                .filter(media_dir_tracker::status.eq(old_status.to_i16().expect("old_status")));
+            query = query.filter(
+                media_tracker_directory::status.eq(old_status.to_i16().expect("old_status")),
+            );
         }
         query.execute(self.as_ref()).map_err(repo_error)
     }
 
-    fn media_dir_tracker_delete_entries(
+    fn media_tracker_untrack(
         &self,
         collection_id: CollectionId,
         uri_prefix: &str,
-        status: Option<TrackingStatus>,
+        status: Option<DirTrackingStatus>,
     ) -> RepoResult<usize> {
-        let target = media_dir_tracker::table
-            .filter(media_dir_tracker::collection_id.eq(RowId::from(collection_id)))
+        let target = media_tracker_directory::table
+            .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
             .filter(diesel::dsl::sql(&format!(
                 "substr(uri,1,{})='{}'",
                 uri_prefix.len(),
                 escape_single_quotes(uri_prefix),
-            )))
-            .filter(
-                media_dir_tracker::status
-                    .eq(TrackingStatus::Orphaned.to_i16().expect("not updated")),
-            );
-        let mut query = diesel::delete(target).into_boxed();
+            )));
+        let subselect = target.clone().select(media_tracker_directory::row_id);
         if let Some(status) = status {
-            query = query.filter(media_dir_tracker::status.eq(status.to_i16().expect("status")));
+            // Filter by status
+            let status_filter =
+                media_tracker_directory::status.eq(status.to_i16().expect("status"));
+            diesel::delete(media_tracker_source::table.filter(
+                media_tracker_source::directory_id.eq_any(subselect.filter(status_filter)),
+            ))
+            .execute(self.as_ref())
+            .map_err(repo_error)?;
+            diesel::delete(target.filter(status_filter))
+                .execute(self.as_ref())
+                .map_err(repo_error)
+        } else {
+            // Any status
+            diesel::delete(
+                media_tracker_source::table
+                    .filter(media_tracker_source::directory_id.eq_any(subselect)),
+            )
+            .execute(self.as_ref())
+            .map_err(repo_error)?;
+            diesel::delete(target)
+                .execute(self.as_ref())
+                .map_err(repo_error)
         }
-        query.execute(self.as_ref()).map_err(repo_error)
     }
 
-    fn media_dir_tracker_update_entry_digest(
+    fn media_tracker_update_directory_digest(
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
         uri: &str,
         digest: &DigestBytes,
-    ) -> RepoResult<UpdateOutcome> {
+    ) -> RepoResult<DirUpdateOutcome> {
         // Try to mark outdated entry as current if digest is unchanged (most likely)
-        let target = media_dir_tracker::table
-            .filter(media_dir_tracker::collection_id.eq(RowId::from(collection_id)))
-            .filter(media_dir_tracker::uri.eq(uri))
-            .filter(media_dir_tracker::digest.eq(&digest[..]))
-            // Filtering by TrackingStatus::Outdated allows to safely trigger a rescan even
+        let target = media_tracker_directory::table
+            .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
+            .filter(media_tracker_directory::uri.eq(uri))
+            .filter(media_tracker_directory::digest.eq(&digest[..]))
+            // Filtering by DirTrackingStatus::Outdated allows to safely trigger a rescan even
             // if entries that have previously been marked as added or modified are still
             // pending for subsequent processing, e.g. (re-)importing their metadata.
             // Those entries will finally be skipped (see below).
             .filter(
-                media_dir_tracker::status
-                    .eq(TrackingStatus::Outdated.to_i16().expect("outdated"))
-                    .or(media_dir_tracker::status
-                        .eq(TrackingStatus::Orphaned.to_i16().expect("orphaned"))),
+                media_tracker_directory::status
+                    .eq(DirTrackingStatus::Outdated.to_i16().expect("outdated"))
+                    .or(media_tracker_directory::status
+                        .eq(DirTrackingStatus::Orphaned.to_i16().expect("orphaned"))),
             );
         let query = diesel::update(target).set((
-            media_dir_tracker::row_updated_ms.eq(updated_at.timestamp_millis()),
-            media_dir_tracker::status.eq(TrackingStatus::Current.to_i16().expect("current")),
+            media_tracker_directory::row_updated_ms.eq(updated_at.timestamp_millis()),
+            media_tracker_directory::status
+                .eq(DirTrackingStatus::Current.to_i16().expect("current")),
         ));
         let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
         if rows_affected > 0 {
-            return Ok(UpdateOutcome::Current);
+            return Ok(DirUpdateOutcome::Current);
         }
         // Try to mark existing entry (with any status) as modified if digest has changed (less likely)
-        let target = media_dir_tracker::table
-            .filter(media_dir_tracker::collection_id.eq(RowId::from(collection_id)))
-            .filter(media_dir_tracker::uri.eq(uri))
-            .filter(media_dir_tracker::digest.ne(&digest[..]));
+        let target = media_tracker_directory::table
+            .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
+            .filter(media_tracker_directory::uri.eq(uri))
+            .filter(media_tracker_directory::digest.ne(&digest[..]));
         let query = diesel::update(target).set((
-            media_dir_tracker::row_updated_ms.eq(updated_at.timestamp_millis()),
-            media_dir_tracker::status.eq(TrackingStatus::Modified.to_i16().expect("modified")),
-            media_dir_tracker::digest.eq(&digest[..]),
+            media_tracker_directory::row_updated_ms.eq(updated_at.timestamp_millis()),
+            media_tracker_directory::status
+                .eq(DirTrackingStatus::Modified.to_i16().expect("modified")),
+            media_tracker_directory::digest.eq(&digest[..]),
         ));
         let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
         if rows_affected > 0 {
-            return Ok(UpdateOutcome::Updated);
+            return Ok(DirUpdateOutcome::Updated);
         }
         // Try to add a new entry (least likely)
         let insertable = InsertableRecord::bind(
             updated_at,
             collection_id,
             uri,
-            TrackingStatus::Added,
+            DirTrackingStatus::Added,
             digest,
         );
-        let query = diesel::insert_or_ignore_into(media_dir_tracker::table).values(&insertable);
+        let query =
+            diesel::insert_or_ignore_into(media_tracker_directory::table).values(&insertable);
         let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
         if rows_affected > 0 {
-            return Ok(UpdateOutcome::Inserted);
+            return Ok(DirUpdateOutcome::Inserted);
         }
         // Skip entries that have previously been marked as either added or
         // modified if their digest didn't change.
-        Ok(UpdateOutcome::Skipped)
+        Ok(DirUpdateOutcome::Skipped)
     }
 
-    fn media_dir_tracker_confirm_entry_digest_current(
+    fn media_tracker_confirm_directory(
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
         uri: &str,
         digest: &DigestBytes,
+        media_source_ids: &[MediaSourceId],
     ) -> RepoResult<bool> {
-        let target = media_dir_tracker::table
-            .filter(media_dir_tracker::collection_id.eq(RowId::from(collection_id)))
-            .filter(media_dir_tracker::uri.eq(uri))
-            .filter(media_dir_tracker::digest.eq(&digest[..]));
+        let target = media_tracker_directory::table
+            .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
+            .filter(media_tracker_directory::uri.eq(uri))
+            .filter(media_tracker_directory::digest.eq(&digest[..]));
         let query = diesel::update(target).set((
-            media_dir_tracker::row_updated_ms.eq(updated_at.timestamp_millis()),
-            media_dir_tracker::status.eq(TrackingStatus::Current.to_i16().expect("current")),
+            media_tracker_directory::row_updated_ms.eq(updated_at.timestamp_millis()),
+            media_tracker_directory::status
+                .eq(DirTrackingStatus::Current.to_i16().expect("current")),
         ));
         let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
+        if rows_affected > 0 {
+            let directory_id = media_tracker_directory::table
+                .select(media_tracker_directory::row_id)
+                .filter(media_tracker_directory::uri.eq(uri))
+                .first::<RowId>(self.as_ref())
+                .map_err(repo_error)?;
+            let target = media_tracker_source::table
+                .filter(media_tracker_source::directory_id.eq(directory_id));
+            let _rows_affected = diesel::delete(target)
+                .execute(self.as_ref())
+                .map_err(repo_error)?;
+            for media_source_id in media_source_ids {
+                diesel::insert_into(media_tracker_source::table)
+                    .values((
+                        media_tracker_source::directory_id.eq(directory_id),
+                        media_tracker_source::source_id.eq(RowId::from(*media_source_id)),
+                    ))
+                    .execute(self.as_ref())
+                    .map_err(repo_error)?;
+            }
+        }
         Ok(rows_affected > 0)
     }
 
-    fn media_dir_tracker_load_entry_status(
+    fn media_tracker_load_directory_tracking_status(
         &self,
         collection_id: CollectionId,
         uri: &str,
-    ) -> RepoResult<TrackingStatus> {
-        media_dir_tracker::table
-            .select(media_dir_tracker::status)
-            .filter(media_dir_tracker::collection_id.eq(RowId::from(collection_id)))
-            .filter(media_dir_tracker::uri.eq(uri))
+    ) -> RepoResult<DirTrackingStatus> {
+        media_tracker_directory::table
+            .select(media_tracker_directory::status)
+            .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
+            .filter(media_tracker_directory::uri.eq(uri))
             .first::<i16>(self.as_ref())
             .map_err(repo_error)
-            .map(|val| TrackingStatus::from_i16(val).expect("TrackingStatus"))
+            .map(|val| DirTrackingStatus::from_i16(val).expect("DirTrackingStatus"))
     }
 
-    fn media_dir_tracker_update_load_aggregate_status(
+    fn media_tracker_aggregate_directories_tracking_status(
         &self,
         collection_id: CollectionId,
         uri_prefix: &str,
-    ) -> RepoResult<TrackingStatusAggregated> {
+    ) -> RepoResult<DirectoriesStatusSummary> {
         // TODO: Remove with type-safe query when group_by() is available
         /*
-        media_dir_tracker::table
-            .select((media_dir_tracker::status, diesel::dsl::count_star))
-            .filter(media_dir_tracker::collection_id.eq(RowId::from(collection_id)))
+        media_tracker_directory::table
+            .select((media_tracker_directory::status, diesel::dsl::count_star))
+            .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
             .filter(diesel::dsl::sql(&format!(
                 "substr(uri,1,{})='{}'",
                 uri_prefix.len(),
@@ -209,7 +253,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         */
         let sql = format!(
             "SELECT status, COUNT(*) as count \
-        FROM media_dir_tracker \
+        FROM media_tracker_directory \
         WHERE collection_id={collection_id} AND \
         substr(uri,1,{uri_prefix_len})='{escaped_uri_prefix}' \
         GROUP BY status",
@@ -222,29 +266,30 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             .map_err(repo_error)
             .map(|v| {
                 v.into_iter().fold(
-                    TrackingStatusAggregated::default(),
+                    DirectoriesStatusSummary::default(),
                     |mut aggregate_status, row| {
                         let StatusCountRow { status, count } = row;
-                        let status = TrackingStatus::from_i16(status).expect("TrackingStatus");
+                        let status =
+                            DirTrackingStatus::from_i16(status).expect("DirTrackingStatus");
                         let count = (count as u64) as usize;
                         match status {
-                            TrackingStatus::Current => {
+                            DirTrackingStatus::Current => {
                                 debug_assert_eq!(aggregate_status.current, 0);
                                 aggregate_status.current = count;
                             }
-                            TrackingStatus::Outdated => {
+                            DirTrackingStatus::Outdated => {
                                 debug_assert_eq!(aggregate_status.outdated, 0);
                                 aggregate_status.outdated = count;
                             }
-                            TrackingStatus::Added => {
+                            DirTrackingStatus::Added => {
                                 debug_assert_eq!(aggregate_status.added, 0);
                                 aggregate_status.added = count;
                             }
-                            TrackingStatus::Modified => {
+                            DirTrackingStatus::Modified => {
                                 debug_assert_eq!(aggregate_status.modified, 0);
                                 aggregate_status.modified = count;
                             }
-                            TrackingStatus::Orphaned => {
+                            DirTrackingStatus::Orphaned => {
                                 debug_assert_eq!(aggregate_status.orphaned, 0);
                                 aggregate_status.orphaned = count;
                             }
@@ -255,24 +300,25 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             })
     }
 
-    fn media_dir_tracker_load_pending_entries(
+    fn media_tracker_load_directories_requiring_confirmation(
         &self,
         collection_id: CollectionId,
         uri_prefix: Option<&str>,
         pagination: &Pagination,
-    ) -> RepoResult<Vec<Entry>> {
-        let mut query = media_dir_tracker::table
-            .filter(media_dir_tracker::collection_id.eq(RowId::from(collection_id)))
+    ) -> RepoResult<Vec<TrackedDirectory>> {
+        let mut query = media_tracker_directory::table
+            .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
             // Status is pending
             .filter(
-                media_dir_tracker::status
-                    .eq(TrackingStatus::Added.to_i16().unwrap())
-                    .or(media_dir_tracker::status.eq(TrackingStatus::Modified.to_i16().unwrap())),
+                media_tracker_directory::status
+                    .eq(DirTrackingStatus::Added.to_i16().unwrap())
+                    .or(media_tracker_directory::status
+                        .eq(DirTrackingStatus::Modified.to_i16().unwrap())),
             )
             // Oldest first
-            .order_by(media_dir_tracker::row_updated_ms)
+            .order_by(media_tracker_directory::row_updated_ms)
             // then order by URI for disambiguation
-            .then_order_by(media_dir_tracker::uri)
+            .then_order_by(media_tracker_directory::uri)
             .into_boxed();
         if let Some(uri_prefix) = uri_prefix {
             query = query.filter(diesel::dsl::sql(&format!(

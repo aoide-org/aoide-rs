@@ -17,10 +17,8 @@ use std::sync::atomic::AtomicBool;
 
 use super::*;
 
-use crate::api::web::{media::ImportMode, tracks::replace_collected::ReplaceMode};
-
 mod uc {
-    pub use crate::usecases::tracks::replace::*;
+    pub use crate::usecases::media::tracker::import::*;
 }
 
 mod _core {
@@ -37,53 +35,82 @@ use aoide_media::{
     util::tag::{FacetedTagMappingConfigInner, TagMappingConfig},
 };
 
+use url::Url;
+
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Summary {
-    pub created: Vec<Entity>,
-    pub updated: Vec<Entity>,
-    pub unchanged: Vec<String>,
-    pub not_imported: Vec<String>,
-    pub not_created: Vec<Track>,
-    pub not_updated: Vec<Track>,
+pub struct Params {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub root_url: Option<Url>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub import_mode: Option<ImportMode>,
 }
 
-impl From<uc::Summary> for Summary {
-    fn from(from: uc::Summary) -> Self {
-        let uc::Summary {
+#[derive(Clone, Debug, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct TrackSummary {
+    pub created: usize,
+    pub updated: usize,
+    pub missing: usize,
+    pub unchanged: usize,
+    pub not_imported: usize,
+    pub not_created: usize,
+    pub not_updated: usize,
+}
+
+impl From<uc::TrackSummary> for TrackSummary {
+    fn from(from: uc::TrackSummary) -> Self {
+        let uc::TrackSummary {
             created,
             updated,
+            missing,
             unchanged,
             not_imported,
             not_created,
             not_updated,
         } = from;
         Self {
-            created: created.into_iter().map(Into::into).collect(),
-            updated: updated.into_iter().map(Into::into).collect(),
-            unchanged: unchanged.into_iter().map(Into::into).collect(),
-            not_imported: not_imported.into_iter().map(Into::into).collect(),
-            not_created: not_created.into_iter().map(Into::into).collect(),
-            not_updated: not_updated.into_iter().map(Into::into).collect(),
+            created,
+            updated,
+            missing,
+            unchanged,
+            not_imported,
+            not_created,
+            not_updated,
         }
     }
 }
 
-#[derive(Debug, Copy, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub enum Completion {
-    Finished,
-    Aborted,
+#[derive(Debug, Clone, Serialize)]
+pub struct DirectorySummary {
+    pub skipped: usize,
 }
 
-impl From<uc::Completion> for Completion {
-    fn from(from: uc::Completion) -> Self {
-        use uc::Completion::*;
-        match from {
-            Finished => Self::Finished,
-            Aborted => Self::Aborted,
+impl From<uc::DirectorySummary> for DirectorySummary {
+    fn from(from: uc::DirectorySummary) -> Self {
+        let uc::DirectorySummary { skipped } = from;
+        Self { skipped }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Summary {
+    pub tracks: TrackSummary,
+    pub directories: DirectorySummary,
+}
+
+impl From<uc::Summary> for Summary {
+    fn from(from: uc::Summary) -> Self {
+        let uc::Summary {
+            tracks,
+            directories,
+        } = from;
+        Self {
+            tracks: tracks.into(),
+            directories: directories.into(),
         }
     }
 }
@@ -100,7 +127,6 @@ impl From<uc::Outcome> for Outcome {
         let uc::Outcome {
             completion,
             summary,
-            media_source_ids: _,
         } = from;
         Self {
             completion: completion.into(),
@@ -109,33 +135,21 @@ impl From<uc::Outcome> for Outcome {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct QueryParams {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub import_mode: Option<ImportMode>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub replace_mode: Option<ReplaceMode>,
-}
-
-pub type RequestBody = Vec<String>;
+pub type RequestBody = Params;
 
 pub type ResponseBody = Outcome;
 
 pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
     collection_uid: &_core::EntityUid,
-    query_params: QueryParams,
     request_body: RequestBody,
     abort_flag: &AtomicBool,
 ) -> Result<ResponseBody> {
-    let QueryParams {
+    let RequestBody {
+        root_url,
         import_mode,
-        replace_mode,
-    } = query_params;
+    } = request_body;
     let import_mode = import_mode.unwrap_or(ImportMode::Modified);
-    let replace_mode = replace_mode.unwrap_or(ReplaceMode::UpdateOrCreate);
     // FIXME: Replace hard-coded tag mapping config
     let mut faceted_tag_mapping_config = FacetedTagMappingConfigInner::default();
     faceted_tag_mapping_config.insert(
@@ -160,16 +174,13 @@ pub fn handle_request(
         | ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK
         | ImportTrackFlags::MIXXX_CUSTOM_TAGS
         | ImportTrackFlags::SERATO_TAGS;
-    let file_uri_count = request_body.len();
-    Ok(uc::import_and_replace_by_media_source_uri(
+    Ok(uc::import(
         &pooled_connection,
         collection_uid,
+        root_url.as_ref(),
         import_mode.into(),
         &import_config,
         import_flags,
-        replace_mode.into(),
-        request_body.into_iter().map(Into::into),
-        Some(file_uri_count),
         abort_flag,
     )
     .map(Into::into)?)

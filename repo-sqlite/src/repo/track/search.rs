@@ -14,7 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    db::{media_source::schema::*, track::schema::*, track_cue::schema::*, track_tag::schema::*},
+    db::{
+        media_source::schema::*, media_tracker::schema::*, track::schema::*, track_cue::schema::*,
+        track_tag::schema::*,
+    },
     prelude::*,
 };
 
@@ -23,8 +26,8 @@ use aoide_core::util::clock::YYYYMMDD;
 use aoide_repo::{
     tag::Filter as TagFilter,
     track::{
-        DateTimeField, DateTimeFieldFilter, NumericField, NumericFieldFilter, PhraseFieldFilter,
-        SearchFilter, SortField, SortOrder, StringField,
+        ConditionFilter, DateTimeField, DateTimeFieldFilter, NumericField, NumericFieldFilter,
+        PhraseFieldFilter, SearchFilter, SortField, SortOrder, StringField,
     },
 };
 
@@ -760,6 +763,22 @@ fn build_datetime_field_filter_expression(
     }
 }
 
+fn build_condition_filter_expression(
+    filter: ConditionFilter,
+) -> TrackSearchBoxedExpression<'static> {
+    use ConditionFilter::*;
+    match filter {
+        SourceTracked => Box::new(
+            media_source::row_id
+                .eq_any(media_tracker_source::table.select(media_tracker_source::source_id)),
+        ),
+        SourceUntracked => Box::new(
+            media_source::row_id
+                .ne_all(media_tracker_source::table.select(media_tracker_source::source_id)),
+        ),
+    }
+}
+
 fn select_track_ids_matching_tag_filter<'a, DB>(
     tag_filter: &'a TagFilter,
 ) -> (
@@ -944,6 +963,7 @@ impl TrackSearchBoxedExpressionBuilder for SearchFilter {
             Phrase(filter) => build_phrase_field_filter_expression(filter),
             Numeric(filter) => build_numeric_field_filter_expression(filter),
             DateTime(filter) => build_datetime_field_filter_expression(filter),
+            Condition(filter) => build_condition_filter_expression(*filter),
             Tag(filter) => build_tag_filter_expression(filter),
             CueLabel(filter) => build_cue_label_filter_expression(filter.borrow()),
             All(filters) => filters

@@ -47,28 +47,19 @@ impl From<ReplaceMode> for uc::ReplaceMode {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct QueryParams {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub mode: Option<ReplaceMode>,
-}
-
-pub type RequestBody = Vec<Track>;
-
 #[derive(Clone, Debug, Default, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct ResponseBody {
+pub struct Summary {
     pub created: Vec<Entity>,
     pub updated: Vec<Entity>,
-    pub unchanged: Vec<Entity>,
+    pub unchanged: Vec<String>,
     pub not_created: Vec<Track>,
     pub not_updated: Vec<Track>,
 }
 
-impl From<uc::Outcome> for ResponseBody {
-    fn from(from: uc::Outcome) -> Self {
-        let uc::Outcome {
+impl From<uc::Summary> for Summary {
+    fn from(from: uc::Summary) -> Self {
+        let uc::Summary {
             created,
             updated,
             unchanged,
@@ -87,18 +78,29 @@ impl From<uc::Outcome> for ResponseBody {
     }
 }
 
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct QueryParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub replace_mode: Option<ReplaceMode>,
+}
+
+pub type RequestBody = Vec<Track>;
+
+pub type ResponseBody = Summary;
+
 pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
     collection_uid: &_core::EntityUid,
     query_params: QueryParams,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
-    let QueryParams { mode } = query_params;
-    let mode = mode.unwrap_or(ReplaceMode::UpdateOrCreate);
+    let QueryParams { replace_mode } = query_params;
+    let replace_mode = replace_mode.unwrap_or(ReplaceMode::UpdateOrCreate);
     Ok(uc::replace_by_media_source_uri(
         &pooled_connection,
         collection_uid,
-        mode.into(),
+        replace_mode.into(),
         request_body.into_iter().map(Into::into),
     )
     .map(Into::into)?)

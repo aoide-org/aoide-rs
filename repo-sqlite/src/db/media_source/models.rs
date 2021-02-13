@@ -123,7 +123,7 @@ impl From<QueryableRecord> for (RecordHeader, Source) {
         };
         let source = Source {
             collected_at: parse_datetime(&collected_at, collected_ms),
-            synchronized_at: parse_datetime_opt(&synchronized_at, synchronized_ms),
+            synchronized_at: parse_datetime_opt(synchronized_at.as_deref(), synchronized_ms),
             uri,
             content_type,
             content_digest,

@@ -148,7 +148,7 @@ pub fn load_repo_entity(
     };
     let entity_hdr = entity_header_from_sql(&entity_uid, entity_rev);
     let released_at = if let Some(released_at) = released_at {
-        let released_at = parse_datetime_opt(&Some(released_at), released_ms);
+        let released_at = parse_datetime_opt(Some(released_at.as_str()), released_ms);
         debug_assert_eq!(
             released_at.map(Into::into),
             released_at_yyyymmdd.map(DateYYYYMMDD::new),
@@ -217,7 +217,7 @@ pub fn load_repo_entity(
         None
     };
     let play_counter = PlayCounter {
-        last_played_at: parse_datetime_opt(&last_played_at, last_played_ms),
+        last_played_at: parse_datetime_opt(last_played_at.as_deref(), last_played_ms),
         times_played: times_played.map(|val| val as PlayCount),
     };
     let track = Track {

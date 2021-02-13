@@ -65,6 +65,12 @@ pub enum DateTimeField {
     SourceSynchronizedAt,
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum ConditionFilter {
+    SourceTracked,
+    SourceUntracked,
+}
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct ScalarFieldFilter<F, V> {
     pub field: F,
@@ -133,6 +139,7 @@ pub enum SearchFilter {
     Phrase(PhraseFieldFilter),
     Numeric(NumericFieldFilter),
     DateTime(DateTimeFieldFilter),
+    Condition(ConditionFilter),
     Tag(tag::Filter),
     CueLabel(StringFilter),
     All(Vec<SearchFilter>),
@@ -161,11 +168,11 @@ pub enum ReplaceMode {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ReplaceOutcome {
+    Created(MediaSourceId, RecordId, Entity),
+    Updated(MediaSourceId, RecordId, Entity),
+    Unchanged(MediaSourceId, RecordId, Entity),
     NotCreated(Track),
-    Orphaned(RecordId, Track),
-    Created(RecordId, Entity),
-    Updated(RecordId, Entity),
-    Unchanged(RecordId, Entity),
+    NotUpdated(MediaSourceId, RecordId, Track),
 }
 
 pub trait EntityRepo: MediaSourceRepo {

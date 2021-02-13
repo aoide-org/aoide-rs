@@ -64,22 +64,33 @@ use triseratops::tag::{
 fn parse_timestamp(timestamp: id3::Timestamp) -> DateOrDateTime {
     match (timestamp.month, timestamp.day) {
         (Some(month), Some(day)) => {
-            let date = NaiveDate::from_ymd(timestamp.year, month.into(), day.into());
-            if let (Some(hour), Some(min), Some(sec)) =
-                (timestamp.hour, timestamp.minute, timestamp.second)
-            {
-                let time = NaiveTime::from_hms(hour.into(), min.into(), sec.into());
-                DateTime::from(chrono::DateTime::<Utc>::from_utc(
-                    NaiveDateTime::new(date, time),
-                    Utc,
-                ))
-                .into()
-            } else {
+            let date = NaiveDate::from_ymd_opt(timestamp.year, month.into(), day.into());
+            if let Some(date) = date {
+                if let (Some(hour), Some(min), Some(sec)) =
+                    (timestamp.hour, timestamp.minute, timestamp.second)
+                {
+                    let time = NaiveTime::from_hms_opt(hour.into(), min.into(), sec.into());
+                    if let Some(time) = time {
+                        return DateTime::from(chrono::DateTime::<Utc>::from_utc(
+                            NaiveDateTime::new(date, time),
+                            Utc,
+                        ))
+                        .into();
+                    }
+                }
                 DateYYYYMMDD::from(date).into()
+            } else if month > 0 && month <= 12 {
+                DateYYYYMMDD::from_year_month(timestamp.year as YearType, month as MonthType).into()
+            } else {
+                DateYYYYMMDD::from_year(timestamp.year as YearType).into()
             }
         }
         (Some(month), None) => {
-            DateYYYYMMDD::from_year_month(timestamp.year as YearType, month as MonthType).into()
+            if month > 0 && month <= 12 {
+                DateYYYYMMDD::from_year_month(timestamp.year as YearType, month as MonthType).into()
+            } else {
+                DateYYYYMMDD::from_year(timestamp.year as YearType).into()
+            }
         }
         _ => DateYYYYMMDD::from_year(timestamp.year as YearType).into(),
     }

@@ -20,30 +20,37 @@ pub mod dir_digest;
 use super::{Error, IoError, Result};
 
 use anyhow::anyhow;
-use std::{fs::File, io::ErrorKind};
+use std::{fs::File, io::ErrorKind, path::PathBuf};
 use url::Url;
 
 pub use mime::Mime;
 
-pub fn open_local_file_url_for_reading(url: &Url) -> Result<File> {
-    log::debug!("Opening local file URL '{}' for reading", url);
+pub fn local_file_path_from_url(url: &Url) -> Result<PathBuf> {
     if url.scheme() != "file" {
         return Err(Error::Io(IoError::new(
             ErrorKind::Other,
             anyhow!("Unsupported URL scheme '{}'", url.scheme()),
         )));
     }
-    if let Ok(file_path) = url.to_file_path() {
-        log::debug!("Importing track from local file {:?}", file_path);
-        Ok(File::open(std::path::Path::new(&file_path))?)
-    } else {
+    url.to_file_path().map_err(|()| {
         log::debug!(
             "Failed to convert URL '{}', into a local, absolute file path",
             url
         );
-        Err(Error::Io(IoError::new(
+        Error::Io(IoError::new(
             ErrorKind::Other,
             anyhow!("Invalid or unsupported URL: {}", url),
-        )))
+        ))
+    })
+}
+
+pub fn open_local_file_url_for_reading(url: &Url) -> Result<Option<(PathBuf, File)>> {
+    log::debug!("Opening local file URL '{}' for reading", url);
+    let file_path = local_file_path_from_url(url)?;
+    if file_path.canonicalize()?.is_dir() {
+        return Ok(None);
     }
+    log::debug!("Importing track from local file {:?}", file_path);
+    let file = File::open(std::path::Path::new(&file_path))?;
+    Ok(Some((file_path, file)))
 }

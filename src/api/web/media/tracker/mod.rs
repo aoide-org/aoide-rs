@@ -13,18 +13,32 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::db::collection::schema::*;
+///////////////////////////////////////////////////////////////////////
 
-table! {
-    media_dir_tracker (row_id) {
-        row_id -> BigInt,
-        row_created_ms -> BigInt,
-        row_updated_ms -> BigInt,
-        collection_id -> BigInt,
-        uri -> Text,
-        status -> SmallInt,
-        digest -> Binary,
-    }
+use super::*;
+
+pub mod digest;
+pub mod import;
+pub mod query_status;
+pub mod untrack;
+
+mod uc {
+    pub use crate::usecases::media::tracker::*;
 }
 
-joinable!(media_dir_tracker -> collection (collection_id));
+#[derive(Debug, Copy, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Completion {
+    Finished,
+    Aborted,
+}
+
+impl From<uc::Completion> for Completion {
+    fn from(from: uc::Completion) -> Self {
+        use uc::Completion::*;
+        match from {
+            Finished => Self::Finished,
+            Aborted => Self::Aborted,
+        }
+    }
+}

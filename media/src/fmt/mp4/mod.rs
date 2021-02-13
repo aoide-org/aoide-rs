@@ -72,7 +72,7 @@ fn read_bitrate(bitrate: u32) -> Option<BitrateBps> {
 
 fn read_channels(channel_config: ChannelConfig) -> Channels {
     use ChannelConfig::*;
-    match channel_config {
+    let channels = match channel_config {
         Mono => Channels::Layout(ChannelLayout::Mono),
         Stereo => Channels::Layout(ChannelLayout::Stereo),
         Three => Channels::Count(ChannelCount(3)),
@@ -80,7 +80,12 @@ fn read_channels(channel_config: ChannelConfig) -> Channels {
         Five => Channels::Count(ChannelCount(5)),
         FiveOne => Channels::Layout(ChannelLayout::FiveOne),
         SevenOne => Channels::Layout(ChannelLayout::SevenOne),
-    }
+    };
+    // Discard the layout and only return the channel count.
+    // In the database only the channel count will be stored.
+    // Otherwise imported metadata would repeatedly be detected
+    // as modified!
+    channels.count().into()
 }
 
 const COM_APPLE_ITUNES_FREEFORM_MEAN: &str = "com.apple.iTunes";
@@ -133,7 +138,12 @@ impl import::ImportTrack for ImportTrack {
             .string(&FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "BPM"))
             .flat_map(parse_tempo_bpm)
             .next()
-            .or_else(|| mp4_tag.bpm().map(|bpm| TempoBpm(Beats::from(bpm))));
+            .or_else(|| {
+                mp4_tag.bpm().and_then(|bpm| {
+                    let bpm = TempoBpm(Beats::from(bpm));
+                    bpm.is_valid().then(|| bpm)
+                })
+            });
         if let Some(tempo_bpm) = tempo_bpm {
             debug_assert!(tempo_bpm.is_valid());
             track.metrics.tempo_bpm = Some(tempo_bpm);
@@ -338,17 +348,14 @@ impl import::ImportTrack for ImportTrack {
             tags_map.remove_faceted_tags(&FACET_GENRE);
             let mut next_score_value = TagScore::max_value();
             for genre_id in mp4_tag.standard_genres() {
-                let genre = STANDARD_GENRES
-                    .iter()
-                    .filter_map(|(id, genre)| if *id == genre_id { Some(*genre) } else { None })
-                    .next();
-                if let Some(genre) = genre {
+                let genre_id = usize::from(genre_id);
+                if genre_id < STANDARD_GENRES.len() {
                     genre_count += import_faceted_tags(
                         &mut tags_map,
                         &mut next_score_value,
                         &FACET_GENRE,
                         None,
-                        genre,
+                        STANDARD_GENRES[genre_id],
                     );
                 }
             }

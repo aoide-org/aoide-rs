@@ -35,6 +35,9 @@ pub enum Error {
     Media(#[from] MediaError),
 
     #[error(transparent)]
+    Io(#[from] std::io::Error),
+
+    #[error(transparent)]
     Database(#[from] diesel::result::Error),
 
     #[error(transparent)]

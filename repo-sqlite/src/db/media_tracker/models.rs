@@ -19,7 +19,7 @@ use aoide_core::util::clock::{DateTime, TimestampMillis};
 
 use aoide_repo::{
     collection::RecordId as CollectionId,
-    media::{dir_tracker::*, read_digest_from_slice, DigestBytes},
+    media::{read_digest_from_slice, tracker::*, DigestBytes},
 };
 
 use num_traits::{FromPrimitive as _, ToPrimitive as _};
@@ -27,7 +27,7 @@ use num_traits::{FromPrimitive as _, ToPrimitive as _};
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Queryable, Identifiable)]
-#[table_name = "media_dir_tracker"]
+#[table_name = "media_tracker_directory"]
 pub struct QueryableRecord {
     pub id: RowId,
     pub row_created_ms: TimestampMillis,
@@ -38,7 +38,7 @@ pub struct QueryableRecord {
     pub digest: Vec<u8>,
 }
 
-impl From<QueryableRecord> for Entry {
+impl From<QueryableRecord> for TrackedDirectory {
     fn from(from: QueryableRecord) -> Self {
         let QueryableRecord {
             id: _,
@@ -49,9 +49,9 @@ impl From<QueryableRecord> for Entry {
             status,
             digest,
         } = from;
-        let status = TrackingStatus::from_i16(status).unwrap_or_else(|| {
+        let status = DirTrackingStatus::from_i16(status).unwrap_or_else(|| {
             log::error!("Invalid entry status value: {}", status);
-            TrackingStatus::Current
+            DirTrackingStatus::Current
         });
         let digest = read_digest_from_slice(digest.as_slice()).unwrap_or_else(|| {
             log::error!("Invalid digest: {:?}", digest.as_slice());
@@ -66,7 +66,7 @@ impl From<QueryableRecord> for Entry {
 }
 
 #[derive(Debug, Insertable)]
-#[table_name = "media_dir_tracker"]
+#[table_name = "media_tracker_directory"]
 pub struct InsertableRecord<'a> {
     pub row_created_ms: TimestampMillis,
     pub row_updated_ms: TimestampMillis,
@@ -81,7 +81,7 @@ impl<'a> InsertableRecord<'a> {
         created_at: DateTime,
         collection_id: CollectionId,
         uri: &'a str,
-        status: TrackingStatus,
+        status: DirTrackingStatus,
         digest: &'a DigestBytes,
     ) -> Self {
         let row_created_ms = created_at.timestamp_millis();
@@ -98,7 +98,7 @@ impl<'a> InsertableRecord<'a> {
 
 #[derive(Debug, AsChangeset)]
 #[changeset_options(treat_none_as_null = "true")]
-#[table_name = "media_dir_tracker"]
+#[table_name = "media_tracker_directory"]
 pub struct UpdateDigest<'a> {
     pub row_updated_ms: TimestampMillis,
     pub status: i16,
@@ -106,7 +106,7 @@ pub struct UpdateDigest<'a> {
 }
 
 impl<'a> UpdateDigest<'a> {
-    pub fn bind(updated_at: DateTime, status: TrackingStatus, digest: &'a DigestBytes) -> Self {
+    pub fn bind(updated_at: DateTime, status: DirTrackingStatus, digest: &'a DigestBytes) -> Self {
         Self {
             row_updated_ms: updated_at.timestamp_millis(),
             status: status.to_i16().expect("status"),

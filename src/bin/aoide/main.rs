@@ -18,7 +18,11 @@
 mod env;
 
 use aoide::{
-    api::web::{collections, handle_rejection, media, playlists, reject_on_error, tracks, Error},
+    api::web::{
+        collections, handle_rejection,
+        media::{self, MediaTrackerState},
+        playlists, reject_on_error, tracks, Error,
+    },
     usecases as uc, *,
 };
 
@@ -27,6 +31,7 @@ use aoide_core::entity::EntityUid;
 use futures::future::{join, FutureExt};
 use std::{
     collections::HashMap,
+    convert::Infallible,
     env::current_exe,
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -34,7 +39,11 @@ use std::{
     },
     time::Duration,
 };
-use tokio::{sync::mpsc, sync::RwLock, time::sleep};
+use tokio::{
+    sync::RwLock,
+    sync::{mpsc, Mutex},
+    time::sleep,
+};
 use warp::{http::StatusCode, Filter};
 
 ///////////////////////////////////////////////////////////////////////
@@ -106,7 +115,7 @@ where
     }
 }
 
-static SCAN_MEDIA_DIRECTORIES_ABORT_FLAG: AtomicBool = AtomicBool::new(false);
+static MEDIA_TRACKER_ABORT_FLAG: AtomicBool = AtomicBool::new(false);
 
 #[tokio::main]
 pub async fn main() -> Result<(), Error> {
@@ -143,10 +152,12 @@ pub async fn main() -> Result<(), Error> {
     // thread and has to be done in a spawned thread to prevent locking of
     // executor threads!
     let guarded_connection_pool = Arc::new(RwLock::new(connection_pool));
+    let guarded_connection_pool = warp::any().map(move || guarded_connection_pool.clone());
+
+    let media_tracker_state = Arc::new(Mutex::new(MediaTrackerState::Idle));
+    let media_tracker_state = warp::any().map(move || media_tracker_state.clone());
 
     log::info!("Creating service routes");
-
-    let guarded_connection_pool = warp::any().map(move || guarded_connection_pool.clone());
 
     // POST /shutdown
     let (server_shutdown_tx, mut server_shutdown_rx) = mpsc::unbounded_channel::<()>();
@@ -201,7 +212,7 @@ pub async fn main() -> Result<(), Error> {
     let tracks_path = warp::path("t");
     let playlists_path = warp::path("p");
     let media_path = warp::path("m");
-    let media_dir_tracker_path = warp::path("media-dir-tracker");
+    let media_tracker_path = warp::path("media-tracker");
     let storage_path = warp::path("storage");
 
     // Collections
@@ -340,11 +351,28 @@ pub async fn main() -> Result<(), Error> {
             },
         );
 
-    let media_dir_tracker_aggregate_status = warp::post()
+    async fn reply_media_tracker_state(
+        media_tracker_state: Arc<Mutex<MediaTrackerState>>,
+    ) -> Result<impl warp::Reply, Infallible> {
+        let state = *media_tracker_state.lock().await;
+        Ok(warp::reply::json(&state))
+    }
+
+    let media_tracker_get_state = warp::get()
+        .and(media_tracker_path)
+        .and(warp::path("state"))
+        .and(warp::path::end())
+        .and(media_tracker_state.clone())
+        .and_then(
+            |media_tracker_state: Arc<Mutex<MediaTrackerState>>| async move {
+                reply_media_tracker_state(media_tracker_state).await
+            },
+        );
+    let media_tracker_post_query_status = warp::post()
         .and(collections_path)
         .and(path_param_uid)
-        .and(media_dir_tracker_path)
-        .and(warp::path("aggregate-status"))
+        .and(media_tracker_path)
+        .and(warp::path("query-status"))
         .and(warp::path::end())
         .and(warp::body::json())
         .and(guarded_connection_pool.clone())
@@ -353,7 +381,7 @@ pub async fn main() -> Result<(), Error> {
                 spawn_blocking_database_read_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
-                        media::dir_tracker::aggregate_status::handle_request(
+                        media::tracker::query_status::handle_request(
                             pooled_connection,
                             &uid,
                             request_body,
@@ -365,11 +393,81 @@ pub async fn main() -> Result<(), Error> {
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
-    let media_dir_tracker_scan_directories = warp::post()
+    let media_tracker_post_digest = warp::post()
         .and(collections_path)
         .and(path_param_uid)
-        .and(media_dir_tracker_path)
-        .and(warp::path("scan"))
+        .and(media_tracker_path)
+        .and(warp::path("digest"))
+        .and(warp::path::end())
+        .and(warp::body::json())
+        .and(guarded_connection_pool.clone())
+        .and(media_tracker_state.clone())
+        .and_then(
+            |uid,
+             request_body,
+             guarded_connection_pool: GuardedConnectionPool,
+             media_tracker_state: Arc<Mutex<MediaTrackerState>>| async move {
+                *media_tracker_state.lock().await = MediaTrackerState::Digesting;
+                let response = spawn_blocking_database_write_task(
+                    guarded_connection_pool,
+                    move |pooled_connection| {
+                        // Reset abort flag before starting the next batch operation
+                        MEDIA_TRACKER_ABORT_FLAG.store(false, Ordering::Relaxed);
+                        media::tracker::digest::handle_request(
+                            pooled_connection,
+                            &uid,
+                            request_body,
+                            &MEDIA_TRACKER_ABORT_FLAG,
+                        )
+                    },
+                )
+                .await
+                .map_err(reject_on_error)
+                .map(|response_body| warp::reply::json(&response_body));
+                *media_tracker_state.lock().await = MediaTrackerState::Idle;
+                response
+            },
+        );
+    let media_tracker_post_import = warp::post()
+        .and(collections_path)
+        .and(path_param_uid)
+        .and(media_tracker_path)
+        .and(warp::path("import"))
+        .and(warp::path::end())
+        .and(warp::body::json())
+        .and(guarded_connection_pool.clone())
+        .and(media_tracker_state.clone())
+        .and_then(
+            |uid,
+             request_body,
+             guarded_connection_pool: GuardedConnectionPool,
+             media_tracker_state: Arc<Mutex<MediaTrackerState>>| async move {
+                *media_tracker_state.lock().await = MediaTrackerState::Importing;
+                let response = spawn_blocking_database_write_task(
+                    guarded_connection_pool,
+                    move |pooled_connection| {
+                        // Reset abort flag before starting the batch operation
+                        MEDIA_TRACKER_ABORT_FLAG.store(false, Ordering::Relaxed);
+                        media::tracker::import::handle_request(
+                            pooled_connection,
+                            &uid,
+                            request_body,
+                            &MEDIA_TRACKER_ABORT_FLAG,
+                        )
+                    },
+                )
+                .await
+                .map_err(reject_on_error)
+                .map(|response_body| warp::reply::json(&response_body));
+                *media_tracker_state.lock().await = MediaTrackerState::Idle;
+                response
+            },
+        );
+    let media_tracker_post_untrack = warp::post()
+        .and(collections_path)
+        .and(path_param_uid)
+        .and(media_tracker_path)
+        .and(warp::path("untrack"))
         .and(warp::path::end())
         .and(warp::body::json())
         .and(guarded_connection_pool.clone())
@@ -378,13 +476,10 @@ pub async fn main() -> Result<(), Error> {
                 spawn_blocking_database_write_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
-                        // Reset abort flag before starting the next scan
-                        SCAN_MEDIA_DIRECTORIES_ABORT_FLAG.store(false, Ordering::Relaxed);
-                        media::dir_tracker::scan::handle_request(
+                        media::tracker::untrack::handle_request(
                             pooled_connection,
                             &uid,
                             request_body,
-                            &SCAN_MEDIA_DIRECTORIES_ABORT_FLAG,
                         )
                     },
                 )
@@ -393,15 +488,20 @@ pub async fn main() -> Result<(), Error> {
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
-    let media_dir_tracker_scan_directories_abort = warp::post()
-        .and(media_dir_tracker_path)
-        .and(warp::path("scan"))
+    let media_tracker_post_abort = warp::post()
+        .and(media_tracker_path)
         .and(warp::path("abort"))
         .and(warp::path::end())
         .map(|| {
-            SCAN_MEDIA_DIRECTORIES_ABORT_FLAG.store(true, Ordering::Relaxed);
+            MEDIA_TRACKER_ABORT_FLAG.store(true, Ordering::Relaxed);
             StatusCode::ACCEPTED
         });
+    let media_tracker_filters = media_tracker_get_state
+        .or(media_tracker_post_query_status)
+        .or(media_tracker_post_digest)
+        .or(media_tracker_post_import)
+        .or(media_tracker_post_untrack)
+        .or(media_tracker_post_abort);
 
     let collected_tracks_resolve = warp::post()
         .and(collections_path)
@@ -505,6 +605,7 @@ pub async fn main() -> Result<(), Error> {
                  query_params,
                  request_body,
                  guarded_connection_pool: GuardedConnectionPool| async move {
+                    let abort_flag = AtomicBool::new(false);
                     spawn_blocking_database_write_task(
                         guarded_connection_pool,
                         move |pooled_connection| {
@@ -513,6 +614,7 @@ pub async fn main() -> Result<(), Error> {
                                 &uid,
                                 query_params,
                                 request_body,
+                                &abort_flag,
                             )
                         },
                     )
@@ -784,10 +886,8 @@ pub async fn main() -> Result<(), Error> {
             .or(tracks_filters)
             .or(playlists_filters)
             .or(media_import_track) // undocumented
-            .or(media_dir_tracker_scan_directories)
-            .or(media_dir_tracker_aggregate_status)
             .or(collected_media_sources_relocate)
-            .or(media_dir_tracker_scan_directories_abort)
+            .or(media_tracker_filters)
             .or(storage_filters)
             .or(static_filters)
             .or(shutdown_filter)
@@ -801,7 +901,7 @@ pub async fn main() -> Result<(), Error> {
     let (socket_addr, server_listener) =
         server.bind_with_graceful_shutdown(endpoint_addr, async move {
             server_shutdown_rx.recv().await;
-            SCAN_MEDIA_DIRECTORIES_ABORT_FLAG.store(true, Ordering::Relaxed);
+            MEDIA_TRACKER_ABORT_FLAG.store(true, Ordering::Relaxed);
             log::info!("Stopping");
         });
 

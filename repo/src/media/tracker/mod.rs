@@ -15,7 +15,9 @@
 
 use super::*;
 
-use crate::{collection::RecordId as CollectionId, prelude::*};
+use crate::{
+    collection::RecordId as CollectionId, media::source::RecordId as MediaSourceId, prelude::*,
+};
 
 use aoide_core::util::clock::*;
 
@@ -28,7 +30,7 @@ record_id_newtype!(DirCacheRecordId);
 pub type DirCacheRecordHeader = crate::RecordHeader<DirCacheRecordId>;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, FromPrimitive, ToPrimitive)]
-pub enum TrackingStatus {
+pub enum DirTrackingStatus {
     Current = 0,
     Outdated = 1,
     Added = 2,
@@ -36,7 +38,7 @@ pub enum TrackingStatus {
     Orphaned = 4,
 }
 
-impl TrackingStatus {
+impl DirTrackingStatus {
     /// Determine if an entry is stale.
     pub fn is_stale(self) -> bool {
         match self {
@@ -58,39 +60,39 @@ impl TrackingStatus {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Entry {
+pub struct TrackedDirectory {
     pub uri: String,
-    pub status: TrackingStatus,
+    pub status: DirTrackingStatus,
     pub digest: DigestBytes,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum UpdateOutcome {
+pub enum DirUpdateOutcome {
     Current,
     Inserted,
     Updated,
     Skipped,
 }
 
-impl UpdateOutcome {
-    pub const fn resulting_status(self) -> TrackingStatus {
+impl DirUpdateOutcome {
+    pub const fn resulting_status(self) -> DirTrackingStatus {
         match self {
-            Self::Current => TrackingStatus::Current,
-            Self::Inserted => TrackingStatus::Added,
-            Self::Updated => TrackingStatus::Modified,
-            Self::Skipped => TrackingStatus::Outdated,
+            Self::Current => DirTrackingStatus::Current,
+            Self::Inserted => DirTrackingStatus::Added,
+            Self::Updated => DirTrackingStatus::Modified,
+            Self::Skipped => DirTrackingStatus::Outdated,
         }
     }
 }
 
-impl From<UpdateOutcome> for TrackingStatus {
-    fn from(from: UpdateOutcome) -> Self {
+impl From<DirUpdateOutcome> for DirTrackingStatus {
+    fn from(from: DirUpdateOutcome) -> Self {
         from.resulting_status()
     }
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct TrackingStatusAggregated {
+pub struct DirectoriesStatusSummary {
     pub current: usize,
     pub outdated: usize,
     pub added: usize,
@@ -99,63 +101,82 @@ pub struct TrackingStatusAggregated {
 }
 
 pub trait Repo {
-    fn media_dir_tracker_update_entries_status(
+    fn media_tracker_update_directories_status(
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
         uri_prefix: &str,
-        old_status: Option<TrackingStatus>,
-        new_status: TrackingStatus,
+        old_status: Option<DirTrackingStatus>,
+        new_status: DirTrackingStatus,
     ) -> RepoResult<usize>;
 
-    fn media_dir_tracker_update_entry_digest(
+    fn media_tracker_update_directory_digest(
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
         uri: &str,
         digest: &DigestBytes,
-    ) -> RepoResult<UpdateOutcome>;
+    ) -> RepoResult<DirUpdateOutcome>;
 
-    fn media_dir_tracker_delete_entries(
+    fn media_tracker_untrack(
         &self,
         collection_id: CollectionId,
         uri_prefix: &str,
-        old_status: Option<TrackingStatus>,
+        status: Option<DirTrackingStatus>,
     ) -> RepoResult<usize>;
+
+    fn media_tracker_purge_orphaned_directories(
+        &self,
+        collection_id: CollectionId,
+        uri_prefix: &str,
+    ) -> RepoResult<usize> {
+        self.media_tracker_untrack(collection_id, uri_prefix, Some(DirTrackingStatus::Orphaned))
+    }
 
     /// Mark all current entries as outdated before starting
     /// a directory traversal with calculating new digests.
-    fn media_dir_tracker_mark_entries_outdated(
+    fn media_tracker_mark_current_directories_outdated(
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
         uri_prefix: &str,
     ) -> RepoResult<usize> {
-        self.media_dir_tracker_update_entries_status(
+        self.media_tracker_update_directories_status(
             updated_at,
             collection_id,
             uri_prefix,
-            Some(TrackingStatus::Current),
-            TrackingStatus::Outdated,
+            Some(DirTrackingStatus::Current),
+            DirTrackingStatus::Outdated,
         )
     }
 
     /// Mark all outdated entries that have not been visited
     /// as orphaned.
-    fn media_dir_tracker_mark_entries_orphaned(
+    fn media_tracker_mark_outdated_directories_orphaned(
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
         uri_prefix: &str,
     ) -> RepoResult<usize> {
-        self.media_dir_tracker_update_entries_status(
+        self.media_tracker_update_directories_status(
             updated_at,
             collection_id,
             uri_prefix,
-            Some(TrackingStatus::Outdated),
-            TrackingStatus::Orphaned,
+            Some(DirTrackingStatus::Outdated),
+            DirTrackingStatus::Orphaned,
         )
     }
+
+    /// Load pending entries
+    ///
+    /// Load pending entries, oldest first. Optionally entries can be
+    /// filtered by URI prefix.
+    fn media_tracker_load_directories_requiring_confirmation(
+        &self,
+        collection_id: CollectionId,
+        uri_prefix: Option<&str>,
+        pagination: &Pagination,
+    ) -> RepoResult<Vec<TrackedDirectory>>;
 
     /// Confirm an entry as current.
     ///
@@ -164,36 +185,26 @@ pub trait Repo {
     ///
     /// Returns true if the entry has been confirmed and is now considered
     /// current. Returns false if the operation has been rejected.
-    fn media_dir_tracker_confirm_entry_digest_current(
+    fn media_tracker_confirm_directory(
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
         uri: &str,
         digest: &DigestBytes,
+        media_source_ids: &[MediaSourceId],
     ) -> RepoResult<bool>;
 
-    fn media_dir_tracker_load_entry_status(
+    fn media_tracker_load_directory_tracking_status(
         &self,
         collection_id: CollectionId,
         uri: &str,
-    ) -> RepoResult<TrackingStatus>;
+    ) -> RepoResult<DirTrackingStatus>;
 
-    fn media_dir_tracker_update_load_aggregate_status(
+    fn media_tracker_aggregate_directories_tracking_status(
         &self,
         collection_id: CollectionId,
         uri_prefix: &str,
-    ) -> RepoResult<TrackingStatusAggregated>;
-
-    /// Load pending entries
-    ///
-    /// Load pending entries, oldest first. Optionally entries can be
-    /// filtered by URI prefix.
-    fn media_dir_tracker_load_pending_entries(
-        &self,
-        collection_id: CollectionId,
-        uri_prefix: Option<&str>,
-        pagination: &Pagination,
-    ) -> RepoResult<Vec<Entry>>;
+    ) -> RepoResult<DirectoriesStatusSummary>;
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

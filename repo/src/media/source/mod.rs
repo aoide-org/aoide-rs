@@ -22,11 +22,11 @@ use crate::{collection::RecordId as CollectionId, prelude::*};
 use aoide_core::{media::Source, util::clock::DateTime};
 
 pub trait Repo {
-    fn resolve_media_source_id_by_uri(
+    fn resolve_media_source_id_synchronized_at_by_uri(
         &self,
         collection_id: CollectionId,
         uri: &str,
-    ) -> RepoResult<RecordId>;
+    ) -> RepoResult<(RecordId, Option<DateTime>)>;
     fn resolve_media_source_ids_by_uri_predicate(
         &self,
         collection_id: CollectionId,

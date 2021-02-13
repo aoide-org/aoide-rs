@@ -24,7 +24,7 @@ mod _repo {
         prelude::*,
         tag::Filter as TagFilter,
         track::{
-            DateTimeField, DateTimeFieldFilter, NumericField, NumericFieldFilter,
+            ConditionFilter, DateTimeField, DateTimeFieldFilter, NumericField, NumericFieldFilter,
             PhraseFieldFilter, SearchFilter, SearchParams, SortField, SortOrder, StringField,
         },
     };
@@ -248,6 +248,23 @@ impl From<DateTimeField> for _repo::DateTimeField {
 }
 
 #[derive(Copy, Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ConditionFilter {
+    SourceTracked,
+    SourceUntracked,
+}
+
+impl From<ConditionFilter> for _repo::ConditionFilter {
+    fn from(from: ConditionFilter) -> Self {
+        use ConditionFilter::*;
+        match from {
+            SourceTracked => Self::SourceTracked,
+            SourceUntracked => Self::SourceUntracked,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Deserialize)]
 pub enum ScalarPredicate<V> {
     #[serde(rename = "lt")]
     LessThan(V),
@@ -373,6 +390,7 @@ pub enum SearchFilter {
     Phrase(PhraseFieldFilter),
     Numeric(NumericFieldFilter),
     DateTime(DateTimeFieldFilter),
+    Condition(ConditionFilter),
     Tag(TagFilter),
     CueLabel(StringFilter),
     All(Vec<SearchFilter>),
@@ -387,6 +405,7 @@ impl From<SearchFilter> for _repo::SearchFilter {
             Phrase(from) => Self::Phrase(from.into()),
             Numeric(from) => Self::Numeric(from.into()),
             DateTime(from) => Self::DateTime(from.into()),
+            Condition(from) => Self::Condition(from.into()),
             Tag(from) => Self::Tag(from.into()),
             CueLabel(from) => Self::CueLabel(from.into()),
             All(from) => Self::All(from.into_iter().map(Into::into).collect()),

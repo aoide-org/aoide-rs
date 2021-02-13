@@ -1,5 +1,3 @@
-use std::mem::MaybeUninit;
-
 // aoide.org - Copyright (C) 2018-2021 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -15,21 +13,29 @@ use std::mem::MaybeUninit;
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod source;
-pub mod tracker;
+use crate::db::{collection::schema::*, media_source::schema::*};
 
-pub const DIGEST_BYTES_LEN: usize = 32;
-
-pub type DigestBytes = [u8; DIGEST_BYTES_LEN];
-
-pub fn read_digest_from_slice(bytes: &[u8]) -> Option<DigestBytes> {
-    if bytes.len() == DIGEST_BYTES_LEN {
-        let mut digest = MaybeUninit::<DigestBytes>::uninit();
-        Some(unsafe {
-            (*digest.as_mut_ptr()).copy_from_slice(&bytes[0..DIGEST_BYTES_LEN]);
-            digest.assume_init()
-        })
-    } else {
-        None
+table! {
+    media_tracker_directory (row_id) {
+        row_id -> BigInt,
+        row_created_ms -> BigInt,
+        row_updated_ms -> BigInt,
+        collection_id -> BigInt,
+        uri -> Text,
+        status -> SmallInt,
+        digest -> Binary,
     }
 }
+
+joinable!(media_tracker_directory -> collection (collection_id));
+
+table! {
+    media_tracker_source (row_id) {
+        row_id -> BigInt,
+        directory_id -> BigInt,
+        source_id -> BigInt,
+    }
+}
+
+joinable!(media_tracker_source -> media_tracker_directory (directory_id));
+joinable!(media_tracker_source -> media_source (source_id));

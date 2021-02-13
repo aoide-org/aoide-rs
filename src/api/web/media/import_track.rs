@@ -40,7 +40,7 @@ pub struct QueryParams {
     pub url: Url,
 }
 
-pub type ResponseBody = Track;
+pub type ResponseBody = Option<Track>;
 
 pub fn handle_request(query_params: QueryParams) -> Result<ResponseBody> {
     let QueryParams { url } = query_params;
@@ -63,11 +63,16 @@ pub fn handle_request(query_params: QueryParams) -> Result<ResponseBody> {
     let config = ImportTrackConfig {
         faceted_tag_mapping: faceted_tag_mapping_config.into(),
     };
-    let track = uc::import_track_from_url(
+    let track = match uc::import_track_from_url(
         &url,
+        uc::SynchronizedImportMode::Always,
         &config,
         ImportTrackFlags::all(),
         DateTime::now_local(),
-    )?;
-    Ok(track.into())
+    )? {
+        uc::ImportTrackFromFileOutcome::Imported(track) => Some(track),
+        uc::ImportTrackFromFileOutcome::SkippedSynchronized(_) => unreachable!(),
+        uc::ImportTrackFromFileOutcome::SkippedDirectory => None,
+    };
+    Ok(track.map(Into::into))
 }

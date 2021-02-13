@@ -17,6 +17,35 @@ use super::*;
 
 ///////////////////////////////////////////////////////////////////////
 
-pub mod dir_tracker;
 pub mod import_track;
 pub mod relocate_collected_sources;
+pub mod tracker;
+
+mod uc {
+    pub use crate::usecases::media::ImportMode;
+}
+
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum MediaTrackerState {
+    Idle,
+    Digesting,
+    Importing,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize)]
+pub enum ImportMode {
+    Once,
+    Modified,
+    Always,
+}
+
+impl From<ImportMode> for uc::ImportMode {
+    fn from(from: ImportMode) -> Self {
+        match from {
+            ImportMode::Once => Self::Once,
+            ImportMode::Modified => Self::Modified,
+            ImportMode::Always => Self::Always,
+        }
+    }
+}

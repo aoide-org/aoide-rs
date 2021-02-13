@@ -13,10 +13,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::sync::atomic::AtomicBool;
+
 use super::*;
 
 mod uc {
-    pub use crate::usecases::media::dir_tracker::*;
+    pub use crate::usecases::media::tracker::digest::*;
 }
 
 use aoide_core::entity::EntityUid;
@@ -29,45 +31,79 @@ use url::Url;
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Params {
     pub root_url: Url,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_depth: Option<usize>,
 }
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct TrackingStatusAggregated {
+pub struct Summary {
     pub current: usize,
-    pub outdated: usize,
     pub added: usize,
     pub modified: usize,
     pub orphaned: usize,
+    pub skipped: usize,
 }
 
-impl From<uc::TrackingStatusAggregated> for TrackingStatusAggregated {
-    fn from(from: uc::TrackingStatusAggregated) -> Self {
-        let uc::TrackingStatusAggregated {
+impl From<uc::Summary> for Summary {
+    fn from(from: uc::Summary) -> Self {
+        let uc::Summary {
             current,
-            outdated,
             added,
             modified,
             orphaned,
+            skipped,
         } = from;
         Self {
             current,
-            outdated,
             added,
             modified,
             orphaned,
+            skipped,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct Outcome {
+    pub completion: Completion,
+    pub summary: Summary,
+}
+
+impl From<uc::Outcome> for Outcome {
+    fn from(from: uc::Outcome) -> Self {
+        let uc::Outcome {
+            completion,
+            summary,
+        } = from;
+        Self {
+            completion: completion.into(),
+            summary: summary.into(),
         }
     }
 }
 
 pub type RequestBody = Params;
-pub type ResponseBody = TrackingStatusAggregated;
+pub type ResponseBody = Outcome;
 
 pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
     collection_uid: &EntityUid,
     request_body: RequestBody,
+    abort_flag: &AtomicBool,
 ) -> Result<ResponseBody> {
-    let RequestBody { root_url } = request_body;
-    Ok(uc::aggregate_status(&pooled_connection, collection_uid, &root_url).map(Into::into)?)
+    let RequestBody {
+        root_url,
+        max_depth,
+    } = request_body;
+    Ok(uc::digest_recursively(
+        &pooled_connection,
+        collection_uid,
+        &root_url,
+        max_depth,
+        abort_flag,
+    )
+    .map(Into::into)?)
 }

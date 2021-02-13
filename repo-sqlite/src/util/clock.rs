@@ -26,15 +26,11 @@ pub fn parse_datetime(s: &str, timestamp_millis: TimestampMillis) -> DateTime {
 }
 
 pub fn parse_datetime_opt(
-    s: &Option<String>,
+    s: Option<&str>,
     timestamp_millis: Option<TimestampMillis>,
 ) -> Option<DateTime> {
     debug_assert_eq!(s.is_some(), timestamp_millis.is_some());
-    let res = s
-        .as_ref()
-        .map(String::as_str)
-        .map(FromStr::from_str)
-        .transpose();
+    let res = s.map(FromStr::from_str).transpose();
     debug_assert!(res.is_ok());
     if let Ok(ok) = res {
         ok

@@ -69,6 +69,9 @@ pub enum Error {
     Repository(#[from] RepoError),
 
     #[error(transparent)]
+    Io(#[from] std::io::Error),
+
+    #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
 
@@ -81,6 +84,7 @@ impl From<uc::Error> for Error {
             DatabaseMigration(err) => Self::Other(err.into()), // does not occur for the web API
             DatabaseConnection(err) => Self::DatabaseConnection(err),
             Repository(err) => Self::Repository(err),
+            Io(err) => Self::Io(err),
             Other(err) => Self::Other(err),
         }
     }
@@ -196,6 +200,10 @@ pub async fn handle_rejection(reject: Rejection) -> StdResult<impl Reply, Infall
                     message = err.to_string();
                 }
             },
+            Error::Io(err) => {
+                code = StatusCode::INTERNAL_SERVER_ERROR;
+                message = err.to_string();
+            }
             Error::Other(err) => {
                 code = StatusCode::INTERNAL_SERVER_ERROR;
                 message = err.to_string();
