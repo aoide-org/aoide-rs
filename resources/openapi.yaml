@@ -2186,18 +2186,24 @@ components:
     MediaTrackerHashingProgress:
       type: object
       properties:
-        entriesSkipped:
-          type: number
-          format: int
-          minimum: 0
-        entriesFinished:
-          type: number
-          format: int
-          minimum: 0
-        directoriesFinished:
-          type: number
-          format: int
-          minimum: 0
+        entries:
+          type: object
+          properties:
+            skipped:
+              type: number
+              format: int
+              minimum: 0
+            finished:
+              type: number
+              format: int
+              minimum: 0
+        directories:
+          type: object
+          properties:
+            finished:
+              type: number
+              format: int
+              minimum: 0
     MediaTrackerHashRequestBody:
       type: object
       properties:

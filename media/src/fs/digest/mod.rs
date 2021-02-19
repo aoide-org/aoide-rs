@@ -111,9 +111,19 @@ pub enum AfterDirFinished {
 
 #[derive(Debug, Default, Clone, Eq, PartialEq)]
 pub struct Progress {
-    pub entries_skipped: usize,
-    pub entries_finished: usize,
-    pub directories_finished: usize,
+    pub entries: EntriesProgress,
+    pub directories: DirectoriesProgress,
+}
+
+#[derive(Debug, Default, Clone, Eq, PartialEq)]
+pub struct EntriesProgress {
+    pub skipped: usize,
+    pub finished: usize,
+}
+
+#[derive(Debug, Default, Clone, Eq, PartialEq)]
+pub struct DirectoriesProgress {
+    pub finished: usize,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -227,7 +237,7 @@ pub fn hash_directories<
                             loop_ancestor.display()
                         );
                         // Skip and continue
-                        progress_event.progress.entries_skipped += 1;
+                        progress_event.progress.entries.skipped += 1;
                         continue;
                     }
                     debug_assert!(err.io_error().is_some());
@@ -250,7 +260,7 @@ pub fn hash_directories<
 
             if dir_entry.depth() == 0 {
                 // Skip root directory that has no parent
-                progress_event.progress.entries_skipped += 1;
+                progress_event.progress.entries.skipped += 1;
                 continue;
             }
 
@@ -267,7 +277,7 @@ pub fn hash_directories<
                             dir_entry.path().display()
                         );
                         // Keep going
-                        progress_event.progress.entries_skipped += 1;
+                        progress_event.progress.entries.skipped += 1;
                         continue;
                     }
                 }
@@ -278,7 +288,7 @@ pub fn hash_directories<
                     dir_entry.path().display()
                 );
                 // Keep going
-                progress_event.progress.entries_skipped += 1;
+                progress_event.progress.entries.skipped += 1;
                 continue;
             };
 
@@ -288,7 +298,7 @@ pub fn hash_directories<
                     if parent_path == ancestor_path {
                         // Keep last ancestor on stack and stay in this line of ancestors
                         digest_walkdir_entry_for_detecting_changes(ancestor_digest, &dir_entry)?;
-                        progress_event.progress.entries_finished += 1;
+                        progress_event.progress.entries.finished += 1;
                         push_ancestor = false;
                     }
                     break;
@@ -298,10 +308,10 @@ pub fn hash_directories<
                 log::trace!("Finished parent directory: {}", ancestor_path.display());
                 match dir_finished(&ancestor_path, ancestor_digest).map_err(Into::into)? {
                     AfterDirFinished::Continue => {
-                        progress_event.progress.directories_finished += 1;
+                        progress_event.progress.directories.finished += 1;
                     }
                     AfterDirFinished::Abort => {
-                        progress_event.progress.directories_finished += 1;
+                        progress_event.progress.directories.finished += 1;
                         log::debug!(
                             "Aborting directory tree traversal after finishing '{}'",
                             ancestor_path.display()
@@ -316,7 +326,7 @@ pub fn hash_directories<
                 log::trace!("Found parent directory: {}", parent_path.display());
                 let mut digest = new_digest();
                 digest_walkdir_entry_for_detecting_changes(&mut digest, &dir_entry)?;
-                progress_event.progress.entries_finished += 1;
+                progress_event.progress.entries.finished += 1;
                 ancestors.push((parent_path.to_path_buf(), digest));
             }
         }
@@ -326,10 +336,10 @@ pub fn hash_directories<
             log::trace!("Finished parent directory: {}", ancestor_path.display());
             match dir_finished(&ancestor_path, ancestor_digest).map_err(Into::into)? {
                 AfterDirFinished::Continue => {
-                    progress_event.progress.directories_finished += 1;
+                    progress_event.progress.directories.finished += 1;
                 }
                 AfterDirFinished::Abort => {
-                    progress_event.progress.directories_finished += 1;
+                    progress_event.progress.directories.finished += 1;
                     progress_event.abort();
                     report_progress(&progress_event);
                     return Ok(());
@@ -344,7 +354,7 @@ pub fn hash_directories<
             let elapsed = started.elapsed();
             log::info!(
                 "Digesting {} directories in '{}' took {} s",
-                progress_event.progress.directories_finished,
+                progress_event.progress.directories.finished,
                 root_path.display(),
                 elapsed.as_millis() as f64 / 1000.0,
             );
