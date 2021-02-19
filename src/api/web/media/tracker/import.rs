@@ -35,6 +35,7 @@ use aoide_media::{
     util::tag::{FacetedTagMappingConfigInner, TagMappingConfig},
 };
 
+use tokio::sync::watch;
 use url::Url;
 
 ///////////////////////////////////////////////////////////////////////
@@ -49,7 +50,7 @@ pub struct Params {
     pub import_mode: Option<ImportMode>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Default, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackSummary {
     pub created: usize,
@@ -84,19 +85,42 @@ impl From<uc::TrackSummary> for TrackSummary {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Default, Serialize)]
 pub struct DirectorySummary {
+    /// Successfully imported and marked as current.
+    pub confirmed: usize,
+
+    /// Rejected directories are retried repeatedly.
+    ///
+    /// This may only happen due to race condition if multiple
+    /// concurrent tasks are running. Currently this could never
+    /// happen due to an exclusive lock on the database.
+    pub rejected: usize,
+
+    /// Skipped directories will not be retried.
+    ///
+    /// Directories are skipped on non-recoverable errors that
+    /// would occur again when retrying the import. Yet the import
+    /// will be retried after restarting the import task.
     pub skipped: usize,
 }
 
 impl From<uc::DirectorySummary> for DirectorySummary {
     fn from(from: uc::DirectorySummary) -> Self {
-        let uc::DirectorySummary { skipped } = from;
-        Self { skipped }
+        let uc::DirectorySummary {
+            confirmed,
+            rejected,
+            skipped,
+        } = from;
+        Self {
+            confirmed,
+            rejected,
+            skipped,
+        }
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Default, Serialize)]
 pub struct Summary {
     pub tracks: TrackSummary,
     pub directories: DirectorySummary,
@@ -143,6 +167,7 @@ pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
     collection_uid: &_core::EntityUid,
     request_body: RequestBody,
+    progress_summary_tx: Option<&watch::Sender<uc::Summary>>,
     abort_flag: &AtomicBool,
 ) -> Result<ResponseBody> {
     let RequestBody {
@@ -181,6 +206,7 @@ pub fn handle_request(
         import_mode.into(),
         &import_config,
         import_flags,
+        progress_summary_tx,
         abort_flag,
     )
     .map(Into::into)?)

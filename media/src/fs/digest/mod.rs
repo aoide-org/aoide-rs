@@ -112,8 +112,8 @@ pub enum AfterDirFinished {
 #[derive(Debug, Default, Clone, Eq, PartialEq)]
 pub struct Progress {
     pub entries_skipped: usize,
-    pub entries_digested: usize,
-    pub dirs_finished: usize,
+    pub entries_finished: usize,
+    pub directories_finished: usize,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -177,7 +177,7 @@ impl ProgressEvent {
     }
 }
 
-pub fn digest_directories<
+pub fn hash_directories<
     D: Digest,
     E: Into<Error>,
     NewDigest: FnMut() -> D,
@@ -214,6 +214,7 @@ pub fn digest_directories<
             if abort_flag.load(Ordering::Relaxed) {
                 log::debug!("Aborting directory tree traversal");
                 progress_event.abort();
+                report_progress(&progress_event);
                 return Ok(());
             }
             report_progress(&progress_event);
@@ -241,6 +242,8 @@ pub fn digest_directories<
                     // Propagate I/O error
                     let io_error = err.into_io_error();
                     debug_assert!(io_error.is_some());
+                    progress_event.fail();
+                    report_progress(&progress_event);
                     return Err(Error::from(io_error.expect("I/O error")));
                 }
             };
@@ -285,7 +288,7 @@ pub fn digest_directories<
                     if parent_path == ancestor_path {
                         // Keep last ancestor on stack and stay in this line of ancestors
                         digest_walkdir_entry_for_detecting_changes(ancestor_digest, &dir_entry)?;
-                        progress_event.progress.entries_digested += 1;
+                        progress_event.progress.entries_finished += 1;
                         push_ancestor = false;
                     }
                     break;
@@ -295,15 +298,16 @@ pub fn digest_directories<
                 log::trace!("Finished parent directory: {}", ancestor_path.display());
                 match dir_finished(&ancestor_path, ancestor_digest).map_err(Into::into)? {
                     AfterDirFinished::Continue => {
-                        progress_event.progress.dirs_finished += 1;
+                        progress_event.progress.directories_finished += 1;
                     }
                     AfterDirFinished::Abort => {
-                        progress_event.progress.dirs_finished += 1;
+                        progress_event.progress.directories_finished += 1;
                         log::debug!(
                             "Aborting directory tree traversal after finishing '{}'",
                             ancestor_path.display()
                         );
                         progress_event.abort();
+                        report_progress(&progress_event);
                         return Ok(());
                     }
                 }
@@ -312,7 +316,7 @@ pub fn digest_directories<
                 log::trace!("Found parent directory: {}", parent_path.display());
                 let mut digest = new_digest();
                 digest_walkdir_entry_for_detecting_changes(&mut digest, &dir_entry)?;
-                progress_event.progress.entries_digested += 1;
+                progress_event.progress.entries_finished += 1;
                 ancestors.push((parent_path.to_path_buf(), digest));
             }
         }
@@ -322,11 +326,12 @@ pub fn digest_directories<
             log::trace!("Finished parent directory: {}", ancestor_path.display());
             match dir_finished(&ancestor_path, ancestor_digest).map_err(Into::into)? {
                 AfterDirFinished::Continue => {
-                    progress_event.progress.dirs_finished += 1;
+                    progress_event.progress.directories_finished += 1;
                 }
                 AfterDirFinished::Abort => {
-                    progress_event.progress.dirs_finished += 1;
+                    progress_event.progress.directories_finished += 1;
                     progress_event.abort();
+                    report_progress(&progress_event);
                     return Ok(());
                 }
             }
@@ -339,7 +344,7 @@ pub fn digest_directories<
             let elapsed = started.elapsed();
             log::info!(
                 "Digesting {} directories in '{}' took {} s",
-                progress_event.progress.dirs_finished,
+                progress_event.progress.directories_finished,
                 root_path.display(),
                 elapsed.as_millis() as f64 / 1000.0,
             );

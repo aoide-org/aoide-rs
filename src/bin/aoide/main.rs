@@ -20,7 +20,7 @@ mod env;
 use aoide::{
     api::web::{
         collections, handle_rejection,
-        media::{self, MediaTrackerState},
+        media::{self, tracker::Progress as MediaTrackerProgress},
         playlists, reject_on_error, tracks, Error,
     },
     usecases as uc, *,
@@ -28,6 +28,7 @@ use aoide::{
 
 use aoide_core::entity::EntityUid;
 
+use aoide_media::fs::digest::ProgressEvent as HashingProgressEvent;
 use futures::future::{join, FutureExt};
 use std::{
     collections::HashMap,
@@ -41,7 +42,7 @@ use std::{
 };
 use tokio::{
     sync::RwLock,
-    sync::{mpsc, Mutex},
+    sync::{mpsc, watch, Mutex},
     time::sleep,
 };
 use warp::{http::StatusCode, Filter};
@@ -154,8 +155,8 @@ pub async fn main() -> Result<(), Error> {
     let guarded_connection_pool = Arc::new(RwLock::new(connection_pool));
     let guarded_connection_pool = warp::any().map(move || guarded_connection_pool.clone());
 
-    let media_tracker_state = Arc::new(Mutex::new(MediaTrackerState::Idle));
-    let media_tracker_state = warp::any().map(move || media_tracker_state.clone());
+    let media_tracker_progress = Arc::new(Mutex::new(MediaTrackerProgress::Idle));
+    let media_tracker_progress = warp::any().map(move || media_tracker_progress.clone());
 
     log::info!("Creating service routes");
 
@@ -351,21 +352,21 @@ pub async fn main() -> Result<(), Error> {
             },
         );
 
-    async fn reply_media_tracker_state(
-        media_tracker_state: Arc<Mutex<MediaTrackerState>>,
+    async fn reply_media_tracker_progress(
+        media_tracker_progress: Arc<Mutex<MediaTrackerProgress>>,
     ) -> Result<impl warp::Reply, Infallible> {
-        let state = *media_tracker_state.lock().await;
+        let state = media_tracker_progress.lock().await.clone();
         Ok(warp::reply::json(&state))
     }
 
     let media_tracker_get_state = warp::get()
         .and(media_tracker_path)
-        .and(warp::path("state"))
+        .and(warp::path("progress"))
         .and(warp::path::end())
-        .and(media_tracker_state.clone())
+        .and(media_tracker_progress.clone())
         .and_then(
-            |media_tracker_state: Arc<Mutex<MediaTrackerState>>| async move {
-                reply_media_tracker_state(media_tracker_state).await
+            |media_tracker_progress: Arc<Mutex<MediaTrackerProgress>>| async move {
+                reply_media_tracker_progress(media_tracker_progress).await
             },
         );
     let media_tracker_post_query_status = warp::post()
@@ -393,30 +394,49 @@ pub async fn main() -> Result<(), Error> {
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
-    let media_tracker_post_digest = warp::post()
+    let media_tracker_post_hash = warp::post()
         .and(collections_path)
         .and(path_param_uid)
         .and(media_tracker_path)
-        .and(warp::path("digest"))
+        .and(warp::path("hash"))
         .and(warp::path::end())
         .and(warp::body::json())
         .and(guarded_connection_pool.clone())
-        .and(media_tracker_state.clone())
+        .and(media_tracker_progress.clone())
         .and_then(
             |uid,
              request_body,
              guarded_connection_pool: GuardedConnectionPool,
-             media_tracker_state: Arc<Mutex<MediaTrackerState>>| async move {
-                *media_tracker_state.lock().await = MediaTrackerState::Digesting;
+             media_tracker_progress: Arc<Mutex<MediaTrackerProgress>>| async move {
+                let (progress_event_tx, mut progress_event_rx) = watch::channel(None);
+                let watcher = tokio::spawn(async move {
+                    *media_tracker_progress.lock().await =
+                        MediaTrackerProgress::Hashing(Default::default());
+                    log::debug!("Watching media tracker hashing");
+                    while progress_event_rx.changed().await.is_ok() {
+                        let progress = progress_event_rx
+                            .borrow()
+                            .as_ref()
+                            .map(|ev: &HashingProgressEvent| ev.progress.to_owned());
+                        // Borrow has already been released at this point
+                        if let Some(progress) = progress {
+                            *media_tracker_progress.lock().await =
+                                MediaTrackerProgress::Hashing(progress.into());
+                        }
+                    }
+                    log::debug!("Unwatching media tracker hashing");
+                    *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;
+                });
                 let response = spawn_blocking_database_write_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
                         // Reset abort flag before starting the next batch operation
                         MEDIA_TRACKER_ABORT_FLAG.store(false, Ordering::Relaxed);
-                        media::tracker::digest::handle_request(
+                        media::tracker::hash::handle_request(
                             pooled_connection,
                             &uid,
                             request_body,
+                            Some(&progress_event_tx),
                             &MEDIA_TRACKER_ABORT_FLAG,
                         )
                     },
@@ -424,7 +444,12 @@ pub async fn main() -> Result<(), Error> {
                 .await
                 .map_err(reject_on_error)
                 .map(|response_body| warp::reply::json(&response_body));
-                *media_tracker_state.lock().await = MediaTrackerState::Idle;
+                if let Err(err) = watcher.await {
+                    log::error!(
+                        "Failed to terminate media tracker hashing progress watcher: {}",
+                        err
+                    );
+                }
                 response
             },
         );
@@ -436,13 +461,27 @@ pub async fn main() -> Result<(), Error> {
         .and(warp::path::end())
         .and(warp::body::json())
         .and(guarded_connection_pool.clone())
-        .and(media_tracker_state.clone())
+        .and(media_tracker_progress.clone())
         .and_then(
             |uid,
              request_body,
              guarded_connection_pool: GuardedConnectionPool,
-             media_tracker_state: Arc<Mutex<MediaTrackerState>>| async move {
-                *media_tracker_state.lock().await = MediaTrackerState::Importing;
+             media_tracker_progress: Arc<Mutex<MediaTrackerProgress>>| async move {
+                let (progress_summary_tx, mut progress_summary_rx) =
+                    watch::channel(uc::media::tracker::import::Summary::default());
+                let watcher = tokio::spawn(async move {
+                    *media_tracker_progress.lock().await =
+                        MediaTrackerProgress::Importing(Default::default());
+                    log::debug!("Watching media tracker importing");
+                    while progress_summary_rx.changed().await.is_ok() {
+                        let progress = progress_summary_rx.borrow().to_owned();
+                        // Borrow has already been released at this point
+                        *media_tracker_progress.lock().await =
+                            MediaTrackerProgress::Importing(progress.into());
+                    }
+                    log::debug!("Unwatching media tracker importing");
+                    *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;
+                });
                 let response = spawn_blocking_database_write_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
@@ -452,6 +491,7 @@ pub async fn main() -> Result<(), Error> {
                             pooled_connection,
                             &uid,
                             request_body,
+                            Some(&progress_summary_tx),
                             &MEDIA_TRACKER_ABORT_FLAG,
                         )
                     },
@@ -459,7 +499,12 @@ pub async fn main() -> Result<(), Error> {
                 .await
                 .map_err(reject_on_error)
                 .map(|response_body| warp::reply::json(&response_body));
-                *media_tracker_state.lock().await = MediaTrackerState::Idle;
+                if let Err(err) = watcher.await {
+                    log::error!(
+                        "Failed to terminate media tracker importing progress watcher: {}",
+                        err
+                    );
+                }
                 response
             },
         );
@@ -498,7 +543,7 @@ pub async fn main() -> Result<(), Error> {
         });
     let media_tracker_filters = media_tracker_get_state
         .or(media_tracker_post_query_status)
-        .or(media_tracker_post_digest)
+        .or(media_tracker_post_hash)
         .or(media_tracker_post_import)
         .or(media_tracker_post_untrack)
         .or(media_tracker_post_abort);

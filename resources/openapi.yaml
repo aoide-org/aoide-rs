@@ -314,9 +314,9 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /c/{collectionUid}/media-tracker/digest:
+  /c/{collectionUid}/media-tracker/hash:
     post:
-      summary: Crawl through a directory tree and record changes
+      summary: Crawl through a directory tree and detect changes
       description: |
         Recursively scan a root directory for content changes, i.e.
         added/modified/removed files and directories.
@@ -338,7 +338,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MediaTrackerDigestDirectoriesRequestBody'
+              $ref: '#/components/schemas/MediaTrackerHashRequestBody'
       responses:
         '200':
           description: |
@@ -346,14 +346,14 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MediaTrackerDigestDirectoriesResponseBody'
+                $ref: '#/components/schemas/MediaTrackerHashResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
   /c/{collectionUid}/media-tracker/import:
     post:
       summary: Import sources from changed directories
       description: |
-        Recursively import media sources located from directories
+        Recursively import media sources located in directories
         that have been marked as changed.
 
         This operation is blocking and locks the database while running.
@@ -366,7 +366,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MediaTrackerImportDirectoriesRequestBody'
+              $ref: '#/components/schemas/MediaTrackerImportRequestBody'
       responses:
         '200':
           description: |
@@ -374,7 +374,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MediaTrackerImportDirectoriesResponseBody'
+                $ref: '#/components/schemas/MediaTrackerImportResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
   /c/{collectionUid}/media-tracker/untrack:
@@ -433,9 +433,14 @@ paths:
                 $ref: '#/components/schemas/MediaTrackerQueryStatusResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /media-tracker/state:
+  /media-tracker/progress:
     get:
-      summary: Query the current state
+      summary: Report the current progress
+      description: |
+        Show the currently running batch operation (either *hash* or *import*)
+        and report the progress so far.
+
+        If no batch operation is running then the string "idle" is returned.
       tags:
         - Media Tracker
       responses:
@@ -445,11 +450,18 @@ paths:
           content:
             application/json:
               schema:
-                type: string
-                enum:
-                  - idle
-                  - digesting
-                  - importing
+                oneOf:
+                  - type: string
+                    enum:
+                      - idle
+                  - type: object
+                    properties:
+                      hashing:
+                        $ref: '#/components/schemas/MediaTrackerHashingProgress'
+                  - type: object
+                    properties:
+                      importing:
+                        $ref: '#/components/schemas/MediaTrackerImportingProgress'
         '500':
           $ref: '#/components/responses/500InternalServerError'
   /media-tracker/abort:
@@ -2082,7 +2094,7 @@ components:
             - orphaned
       required:
         - directories
-    MediaTrackerImportDirectoriesRequestBody:
+    MediaTrackerImportRequestBody:
       type: object
       properties:
         rootUrl:
@@ -2096,28 +2108,38 @@ components:
         - modified
         - always
       default: modified
-    MediaTrackerImportDirectoriesResponseBody:
+    MediaTrackerImportResponseBody:
       oneOf:
         - type: object
           properties:
             completion:
               $ref: '#/components/schemas/MediaTrackerCompletion'
             summary:
-              $ref: '#/components/schemas/MediaTrackerImportDirectoriesSummary'
+              $ref: '#/components/schemas/MediaTrackerImportSummary'
           required:
             - completion
             - summary
-    MediaTrackerImportDirectoriesSummary:
+    MediaTrackerImportSummary:
       type: object
       properties:
         directories:
           type: object
           properties:
+            confirmed:
+              type: number
+              format: int
+              minimum: 0
+            rejected:
+              type: number
+              format: int
+              minimum: 0
             skipped:
               type: number
               format: int
               minimum: 0
           required:
+            - confirmed
+            - rejected
             - skipped
         tracks:
           type: object
@@ -2158,7 +2180,25 @@ components:
             - notImported
             - notCreated
             - notUpdated
-    MediaTrackerDigestDirectoriesRequestBody:
+    MediaTrackerImportingProgress:
+      allOf:
+        - $ref: '#/components/schemas/MediaTrackerImportSummary'
+    MediaTrackerHashingProgress:
+      type: object
+      properties:
+        entriesSkipped:
+          type: number
+          format: int
+          minimum: 0
+        entriesFinished:
+          type: number
+          format: int
+          minimum: 0
+        directoriesFinished:
+          type: number
+          format: int
+          minimum: 0
+    MediaTrackerHashRequestBody:
       type: object
       properties:
         rootUrl:
@@ -2169,7 +2209,7 @@ components:
           minimum: 1
       required:
         - rootUrl
-    MediaTrackerDigestDirectoriesSummary:
+    MediaTrackerHashSummary:
       type: object
       properties:
         current:
@@ -2198,14 +2238,14 @@ components:
         - modified
         - orphaned
         - skipped
-    MediaTrackerDigestDirectoriesResponseBody:
+    MediaTrackerHashResponseBody:
       oneOf:
         - type: object
           properties:
             completion:
               $ref: '#/components/schemas/MediaTrackerCompletion'
             summary:
-              $ref: '#/components/schemas/MediaTrackerDigestDirectoriesSummary'
+              $ref: '#/components/schemas/MediaTrackerHashSummary'
           required:
             - completion
             - summary

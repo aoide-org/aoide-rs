@@ -18,11 +18,13 @@ use std::sync::atomic::AtomicBool;
 use super::*;
 
 mod uc {
-    pub use crate::usecases::media::tracker::digest::*;
+    pub use crate::usecases::media::tracker::hash::*;
 }
 
 use aoide_core::entity::EntityUid;
 
+use aoide_media::fs::digest::ProgressEvent;
+use tokio::sync::watch;
 use url::Url;
 
 ///////////////////////////////////////////////////////////////////////
@@ -92,17 +94,19 @@ pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
     collection_uid: &EntityUid,
     request_body: RequestBody,
+    progress_event_tx: Option<&watch::Sender<Option<ProgressEvent>>>,
     abort_flag: &AtomicBool,
 ) -> Result<ResponseBody> {
     let RequestBody {
         root_url,
         max_depth,
     } = request_body;
-    Ok(uc::digest_recursively(
+    Ok(uc::hash_recursively(
         &pooled_connection,
         collection_uid,
         &root_url,
         max_depth,
+        progress_event_tx,
         abort_flag,
     )
     .map(Into::into)?)

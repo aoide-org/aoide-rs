@@ -17,7 +17,9 @@
 
 use super::*;
 
-pub mod digest;
+use aoide_media::fs::digest;
+
+pub mod hash;
 pub mod import;
 pub mod query_status;
 pub mod untrack;
@@ -39,6 +41,39 @@ impl From<uc::Completion> for Completion {
         match from {
             Finished => Self::Finished,
             Aborted => Self::Aborted,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Progress {
+    Idle,
+    Hashing(HashingProgress),
+    Importing(ImportingProgress),
+}
+
+#[derive(Debug, Default, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HashingProgress {
+    entries_skipped: usize,
+    entries_finished: usize,
+    directories_finished: usize,
+}
+
+pub type ImportingProgress = import::Summary;
+
+impl From<digest::Progress> for HashingProgress {
+    fn from(from: digest::Progress) -> Self {
+        let digest::Progress {
+            entries_skipped,
+            entries_finished,
+            directories_finished,
+        } = from;
+        Self {
+            entries_skipped,
+            entries_finished,
+            directories_finished,
         }
     }
 }

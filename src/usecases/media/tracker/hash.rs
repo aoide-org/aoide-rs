@@ -17,9 +17,11 @@ use super::*;
 
 use aoide_core::{entity::EntityUid, util::clock::DateTime};
 
-use aoide_media::fs::dir_digest;
+use aoide_media::fs::digest;
 
 use aoide_repo::media::tracker::DirUpdateOutcome;
+use digest::ProgressEvent;
+use tokio::sync::watch;
 
 use std::sync::atomic::AtomicBool;
 use url::Url;
@@ -41,11 +43,12 @@ pub struct Outcome {
     pub summary: Summary,
 }
 
-pub fn digest_recursively(
+pub fn hash_recursively(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
     root_dir_url: &Url,
     max_depth: Option<usize>,
+    progress_event_tx: Option<&watch::Sender<Option<ProgressEvent>>>,
     abort_flag: &AtomicBool,
 ) -> Result<Outcome> {
     let root_dir_path = root_dir_path_from_url(root_dir_url)?;
@@ -62,7 +65,7 @@ pub fn digest_recursively(
             outdated_count
         );
         let mut summary = Summary::default();
-        let completion = dir_digest::digest_directories::<_, anyhow::Error, _, _, _>(
+        let completion = digest::hash_directories::<_, anyhow::Error, _, _, _>(
             &root_dir_path,
             max_depth,
             abort_flag,
@@ -98,21 +101,29 @@ pub fn digest_recursively(
                         summary.skipped += 1;
                     }
                 }
-                Ok(dir_digest::AfterDirFinished::Continue)
+                Ok(digest::AfterDirFinished::Continue)
             },
-            |progress| {
-                log::trace!("{:?}", progress);
+            |progress_events| {
+                log::trace!("{:?}", progress_events);
+                if let Some(progress_event_tx) = progress_event_tx {
+                    if progress_event_tx
+                        .send(Some(progress_events.to_owned()))
+                        .is_err()
+                    {
+                        log::error!("Failed to send progress event");
+                    }
+                }
             },
         )
         .map_err(anyhow::Error::from)
         .map_err(RepoError::from)
         .and_then(|outcome| {
-            let dir_digest::Outcome {
+            let digest::Outcome {
                 completion,
                 progress: _,
             } = outcome;
             match completion {
-                dir_digest::Completion::Finished => {
+                digest::Completion::Finished => {
                     // Mark all remaining entries that are unreachable and
                     // have not been visited as orphaned.
                     summary.orphaned = db.media_tracker_mark_outdated_directories_orphaned(
@@ -123,7 +134,7 @@ pub fn digest_recursively(
                     debug_assert!(summary.orphaned <= outdated_count);
                     Ok(Completion::Finished)
                 }
-                dir_digest::Completion::Aborted => {
+                digest::Completion::Aborted => {
                     // All partial results up to now can safely be committed.
                     Ok(Completion::Aborted)
                 }

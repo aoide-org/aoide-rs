@@ -25,14 +25,6 @@ mod uc {
     pub use crate::usecases::media::ImportMode;
 }
 
-#[derive(Debug, Clone, Copy, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum MediaTrackerState {
-    Idle,
-    Digesting,
-    Importing,
-}
-
 #[derive(Debug, Clone, Copy, Deserialize)]
 pub enum ImportMode {
     Once,

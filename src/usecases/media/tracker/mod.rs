@@ -20,7 +20,7 @@ use aoide_repo::media::tracker::Repo as _;
 
 ///////////////////////////////////////////////////////////////////////
 
-pub mod digest;
+pub mod hash;
 pub mod import;
 pub mod query_status;
 pub mod untrack;

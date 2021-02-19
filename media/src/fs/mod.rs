@@ -15,7 +15,7 @@
 
 ///////////////////////////////////////////////////////////////////////
 
-pub mod dir_digest;
+pub mod digest;
 
 use super::{Error, IoError, Result};
 

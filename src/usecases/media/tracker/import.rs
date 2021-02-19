@@ -22,6 +22,7 @@ use aoide_repo::{
     prelude::{Pagination, PaginationOffset},
     track::ReplaceMode,
 };
+use tokio::sync::watch;
 use tracks::replace::{
     import_and_replace_by_media_source_uri_from_directory, Completion as ReplaceCompletion,
     Outcome as ReplaceOutcome, Summary as ReplaceSummary,
@@ -82,6 +83,8 @@ impl AddAssign<&ReplaceSummary> for TrackSummary {
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct DirectorySummary {
+    pub confirmed: usize,
+    pub rejected: usize,
     pub skipped: usize,
 }
 
@@ -100,6 +103,8 @@ impl Outcome {
     }
 }
 
+// TODO: Reduce number of arguments
+#[allow(clippy::too_many_arguments)]
 pub fn import(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
@@ -107,38 +112,35 @@ pub fn import(
     import_mode: ImportMode,
     import_config: &ImportTrackConfig,
     import_flags: ImportTrackFlags,
+    progress_summary_tx: Option<&watch::Sender<Summary>>,
     abort_flag: &AtomicBool,
 ) -> Result<Outcome> {
     let uri_prefix = root_dir_url.map(uri_path_prefix_from_url).transpose()?;
-    let mut skipped = 0;
-    let mut tracks = Default::default();
+    let mut summary = Summary::default();
     let db = RepoConnection::new(connection);
-    Ok(db.transaction::<_, DieselRepoError, _>(|| {
+    let outcome = db.transaction::<_, DieselRepoError, _>(|| {
         let collection_id = db.resolve_collection_id(&collection_uid)?;
         loop {
+            if let Some(progress_summary_tx) = progress_summary_tx {
+                if progress_summary_tx.send(summary.clone()).is_err() {
+                    log::error!("Failed to send progress summary");
+                }
+            }
             let pending_entries = db.media_tracker_load_directories_requiring_confirmation(
                 collection_id,
                 uri_prefix.as_deref(),
                 &Pagination {
-                    offset: Some(skipped as PaginationOffset),
+                    offset: Some(summary.directories.skipped as PaginationOffset),
                     limit: 1,
                 },
             )?;
             if pending_entries.is_empty() {
-                let summary = Summary {
-                    tracks,
-                    directories: DirectorySummary { skipped },
-                };
                 log::debug!("Finished import of pending directories: {:?}", summary);
                 let outcome = Outcome::new(Completion::Finished, summary);
                 return Ok(outcome);
             }
             for pending_entry in pending_entries {
                 if abort_flag.load(Ordering::Relaxed) {
-                    let summary = Summary {
-                        tracks,
-                        directories: DirectorySummary { skipped },
-                    };
                     log::debug!("Aborting import of pending directories: {:?}", summary);
                     let outcome = Outcome::new(Completion::Aborted, summary);
                     return Ok(outcome);
@@ -154,7 +156,7 @@ pub fn import(
                     Err(err) => {
                         log::warn!("Failed to convert URI {} to URL: {}", uri, err);
                         // Skip this directory and keep going
-                        skipped += 1;
+                        summary.directories.skipped += 1;
                         continue;
                     }
                 };
@@ -172,23 +174,19 @@ pub fn import(
                     Err(err) => {
                         log::warn!("Failed to import pending directory {}: {}", uri, err);
                         // Skip this directory and keep going
-                        skipped += 1;
+                        summary.directories.skipped += 1;
                         continue;
                     }
                 };
                 let ReplaceOutcome {
                     completion,
-                    summary,
+                    summary: tracks_summary,
                     media_source_ids,
                 } = outcome;
-                tracks += &summary;
+                summary.tracks += &tracks_summary;
                 match completion {
                     ReplaceCompletion::Finished => {}
                     ReplaceCompletion::Aborted => {
-                        let summary = Summary {
-                            tracks,
-                            directories: DirectorySummary { skipped },
-                        };
                         log::debug!("Aborting import of pending directories: {:?}", summary);
                         let outcome = Outcome::new(Completion::Aborted, summary);
                         return Ok(outcome);
@@ -203,21 +201,29 @@ pub fn import(
                 ) {
                     Ok(true) => {
                         log::debug!("Confirmed pending directory {}", uri);
+                        summary.directories.confirmed += 1;
                     }
                     Ok(false) => {
                         // Might be rejected if the digest has been updated meanwhile
                         log::info!("Confirmation of imported directory {} was rejected", uri);
+                        summary.directories.rejected += 1;
                         // Try again
                         continue;
                     }
                     Err(err) => {
                         log::warn!("Failed to confirm pending directory {}: {}", uri, err);
                         // Skip this directory and keep going
-                        skipped += 1;
+                        summary.directories.skipped += 1;
                         continue;
                     }
                 }
             }
         }
-    })?)
+    })?;
+    if let Some(progress_summary_tx) = progress_summary_tx {
+        if progress_summary_tx.send(outcome.summary.clone()).is_err() {
+            log::error!("Failed to send final progress summary");
+        }
+    }
+    Ok(outcome)
 }
