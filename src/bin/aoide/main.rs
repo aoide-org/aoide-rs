@@ -41,6 +41,7 @@ use std::{
     time::Duration,
 };
 use tokio::{
+    signal,
     sync::RwLock,
     sync::{mpsc, watch, Mutex},
     time::sleep,
@@ -162,18 +163,21 @@ pub async fn main() -> Result<(), Error> {
 
     // POST /shutdown
     let (server_shutdown_tx, mut server_shutdown_rx) = mpsc::unbounded_channel::<()>();
-    let shutdown_filter = warp::post()
-        .and(warp::path("shutdown"))
-        .and(warp::path::end())
-        .map(move || {
-            server_shutdown_tx
-                .send(())
-                .map(|()| StatusCode::ACCEPTED)
-                .or_else(|_| {
-                    log::warn!("Failed to forward shutdown request");
-                    Ok(StatusCode::BAD_GATEWAY)
-                })
-        });
+    let shutdown_filter = {
+        let server_shutdown_tx = server_shutdown_tx.clone();
+        warp::post()
+            .and(warp::path("shutdown"))
+            .and(warp::path::end())
+            .map(move || {
+                server_shutdown_tx
+                    .send(())
+                    .map(|()| StatusCode::ACCEPTED)
+                    .or_else(|_| {
+                        log::warn!("Failed to forward shutdown request");
+                        Ok(StatusCode::BAD_GATEWAY)
+                    })
+            })
+    };
 
     // GET /about
     let about_filter = warp::get()
@@ -963,6 +967,11 @@ pub async fn main() -> Result<(), Error> {
         // -> stdout
         println!("{}", socket_addr);
     };
+
+    tokio::spawn(async move {
+        signal::ctrl_c().await.expect("failed to listen for signal");
+        let _ = server_shutdown_tx.send(());
+    });
 
     join(server_listener, server_listening).map(drop).await;
     log::info!("Stopped");

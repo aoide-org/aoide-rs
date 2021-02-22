@@ -50,7 +50,7 @@ semval = { version = ">=0.1.7" }
 serde = "*"
 serde_json = "*"
 thiserror = "*"
-tokio = { version = "*", default-features = false, features = ["macros", "rt-multi-thread"] }
+tokio = { version = "*", default-features = false, features = ["macros", "rt-multi-thread", "signal"] }
 url = { version = "*", features = ["serde"] }
 warp = { version = "*", default-features = false }
 
