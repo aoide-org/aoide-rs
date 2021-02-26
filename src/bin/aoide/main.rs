@@ -67,6 +67,8 @@ fn create_connection_pool(
     Ok(pool)
 }
 
+static MEDIA_TRACKER_ABORT_FLAG: AtomicBool = AtomicBool::new(false);
+
 // Let only a single writer at any time get access to the
 // connection pool to prevent both synchronous locking when
 // obtaining a connection and timeouts when concurrently
@@ -87,6 +89,8 @@ where
     H: FnOnce(SqlitePooledConnection) -> Result<R, Error> + Send + 'static,
     R: Send + 'static,
 {
+    // Implicitly abort any running batch operation to prevent starving
+    MEDIA_TRACKER_ABORT_FLAG.store(false, Ordering::Relaxed);
     let timeout = tokio::time::sleep(DB_CONNECTION_READ_GUARD_TIMEOUT);
     tokio::pin!(timeout);
     tokio::select! {
@@ -106,6 +110,8 @@ where
     H: FnOnce(SqlitePooledConnection) -> Result<R, Error> + Send + 'static,
     R: Send + 'static,
 {
+    // Implicitly abort any running batch operation to prevent starving
+    MEDIA_TRACKER_ABORT_FLAG.store(false, Ordering::Relaxed);
     let timeout = tokio::time::sleep(DB_CONNECTION_WRITE_GUARD_TIMEOUT);
     tokio::pin!(timeout);
     tokio::select! {
@@ -116,8 +122,6 @@ where
         },
     }
 }
-
-static MEDIA_TRACKER_ABORT_FLAG: AtomicBool = AtomicBool::new(false);
 
 #[tokio::main]
 pub async fn main() -> Result<(), Error> {
@@ -434,8 +438,6 @@ pub async fn main() -> Result<(), Error> {
                 let response = spawn_blocking_database_write_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
-                        // Reset abort flag before starting the next batch operation
-                        MEDIA_TRACKER_ABORT_FLAG.store(false, Ordering::Relaxed);
                         media::tracker::hash::handle_request(
                             pooled_connection,
                             &uid,
@@ -489,8 +491,6 @@ pub async fn main() -> Result<(), Error> {
                 let response = spawn_blocking_database_write_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
-                        // Reset abort flag before starting the batch operation
-                        MEDIA_TRACKER_ABORT_FLAG.store(false, Ordering::Relaxed);
                         media::tracker::import::handle_request(
                             pooled_connection,
                             &uid,
