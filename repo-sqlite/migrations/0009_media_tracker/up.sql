@@ -37,9 +37,9 @@ CREATE TABLE IF NOT EXISTS media_tracker_source (
     --
     FOREIGN KEY(directory_id) REFERENCES media_tracker_directory(row_id),
     FOREIGN KEY(source_id) REFERENCES media_source(row_id),
-    UNIQUE (directory_id, source_id)
+    UNIQUE (source_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_media_tracker_source_source_id ON media_tracker_source (
-    source_id
+CREATE INDEX IF NOT EXISTS idx_media_tracker_source_directory_id ON media_tracker_source (
+    directory_id
 );
