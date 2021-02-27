@@ -82,7 +82,9 @@ RUN mkdir -p "./src/bin/${BUILD_BIN}" && \
     USER=root cargo new --lib ${PROJECT_NAME}-repo && \
     mv ${PROJECT_NAME}-repo repo && \
     USER=root cargo new --lib ${PROJECT_NAME}-repo-sqlite && \
-    mv ${PROJECT_NAME}-repo-sqlite repo-sqlite
+    mv ${PROJECT_NAME}-repo-sqlite repo-sqlite && \
+    USER=root cargo new --lib ${PROJECT_NAME}-usecases && \
+    mv ${PROJECT_NAME}-usecases usecases
 
 COPY [ \
     "Cargo.toml", \
@@ -106,6 +108,9 @@ COPY [ \
 COPY [ \
     "repo-sqlite/Cargo.toml", \
     "./repo-sqlite/" ]
+COPY [ \
+    "usecases/Cargo.toml", \
+    "./usecases/" ]
 
 # Build the dummy project, then delete all build artefacts that must not(!) be cached
 #
@@ -131,6 +136,8 @@ RUN tree && \
     rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-repo-* && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_repo_sqlite-* && \
     rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-repo-sqlite-* && \
+    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_usecases-* && \
+    rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-usecases-* && \
     tree
 
 # Copy all project (re-)sources that are required for building
@@ -158,6 +165,9 @@ COPY [ \
 COPY [ \
     "repo-sqlite/migrations", \
     "./repo-sqlite/migrations/" ]
+COPY [ \
+    "usecases/src", \
+    "./usecases/src/" ]
 
 # 1. Check all sub-projects using their local manifest for an isolated, standalone build
 # 2. Build workspace and run all unit tests
@@ -169,6 +179,7 @@ RUN tree && \
     cargo check -p aoide-media --manifest-path media/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
     cargo check -p aoide-repo --manifest-path repo/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
     cargo check -p aoide-repo-sqlite --manifest-path repo-sqlite/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
+    cargo check -p aoide-usecases --manifest-path usecases/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
     cargo test --workspace --${BUILD_MODE} --target ${BUILD_TARGET} ${WORKSPACE_BUILD_FEATURES} && \
     cargo build --bin ${BUILD_BIN} --${BUILD_MODE} --target ${BUILD_TARGET} ${WORKSPACE_BUILD_FEATURES} && \
     strip ./target/${BUILD_TARGET}/${BUILD_MODE}/${BUILD_BIN}
