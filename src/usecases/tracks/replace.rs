@@ -13,11 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{
-    fs::read_dir,
-    sync::atomic::{AtomicBool, Ordering},
-};
-
 use super::*;
 
 use crate::usecases::media::{import_track_from_url, ImportMode, ImportTrackFromFileOutcome};
@@ -34,6 +29,10 @@ use aoide_repo::{
 };
 
 use media::SynchronizedImportMode;
+use std::{
+    fs::read_dir,
+    sync::atomic::{AtomicBool, Ordering},
+};
 use url::Url;
 
 ///////////////////////////////////////////////////////////////////////

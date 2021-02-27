@@ -37,6 +37,7 @@ dependencies = [
  "aoide-media",
  "aoide-repo",
  "aoide-repo-sqlite",
+ "aoide-usecases",
  "blake3",
  "chrono",
  "diesel",
@@ -149,6 +150,16 @@ dependencies = [
  "num-derive",
  "num-traits",
  "semval",
+]
+
+[[package]]
+name = "aoide-usecases"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "aoide-core",
+ "aoide-repo",
+ "thiserror",
 ]
 
 [[package]]
@@ -2093,7 +2104,7 @@ dependencies = [
 [[package]]
 name = "triseratops"
 version = "0.0.1"
-source = "git+https://github.com/Holzhaus/triseratops.git?rev=3744aa23862de19999df2a5098a887315298a760#3744aa23862de19999df2a5098a887315298a760"
+source = "git+https://github.com/Holzhaus/triseratops.git?branch=main#79b5b84ac9407404ae494f98961e3357077d6ee9"
 dependencies = [
  "base64",
  "nom",

@@ -27,6 +27,7 @@ pub mod collections;
 pub mod database;
 pub mod media;
 pub mod playlists;
+pub mod relink_collected_track;
 pub mod tracks;
 
 #[derive(Error, Debug)]

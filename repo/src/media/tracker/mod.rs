@@ -125,6 +125,15 @@ pub trait Repo {
         status: Option<DirTrackingStatus>,
     ) -> RepoResult<usize>;
 
+    /// Drop all existing references of old_source_id and replace
+    /// them with new_source_id, i.e. new_source_id disappears and
+    /// old_source_id takes over.
+    fn media_tracker_relink_source(
+        &self,
+        old_source_id: MediaSourceId,
+        new_source_id: MediaSourceId,
+    ) -> RepoResult<bool>;
+
     fn media_tracker_purge_orphaned_directories(
         &self,
         collection_id: CollectionId,
