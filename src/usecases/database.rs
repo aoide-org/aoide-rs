@@ -49,7 +49,7 @@ pub fn migrate_schema(connection: &SqliteConnection) -> Result<()> {
 pub fn cleanse(connection: &SqliteConnection) -> Result<()> {
     log::info!("Cleansing database");
     let db = RepoConnection::new(&*connection);
-    db.transaction::<_, DieselRepoError, _>(|| {
+    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
         let deleted_playlist_entries =
             db.delete_playlist_entries_with_tracks_from_other_collections()?;
         if deleted_playlist_entries > 0 {
@@ -59,8 +59,7 @@ pub fn cleanse(connection: &SqliteConnection) -> Result<()> {
             );
         }
         Ok(())
-    })
-    .map_err(RepoError::from)?;
+    })?;
     sql_query("VACUUM;").execute(connection)?;
     Ok(())
 }

@@ -17,6 +17,7 @@ use super::*;
 
 use aoide_media::Error as MediaError;
 use aoide_repo::prelude::RepoError;
+use aoide_usecases as uc;
 
 use std::result::Result as StdResult;
 use thiserror::Error;
@@ -27,7 +28,6 @@ pub mod collections;
 pub mod database;
 pub mod media;
 pub mod playlists;
-pub mod relink_collected_track;
 pub mod tracks;
 
 #[derive(Error, Debug)]
@@ -54,9 +54,24 @@ pub enum Error {
     Other(#[from] anyhow::Error),
 }
 
-impl From<DieselRepoError> for Error {
-    fn from(err: DieselRepoError) -> Self {
-        Self::Repository(err.into())
+impl<E> From<DieselTransactionError<E>> for Error
+where
+    E: Into<Error>,
+{
+    fn from(err: DieselTransactionError<E>) -> Self {
+        err.into_inner().into()
+    }
+}
+
+impl From<uc::Error> for Error {
+    fn from(err: uc::Error) -> Self {
+        use uc::Error::*;
+        match err {
+            Media(err) => Self::Media(err),
+            Io(err) => Self::Io(err),
+            Repository(err) => Self::Repository(err),
+            Other(err) => Self::Other(err),
+        }
     }
 }
 

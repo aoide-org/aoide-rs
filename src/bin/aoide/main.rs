@@ -565,11 +565,7 @@ pub async fn main() -> Result<(), Error> {
                 spawn_blocking_database_read_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
-                        tracks::resolve_collected::handle_request(
-                            pooled_connection,
-                            &uid,
-                            request_body,
-                        )
+                        tracks::resolve::handle_request(pooled_connection, &uid, request_body)
                     },
                 )
                 .await
@@ -595,7 +591,7 @@ pub async fn main() -> Result<(), Error> {
                     spawn_blocking_database_read_task(
                         guarded_connection_pool,
                         move |pooled_connection| {
-                            tracks::search_collected::handle_request(
+                            tracks::search::handle_request(
                                 pooled_connection,
                                 &uid,
                                 query_params,
@@ -626,7 +622,7 @@ pub async fn main() -> Result<(), Error> {
                     spawn_blocking_database_write_task(
                         guarded_connection_pool,
                         move |pooled_connection| {
-                            tracks::replace_collected::handle_request(
+                            tracks::replace::handle_request(
                                 pooled_connection,
                                 &uid,
                                 query_params,
@@ -685,11 +681,7 @@ pub async fn main() -> Result<(), Error> {
                 spawn_blocking_database_write_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
-                        tracks::purge_collected::handle_request(
-                            pooled_connection,
-                            &uid,
-                            request_body,
-                        )
+                        tracks::purge::handle_request(pooled_connection, &uid, request_body)
                     },
                 )
                 .await

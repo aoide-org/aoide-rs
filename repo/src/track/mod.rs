@@ -25,10 +25,13 @@ record_id_newtype!(RecordId);
 pub type RecordHeader = crate::RecordHeader<RecordId>;
 
 use aoide_core::{
+    audio::DurationMs,
     entity::{EntityHeader, EntityRevision, EntityUid},
-    track::{Entity, Track},
+    track::{release::DateOrDateTime, Entity, Track},
     util::clock::DateTime,
 };
+
+use semval::IsValid;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum StringField {
@@ -145,6 +148,47 @@ pub enum SearchFilter {
     All(Vec<SearchFilter>),
     Any(Vec<SearchFilter>),
     Not(Box<SearchFilter>),
+}
+
+impl SearchFilter {
+    pub fn released_at_equals(released_at: DateOrDateTime) -> Self {
+        match released_at {
+            DateOrDateTime::DateTime(released_at) => Self::DateTime(DateTimeFieldFilter {
+                field: DateTimeField::ReleasedAt,
+                predicate: DateTimePredicate::Equal(Some(released_at)),
+            }),
+            DateOrDateTime::Date(date) => Self::Numeric(NumericFieldFilter {
+                field: NumericField::ReleaseDate,
+                predicate: NumericPredicate::Equal(Some(date.to_inner().into())),
+            }),
+        }
+    }
+
+    pub fn audio_duration_around(duration: DurationMs, epsilon: DurationMs) -> Self {
+        debug_assert!(duration.is_valid());
+        debug_assert!(epsilon.is_valid());
+        let duration_value = duration.to_inner();
+        let epsilon_value = epsilon.to_inner();
+        if epsilon_value > 0.0 {
+            Self::All(vec![
+                Self::Numeric(NumericFieldFilter {
+                    field: NumericField::AudioDurationMs,
+                    predicate: NumericPredicate::GreaterOrEqual(
+                        (duration_value - epsilon_value).max(0.0),
+                    ),
+                }),
+                Self::Numeric(NumericFieldFilter {
+                    field: NumericField::AudioDurationMs,
+                    predicate: NumericPredicate::LessOrEqual(duration_value + epsilon_value),
+                }),
+            ])
+        } else {
+            Self::Numeric(NumericFieldFilter {
+                field: NumericField::AudioDurationMs,
+                predicate: NumericPredicate::Equal(Some(duration_value)),
+            })
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

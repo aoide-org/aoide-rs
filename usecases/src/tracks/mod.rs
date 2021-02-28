@@ -15,24 +15,10 @@
 
 use super::*;
 
-use aoide_repo::collection::EntityRepo as _;
+use aoide_core::track::*;
 
-use aoide_usecases::tracks::purge as uc;
-
-pub fn purge_by_media_source_uri_predicates(
-    connection: &SqliteConnection,
-    collection_uid: &EntityUid,
-    uri_predicates: Vec<StringPredicate>,
-) -> Result<usize> {
-    let db = RepoConnection::new(connection);
-    Ok(
-        db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-            let collection_id = db.resolve_collection_id(collection_uid)?;
-            Ok(uc::purge_by_media_source_uri_predicates(
-                &db,
-                collection_id,
-                uri_predicates,
-            )?)
-        })?,
-    )
-}
+pub mod find_duplicate;
+pub mod purge;
+pub mod replace;
+pub mod resolve;
+pub mod search;

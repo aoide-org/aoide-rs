@@ -24,8 +24,10 @@ pub fn create(connection: &SqliteConnection, new_collection: Collection) -> Resu
     let entity = Entity::new(hdr, new_collection);
     let created_at = DateTime::now_utc();
     let db = RepoConnection::new(connection);
-    Ok(db.transaction::<_, DieselRepoError, _>(|| {
-        db.insert_collection_entity(created_at, &entity)?;
-        Ok(entity)
-    })?)
+    Ok(
+        db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+            db.insert_collection_entity(created_at, &entity)?;
+            Ok(entity)
+        })?,
+    )
 }

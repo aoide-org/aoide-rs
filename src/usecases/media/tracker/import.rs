@@ -15,93 +15,22 @@
 
 use super::*;
 
-use aoide_core::entity::EntityUid;
+use aoide_media::io::import::{ImportTrackConfig, ImportTrackFlags};
 
-use aoide_repo::{
-    media::tracker,
-    prelude::{Pagination, PaginationOffset},
-    track::ReplaceMode,
-};
-use tokio::sync::watch;
-use tracks::replace::{
-    import_and_replace_by_media_source_uri_from_directory, Completion as ReplaceCompletion,
-    Outcome as ReplaceOutcome, Summary as ReplaceSummary,
-};
-
-use std::{
-    ops::AddAssign,
-    sync::atomic::{AtomicBool, Ordering},
-};
+use std::sync::atomic::AtomicBool;
 use url::Url;
 
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct Summary {
-    pub tracks: TrackSummary,
-    pub directories: DirectorySummary,
+mod uc {
+    pub use aoide_usecases::{
+        media::{
+            tracker::{import::*, *},
+            *,
+        },
+        Error,
+    };
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct TrackSummary {
-    pub created: usize,
-    pub updated: usize,
-    pub missing: usize,
-    pub unchanged: usize,
-    pub not_imported: usize,
-    pub not_created: usize,
-    pub not_updated: usize,
-}
-
-impl AddAssign<&ReplaceSummary> for TrackSummary {
-    fn add_assign(&mut self, rhs: &ReplaceSummary) {
-        let Self {
-            created,
-            updated,
-            unchanged,
-            missing: _,
-            not_imported,
-            not_created,
-            not_updated,
-        } = self;
-        let ReplaceSummary {
-            created: rhs_created,
-            updated: rhs_updated,
-            unchanged: rhs_unchanged,
-            not_imported: rhs_not_imported,
-            not_created: rhs_not_created,
-            not_updated: rhs_not_updated,
-        } = rhs;
-        *created += rhs_created.len();
-        *updated += rhs_updated.len();
-        *unchanged += rhs_unchanged.len();
-        *not_imported += rhs_not_imported.len();
-        *not_created += rhs_not_created.len();
-        *not_updated += rhs_not_updated.len();
-    }
-}
-
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct DirectorySummary {
-    pub confirmed: usize,
-    pub rejected: usize,
-    pub skipped: usize,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Outcome {
-    pub completion: Completion,
-    pub summary: Summary,
-}
-
-impl Outcome {
-    const fn new(completion: Completion, summary: Summary) -> Self {
-        Self {
-            completion,
-            summary,
-        }
-    }
-}
+pub use uc::Summary;
 
 // TODO: Reduce number of arguments
 #[allow(clippy::too_many_arguments)]
@@ -112,118 +41,24 @@ pub fn import(
     import_mode: ImportMode,
     import_config: &ImportTrackConfig,
     import_flags: ImportTrackFlags,
-    progress_summary_tx: Option<&watch::Sender<Summary>>,
+    progress_fn: &mut impl FnMut(&Summary),
     abort_flag: &AtomicBool,
-) -> Result<Outcome> {
-    let uri_prefix = root_dir_url.map(uri_path_prefix_from_url).transpose()?;
-    let mut summary = Summary::default();
+) -> Result<uc::Outcome> {
     let db = RepoConnection::new(connection);
-    let outcome = db.transaction::<_, DieselRepoError, _>(|| {
-        let collection_id = db.resolve_collection_id(&collection_uid)?;
-        loop {
-            if let Some(progress_summary_tx) = progress_summary_tx {
-                if progress_summary_tx.send(summary.clone()).is_err() {
-                    log::error!("Failed to send progress summary");
-                }
-            }
-            let pending_entries = db.media_tracker_load_directories_requiring_confirmation(
+    Ok(
+        db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
+            let collection_id = db.resolve_collection_id(&collection_uid)?;
+            Ok(uc::import(
+                &db,
                 collection_id,
-                uri_prefix.as_deref(),
-                &Pagination {
-                    offset: Some(summary.directories.skipped as PaginationOffset),
-                    limit: 1,
-                },
-            )?;
-            if pending_entries.is_empty() {
-                log::debug!("Finished import of pending directories: {:?}", summary);
-                let outcome = Outcome::new(Completion::Finished, summary);
-                return Ok(outcome);
-            }
-            for pending_entry in pending_entries {
-                if abort_flag.load(Ordering::Relaxed) {
-                    log::debug!("Aborting import of pending directories: {:?}", summary);
-                    let outcome = Outcome::new(Completion::Aborted, summary);
-                    return Ok(outcome);
-                }
-                let tracker::TrackedDirectory {
-                    uri,
-                    status: _status,
-                    digest,
-                } = pending_entry;
-                debug_assert!(_status.is_pending());
-                let dir_url = match uri.clone().parse() {
-                    Ok(url) => url,
-                    Err(err) => {
-                        log::warn!("Failed to convert URI {} to URL: {}", uri, err);
-                        // Skip this directory and keep going
-                        summary.directories.skipped += 1;
-                        continue;
-                    }
-                };
-                let outcome = match import_and_replace_by_media_source_uri_from_directory(
-                    connection,
-                    collection_uid,
-                    &dir_url,
-                    import_mode,
-                    import_config,
-                    import_flags,
-                    ReplaceMode::UpdateOrCreate,
-                    abort_flag,
-                ) {
-                    Ok(outcome) => outcome,
-                    Err(err) => {
-                        log::warn!("Failed to import pending directory {}: {}", uri, err);
-                        // Skip this directory and keep going
-                        summary.directories.skipped += 1;
-                        continue;
-                    }
-                };
-                let ReplaceOutcome {
-                    completion,
-                    summary: tracks_summary,
-                    media_source_ids,
-                } = outcome;
-                summary.tracks += &tracks_summary;
-                match completion {
-                    ReplaceCompletion::Finished => {}
-                    ReplaceCompletion::Aborted => {
-                        log::debug!("Aborting import of pending directories: {:?}", summary);
-                        let outcome = Outcome::new(Completion::Aborted, summary);
-                        return Ok(outcome);
-                    }
-                }
-                match db.media_tracker_confirm_directory(
-                    DateTime::now_utc(),
-                    collection_id,
-                    &uri,
-                    &digest,
-                    &media_source_ids,
-                ) {
-                    Ok(true) => {
-                        log::debug!("Confirmed pending directory {}", uri);
-                        summary.directories.confirmed += 1;
-                    }
-                    Ok(false) => {
-                        // Might be rejected if the digest has been updated meanwhile
-                        log::info!("Confirmation of imported directory {} was rejected", uri);
-                        summary.directories.rejected += 1;
-                        // Try again
-                        continue;
-                    }
-                    Err(err) => {
-                        log::warn!("Failed to confirm pending directory {}: {}", uri, err);
-                        // Skip this directory and keep going
-                        summary.directories.skipped += 1;
-                        continue;
-                    }
-                }
-            }
-        }
-    })?;
-    if let Some(progress_summary_tx) = progress_summary_tx {
-        if progress_summary_tx.send(outcome.summary.clone()).is_err() {
-            log::error!("Failed to send final progress summary");
-        }
-    }
-    Ok(outcome)
+                root_dir_url,
+                import_mode,
+                import_config,
+                import_flags,
+                progress_fn,
+                abort_flag,
+            )
+            .map_err(DieselTransactionError::new)?)
+        })?,
+    )
 }

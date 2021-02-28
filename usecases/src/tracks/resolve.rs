@@ -15,24 +15,27 @@
 
 use super::*;
 
-use aoide_repo::collection::EntityRepo as _;
+use aoide_core::entity::EntityHeader;
 
-use aoide_usecases::tracks::resolve as uc;
+use aoide_repo::{collection::RecordId as CollectionId, track::EntityRepo};
 
-pub fn resolve_by_media_source_uris(
-    connection: &SqliteConnection,
-    collection_uid: &EntityUid,
+pub fn resolve_by_media_source_uris<Repo>(
+    repo: &Repo,
+    collection_id: CollectionId,
     media_source_uris: Vec<String>,
-) -> Result<Vec<(String, EntityHeader)>> {
-    let db = RepoConnection::new(connection);
-    Ok(
-        db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-            let collection_id = db.resolve_collection_id(collection_uid)?;
-            Ok(uc::resolve_by_media_source_uris(
-                &db,
-                collection_id,
-                media_source_uris,
-            )?)
-        })?,
-    )
+) -> RepoResult<Vec<(String, EntityHeader)>>
+where
+    Repo: EntityRepo,
+{
+    let mut resolved = Vec::with_capacity(media_source_uris.len());
+    for media_source_uri in media_source_uris {
+        let next_resolved = repo
+            .resolve_track_entity_header_by_media_source_uri(collection_id, &media_source_uri)
+            .optional()?;
+        if let Some(next_resolved) = next_resolved {
+            let (_, _, entity_header) = next_resolved;
+            resolved.push((media_source_uri, entity_header));
+        }
+    }
+    Ok(resolved)
 }

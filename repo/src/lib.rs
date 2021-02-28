@@ -48,19 +48,43 @@ pub mod prelude {
         fn collect(&mut self, header: Self::Header, record: Self::Record);
     }
 
+    impl<H, R> RecordCollector for Vec<(H, R)> {
+        type Header = H;
+        type Record = R;
+
+        fn collect(&mut self, header: Self::Header, record: Self::Record) {
+            self.push((header, record));
+        }
+    }
+
     pub trait ReservableRecordCollector: RecordCollector {
         /// Reserve additional capacity for new elements
         fn reserve(&mut self, additional: usize);
+    }
+
+    impl<H, R> ReservableRecordCollector for Vec<(H, R)> {
+        fn reserve(&mut self, additional: usize) {
+            Vec::reserve(self, additional);
+        }
     }
 
     pub type PaginationOffset = u64;
 
     pub type PaginationLimit = u64;
 
-    #[derive(Clone, Debug, Default, Eq, PartialEq)]
+    #[derive(Clone, Debug, Eq, PartialEq)]
     pub struct Pagination {
         pub limit: PaginationLimit,
         pub offset: Option<PaginationOffset>,
+    }
+
+    impl Default for Pagination {
+        fn default() -> Self {
+            Self {
+                limit: PaginationLimit::max_value(),
+                offset: None,
+            }
+        }
     }
 
     #[derive(Error, Debug)]

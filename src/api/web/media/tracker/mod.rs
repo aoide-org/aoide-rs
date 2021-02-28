@@ -26,6 +26,7 @@ pub mod untrack;
 
 mod uc {
     pub use crate::usecases::media::tracker::*;
+    pub use aoide_usecases::media::tracker::*;
 }
 
 #[derive(Debug, Copy, Clone, Serialize)]

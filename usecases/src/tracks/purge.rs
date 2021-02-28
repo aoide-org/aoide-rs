@@ -15,24 +15,26 @@
 
 use super::*;
 
-use aoide_repo::collection::EntityRepo as _;
+use aoide_repo::{
+    collection::RecordId as CollectionId, media::source::Repo as MediaSourceRepo, track::EntityRepo,
+};
 
-use aoide_usecases::tracks::purge as uc;
-
-pub fn purge_by_media_source_uri_predicates(
-    connection: &SqliteConnection,
-    collection_uid: &EntityUid,
+pub fn purge_by_media_source_uri_predicates<Repo>(
+    repo: &Repo,
+    collection_id: CollectionId,
     uri_predicates: Vec<StringPredicate>,
-) -> Result<usize> {
-    let db = RepoConnection::new(connection);
-    Ok(
-        db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-            let collection_id = db.resolve_collection_id(collection_uid)?;
-            Ok(uc::purge_by_media_source_uri_predicates(
-                &db,
-                collection_id,
-                uri_predicates,
-            )?)
-        })?,
-    )
+) -> RepoResult<usize>
+where
+    Repo: EntityRepo + MediaSourceRepo,
+{
+    let mut total_purged_tracks = 0;
+    for uri_predicate in uri_predicates {
+        let purged_tracks =
+            repo.purge_tracks_by_media_source_uri_predicate(collection_id, uri_predicate.borrow())?;
+        let _purged_media_sources =
+            repo.purge_media_sources_by_uri_predicate(collection_id, uri_predicate.borrow())?;
+        debug_assert_eq!(purged_tracks, _purged_media_sources);
+        total_purged_tracks += purged_tracks;
+    }
+    Ok(total_purged_tracks)
 }

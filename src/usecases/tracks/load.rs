@@ -19,10 +19,12 @@ use super::*;
 
 pub fn load_one(connection: &SqliteConnection, uid: &EntityUid) -> Result<Entity> {
     let db = RepoConnection::new(connection);
-    Ok(db.transaction::<_, DieselRepoError, _>(|| {
-        let (_, entity) = db.load_track_entity_by_uid(uid)?;
-        Ok(entity)
-    })?)
+    Ok(
+        db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+            let (_, entity) = db.load_track_entity_by_uid(uid)?;
+            Ok(entity)
+        })?,
+    )
 }
 
 pub fn load_many(
@@ -31,21 +33,23 @@ pub fn load_many(
     collector: &mut impl RecordCollector<Header = RecordHeader, Record = Entity>,
 ) -> Result<()> {
     let db = RepoConnection::new(connection);
-    Ok(db.transaction::<_, DieselRepoError, _>(|| {
-        for uid in uid_iter.into_iter() {
-            match db.load_track_entity_by_uid(&uid) {
-                Ok((record_header, entity)) => {
-                    collector.collect(record_header, entity);
-                }
-                Err(RepoError::NotFound) => {
-                    log::debug!("Track with UID '{}' not found", uid);
-                    continue;
-                }
-                Err(err) => {
-                    return Err(err.into());
+    Ok(
+        db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+            for uid in uid_iter.into_iter() {
+                match db.load_track_entity_by_uid(&uid) {
+                    Ok((record_header, entity)) => {
+                        collector.collect(record_header, entity);
+                    }
+                    Err(RepoError::NotFound) => {
+                        log::debug!("Track with UID '{}' not found", uid);
+                        continue;
+                    }
+                    Err(err) => {
+                        return Err(err.into());
+                    }
                 }
             }
-        }
-        Ok(())
-    })?)
+            Ok(())
+        })?,
+    )
 }

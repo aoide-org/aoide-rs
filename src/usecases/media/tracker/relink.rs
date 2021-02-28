@@ -15,24 +15,28 @@
 
 use super::*;
 
-use aoide_core::entity::EntityUid;
+use aoide_usecases::media::tracker::relink as uc;
 
-use aoide_usecases::relink_collected_track as uc;
+use std::sync::atomic::AtomicBool;
 
-pub fn relink_collected_track_by_media_source_uri(
+pub fn relink_tracks_with_untracked_media_sources(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    old_source_uri: &str,
-    new_source_uri: &str,
-) -> Result<()> {
+    find_candidate_params: uc::FindCandidateParams,
+    progress_fn: &mut impl FnMut(&uc::Progress),
+    abort_flag: &AtomicBool,
+) -> Result<Vec<uc::RelocatedMediaSource>> {
     let db = RepoConnection::new(connection);
-    db.transaction::<_, DieselRepoError, _>(|| {
-        Ok(uc::relink_collected_track_by_media_source_uri(
-            &db,
-            collection_uid,
-            old_source_uri,
-            new_source_uri,
-        )?)
-    })
-    .map_err(Into::into)
+    Ok(
+        db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+            let collection_id = db.resolve_collection_id(collection_uid)?;
+            Ok(uc::relink_tracks_with_untracked_media_sources(
+                &db,
+                collection_id,
+                find_candidate_params,
+                progress_fn,
+                abort_flag,
+            )?)
+        })?,
+    )
 }

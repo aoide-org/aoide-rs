@@ -129,6 +129,107 @@ impl Track {
         drop(std::mem::replace(&mut self.album, Canonical::tie(album)));
         res
     }
+
+    pub fn merge_newer_from_synchronized_media_source(&mut self, newer: Track) {
+        let Self {
+            actors,
+            album,
+            color,
+            cues,
+            indexes,
+            media_source,
+            metrics,
+            play_counter,
+            release,
+            tags,
+            titles,
+        } = self;
+        let Self {
+            actors: newer_actors,
+            album: newer_album,
+            color: newer_color,
+            cues: newer_cues,
+            indexes: newer_indexes,
+            media_source: mut newer_media_source,
+            metrics: newer_metrics,
+            play_counter: newer_play_counter,
+            release: newer_release,
+            tags: newer_tags,
+            titles: newer_titles,
+        } = newer;
+        // Replace media source but preserve the earlier collected at
+        newer_media_source.collected_at = newer_media_source
+            .collected_at
+            .min(media_source.collected_at);
+        *media_source = newer_media_source;
+        // Do not replace existing data with empty data
+        if !newer_actors.is_empty() {
+            *actors = newer_actors;
+        }
+        if !newer_album.is_default() {
+            *album = newer_album;
+        }
+        if !newer_color.is_some() {
+            *color = newer_color;
+        }
+        if !newer_cues.is_empty() {
+            *cues = newer_cues;
+        }
+        if !newer_indexes.is_default() {
+            *indexes = newer_indexes;
+        }
+        if !newer_play_counter.is_default() {
+            *play_counter = newer_play_counter;
+        }
+        if !newer_release.is_default() {
+            *release = newer_release;
+        }
+        if !newer_tags.is_empty() {
+            *tags = newer_tags;
+        }
+        if !newer_titles.is_empty() {
+            *titles = newer_titles;
+        }
+        if !newer_metrics.is_default() {
+            let Metrics {
+                tempo_bpm,
+                key_signature,
+                time_signature,
+                flags,
+            } = metrics;
+            let Metrics {
+                tempo_bpm: newer_tempo_bpm,
+                key_signature: newer_key_signature,
+                time_signature: newer_time_signature,
+                flags: newer_flags,
+            } = newer_metrics;
+            *flags = newer_flags
+                & !(MetricsFlags::TEMPO_BPM_LOCKED
+                    | MetricsFlags::KEY_SIGNATURE_LOCKED
+                    | MetricsFlags::TIME_SIGNATURE_LOCKED);
+            if newer_tempo_bpm.is_some() {
+                *tempo_bpm = newer_tempo_bpm;
+                flags.set(
+                    MetricsFlags::TEMPO_BPM_LOCKED,
+                    newer_flags.contains(MetricsFlags::TEMPO_BPM_LOCKED),
+                );
+            }
+            if !newer_key_signature.is_default() {
+                *key_signature = newer_key_signature;
+                flags.set(
+                    MetricsFlags::KEY_SIGNATURE_LOCKED,
+                    newer_flags.contains(MetricsFlags::KEY_SIGNATURE_LOCKED),
+                );
+            }
+            if !newer_time_signature.is_default() {
+                *time_signature = newer_time_signature;
+                flags.set(
+                    MetricsFlags::TIME_SIGNATURE_LOCKED,
+                    newer_flags.contains(MetricsFlags::TIME_SIGNATURE_LOCKED),
+                );
+            }
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]

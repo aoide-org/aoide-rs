@@ -31,10 +31,10 @@ use aoide_core_serde::track::Entity;
 pub mod import_and_replace;
 pub mod load_many;
 pub mod load_one;
-pub mod purge_collected;
-pub mod replace_collected;
-pub mod resolve_collected;
-pub mod search_collected;
+pub mod purge;
+pub mod replace;
+pub mod resolve;
+pub mod search;
 
 #[derive(Debug, Clone, Default)]
 pub struct EntityCollector(Vec<Entity>);

@@ -90,6 +90,12 @@ impl From<uc::Error> for Error {
     }
 }
 
+impl From<aoide_usecases::Error> for Error {
+    fn from(err: aoide_usecases::Error) -> Self {
+        uc::Error::from(err).into()
+    }
+}
+
 pub type Result<T> = StdResult<T, Error>;
 
 impl Reject for Error {}

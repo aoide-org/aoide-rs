@@ -19,6 +19,8 @@ mod uc {
     pub use crate::usecases::tracks::replace::*;
 
     pub use aoide_repo::track::ReplaceMode;
+
+    pub use aoide_usecases::tracks::replace::Summary;
 }
 
 pub use aoide_core_serde::{

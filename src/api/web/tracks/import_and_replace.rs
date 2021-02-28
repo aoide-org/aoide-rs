@@ -17,10 +17,11 @@ use std::sync::atomic::AtomicBool;
 
 use super::*;
 
-use crate::api::web::{media::ImportMode, tracks::replace_collected::ReplaceMode};
+use crate::api::web::{media::ImportMode, tracks::replace::ReplaceMode};
 
 mod uc {
     pub use crate::usecases::tracks::replace::*;
+    pub use aoide_usecases::tracks::replace::{Completion, Outcome, Summary};
 }
 
 mod _core {

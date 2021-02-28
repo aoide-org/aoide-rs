@@ -30,8 +30,10 @@ pub fn query_directories(
 ) -> Result<DirectoriesStatusSummary> {
     let uri_prefix = uri_path_prefix_from_url(root_dir_url)?;
     let db = RepoConnection::new(connection);
-    Ok(db.transaction::<_, DieselRepoError, _>(|| {
-        let collection_id = db.resolve_collection_id(collection_uid)?;
-        Ok(db.media_tracker_aggregate_directories_tracking_status(collection_id, &uri_prefix)?)
-    })?)
+    Ok(
+        db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+            let collection_id = db.resolve_collection_id(collection_uid)?;
+            Ok(db.media_tracker_aggregate_directories_tracking_status(collection_id, &uri_prefix)?)
+        })?,
+    )
 }

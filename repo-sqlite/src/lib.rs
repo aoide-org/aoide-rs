@@ -75,24 +75,34 @@ pub mod prelude {
     }
 
     #[derive(Debug)]
-    pub struct DieselRepoError(pub RepoError);
+    pub struct DieselTransactionError<E>(E);
 
-    impl From<DieselError> for DieselRepoError {
+    impl<E> DieselTransactionError<E> {
+        pub const fn new(inner: E) -> Self {
+            Self(inner)
+        }
+
+        pub fn into_inner(self) -> E {
+            let Self(inner) = self;
+            inner
+        }
+    }
+
+    impl<E> From<DieselError> for DieselTransactionError<E>
+    where
+        E: From<RepoError>,
+    {
         fn from(err: DieselError) -> Self {
-            Self(repo_error(err))
+            Self(repo_error(err).into())
         }
     }
 
-    impl From<DieselRepoError> for RepoError {
-        fn from(err: DieselRepoError) -> Self {
-            let DieselRepoError(err) = err;
-            err
-        }
-    }
-
-    impl From<RepoError> for DieselRepoError {
+    impl<E> From<RepoError> for DieselTransactionError<E>
+    where
+        E: From<RepoError>,
+    {
         fn from(err: RepoError) -> Self {
-            Self(err)
+            Self(err.into())
         }
     }
 

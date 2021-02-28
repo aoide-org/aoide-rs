@@ -13,32 +13,35 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::sync::atomic::AtomicBool;
-
 use super::*;
 
-mod uc {
-    pub use crate::usecases::media::tracker::import::*;
-}
-
-mod _core {
-    pub use aoide_core::entity::EntityUid;
-}
-
 use aoide_core::track::tag::{FACET_GENRE, FACET_MOOD};
-pub use aoide_core_serde::{
-    entity::EntityHeader,
-    track::{Entity, Track},
-};
+
 use aoide_media::{
     io::import::{ImportTrackConfig, ImportTrackFlags},
     util::tag::{FacetedTagMappingConfigInner, TagMappingConfig},
 };
 
+use std::sync::atomic::AtomicBool;
 use tokio::sync::watch;
 use url::Url;
 
-///////////////////////////////////////////////////////////////////////
+mod _core {
+    pub use aoide_core::entity::EntityUid;
+}
+
+mod uc {
+    pub use crate::usecases::media::tracker::{import::*, *};
+
+    pub use aoide_usecases::media::tracker::import::{
+        DirectorySummary, Outcome, Summary, TrackSummary,
+    };
+}
+
+pub use aoide_core_serde::{
+    entity::EntityHeader,
+    track::{Entity, Track},
+};
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -206,7 +209,13 @@ pub fn handle_request(
         import_mode.into(),
         &import_config,
         import_flags,
-        progress_summary_tx,
+        &mut |summary| {
+            if let Some(progress_summary_tx) = progress_summary_tx {
+                if progress_summary_tx.send(summary.to_owned()).is_err() {
+                    log::error!("Failed to send progress summary");
+                }
+            }
+        },
         abort_flag,
     )
     .map(Into::into)?)

@@ -215,25 +215,3 @@ pub trait Repo {
         uri_prefix: &str,
     ) -> RepoResult<DirectoriesStatusSummary>;
 }
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct MediaSourceSummary {
-    pub total_count: u64,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct TrackSummary {
-    pub total_count: u64,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PlaylistSummary {
-    pub total_count: u64,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Default)]
-pub struct Summary {
-    pub media_sources: Option<MediaSourceSummary>,
-    pub tracks: Option<TrackSummary>,
-    pub playlists: Option<PlaylistSummary>,
-}

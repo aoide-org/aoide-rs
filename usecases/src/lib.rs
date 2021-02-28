@@ -16,11 +16,28 @@
 #![deny(missing_debug_implementations)]
 #![warn(rust_2018_idioms)]
 
+use aoide_media::Error as MediaError;
 use aoide_repo::prelude::*;
 
-use aoide_core::{
-    entity::{Entity, EntityUid},
-    util::clock::DateTime,
-};
+use std::result::Result as StdResult;
+use thiserror::Error;
 
-pub mod relink_collected_track;
+pub mod media;
+pub mod tracks;
+
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error(transparent)]
+    Media(#[from] MediaError),
+
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+
+    #[error(transparent)]
+    Repository(#[from] RepoError),
+
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
+}
+
+pub type Result<T> = StdResult<T, Error>;

@@ -101,12 +101,21 @@ pub fn handle_request(
         root_url,
         max_depth,
     } = request_body;
-    Ok(uc::hash_recursively(
+    Ok(uc::hash_directories_recursively(
         &pooled_connection,
         collection_uid,
         &root_url,
         max_depth,
-        progress_event_tx,
+        &mut |progress_event| {
+            if let Some(progress_event_tx) = progress_event_tx {
+                if progress_event_tx
+                    .send(Some(progress_event.to_owned()))
+                    .is_err()
+                {
+                    log::error!("Failed to send progress event");
+                }
+            }
+        },
         abort_flag,
     )
     .map(Into::into)?)

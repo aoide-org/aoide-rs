@@ -16,32 +16,30 @@
 use super::*;
 
 use aoide_repo::{
-    collection::EntityRepo as _,
-    track::{SearchFilter, SortOrder},
+    collection::RecordId as CollectionId,
+    track::{EntityRepo, RecordHeader, SearchFilter, SortOrder},
 };
 
-use aoide_usecases::tracks::search as uc;
+use std::time::Instant;
 
-pub fn search(
-    pooled_connection: SqlitePooledConnection,
-    collection_uid: &EntityUid,
+pub fn search<Repo>(
+    repo: &Repo,
+    collection_id: CollectionId,
     pagination: &Pagination,
     filter: Option<SearchFilter>,
     ordering: Vec<SortOrder>,
     collector: &mut impl ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
-) -> Result<usize> {
-    let db = RepoConnection::new(&pooled_connection);
-    Ok(
-        db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-            let collection_id = db.resolve_collection_id(collection_uid)?;
-            Ok(uc::search(
-                &db,
-                collection_id,
-                pagination,
-                filter,
-                ordering,
-                collector,
-            )?)
-        })?,
-    )
+) -> RepoResult<usize>
+where
+    Repo: EntityRepo,
+{
+    let timed = Instant::now();
+    let count =
+        repo.search_collected_tracks(collection_id, pagination, filter, ordering, collector)?;
+    log::debug!(
+        "Search returned {} tracks and took {} ms",
+        count,
+        (timed.elapsed().as_micros() / 1000) as f64,
+    );
+    Ok(count)
 }

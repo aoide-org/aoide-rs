@@ -31,8 +31,10 @@ pub fn untrack(
 ) -> Result<usize> {
     let uri_prefix = uri_path_prefix_from_url(root_dir_url)?;
     let db = RepoConnection::new(connection);
-    Ok(db.transaction::<_, DieselRepoError, _>(|| {
-        let collection_id = db.resolve_collection_id(collection_uid)?;
-        Ok(db.media_tracker_untrack(collection_id, &uri_prefix, status)?)
-    })?)
+    Ok(
+        db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+            let collection_id = db.resolve_collection_id(collection_uid)?;
+            Ok(db.media_tracker_untrack(collection_id, &uri_prefix, status)?)
+        })?,
+    )
 }
