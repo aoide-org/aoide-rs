@@ -43,6 +43,7 @@ table! {
         artwork_size_width -> Nullable<SmallInt>,
         artwork_size_height -> Nullable<SmallInt>,
         artwork_color_rgb -> Nullable<Integer>,
+        artwork_thumbnail_4x4_rgb8 -> Nullable<Binary>,
     }
 }
 

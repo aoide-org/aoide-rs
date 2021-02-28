@@ -25,7 +25,7 @@ use self::digest::MediaDigest;
 
 use aoide_core::{
     audio::signal::LoudnessLufs,
-    media::{Artwork, ImageDimension, ImageSize},
+    media::{Artwork, ImageDimension, ImageSize, Thumbnail4x4Rgb8},
     music::{
         key::{KeyCode, KeySignature},
         time::TempoBpm,
@@ -55,6 +55,7 @@ use nom::{
     IResult,
 };
 use semval::IsValid as _;
+use std::convert::TryFrom as _;
 use url::Url;
 
 pub fn guess_mime_from_url(url: &Url) -> Result<Mime> {
@@ -355,19 +356,23 @@ pub fn parse_artwork_from_embedded_image(
         let digest = image_digest
             .digest_content(image_data)
             .map(|digest| digest.to_vec());
-        let rgb8_single_pixel_image = image
-            .resize_exact(1, 1, image::imageops::FilterType::Nearest)
+        let image_4x4 = image.resize_exact(4, 4, image::imageops::FilterType::Lanczos3);
+        let image_1x1_rgb8 = image_4x4
+            .resize_exact(1, 1, image::imageops::FilterType::Lanczos3)
             .to_rgb8();
-        let rgb8_pixel = rgb8_single_pixel_image.get_pixel(0, 0);
-        let color_rgb = Some(RgbColor(
+        let rgb8_pixel = image_1x1_rgb8.get_pixel(0, 0);
+        let color_rgb = RgbColor(
             ((rgb8_pixel.channels()[0] as RgbColorCode) << 16)
                 + ((rgb8_pixel.channels()[1] as RgbColorCode) << 8)
                 + rgb8_pixel.channels()[2] as RgbColorCode,
-        ));
+        );
+        let thumbnail_4x4_rgb8 = Thumbnail4x4Rgb8::try_from(image_4x4.to_rgb8().into_raw()).ok();
+        debug_assert!(thumbnail_4x4_rgb8.is_some());
         Some(Artwork {
             size: Some(size),
             digest,
-            color_rgb,
+            color_rgb: Some(color_rgb),
+            thumbnail_4x4_rgb8,
             media_type: Some(media_type),
             uri: None, // embedded
         })

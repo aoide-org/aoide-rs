@@ -971,6 +971,8 @@ components:
       properties:
         colorRgb:
           $ref: '#/components/schemas/ArtworkColor'
+        thumbnail:
+          $ref: '#/components/schemas/ImageThumbnail4x4Rgb8'
         digest:
           $ref: '#/components/schemas/ImageDigest'
         size:
@@ -1186,7 +1188,7 @@ components:
           $ref: '#/components/schemas/ColorIndex'
     MediaDigest:
       description: |
-        A crypographic hash encoded as *base64url* (RFC 4648) without padding
+        A crypographic 256-bit hash encoded as *base64url* (RFC 4648) without padding
         that can be used as a fingerprint of arbitrary, variable-length content
         (audio/video/image/text/...).
 
@@ -1196,7 +1198,8 @@ components:
         suitable to be included in the digest calculation.
       type: string
       format: base64url
-      minLength: 1
+      minLength: 42
+      maxLength: 43
     ContentMetadataFlags:
       type: integer
       format: i32
@@ -1307,6 +1310,18 @@ components:
         modifications, e.g. a SHA256 hash of the raw image data.
       allOf:
         - $ref: '#/components/schemas/MediaDigest'
+    ImageThumbnail4x4Rgb8:
+      description: |
+        A condensed 4x4 thumbnail picture.
+
+        The pixel format is R8G8B8, i.e. 8 bytes per RGB channel. The data layout
+        is in row-major order starting in the upper left corner of the image.
+
+        The raw bytes are encoded as *base64url* (RFC 4648) without padding.
+      type: string
+      format: base64url
+      minLength: 64
+      maxLength: 64
     ImageSize:
       description: |
         Width and height of an image in pixels

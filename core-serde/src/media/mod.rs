@@ -17,7 +17,10 @@ mod _core {
     pub use aoide_core::media::*;
 }
 
-use aoide_core::{media::ContentMetadataFlags, util::IsDefault};
+use aoide_core::{
+    media::{ContentMetadataFlags, Thumbnail4x4Rgb8},
+    util::IsDefault,
+};
 
 use crate::{audio::AudioContent, prelude::*, util::clock::DateTime};
 
@@ -27,19 +30,17 @@ use std::convert::TryFrom;
 // Content
 ///////////////////////////////////////////////////////////////////////
 
-// TODO: Use a more efficient serialization
-// https://github.com/signalapp/SecureValueRecovery/blob/master/service/kbupd_util/src/base64.rs
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
-pub struct Digest(String);
+pub struct Base64(String);
 
-impl Digest {
+impl Base64 {
     pub fn encode(bytes: impl AsRef<[u8]>) -> Self {
         let encoded = base64::encode_config(bytes.as_ref(), base64::URL_SAFE_NO_PAD);
         Self(encoded)
     }
 
     pub fn try_decode(&self) -> Result<Vec<u8>, base64::DecodeError> {
-        let Digest(encoded) = self;
+        let Self(encoded) = self;
         Self::try_decode_impl(encoded)
     }
 
@@ -54,29 +55,33 @@ impl Digest {
     }
 }
 
-impl AsRef<str> for Digest {
+impl AsRef<str> for Base64 {
     fn as_ref(&self) -> &str {
-        let Digest(encoded) = self;
+        let Self(encoded) = self;
         encoded
     }
 }
 
-impl<T> From<T> for Digest
+impl<T> From<T> for Base64
 where
     T: AsRef<[u8]>,
 {
     fn from(from: T) -> Self {
-        Digest::encode(from)
+        Self::encode(from)
     }
 }
 
-impl TryFrom<&Digest> for Vec<u8> {
+impl TryFrom<&Base64> for Vec<u8> {
     type Error = base64::DecodeError;
 
-    fn try_from(from: &Digest) -> Result<Self, Self::Error> {
+    fn try_from(from: &Base64) -> Result<Self, Self::Error> {
         from.try_decode()
     }
 }
+
+// TODO: Use a more efficient serialization for fixed-length data
+// https://github.com/signalapp/SecureValueRecovery/blob/master/service/kbupd_util/src/base64.rs
+pub type Digest = Base64;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct DigestRef<'a>(&'a str);
@@ -146,6 +151,9 @@ pub struct Artwork {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     color_rgb: Option<RgbColor>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    thumbnail_4x4_rgb8: Option<Base64>,
 }
 
 impl From<_core::Artwork> for Artwork {
@@ -156,6 +164,7 @@ impl From<_core::Artwork> for Artwork {
             digest,
             size,
             color_rgb,
+            thumbnail_4x4_rgb8,
         } = from;
         let size = size.map(|size| {
             let _core::ImageSize { width, height } = size;
@@ -167,6 +176,7 @@ impl From<_core::Artwork> for Artwork {
             digest: digest.as_ref().map(Into::into),
             size,
             color_rgb: color_rgb.map(Into::into),
+            thumbnail_4x4_rgb8: thumbnail_4x4_rgb8.as_ref().map(Into::into),
         }
     }
 }
@@ -179,6 +189,7 @@ impl From<Artwork> for _core::Artwork {
             digest,
             size,
             color_rgb,
+            thumbnail_4x4_rgb8,
         } = from;
         let size = size.map(|size| {
             let ImageSize(width, height) = size;
@@ -190,6 +201,12 @@ impl From<Artwork> for _core::Artwork {
             digest: digest.as_ref().map(TryFrom::try_from).and_then(Result::ok),
             size,
             color_rgb: color_rgb.map(Into::into),
+            thumbnail_4x4_rgb8: thumbnail_4x4_rgb8
+                .as_ref()
+                .map(Vec::try_from)
+                .and_then(Result::ok)
+                .map(Thumbnail4x4Rgb8::try_from)
+                .and_then(Result::ok),
         }
     }
 }

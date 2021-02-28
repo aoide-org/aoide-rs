@@ -220,6 +220,8 @@ impl Validate for ImageSize {
     }
 }
 
+pub type Thumbnail4x4Rgb8 = [u8; 4 * 4 * 3];
+
 // All artwork properties are optional for maximum flexibility.
 // Properties could be missing or are yet unknown at some point
 // in time.
@@ -243,6 +245,9 @@ pub struct Artwork {
     /// a preliminary view before the actual image has been loaded and
     /// for selecting a matching color scheme.
     pub color_rgb: Option<RgbColor>,
+
+    /// A 4x4 R8G8B8 thumbnail image.
+    pub thumbnail_4x4_rgb8: Option<Thumbnail4x4Rgb8>,
 }
 
 impl Artwork {
@@ -253,12 +258,14 @@ impl Artwork {
             digest,
             size,
             color_rgb,
+            thumbnail_4x4_rgb8,
         } = self;
         uri.is_none()
             && media_type.is_none()
             && digest.is_none()
             && size.is_none()
             && color_rgb.is_none()
+            && thumbnail_4x4_rgb8.is_none()
     }
 }
 

@@ -32,6 +32,8 @@ use aoide_core::{
 
 use aoide_repo::collection::RecordId as CollectionId;
 
+use std::convert::TryInto as _;
+
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Queryable, Identifiable)]
@@ -61,6 +63,7 @@ pub struct QueryableRecord {
     pub artwork_size_width: Option<i16>,
     pub artwork_size_height: Option<i16>,
     pub artwork_color_rgb: Option<i32>,
+    pub artwork_thumbnail_4x4_rgb8: Option<Vec<u8>>,
 }
 
 impl From<QueryableRecord> for (RecordHeader, Source) {
@@ -90,6 +93,7 @@ impl From<QueryableRecord> for (RecordHeader, Source) {
             artwork_size_width,
             artwork_size_height,
             artwork_color_rgb,
+            artwork_thumbnail_4x4_rgb8,
         } = from;
         let audio_content = AudioContent {
             duration: audio_duration_ms.map(DurationMs::from_inner),
@@ -115,6 +119,7 @@ impl From<QueryableRecord> for (RecordHeader, Source) {
             digest: artwork_digest,
             size: image_size,
             color_rgb: artwork_color_rgb.map(|code| RgbColor(code as RgbColorCode)),
+            thumbnail_4x4_rgb8: artwork_thumbnail_4x4_rgb8.and_then(|bytes| bytes.try_into().ok()),
         };
         let header = RecordHeader {
             id: id.into(),
@@ -163,6 +168,7 @@ pub struct InsertableRecord<'a> {
     pub artwork_size_width: Option<i16>,
     pub artwork_size_height: Option<i16>,
     pub artwork_color_rgb: Option<i32>,
+    pub artwork_thumbnail_4x4_rgb8: Option<&'a [u8]>,
 }
 
 impl<'a> InsertableRecord<'a> {
@@ -192,6 +198,7 @@ impl<'a> InsertableRecord<'a> {
             digest: artwork_digest,
             size: artwork_size,
             color_rgb: artwork_color_rgb,
+            thumbnail_4x4_rgb8: artwork_thumbnail_4x4_rgb8,
         } = artwork;
         let row_created_updated_ms = created_at.timestamp_millis();
         Self {
@@ -228,6 +235,7 @@ impl<'a> InsertableRecord<'a> {
             artwork_size_width: artwork_size.map(|size| size.width as i16),
             artwork_size_height: artwork_size.map(|size| size.height as i16),
             artwork_color_rgb: artwork_color_rgb.map(|color| color.code() as i32),
+            artwork_thumbnail_4x4_rgb8: artwork_thumbnail_4x4_rgb8.as_ref().map(|x| &x[..]),
         }
     }
 }
@@ -257,6 +265,7 @@ pub struct UpdatableRecord<'a> {
     pub artwork_size_width: Option<i16>,
     pub artwork_size_height: Option<i16>,
     pub artwork_color_rgb: Option<i32>,
+    pub artwork_thumbnail_4x4_rgb8: Option<&'a [u8]>,
 }
 
 impl<'a> UpdatableRecord<'a> {
@@ -282,6 +291,7 @@ impl<'a> UpdatableRecord<'a> {
             digest: artwork_digest,
             size: artwork_size,
             color_rgb: artwork_color_rgb,
+            thumbnail_4x4_rgb8: artwork_thumbnail_4x4_rgb8,
         } = artwork;
         Self {
             row_updated_ms: updated_at.timestamp_millis(),
@@ -315,6 +325,7 @@ impl<'a> UpdatableRecord<'a> {
             artwork_size_width: artwork_size.map(|size| size.width as i16),
             artwork_size_height: artwork_size.map(|size| size.height as i16),
             artwork_color_rgb: artwork_color_rgb.map(|color| color.code() as i32),
+            artwork_thumbnail_4x4_rgb8: artwork_thumbnail_4x4_rgb8.as_ref().map(|x| &x[..]),
         }
     }
 }

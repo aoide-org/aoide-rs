@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS media_source (
     artwork_size_width     INTEGER,
     artwork_size_height    INTEGER,
     artwork_color_rgb      INTEGER,          -- 0xRRGGBB
+    artwork_thumbnail_4x4_rgb8 BINARY,
     --
     FOREIGN KEY(collection_id) REFERENCES collection(row_id),
     UNIQUE (collection_id, uri)
