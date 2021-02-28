@@ -28,13 +28,13 @@ pub struct BitrateBps(_core::BitsPerSecond);
 
 impl From<_core::BitrateBps> for BitrateBps {
     fn from(from: _core::BitrateBps) -> Self {
-        Self(from.0)
+        Self(from.to_inner())
     }
 }
 
 impl From<BitrateBps> for _core::BitrateBps {
     fn from(from: BitrateBps) -> Self {
-        Self(from.0)
+        Self::from_inner(from.0)
     }
 }
 
@@ -47,14 +47,14 @@ pub struct SampleRateHz(_core::SamplesPerSecond);
 
 impl From<_core::SampleRateHz> for SampleRateHz {
     fn from(from: _core::SampleRateHz) -> Self {
-        Self(from.hz())
+        Self(from.to_inner())
     }
 }
 
 impl From<SampleRateHz> for _core::SampleRateHz {
     fn from(from: SampleRateHz) -> Self {
-        let SampleRateHz(hz) = from;
-        Self::new(hz)
+        let SampleRateHz(inner) = from;
+        Self::from_inner(inner)
     }
 }
 

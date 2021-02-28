@@ -30,7 +30,7 @@ use std::{f64, fmt};
 pub type BitsPerSecond = f64;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, PartialOrd)]
-pub struct BitrateBps(pub BitsPerSecond);
+pub struct BitrateBps(BitsPerSecond);
 
 impl BitrateBps {
     pub const fn unit_of_measure() -> &'static str {
@@ -43,6 +43,15 @@ impl BitrateBps {
 
     pub const fn max() -> Self {
         Self(f64::MAX)
+    }
+
+    pub const fn from_inner(inner: SamplesPerSecond) -> Self {
+        Self(inner)
+    }
+
+    pub const fn to_inner(self) -> SamplesPerSecond {
+        let Self(inner) = self;
+        inner
     }
 }
 
@@ -65,7 +74,7 @@ impl Validate for BitrateBps {
 
 impl fmt::Display for BitrateBps {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.0, Self::unit_of_measure())
+        write!(f, "{} {}", self.to_inner(), Self::unit_of_measure())
     }
 }
 
@@ -107,13 +116,13 @@ impl SampleRateHz {
         Self(192_000.0)
     }
 
-    pub const fn new(hz: SamplesPerSecond) -> Self {
-        Self(hz)
+    pub const fn from_inner(inner: SamplesPerSecond) -> Self {
+        Self(inner)
     }
 
-    pub const fn hz(self) -> SamplesPerSecond {
-        let Self(hz) = self;
-        hz
+    pub const fn to_inner(self) -> SamplesPerSecond {
+        let Self(inner) = self;
+        inner
     }
 }
 
@@ -142,7 +151,7 @@ impl Validate for SampleRateHz {
 
 impl fmt::Display for SampleRateHz {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.0, Self::unit_of_measure())
+        write!(f, "{} {}", self.to_inner(), Self::unit_of_measure())
     }
 }
 

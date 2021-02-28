@@ -189,7 +189,7 @@ impl import::ImportTrack for ImportTrack {
                         continue;
                     }
                     channels = Some(ChannelCount(frame.channels as NumberOfChannels).into());
-                    sample_rate = Some(SampleRateHz::new(frame.sample_rate as f64));
+                    sample_rate = Some(SampleRateHz::from_inner(frame.sample_rate as f64));
                     // Stop decoding
                     break;
                 }
@@ -226,7 +226,7 @@ impl import::ImportTrack for ImportTrack {
             .content_metadata_flags
             .update(metadata_flags)
         {
-            // TODO: Avgerage bitrate needs to be calculated from all MP3 frames
+            // TODO: Average bitrate needs to be calculated from all MP3 frames
             // if not stored explicitly. mp3-duration already reads the bitrate
             // of each frame but does not calculate and return an average bitrate.
             let bitrate = None;

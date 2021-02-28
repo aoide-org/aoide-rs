@@ -100,14 +100,14 @@ impl import::ImportTrack for ImportTrack {
                 log::warn!("Invalid channel count: {}", channel_count.0);
                 None
             };
-            let bitrate = BitrateBps(ident_hdr.bitrate_nominal.into());
+            let bitrate = BitrateBps::from_inner(ident_hdr.bitrate_nominal.into());
             let bitrate = if bitrate.is_valid() {
                 Some(bitrate)
             } else {
                 log::warn!("Invalid bitrate: {}", bitrate);
                 None
             };
-            let sample_rate = SampleRateHz::new(ident_hdr.audio_sample_rate.into());
+            let sample_rate = SampleRateHz::from_inner(ident_hdr.audio_sample_rate.into());
             let sample_rate = if sample_rate.is_valid() {
                 Some(sample_rate)
             } else {

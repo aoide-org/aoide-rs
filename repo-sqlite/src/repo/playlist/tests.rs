@@ -68,7 +68,7 @@ impl Fixture {
                 content_digest: None,
                 content_metadata_flags: Default::default(),
                 content: AudioContent {
-                    duration: Some(DurationMs(i as f64)),
+                    duration: Some(DurationMs::from_inner(i as f64)),
                     ..Default::default()
                 }
                 .into(),

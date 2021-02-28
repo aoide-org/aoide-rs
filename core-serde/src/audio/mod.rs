@@ -55,15 +55,14 @@ pub struct DurationMs(_core::DurationInMilliseconds);
 
 impl From<_core::DurationMs> for DurationMs {
     fn from(from: _core::DurationMs) -> Self {
-        let _core::DurationMs(ms) = from;
-        Self(ms)
+        Self(from.to_inner())
     }
 }
 
 impl From<DurationMs> for _core::DurationMs {
     fn from(from: DurationMs) -> Self {
         let DurationMs(ms) = from;
-        Self(ms)
+        Self::from_inner(ms)
     }
 }
 

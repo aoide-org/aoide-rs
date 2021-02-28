@@ -20,8 +20,8 @@ use crate::prelude::*;
 use aoide_core::{
     audio::{
         channel::{ChannelCount, NumberOfChannels},
-        signal::{BitrateBps, BitsPerSecond, LoudnessLufs, SampleRateHz, SamplesPerSecond},
-        AudioContent, DurationInMilliseconds, DurationMs,
+        signal::{BitrateBps, BitsPerSecond, LoudnessLufs, SampleRateHz},
+        AudioContent, DurationMs,
     },
     media::{Artwork, Content, ContentMetadataFlags, ImageDimension, ImageSize, Source},
     util::{
@@ -92,10 +92,10 @@ impl From<QueryableRecord> for (RecordHeader, Source) {
             artwork_color_rgb,
         } = from;
         let audio_content = AudioContent {
-            duration: audio_duration_ms.map(|val| DurationMs(val as DurationInMilliseconds)),
+            duration: audio_duration_ms.map(DurationMs::from_inner),
             channels: audio_channel_count.map(|val| ChannelCount(val as NumberOfChannels).into()),
-            sample_rate: audio_samplerate_hz.map(|val| SampleRateHz::new(val as SamplesPerSecond)),
-            bitrate: audio_bitrate_bps.map(|val| BitrateBps(val as BitsPerSecond)),
+            sample_rate: audio_samplerate_hz.map(SampleRateHz::from_inner),
+            bitrate: audio_bitrate_bps.map(|val| BitrateBps::from_inner(val as BitsPerSecond)),
             loudness: audio_loudness_lufs.map(LoudnessLufs),
             encoder: audio_encoder,
         };
@@ -208,16 +208,16 @@ impl<'a> InsertableRecord<'a> {
             content_metadata_flags: content_metadata_flags.bits() as i16,
             audio_duration_ms: audio_content
                 .and_then(|audio| audio.duration)
-                .map(|sample_rate| sample_rate.0),
+                .map(DurationMs::to_inner),
             audio_channel_count: audio_content
                 .and_then(|audio| audio.channels)
                 .map(|channels| channels.count().0 as i16),
             audio_samplerate_hz: audio_content
                 .and_then(|audio| audio.sample_rate)
-                .map(|sample_rate| sample_rate.hz()),
+                .map(SampleRateHz::to_inner),
             audio_bitrate_bps: audio_content
                 .and_then(|audio| audio.bitrate)
-                .map(|bitrate| bitrate.0),
+                .map(BitrateBps::to_inner),
             audio_loudness_lufs: audio_content
                 .and_then(|audio| audio.loudness)
                 .map(|loudness| loudness.0),
@@ -295,16 +295,16 @@ impl<'a> UpdatableRecord<'a> {
             content_metadata_flags: content_metadata_flags.bits() as i16,
             audio_duration_ms: audio_content
                 .and_then(|audio| audio.duration)
-                .map(|sample_rate| sample_rate.0),
+                .map(DurationMs::to_inner),
             audio_channel_count: audio_content
                 .and_then(|audio| audio.channels)
                 .map(|channels| channels.count().0 as i16),
             audio_samplerate_hz: audio_content
                 .and_then(|audio| audio.sample_rate)
-                .map(|sample_rate| sample_rate.hz()),
+                .map(SampleRateHz::to_inner),
             audio_bitrate_bps: audio_content
                 .and_then(|audio| audio.bitrate)
-                .map(|bitrate| bitrate.0),
+                .map(BitrateBps::to_inner),
             audio_loudness_lufs: audio_content
                 .and_then(|audio| audio.loudness)
                 .map(|loudness| loudness.0),

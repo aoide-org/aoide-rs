@@ -77,7 +77,7 @@ impl import::ImportTrack for ImportTrack {
                         )
                         .into(),
                     );
-                    sample_rate = Some(SampleRateHz::new(streaminfo.sample_rate.into()));
+                    sample_rate = Some(SampleRateHz::from_inner(streaminfo.sample_rate.into()));
                 } else {
                     duration = None;
                     sample_rate = None;

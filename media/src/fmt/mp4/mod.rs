@@ -62,7 +62,7 @@ pub struct ImportTrack;
 
 fn read_bitrate(bitrate: u32) -> Option<BitrateBps> {
     let bits_per_second = bitrate as BitsPerSecond;
-    let bitrate_bps = BitrateBps(bits_per_second);
+    let bitrate_bps = BitrateBps::from_inner(bits_per_second);
     if bitrate_bps >= BitrateBps::min() {
         Some(bitrate_bps)
     } else {
@@ -113,7 +113,7 @@ impl import::ImportTrack for ImportTrack {
                 .sample_rate()
                 .as_ref()
                 .map(Mp4SampleRate::hz)
-                .map(|hz| SampleRateHz::new(hz as SamplesPerSecond));
+                .map(|hz| SampleRateHz::from_inner(hz as SamplesPerSecond));
             let bitrate = mp4_tag.avg_bitrate().and_then(read_bitrate);
             let loudness = mp4_tag
                 .string(&FreeformIdent::new(

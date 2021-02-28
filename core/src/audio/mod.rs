@@ -66,15 +66,28 @@ impl fmt::Display for PositionMs {
 pub type DurationInMilliseconds = f64;
 
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
-pub struct DurationMs(pub DurationInMilliseconds);
+pub struct DurationMs(DurationInMilliseconds);
 
 impl DurationMs {
     pub const fn unit_of_measure() -> &'static str {
         "ms"
     }
 
+    pub const fn from_inner(inner: DurationInMilliseconds) -> Self {
+        Self(inner)
+    }
+
+    pub const fn to_inner(self) -> DurationInMilliseconds {
+        let Self(inner) = self;
+        inner
+    }
+
     pub const fn empty() -> Self {
         Self(0f64)
+    }
+
+    pub fn is_empty(self) -> bool {
+        self <= Self::empty()
     }
 }
 
@@ -109,7 +122,7 @@ impl From<Duration> for DurationMs {
 
 impl fmt::Display for DurationMs {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.0, Self::unit_of_measure())
+        write!(f, "{} {}", self.to_inner(), Self::unit_of_measure())
     }
 }
 
