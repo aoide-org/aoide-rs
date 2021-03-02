@@ -24,10 +24,7 @@ use aoide_core::{
         AudioContent, DurationMs,
     },
     media::{Artwork, Content, ContentMetadataFlags, ImageDimension, ImageSize, Source},
-    util::{
-        clock::*,
-        color::{RgbColor, RgbColorCode},
-    },
+    util::clock::*,
 };
 
 use aoide_repo::collection::RecordId as CollectionId;
@@ -62,8 +59,7 @@ pub struct QueryableRecord {
     pub artwork_digest: Option<Vec<u8>>,
     pub artwork_size_width: Option<i16>,
     pub artwork_size_height: Option<i16>,
-    pub artwork_color_rgb: Option<i32>,
-    pub artwork_thumbnail_4x4_rgb8: Option<Vec<u8>>,
+    pub artwork_thumbnail: Option<Vec<u8>>,
 }
 
 impl From<QueryableRecord> for (RecordHeader, Source) {
@@ -92,8 +88,7 @@ impl From<QueryableRecord> for (RecordHeader, Source) {
             artwork_digest,
             artwork_size_width,
             artwork_size_height,
-            artwork_color_rgb,
-            artwork_thumbnail_4x4_rgb8,
+            artwork_thumbnail,
         } = from;
         let audio_content = AudioContent {
             duration: audio_duration_ms.map(DurationMs::from_inner),
@@ -116,10 +111,9 @@ impl From<QueryableRecord> for (RecordHeader, Source) {
         let artwork = Artwork {
             uri: artwork_uri,
             media_type: artwork_type,
-            digest: artwork_digest,
+            digest: artwork_digest.and_then(|bytes| bytes.try_into().ok()),
             size: image_size,
-            color_rgb: artwork_color_rgb.map(|code| RgbColor(code as RgbColorCode)),
-            thumbnail_4x4_rgb8: artwork_thumbnail_4x4_rgb8.and_then(|bytes| bytes.try_into().ok()),
+            thumbnail: artwork_thumbnail.and_then(|bytes| bytes.try_into().ok()),
         };
         let header = RecordHeader {
             id: id.into(),
@@ -167,8 +161,7 @@ pub struct InsertableRecord<'a> {
     pub artwork_digest: Option<&'a [u8]>,
     pub artwork_size_width: Option<i16>,
     pub artwork_size_height: Option<i16>,
-    pub artwork_color_rgb: Option<i32>,
-    pub artwork_thumbnail_4x4_rgb8: Option<&'a [u8]>,
+    pub artwork_thumbnail: Option<&'a [u8]>,
 }
 
 impl<'a> InsertableRecord<'a> {
@@ -197,8 +190,7 @@ impl<'a> InsertableRecord<'a> {
             media_type: artwork_type,
             digest: artwork_digest,
             size: artwork_size,
-            color_rgb: artwork_color_rgb,
-            thumbnail_4x4_rgb8: artwork_thumbnail_4x4_rgb8,
+            thumbnail: artwork_thumbnail,
         } = artwork;
         let row_created_updated_ms = created_at.timestamp_millis();
         Self {
@@ -231,11 +223,10 @@ impl<'a> InsertableRecord<'a> {
             audio_encoder: audio_content.and_then(|audio| audio.encoder.as_deref()),
             artwork_uri: artwork_uri.as_ref().map(String::as_str),
             artwork_type: artwork_type.as_ref().map(String::as_str),
-            artwork_digest: artwork_digest.as_ref().map(Vec::as_slice),
+            artwork_digest: artwork_digest.as_ref().map(|x| &x[..]),
             artwork_size_width: artwork_size.map(|size| size.width as i16),
             artwork_size_height: artwork_size.map(|size| size.height as i16),
-            artwork_color_rgb: artwork_color_rgb.map(|color| color.code() as i32),
-            artwork_thumbnail_4x4_rgb8: artwork_thumbnail_4x4_rgb8.as_ref().map(|x| &x[..]),
+            artwork_thumbnail: artwork_thumbnail.as_ref().map(|x| &x[..]),
         }
     }
 }
@@ -264,8 +255,7 @@ pub struct UpdatableRecord<'a> {
     pub artwork_digest: Option<&'a [u8]>,
     pub artwork_size_width: Option<i16>,
     pub artwork_size_height: Option<i16>,
-    pub artwork_color_rgb: Option<i32>,
-    pub artwork_thumbnail_4x4_rgb8: Option<&'a [u8]>,
+    pub artwork_thumbnail: Option<&'a [u8]>,
 }
 
 impl<'a> UpdatableRecord<'a> {
@@ -290,8 +280,7 @@ impl<'a> UpdatableRecord<'a> {
             media_type: artwork_type,
             digest: artwork_digest,
             size: artwork_size,
-            color_rgb: artwork_color_rgb,
-            thumbnail_4x4_rgb8: artwork_thumbnail_4x4_rgb8,
+            thumbnail: artwork_thumbnail,
         } = artwork;
         Self {
             row_updated_ms: updated_at.timestamp_millis(),
@@ -321,11 +310,10 @@ impl<'a> UpdatableRecord<'a> {
             audio_encoder: audio_content.and_then(|audio| audio.encoder.as_deref()),
             artwork_uri: artwork_uri.as_ref().map(String::as_str),
             artwork_type: artwork_type.as_ref().map(String::as_str),
-            artwork_digest: artwork_digest.as_ref().map(Vec::as_slice),
+            artwork_digest: artwork_digest.as_ref().map(|x| &x[..]),
             artwork_size_width: artwork_size.map(|size| size.width as i16),
             artwork_size_height: artwork_size.map(|size| size.height as i16),
-            artwork_color_rgb: artwork_color_rgb.map(|color| color.code() as i32),
-            artwork_thumbnail_4x4_rgb8: artwork_thumbnail_4x4_rgb8.as_ref().map(|x| &x[..]),
+            artwork_thumbnail: artwork_thumbnail.as_ref().map(|x| &x[..]),
         }
     }
 }

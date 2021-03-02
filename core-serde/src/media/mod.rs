@@ -150,10 +150,7 @@ pub struct Artwork {
     size: Option<ImageSize>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    color_rgb: Option<RgbColor>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    thumbnail_4x4_rgb8: Option<Base64>,
+    thumbnail: Option<Base64>,
 }
 
 impl From<_core::Artwork> for Artwork {
@@ -163,8 +160,7 @@ impl From<_core::Artwork> for Artwork {
             media_type,
             digest,
             size,
-            color_rgb,
-            thumbnail_4x4_rgb8,
+            thumbnail,
         } = from;
         let size = size.map(|size| {
             let _core::ImageSize { width, height } = size;
@@ -175,8 +171,7 @@ impl From<_core::Artwork> for Artwork {
             media_type,
             digest: digest.as_ref().map(Into::into),
             size,
-            color_rgb: color_rgb.map(Into::into),
-            thumbnail_4x4_rgb8: thumbnail_4x4_rgb8.as_ref().map(Into::into),
+            thumbnail: thumbnail.as_ref().map(Into::into),
         }
     }
 }
@@ -188,8 +183,7 @@ impl From<Artwork> for _core::Artwork {
             media_type,
             digest,
             size,
-            color_rgb,
-            thumbnail_4x4_rgb8,
+            thumbnail,
         } = from;
         let size = size.map(|size| {
             let ImageSize(width, height) = size;
@@ -198,10 +192,14 @@ impl From<Artwork> for _core::Artwork {
         Self {
             uri,
             media_type,
-            digest: digest.as_ref().map(TryFrom::try_from).and_then(Result::ok),
+            digest: digest
+                .as_ref()
+                .map(Vec::try_from)
+                .and_then(Result::ok)
+                .map(_core::Digest::try_from)
+                .and_then(Result::ok),
             size,
-            color_rgb: color_rgb.map(Into::into),
-            thumbnail_4x4_rgb8: thumbnail_4x4_rgb8
+            thumbnail: thumbnail
                 .as_ref()
                 .map(Vec::try_from)
                 .and_then(Result::ok)

@@ -35,16 +35,12 @@ use aoide_core::{
         index::Index,
         release::DateOrDateTime,
     },
-    util::{
-        clock::{DateTime, DateTimeInner, DateYYYYMMDD, YYYYMMDD},
-        color::{RgbColor, RgbColorCode},
-    },
+    util::clock::{DateTime, DateTimeInner, DateYYYYMMDD, YYYYMMDD},
 };
 
 use chrono::{NaiveDateTime, Utc};
 use image::{
     guess_format, load_from_memory, load_from_memory_with_format, GenericImageView, ImageFormat,
-    Pixel,
 };
 use mime::{Mime, IMAGE_BMP, IMAGE_GIF, IMAGE_JPEG, IMAGE_PNG, IMAGE_STAR};
 use nom::{
@@ -353,26 +349,14 @@ pub fn parse_artwork_from_embedded_image(
             width: clamped_with,
             height: clamped_height,
         };
-        let digest = image_digest
-            .digest_content(image_data)
-            .map(|digest| digest.to_vec());
+        let digest = image_digest.digest_content(image_data);
         let image_4x4 = image.resize_exact(4, 4, image::imageops::FilterType::Lanczos3);
-        let image_1x1_rgb8 = image_4x4
-            .resize_exact(1, 1, image::imageops::FilterType::Lanczos3)
-            .to_rgb8();
-        let rgb8_pixel = image_1x1_rgb8.get_pixel(0, 0);
-        let color_rgb = RgbColor(
-            ((rgb8_pixel.channels()[0] as RgbColorCode) << 16)
-                + ((rgb8_pixel.channels()[1] as RgbColorCode) << 8)
-                + rgb8_pixel.channels()[2] as RgbColorCode,
-        );
-        let thumbnail_4x4_rgb8 = Thumbnail4x4Rgb8::try_from(image_4x4.to_rgb8().into_raw()).ok();
-        debug_assert!(thumbnail_4x4_rgb8.is_some());
+        let thumbnail = Thumbnail4x4Rgb8::try_from(image_4x4.to_rgb8().into_raw()).ok();
+        debug_assert!(thumbnail.is_some());
         Some(Artwork {
             size: Some(size),
             digest,
-            color_rgb: Some(color_rgb),
-            thumbnail_4x4_rgb8,
+            thumbnail,
             media_type: Some(media_type),
             uri: None, // embedded
         })

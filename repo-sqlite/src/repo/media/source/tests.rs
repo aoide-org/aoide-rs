@@ -77,7 +77,8 @@ fn insert_media_source() -> anyhow::Result<()> {
         .into(),
         artwork: Artwork {
             media_type: Some("image/jpeg".to_string()),
-            digest: Some(vec![0, 1, 2, 3, 4, 3, 2, 1, 0]),
+            digest: Some([128; 32]),
+            thumbnail: Some([127; 4 * 4 * 3]),
             ..Default::default()
         },
     };

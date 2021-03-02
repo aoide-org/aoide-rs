@@ -964,23 +964,20 @@ components:
         an external resource by the optional URI. The URI may also select
         one out of multiple embedded resources.
 
-        The optional background color can be used to quickly display
-        a preliminary view before the actual image has been loaded and
-        for selecting a matching color scheme.
+        The optional, embedded thumbnail image can be used to quickly
+        display a placeholder before the actual image has been loaded.
       type: object
       properties:
-        colorRgb:
-          $ref: '#/components/schemas/ArtworkColor'
-        thumbnail:
-          $ref: '#/components/schemas/ImageThumbnail4x4Rgb8'
         digest:
           $ref: '#/components/schemas/ImageDigest'
-        size:
-          $ref: '#/components/schemas/ImageSize'
-        uri:
-          $ref: '#/components/schemas/Uri'
         mediaType:
           $ref: '#/components/schemas/MediaType'
+        size:
+          $ref: '#/components/schemas/ImageSize'
+        thumbnail:
+          $ref: '#/components/schemas/ImageThumbnail4x4Rgb8'
+        uri:
+          $ref: '#/components/schemas/Uri'
     ArtworkColor:
       description: |
         A solid (background) color, e.g. the average color of the artwork image

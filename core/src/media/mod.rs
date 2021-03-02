@@ -220,6 +220,8 @@ impl Validate for ImageSize {
     }
 }
 
+pub type Digest = [u8; 32];
+
 pub type Thumbnail4x4Rgb8 = [u8; 4 * 4 * 3];
 
 // All artwork properties are optional for maximum flexibility.
@@ -236,18 +238,13 @@ pub struct Artwork {
     /// Identifies the actual content for cache lookup and to decide
     /// about modifications, e.g. a base64-encoded SHA256 hash of the
     /// raw image data.
-    pub digest: Option<Vec<u8>>,
+    pub digest: Option<Digest>,
 
     /// The dimensions of the image (if known).
     pub size: Option<ImageSize>,
 
-    /// An optional (background) color can be used to quickly display
-    /// a preliminary view before the actual image has been loaded and
-    /// for selecting a matching color scheme.
-    pub color_rgb: Option<RgbColor>,
-
     /// A 4x4 R8G8B8 thumbnail image.
-    pub thumbnail_4x4_rgb8: Option<Thumbnail4x4Rgb8>,
+    pub thumbnail: Option<Thumbnail4x4Rgb8>,
 }
 
 impl Artwork {
@@ -257,24 +254,20 @@ impl Artwork {
             media_type,
             digest,
             size,
-            color_rgb,
-            thumbnail_4x4_rgb8,
+            thumbnail,
         } = self;
         uri.is_none()
             && media_type.is_none()
             && digest.is_none()
             && size.is_none()
-            && color_rgb.is_none()
-            && thumbnail_4x4_rgb8.is_none()
+            && thumbnail.is_none()
     }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ArtworkInvalidity {
     MediaTypeEmpty,
-    DigestEmpty,
     ImageSize(ImageSizeInvalidity),
-    RgbColor(RgbColorInvalidity),
 }
 
 impl Validate for Artwork {
@@ -289,12 +282,7 @@ impl Validate for Artwork {
                     .unwrap_or(false),
                 Self::Invalidity::MediaTypeEmpty,
             )
-            .invalidate_if(
-                self.digest.as_ref().map(Vec::is_empty).unwrap_or(false),
-                Self::Invalidity::DigestEmpty,
-            )
             .validate_with(&self.size, Self::Invalidity::ImageSize)
-            .validate_with(&self.color_rgb, Self::Invalidity::RgbColor)
             .into()
     }
 }
