@@ -19,19 +19,19 @@ use aoide_repo::collection::EntityRepo as _;
 
 use aoide_usecases::tracks::purge as uc;
 
-pub fn purge_by_media_source_uri_predicates(
+pub fn purge_by_media_source_path_predicates(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    uri_predicates: Vec<StringPredicate>,
+    path_predicates: Vec<StringPredicate>,
 ) -> Result<usize> {
     let db = RepoConnection::new(connection);
     Ok(
         db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
             let collection_id = db.resolve_collection_id(collection_uid)?;
-            Ok(uc::purge_by_media_source_uri_predicates(
+            Ok(uc::purge_by_media_source_path_predicates(
                 &db,
                 collection_id,
-                uri_predicates,
+                path_predicates,
             )?)
         })?,
     )

@@ -15,13 +15,17 @@
 
 use super::*;
 
-use aoide_core::{track::Track, util::clock::DateTime};
+use aoide_core::{
+    media::{resolver::LocalFileResolver, SourcePath},
+    track::Track,
+    util::clock::DateTime,
+};
 
 use aoide_media::{
     fmt::{flac, mp3, mp4, ogg},
-    fs::open_local_file_url_for_reading,
+    fs::open_local_file_for_reading,
     io::import::*,
-    util::guess_mime_from_url,
+    util::guess_mime_from_path,
 };
 
 use std::{io::BufReader, path::PathBuf};
@@ -70,21 +74,24 @@ pub enum ImportTrackFromFileOutcome {
     SkippedDirectory,
 }
 
-pub fn import_track_from_url(
-    url: &Url,
+pub fn import_track_from_local_file_path(
+    source_path_resolver: &LocalFileResolver,
+    source_path: SourcePath,
     mode: SynchronizedImportMode,
     config: &ImportTrackConfig,
     flags: ImportTrackFlags,
     collected_at: DateTime,
 ) -> Result<ImportTrackFromFileOutcome> {
-    let (file_path, file) = if let Some((file_path, file)) = open_local_file_url_for_reading(url)? {
-        (file_path, file)
-    } else {
-        log::debug!("URL {} is a directory", url);
-        return Ok(ImportTrackFromFileOutcome::SkippedDirectory);
-    };
+    let file_path = source_path_resolver.build_file_path(&source_path);
+    let (canonical_path, file) =
+        if let Some((canonical_path, file)) = open_local_file_for_reading(&file_path)? {
+            (canonical_path, file)
+        } else {
+            log::debug!("{} is a directory", file_path.display());
+            return Ok(ImportTrackFromFileOutcome::SkippedDirectory);
+        };
     let file_metadata = file.metadata().map_err(MediaError::from)?;
-    let mime = guess_mime_from_url(url)?;
+    let mime = guess_mime_from_path(&canonical_path)?;
     let last_modified_at = file_metadata
         .modified()
         .map(DateTime::from)
@@ -99,7 +106,7 @@ pub fn import_track_from_url(
             if synchronized_before {
                 log::debug!(
                     "Skipping reimport of file {} last modified at {}",
-                    file_path.display(),
+                    canonical_path.display(),
                     last_modified_at,
                 );
                 return Ok(ImportTrackFromFileOutcome::SkippedSynchronized(
@@ -114,7 +121,7 @@ pub fn import_track_from_url(
                 if last_modified_at <= last_synchronized_at {
                     log::debug!(
                         "Skipping reimport of synchronized file {} modified at {} <= {}",
-                        file_path.display(),
+                        canonical_path.display(),
                         last_modified_at,
                         last_synchronized_at
                     );
@@ -125,7 +132,7 @@ pub fn import_track_from_url(
             } else {
                 log::debug!(
                     "Last synchronization of file {} modified at {} is unknown",
-                    file_path.display(),
+                    canonical_path.display(),
                     last_modified_at
                 );
             }
@@ -139,7 +146,7 @@ pub fn import_track_from_url(
         synchronized_at: last_modified_at,
     };
     let mut reader: Box<dyn Reader> = Box::new(BufReader::new(file));
-    let new_track = input.try_from_url_into_new_track(url, &mime)?;
+    let new_track = input.into_new_track(source_path, &mime);
     let track = match mime.as_ref() {
         "audio/flac" => flac::ImportTrack.import_track(config, flags, new_track, &mut reader),
         "audio/mpeg" => mp3::ImportTrack.import_track(config, flags, new_track, &mut reader),

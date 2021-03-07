@@ -27,7 +27,7 @@ table! {
         collected_ms -> BigInt,
         synchronized_at -> Nullable<Text>,
         synchronized_ms -> Nullable<BigInt>,
-        uri -> Text,
+        path -> Text,
         content_type -> Text,
         content_digest -> Nullable<Binary>,
         content_metadata_flags -> SmallInt,

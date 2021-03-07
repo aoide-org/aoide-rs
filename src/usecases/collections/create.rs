@@ -17,9 +17,14 @@ use super::*;
 
 use aoide_core::util::clock::DateTime;
 
+use semval::Validate as _;
+
 ///////////////////////////////////////////////////////////////////////
 
 pub fn create(connection: &SqliteConnection, new_collection: Collection) -> Result<Entity> {
+    if let Err(err) = new_collection.validate() {
+        return Err(anyhow::anyhow!("Invalid collection: {:?}", err).into());
+    }
     let hdr = EntityHeader::initial_random();
     let entity = Entity::new(hdr, new_collection);
     let created_at = DateTime::now_utc();

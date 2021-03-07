@@ -18,10 +18,12 @@ use super::{schema::*, *};
 use aoide_core::{
     collection::*,
     entity::{EntityHeader, EntityRevision},
+    media::SourcePathKind,
     util::{clock::*, color::*},
 };
 
-///////////////////////////////////////////////////////////////////////
+use num_traits::FromPrimitive as _;
+use url::Url;
 
 #[derive(Debug, Queryable, Identifiable)]
 #[table_name = "collection"]
@@ -36,6 +38,8 @@ pub struct QueryableRecord {
     pub notes: Option<String>,
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
+    pub media_source_path_kind: i16,
+    pub media_source_base_url: Option<String>,
 }
 
 impl From<QueryableRecord> for (RecordHeader, Entity) {
@@ -51,11 +55,37 @@ impl From<QueryableRecord> for (RecordHeader, Entity) {
             notes,
             color_rgb,
             color_idx,
+            media_source_path_kind,
+            media_source_base_url,
         } = from;
         let header = RecordHeader {
             id: id.into(),
             created_at: DateTime::new_timestamp_millis(row_created_ms),
             updated_at: DateTime::new_timestamp_millis(row_updated_ms),
+        };
+        let media_source_path_kind = SourcePathKind::from_i16(media_source_path_kind)
+            .unwrap_or_else(|| {
+                log::error!(
+                    "Invalid media source path kind value: {}",
+                    media_source_path_kind
+                );
+                SourcePathKind::Unknown
+            });
+        let media_source_base_url = media_source_base_url
+            .as_deref()
+            .map(Url::parse)
+            .transpose()
+            .unwrap_or_else(|err| {
+                log::error!(
+                    "Invalid media source base URL '{}': {}",
+                    media_source_base_url.unwrap_or_default(),
+                    err,
+                );
+                None
+            });
+        let media_source_config = MediaSourceConfig {
+            path_kind: media_source_path_kind,
+            base_url: media_source_base_url,
         };
         let entity_hdr = entity_header_from_sql(&entity_uid, entity_rev);
         let entity_body = Collection {
@@ -72,6 +102,7 @@ impl From<QueryableRecord> for (RecordHeader, Entity) {
             } else {
                 None
             },
+            media_source_config,
         };
         (header, Entity::new(entity_hdr, entity_body))
     }
@@ -96,6 +127,8 @@ pub struct InsertableRecord<'a> {
     pub notes: Option<&'a str>,
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
+    pub media_source_path_kind: i16,
+    pub media_source_base_url: Option<&'a str>,
 }
 
 impl<'a> InsertableRecord<'a> {
@@ -104,6 +137,11 @@ impl<'a> InsertableRecord<'a> {
         let (hdr, body) = entity.into();
         let EntityHeader { uid, rev } = hdr;
         let Collection {
+            media_source_config:
+                MediaSourceConfig {
+                    path_kind: media_source_path_kind,
+                    base_url: media_source_base_url,
+                },
             title,
             kind,
             notes,
@@ -127,6 +165,8 @@ impl<'a> InsertableRecord<'a> {
             } else {
                 None
             },
+            media_source_path_kind: *media_source_path_kind as i16,
+            media_source_base_url: media_source_base_url.as_ref().map(Url::as_str),
         }
     }
 }
@@ -160,6 +200,8 @@ pub struct UpdatableRecord<'a> {
     pub notes: Option<&'a str>,
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
+    pub media_source_path_kind: i16,
+    pub media_source_base_url: Option<&'a str>,
 }
 
 impl<'a> UpdatableRecord<'a> {
@@ -170,6 +212,11 @@ impl<'a> UpdatableRecord<'a> {
     ) -> Self {
         let entity_rev = entity_revision_to_sql(next_rev);
         let Collection {
+            media_source_config:
+                MediaSourceConfig {
+                    path_kind: media_source_path_kind,
+                    base_url: media_source_base_url,
+                },
             title,
             kind,
             notes,
@@ -191,6 +238,8 @@ impl<'a> UpdatableRecord<'a> {
             } else {
                 None
             },
+            media_source_path_kind: *media_source_path_kind as i16,
+            media_source_base_url: media_source_base_url.as_ref().map(Url::as_str),
         }
     }
 }

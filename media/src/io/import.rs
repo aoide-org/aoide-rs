@@ -18,7 +18,7 @@
 use crate::{util::tag::FacetedTagMappingConfig, Result};
 
 use aoide_core::{
-    media::{Content, Source},
+    media::{Content, Source, SourcePath},
     track::Track,
     util::clock::DateTime,
 };
@@ -26,7 +26,6 @@ use aoide_core::{
 use bitflags::bitflags;
 use mime::Mime;
 use std::io::{Read, Seek};
-use url::Url;
 
 #[rustfmt::skip]
 bitflags! {
@@ -69,7 +68,7 @@ pub struct NewTrackInput {
 }
 
 impl NewTrackInput {
-    pub fn try_from_url_into_new_track(self, url: &Url, mime: &Mime) -> Result<Track> {
+    pub fn into_new_track(self, path: SourcePath, mime: &Mime) -> Track {
         let Self {
             collected_at,
             synchronized_at,
@@ -77,14 +76,14 @@ impl NewTrackInput {
         let media_source = Source {
             collected_at,
             synchronized_at: Some(synchronized_at),
-            uri: url.to_string(),
+            path,
             content_type: mime.to_string(),
             content_digest: None,
             content_metadata_flags: Default::default(),
             content: Content::Audio(Default::default()),
             artwork: Default::default(),
         };
-        Ok(Track::new_from_media_source(media_source))
+        Track::new_from_media_source(media_source)
     }
 }
 

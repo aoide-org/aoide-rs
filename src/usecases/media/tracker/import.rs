@@ -22,6 +22,7 @@ use url::Url;
 
 mod uc {
     pub use aoide_usecases::{
+        collection::resolve_local_file_collection_id,
         media::{
             tracker::{import::*, *},
             *,
@@ -37,24 +38,27 @@ pub use uc::Summary;
 pub fn import(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    root_dir_url: Option<&Url>,
     import_mode: ImportMode,
     import_config: &ImportTrackConfig,
     import_flags: ImportTrackFlags,
+    root_dir_url: Option<&Url>,
     progress_fn: &mut impl FnMut(&Summary),
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {
     let db = RepoConnection::new(connection);
     Ok(
         db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
-            let collection_id = db.resolve_collection_id(&collection_uid)?;
+            let (collection_id, source_path_resolver) =
+                uc::resolve_local_file_collection_id(&db, collection_uid)
+                    .map_err(DieselTransactionError::new)?;
             Ok(uc::import(
                 &db,
                 collection_id,
-                root_dir_url,
                 import_mode,
                 import_config,
                 import_flags,
+                &source_path_resolver,
+                root_dir_url,
                 progress_fn,
                 abort_flag,
             )

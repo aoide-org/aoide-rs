@@ -19,22 +19,22 @@ use aoide_core::entity::EntityHeader;
 
 use aoide_repo::{collection::RecordId as CollectionId, track::EntityRepo};
 
-pub fn resolve_by_media_source_uris<Repo>(
+pub fn resolve_by_media_source_paths<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
-    media_source_uris: Vec<String>,
+    media_source_paths: Vec<String>,
 ) -> RepoResult<Vec<(String, EntityHeader)>>
 where
     Repo: EntityRepo,
 {
-    let mut resolved = Vec::with_capacity(media_source_uris.len());
-    for media_source_uri in media_source_uris {
+    let mut resolved = Vec::with_capacity(media_source_paths.len());
+    for media_source_path in media_source_paths {
         let next_resolved = repo
-            .resolve_track_entity_header_by_media_source_uri(collection_id, &media_source_uri)
+            .resolve_track_entity_header_by_media_source_path(collection_id, &media_source_path)
             .optional()?;
         if let Some(next_resolved) = next_resolved {
             let (_, _, entity_header) = next_resolved;
-            resolved.push((media_source_uri, entity_header));
+            resolved.push((media_source_path, entity_header));
         }
     }
     Ok(resolved)

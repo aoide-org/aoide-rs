@@ -16,15 +16,19 @@
 use super::*;
 
 use crate::media::{
-    import_track_from_url, ImportMode, ImportTrackFromFileOutcome, SynchronizedImportMode,
+    import_track_from_local_file_path, ImportMode, ImportTrackFromFileOutcome,
+    SynchronizedImportMode,
 };
 
-use aoide_core::util::clock::DateTime;
-
-use aoide_media::{
-    fs::local_file_path_from_url,
-    io::import::{ImportTrackConfig, ImportTrackFlags},
+use aoide_core::{
+    media::{
+        resolver::{LocalFileResolver, SourcePathResolver},
+        SourcePath,
+    },
+    util::clock::DateTime,
 };
+
+use aoide_media::io::import::{ImportTrackConfig, ImportTrackFlags};
 
 use aoide_repo::{
     collection::RecordId as CollectionId,
@@ -37,6 +41,33 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 use url::Url;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Params {
+    pub mode: ReplaceMode,
+
+    /// Consider the `path` as an URL and resolve it according
+    /// the collection's media source configuration.
+    ///
+    /// The default value is `false`.
+    pub resolve_path_from_url: bool,
+
+    /// Preserve the `collected_at` property of existing media
+    /// sources and don't update it.
+    ///
+    /// The default value is `true`.
+    pub preserve_collected_at: bool,
+}
+
+impl Params {
+    pub fn new(mode: ReplaceMode) -> Self {
+        Self {
+            mode,
+            resolve_path_from_url: false,
+            preserve_collected_at: true,
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Completion {
@@ -55,13 +86,13 @@ pub struct Outcome {
 pub struct Summary {
     pub created: Vec<Entity>,
     pub updated: Vec<Entity>,
-    pub unchanged: Vec<String>,
-    pub not_imported: Vec<String>,
+    pub unchanged: Vec<SourcePath>,
+    pub not_imported: Vec<SourcePath>,
     pub not_created: Vec<Track>,
     pub not_updated: Vec<Track>,
 }
 
-pub fn replace_collected_track_by_media_source_uri<Repo>(
+pub fn replace_collected_track_by_media_source_path<Repo>(
     summary: &mut Summary,
     repo: &Repo,
     collection_id: CollectionId,
@@ -72,9 +103,9 @@ pub fn replace_collected_track_by_media_source_uri<Repo>(
 where
     Repo: EntityRepo,
 {
-    let media_source_uri = track.media_source.uri.clone();
+    let media_source_path = track.media_source.path.clone();
     let outcome = repo
-        .replace_collected_track_by_media_source_uri(
+        .replace_collected_track_by_media_source_path(
             collection_id,
             preserve_collected_at,
             replace_mode,
@@ -83,7 +114,7 @@ where
         .map_err(|err| {
             log::warn!(
                 "Failed to replace track by URI {}: {}",
-                media_source_uri,
+                media_source_path,
                 err
             );
             err
@@ -91,19 +122,27 @@ where
     let media_source_id = match outcome {
         ReplaceOutcome::Created(media_source_id, _, entity) => {
             debug_assert_ne!(ReplaceMode::UpdateOnly, replace_mode);
-            log::trace!("Created {}: {:?}", entity.body.media_source.uri, entity.hdr);
+            log::trace!(
+                "Created {}: {:?}",
+                entity.body.media_source.path,
+                entity.hdr
+            );
             summary.created.push(entity);
             media_source_id
         }
         ReplaceOutcome::Updated(media_source_id, _, entity) => {
             debug_assert_ne!(ReplaceMode::CreateOnly, replace_mode);
-            log::trace!("Updated {}: {:?}", entity.body.media_source.uri, entity.hdr);
+            log::trace!(
+                "Updated {}: {:?}",
+                entity.body.media_source.path,
+                entity.hdr
+            );
             summary.updated.push(entity);
             media_source_id
         }
         ReplaceOutcome::Unchanged(media_source_id, _, entity) => {
             log::trace!("Unchanged: {:?}", entity);
-            summary.unchanged.push(entity.body.media_source.uri);
+            summary.unchanged.push(entity.body.media_source.path);
             media_source_id
         }
         ReplaceOutcome::NotCreated(track) => {
@@ -124,23 +163,23 @@ where
 
 // TODO: Reduce number of arguments
 #[allow(clippy::too_many_arguments)]
-pub fn import_and_replace_by_media_source_url<Repo>(
+pub fn import_and_replace_by_local_file_path<Repo>(
     summary: &mut Summary,
     media_source_ids: &mut Vec<MediaSourceId>,
     repo: &Repo,
     collection_id: CollectionId,
-    url: &Url,
     import_mode: ImportMode,
     import_config: &ImportTrackConfig,
     import_flags: ImportTrackFlags,
     replace_mode: ReplaceMode,
+    source_path_resolver: &LocalFileResolver,
+    source_path: SourcePath,
 ) -> RepoResult<()>
 where
     Repo: EntityRepo,
 {
-    let uri = url.to_string();
     let (media_source_id, last_synchronized_at, collected_track) = repo
-        .load_track_entity_by_media_source_uri(collection_id, &uri)
+        .load_track_entity_by_media_source_path(collection_id, &source_path)
         .optional()?
         .map(|(media_source_id, _, entity)| {
             (
@@ -150,22 +189,23 @@ where
             )
         })
         .unwrap_or((None, None, None));
-    match import_track_from_url(
-        &url,
+    match import_track_from_local_file_path(
+        source_path_resolver,
+        source_path.clone(),
         SynchronizedImportMode::new(import_mode, last_synchronized_at),
         import_config,
         import_flags,
         DateTime::now_local(),
     ) {
         Ok(ImportTrackFromFileOutcome::Imported(imported_track)) => {
-            debug_assert_eq!(imported_track.media_source.uri, uri);
+            debug_assert_eq!(imported_track.media_source.path, source_path);
             let track = if let Some(mut collected_track) = collected_track {
                 collected_track.merge_newer_from_synchronized_media_source(imported_track);
                 collected_track
             } else {
                 imported_track
             };
-            if let Some(media_source_id) = replace_collected_track_by_media_source_uri(
+            if let Some(media_source_id) = replace_collected_track_by_media_source_path(
                 summary,
                 repo,
                 collection_id,
@@ -180,21 +220,25 @@ where
             debug_assert!(media_source_id.is_some());
             debug_assert!(last_synchronized_at.is_some());
             debug_assert!(_synchronized_at <= last_synchronized_at.unwrap());
-            summary.unchanged.push(uri);
+            summary.unchanged.push(source_path);
             media_source_ids.push(media_source_id.unwrap());
         }
         Ok(ImportTrackFromFileOutcome::SkippedDirectory) => {
             // Nothing to do
         }
         Err(err) => {
-            log::warn!("Failed to import track from file URL {}: {}", url, err);
-            summary.not_imported.push(uri);
+            log::warn!(
+                "Failed to import track from local file path {}: {}",
+                source_path_resolver.build_file_path(&source_path).display(),
+                err
+            );
+            summary.not_imported.push(source_path);
         }
     };
     Ok(())
 }
 
-pub fn replace_by_media_source_uri<Repo>(
+pub fn replace_by_media_source_path<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
     replace_mode: ReplaceMode,
@@ -205,65 +249,60 @@ where
 {
     let mut summary = Summary::default();
     for track in tracks {
-        replace_collected_track_by_media_source_uri(
+        replace_collected_track_by_media_source_path(
             &mut summary,
             repo,
             collection_id,
             replace_mode,
-            false,
+            true,
             track,
         )?;
     }
     Ok(summary)
 }
 
-const UNKNOWN_FILE_URI_COUNT: usize = 256;
+const DEFAULT_MEDIA_SOURCE_COUNT: usize = 1024;
 
 // TODO: Reduce number of arguments
 #[allow(clippy::too_many_arguments)]
-pub fn import_and_replace_by_media_source_uri<Repo>(
+pub fn import_and_replace_by_local_file_path_iter<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
     import_mode: ImportMode,
     import_config: &ImportTrackConfig,
     import_flags: ImportTrackFlags,
     replace_mode: ReplaceMode,
-    file_uris: impl Iterator<Item = String>,
-    file_uri_count: Option<usize>,
+    source_path_resolver: &LocalFileResolver,
+    source_path_iter: impl Iterator<Item = SourcePath>,
+    expected_source_path_count: Option<usize>,
     abort_flag: &AtomicBool,
 ) -> RepoResult<Outcome>
 where
     Repo: EntityRepo,
 {
     let mut summary = Summary::default();
-    let mut media_source_ids = Vec::with_capacity(file_uri_count.unwrap_or(UNKNOWN_FILE_URI_COUNT));
-    for file_uri in file_uris {
+    let mut media_source_ids =
+        Vec::with_capacity(expected_source_path_count.unwrap_or(DEFAULT_MEDIA_SOURCE_COUNT));
+    for source_path in source_path_iter {
         if abort_flag.load(Ordering::Relaxed) {
-            log::debug!("Aborting import of {}", file_uri);
+            log::debug!("Aborting import of {}", source_path);
             return Ok(Outcome {
                 completion: Completion::Aborted,
                 summary,
                 media_source_ids,
             });
         }
-        let url: Url = match file_uri.parse() {
-            Ok(url) => url,
-            Err(err) => {
-                log::warn!("Failed to import track from file URI {}: {}", file_uri, err);
-                summary.not_imported.push(file_uri);
-                continue;
-            }
-        };
-        import_and_replace_by_media_source_url(
+        import_and_replace_by_local_file_path(
             &mut summary,
             &mut media_source_ids,
             repo,
             collection_id,
-            &url,
             import_mode,
             import_config,
             import_flags,
             replace_mode,
+            source_path_resolver,
+            source_path,
         )?;
     }
     Ok(Outcome {
@@ -277,20 +316,21 @@ const EXPECTED_NUMBER_OF_DIR_ENTRIES: usize = 1024;
 
 // TODO: Reduce number of arguments
 #[allow(clippy::too_many_arguments)]
-pub fn import_and_replace_by_media_source_uri_from_directory<Repo>(
+pub fn import_and_replace_by_local_file_path_from_directory<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
-    dir_url: &Url,
     import_mode: ImportMode,
     import_config: &ImportTrackConfig,
     import_flags: ImportTrackFlags,
     replace_mode: ReplaceMode,
+    source_path_resolver: &LocalFileResolver,
+    source_dir_path: &str,
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
     Repo: EntityRepo,
 {
-    let dir_path = local_file_path_from_url(dir_url)?;
+    let dir_path = source_path_resolver.build_file_path(source_dir_path);
     let dir_entries = read_dir(dir_path)?;
     let mut summary = Summary::default();
     let mut media_source_ids = Vec::with_capacity(EXPECTED_NUMBER_OF_DIR_ENTRIES);
@@ -314,27 +354,30 @@ where
                 media_source_ids,
             });
         }
-        let url = match Url::from_file_path(dir_entry.path()) {
-            Ok(url) => url,
-            Err(()) => {
-                log::warn!(
-                    "Failed to obtain URL from file path {}",
-                    dir_entry.path().display()
-                );
-                // Skip entry and keep going
-                continue;
-            }
+        let source_path = if let Some(source_path) = Url::from_file_path(dir_entry.path())
+            .ok()
+            .and_then(|url| source_path_resolver.resolve_path_from_url(&url).ok())
+        {
+            source_path.to_owned().into()
+        } else {
+            log::warn!(
+                "Skipping invalid/unsupported directory entry: {}",
+                dir_entry.path().display()
+            );
+            // Skip entry and keep going
+            continue;
         };
-        import_and_replace_by_media_source_url(
+        import_and_replace_by_local_file_path(
             &mut summary,
             &mut media_source_ids,
             repo,
             collection_id,
-            &url,
             import_mode,
             import_config,
             import_flags,
             replace_mode,
+            source_path_resolver,
+            source_path,
         )?;
     }
     Ok(Outcome {

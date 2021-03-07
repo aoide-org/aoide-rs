@@ -26,6 +26,38 @@ use crate::{audio::AudioContent, prelude::*, util::clock::DateTime};
 
 use std::convert::TryFrom;
 
+pub use _core::SourcePath;
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize_repr, Deserialize_repr, JsonSchema)]
+#[repr(u8)]
+pub enum SourcePathKind {
+    Unknown = 0,
+    UrlEncoded = 1,
+    LocalFile = 2,
+}
+
+impl From<_core::SourcePathKind> for SourcePathKind {
+    fn from(from: _core::SourcePathKind) -> Self {
+        use _core::SourcePathKind::*;
+        match from {
+            Unknown => Self::Unknown,
+            UrlEncoded => Self::UrlEncoded,
+            LocalFile => Self::LocalFile,
+        }
+    }
+}
+
+impl From<SourcePathKind> for _core::SourcePathKind {
+    fn from(from: SourcePathKind) -> Self {
+        use SourcePathKind::*;
+        match from {
+            Unknown => Self::Unknown,
+            UrlEncoded => Self::UrlEncoded,
+            LocalFile => Self::LocalFile,
+        }
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////
 // Content
 ///////////////////////////////////////////////////////////////////////
@@ -221,7 +253,7 @@ pub struct Source {
     #[serde(skip_serializing_if = "Option::is_none")]
     synchronized_at: Option<DateTime>,
 
-    uri: String,
+    path: String,
 
     content_type: String,
 
@@ -243,7 +275,7 @@ impl From<_core::Source> for Source {
         let _core::Source {
             collected_at,
             synchronized_at,
-            uri,
+            path,
             content_type,
             content_digest,
             content_metadata_flags,
@@ -253,7 +285,7 @@ impl From<_core::Source> for Source {
         Self {
             collected_at: collected_at.into(),
             synchronized_at: synchronized_at.map(Into::into),
-            uri,
+            path: path.into(),
             content_type,
             content_digest: content_digest.as_ref().map(Into::into),
             content_metadata_flags: content_metadata_flags.bits(),
@@ -268,7 +300,7 @@ impl From<Source> for _core::Source {
         let Source {
             collected_at,
             synchronized_at,
-            uri,
+            path,
             content_type,
             content_digest,
             content_metadata_flags,
@@ -278,7 +310,7 @@ impl From<Source> for _core::Source {
         Self {
             collected_at: collected_at.into(),
             synchronized_at: synchronized_at.map(Into::into),
-            uri,
+            path: path.into(),
             content_type,
             content_digest: content_digest
                 .as_ref()
@@ -289,53 +321,6 @@ impl From<Source> for _core::Source {
             ),
             content: content.into(),
             artwork: artwork.into(),
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct SourceUri {
-    uri: String,
-}
-
-impl From<_core::SourceUri> for SourceUri {
-    fn from(from: _core::SourceUri) -> Self {
-        let _core::SourceUri { uri } = from;
-        Self { uri }
-    }
-}
-
-impl From<SourceUri> for _core::SourceUri {
-    fn from(from: SourceUri) -> Self {
-        let SourceUri { uri } = from;
-        Self { uri }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
-#[serde(untagged)]
-pub enum SourceOrUri {
-    Source(Source),
-    Uri(SourceUri),
-}
-
-impl From<_core::SourceOrUri> for SourceOrUri {
-    fn from(from: _core::SourceOrUri) -> Self {
-        use _core::SourceOrUri::*;
-        match from {
-            Source(source) => Self::Source(source.into()),
-            Uri(source_uri) => Self::Uri(source_uri.into()),
-        }
-    }
-}
-
-impl From<SourceOrUri> for _core::SourceOrUri {
-    fn from(from: SourceOrUri) -> Self {
-        use SourceOrUri::*;
-        match from {
-            Source(source) => Self::Source(source.into()),
-            Uri(source_uri) => Self::Uri(source_uri.into()),
         }
     }
 }

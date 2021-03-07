@@ -22,7 +22,7 @@ use aoide_repo::{
     track::{EntityRepo as TrackRepo, ReplaceMode},
 };
 use tracks::replace::{
-    import_and_replace_by_media_source_uri_from_directory, Completion as ReplaceCompletion,
+    import_and_replace_by_local_file_path_from_directory, Completion as ReplaceCompletion,
     Outcome as ReplaceOutcome, Summary as ReplaceSummary,
 };
 
@@ -108,23 +108,24 @@ impl Outcome {
 pub fn import<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
-    root_dir_url: Option<&Url>,
     import_mode: ImportMode,
     import_config: &ImportTrackConfig,
     import_flags: ImportTrackFlags,
+    source_path_resolver: &LocalFileResolver,
+    root_dir_url: Option<&Url>,
     progress_fn: &mut impl FnMut(&Summary),
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
     Repo: MediaTrackerRepo + TrackRepo,
 {
-    let uri_prefix = root_dir_url.map(uri_path_prefix_from_url).transpose()?;
+    let path_prefix = root_dir_url.map(path_prefix_from_url).transpose()?;
     let mut summary = Summary::default();
     let outcome = 'outcome: loop {
         progress_fn(&summary);
         let pending_entries = repo.media_tracker_load_directories_requiring_confirmation(
             collection_id,
-            uri_prefix.as_deref(),
+            path_prefix.as_deref(),
             &Pagination {
                 offset: Some(summary.directories.skipped as PaginationOffset),
                 limit: 1,
@@ -142,33 +143,25 @@ where
                 break 'outcome outcome;
             }
             let TrackedDirectory {
-                uri,
+                path: dir_path,
                 status: _status,
                 digest,
             } = pending_entry;
             debug_assert!(_status.is_pending());
-            let dir_url = match uri.clone().parse() {
-                Ok(url) => url,
-                Err(err) => {
-                    log::warn!("Failed to convert URI {} to URL: {}", uri, err);
-                    // Skip this directory and keep going
-                    summary.directories.skipped += 1;
-                    continue;
-                }
-            };
-            let outcome = match import_and_replace_by_media_source_uri_from_directory(
+            let outcome = match import_and_replace_by_local_file_path_from_directory(
                 repo,
                 collection_id,
-                &dir_url,
                 import_mode,
                 import_config,
                 import_flags,
                 ReplaceMode::UpdateOrCreate,
+                source_path_resolver,
+                &dir_path,
                 abort_flag,
             ) {
                 Ok(outcome) => outcome,
                 Err(err) => {
-                    log::warn!("Failed to import pending directory {}: {}", uri, err);
+                    log::warn!("Failed to import pending directory {}: {}", dir_path, err);
                     // Skip this directory and keep going
                     summary.directories.skipped += 1;
                     continue;
@@ -191,23 +184,26 @@ where
             match repo.media_tracker_confirm_directory(
                 DateTime::now_utc(),
                 collection_id,
-                &uri,
+                &dir_path,
                 &digest,
                 &media_source_ids,
             ) {
                 Ok(true) => {
-                    log::debug!("Confirmed pending directory {}", uri);
+                    log::debug!("Confirmed pending directory {}", dir_path);
                     summary.directories.confirmed += 1;
                 }
                 Ok(false) => {
                     // Might be rejected if the digest has been updated meanwhile
-                    log::info!("Confirmation of imported directory {} was rejected", uri);
+                    log::info!(
+                        "Confirmation of imported directory {} was rejected",
+                        dir_path
+                    );
                     summary.directories.rejected += 1;
                     // Try again
                     continue;
                 }
                 Err(err) => {
-                    log::warn!("Failed to confirm pending directory {}: {}", uri, err);
+                    log::warn!("Failed to confirm pending directory {}: {}", dir_path, err);
                     // Skip this directory and keep going
                     summary.directories.skipped += 1;
                     continue;

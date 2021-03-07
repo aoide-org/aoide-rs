@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS media_source (
     -- properties: content
     synchronized_at        TEXT,
     synchronized_ms        INTEGER,
-    uri                    TEXT NOT NULL,    -- RFC 3986, absolute (only supposed to be unique within a collection)
+    path                   TEXT NOT NULL,
     content_type           TEXT NOT NULL,    -- RFC 6838 media type
     content_digest         BINARY,           -- cryptographic (audio) content hash
     content_metadata_flags TINYINT NOT NULL, -- 0x01 = reliable, 0x02 = locked, 0x04 = stale
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS media_source (
     artwork_thumbnail      BINARY,
     --
     FOREIGN KEY(collection_id) REFERENCES collection(row_id),
-    UNIQUE (collection_id, uri)
+    UNIQUE (collection_id, path)
 );
 
 CREATE INDEX idx_media_source_row_created_ms_desc ON media_source (

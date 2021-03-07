@@ -13,14 +13,83 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::borrow::Cow;
-
 use crate::{
     audio::{AudioContent, AudioContentInvalidity},
     prelude::*,
 };
 
 use bitflags::bitflags;
+use num_derive::{FromPrimitive, ToPrimitive};
+use std::{
+    borrow::Cow,
+    fmt,
+    ops::{Deref, DerefMut},
+};
+
+pub mod resolver;
+
+#[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
+pub struct SourcePath(String);
+
+impl SourcePath {
+    pub const fn new(inner: String) -> Self {
+        Self(inner)
+    }
+
+    pub fn into_inner(self) -> String {
+        let Self(inner) = self;
+        inner
+    }
+}
+
+impl From<String> for SourcePath {
+    fn from(from: String) -> Self {
+        Self::new(from)
+    }
+}
+
+impl From<SourcePath> for String {
+    fn from(from: SourcePath) -> Self {
+        from.into_inner()
+    }
+}
+
+impl AsRef<str> for &SourcePath {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Deref for SourcePath {
+    type Target = String;
+
+    fn deref(&self) -> &String {
+        &self.0
+    }
+}
+
+impl DerefMut for SourcePath {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl fmt::Display for SourcePath {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self)
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, FromPrimitive, ToPrimitive)]
+pub enum SourcePathKind {
+    Unknown = 0,
+
+    /// Case-sensitive URL
+    UrlEncoded = 1,
+
+    /// Case-sensitive and absolute local file path
+    LocalFile = 2,
+}
 
 ///////////////////////////////////////////////////////////////////////
 // Content
@@ -297,7 +366,7 @@ pub struct Source {
 
     pub synchronized_at: Option<DateTime>,
 
-    pub uri: String,
+    pub path: SourcePath,
 
     pub content_type: String,
 
@@ -320,7 +389,7 @@ pub struct Source {
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum SourceInvalidity {
-    UriEmpty,
+    PathEmpty,
     ContentTypeEmpty,
     ContentMetadataFlags(ContentMetadataFlagsInvalidity),
     AudioContent(AudioContentInvalidity),
@@ -331,68 +400,32 @@ impl Validate for Source {
     type Invalidity = SourceInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        let Self {
+            artwork,
+            collected_at: _,
+            content,
+            content_digest: _,
+            content_metadata_flags,
+            content_type,
+            path,
+            synchronized_at: _,
+        } = self;
         let context = ValidationContext::new()
-            .invalidate_if(self.uri.trim().is_empty(), Self::Invalidity::UriEmpty)
+            .invalidate_if(path.trim().is_empty(), Self::Invalidity::PathEmpty)
             .invalidate_if(
-                self.content_type.trim().is_empty(),
+                content_type.trim().is_empty(),
                 Self::Invalidity::ContentTypeEmpty,
             )
             .validate_with(
-                &self.content_metadata_flags,
+                &content_metadata_flags,
                 Self::Invalidity::ContentMetadataFlags,
             )
-            .validate_with(&self.artwork, Self::Invalidity::Artwork);
+            .validate_with(&artwork, Self::Invalidity::Artwork);
         // TODO: Validate MIME type
-        match self.content {
+        match content {
             Content::Audio(ref audio_content) => {
                 context.validate_with(audio_content, Self::Invalidity::AudioContent)
             }
-        }
-        .into()
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct SourceUri {
-    pub uri: String,
-}
-
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum SourceUriInvalidity {
-    UriEmpty,
-}
-
-impl Validate for SourceUri {
-    type Invalidity = SourceUriInvalidity;
-
-    fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        ValidationContext::new()
-            .invalidate_if(self.uri.trim().is_empty(), Self::Invalidity::UriEmpty)
-            .into()
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum SourceOrUri {
-    Source(Source),
-    Uri(SourceUri),
-}
-
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum SourceOrUriInvalidity {
-    Source(SourceInvalidity),
-    Uri(SourceUriInvalidity),
-}
-
-impl Validate for SourceOrUri {
-    type Invalidity = SourceOrUriInvalidity;
-
-    fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        let context = ValidationContext::new();
-        use SourceOrUri::*;
-        match self {
-            Source(source) => context.validate_with(source, Self::Invalidity::Source),
-            Uri(source_uri) => context.validate_with(source_uri, Self::Invalidity::Uri),
         }
         .into()
     }

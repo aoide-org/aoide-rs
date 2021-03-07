@@ -26,10 +26,10 @@ use aoide_core::{media::Source, util::clock::DateTime};
 use aoide_repo::{collection::RecordId as CollectionId, media::source::*};
 
 impl<'db> Repo for crate::prelude::Connection<'db> {
-    fn resolve_media_source_id_synchronized_at_by_uri(
+    fn resolve_media_source_id_synchronized_at_by_path(
         &self,
         collection_id: CollectionId,
-        uri: &str,
+        path: &str,
     ) -> RepoResult<(RecordId, Option<DateTime>)> {
         Ok(media_source::table
             .select((
@@ -38,7 +38,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
                 media_source::synchronized_ms,
             ))
             .filter(media_source::collection_id.eq(RowId::from(collection_id)))
-            .filter(media_source::uri.eq(uri))
+            .filter(media_source::path.eq(path))
             .first::<(RowId, Option<String>, Option<i64>)>(self.as_ref())
             .map(|(row_id, synchronized_at, synchronized_ms)| {
                 (
@@ -49,10 +49,10 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             .map_err(repo_error)?)
     }
 
-    fn resolve_media_source_ids_by_uri_predicate(
+    fn resolve_media_source_ids_by_path_predicate(
         &self,
         collection_id: CollectionId,
-        uri_predicate: StringPredicateBorrowed<'_>,
+        path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<Vec<RecordId>> {
         media_source::table
             .select(media_source::row_id)
@@ -60,9 +60,9 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             // even if it might be slightly less efficient! The query optimizer
             // should detect this.
             .filter(
-                media_source::row_id.eq_any(subselect::filter_by_uri_predicate(
+                media_source::row_id.eq_any(subselect::filter_by_path_predicate(
                     collection_id,
-                    uri_predicate,
+                    path_predicate,
                 )),
             )
             .load::<RowId>(self.as_ref())
@@ -70,43 +70,43 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             .map(|v| v.into_iter().map(RecordId::new).collect())
     }
 
-    fn relocate_media_sources_by_uri_prefix(
+    fn relocate_media_sources_by_path_prefix(
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        old_uri_prefix: &str,
-        new_uri_prefix: &str,
+        old_path_prefix: &str,
+        new_path_prefix: &str,
     ) -> RepoResult<usize> {
         let target = media_source::table
             .filter(media_source::collection_id.eq(RowId::from(collection_id)))
             .filter(diesel::dsl::sql(&format!(
-                "substr(uri,1,{})='{}'",
-                old_uri_prefix.len(),
-                escape_single_quotes(old_uri_prefix),
+                "substr(path,1,{})='{}'",
+                old_path_prefix.len(),
+                escape_single_quotes(old_path_prefix),
             )));
         diesel::update(target)
             .set((
                 media_source::row_updated_ms.eq(updated_at.timestamp_millis()),
-                media_source::uri.eq(diesel::dsl::sql(&format!(
-                    "'{}' || substr(uri,{})",
-                    escape_single_quotes(new_uri_prefix),
-                    old_uri_prefix.len() + 1
+                media_source::path.eq(diesel::dsl::sql(&format!(
+                    "'{}' || substr(path,{})",
+                    escape_single_quotes(new_path_prefix),
+                    old_path_prefix.len() + 1
                 ))),
             ))
             .execute(self.as_ref())
             .map_err(repo_error)
     }
 
-    fn purge_media_sources_by_uri_predicate(
+    fn purge_media_sources_by_path_predicate(
         &self,
         collection_id: CollectionId,
-        uri_predicate: StringPredicateBorrowed<'_>,
+        path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize> {
         // Reuse the tested subselect with reliable predicate filtering
         // even if it might be slightly less efficient! The query optimizer
         // should detect this.
         diesel::delete(media_source::table.filter(media_source::row_id.eq_any(
-            subselect::filter_by_uri_predicate(collection_id, uri_predicate),
+            subselect::filter_by_path_predicate(collection_id, path_predicate),
         )))
         .execute(self.as_ref())
         .map_err(repo_error)
@@ -123,7 +123,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
         debug_assert!(rows_affected == 1);
         let (id, _) = self
-            .resolve_media_source_id_synchronized_at_by_uri(collection_id, &created_source.uri)?;
+            .resolve_media_source_id_synchronized_at_by_path(collection_id, &created_source.path)?;
         Ok(RecordHeader {
             id,
             created_at,
@@ -167,14 +167,14 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             .map(Into::into)
     }
 
-    fn load_media_source_by_uri(
+    fn load_media_source_by_path(
         &self,
         collection_id: CollectionId,
-        uri: &str,
+        path: &str,
     ) -> RepoResult<(RecordHeader, Source)> {
         media_source::table
             .filter(media_source::collection_id.eq(RowId::from(collection_id)))
-            .filter(media_source::uri.eq(uri))
+            .filter(media_source::path.eq(path))
             .first::<QueryableRecord>(self.as_ref())
             .map_err(repo_error)
             .map(Into::into)

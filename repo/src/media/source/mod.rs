@@ -22,15 +22,15 @@ use crate::{collection::RecordId as CollectionId, prelude::*};
 use aoide_core::{media::Source, util::clock::DateTime};
 
 pub trait Repo {
-    fn resolve_media_source_id_synchronized_at_by_uri(
+    fn resolve_media_source_id_synchronized_at_by_path(
         &self,
         collection_id: CollectionId,
-        uri: &str,
+        path: &str,
     ) -> RepoResult<(RecordId, Option<DateTime>)>;
-    fn resolve_media_source_ids_by_uri_predicate(
+    fn resolve_media_source_ids_by_path_predicate(
         &self,
         collection_id: CollectionId,
-        uri_predicate: StringPredicateBorrowed<'_>,
+        path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<Vec<RecordId>>;
 
     fn insert_media_source(
@@ -48,24 +48,24 @@ pub trait Repo {
     fn delete_media_source(&self, id: RecordId) -> RepoResult<()>;
 
     fn load_media_source(&self, id: RecordId) -> RepoResult<(RecordHeader, Source)>;
-    fn load_media_source_by_uri(
+    fn load_media_source_by_path(
         &self,
         collection_id: CollectionId,
-        uri: &str,
+        path: &str,
     ) -> RepoResult<(RecordHeader, Source)>;
 
-    fn relocate_media_sources_by_uri_prefix(
+    fn relocate_media_sources_by_path_prefix(
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        old_uri_prefix: &str,
-        new_uri_prefix: &str,
+        old_path_prefix: &str,
+        new_path_prefix: &str,
     ) -> RepoResult<usize>;
 
-    fn purge_media_sources_by_uri_predicate(
+    fn purge_media_sources_by_path_predicate(
         &self,
         collection_id: CollectionId,
-        uri_predicate: StringPredicateBorrowed<'_>,
+        path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize>;
 
     fn purge_orphaned_media_sources_from_collection(

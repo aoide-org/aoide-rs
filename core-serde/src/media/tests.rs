@@ -23,7 +23,7 @@ fn deserialize_audio_source() {
     let json = serde_json::json!({
         "collectedAt": now.to_string(),
         "synchronizedAt": now.to_string(),
-        "uri": "file:///home/test/file.mp3",
+        "path": "/home/test file.mp3",
         "contentType": "audio/mpeg",
         "contentDigest": "aGVsbG8gaW50ZXJuZXR-Cg",
         "audio": {}
@@ -34,7 +34,7 @@ fn deserialize_audio_source() {
         _core::Source {
             collected_at: now,
             synchronized_at: Some(now),
-            uri: "file:///home/test/file.mp3".to_string(),
+            path: _core::SourcePath::new("/home/test file.mp3".to_owned()),
             content_type: "audio/mpeg".to_string(),
             content_digest: Digest::from_encoded("aGVsbG8gaW50ZXJuZXR-Cg")
                 .try_decode()

@@ -14,6 +14,7 @@ schemars = { version = "*", features = ["chrono"] }
 semval = "*"
 serde = { version = "*", features = ["derive"] }
 serde_repr = "*"
+url = { version = "*", features = ["serde"] }
 
 [features]
 default = []

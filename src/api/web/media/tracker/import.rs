@@ -205,10 +205,10 @@ pub fn handle_request(
     Ok(uc::import(
         &pooled_connection,
         collection_uid,
-        root_url.as_ref(),
         import_mode.into(),
         &import_config,
         import_flags,
+        root_url.as_ref(),
         &mut |summary| {
             if let Some(progress_summary_tx) = progress_summary_tx {
                 if progress_summary_tx.send(summary.to_owned()).is_err() {

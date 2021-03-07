@@ -162,7 +162,7 @@ paths:
             schema:
               type: array
               items:
-                $ref: '#/components/schemas/Uri'
+                $ref: '#/components/schemas/PercentEncodedUri'
       responses:
         '200':
           description: |
@@ -177,7 +177,7 @@ paths:
                   maxLength: 2
                   items:
                     oneOf:
-                      - $ref: '#/components/schemas/Uri'
+                      - $ref: '#/components/schemas/PercentEncodedUri'
                       - $ref: '#/components/schemas/EntityHeader'
         '500':
           $ref: '#/components/responses/500InternalServerError'
@@ -220,6 +220,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
         - $ref: '#/components/parameters/replaceCollectedTrackModeQuery'
+        - $ref: '#/components/parameters/replaceCollectedTrackResolvePathFromUrlQuery'
       requestBody:
         required: true
         content:
@@ -822,6 +823,19 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/ReplaceCollectedTrackMode'
+    replaceCollectedTrackResolvePathFromUrlQuery:
+      name: resolvePathFromUrl
+      description: |
+        Consider the provided media source path as an URL and
+        resolve it according to the collection's media source
+        configuration.
+
+        Only supported for local files.
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: false
     collectionUidPath:
       name: collectionUid
       in: path
@@ -977,7 +991,7 @@ components:
         thumbnail:
           $ref: '#/components/schemas/ImageThumbnail4x4Rgb8'
         uri:
-          $ref: '#/components/schemas/Uri'
+          $ref: '#/components/schemas/PercentEncodedUri'
     ArtworkColor:
       description: |
         A solid (background) color, e.g. the average color of the artwork image
@@ -1096,14 +1110,25 @@ components:
           $ref: '#/components/schemas/CollectionNotes'
         color:
           $ref: '#/components/schemas/Color'
+        mediaSourceConfig:
+          $ref: '#/components/schemas/CollectionMediaSourceConfig'
       required:
         - title
+        - mediaSourceConfig
     CollectionKind:
       type: string
       minLength: 1
       description: |
         A custom identifier to distinguish different kinds of collections.
       example: 'local'
+    CollectionMediaSourceConfig:
+      properties:
+        pathKind:
+          $ref: '#/components/schemas/MediaSourcePathKind'
+        baseUrl:
+          $ref: '#/components/schemas/MediaSourceUrl'
+      required:
+        - pathKind
     CollectionTitle:
       type: string
       minLength: 1
@@ -1230,7 +1255,7 @@ components:
         re-imported depending on the reliability flag. Alternatively
         the *stale* flag could be reset manually.
     CueBankIndex:
-      type: number
+      type: integer
       format: int32
       minimum: -32368
       maximum: 32767
@@ -1240,7 +1265,7 @@ components:
 
         Banks are used for distinguishing different kinds of cues.
     CueSlotIndex:
-      type: number
+      type: integer
       format: int32
       minimum: -32368
       maximum: 32767
@@ -1278,7 +1303,7 @@ components:
       type: object
       properties:
         code:
-          type: number
+          type: integer
           format: int32
           description: |
             A HTTP status code
@@ -1461,8 +1486,8 @@ components:
           $ref: '#/components/schemas/DateTime'
         synchronizedAt:
           $ref: '#/components/schemas/DateTime'
-        uri:
-          $ref: '#/components/schemas/Uri'
+        path:
+          $ref: '#/components/schemas/MediaSourcePath'
         contentType:
           $ref: '#/components/schemas/MediaType'
         contentDigest:
@@ -1475,7 +1500,7 @@ components:
         $ref: '#/components/schemas/MediaSourceContent'
       required:
         - collectedAt
-        - uri
+        - path
         - contentType
     MediaType:
       type: string
@@ -2009,7 +2034,7 @@ components:
     PurgeCollectedTracksRequestBody:
       type: array
       items:
-        $ref: '#/components/schemas/Uri'
+        $ref: '#/components/schemas/PercentEncodedUri'
     Release:
       type: object
       properties:
@@ -2054,8 +2079,7 @@ components:
       type: object
       properties:
         purged:
-          type: number
-          format: int
+          type: integer
           minimum: 0
       required:
         - purged
@@ -2079,24 +2103,19 @@ components:
           type: object
           properties:
             current:
-              type: number
-              format: int
+              type: integer
               minimum: 0
             outdated:
-              type: number
-              format: int
+              type: integer
               minimum: 0
             added:
-              type: number
-              format: int
+              type: integer
               minimum: 0
             modified:
-              type: number
-              format: int
+              type: integer
               minimum: 0
             orphaned:
-              type: number
-              format: int
+              type: integer
               minimum: 0
           required:
             - current
@@ -2256,6 +2275,23 @@ components:
         - modified
         - orphaned
         - skipped
+    MediaSourcePath:
+        type: string
+        minLength: 1
+        example: "album artist/album title/01 the first track.mp3"
+    MediaSourcePathKind:
+      type: integer
+      enum: [0, 1, 2]
+      description: |
+        Optional level that defaults to 0 = main if missing:
+          * 0 = Unknown, i.e. any percent-encoded URI
+          * 1 = Plain, percent-encoded URL
+          * 2 = Portable local file path with '/' as path separator
+    MediaSourcePathOrUrl:
+      oneOf:
+        - $ref: '#/components/schemas/MediaSourcePath'
+        - $ref: '#/components/schemas/MediaSourceUrl'
+        - $ref: '#/components/schemas/PercentEncodedUri'
     MediaTrackerHashResponseBody:
       oneOf:
         - type: object
@@ -2267,13 +2303,22 @@ components:
           required:
             - completion
             - summary
+    MediaSourceUrl:
+      allOf:
+        - $ref: '#/components/schemas/PercentEncodedUri'
+    PercentEncodedUri:
+      type: string
+      minLength: 1
+      example: file:///home/user/Music/album%20artist/album%20title/01%20the%20first%20track.mp3
+      description: |
+        A percent-encoded URI (RFC 3986).
     RelocateCollectedMediaSourcesRequestBody:
       type: object
       properties:
         oldUriPrefix:
-          $ref: '#/components/schemas/Uri'
+          $ref: '#/components/schemas/PercentEncodedUri'
         newUriPrefix:
-          $ref: '#/components/schemas/Uri'
+          $ref: '#/components/schemas/PercentEncodedUri'
       required:
         - oldUriPrefix
         - newUriPrefix
@@ -2300,7 +2345,7 @@ components:
     ImportAndReplaceCollectedTracksRequestBody:
       type: array
       items:
-        $ref: '#/components/schemas/Uri'
+        $ref: '#/components/schemas/PercentEncodedUri'
     ReplaceCollectedTracksResponseBody:
       type: object
       properties:
@@ -2315,7 +2360,7 @@ components:
         unchanged:
           type: array
           items:
-            $ref: '#/components/schemas/Uri'
+            $ref: '#/components/schemas/PercentEncodedUri'
         notCreated:
           type: array
           items:
@@ -2332,7 +2377,7 @@ components:
             notImported:
               type: array
               items:
-                $ref: '#/components/schemas/Uri'
+                $ref: '#/components/schemas/PercentEncodedUri'
     RgbColor:
       type: string
       minLength: 7
@@ -2380,14 +2425,14 @@ components:
         - albumArtist
         - albumTitle
         - sourceType
-        - sourceUri
+        - sourcePath
         - trackArtist
         - trackComposer
         - trackTitle
       description: |
         Selectable fields, including
           * `sourceType` - RFC 6838 media type
-          * `sourceUri` - RFC 3986 percent-encoded URI
+          * `sourcePath`
           * ...
     StringPredicate:
       oneOf:
@@ -2765,7 +2810,7 @@ components:
         - sourceCollectedAt
         - sourceSynchronizedAt
         - sourceType
-        - sourceUri
+        - sourcePath
         - timesPlayed
         - trackArtist
         - trackNumber
@@ -2783,12 +2828,6 @@ components:
     TrackUid:
       allOf:
         - $ref: '#/components/schemas/EntityUid'
-    Uri:
-      type: string
-      minLength: 1
-      example: file:///home/user/Music/album%20artist/album%20title/01%20the%20first%20track.mp3
-      description: |
-        A percent-encoded URI (RFC 3986).
     YYYY:
       type: integer
       format: int32

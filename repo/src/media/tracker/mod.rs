@@ -19,7 +19,7 @@ use crate::{
     collection::RecordId as CollectionId, media::source::RecordId as MediaSourceId, prelude::*,
 };
 
-use aoide_core::util::clock::*;
+use aoide_core::{media::SourcePath, util::clock::*};
 
 use num_derive::{FromPrimitive, ToPrimitive};
 
@@ -61,7 +61,7 @@ impl DirTrackingStatus {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TrackedDirectory {
-    pub uri: String,
+    pub path: SourcePath,
     pub status: DirTrackingStatus,
     pub digest: DigestBytes,
 }
@@ -105,7 +105,7 @@ pub trait Repo {
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        uri_prefix: &str,
+        path_prefix: &str,
         old_status: Option<DirTrackingStatus>,
         new_status: DirTrackingStatus,
     ) -> RepoResult<usize>;
@@ -114,14 +114,14 @@ pub trait Repo {
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        uri: &str,
+        path: &str,
         digest: &DigestBytes,
     ) -> RepoResult<DirUpdateOutcome>;
 
     fn media_tracker_untrack(
         &self,
         collection_id: CollectionId,
-        uri_prefix: &str,
+        path_prefix: &str,
         status: Option<DirTrackingStatus>,
     ) -> RepoResult<usize>;
 
@@ -137,9 +137,13 @@ pub trait Repo {
     fn media_tracker_purge_orphaned_directories(
         &self,
         collection_id: CollectionId,
-        uri_prefix: &str,
+        path_prefix: &str,
     ) -> RepoResult<usize> {
-        self.media_tracker_untrack(collection_id, uri_prefix, Some(DirTrackingStatus::Orphaned))
+        self.media_tracker_untrack(
+            collection_id,
+            path_prefix,
+            Some(DirTrackingStatus::Orphaned),
+        )
     }
 
     /// Mark all current entries as outdated before starting
@@ -148,12 +152,12 @@ pub trait Repo {
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        uri_prefix: &str,
+        path_prefix: &str,
     ) -> RepoResult<usize> {
         self.media_tracker_update_directories_status(
             updated_at,
             collection_id,
-            uri_prefix,
+            path_prefix,
             Some(DirTrackingStatus::Current),
             DirTrackingStatus::Outdated,
         )
@@ -165,12 +169,12 @@ pub trait Repo {
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        uri_prefix: &str,
+        path_prefix: &str,
     ) -> RepoResult<usize> {
         self.media_tracker_update_directories_status(
             updated_at,
             collection_id,
-            uri_prefix,
+            path_prefix,
             Some(DirTrackingStatus::Outdated),
             DirTrackingStatus::Orphaned,
         )
@@ -183,7 +187,7 @@ pub trait Repo {
     fn media_tracker_load_directories_requiring_confirmation(
         &self,
         collection_id: CollectionId,
-        uri_prefix: Option<&str>,
+        path_prefix: Option<&str>,
         pagination: &Pagination,
     ) -> RepoResult<Vec<TrackedDirectory>>;
 
@@ -198,7 +202,7 @@ pub trait Repo {
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        uri: &str,
+        path: &str,
         digest: &DigestBytes,
         media_source_ids: &[MediaSourceId],
     ) -> RepoResult<bool>;
@@ -206,12 +210,12 @@ pub trait Repo {
     fn media_tracker_load_directory_tracking_status(
         &self,
         collection_id: CollectionId,
-        uri: &str,
+        path: &str,
     ) -> RepoResult<DirTrackingStatus>;
 
     fn media_tracker_aggregate_directories_tracking_status(
         &self,
         collection_id: CollectionId,
-        uri_prefix: &str,
+        path_prefix: &str,
     ) -> RepoResult<DirectoriesStatusSummary>;
 }

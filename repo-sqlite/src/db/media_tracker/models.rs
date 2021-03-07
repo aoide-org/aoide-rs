@@ -33,7 +33,7 @@ pub struct QueryableRecord {
     pub row_created_ms: TimestampMillis,
     pub row_updated_ms: TimestampMillis,
     pub collection_id: RowId,
-    pub uri: String,
+    pub path: String,
     pub status: i16,
     pub digest: Vec<u8>,
 }
@@ -45,7 +45,7 @@ impl From<QueryableRecord> for TrackedDirectory {
             row_created_ms: _,
             row_updated_ms: _,
             collection_id: _,
-            uri,
+            path,
             status,
             digest,
         } = from;
@@ -58,7 +58,7 @@ impl From<QueryableRecord> for TrackedDirectory {
             Default::default()
         });
         Self {
-            uri,
+            path: path.into(),
             status,
             digest,
         }
@@ -71,7 +71,7 @@ pub struct InsertableRecord<'a> {
     pub row_created_ms: TimestampMillis,
     pub row_updated_ms: TimestampMillis,
     pub collection_id: RowId,
-    pub uri: &'a str,
+    pub path: &'a str,
     pub status: i16,
     pub digest: &'a [u8],
 }
@@ -80,7 +80,7 @@ impl<'a> InsertableRecord<'a> {
     pub fn bind(
         created_at: DateTime,
         collection_id: CollectionId,
-        uri: &'a str,
+        path: &'a str,
         status: DirTrackingStatus,
         digest: &'a DigestBytes,
     ) -> Self {
@@ -89,7 +89,7 @@ impl<'a> InsertableRecord<'a> {
             row_created_ms,
             row_updated_ms: row_created_ms,
             collection_id: RowId::from(collection_id),
-            uri,
+            path,
             status: status.to_i16().expect("status"),
             digest: &digest[..],
         }

@@ -32,13 +32,13 @@ where
         .into_boxed()
 }
 
-/// Filter by an URI predicate.
+/// Filter by a path predicate.
 ///
 /// URIs are only unambiguous within a collection. Therefore
 /// filtering is restricted to a single collection.
-pub fn filter_by_uri_predicate<'db, DB>(
+pub fn filter_by_path_predicate<'db, DB>(
     collection_id: CollectionId,
-    uri_predicate: StringPredicateBorrowed<'db>,
+    path_predicate: StringPredicateBorrowed<'db>,
 ) -> BoxedSelectStatement<'db, BigInt, media_source::table, DB>
 where
     DB: diesel::backend::Backend + 'db,
@@ -48,48 +48,46 @@ where
         .select(media_source::row_id)
         .filter(media_source::collection_id.eq(RowId::from(collection_id)))
         .into_boxed();
-    match uri_predicate {
-        StringPredicateBorrowed::StartsWith(uri_prefix_nocase) => {
-            statement.filter(media_source::uri.like(escape_like_starts_with(uri_prefix_nocase)))
+    match path_predicate {
+        StringPredicateBorrowed::StartsWith(path_prefix_nocase) => {
+            statement.filter(media_source::path.like(escape_like_starts_with(path_prefix_nocase)))
         }
-        StringPredicateBorrowed::StartsNotWith(uri_prefix_nocase) => {
-            statement.filter(media_source::uri.not_like(escape_like_starts_with(uri_prefix_nocase)))
+        StringPredicateBorrowed::StartsNotWith(path_prefix_nocase) => statement
+            .filter(media_source::path.not_like(escape_like_starts_with(path_prefix_nocase))),
+        StringPredicateBorrowed::EndsWith(path_suffix_nocase) => {
+            statement.filter(media_source::path.like(escape_like_ends_with(path_suffix_nocase)))
         }
-        StringPredicateBorrowed::EndsWith(uri_suffix_nocase) => {
-            statement.filter(media_source::uri.like(escape_like_ends_with(uri_suffix_nocase)))
+        StringPredicateBorrowed::EndsNotWith(path_suffix_nocase) => {
+            statement.filter(media_source::path.not_like(escape_like_ends_with(path_suffix_nocase)))
         }
-        StringPredicateBorrowed::EndsNotWith(uri_suffix_nocase) => {
-            statement.filter(media_source::uri.not_like(escape_like_ends_with(uri_suffix_nocase)))
+        StringPredicateBorrowed::Contains(path_fragment_nocase) => {
+            statement.filter(media_source::path.like(escape_like_contains(path_fragment_nocase)))
         }
-        StringPredicateBorrowed::Contains(uri_fragment_nocase) => {
-            statement.filter(media_source::uri.like(escape_like_contains(uri_fragment_nocase)))
+        StringPredicateBorrowed::ContainsNot(path_fragment_nocase) => statement
+            .filter(media_source::path.not_like(escape_like_contains(path_fragment_nocase))),
+        StringPredicateBorrowed::Matches(path_fragment_nocase) => {
+            statement.filter(media_source::path.like(escape_like_matches(path_fragment_nocase)))
         }
-        StringPredicateBorrowed::ContainsNot(uri_fragment_nocase) => {
-            statement.filter(media_source::uri.not_like(escape_like_contains(uri_fragment_nocase)))
+        StringPredicateBorrowed::MatchesNot(path_fragment_nocase) => {
+            statement.filter(media_source::path.not_like(escape_like_matches(path_fragment_nocase)))
         }
-        StringPredicateBorrowed::Matches(uri_fragment_nocase) => {
-            statement.filter(media_source::uri.like(escape_like_matches(uri_fragment_nocase)))
-        }
-        StringPredicateBorrowed::MatchesNot(uri_fragment_nocase) => {
-            statement.filter(media_source::uri.not_like(escape_like_matches(uri_fragment_nocase)))
-        }
-        StringPredicateBorrowed::Prefix(uri_prefix) => {
-            let sql_prefix_filter = if uri_prefix.contains('\'') {
+        StringPredicateBorrowed::Prefix(path_prefix) => {
+            let sql_prefix_filter = if path_prefix.contains('\'') {
                 format!(
-                    "substr(media_source.uri,1,{})='{}'",
-                    uri_prefix.len(),
-                    escape_single_quotes(uri_prefix)
+                    "substr(media_source.path,1,{})='{}'",
+                    path_prefix.len(),
+                    escape_single_quotes(path_prefix)
                 )
             } else {
                 format!(
-                    "substr(media_source.uri,1,{})='{}'",
-                    uri_prefix.len(),
-                    uri_prefix
+                    "substr(media_source.path,1,{})='{}'",
+                    path_prefix.len(),
+                    path_prefix
                 )
             };
             statement.filter(diesel::dsl::sql(&sql_prefix_filter))
         }
-        StringPredicateBorrowed::Equals(uri) => statement.filter(media_source::uri.eq(uri)),
-        StringPredicateBorrowed::EqualsNot(uri) => statement.filter(media_source::uri.ne(uri)),
+        StringPredicateBorrowed::Equals(path) => statement.filter(media_source::path.eq(path)),
+        StringPredicateBorrowed::EqualsNot(path) => statement.filter(media_source::path.ne(path)),
     }
 }

@@ -51,11 +51,10 @@ use nom::{
     IResult,
 };
 use semval::IsValid as _;
-use std::convert::TryFrom as _;
-use url::Url;
+use std::{convert::TryFrom as _, path::Path};
 
-pub fn guess_mime_from_url(url: &Url) -> Result<Mime> {
-    let mime_guess = mime_guess::from_path(url.path());
+pub fn guess_mime_from_path(path: impl AsRef<Path>) -> Result<Mime> {
+    let mime_guess = mime_guess::from_path(path);
     if mime_guess.first().is_none() {
         return Err(Error::UnknownContentType);
     }

@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS collection (
     notes                  TEXT,
     color_rgb              INTEGER, -- 0xRRGGBB (hex)
     color_idx              INTEGER, -- palette index
+    media_source_path_kind TINYINT NOT NULL,
+    media_source_base_url  TEXT,
     --
     UNIQUE (entity_uid) -- only the last revision is stored
 );

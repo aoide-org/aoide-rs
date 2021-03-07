@@ -15,17 +15,55 @@
 
 use crate::prelude::*;
 
-use crate::util::color::Color;
+use crate::{media::SourcePathKind, util::color::Color};
 
 mod _core {
     pub use aoide_core::{collection::*, entity::EntityHeader};
 }
 
+use url::Url;
+
 ///////////////////////////////////////////////////////////////////////
 // Collection
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(Eq, PartialEq))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct MediaSourceConfig {
+    pub path_kind: SourcePathKind,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub base_url: Option<Url>,
+}
+
+impl From<MediaSourceConfig> for _core::MediaSourceConfig {
+    fn from(from: MediaSourceConfig) -> Self {
+        let MediaSourceConfig {
+            path_kind,
+            base_url,
+        } = from;
+        Self {
+            path_kind: path_kind.into(),
+            base_url: base_url.map(Into::into),
+        }
+    }
+}
+
+impl From<_core::MediaSourceConfig> for MediaSourceConfig {
+    fn from(from: _core::MediaSourceConfig) -> Self {
+        let _core::MediaSourceConfig {
+            path_kind,
+            base_url,
+        } = from;
+        Self {
+            path_kind: path_kind.into(),
+            base_url: base_url.map(Into::into),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Collection {
@@ -39,6 +77,8 @@ pub struct Collection {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     color: Option<Color>,
+
+    media_source_config: MediaSourceConfig,
 }
 
 impl From<Collection> for _core::Collection {
@@ -48,12 +88,14 @@ impl From<Collection> for _core::Collection {
             notes,
             kind,
             color,
+            media_source_config,
         } = from;
         Self {
             title,
             notes,
             kind,
             color: color.map(Into::into),
+            media_source_config: media_source_config.into(),
         }
     }
 }
@@ -65,12 +107,14 @@ impl From<_core::Collection> for Collection {
             notes,
             kind,
             color,
+            media_source_config,
         } = from;
         Self {
             title,
             notes,
             kind,
             color: color.map(Into::into),
+            media_source_config: media_source_config.into(),
         }
     }
 }

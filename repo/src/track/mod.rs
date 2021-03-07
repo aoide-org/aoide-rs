@@ -38,7 +38,7 @@ pub enum StringField {
     AlbumArtist,
     AlbumTitle,
     SourceType, // RFC 6838 media type
-    SourceUri,  // RFC 3986 percent-encoded URI
+    SourcePath, // RFC 3986 percent-encoded URI
     TrackArtist,
     TrackComposer,
     TrackTitle,
@@ -100,7 +100,7 @@ pub struct PhraseFieldFilter {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SourceFilterBorrowed<'s> {
-    pub uri: StringPredicateBorrowed<'s>,
+    pub path: StringPredicateBorrowed<'s>,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -122,7 +122,7 @@ pub enum SortField {
     SourceCollectedAt,
     SourceSynchronizedAt,
     SourceType,
-    SourceUri,
+    SourcePath,
     TimesPlayed,
     TrackArtist,
     TrackNumber,
@@ -234,16 +234,16 @@ pub trait EntityRepo: MediaSourceRepo {
 
     fn load_track_entity_by_uid(&self, uid: &EntityUid) -> RepoResult<(RecordHeader, Entity)>;
 
-    fn load_track_entity_by_media_source_uri(
+    fn load_track_entity_by_media_source_path(
         &self,
         collection_id: CollectionId,
-        uri: &str,
+        media_source_path: &str,
     ) -> RepoResult<(MediaSourceId, RecordHeader, Entity)>;
 
-    fn resolve_track_entity_header_by_media_source_uri(
+    fn resolve_track_entity_header_by_media_source_path(
         &self,
         collection_id: CollectionId,
-        uri: &str,
+        media_source_path: &str,
     ) -> RepoResult<(MediaSourceId, RecordHeader, EntityHeader)>;
 
     fn list_track_entities(
@@ -268,7 +268,7 @@ pub trait EntityRepo: MediaSourceRepo {
 
     fn delete_track_entity(&self, id: RecordId) -> RepoResult<()>;
 
-    fn replace_collected_track_by_media_source_uri(
+    fn replace_collected_track_by_media_source_path(
         &self,
         collection_id: CollectionId,
         preserve_collected_at: bool,
@@ -276,10 +276,10 @@ pub trait EntityRepo: MediaSourceRepo {
         track: Track,
     ) -> RepoResult<ReplaceOutcome>;
 
-    fn purge_tracks_by_media_source_uri_predicate(
+    fn purge_tracks_by_media_source_media_source_path_predicate(
         &self,
         collection_id: CollectionId,
-        uri_predicate: StringPredicateBorrowed<'_>,
+        media_source_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize>;
 
     fn search_collected_tracks(

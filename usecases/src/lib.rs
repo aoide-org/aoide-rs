@@ -22,6 +22,7 @@ use aoide_repo::prelude::*;
 use std::result::Result as StdResult;
 use thiserror::Error;
 
+pub mod collection;
 pub mod media;
 pub mod tracks;
 

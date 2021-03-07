@@ -25,5 +25,7 @@ table! {
         notes -> Nullable<Text>,
         color_rgb -> Nullable<Integer>,
         color_idx -> Nullable<SmallInt>,
+        media_source_path_kind -> SmallInt,
+        media_source_base_url -> Nullable<Text>,
     }
 }

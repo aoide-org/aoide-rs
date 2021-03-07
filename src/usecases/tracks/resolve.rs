@@ -19,19 +19,19 @@ use aoide_repo::collection::EntityRepo as _;
 
 use aoide_usecases::tracks::resolve as uc;
 
-pub fn resolve_by_media_source_uris(
+pub fn resolve_by_media_source_paths(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    media_source_uris: Vec<String>,
+    media_source_paths: Vec<String>,
 ) -> Result<Vec<(String, EntityHeader)>> {
     let db = RepoConnection::new(connection);
     Ok(
         db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
             let collection_id = db.resolve_collection_id(collection_uid)?;
-            Ok(uc::resolve_by_media_source_uris(
+            Ok(uc::resolve_by_media_source_paths(
                 &db,
                 collection_id,
-                media_source_uris,
+                media_source_paths,
             )?)
         })?,
     )

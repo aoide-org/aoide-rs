@@ -19,9 +19,9 @@ use crate::prelude::tests::*;
 
 use aoide_core::{
     audio::{AudioContent, DurationMs},
-    collection::{Collection, Entity as CollectionEntity},
+    collection::{Collection, Entity as CollectionEntity, MediaSourceConfig},
     entity::EntityHeader,
-    media,
+    media::{self, SourcePath, SourcePathKind},
     util::clock::DateTime,
 };
 
@@ -41,6 +41,10 @@ impl Fixture {
             notes: None,
             kind: None,
             color: None,
+            media_source_config: MediaSourceConfig {
+                path_kind: SourcePathKind::LocalFile,
+                base_url: None,
+            },
         };
         let db = establish_connection()?;
         let collection_entity = CollectionEntity::new(EntityHeader::initial_random(), collection);
@@ -49,12 +53,12 @@ impl Fixture {
         Ok(Self { db, collection_id })
     }
 
-    fn resolve_record_ids_by_uri_predicate<'s>(
+    fn resolve_record_ids_by_path_predicate<'s>(
         &self,
-        uri_predicate: StringPredicateBorrowed<'s>,
+        path_predicate: StringPredicateBorrowed<'s>,
     ) -> RepoResult<Vec<RecordId>> {
         crate::Connection::new(&self.db)
-            .resolve_media_source_ids_by_uri_predicate(self.collection_id, uri_predicate)
+            .resolve_media_source_ids_by_path_predicate(self.collection_id, path_predicate)
     }
 }
 
@@ -66,8 +70,8 @@ fn insert_media_source() -> anyhow::Result<()> {
     let created_source = media::Source {
         collected_at: DateTime::now_local(),
         synchronized_at: Some(DateTime::now_utc()),
-        uri: "file:///home/test/file.mp3".to_string(),
-        content_type: "audio/mpeg".to_string(),
+        path: SourcePath::new("file:///home/test/file.mp3".to_owned()),
+        content_type: "audio/mpeg".to_owned(),
         content_digest: None,
         content_metadata_flags: Default::default(),
         content: AudioContent {
@@ -76,7 +80,7 @@ fn insert_media_source() -> anyhow::Result<()> {
         }
         .into(),
         artwork: Artwork {
-            media_type: Some("image/jpeg".to_string()),
+            media_type: Some("image/jpeg".to_owned()),
             digest: Some([128; 32]),
             thumbnail: Some([127; 4 * 4 * 3]),
             ..Default::default()
@@ -97,7 +101,7 @@ fn insert_media_source() -> anyhow::Result<()> {
 }
 
 #[test]
-fn filter_by_uri_predicate() -> anyhow::Result<()> {
+fn filter_by_path_predicate() -> anyhow::Result<()> {
     let fixture = Fixture::new()?;
     let db = crate::Connection::new(&fixture.db);
 
@@ -106,8 +110,8 @@ fn filter_by_uri_predicate() -> anyhow::Result<()> {
     let file_lowercase = media::Source {
         collected_at: DateTime::now_local(),
         synchronized_at: Some(DateTime::now_utc()),
-        uri: "file:///home/file.mp3".to_string(),
-        content_type: "audio/mpeg".to_string(),
+        path: SourcePath::new("file:///home/file.mp3".to_owned()),
+        content_type: "audio/mpeg".to_owned(),
         content_digest: None,
         content_metadata_flags: Default::default(),
         content: AudioContent {
@@ -123,8 +127,8 @@ fn filter_by_uri_predicate() -> anyhow::Result<()> {
     let file_uppercase = media::Source {
         collected_at: DateTime::now_local(),
         synchronized_at: Some(DateTime::now_utc()),
-        uri: "file:///Home/File.mp3".to_string(),
-        content_type: "audio/mpeg".to_string(),
+        path: SourcePath::new("file:///Home/File.mp3".to_owned()),
+        content_type: "audio/mpeg".to_owned(),
         content_digest: None,
         content_metadata_flags: ContentMetadataFlags::RELIABLE,
         content: AudioContent {
@@ -140,26 +144,26 @@ fn filter_by_uri_predicate() -> anyhow::Result<()> {
     // Equals is case-sensitive
     assert_eq!(
         vec![header_lowercase.id],
-        fixture.resolve_record_ids_by_uri_predicate(StringPredicateBorrowed::Equals(
-            &file_lowercase.uri
+        fixture.resolve_record_ids_by_path_predicate(StringPredicateBorrowed::Equals(
+            &file_lowercase.path
         ))?
     );
     assert!(fixture
-        .resolve_record_ids_by_uri_predicate(StringPredicateBorrowed::Equals(
-            &file_lowercase.uri.to_uppercase()
+        .resolve_record_ids_by_path_predicate(StringPredicateBorrowed::Equals(
+            &file_lowercase.path.to_uppercase()
         ))?
         .is_empty());
 
     assert_eq!(
         vec![header_uppercase.id],
-        fixture.resolve_record_ids_by_uri_predicate(StringPredicateBorrowed::Equals(
-            &file_uppercase.uri
+        fixture.resolve_record_ids_by_path_predicate(StringPredicateBorrowed::Equals(
+            &file_uppercase.path
         ))?
     );
     assert_eq!(
         vec![header_lowercase.id],
-        fixture.resolve_record_ids_by_uri_predicate(StringPredicateBorrowed::Equals(
-            &file_uppercase.uri.to_lowercase()
+        fixture.resolve_record_ids_by_path_predicate(StringPredicateBorrowed::Equals(
+            &file_uppercase.path.to_lowercase()
         ))?
     );
 
@@ -167,57 +171,58 @@ fn filter_by_uri_predicate() -> anyhow::Result<()> {
     assert_eq!(
         vec![header_lowercase.id],
         fixture
-            .resolve_record_ids_by_uri_predicate(StringPredicateBorrowed::Prefix("file:///ho"))?
+            .resolve_record_ids_by_path_predicate(StringPredicateBorrowed::Prefix("file:///ho"))?
     );
     assert_eq!(
         vec![header_uppercase.id],
         fixture
-            .resolve_record_ids_by_uri_predicate(StringPredicateBorrowed::Prefix("file:///Ho"))?
+            .resolve_record_ids_by_path_predicate(StringPredicateBorrowed::Prefix("file:///Ho"))?
     );
     assert!(fixture
-        .resolve_record_ids_by_uri_predicate(StringPredicateBorrowed::Prefix("file:///hO"))?
+        .resolve_record_ids_by_path_predicate(StringPredicateBorrowed::Prefix("file:///hO"))?
         .is_empty());
     assert!(fixture
-        .resolve_record_ids_by_uri_predicate(StringPredicateBorrowed::Prefix("file:///HO"))?
+        .resolve_record_ids_by_path_predicate(StringPredicateBorrowed::Prefix("file:///HO"))?
         .is_empty());
 
     // StartsWith is case-insensitive
     assert_eq!(
         vec![header_lowercase.id, header_uppercase.id],
-        fixture.resolve_record_ids_by_uri_predicate(StringPredicateBorrowed::StartsWith(
-            &file_lowercase.uri
+        fixture.resolve_record_ids_by_path_predicate(StringPredicateBorrowed::StartsWith(
+            &file_lowercase.path
         ))?
     );
     assert_eq!(
         vec![header_lowercase.id, header_uppercase.id],
-        fixture.resolve_record_ids_by_uri_predicate(StringPredicateBorrowed::StartsWith(
-            &file_uppercase.uri
+        fixture.resolve_record_ids_by_path_predicate(StringPredicateBorrowed::StartsWith(
+            &file_uppercase.path
         ))?
     );
     assert_eq!(
         vec![header_lowercase.id, header_uppercase.id],
-        fixture.resolve_record_ids_by_uri_predicate(StringPredicateBorrowed::StartsWith(
+        fixture.resolve_record_ids_by_path_predicate(StringPredicateBorrowed::StartsWith(
             "file:///home"
         ))?
     );
     assert_eq!(
         vec![header_lowercase.id, header_uppercase.id],
-        fixture.resolve_record_ids_by_uri_predicate(StringPredicateBorrowed::StartsWith(
+        fixture.resolve_record_ids_by_path_predicate(StringPredicateBorrowed::StartsWith(
             "file:///Home"
         ))?
     );
     assert_eq!(
         vec![header_lowercase.id, header_uppercase.id],
-        fixture
-            .resolve_record_ids_by_uri_predicate(StringPredicateBorrowed::StartsWith("file:///"))?
+        fixture.resolve_record_ids_by_path_predicate(StringPredicateBorrowed::StartsWith(
+            "file:///"
+        ))?
     );
     assert!(fixture
-        .resolve_record_ids_by_uri_predicate(StringPredicateBorrowed::StartsWith(
+        .resolve_record_ids_by_path_predicate(StringPredicateBorrowed::StartsWith(
             "file:///%home" // LIKE wildcard in predicate string
         ))?
         .is_empty());
     assert!(fixture
-        .resolve_record_ids_by_uri_predicate(StringPredicateBorrowed::StartsWith(
+        .resolve_record_ids_by_path_predicate(StringPredicateBorrowed::StartsWith(
             "file:/\\/home" // backslash in predicate string
         ))?
         .is_empty());
@@ -226,7 +231,7 @@ fn filter_by_uri_predicate() -> anyhow::Result<()> {
 }
 
 #[test]
-fn relocate_by_uri() -> anyhow::Result<()> {
+fn relocate_by_path() -> anyhow::Result<()> {
     let fixture = Fixture::new()?;
     let db = crate::Connection::new(&fixture.db);
 
@@ -235,8 +240,8 @@ fn relocate_by_uri() -> anyhow::Result<()> {
     let file_lowercase = media::Source {
         collected_at: DateTime::now_local(),
         synchronized_at: Some(DateTime::now_utc()),
-        uri: "file:///ho''me/file.mp3".to_string(),
-        content_type: "audio/mpeg".to_string(),
+        path: SourcePath::new("file:///ho''me/file.mp3".to_owned()),
+        content_type: "audio/mpeg".to_owned(),
         content_digest: None,
         content_metadata_flags: Default::default(),
         content: AudioContent {
@@ -252,8 +257,8 @@ fn relocate_by_uri() -> anyhow::Result<()> {
     let file_uppercase = media::Source {
         collected_at: DateTime::now_local(),
         synchronized_at: Some(DateTime::now_utc()),
-        uri: "file:///Ho''me/File.mp3".to_string(),
-        content_type: "audio/mpeg".to_string(),
+        path: SourcePath::new("file:///Ho''me/File.mp3".to_owned()),
+        content_type: "audio/mpeg".to_owned(),
         content_digest: None,
         content_metadata_flags: ContentMetadataFlags::RELIABLE,
         content: AudioContent {
@@ -267,26 +272,27 @@ fn relocate_by_uri() -> anyhow::Result<()> {
         db.insert_media_source(DateTime::now_utc(), collection_id, &file_uppercase)?;
 
     let updated_at = DateTime::now_utc();
-    let old_uri_prefix = "file:///ho''";
-    let new_uri_prefix = "file:///h'o''";
+    let old_path_prefix = "file:///ho''";
+    let new_path_prefix = "file:///h'o''";
 
     assert_eq!(
         1,
-        db.relocate_media_sources_by_uri_prefix(
+        db.relocate_media_sources_by_path_prefix(
             updated_at,
             collection_id,
-            old_uri_prefix,
-            new_uri_prefix
+            old_path_prefix,
+            new_path_prefix
         )?
     );
 
     assert!(fixture
-        .resolve_record_ids_by_uri_predicate(StringPredicateBorrowed::Prefix(old_uri_prefix))?
+        .resolve_record_ids_by_path_predicate(StringPredicateBorrowed::Prefix(old_path_prefix))?
         .is_empty());
     assert_eq!(
         vec![header_lowercase.id],
-        fixture
-            .resolve_record_ids_by_uri_predicate(StringPredicateBorrowed::Prefix(new_uri_prefix))?
+        fixture.resolve_record_ids_by_path_predicate(StringPredicateBorrowed::Prefix(
+            new_path_prefix
+        ))?
     );
     assert_eq!(
         updated_at,
@@ -294,8 +300,9 @@ fn relocate_by_uri() -> anyhow::Result<()> {
     );
     assert_eq!(
         vec![header_uppercase.id],
-        fixture
-            .resolve_record_ids_by_uri_predicate(StringPredicateBorrowed::Prefix("file:///Ho''"))?
+        fixture.resolve_record_ids_by_path_predicate(StringPredicateBorrowed::Prefix(
+            "file:///Ho''"
+        ))?
     );
 
     Ok(())

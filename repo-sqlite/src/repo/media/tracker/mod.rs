@@ -42,16 +42,16 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        uri_prefix: &str,
+        path_prefix: &str,
         old_status: Option<DirTrackingStatus>,
         new_status: DirTrackingStatus,
     ) -> RepoResult<usize> {
         let target = media_tracker_directory::table
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
             .filter(diesel::dsl::sql(&format!(
-                "substr(uri,1,{})='{}'",
-                uri_prefix.len(),
-                escape_single_quotes(uri_prefix),
+                "substr(path,1,{})='{}'",
+                path_prefix.len(),
+                escape_single_quotes(path_prefix),
             )));
         let mut query = diesel::update(target)
             .set((
@@ -70,15 +70,15 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
     fn media_tracker_untrack(
         &self,
         collection_id: CollectionId,
-        uri_prefix: &str,
+        path_prefix: &str,
         status: Option<DirTrackingStatus>,
     ) -> RepoResult<usize> {
         let target = media_tracker_directory::table
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
             .filter(diesel::dsl::sql(&format!(
-                "substr(uri,1,{})='{}'",
-                uri_prefix.len(),
-                escape_single_quotes(uri_prefix),
+                "substr(path,1,{})='{}'",
+                path_prefix.len(),
+                escape_single_quotes(path_prefix),
             )));
         let subselect = target.clone().select(media_tracker_directory::row_id);
         if let Some(status) = status {
@@ -111,13 +111,13 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        uri: &str,
+        path: &str,
         digest: &DigestBytes,
     ) -> RepoResult<DirUpdateOutcome> {
         // Try to mark outdated entry as current if digest is unchanged (most likely)
         let target = media_tracker_directory::table
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
-            .filter(media_tracker_directory::uri.eq(uri))
+            .filter(media_tracker_directory::path.eq(path))
             .filter(media_tracker_directory::digest.eq(&digest[..]))
             // Filtering by DirTrackingStatus::Outdated allows to safely trigger a rescan even
             // if entries that have previously been marked as added or modified are still
@@ -142,7 +142,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         // Try to mark existing entry (with any status) as modified if digest has changed (less likely)
         let target = media_tracker_directory::table
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
-            .filter(media_tracker_directory::uri.eq(uri))
+            .filter(media_tracker_directory::path.eq(path))
             .filter(media_tracker_directory::digest.ne(&digest[..]));
         let query = diesel::update(target).set((
             media_tracker_directory::row_updated_ms.eq(updated_at.timestamp_millis()),
@@ -159,7 +159,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         let insertable = InsertableRecord::bind(
             updated_at,
             collection_id,
-            uri,
+            path,
             DirTrackingStatus::Added,
             digest,
         );
@@ -179,13 +179,13 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        uri: &str,
+        path: &str,
         digest: &DigestBytes,
         media_source_ids: &[MediaSourceId],
     ) -> RepoResult<bool> {
         let target = media_tracker_directory::table
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
-            .filter(media_tracker_directory::uri.eq(uri))
+            .filter(media_tracker_directory::path.eq(path))
             .filter(media_tracker_directory::digest.eq(&digest[..]));
         let query = diesel::update(target).set((
             media_tracker_directory::row_updated_ms.eq(updated_at.timestamp_millis()),
@@ -197,7 +197,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         if rows_affected > 0 {
             let directory_id = media_tracker_directory::table
                 .select(media_tracker_directory::row_id)
-                .filter(media_tracker_directory::uri.eq(uri))
+                .filter(media_tracker_directory::path.eq(path))
                 .first::<RowId>(self.as_ref())
                 .map_err(repo_error)?;
             let target = media_tracker_source::table
@@ -221,12 +221,12 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
     fn media_tracker_load_directory_tracking_status(
         &self,
         collection_id: CollectionId,
-        uri: &str,
+        path: &str,
     ) -> RepoResult<DirTrackingStatus> {
         media_tracker_directory::table
             .select(media_tracker_directory::status)
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
-            .filter(media_tracker_directory::uri.eq(uri))
+            .filter(media_tracker_directory::path.eq(path))
             .first::<i16>(self.as_ref())
             .map_err(repo_error)
             .map(|val| DirTrackingStatus::from_i16(val).expect("DirTrackingStatus"))
@@ -235,7 +235,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
     fn media_tracker_aggregate_directories_tracking_status(
         &self,
         collection_id: CollectionId,
-        uri_prefix: &str,
+        path_prefix: &str,
     ) -> RepoResult<DirectoriesStatusSummary> {
         // TODO: Remove with type-safe query when group_by() is available
         /*
@@ -243,9 +243,9 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             .select((media_tracker_directory::status, diesel::dsl::count_star))
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
             .filter(diesel::dsl::sql(&format!(
-                "substr(uri,1,{})='{}'",
-                uri_prefix.len(),
-                escape_single_quotes(uri_prefix),
+                "substr(path,1,{})='{}'",
+                path_prefix.len(),
+                escape_single_quotes(path_prefix),
             )))
             // TODO: Replace with group_by() when available
             .filter(diesel::dsl::sql("TRUE GROUP BY status ORDER BY status"))
@@ -255,11 +255,11 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             "SELECT status, COUNT(*) as count \
         FROM media_tracker_directory \
         WHERE collection_id={collection_id} AND \
-        substr(uri,1,{uri_prefix_len})='{escaped_uri_prefix}' \
+        substr(path,1,{path_prefix_len})='{escaped_path_prefix}' \
         GROUP BY status",
             collection_id = RowId::from(collection_id),
-            uri_prefix_len = uri_prefix.len(),
-            escaped_uri_prefix = escape_single_quotes(uri_prefix),
+            path_prefix_len = path_prefix.len(),
+            escaped_path_prefix = escape_single_quotes(path_prefix),
         );
         diesel::dsl::sql_query(sql)
             .load::<StatusCountRow>(self.as_ref())
@@ -303,7 +303,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
     fn media_tracker_load_directories_requiring_confirmation(
         &self,
         collection_id: CollectionId,
-        uri_prefix: Option<&str>,
+        path_prefix: Option<&str>,
         pagination: &Pagination,
     ) -> RepoResult<Vec<TrackedDirectory>> {
         let mut query = media_tracker_directory::table
@@ -318,13 +318,13 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             // Oldest first
             .order_by(media_tracker_directory::row_updated_ms)
             // then order by URI for disambiguation
-            .then_order_by(media_tracker_directory::uri)
+            .then_order_by(media_tracker_directory::path)
             .into_boxed();
-        if let Some(uri_prefix) = uri_prefix {
+        if let Some(path_prefix) = path_prefix {
             query = query.filter(diesel::dsl::sql(&format!(
-                "substr(uri,1,{})='{}'",
-                uri_prefix.len(),
-                escape_single_quotes(uri_prefix),
+                "substr(path,1,{})='{}'",
+                path_prefix.len(),
+                escape_single_quotes(path_prefix),
             )))
         }
         let query = apply_pagination(query, pagination);
@@ -340,7 +340,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         new_source_id: MediaSourceId,
     ) -> RepoResult<bool> {
         // Drop all references to old_source_id that are obsolete and
-        // could cause conflicts during the following update
+        // could cause conflicts dpathng the following update
         let _rows_deleted = diesel::delete(
             media_tracker_source::table
                 .filter(media_tracker_source::source_id.eq(RowId::from(old_source_id))),

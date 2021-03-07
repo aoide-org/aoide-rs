@@ -211,9 +211,9 @@ impl TrackSearchQueryTransform for SortOrder {
                 SortDirection::Ascending => query.then_order_by(media_source::collected_ms.asc()),
                 SortDirection::Descending => query.then_order_by(media_source::collected_ms.desc()),
             },
-            SortField::SourceUri => match direction {
-                SortDirection::Ascending => query.then_order_by(media_source::uri.asc()),
-                SortDirection::Descending => query.then_order_by(media_source::uri.desc()),
+            SortField::SourcePath => match direction {
+                SortDirection::Ascending => query.then_order_by(media_source::path.asc()),
+                SortDirection::Descending => query.then_order_by(media_source::path.desc()),
             },
             SortField::SourceType => match direction {
                 SortDirection::Ascending => query.then_order_by(media_source::content_type.asc()),
@@ -290,16 +290,16 @@ fn build_phrase_field_filter_expression(
         || filter
             .fields
             .iter()
-            .any(|target| *target == StringField::SourceUri)
+            .any(|target| *target == StringField::SourcePath)
     {
         or_expression = if like_expr.is_empty() {
             Box::new(
                 or_expression
-                    .or(media_source::uri.is_null())
-                    .or(media_source::uri.eq(String::default())),
+                    .or(media_source::path.is_null())
+                    .or(media_source::path.eq(String::default())),
             )
         } else {
-            Box::new(or_expression.or(media_source::uri.like(like_expr.clone()).escape('\\')))
+            Box::new(or_expression.or(media_source::path.like(like_expr.clone()).escape('\\')))
         };
     }
     if filter.fields.is_empty()

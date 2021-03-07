@@ -161,8 +161,8 @@ pub fn handle_request(
         | ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK
         | ImportTrackFlags::MIXXX_CUSTOM_TAGS
         | ImportTrackFlags::SERATO_TAGS;
-    let file_uri_count = request_body.len();
-    Ok(uc::import_and_replace_by_media_source_uri(
+    let expected_source_path_count = request_body.len();
+    Ok(uc::import_and_replace_by_local_file_path_iter(
         &pooled_connection,
         collection_uid,
         import_mode.into(),
@@ -170,7 +170,7 @@ pub fn handle_request(
         import_flags,
         replace_mode.into(),
         request_body.into_iter().map(Into::into),
-        Some(file_uri_count),
+        Some(expected_source_path_count),
         abort_flag,
     )
     .map(Into::into)?)

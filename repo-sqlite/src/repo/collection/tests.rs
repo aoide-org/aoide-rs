@@ -17,7 +17,7 @@ use super::*;
 
 use crate::prelude::tests::*;
 
-use aoide_core::entity::EntityHeader;
+use aoide_core::{entity::EntityHeader, media};
 
 struct Fixture {
     db: SqliteConnection,
@@ -48,6 +48,10 @@ fn insert_collection() -> TestResult<()> {
             notes: Some("Some personal notes".into()),
             kind: None,
             color: None,
+            media_source_config: MediaSourceConfig {
+                path_kind: media::SourcePathKind::LocalFile,
+                base_url: None,
+            },
         },
     )
     .unwrap();
@@ -67,6 +71,10 @@ fn update_collection() -> TestResult<()> {
             notes: Some("Description".into()),
             kind: None,
             color: None,
+            media_source_config: MediaSourceConfig {
+                path_kind: media::SourcePathKind::LocalFile,
+                base_url: None,
+            },
         },
     )?;
     let id = db.resolve_collection_id(&entity.hdr.uid)?;
@@ -115,6 +123,10 @@ fn delete_collection() -> TestResult<()> {
             notes: None,
             kind: None,
             color: None,
+            media_source_config: MediaSourceConfig {
+                path_kind: media::SourcePathKind::LocalFile,
+                base_url: None,
+            },
         },
     )
     .unwrap();

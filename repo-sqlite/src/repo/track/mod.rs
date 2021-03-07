@@ -520,14 +520,14 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         Ok(load_repo_entity(preload, queryable))
     }
 
-    fn load_track_entity_by_media_source_uri(
+    fn load_track_entity_by_media_source_path(
         &self,
         collection_id: CollectionId,
-        uri: &str,
+        media_source_path: &str,
     ) -> RepoResult<(MediaSourceId, RecordHeader, Entity)> {
-        let media_source_id_subselect = media_source_subselect::filter_by_uri_predicate(
+        let media_source_id_subselect = media_source_subselect::filter_by_path_predicate(
             collection_id,
-            StringPredicateBorrowed::Equals(uri),
+            StringPredicateBorrowed::Equals(media_source_path),
         );
         let queryable = track::table
             .filter(track::media_source_id.eq_any(media_source_id_subselect))
@@ -540,14 +540,14 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         Ok((media_source_id, record_header, entity))
     }
 
-    fn resolve_track_entity_header_by_media_source_uri(
+    fn resolve_track_entity_header_by_media_source_path(
         &self,
         collection_id: CollectionId,
-        uri: &str,
+        media_source_path: &str,
     ) -> RepoResult<(MediaSourceId, RecordHeader, EntityHeader)> {
-        let media_source_id_subselect = media_source_subselect::filter_by_uri_predicate(
+        let media_source_id_subselect = media_source_subselect::filter_by_path_predicate(
             collection_id,
-            StringPredicateBorrowed::Equals(uri),
+            StringPredicateBorrowed::Equals(media_source_path),
         );
         let queryable = track::table
             .filter(track::media_source_id.eq_any(media_source_id_subselect))
@@ -580,7 +580,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         Ok(loaded_repo_entities)
     }
 
-    fn replace_collected_track_by_media_source_uri(
+    fn replace_collected_track_by_media_source_path(
         &self,
         collection_id: CollectionId,
         preserve_collected_at: bool,
@@ -588,7 +588,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         mut track: Track,
     ) -> RepoResult<ReplaceOutcome> {
         let loaded = self
-            .load_track_entity_by_media_source_uri(collection_id, &track.media_source.uri)
+            .load_track_entity_by_media_source_path(collection_id, &track.media_source.path)
             .optional()?;
         if let Some((media_source_id, record_header, mut entity)) = loaded {
             // Update existing entry
@@ -638,13 +638,15 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         }
     }
 
-    fn purge_tracks_by_media_source_uri_predicate(
+    fn purge_tracks_by_media_source_media_source_path_predicate(
         &self,
         collection_id: CollectionId,
-        uri_predicate: StringPredicateBorrowed<'_>,
+        media_source_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize> {
-        let media_source_id_subselect =
-            media_source_subselect::filter_by_uri_predicate(collection_id, uri_predicate);
+        let media_source_id_subselect = media_source_subselect::filter_by_path_predicate(
+            collection_id,
+            media_source_path_predicate,
+        );
         let row_ids = track::table
             .select(track::row_id)
             .filter(track::media_source_id.eq_any(media_source_id_subselect))

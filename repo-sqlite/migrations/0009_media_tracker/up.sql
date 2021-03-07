@@ -22,12 +22,12 @@ CREATE TABLE IF NOT EXISTS media_tracker_directory (
     -- relations (immutable)
     collection_id          INTEGER NOT NULL,
     -- properties
-    uri                    TEXT NOT NULL,
+    path                   TEXT NOT NULL,
     status                 TINYINT NOT NULL, -- 0 = current, 1 = outdated, 3 = added, 3 = modified, 4 = orphaned
     digest                 BINARY,           -- cryptographic hash of the directory's contents (file metadata)
     --
     FOREIGN KEY(collection_id) REFERENCES collection(row_id),
-    UNIQUE (collection_id, uri)
+    UNIQUE (collection_id, path)
 );
 
 CREATE TABLE IF NOT EXISTS media_tracker_source (

@@ -17,6 +17,8 @@ use super::*;
 
 use aoide_core::util::clock::DateTime;
 
+use semval::Validate as _;
+
 ///////////////////////////////////////////////////////////////////////
 
 pub fn update(
@@ -24,6 +26,9 @@ pub fn update(
     updated_entity_with_current_rev: Entity,
 ) -> Result<Entity> {
     let (hdr, body) = updated_entity_with_current_rev.into();
+    if let Err(err) = body.validate() {
+        return Err(anyhow::anyhow!("Invalid collection: {:?}", err).into());
+    }
     let EntityHeader {
         uid,
         rev: current_rev,

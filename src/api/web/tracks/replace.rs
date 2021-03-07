@@ -20,7 +20,7 @@ mod uc {
 
     pub use aoide_repo::track::ReplaceMode;
 
-    pub use aoide_usecases::tracks::replace::Summary;
+    pub use aoide_usecases::tracks::replace::{Params, Summary};
 }
 
 pub use aoide_core_serde::{
@@ -85,6 +85,9 @@ impl From<uc::Summary> for Summary {
 pub struct QueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mode: Option<ReplaceMode>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resolve_path_from_url: Option<bool>,
 }
 
 pub type RequestBody = Vec<Track>;
@@ -97,12 +100,20 @@ pub fn handle_request(
     query_params: QueryParams,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
-    let QueryParams { mode } = query_params;
+    let QueryParams {
+        mode,
+        resolve_path_from_url,
+    } = query_params;
     let replace_mode = mode.unwrap_or(ReplaceMode::UpdateOrCreate);
-    Ok(uc::replace_by_media_source_uri(
+    let resolve_path_from_url = resolve_path_from_url.unwrap_or(false);
+    let params = uc::Params {
+        resolve_path_from_url,
+        ..uc::Params::new(replace_mode.into())
+    };
+    Ok(uc::replace_by_media_source_path(
         &pooled_connection,
         collection_uid,
-        replace_mode.into(),
+        &params,
         request_body.into_iter().map(Into::into),
     )
     .map(Into::into)?)

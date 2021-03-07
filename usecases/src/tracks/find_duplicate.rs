@@ -200,16 +200,16 @@ where
         .collect())
 }
 
-pub fn find_duplicate_by_media_source_uri<Repo>(
+pub fn find_duplicate_by_media_source_path<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
-    media_source_uri: &str,
+    media_source_path: &str,
     params: &Params,
 ) -> RepoResult<Vec<(TrackId, TrackEntity)>>
 where
     Repo: TrackRepo,
 {
     let (_media_source_id, RecordHeader { id: track_id, .. }, entity) =
-        repo.load_track_entity_by_media_source_uri(collection_id, media_source_uri)?;
+        repo.load_track_entity_by_media_source_path(collection_id, media_source_path)?;
     find_duplicate(repo, collection_id, track_id, entity.body, params)
 }

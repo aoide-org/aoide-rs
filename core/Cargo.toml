@@ -7,14 +7,18 @@ publish = false
 edition = "2018"
 
 [dependencies]
+anyhow = "*"
 bs58 = "^0.4"
 bitflags = "*"
 chrono = "*"
 lazy_static = "*"
 num-derive = "*"
 num-traits = "*"
+path-slash = "*"
 rand = "*"
 semval = "*"
+thiserror = "*"
+url = "*"
 
 [features]
 default = []

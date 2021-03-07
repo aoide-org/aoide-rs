@@ -28,18 +28,18 @@ pub use aoide_usecases::media::*;
 pub fn relocate_collected_sources(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    old_uri_prefix: &str,
-    new_uri_prefix: &str,
+    old_path_prefix: &str,
+    new_path_prefix: &str,
 ) -> Result<usize> {
     let db = RepoConnection::new(connection);
     db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
         let collection_id = db.resolve_collection_id(collection_uid)?;
         let updated_at = DateTime::now_utc();
-        Ok(db.relocate_media_sources_by_uri_prefix(
+        Ok(db.relocate_media_sources_by_path_prefix(
             updated_at,
             collection_id,
-            old_uri_prefix,
-            new_uri_prefix,
+            old_path_prefix,
+            new_path_prefix,
         )?)
     })
     .map_err(Into::into)

@@ -15,35 +15,76 @@
 
 use super::*;
 
+use aoide_core::media::{resolver::SourcePathResolver as _, SourcePath};
 use aoide_media::io::import::{ImportTrackConfig, ImportTrackFlags};
 use aoide_repo::{collection::EntityRepo as _, track::ReplaceMode};
-use aoide_usecases::media::ImportMode;
+use aoide_usecases::{collection::resolve_local_file_collection_id, media::ImportMode};
 
 use std::sync::atomic::AtomicBool;
-use url::Url;
 
 mod uc {
-    pub use aoide_usecases::{tracks::replace::*, Error};
+    pub use aoide_usecases::{
+        collection::resolve_local_file_collection_id, tracks::replace::*, Error,
+    };
 }
 
-pub fn replace_by_media_source_uri(
+pub fn replace_by_media_source_path(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    replace_mode: ReplaceMode,
+    params: &uc::Params,
     tracks: impl Iterator<Item = Track>,
 ) -> Result<uc::Summary> {
+    let uc::Params {
+        mode: replace_mode,
+        resolve_path_from_url,
+        preserve_collected_at,
+    } = params;
     let db = RepoConnection::new(connection);
     Ok(
-        db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-            let collection_id = db.resolve_collection_id(collection_uid)?;
+        db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
+            let (collection_id, local_file_resolver) = if *resolve_path_from_url {
+                let (collection_id, local_file_resolver) =
+                    resolve_local_file_collection_id(&db, collection_uid)
+                        .map_err(DieselTransactionError::new)?;
+                (collection_id, Some(local_file_resolver))
+            } else {
+                let collection_id = db.resolve_collection_id(collection_uid)?;
+                (collection_id, None)
+            };
             let mut summary = uc::Summary::default();
-            for track in tracks {
-                uc::replace_collected_track_by_media_source_uri(
+            for mut track in tracks {
+                if let Some(local_file_resolver) = local_file_resolver.as_ref() {
+                    let url = track
+                        .media_source
+                        .path
+                        .parse()
+                        .map_err(|err| {
+                            anyhow::anyhow!(
+                                "Failed to parse URL from path '{}': {}",
+                                track.media_source.path,
+                                err
+                            )
+                        })
+                        .map_err(uc::Error::from)
+                        .map_err(DieselTransactionError::new)?;
+                    track.media_source.path = local_file_resolver
+                        .resolve_path_from_url(&url)
+                        .map_err(|err| {
+                            anyhow::anyhow!(
+                                "Failed to resolve local file path from URL '{}': {}",
+                                url,
+                                err
+                            )
+                        })
+                        .map_err(uc::Error::from)
+                        .map_err(DieselTransactionError::new)?;
+                }
+                uc::replace_collected_track_by_media_source_path(
                     &mut summary,
                     &db,
                     collection_id,
-                    replace_mode,
-                    false,
+                    *replace_mode,
+                    *preserve_collected_at,
                     track,
                 )?;
             }
@@ -54,30 +95,33 @@ pub fn replace_by_media_source_uri(
 
 // TODO: Reduce number of arguments
 #[allow(clippy::too_many_arguments)]
-pub fn import_and_replace_by_media_source_uri(
+pub fn import_and_replace_by_local_file_path_iter(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
     import_mode: ImportMode,
     import_config: &ImportTrackConfig,
     import_flags: ImportTrackFlags,
     replace_mode: ReplaceMode,
-    file_uris: impl Iterator<Item = String>,
-    file_uri_count: Option<usize>,
+    source_path_iter: impl Iterator<Item = SourcePath>,
+    expected_source_path_count: Option<usize>,
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {
     let db = RepoConnection::new(connection);
     Ok(
-        db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-            let collection_id = db.resolve_collection_id(collection_uid)?;
-            Ok(uc::import_and_replace_by_media_source_uri(
+        db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
+            let (collection_id, source_path_resolver) =
+                uc::resolve_local_file_collection_id(&db, collection_uid)
+                    .map_err(DieselTransactionError::new)?;
+            Ok(uc::import_and_replace_by_local_file_path_iter(
                 &db,
                 collection_id,
                 import_mode,
                 import_config,
                 import_flags,
                 replace_mode,
-                file_uris,
-                file_uri_count,
+                &source_path_resolver,
+                source_path_iter,
+                expected_source_path_count,
                 abort_flag,
             )?)
         })?,
@@ -86,28 +130,31 @@ pub fn import_and_replace_by_media_source_uri(
 
 // TODO: Reduce number of arguments
 #[allow(clippy::too_many_arguments)]
-pub fn import_and_replace_by_media_source_uri_from_directory(
+pub fn import_and_replace_by_local_file_path_from_directory(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    dir_url: &Url,
     import_mode: ImportMode,
     import_config: &ImportTrackConfig,
     import_flags: ImportTrackFlags,
     replace_mode: ReplaceMode,
+    source_dir_path: &str,
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {
     let db = RepoConnection::new(connection);
     Ok(
         db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
-            let collection_id = db.resolve_collection_id(collection_uid)?;
-            uc::import_and_replace_by_media_source_uri_from_directory(
+            let (collection_id, source_path_resolver) =
+                uc::resolve_local_file_collection_id(&db, collection_uid)
+                    .map_err(DieselTransactionError::new)?;
+            uc::import_and_replace_by_local_file_path_from_directory(
                 &db,
                 collection_id,
-                dir_url,
                 import_mode,
                 import_config,
                 import_flags,
                 replace_mode,
+                &source_path_resolver,
+                source_dir_path,
                 abort_flag,
             )
             .map_err(DieselTransactionError::new)

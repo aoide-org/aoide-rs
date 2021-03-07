@@ -19,9 +19,9 @@ use crate::prelude::tests::*;
 
 use aoide_core::{
     audio::{AudioContent, DurationMs},
-    collection::{Collection, Entity as CollectionEntity},
+    collection::{Collection, Entity as CollectionEntity, MediaSourceConfig},
     entity::EntityHeader,
-    media,
+    media::{self, SourcePath, SourcePathKind},
     track::{Entity as TrackEntity, Track},
     util::clock::DateTime,
 };
@@ -44,6 +44,10 @@ impl Fixture {
             notes: None,
             kind: None,
             color: None,
+            media_source_config: MediaSourceConfig {
+                path_kind: SourcePathKind::LocalFile,
+                base_url: None,
+            },
         };
         let db = establish_connection()?;
         let collection_entity = CollectionEntity::new(EntityHeader::initial_random(), collection);
@@ -63,7 +67,7 @@ impl Fixture {
             let media_source = media::Source {
                 collected_at: created_at,
                 synchronized_at: Some(DateTime::now_utc()),
-                uri: format!("file:///home/test/file{}.mp3", i),
+                path: SourcePath::new(format!("/home/test/file{}.mp3", i)),
                 content_type: "audio/mpeg".to_string(),
                 content_digest: None,
                 content_metadata_flags: Default::default(),

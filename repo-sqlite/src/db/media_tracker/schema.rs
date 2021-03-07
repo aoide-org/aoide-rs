@@ -21,7 +21,7 @@ table! {
         row_created_ms -> BigInt,
         row_updated_ms -> BigInt,
         collection_id -> BigInt,
-        uri -> Text,
+        path -> Text,
         status -> SmallInt,
         digest -> Binary,
     }

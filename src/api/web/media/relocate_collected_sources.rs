@@ -26,8 +26,8 @@ use aoide_core::entity::EntityUid;
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct RequestBody {
-    old_uri_prefix: String,
-    new_uri_prefix: String,
+    old_path_prefix: String,
+    new_path_prefix: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -42,14 +42,14 @@ pub fn handle_request(
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
     let RequestBody {
-        old_uri_prefix,
-        new_uri_prefix,
+        old_path_prefix,
+        new_path_prefix,
     } = request_body;
     Ok(uc::relocate_collected_sources(
         &pooled_connection,
         collection_uid,
-        &old_uri_prefix,
-        &new_uri_prefix,
+        &old_path_prefix,
+        &new_path_prefix,
     )
     .map(|replaced_count| ResponseBody { replaced_count })?)
 }

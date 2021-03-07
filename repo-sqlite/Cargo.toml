@@ -18,6 +18,7 @@ num-bigint = "*"
 num-derive = "*"
 num-traits = "*"
 semval = "*"
+url = "*"
 
 [features]
 default = []

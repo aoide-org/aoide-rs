@@ -28,12 +28,13 @@ pub fn query_directories(
     collection_uid: &EntityUid,
     root_dir_url: &Url,
 ) -> Result<DirectoriesStatusSummary> {
-    let uri_prefix = uri_path_prefix_from_url(root_dir_url)?;
+    let path_prefix = path_prefix_from_url(root_dir_url)?;
     let db = RepoConnection::new(connection);
     Ok(
         db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
             let collection_id = db.resolve_collection_id(collection_uid)?;
-            Ok(db.media_tracker_aggregate_directories_tracking_status(collection_id, &uri_prefix)?)
+            Ok(db
+                .media_tracker_aggregate_directories_tracking_status(collection_id, &path_prefix)?)
         })?,
     )
 }
