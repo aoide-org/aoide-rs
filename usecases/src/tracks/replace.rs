@@ -358,7 +358,7 @@ where
             .ok()
             .and_then(|url| source_path_resolver.resolve_path_from_url(&url).ok())
         {
-            source_path.to_owned().into()
+            source_path.to_owned()
         } else {
             log::warn!(
                 "Skipping invalid/unsupported directory entry: {}",

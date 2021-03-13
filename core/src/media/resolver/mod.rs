@@ -128,10 +128,8 @@ impl SourcePathResolver for LocalFileResolver {
             if !url.as_str().starts_with(base_url.as_str()) {
                 return Err(ResolveFromUrlError::InvalidUrl);
             }
-        } else {
-            if url.scheme() != FILE_URL_SCHEME {
-                return Err(ResolveFromUrlError::InvalidUrl);
-            }
+        } else if url.scheme() != FILE_URL_SCHEME {
+            return Err(ResolveFromUrlError::InvalidUrl);
         }
         match url.to_file_path() {
             Ok(file_path) => {
