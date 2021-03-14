@@ -28,8 +28,14 @@ pub struct QueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub summary: Option<bool>,
 
-    #[serde(flatten)]
-    pub pagination: PaginationQueryParams,
+    pub limit: Option<PaginationLimit>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub offset: Option<PaginationOffset>,
+    // TODO: Replace limit/offset with pagination after serde issue
+    // has been fixed: https://github.com/serde-rs/serde/issues/1183
+    //#[serde(flatten)]
+    //pub pagination: PaginationQueryParams,
 }
 
 pub type ResponseBody = Vec<EntityWithSummary>;
@@ -41,9 +47,11 @@ pub fn handle_request(
     let QueryParams {
         kind,
         summary,
-        pagination,
+        limit,
+        offset,
     } = query_params;
     let with_summary = summary.unwrap_or(false);
+    let pagination = PaginationQueryParams { limit, offset };
     let pagination: Option<_> = pagination.into();
     let mut collector = EntityCollector::default();
     uc::load_all(

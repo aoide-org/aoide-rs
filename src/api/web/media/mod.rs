@@ -28,6 +28,7 @@ mod uc {
 }
 
 #[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum ImportMode {
     Once,
     Modified,
