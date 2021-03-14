@@ -82,13 +82,19 @@ impl fmt::Display for SourcePath {
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, FromPrimitive, ToPrimitive)]
 pub enum SourcePathKind {
-    Unknown = 0,
+    /// Percent-encoded URI (case-sensitive)
+    Uri = 0,
 
-    /// Case-sensitive URL
-    UrlEncoded = 1,
+    /// Percent-encoded URL (case-sensitive)
+    Url = 1,
 
-    /// Case-sensitive and absolute local file path
-    LocalFile = 2,
+    /// Percent-encoded URL with the scheme "file" (case-sensitive).
+    FileUrl = 2,
+
+    /// Case-sensitive, portable file path with '/' as path separator.
+    ///
+    /// Either absolute or relative to some base "file" URL.
+    VirtualFilePath = 3,
 }
 
 ///////////////////////////////////////////////////////////////////////

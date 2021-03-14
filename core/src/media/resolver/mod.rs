@@ -45,11 +45,11 @@ pub trait SourcePathResolver {
 }
 
 #[derive(Debug, Clone)]
-pub struct UrlEncodedResolver;
+pub struct UrlResolver;
 
-impl SourcePathResolver for UrlEncodedResolver {
+impl SourcePathResolver for UrlResolver {
     fn path_kind(&self) -> SourcePathKind {
-        SourcePathKind::UrlEncoded
+        SourcePathKind::Url
     }
 
     fn resolve_path_from_url(&self, url: &Url) -> Result<SourcePath, ResolveFromUrlError> {
@@ -63,14 +63,38 @@ impl SourcePathResolver for UrlEncodedResolver {
 
 const FILE_URL_SCHEME: &str = "file";
 
+#[derive(Debug, Clone)]
+pub struct FileUrlResolver;
+
+impl SourcePathResolver for FileUrlResolver {
+    fn path_kind(&self) -> SourcePathKind {
+        SourcePathKind::FileUrl
+    }
+
+    fn resolve_path_from_url(&self, url: &Url) -> Result<SourcePath, ResolveFromUrlError> {
+        if url.scheme() != FILE_URL_SCHEME {
+            return Err(ResolveFromUrlError::InvalidUrl);
+        }
+        UrlResolver.resolve_path_from_url(url)
+    }
+
+    fn resolve_url_from_path(&self, path: &str) -> Result<Url, ResolveFromPathError> {
+        let url = UrlResolver.resolve_url_from_path(path)?;
+        if url.scheme() != FILE_URL_SCHEME {
+            return Err(ResolveFromPathError::InvalidPath);
+        }
+        Ok(url)
+    }
+}
+
 #[derive(Debug, Clone, Default)]
-pub struct LocalFileResolver {
+pub struct VirtualFilePathResolver {
     base_url: Option<Url>,
     base_file_path: Option<PathBuf>,
     base_slash_path: Option<String>,
 }
 
-impl LocalFileResolver {
+impl VirtualFilePathResolver {
     pub const fn new() -> Self {
         Self {
             base_url: None,
@@ -118,9 +142,9 @@ impl LocalFileResolver {
     }
 }
 
-impl SourcePathResolver for LocalFileResolver {
+impl SourcePathResolver for VirtualFilePathResolver {
     fn path_kind(&self) -> SourcePathKind {
-        SourcePathKind::LocalFile
+        SourcePathKind::VirtualFilePath
     }
 
     fn resolve_path_from_url(&self, url: &Url) -> Result<SourcePath, ResolveFromUrlError> {

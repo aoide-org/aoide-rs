@@ -17,21 +17,21 @@ use super::*;
 
 use aoide_core::{
     entity::EntityUid,
-    media::{resolver::LocalFileResolver, SourcePathKind},
+    media::{resolver::VirtualFilePathResolver, SourcePathKind},
 };
 use aoide_repo::collection::{EntityRepo, RecordId as CollectionId};
 
-pub fn resolve_local_file_collection_id<Repo>(
+pub fn resolve_virtual_file_path_collection_id<Repo>(
     repo: &Repo,
     collection_uid: &EntityUid,
-) -> Result<(CollectionId, LocalFileResolver)>
+) -> Result<(CollectionId, VirtualFilePathResolver)>
 where
     Repo: EntityRepo,
 {
     // TODO: Load collection entity by UID with a single query
     let collection_id = repo.resolve_collection_id(collection_uid)?;
     let (_, entity) = repo.load_collection_entity(collection_id)?;
-    if entity.body.media_source_config.path_kind != SourcePathKind::LocalFile {
+    if entity.body.media_source_config.path_kind != SourcePathKind::VirtualFilePath {
         return Err(anyhow::anyhow!(
             "Unsupported media source path kind: {:?}",
             entity.body.media_source_config.path_kind
@@ -39,9 +39,9 @@ where
         .into());
     }
     let source_path_resolver = if let Some(base_url) = entity.body.media_source_config.base_url {
-        LocalFileResolver::with_base_url(base_url)
+        VirtualFilePathResolver::with_base_url(base_url)
     } else {
-        LocalFileResolver::new()
+        VirtualFilePathResolver::new()
     };
     Ok((collection_id, source_path_resolver))
 }

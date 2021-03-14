@@ -20,7 +20,7 @@ mod uc {
 }
 
 use aoide_core::{
-    media::resolver::{ResolveFromUrlError, SourcePathResolver, UrlEncodedResolver},
+    media::resolver::{ResolveFromUrlError, SourcePathResolver, UrlResolver},
     track::tag::{FACET_GENRE, FACET_MOOD},
     util::clock::DateTime,
 };
@@ -64,10 +64,10 @@ pub fn handle_request(query_params: QueryParams) -> Result<ResponseBody> {
     let config = ImportTrackConfig {
         faceted_tag_mapping: faceted_tag_mapping_config.into(),
     };
-    let source_path = match LocalFileResolver::new().resolve_path_from_url(&url) {
+    let source_path = match VirtualFilePathResolver::new().resolve_path_from_url(&url) {
         Ok(path) => path,
         Err(ResolveFromUrlError::InvalidUrl) => {
-            let path = match UrlEncodedResolver.resolve_path_from_url(&url) {
+            let path = match UrlResolver.resolve_path_from_url(&url) {
                 Ok(path) => path,
                 Err(ResolveFromUrlError::InvalidUrl) => url.to_string().into(),
                 Err(ResolveFromUrlError::Other(err)) => {
@@ -82,7 +82,7 @@ pub fn handle_request(query_params: QueryParams) -> Result<ResponseBody> {
         }
     };
     let track = match uc::import_track_from_local_file_path(
-        &LocalFileResolver::new(),
+        &VirtualFilePathResolver::new(),
         source_path,
         uc::SynchronizedImportMode::Always,
         &config,

@@ -31,18 +31,20 @@ pub use _core::SourcePath;
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize_repr, Deserialize_repr, JsonSchema)]
 #[repr(u8)]
 pub enum SourcePathKind {
-    Unknown = 0,
-    UrlEncoded = 1,
-    LocalFile = 2,
+    Uri = 0,
+    Url = 1,
+    FileUrl = 2,
+    VirtualFilePath = 3,
 }
 
 impl From<_core::SourcePathKind> for SourcePathKind {
     fn from(from: _core::SourcePathKind) -> Self {
         use _core::SourcePathKind::*;
         match from {
-            Unknown => Self::Unknown,
-            UrlEncoded => Self::UrlEncoded,
-            LocalFile => Self::LocalFile,
+            Uri => Self::Uri,
+            Url => Self::Url,
+            FileUrl => Self::FileUrl,
+            VirtualFilePath => Self::VirtualFilePath,
         }
     }
 }
@@ -51,9 +53,10 @@ impl From<SourcePathKind> for _core::SourcePathKind {
     fn from(from: SourcePathKind) -> Self {
         use SourcePathKind::*;
         match from {
-            Unknown => Self::Unknown,
-            UrlEncoded => Self::UrlEncoded,
-            LocalFile => Self::LocalFile,
+            Uri => Self::Uri,
+            Url => Self::Url,
+            FileUrl => Self::FileUrl,
+            VirtualFilePath => Self::VirtualFilePath,
         }
     }
 }

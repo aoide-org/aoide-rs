@@ -16,7 +16,7 @@
 use super::*;
 
 use aoide_core::{
-    media::{resolver::LocalFileResolver, SourcePath},
+    media::{resolver::VirtualFilePathResolver, SourcePath},
     track::Track,
     util::clock::DateTime,
 };
@@ -75,7 +75,7 @@ pub enum ImportTrackFromFileOutcome {
 }
 
 pub fn import_track_from_local_file_path(
-    source_path_resolver: &LocalFileResolver,
+    source_path_resolver: &VirtualFilePathResolver,
     source_path: SourcePath,
     mode: SynchronizedImportMode,
     config: &ImportTrackConfig,

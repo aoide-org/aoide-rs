@@ -21,6 +21,7 @@ use aoide_repo::{
     prelude::{Pagination, PaginationOffset},
     track::{EntityRepo as TrackRepo, ReplaceMode},
 };
+
 use tracks::replace::{
     import_and_replace_by_local_file_path_from_directory, Completion as ReplaceCompletion,
     Outcome as ReplaceOutcome, Summary as ReplaceSummary,
@@ -111,7 +112,7 @@ pub fn import<Repo>(
     import_mode: ImportMode,
     import_config: &ImportTrackConfig,
     import_flags: ImportTrackFlags,
-    source_path_resolver: &LocalFileResolver,
+    source_path_resolver: &VirtualFilePathResolver,
     root_dir_url: Option<&Url>,
     progress_fn: &mut impl FnMut(&Summary),
     abort_flag: &AtomicBool,
@@ -119,13 +120,15 @@ pub fn import<Repo>(
 where
     Repo: MediaTrackerRepo + TrackRepo,
 {
-    let path_prefix = root_dir_url.map(path_prefix_from_url).transpose()?;
+    let path_prefix = root_dir_url
+        .map(|url| resolve_path_prefix_from_url(source_path_resolver, url))
+        .transpose()?;
     let mut summary = Summary::default();
     let outcome = 'outcome: loop {
         progress_fn(&summary);
         let pending_entries = repo.media_tracker_load_directories_requiring_confirmation(
             collection_id,
-            path_prefix.as_deref(),
+            path_prefix.as_deref().map(String::as_str),
             &Pagination {
                 offset: Some(summary.directories.skipped as PaginationOffset),
                 limit: 1,

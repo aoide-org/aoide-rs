@@ -13,34 +13,22 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::media::resolver::VirtualFilePathResolver;
-
 use super::*;
 
-///////////////////////////////////////////////////////////////////////
+use aoide_repo::{collection::RecordId as CollectionId, media::tracker::Repo as MediaTrackerRepo};
 
-pub mod import_track;
-pub mod relocate_collected_sources;
-pub mod tracker;
+use url::Url;
 
-mod uc {
-    pub use crate::usecases::media::ImportMode;
-}
-
-#[derive(Debug, Clone, Copy, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum ImportMode {
-    Once,
-    Modified,
-    Always,
-}
-
-impl From<ImportMode> for uc::ImportMode {
-    fn from(from: ImportMode) -> Self {
-        match from {
-            ImportMode::Once => Self::Once,
-            ImportMode::Modified => Self::Modified,
-            ImportMode::Always => Self::Always,
-        }
-    }
+pub fn untrack<Repo>(
+    repo: &Repo,
+    collection_id: CollectionId,
+    root_dir_url: &Url,
+    source_path_resolver: &impl SourcePathResolver,
+    status: Option<DirTrackingStatus>,
+) -> Result<usize>
+where
+    Repo: MediaTrackerRepo,
+{
+    let path_prefix = resolve_path_prefix_from_url(source_path_resolver, root_dir_url)?;
+    Ok(repo.media_tracker_untrack(collection_id, path_prefix.as_str(), status)?)
 }

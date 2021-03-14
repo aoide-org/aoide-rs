@@ -22,7 +22,7 @@ use crate::media::{
 
 use aoide_core::{
     media::{
-        resolver::{LocalFileResolver, SourcePathResolver},
+        resolver::{SourcePathResolver, VirtualFilePathResolver},
         SourcePath,
     },
     util::clock::DateTime,
@@ -172,7 +172,7 @@ pub fn import_and_replace_by_local_file_path<Repo>(
     import_config: &ImportTrackConfig,
     import_flags: ImportTrackFlags,
     replace_mode: ReplaceMode,
-    source_path_resolver: &LocalFileResolver,
+    source_path_resolver: &VirtualFilePathResolver,
     source_path: SourcePath,
 ) -> RepoResult<()>
 where
@@ -272,7 +272,7 @@ pub fn import_and_replace_by_local_file_path_iter<Repo>(
     import_config: &ImportTrackConfig,
     import_flags: ImportTrackFlags,
     replace_mode: ReplaceMode,
-    source_path_resolver: &LocalFileResolver,
+    source_path_resolver: &VirtualFilePathResolver,
     source_path_iter: impl Iterator<Item = SourcePath>,
     expected_source_path_count: Option<usize>,
     abort_flag: &AtomicBool,
@@ -323,7 +323,7 @@ pub fn import_and_replace_by_local_file_path_from_directory<Repo>(
     import_config: &ImportTrackConfig,
     import_flags: ImportTrackFlags,
     replace_mode: ReplaceMode,
-    source_path_resolver: &LocalFileResolver,
+    source_path_resolver: &VirtualFilePathResolver,
     source_dir_path: &str,
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
@@ -331,6 +331,7 @@ where
     Repo: EntityRepo,
 {
     let dir_path = source_path_resolver.build_file_path(source_dir_path);
+    log::debug!("Importing files from directory: {}", dir_path.display());
     let dir_entries = read_dir(dir_path)?;
     let mut summary = Summary::default();
     let mut media_source_ids = Vec::with_capacity(EXPECTED_NUMBER_OF_DIR_ENTRIES);

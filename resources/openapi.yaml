@@ -191,6 +191,7 @@ paths:
         - Tracks
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
+        - $ref: '#/components/parameters/resolveMediaSourceUrlFromPathQuery'
         - $ref: '#/components/parameters/paginationOffsetQuery'
         - $ref: '#/components/parameters/paginationLimitQuery'
       requestBody:
@@ -220,7 +221,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
         - $ref: '#/components/parameters/replaceCollectedTrackModeQuery'
-        - $ref: '#/components/parameters/replaceCollectedTrackResolvePathFromUrlQuery'
+        - $ref: '#/components/parameters/resolveMediaSourcePathFromUrlQuery'
       requestBody:
         required: true
         content:
@@ -823,12 +824,24 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/ReplaceCollectedTrackMode'
-    replaceCollectedTrackResolvePathFromUrlQuery:
+    resolveMediaSourcePathFromUrlQuery:
       name: resolvePathFromUrl
       description: |
         Consider the provided media source path as an URL and
         resolve it according to the collection's media source
         configuration.
+
+        Only supported for local files.
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: false
+    resolveMediaSourceUrlFromPathQuery:
+      name: resolveUrlFromPath
+      description: |
+        Resolve the actual URL of the media source from the path according
+        to the collection's media source configuration.
 
         Only supported for local files.
       in: query
@@ -1126,7 +1139,7 @@ components:
         pathKind:
           $ref: '#/components/schemas/MediaSourcePathKind'
         baseUrl:
-          $ref: '#/components/schemas/MediaSourceUrl'
+          $ref: '#/components/schemas/PercentEncodedUrl'
       required:
         - pathKind
     CollectionTitle:
@@ -2275,23 +2288,24 @@ components:
         - modified
         - orphaned
         - skipped
-    MediaSourcePath:
+    MediaSourceVirtualFilePath:
         type: string
         minLength: 1
         example: "album artist/album title/01 the first track.mp3"
     MediaSourcePathKind:
       type: integer
-      enum: [0, 1, 2]
+      enum: [0, 1, 2, 3]
       description: |
         Optional level that defaults to 0 = main if missing:
-          * 0 = Unknown, i.e. any percent-encoded URI
-          * 1 = Plain, percent-encoded URL
-          * 2 = Portable local file path with '/' as path separator
-    MediaSourcePathOrUrl:
+          * 0 = percent-encoded URI
+          * 1 = percent-encoded URL
+          * 2 = percent-encoded "file" URL
+          * 3 = portable file path with '/' as path separator
+    MediaSourcePath:
       oneOf:
-        - $ref: '#/components/schemas/MediaSourcePath'
-        - $ref: '#/components/schemas/MediaSourceUrl'
         - $ref: '#/components/schemas/PercentEncodedUri'
+        - $ref: '#/components/schemas/PercentEncodedUrl'
+        - $ref: '#/components/schemas/MediaSourceVirtualFilePath'
     MediaTrackerHashResponseBody:
       oneOf:
         - type: object
@@ -2303,7 +2317,7 @@ components:
           required:
             - completion
             - summary
-    MediaSourceUrl:
+    PercentEncodedUrl:
       allOf:
         - $ref: '#/components/schemas/PercentEncodedUri'
     PercentEncodedUri:

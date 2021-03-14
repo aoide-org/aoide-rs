@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    media::{resolver::LocalFileResolver, SourcePathKind},
+    media::{resolver::VirtualFilePathResolver, SourcePathKind},
     prelude::*,
 };
 
@@ -44,14 +44,16 @@ impl Validate for MediaSourceConfig {
         ValidationContext::new()
             .invalidate_if(
                 match path_kind {
-                    SourcePathKind::LocalFile => {
+                    SourcePathKind::Uri | SourcePathKind::Url | SourcePathKind::FileUrl => {
+                        base_url.is_some()
+                    }
+                    SourcePathKind::VirtualFilePath => {
                         if let Some(base_url) = base_url {
-                            !LocalFileResolver::is_valid_base_url(base_url)
+                            !VirtualFilePathResolver::is_valid_base_url(base_url)
                         } else {
                             false
                         }
                     }
-                    _ => false,
                 },
                 Self::Invalidity::BaseUrl,
             )

@@ -436,6 +436,22 @@ impl From<RequestBody> for _repo::SearchParams {
 
 pub type ResponseBody = Vec<Entity>;
 
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct QueryParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resolve_url_from_path: Option<bool>,
+
+    pub limit: Option<PaginationLimit>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub offset: Option<PaginationOffset>,
+    // TODO: Replace limit/offset with pagination after serde issue
+    // has been fixed: https://github.com/serde-rs/serde/issues/1183
+    //#[serde(flatten)]
+    //pub pagination: PaginationQueryParams,
+}
+
 const DEFAULT_PAGINATION: Pagination = Pagination {
     limit: 100,
     offset: None,
@@ -444,17 +460,26 @@ const DEFAULT_PAGINATION: Pagination = Pagination {
 pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
     collection_uid: &_core::EntityUid,
-    query_params: PaginationQueryParams,
+    query_params: QueryParams,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
+    let QueryParams {
+        resolve_url_from_path,
+        limit,
+        offset,
+    } = query_params;
+    let pagination = PaginationQueryParams { limit, offset };
+    let pagination = Option::from(pagination).unwrap_or(DEFAULT_PAGINATION);
+    let resolve_url_from_path = resolve_url_from_path.unwrap_or(false);
     let RequestBody { filter, ordering } = request_body;
     let mut collector = EntityCollector::default();
     uc::search(
         pooled_connection,
         collection_uid,
-        &Option::from(query_params).unwrap_or(DEFAULT_PAGINATION),
+        &pagination,
         filter.map(Into::into),
         ordering.into_iter().map(Into::into).collect(),
+        resolve_url_from_path,
         &mut collector,
     )?;
     Ok(collector.into())

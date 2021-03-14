@@ -15,6 +15,7 @@
 
 use super::*;
 
+use aoide_core::media::resolver::SourcePathResolver;
 use aoide_media::fs::local_file_path_from_url;
 
 ///////////////////////////////////////////////////////////////////////
@@ -22,6 +23,7 @@ use aoide_media::fs::local_file_path_from_url;
 pub mod hash;
 pub mod import;
 pub mod relink;
+pub mod untrack;
 
 pub use aoide_repo::media::tracker::DirTrackingStatus;
 
@@ -50,11 +52,16 @@ pub fn root_dir_path_from_url(root_dir_url: &Url) -> Result<PathBuf> {
     Ok(root_dir_path)
 }
 
-pub fn path_prefix_from_url(url_path_prefix: &Url) -> Result<String> {
+pub fn resolve_path_prefix_from_url(
+    source_path_resolver: &impl SourcePathResolver,
+    url_path_prefix: &Url,
+) -> Result<SourcePath> {
     if !url_path_prefix.as_str().ends_with('/') {
         return Err(Error::Media(
             anyhow::format_err!("URL path does not end with a trailing slash").into(),
         ));
     }
-    Ok(url_path_prefix.to_string())
+    source_path_resolver
+        .resolve_path_from_url(url_path_prefix)
+        .map_err(|err| Error::Media(anyhow::format_err!("Invalid URL path prefix: {}", err).into()))
 }

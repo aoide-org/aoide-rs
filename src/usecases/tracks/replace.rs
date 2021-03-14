@@ -18,13 +18,13 @@ use super::*;
 use aoide_core::media::{resolver::SourcePathResolver as _, SourcePath};
 use aoide_media::io::import::{ImportTrackConfig, ImportTrackFlags};
 use aoide_repo::{collection::EntityRepo as _, track::ReplaceMode};
-use aoide_usecases::{collection::resolve_local_file_collection_id, media::ImportMode};
+use aoide_usecases::{collection::resolve_virtual_file_path_collection_id, media::ImportMode};
 
 use std::sync::atomic::AtomicBool;
 
 mod uc {
     pub use aoide_usecases::{
-        collection::resolve_local_file_collection_id, tracks::replace::*, Error,
+        collection::resolve_virtual_file_path_collection_id, tracks::replace::*, Error,
     };
 }
 
@@ -42,18 +42,18 @@ pub fn replace_by_media_source_path(
     let db = RepoConnection::new(connection);
     Ok(
         db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
-            let (collection_id, local_file_resolver) = if *resolve_path_from_url {
-                let (collection_id, local_file_resolver) =
-                    resolve_local_file_collection_id(&db, collection_uid)
+            let (collection_id, virtual_file_path_resolver) = if *resolve_path_from_url {
+                let (collection_id, virtual_file_path_resolver) =
+                    resolve_virtual_file_path_collection_id(&db, collection_uid)
                         .map_err(DieselTransactionError::new)?;
-                (collection_id, Some(local_file_resolver))
+                (collection_id, Some(virtual_file_path_resolver))
             } else {
                 let collection_id = db.resolve_collection_id(collection_uid)?;
                 (collection_id, None)
             };
             let mut summary = uc::Summary::default();
             for mut track in tracks {
-                if let Some(local_file_resolver) = local_file_resolver.as_ref() {
+                if let Some(virtual_file_path_resolver) = virtual_file_path_resolver.as_ref() {
                     let url = track
                         .media_source
                         .path
@@ -67,7 +67,7 @@ pub fn replace_by_media_source_path(
                         })
                         .map_err(uc::Error::from)
                         .map_err(DieselTransactionError::new)?;
-                    track.media_source.path = local_file_resolver
+                    track.media_source.path = virtual_file_path_resolver
                         .resolve_path_from_url(&url)
                         .map_err(|err| {
                             anyhow::anyhow!(
@@ -110,7 +110,7 @@ pub fn import_and_replace_by_local_file_path_iter(
     Ok(
         db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
             let (collection_id, source_path_resolver) =
-                uc::resolve_local_file_collection_id(&db, collection_uid)
+                uc::resolve_virtual_file_path_collection_id(&db, collection_uid)
                     .map_err(DieselTransactionError::new)?;
             Ok(uc::import_and_replace_by_local_file_path_iter(
                 &db,
@@ -144,7 +144,7 @@ pub fn import_and_replace_by_local_file_path_from_directory(
     Ok(
         db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
             let (collection_id, source_path_resolver) =
-                uc::resolve_local_file_collection_id(&db, collection_uid)
+                uc::resolve_virtual_file_path_collection_id(&db, collection_uid)
                     .map_err(DieselTransactionError::new)?;
             uc::import_and_replace_by_local_file_path_from_directory(
                 &db,

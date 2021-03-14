@@ -42,7 +42,7 @@ impl Fixture {
             kind: None,
             color: None,
             media_source_config: MediaSourceConfig {
-                path_kind: SourcePathKind::LocalFile,
+                path_kind: SourcePathKind::VirtualFilePath,
                 base_url: None,
             },
         };

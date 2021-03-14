@@ -69,7 +69,7 @@ impl From<QueryableRecord> for (RecordHeader, Entity) {
                     "Invalid media source path kind value: {}",
                     media_source_path_kind
                 );
-                SourcePathKind::Unknown
+                SourcePathKind::Uri
             });
         let media_source_base_url = media_source_base_url
             .as_deref()

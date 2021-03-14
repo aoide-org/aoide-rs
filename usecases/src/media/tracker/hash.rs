@@ -15,7 +15,7 @@
 
 use super::*;
 
-use aoide_core::util::clock::DateTime;
+use aoide_core::{media::resolver::SourcePathResolver, util::clock::DateTime};
 
 use aoide_media::fs::digest;
 
@@ -50,6 +50,7 @@ pub fn hash_directories_recursively<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
     root_dir_url: &Url,
+    source_path_resolver: &impl SourcePathResolver,
     max_depth: Option<usize>,
     progress_fn: &mut impl FnMut(&ProgressEvent),
     abort_flag: &AtomicBool,
@@ -79,11 +80,12 @@ where
             debug_assert!(full_path.is_absolute());
             let url = Url::from_directory_path(&full_path).expect("URL");
             debug_assert!(url.as_str().starts_with(root_dir_url.as_str()));
+            let path = source_path_resolver.resolve_path_from_url(&url)?;
             match repo
                 .media_tracker_update_directory_digest(
                     DateTime::now_utc(),
                     collection_id,
-                    url.as_str(),
+                    &path,
                     &digest.into(),
                 )
                 .map_err(anyhow::Error::from)?

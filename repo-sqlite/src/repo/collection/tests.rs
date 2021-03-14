@@ -49,7 +49,7 @@ fn insert_collection() -> TestResult<()> {
             kind: None,
             color: None,
             media_source_config: MediaSourceConfig {
-                path_kind: media::SourcePathKind::LocalFile,
+                path_kind: media::SourcePathKind::VirtualFilePath,
                 base_url: None,
             },
         },
@@ -72,7 +72,7 @@ fn update_collection() -> TestResult<()> {
             kind: None,
             color: None,
             media_source_config: MediaSourceConfig {
-                path_kind: media::SourcePathKind::LocalFile,
+                path_kind: media::SourcePathKind::VirtualFilePath,
                 base_url: None,
             },
         },
@@ -124,7 +124,7 @@ fn delete_collection() -> TestResult<()> {
             kind: None,
             color: None,
             media_source_config: MediaSourceConfig {
-                path_kind: media::SourcePathKind::LocalFile,
+                path_kind: media::SourcePathKind::VirtualFilePath,
                 base_url: None,
             },
         },

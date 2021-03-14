@@ -23,6 +23,7 @@ mod uc {
     pub use aoide_usecases::{media::tracker::hash::*, Error};
 }
 
+use aoide_usecases::collection::resolve_virtual_file_path_collection_id;
 use digest::ProgressEvent;
 use std::sync::atomic::AtomicBool;
 use url::Url;
@@ -40,11 +41,14 @@ pub fn hash_directories_recursively(
     let db = RepoConnection::new(connection);
     Ok(
         db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
-            let collection_id = db.resolve_collection_id(collection_uid)?;
+            let (collection_id, source_path_resolver) =
+                resolve_virtual_file_path_collection_id(&db, collection_uid)
+                    .map_err(DieselTransactionError::new)?;
             Ok(uc::hash_directories_recursively(
                 &db,
                 collection_id,
                 root_dir_url,
+                &source_path_resolver,
                 max_depth,
                 progress_fn,
                 abort_flag,
