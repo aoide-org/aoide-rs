@@ -22,7 +22,7 @@ use url::Url;
 
 mod uc {
     pub use aoide_usecases::{
-        collection::resolve_virtual_file_path_collection_id,
+        collection::resolve_collection_id_for_virtual_file_path,
         media::{
             tracker::{import::*, *},
             *,
@@ -49,7 +49,7 @@ pub fn import(
     Ok(
         db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
             let (collection_id, source_path_resolver) =
-                uc::resolve_virtual_file_path_collection_id(&db, collection_uid)
+                uc::resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
                     .map_err(DieselTransactionError::new)?;
             Ok(uc::import(
                 &db,

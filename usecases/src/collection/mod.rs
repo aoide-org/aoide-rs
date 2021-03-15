@@ -21,15 +21,16 @@ use aoide_core::{
 };
 use aoide_repo::collection::{EntityRepo, RecordId as CollectionId};
 
-pub fn resolve_virtual_file_path_collection_id<Repo>(
+use url::Url;
+
+pub fn load_virtual_file_path_resolver<Repo>(
     repo: &Repo,
-    collection_uid: &EntityUid,
-) -> Result<(CollectionId, VirtualFilePathResolver)>
+    collection_id: CollectionId,
+    override_base_url: Option<Url>,
+) -> Result<VirtualFilePathResolver>
 where
     Repo: EntityRepo,
 {
-    // TODO: Load collection entity by UID with a single query
-    let collection_id = repo.resolve_collection_id(collection_uid)?;
     let (_, entity) = repo.load_collection_entity(collection_id)?;
     if entity.body.media_source_config.path_kind != SourcePathKind::VirtualFilePath {
         return Err(anyhow::anyhow!(
@@ -38,10 +39,23 @@ where
         )
         .into());
     }
-    let source_path_resolver = if let Some(base_url) = entity.body.media_source_config.base_url {
-        VirtualFilePathResolver::with_base_url(base_url)
+    let resolver = if let Some(base_url) = entity.body.media_source_config.base_url {
+        VirtualFilePathResolver::with_base_url(override_base_url.unwrap_or(base_url))
     } else {
         VirtualFilePathResolver::new()
     };
-    Ok((collection_id, source_path_resolver))
+    Ok(resolver)
+}
+
+pub fn resolve_collection_id_for_virtual_file_path<Repo>(
+    repo: &Repo,
+    collection_uid: &EntityUid,
+    override_base_url: Option<Url>,
+) -> Result<(CollectionId, VirtualFilePathResolver)>
+where
+    Repo: EntityRepo,
+{
+    let collection_id = repo.resolve_collection_id(collection_uid)?;
+    let resolver = load_virtual_file_path_resolver(repo, collection_id, override_base_url)?;
+    Ok((collection_id, resolver))
 }

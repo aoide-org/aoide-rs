@@ -16,7 +16,8 @@
 use super::*;
 
 mod uc {
-    pub use crate::usecases::tracks::search::*;
+    pub use crate::usecases::tracks::search::search;
+    pub use aoide_usecases::tracks::search::Params;
 }
 
 mod _repo {
@@ -34,7 +35,7 @@ use aoide_repo::prelude::NumericValue;
 
 use aoide_core_serde::{track::Entity, util::clock::DateTime};
 
-///////////////////////////////////////////////////////////////////////
+use url::Url;
 
 #[derive(Copy, Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -442,6 +443,9 @@ pub struct QueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resolve_url_from_path: Option<bool>,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub override_base_url: Option<Url>,
+
     pub limit: Option<PaginationLimit>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -465,12 +469,19 @@ pub fn handle_request(
 ) -> Result<ResponseBody> {
     let QueryParams {
         resolve_url_from_path,
+        override_base_url,
         limit,
         offset,
     } = query_params;
     let pagination = PaginationQueryParams { limit, offset };
     let pagination = Option::from(pagination).unwrap_or(DEFAULT_PAGINATION);
-    let resolve_url_from_path = resolve_url_from_path.unwrap_or(false);
+    // Passing a base URL override implies resolving paths
+    let resolve_url_from_path = override_base_url.is_some()
+        || resolve_url_from_path.unwrap_or(uc::Params::default().resolve_url_from_path);
+    let params = uc::Params {
+        override_base_url,
+        resolve_url_from_path,
+    };
     let RequestBody { filter, ordering } = request_body;
     let mut collector = EntityCollector::default();
     uc::search(
@@ -479,7 +490,7 @@ pub fn handle_request(
         &pagination,
         filter.map(Into::into),
         ordering.into_iter().map(Into::into).collect(),
-        resolve_url_from_path,
+        params,
         &mut collector,
     )?;
     Ok(collector.into())

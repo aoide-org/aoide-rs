@@ -22,7 +22,7 @@ use url::Url;
 pub use aoide_repo::media::tracker::DirTrackingStatus;
 mod uc {
     pub use aoide_usecases::{
-        collection::resolve_virtual_file_path_collection_id, media::tracker::untrack::*, Error,
+        collection::resolve_collection_id_for_virtual_file_path, media::tracker::untrack::*, Error,
     };
 }
 
@@ -36,7 +36,7 @@ pub fn untrack(
     Ok(
         db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
             let (collection_id, source_path_resolver) =
-                uc::resolve_virtual_file_path_collection_id(&db, collection_uid)
+                uc::resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
                     .map_err(DieselTransactionError::new)?;
             uc::untrack(
                 &db,

@@ -15,12 +15,15 @@
 
 use super::*;
 
+use crate::collection::load_virtual_file_path_resolver;
+
 use aoide_repo::{
-    collection::RecordId as CollectionId,
+    collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
     track::{EntityRepo, RecordHeader, SearchFilter, SortOrder},
 };
 
 use std::time::Instant;
+use url::Url;
 
 pub fn search<Repo>(
     repo: &Repo,
@@ -42,4 +45,51 @@ where
         (timed.elapsed().as_micros() / 1000) as f64,
     );
     Ok(count)
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Params {
+    pub resolve_url_from_path: bool,
+    pub override_base_url: Option<Url>,
+}
+
+pub fn search_with_params<Repo>(
+    repo: &Repo,
+    collection_id: CollectionId,
+    pagination: &Pagination,
+    filter: Option<SearchFilter>,
+    ordering: Vec<SortOrder>,
+    params: Params,
+    collector: &mut impl ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
+) -> Result<usize>
+where
+    Repo: EntityRepo + CollectionRepo,
+{
+    let Params {
+        override_base_url,
+        resolve_url_from_path,
+    } = params;
+    debug_assert!(resolve_url_from_path || override_base_url.is_none());
+    if resolve_url_from_path {
+        let source_path_resolver =
+            load_virtual_file_path_resolver(repo, collection_id, override_base_url)?;
+        let mut collector = ResolveUrlFromVirtualFilePathCollector {
+            source_path_resolver,
+            collector,
+        };
+        search(
+            repo,
+            collection_id,
+            pagination,
+            filter,
+            ordering,
+            &mut collector,
+        )
+    } else {
+        // Providing a base URL without using it to resolve virtual file paths
+        // does no harm but doesn't make any sense and is probably unintended.
+        debug_assert!(override_base_url.is_none());
+        search(repo, collection_id, pagination, filter, ordering, collector)
+    }
+    .map_err(Into::into)
 }

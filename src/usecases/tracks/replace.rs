@@ -18,13 +18,13 @@ use super::*;
 use aoide_core::media::{resolver::SourcePathResolver as _, SourcePath};
 use aoide_media::io::import::{ImportTrackConfig, ImportTrackFlags};
 use aoide_repo::{collection::EntityRepo as _, track::ReplaceMode};
-use aoide_usecases::{collection::resolve_virtual_file_path_collection_id, media::ImportMode};
+use aoide_usecases::{collection::resolve_collection_id_for_virtual_file_path, media::ImportMode};
 
 use std::sync::atomic::AtomicBool;
 
 mod uc {
     pub use aoide_usecases::{
-        collection::resolve_virtual_file_path_collection_id, tracks::replace::*, Error,
+        collection::resolve_collection_id_for_virtual_file_path, tracks::replace::*, Error,
     };
 }
 
@@ -44,7 +44,7 @@ pub fn replace_by_media_source_path(
         db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
             let (collection_id, virtual_file_path_resolver) = if *resolve_path_from_url {
                 let (collection_id, virtual_file_path_resolver) =
-                    resolve_virtual_file_path_collection_id(&db, collection_uid)
+                    resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
                         .map_err(DieselTransactionError::new)?;
                 (collection_id, Some(virtual_file_path_resolver))
             } else {
@@ -110,7 +110,7 @@ pub fn import_and_replace_by_local_file_path_iter(
     Ok(
         db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
             let (collection_id, source_path_resolver) =
-                uc::resolve_virtual_file_path_collection_id(&db, collection_uid)
+                uc::resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
                     .map_err(DieselTransactionError::new)?;
             Ok(uc::import_and_replace_by_local_file_path_iter(
                 &db,
@@ -144,7 +144,7 @@ pub fn import_and_replace_by_local_file_path_from_directory(
     Ok(
         db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
             let (collection_id, source_path_resolver) =
-                uc::resolve_virtual_file_path_collection_id(&db, collection_uid)
+                uc::resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
                     .map_err(DieselTransactionError::new)?;
             uc::import_and_replace_by_local_file_path_from_directory(
                 &db,

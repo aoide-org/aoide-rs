@@ -831,7 +831,7 @@ components:
         resolve it according to the collection's media source
         configuration.
 
-        Only supported for local files.
+        Only supported for local files with virtual paths.
       in: query
       required: false
       schema:
@@ -840,15 +840,27 @@ components:
     resolveMediaSourceUrlFromPathQuery:
       name: resolveUrlFromPath
       description: |
-        Resolve the actual URL of the media source from the path according
+        Resolve the actual URL of the media source from the stored path according
         to the collection's media source configuration.
 
-        Only supported for local files.
+        Only supported for local files with virtual paths.
       in: query
       required: false
       schema:
         type: boolean
         default: false
+    overrideMediaSourceBaseUrlQuery:
+      name: overrideBaseUrl
+      description: |
+        Resolve the actual URL of the media source from the stored path according
+        to the given base URL. The provided URL overrides the base URL from the
+        collection's media source configuration for this particular request.
+
+        Only supported for local files with virtual paths.
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
     collectionUidPath:
       name: collectionUid
       in: path
@@ -1328,12 +1340,6 @@ components:
       required:
         - code
         - message
-    FileDirectoryUrl:
-      type: string
-      minLength: 8
-      description: |
-        A percent-encoded `file://` URL ending with a trailing `/` that
-        locates a directory path on the local file system.
     FilterModifier:
       type: string
       enum:
@@ -2075,7 +2081,7 @@ components:
       type: object
       properties:
         rootUrl:
-          $ref: '#/components/schemas/FileDirectoryUrl'
+          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
         status:
           $ref: '#/components/schemas/MediaTrackerDirTrackingStatus'
       required:
@@ -2100,7 +2106,7 @@ components:
       type: object
       properties:
         rootUrl:
-          $ref: '#/components/schemas/FileDirectoryUrl'
+          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
     MediaTrackerQueryStatusResponseBody:
       allOf:
         - $ref: '#/components/schemas/MediaTrackerStatusSummary'
@@ -2142,7 +2148,7 @@ components:
       type: object
       properties:
         rootUrl:
-          $ref: '#/components/schemas/FileDirectoryUrl'
+          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
         importMode:
           $ref: '#/components/schemas/MediaImportMode'
     MediaImportMode:
@@ -2252,7 +2258,7 @@ components:
       type: object
       properties:
         rootUrl:
-          $ref: '#/components/schemas/FileDirectoryUrl'
+          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
         maxDepth:
           type: number
           format: int
@@ -2317,15 +2323,23 @@ components:
           required:
             - completion
             - summary
-    PercentEncodedUrl:
-      allOf:
-        - $ref: '#/components/schemas/PercentEncodedUri'
     PercentEncodedUri:
       type: string
       minLength: 1
       example: file:///home/user/Music/album%20artist/album%20title/01%20the%20first%20track.mp3
       description: |
         A percent-encoded URI (RFC 3986).
+    PercentEncodedDirectoryUrl:
+      description: |
+        A percent-encoded URL with scheme `file` ending with a trailing
+        slash character `/`.
+
+        It represents a directory path on the local file system.
+      allOf:
+        - $ref: '#/components/schemas/PercentEncodedUrl'
+    PercentEncodedUrl:
+      allOf:
+        - $ref: '#/components/schemas/PercentEncodedUri'
     RelocateCollectedMediaSourcesRequestBody:
       type: object
       properties:

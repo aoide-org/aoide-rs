@@ -15,10 +15,56 @@
 
 use super::*;
 
-use aoide_core::track::*;
+use aoide_core::{
+    media::resolver::{FileUrlResolver, SourcePathResolver as _, VirtualFilePathResolver},
+    track::*,
+};
+use aoide_repo::track::RecordHeader;
 
 pub mod find_duplicate;
 pub mod purge;
 pub mod replace;
 pub mod resolve;
 pub mod search;
+
+#[derive(Debug)]
+pub struct ResolveUrlFromVirtualFilePathCollector<'c, C> {
+    pub source_path_resolver: VirtualFilePathResolver,
+    pub collector: &'c mut C,
+}
+
+impl<'c, C> RecordCollector for ResolveUrlFromVirtualFilePathCollector<'c, C>
+where
+    C: RecordCollector<Header = RecordHeader, Record = Entity>,
+{
+    type Header = RecordHeader;
+    type Record = Entity;
+
+    fn collect(&mut self, header: Self::Header, mut record: Self::Record) {
+        let path = &record.body.media_source.path;
+        match self.source_path_resolver.resolve_url_from_path(path) {
+            Ok(url) => {
+                record.body.media_source.path = FileUrlResolver
+                    .resolve_path_from_url(&url)
+                    .expect("percent-encoded URL");
+                self.collector.collect(header, record);
+            }
+            Err(err) => {
+                log::error!(
+                    "Failed to convert media source path '{}' to URL: {}",
+                    path,
+                    err
+                );
+            }
+        }
+    }
+}
+
+impl<'c, C> ReservableRecordCollector for ResolveUrlFromVirtualFilePathCollector<'c, C>
+where
+    C: ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
+{
+    fn reserve(&mut self, additional: usize) {
+        self.collector.reserve(additional);
+    }
+}
