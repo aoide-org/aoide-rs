@@ -33,7 +33,7 @@ mod _repo {
 
 use aoide_repo::prelude::NumericValue;
 
-use aoide_core_serde::{track::Entity, util::clock::DateTime};
+use aoide_core_serde::{entity::EntityUid, track::Entity, util::clock::DateTime};
 
 use url::Url;
 
@@ -394,6 +394,7 @@ pub enum SearchFilter {
     Condition(ConditionFilter),
     Tag(TagFilter),
     CueLabel(StringFilter),
+    PlaylistUid(EntityUid),
     All(Vec<SearchFilter>),
     Any(Vec<SearchFilter>),
     Not(Box<SearchFilter>),
@@ -409,6 +410,7 @@ impl From<SearchFilter> for _repo::SearchFilter {
             Condition(from) => Self::Condition(from.into()),
             Tag(from) => Self::Tag(from.into()),
             CueLabel(from) => Self::CueLabel(from.into()),
+            PlaylistUid(from) => Self::PlaylistUid(from.into()),
             All(from) => Self::All(from.into_iter().map(Into::into).collect()),
             Any(from) => Self::Any(from.into_iter().map(Into::into).collect()),
             Not(from) => Self::Not(Box::new((*from).into())),

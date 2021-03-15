@@ -15,13 +15,13 @@
 
 use crate::{
     db::{
-        media_source::schema::*, media_tracker::schema::*, track::schema::*, track_cue::schema::*,
-        track_tag::schema::*,
+        media_source::schema::*, media_tracker::schema::*, playlist::schema::*,
+        playlist_entry::schema::*, track::schema::*, track_cue::schema::*, track_tag::schema::*,
     },
     prelude::*,
 };
 
-use aoide_core::util::clock::YYYYMMDD;
+use aoide_core::{entity::EntityUid, util::clock::YYYYMMDD};
 
 use aoide_repo::{
     tag::Filter as TagFilter,
@@ -956,6 +956,30 @@ where
     (select, cue_label_filter.modifier)
 }
 
+fn build_playlist_uid_filter_expression(
+    playlist_uid: &EntityUid,
+) -> TrackSearchBoxedExpression<'_> {
+    let subselect = select_track_ids_matching_playlist_uid_filter(playlist_uid);
+    Box::new(track::row_id.eq_any(subselect))
+}
+
+fn select_track_ids_matching_playlist_uid_filter<'db, DB>(
+    playlist_uid: &'db EntityUid,
+) -> diesel::query_builder::BoxedSelectStatement<'db, diesel::sql_types::BigInt, track::table, DB>
+where
+    DB: diesel::backend::Backend + 'db,
+{
+    let subselect = playlist::table
+        .inner_join(playlist_entry::table)
+        .select(playlist_entry::track_id)
+        .filter(playlist::entity_uid.eq(playlist_uid.as_ref()))
+        .filter(playlist_entry::track_id.is_not_null());
+    track::table
+        .select(track::row_id)
+        .filter(track::row_id.nullable().eq_any(subselect))
+        .into_boxed()
+}
+
 impl TrackSearchBoxedExpressionBuilder for SearchFilter {
     fn build_expression(&self) -> TrackSearchBoxedExpression<'_> {
         use SearchFilter::*;
@@ -966,6 +990,7 @@ impl TrackSearchBoxedExpressionBuilder for SearchFilter {
             Condition(filter) => build_condition_filter_expression(*filter),
             Tag(filter) => build_tag_filter_expression(filter),
             CueLabel(filter) => build_cue_label_filter_expression(filter.borrow()),
+            PlaylistUid(playlist_uid) => build_playlist_uid_filter_expression(playlist_uid),
             All(filters) => filters
                 .iter()
                 .fold(dummy_true_expression(), |expr, filter| {

@@ -2768,6 +2768,7 @@ components:
         - $ref: '#/components/schemas/TrackSearchConditionFilterNode'
         - $ref: '#/components/schemas/TrackSearchTagFilterNode'
         - $ref: '#/components/schemas/TrackSearchCueLabelFilterNode'
+        - $ref: '#/components/schemas/TrackSearchPlaylistUidFilterNode'
         - $ref: '#/components/schemas/TrackSearchAllFilterNode'
         - $ref: '#/components/schemas/TrackSearchAnyFilterNode'
         - $ref: '#/components/schemas/TrackSearchNotFilterNode'
@@ -2778,6 +2779,13 @@ components:
           $ref: '#/components/schemas/CueLabelFilter'
       required:
         - cueLabel
+    TrackSearchPlaylistUidFilterNode:
+      type: object
+      properties:
+        playlistUid:
+          $ref: '#/components/schemas/EntityUid'
+      required:
+        - playlistUid
     TrackSearchNotFilterNode:
       type: object
       properties:

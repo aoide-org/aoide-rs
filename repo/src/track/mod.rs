@@ -145,6 +145,7 @@ pub enum SearchFilter {
     Condition(ConditionFilter),
     Tag(tag::Filter),
     CueLabel(StringFilter),
+    PlaylistUid(EntityUid),
     All(Vec<SearchFilter>),
     Any(Vec<SearchFilter>),
     Not(Box<SearchFilter>),
