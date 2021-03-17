@@ -941,9 +941,12 @@ pub async fn main() -> Result<(), Error> {
 
     let (socket_addr, server_listener) =
         server.bind_with_graceful_shutdown(endpoint_addr, async move {
-            server_shutdown_rx.recv().await;
-            MEDIA_TRACKER_ABORT_FLAG.store(true, Ordering::Relaxed);
+            tokio::select! {
+                _ = server_shutdown_rx.recv() => {}
+                _ = signal::ctrl_c() => {}
+            }
             log::info!("Stopping");
+            MEDIA_TRACKER_ABORT_FLAG.store(true, Ordering::Relaxed);
         });
 
     let server_listening = async move {
@@ -959,11 +962,6 @@ pub async fn main() -> Result<(), Error> {
         // -> stdout
         println!("{}", socket_addr);
     };
-
-    tokio::spawn(async move {
-        signal::ctrl_c().await.expect("failed to listen for signal");
-        let _ = server_shutdown_tx.send(());
-    });
 
     join(server_listener, server_listening).map(drop).await;
     log::info!("Stopped");
