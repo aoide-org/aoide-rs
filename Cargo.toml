@@ -18,6 +18,8 @@ members = [
   "repo-sqlite",
   "usecases",
 ]
+# The new resolver does not work with diesel 1.4.6
+#resolver = "2"
 
 [patch.crates-io]
 aoide-core = { path = "core" }
@@ -62,6 +64,9 @@ default = []
 
 [dev-dependencies]
 serde_urlencoded = "*"
+
+[profile.dev]
+split-debuginfo = "unpacked"
 
 [profile.release]
 lto = true

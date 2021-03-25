@@ -44,7 +44,7 @@ pub fn hash_directories_recursively(
             let (collection_id, source_path_resolver) =
                 resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
                     .map_err(DieselTransactionError::new)?;
-            Ok(uc::hash_directories_recursively(
+            uc::hash_directories_recursively(
                 &db,
                 collection_id,
                 root_dir_url,
@@ -53,7 +53,7 @@ pub fn hash_directories_recursively(
                 progress_fn,
                 abort_flag,
             )
-            .map_err(DieselTransactionError::new)?)
+            .map_err(DieselTransactionError::new)
         })?,
     )
 }

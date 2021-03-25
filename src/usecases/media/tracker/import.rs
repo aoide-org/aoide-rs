@@ -51,7 +51,7 @@ pub fn import(
             let (collection_id, source_path_resolver) =
                 uc::resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
                     .map_err(DieselTransactionError::new)?;
-            Ok(uc::import(
+            uc::import(
                 &db,
                 collection_id,
                 import_mode,
@@ -62,7 +62,7 @@ pub fn import(
                 progress_fn,
                 abort_flag,
             )
-            .map_err(DieselTransactionError::new)?)
+            .map_err(DieselTransactionError::new)
         })?,
     )
 }

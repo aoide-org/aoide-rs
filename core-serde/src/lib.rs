@@ -17,9 +17,6 @@
 
 #![deny(missing_debug_implementations)]
 #![warn(rust_2018_idioms)]
-// TODO: Remove after clippy fix has been released.
-// https://github.com/rust-lang/rust-clippy/pull/6553
-#![allow(clippy::field_reassign_with_default)]
 
 pub mod prelude {
     pub use serde::{Deserialize, Serialize};
