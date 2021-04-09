@@ -41,12 +41,11 @@ aoide-repo = "*"
 aoide-repo-sqlite = "*"
 aoide-usecases = "*"
 blake3 = "*"
-chrono = { version = "*", default-features = false }
+chrono = { version = "*", default-features = false, features = ["clock", "serde"] }
 diesel = { version = "*", default-features = false, features = ["r2d2", "sqlite"] }
 diesel_migrations =  { version = "*", default-features = false, features = ["sqlite"] }
 dotenv = "*"
 env_logger = "*"
-futures = "*"
 anyhow = "*"
 log = "*"
 percent-encoding = "*"

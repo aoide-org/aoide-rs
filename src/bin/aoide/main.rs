@@ -29,7 +29,6 @@ use aoide::{
 use aoide_core::entity::EntityUid;
 
 use aoide_media::fs::digest::ProgressEvent as HashingProgressEvent;
-use futures::future::{join, FutureExt};
 use std::{
     collections::HashMap,
     convert::Infallible,
@@ -41,7 +40,7 @@ use std::{
     time::Duration,
 };
 use tokio::{
-    signal,
+    join, signal,
     sync::RwLock,
     sync::{mpsc, watch, Mutex},
     time::sleep,
@@ -963,7 +962,7 @@ pub async fn main() -> Result<(), Error> {
         println!("{}", socket_addr);
     };
 
-    join(server_listener, server_listening).map(drop).await;
+    join!(server_listener, server_listening);
     log::info!("Stopped");
 
     Ok(())
