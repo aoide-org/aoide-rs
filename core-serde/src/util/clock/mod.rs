@@ -105,6 +105,7 @@ impl<'de> Deserialize<'de> for DateTime {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[allow(clippy::upper_case_acronyms)]
 pub struct DateYYYYMMDD(_core::DateYYYYMMDD);
 
 impl From<_core::DateYYYYMMDD> for DateYYYYMMDD {
@@ -144,6 +145,7 @@ impl Serialize for DateYYYYMMDD {
     }
 }
 
+#[allow(clippy::upper_case_acronyms)]
 struct DateYYYYMMDDDeserializeVisitor;
 
 impl<'de> SerdeDeserializeVisitor<'de> for DateYYYYMMDDDeserializeVisitor {

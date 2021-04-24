@@ -48,7 +48,7 @@ use aoide_core_serde::tag::Tags as SerdeTags;
 
 use image::ImageFormat;
 use mp4ameta::{
-    ChannelConfig, Data, FourCC, FreeformIdent, SampleRate as Mp4SampleRate, Tag as Mp4Tag,
+    ChannelConfig, Data, Fourcc, FreeformIdent, SampleRate as Mp4SampleRate, Tag as Mp4Tag,
     STANDARD_GENRES,
 };
 use semval::IsValid as _;
@@ -424,7 +424,7 @@ impl import::ImportTrack for ImportTrack {
             } else {
                 Default::default()
             };
-            for image_data in mp4_tag.data(&FourCC(*b"covr")) {
+            for image_data in mp4_tag.data(&Fourcc(*b"covr")) {
                 let (image_data, image_format) = match image_data {
                     Data::Jpeg(bytes) => (bytes, Some(ImageFormat::Jpeg)),
                     Data::Png(bytes) => (bytes, Some(ImageFormat::Png)),

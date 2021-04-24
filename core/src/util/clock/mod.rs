@@ -148,9 +148,11 @@ pub const YEAR_MIN: YearType = 1;
 pub const YEAR_MAX: YearType = 9999;
 
 // 8-digit year+month+day (YYYYMMDD)
+#[allow(clippy::upper_case_acronyms)]
 pub type YYYYMMDD = i32;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[allow(clippy::upper_case_acronyms)]
 pub struct DateYYYYMMDD(YYYYMMDD);
 
 impl DateYYYYMMDD {
@@ -197,6 +199,7 @@ impl DateYYYYMMDD {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum DateYYYYMMDDInvalidity {
     Min,
     Max,
