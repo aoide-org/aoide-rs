@@ -238,9 +238,9 @@ impl Actors {
             let role_notes = main_actor.role_notes.clone();
             let old_actors = std::mem::take(actors);
             let new_actors = once(Actor {
-                name,
-                kind,
                 role,
+                kind,
+                name,
                 role_notes,
             })
             .chain(

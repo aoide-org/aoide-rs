@@ -154,10 +154,8 @@ pub fn load_repo_entity(
             released_at_yyyymmdd.map(DateYYYYMMDD::new),
         );
         released_at.map(Into::into)
-    } else if let Some(yyyymmdd) = released_at_yyyymmdd {
-        Some(DateYYYYMMDD::new(yyyymmdd).into())
     } else {
-        None
+        released_at_yyyymmdd.map(DateYYYYMMDD::new).map(Into::into)
     };
     let release = Release {
         released_at,
@@ -211,10 +209,8 @@ pub fn load_repo_entity(
         let rgb_color = RgbColor(color_rgb as RgbColorCode);
         debug_assert!(rgb_color.is_valid());
         Some(Color::Rgb(rgb_color))
-    } else if let Some(color_idx) = color_idx {
-        Some(Color::Index(color_idx))
     } else {
-        None
+        color_idx.map(|idx| Color::Index(idx as ColorIndex))
     };
     let play_counter = PlayCounter {
         last_played_at: parse_datetime_opt(last_played_at.as_deref(), last_played_ms),

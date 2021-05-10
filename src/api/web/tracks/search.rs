@@ -481,8 +481,8 @@ pub fn handle_request(
     let resolve_url_from_path = override_base_url.is_some()
         || resolve_url_from_path.unwrap_or(uc::Params::default().resolve_url_from_path);
     let params = uc::Params {
-        override_base_url,
         resolve_url_from_path,
+        override_base_url,
     };
     let RequestBody { filter, ordering } = request_body;
     let mut collector = EntityCollector::default();

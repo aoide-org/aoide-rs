@@ -97,10 +97,8 @@ impl From<QueryableRecord> for (RecordHeader, Entity) {
                 let rgb_color = RgbColor(color_rgb as RgbColorCode);
                 debug_assert!(rgb_color.is_valid());
                 Some(Color::Rgb(rgb_color))
-            } else if let Some(color_idx) = color_idx {
-                Some(Color::Index(color_idx as ColorIndex))
             } else {
-                None
+                color_idx.map(|idx| Color::Index(idx as ColorIndex))
             },
             media_source_config,
         };

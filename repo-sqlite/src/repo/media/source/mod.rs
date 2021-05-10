@@ -31,7 +31,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         collection_id: CollectionId,
         path: &str,
     ) -> RepoResult<(RecordId, Option<DateTime>)> {
-        Ok(media_source::table
+        media_source::table
             .select((
                 media_source::row_id,
                 media_source::synchronized_at,
@@ -46,7 +46,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
                     parse_datetime_opt(synchronized_at.as_deref(), synchronized_ms),
                 )
             })
-            .map_err(repo_error)?)
+            .map_err(repo_error)
     }
 
     fn resolve_media_source_ids_by_path_predicate(

@@ -162,7 +162,7 @@ impl Titles {
             }
             let kind = main_title.kind;
             let old_titles = std::mem::take(titles);
-            let new_titles = once(Title { name, kind })
+            let new_titles = once(Title { kind, name })
                 .chain(old_titles.into_iter().filter(|title| title.kind != kind))
                 .collect();
             let _placeholder = std::mem::replace(titles, new_titles);
