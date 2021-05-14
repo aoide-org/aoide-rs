@@ -46,7 +46,7 @@ pub struct Outcome {
     pub summary: Summary,
 }
 
-pub fn hash_directories_recursively<Repo>(
+pub fn scan_directories_recursively<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
     root_dir_url: &Url,

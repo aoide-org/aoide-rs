@@ -316,18 +316,18 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /c/{collectionUid}/media-tracker/hash:
+  /c/{collectionUid}/media-tracker/scan:
     post:
-      summary: Crawl through a directory tree and detect changes
+      summary: Scan a directory tree for changes
       description: |
-        Recursively scan a root directory for content changes, i.e.
+        Recursively scan a root directory for changes, i.e. discover
         added/modified/removed files and directories.
 
         For each directory a cryptographic hash is calculated and stored in
         the database for further processing, e.g. import of track metadata.
         Results are stored on behalf of the collection.
 
-        Previously digested directories that are not discovered again during
+        Previously scanned directories that are not discovered again during
         a subsequent scan are marked and counted as *orphaned*.
 
         This operation is blocking and locks the database while running.
@@ -340,7 +340,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MediaTrackerHashRequestBody'
+              $ref: '#/components/schemas/MediaTrackerScanRequestBody'
       responses:
         '200':
           description: |
@@ -348,7 +348,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MediaTrackerHashResponseBody'
+                $ref: '#/components/schemas/MediaTrackerScanResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
   /c/{collectionUid}/media-tracker/import:
@@ -389,8 +389,9 @@ paths:
         are unaffected. As a result all these media sources and
         corresponding tracks become *untracked*.
 
-        Untracked directories can be re-added by a starting new digest
-        operation followed by an import.
+        Untracked directories can be re-added by a rescanning.
+        This would also allow to recover from an inconsistent state
+        i.e. if changes are expected but not detected by rescanning.
       tags:
         - Media Tracker
       parameters:
@@ -439,7 +440,7 @@ paths:
     get:
       summary: Report the current progress
       description: |
-        Show the currently running batch operation (either *hash* or *import*)
+        Show the currently running batch operation (either *scan* or *import*)
         and report the progress so far.
 
         If no batch operation is running then the string "idle" is returned.
@@ -458,8 +459,8 @@ paths:
                       - idle
                   - type: object
                     properties:
-                      hashing:
-                        $ref: '#/components/schemas/MediaTrackerHashingProgress'
+                      scanning:
+                        $ref: '#/components/schemas/MediaTrackerScanningProgress'
                   - type: object
                     properties:
                       importing:
@@ -2233,7 +2234,7 @@ components:
     MediaTrackerImportingProgress:
       allOf:
         - $ref: '#/components/schemas/MediaTrackerImportSummary'
-    MediaTrackerHashingProgress:
+    MediaTrackerScanningProgress:
       type: object
       properties:
         entries:
@@ -2254,7 +2255,7 @@ components:
               type: number
               format: int
               minimum: 0
-    MediaTrackerHashRequestBody:
+    MediaTrackerScanRequestBody:
       type: object
       properties:
         rootUrl:
@@ -2265,7 +2266,7 @@ components:
           minimum: 1
       required:
         - rootUrl
-    MediaTrackerHashSummary:
+    MediaTrackerScanSummary:
       type: object
       properties:
         current:
@@ -2312,14 +2313,14 @@ components:
         - $ref: '#/components/schemas/PercentEncodedUri'
         - $ref: '#/components/schemas/PercentEncodedUrl'
         - $ref: '#/components/schemas/MediaSourceVirtualFilePath'
-    MediaTrackerHashResponseBody:
+    MediaTrackerScanResponseBody:
       oneOf:
         - type: object
           properties:
             completion:
               $ref: '#/components/schemas/MediaTrackerCompletion'
             summary:
-              $ref: '#/components/schemas/MediaTrackerHashSummary'
+              $ref: '#/components/schemas/MediaTrackerScanSummary'
           required:
             - completion
             - summary

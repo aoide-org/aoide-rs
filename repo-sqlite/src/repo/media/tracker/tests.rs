@@ -16,6 +16,7 @@
 use super::*;
 
 use crate::prelude::tests::*;
+use test_env_log::test;
 
 use aoide_core::{
     collection::{Collection, Entity as CollectionEntity, MediaSourceConfig},

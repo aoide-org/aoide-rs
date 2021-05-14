@@ -28,7 +28,7 @@ use aoide::{
 
 use aoide_core::entity::EntityUid;
 
-use aoide_media::fs::digest::ProgressEvent as HashingProgressEvent;
+use aoide_media::fs::digest::ProgressEvent as ScanningProgressEvent;
 use std::{
     collections::HashMap,
     convert::Infallible,
@@ -401,11 +401,11 @@ pub async fn main() -> Result<(), Error> {
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
-    let media_tracker_post_hash = warp::post()
+    let media_tracker_post_scan = warp::post()
         .and(collections_path)
         .and(path_param_uid)
         .and(media_tracker_path)
-        .and(warp::path("hash"))
+        .and(warp::path("scan"))
         .and(warp::path::end())
         .and(warp::body::json())
         .and(guarded_connection_pool.clone())
@@ -418,26 +418,26 @@ pub async fn main() -> Result<(), Error> {
                 let (progress_event_tx, mut progress_event_rx) = watch::channel(None);
                 let watcher = tokio::spawn(async move {
                     *media_tracker_progress.lock().await =
-                        MediaTrackerProgress::Hashing(Default::default());
-                    log::debug!("Watching media tracker hashing");
+                        MediaTrackerProgress::Scanning(Default::default());
+                    log::debug!("Watching media tracker scanning");
                     while progress_event_rx.changed().await.is_ok() {
                         let progress = progress_event_rx
                             .borrow()
                             .as_ref()
-                            .map(|ev: &HashingProgressEvent| ev.progress.to_owned());
+                            .map(|ev: &ScanningProgressEvent| ev.progress.to_owned());
                         // Borrow has already been released at this point
                         if let Some(progress) = progress {
                             *media_tracker_progress.lock().await =
-                                MediaTrackerProgress::Hashing(progress.into());
+                                MediaTrackerProgress::Scanning(progress.into());
                         }
                     }
-                    log::debug!("Unwatching media tracker hashing");
+                    log::debug!("Unwatching media tracker scanning");
                     *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;
                 });
                 let response = spawn_blocking_database_write_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
-                        media::tracker::hash::handle_request(
+                        media::tracker::scan::handle_request(
                             pooled_connection,
                             &uid,
                             request_body,
@@ -451,7 +451,7 @@ pub async fn main() -> Result<(), Error> {
                 .map(|response_body| warp::reply::json(&response_body));
                 if let Err(err) = watcher.await {
                     log::error!(
-                        "Failed to terminate media tracker hashing progress watcher: {}",
+                        "Failed to terminate media tracker scanning progress watcher: {}",
                         err
                     );
                 }
@@ -546,7 +546,7 @@ pub async fn main() -> Result<(), Error> {
         });
     let media_tracker_filters = media_tracker_get_state
         .or(media_tracker_post_query_status)
-        .or(media_tracker_post_hash)
+        .or(media_tracker_post_scan)
         .or(media_tracker_post_import)
         .or(media_tracker_post_untrack)
         .or(media_tracker_post_abort);

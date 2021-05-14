@@ -29,3 +29,5 @@ pub mod ogg;
 
 #[cfg(any(feature = "fmt-flag", feature = "fmt-ogg"))]
 pub mod vorbis;
+
+// TODO: Add support for AIFF and WAV files with ID3v2 tags

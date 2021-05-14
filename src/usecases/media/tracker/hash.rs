@@ -20,7 +20,7 @@ use aoide_core::entity::EntityUid;
 use aoide_media::fs::digest;
 
 mod uc {
-    pub use aoide_usecases::{media::tracker::hash::*, Error};
+    pub use aoide_usecases::{media::tracker::scan::*, Error};
 }
 
 use aoide_usecases::collection::resolve_collection_id_for_virtual_file_path;
@@ -30,7 +30,7 @@ use url::Url;
 
 pub use uc::{Outcome, Summary};
 
-pub fn hash_directories_recursively(
+pub fn scan_directories_recursively(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
     root_dir_url: &Url,
@@ -44,7 +44,7 @@ pub fn hash_directories_recursively(
             let (collection_id, source_path_resolver) =
                 resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
                     .map_err(DieselTransactionError::new)?;
-            uc::hash_directories_recursively(
+            uc::scan_directories_recursively(
                 &db,
                 collection_id,
                 root_dir_url,

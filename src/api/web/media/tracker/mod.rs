@@ -19,9 +19,9 @@ use super::*;
 
 use aoide_media::fs::digest;
 
-pub mod hash;
 pub mod import;
 pub mod query_status;
+pub mod scan;
 pub mod untrack;
 
 mod uc {
@@ -50,18 +50,18 @@ impl From<uc::Completion> for Completion {
 #[serde(rename_all = "kebab-case")]
 pub enum Progress {
     Idle,
-    Hashing(HashingProgress),
+    Scanning(ScanningProgress),
     Importing(ImportingProgress),
 }
 
 #[derive(Debug, Default, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct HashingProgress {
+pub struct ScanningProgress {
     entries: HashingEntriesProgress,
     directories: HashingDirectoriesProgress,
 }
 
-impl From<digest::Progress> for HashingProgress {
+impl From<digest::Progress> for ScanningProgress {
     fn from(from: digest::Progress) -> Self {
         let digest::Progress {
             entries,

@@ -16,6 +16,7 @@
 use super::*;
 
 use aoide_core::entity::EntityHeader;
+use test_env_log::test;
 
 embed_migrations!("migrations");
 
@@ -91,11 +92,7 @@ fn update_collection() -> RepoResult<()> {
 
     // Current revision -> Success
     let current_rev = connection.load_collection_entity(id)?.1.hdr.rev;
-    connection.update_collection_entity_revision(
-        DateTime::now(),
-        &current_rev,
-        &updated_entity,
-    )?;
+    connection.update_collection_entity_revision(DateTime::now(), &current_rev, &updated_entity)?;
     assert_eq!(updated_entity, connection.load_collection_entity(id)?.1);
 
     // Revert update
