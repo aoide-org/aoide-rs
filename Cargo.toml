@@ -1,10 +1,9 @@
 [package]
 name = "aoide"
 version = "0.8.0"
-authors = [ "Uwe Klotz <uwe.klotz@gmail>", "et al." ]
 license = "AGPL-3.0-or-later"
 description = "A web service for managing and exploring music collections"
-keywords = ["music", "library", "management"]
+keywords = ["music", "collection"]
 publish = false
 edition = "2018"
 
@@ -18,8 +17,6 @@ members = [
   "repo-sqlite",
   "usecases",
 ]
-# The new resolver does not work with diesel 1.4.6
-#resolver = "2"
 
 [patch.crates-io]
 aoide-core = { path = "core" }
