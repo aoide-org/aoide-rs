@@ -25,18 +25,17 @@ pub fn load_one(
     with_summary: bool,
 ) -> Result<(Entity, Option<Summary>)> {
     let db = RepoConnection::new(connection);
-    Ok(
-        db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-            let id = db.resolve_collection_id(uid)?;
-            let (record_hdr, entity) = db.load_collection_entity(id)?;
-            let summary = if with_summary {
-                Some(db.load_collection_summary(record_hdr.id)?)
-            } else {
-                None
-            };
-            Ok((entity, summary))
-        })?,
-    )
+    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+        let id = db.resolve_collection_id(uid)?;
+        let (record_hdr, entity) = db.load_collection_entity(id)?;
+        let summary = if with_summary {
+            Some(db.load_collection_summary(record_hdr.id)?)
+        } else {
+            None
+        };
+        Ok((entity, summary))
+    })
+    .map_err(Into::into)
 }
 
 pub fn load_all(
@@ -50,9 +49,9 @@ pub fn load_all(
     >,
 ) -> Result<()> {
     let db = RepoConnection::new(connection);
-    Ok(
-        db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-            Ok(db.load_collection_entities(kind, with_summary, pagination, collector)?)
-        })?,
-    )
+    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+        db.load_collection_entities(kind, with_summary, pagination, collector)
+            .map_err(Into::into)
+    })
+    .map_err(Into::into)
 }

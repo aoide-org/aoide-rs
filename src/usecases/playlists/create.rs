@@ -30,11 +30,10 @@ pub fn create(
     let entity = Entity::new(hdr, new_playlist);
     let created_at = DateTime::now_utc();
     let db = RepoConnection::new(connection);
-    Ok(
-        db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-            let collection_id = db.resolve_collection_id(collection_uid)?;
-            db.insert_collected_playlist_entity(collection_id, created_at, &entity)?;
-            Ok(entity)
-        })?,
-    )
+    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+        let collection_id = db.resolve_collection_id(collection_uid)?;
+        db.insert_collected_playlist_entity(collection_id, created_at, &entity)?;
+        Ok(entity)
+    })
+    .map_err(Into::into)
 }

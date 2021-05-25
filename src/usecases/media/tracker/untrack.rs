@@ -33,19 +33,18 @@ pub fn untrack(
     status: Option<DirTrackingStatus>,
 ) -> Result<usize> {
     let db = RepoConnection::new(connection);
-    Ok(
-        db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
-            let (collection_id, source_path_resolver) =
-                uc::resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
-                    .map_err(DieselTransactionError::new)?;
-            uc::untrack(
-                &db,
-                collection_id,
-                root_dir_url,
-                &source_path_resolver,
-                status,
-            )
-            .map_err(DieselTransactionError::new)
-        })?,
-    )
+    db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
+        let (collection_id, source_path_resolver) =
+            uc::resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
+                .map_err(DieselTransactionError::new)?;
+        uc::untrack(
+            &db,
+            collection_id,
+            root_dir_url,
+            &source_path_resolver,
+            status,
+        )
+        .map_err(DieselTransactionError::new)
+    })
+    .map_err(Into::into)
 }

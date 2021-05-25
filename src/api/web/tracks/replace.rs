@@ -110,11 +110,12 @@ pub fn handle_request(
         resolve_path_from_url,
         ..uc::Params::new(replace_mode.into())
     };
-    Ok(uc::replace_by_media_source_path(
+    uc::replace_by_media_source_path(
         &pooled_connection,
         collection_uid,
         &params,
         request_body.into_iter().map(Into::into),
     )
-    .map(Into::into)?)
+    .map(Into::into)
+    .map_err(Into::into)
 }

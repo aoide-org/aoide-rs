@@ -25,5 +25,5 @@ pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
     uid: &EntityUid,
 ) -> Result<ResponseBody> {
-    Ok(uc::delete(&pooled_connection, uid)?)
+    uc::delete(&pooled_connection, uid).map_err(Into::into)
 }

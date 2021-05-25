@@ -31,5 +31,7 @@ pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
     uid: &EntityUid,
 ) -> Result<ResponseBody> {
-    Ok(uc::load_one(&pooled_connection, uid).map(Into::into)?)
+    uc::load_one(&pooled_connection, uid)
+        .map(Into::into)
+        .map_err(Into::into)
 }

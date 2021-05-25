@@ -27,6 +27,7 @@ use std::{
 };
 
 pub mod resolver;
+pub mod tracker;
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub struct SourcePath(String);

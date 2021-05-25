@@ -24,12 +24,11 @@ pub fn load_entity_with_entries(
     uid: &EntityUid,
 ) -> Result<EntityWithEntries> {
     let db = RepoConnection::new(connection);
-    Ok(
-        db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-            let id = db.resolve_playlist_id(uid)?;
-            Ok(db.load_playlist_entity_with_entries(id)?)
-        })?,
-    )
+    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+        let id = db.resolve_playlist_id(uid)?;
+        db.load_playlist_entity_with_entries(id).map_err(Into::into)
+    })
+    .map_err(Into::into)
 }
 
 pub fn load_entities_with_entries_summary(
@@ -43,15 +42,16 @@ pub fn load_entities_with_entries_summary(
     >,
 ) -> Result<()> {
     let db = RepoConnection::new(connection);
-    Ok(
-        db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-            let collection_id = db.resolve_collection_id(collection_uid)?;
-            Ok(db.load_collected_playlist_entities_with_entries_summary(
-                collection_id,
-                kind,
-                pagination,
-                collector,
-            )?)
-        })?,
-    )
+
+    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+        let collection_id = db.resolve_collection_id(collection_uid)?;
+        db.load_collected_playlist_entities_with_entries_summary(
+            collection_id,
+            kind,
+            pagination,
+            collector,
+        )
+        .map_err(Into::into)
+    })
+    .map_err(Into::into)
 }

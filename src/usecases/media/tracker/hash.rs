@@ -39,21 +39,20 @@ pub fn scan_directories_recursively(
     abort_flag: &AtomicBool,
 ) -> Result<Outcome> {
     let db = RepoConnection::new(connection);
-    Ok(
-        db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
-            let (collection_id, source_path_resolver) =
-                resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
-                    .map_err(DieselTransactionError::new)?;
-            uc::scan_directories_recursively(
-                &db,
-                collection_id,
-                root_dir_url,
-                &source_path_resolver,
-                max_depth,
-                progress_fn,
-                abort_flag,
-            )
-            .map_err(DieselTransactionError::new)
-        })?,
-    )
+    db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
+        let (collection_id, source_path_resolver) =
+            resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
+                .map_err(DieselTransactionError::new)?;
+        uc::scan_directories_recursively(
+            &db,
+            collection_id,
+            root_dir_url,
+            &source_path_resolver,
+            max_depth,
+            progress_fn,
+            abort_flag,
+        )
+        .map_err(DieselTransactionError::new)
+    })
+    .map_err(Into::into)
 }

@@ -25,14 +25,10 @@ pub fn resolve_by_media_source_paths(
     media_source_paths: Vec<String>,
 ) -> Result<Vec<(String, EntityHeader)>> {
     let db = RepoConnection::new(connection);
-    Ok(
-        db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-            let collection_id = db.resolve_collection_id(collection_uid)?;
-            Ok(uc::resolve_by_media_source_paths(
-                &db,
-                collection_id,
-                media_source_paths,
-            )?)
-        })?,
-    )
+    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+        let collection_id = db.resolve_collection_id(collection_uid)?;
+        uc::resolve_by_media_source_paths(&db, collection_id, media_source_paths)
+            .map_err(Into::into)
+    })
+    .map_err(Into::into)
 }

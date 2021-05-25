@@ -162,7 +162,7 @@ pub fn handle_request(
         | ImportTrackFlags::MIXXX_CUSTOM_TAGS
         | ImportTrackFlags::SERATO_TAGS;
     let expected_source_path_count = request_body.len();
-    Ok(uc::import_and_replace_by_local_file_path_iter(
+    uc::import_and_replace_by_local_file_path_iter(
         &pooled_connection,
         collection_uid,
         import_mode.into(),
@@ -173,5 +173,6 @@ pub fn handle_request(
         Some(expected_source_path_count),
         abort_flag,
     )
-    .map(Into::into)?)
+    .map(Into::into)
+    .map_err(Into::into)
 }

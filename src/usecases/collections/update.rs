@@ -38,14 +38,13 @@ pub fn update(
     let updated_entity_with_next_rev = Entity::new(next_hdr, body);
     let updated_at = DateTime::now_utc();
     let db = RepoConnection::new(connection);
-    Ok(
-        db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-            db.update_collection_entity_revision(
-                &current_rev,
-                updated_at,
-                &updated_entity_with_next_rev,
-            )?;
-            Ok(updated_entity_with_next_rev)
-        })?,
-    )
+    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+        db.update_collection_entity_revision(
+            &current_rev,
+            updated_at,
+            &updated_entity_with_next_rev,
+        )?;
+        Ok(updated_entity_with_next_rev)
+    })
+    .map_err(Into::into)
 }

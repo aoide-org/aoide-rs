@@ -21,11 +21,9 @@ use aoide_core::entity::EntityUid;
 
 pub fn delete(connection: &SqliteConnection, uid: &EntityUid) -> Result<()> {
     let db = RepoConnection::new(connection);
-    Ok(
-        db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-            let id = db.resolve_playlist_id(uid)?;
-            db.delete_playlist_entity(id)?;
-            Ok(())
-        })?,
-    )
+    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+        let id = db.resolve_playlist_id(uid)?;
+        db.delete_playlist_entity(id).map_err(Into::into)
+    })
+    .map_err(Into::into)
 }

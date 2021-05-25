@@ -40,57 +40,56 @@ pub fn replace_by_media_source_path(
         preserve_collected_at,
     } = params;
     let db = RepoConnection::new(connection);
-    Ok(
-        db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
-            let (collection_id, virtual_file_path_resolver) = if *resolve_path_from_url {
-                let (collection_id, virtual_file_path_resolver) =
-                    resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
-                        .map_err(DieselTransactionError::new)?;
-                (collection_id, Some(virtual_file_path_resolver))
-            } else {
-                let collection_id = db.resolve_collection_id(collection_uid)?;
-                (collection_id, None)
-            };
-            let mut summary = uc::Summary::default();
-            for mut track in tracks {
-                if let Some(virtual_file_path_resolver) = virtual_file_path_resolver.as_ref() {
-                    let url = track
-                        .media_source
-                        .path
-                        .parse()
-                        .map_err(|err| {
-                            anyhow::anyhow!(
-                                "Failed to parse URL from path '{}': {}",
-                                track.media_source.path,
-                                err
-                            )
-                        })
-                        .map_err(uc::Error::from)
-                        .map_err(DieselTransactionError::new)?;
-                    track.media_source.path = virtual_file_path_resolver
-                        .resolve_path_from_url(&url)
-                        .map_err(|err| {
-                            anyhow::anyhow!(
-                                "Failed to resolve local file path from URL '{}': {}",
-                                url,
-                                err
-                            )
-                        })
-                        .map_err(uc::Error::from)
-                        .map_err(DieselTransactionError::new)?;
-                }
-                uc::replace_collected_track_by_media_source_path(
-                    &mut summary,
-                    &db,
-                    collection_id,
-                    *replace_mode,
-                    *preserve_collected_at,
-                    track,
-                )?;
+    db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
+        let (collection_id, virtual_file_path_resolver) = if *resolve_path_from_url {
+            let (collection_id, virtual_file_path_resolver) =
+                resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
+                    .map_err(DieselTransactionError::new)?;
+            (collection_id, Some(virtual_file_path_resolver))
+        } else {
+            let collection_id = db.resolve_collection_id(collection_uid)?;
+            (collection_id, None)
+        };
+        let mut summary = uc::Summary::default();
+        for mut track in tracks {
+            if let Some(virtual_file_path_resolver) = virtual_file_path_resolver.as_ref() {
+                let url = track
+                    .media_source
+                    .path
+                    .parse()
+                    .map_err(|err| {
+                        anyhow::anyhow!(
+                            "Failed to parse URL from path '{}': {}",
+                            track.media_source.path,
+                            err
+                        )
+                    })
+                    .map_err(uc::Error::from)
+                    .map_err(DieselTransactionError::new)?;
+                track.media_source.path = virtual_file_path_resolver
+                    .resolve_path_from_url(&url)
+                    .map_err(|err| {
+                        anyhow::anyhow!(
+                            "Failed to resolve local file path from URL '{}': {}",
+                            url,
+                            err
+                        )
+                    })
+                    .map_err(uc::Error::from)
+                    .map_err(DieselTransactionError::new)?;
             }
-            Ok(summary)
-        })?,
-    )
+            uc::replace_collected_track_by_media_source_path(
+                &mut summary,
+                &db,
+                collection_id,
+                *replace_mode,
+                *preserve_collected_at,
+                track,
+            )?;
+        }
+        Ok(summary)
+    })
+    .map_err(Into::into)
 }
 
 // TODO: Reduce number of arguments
@@ -107,25 +106,25 @@ pub fn import_and_replace_by_local_file_path_iter(
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {
     let db = RepoConnection::new(connection);
-    Ok(
-        db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
-            let (collection_id, source_path_resolver) =
-                uc::resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
-                    .map_err(DieselTransactionError::new)?;
-            Ok(uc::import_and_replace_by_local_file_path_iter(
-                &db,
-                collection_id,
-                import_mode,
-                import_config,
-                import_flags,
-                replace_mode,
-                &source_path_resolver,
-                source_path_iter,
-                expected_source_path_count,
-                abort_flag,
-            )?)
-        })?,
-    )
+    db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
+        let (collection_id, source_path_resolver) =
+            uc::resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
+                .map_err(DieselTransactionError::new)?;
+        uc::import_and_replace_by_local_file_path_iter(
+            &db,
+            collection_id,
+            import_mode,
+            import_config,
+            import_flags,
+            replace_mode,
+            &source_path_resolver,
+            source_path_iter,
+            expected_source_path_count,
+            abort_flag,
+        )
+        .map_err(Into::into)
+    })
+    .map_err(Into::into)
 }
 
 // TODO: Reduce number of arguments
@@ -141,23 +140,22 @@ pub fn import_and_replace_by_local_file_path_from_directory(
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {
     let db = RepoConnection::new(connection);
-    Ok(
-        db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
-            let (collection_id, source_path_resolver) =
-                uc::resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
-                    .map_err(DieselTransactionError::new)?;
-            uc::import_and_replace_by_local_file_path_from_directory(
-                &db,
-                collection_id,
-                import_mode,
-                import_config,
-                import_flags,
-                replace_mode,
-                &source_path_resolver,
-                source_dir_path,
-                abort_flag,
-            )
-            .map_err(DieselTransactionError::new)
-        })?,
-    )
+    db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
+        let (collection_id, source_path_resolver) =
+            uc::resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
+                .map_err(DieselTransactionError::new)?;
+        uc::import_and_replace_by_local_file_path_from_directory(
+            &db,
+            collection_id,
+            import_mode,
+            import_config,
+            import_flags,
+            replace_mode,
+            &source_path_resolver,
+            source_dir_path,
+            abort_flag,
+        )
+        .map_err(DieselTransactionError::new)
+    })
+    .map_err(Into::into)
 }

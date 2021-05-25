@@ -37,7 +37,7 @@ pub fn handle_request(
     collection_uid: &_core::EntityUid,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
-    Ok(uc::resolve_by_media_source_paths(
+    uc::resolve_by_media_source_paths(
         &pooled_connection,
         collection_uid,
         request_body.into_iter().map(Into::into).collect(),
@@ -46,5 +46,6 @@ pub fn handle_request(
         v.into_iter()
             .map(|(path, hdr)| (path, hdr.into()))
             .collect()
-    })?)
+    })
+    .map_err(Into::into)
 }

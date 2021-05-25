@@ -37,5 +37,7 @@ pub fn handle_request(
         },
         request_body,
     );
-    Ok(uc::update(&pooled_connection, updated_entity_with_current_rev).map(Into::into)?)
+    uc::update(&pooled_connection, updated_entity_with_current_rev)
+        .map(Into::into)
+        .map_err(Into::into)
 }

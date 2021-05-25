@@ -25,14 +25,10 @@ pub fn purge_by_media_source_path_predicates(
     path_predicates: Vec<StringPredicate>,
 ) -> Result<usize> {
     let db = RepoConnection::new(connection);
-    Ok(
-        db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-            let collection_id = db.resolve_collection_id(collection_uid)?;
-            Ok(uc::purge_by_media_source_path_predicates(
-                &db,
-                collection_id,
-                path_predicates,
-            )?)
-        })?,
-    )
+    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+        let collection_id = db.resolve_collection_id(collection_uid)?;
+        uc::purge_by_media_source_path_predicates(&db, collection_id, path_predicates)
+            .map_err(Into::into)
+    })
+    .map_err(Into::into)
 }

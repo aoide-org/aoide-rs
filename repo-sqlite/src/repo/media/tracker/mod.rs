@@ -18,7 +18,7 @@ use crate::{
     prelude::*,
 };
 
-use aoide_core::util::clock::DateTime;
+use aoide_core::{media::tracker::DirectoriesStatus, util::clock::DateTime};
 
 use aoide_repo::{
     collection::RecordId as CollectionId,
@@ -236,7 +236,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         &self,
         collection_id: CollectionId,
         path_prefix: &str,
-    ) -> RepoResult<DirectoriesStatusSummary> {
+    ) -> RepoResult<DirectoriesStatus> {
         // TODO: Remove with type-safe query when group_by() is available
         /*
         media_tracker_directory::table
@@ -265,9 +265,8 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             .load::<StatusCountRow>(self.as_ref())
             .map_err(repo_error)
             .map(|v| {
-                v.into_iter().fold(
-                    DirectoriesStatusSummary::default(),
-                    |mut aggregate_status, row| {
+                v.into_iter()
+                    .fold(DirectoriesStatus::default(), |mut aggregate_status, row| {
                         let StatusCountRow { status, count } = row;
                         let status =
                             DirTrackingStatus::from_i16(status).expect("DirTrackingStatus");
@@ -295,8 +294,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
                             }
                         }
                         aggregate_status
-                    },
-                )
+                    })
             })
     }
 

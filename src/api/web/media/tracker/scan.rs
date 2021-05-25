@@ -101,7 +101,7 @@ pub fn handle_request(
         root_url,
         max_depth,
     } = request_body;
-    Ok(uc::scan_directories_recursively(
+    uc::scan_directories_recursively(
         &pooled_connection,
         collection_uid,
         &root_url,
@@ -118,5 +118,6 @@ pub fn handle_request(
         },
         abort_flag,
     )
-    .map(Into::into)?)
+    .map(Into::into)
+    .map_err(Into::into)
 }

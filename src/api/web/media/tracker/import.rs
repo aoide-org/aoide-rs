@@ -202,7 +202,7 @@ pub fn handle_request(
         | ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK
         | ImportTrackFlags::MIXXX_CUSTOM_TAGS
         | ImportTrackFlags::SERATO_TAGS;
-    Ok(uc::import(
+    uc::import(
         &pooled_connection,
         collection_uid,
         import_mode.into(),
@@ -218,5 +218,6 @@ pub fn handle_request(
         },
         abort_flag,
     )
-    .map(Into::into)?)
+    .map(Into::into)
+    .map_err(Into::into)
 }

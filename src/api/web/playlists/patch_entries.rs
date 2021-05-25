@@ -106,12 +106,13 @@ pub fn handle_request(
         uid,
         rev: rev.into(),
     };
-    Ok(uc::patch(
+    uc::patch(
         &pooled_connection,
         &entity_header,
         request_body.into_iter().map(Into::into),
     )
-    .map(|(_, entity_with_entries_summary)| entity_with_entries_summary)?)
+    .map(|(_, entity_with_entries_summary)| entity_with_entries_summary)
+    .map_err(Into::into)
 }
 
 ///////////////////////////////////////////////////////////////////////

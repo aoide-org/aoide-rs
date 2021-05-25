@@ -27,5 +27,7 @@ pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
-    Ok(uc::create(&pooled_connection, request_body.into()).map(Into::into)?)
+    uc::create(&pooled_connection, request_body.into())
+        .map(Into::into)
+        .map_err(Into::into)
 }

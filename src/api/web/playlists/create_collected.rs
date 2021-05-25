@@ -28,5 +28,7 @@ pub fn handle_request(
     collection_uid: &EntityUid,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
-    Ok(uc::create(&pooled_connection, collection_uid, request_body.into()).map(Into::into)?)
+    uc::create(&pooled_connection, collection_uid, request_body.into())
+        .map(Into::into)
+        .map_err(Into::into)
 }

@@ -2084,10 +2084,10 @@ components:
         rootUrl:
           $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
         status:
-          $ref: '#/components/schemas/MediaTrackerDirTrackingStatus'
+          $ref: '#/components/schemas/MediaTrackerDirectoriesTrackingStatus'
       required:
         - rootUrl
-    MediaTrackerDirTrackingStatus:
+    MediaTrackerDirectoriesTrackingStatus:
       type: string
       enum:
         - current
@@ -2110,13 +2110,13 @@ components:
           $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
     MediaTrackerQueryStatusResponseBody:
       allOf:
-        - $ref: '#/components/schemas/MediaTrackerStatusSummary'
+        - $ref: '#/components/schemas/MediaTrackerStatus'
     MediaTrackerCompletion:
       type: string
       enum:
         - finished
         - aborted
-    MediaTrackerStatusSummary:
+    MediaTrackerStatus:
       type: object
       properties:
         directories:

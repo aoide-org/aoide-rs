@@ -45,11 +45,12 @@ pub fn handle_request(
         old_path_prefix,
         new_path_prefix,
     } = request_body;
-    Ok(uc::relocate_collected_sources(
+    uc::relocate_collected_sources(
         &pooled_connection,
         collection_uid,
         &old_path_prefix,
         &new_path_prefix,
     )
-    .map(|replaced_count| ResponseBody { replaced_count })?)
+    .map(|replaced_count| ResponseBody { replaced_count })
+    .map_err(Into::into)
 }

@@ -46,23 +46,22 @@ pub fn import(
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {
     let db = RepoConnection::new(connection);
-    Ok(
-        db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
-            let (collection_id, source_path_resolver) =
-                uc::resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
-                    .map_err(DieselTransactionError::new)?;
-            uc::import(
-                &db,
-                collection_id,
-                import_mode,
-                import_config,
-                import_flags,
-                &source_path_resolver,
-                root_dir_url,
-                progress_fn,
-                abort_flag,
-            )
-            .map_err(DieselTransactionError::new)
-        })?,
-    )
+    db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
+        let (collection_id, source_path_resolver) =
+            uc::resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
+                .map_err(DieselTransactionError::new)?;
+        uc::import(
+            &db,
+            collection_id,
+            import_mode,
+            import_config,
+            import_flags,
+            &source_path_resolver,
+            root_dir_url,
+            progress_fn,
+            abort_flag,
+        )
+        .map_err(DieselTransactionError::new)
+    })
+    .map_err(Into::into)
 }

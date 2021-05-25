@@ -21,20 +21,21 @@ use url::Url;
 
 ///////////////////////////////////////////////////////////////////////
 
-pub use aoide_repo::media::tracker::DirectoriesStatusSummary;
+pub use aoide_core::media::tracker::Status;
 
-pub fn query_directories(
+pub fn query_status(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
     root_dir_url: &Url,
-) -> Result<DirectoriesStatusSummary> {
+) -> Result<Status> {
     let path_prefix = path_prefix_from_url(root_dir_url)?;
     let db = RepoConnection::new(connection);
-    Ok(
-        db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-            let collection_id = db.resolve_collection_id(collection_uid)?;
-            Ok(db
-                .media_tracker_aggregate_directories_tracking_status(collection_id, &path_prefix)?)
-        })?,
-    )
+    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+        let collection_id = db.resolve_collection_id(collection_uid)?;
+        let directories =
+            db.media_tracker_aggregate_directories_tracking_status(collection_id, &path_prefix)?;
+        let status = Status { directories };
+        Ok(status)
+    })
+    .map_err(Into::into)
 }

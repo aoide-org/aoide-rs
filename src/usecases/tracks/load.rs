@@ -19,12 +19,11 @@ use super::*;
 
 pub fn load_one(connection: &SqliteConnection, uid: &EntityUid) -> Result<Entity> {
     let db = RepoConnection::new(connection);
-    Ok(
-        db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-            let (_, entity) = db.load_track_entity_by_uid(uid)?;
-            Ok(entity)
-        })?,
-    )
+    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+        let (_, entity) = db.load_track_entity_by_uid(uid)?;
+        Ok(entity)
+    })
+    .map_err(Into::into)
 }
 
 pub fn load_many(
@@ -33,23 +32,22 @@ pub fn load_many(
     collector: &mut impl RecordCollector<Header = RecordHeader, Record = Entity>,
 ) -> Result<()> {
     let db = RepoConnection::new(connection);
-    Ok(
-        db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-            for uid in uid_iter.into_iter() {
-                match db.load_track_entity_by_uid(&uid) {
-                    Ok((record_header, entity)) => {
-                        collector.collect(record_header, entity);
-                    }
-                    Err(RepoError::NotFound) => {
-                        log::debug!("Track with UID '{}' not found", uid);
-                        continue;
-                    }
-                    Err(err) => {
-                        return Err(err.into());
-                    }
+    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+        for uid in uid_iter.into_iter() {
+            match db.load_track_entity_by_uid(&uid) {
+                Ok((record_header, entity)) => {
+                    collector.collect(record_header, entity);
+                }
+                Err(RepoError::NotFound) => {
+                    log::debug!("Track with UID '{}' not found", uid);
+                    continue;
+                }
+                Err(err) => {
+                    return Err(err.into());
                 }
             }
-            Ok(())
-        })?,
-    )
+        }
+        Ok(())
+    })
+    .map_err(Into::into)
 }

@@ -41,64 +41,63 @@ pub fn patch(
 ) -> Result<(RecordHeader, EntityWithEntriesSummary)> {
     let updated_at = DateTime::now_utc();
     let db = RepoConnection::new(connection);
-    Ok(
-        db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-            let (record_header, _next_rev) =
-                db.touch_playlist_entity_revision(&entity_header, updated_at)?;
-            for operation in operations.into_iter() {
-                use PatchOperation::*;
-                match operation {
-                    Append { entries } => {
-                        if entries.is_empty() {
-                            continue;
-                        }
-                        db.append_playlist_entries(record_header.id, &entries)?;
+    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+        let (record_header, _next_rev) =
+            db.touch_playlist_entity_revision(&entity_header, updated_at)?;
+        for operation in operations.into_iter() {
+            use PatchOperation::*;
+            match operation {
+                Append { entries } => {
+                    if entries.is_empty() {
+                        continue;
                     }
-                    Prepend { entries } => {
-                        if entries.is_empty() {
-                            continue;
-                        }
-                        db.prepend_playlist_entries(record_header.id, &entries)?;
+                    db.append_playlist_entries(record_header.id, &entries)?;
+                }
+                Prepend { entries } => {
+                    if entries.is_empty() {
+                        continue;
                     }
-                    Insert { before, entries } => {
-                        if entries.is_empty() {
-                            continue;
-                        }
-                        db.insert_playlist_entries(record_header.id, before, &entries)?;
+                    db.prepend_playlist_entries(record_header.id, &entries)?;
+                }
+                Insert { before, entries } => {
+                    if entries.is_empty() {
+                        continue;
                     }
-                    CopyAll {
-                        source_playlist_uid,
-                    } => {
-                        let source_playlist_id = db.resolve_playlist_id(&source_playlist_uid)?;
-                        db.copy_all_playlist_entries(source_playlist_id, record_header.id)?;
+                    db.insert_playlist_entries(record_header.id, before, &entries)?;
+                }
+                CopyAll {
+                    source_playlist_uid,
+                } => {
+                    let source_playlist_id = db.resolve_playlist_id(&source_playlist_uid)?;
+                    db.copy_all_playlist_entries(source_playlist_id, record_header.id)?;
+                }
+                Move { range, delta } => {
+                    if range.is_empty() || delta == 0 {
+                        continue;
                     }
-                    Move { range, delta } => {
-                        if range.is_empty() || delta == 0 {
-                            continue;
-                        }
-                        db.move_playlist_entries(record_header.id, &range, delta)?;
+                    db.move_playlist_entries(record_header.id, &range, delta)?;
+                }
+                Remove { range } => {
+                    if range.is_empty() {
+                        continue;
                     }
-                    Remove { range } => {
-                        if range.is_empty() {
-                            continue;
-                        }
-                        db.remove_playlist_entries(record_header.id, &range)?;
-                    }
-                    RemoveAll => {
-                        db.remove_all_playlist_entries(record_header.id)?;
-                    }
-                    ReverseAll => {
-                        db.reverse_all_playlist_entries(record_header.id)?;
-                    }
-                    ShuffleAll => {
-                        db.shuffle_all_playlist_entries(record_header.id)?;
-                    }
+                    db.remove_playlist_entries(record_header.id, &range)?;
+                }
+                RemoveAll => {
+                    db.remove_all_playlist_entries(record_header.id)?;
+                }
+                ReverseAll => {
+                    db.reverse_all_playlist_entries(record_header.id)?;
+                }
+                ShuffleAll => {
+                    db.shuffle_all_playlist_entries(record_header.id)?;
                 }
             }
-            let (record_header, entity, entries_summary) =
-                db.load_playlist_entity_with_entries_summary(record_header.id)?;
-            debug_assert_eq!(_next_rev, entity.hdr.rev);
-            Ok((record_header, (entity, entries_summary).into()))
-        })?,
-    )
+        }
+        let (record_header, entity, entries_summary) =
+            db.load_playlist_entity_with_entries_summary(record_header.id)?;
+        debug_assert_eq!(_next_rev, entity.hdr.rev);
+        Ok((record_header, (entity, entries_summary).into()))
+    })
+    .map_err(Into::into)
 }

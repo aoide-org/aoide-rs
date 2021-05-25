@@ -19,7 +19,10 @@ use crate::{
     collection::RecordId as CollectionId, media::source::RecordId as MediaSourceId, prelude::*,
 };
 
-use aoide_core::{media::SourcePath, util::clock::*};
+use aoide_core::{
+    media::{tracker::DirectoriesStatus, SourcePath},
+    util::clock::*,
+};
 
 use num_derive::{FromPrimitive, ToPrimitive};
 
@@ -89,15 +92,6 @@ impl From<DirUpdateOutcome> for DirTrackingStatus {
     fn from(from: DirUpdateOutcome) -> Self {
         from.resulting_status()
     }
-}
-
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct DirectoriesStatusSummary {
-    pub current: usize,
-    pub outdated: usize,
-    pub added: usize,
-    pub modified: usize,
-    pub orphaned: usize,
 }
 
 pub trait Repo {
@@ -217,5 +211,5 @@ pub trait Repo {
         &self,
         collection_id: CollectionId,
         path_prefix: &str,
-    ) -> RepoResult<DirectoriesStatusSummary>;
+    ) -> RepoResult<DirectoriesStatus>;
 }

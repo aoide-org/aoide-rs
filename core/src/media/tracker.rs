@@ -13,25 +13,16 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct Status {
+    pub directories: DirectoriesStatus,
+}
 
-use aoide_core::util::clock::DateTime;
-
-use semval::Validate as _;
-
-///////////////////////////////////////////////////////////////////////
-
-pub fn create(connection: &SqliteConnection, new_collection: Collection) -> Result<Entity> {
-    if let Err(err) = new_collection.validate() {
-        return Err(anyhow::anyhow!("Invalid collection: {:?}", err).into());
-    }
-    let hdr = EntityHeader::initial_random();
-    let entity = Entity::new(hdr, new_collection);
-    let created_at = DateTime::now_utc();
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-        db.insert_collection_entity(created_at, &entity)?;
-        Ok(entity)
-    })
-    .map_err(Into::into)
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct DirectoriesStatus {
+    pub current: usize,
+    pub outdated: usize,
+    pub added: usize,
+    pub modified: usize,
+    pub orphaned: usize,
 }

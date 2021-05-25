@@ -20,6 +20,7 @@ mod uc {
 }
 
 use aoide_core::entity::EntityUid;
+use aoide_core_serde::media::tracker::Status;
 
 use url::Url;
 
@@ -31,43 +32,8 @@ pub struct Params {
     pub root_url: Url,
 }
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct DirectoriesStatusSummary {
-    pub current: usize,
-    pub outdated: usize,
-    pub added: usize,
-    pub modified: usize,
-    pub orphaned: usize,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct StatusSummary {
-    pub directories: DirectoriesStatusSummary,
-}
-
-impl From<uc::DirectoriesStatusSummary> for DirectoriesStatusSummary {
-    fn from(from: uc::DirectoriesStatusSummary) -> Self {
-        let uc::DirectoriesStatusSummary {
-            current,
-            outdated,
-            added,
-            modified,
-            orphaned,
-        } = from;
-        Self {
-            current,
-            outdated,
-            added,
-            modified,
-            orphaned,
-        }
-    }
-}
-
 pub type RequestBody = Params;
-pub type ResponseBody = StatusSummary;
+pub type ResponseBody = Status;
 
 pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
@@ -75,11 +41,7 @@ pub fn handle_request(
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
     let RequestBody { root_url } = request_body;
-    Ok(
-        uc::query_directories(&pooled_connection, collection_uid, &root_url).map(
-            |directories| StatusSummary {
-                directories: directories.into(),
-            },
-        )?,
-    )
+    uc::query_status(&pooled_connection, collection_uid, &root_url)
+        .map(Into::into)
+        .map_err(Into::into)
 }

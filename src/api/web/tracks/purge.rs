@@ -37,10 +37,11 @@ pub fn handle_request(
     collection_uid: &_core::EntityUid,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
-    Ok(uc::purge_by_media_source_path_predicates(
+    uc::purge_by_media_source_path_predicates(
         &pooled_connection,
         collection_uid,
         request_body.into_iter().map(Into::into).collect(),
     )
-    .map(|count| count as u64)?)
+    .map(|count| count as u64)
+    .map_err(Into::into)
 }
