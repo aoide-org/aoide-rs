@@ -58,6 +58,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "aoide-client"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "aoide-core",
+ "aoide-core-serde",
+ "env_logger",
+ "log",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "url",
+]
+
+[[package]]
 name = "aoide-core"
 version = "0.0.0"
 dependencies = [

@@ -10,6 +10,7 @@ edition = "2018"
 [workspace]
 members = [
   "./",
+  "client",
   "core",
   "core-serde",
   "media",
@@ -19,6 +20,7 @@ members = [
 ]
 
 [patch.crates-io]
+aoide-client = { path = "client" }
 aoide-core = { path = "core" }
 aoide-core-serde = { path = "core-serde" }
 aoide-media = { path = "media" }
