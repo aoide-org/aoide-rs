@@ -15,10 +15,8 @@
 
 use super::*;
 
-use aoide_core::{
-    entity::EntityUid,
-    media::{resolver::VirtualFilePathResolver, SourcePathKind},
-};
+use aoide_core::{entity::EntityUid, media::SourcePathKind};
+use aoide_media::resolver::VirtualFilePathResolver;
 use aoide_repo::collection::{EntityRepo, RecordId as CollectionId};
 
 use url::Url;

@@ -17,8 +17,6 @@
 
 use super::*;
 
-use aoide_media::fs::digest;
-
 pub mod import;
 pub mod query_status;
 pub mod scan;
@@ -45,60 +43,3 @@ impl From<uc::Completion> for Completion {
         }
     }
 }
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum Progress {
-    Idle,
-    Scanning(ScanningProgress),
-    Importing(ImportingProgress),
-}
-
-#[derive(Debug, Default, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ScanningProgress {
-    entries: HashingEntriesProgress,
-    directories: HashingDirectoriesProgress,
-}
-
-impl From<digest::Progress> for ScanningProgress {
-    fn from(from: digest::Progress) -> Self {
-        let digest::Progress {
-            entries,
-            directories,
-        } = from;
-        Self {
-            entries: entries.into(),
-            directories: directories.into(),
-        }
-    }
-}
-
-#[derive(Debug, Default, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct HashingEntriesProgress {
-    skipped: usize,
-    finished: usize,
-}
-
-impl From<digest::EntriesProgress> for HashingEntriesProgress {
-    fn from(from: digest::EntriesProgress) -> Self {
-        let digest::EntriesProgress { skipped, finished } = from;
-        Self { skipped, finished }
-    }
-}
-
-#[derive(Debug, Default, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct HashingDirectoriesProgress {
-    finished: usize,
-}
-
-impl From<digest::DirectoriesProgress> for HashingDirectoriesProgress {
-    fn from(from: digest::DirectoriesProgress) -> Self {
-        let digest::DirectoriesProgress { finished } = from;
-        Self { finished }
-    }
-}
-
-pub type ImportingProgress = import::Summary;

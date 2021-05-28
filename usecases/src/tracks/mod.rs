@@ -15,10 +15,8 @@
 
 use super::*;
 
-use aoide_core::{
-    media::resolver::{FileUrlResolver, SourcePathResolver as _, VirtualFilePathResolver},
-    track::*,
-};
+use aoide_core::track::*;
+use aoide_media::resolver::{FileUrlResolver, SourcePathResolver as _, VirtualFilePathResolver};
 use aoide_repo::track::RecordHeader;
 
 pub mod find_duplicate;

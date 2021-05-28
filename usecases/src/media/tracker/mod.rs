@@ -15,8 +15,7 @@
 
 use super::*;
 
-use aoide_core::media::resolver::SourcePathResolver;
-use aoide_media::fs::local_file_path_from_url;
+use aoide_media::{fs::local_file_path_from_url, resolver::SourcePathResolver};
 
 ///////////////////////////////////////////////////////////////////////
 

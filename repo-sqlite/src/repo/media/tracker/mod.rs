@@ -18,7 +18,7 @@ use crate::{
     prelude::*,
 };
 
-use aoide_core::{media::tracker::DirectoriesStatus, util::clock::DateTime};
+use aoide_core::{usecases::media::tracker::DirectoriesStatus, util::clock::DateTime};
 
 use aoide_repo::{
     collection::RecordId as CollectionId,

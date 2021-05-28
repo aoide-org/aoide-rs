@@ -15,6 +15,8 @@
 
 use super::*;
 
+use aoide_core::usecases::media::tracker::import::Summary;
+
 use aoide_repo::{
     collection::RecordId as CollectionId,
     media::tracker::{Repo as MediaTrackerRepo, TrackedDirectory},
@@ -24,70 +26,15 @@ use aoide_repo::{
 
 use tracks::replace::{
     import_and_replace_by_local_file_path_from_directory, Completion as ReplaceCompletion,
-    Outcome as ReplaceOutcome, Summary as ReplaceSummary,
+    Outcome as ReplaceOutcome,
 };
 
-use std::{
-    ops::AddAssign,
-    sync::atomic::{AtomicBool, Ordering},
-};
+use std::sync::atomic::{AtomicBool, Ordering};
 use url::Url;
 
 ///////////////////////////////////////////////////////////////////////
 
 pub use aoide_media::io::import::{ImportTrackConfig, ImportTrackFlags};
-
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct Summary {
-    pub tracks: TrackSummary,
-    pub directories: DirectorySummary,
-}
-
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct TrackSummary {
-    pub created: usize,
-    pub updated: usize,
-    pub missing: usize,
-    pub unchanged: usize,
-    pub not_imported: usize,
-    pub not_created: usize,
-    pub not_updated: usize,
-}
-
-impl AddAssign<&ReplaceSummary> for TrackSummary {
-    fn add_assign(&mut self, rhs: &ReplaceSummary) {
-        let Self {
-            created,
-            updated,
-            unchanged,
-            missing: _,
-            not_imported,
-            not_created,
-            not_updated,
-        } = self;
-        let ReplaceSummary {
-            created: rhs_created,
-            updated: rhs_updated,
-            unchanged: rhs_unchanged,
-            not_imported: rhs_not_imported,
-            not_created: rhs_not_created,
-            not_updated: rhs_not_updated,
-        } = rhs;
-        *created += rhs_created.len();
-        *updated += rhs_updated.len();
-        *unchanged += rhs_unchanged.len();
-        *not_imported += rhs_not_imported.len();
-        *not_created += rhs_not_created.len();
-        *not_updated += rhs_not_updated.len();
-    }
-}
-
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct DirectorySummary {
-    pub confirmed: usize,
-    pub rejected: usize,
-    pub skipped: usize,
-}
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Outcome {

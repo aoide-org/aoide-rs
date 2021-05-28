@@ -18,17 +18,16 @@
 mod env;
 
 use aoide::{
-    api::web::{
-        collections, handle_rejection,
-        media::{self, tracker::Progress as MediaTrackerProgress},
-        playlists, reject_on_error, tracks, Error,
-    },
+    api::web::{collections, handle_rejection, media, playlists, reject_on_error, tracks, Error},
     usecases as uc, *,
 };
 
 use aoide_core::entity::EntityUid;
 
-use aoide_media::fs::digest::ProgressEvent as ScanningProgressEvent;
+use aoide_media::fs::digest::{self, ProgressEvent as ScanningProgressEvent};
+
+use aoide_core_serde::usecases::media::tracker::Progress as MediaTrackerProgress;
+
 use std::{
     collections::HashMap,
     convert::Infallible,
@@ -427,8 +426,9 @@ pub async fn main() -> Result<(), Error> {
                             .map(|ev: &ScanningProgressEvent| ev.progress.to_owned());
                         // Borrow has already been released at this point
                         if let Some(progress) = progress {
-                            *media_tracker_progress.lock().await =
-                                MediaTrackerProgress::Scanning(progress.into());
+                            *media_tracker_progress.lock().await = MediaTrackerProgress::Scanning(
+                                digest_progress_into_scanning_progress(progress),
+                            );
                         }
                     }
                     log::debug!("Unwatching media tracker scanning");
@@ -472,8 +472,9 @@ pub async fn main() -> Result<(), Error> {
              request_body,
              guarded_connection_pool: GuardedConnectionPool,
              media_tracker_progress: Arc<Mutex<MediaTrackerProgress>>| async move {
-                let (progress_summary_tx, mut progress_summary_rx) =
-                    watch::channel(uc::media::tracker::import::Summary::default());
+                let (progress_summary_tx, mut progress_summary_rx) = watch::channel(
+                    aoide_core::usecases::media::tracker::import::Summary::default(),
+                );
                 let watcher = tokio::spawn(async move {
                     *media_tracker_progress.lock().await =
                         MediaTrackerProgress::Importing(Default::default());
@@ -966,4 +967,29 @@ pub async fn main() -> Result<(), Error> {
     log::info!("Stopped");
 
     Ok(())
+}
+
+fn digest_progress_into_scanning_progress(
+    digest_progress: digest::Progress,
+) -> aoide_core_serde::usecases::media::tracker::ScanningProgress {
+    let digest::Progress {
+        entries:
+            digest::EntriesProgress {
+                skipped: entries_skipped,
+                finished: entries_finished,
+            },
+        directories:
+            digest::DirectoriesProgress {
+                finished: directories_finished,
+            },
+    } = digest_progress;
+    aoide_core_serde::usecases::media::tracker::ScanningProgress {
+        entries: aoide_core_serde::usecases::media::tracker::ScanningEntriesProgress {
+            skipped: entries_skipped,
+            finished: entries_finished,
+        },
+        directories: aoide_core_serde::usecases::media::tracker::ScanningDirectoriesProgress {
+            finished: directories_finished,
+        },
+    }
 }

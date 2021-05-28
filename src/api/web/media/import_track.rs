@@ -20,12 +20,12 @@ mod uc {
 }
 
 use aoide_core::{
-    media::resolver::{ResolveFromUrlError, SourcePathResolver, UrlResolver},
     track::tag::{FACET_GENRE, FACET_MOOD},
     util::clock::DateTime,
 };
 use aoide_media::{
     io::import::{ImportTrackConfig, ImportTrackFlags},
+    resolver::{ResolveFromUrlError, SourcePathResolver, UrlResolver},
     util::tag::{FacetedTagMappingConfigInner, TagMappingConfig},
 };
 

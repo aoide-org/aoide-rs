@@ -13,11 +13,16 @@ chrono = "*"
 lazy_static = "*"
 num-derive = "*"
 num-traits = "*"
-path-slash = "*"
 rand = "*"
 semval = "*"
 thiserror = "*"
 url = "*"
+
+# Dirty hack to support wasm32-unknown-unknown target. Otherwise
+# compilation will fail for this transitive dependency needed
+# by uuid and rand_core.
+# TODO: Remove if no longer needed
+getrandom = { version = "*", default-features = false, features = ["js"] }
 
 [features]
 default = []

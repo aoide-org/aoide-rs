@@ -21,7 +21,7 @@ use url::Url;
 
 ///////////////////////////////////////////////////////////////////////
 
-pub use aoide_core::media::tracker::Status;
+pub use aoide_core::usecases::media::tracker::Status;
 
 pub fn query_status(
     connection: &SqliteConnection,

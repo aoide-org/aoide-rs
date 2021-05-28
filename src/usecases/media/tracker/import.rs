@@ -15,6 +15,7 @@
 
 use super::*;
 
+use aoide_core::usecases::media::tracker::import::Summary;
 use aoide_media::io::import::{ImportTrackConfig, ImportTrackFlags};
 
 use std::sync::atomic::AtomicBool;
@@ -30,8 +31,6 @@ mod uc {
         Error,
     };
 }
-
-pub use uc::Summary;
 
 // TODO: Reduce number of arguments
 #[allow(clippy::too_many_arguments)]

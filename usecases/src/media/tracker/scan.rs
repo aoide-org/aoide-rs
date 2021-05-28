@@ -15,9 +15,9 @@
 
 use super::*;
 
-use aoide_core::{media::resolver::SourcePathResolver, util::clock::DateTime};
+use aoide_core::util::clock::DateTime;
 
-use aoide_media::fs::digest;
+use aoide_media::{fs::digest, resolver::SourcePathResolver};
 
 use aoide_repo::{
     collection::RecordId as CollectionId,

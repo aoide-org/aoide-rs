@@ -15,16 +15,13 @@
 
 use super::*;
 
-use aoide_core::{
-    media::{resolver::VirtualFilePathResolver, SourcePath},
-    track::Track,
-    util::clock::DateTime,
-};
+use aoide_core::{media::SourcePath, track::Track, util::clock::DateTime};
 
 use aoide_media::{
     fmt::{flac, mp3, mp4, ogg},
     fs::open_local_file_for_reading,
     io::import::*,
+    resolver::VirtualFilePathResolver,
     util::guess_mime_from_path,
 };
 

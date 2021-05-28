@@ -27,20 +27,21 @@ use tokio::sync::watch;
 use url::Url;
 
 mod _core {
-    pub use aoide_core::entity::EntityUid;
+    pub use aoide_core::{
+        entity::EntityUid,
+        usecases::media::tracker::import::{DirectorySummary, Summary},
+    };
 }
 
 mod uc {
     pub use crate::usecases::media::tracker::{import::*, *};
-
-    pub use aoide_usecases::media::tracker::import::{
-        DirectorySummary, Outcome, Summary, TrackSummary,
-    };
+    pub use aoide_usecases::media::tracker::import::Outcome;
 }
 
 pub use aoide_core_serde::{
     entity::EntityHeader,
     track::{Entity, Track},
+    usecases::media::tracker::import::Summary,
 };
 
 #[derive(Clone, Debug, Deserialize)]
@@ -51,95 +52,6 @@ pub struct Params {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub import_mode: Option<ImportMode>,
-}
-
-#[derive(Clone, Debug, Default, Serialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct TrackSummary {
-    pub created: usize,
-    pub updated: usize,
-    pub missing: usize,
-    pub unchanged: usize,
-    pub not_imported: usize,
-    pub not_created: usize,
-    pub not_updated: usize,
-}
-
-impl From<uc::TrackSummary> for TrackSummary {
-    fn from(from: uc::TrackSummary) -> Self {
-        let uc::TrackSummary {
-            created,
-            updated,
-            missing,
-            unchanged,
-            not_imported,
-            not_created,
-            not_updated,
-        } = from;
-        Self {
-            created,
-            updated,
-            missing,
-            unchanged,
-            not_imported,
-            not_created,
-            not_updated,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Default, Serialize)]
-pub struct DirectorySummary {
-    /// Successfully imported and marked as current.
-    pub confirmed: usize,
-
-    /// Rejected directories are retried repeatedly.
-    ///
-    /// This may only happen due to race condition if multiple
-    /// concurrent tasks are running. Currently this could never
-    /// happen due to an exclusive lock on the database.
-    pub rejected: usize,
-
-    /// Skipped directories will not be retried.
-    ///
-    /// Directories are skipped on non-recoverable errors that
-    /// would occur again when retrying the import. Yet the import
-    /// will be retried after restarting the import task.
-    pub skipped: usize,
-}
-
-impl From<uc::DirectorySummary> for DirectorySummary {
-    fn from(from: uc::DirectorySummary) -> Self {
-        let uc::DirectorySummary {
-            confirmed,
-            rejected,
-            skipped,
-        } = from;
-        Self {
-            confirmed,
-            rejected,
-            skipped,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Default, Serialize)]
-pub struct Summary {
-    pub tracks: TrackSummary,
-    pub directories: DirectorySummary,
-}
-
-impl From<uc::Summary> for Summary {
-    fn from(from: uc::Summary) -> Self {
-        let uc::Summary {
-            tracks,
-            directories,
-        } = from;
-        Self {
-            tracks: tracks.into(),
-            directories: directories.into(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -170,7 +82,7 @@ pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
     collection_uid: &_core::EntityUid,
     request_body: RequestBody,
-    progress_summary_tx: Option<&watch::Sender<uc::Summary>>,
+    progress_summary_tx: Option<&watch::Sender<_core::Summary>>,
     abort_flag: &AtomicBool,
 ) -> Result<ResponseBody> {
     let RequestBody {

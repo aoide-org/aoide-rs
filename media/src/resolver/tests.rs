@@ -75,19 +75,3 @@ fn resolve_url_from_relative_path_without_base_url_fails() -> Result<(), Resolve
         .is_err());
     Ok(())
 }
-
-#[test]
-fn valid_local_file_base_url() -> Result<(), ResolveFromPathError> {
-    let base_url = "file:///home/".parse().unwrap();
-    assert!(VirtualFilePathResolver::is_valid_base_url(&base_url));
-    Ok(())
-}
-
-#[test]
-fn invalid_local_file_base_url() -> Result<(), ResolveFromPathError> {
-    let base_url_without_trailing_slash = "file:///home".parse().unwrap();
-    assert!(!VirtualFilePathResolver::is_valid_base_url(
-        &base_url_without_trailing_slash
-    ));
-    Ok(())
-}

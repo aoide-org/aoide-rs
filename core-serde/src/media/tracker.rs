@@ -16,7 +16,7 @@
 use crate::prelude::*;
 
 mod _core {
-    pub use aoide_core::media::tracker::*;
+    pub use aoide_core::usecases::media::tracker::*;
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

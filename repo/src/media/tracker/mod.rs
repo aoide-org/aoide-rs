@@ -19,10 +19,7 @@ use crate::{
     collection::RecordId as CollectionId, media::source::RecordId as MediaSourceId, prelude::*,
 };
 
-use aoide_core::{
-    media::{tracker::DirectoriesStatus, SourcePath},
-    util::clock::*,
-};
+use aoide_core::{media::SourcePath, usecases::media::tracker::DirectoriesStatus, util::clock::*};
 
 use num_derive::{FromPrimitive, ToPrimitive};
 

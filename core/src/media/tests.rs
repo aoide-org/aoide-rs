@@ -111,3 +111,17 @@ fn given_locked_update() {
         }
     }
 }
+
+#[test]
+fn valid_file_path_base_url() {
+    let base_url = "file:///home/".parse().unwrap();
+    assert!(is_valid_file_path_base_url(&base_url));
+}
+
+#[test]
+fn invalid_file_path_base_url() {
+    let base_url_without_trailing_slash = "file:///home".parse().unwrap();
+    assert!(!is_valid_file_path_base_url(
+        &base_url_without_trailing_slash
+    ));
+}

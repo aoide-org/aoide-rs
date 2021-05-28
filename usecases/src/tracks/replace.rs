@@ -20,15 +20,12 @@ use crate::media::{
     SynchronizedImportMode,
 };
 
-use aoide_core::{
-    media::{
-        resolver::{SourcePathResolver, VirtualFilePathResolver},
-        SourcePath,
-    },
-    util::clock::DateTime,
-};
+use aoide_core::{media::SourcePath, util::clock::DateTime};
 
-use aoide_media::io::import::{ImportTrackConfig, ImportTrackFlags};
+use aoide_media::{
+    io::import::{ImportTrackConfig, ImportTrackFlags},
+    resolver::{SourcePathResolver, VirtualFilePathResolver},
+};
 
 use aoide_repo::{
     collection::RecordId as CollectionId,
@@ -41,6 +38,8 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 use url::Url;
+
+pub use aoide_core::usecases::tracks::replace::Summary;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Params {
@@ -80,16 +79,6 @@ pub struct Outcome {
     pub completion: Completion,
     pub summary: Summary,
     pub media_source_ids: Vec<MediaSourceId>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct Summary {
-    pub created: Vec<Entity>,
-    pub updated: Vec<Entity>,
-    pub unchanged: Vec<SourcePath>,
-    pub not_imported: Vec<SourcePath>,
-    pub not_created: Vec<Track>,
-    pub not_updated: Vec<Track>,
 }
 
 pub fn replace_collected_track_by_media_source_path<Repo>(

@@ -13,29 +13,4 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-///////////////////////////////////////////////////////////////////////
-
-#![deny(missing_debug_implementations)]
-#![warn(rust_2018_idioms)]
-
-pub mod prelude {
-    pub use serde::{Deserialize, Serialize};
-
-    pub(crate) use serde_repr::*;
-
-    pub(crate) use crate::util::{clock::*, color::*};
-
-    pub(crate) use schemars::JsonSchema;
-}
-
-pub mod audio;
-pub mod collection;
-pub mod entity;
-pub mod media;
-pub mod music;
-pub mod playlist;
-pub mod tag;
-pub mod track;
-pub mod util;
-
-pub mod usecases;
+pub mod tracker;

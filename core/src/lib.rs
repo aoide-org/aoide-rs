@@ -20,6 +20,7 @@
 
 ///////////////////////////////////////////////////////////////////////
 
+// TODO: Move into `domain` submodule
 pub mod audio;
 pub mod collection;
 pub mod entity;
@@ -29,6 +30,8 @@ pub mod playlist;
 pub mod tag;
 pub mod track;
 pub mod util;
+
+pub mod usecases;
 
 pub mod prelude {
 

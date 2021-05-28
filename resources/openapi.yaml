@@ -316,7 +316,7 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /c/{collectionUid}/media-tracker/scan:
+  /c/{collectionUid}/media-tracker/start-scan:
     post:
       summary: Scan a directory tree for changes
       description: |
@@ -351,7 +351,7 @@ paths:
                 $ref: '#/components/schemas/MediaTrackerScanResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /c/{collectionUid}/media-tracker/import:
+  /c/{collectionUid}/media-tracker/start-import:
     post:
       summary: Import sources from changed directories
       description: |

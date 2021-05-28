@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+pub mod import;
+
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Status {
     pub directories: DirectoriesStatus,
@@ -26,3 +28,29 @@ pub struct DirectoriesStatus {
     pub modified: usize,
     pub orphaned: usize,
 }
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Progress {
+    Idle,
+    Scanning(ScanningProgress),
+    Importing(ImportingProgress),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ScanningProgress {
+    pub entries: ScanningEntriesProgress,
+    pub directories: ScanningDirectoriesProgress,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ScanningEntriesProgress {
+    pub skipped: usize,
+    pub finished: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ScanningDirectoriesProgress {
+    pub finished: usize,
+}
+
+pub type ImportingProgress = import::Summary;
