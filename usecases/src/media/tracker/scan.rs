@@ -15,7 +15,12 @@
 
 use super::*;
 
-use aoide_core::util::clock::DateTime;
+use aoide_core::{
+    usecases::media::tracker::{
+        ScanningDirectoriesProgress, ScanningEntriesProgress, ScanningProgress,
+    },
+    util::clock::DateTime,
+};
 
 use aoide_media::{fs::digest, resolver::SourcePathResolver};
 
@@ -27,9 +32,43 @@ use aoide_repo::{
 use std::sync::atomic::AtomicBool;
 use url::Url;
 
-///////////////////////////////////////////////////////////////////////
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct ProgressEvent {
+    pub status: digest::Status,
+    pub progress: ScanningProgress,
+}
 
-pub use aoide_media::fs::digest::ProgressEvent;
+impl From<digest::ProgressEvent> for ProgressEvent {
+    fn from(from: digest::ProgressEvent) -> Self {
+        let digest::ProgressEvent {
+            status,
+            progress:
+                digest::Progress {
+                    directories:
+                        digest::DirectoriesProgress {
+                            finished: directories_finished,
+                        },
+                    entries:
+                        digest::EntriesProgress {
+                            skipped: entries_skipped,
+                            finished: entries_finished,
+                        },
+                },
+        } = from;
+        Self {
+            status,
+            progress: ScanningProgress {
+                directories: ScanningDirectoriesProgress {
+                    finished: directories_finished,
+                },
+                entries: ScanningEntriesProgress {
+                    skipped: entries_skipped,
+                    finished: entries_finished,
+                },
+            },
+        }
+    }
+}
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Summary {
@@ -52,7 +91,7 @@ pub fn scan_directories_recursively<Repo>(
     root_dir_url: &Url,
     source_path_resolver: &impl SourcePathResolver,
     max_depth: Option<usize>,
-    progress_fn: &mut impl FnMut(&ProgressEvent),
+    progress_fn: &mut impl FnMut(ProgressEvent),
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
@@ -110,7 +149,7 @@ where
         },
         |progress_event| {
             log::trace!("{:?}", progress_event);
-            progress_fn(progress_event);
+            progress_fn(progress_event.to_owned().into());
         },
     )
     .map_err(anyhow::Error::from)

@@ -24,8 +24,6 @@ use aoide::{
 
 use aoide_core::entity::EntityUid;
 
-use aoide_media::fs::digest::{self, ProgressEvent as ScanningProgressEvent};
-
 use aoide_core_serde::usecases::media::tracker::Progress as MediaTrackerProgress;
 
 use std::{
@@ -420,15 +418,15 @@ pub async fn main() -> Result<(), Error> {
                         MediaTrackerProgress::Scanning(Default::default());
                     log::debug!("Watching media tracker scanning");
                     while progress_event_rx.changed().await.is_ok() {
-                        let progress = progress_event_rx
-                            .borrow()
-                            .as_ref()
-                            .map(|ev: &ScanningProgressEvent| ev.progress.to_owned());
+                        let progress = progress_event_rx.borrow().as_ref().map(
+                            |event: &aoide_usecases::media::tracker::scan::ProgressEvent| {
+                                event.progress.to_owned()
+                            },
+                        );
                         // Borrow has already been released at this point
                         if let Some(progress) = progress {
-                            *media_tracker_progress.lock().await = MediaTrackerProgress::Scanning(
-                                digest_progress_into_scanning_progress(progress),
-                            );
+                            *media_tracker_progress.lock().await =
+                                MediaTrackerProgress::Scanning(progress.into());
                         }
                     }
                     log::debug!("Unwatching media tracker scanning");
@@ -967,29 +965,4 @@ pub async fn main() -> Result<(), Error> {
     log::info!("Stopped");
 
     Ok(())
-}
-
-fn digest_progress_into_scanning_progress(
-    digest_progress: digest::Progress,
-) -> aoide_core_serde::usecases::media::tracker::ScanningProgress {
-    let digest::Progress {
-        entries:
-            digest::EntriesProgress {
-                skipped: entries_skipped,
-                finished: entries_finished,
-            },
-        directories:
-            digest::DirectoriesProgress {
-                finished: directories_finished,
-            },
-    } = digest_progress;
-    aoide_core_serde::usecases::media::tracker::ScanningProgress {
-        entries: aoide_core_serde::usecases::media::tracker::ScanningEntriesProgress {
-            skipped: entries_skipped,
-            finished: entries_finished,
-        },
-        directories: aoide_core_serde::usecases::media::tracker::ScanningDirectoriesProgress {
-            finished: directories_finished,
-        },
-    }
 }

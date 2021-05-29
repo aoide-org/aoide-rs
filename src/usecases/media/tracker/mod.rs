@@ -17,10 +17,10 @@ use super::*;
 
 use aoide_repo::media::tracker::Repo as _;
 
-pub mod hash;
 pub mod import;
 pub mod query_status;
 pub mod relink;
+pub mod scan;
 pub mod untrack;
 
 pub use aoide_repo::media::tracker::DirTrackingStatus;

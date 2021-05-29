@@ -17,14 +17,14 @@ use super::*;
 
 use aoide_core::entity::EntityUid;
 
-use aoide_media::fs::digest;
+use aoide_usecases::{
+    collection::resolve_collection_id_for_virtual_file_path, media::tracker::scan::ProgressEvent,
+};
 
 mod uc {
     pub use aoide_usecases::{media::tracker::scan::*, Error};
 }
 
-use aoide_usecases::collection::resolve_collection_id_for_virtual_file_path;
-use digest::ProgressEvent;
 use std::sync::atomic::AtomicBool;
 use url::Url;
 
@@ -35,7 +35,7 @@ pub fn scan_directories_recursively(
     collection_uid: &EntityUid,
     root_dir_url: &Url,
     max_depth: Option<usize>,
-    progress_fn: &mut impl FnMut(&ProgressEvent),
+    progress_fn: &mut impl FnMut(ProgressEvent),
     abort_flag: &AtomicBool,
 ) -> Result<Outcome> {
     let db = RepoConnection::new(connection);

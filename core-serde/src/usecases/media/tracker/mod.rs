@@ -31,10 +31,22 @@ pub enum Progress {
 
 impl From<Progress> for _core::Progress {
     fn from(from: Progress) -> Self {
+        use Progress::*;
         match from {
-            Progress::Idle => Self::Idle,
-            Progress::Scanning(progress) => Self::Scanning(progress.into()),
-            Progress::Importing(progress) => Self::Importing(progress.into()),
+            Idle => Self::Idle,
+            Scanning(progress) => Self::Scanning(progress.into()),
+            Importing(progress) => Self::Importing(progress.into()),
+        }
+    }
+}
+
+impl From<_core::Progress> for Progress {
+    fn from(from: _core::Progress) -> Self {
+        use _core::Progress::*;
+        match from {
+            Idle => Self::Idle,
+            Scanning(progress) => Self::Scanning(progress.into()),
+            Importing(progress) => Self::Importing(progress.into()),
         }
     }
 }
@@ -59,6 +71,19 @@ impl From<ScanningProgress> for _core::ScanningProgress {
     }
 }
 
+impl From<_core::ScanningProgress> for ScanningProgress {
+    fn from(from: _core::ScanningProgress) -> Self {
+        let _core::ScanningProgress {
+            entries,
+            directories,
+        } = from;
+        Self {
+            entries: entries.into(),
+            directories: directories.into(),
+        }
+    }
+}
+
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScanningEntriesProgress {
@@ -73,6 +98,13 @@ impl From<ScanningEntriesProgress> for _core::ScanningEntriesProgress {
     }
 }
 
+impl From<_core::ScanningEntriesProgress> for ScanningEntriesProgress {
+    fn from(from: _core::ScanningEntriesProgress) -> Self {
+        let _core::ScanningEntriesProgress { skipped, finished } = from;
+        Self { skipped, finished }
+    }
+}
+
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScanningDirectoriesProgress {
@@ -82,6 +114,13 @@ pub struct ScanningDirectoriesProgress {
 impl From<ScanningDirectoriesProgress> for _core::ScanningDirectoriesProgress {
     fn from(from: ScanningDirectoriesProgress) -> Self {
         let ScanningDirectoriesProgress { finished } = from;
+        Self { finished }
+    }
+}
+
+impl From<_core::ScanningDirectoriesProgress> for ScanningDirectoriesProgress {
+    fn from(from: _core::ScanningDirectoriesProgress) -> Self {
+        let _core::ScanningDirectoriesProgress { finished } = from;
         Self { finished }
     }
 }

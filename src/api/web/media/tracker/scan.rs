@@ -18,12 +18,12 @@ use std::sync::atomic::AtomicBool;
 use super::*;
 
 mod uc {
-    pub use crate::usecases::media::tracker::hash::*;
+    pub use crate::usecases::media::tracker::scan::*;
 }
 
 use aoide_core::entity::EntityUid;
 
-use aoide_media::fs::digest::ProgressEvent;
+use aoide_usecases::media::tracker::scan::ProgressEvent;
 use tokio::sync::watch;
 use url::Url;
 
@@ -108,10 +108,7 @@ pub fn handle_request(
         max_depth,
         &mut |progress_event| {
             if let Some(progress_event_tx) = progress_event_tx {
-                if progress_event_tx
-                    .send(Some(progress_event.to_owned()))
-                    .is_err()
-                {
+                if progress_event_tx.send(Some(progress_event)).is_err() {
                     log::error!("Failed to send progress event");
                 }
             }
