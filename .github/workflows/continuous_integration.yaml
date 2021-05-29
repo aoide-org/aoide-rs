@@ -63,6 +63,24 @@ jobs:
           command: check
           args: --manifest-path repo-sqlite/Cargo.toml
 
+      - name: Check sub-crate media
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --manifest-path media/Cargo.toml
+
+      - name: Check sub-crate usecases
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --manifest-path usecases/Cargo.toml
+
+      - name: Check sub-crate client
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --manifest-path client/Cargo.toml
+
       - name: Test project
         uses: actions-rs/cargo@v1
         with:
