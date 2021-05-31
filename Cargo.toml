@@ -20,13 +20,13 @@ members = [
 ]
 
 [patch.crates-io]
-aoide-client = { path = "client" }
-aoide-core = { path = "core" }
-aoide-core-serde = { path = "core-serde" }
-aoide-media = { path = "media" }
-aoide-repo = { path = "repo" }
-aoide-repo-sqlite = { path = "repo-sqlite" }
-aoide-usecases = { path = "usecases" }
+aoide-client = { path = "./client" }
+aoide-core = { path = "./core" }
+aoide-core-serde = { path = "./core-serde" }
+aoide-media = { path = "./media" }
+aoide-repo = { path = "./repo" }
+aoide-repo-sqlite = { path = "./repo-sqlite" }
+aoide-usecases = { path = "./usecases" }
 triseratops = { git = "https://github.com/Holzhaus/triseratops.git", branch = "main" }
 
 #mp4ameta = { branch = "master", git = "https://github.com/Saecki/rust-mp4ameta.git" }

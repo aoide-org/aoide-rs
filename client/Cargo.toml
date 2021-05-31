@@ -4,14 +4,17 @@ version = "0.0.0"
 edition = "2018"
 
 [dependencies]
+aoide-core = "*"
+aoide-core-serde = "*"
+
 anyhow = "*"
 env_logger = "*"
 log = "*"
 reqwest = { version = "*", default-features = false, features = ["rustls-tls"] }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = "*"
-url = { version = "*", default-features = false, features = ["serde"] }
+tokio = { version = "*", default-features = false }
 
-# Parent workspace
-aoide-core = "*"
-aoide-core-serde = "*"
+[dev-dependencies]
+clap = "*"
+tokio = { version = "*", default-features = false, features = ["macros", "rt-multi-thread"] }

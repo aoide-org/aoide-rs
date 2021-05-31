@@ -1,9 +1,3 @@
-use aoide_core::{
-    entity::EntityUid,
-    usecases::media::tracker::{ImportingProgress, Progress, ScanningProgress, Status},
-};
-use reqwest::{Client, Url};
-
 // aoide.org - Copyright (C) 2018-2021 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -19,64 +13,274 @@ use reqwest::{Client, Url};
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#[derive(Debug, Clone, Default)]
+use std::{fmt, sync::Arc};
+
+use crate::prelude::*;
+
+use aoide_core::{
+    entity::EntityUid,
+    usecases::media::tracker::{Progress, Status},
+};
+
+use reqwest::{Client, Url};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ControlState {
+    Idle,
+    Busy,
+}
+
+impl Default for ControlState {
+    fn default() -> Self {
+        Self::Idle
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct RemoteState {
+    status: RemoteData<Status>,
+    progress: RemoteData<Progress>,
+}
+
+impl RemoteState {
+    pub fn status(&self) -> &RemoteData<Status> {
+        &self.status
+    }
+
+    pub fn progress(&self) -> &RemoteData<Progress> {
+        &self.progress
+    }
+}
+
+#[derive(Debug, Default)]
 pub struct State {
-    status: Option<Status>,
-    progress: Option<Progress>,
+    control: ControlState,
+    remote: RemoteState,
 }
 
 impl State {
-    pub fn status(&self) -> Option<&Status> {
-        self.status.as_ref()
+    pub fn control(&self) -> ControlState {
+        self.control
     }
 
-    pub fn progress(&self) -> Option<&Progress> {
-        self.progress.as_ref()
+    pub fn remote(&self) -> &RemoteState {
+        &self.remote
     }
 
     pub fn is_idle(&self) -> bool {
-        self.progress == Some(Progress::Idle)
-    }
-
-    pub fn scanning_progress(&self) -> Option<&ScanningProgress> {
-        match self.progress() {
-            Some(Progress::Scanning(progress)) => Some(progress),
-            _ => None,
-        }
-    }
-
-    pub fn importing_progress(&self) -> Option<&ImportingProgress> {
-        match self.progress() {
-            Some(Progress::Importing(progress)) => Some(progress),
-            _ => None,
-        }
-    }
-
-    pub fn replace_status(&mut self, new_status: impl Into<Option<Status>>) -> Option<Status> {
-        let old_status = self.status.take();
-        self.status = new_status.into();
-        old_status
-    }
-
-    pub fn reset_status(&mut self) -> Option<Status> {
-        self.replace_status(None)
-    }
-
-    pub fn replace_progress(
-        &mut self,
-        new_progress: impl Into<Option<Progress>>,
-    ) -> Option<Progress> {
-        let old_progress = self.progress.take();
-        self.progress = new_progress.into();
-        old_progress
-    }
-
-    pub fn reset_progress(&mut self) -> Option<Progress> {
-        self.replace_progress(None)
+        self.control == ControlState::Idle
+            && self.remote.progress.get_ready() == Some(&Progress::Idle)
     }
 }
 
-pub async fn query_status(
+#[derive(Debug)]
+pub enum Action {
+    FetchProgress,
+    FetchStatus {
+        collection_uid: EntityUid,
+        root_url: Url,
+    },
+    StartScan {
+        collection_uid: EntityUid,
+        root_url: Url,
+    },
+    Abort,
+    PropagateError(anyhow::Error),
+}
+
+#[derive(Debug)]
+pub enum Event {
+    FetchProgressRequested,
+    ProgressFetched(anyhow::Result<Progress>),
+    AbortRequested,
+    Aborted(anyhow::Result<()>),
+    FetchStatusRequested {
+        collection_uid: EntityUid,
+        root_url: Url,
+    },
+    StatusFetched(anyhow::Result<Status>),
+    StartScanRequested {
+        collection_uid: EntityUid,
+        root_url: Url,
+    },
+    ScanFinished(anyhow::Result<()>),
+    ErrorOccurred(anyhow::Error),
+}
+
+pub fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Action>) {
+    match event {
+        Event::FetchProgressRequested => (
+            AppliedEvent::Accepted {
+                state_changed: false,
+            },
+            Some(Action::FetchProgress),
+        ),
+        Event::ProgressFetched(res) => match res {
+            Ok(new_progress) => {
+                let new_progress = RemoteData::ready(new_progress);
+                let progress_changed = state.remote.progress != new_progress;
+                if progress_changed {
+                    state.remote.progress = new_progress;
+                }
+                (
+                    AppliedEvent::Accepted {
+                        state_changed: progress_changed,
+                    },
+                    None,
+                )
+            }
+            Err(err) => (
+                AppliedEvent::Accepted {
+                    state_changed: false,
+                },
+                Some(Action::PropagateError(err)),
+            ),
+        },
+        Event::AbortRequested => (
+            AppliedEvent::Accepted {
+                state_changed: false,
+            },
+            Some(Action::Abort),
+        ),
+        Event::Aborted(res) => {
+            let next_action = match res {
+                Ok(()) => Action::FetchProgress,
+                Err(err) => Action::PropagateError(err),
+            };
+            (
+                AppliedEvent::Accepted {
+                    state_changed: false,
+                },
+                Some(next_action),
+            )
+        }
+        Event::FetchStatusRequested {
+            collection_uid,
+            root_url,
+        } => {
+            if !state.is_idle() {
+                log::warn!("Cannot fetch status while not idle");
+                return (AppliedEvent::Dropped, None);
+            }
+            state.control = ControlState::Busy;
+            state.remote.status.reset();
+            (
+                AppliedEvent::Accepted {
+                    state_changed: true,
+                },
+                Some(Action::FetchStatus {
+                    collection_uid,
+                    root_url,
+                }),
+            )
+        }
+        Event::StatusFetched(res) => {
+            debug_assert_eq!(state.control, ControlState::Busy);
+            state.control = ControlState::Idle;
+            let next_action = match res {
+                Ok(new_status) => {
+                    state.remote.status = RemoteData::ready(new_status);
+                    None
+                }
+                Err(err) => Some(Action::PropagateError(err)),
+            };
+            (
+                AppliedEvent::Accepted {
+                    state_changed: true,
+                },
+                next_action,
+            )
+        }
+        Event::StartScanRequested {
+            collection_uid,
+            root_url,
+        } => {
+            if !state.is_idle() {
+                log::warn!("Cannot start scan while not idle");
+                return (AppliedEvent::Dropped, None);
+            }
+            state.control = ControlState::Busy;
+            state.remote.progress.reset();
+            (
+                AppliedEvent::Accepted {
+                    state_changed: true,
+                },
+                Some(Action::StartScan {
+                    collection_uid,
+                    root_url,
+                }),
+            )
+        }
+        Event::ScanFinished(res) => {
+            debug_assert_eq!(state.control, ControlState::Busy);
+            state.control = ControlState::Idle;
+            let next_action = match res {
+                Ok(()) => Action::FetchProgress,
+                Err(err) => Action::PropagateError(err),
+            };
+            (
+                AppliedEvent::Accepted {
+                    state_changed: true,
+                },
+                Some(next_action),
+            )
+        }
+        Event::ErrorOccurred(error) => (
+            AppliedEvent::Accepted {
+                state_changed: false,
+            },
+            Some(Action::PropagateError(error)),
+        ),
+    }
+}
+
+pub async fn dispatch_action<E: From<Event> + fmt::Debug>(
+    shared_env: Arc<Environment>,
+    event_tx: EventSender<E>,
+    action: Action,
+) {
+    match action {
+        Action::FetchProgress => {
+            let res = fetch_progress(&shared_env.client, &shared_env.api_url).await;
+            crate::emit_event(&event_tx, E::from(Event::ProgressFetched(res)));
+        }
+        Action::Abort => {
+            let res = abort(&shared_env.client, &shared_env.api_url).await;
+            crate::emit_event(&event_tx, E::from(Event::Aborted(res)));
+        }
+        Action::FetchStatus {
+            collection_uid,
+            root_url,
+        } => {
+            let res = fetch_status(
+                &shared_env.client,
+                &shared_env.api_url,
+                &collection_uid,
+                &root_url,
+            )
+            .await;
+            crate::emit_event(&event_tx, E::from(Event::StatusFetched(res)));
+        }
+        Action::StartScan {
+            collection_uid,
+            root_url,
+        } => {
+            let res = run_scan_task(
+                &shared_env.client,
+                &shared_env.api_url,
+                &collection_uid,
+                &root_url,
+            )
+            .await;
+            crate::emit_event(&event_tx, E::from(Event::ScanFinished(res)));
+        }
+        Action::PropagateError(error) => {
+            crate::emit_event(&event_tx, E::from(Event::ErrorOccurred(error)));
+        }
+    }
+}
+
+pub async fn fetch_status(
     client: &Client,
     base_url: &Url,
     collection_uid: &EntityUid,
@@ -88,7 +292,7 @@ pub async fn query_status(
     }))
     .map_err(|err| {
         anyhow::Error::from(err)
-            .context("Failed to serialize request body when querying media tracker status")
+            .context("Failed to serialize request body when fetching media tracker status")
     })?;
     let response =
         client.post(url).body(body).send().await.map_err(|err| {
@@ -96,26 +300,26 @@ pub async fn query_status(
         })?;
     if !response.status().is_success() {
         anyhow::bail!(
-            "Failed to query media tracker status: response status = {}",
+            "Failed to fetch media tracker status: response status = {}",
             response.status()
         );
     }
     let bytes = response.bytes().await.map_err(|err| {
         anyhow::Error::from(err)
-            .context("Failed to receive response playload when querying media tracker status")
+            .context("Failed to receive response playload when fetching media tracker status")
     })?;
     let status = serde_json::from_slice::<aoide_core_serde::media::tracker::Status>(&bytes)
         .map(Into::into)
         .map_err(|err| {
             anyhow::Error::from(err).context(
-                "Failed to deserialize response payload when querying media tracker status",
+                "Failed to deserialize response payload when fetching media tracker status",
             )
         })?;
     log::debug!("Received status: {:?}", status);
     Ok(status)
 }
 
-pub async fn scan(
+pub async fn run_scan_task(
     client: &Client,
     base_url: &Url,
     collection_uid: &EntityUid,
@@ -136,6 +340,7 @@ pub async fn scan(
         .send()
         .await
         .map_err(|err| anyhow::Error::from(err).context("media tracker scan failure"))?;
+    log::info!("Scanning finished");
     if !response.status().is_success() {
         anyhow::bail!(
             "Media tracker scan failed: response status = {}",
@@ -150,7 +355,7 @@ pub async fn scan(
     Ok(())
 }
 
-pub async fn import(
+pub async fn run_import_task(
     client: &Client,
     base_url: &Url,
     collection_uid: &EntityUid,
@@ -171,6 +376,7 @@ pub async fn import(
         .send()
         .await
         .map_err(|err| anyhow::Error::from(err).context("media tracker import failed"))?;
+    log::info!("Importing finished");
     if !response.status().is_success() {
         anyhow::bail!(
             "Media tracker import failed: response status = {}",
@@ -185,16 +391,11 @@ pub async fn import(
     Ok(())
 }
 
-pub async fn get_progress(
-    client: &Client,
-    base_url: &Url,
-    collection_uid: &EntityUid,
-) -> anyhow::Result<Progress> {
-    let url = base_url.join(&format!("c/{}/media-tracker/progress", collection_uid))?;
-    let response =
-        client.get(url).send().await.map_err(|err| {
-            anyhow::Error::from(err).context("Failed to get media tracker progress")
-        })?;
+pub async fn fetch_progress(client: &Client, base_url: &Url) -> anyhow::Result<Progress> {
+    let url = base_url.join("media-tracker/progress")?;
+    let response = client.get(url).send().await.map_err(|err| {
+        anyhow::Error::from(err).context("Failed to fetch media tracker progress")
+    })?;
     if !response.status().is_success() {
         anyhow::bail!(
             "Failed to get media tracker progress: response status = {}",
@@ -203,28 +404,24 @@ pub async fn get_progress(
     }
     let bytes = response.bytes().await.map_err(|err| {
         anyhow::Error::from(err)
-            .context("Failed to receive response playload when getting media tracker progress")
+            .context("Failed to receive response playload when fetching media tracker progress")
     })?;
     let progress =
         serde_json::from_slice::<aoide_core_serde::usecases::media::tracker::Progress>(&bytes)
             .map(Into::into)
             .map_err(|err| {
                 anyhow::Error::from(err).context(
-                    "Failed to deserialize response payload when getting media tracker progress",
+                    "Failed to deserialize response payload when fetching media tracker progress",
                 )
             })?;
     log::debug!("Received progress: {:?}", progress);
     Ok(progress)
 }
 
-pub async fn abort(
-    client: &Client,
-    base_url: &Url,
-    collection_uid: &EntityUid,
-) -> anyhow::Result<()> {
-    let url = base_url.join(&format!("c/{}/media-tracker/abort", collection_uid))?;
+pub async fn abort(client: &Client, base_url: &Url) -> anyhow::Result<()> {
+    let url = base_url.join("media-tracker/abort")?;
     let response = client
-        .get(url)
+        .post(url)
         .send()
         .await
         .map_err(|err| anyhow::Error::from(err).context("Failed to abort media tracker"))?;

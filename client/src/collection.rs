@@ -13,31 +13,34 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::{fmt, sync::Arc};
+
 use aoide_core::{collection::Entity as CollectionEntity, entity::EntityUid};
-use reqwest::Client;
-use url::Url;
+use reqwest::{Client, Url};
+
+use crate::prelude::*;
 
 #[derive(Debug, Clone, Default)]
 pub struct State {
-    available: Option<Vec<CollectionEntity>>,
+    available: RemoteData<Vec<CollectionEntity>>,
     active_uid: Option<EntityUid>,
 }
 
 impl State {
-    pub const fn available(&self) -> Option<&Vec<CollectionEntity>> {
-        self.available.as_ref()
+    pub const fn available(&self) -> &RemoteData<Vec<CollectionEntity>> {
+        &self.available
     }
 
     fn count_available_by_uid(&self, uid: &EntityUid) -> Option<usize> {
         self.available
-            .as_ref()
+            .get()
             .map(|v| v.iter().filter(|x| &x.hdr.uid == uid).count())
     }
 
     pub fn find_available_by_uid(&self, uid: &EntityUid) -> Option<&CollectionEntity> {
         debug_assert!(self.count_available_by_uid(uid).unwrap_or_default() <= 1);
         self.available
-            .as_ref()
+            .get()
             .and_then(|v| v.iter().find(|x| &x.hdr.uid == uid))
     }
 
@@ -46,31 +49,22 @@ impl State {
     }
 
     pub fn active(&self) -> Option<&CollectionEntity> {
-        if let (Some(available), Some(active_uid)) = (&self.available, &self.active_uid) {
+        if let (Some(available), Some(active_uid)) = (self.available().get(), &self.active_uid) {
             available.iter().find(|x| &x.hdr.uid == active_uid)
         } else {
             None
         }
     }
 
-    pub fn replace_available(
-        &mut self,
-        new_available: impl Into<Option<Vec<CollectionEntity>>>,
-    ) -> Option<Vec<CollectionEntity>> {
-        let old_available = self.available.take();
-        self.available = new_available.into();
+    fn set_available(&mut self, new_available: Vec<CollectionEntity>) {
+        self.available = RemoteData::ready(new_available);
         let active_uid = self.active_uid.take();
-        self.replace_active_uid(active_uid);
-        old_available
+        self.set_active_uid(active_uid);
     }
 
-    pub fn replace_active_uid(
-        &mut self,
-        new_active_uid: impl Into<Option<EntityUid>>,
-    ) -> Option<EntityUid> {
-        let old_active_uid = self.active_uid.take();
+    fn set_active_uid(&mut self, new_active_uid: impl Into<Option<EntityUid>>) {
         self.active_uid = if let (Some(available), Some(new_active_uid)) =
-            (&self.available, new_active_uid.into())
+            (self.available.get(), new_active_uid.into())
         {
             if available.iter().any(|x| x.hdr.uid == new_active_uid) {
                 Some(new_active_uid)
@@ -80,32 +74,114 @@ impl State {
         } else {
             None
         };
-        old_active_uid
     }
 
-    pub fn reset_active_uid(&mut self) -> Option<EntityUid> {
-        self.replace_active_uid(None)
+    fn reset_active_uid(&mut self) {
+        self.set_active_uid(None)
     }
 }
 
-pub async fn load_available_collections(
+#[derive(Debug)]
+pub enum Action {
+    FetchAvailable,
+    PropagateError(anyhow::Error),
+}
+
+#[derive(Debug)]
+pub enum Event {
+    FetchAvailableRequested,
+    AvailableFetched(anyhow::Result<Vec<CollectionEntity>>),
+    ActiveUidSelected(EntityUid),
+    ActiveUidReset,
+    ErrorOccurred(anyhow::Error),
+}
+
+pub fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Action>) {
+    match event {
+        Event::FetchAvailableRequested => (
+            AppliedEvent::Accepted {
+                state_changed: false,
+            },
+            Some(Action::FetchAvailable),
+        ),
+        Event::AvailableFetched(res) => match res {
+            Ok(new_available) => {
+                state.set_available(new_available);
+                (
+                    AppliedEvent::Accepted {
+                        state_changed: true,
+                    },
+                    None,
+                )
+            }
+            Err(err) => (
+                AppliedEvent::Accepted {
+                    state_changed: false,
+                },
+                Some(Action::PropagateError(err)),
+            ),
+        },
+        Event::ActiveUidSelected(new_active_uid) => {
+            state.set_active_uid(new_active_uid);
+            (
+                AppliedEvent::Accepted {
+                    state_changed: true,
+                },
+                None,
+            )
+        }
+        Event::ActiveUidReset => {
+            state.reset_active_uid();
+            (
+                AppliedEvent::Accepted {
+                    state_changed: true,
+                },
+                None,
+            )
+        }
+        Event::ErrorOccurred(error) => (
+            AppliedEvent::Accepted {
+                state_changed: false,
+            },
+            Some(Action::PropagateError(error)),
+        ),
+    }
+}
+
+pub async fn dispatch_action<E: From<Event> + fmt::Debug>(
+    shared_env: Arc<Environment>,
+    event_tx: EventSender<E>,
+    action: Action,
+) {
+    match action {
+        Action::FetchAvailable => {
+            let res = fetch_available_collections(&shared_env.client, &shared_env.api_url).await;
+            crate::emit_event(&event_tx, E::from(Event::AvailableFetched(res)));
+        }
+        Action::PropagateError(error) => {
+            crate::emit_event(&event_tx, E::from(Event::ErrorOccurred(error)));
+        }
+    }
+}
+
+pub async fn fetch_available_collections(
     client: &Client,
-    base_url: &Url,
+    api_url: &Url,
 ) -> anyhow::Result<Vec<CollectionEntity>> {
-    let url = base_url.join("c")?;
+    let url = api_url.join("c")?;
     let response =
         client.get(url).send().await.map_err(|err| {
-            anyhow::Error::from(err).context("Failed to load available collections")
+            anyhow::Error::from(err).context("Failed to fetch available collections")
         })?;
     if !response.status().is_success() {
         anyhow::bail!(
-            "Failed to load available collections: response status = {}",
+            "Failed to fetch available collections: response status = {}",
             response.status()
         );
     }
     let bytes = response.bytes().await.map_err(|err| {
         anyhow::Error::from(err)
-            .context("Failed to receive response playload when loading available collections")
+            .context("Failed to receive response playload when fetching available collections")
     })?;
     let available_collections: Vec<_> = serde_json::from_slice::<
         Vec<aoide_core_serde::collection::Entity>,
@@ -118,7 +194,7 @@ pub async fn load_available_collections(
     })
     .map_err(|err| {
         anyhow::Error::from(err)
-            .context("Failed to deserialize response payload when loading available collections")
+            .context("Failed to deserialize response payload when fetching available collections")
     })?;
     log::debug!(
         "Loaded {} available collection(s)",
