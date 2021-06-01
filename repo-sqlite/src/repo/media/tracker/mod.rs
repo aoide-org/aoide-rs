@@ -301,7 +301,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
     fn media_tracker_load_directories_requiring_confirmation(
         &self,
         collection_id: CollectionId,
-        path_prefix: Option<&str>,
+        path_prefix: &str,
         pagination: &Pagination,
     ) -> RepoResult<Vec<TrackedDirectory>> {
         let mut query = media_tracker_directory::table
@@ -318,7 +318,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             // then order by URI for disambiguation
             .then_order_by(media_tracker_directory::path)
             .into_boxed();
-        if let Some(path_prefix) = path_prefix {
+        if !path_prefix.is_empty() {
             query = query.filter(diesel::dsl::sql(&format!(
                 "substr(path,1,{})='{}'",
                 path_prefix.len(),

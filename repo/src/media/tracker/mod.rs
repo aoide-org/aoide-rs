@@ -178,7 +178,7 @@ pub trait Repo {
     fn media_tracker_load_directories_requiring_confirmation(
         &self,
         collection_id: CollectionId,
-        path_prefix: Option<&str>,
+        path_prefix: &str,
         pagination: &Pagination,
     ) -> RepoResult<Vec<TrackedDirectory>>;
 

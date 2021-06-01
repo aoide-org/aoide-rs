@@ -20,6 +20,7 @@ use aoide_media::{fs::local_file_path_from_url, resolver::SourcePathResolver};
 ///////////////////////////////////////////////////////////////////////
 
 pub mod import;
+pub mod query_status;
 pub mod relink;
 pub mod scan;
 pub mod untrack;

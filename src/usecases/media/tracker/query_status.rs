@@ -19,23 +19,31 @@ use aoide_core::entity::EntityUid;
 
 use url::Url;
 
-///////////////////////////////////////////////////////////////////////
+mod uc {
+    pub use aoide_usecases::{
+        collection::resolve_collection_id_for_virtual_file_path,
+        media::{
+            tracker::{query_status::*, *},
+            *,
+        },
+        Error,
+    };
+}
 
 pub use aoide_core::usecases::media::tracker::Status;
 
 pub fn query_status(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    root_dir_url: &Url,
+    root_dir_url: Option<&Url>,
 ) -> Result<Status> {
-    let path_prefix = path_prefix_from_url(root_dir_url)?;
     let db = RepoConnection::new(connection);
-    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-        let collection_id = db.resolve_collection_id(collection_uid)?;
-        let directories =
-            db.media_tracker_aggregate_directories_tracking_status(collection_id, &path_prefix)?;
-        let status = Status { directories };
-        Ok(status)
+    db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
+        let (collection_id, source_path_resolver) =
+            uc::resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
+                .map_err(DieselTransactionError::new)?;
+        uc::query_status(&db, collection_id, &source_path_resolver, root_dir_url)
+            .map_err(DieselTransactionError::new)
     })
     .map_err(Into::into)
 }

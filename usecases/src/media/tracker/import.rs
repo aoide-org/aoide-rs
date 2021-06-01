@@ -75,7 +75,10 @@ where
         progress_fn(&summary);
         let pending_entries = repo.media_tracker_load_directories_requiring_confirmation(
             collection_id,
-            path_prefix.as_deref().map(String::as_str),
+            path_prefix
+                .as_deref()
+                .map(String::as_str)
+                .unwrap_or_default(),
             &Pagination {
                 offset: Some(summary.directories.skipped as PaginationOffset),
                 limit: 1,

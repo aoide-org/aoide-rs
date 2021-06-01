@@ -29,7 +29,8 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Params {
-    pub root_url: Url,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub root_url: Option<Url>,
 }
 
 pub type RequestBody = Params;
@@ -41,7 +42,7 @@ pub fn handle_request(
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
     let RequestBody { root_url } = request_body;
-    uc::query_status(&pooled_connection, collection_uid, &root_url)
+    uc::query_status(&pooled_connection, collection_uid, root_url.as_ref())
         .map(Into::into)
         .map_err(Into::into)
 }
