@@ -69,16 +69,14 @@ where
 {
     let path_prefix = root_dir_url
         .map(|url| resolve_path_prefix_from_url(source_path_resolver, url))
-        .transpose()?;
+        .transpose()?
+        .unwrap_or_default();
     let mut summary = Summary::default();
     let outcome = 'outcome: loop {
         progress_fn(&summary);
         let pending_entries = repo.media_tracker_load_directories_requiring_confirmation(
             collection_id,
-            path_prefix
-                .as_deref()
-                .map(String::as_str)
-                .unwrap_or_default(),
+            &path_prefix,
             &Pagination {
                 offset: Some(summary.directories.skipped as PaginationOffset),
                 limit: 1,

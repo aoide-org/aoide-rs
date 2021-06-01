@@ -31,14 +31,10 @@ where
 {
     let path_prefix = root_dir_url
         .map(|url| resolve_path_prefix_from_url(source_path_resolver, url))
-        .transpose()?;
-    let directories = repo.media_tracker_aggregate_directories_tracking_status(
-        collection_id,
-        path_prefix
-            .as_deref()
-            .map(String::as_str)
-            .unwrap_or_default(),
-    )?;
+        .transpose()?
+        .unwrap_or_default();
+    let directories =
+        repo.media_tracker_aggregate_directories_tracking_status(collection_id, &path_prefix)?;
     let status = Status { directories };
     Ok(status)
 }

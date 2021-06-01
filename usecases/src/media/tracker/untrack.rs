@@ -30,5 +30,5 @@ where
     Repo: MediaTrackerRepo,
 {
     let path_prefix = resolve_path_prefix_from_url(source_path_resolver, root_dir_url)?;
-    Ok(repo.media_tracker_untrack(collection_id, path_prefix.as_str(), status)?)
+    Ok(repo.media_tracker_untrack(collection_id, &path_prefix, status)?)
 }

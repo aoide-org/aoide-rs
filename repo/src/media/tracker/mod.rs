@@ -96,7 +96,7 @@ pub trait Repo {
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        path_prefix: &str,
+        path_prefix: &SourcePath,
         old_status: Option<DirTrackingStatus>,
         new_status: DirTrackingStatus,
     ) -> RepoResult<usize>;
@@ -105,14 +105,14 @@ pub trait Repo {
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        path: &str,
+        path: &SourcePath,
         digest: &DigestBytes,
     ) -> RepoResult<DirUpdateOutcome>;
 
     fn media_tracker_untrack(
         &self,
         collection_id: CollectionId,
-        path_prefix: &str,
+        path_prefix: &SourcePath,
         status: Option<DirTrackingStatus>,
     ) -> RepoResult<usize>;
 
@@ -128,7 +128,7 @@ pub trait Repo {
     fn media_tracker_purge_orphaned_directories(
         &self,
         collection_id: CollectionId,
-        path_prefix: &str,
+        path_prefix: &SourcePath,
     ) -> RepoResult<usize> {
         self.media_tracker_untrack(
             collection_id,
@@ -143,7 +143,7 @@ pub trait Repo {
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        path_prefix: &str,
+        path_prefix: &SourcePath,
     ) -> RepoResult<usize> {
         self.media_tracker_update_directories_status(
             updated_at,
@@ -160,7 +160,7 @@ pub trait Repo {
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        path_prefix: &str,
+        path_prefix: &SourcePath,
     ) -> RepoResult<usize> {
         self.media_tracker_update_directories_status(
             updated_at,
@@ -178,7 +178,7 @@ pub trait Repo {
     fn media_tracker_load_directories_requiring_confirmation(
         &self,
         collection_id: CollectionId,
-        path_prefix: &str,
+        path_prefix: &SourcePath,
         pagination: &Pagination,
     ) -> RepoResult<Vec<TrackedDirectory>>;
 
@@ -193,7 +193,7 @@ pub trait Repo {
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        path: &str,
+        path: &SourcePath,
         digest: &DigestBytes,
         media_source_ids: &[MediaSourceId],
     ) -> RepoResult<bool>;
@@ -201,12 +201,12 @@ pub trait Repo {
     fn media_tracker_load_directory_tracking_status(
         &self,
         collection_id: CollectionId,
-        path: &str,
+        path: &SourcePath,
     ) -> RepoResult<DirTrackingStatus>;
 
     fn media_tracker_aggregate_directories_tracking_status(
         &self,
         collection_id: CollectionId,
-        path_prefix: &str,
+        path_prefix: &SourcePath,
     ) -> RepoResult<DirectoriesStatus>;
 }

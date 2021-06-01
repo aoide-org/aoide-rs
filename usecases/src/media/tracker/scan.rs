@@ -98,10 +98,13 @@ where
     Repo: MediaTrackerRepo,
 {
     let root_dir_path = root_dir_path_from_url(root_dir_url)?;
+    let root_source_path = source_path_resolver
+        .resolve_path_from_url(&root_dir_url)
+        .map_err(anyhow::Error::from)?;
     let outdated_count = repo.media_tracker_mark_current_directories_outdated(
         DateTime::now_utc(),
         collection_id,
-        root_dir_url.as_str(),
+        &root_source_path,
     )?;
     log::debug!(
         "Marked {} current cache entries as outdated",
@@ -166,7 +169,7 @@ where
                 summary.orphaned = repo.media_tracker_mark_outdated_directories_orphaned(
                     DateTime::now_utc(),
                     collection_id,
-                    root_dir_url.as_str(),
+                    &root_source_path,
                 )?;
                 debug_assert!(summary.orphaned <= outdated_count);
                 Ok(Completion::Finished)

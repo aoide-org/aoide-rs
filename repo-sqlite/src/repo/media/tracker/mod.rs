@@ -18,7 +18,9 @@ use crate::{
     prelude::*,
 };
 
-use aoide_core::{usecases::media::tracker::DirectoriesStatus, util::clock::DateTime};
+use aoide_core::{
+    media::SourcePath, usecases::media::tracker::DirectoriesStatus, util::clock::DateTime,
+};
 
 use aoide_repo::{
     collection::RecordId as CollectionId,
@@ -42,7 +44,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        path_prefix: &str,
+        path_prefix: &SourcePath,
         old_status: Option<DirTrackingStatus>,
         new_status: DirTrackingStatus,
     ) -> RepoResult<usize> {
@@ -70,7 +72,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
     fn media_tracker_untrack(
         &self,
         collection_id: CollectionId,
-        path_prefix: &str,
+        path_prefix: &SourcePath,
         status: Option<DirTrackingStatus>,
     ) -> RepoResult<usize> {
         let target = media_tracker_directory::table
@@ -111,13 +113,13 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        path: &str,
+        path: &SourcePath,
         digest: &DigestBytes,
     ) -> RepoResult<DirUpdateOutcome> {
         // Try to mark outdated entry as current if digest is unchanged (most likely)
         let target = media_tracker_directory::table
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
-            .filter(media_tracker_directory::path.eq(path))
+            .filter(media_tracker_directory::path.eq(path.as_ref()))
             .filter(media_tracker_directory::digest.eq(&digest[..]))
             // Filtering by DirTrackingStatus::Outdated allows to safely trigger a rescan even
             // if entries that have previously been marked as added or modified are still
@@ -142,7 +144,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         // Try to mark existing entry (with any status) as modified if digest has changed (less likely)
         let target = media_tracker_directory::table
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
-            .filter(media_tracker_directory::path.eq(path))
+            .filter(media_tracker_directory::path.eq(path.as_ref()))
             .filter(media_tracker_directory::digest.ne(&digest[..]));
         let query = diesel::update(target).set((
             media_tracker_directory::row_updated_ms.eq(updated_at.timestamp_millis()),
@@ -179,13 +181,13 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        path: &str,
+        path: &SourcePath,
         digest: &DigestBytes,
         media_source_ids: &[MediaSourceId],
     ) -> RepoResult<bool> {
         let target = media_tracker_directory::table
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
-            .filter(media_tracker_directory::path.eq(path))
+            .filter(media_tracker_directory::path.eq(path.as_ref()))
             .filter(media_tracker_directory::digest.eq(&digest[..]));
         let query = diesel::update(target).set((
             media_tracker_directory::row_updated_ms.eq(updated_at.timestamp_millis()),
@@ -197,7 +199,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         if rows_affected > 0 {
             let directory_id = media_tracker_directory::table
                 .select(media_tracker_directory::row_id)
-                .filter(media_tracker_directory::path.eq(path))
+                .filter(media_tracker_directory::path.eq(path.as_ref()))
                 .first::<RowId>(self.as_ref())
                 .map_err(repo_error)?;
             let target = media_tracker_source::table
@@ -221,12 +223,12 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
     fn media_tracker_load_directory_tracking_status(
         &self,
         collection_id: CollectionId,
-        path: &str,
+        path: &SourcePath,
     ) -> RepoResult<DirTrackingStatus> {
         media_tracker_directory::table
             .select(media_tracker_directory::status)
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
-            .filter(media_tracker_directory::path.eq(path))
+            .filter(media_tracker_directory::path.eq(path.as_ref()))
             .first::<i16>(self.as_ref())
             .map_err(repo_error)
             .map(|val| DirTrackingStatus::from_i16(val).expect("DirTrackingStatus"))
@@ -235,7 +237,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
     fn media_tracker_aggregate_directories_tracking_status(
         &self,
         collection_id: CollectionId,
-        path_prefix: &str,
+        path_prefix: &SourcePath,
     ) -> RepoResult<DirectoriesStatus> {
         // TODO: Remove with type-safe query when group_by() is available
         /*
@@ -301,7 +303,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
     fn media_tracker_load_directories_requiring_confirmation(
         &self,
         collection_id: CollectionId,
-        path_prefix: &str,
+        path_prefix: &SourcePath,
         pagination: &Pagination,
     ) -> RepoResult<Vec<TrackedDirectory>> {
         let mut query = media_tracker_directory::table
