@@ -47,7 +47,8 @@ where
     T: fmt::Debug,
 {
     if let Err(event) = event_tx.send(event) {
-        log::error!("Failed to emit event: {:?}", event.0);
+        // Channel is closed, i.e. receiver has been dropped
+        log::debug!("Failed to emit event: {:?}", event.0);
     }
 }
 

@@ -78,11 +78,15 @@ pub enum Action {
     FetchProgress,
     FetchStatus {
         collection_uid: EntityUid,
-        root_url: Url,
+        root_url: Option<Url>,
     },
     StartScan {
         collection_uid: EntityUid,
-        root_url: Url,
+        root_url: Option<Url>,
+    },
+    StartImport {
+        collection_uid: EntityUid,
+        root_url: Option<Url>,
     },
     Abort,
     PropagateError(anyhow::Error),
@@ -96,14 +100,19 @@ pub enum Event {
     Aborted(anyhow::Result<()>),
     FetchStatusRequested {
         collection_uid: EntityUid,
-        root_url: Url,
+        root_url: Option<Url>,
     },
     StatusFetched(anyhow::Result<Status>),
     StartScanRequested {
         collection_uid: EntityUid,
-        root_url: Url,
+        root_url: Option<Url>,
     },
     ScanFinished(anyhow::Result<()>),
+    StartImportRequested {
+        collection_uid: EntityUid,
+        root_url: Option<Url>,
+    },
+    ImportFinished(anyhow::Result<()>),
     ErrorOccurred(anyhow::Error),
 }
 
@@ -214,6 +223,46 @@ pub fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Act
         Event::ScanFinished(res) => {
             debug_assert_eq!(state.control, ControlState::Busy);
             state.control = ControlState::Idle;
+            // Invalidate both status and progress to enforce refetching
+            state.remote.status.reset();
+            state.remote.progress.reset();
+            let next_action = match res {
+                Ok(()) => Action::FetchProgress,
+                Err(err) => Action::PropagateError(err),
+            };
+            (
+                AppliedEvent::Accepted {
+                    state_changed: true,
+                },
+                Some(next_action),
+            )
+        }
+        Event::StartImportRequested {
+            collection_uid,
+            root_url,
+        } => {
+            if !state.is_idle() {
+                log::warn!("Cannot start import while not idle");
+                return (AppliedEvent::Dropped, None);
+            }
+            state.control = ControlState::Busy;
+            state.remote.progress.reset();
+            (
+                AppliedEvent::Accepted {
+                    state_changed: true,
+                },
+                Some(Action::StartImport {
+                    collection_uid,
+                    root_url,
+                }),
+            )
+        }
+        Event::ImportFinished(res) => {
+            debug_assert_eq!(state.control, ControlState::Busy);
+            state.control = ControlState::Idle;
+            // Invalidate both status and progress to enforce refetching
+            state.remote.status.reset();
+            state.remote.progress.reset();
             let next_action = match res {
                 Ok(()) => Action::FetchProgress,
                 Err(err) => Action::PropagateError(err),
@@ -256,7 +305,7 @@ pub async fn dispatch_action<E: From<Event> + fmt::Debug>(
                 &shared_env.client,
                 &shared_env.api_url,
                 &collection_uid,
-                &root_url,
+                root_url.as_ref(),
             )
             .await;
             crate::emit_event(&event_tx, E::from(Event::StatusFetched(res)));
@@ -269,10 +318,23 @@ pub async fn dispatch_action<E: From<Event> + fmt::Debug>(
                 &shared_env.client,
                 &shared_env.api_url,
                 &collection_uid,
-                &root_url,
+                root_url.as_ref(),
             )
             .await;
             crate::emit_event(&event_tx, E::from(Event::ScanFinished(res)));
+        }
+        Action::StartImport {
+            collection_uid,
+            root_url,
+        } => {
+            let res = run_import_task(
+                &shared_env.client,
+                &shared_env.api_url,
+                &collection_uid,
+                root_url.as_ref(),
+            )
+            .await;
+            crate::emit_event(&event_tx, E::from(Event::ImportFinished(res)));
         }
         Action::PropagateError(error) => {
             crate::emit_event(&event_tx, E::from(Event::ErrorOccurred(error)));
@@ -284,13 +346,17 @@ pub async fn fetch_status(
     client: &Client,
     base_url: &Url,
     collection_uid: &EntityUid,
-    root_url: &Url,
+    root_url: Option<&Url>,
 ) -> anyhow::Result<Status> {
     let url = base_url.join(&format!("c/{}/media-tracker/query-status", collection_uid))?;
-    let body = serde_json::to_vec(&serde_json::json!({
-        "rootUrl": root_url.to_string(),
-    }))
-    .map_err(|err| {
+    let body_json = root_url
+        .map(|root_url| {
+            serde_json::json!({
+                "rootUrl": root_url.to_string(),
+            })
+        })
+        .unwrap_or_default();
+    let body = serde_json::to_vec(&body_json).map_err(|err| {
         anyhow::Error::from(err)
             .context("Failed to serialize request body when fetching media tracker status")
     })?;
@@ -323,24 +389,26 @@ pub async fn run_scan_task(
     client: &Client,
     base_url: &Url,
     collection_uid: &EntityUid,
-    root_url: &Url,
+    root_url: Option<&Url>,
 ) -> anyhow::Result<()> {
     let url = base_url.join(&format!("c/{}/media-tracker/scan", collection_uid))?;
-    let body = serde_json::to_vec(&serde_json::json!({
-        "rootUrl": root_url.to_string(),
-    }))
-    .map_err(|err| {
+    let body_json = root_url
+        .map(|root_url| {
+            serde_json::json!({
+                "rootUrl": root_url.to_string(),
+            })
+        })
+        .unwrap_or_default();
+    let body = serde_json::to_vec(&body_json).map_err(|err| {
         anyhow::Error::from(err)
             .context("Failed to serialize request body when starting media tracker scan")
     })?;
-    log::info!("Scanning {}...", root_url);
     let response = client
         .post(url)
         .body(body)
         .send()
         .await
         .map_err(|err| anyhow::Error::from(err).context("media tracker scan failure"))?;
-    log::info!("Scanning finished");
     if !response.status().is_success() {
         anyhow::bail!(
             "Media tracker scan failed: response status = {}",
@@ -359,24 +427,26 @@ pub async fn run_import_task(
     client: &Client,
     base_url: &Url,
     collection_uid: &EntityUid,
-    root_url: &Url,
+    root_url: Option<&Url>,
 ) -> anyhow::Result<()> {
     let url = base_url.join(&format!("c/{}/media-tracker/import", collection_uid))?;
-    let body = serde_json::to_vec(&serde_json::json!({
-        "rootUrl": root_url.to_string(),
-    }))
-    .map_err(|err| {
+    let body_json = root_url
+        .map(|root_url| {
+            serde_json::json!({
+                "rootUrl": root_url.to_string(),
+            })
+        })
+        .unwrap_or_default();
+    let body = serde_json::to_vec(&body_json).map_err(|err| {
         anyhow::Error::from(err)
             .context("Failed to serialize request body when starting media tracker import")
     })?;
-    log::info!("Importing {}...", root_url);
     let response = client
         .post(url)
         .body(body)
         .send()
         .await
         .map_err(|err| anyhow::Error::from(err).context("media tracker import failed"))?;
-    log::info!("Importing finished");
     if !response.status().is_success() {
         anyhow::bail!(
             "Media tracker import failed: response status = {}",

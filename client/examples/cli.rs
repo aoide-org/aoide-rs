@@ -23,15 +23,20 @@ use aoide_client::{
     prelude::{emit_event, event_channel, Environment},
     Event,
 };
-use aoide_core::entity::EntityUid;
+use aoide_core::{entity::EntityUid, usecases::media::tracker::Progress};
 use clap::{App, Arg};
 use reqwest::Client;
 
+const DEFAULT_LOG_FILTER: &str = "info";
+
 const DEFAULT_API_URL: &str = "http://[::1]:8080";
+
+const PROGRESS_POLLING_PERIOD: Duration = Duration::from_millis(1_000);
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    env_logger::init();
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(DEFAULT_LOG_FILTER))
+        .init();
 
     let default_api_url = env::var("API_URL").unwrap_or(DEFAULT_API_URL.to_owned());
 
@@ -112,7 +117,7 @@ async fn main() -> anyhow::Result<()> {
         Box::new(move |state, event_emitter| {
             if !state.errors().is_empty() {
                 for err in state.errors() {
-                    eprintln!("Error: {}", err);
+                    log::error!("{}", err);
                 }
                 event_emitter.emit_event(Event::TerminateRequested);
                 return;
@@ -126,7 +131,7 @@ async fn main() -> anyhow::Result<()> {
                     .get()
                     .map(ToOwned::to_owned);
                 if let Some(progress) = last_media_tracker_progress.as_ref() {
-                    println!("Media tracker progress: {:?}", progress);
+                    log::info!("Media tracker progress: {:?}", progress);
                 }
             }
             if last_media_tracker_status.as_ref() != state.media_tracker.remote().status().get() {
@@ -137,7 +142,7 @@ async fn main() -> anyhow::Result<()> {
                     .get()
                     .map(ToOwned::to_owned);
                 if let Some(status) = last_media_tracker_status.as_ref() {
-                    println!("Media tracker status: {:?}", status);
+                    log::info!("Media tracker status: {:?}", status);
                     if await_media_tracker_status {
                         await_media_tracker_status = false;
                         event_emitter.emit_event(Event::TerminateRequested);
@@ -147,7 +152,10 @@ async fn main() -> anyhow::Result<()> {
             }
 
             if state.media_tracker.is_idle() {
-                if subcommand_submitted && !await_media_tracker_status {
+                if subcommand_submitted
+                    && !await_media_tracker_status
+                    && last_media_tracker_progress == Some(Progress::Idle)
+                {
                     event_emitter.emit_event(Event::TerminateRequested);
                     return;
                 }
@@ -155,8 +163,9 @@ async fn main() -> anyhow::Result<()> {
                 if last_media_tracker_progress.is_none() {
                     event_emitter.emit_event(media::tracker::Event::FetchProgressRequested.into());
                 } else {
+                    // Periodically refetch and report progress
                     let deferred_event = Event::EmitDeferred {
-                        emit_not_before: Instant::now() + Duration::from_millis(1_000),
+                        emit_not_before: Instant::now() + PROGRESS_POLLING_PERIOD,
                         event: Box::new(media::tracker::Event::FetchProgressRequested.into()),
                     };
                     event_emitter.emit_event(deferred_event);
@@ -186,7 +195,7 @@ async fn main() -> anyhow::Result<()> {
             if let Some(available_collections) = state.collection.available().get_ready() {
                 if state.collection.active_uid().is_none() {
                     if available_collections.is_empty() {
-                        println!("No collections available");
+                        log::warn!("No collections available");
                         event_emitter.emit_event(Event::TerminateRequested);
                         return;
                     }
@@ -202,7 +211,7 @@ async fn main() -> anyhow::Result<()> {
                             );
                             return;
                         } else {
-                            println!("Collection not available: {}", collection_uid);
+                            log::warn!("Collection not available: {}", collection_uid);
                         }
                     }
                     println!("Available collections:");
@@ -230,7 +239,7 @@ async fn main() -> anyhow::Result<()> {
             }
             debug_assert!(state.collection.active().is_some());
             let collection = state.collection.active().unwrap();
-            println!("Active collection: {}", collection.hdr.uid);
+            log::info!("Active collection: {}", collection.hdr.uid);
 
             // Commands that require an active collection
             if !state.media_tracker.is_idle() {
@@ -243,14 +252,10 @@ async fn main() -> anyhow::Result<()> {
                     match media_tracker_matches.subcommand() {
                         ("status", status_matches) => {
                             let collection_uid = collection.hdr.uid.clone();
-                            let root_url = if let Some(root_url) =
-                                status_matches.and_then(|m| m.value_of("root-url"))
-                            {
-                                Some(root_url.parse().expect("URL"))
-                            } else {
-                                collection.body.media_source_config.base_url.clone()
-                            }
-                            .expect("root-url");
+                            let root_url = status_matches
+                                .and_then(|m| m.value_of("root-url"))
+                                .map(|root_url| root_url.parse().expect("URL"))
+                                .or_else(|| collection.body.media_source_config.base_url.clone());
                             event_emitter.emit_event(
                                 media::tracker::Event::FetchStatusRequested {
                                     collection_uid,
@@ -265,14 +270,10 @@ async fn main() -> anyhow::Result<()> {
                         }
                         ("scan", scan_matches) => {
                             let collection_uid = collection.hdr.uid.clone();
-                            let root_url = if let Some(root_url) =
-                                scan_matches.and_then(|m| m.value_of("root-url"))
-                            {
-                                Some(root_url.parse().expect("URL"))
-                            } else {
-                                collection.body.media_source_config.base_url.clone()
-                            }
-                            .expect("root-url");
+                            let root_url = scan_matches
+                                .and_then(|m| m.value_of("root-url"))
+                                .map(|root_url| root_url.parse().expect("URL"))
+                                .or_else(|| collection.body.media_source_config.base_url.clone());
                             event_emitter.emit_event(
                                 media::tracker::Event::StartScanRequested {
                                     collection_uid,
@@ -283,8 +284,21 @@ async fn main() -> anyhow::Result<()> {
                             subcommand_submitted = true;
                             return;
                         }
-                        ("import", Some(import_matches)) => {
-                            println!("TODO: import {:?}", import_matches);
+                        ("import", import_matches) => {
+                            let collection_uid = collection.hdr.uid.clone();
+                            let root_url = import_matches
+                                .and_then(|m| m.value_of("root-url"))
+                                .map(|root_url| root_url.parse().expect("URL"))
+                                .or_else(|| collection.body.media_source_config.base_url.clone());
+                            event_emitter.emit_event(
+                                media::tracker::Event::StartImportRequested {
+                                    collection_uid,
+                                    root_url,
+                                }
+                                .into(),
+                            );
+                            subcommand_submitted = true;
+                            return;
                         }
                         (subcommand, _) => {
                             debug_assert!(subcommand.is_empty());
