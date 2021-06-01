@@ -21,12 +21,11 @@ use reqwest::{Client, Url};
 use crate::prelude::*;
 
 #[derive(Debug, Clone, Default)]
-pub struct State {
+pub struct RemoteState {
     available: RemoteData<Vec<CollectionEntity>>,
-    active_uid: Option<EntityUid>,
 }
 
-impl State {
+impl RemoteState {
     pub const fn available(&self) -> &RemoteData<Vec<CollectionEntity>> {
         &self.available
     }
@@ -43,13 +42,26 @@ impl State {
             .get()
             .and_then(|v| v.iter().find(|x| &x.hdr.uid == uid))
     }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct State {
+    remote: RemoteState,
+    active_uid: Option<EntityUid>,
+}
+
+impl State {
+    pub const fn remote(&self) -> &RemoteState {
+        &self.remote
+    }
 
     pub const fn active_uid(&self) -> Option<&EntityUid> {
         self.active_uid.as_ref()
     }
 
     pub fn active(&self) -> Option<&CollectionEntity> {
-        if let (Some(available), Some(active_uid)) = (self.available().get(), &self.active_uid) {
+        if let (Some(available), Some(active_uid)) = (self.remote.available.get(), &self.active_uid)
+        {
             available.iter().find(|x| &x.hdr.uid == active_uid)
         } else {
             None
@@ -57,14 +69,14 @@ impl State {
     }
 
     fn set_available(&mut self, new_available: Vec<CollectionEntity>) {
-        self.available = RemoteData::ready(new_available);
+        self.remote.available = RemoteData::ready(new_available);
         let active_uid = self.active_uid.take();
         self.set_active_uid(active_uid);
     }
 
     fn set_active_uid(&mut self, new_active_uid: impl Into<Option<EntityUid>>) {
         self.active_uid = if let (Some(available), Some(new_active_uid)) =
-            (self.available.get(), new_active_uid.into())
+            (self.remote.available.get(), new_active_uid.into())
         {
             if available.iter().any(|x| x.hdr.uid == new_active_uid) {
                 Some(new_active_uid)

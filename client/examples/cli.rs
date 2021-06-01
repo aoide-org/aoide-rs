@@ -192,7 +192,7 @@ async fn main() -> anyhow::Result<()> {
             }
 
             // Select an active collection
-            if let Some(available_collections) = state.collection.available().get_ready() {
+            if let Some(available_collections) = state.collection.remote().available().get_ready() {
                 if state.collection.active_uid().is_none() {
                     if available_collections.is_empty() {
                         log::warn!("No collections available");
@@ -202,6 +202,7 @@ async fn main() -> anyhow::Result<()> {
                     if let Some(collection_uid) = &collection_uid {
                         if state
                             .collection
+                            .remote()
                             .find_available_by_uid(&collection_uid)
                             .is_some()
                         {
@@ -232,7 +233,7 @@ async fn main() -> anyhow::Result<()> {
                     return;
                 }
             } else {
-                if state.collection.available().is_unknown() {
+                if state.collection.remote().available().is_unknown() {
                     event_emitter.emit_event(collection::Event::FetchAvailableRequested.into());
                     return;
                 }
