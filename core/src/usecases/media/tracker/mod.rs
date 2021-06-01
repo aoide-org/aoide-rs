@@ -15,6 +15,7 @@
 
 pub mod import;
 pub mod scan;
+pub mod untrack;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Completion {

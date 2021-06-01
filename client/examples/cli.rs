@@ -90,6 +90,15 @@ async fn main() -> anyhow::Result<()> {
                                 .help("The root URL to scan")
                                 .required(false),
                         ),
+                )
+                .subcommand(
+                    App::new("untrack")
+                        .about("Untrack media sources on the file system")
+                        .arg(
+                            Arg::with_name("root-url")
+                                .help("The root URL to scan")
+                                .required(true),
+                        ),
                 ),
         )
         .get_matches();
@@ -110,6 +119,7 @@ async fn main() -> anyhow::Result<()> {
     let mut last_media_tracker_progress = None;
     let mut last_media_tracker_scan_outcome = None;
     let mut last_media_tracker_import_outcome = None;
+    let mut last_media_tracker_untrack_outcome = None;
     let mut subcommand_submitted = false;
     let mut await_media_tracker_status = false;
     let event_loop = tokio::spawn(handle_events(
@@ -180,6 +190,23 @@ async fn main() -> anyhow::Result<()> {
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = last_media_tracker_import_outcome.as_ref() {
                     log::info!("Import finished: {:?}", outcome);
+                }
+            }
+            if last_media_tracker_untrack_outcome.as_ref()
+                != state
+                    .media_tracker
+                    .remote()
+                    .last_untrack_outcome()
+                    .get_ready()
+            {
+                last_media_tracker_untrack_outcome = state
+                    .media_tracker
+                    .remote()
+                    .last_untrack_outcome()
+                    .get_ready()
+                    .map(ToOwned::to_owned);
+                if let Some(outcome) = last_media_tracker_untrack_outcome.as_ref() {
+                    log::info!("Untrack finished: {:?}", outcome);
                 }
             }
 
@@ -325,6 +352,22 @@ async fn main() -> anyhow::Result<()> {
                                 .or_else(|| collection.body.media_source_config.base_url.clone());
                             event_emitter.emit_event(
                                 media::tracker::Event::StartImportRequested {
+                                    collection_uid,
+                                    root_url,
+                                }
+                                .into(),
+                            );
+                            subcommand_submitted = true;
+                            return;
+                        }
+                        ("untrack", untrack_matches) => {
+                            let collection_uid = collection.hdr.uid.clone();
+                            let root_url = untrack_matches
+                                .and_then(|m| m.value_of("root-url"))
+                                .map(|s| s.parse().expect("URL"))
+                                .expect("required");
+                            event_emitter.emit_event(
+                                media::tracker::Event::UntrackRequested {
                                     collection_uid,
                                     root_url,
                                 }

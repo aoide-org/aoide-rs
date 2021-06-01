@@ -20,7 +20,8 @@ use crate::prelude::*;
 use aoide_core::{
     entity::EntityUid,
     usecases::media::tracker::{
-        import::Outcome as ImportOutcome, scan::Outcome as ScanOutcome, Progress, Status,
+        import::Outcome as ImportOutcome, scan::Outcome as ScanOutcome,
+        untrack::Outcome as UntrackOutcome, Progress, Status,
     },
 };
 
@@ -44,6 +45,7 @@ pub struct RemoteState {
     progress: RemoteData<Progress>,
     last_scan_outcome: RemoteData<ScanOutcome>,
     last_import_outcome: RemoteData<ImportOutcome>,
+    last_untrack_outcome: RemoteData<UntrackOutcome>,
 }
 
 impl RemoteState {
@@ -61,6 +63,10 @@ impl RemoteState {
 
     pub fn last_import_outcome(&self) -> &RemoteData<ImportOutcome> {
         &self.last_import_outcome
+    }
+
+    pub fn last_untrack_outcome(&self) -> &RemoteData<UntrackOutcome> {
+        &self.last_untrack_outcome
     }
 }
 
@@ -100,6 +106,10 @@ pub enum Action {
         collection_uid: EntityUid,
         root_url: Option<Url>,
     },
+    Untrack {
+        collection_uid: EntityUid,
+        root_url: Url,
+    },
     Abort,
     PropagateError(anyhow::Error),
 }
@@ -125,6 +135,11 @@ pub enum Event {
         root_url: Option<Url>,
     },
     ImportFinished(anyhow::Result<ImportOutcome>),
+    UntrackRequested {
+        collection_uid: EntityUid,
+        root_url: Url,
+    },
+    Untracked(anyhow::Result<UntrackOutcome>),
     ErrorOccurred(anyhow::Error),
 }
 
@@ -222,6 +237,7 @@ pub fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Act
             }
             state.control = ControlState::Busy;
             state.remote.progress.reset();
+            state.remote.status.set_pending();
             state.remote.last_scan_outcome.set_pending();
             (
                 AppliedEvent::Accepted {
@@ -236,9 +252,9 @@ pub fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Act
         Event::ScanFinished(res) => {
             debug_assert_eq!(state.control, ControlState::Busy);
             state.control = ControlState::Idle;
-            // Invalidate both status and progress to enforce refetching
-            state.remote.status.reset();
+            // Invalidate both progress and status to enforce refetching
             state.remote.progress.reset();
+            state.remote.status.reset();
             debug_assert!(state.remote.last_scan_outcome.is_pending());
             let next_action = match res {
                 Ok(outcome) => {
@@ -267,6 +283,7 @@ pub fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Act
             }
             state.control = ControlState::Busy;
             state.remote.progress.reset();
+            state.remote.status.set_pending();
             state.remote.last_import_outcome.set_pending();
             (
                 AppliedEvent::Accepted {
@@ -281,9 +298,9 @@ pub fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Act
         Event::ImportFinished(res) => {
             debug_assert_eq!(state.control, ControlState::Busy);
             state.control = ControlState::Idle;
-            // Invalidate both status and progress to enforce refetching
-            state.remote.status.reset();
+            // Invalidate both progress and status to enforce refetching
             state.remote.progress.reset();
+            state.remote.status.reset();
             debug_assert!(state.remote.last_import_outcome.is_pending());
             let next_action = match res {
                 Ok(outcome) => {
@@ -292,6 +309,51 @@ pub fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Act
                 }
                 Err(err) => {
                     state.remote.last_import_outcome.reset();
+                    Action::PropagateError(err)
+                }
+            };
+            (
+                AppliedEvent::Accepted {
+                    state_changed: true,
+                },
+                Some(next_action),
+            )
+        }
+        Event::UntrackRequested {
+            collection_uid,
+            root_url,
+        } => {
+            if !state.is_idle() {
+                log::warn!("Cannot untrack while not idle");
+                return (AppliedEvent::Dropped, None);
+            }
+            state.control = ControlState::Busy;
+            state.remote.progress.reset();
+            state.remote.status.set_pending();
+            state.remote.last_untrack_outcome.set_pending();
+            (
+                AppliedEvent::Accepted {
+                    state_changed: true,
+                },
+                Some(Action::Untrack {
+                    collection_uid,
+                    root_url,
+                }),
+            )
+        }
+        Event::Untracked(res) => {
+            debug_assert_eq!(state.control, ControlState::Busy);
+            state.control = ControlState::Idle;
+            state.remote.progress.reset();
+            state.remote.status.reset();
+            debug_assert!(state.remote.last_untrack_outcome.is_pending());
+            let next_action = match res {
+                Ok(outcome) => {
+                    state.remote.last_untrack_outcome = RemoteData::ready(outcome);
+                    Action::FetchProgress
+                }
+                Err(err) => {
+                    state.remote.last_untrack_outcome.reset();
                     Action::PropagateError(err)
                 }
             };
@@ -363,6 +425,19 @@ pub async fn dispatch_action<E: From<Event> + fmt::Debug>(
             )
             .await;
             crate::emit_event(&event_tx, E::from(Event::ImportFinished(res)));
+        }
+        Action::Untrack {
+            collection_uid,
+            root_url,
+        } => {
+            let res = untrack(
+                &shared_env.client,
+                &shared_env.api_url,
+                &collection_uid,
+                &root_url,
+            )
+            .await;
+            crate::emit_event(&event_tx, E::from(Event::Untracked(res)));
         }
         Action::PropagateError(error) => {
             crate::emit_event(&event_tx, E::from(Event::ErrorOccurred(error)));
@@ -502,6 +577,47 @@ pub async fn run_import_task(
             .context("Failed to deserialize response payload after importing media")
     })?;
     log::debug!("Import finished: {:?}", outcome);
+    Ok(outcome)
+}
+
+pub async fn untrack(
+    client: &Client,
+    base_url: &Url,
+    collection_uid: &EntityUid,
+    root_url: &Url,
+) -> anyhow::Result<UntrackOutcome> {
+    let url = base_url.join(&format!("c/{}/media-tracker/untrack", collection_uid))?;
+    let body_json = serde_json::json!({
+        "rootUrl": root_url.to_string(),
+    });
+    let body = serde_json::to_vec(&body_json).map_err(|err| {
+        anyhow::Error::from(err).context("Failed to serialize request body when untracking media")
+    })?;
+    let response = client
+        .post(url)
+        .body(body)
+        .send()
+        .await
+        .map_err(|err| anyhow::Error::from(err).context("media tracker untrack failed"))?;
+    if !response.status().is_success() {
+        anyhow::bail!(
+            "Media tracker untrack failed: response status = {}",
+            response.status()
+        );
+    }
+    let bytes = response.bytes().await.map_err(|err| {
+        anyhow::Error::from(err)
+            .context("Failed to receive response playload of media tracker import")
+    })?;
+    let outcome = serde_json::from_slice::<
+        aoide_core_serde::usecases::media::tracker::untrack::Outcome,
+    >(&bytes)
+    .map(Into::into)
+    .map_err(|err| {
+        anyhow::Error::from(err)
+            .context("Failed to deserialize response payload after untracking media")
+    })?;
+    log::debug!("Untrack finished: {:?}", outcome);
     Ok(outcome)
 }
 

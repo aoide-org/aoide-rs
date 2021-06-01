@@ -21,6 +21,7 @@ mod uc {
 
 use aoide_core::entity::EntityUid;
 
+use aoide_core_serde::usecases::media::tracker::untrack::Outcome;
 use url::Url;
 
 ///////////////////////////////////////////////////////////////////////
@@ -57,12 +58,6 @@ pub struct Params {
     pub status: Option<DirTrackingStatus>,
 }
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Outcome {
-    pub purged: usize,
-}
-
 pub type RequestBody = Params;
 pub type ResponseBody = Outcome;
 
@@ -72,11 +67,12 @@ pub fn handle_request(
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
     let RequestBody { root_url, status } = request_body;
-    let purged = uc::untrack(
+    uc::untrack(
         &pooled_connection,
         collection_uid,
         &root_url,
         status.map(Into::into),
-    )?;
-    Ok(Outcome { purged })
+    )
+    .map(Into::into)
+    .map_err(Into::into)
 }

@@ -2098,11 +2098,21 @@ components:
     MediaTrackerUntrackResponseBody:
       type: object
       properties:
-        purged:
+        rootUrl:
+          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+        summary:
+          $ref: '#/components/schemas/MediaTrackerUntrackSummary'
+      required:
+        - rootUrl
+        - summary
+    MediaTrackerUntrackSummary:
+      type: object
+      properties:
+        untracked:
           type: integer
           minimum: 0
       required:
-        - purged
+        - untracked
     MediaTrackerQueryStatusRequestBody:
       type: object
       properties:

@@ -15,6 +15,7 @@
 
 use super::*;
 
+use aoide_core::usecases::media::tracker::untrack::{Outcome, Summary};
 use aoide_repo::{collection::RecordId as CollectionId, media::tracker::Repo as MediaTrackerRepo};
 
 use url::Url;
@@ -25,10 +26,15 @@ pub fn untrack<Repo>(
     root_url: &Url,
     source_path_resolver: &impl SourcePathResolver,
     status: Option<DirTrackingStatus>,
-) -> Result<usize>
+) -> Result<Outcome>
 where
     Repo: MediaTrackerRepo,
 {
     let root_path_prefix = resolve_path_prefix_from_url(source_path_resolver, root_url)?;
-    Ok(repo.media_tracker_untrack(collection_id, &root_path_prefix, status)?)
+    let root_url = source_path_resolver
+        .resolve_url_from_path(&root_path_prefix)
+        .map_err(anyhow::Error::from)?;
+    let untracked = repo.media_tracker_untrack(collection_id, &root_path_prefix, status)?;
+    let summary = Summary { untracked };
+    Ok(Outcome { root_url, summary })
 }

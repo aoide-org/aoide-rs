@@ -21,6 +21,7 @@ mod _core {
 
 pub mod import;
 pub mod scan;
+pub mod untrack;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]

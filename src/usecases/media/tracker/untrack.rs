@@ -15,8 +15,7 @@
 
 use super::*;
 
-use aoide_core::entity::EntityUid;
-
+use aoide_core::{entity::EntityUid, usecases::media::tracker::untrack::Outcome};
 use url::Url;
 
 pub use aoide_repo::media::tracker::DirTrackingStatus;
@@ -31,7 +30,7 @@ pub fn untrack(
     collection_uid: &EntityUid,
     root_url: &Url,
     status: Option<DirTrackingStatus>,
-) -> Result<usize> {
+) -> Result<Outcome> {
     let db = RepoConnection::new(connection);
     db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
         let (collection_id, source_path_resolver) =
