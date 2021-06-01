@@ -13,10 +13,57 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::prelude::*;
+use url::Url;
+
+use crate::{prelude::*, usecases::media::ImportMode};
+
+use super::Completion;
 
 mod _core {
     pub use aoide_core::usecases::media::tracker::import::*;
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct Params {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub root_url: Option<Url>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub import_mode: Option<ImportMode>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct Outcome {
+    pub completion: Completion,
+    pub summary: Summary,
+}
+
+impl From<Outcome> for _core::Outcome {
+    fn from(from: Outcome) -> Self {
+        let Outcome {
+            completion,
+            summary,
+        } = from;
+        Self {
+            completion: completion.into(),
+            summary: summary.into(),
+        }
+    }
+}
+
+impl From<_core::Outcome> for Outcome {
+    fn from(from: _core::Outcome) -> Self {
+        let _core::Outcome {
+            completion,
+            summary,
+        } = from;
+        Self {
+            completion: completion.into(),
+            summary: summary.into(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]

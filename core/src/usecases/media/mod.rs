@@ -14,3 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 pub mod tracker;
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum ImportMode {
+    Once,
+    Modified,
+    Always,
+}

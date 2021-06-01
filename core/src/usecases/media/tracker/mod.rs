@@ -14,6 +14,13 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 pub mod import;
+pub mod scan;
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum Completion {
+    Finished,
+    Aborted,
+}
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Status {

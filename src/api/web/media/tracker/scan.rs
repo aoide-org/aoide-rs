@@ -19,11 +19,13 @@ use super::*;
 
 mod uc {
     pub use crate::usecases::media::tracker::scan::*;
+    pub use aoide_usecases::media::tracker::scan::ProgressEvent;
 }
 
 use aoide_core::entity::EntityUid;
 
-use aoide_usecases::media::tracker::scan::ProgressEvent;
+use aoide_core_serde::usecases::media::tracker::scan::Outcome;
+
 use tokio::sync::watch;
 use url::Url;
 
@@ -38,55 +40,6 @@ pub struct Params {
     pub max_depth: Option<usize>,
 }
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Summary {
-    pub current: usize,
-    pub added: usize,
-    pub modified: usize,
-    pub orphaned: usize,
-    pub skipped: usize,
-}
-
-impl From<uc::Summary> for Summary {
-    fn from(from: uc::Summary) -> Self {
-        let uc::Summary {
-            current,
-            added,
-            modified,
-            orphaned,
-            skipped,
-        } = from;
-        Self {
-            current,
-            added,
-            modified,
-            orphaned,
-            skipped,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Outcome {
-    pub completion: Completion,
-    pub summary: Summary,
-}
-
-impl From<uc::Outcome> for Outcome {
-    fn from(from: uc::Outcome) -> Self {
-        let uc::Outcome {
-            completion,
-            summary,
-        } = from;
-        Self {
-            completion: completion.into(),
-            summary: summary.into(),
-        }
-    }
-}
-
 pub type RequestBody = Params;
 pub type ResponseBody = Outcome;
 
@@ -94,7 +47,7 @@ pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
     collection_uid: &EntityUid,
     request_body: RequestBody,
-    progress_event_tx: Option<&watch::Sender<Option<ProgressEvent>>>,
+    progress_event_tx: Option<&watch::Sender<Option<uc::ProgressEvent>>>,
     abort_flag: &AtomicBool,
 ) -> Result<ResponseBody> {
     let RequestBody {

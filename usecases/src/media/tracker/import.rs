@@ -15,7 +15,10 @@
 
 use super::*;
 
-use aoide_core::usecases::media::tracker::import::Summary;
+use aoide_core::usecases::media::tracker::{
+    import::{Outcome, Summary},
+    Completion,
+};
 
 use aoide_repo::{
     collection::RecordId as CollectionId,
@@ -35,21 +38,6 @@ use url::Url;
 ///////////////////////////////////////////////////////////////////////
 
 pub use aoide_media::io::import::{ImportTrackConfig, ImportTrackFlags};
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Outcome {
-    pub completion: Completion,
-    pub summary: Summary,
-}
-
-impl Outcome {
-    const fn new(completion: Completion, summary: Summary) -> Self {
-        Self {
-            completion,
-            summary,
-        }
-    }
-}
 
 // TODO: Reduce number of arguments
 #[allow(clippy::too_many_arguments)]

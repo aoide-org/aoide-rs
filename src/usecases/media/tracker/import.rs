@@ -15,13 +15,14 @@
 
 use super::*;
 
-use aoide_core::usecases::media::tracker::import::Summary;
+use aoide_core::usecases::media::ImportMode;
 use aoide_media::io::import::{ImportTrackConfig, ImportTrackFlags};
 
 use std::sync::atomic::AtomicBool;
 use url::Url;
 
 mod uc {
+    pub use aoide_core::usecases::media::tracker::import::*;
     pub use aoide_usecases::{
         collection::resolve_collection_id_for_virtual_file_path,
         media::{
@@ -41,7 +42,7 @@ pub fn import(
     import_config: &ImportTrackConfig,
     import_flags: ImportTrackFlags,
     root_dir_url: Option<&Url>,
-    progress_fn: &mut impl FnMut(&Summary),
+    progress_fn: &mut impl FnMut(&uc::Summary),
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {
     let db = RepoConnection::new(connection);

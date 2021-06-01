@@ -17,7 +17,7 @@ use std::sync::atomic::AtomicBool;
 
 use super::*;
 
-use crate::api::web::{media::ImportMode, tracks::replace::ReplaceMode};
+use crate::api::web::tracks::replace::ReplaceMode;
 
 mod uc {
     pub use crate::usecases::tracks::replace::*;
@@ -29,6 +29,7 @@ mod _core {
 }
 
 use aoide_core::track::tag::{FACET_GENRE, FACET_MOOD};
+use aoide_core_serde::usecases::media::ImportMode;
 pub use aoide_core_serde::{
     entity::EntityHeader,
     track::{Entity, Track},

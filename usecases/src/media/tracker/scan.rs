@@ -17,7 +17,8 @@ use super::*;
 
 use aoide_core::{
     usecases::media::tracker::{
-        ScanningDirectoriesProgress, ScanningEntriesProgress, ScanningProgress,
+        scan::{Outcome, Summary},
+        Completion, ScanningDirectoriesProgress, ScanningEntriesProgress, ScanningProgress,
     },
     util::clock::DateTime,
 };
@@ -68,21 +69,6 @@ impl From<digest::ProgressEvent> for ProgressEvent {
             },
         }
     }
-}
-
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct Summary {
-    pub current: usize,
-    pub added: usize,
-    pub modified: usize,
-    pub orphaned: usize,
-    pub skipped: usize,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Outcome {
-    pub completion: Completion,
-    pub summary: Summary,
 }
 
 pub fn scan_directories_recursively<Repo>(

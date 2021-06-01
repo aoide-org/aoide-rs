@@ -17,6 +17,10 @@ use super::*;
 
 use aoide_core::track::tag::{FACET_GENRE, FACET_MOOD};
 
+use aoide_core_serde::usecases::media::{
+    tracker::import::{Outcome, Params},
+    ImportMode,
+};
 use aoide_media::{
     io::import::{ImportTrackConfig, ImportTrackFlags},
     util::tag::{FacetedTagMappingConfigInner, TagMappingConfig},
@@ -24,7 +28,6 @@ use aoide_media::{
 
 use std::sync::atomic::AtomicBool;
 use tokio::sync::watch;
-use url::Url;
 
 mod _core {
     pub use aoide_core::{
@@ -34,8 +37,8 @@ mod _core {
 }
 
 mod uc {
-    pub use crate::usecases::media::tracker::{import::*, *};
-    pub use aoide_usecases::media::tracker::import::Outcome;
+    pub use crate::usecases::media::tracker::import::*;
+    pub use aoide_core::usecases::media::tracker::import::*;
 }
 
 pub use aoide_core_serde::{
@@ -43,36 +46,6 @@ pub use aoide_core_serde::{
     track::{Entity, Track},
     usecases::media::tracker::import::Summary,
 };
-
-#[derive(Clone, Debug, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Params {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub root_url: Option<Url>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub import_mode: Option<ImportMode>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Outcome {
-    pub completion: Completion,
-    pub summary: Summary,
-}
-
-impl From<uc::Outcome> for Outcome {
-    fn from(from: uc::Outcome) -> Self {
-        let uc::Outcome {
-            completion,
-            summary,
-        } = from;
-        Self {
-            completion: completion.into(),
-            summary: summary.into(),
-        }
-    }
-}
 
 pub type RequestBody = Params;
 

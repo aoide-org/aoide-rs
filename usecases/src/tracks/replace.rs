@@ -16,11 +16,10 @@
 use super::*;
 
 use crate::media::{
-    import_track_from_local_file_path, ImportMode, ImportTrackFromFileOutcome,
-    SynchronizedImportMode,
+    import_track_from_local_file_path, ImportTrackFromFileOutcome, SynchronizedImportMode,
 };
 
-use aoide_core::{media::SourcePath, util::clock::DateTime};
+use aoide_core::{media::SourcePath, usecases::media::ImportMode, util::clock::DateTime};
 
 use aoide_media::{
     io::import::{ImportTrackConfig, ImportTrackFlags},

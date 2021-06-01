@@ -13,17 +13,19 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-///////////////////////////////////////////////////////////////////////
+use super::Completion;
 
-use super::*;
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct Summary {
+    pub current: usize,
+    pub added: usize,
+    pub modified: usize,
+    pub orphaned: usize,
+    pub skipped: usize,
+}
 
-pub mod import;
-pub mod query_status;
-pub mod scan;
-pub mod untrack;
-
-mod uc {
-    pub use crate::usecases::media::tracker::*;
-    pub use aoide_core::usecases::media::tracker::*;
-    pub use aoide_usecases::media::tracker::*;
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Outcome {
+    pub completion: Completion,
+    pub summary: Summary,
 }

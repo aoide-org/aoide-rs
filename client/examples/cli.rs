@@ -117,6 +117,8 @@ async fn main() -> anyhow::Result<()> {
     let (event_tx, event_rx) = event_channel();
     let mut last_media_tracker_status = None;
     let mut last_media_tracker_progress = None;
+    let mut last_media_tracker_scan_outcome = None;
+    let mut last_media_tracker_import_outcome = None;
     let mut subcommand_submitted = false;
     let mut await_media_tracker_status = false;
     let event_loop = tokio::spawn(handle_events(
@@ -157,6 +159,36 @@ async fn main() -> anyhow::Result<()> {
                         event_emitter.emit_event(Event::TerminateRequested);
                         return;
                     }
+                }
+            }
+            if last_media_tracker_scan_outcome.as_ref()
+                != state.media_tracker.remote().last_scan_outcome().get_ready()
+            {
+                last_media_tracker_scan_outcome = state
+                    .media_tracker
+                    .remote()
+                    .last_scan_outcome()
+                    .get_ready()
+                    .map(ToOwned::to_owned);
+                if let Some(outcome) = last_media_tracker_scan_outcome.as_ref() {
+                    log::info!("Scan finished: {:?}", outcome);
+                }
+            }
+            if last_media_tracker_import_outcome.as_ref()
+                != state
+                    .media_tracker
+                    .remote()
+                    .last_import_outcome()
+                    .get_ready()
+            {
+                last_media_tracker_import_outcome = state
+                    .media_tracker
+                    .remote()
+                    .last_import_outcome()
+                    .get_ready()
+                    .map(ToOwned::to_owned);
+                if let Some(outcome) = last_media_tracker_import_outcome.as_ref() {
+                    log::info!("Import finished: {:?}", outcome);
                 }
             }
 

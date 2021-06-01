@@ -15,7 +15,9 @@
 
 use super::*;
 
-use aoide_core::{media::SourcePath, track::Track, util::clock::DateTime};
+use aoide_core::{
+    media::SourcePath, track::Track, usecases::media::ImportMode, util::clock::DateTime,
+};
 
 use aoide_media::{
     fmt::{flac, mp3, mp4, ogg},
@@ -31,13 +33,6 @@ use url::Url;
 ///////////////////////////////////////////////////////////////////////
 
 pub mod tracker;
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum ImportMode {
-    Once,
-    Modified,
-    Always,
-}
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum SynchronizedImportMode {

@@ -13,4 +13,28 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::prelude::*;
+
 pub mod tracker;
+
+mod _core {
+    pub use aoide_core::usecases::media::*;
+}
+
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ImportMode {
+    Once,
+    Modified,
+    Always,
+}
+
+impl From<ImportMode> for _core::ImportMode {
+    fn from(from: ImportMode) -> Self {
+        match from {
+            ImportMode::Once => Self::Once,
+            ImportMode::Modified => Self::Modified,
+            ImportMode::Always => Self::Always,
+        }
+    }
+}

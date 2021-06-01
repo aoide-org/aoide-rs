@@ -20,7 +20,7 @@ mod uc {
 }
 
 use aoide_core::entity::EntityUid;
-use aoide_core_serde::media::tracker::Status;
+use aoide_core_serde::usecases::media::tracker::Status;
 
 use url::Url;
 

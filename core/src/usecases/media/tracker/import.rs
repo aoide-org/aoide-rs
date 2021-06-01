@@ -17,6 +17,23 @@ use std::ops::AddAssign;
 
 use crate::usecases::tracks::replace::Summary as TrackReplaceSummary;
 
+use super::Completion;
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Outcome {
+    pub completion: Completion,
+    pub summary: Summary,
+}
+
+impl Outcome {
+    pub const fn new(completion: Completion, summary: Summary) -> Self {
+        Self {
+            completion,
+            summary,
+        }
+    }
+}
+
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Summary {
     pub tracks: TrackSummary,

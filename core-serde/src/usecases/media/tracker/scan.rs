@@ -15,78 +15,89 @@
 
 use crate::prelude::*;
 
+use super::Completion;
+
 mod _core {
-    pub use aoide_core::usecases::media::tracker::*;
+    pub use aoide_core::usecases::media::tracker::scan::*;
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Status {
-    pub directories: DirectoriesStatus,
-}
-
-impl From<_core::Status> for Status {
-    fn from(from: _core::Status) -> Self {
-        let _core::Status { directories } = from;
-        Self {
-            directories: directories.into(),
-        }
-    }
-}
-
-impl From<Status> for _core::Status {
-    fn from(from: Status) -> Self {
-        let Status { directories } = from;
-        Self {
-            directories: directories.into(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct DirectoriesStatus {
+pub struct Summary {
     pub current: usize,
-    pub outdated: usize,
     pub added: usize,
     pub modified: usize,
     pub orphaned: usize,
+    pub skipped: usize,
 }
 
-impl From<_core::DirectoriesStatus> for DirectoriesStatus {
-    fn from(from: _core::DirectoriesStatus) -> Self {
-        let _core::DirectoriesStatus {
+impl From<Summary> for _core::Summary {
+    fn from(from: Summary) -> Self {
+        let Summary {
             current,
-            outdated,
             added,
             modified,
             orphaned,
+            skipped,
         } = from;
         Self {
             current,
-            outdated,
             added,
             modified,
             orphaned,
+            skipped,
         }
     }
 }
 
-impl From<DirectoriesStatus> for _core::DirectoriesStatus {
-    fn from(from: DirectoriesStatus) -> Self {
-        let DirectoriesStatus {
+impl From<_core::Summary> for Summary {
+    fn from(from: _core::Summary) -> Self {
+        let _core::Summary {
             current,
-            outdated,
             added,
             modified,
             orphaned,
+            skipped,
         } = from;
         Self {
             current,
-            outdated,
             added,
             modified,
             orphaned,
+            skipped,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct Outcome {
+    pub completion: Completion,
+    pub summary: Summary,
+}
+
+impl From<Outcome> for _core::Outcome {
+    fn from(from: Outcome) -> Self {
+        let Outcome {
+            completion,
+            summary,
+        } = from;
+        Self {
+            completion: completion.into(),
+            summary: summary.into(),
+        }
+    }
+}
+
+impl From<_core::Outcome> for Outcome {
+    fn from(from: _core::Outcome) -> Self {
+        let _core::Outcome {
+            completion,
+            summary,
+        } = from;
+        Self {
+            completion: completion.into(),
+            summary: summary.into(),
         }
     }
 }

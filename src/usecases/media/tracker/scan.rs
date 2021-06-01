@@ -22,6 +22,7 @@ use aoide_usecases::{
 };
 
 mod uc {
+    pub use aoide_core::usecases::media::tracker::scan::*;
     pub use aoide_usecases::{media::tracker::scan::*, Error};
 }
 

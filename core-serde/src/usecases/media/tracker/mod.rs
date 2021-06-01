@@ -20,6 +20,7 @@ mod _core {
 }
 
 pub mod import;
+pub mod scan;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -126,3 +127,102 @@ impl From<_core::ScanningDirectoriesProgress> for ScanningDirectoriesProgress {
 }
 
 pub type ImportingProgress = import::Summary;
+
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Completion {
+    Finished,
+    Aborted,
+}
+
+impl From<Completion> for _core::Completion {
+    fn from(from: Completion) -> Self {
+        use Completion::*;
+        match from {
+            Finished => Self::Finished,
+            Aborted => Self::Aborted,
+        }
+    }
+}
+
+impl From<_core::Completion> for Completion {
+    fn from(from: _core::Completion) -> Self {
+        use _core::Completion::*;
+        match from {
+            Finished => Self::Finished,
+            Aborted => Self::Aborted,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct Status {
+    pub directories: DirectoriesStatus,
+}
+
+impl From<_core::Status> for Status {
+    fn from(from: _core::Status) -> Self {
+        let _core::Status { directories } = from;
+        Self {
+            directories: directories.into(),
+        }
+    }
+}
+
+impl From<Status> for _core::Status {
+    fn from(from: Status) -> Self {
+        let Status { directories } = from;
+        Self {
+            directories: directories.into(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct DirectoriesStatus {
+    pub current: usize,
+    pub outdated: usize,
+    pub added: usize,
+    pub modified: usize,
+    pub orphaned: usize,
+}
+
+impl From<_core::DirectoriesStatus> for DirectoriesStatus {
+    fn from(from: _core::DirectoriesStatus) -> Self {
+        let _core::DirectoriesStatus {
+            current,
+            outdated,
+            added,
+            modified,
+            orphaned,
+        } = from;
+        Self {
+            current,
+            outdated,
+            added,
+            modified,
+            orphaned,
+        }
+    }
+}
+
+impl From<DirectoriesStatus> for _core::DirectoriesStatus {
+    fn from(from: DirectoriesStatus) -> Self {
+        let DirectoriesStatus {
+            current,
+            outdated,
+            added,
+            modified,
+            orphaned,
+        } = from;
+        Self {
+            current,
+            outdated,
+            added,
+            modified,
+            orphaned,
+        }
+    }
+}

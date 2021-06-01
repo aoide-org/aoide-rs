@@ -27,12 +27,6 @@ pub mod untrack;
 
 pub use aoide_repo::media::tracker::DirTrackingStatus;
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum Completion {
-    Finished,
-    Aborted,
-}
-
 pub fn root_dir_path_from_url(root_dir_url: &Url) -> Result<PathBuf> {
     if !root_dir_url.as_str().ends_with('/') {
         return Err(Error::Media(

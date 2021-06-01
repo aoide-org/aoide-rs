@@ -19,7 +19,9 @@ use crate::prelude::*;
 
 use aoide_core::{
     entity::EntityUid,
-    usecases::media::tracker::{Progress, Status},
+    usecases::media::tracker::{
+        import::Outcome as ImportOutcome, scan::Outcome as ScanOutcome, Progress, Status,
+    },
 };
 
 use reqwest::{Client, Url};
@@ -40,6 +42,8 @@ impl Default for ControlState {
 pub struct RemoteState {
     status: RemoteData<Status>,
     progress: RemoteData<Progress>,
+    last_scan_outcome: RemoteData<ScanOutcome>,
+    last_import_outcome: RemoteData<ImportOutcome>,
 }
 
 impl RemoteState {
@@ -49,6 +53,14 @@ impl RemoteState {
 
     pub fn progress(&self) -> &RemoteData<Progress> {
         &self.progress
+    }
+
+    pub fn last_scan_outcome(&self) -> &RemoteData<ScanOutcome> {
+        &self.last_scan_outcome
+    }
+
+    pub fn last_import_outcome(&self) -> &RemoteData<ImportOutcome> {
+        &self.last_import_outcome
     }
 }
 
@@ -107,12 +119,12 @@ pub enum Event {
         collection_uid: EntityUid,
         root_url: Option<Url>,
     },
-    ScanFinished(anyhow::Result<()>),
+    ScanFinished(anyhow::Result<ScanOutcome>),
     StartImportRequested {
         collection_uid: EntityUid,
         root_url: Option<Url>,
     },
-    ImportFinished(anyhow::Result<()>),
+    ImportFinished(anyhow::Result<ImportOutcome>),
     ErrorOccurred(anyhow::Error),
 }
 
@@ -210,6 +222,7 @@ pub fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Act
             }
             state.control = ControlState::Busy;
             state.remote.progress.reset();
+            state.remote.last_scan_outcome.set_pending();
             (
                 AppliedEvent::Accepted {
                     state_changed: true,
@@ -226,9 +239,16 @@ pub fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Act
             // Invalidate both status and progress to enforce refetching
             state.remote.status.reset();
             state.remote.progress.reset();
+            debug_assert!(state.remote.last_scan_outcome.is_pending());
             let next_action = match res {
-                Ok(()) => Action::FetchProgress,
-                Err(err) => Action::PropagateError(err),
+                Ok(outcome) => {
+                    state.remote.last_scan_outcome = RemoteData::ready(outcome);
+                    Action::FetchProgress
+                }
+                Err(err) => {
+                    state.remote.last_scan_outcome.reset();
+                    Action::PropagateError(err)
+                }
             };
             (
                 AppliedEvent::Accepted {
@@ -247,6 +267,7 @@ pub fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Act
             }
             state.control = ControlState::Busy;
             state.remote.progress.reset();
+            state.remote.last_import_outcome.set_pending();
             (
                 AppliedEvent::Accepted {
                     state_changed: true,
@@ -263,9 +284,16 @@ pub fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Act
             // Invalidate both status and progress to enforce refetching
             state.remote.status.reset();
             state.remote.progress.reset();
+            debug_assert!(state.remote.last_import_outcome.is_pending());
             let next_action = match res {
-                Ok(()) => Action::FetchProgress,
-                Err(err) => Action::PropagateError(err),
+                Ok(outcome) => {
+                    state.remote.last_import_outcome = RemoteData::ready(outcome);
+                    Action::FetchProgress
+                }
+                Err(err) => {
+                    state.remote.last_import_outcome.reset();
+                    Action::PropagateError(err)
+                }
             };
             (
                 AppliedEvent::Accepted {
@@ -374,13 +402,14 @@ pub async fn fetch_status(
         anyhow::Error::from(err)
             .context("Failed to receive response playload when fetching media tracker status")
     })?;
-    let status = serde_json::from_slice::<aoide_core_serde::media::tracker::Status>(&bytes)
-        .map(Into::into)
-        .map_err(|err| {
-            anyhow::Error::from(err).context(
-                "Failed to deserialize response payload when fetching media tracker status",
-            )
-        })?;
+    let status =
+        serde_json::from_slice::<aoide_core_serde::usecases::media::tracker::Status>(&bytes)
+            .map(Into::into)
+            .map_err(|err| {
+                anyhow::Error::from(err).context(
+                    "Failed to deserialize response payload when fetching media tracker status",
+                )
+            })?;
     log::debug!("Received status: {:?}", status);
     Ok(status)
 }
@@ -390,7 +419,7 @@ pub async fn run_scan_task(
     base_url: &Url,
     collection_uid: &EntityUid,
     root_url: Option<&Url>,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<ScanOutcome> {
     let url = base_url.join(&format!("c/{}/media-tracker/scan", collection_uid))?;
     let body_json = root_url
         .map(|root_url| {
@@ -419,8 +448,15 @@ pub async fn run_scan_task(
         anyhow::Error::from(err)
             .context("Failed to receive response playload of media tracker scan")
     })?;
-    log::error!("TODO: Deserialize and return response payload: {:?}", bytes);
-    Ok(())
+    let outcome =
+        serde_json::from_slice::<aoide_core_serde::usecases::media::tracker::scan::Outcome>(&bytes)
+            .map(Into::into)
+            .map_err(|err| {
+                anyhow::Error::from(err)
+                    .context("Failed to deserialize response payload after scanning media")
+            })?;
+    log::debug!("Scan finished: {:?}", outcome);
+    Ok(outcome)
 }
 
 pub async fn run_import_task(
@@ -428,7 +464,7 @@ pub async fn run_import_task(
     base_url: &Url,
     collection_uid: &EntityUid,
     root_url: Option<&Url>,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<ImportOutcome> {
     let url = base_url.join(&format!("c/{}/media-tracker/import", collection_uid))?;
     let body_json = root_url
         .map(|root_url| {
@@ -457,8 +493,16 @@ pub async fn run_import_task(
         anyhow::Error::from(err)
             .context("Failed to receive response playload of media tracker import")
     })?;
-    log::error!("TODO: Deserialize and return response payload: {:?}", bytes);
-    Ok(())
+    let outcome = serde_json::from_slice::<
+        aoide_core_serde::usecases::media::tracker::import::Outcome,
+    >(&bytes)
+    .map(Into::into)
+    .map_err(|err| {
+        anyhow::Error::from(err)
+            .context("Failed to deserialize response payload after importing media")
+    })?;
+    log::debug!("Import finished: {:?}", outcome);
+    Ok(outcome)
 }
 
 pub async fn fetch_progress(client: &Client, base_url: &Url) -> anyhow::Result<Progress> {

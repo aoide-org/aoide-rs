@@ -15,13 +15,13 @@
 
 use super::*;
 
-use aoide_core::media::SourcePath;
+use aoide_core::{media::SourcePath, usecases::media::ImportMode};
 use aoide_media::{
     io::import::{ImportTrackConfig, ImportTrackFlags},
     resolver::SourcePathResolver as _,
 };
 use aoide_repo::{collection::EntityRepo as _, track::ReplaceMode};
-use aoide_usecases::{collection::resolve_collection_id_for_virtual_file_path, media::ImportMode};
+use aoide_usecases::collection::resolve_collection_id_for_virtual_file_path;
 
 use std::sync::atomic::AtomicBool;
 
