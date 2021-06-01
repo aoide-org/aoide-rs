@@ -121,6 +121,10 @@ fn parse_replay_gain_db(input: &str) -> IResult<&str, f64> {
 }
 
 pub fn parse_replay_gain(input: &str) -> Option<LoudnessLufs> {
+    let input = input.trim();
+    if input.is_empty() {
+        return None;
+    }
     match parse_replay_gain_db(input) {
         Ok((remainder, relative_gain_db)) => {
             if !remainder.is_empty() {
@@ -158,6 +162,10 @@ pub fn parse_replay_gain(input: &str) -> Option<LoudnessLufs> {
 }
 
 pub fn parse_tempo_bpm(input: &str) -> Option<TempoBpm> {
+    let input = input.trim();
+    if input.is_empty() {
+        return None;
+    }
     match input.parse() {
         Ok(bpm) => {
             let tempo_bpm = TempoBpm(bpm);
@@ -181,6 +189,9 @@ pub fn parse_tempo_bpm(input: &str) -> Option<TempoBpm> {
 
 pub fn parse_key_signature(input: &str) -> Option<KeySignature> {
     let input = input.trim();
+    if input.is_empty() {
+        return None;
+    }
     let key_code = KeyCode::from_lancelot_str(input);
     if key_code != KeyCode::Unknown {
         return Some(key_code.into());
