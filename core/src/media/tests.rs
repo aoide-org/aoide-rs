@@ -114,14 +114,18 @@ fn given_locked_update() {
 
 #[test]
 fn valid_file_path_base_url() {
-    let base_url = "file:///home/".parse().unwrap();
+    let base_url = "file:///home".parse().unwrap();
     assert!(is_valid_file_path_base_url(&base_url));
+    let base_url_with_trailing_separator = "file:///home/".parse().unwrap();
+    assert!(is_valid_file_path_base_url(
+        &base_url_with_trailing_separator
+    ));
 }
 
 #[test]
 fn invalid_file_path_base_url() {
-    let base_url_without_trailing_slash = "file:///home".parse().unwrap();
+    let base_url_with_unsupported_scheme = "nfs:///home".parse().unwrap();
     assert!(!is_valid_file_path_base_url(
-        &base_url_without_trailing_slash
+        &base_url_with_unsupported_scheme
     ));
 }

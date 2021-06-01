@@ -24,12 +24,3 @@ pub mod untrack;
 pub use aoide_repo::media::tracker::DirTrackingStatus;
 
 pub use aoide_usecases::media::tracker::*;
-
-pub fn path_prefix_from_url(url_path_prefix: &Url) -> Result<String> {
-    if !url_path_prefix.as_str().ends_with('/') {
-        return Err(Error::Media(
-            anyhow::format_err!("URL path does not end with a trailing slash").into(),
-        ));
-    }
-    Ok(url_path_prefix.to_string())
-}

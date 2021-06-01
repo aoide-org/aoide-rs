@@ -2336,10 +2336,8 @@ components:
         A percent-encoded URI (RFC 3986).
     PercentEncodedDirectoryUrl:
       description: |
-        A percent-encoded URL with scheme `file` ending with a trailing
-        slash character `/`.
-
-        It represents a directory path on the local file system.
+        A percent-encoded URL with scheme `file` that represents a directory path
+        on the local file system.
       allOf:
         - $ref: '#/components/schemas/PercentEncodedUrl'
     PercentEncodedUrl:

@@ -104,9 +104,7 @@ impl VirtualFilePathResolver {
     }
 
     pub fn is_valid_base_url(base_url: &Url) -> bool {
-        !base_url.cannot_be_a_base()
-            && base_url.scheme() == FILE_URL_SCHEME
-            && base_url.as_str().ends_with('/')
+        !base_url.cannot_be_a_base() && base_url.scheme() == FILE_URL_SCHEME
     }
 
     pub fn with_base_url(base_url: Url) -> Self {

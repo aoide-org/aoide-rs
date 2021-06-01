@@ -25,22 +25,13 @@ use aoide_client::{
 };
 use aoide_core::{entity::EntityUid, usecases::media::tracker::Progress};
 use clap::{App, Arg};
-use reqwest::{Client, Url};
+use reqwest::Client;
 
 const DEFAULT_LOG_FILTER: &str = "info";
 
 const DEFAULT_API_URL: &str = "http://[::1]:8080";
 
 const PROGRESS_POLLING_PERIOD: Duration = Duration::from_millis(1_000);
-
-fn parse_root_url(root_url: &str) -> anyhow::Result<Url> {
-    let root_url = if root_url.ends_with('/') {
-        root_url.parse()?
-    } else {
-        format!("{}/", root_url).parse()?
-    };
-    Ok(root_url)
-}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -296,7 +287,7 @@ async fn main() -> anyhow::Result<()> {
                             let collection_uid = collection.hdr.uid.clone();
                             let root_url = status_matches
                                 .and_then(|m| m.value_of("root-url"))
-                                .map(|s| parse_root_url(s).expect("URL"))
+                                .map(|s| s.parse().expect("URL"))
                                 .or_else(|| collection.body.media_source_config.base_url.clone());
                             event_emitter.emit_event(
                                 media::tracker::Event::FetchStatusRequested {
@@ -314,7 +305,7 @@ async fn main() -> anyhow::Result<()> {
                             let collection_uid = collection.hdr.uid.clone();
                             let root_url = scan_matches
                                 .and_then(|m| m.value_of("root-url"))
-                                .map(|s| parse_root_url(s).expect("URL"))
+                                .map(|s| s.parse().expect("URL"))
                                 .or_else(|| collection.body.media_source_config.base_url.clone());
                             event_emitter.emit_event(
                                 media::tracker::Event::StartScanRequested {
@@ -330,7 +321,7 @@ async fn main() -> anyhow::Result<()> {
                             let collection_uid = collection.hdr.uid.clone();
                             let root_url = import_matches
                                 .and_then(|m| m.value_of("root-url"))
-                                .map(|s| parse_root_url(s).expect("URL"))
+                                .map(|s| s.parse().expect("URL"))
                                 .or_else(|| collection.body.media_source_config.base_url.clone());
                             event_emitter.emit_event(
                                 media::tracker::Event::StartImportRequested {

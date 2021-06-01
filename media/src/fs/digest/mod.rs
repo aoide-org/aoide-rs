@@ -362,8 +362,8 @@ pub fn hash_directories<
             Ok(progress_event.finalize())
         }
         Err(err) => {
-            progress_event.fail();
-            report_progress(&progress_event);
+            debug_assert_eq!(progress_event.status, Status::Failed);
+            // Already reported
             Err(err)
         }
     }

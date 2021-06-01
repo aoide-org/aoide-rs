@@ -19,8 +19,6 @@ use aoide_core::{entity::EntityUid, util::clock::DateTime};
 
 use aoide_repo::{collection::EntityRepo as _, media::source::Repo as _};
 
-use url::Url;
-
 pub mod tracker;
 
 pub use aoide_usecases::media::*;
