@@ -36,6 +36,7 @@ pub struct Params {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Outcome {
+    pub root_url: Url,
     pub completion: Completion,
     pub summary: Summary,
 }
@@ -43,10 +44,12 @@ pub struct Outcome {
 impl From<Outcome> for _core::Outcome {
     fn from(from: Outcome) -> Self {
         let Outcome {
+            root_url,
             completion,
             summary,
         } = from;
         Self {
+            root_url,
             completion: completion.into(),
             summary: summary.into(),
         }
@@ -56,10 +59,12 @@ impl From<Outcome> for _core::Outcome {
 impl From<_core::Outcome> for Outcome {
     fn from(from: _core::Outcome) -> Self {
         let _core::Outcome {
+            root_url,
             completion,
             summary,
         } = from;
         Self {
+            root_url,
             completion: completion.into(),
             summary: summary.into(),
         }

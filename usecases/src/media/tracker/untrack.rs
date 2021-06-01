@@ -22,13 +22,13 @@ use url::Url;
 pub fn untrack<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
-    root_dir_url: &Url,
+    root_url: &Url,
     source_path_resolver: &impl SourcePathResolver,
     status: Option<DirTrackingStatus>,
 ) -> Result<usize>
 where
     Repo: MediaTrackerRepo,
 {
-    let path_prefix = resolve_path_prefix_from_url(source_path_resolver, root_dir_url)?;
-    Ok(repo.media_tracker_untrack(collection_id, &path_prefix, status)?)
+    let root_path_prefix = resolve_path_prefix_from_url(source_path_resolver, root_url)?;
+    Ok(repo.media_tracker_untrack(collection_id, &root_path_prefix, status)?)
 }

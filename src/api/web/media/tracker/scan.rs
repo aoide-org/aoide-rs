@@ -34,7 +34,7 @@ use url::Url;
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Params {
-    pub root_url: Url,
+    pub root_url: Option<Url>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_depth: Option<usize>,
@@ -57,7 +57,7 @@ pub fn handle_request(
     uc::scan_directories_recursively(
         &pooled_connection,
         collection_uid,
-        &root_url,
+        root_url.as_ref(),
         max_depth,
         &mut |progress_event| {
             if let Some(progress_event_tx) = progress_event_tx {

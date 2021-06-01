@@ -74,8 +74,8 @@ impl From<digest::ProgressEvent> for ProgressEvent {
 pub fn scan_directories_recursively<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
-    root_dir_url: &Url,
-    source_path_resolver: &impl SourcePathResolver,
+    root_url: Option<&Url>,
+    source_path_resolver: &VirtualFilePathResolver,
     max_depth: Option<usize>,
     progress_fn: &mut impl FnMut(ProgressEvent),
     abort_flag: &AtomicBool,
@@ -83,14 +83,18 @@ pub fn scan_directories_recursively<Repo>(
 where
     Repo: MediaTrackerRepo,
 {
-    let root_dir_path = root_dir_path_from_url(root_dir_url)?;
-    let root_source_path = source_path_resolver
-        .resolve_path_from_url(&root_dir_url)
+    let root_path_prefix = root_url
+        .map(|url| resolve_path_prefix_from_url(source_path_resolver, url))
+        .transpose()?
+        .unwrap_or_default();
+    let root_url = source_path_resolver
+        .resolve_url_from_path(&root_path_prefix)
         .map_err(anyhow::Error::from)?;
+    let root_path = source_path_resolver.build_file_path(&root_path_prefix);
     let outdated_count = repo.media_tracker_mark_current_directories_outdated(
         DateTime::now_utc(),
         collection_id,
-        &root_source_path,
+        &root_path_prefix,
     )?;
     log::debug!(
         "Marked {} current cache entries as outdated",
@@ -98,16 +102,16 @@ where
     );
     let mut summary = Summary::default();
     let completion = digest::hash_directories::<_, anyhow::Error, _, _, _>(
-        &root_dir_path,
+        &root_path,
         max_depth,
         abort_flag,
         blake3::Hasher::new,
         |path, digest| {
             debug_assert!(path.is_relative());
-            let full_path = root_dir_path.join(&path);
+            let full_path = root_path.join(&path);
             debug_assert!(full_path.is_absolute());
             let url = Url::from_directory_path(&full_path).expect("URL");
-            debug_assert!(url.as_str().starts_with(root_dir_url.as_str()));
+            debug_assert!(url.as_str().starts_with(root_url.as_str()));
             let path = source_path_resolver.resolve_path_from_url(&url)?;
             match repo
                 .media_tracker_update_directory_digest(
@@ -155,7 +159,7 @@ where
                 summary.orphaned = repo.media_tracker_mark_outdated_directories_orphaned(
                     DateTime::now_utc(),
                     collection_id,
-                    &root_source_path,
+                    &root_path_prefix,
                 )?;
                 debug_assert!(summary.orphaned <= outdated_count);
                 Ok(Completion::Finished)
@@ -167,6 +171,7 @@ where
         }
     })?;
     Ok(Outcome {
+        root_url,
         completion,
         summary,
     })

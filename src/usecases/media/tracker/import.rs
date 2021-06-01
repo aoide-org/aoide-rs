@@ -41,7 +41,7 @@ pub fn import(
     import_mode: ImportMode,
     import_config: &ImportTrackConfig,
     import_flags: ImportTrackFlags,
-    root_dir_url: Option<&Url>,
+    root_url: Option<&Url>,
     progress_fn: &mut impl FnMut(&uc::Summary),
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {
@@ -57,7 +57,7 @@ pub fn import(
             import_config,
             import_flags,
             &source_path_resolver,
-            root_dir_url,
+            root_url,
             progress_fn,
             abort_flag,
         )

@@ -29,7 +29,7 @@ mod uc {
 pub fn untrack(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    root_dir_url: &Url,
+    root_url: &Url,
     status: Option<DirTrackingStatus>,
 ) -> Result<usize> {
     let db = RepoConnection::new(connection);
@@ -37,14 +37,8 @@ pub fn untrack(
         let (collection_id, source_path_resolver) =
             uc::resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
                 .map_err(DieselTransactionError::new)?;
-        uc::untrack(
-            &db,
-            collection_id,
-            root_dir_url,
-            &source_path_resolver,
-            status,
-        )
-        .map_err(DieselTransactionError::new)
+        uc::untrack(&db, collection_id, root_url, &source_path_resolver, status)
+            .map_err(DieselTransactionError::new)
     })
     .map_err(Into::into)
 }

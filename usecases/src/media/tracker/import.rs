@@ -48,23 +48,26 @@ pub fn import<Repo>(
     import_config: &ImportTrackConfig,
     import_flags: ImportTrackFlags,
     source_path_resolver: &VirtualFilePathResolver,
-    root_dir_url: Option<&Url>,
+    root_url: Option<&Url>,
     progress_fn: &mut impl FnMut(&Summary),
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
     Repo: MediaTrackerRepo + TrackRepo,
 {
-    let path_prefix = root_dir_url
+    let root_path_prefix = root_url
         .map(|url| resolve_path_prefix_from_url(source_path_resolver, url))
         .transpose()?
         .unwrap_or_default();
+    let root_url = source_path_resolver
+        .resolve_url_from_path(&root_path_prefix)
+        .map_err(anyhow::Error::from)?;
     let mut summary = Summary::default();
     let outcome = 'outcome: loop {
         progress_fn(&summary);
         let pending_entries = repo.media_tracker_load_directories_requiring_confirmation(
             collection_id,
-            &path_prefix,
+            &root_path_prefix,
             &Pagination {
                 offset: Some(summary.directories.skipped as PaginationOffset),
                 limit: 1,
@@ -72,13 +75,21 @@ where
         )?;
         if pending_entries.is_empty() {
             log::debug!("Finished import of pending directories: {:?}", summary);
-            let outcome = Outcome::new(Completion::Finished, summary);
+            let outcome = Outcome {
+                root_url,
+                completion: Completion::Finished,
+                summary,
+            };
             break 'outcome outcome;
         }
         for pending_entry in pending_entries {
             if abort_flag.load(Ordering::Relaxed) {
                 log::debug!("Aborting import of pending directories: {:?}", summary);
-                let outcome = Outcome::new(Completion::Aborted, summary);
+                let outcome = Outcome {
+                    root_url,
+                    completion: Completion::Aborted,
+                    summary,
+                };
                 break 'outcome outcome;
             }
             let TrackedDirectory {
@@ -116,7 +127,11 @@ where
                 ReplaceCompletion::Finished => {}
                 ReplaceCompletion::Aborted => {
                     log::debug!("Aborting import of pending directories: {:?}", summary);
-                    let outcome = Outcome::new(Completion::Aborted, summary);
+                    let outcome = Outcome {
+                        root_url,
+                        completion: Completion::Aborted,
+                        summary,
+                    };
                     break 'outcome outcome;
                 }
             }

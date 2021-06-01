@@ -27,10 +27,8 @@ use aoide_media::{
     util::guess_mime_from_path,
 };
 
-use std::{io::BufReader, path::PathBuf};
+use std::io::BufReader;
 use url::Url;
-
-///////////////////////////////////////////////////////////////////////
 
 pub mod tracker;
 

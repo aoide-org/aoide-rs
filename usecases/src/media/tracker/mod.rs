@@ -15,36 +15,15 @@
 
 use super::*;
 
-use aoide_media::{fs::local_file_path_from_url, resolver::SourcePathResolver};
+use aoide_media::resolver::SourcePathResolver;
 
-///////////////////////////////////////////////////////////////////////
+pub use aoide_repo::media::tracker::DirTrackingStatus;
 
 pub mod import;
 pub mod query_status;
 pub mod relink;
 pub mod scan;
 pub mod untrack;
-
-pub use aoide_repo::media::tracker::DirTrackingStatus;
-
-pub fn root_dir_path_from_url(root_dir_url: &Url) -> Result<PathBuf> {
-    if !root_dir_url.as_str().ends_with('/') {
-        return Err(Error::Media(
-            anyhow::format_err!("URL path does not end with a trailing slash").into(),
-        ));
-    }
-    let root_dir_path = local_file_path_from_url(root_dir_url)?;
-    if !root_dir_path.is_absolute() {
-        return Err(Error::Media(
-            anyhow::format_err!(
-                "Root directory path is not absolute: {}",
-                root_dir_path.display()
-            )
-            .into(),
-        ));
-    }
-    Ok(root_dir_path)
-}
 
 pub fn resolve_path_prefix_from_url(
     source_path_resolver: &impl SourcePathResolver,

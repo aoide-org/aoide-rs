@@ -24,17 +24,17 @@ pub fn query_status<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
     source_path_resolver: &VirtualFilePathResolver,
-    root_dir_url: Option<&Url>,
+    root_url: Option<&Url>,
 ) -> Result<Status>
 where
     Repo: MediaTrackerRepo,
 {
-    let path_prefix = root_dir_url
+    let root_path_prefix = root_url
         .map(|url| resolve_path_prefix_from_url(source_path_resolver, url))
         .transpose()?
         .unwrap_or_default();
     let directories =
-        repo.media_tracker_aggregate_directories_tracking_status(collection_id, &path_prefix)?;
+        repo.media_tracker_aggregate_directories_tracking_status(collection_id, &root_path_prefix)?;
     let status = Status { directories };
     Ok(status)
 }

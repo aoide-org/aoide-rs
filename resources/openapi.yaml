@@ -316,7 +316,7 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /c/{collectionUid}/media-tracker/start-scan:
+  /c/{collectionUid}/media-tracker/scan:
     post:
       summary: Scan a directory tree for changes
       description: |
@@ -351,7 +351,7 @@ paths:
                 $ref: '#/components/schemas/MediaTrackerScanResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /c/{collectionUid}/media-tracker/start-import:
+  /c/{collectionUid}/media-tracker/import:
     post:
       summary: Import sources from changed directories
       description: |
@@ -2163,11 +2163,14 @@ components:
       oneOf:
         - type: object
           properties:
+            rootUrl:
+              $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
             completion:
               $ref: '#/components/schemas/MediaTrackerCompletion'
             summary:
               $ref: '#/components/schemas/MediaTrackerImportSummary'
           required:
+            - rootUrl
             - completion
             - summary
     MediaTrackerImportSummary:
@@ -2264,8 +2267,6 @@ components:
           type: number
           format: int
           minimum: 1
-      required:
-        - rootUrl
     MediaTrackerScanSummary:
       type: object
       properties:
@@ -2317,11 +2318,14 @@ components:
       oneOf:
         - type: object
           properties:
+            rootUrl:
+              $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
             completion:
               $ref: '#/components/schemas/MediaTrackerCompletion'
             summary:
               $ref: '#/components/schemas/MediaTrackerScanSummary'
           required:
+            - rootUrl
             - completion
             - summary
     PercentEncodedUri:
