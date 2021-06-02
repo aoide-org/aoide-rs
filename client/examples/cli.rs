@@ -19,7 +19,9 @@ use std::{
 };
 
 use aoide_client::{
-    collection, handle_events, media,
+    collection::{activate_collection, create_new_collection, fetch_available_collections},
+    handle_events,
+    media::tracker::{abort, fetch_progress, fetch_status, start_import, start_scan, untrack},
     prelude::{emit_event, event_channel, Environment},
     Event,
 };
@@ -242,12 +244,12 @@ async fn main() -> anyhow::Result<()> {
                 }
             } else {
                 if last_media_tracker_progress.is_none() {
-                    event_emitter.emit_event(media::tracker::Event::FetchProgressRequested.into());
+                    event_emitter.emit_event(fetch_progress().into());
                 } else {
                     // Periodically refetch and report progress
                     let deferred_event = Event::EmitDeferred {
                         emit_not_before: Instant::now() + PROGRESS_POLLING_PERIOD,
-                        event: Box::new(media::tracker::Event::FetchProgressRequested.into()),
+                        event: Box::new(fetch_progress().into()),
                     };
                     event_emitter.emit_event(deferred_event);
                 }
@@ -261,12 +263,12 @@ async fn main() -> anyhow::Result<()> {
             // Commands that don't require an active collection
             if let ("media-tracker", Some(media_tracker_matches)) = matches.subcommand() {
                 if matches!(media_tracker_matches.subcommand(), ("progress", _)) {
-                    event_emitter.emit_event(media::tracker::Event::FetchProgressRequested.into());
+                    event_emitter.emit_event(fetch_progress().into());
                     subcommand_submitted = true;
                     return;
                 }
                 if matches!(media_tracker_matches.subcommand(), ("abort", _)) {
-                    event_emitter.emit_event(media::tracker::Event::AbortRequested.into());
+                    event_emitter.emit_event(abort().into());
                     subcommand_submitted = true;
                     return;
                 }
@@ -289,9 +291,7 @@ async fn main() -> anyhow::Result<()> {
                                 root_url: Some(root_url),
                             },
                         };
-                        event_emitter.emit_event(
-                            collection::Event::CreateNewCollectionRequested(new_collection).into(),
-                        );
+                        event_emitter.emit_event(create_new_collection(new_collection).into());
                         subcommand_submitted = true;
                         return;
                     }
@@ -303,8 +303,13 @@ async fn main() -> anyhow::Result<()> {
             }
 
             // Select an active collection
-            if let Some(available_collections) = state.collection.remote().available().get_ready() {
-                if state.collection.active_uid().is_none() {
+            if let Some(available_collections) = state
+                .collection
+                .remote()
+                .available_collections()
+                .get_ready()
+            {
+                if state.collection.active_collection_uid().is_none() {
                     if available_collections.is_empty() {
                         log::warn!("No collections available");
                         event_emitter.emit_event(Event::TerminateRequested);
@@ -314,12 +319,11 @@ async fn main() -> anyhow::Result<()> {
                         if state
                             .collection
                             .remote()
-                            .find_available_by_uid(&collection_uid)
+                            .find_available_collections_by_uid(&collection_uid)
                             .is_some()
                         {
                             event_emitter.emit_event(
-                                collection::Event::ActiveUidSelected(collection_uid.to_owned())
-                                    .into(),
+                                activate_collection(Some(collection_uid.to_owned())).into(),
                             );
                             return;
                         } else {
@@ -344,19 +348,24 @@ async fn main() -> anyhow::Result<()> {
                     return;
                 }
             } else {
-                if state.collection.remote().available().is_unknown() {
-                    event_emitter.emit_event(collection::Event::FetchAvailableRequested.into());
+                if state
+                    .collection
+                    .remote()
+                    .available_collections()
+                    .is_unknown()
+                {
+                    event_emitter.emit_event(fetch_available_collections().into());
                     return;
                 }
             }
-            debug_assert!(state.collection.active().is_some());
-            let collection = state.collection.active().unwrap();
+            debug_assert!(state.collection.active_collection().is_some());
+            let collection = state.collection.active_collection().unwrap();
             log::info!("Active collection: {}", collection.hdr.uid);
 
             // Commands that require an active collection
             if !state.media_tracker.is_idle() {
                 // Only allowed while idle
-                event_emitter.emit_event(media::tracker::Event::FetchProgressRequested.into());
+                event_emitter.emit_event(fetch_progress().into());
                 return;
             }
             match matches.subcommand() {
@@ -368,13 +377,7 @@ async fn main() -> anyhow::Result<()> {
                                 .and_then(|m| m.value_of("root-url"))
                                 .map(|s| s.parse().expect("URL"))
                                 .or_else(|| collection.body.media_source_config.root_url.clone());
-                            event_emitter.emit_event(
-                                media::tracker::Event::FetchStatusRequested {
-                                    collection_uid,
-                                    root_url,
-                                }
-                                .into(),
-                            );
+                            event_emitter.emit_event(fetch_status(collection_uid, root_url).into());
                             subcommand_submitted = true;
                             last_media_tracker_status = None;
                             await_media_tracker_status = true;
@@ -386,13 +389,7 @@ async fn main() -> anyhow::Result<()> {
                                 .and_then(|m| m.value_of("root-url"))
                                 .map(|s| s.parse().expect("URL"))
                                 .or_else(|| collection.body.media_source_config.root_url.clone());
-                            event_emitter.emit_event(
-                                media::tracker::Event::StartScanRequested {
-                                    collection_uid,
-                                    root_url,
-                                }
-                                .into(),
-                            );
+                            event_emitter.emit_event(start_scan(collection_uid, root_url).into());
                             subcommand_submitted = true;
                             return;
                         }
@@ -402,13 +399,7 @@ async fn main() -> anyhow::Result<()> {
                                 .and_then(|m| m.value_of("root-url"))
                                 .map(|s| s.parse().expect("URL"))
                                 .or_else(|| collection.body.media_source_config.root_url.clone());
-                            event_emitter.emit_event(
-                                media::tracker::Event::StartImportRequested {
-                                    collection_uid,
-                                    root_url,
-                                }
-                                .into(),
-                            );
+                            event_emitter.emit_event(start_import(collection_uid, root_url).into());
                             subcommand_submitted = true;
                             return;
                         }
@@ -418,13 +409,7 @@ async fn main() -> anyhow::Result<()> {
                                 .and_then(|m| m.value_of("root-url"))
                                 .map(|s| s.parse().expect("URL"))
                                 .expect("required");
-                            event_emitter.emit_event(
-                                media::tracker::Event::UntrackRequested {
-                                    collection_uid,
-                                    root_url,
-                                }
-                                .into(),
-                            );
+                            event_emitter.emit_event(untrack(collection_uid, root_url).into());
                             subcommand_submitted = true;
                             return;
                         }
@@ -439,6 +424,7 @@ async fn main() -> anyhow::Result<()> {
                     println!("{}", matches.usage());
                 }
             }
+
             debug_assert!(state.media_tracker.is_idle());
             event_emitter.emit_event(Event::TerminateRequested);
         }),

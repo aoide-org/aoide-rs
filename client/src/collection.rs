@@ -25,23 +25,27 @@ use crate::prelude::*;
 
 #[derive(Debug, Clone, Default)]
 pub struct RemoteState {
-    available: RemoteData<Vec<CollectionEntity>>,
+    available_collections: RemoteData<Vec<CollectionEntity>>,
 }
 
 impl RemoteState {
-    pub const fn available(&self) -> &RemoteData<Vec<CollectionEntity>> {
-        &self.available
+    pub const fn available_collections(&self) -> &RemoteData<Vec<CollectionEntity>> {
+        &self.available_collections
     }
 
-    fn count_available_by_uid(&self, uid: &EntityUid) -> Option<usize> {
-        self.available
+    fn count_available_collections_by_uid(&self, uid: &EntityUid) -> Option<usize> {
+        self.available_collections
             .get()
             .map(|v| v.iter().filter(|x| &x.hdr.uid == uid).count())
     }
 
-    pub fn find_available_by_uid(&self, uid: &EntityUid) -> Option<&CollectionEntity> {
-        debug_assert!(self.count_available_by_uid(uid).unwrap_or_default() <= 1);
-        self.available
+    pub fn find_available_collections_by_uid(&self, uid: &EntityUid) -> Option<&CollectionEntity> {
+        debug_assert!(
+            self.count_available_collections_by_uid(uid)
+                .unwrap_or_default()
+                <= 1
+        );
+        self.available_collections
             .get()
             .and_then(|v| v.iter().find(|x| &x.hdr.uid == uid))
     }
@@ -50,7 +54,7 @@ impl RemoteState {
 #[derive(Debug, Clone, Default)]
 pub struct State {
     remote: RemoteState,
-    active_uid: Option<EntityUid>,
+    active_collection_uid: Option<EntityUid>,
 }
 
 impl State {
@@ -58,29 +62,34 @@ impl State {
         &self.remote
     }
 
-    pub const fn active_uid(&self) -> Option<&EntityUid> {
-        self.active_uid.as_ref()
+    pub const fn active_collection_uid(&self) -> Option<&EntityUid> {
+        self.active_collection_uid.as_ref()
     }
 
-    pub fn active(&self) -> Option<&CollectionEntity> {
-        if let (Some(available), Some(active_uid)) = (self.remote.available.get(), &self.active_uid)
-        {
-            available.iter().find(|x| &x.hdr.uid == active_uid)
+    pub fn active_collection(&self) -> Option<&CollectionEntity> {
+        if let (Some(available), Some(active_collection_uid)) = (
+            self.remote.available_collections.get(),
+            &self.active_collection_uid,
+        ) {
+            available
+                .iter()
+                .find(|x| &x.hdr.uid == active_collection_uid)
         } else {
             None
         }
     }
 
-    fn set_available(&mut self, new_available: Vec<CollectionEntity>) {
-        self.remote.available = RemoteData::ready(new_available);
-        let active_uid = self.active_uid.take();
-        self.set_active_uid(active_uid);
+    fn set_available_collections(&mut self, new_available_collections: Vec<CollectionEntity>) {
+        self.remote.available_collections = RemoteData::ready(new_available_collections);
+        let active_uid = self.active_collection_uid.take();
+        self.set_active_collection_uid(active_uid);
     }
 
-    fn set_active_uid(&mut self, new_active_uid: impl Into<Option<EntityUid>>) {
-        self.active_uid = if let (Some(available), Some(new_active_uid)) =
-            (self.remote.available.get(), new_active_uid.into())
-        {
+    fn set_active_collection_uid(&mut self, new_active_uid: impl Into<Option<EntityUid>>) {
+        self.active_collection_uid = if let (Some(available), Some(new_active_uid)) = (
+            self.remote.available_collections.get(),
+            new_active_uid.into(),
+        ) {
             if available.iter().any(|x| x.hdr.uid == new_active_uid) {
                 Some(new_active_uid)
             } else {
@@ -90,64 +99,79 @@ impl State {
             None
         };
     }
-
-    fn reset_active_uid(&mut self) {
-        self.set_active_uid(None)
-    }
 }
 
 #[derive(Debug)]
 pub enum Action {
     CreateNewCollection(Collection),
-    FetchAvailable,
+    FetchAvailableCollections,
     PropagateError(anyhow::Error),
 }
 
 #[derive(Debug)]
 pub enum Event {
-    CreateNewCollectionRequested(Collection),
+    Intent(Intent),
+    Effect(Effect),
+}
+
+#[derive(Debug)]
+pub enum Intent {
+    CreateNewCollection(Collection),
+    FetchAvailableCollections,
+    ActivateCollection(Option<EntityUid>),
+}
+
+pub fn create_new_collection(arg: Collection) -> Event {
+    Intent::CreateNewCollection(arg).into()
+}
+
+pub fn fetch_available_collections() -> Event {
+    Intent::FetchAvailableCollections.into()
+}
+
+pub fn activate_collection(arg: Option<EntityUid>) -> Event {
+    Intent::ActivateCollection(arg).into()
+}
+
+impl From<Intent> for Event {
+    fn from(intent: Intent) -> Self {
+        Self::Intent(intent)
+    }
+}
+
+#[derive(Debug)]
+pub enum Effect {
     NewCollectionCreated(anyhow::Result<CollectionEntity>),
-    FetchAvailableRequested,
-    AvailableFetched(anyhow::Result<Vec<CollectionEntity>>),
-    ActiveUidSelected(EntityUid),
-    ActiveUidReset,
+    AvailableCollectionsFetched(anyhow::Result<Vec<CollectionEntity>>),
     ErrorOccurred(anyhow::Error),
+}
+
+impl From<Effect> for Event {
+    fn from(effect: Effect) -> Self {
+        Self::Effect(effect)
+    }
 }
 
 pub fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Action>) {
     match event {
-        Event::CreateNewCollectionRequested(new_collection) => (
-            AppliedEvent::Accepted {
-                state_changed: false,
-            },
-            Some(Action::CreateNewCollection(new_collection)),
-        ),
-        Event::NewCollectionCreated(res) => match res {
-            Ok(_) => (
+        Event::Intent(intent) => match intent {
+            Intent::CreateNewCollection(new_collection) => (
                 AppliedEvent::Accepted {
                     state_changed: false,
                 },
-                Some(Action::FetchAvailable),
+                Some(Action::CreateNewCollection(new_collection)),
             ),
-            Err(err) => (
-                AppliedEvent::Accepted {
-                    state_changed: false,
-                },
-                Some(Action::PropagateError(err)),
-            ),
-        },
-        Event::FetchAvailableRequested => {
-            state.remote.available.set_pending();
-            (
-                AppliedEvent::Accepted {
-                    state_changed: false,
-                },
-                Some(Action::FetchAvailable),
-            )
-        }
-        Event::AvailableFetched(res) => match res {
-            Ok(new_available) => {
-                state.set_available(new_available);
+            Intent::FetchAvailableCollections => {
+                state.remote.available_collections.set_pending();
+                (
+                    AppliedEvent::Accepted {
+                        state_changed: false,
+                    },
+                    Some(Action::FetchAvailableCollections),
+                )
+            }
+            Intent::ActivateCollection(new_active_collection_uid) => {
+                state.set_active_collection_uid(new_active_collection_uid);
                 (
                     AppliedEvent::Accepted {
                         state_changed: true,
@@ -155,37 +179,46 @@ pub fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Act
                     None,
                 )
             }
-            Err(err) => (
+        },
+        Event::Effect(effect) => match effect {
+            Effect::NewCollectionCreated(res) => match res {
+                Ok(_) => (
+                    AppliedEvent::Accepted {
+                        state_changed: false,
+                    },
+                    Some(Action::FetchAvailableCollections),
+                ),
+                Err(err) => (
+                    AppliedEvent::Accepted {
+                        state_changed: false,
+                    },
+                    Some(Action::PropagateError(err)),
+                ),
+            },
+            Effect::AvailableCollectionsFetched(res) => match res {
+                Ok(new_available_collections) => {
+                    state.set_available_collections(new_available_collections);
+                    (
+                        AppliedEvent::Accepted {
+                            state_changed: true,
+                        },
+                        None,
+                    )
+                }
+                Err(err) => (
+                    AppliedEvent::Accepted {
+                        state_changed: false,
+                    },
+                    Some(Action::PropagateError(err)),
+                ),
+            },
+            Effect::ErrorOccurred(error) => (
                 AppliedEvent::Accepted {
                     state_changed: false,
                 },
-                Some(Action::PropagateError(err)),
+                Some(Action::PropagateError(error)),
             ),
         },
-        Event::ActiveUidSelected(new_active_uid) => {
-            state.set_active_uid(new_active_uid);
-            (
-                AppliedEvent::Accepted {
-                    state_changed: true,
-                },
-                None,
-            )
-        }
-        Event::ActiveUidReset => {
-            state.reset_active_uid();
-            (
-                AppliedEvent::Accepted {
-                    state_changed: true,
-                },
-                None,
-            )
-        }
-        Event::ErrorOccurred(error) => (
-            AppliedEvent::Accepted {
-                state_changed: false,
-            },
-            Some(Action::PropagateError(error)),
-        ),
     }
 }
 
@@ -197,21 +230,24 @@ pub async fn dispatch_action<E: From<Event> + fmt::Debug>(
     match action {
         Action::CreateNewCollection(new_collection) => {
             let res =
-                create_new_collection(&shared_env.client, &shared_env.api_url, new_collection)
+                on_create_new_collection(&shared_env.client, &shared_env.api_url, new_collection)
                     .await;
-            crate::emit_event(&event_tx, E::from(Event::NewCollectionCreated(res)));
+            crate::emit_event(&event_tx, E::from(Effect::NewCollectionCreated(res).into()));
         }
-        Action::FetchAvailable => {
-            let res = fetch_available_collections(&shared_env.client, &shared_env.api_url).await;
-            crate::emit_event(&event_tx, E::from(Event::AvailableFetched(res)));
+        Action::FetchAvailableCollections => {
+            let res = on_fetch_available_collections(&shared_env.client, &shared_env.api_url).await;
+            crate::emit_event(
+                &event_tx,
+                E::from(Effect::AvailableCollectionsFetched(res).into()),
+            );
         }
         Action::PropagateError(error) => {
-            crate::emit_event(&event_tx, E::from(Event::ErrorOccurred(error)));
+            crate::emit_event(&event_tx, E::from(Effect::ErrorOccurred(error).into()));
         }
     }
 }
 
-pub async fn create_new_collection(
+async fn on_create_new_collection(
     client: &Client,
     api_url: &Url,
     new_collection: Collection,
@@ -254,7 +290,7 @@ pub async fn create_new_collection(
     Ok(entity)
 }
 
-pub async fn fetch_available_collections(
+async fn on_fetch_available_collections(
     client: &Client,
     api_url: &Url,
 ) -> anyhow::Result<Vec<CollectionEntity>> {

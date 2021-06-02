@@ -93,11 +93,11 @@ impl State {
 
 #[derive(Debug)]
 pub enum Action {
-    FetchProgress,
     FetchStatus {
         collection_uid: EntityUid,
         root_url: Option<Url>,
     },
+    FetchProgress,
     StartScan {
         collection_uid: EntityUid,
         root_url: Option<Url>,
@@ -106,270 +106,336 @@ pub enum Action {
         collection_uid: EntityUid,
         root_url: Option<Url>,
     },
+    Abort,
     Untrack {
         collection_uid: EntityUid,
         root_url: Url,
     },
-    Abort,
     PropagateError(anyhow::Error),
 }
 
 #[derive(Debug)]
 pub enum Event {
-    FetchProgressRequested,
-    ProgressFetched(anyhow::Result<Progress>),
-    AbortRequested,
-    Aborted(anyhow::Result<()>),
-    FetchStatusRequested {
+    Intent(Intent),
+    Effect(Effect),
+}
+
+#[derive(Debug)]
+pub enum Intent {
+    FetchStatus {
         collection_uid: EntityUid,
         root_url: Option<Url>,
     },
-    StatusFetched(anyhow::Result<Status>),
-    StartScanRequested {
+    FetchProgress,
+    StartScan {
         collection_uid: EntityUid,
         root_url: Option<Url>,
     },
-    ScanFinished(anyhow::Result<ScanOutcome>),
-    StartImportRequested {
+    StartImport {
         collection_uid: EntityUid,
         root_url: Option<Url>,
     },
-    ImportFinished(anyhow::Result<ImportOutcome>),
-    UntrackRequested {
+    Abort,
+    Untrack {
         collection_uid: EntityUid,
         root_url: Url,
     },
+}
+
+impl From<Intent> for Event {
+    fn from(intent: Intent) -> Self {
+        Self::Intent(intent)
+    }
+}
+
+pub fn fetch_status(collection_uid: EntityUid, root_url: Option<Url>) -> Event {
+    Intent::FetchStatus {
+        collection_uid,
+        root_url,
+    }
+    .into()
+}
+
+pub fn fetch_progress() -> Event {
+    Intent::FetchProgress.into()
+}
+
+pub fn start_scan(collection_uid: EntityUid, root_url: Option<Url>) -> Event {
+    Intent::StartScan {
+        collection_uid,
+        root_url,
+    }
+    .into()
+}
+
+pub fn start_import(collection_uid: EntityUid, root_url: Option<Url>) -> Event {
+    Intent::StartImport {
+        collection_uid,
+        root_url,
+    }
+    .into()
+}
+
+pub fn abort() -> Event {
+    Intent::Abort.into()
+}
+
+pub fn untrack(collection_uid: EntityUid, root_url: Url) -> Event {
+    Intent::Untrack {
+        collection_uid,
+        root_url,
+    }
+    .into()
+}
+
+#[derive(Debug)]
+pub enum Effect {
+    ProgressFetched(anyhow::Result<Progress>),
+    Aborted(anyhow::Result<()>),
+    StatusFetched(anyhow::Result<Status>),
+    ScanFinished(anyhow::Result<ScanOutcome>),
+    ImportFinished(anyhow::Result<ImportOutcome>),
     Untracked(anyhow::Result<UntrackOutcome>),
     ErrorOccurred(anyhow::Error),
 }
 
+impl From<Effect> for Event {
+    fn from(effect: Effect) -> Self {
+        Self::Effect(effect)
+    }
+}
+
 pub fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Action>) {
     match event {
-        Event::FetchProgressRequested => (
-            AppliedEvent::Accepted {
-                state_changed: false,
-            },
-            Some(Action::FetchProgress),
-        ),
-        Event::ProgressFetched(res) => match res {
-            Ok(new_progress) => {
-                let new_progress = RemoteData::ready(new_progress);
-                let progress_changed = state.remote.progress != new_progress;
-                if progress_changed {
-                    state.remote.progress = new_progress;
+        Event::Intent(intent) => match intent {
+            Intent::FetchProgress => (
+                AppliedEvent::Accepted {
+                    state_changed: false,
+                },
+                Some(Action::FetchProgress),
+            ),
+            Intent::Abort => (
+                AppliedEvent::Accepted {
+                    state_changed: false,
+                },
+                Some(Action::Abort),
+            ),
+            Intent::FetchStatus {
+                collection_uid,
+                root_url,
+            } => {
+                if !state.is_idle() {
+                    log::warn!("Cannot fetch status while not idle");
+                    return (AppliedEvent::Dropped, None);
                 }
+                state.control = ControlState::Busy;
+                state.remote.status.reset();
                 (
                     AppliedEvent::Accepted {
-                        state_changed: progress_changed,
+                        state_changed: true,
                     },
-                    None,
+                    Some(Action::FetchStatus {
+                        collection_uid,
+                        root_url,
+                    }),
                 )
             }
-            Err(err) => (
+            Intent::StartScan {
+                collection_uid,
+                root_url,
+            } => {
+                if !state.is_idle() {
+                    log::warn!("Cannot start scan while not idle");
+                    return (AppliedEvent::Dropped, None);
+                }
+                state.control = ControlState::Busy;
+                state.remote.progress.reset();
+                state.remote.status.set_pending();
+                state.remote.last_scan_outcome.set_pending();
+                (
+                    AppliedEvent::Accepted {
+                        state_changed: true,
+                    },
+                    Some(Action::StartScan {
+                        collection_uid,
+                        root_url,
+                    }),
+                )
+            }
+            Intent::StartImport {
+                collection_uid,
+                root_url,
+            } => {
+                if !state.is_idle() {
+                    log::warn!("Cannot start import while not idle");
+                    return (AppliedEvent::Dropped, None);
+                }
+                state.control = ControlState::Busy;
+                state.remote.progress.reset();
+                state.remote.status.set_pending();
+                state.remote.last_import_outcome.set_pending();
+                (
+                    AppliedEvent::Accepted {
+                        state_changed: true,
+                    },
+                    Some(Action::StartImport {
+                        collection_uid,
+                        root_url,
+                    }),
+                )
+            }
+            Intent::Untrack {
+                collection_uid,
+                root_url,
+            } => {
+                if !state.is_idle() {
+                    log::warn!("Cannot untrack while not idle");
+                    return (AppliedEvent::Dropped, None);
+                }
+                state.control = ControlState::Busy;
+                state.remote.progress.reset();
+                state.remote.status.set_pending();
+                state.remote.last_untrack_outcome.set_pending();
+                (
+                    AppliedEvent::Accepted {
+                        state_changed: true,
+                    },
+                    Some(Action::Untrack {
+                        collection_uid,
+                        root_url,
+                    }),
+                )
+            }
+        },
+        Event::Effect(effect) => match effect {
+            Effect::ProgressFetched(res) => match res {
+                Ok(new_progress) => {
+                    let new_progress = RemoteData::ready(new_progress);
+                    let progress_changed = state.remote.progress != new_progress;
+                    if progress_changed {
+                        state.remote.progress = new_progress;
+                    }
+                    (
+                        AppliedEvent::Accepted {
+                            state_changed: progress_changed,
+                        },
+                        None,
+                    )
+                }
+                Err(err) => (
+                    AppliedEvent::Accepted {
+                        state_changed: false,
+                    },
+                    Some(Action::PropagateError(err)),
+                ),
+            },
+            Effect::Aborted(res) => {
+                let next_action = match res {
+                    Ok(()) => Action::FetchProgress,
+                    Err(err) => Action::PropagateError(err),
+                };
+                (
+                    AppliedEvent::Accepted {
+                        state_changed: false,
+                    },
+                    Some(next_action),
+                )
+            }
+            Effect::StatusFetched(res) => {
+                debug_assert_eq!(state.control, ControlState::Busy);
+                state.control = ControlState::Idle;
+                let next_action = match res {
+                    Ok(new_status) => {
+                        state.remote.status = RemoteData::ready(new_status);
+                        None
+                    }
+                    Err(err) => Some(Action::PropagateError(err)),
+                };
+                (
+                    AppliedEvent::Accepted {
+                        state_changed: true,
+                    },
+                    next_action,
+                )
+            }
+            Effect::ScanFinished(res) => {
+                debug_assert_eq!(state.control, ControlState::Busy);
+                state.control = ControlState::Idle;
+                // Invalidate both progress and status to enforce refetching
+                state.remote.progress.reset();
+                state.remote.status.reset();
+                debug_assert!(state.remote.last_scan_outcome.is_pending());
+                let next_action = match res {
+                    Ok(outcome) => {
+                        state.remote.last_scan_outcome = RemoteData::ready(outcome);
+                        Action::FetchProgress
+                    }
+                    Err(err) => {
+                        state.remote.last_scan_outcome.reset();
+                        Action::PropagateError(err)
+                    }
+                };
+                (
+                    AppliedEvent::Accepted {
+                        state_changed: true,
+                    },
+                    Some(next_action),
+                )
+            }
+            Effect::ImportFinished(res) => {
+                debug_assert_eq!(state.control, ControlState::Busy);
+                state.control = ControlState::Idle;
+                // Invalidate both progress and status to enforce refetching
+                state.remote.progress.reset();
+                state.remote.status.reset();
+                debug_assert!(state.remote.last_import_outcome.is_pending());
+                let next_action = match res {
+                    Ok(outcome) => {
+                        state.remote.last_import_outcome = RemoteData::ready(outcome);
+                        Action::FetchProgress
+                    }
+                    Err(err) => {
+                        state.remote.last_import_outcome.reset();
+                        Action::PropagateError(err)
+                    }
+                };
+                (
+                    AppliedEvent::Accepted {
+                        state_changed: true,
+                    },
+                    Some(next_action),
+                )
+            }
+            Effect::Untracked(res) => {
+                debug_assert_eq!(state.control, ControlState::Busy);
+                state.control = ControlState::Idle;
+                state.remote.progress.reset();
+                state.remote.status.reset();
+                debug_assert!(state.remote.last_untrack_outcome.is_pending());
+                let next_action = match res {
+                    Ok(outcome) => {
+                        state.remote.last_untrack_outcome = RemoteData::ready(outcome);
+                        Action::FetchProgress
+                    }
+                    Err(err) => {
+                        state.remote.last_untrack_outcome.reset();
+                        Action::PropagateError(err)
+                    }
+                };
+                (
+                    AppliedEvent::Accepted {
+                        state_changed: true,
+                    },
+                    Some(next_action),
+                )
+            }
+            Effect::ErrorOccurred(error) => (
                 AppliedEvent::Accepted {
                     state_changed: false,
                 },
-                Some(Action::PropagateError(err)),
+                Some(Action::PropagateError(error)),
             ),
         },
-        Event::AbortRequested => (
-            AppliedEvent::Accepted {
-                state_changed: false,
-            },
-            Some(Action::Abort),
-        ),
-        Event::Aborted(res) => {
-            let next_action = match res {
-                Ok(()) => Action::FetchProgress,
-                Err(err) => Action::PropagateError(err),
-            };
-            (
-                AppliedEvent::Accepted {
-                    state_changed: false,
-                },
-                Some(next_action),
-            )
-        }
-        Event::FetchStatusRequested {
-            collection_uid,
-            root_url,
-        } => {
-            if !state.is_idle() {
-                log::warn!("Cannot fetch status while not idle");
-                return (AppliedEvent::Dropped, None);
-            }
-            state.control = ControlState::Busy;
-            state.remote.status.reset();
-            (
-                AppliedEvent::Accepted {
-                    state_changed: true,
-                },
-                Some(Action::FetchStatus {
-                    collection_uid,
-                    root_url,
-                }),
-            )
-        }
-        Event::StatusFetched(res) => {
-            debug_assert_eq!(state.control, ControlState::Busy);
-            state.control = ControlState::Idle;
-            let next_action = match res {
-                Ok(new_status) => {
-                    state.remote.status = RemoteData::ready(new_status);
-                    None
-                }
-                Err(err) => Some(Action::PropagateError(err)),
-            };
-            (
-                AppliedEvent::Accepted {
-                    state_changed: true,
-                },
-                next_action,
-            )
-        }
-        Event::StartScanRequested {
-            collection_uid,
-            root_url,
-        } => {
-            if !state.is_idle() {
-                log::warn!("Cannot start scan while not idle");
-                return (AppliedEvent::Dropped, None);
-            }
-            state.control = ControlState::Busy;
-            state.remote.progress.reset();
-            state.remote.status.set_pending();
-            state.remote.last_scan_outcome.set_pending();
-            (
-                AppliedEvent::Accepted {
-                    state_changed: true,
-                },
-                Some(Action::StartScan {
-                    collection_uid,
-                    root_url,
-                }),
-            )
-        }
-        Event::ScanFinished(res) => {
-            debug_assert_eq!(state.control, ControlState::Busy);
-            state.control = ControlState::Idle;
-            // Invalidate both progress and status to enforce refetching
-            state.remote.progress.reset();
-            state.remote.status.reset();
-            debug_assert!(state.remote.last_scan_outcome.is_pending());
-            let next_action = match res {
-                Ok(outcome) => {
-                    state.remote.last_scan_outcome = RemoteData::ready(outcome);
-                    Action::FetchProgress
-                }
-                Err(err) => {
-                    state.remote.last_scan_outcome.reset();
-                    Action::PropagateError(err)
-                }
-            };
-            (
-                AppliedEvent::Accepted {
-                    state_changed: true,
-                },
-                Some(next_action),
-            )
-        }
-        Event::StartImportRequested {
-            collection_uid,
-            root_url,
-        } => {
-            if !state.is_idle() {
-                log::warn!("Cannot start import while not idle");
-                return (AppliedEvent::Dropped, None);
-            }
-            state.control = ControlState::Busy;
-            state.remote.progress.reset();
-            state.remote.status.set_pending();
-            state.remote.last_import_outcome.set_pending();
-            (
-                AppliedEvent::Accepted {
-                    state_changed: true,
-                },
-                Some(Action::StartImport {
-                    collection_uid,
-                    root_url,
-                }),
-            )
-        }
-        Event::ImportFinished(res) => {
-            debug_assert_eq!(state.control, ControlState::Busy);
-            state.control = ControlState::Idle;
-            // Invalidate both progress and status to enforce refetching
-            state.remote.progress.reset();
-            state.remote.status.reset();
-            debug_assert!(state.remote.last_import_outcome.is_pending());
-            let next_action = match res {
-                Ok(outcome) => {
-                    state.remote.last_import_outcome = RemoteData::ready(outcome);
-                    Action::FetchProgress
-                }
-                Err(err) => {
-                    state.remote.last_import_outcome.reset();
-                    Action::PropagateError(err)
-                }
-            };
-            (
-                AppliedEvent::Accepted {
-                    state_changed: true,
-                },
-                Some(next_action),
-            )
-        }
-        Event::UntrackRequested {
-            collection_uid,
-            root_url,
-        } => {
-            if !state.is_idle() {
-                log::warn!("Cannot untrack while not idle");
-                return (AppliedEvent::Dropped, None);
-            }
-            state.control = ControlState::Busy;
-            state.remote.progress.reset();
-            state.remote.status.set_pending();
-            state.remote.last_untrack_outcome.set_pending();
-            (
-                AppliedEvent::Accepted {
-                    state_changed: true,
-                },
-                Some(Action::Untrack {
-                    collection_uid,
-                    root_url,
-                }),
-            )
-        }
-        Event::Untracked(res) => {
-            debug_assert_eq!(state.control, ControlState::Busy);
-            state.control = ControlState::Idle;
-            state.remote.progress.reset();
-            state.remote.status.reset();
-            debug_assert!(state.remote.last_untrack_outcome.is_pending());
-            let next_action = match res {
-                Ok(outcome) => {
-                    state.remote.last_untrack_outcome = RemoteData::ready(outcome);
-                    Action::FetchProgress
-                }
-                Err(err) => {
-                    state.remote.last_untrack_outcome.reset();
-                    Action::PropagateError(err)
-                }
-            };
-            (
-                AppliedEvent::Accepted {
-                    state_changed: true,
-                },
-                Some(next_action),
-            )
-        }
-        Event::ErrorOccurred(error) => (
-            AppliedEvent::Accepted {
-                state_changed: false,
-            },
-            Some(Action::PropagateError(error)),
-        ),
     }
 }
 
@@ -379,73 +445,73 @@ pub async fn dispatch_action<E: From<Event> + fmt::Debug>(
     action: Action,
 ) {
     match action {
-        Action::FetchProgress => {
-            let res = fetch_progress(&shared_env.client, &shared_env.api_url).await;
-            crate::emit_event(&event_tx, E::from(Event::ProgressFetched(res)));
-        }
-        Action::Abort => {
-            let res = abort(&shared_env.client, &shared_env.api_url).await;
-            crate::emit_event(&event_tx, E::from(Event::Aborted(res)));
-        }
         Action::FetchStatus {
             collection_uid,
             root_url,
         } => {
-            let res = fetch_status(
+            let res = on_fetch_status(
                 &shared_env.client,
                 &shared_env.api_url,
                 &collection_uid,
                 root_url.as_ref(),
             )
             .await;
-            crate::emit_event(&event_tx, E::from(Event::StatusFetched(res)));
+            crate::emit_event(&event_tx, E::from(Effect::StatusFetched(res).into()));
+        }
+        Action::FetchProgress => {
+            let res = on_fetch_progress(&shared_env.client, &shared_env.api_url).await;
+            crate::emit_event(&event_tx, E::from(Effect::ProgressFetched(res).into()));
         }
         Action::StartScan {
             collection_uid,
             root_url,
         } => {
-            let res = run_scan_task(
+            let res = on_start_scan(
                 &shared_env.client,
                 &shared_env.api_url,
                 &collection_uid,
                 root_url.as_ref(),
             )
             .await;
-            crate::emit_event(&event_tx, E::from(Event::ScanFinished(res)));
+            crate::emit_event(&event_tx, E::from(Effect::ScanFinished(res).into()));
         }
         Action::StartImport {
             collection_uid,
             root_url,
         } => {
-            let res = run_import_task(
+            let res = on_start_import(
                 &shared_env.client,
                 &shared_env.api_url,
                 &collection_uid,
                 root_url.as_ref(),
             )
             .await;
-            crate::emit_event(&event_tx, E::from(Event::ImportFinished(res)));
+            crate::emit_event(&event_tx, E::from(Effect::ImportFinished(res).into()));
+        }
+        Action::Abort => {
+            let res = on_abort(&shared_env.client, &shared_env.api_url).await;
+            crate::emit_event(&event_tx, E::from(Effect::Aborted(res).into()));
         }
         Action::Untrack {
             collection_uid,
             root_url,
         } => {
-            let res = untrack(
+            let res = on_untrack(
                 &shared_env.client,
                 &shared_env.api_url,
                 &collection_uid,
                 &root_url,
             )
             .await;
-            crate::emit_event(&event_tx, E::from(Event::Untracked(res)));
+            crate::emit_event(&event_tx, E::from(Effect::Untracked(res).into()));
         }
         Action::PropagateError(error) => {
-            crate::emit_event(&event_tx, E::from(Event::ErrorOccurred(error)));
+            crate::emit_event(&event_tx, E::from(Effect::ErrorOccurred(error).into()));
         }
     }
 }
 
-pub async fn fetch_status(
+async fn on_fetch_status(
     client: &Client,
     api_url: &Url,
     collection_uid: &EntityUid,
@@ -489,7 +555,34 @@ pub async fn fetch_status(
     Ok(status)
 }
 
-pub async fn run_scan_task(
+async fn on_fetch_progress(client: &Client, root_url: &Url) -> anyhow::Result<Progress> {
+    let url = root_url.join("media-tracker/progress")?;
+    let response = client.get(url).send().await.map_err(|err| {
+        anyhow::Error::from(err).context("Failed to fetch media tracker progress")
+    })?;
+    if !response.status().is_success() {
+        anyhow::bail!(
+            "Failed to get media tracker progress: response status = {}",
+            response.status()
+        );
+    }
+    let bytes = response.bytes().await.map_err(|err| {
+        anyhow::Error::from(err)
+            .context("Failed to receive response playload when fetching media tracker progress")
+    })?;
+    let progress =
+        serde_json::from_slice::<aoide_core_serde::usecases::media::tracker::Progress>(&bytes)
+            .map(Into::into)
+            .map_err(|err| {
+                anyhow::Error::from(err).context(
+                    "Failed to deserialize response payload when fetching media tracker progress",
+                )
+            })?;
+    log::debug!("Received progress: {:?}", progress);
+    Ok(progress)
+}
+
+async fn on_start_scan(
     client: &Client,
     api_url: &Url,
     collection_uid: &EntityUid,
@@ -534,7 +627,7 @@ pub async fn run_scan_task(
     Ok(outcome)
 }
 
-pub async fn run_import_task(
+async fn on_start_import(
     client: &Client,
     api_url: &Url,
     collection_uid: &EntityUid,
@@ -580,7 +673,23 @@ pub async fn run_import_task(
     Ok(outcome)
 }
 
-pub async fn untrack(
+pub async fn on_abort(client: &Client, root_url: &Url) -> anyhow::Result<()> {
+    let url = root_url.join("media-tracker/abort")?;
+    let response = client
+        .post(url)
+        .send()
+        .await
+        .map_err(|err| anyhow::Error::from(err).context("Failed to abort media tracker"))?;
+    if !response.status().is_success() {
+        anyhow::bail!(
+            "Failed to abort media tracker: response status = {}",
+            response.status()
+        );
+    }
+    Ok(())
+}
+
+async fn on_untrack(
     client: &Client,
     api_url: &Url,
     collection_uid: &EntityUid,
@@ -619,47 +728,4 @@ pub async fn untrack(
     })?;
     log::debug!("Untrack finished: {:?}", outcome);
     Ok(outcome)
-}
-
-pub async fn fetch_progress(client: &Client, root_url: &Url) -> anyhow::Result<Progress> {
-    let url = root_url.join("media-tracker/progress")?;
-    let response = client.get(url).send().await.map_err(|err| {
-        anyhow::Error::from(err).context("Failed to fetch media tracker progress")
-    })?;
-    if !response.status().is_success() {
-        anyhow::bail!(
-            "Failed to get media tracker progress: response status = {}",
-            response.status()
-        );
-    }
-    let bytes = response.bytes().await.map_err(|err| {
-        anyhow::Error::from(err)
-            .context("Failed to receive response playload when fetching media tracker progress")
-    })?;
-    let progress =
-        serde_json::from_slice::<aoide_core_serde::usecases::media::tracker::Progress>(&bytes)
-            .map(Into::into)
-            .map_err(|err| {
-                anyhow::Error::from(err).context(
-                    "Failed to deserialize response payload when fetching media tracker progress",
-                )
-            })?;
-    log::debug!("Received progress: {:?}", progress);
-    Ok(progress)
-}
-
-pub async fn abort(client: &Client, root_url: &Url) -> anyhow::Result<()> {
-    let url = root_url.join("media-tracker/abort")?;
-    let response = client
-        .post(url)
-        .send()
-        .await
-        .map_err(|err| anyhow::Error::from(err).context("Failed to abort media tracker"))?;
-    if !response.status().is_success() {
-        anyhow::bail!(
-            "Failed to abort media tracker: response status = {}",
-            response.status()
-        );
-    }
-    Ok(())
 }

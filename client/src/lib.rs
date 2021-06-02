@@ -74,6 +74,17 @@ pub enum Event {
     TerminateRequested,
 }
 
+#[derive(Debug)]
+pub enum Intent {
+    Collection(collection::Intent),
+    //MediaTracker(media::tracker::Intent),
+    EmitDeferred {
+        emit_not_before: Instant,
+        event: Box<Event>,
+    },
+    Terminate,
+}
+
 impl From<collection::Event> for Event {
     fn from(from: collection::Event) -> Self {
         Self::Collection(from)
@@ -126,8 +137,10 @@ pub async fn handle_events(
 fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Action>) {
     match event {
         Event::ErrorOccurred(error)
-        | Event::Collection(collection::Event::ErrorOccurred(error))
-        | Event::MediaTracker(media::tracker::Event::ErrorOccurred(error)) => {
+        | Event::Collection(collection::Event::Effect(collection::Effect::ErrorOccurred(error)))
+        | Event::MediaTracker(media::tracker::Event::Effect(
+            media::tracker::Effect::ErrorOccurred(error),
+        )) => {
             state.errors.push(error);
             (
                 AppliedEvent::Accepted {
