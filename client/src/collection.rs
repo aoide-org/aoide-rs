@@ -21,7 +21,7 @@ use aoide_core::{
 };
 use reqwest::{Client, Url};
 
-use crate::prelude::*;
+use crate::{prelude::*, receive_response_body};
 
 #[derive(Debug, Clone, Default)]
 pub struct RemoteState {
@@ -255,37 +255,12 @@ async fn on_create_new_collection(
     let url = api_url.join("c")?;
     let body = serde_json::to_vec(&aoide_core_serde::collection::Collection::from(
         new_collection,
-    ))
-    .map_err(|err| {
-        anyhow::Error::from(err)
-            .context("Failed to serialize request body before creating new collection")
-    })?;
-    let response = client
-        .post(url)
-        .body(body)
-        .send()
-        .await
-        .map_err(|err| anyhow::Error::from(err).context("Failed to create new collection"))?;
-    let response_status = response.status();
-    let bytes = response.bytes().await.map_err(|err| {
-        anyhow::Error::from(err)
-            .context("Failed to receive response playload when creating new collection")
-    })?;
-    if !response_status.is_success() {
-        let json = serde_json::from_slice::<serde_json::Value>(&bytes).unwrap_or_default();
-        let error_msg = if json.is_null() {
-            response_status.to_string()
-        } else {
-            format!("{} {}", response_status, json)
-        };
-        anyhow::bail!("Failed to create new collection: {}", error_msg,);
-    }
-    let entity = serde_json::from_slice::<aoide_core_serde::collection::Entity>(&bytes)
-        .map(Into::into)
-        .map_err(|err| {
-            anyhow::Error::from(err)
-                .context("Failed to deserialize response payload after creating new collection")
-        })?;
+    ))?;
+    let request = client.post(url).body(body);
+    let response = request.send().await?;
+    let response_body = receive_response_body(response).await?;
+    let entity = serde_json::from_slice::<aoide_core_serde::collection::Entity>(&response_body)
+        .map(Into::into)?;
     log::debug!("Created new collection entity: {:?}", entity);
     Ok(entity)
 }
@@ -294,37 +269,22 @@ async fn on_fetch_available_collections(
     client: &Client,
     api_url: &Url,
 ) -> anyhow::Result<Vec<CollectionEntity>> {
-    let url = api_url.join("c")?;
-    let response =
-        client.get(url).send().await.map_err(|err| {
-            anyhow::Error::from(err).context("Failed to fetch available collections")
-        })?;
-    if !response.status().is_success() {
-        anyhow::bail!(
-            "Failed to fetch available collections: response status = {}",
-            response.status()
-        );
-    }
-    let bytes = response.bytes().await.map_err(|err| {
-        anyhow::Error::from(err)
-            .context("Failed to receive response playload when fetching available collections")
-    })?;
+    let request_url = api_url.join("c")?;
+    let request = client.get(request_url);
+    let response = request.send().await?;
+    let response_body = receive_response_body(response).await?;
     let available_collections: Vec<_> = serde_json::from_slice::<
         Vec<aoide_core_serde::collection::Entity>,
-    >(&bytes)
+    >(&response_body)
     .map(|collections| {
         collections
             .into_iter()
             .map(CollectionEntity::from)
             .collect()
-    })
-    .map_err(|err| {
-        anyhow::Error::from(err)
-            .context("Failed to deserialize response payload after fetching available collections")
     })?;
     log::debug!(
-        "Loaded {} available collection(s)",
-        available_collections.len()
+        "Fetched {} available collection(s)",
+        available_collections.len(),
     );
     Ok(available_collections)
 }

@@ -15,7 +15,7 @@
 
 use std::{fmt, sync::Arc};
 
-use crate::prelude::*;
+use crate::{prelude::*, receive_response_body};
 
 use aoide_core::{
     entity::EntityUid,
@@ -517,67 +517,32 @@ async fn on_fetch_status(
     collection_uid: &EntityUid,
     root_url: Option<&Url>,
 ) -> anyhow::Result<Status> {
-    let url = api_url.join(&format!("c/{}/media-tracker/query-status", collection_uid))?;
-    let body_json = root_url
-        .map(|root_url| {
-            serde_json::json!({
-                "rootUrl": root_url.to_string(),
-            })
+    let request_url = api_url.join(&format!("c/{}/media-tracker/query-status", collection_uid))?;
+    let request_body = serde_json::to_vec(&root_url.map(|root_url| {
+        serde_json::json!({
+            "rootUrl": root_url.to_string(),
         })
-        .unwrap_or_default();
-    let body = serde_json::to_vec(&body_json).map_err(|err| {
-        anyhow::Error::from(err)
-            .context("Failed to serialize request body when fetching media tracker status")
-    })?;
-    let response =
-        client.post(url).body(body).send().await.map_err(|err| {
-            anyhow::Error::from(err).context("Failed to query media tracker status")
-        })?;
-    if !response.status().is_success() {
-        anyhow::bail!(
-            "Failed to fetch media tracker status: response status = {}",
-            response.status()
-        );
-    }
-    let bytes = response.bytes().await.map_err(|err| {
-        anyhow::Error::from(err)
-            .context("Failed to receive response playload when fetching media tracker status")
-    })?;
-    let status =
-        serde_json::from_slice::<aoide_core_serde::usecases::media::tracker::Status>(&bytes)
-            .map(Into::into)
-            .map_err(|err| {
-                anyhow::Error::from(err).context(
-                    "Failed to deserialize response payload when fetching media tracker status",
-                )
-            })?;
+    }))?;
+    let request = client.post(request_url).body(request_body);
+    let response = request.send().await?;
+    let response_body = receive_response_body(response).await?;
+    let status = serde_json::from_slice::<aoide_core_serde::usecases::media::tracker::Status>(
+        &response_body,
+    )
+    .map(Into::into)?;
     log::debug!("Received status: {:?}", status);
     Ok(status)
 }
 
 async fn on_fetch_progress(client: &Client, root_url: &Url) -> anyhow::Result<Progress> {
-    let url = root_url.join("media-tracker/progress")?;
-    let response = client.get(url).send().await.map_err(|err| {
-        anyhow::Error::from(err).context("Failed to fetch media tracker progress")
-    })?;
-    if !response.status().is_success() {
-        anyhow::bail!(
-            "Failed to get media tracker progress: response status = {}",
-            response.status()
-        );
-    }
-    let bytes = response.bytes().await.map_err(|err| {
-        anyhow::Error::from(err)
-            .context("Failed to receive response playload when fetching media tracker progress")
-    })?;
-    let progress =
-        serde_json::from_slice::<aoide_core_serde::usecases::media::tracker::Progress>(&bytes)
-            .map(Into::into)
-            .map_err(|err| {
-                anyhow::Error::from(err).context(
-                    "Failed to deserialize response payload when fetching media tracker progress",
-                )
-            })?;
+    let request_url = root_url.join("media-tracker/progress")?;
+    let request = client.get(request_url);
+    let response = request.send().await?;
+    let response_body = receive_response_body(response).await?;
+    let progress = serde_json::from_slice::<aoide_core_serde::usecases::media::tracker::Progress>(
+        &response_body,
+    )
+    .map(Into::into)?;
     log::debug!("Received progress: {:?}", progress);
     Ok(progress)
 }
@@ -588,41 +553,20 @@ async fn on_start_scan(
     collection_uid: &EntityUid,
     root_url: Option<&Url>,
 ) -> anyhow::Result<ScanOutcome> {
-    let url = api_url.join(&format!("c/{}/media-tracker/scan", collection_uid))?;
-    let body_json = root_url
-        .map(|root_url| {
-            serde_json::json!({
-                "rootUrl": root_url.to_string(),
-            })
+    let request_url = api_url.join(&format!("c/{}/media-tracker/scan", collection_uid))?;
+    let request_body = serde_json::to_vec(&root_url.map(|root_url| {
+        serde_json::json!({
+            "rootUrl": root_url.to_string(),
         })
-        .unwrap_or_default();
-    let body = serde_json::to_vec(&body_json).map_err(|err| {
-        anyhow::Error::from(err)
-            .context("Failed to serialize request body when starting media tracker scan")
-    })?;
-    let response = client
-        .post(url)
-        .body(body)
-        .send()
-        .await
-        .map_err(|err| anyhow::Error::from(err).context("media tracker scan failure"))?;
-    if !response.status().is_success() {
-        anyhow::bail!(
-            "Media tracker scan failed: response status = {}",
-            response.status()
-        );
-    }
-    let bytes = response.bytes().await.map_err(|err| {
-        anyhow::Error::from(err)
-            .context("Failed to receive response playload of media tracker scan")
-    })?;
+    }))?;
+    let request = client.post(request_url).body(request_body);
+    let response = request.send().await?;
+    let response_body = receive_response_body(response).await?;
     let outcome =
-        serde_json::from_slice::<aoide_core_serde::usecases::media::tracker::scan::Outcome>(&bytes)
-            .map(Into::into)
-            .map_err(|err| {
-                anyhow::Error::from(err)
-                    .context("Failed to deserialize response payload after scanning media")
-            })?;
+        serde_json::from_slice::<aoide_core_serde::usecases::media::tracker::scan::Outcome>(
+            &response_body,
+        )
+        .map(Into::into)?;
     log::debug!("Scan finished: {:?}", outcome);
     Ok(outcome)
 }
@@ -633,59 +577,28 @@ async fn on_start_import(
     collection_uid: &EntityUid,
     root_url: Option<&Url>,
 ) -> anyhow::Result<ImportOutcome> {
-    let url = api_url.join(&format!("c/{}/media-tracker/import", collection_uid))?;
-    let body_json = root_url
-        .map(|root_url| {
-            serde_json::json!({
-                "rootUrl": root_url.to_string(),
-            })
+    let request_url = api_url.join(&format!("c/{}/media-tracker/import", collection_uid))?;
+    let request_body = serde_json::to_vec(&root_url.map(|root_url| {
+        serde_json::json!({
+            "rootUrl": root_url.to_string(),
         })
-        .unwrap_or_default();
-    let body = serde_json::to_vec(&body_json).map_err(|err| {
-        anyhow::Error::from(err)
-            .context("Failed to serialize request body when starting media tracker import")
-    })?;
-    let response = client
-        .post(url)
-        .body(body)
-        .send()
-        .await
-        .map_err(|err| anyhow::Error::from(err).context("media tracker import failed"))?;
-    if !response.status().is_success() {
-        anyhow::bail!(
-            "Media tracker import failed: response status = {}",
-            response.status()
-        );
-    }
-    let bytes = response.bytes().await.map_err(|err| {
-        anyhow::Error::from(err)
-            .context("Failed to receive response playload of media tracker import")
-    })?;
+    }))?;
+    let request = client.post(request_url).body(request_body);
+    let response = request.send().await?;
+    let response_body = receive_response_body(response).await?;
     let outcome = serde_json::from_slice::<
         aoide_core_serde::usecases::media::tracker::import::Outcome,
-    >(&bytes)
-    .map(Into::into)
-    .map_err(|err| {
-        anyhow::Error::from(err)
-            .context("Failed to deserialize response payload after importing media")
-    })?;
+    >(&response_body)
+    .map(Into::into)?;
     log::debug!("Import finished: {:?}", outcome);
     Ok(outcome)
 }
 
 pub async fn on_abort(client: &Client, root_url: &Url) -> anyhow::Result<()> {
-    let url = root_url.join("media-tracker/abort")?;
-    let response = client
-        .post(url)
-        .send()
-        .await
-        .map_err(|err| anyhow::Error::from(err).context("Failed to abort media tracker"))?;
-    if !response.status().is_success() {
-        anyhow::bail!(
-            "Failed to abort media tracker: response status = {}",
-            response.status()
-        );
-    }
+    let request_url = root_url.join("media-tracker/abort")?;
+    let request = client.post(request_url);
+    let response = request.send().await?;
+    let _ = receive_response_body(response).await?;
     Ok(())
 }
 
@@ -695,37 +608,17 @@ async fn on_untrack(
     collection_uid: &EntityUid,
     root_url: &Url,
 ) -> anyhow::Result<UntrackOutcome> {
-    let url = api_url.join(&format!("c/{}/media-tracker/untrack", collection_uid))?;
-    let body_json = serde_json::json!({
+    let request_url = api_url.join(&format!("c/{}/media-tracker/untrack", collection_uid))?;
+    let request_body = serde_json::to_vec(&serde_json::json!({
         "rootUrl": root_url.to_string(),
-    });
-    let body = serde_json::to_vec(&body_json).map_err(|err| {
-        anyhow::Error::from(err).context("Failed to serialize request body when untracking media")
-    })?;
-    let response = client
-        .post(url)
-        .body(body)
-        .send()
-        .await
-        .map_err(|err| anyhow::Error::from(err).context("media tracker untrack failed"))?;
-    if !response.status().is_success() {
-        anyhow::bail!(
-            "Media tracker untrack failed: response status = {}",
-            response.status()
-        );
-    }
-    let bytes = response.bytes().await.map_err(|err| {
-        anyhow::Error::from(err)
-            .context("Failed to receive response playload of media tracker import")
-    })?;
+    }))?;
+    let request = client.post(request_url).body(request_body);
+    let response = request.send().await?;
+    let response_body = receive_response_body(response).await?;
     let outcome = serde_json::from_slice::<
         aoide_core_serde::usecases::media::tracker::untrack::Outcome,
-    >(&bytes)
-    .map(Into::into)
-    .map_err(|err| {
-        anyhow::Error::from(err)
-            .context("Failed to deserialize response payload after untracking media")
-    })?;
+    >(&response_body)
+    .map(Into::into)?;
     log::debug!("Untrack finished: {:?}", outcome);
     Ok(outcome)
 }

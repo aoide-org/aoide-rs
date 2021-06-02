@@ -21,7 +21,9 @@ pub mod collection;
 pub mod media;
 pub mod prelude;
 
+use bytes::Bytes;
 use prelude::*;
+use reqwest::Response;
 
 use std::{sync::Arc, time::Instant};
 
@@ -212,4 +214,22 @@ async fn dispatch_action(
         }
         Action::Terminate => unreachable!(),
     }
+}
+
+async fn receive_response_body(response: Response) -> anyhow::Result<Bytes> {
+    let response_status = response.status();
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|err| anyhow::Error::from(err))?;
+    if !response_status.is_success() {
+        let json = serde_json::from_slice::<serde_json::Value>(&bytes).unwrap_or_default();
+        let err = if json.is_null() {
+            anyhow::anyhow!("{}", response_status)
+        } else {
+            anyhow::anyhow!("{} {}", response_status, json)
+        };
+        return Err(err);
+    }
+    Ok(bytes)
 }
