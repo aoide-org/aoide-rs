@@ -73,25 +73,28 @@ RUN USER=root cargo new --bin ${PROJECT_NAME}
 WORKDIR ${WORKDIR_ROOT}/${PROJECT_NAME}
 RUN mkdir -p "./src/bin/${BUILD_BIN}" && \
     mv ./src/main.rs "./src/bin/${BUILD_BIN}" && \
+    USER=root cargo new --lib ${PROJECT_NAME}-client && \
+    mv ${PROJECT_NAME}-client client && \
     USER=root cargo new --lib ${PROJECT_NAME}-core && \
     mv ${PROJECT_NAME}-core core && \
     USER=root cargo new --lib ${PROJECT_NAME}-core-serde && \
     mv ${PROJECT_NAME}-core-serde core-serde && \
+    USER=root cargo new --lib ${PROJECT_NAME}-media && \
+    mv ${PROJECT_NAME}-media media && \
     USER=root cargo new --lib ${PROJECT_NAME}-repo && \
     mv ${PROJECT_NAME}-repo repo && \
     USER=root cargo new --lib ${PROJECT_NAME}-repo-sqlite && \
     mv ${PROJECT_NAME}-repo-sqlite repo-sqlite && \
-    USER=root cargo new --lib ${PROJECT_NAME}-media && \
-    mv ${PROJECT_NAME}-media media && \
     USER=root cargo new --lib ${PROJECT_NAME}-usecases && \
-    mv ${PROJECT_NAME}-usecases usecases \
-    USER=root cargo new --lib ${PROJECT_NAME}-client && \
-    mv ${PROJECT_NAME}-client client
+    mv ${PROJECT_NAME}-usecases usecases
 
 COPY [ \
     "Cargo.toml", \
     "Cargo.lock", \
     "./" ]
+COPY [ \
+    "client/Cargo.toml", \
+    "./client/" ]
 COPY [ \
     "core/Cargo.toml", \
     "./core/" ]
@@ -102,20 +105,17 @@ COPY [ \
     "core-serde/Cargo.toml", \
     "./core-serde/" ]
 COPY [ \
+    "media/Cargo.toml", \
+    "./media/" ]
+COPY [ \
     "repo/Cargo.toml", \
     "./repo/" ]
 COPY [ \
     "repo-sqlite/Cargo.toml", \
     "./repo-sqlite/" ]
 COPY [ \
-    "media/Cargo.toml", \
-    "./media/" ]
-COPY [ \
     "usecases/Cargo.toml", \
     "./usecases/" ]
-COPY [ \
-    "client/Cargo.toml", \
-    "./client/" ]
 
 # Build the dummy project, then delete all build artefacts that must not(!) be cached
 #
@@ -131,20 +131,20 @@ RUN tree && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/${PROJECT_NAME}-* && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/${PROJECT_NAME}-* && \
     rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/${PROJECT_NAME}-* && \
+    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_client-* && \
+    rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-client-* && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_core-* && \
     rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-core-* && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_core_serde-* && \
     rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-core-serde-* && \
+    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_media-* && \
+    rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-media-* && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_repo-* && \
     rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-repo-* && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_repo_sqlite-* && \
     rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-repo-sqlite-* && \
-    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_media-* && \
-    rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-media-* && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_usecases-* && \
     rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-usecases-* && \
-    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_client-* && \
-    rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-client-* && \
     tree
 
 # Copy all project (re-)sources that are required for building
@@ -155,11 +155,17 @@ COPY [ \
     "resources", \
     "./resources/" ]
 COPY [ \
+    "client/src", \
+    "./client/src/" ]
+COPY [ \
     "core/src", \
     "./core/src/" ]
 COPY [ \
     "core-serde/src", \
     "./core-serde/src/" ]
+COPY [ \
+    "media/src", \
+    "./media/src/" ]
 COPY [ \
     "repo/src", \
     "./repo/src/" ]
@@ -170,27 +176,21 @@ COPY [ \
     "repo-sqlite/migrations", \
     "./repo-sqlite/migrations/" ]
 COPY [ \
-    "media/src", \
-    "./media/src/" ]
-COPY [ \
     "usecases/src", \
     "./usecases/src/" ]
-COPY [ \
-    "client/src", \
-    "./client/src/" ]
 
 # 1. Check all sub-projects using their local manifest for an isolated, standalone build
 # 2. Build workspace and run all unit tests
 # 3. Build the target binary
 # 4. Strip debug infos from the executable
 RUN tree && \
+    cargo check -p aoide-client --manifest-path client/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
     cargo check -p aoide-core --manifest-path core/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
     cargo check -p aoide-core-serde --manifest-path core-serde/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
+    cargo check -p aoide-media --manifest-path media/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
     cargo check -p aoide-repo --manifest-path repo/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
     cargo check -p aoide-repo-sqlite --manifest-path repo-sqlite/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
-    cargo check -p aoide-media --manifest-path media/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
     cargo check -p aoide-usecases --manifest-path usecases/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
-    cargo check -p aoide-client --manifest-path client/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
     cargo test --workspace --${BUILD_MODE} --target ${BUILD_TARGET} ${WORKSPACE_BUILD_FEATURES} && \
     cargo build --bin ${BUILD_BIN} --${BUILD_MODE} --target ${BUILD_TARGET} ${WORKSPACE_BUILD_FEATURES} && \
     strip ./target/${BUILD_TARGET}/${BUILD_MODE}/${BUILD_BIN}
