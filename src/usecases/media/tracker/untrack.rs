@@ -28,7 +28,7 @@ mod uc {
 pub fn untrack(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    root_url: &Url,
+    root_url: Url,
     status: Option<DirTrackingStatus>,
 ) -> Result<Outcome> {
     let db = RepoConnection::new(connection);

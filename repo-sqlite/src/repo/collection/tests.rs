@@ -51,7 +51,7 @@ fn insert_collection() -> TestResult<()> {
             color: None,
             media_source_config: MediaSourceConfig {
                 path_kind: media::SourcePathKind::VirtualFilePath,
-                base_url: None,
+                root_url: None,
             },
         },
     )
@@ -74,7 +74,7 @@ fn update_collection() -> TestResult<()> {
             color: None,
             media_source_config: MediaSourceConfig {
                 path_kind: media::SourcePathKind::VirtualFilePath,
-                base_url: None,
+                root_url: None,
             },
         },
     )?;
@@ -126,7 +126,7 @@ fn delete_collection() -> TestResult<()> {
             color: None,
             media_source_config: MediaSourceConfig {
                 path_kind: media::SourcePathKind::VirtualFilePath,
-                base_url: None,
+                root_url: None,
             },
         },
     )

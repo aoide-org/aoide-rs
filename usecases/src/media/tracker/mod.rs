@@ -29,6 +29,11 @@ pub fn resolve_path_prefix_from_url(
     source_path_resolver: &impl SourcePathResolver,
     url_path_prefix: &Url,
 ) -> Result<SourcePath> {
+    if !url_path_prefix.as_str().ends_with('/') {
+        return Err(Error::Media(
+            anyhow::anyhow!("URL path prefix has no trailing separator").into(),
+        ));
+    }
     source_path_resolver
         .resolve_path_from_url(url_path_prefix)
         .map_err(|err| Error::Media(anyhow::format_err!("Invalid URL path prefix: {}", err).into()))

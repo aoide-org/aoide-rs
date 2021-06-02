@@ -34,7 +34,7 @@ pub use uc::{Outcome, Summary};
 pub fn scan_directories_recursively(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    root_url: Option<&Url>,
+    root_url: Option<Url>,
     max_depth: Option<usize>,
     progress_fn: &mut impl FnMut(ProgressEvent),
     abort_flag: &AtomicBool,

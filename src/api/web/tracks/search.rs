@@ -446,7 +446,7 @@ pub struct QueryParams {
     pub resolve_url_from_path: Option<bool>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub override_base_url: Option<Url>,
+    pub override_root_url: Option<Url>,
 
     pub limit: Option<PaginationLimit>,
 
@@ -471,18 +471,18 @@ pub fn handle_request(
 ) -> Result<ResponseBody> {
     let QueryParams {
         resolve_url_from_path,
-        override_base_url,
+        override_root_url,
         limit,
         offset,
     } = query_params;
     let pagination = PaginationQueryParams { limit, offset };
     let pagination = Option::from(pagination).unwrap_or(DEFAULT_PAGINATION);
     // Passing a base URL override implies resolving paths
-    let resolve_url_from_path = override_base_url.is_some()
+    let resolve_url_from_path = override_root_url.is_some()
         || resolve_url_from_path.unwrap_or(uc::Params::default().resolve_url_from_path);
     let params = uc::Params {
         resolve_url_from_path,
-        override_base_url,
+        override_root_url,
     };
     let RequestBody { filter, ordering } = request_body;
     let mut collector = EntityCollector::default();

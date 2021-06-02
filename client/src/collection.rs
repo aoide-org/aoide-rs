@@ -15,7 +15,10 @@
 
 use std::{fmt, sync::Arc};
 
-use aoide_core::{collection::Entity as CollectionEntity, entity::EntityUid};
+use aoide_core::{
+    collection::{Collection, Entity as CollectionEntity},
+    entity::EntityUid,
+};
 use reqwest::{Client, Url};
 
 use crate::prelude::*;
@@ -95,12 +98,15 @@ impl State {
 
 #[derive(Debug)]
 pub enum Action {
+    CreateNewCollection(Collection),
     FetchAvailable,
     PropagateError(anyhow::Error),
 }
 
 #[derive(Debug)]
 pub enum Event {
+    CreateNewCollectionRequested(Collection),
+    NewCollectionCreated(anyhow::Result<CollectionEntity>),
     FetchAvailableRequested,
     AvailableFetched(anyhow::Result<Vec<CollectionEntity>>),
     ActiveUidSelected(EntityUid),
@@ -110,12 +116,35 @@ pub enum Event {
 
 pub fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Action>) {
     match event {
-        Event::FetchAvailableRequested => (
+        Event::CreateNewCollectionRequested(new_collection) => (
             AppliedEvent::Accepted {
                 state_changed: false,
             },
-            Some(Action::FetchAvailable),
+            Some(Action::CreateNewCollection(new_collection)),
         ),
+        Event::NewCollectionCreated(res) => match res {
+            Ok(_) => (
+                AppliedEvent::Accepted {
+                    state_changed: false,
+                },
+                Some(Action::FetchAvailable),
+            ),
+            Err(err) => (
+                AppliedEvent::Accepted {
+                    state_changed: false,
+                },
+                Some(Action::PropagateError(err)),
+            ),
+        },
+        Event::FetchAvailableRequested => {
+            state.remote.available.set_pending();
+            (
+                AppliedEvent::Accepted {
+                    state_changed: false,
+                },
+                Some(Action::FetchAvailable),
+            )
+        }
         Event::AvailableFetched(res) => match res {
             Ok(new_available) => {
                 state.set_available(new_available);
@@ -166,6 +195,12 @@ pub async fn dispatch_action<E: From<Event> + fmt::Debug>(
     action: Action,
 ) {
     match action {
+        Action::CreateNewCollection(new_collection) => {
+            let res =
+                create_new_collection(&shared_env.client, &shared_env.api_url, new_collection)
+                    .await;
+            crate::emit_event(&event_tx, E::from(Event::NewCollectionCreated(res)));
+        }
         Action::FetchAvailable => {
             let res = fetch_available_collections(&shared_env.client, &shared_env.api_url).await;
             crate::emit_event(&event_tx, E::from(Event::AvailableFetched(res)));
@@ -174,6 +209,49 @@ pub async fn dispatch_action<E: From<Event> + fmt::Debug>(
             crate::emit_event(&event_tx, E::from(Event::ErrorOccurred(error)));
         }
     }
+}
+
+pub async fn create_new_collection(
+    client: &Client,
+    api_url: &Url,
+    new_collection: Collection,
+) -> anyhow::Result<CollectionEntity> {
+    let url = api_url.join("c")?;
+    let body = serde_json::to_vec(&aoide_core_serde::collection::Collection::from(
+        new_collection,
+    ))
+    .map_err(|err| {
+        anyhow::Error::from(err)
+            .context("Failed to serialize request body before creating new collection")
+    })?;
+    let response = client
+        .post(url)
+        .body(body)
+        .send()
+        .await
+        .map_err(|err| anyhow::Error::from(err).context("Failed to create new collection"))?;
+    let response_status = response.status();
+    let bytes = response.bytes().await.map_err(|err| {
+        anyhow::Error::from(err)
+            .context("Failed to receive response playload when creating new collection")
+    })?;
+    if !response_status.is_success() {
+        let json = serde_json::from_slice::<serde_json::Value>(&bytes).unwrap_or_default();
+        let error_msg = if json.is_null() {
+            response_status.to_string()
+        } else {
+            format!("{} {}", response_status, json)
+        };
+        anyhow::bail!("Failed to create new collection: {}", error_msg,);
+    }
+    let entity = serde_json::from_slice::<aoide_core_serde::collection::Entity>(&bytes)
+        .map(Into::into)
+        .map_err(|err| {
+            anyhow::Error::from(err)
+                .context("Failed to deserialize response payload after creating new collection")
+        })?;
+    log::debug!("Created new collection entity: {:?}", entity);
+    Ok(entity)
 }
 
 pub async fn fetch_available_collections(
@@ -206,7 +284,7 @@ pub async fn fetch_available_collections(
     })
     .map_err(|err| {
         anyhow::Error::from(err)
-            .context("Failed to deserialize response payload when fetching available collections")
+            .context("Failed to deserialize response payload after fetching available collections")
     })?;
     log::debug!(
         "Loaded {} available collection(s)",

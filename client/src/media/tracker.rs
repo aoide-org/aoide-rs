@@ -447,11 +447,11 @@ pub async fn dispatch_action<E: From<Event> + fmt::Debug>(
 
 pub async fn fetch_status(
     client: &Client,
-    base_url: &Url,
+    api_url: &Url,
     collection_uid: &EntityUid,
     root_url: Option<&Url>,
 ) -> anyhow::Result<Status> {
-    let url = base_url.join(&format!("c/{}/media-tracker/query-status", collection_uid))?;
+    let url = api_url.join(&format!("c/{}/media-tracker/query-status", collection_uid))?;
     let body_json = root_url
         .map(|root_url| {
             serde_json::json!({
@@ -491,11 +491,11 @@ pub async fn fetch_status(
 
 pub async fn run_scan_task(
     client: &Client,
-    base_url: &Url,
+    api_url: &Url,
     collection_uid: &EntityUid,
     root_url: Option<&Url>,
 ) -> anyhow::Result<ScanOutcome> {
-    let url = base_url.join(&format!("c/{}/media-tracker/scan", collection_uid))?;
+    let url = api_url.join(&format!("c/{}/media-tracker/scan", collection_uid))?;
     let body_json = root_url
         .map(|root_url| {
             serde_json::json!({
@@ -536,11 +536,11 @@ pub async fn run_scan_task(
 
 pub async fn run_import_task(
     client: &Client,
-    base_url: &Url,
+    api_url: &Url,
     collection_uid: &EntityUid,
     root_url: Option<&Url>,
 ) -> anyhow::Result<ImportOutcome> {
-    let url = base_url.join(&format!("c/{}/media-tracker/import", collection_uid))?;
+    let url = api_url.join(&format!("c/{}/media-tracker/import", collection_uid))?;
     let body_json = root_url
         .map(|root_url| {
             serde_json::json!({
@@ -582,11 +582,11 @@ pub async fn run_import_task(
 
 pub async fn untrack(
     client: &Client,
-    base_url: &Url,
+    api_url: &Url,
     collection_uid: &EntityUid,
     root_url: &Url,
 ) -> anyhow::Result<UntrackOutcome> {
-    let url = base_url.join(&format!("c/{}/media-tracker/untrack", collection_uid))?;
+    let url = api_url.join(&format!("c/{}/media-tracker/untrack", collection_uid))?;
     let body_json = serde_json::json!({
         "rootUrl": root_url.to_string(),
     });
@@ -621,8 +621,8 @@ pub async fn untrack(
     Ok(outcome)
 }
 
-pub async fn fetch_progress(client: &Client, base_url: &Url) -> anyhow::Result<Progress> {
-    let url = base_url.join("media-tracker/progress")?;
+pub async fn fetch_progress(client: &Client, root_url: &Url) -> anyhow::Result<Progress> {
+    let url = root_url.join("media-tracker/progress")?;
     let response = client.get(url).send().await.map_err(|err| {
         anyhow::Error::from(err).context("Failed to fetch media tracker progress")
     })?;
@@ -648,8 +648,8 @@ pub async fn fetch_progress(client: &Client, base_url: &Url) -> anyhow::Result<P
     Ok(progress)
 }
 
-pub async fn abort(client: &Client, base_url: &Url) -> anyhow::Result<()> {
-    let url = base_url.join("media-tracker/abort")?;
+pub async fn abort(client: &Client, root_url: &Url) -> anyhow::Result<()> {
+    let url = root_url.join("media-tracker/abort")?;
     let response = client
         .post(url)
         .send()

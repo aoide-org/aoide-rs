@@ -24,7 +24,7 @@ use url::Url;
 pub fn load_virtual_file_path_resolver<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
-    override_base_url: Option<Url>,
+    override_root_url: Option<Url>,
 ) -> Result<VirtualFilePathResolver>
 where
     Repo: EntityRepo,
@@ -37,8 +37,8 @@ where
         )
         .into());
     }
-    let resolver = if let Some(base_url) = entity.body.media_source_config.base_url {
-        VirtualFilePathResolver::with_base_url(override_base_url.unwrap_or(base_url))
+    let resolver = if let Some(root_url) = entity.body.media_source_config.root_url {
+        VirtualFilePathResolver::with_root_url(override_root_url.unwrap_or(root_url))
     } else {
         VirtualFilePathResolver::new()
     };
@@ -48,12 +48,12 @@ where
 pub fn resolve_collection_id_for_virtual_file_path<Repo>(
     repo: &Repo,
     collection_uid: &EntityUid,
-    override_base_url: Option<Url>,
+    override_root_url: Option<Url>,
 ) -> Result<(CollectionId, VirtualFilePathResolver)>
 where
     Repo: EntityRepo,
 {
     let collection_id = repo.resolve_collection_id(collection_uid)?;
-    let resolver = load_virtual_file_path_resolver(repo, collection_id, override_base_url)?;
+    let resolver = load_virtual_file_path_resolver(repo, collection_id, override_root_url)?;
     Ok((collection_id, resolver))
 }

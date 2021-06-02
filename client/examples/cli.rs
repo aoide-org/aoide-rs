@@ -23,7 +23,11 @@ use aoide_client::{
     prelude::{emit_event, event_channel, Environment},
     Event,
 };
-use aoide_core::{entity::EntityUid, usecases::media::tracker::Progress};
+use aoide_core::{
+    collection::{Collection, MediaSourceConfig},
+    entity::EntityUid,
+    usecases::media::tracker::Progress,
+};
 use clap::{App, Arg};
 use reqwest::Client;
 
@@ -58,6 +62,24 @@ async fn main() -> anyhow::Result<()> {
                 .default_value(DEFAULT_API_URL),
         )
         .subcommand(
+            App::new("collections")
+                .about("Manages collections")
+                .subcommand(
+                    App::new("create-mixxx")
+                        .about("Creates a new mixxx.org collection for Mixxx")
+                        .arg(
+                            Arg::with_name("title")
+                                .help("The title of the new collection")
+                                .required(true),
+                        )
+                        .arg(
+                            Arg::with_name("root-url")
+                                .help("The file URL of the common root directory that contains all media sources")
+                                .required(true),
+                        ),
+                )
+        )
+        .subcommand(
             App::new("media-tracker")
                 .about("Controls the media tracker")
                 .subcommand(
@@ -66,7 +88,7 @@ async fn main() -> anyhow::Result<()> {
                 .subcommand(App::new("abort").about("Abort the running task"))
                 .subcommand(
                     App::new("status")
-                        .about("Query the status of the media tracker")
+                        .about("Queries the status of the media tracker")
                         .arg(
                             Arg::with_name("root-url")
                                 .help("The root URL to scan")
@@ -75,7 +97,7 @@ async fn main() -> anyhow::Result<()> {
                 )
                 .subcommand(
                     App::new("scan")
-                        .about("Scan the file system for added/modified/removed media sources")
+                        .about("Scans directories on the file system for added/modified/removed media sources")
                         .arg(
                             Arg::with_name("root-url")
                                 .help("The root URL to scan")
@@ -84,7 +106,7 @@ async fn main() -> anyhow::Result<()> {
                 )
                 .subcommand(
                     App::new("import")
-                        .about("Import scanned media sources from the file system")
+                        .about("Imports media sources on the file system from scanned directories")
                         .arg(
                             Arg::with_name("root-url")
                                 .help("The root URL to scan")
@@ -93,7 +115,7 @@ async fn main() -> anyhow::Result<()> {
                 )
                 .subcommand(
                     App::new("untrack")
-                        .about("Untrack media sources on the file system")
+                        .about("Untracks directories on the file system")
                         .arg(
                             Arg::with_name("root-url")
                                 .help("The root URL to scan")
@@ -249,6 +271,36 @@ async fn main() -> anyhow::Result<()> {
                     return;
                 }
             }
+            if let ("collections", Some(collections_matches)) = matches.subcommand() {
+                match collections_matches.subcommand() {
+                    ("create-mixxx", Some(create_matches)) => {
+                        let title = create_matches.value_of("title").expect("title");
+                        let root_url = create_matches
+                            .value_of("root-url")
+                            .map(|s| s.parse().expect("root-url"))
+                            .expect("root-url");
+                        let new_collection = Collection {
+                            title: title.to_owned(),
+                            kind: Some("mixxx.org".to_owned()),
+                            notes: None,
+                            color: None,
+                            media_source_config: MediaSourceConfig {
+                                path_kind: aoide_core::media::SourcePathKind::VirtualFilePath,
+                                root_url: Some(root_url),
+                            },
+                        };
+                        event_emitter.emit_event(
+                            collection::Event::CreateNewCollectionRequested(new_collection).into(),
+                        );
+                        subcommand_submitted = true;
+                        return;
+                    }
+                    (subcommand, _) => {
+                        debug_assert!(subcommand.is_empty());
+                        println!("{}", matches.usage());
+                    }
+                }
+            }
 
             // Select an active collection
             if let Some(available_collections) = state.collection.remote().available().get_ready() {
@@ -315,7 +367,7 @@ async fn main() -> anyhow::Result<()> {
                             let root_url = status_matches
                                 .and_then(|m| m.value_of("root-url"))
                                 .map(|s| s.parse().expect("URL"))
-                                .or_else(|| collection.body.media_source_config.base_url.clone());
+                                .or_else(|| collection.body.media_source_config.root_url.clone());
                             event_emitter.emit_event(
                                 media::tracker::Event::FetchStatusRequested {
                                     collection_uid,
@@ -333,7 +385,7 @@ async fn main() -> anyhow::Result<()> {
                             let root_url = scan_matches
                                 .and_then(|m| m.value_of("root-url"))
                                 .map(|s| s.parse().expect("URL"))
-                                .or_else(|| collection.body.media_source_config.base_url.clone());
+                                .or_else(|| collection.body.media_source_config.root_url.clone());
                             event_emitter.emit_event(
                                 media::tracker::Event::StartScanRequested {
                                     collection_uid,
@@ -349,7 +401,7 @@ async fn main() -> anyhow::Result<()> {
                             let root_url = import_matches
                                 .and_then(|m| m.value_of("root-url"))
                                 .map(|s| s.parse().expect("URL"))
-                                .or_else(|| collection.body.media_source_config.base_url.clone());
+                                .or_else(|| collection.body.media_source_config.root_url.clone());
                             event_emitter.emit_event(
                                 media::tracker::Event::StartImportRequested {
                                     collection_uid,

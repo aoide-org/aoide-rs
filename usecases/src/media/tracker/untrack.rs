@@ -15,7 +15,10 @@
 
 use super::*;
 
-use aoide_core::usecases::media::tracker::untrack::{Outcome, Summary};
+use aoide_core::{
+    media::auto_complete_file_path_base_url,
+    usecases::media::tracker::untrack::{Outcome, Summary},
+};
 use aoide_repo::{collection::RecordId as CollectionId, media::tracker::Repo as MediaTrackerRepo};
 
 use url::Url;
@@ -23,14 +26,19 @@ use url::Url;
 pub fn untrack<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
-    root_url: &Url,
+    root_url: Url,
     source_path_resolver: &impl SourcePathResolver,
     status: Option<DirTrackingStatus>,
 ) -> Result<Outcome>
 where
     Repo: MediaTrackerRepo,
 {
-    let root_path_prefix = resolve_path_prefix_from_url(source_path_resolver, root_url)?;
+    let root_url = auto_complete_file_path_base_url(root_url);
+    let root_path_prefix = root_url
+        .as_ref()
+        .map(|url| resolve_path_prefix_from_url(source_path_resolver, url))
+        .transpose()?
+        .unwrap_or_default();
     let root_url = source_path_resolver
         .resolve_url_from_path(&root_path_prefix)
         .map_err(anyhow::Error::from)?;

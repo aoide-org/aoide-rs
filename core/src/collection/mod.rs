@@ -25,12 +25,12 @@ use url::Url;
 pub struct MediaSourceConfig {
     pub path_kind: SourcePathKind,
 
-    pub base_url: Option<Url>,
+    pub root_url: Option<Url>,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum MediaSourceConfigInvalidity {
-    BaseUrl,
+    RootUrl,
 }
 
 impl Validate for MediaSourceConfig {
@@ -39,23 +39,23 @@ impl Validate for MediaSourceConfig {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         let Self {
             path_kind,
-            base_url,
+            root_url,
         } = self;
         ValidationContext::new()
             .invalidate_if(
                 match path_kind {
                     SourcePathKind::Uri | SourcePathKind::Url | SourcePathKind::FileUrl => {
-                        base_url.is_some()
+                        root_url.is_some()
                     }
                     SourcePathKind::VirtualFilePath => {
-                        if let Some(base_url) = base_url {
-                            !is_valid_file_path_base_url(base_url)
+                        if let Some(root_url) = root_url {
+                            !is_valid_file_path_base_url(root_url)
                         } else {
                             false
                         }
                     }
                 },
-                Self::Invalidity::BaseUrl,
+                Self::Invalidity::RootUrl,
             )
             .into()
     }

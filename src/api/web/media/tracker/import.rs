@@ -93,7 +93,7 @@ pub fn handle_request(
         import_mode.into(),
         &import_config,
         import_flags,
-        root_url.as_ref(),
+        root_url,
         &mut |summary| {
             if let Some(progress_summary_tx) = progress_summary_tx {
                 if progress_summary_tx.send(summary.to_owned()).is_err() {

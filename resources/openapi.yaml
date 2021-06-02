@@ -850,11 +850,11 @@ components:
       schema:
         type: boolean
         default: false
-    overrideMediaSourceBaseUrlQuery:
-      name: overrideBaseUrl
+    overrideMediaSourceRootUrlQuery:
+      name: overrideRootUrl
       description: |
         Resolve the actual URL of the media source from the stored path according
-        to the given base URL. The provided URL overrides the base URL from the
+        to the given root URL. The provided URL overrides the root URL from the
         collection's media source configuration for this particular request.
 
         Only supported for local files with virtual paths.

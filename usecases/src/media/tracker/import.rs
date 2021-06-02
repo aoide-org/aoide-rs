@@ -15,9 +15,12 @@
 
 use super::*;
 
-use aoide_core::usecases::media::tracker::{
-    import::{Outcome, Summary},
-    Completion,
+use aoide_core::{
+    media::auto_complete_file_path_base_url,
+    usecases::media::tracker::{
+        import::{Outcome, Summary},
+        Completion,
+    },
 };
 
 use aoide_repo::{
@@ -48,14 +51,16 @@ pub fn import<Repo>(
     import_config: &ImportTrackConfig,
     import_flags: ImportTrackFlags,
     source_path_resolver: &VirtualFilePathResolver,
-    root_url: Option<&Url>,
+    root_url: Option<Url>,
     progress_fn: &mut impl FnMut(&Summary),
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
     Repo: MediaTrackerRepo + TrackRepo,
 {
+    let root_url = root_url.and_then(auto_complete_file_path_base_url);
     let root_path_prefix = root_url
+        .as_ref()
         .map(|url| resolve_path_prefix_from_url(source_path_resolver, url))
         .transpose()?
         .unwrap_or_default();

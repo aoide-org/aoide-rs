@@ -30,7 +30,17 @@ use url::Url;
 const FILE_URL_SCHEME: &str = "file";
 
 pub fn is_valid_file_path_base_url(base_url: &Url) -> bool {
-    !base_url.cannot_be_a_base() && base_url.scheme() == FILE_URL_SCHEME
+    !base_url.cannot_be_a_base()
+        && base_url.scheme() == FILE_URL_SCHEME
+        && base_url.as_str().ends_with('/')
+}
+
+pub fn auto_complete_file_path_base_url(url: Url) -> Option<Url> {
+    if url.as_str().ends_with('/') {
+        Some(url)
+    } else {
+        format!("{}/", url).parse().ok()
+    }
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]

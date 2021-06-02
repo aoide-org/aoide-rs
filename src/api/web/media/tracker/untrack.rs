@@ -70,7 +70,7 @@ pub fn handle_request(
     uc::untrack(
         &pooled_connection,
         collection_uid,
-        &root_url,
+        root_url,
         status.map(Into::into),
     )
     .map(Into::into)

@@ -50,7 +50,7 @@ where
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Params {
     pub resolve_url_from_path: bool,
-    pub override_base_url: Option<Url>,
+    pub override_root_url: Option<Url>,
 }
 
 pub fn search_with_params<Repo>(
@@ -66,13 +66,13 @@ where
     Repo: EntityRepo + CollectionRepo,
 {
     let Params {
-        override_base_url,
+        override_root_url,
         resolve_url_from_path,
     } = params;
-    debug_assert!(resolve_url_from_path || override_base_url.is_none());
+    debug_assert!(resolve_url_from_path || override_root_url.is_none());
     if resolve_url_from_path {
         let source_path_resolver =
-            load_virtual_file_path_resolver(repo, collection_id, override_base_url)?;
+            load_virtual_file_path_resolver(repo, collection_id, override_root_url)?;
         let mut collector = ResolveUrlFromVirtualFilePathCollector {
             source_path_resolver,
             collector,
@@ -88,7 +88,7 @@ where
     } else {
         // Providing a base URL without using it to resolve virtual file paths
         // does no harm but doesn't make any sense and is probably unintended.
-        debug_assert!(override_base_url.is_none());
+        debug_assert!(override_root_url.is_none());
         search(repo, collection_id, pagination, filter, ordering, collector)
     }
     .map_err(Into::into)

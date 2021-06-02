@@ -53,8 +53,8 @@ fn resolve_url_from_local_file_path_roundtrip() -> Result<(), ResolveFromPathErr
             .unwrap()
     );
 
-    let base_url = Url::parse("file:///Test%20path/").unwrap();
-    let resolver = VirtualFilePathResolver::with_base_url(base_url);
+    let root_url = Url::parse("file:///Test%20path/").unwrap();
+    let resolver = VirtualFilePathResolver::with_root_url(root_url);
     let slash_path = SourcePath::from("next#*path/file.mp3".to_owned());
     let url = resolver.resolve_url_from_path(&slash_path)?;
     assert_eq!(file_url, url);
@@ -68,7 +68,7 @@ fn resolve_url_from_local_file_path_roundtrip() -> Result<(), ResolveFromPathErr
 }
 
 #[test]
-fn resolve_url_from_relative_path_without_base_url_fails() -> Result<(), ResolveFromPathError> {
+fn resolve_url_from_relative_path_without_root_url_fails() -> Result<(), ResolveFromPathError> {
     let slash_path = SourcePath::from("Test path/file.mp3".to_owned());
     assert!(VirtualFilePathResolver::default()
         .resolve_url_from_path(&slash_path)

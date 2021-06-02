@@ -44,7 +44,7 @@ impl Fixture {
             color: None,
             media_source_config: MediaSourceConfig {
                 path_kind: SourcePathKind::VirtualFilePath,
-                base_url: None,
+                root_url: None,
             },
         };
         let db = establish_connection()?;

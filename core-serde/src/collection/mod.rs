@@ -34,18 +34,18 @@ pub struct MediaSourceConfig {
     pub path_kind: SourcePathKind,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub base_url: Option<Url>,
+    pub root_url: Option<Url>,
 }
 
 impl From<MediaSourceConfig> for _core::MediaSourceConfig {
     fn from(from: MediaSourceConfig) -> Self {
         let MediaSourceConfig {
             path_kind,
-            base_url,
+            root_url,
         } = from;
         Self {
             path_kind: path_kind.into(),
-            base_url: base_url.map(Into::into),
+            root_url: root_url.map(Into::into),
         }
     }
 }
@@ -54,11 +54,11 @@ impl From<_core::MediaSourceConfig> for MediaSourceConfig {
     fn from(from: _core::MediaSourceConfig) -> Self {
         let _core::MediaSourceConfig {
             path_kind,
-            base_url,
+            root_url,
         } = from;
         Self {
             path_kind: path_kind.into(),
-            base_url: base_url.map(Into::into),
+            root_url: root_url.map(Into::into),
         }
     }
 }

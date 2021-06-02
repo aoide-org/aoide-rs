@@ -39,7 +39,7 @@ pub struct QueryableRecord {
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
     pub media_source_path_kind: i16,
-    pub media_source_base_url: Option<String>,
+    pub media_source_root_url: Option<String>,
 }
 
 impl From<QueryableRecord> for (RecordHeader, Entity) {
@@ -56,7 +56,7 @@ impl From<QueryableRecord> for (RecordHeader, Entity) {
             color_rgb,
             color_idx,
             media_source_path_kind,
-            media_source_base_url,
+            media_source_root_url,
         } = from;
         let header = RecordHeader {
             id: id.into(),
@@ -71,21 +71,21 @@ impl From<QueryableRecord> for (RecordHeader, Entity) {
                 );
                 SourcePathKind::Uri
             });
-        let media_source_base_url = media_source_base_url
+        let media_source_root_url = media_source_root_url
             .as_deref()
             .map(Url::parse)
             .transpose()
             .unwrap_or_else(|err| {
                 log::error!(
                     "Invalid media source base URL '{}': {}",
-                    media_source_base_url.unwrap_or_default(),
+                    media_source_root_url.unwrap_or_default(),
                     err,
                 );
                 None
             });
         let media_source_config = MediaSourceConfig {
             path_kind: media_source_path_kind,
-            base_url: media_source_base_url,
+            root_url: media_source_root_url,
         };
         let entity_hdr = entity_header_from_sql(&entity_uid, entity_rev);
         let entity_body = Collection {
@@ -126,7 +126,7 @@ pub struct InsertableRecord<'a> {
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
     pub media_source_path_kind: i16,
-    pub media_source_base_url: Option<&'a str>,
+    pub media_source_root_url: Option<&'a str>,
 }
 
 impl<'a> InsertableRecord<'a> {
@@ -138,7 +138,7 @@ impl<'a> InsertableRecord<'a> {
             media_source_config:
                 MediaSourceConfig {
                     path_kind: media_source_path_kind,
-                    base_url: media_source_base_url,
+                    root_url: media_source_root_url,
                 },
             title,
             kind,
@@ -164,7 +164,7 @@ impl<'a> InsertableRecord<'a> {
                 None
             },
             media_source_path_kind: *media_source_path_kind as i16,
-            media_source_base_url: media_source_base_url.as_ref().map(Url::as_str),
+            media_source_root_url: media_source_root_url.as_ref().map(Url::as_str),
         }
     }
 }
@@ -199,7 +199,7 @@ pub struct UpdatableRecord<'a> {
     pub color_rgb: Option<i32>,
     pub color_idx: Option<i16>,
     pub media_source_path_kind: i16,
-    pub media_source_base_url: Option<&'a str>,
+    pub media_source_root_url: Option<&'a str>,
 }
 
 impl<'a> UpdatableRecord<'a> {
@@ -213,7 +213,7 @@ impl<'a> UpdatableRecord<'a> {
             media_source_config:
                 MediaSourceConfig {
                     path_kind: media_source_path_kind,
-                    base_url: media_source_base_url,
+                    root_url: media_source_root_url,
                 },
             title,
             kind,
@@ -237,7 +237,7 @@ impl<'a> UpdatableRecord<'a> {
                 None
             },
             media_source_path_kind: *media_source_path_kind as i16,
-            media_source_base_url: media_source_base_url.as_ref().map(Url::as_str),
+            media_source_root_url: media_source_root_url.as_ref().map(Url::as_str),
         }
     }
 }

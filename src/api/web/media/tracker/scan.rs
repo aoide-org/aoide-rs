@@ -57,7 +57,7 @@ pub fn handle_request(
     uc::scan_directories_recursively(
         &pooled_connection,
         collection_uid,
-        root_url.as_ref(),
+        root_url,
         max_depth,
         &mut |progress_event| {
             if let Some(progress_event_tx) = progress_event_tx {

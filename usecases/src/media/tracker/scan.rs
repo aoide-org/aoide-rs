@@ -16,6 +16,7 @@
 use super::*;
 
 use aoide_core::{
+    media::auto_complete_file_path_base_url,
     usecases::media::tracker::{
         scan::{Outcome, Summary},
         Completion, ScanningDirectoriesProgress, ScanningEntriesProgress, ScanningProgress,
@@ -74,7 +75,7 @@ impl From<digest::ProgressEvent> for ProgressEvent {
 pub fn scan_directories_recursively<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
-    root_url: Option<&Url>,
+    root_url: Option<Url>,
     source_path_resolver: &VirtualFilePathResolver,
     max_depth: Option<usize>,
     progress_fn: &mut impl FnMut(ProgressEvent),
@@ -83,7 +84,9 @@ pub fn scan_directories_recursively<Repo>(
 where
     Repo: MediaTrackerRepo,
 {
+    let root_url = root_url.and_then(auto_complete_file_path_base_url);
     let root_path_prefix = root_url
+        .as_ref()
         .map(|url| resolve_path_prefix_from_url(source_path_resolver, url))
         .transpose()?
         .unwrap_or_default();

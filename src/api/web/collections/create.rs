@@ -17,8 +17,6 @@ use super::*;
 
 use crate::usecases::collections::create as uc;
 
-///////////////////////////////////////////////////////////////////////
-
 pub type RequestBody = Collection;
 
 pub type ResponseBody = Entity;

@@ -15,13 +15,17 @@
 
 use super::*;
 
-use aoide_core::util::clock::DateTime;
+use aoide_core::{media::auto_complete_file_path_base_url, util::clock::DateTime};
 
 use semval::Validate as _;
 
 ///////////////////////////////////////////////////////////////////////
 
-pub fn create(connection: &SqliteConnection, new_collection: Collection) -> Result<Entity> {
+pub fn create(connection: &SqliteConnection, mut new_collection: Collection) -> Result<Entity> {
+    new_collection.media_source_config.root_url = new_collection
+        .media_source_config
+        .root_url
+        .and_then(auto_complete_file_path_base_url);
     if let Err(err) = new_collection.validate() {
         return Err(anyhow::anyhow!("Invalid collection: {:?}", err).into());
     }

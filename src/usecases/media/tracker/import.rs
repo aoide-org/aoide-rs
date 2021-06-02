@@ -41,7 +41,7 @@ pub fn import(
     import_mode: ImportMode,
     import_config: &ImportTrackConfig,
     import_flags: ImportTrackFlags,
-    root_url: Option<&Url>,
+    root_url: Option<Url>,
     progress_fn: &mut impl FnMut(&uc::Summary),
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {

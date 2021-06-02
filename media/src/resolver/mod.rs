@@ -89,49 +89,49 @@ impl SourcePathResolver for FileUrlResolver {
 
 #[derive(Debug, Clone, Default)]
 pub struct VirtualFilePathResolver {
-    base_url: Option<Url>,
-    base_file_path: Option<PathBuf>,
-    base_slash_path: Option<String>,
+    root_url: Option<Url>,
+    root_file_path: Option<PathBuf>,
+    root_slash_path: Option<String>,
 }
 
 impl VirtualFilePathResolver {
     pub const fn new() -> Self {
         Self {
-            base_url: None,
-            base_file_path: None,
-            base_slash_path: None,
+            root_url: None,
+            root_file_path: None,
+            root_slash_path: None,
         }
     }
 
-    pub fn is_valid_base_url(base_url: &Url) -> bool {
-        !base_url.cannot_be_a_base() && base_url.scheme() == FILE_URL_SCHEME
+    pub fn is_valid_root_url(root_url: &Url) -> bool {
+        !root_url.cannot_be_a_base() && root_url.scheme() == FILE_URL_SCHEME
     }
 
-    pub fn with_base_url(base_url: Url) -> Self {
-        debug_assert!(Self::is_valid_base_url(&base_url));
-        let base_file_path = base_url.to_file_path();
-        let base_url = Some(base_url);
+    pub fn with_root_url(root_url: Url) -> Self {
+        debug_assert!(Self::is_valid_root_url(&root_url));
+        let root_file_path = root_url.to_file_path();
+        let root_url = Some(root_url);
         debug_assert_eq!(
-            base_url,
-            base_file_path
+            root_url,
+            root_file_path
                 .as_ref()
                 .ok()
                 .and_then(|path| Url::from_directory_path(path).ok())
         );
-        let base_slash_path = base_file_path.as_ref().ok().and_then(|p| p.to_slash());
-        debug_assert_eq!(base_file_path.is_ok(), base_slash_path.is_some());
+        let root_slash_path = root_file_path.as_ref().ok().and_then(|p| p.to_slash());
+        debug_assert_eq!(root_file_path.is_ok(), root_slash_path.is_some());
         Self {
-            base_url,
-            base_file_path: base_file_path.ok(),
-            base_slash_path,
+            root_url,
+            root_file_path: root_file_path.ok(),
+            root_slash_path,
         }
     }
 
     pub fn build_file_path(&self, slash_path: &str) -> PathBuf {
-        if let Some(base_file_path) = &self.base_file_path {
+        if let Some(root_file_path) = &self.root_file_path {
             let mut path_buf =
-                PathBuf::with_capacity(base_file_path.as_os_str().len() + slash_path.len());
-            path_buf.push(base_file_path);
+                PathBuf::with_capacity(root_file_path.as_os_str().len() + slash_path.len());
+            path_buf.push(root_file_path);
             path_buf.push(PathBuf::from_slash(slash_path));
             path_buf
         } else {
@@ -146,8 +146,8 @@ impl SourcePathResolver for VirtualFilePathResolver {
     }
 
     fn resolve_path_from_url(&self, url: &Url) -> Result<SourcePath, ResolveFromUrlError> {
-        if let Some(base_url) = &self.base_url {
-            if !url.as_str().starts_with(base_url.as_str()) {
+        if let Some(root_url) = &self.root_url {
+            if !url.as_str().starts_with(root_url.as_str()) {
                 return Err(ResolveFromUrlError::InvalidUrl);
             }
         } else if url.scheme() != FILE_URL_SCHEME {
@@ -157,8 +157,8 @@ impl SourcePathResolver for VirtualFilePathResolver {
             Ok(file_path) => {
                 if file_path.is_absolute() {
                     if let Some(slash_path) = file_path.to_slash() {
-                        if let Some(base_slash_path) = &self.base_slash_path {
-                            let stripped_path = slash_path.strip_prefix(base_slash_path);
+                        if let Some(root_slash_path) = &self.root_slash_path {
+                            let stripped_path = slash_path.strip_prefix(root_slash_path);
                             if let Some(stripped_path) = stripped_path {
                                 return Ok(stripped_path.to_owned().into());
                             }
