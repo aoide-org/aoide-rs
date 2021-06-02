@@ -16,11 +16,11 @@
 use super::*;
 
 use aoide_core::{
-    media::auto_complete_file_path_base_url,
     usecases::media::tracker::{
         import::{Outcome, Summary},
         Completion,
     },
+    util::url::BaseUrl,
 };
 
 use aoide_repo::{
@@ -36,7 +36,6 @@ use tracks::replace::{
 };
 
 use std::sync::atomic::{AtomicBool, Ordering};
-use url::Url;
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -51,17 +50,16 @@ pub fn import<Repo>(
     import_config: &ImportTrackConfig,
     import_flags: ImportTrackFlags,
     source_path_resolver: &VirtualFilePathResolver,
-    root_url: Option<Url>,
+    root_url: Option<BaseUrl>,
     progress_fn: &mut impl FnMut(&Summary),
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
     Repo: MediaTrackerRepo + TrackRepo,
 {
-    let root_url = root_url.and_then(auto_complete_file_path_base_url);
     let root_path_prefix = root_url
         .as_ref()
-        .map(|url| resolve_path_prefix_from_url(source_path_resolver, url))
+        .map(|url| resolve_path_prefix_from_base_url(source_path_resolver, url))
         .transpose()?
         .unwrap_or_default();
     let root_url = source_path_resolver

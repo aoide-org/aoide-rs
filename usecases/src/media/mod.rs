@@ -28,7 +28,6 @@ use aoide_media::{
 };
 
 use std::io::BufReader;
-use url::Url;
 
 pub mod tracker;
 

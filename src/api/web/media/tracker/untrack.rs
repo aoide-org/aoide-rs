@@ -19,7 +19,7 @@ mod uc {
     pub use crate::usecases::media::tracker::untrack::*;
 }
 
-use aoide_core::entity::EntityUid;
+use aoide_core::{entity::EntityUid, util::url::BaseUrl};
 
 use aoide_core_serde::usecases::media::tracker::untrack::Outcome;
 use url::Url;
@@ -67,6 +67,9 @@ pub fn handle_request(
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
     let RequestBody { root_url, status } = request_body;
+    let root_url = BaseUrl::try_autocomplete_from(root_url)
+        .map_err(anyhow::Error::from)
+        .map_err(Error::BadRequest)?;
     uc::untrack(
         &pooled_connection,
         collection_uid,

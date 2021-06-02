@@ -15,7 +15,10 @@
 
 use super::*;
 
-use aoide_core::track::tag::{FACET_GENRE, FACET_MOOD};
+use aoide_core::{
+    track::tag::{FACET_GENRE, FACET_MOOD},
+    util::url::BaseUrl,
+};
 
 use aoide_core_serde::usecases::media::{
     tracker::import::{Outcome, Params},
@@ -62,6 +65,11 @@ pub fn handle_request(
         root_url,
         import_mode,
     } = request_body;
+    let root_url = root_url
+        .map(BaseUrl::try_autocomplete_from)
+        .transpose()
+        .map_err(anyhow::Error::from)
+        .map_err(Error::BadRequest)?;
     let import_mode = import_mode.unwrap_or(ImportMode::Modified);
     // FIXME: Replace hard-coded tag mapping config
     let mut faceted_tag_mapping_config = FacetedTagMappingConfigInner::default();

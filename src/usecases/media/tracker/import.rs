@@ -15,11 +15,10 @@
 
 use super::*;
 
-use aoide_core::usecases::media::ImportMode;
+use aoide_core::{usecases::media::ImportMode, util::url::BaseUrl};
 use aoide_media::io::import::{ImportTrackConfig, ImportTrackFlags};
 
 use std::sync::atomic::AtomicBool;
-use url::Url;
 
 mod uc {
     pub use aoide_core::usecases::media::tracker::import::*;
@@ -41,7 +40,7 @@ pub fn import(
     import_mode: ImportMode,
     import_config: &ImportTrackConfig,
     import_flags: ImportTrackFlags,
-    root_url: Option<Url>,
+    root_url: Option<BaseUrl>,
     progress_fn: &mut impl FnMut(&uc::Summary),
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {

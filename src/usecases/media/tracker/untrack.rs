@@ -15,8 +15,9 @@
 
 use super::*;
 
-use aoide_core::{entity::EntityUid, usecases::media::tracker::untrack::Outcome};
-use url::Url;
+use aoide_core::{
+    entity::EntityUid, usecases::media::tracker::untrack::Outcome, util::url::BaseUrl,
+};
 
 pub use aoide_repo::media::tracker::DirTrackingStatus;
 mod uc {
@@ -28,7 +29,7 @@ mod uc {
 pub fn untrack(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    root_url: Url,
+    root_url: BaseUrl,
     status: Option<DirTrackingStatus>,
 ) -> Result<Outcome> {
     let db = RepoConnection::new(connection);

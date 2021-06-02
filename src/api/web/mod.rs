@@ -50,6 +50,9 @@ pub mod tracks;
 
 #[derive(Error, Debug)]
 pub enum Error {
+    #[error(transparent)]
+    BadRequest(anyhow::Error),
+
     #[error("timeout: {reason}")]
     Timeout { reason: String },
 
@@ -79,6 +82,7 @@ impl From<uc::Error> for Error {
     fn from(err: uc::Error) -> Self {
         use uc::Error::*;
         match err {
+            Input(err) => Self::BadRequest(err),
             Media(err) => Self::Media(err),
             Database(err) => Self::Database(err),
             DatabaseMigration(err) => Self::Other(err.into()), // does not occur for the web API
@@ -172,6 +176,10 @@ pub async fn handle_rejection(reject: Rejection) -> StdResult<impl Reply, Infall
             .unwrap_or_else(|| err.to_string());
     } else if let Some(err) = reject.find::<Error>() {
         match err {
+            Error::BadRequest(err) => {
+                code = StatusCode::BAD_REQUEST;
+                message = err.to_string();
+            }
             Error::Timeout { .. } => {
                 code = StatusCode::SERVICE_UNAVAILABLE;
                 message = err.to_string();

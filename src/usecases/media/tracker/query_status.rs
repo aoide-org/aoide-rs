@@ -15,9 +15,7 @@
 
 use super::*;
 
-use aoide_core::entity::EntityUid;
-
-use url::Url;
+use aoide_core::{entity::EntityUid, util::url::BaseUrl};
 
 mod uc {
     pub use aoide_usecases::{
@@ -35,7 +33,7 @@ pub use aoide_core::usecases::media::tracker::Status;
 pub fn query_status(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    root_url: Option<&Url>,
+    root_url: Option<&BaseUrl>,
 ) -> Result<Status> {
     let db = RepoConnection::new(connection);
     db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {

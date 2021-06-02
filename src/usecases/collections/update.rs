@@ -15,19 +15,28 @@
 
 use super::*;
 
-use aoide_core::util::clock::DateTime;
+use aoide_core::util::{clock::DateTime, url::BaseUrl};
 
 use semval::Validate as _;
-
-///////////////////////////////////////////////////////////////////////
 
 pub fn update(
     connection: &SqliteConnection,
     updated_entity_with_current_rev: Entity,
 ) -> Result<Entity> {
-    let (hdr, body) = updated_entity_with_current_rev.into();
+    let (hdr, mut body) = updated_entity_with_current_rev.into();
+    body.media_source_config.root_url = body
+        .media_source_config
+        .root_url
+        .map(BaseUrl::try_autocomplete_from)
+        .transpose()
+        .map_err(anyhow::Error::from)
+        .map_err(Error::Input)?
+        .map(Into::into);
     if let Err(err) = body.validate() {
-        return Err(anyhow::anyhow!("Invalid collection: {:?}", err).into());
+        return Err(Error::Input(anyhow::anyhow!(
+            "Invalid collection: {:?}",
+            err
+        )));
     }
     let EntityHeader {
         uid,

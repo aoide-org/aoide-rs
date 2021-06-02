@@ -18,19 +18,17 @@ use super::*;
 use aoide_core::usecases::media::tracker::Status;
 use aoide_repo::{collection::RecordId as CollectionId, media::tracker::Repo as MediaTrackerRepo};
 
-use url::Url;
-
 pub fn query_status<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
     source_path_resolver: &VirtualFilePathResolver,
-    root_url: Option<&Url>,
+    root_url: Option<&BaseUrl>,
 ) -> Result<Status>
 where
     Repo: MediaTrackerRepo,
 {
     let root_path_prefix = root_url
-        .map(|url| resolve_path_prefix_from_url(source_path_resolver, url))
+        .map(|url| resolve_path_prefix_from_base_url(source_path_resolver, url))
         .transpose()?
         .unwrap_or_default();
     let directories =

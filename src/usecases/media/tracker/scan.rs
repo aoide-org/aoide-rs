@@ -15,7 +15,7 @@
 
 use super::*;
 
-use aoide_core::entity::EntityUid;
+use aoide_core::{entity::EntityUid, util::url::BaseUrl};
 
 use aoide_usecases::{
     collection::resolve_collection_id_for_virtual_file_path, media::tracker::scan::ProgressEvent,
@@ -27,14 +27,13 @@ mod uc {
 }
 
 use std::sync::atomic::AtomicBool;
-use url::Url;
 
 pub use uc::{Outcome, Summary};
 
 pub fn scan_directories_recursively(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    root_url: Option<Url>,
+    root_url: Option<BaseUrl>,
     max_depth: Option<usize>,
     progress_fn: &mut impl FnMut(ProgressEvent),
     abort_flag: &AtomicBool,

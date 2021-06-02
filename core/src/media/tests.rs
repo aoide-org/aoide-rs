@@ -111,32 +111,3 @@ fn given_locked_update() {
         }
     }
 }
-
-#[test]
-fn valid_file_path_base_url() {
-    let base_url = "file:///home/".parse().unwrap();
-    assert!(is_valid_file_path_base_url(&base_url));
-}
-
-#[test]
-fn invalid_file_path_base_url() {
-    let base_url_with_unsupported_scheme = "nfs:///home/".parse().unwrap();
-    assert!(!is_valid_file_path_base_url(
-        &base_url_with_unsupported_scheme
-    ));
-}
-
-#[test]
-fn auto_complete_file_path_base_url_without_trailing_path_separator() {
-    let base_url_without_trailing_path_separator = "file:///home".parse().unwrap();
-    assert!(!is_valid_file_path_base_url(
-        &base_url_without_trailing_path_separator
-    ));
-    let autocompleted_base_url =
-        auto_complete_file_path_base_url(base_url_without_trailing_path_separator.clone()).unwrap();
-    assert_eq!(
-        &format!("{}/", base_url_without_trailing_path_separator),
-        autocompleted_base_url.as_str(),
-    );
-    assert!(is_valid_file_path_base_url(&autocompleted_base_url));
-}

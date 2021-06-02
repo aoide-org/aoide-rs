@@ -33,6 +33,9 @@ pub mod tracks;
 #[derive(Error, Debug)]
 pub enum Error {
     #[error(transparent)]
+    Input(anyhow::Error),
+
+    #[error(transparent)]
     Media(#[from] MediaError),
 
     #[error(transparent)]

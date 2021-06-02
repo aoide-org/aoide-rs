@@ -17,6 +17,7 @@ use std::{borrow::Borrow, cmp::Ordering, ops::Deref};
 
 pub mod clock;
 pub mod color;
+pub mod url;
 
 pub trait IsInteger {
     fn is_integer(&self) -> bool;

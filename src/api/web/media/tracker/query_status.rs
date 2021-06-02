@@ -19,7 +19,7 @@ mod uc {
     pub use crate::usecases::media::tracker::query_status::*;
 }
 
-use aoide_core::entity::EntityUid;
+use aoide_core::{entity::EntityUid, util::url::BaseUrl};
 use aoide_core_serde::usecases::media::tracker::Status;
 
 use url::Url;
@@ -42,6 +42,11 @@ pub fn handle_request(
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
     let RequestBody { root_url } = request_body;
+    let root_url = root_url
+        .map(BaseUrl::try_autocomplete_from)
+        .transpose()
+        .map_err(anyhow::Error::from)
+        .map_err(Error::BadRequest)?;
     uc::query_status(&pooled_connection, collection_uid, root_url.as_ref())
         .map(Into::into)
         .map_err(Into::into)

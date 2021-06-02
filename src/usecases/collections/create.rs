@@ -15,7 +15,7 @@
 
 use super::*;
 
-use aoide_core::{media::auto_complete_file_path_base_url, util::clock::DateTime};
+use aoide_core::util::{clock::DateTime, url::BaseUrl};
 
 use semval::Validate as _;
 
@@ -25,9 +25,16 @@ pub fn create(connection: &SqliteConnection, mut new_collection: Collection) -> 
     new_collection.media_source_config.root_url = new_collection
         .media_source_config
         .root_url
-        .and_then(auto_complete_file_path_base_url);
+        .map(BaseUrl::try_autocomplete_from)
+        .transpose()
+        .map_err(anyhow::Error::from)
+        .map_err(Error::Input)?
+        .map(Into::into);
     if let Err(err) = new_collection.validate() {
-        return Err(anyhow::anyhow!("Invalid collection: {:?}", err).into());
+        return Err(Error::Input(anyhow::anyhow!(
+            "Invalid collection: {:?}",
+            err
+        )));
     }
     let hdr = EntityHeader::initial_random();
     let entity = Entity::new(hdr, new_collection);

@@ -22,7 +22,7 @@ mod uc {
     pub use aoide_usecases::media::tracker::scan::ProgressEvent;
 }
 
-use aoide_core::entity::EntityUid;
+use aoide_core::{entity::EntityUid, util::url::BaseUrl};
 
 use aoide_core_serde::usecases::media::tracker::scan::Outcome;
 
@@ -54,6 +54,12 @@ pub fn handle_request(
         root_url,
         max_depth,
     } = request_body;
+    let root_url = root_url
+        .map(BaseUrl::try_autocomplete_from)
+        .transpose()
+        .map_err(anyhow::Error::from)
+        .map_err(Error::BadRequest)?
+        .map(Into::into);
     uc::scan_directories_recursively(
         &pooled_connection,
         collection_uid,

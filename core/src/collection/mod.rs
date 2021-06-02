@@ -13,13 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{
-    media::{is_valid_file_path_base_url, SourcePathKind},
-    prelude::*,
-};
+use ::url::Url;
+
+use crate::{media::SourcePathKind, prelude::*, util::url::is_valid_base_url};
 
 use std::fmt::Debug;
-use url::Url;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MediaSourceConfig {
@@ -43,16 +41,12 @@ impl Validate for MediaSourceConfig {
         } = self;
         ValidationContext::new()
             .invalidate_if(
-                match path_kind {
+                !match path_kind {
                     SourcePathKind::Uri | SourcePathKind::Url | SourcePathKind::FileUrl => {
-                        root_url.is_some()
+                        root_url.is_none()
                     }
                     SourcePathKind::VirtualFilePath => {
-                        if let Some(root_url) = root_url {
-                            !is_valid_file_path_base_url(root_url)
-                        } else {
-                            false
-                        }
+                        root_url.as_ref().map(is_valid_base_url).unwrap_or(false)
                     }
                 },
                 Self::Invalidity::RootUrl,
