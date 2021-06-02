@@ -151,14 +151,11 @@ async fn main() -> anyhow::Result<()> {
         (event_tx.clone(), event_rx),
         Default::default(),
         Box::new(move |state, event_emitter| {
-            if !state.errors().is_empty() {
-                for err in state.errors() {
+            if !state.last_errors().is_empty() {
+                for err in state.last_errors() {
                     log::error!("{}", err);
                 }
-                event_emitter.emit_event(Intent::Terminate.into());
-                return;
             }
-
             if last_media_tracker_progress.as_ref() != state.media_tracker.remote().progress().get()
             {
                 last_media_tracker_progress = state
@@ -359,73 +356,81 @@ async fn main() -> anyhow::Result<()> {
                     return;
                 }
             }
-            debug_assert!(state.collection.active_collection().is_some());
-            let collection = state.collection.active_collection().unwrap();
-            log::info!("Active collection: {}", collection.hdr.uid);
 
             // Commands that require an active collection
-            if !state.media_tracker.is_idle() {
+            if let Some(collection) = state.collection.active_collection() {
+                log::info!("Active collection: {}", collection.hdr.uid);
                 // Only allowed while idle
-                event_emitter.emit_event(fetch_progress().into());
-                return;
-            }
-            match matches.subcommand() {
-                ("media-tracker", Some(media_tracker_matches)) => {
-                    match media_tracker_matches.subcommand() {
-                        ("status", status_matches) => {
-                            let collection_uid = collection.hdr.uid.clone();
-                            let root_url = status_matches
-                                .and_then(|m| m.value_of("root-url"))
-                                .map(|s| s.parse().expect("URL"))
-                                .or_else(|| collection.body.media_source_config.root_url.clone());
-                            event_emitter.emit_event(fetch_status(collection_uid, root_url).into());
-                            subcommand_submitted = true;
-                            last_media_tracker_status = None;
-                            await_media_tracker_status = true;
-                            return;
-                        }
-                        ("scan", scan_matches) => {
-                            let collection_uid = collection.hdr.uid.clone();
-                            let root_url = scan_matches
-                                .and_then(|m| m.value_of("root-url"))
-                                .map(|s| s.parse().expect("URL"))
-                                .or_else(|| collection.body.media_source_config.root_url.clone());
-                            event_emitter.emit_event(start_scan(collection_uid, root_url).into());
-                            subcommand_submitted = true;
-                            return;
-                        }
-                        ("import", import_matches) => {
-                            let collection_uid = collection.hdr.uid.clone();
-                            let root_url = import_matches
-                                .and_then(|m| m.value_of("root-url"))
-                                .map(|s| s.parse().expect("URL"))
-                                .or_else(|| collection.body.media_source_config.root_url.clone());
-                            event_emitter.emit_event(start_import(collection_uid, root_url).into());
-                            subcommand_submitted = true;
-                            return;
-                        }
-                        ("untrack", untrack_matches) => {
-                            let collection_uid = collection.hdr.uid.clone();
-                            let root_url = untrack_matches
-                                .and_then(|m| m.value_of("root-url"))
-                                .map(|s| s.parse().expect("URL"))
-                                .expect("required");
-                            event_emitter.emit_event(untrack(collection_uid, root_url).into());
-                            subcommand_submitted = true;
-                            return;
-                        }
-                        (subcommand, _) => {
-                            debug_assert!(subcommand.is_empty());
-                            println!("{}", media_tracker_matches.usage());
+                if !state.media_tracker.is_idle() {
+                    event_emitter.emit_event(fetch_progress().into());
+                    return;
+                }
+                match matches.subcommand() {
+                    ("media-tracker", Some(media_tracker_matches)) => {
+                        match media_tracker_matches.subcommand() {
+                            ("status", status_matches) => {
+                                let collection_uid = collection.hdr.uid.clone();
+                                let root_url = status_matches
+                                    .and_then(|m| m.value_of("root-url"))
+                                    .map(|s| s.parse().expect("URL"))
+                                    .or_else(|| {
+                                        collection.body.media_source_config.root_url.clone()
+                                    });
+                                event_emitter
+                                    .emit_event(fetch_status(collection_uid, root_url).into());
+                                subcommand_submitted = true;
+                                last_media_tracker_status = None;
+                                await_media_tracker_status = true;
+                                return;
+                            }
+                            ("scan", scan_matches) => {
+                                let collection_uid = collection.hdr.uid.clone();
+                                let root_url = scan_matches
+                                    .and_then(|m| m.value_of("root-url"))
+                                    .map(|s| s.parse().expect("URL"))
+                                    .or_else(|| {
+                                        collection.body.media_source_config.root_url.clone()
+                                    });
+                                event_emitter
+                                    .emit_event(start_scan(collection_uid, root_url).into());
+                                subcommand_submitted = true;
+                                return;
+                            }
+                            ("import", import_matches) => {
+                                let collection_uid = collection.hdr.uid.clone();
+                                let root_url = import_matches
+                                    .and_then(|m| m.value_of("root-url"))
+                                    .map(|s| s.parse().expect("URL"))
+                                    .or_else(|| {
+                                        collection.body.media_source_config.root_url.clone()
+                                    });
+                                event_emitter
+                                    .emit_event(start_import(collection_uid, root_url).into());
+                                subcommand_submitted = true;
+                                return;
+                            }
+                            ("untrack", untrack_matches) => {
+                                let collection_uid = collection.hdr.uid.clone();
+                                let root_url = untrack_matches
+                                    .and_then(|m| m.value_of("root-url"))
+                                    .map(|s| s.parse().expect("URL"))
+                                    .expect("required");
+                                event_emitter.emit_event(untrack(collection_uid, root_url).into());
+                                subcommand_submitted = true;
+                                return;
+                            }
+                            (subcommand, _) => {
+                                debug_assert!(subcommand.is_empty());
+                                println!("{}", media_tracker_matches.usage());
+                            }
                         }
                     }
-                }
-                (subcommand, _) => {
-                    debug_assert!(subcommand.is_empty());
-                    println!("{}", matches.usage());
+                    (subcommand, _) => {
+                        debug_assert!(subcommand.is_empty());
+                        println!("{}", matches.usage());
+                    }
                 }
             }
-
             debug_assert!(state.media_tracker.is_idle());
             event_emitter.emit_event(Intent::Terminate.into());
         }),

@@ -87,7 +87,8 @@ impl State {
 
     pub fn is_idle(&self) -> bool {
         self.control == ControlState::Idle
-            && self.remote.progress.get_ready() == Some(&Progress::Idle)
+            && (self.remote.progress.get_ready() == Some(&Progress::Idle)
+                || self.remote.progress.is_unknown())
     }
 }
 

@@ -29,14 +29,14 @@ use std::{sync::Arc, time::Instant};
 
 #[derive(Debug, Default)]
 pub struct State {
-    errors: Vec<anyhow::Error>,
+    last_errors: Vec<anyhow::Error>,
     pub collection: collection::State,
     pub media_tracker: media::tracker::State,
 }
 
 impl State {
-    pub fn errors(&self) -> &[anyhow::Error] {
-        &self.errors
+    pub fn last_errors(&self) -> &[anyhow::Error] {
+        &self.last_errors
     }
 }
 
@@ -126,7 +126,7 @@ pub async fn handle_events(
         let event_applied = apply_event(&mut state, event);
         let (render_state, next_action) = match event_applied {
             EventApplied::Rejected => {
-                log::warn!("Event rejected");
+                log::warn!("Event rejected: {:?}", state);
                 (false, None)
             }
             EventApplied::Accepted { next_action } => (next_action.is_none(), next_action),
@@ -135,6 +135,8 @@ pub async fn handle_events(
         if render_state {
             log::debug!("Rendering current state: {:?}", state);
             render_state_fn(&state, &event_tx);
+            // Consume errors only once, i.e. clear after rendering the state
+            state.last_errors.clear();
         }
         if let Some(next_action) = next_action {
             if matches!(next_action, Action::Terminate) {
@@ -157,7 +159,7 @@ fn apply_event(state: &mut State, event: Event) -> EventApplied<Action> {
         | Event::MediaTrackerEvent(media::tracker::Event::Effect(
             media::tracker::Effect::ErrorOccurred(error),
         )) => {
-            state.errors.push(error);
+            state.last_errors.push(error);
             EventApplied::StateChanged { next_action: None }
         }
         Event::CollectionEvent(event) => {
