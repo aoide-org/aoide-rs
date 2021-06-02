@@ -65,54 +65,77 @@ impl From<media::tracker::Action> for Action {
 
 #[derive(Debug)]
 pub enum Event {
-    Collection(collection::Event),
-    MediaTracker(media::tracker::Event),
-    ErrorOccurred(anyhow::Error),
-    EmitDeferred {
-        emit_not_before: Instant,
-        event: Box<Event>,
-    },
-    StateChanged,
-    TerminateRequested,
+    Intent(Intent),
+    Effect(Effect),
+    CollectionEvent(collection::Event),
+    MediaTrackerEvent(media::tracker::Event),
 }
 
 #[derive(Debug)]
 pub enum Intent {
-    Collection(collection::Intent),
-    //MediaTracker(media::tracker::Intent),
-    EmitDeferred {
+    EmitDeferredEvent {
         emit_not_before: Instant,
         event: Box<Event>,
     },
+    RenderState,
     Terminate,
+}
+
+impl From<Intent> for Event {
+    fn from(intent: Intent) -> Self {
+        Self::Intent(intent)
+    }
+}
+
+#[derive(Debug)]
+pub enum Effect {
+    ErrorOccurred(anyhow::Error),
+}
+
+impl From<Effect> for Event {
+    fn from(effect: Effect) -> Self {
+        Self::Effect(effect)
+    }
 }
 
 impl From<collection::Event> for Event {
     fn from(from: collection::Event) -> Self {
-        Self::Collection(from)
+        Self::CollectionEvent(from)
     }
 }
 
 impl From<media::tracker::Event> for Event {
     fn from(from: media::tracker::Event) -> Self {
-        Self::MediaTracker(from)
+        Self::MediaTrackerEvent(from)
     }
 }
 
-pub type StateChangedFn = dyn FnMut(&State, &dyn EventEmitter<Event>) + Send;
+pub type RenderStateFn = dyn FnMut(&State, &dyn EventEmitter<Event>) + Send;
 
 pub async fn handle_events(
     env: Environment,
     event_channel: (EventSender<Event>, EventReceiver<Event>),
     initial_state: State,
-    mut state_changed_fn: Box<StateChangedFn>,
+    mut render_state_fn: Box<RenderStateFn>,
 ) {
     let shared_env = Arc::new(env);
     let (event_tx, mut event_rx) = event_channel;
     let mut state = initial_state;
     while let Some(event) = event_rx.recv().await {
         log::debug!("Applying event: {:?}", event);
-        let (applied_event, next_action) = apply_event(&mut state, event);
+        let event_applied = apply_event(&mut state, event);
+        let (render_state, next_action) = match event_applied {
+            EventApplied::Rejected => {
+                log::warn!("Event rejected");
+                (false, None)
+            }
+            EventApplied::Accepted { next_action } => (next_action.is_none(), next_action),
+            EventApplied::StateChanged { next_action } => (true, next_action),
+        };
+        if render_state {
+            log::debug!("Rendering current state: {:?}", state);
+            render_state_fn(&state, &event_tx);
+        }
         if let Some(next_action) = next_action {
             if matches!(next_action, Action::Terminate) {
                 break;
@@ -122,74 +145,47 @@ pub async fn handle_events(
             log::debug!("Dispatching next action: {:?}", next_action);
             tokio::spawn(dispatch_action(shared_env, event_tx, next_action));
         }
-        match applied_event {
-            AppliedEvent::Dropped => {
-                log::warn!("Event dropped");
-            }
-            AppliedEvent::Accepted { state_changed } => {
-                if state_changed {
-                    log::debug!("State changed: {:?}", state);
-                    tokio::task::block_in_place(|| state_changed_fn(&state, &event_tx));
-                }
-            }
-        }
     }
 }
 
-fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Action>) {
+fn apply_event(state: &mut State, event: Event) -> EventApplied<Action> {
     match event {
-        Event::ErrorOccurred(error)
-        | Event::Collection(collection::Event::Effect(collection::Effect::ErrorOccurred(error)))
-        | Event::MediaTracker(media::tracker::Event::Effect(
+        Event::Effect(Effect::ErrorOccurred(error))
+        | Event::CollectionEvent(collection::Event::Effect(collection::Effect::ErrorOccurred(
+            error,
+        )))
+        | Event::MediaTrackerEvent(media::tracker::Event::Effect(
             media::tracker::Effect::ErrorOccurred(error),
         )) => {
             state.errors.push(error);
-            (
-                AppliedEvent::Accepted {
-                    state_changed: true,
-                },
-                None,
-            )
+            EventApplied::StateChanged { next_action: None }
         }
-        Event::Collection(event) => {
-            let (applied_event, action) = collection::apply_event(&mut state.collection, event);
-            (applied_event, action.map(Into::into))
+        Event::CollectionEvent(event) => {
+            event_applied(collection::apply_event(&mut state.collection, event))
         }
-        Event::MediaTracker(event) => {
-            let (applied_event, action) =
-                media::tracker::apply_event(&mut state.media_tracker, event);
-            (applied_event, action.map(Into::into))
+        Event::MediaTrackerEvent(event) => {
+            event_applied(media::tracker::apply_event(&mut state.media_tracker, event))
         }
-        Event::EmitDeferred {
-            emit_not_before,
-            event,
-        } => (
-            AppliedEvent::Accepted {
-                state_changed: false,
-            },
-            Some(Action::EmitDeferredEvent {
+        Event::Intent(intent) => match intent {
+            Intent::EmitDeferredEvent {
                 emit_not_before,
                 event,
-            }),
-        ),
-        Event::StateChanged => (
-            AppliedEvent::Accepted {
-                state_changed: true,
+            } => EventApplied::Accepted {
+                next_action: Some(Action::EmitDeferredEvent {
+                    emit_not_before,
+                    event,
+                }),
             },
-            None,
-        ),
-        Event::TerminateRequested => {
-            if state.media_tracker.is_idle() {
-                (
-                    AppliedEvent::Accepted {
-                        state_changed: false,
-                    },
-                    Some(Action::Terminate),
-                )
-            } else {
-                (AppliedEvent::Dropped, None)
+            Intent::RenderState => EventApplied::StateChanged { next_action: None },
+            Intent::Terminate => {
+                if !state.media_tracker.is_idle() {
+                    return EventApplied::Rejected;
+                }
+                EventApplied::Accepted {
+                    next_action: Some(Action::Terminate),
+                }
             }
-        }
+        },
     }
 }
 
@@ -210,7 +206,7 @@ async fn dispatch_action(
             event,
         } => {
             tokio::time::sleep_until(emit_not_before.into()).await;
-            emit_event(&event_tx, *event);
+            send_event(&event_tx, *event);
         }
         Action::Terminate => unreachable!(),
     }
@@ -218,10 +214,7 @@ async fn dispatch_action(
 
 async fn receive_response_body(response: Response) -> anyhow::Result<Bytes> {
     let response_status = response.status();
-    let bytes = response
-        .bytes()
-        .await
-        .map_err(|err| anyhow::Error::from(err))?;
+    let bytes = response.bytes().await?;
     if !response_status.is_success() {
         let json = serde_json::from_slice::<serde_json::Value>(&bytes).unwrap_or_default();
         let err = if json.is_null() {

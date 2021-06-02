@@ -152,72 +152,42 @@ impl From<Effect> for Event {
     }
 }
 
-pub fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Action>) {
+pub fn apply_event(state: &mut State, event: Event) -> EventApplied<Action> {
     match event {
         Event::Intent(intent) => match intent {
-            Intent::CreateNewCollection(new_collection) => (
-                AppliedEvent::Accepted {
-                    state_changed: false,
-                },
-                Some(Action::CreateNewCollection(new_collection)),
-            ),
+            Intent::CreateNewCollection(new_collection) => EventApplied::Accepted {
+                next_action: Some(Action::CreateNewCollection(new_collection)),
+            },
             Intent::FetchAvailableCollections => {
                 state.remote.available_collections.set_pending();
-                (
-                    AppliedEvent::Accepted {
-                        state_changed: false,
-                    },
-                    Some(Action::FetchAvailableCollections),
-                )
+                EventApplied::Accepted {
+                    next_action: Some(Action::FetchAvailableCollections),
+                }
             }
             Intent::ActivateCollection(new_active_collection_uid) => {
                 state.set_active_collection_uid(new_active_collection_uid);
-                (
-                    AppliedEvent::Accepted {
-                        state_changed: true,
-                    },
-                    None,
-                )
+                EventApplied::StateChanged { next_action: None }
             }
         },
         Event::Effect(effect) => match effect {
             Effect::NewCollectionCreated(res) => match res {
-                Ok(_) => (
-                    AppliedEvent::Accepted {
-                        state_changed: false,
-                    },
-                    Some(Action::FetchAvailableCollections),
-                ),
-                Err(err) => (
-                    AppliedEvent::Accepted {
-                        state_changed: false,
-                    },
-                    Some(Action::PropagateError(err)),
-                ),
+                Ok(_) => EventApplied::Accepted { next_action: None },
+                Err(err) => EventApplied::Accepted {
+                    next_action: Some(Action::PropagateError(err)),
+                },
             },
             Effect::AvailableCollectionsFetched(res) => match res {
                 Ok(new_available_collections) => {
                     state.set_available_collections(new_available_collections);
-                    (
-                        AppliedEvent::Accepted {
-                            state_changed: true,
-                        },
-                        None,
-                    )
+                    EventApplied::StateChanged { next_action: None }
                 }
-                Err(err) => (
-                    AppliedEvent::Accepted {
-                        state_changed: false,
-                    },
-                    Some(Action::PropagateError(err)),
-                ),
-            },
-            Effect::ErrorOccurred(error) => (
-                AppliedEvent::Accepted {
-                    state_changed: false,
+                Err(err) => EventApplied::Accepted {
+                    next_action: Some(Action::PropagateError(err)),
                 },
-                Some(Action::PropagateError(error)),
-            ),
+            },
+            Effect::ErrorOccurred(error) => EventApplied::Accepted {
+                next_action: Some(Action::PropagateError(error)),
+            },
         },
     }
 }
@@ -232,17 +202,17 @@ pub async fn dispatch_action<E: From<Event> + fmt::Debug>(
             let res =
                 on_create_new_collection(&shared_env.client, &shared_env.api_url, new_collection)
                     .await;
-            crate::emit_event(&event_tx, E::from(Effect::NewCollectionCreated(res).into()));
+            send_event(&event_tx, E::from(Effect::NewCollectionCreated(res).into()));
         }
         Action::FetchAvailableCollections => {
             let res = on_fetch_available_collections(&shared_env.client, &shared_env.api_url).await;
-            crate::emit_event(
+            send_event(
                 &event_tx,
                 E::from(Effect::AvailableCollectionsFetched(res).into()),
             );
         }
         Action::PropagateError(error) => {
-            crate::emit_event(&event_tx, E::from(Effect::ErrorOccurred(error).into()));
+            send_event(&event_tx, E::from(Effect::ErrorOccurred(error).into()));
         }
     }
 }

@@ -38,24 +38,49 @@ pub trait EventEmitter<T: fmt::Debug> {
 
 impl<T: fmt::Debug> EventEmitter<T> for EventSender<T> {
     fn emit_event(&self, event: T) {
-        crate::prelude::emit_event(self, event);
+        send_event(self, event);
     }
 }
 
-pub fn emit_event<T>(event_tx: &EventSender<T>, event: T)
-where
-    T: fmt::Debug,
-{
-    if let Err(event) = event_tx.send(event) {
+pub fn emit_event<T: fmt::Debug>(emitter: impl EventEmitter<T>, event: impl Into<T>) {
+    emitter.emit_event(event.into());
+}
+
+pub fn send_event<T: fmt::Debug>(event_tx: &EventSender<T>, event: impl Into<T>) {
+    if let Err(event) = event_tx.send(event.into()) {
         // Channel is closed, i.e. receiver has been dropped
         log::debug!("Failed to emit event: {:?}", event.0);
     }
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum AppliedEvent {
-    Dropped,
-    Accepted { state_changed: bool },
+pub enum EventApplied<A> {
+    Rejected,
+
+    /// Accepted and the state didn't change
+    Accepted {
+        next_action: Option<A>,
+    },
+
+    /// Accepted and the state might have changed
+    StateChanged {
+        next_action: Option<A>,
+    },
+}
+
+pub fn event_applied<A, B>(from: EventApplied<A>) -> EventApplied<B>
+where
+    A: Into<B>,
+{
+    match from {
+        EventApplied::Rejected => EventApplied::Rejected,
+        EventApplied::Accepted { next_action } => EventApplied::Accepted {
+            next_action: next_action.map(Into::into),
+        },
+        EventApplied::StateChanged { next_action } => EventApplied::StateChanged {
+            next_action: next_action.map(Into::into),
+        },
+    }
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]

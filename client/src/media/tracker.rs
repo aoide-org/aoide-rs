@@ -205,40 +205,32 @@ impl From<Effect> for Event {
     }
 }
 
-pub fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Action>) {
+pub fn apply_event(state: &mut State, event: Event) -> EventApplied<Action> {
     match event {
         Event::Intent(intent) => match intent {
-            Intent::FetchProgress => (
-                AppliedEvent::Accepted {
-                    state_changed: false,
-                },
-                Some(Action::FetchProgress),
-            ),
-            Intent::Abort => (
-                AppliedEvent::Accepted {
-                    state_changed: false,
-                },
-                Some(Action::Abort),
-            ),
+            Intent::FetchProgress => EventApplied::Accepted {
+                next_action: Some(Action::FetchProgress),
+            },
+            Intent::Abort => EventApplied::Accepted {
+                next_action: Some(Action::Abort),
+            },
             Intent::FetchStatus {
                 collection_uid,
                 root_url,
             } => {
                 if !state.is_idle() {
                     log::warn!("Cannot fetch status while not idle");
-                    return (AppliedEvent::Dropped, None);
+                    return EventApplied::Rejected;
                 }
                 state.control = ControlState::Busy;
                 state.remote.status.reset();
-                (
-                    AppliedEvent::Accepted {
-                        state_changed: true,
-                    },
-                    Some(Action::FetchStatus {
+
+                EventApplied::StateChanged {
+                    next_action: Some(Action::FetchStatus {
                         collection_uid,
                         root_url,
                     }),
-                )
+                }
             }
             Intent::StartScan {
                 collection_uid,
@@ -246,21 +238,19 @@ pub fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Act
             } => {
                 if !state.is_idle() {
                     log::warn!("Cannot start scan while not idle");
-                    return (AppliedEvent::Dropped, None);
+                    return EventApplied::Rejected;
                 }
                 state.control = ControlState::Busy;
                 state.remote.progress.reset();
                 state.remote.status.set_pending();
                 state.remote.last_scan_outcome.set_pending();
-                (
-                    AppliedEvent::Accepted {
-                        state_changed: true,
-                    },
-                    Some(Action::StartScan {
+
+                EventApplied::StateChanged {
+                    next_action: Some(Action::StartScan {
                         collection_uid,
                         root_url,
                     }),
-                )
+                }
             }
             Intent::StartImport {
                 collection_uid,
@@ -268,21 +258,19 @@ pub fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Act
             } => {
                 if !state.is_idle() {
                     log::warn!("Cannot start import while not idle");
-                    return (AppliedEvent::Dropped, None);
+                    return EventApplied::Rejected;
                 }
                 state.control = ControlState::Busy;
                 state.remote.progress.reset();
                 state.remote.status.set_pending();
                 state.remote.last_import_outcome.set_pending();
-                (
-                    AppliedEvent::Accepted {
-                        state_changed: true,
-                    },
-                    Some(Action::StartImport {
+
+                EventApplied::StateChanged {
+                    next_action: Some(Action::StartImport {
                         collection_uid,
                         root_url,
                     }),
-                )
+                }
             }
             Intent::Untrack {
                 collection_uid,
@@ -290,73 +278,61 @@ pub fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Act
             } => {
                 if !state.is_idle() {
                     log::warn!("Cannot untrack while not idle");
-                    return (AppliedEvent::Dropped, None);
+                    return EventApplied::Rejected;
                 }
                 state.control = ControlState::Busy;
                 state.remote.progress.reset();
                 state.remote.status.set_pending();
                 state.remote.last_untrack_outcome.set_pending();
-                (
-                    AppliedEvent::Accepted {
-                        state_changed: true,
-                    },
-                    Some(Action::Untrack {
+
+                EventApplied::StateChanged {
+                    next_action: Some(Action::Untrack {
                         collection_uid,
                         root_url,
                     }),
-                )
+                }
             }
         },
         Event::Effect(effect) => match effect {
             Effect::ProgressFetched(res) => match res {
                 Ok(new_progress) => {
                     let new_progress = RemoteData::ready(new_progress);
-                    let progress_changed = state.remote.progress != new_progress;
-                    if progress_changed {
+                    if state.remote.progress != new_progress {
                         state.remote.progress = new_progress;
+                        EventApplied::StateChanged { next_action: None }
+                    } else {
+                        EventApplied::Accepted { next_action: None }
                     }
-                    (
-                        AppliedEvent::Accepted {
-                            state_changed: progress_changed,
-                        },
-                        None,
-                    )
                 }
-                Err(err) => (
-                    AppliedEvent::Accepted {
-                        state_changed: false,
-                    },
-                    Some(Action::PropagateError(err)),
-                ),
+                Err(err) => EventApplied::Accepted {
+                    next_action: Some(Action::PropagateError(err)),
+                },
             },
             Effect::Aborted(res) => {
                 let next_action = match res {
                     Ok(()) => Action::FetchProgress,
                     Err(err) => Action::PropagateError(err),
                 };
-                (
-                    AppliedEvent::Accepted {
-                        state_changed: false,
-                    },
-                    Some(next_action),
-                )
+                EventApplied::Accepted {
+                    next_action: Some(next_action),
+                }
             }
             Effect::StatusFetched(res) => {
                 debug_assert_eq!(state.control, ControlState::Busy);
                 state.control = ControlState::Idle;
-                let next_action = match res {
+                match res {
                     Ok(new_status) => {
-                        state.remote.status = RemoteData::ready(new_status);
-                        None
+                        let new_status = RemoteData::ready(new_status);
+                        if state.remote.status != new_status {
+                            EventApplied::StateChanged { next_action: None }
+                        } else {
+                            EventApplied::Accepted { next_action: None }
+                        }
                     }
-                    Err(err) => Some(Action::PropagateError(err)),
-                };
-                (
-                    AppliedEvent::Accepted {
-                        state_changed: true,
+                    Err(err) => EventApplied::Accepted {
+                        next_action: Some(Action::PropagateError(err)),
                     },
-                    next_action,
-                )
+                }
             }
             Effect::ScanFinished(res) => {
                 debug_assert_eq!(state.control, ControlState::Busy);
@@ -375,12 +351,9 @@ pub fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Act
                         Action::PropagateError(err)
                     }
                 };
-                (
-                    AppliedEvent::Accepted {
-                        state_changed: true,
-                    },
-                    Some(next_action),
-                )
+                EventApplied::StateChanged {
+                    next_action: Some(next_action),
+                }
             }
             Effect::ImportFinished(res) => {
                 debug_assert_eq!(state.control, ControlState::Busy);
@@ -399,12 +372,9 @@ pub fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Act
                         Action::PropagateError(err)
                     }
                 };
-                (
-                    AppliedEvent::Accepted {
-                        state_changed: true,
-                    },
-                    Some(next_action),
-                )
+                EventApplied::StateChanged {
+                    next_action: Some(next_action),
+                }
             }
             Effect::Untracked(res) => {
                 debug_assert_eq!(state.control, ControlState::Busy);
@@ -422,19 +392,13 @@ pub fn apply_event(state: &mut State, event: Event) -> (AppliedEvent, Option<Act
                         Action::PropagateError(err)
                     }
                 };
-                (
-                    AppliedEvent::Accepted {
-                        state_changed: true,
-                    },
-                    Some(next_action),
-                )
+                EventApplied::StateChanged {
+                    next_action: Some(next_action),
+                }
             }
-            Effect::ErrorOccurred(error) => (
-                AppliedEvent::Accepted {
-                    state_changed: false,
-                },
-                Some(Action::PropagateError(error)),
-            ),
+            Effect::ErrorOccurred(error) => EventApplied::Accepted {
+                next_action: Some(Action::PropagateError(error)),
+            },
         },
     }
 }
@@ -456,11 +420,11 @@ pub async fn dispatch_action<E: From<Event> + fmt::Debug>(
                 root_url.as_ref(),
             )
             .await;
-            crate::emit_event(&event_tx, E::from(Effect::StatusFetched(res).into()));
+            send_event(&event_tx, E::from(Effect::StatusFetched(res).into()));
         }
         Action::FetchProgress => {
             let res = on_fetch_progress(&shared_env.client, &shared_env.api_url).await;
-            crate::emit_event(&event_tx, E::from(Effect::ProgressFetched(res).into()));
+            send_event(&event_tx, E::from(Effect::ProgressFetched(res).into()));
         }
         Action::StartScan {
             collection_uid,
@@ -473,7 +437,7 @@ pub async fn dispatch_action<E: From<Event> + fmt::Debug>(
                 root_url.as_ref(),
             )
             .await;
-            crate::emit_event(&event_tx, E::from(Effect::ScanFinished(res).into()));
+            send_event(&event_tx, E::from(Effect::ScanFinished(res).into()));
         }
         Action::StartImport {
             collection_uid,
@@ -486,11 +450,11 @@ pub async fn dispatch_action<E: From<Event> + fmt::Debug>(
                 root_url.as_ref(),
             )
             .await;
-            crate::emit_event(&event_tx, E::from(Effect::ImportFinished(res).into()));
+            send_event(&event_tx, E::from(Effect::ImportFinished(res).into()));
         }
         Action::Abort => {
             let res = on_abort(&shared_env.client, &shared_env.api_url).await;
-            crate::emit_event(&event_tx, E::from(Effect::Aborted(res).into()));
+            send_event(&event_tx, E::from(Effect::Aborted(res).into()));
         }
         Action::Untrack {
             collection_uid,
@@ -503,10 +467,10 @@ pub async fn dispatch_action<E: From<Event> + fmt::Debug>(
                 &root_url,
             )
             .await;
-            crate::emit_event(&event_tx, E::from(Effect::Untracked(res).into()));
+            send_event(&event_tx, E::from(Effect::Untracked(res).into()));
         }
         Action::PropagateError(error) => {
-            crate::emit_event(&event_tx, E::from(Effect::ErrorOccurred(error).into()));
+            send_event(&event_tx, E::from(Effect::ErrorOccurred(error).into()));
         }
     }
 }

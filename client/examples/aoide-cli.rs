@@ -22,8 +22,8 @@ use aoide_client::{
     collection::{activate_collection, create_new_collection, fetch_available_collections},
     handle_events,
     media::tracker::{abort, fetch_progress, fetch_status, start_import, start_scan, untrack},
-    prelude::{emit_event, event_channel, Environment},
-    Event,
+    prelude::{event_channel, send_event, Environment},
+    Intent,
 };
 use aoide_core::{
     collection::{Collection, MediaSourceConfig},
@@ -155,9 +155,10 @@ async fn main() -> anyhow::Result<()> {
                 for err in state.errors() {
                     log::error!("{}", err);
                 }
-                event_emitter.emit_event(Event::TerminateRequested);
+                event_emitter.emit_event(Intent::Terminate.into());
                 return;
             }
+
             if last_media_tracker_progress.as_ref() != state.media_tracker.remote().progress().get()
             {
                 last_media_tracker_progress = state
@@ -181,7 +182,7 @@ async fn main() -> anyhow::Result<()> {
                     log::info!("Media tracker status: {:?}", status);
                     if await_media_tracker_status {
                         await_media_tracker_status = false;
-                        event_emitter.emit_event(Event::TerminateRequested);
+                        event_emitter.emit_event(Intent::Terminate.into());
                         return;
                     }
                 }
@@ -239,7 +240,7 @@ async fn main() -> anyhow::Result<()> {
                     && !await_media_tracker_status
                     && last_media_tracker_progress == Some(Progress::Idle)
                 {
-                    event_emitter.emit_event(Event::TerminateRequested);
+                    event_emitter.emit_event(Intent::Terminate.into());
                     return;
                 }
             } else {
@@ -247,14 +248,14 @@ async fn main() -> anyhow::Result<()> {
                     event_emitter.emit_event(fetch_progress().into());
                 } else {
                     // Periodically refetch and report progress
-                    let deferred_event = Event::EmitDeferred {
+                    let intent = Intent::EmitDeferredEvent {
                         emit_not_before: Instant::now() + PROGRESS_POLLING_PERIOD,
                         event: Box::new(fetch_progress().into()),
                     };
-                    event_emitter.emit_event(deferred_event);
+                    event_emitter.emit_event(intent.into());
                 }
-                return;
             }
+
             // Only submit a single subcommand
             if subcommand_submitted {
                 return;
@@ -312,7 +313,7 @@ async fn main() -> anyhow::Result<()> {
                 if state.collection.active_collection_uid().is_none() {
                     if available_collections.is_empty() {
                         log::warn!("No collections available");
-                        event_emitter.emit_event(Event::TerminateRequested);
+                        event_emitter.emit_event(Intent::Terminate.into());
                         return;
                     }
                     if let Some(collection_uid) = &collection_uid {
@@ -344,7 +345,7 @@ async fn main() -> anyhow::Result<()> {
                                 .unwrap_or(""),
                         );
                     }
-                    event_emitter.emit_event(Event::TerminateRequested);
+                    event_emitter.emit_event(Intent::Terminate.into());
                     return;
                 }
             } else {
@@ -426,11 +427,11 @@ async fn main() -> anyhow::Result<()> {
             }
 
             debug_assert!(state.media_tracker.is_idle());
-            event_emitter.emit_event(Event::TerminateRequested);
+            event_emitter.emit_event(Intent::Terminate.into());
         }),
     ));
     // Kick off the loop by emitting an initial state changed event
-    emit_event(&event_tx, Event::StateChanged);
+    send_event(&event_tx, Intent::RenderState);
     event_loop.await?;
     Ok(())
 }
