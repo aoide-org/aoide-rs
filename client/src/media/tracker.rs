@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{fmt, sync::Arc};
+use std::sync::Arc;
 
 use crate::{prelude::*, receive_response_body};
 
@@ -374,11 +374,10 @@ pub fn apply_effect(state: &mut State, effect: Effect) -> (StateMutation, Option
     }
 }
 
-pub async fn dispatch_next_action<E: From<Effect> + From<Intent> + fmt::Debug>(
+pub async fn dispatch_next_action(
     shared_env: Arc<Environment>,
-    event_tx: EventSender<E>,
     next_action: NextAction,
-) {
+) -> Option<Effect> {
     match next_action {
         NextAction::FetchStatus {
             collection_uid,
@@ -391,11 +390,11 @@ pub async fn dispatch_next_action<E: From<Effect> + From<Intent> + fmt::Debug>(
                 root_url.as_ref(),
             )
             .await;
-            emit_event(&event_tx, Effect::StatusFetched(res));
+            Some(Effect::StatusFetched(res))
         }
         NextAction::FetchProgress => {
             let res = on_fetch_progress(&shared_env.client, &shared_env.api_url).await;
-            emit_event(&event_tx, Effect::ProgressFetched(res));
+            Some(Effect::ProgressFetched(res))
         }
         NextAction::StartScan {
             collection_uid,
@@ -408,7 +407,7 @@ pub async fn dispatch_next_action<E: From<Effect> + From<Intent> + fmt::Debug>(
                 root_url.as_ref(),
             )
             .await;
-            emit_event(&event_tx, Effect::ScanFinished(res));
+            Some(Effect::ScanFinished(res))
         }
         NextAction::StartImport {
             collection_uid,
@@ -421,11 +420,11 @@ pub async fn dispatch_next_action<E: From<Effect> + From<Intent> + fmt::Debug>(
                 root_url.as_ref(),
             )
             .await;
-            emit_event(&event_tx, Effect::ImportFinished(res));
+            Some(Effect::ImportFinished(res))
         }
         NextAction::Abort => {
             let res = on_abort(&shared_env.client, &shared_env.api_url).await;
-            emit_event(&event_tx, Effect::Aborted(res));
+            Some(Effect::Aborted(res))
         }
         NextAction::Untrack {
             collection_uid,
@@ -438,11 +437,9 @@ pub async fn dispatch_next_action<E: From<Effect> + From<Intent> + fmt::Debug>(
                 &root_url,
             )
             .await;
-            emit_event(&event_tx, Effect::Untracked(res));
+            Some(Effect::Untracked(res))
         }
-        NextAction::PropagateError(error) => {
-            emit_event(&event_tx, Effect::ErrorOccurred(error));
-        }
+        NextAction::PropagateError(error) => Some(Effect::ErrorOccurred(error)),
     }
 }
 

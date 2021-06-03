@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{fmt, sync::Arc};
+use std::sync::Arc;
 
 use aoide_core::{
     collection::{Collection, Entity as CollectionEntity},
@@ -180,25 +180,22 @@ pub fn apply_effect(state: &mut State, effect: Effect) -> (StateMutation, Option
     }
 }
 
-pub async fn dispatch_next_action<E: From<Effect> + From<Intent> + fmt::Debug>(
+pub async fn dispatch_next_action(
     shared_env: Arc<Environment>,
-    event_tx: EventSender<E>,
     next_action: NextAction,
-) {
+) -> Option<Effect> {
     match next_action {
         NextAction::CreateNewCollection(new_collection) => {
             let res =
                 on_create_new_collection(&shared_env.client, &shared_env.api_url, new_collection)
                     .await;
-            emit_event(&event_tx, Effect::NewCollectionCreated(res));
+            Some(Effect::NewCollectionCreated(res))
         }
         NextAction::FetchAvailableCollections => {
             let res = on_fetch_available_collections(&shared_env.client, &shared_env.api_url).await;
-            emit_event(&event_tx, Effect::AvailableCollectionsFetched(res));
+            Some(Effect::AvailableCollectionsFetched(res))
         }
-        NextAction::PropagateError(error) => {
-            emit_event(&event_tx, Effect::ErrorOccurred(error));
-        }
+        NextAction::PropagateError(error) => Some(Effect::ErrorOccurred(error)),
     }
 }
 

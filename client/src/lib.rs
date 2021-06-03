@@ -159,7 +159,6 @@ pub async fn handle_events(
     let mut state = initial_state;
     let mut state_rendered_after_last_event = false;
     while let Some(event) = event_rx.recv().await {
-        log::debug!("Applying event: {:?}", event);
         let (state_mutation, next_action) =
             apply_event(&mut state, state_rendered_after_last_event, event);
         state_rendered_after_last_event = false;
@@ -167,7 +166,10 @@ pub async fn handle_events(
         if state_mutation == StateMutation::MaybeChanged || next_action.is_none() {
             log::debug!("Rendering current state: {:?}", state);
             if let Some(rendering_intent) = render_state_fn(&state) {
-                log::debug!("Received intent from rendering: {:?}", rendering_intent);
+                log::debug!(
+                    "Received intent after rendering state: {:?}",
+                    rendering_intent
+                );
                 emit_event(&event_tx, rendering_intent);
                 terminate = false;
             }
@@ -176,8 +178,13 @@ pub async fn handle_events(
         if let Some(next_action) = next_action {
             let shared_env = shared_env.clone();
             let event_tx = event_tx.clone();
-            log::debug!("Scheduling next action dispatch: {:?}", next_action);
-            tokio::spawn(dispatch_next_action(shared_env, event_tx, next_action));
+            log::debug!("Dispatching next action asynchronously: {:?}", next_action);
+            tokio::spawn(async move {
+                if let Some(event) = dispatch_next_action(shared_env, next_action).await {
+                    log::debug!("Received event after dispatching action: {:?}", event);
+                    emit_event(&event_tx, event);
+                }
+            });
             terminate = false;
         }
         if terminate {
@@ -191,59 +198,75 @@ fn apply_event(
     state_rendered_after_last_event: bool,
     event: Event,
 ) -> (StateMutation, Option<NextAction>) {
+    log::debug!("Applying event: {:?}", event);
     if state_rendered_after_last_event {
         // Consume errors only once, i.e. clear after rendering the state
         state.last_errors.clear();
     }
     match event {
-        Event::Intent(intent) => match intent {
-            Intent::RenderState => (StateMutation::MaybeChanged, None),
-            Intent::TimedIntent { not_before, intent } => (
-                StateMutation::Unchanged,
-                Some(NextAction::TimedIntent { not_before, intent }),
-            ),
-            Intent::CollectionIntent(intent) => {
-                event_applied(collection::apply_intent(&mut state.collection, intent))
-            }
-            Intent::MediaTrackerIntent(intent) => event_applied(media::tracker::apply_intent(
-                &mut state.media_tracker,
-                intent,
-            )),
-        },
-        Event::Effect(effect) => match effect {
-            Effect::ErrorOccurred(error)
-            | Effect::CollectionEffect(collection::Effect::ErrorOccurred(error))
-            | Effect::MediaTrackerEffect(media::tracker::Effect::ErrorOccurred(error)) => {
-                state.last_errors.push(error);
-                (StateMutation::MaybeChanged, None)
-            }
-            Effect::CollectionEffect(effect) => {
-                event_applied(collection::apply_effect(&mut state.collection, effect))
-            }
-            Effect::MediaTrackerEffect(effect) => event_applied(media::tracker::apply_effect(
-                &mut state.media_tracker,
-                effect,
-            )),
-        },
+        Event::Intent(intent) => apply_intent(state, intent),
+        Event::Effect(effect) => apply_effect(state, effect),
+    }
+}
+
+fn apply_intent(state: &mut State, intent: Intent) -> (StateMutation, Option<NextAction>) {
+    match intent {
+        Intent::RenderState => (StateMutation::MaybeChanged, None),
+        Intent::TimedIntent { not_before, intent } => (
+            StateMutation::Unchanged,
+            Some(NextAction::TimedIntent { not_before, intent }),
+        ),
+        Intent::CollectionIntent(intent) => {
+            event_applied(collection::apply_intent(&mut state.collection, intent))
+        }
+        Intent::MediaTrackerIntent(intent) => event_applied(media::tracker::apply_intent(
+            &mut state.media_tracker,
+            intent,
+        )),
+    }
+}
+
+fn apply_effect(state: &mut State, effect: Effect) -> (StateMutation, Option<NextAction>) {
+    match effect {
+        Effect::ErrorOccurred(error)
+        | Effect::CollectionEffect(collection::Effect::ErrorOccurred(error))
+        | Effect::MediaTrackerEffect(media::tracker::Effect::ErrorOccurred(error)) => {
+            state.last_errors.push(error);
+            (StateMutation::MaybeChanged, None)
+        }
+        Effect::CollectionEffect(effect) => {
+            event_applied(collection::apply_effect(&mut state.collection, effect))
+        }
+        Effect::MediaTrackerEffect(effect) => event_applied(media::tracker::apply_effect(
+            &mut state.media_tracker,
+            effect,
+        )),
     }
 }
 
 async fn dispatch_next_action(
     shared_env: Arc<Environment>,
-    event_tx: EventSender<Event>,
     next_action: NextAction,
-) {
+) -> Option<Event> {
     log::debug!("Dispatching next action: {:?}", next_action);
     match next_action {
         NextAction::TimedIntent { not_before, intent } => {
             tokio::time::sleep_until(not_before.into()).await;
-            emit_event(&event_tx, *intent);
+            let unboxed_intent = *intent;
+            // In this special case the action results in an intent and not an effect!
+            // TODO: How could this be resolved while preserving the partitioning into
+            // intents and effects?
+            Some(unboxed_intent.into())
         }
         NextAction::Collection(next_action) => {
-            collection::dispatch_next_action(shared_env, event_tx, next_action).await;
+            collection::dispatch_next_action(shared_env, next_action)
+                .await
+                .map(Into::into)
         }
         NextAction::MediaTracker(action) => {
-            media::tracker::dispatch_next_action(shared_env, event_tx, action).await;
+            media::tracker::dispatch_next_action(shared_env, action)
+                .await
+                .map(Into::into)
         }
     }
 }
