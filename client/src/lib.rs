@@ -41,9 +41,9 @@ impl State {
 }
 
 #[derive(Debug)]
-pub enum Action {
-    Collection(collection::Action),
-    MediaTracker(media::tracker::Action),
+pub enum NextAction {
+    Collection(collection::NextAction),
+    MediaTracker(media::tracker::NextAction),
     EmitDeferredEvent {
         emit_not_before: Instant,
         event: Box<Event>,
@@ -51,15 +51,15 @@ pub enum Action {
     Terminate,
 }
 
-impl From<collection::Action> for Action {
-    fn from(from: collection::Action) -> Self {
-        Self::Collection(from)
+impl From<collection::NextAction> for NextAction {
+    fn from(next_action: collection::NextAction) -> Self {
+        Self::Collection(next_action)
     }
 }
 
-impl From<media::tracker::Action> for Action {
-    fn from(from: media::tracker::Action) -> Self {
-        Self::MediaTracker(from)
+impl From<media::tracker::NextAction> for NextAction {
+    fn from(next_action: media::tracker::NextAction) -> Self {
+        Self::MediaTracker(next_action)
     }
 }
 
@@ -132,25 +132,25 @@ pub async fn handle_events(
             EventApplied::Accepted { next_action } => (next_action.is_none(), next_action),
             EventApplied::StateChanged { next_action } => (true, next_action),
         };
+        if let Some(next_action) = next_action {
+            if matches!(next_action, NextAction::Terminate) {
+                break;
+            }
+            let shared_env = shared_env.clone();
+            let event_tx = event_tx.clone();
+            log::debug!("Dispatching next action: {:?}", next_action);
+            tokio::spawn(dispatch_next_action(shared_env, event_tx, next_action));
+        }
         if render_state {
             log::debug!("Rendering current state: {:?}", state);
             render_state_fn(&state, &event_tx);
             // Consume errors only once, i.e. clear after rendering the state
             state.last_errors.clear();
         }
-        if let Some(next_action) = next_action {
-            if matches!(next_action, Action::Terminate) {
-                break;
-            }
-            let shared_env = shared_env.clone();
-            let event_tx = event_tx.clone();
-            log::debug!("Dispatching next action: {:?}", next_action);
-            tokio::spawn(dispatch_action(shared_env, event_tx, next_action));
-        }
     }
 }
 
-fn apply_event(state: &mut State, event: Event) -> EventApplied<Action> {
+fn apply_event(state: &mut State, event: Event) -> EventApplied<NextAction> {
     match event {
         Event::Effect(Effect::ErrorOccurred(error))
         | Event::CollectionEvent(collection::Event::Effect(collection::Effect::ErrorOccurred(
@@ -173,7 +173,7 @@ fn apply_event(state: &mut State, event: Event) -> EventApplied<Action> {
                 emit_not_before,
                 event,
             } => EventApplied::Accepted {
-                next_action: Some(Action::EmitDeferredEvent {
+                next_action: Some(NextAction::EmitDeferredEvent {
                     emit_not_before,
                     event,
                 }),
@@ -184,33 +184,33 @@ fn apply_event(state: &mut State, event: Event) -> EventApplied<Action> {
                     return EventApplied::Rejected;
                 }
                 EventApplied::Accepted {
-                    next_action: Some(Action::Terminate),
+                    next_action: Some(NextAction::Terminate),
                 }
             }
         },
     }
 }
 
-async fn dispatch_action(
+async fn dispatch_next_action(
     shared_env: Arc<Environment>,
     event_tx: EventSender<Event>,
-    action: Action,
+    next_action: NextAction,
 ) {
-    match action {
-        Action::Collection(action) => {
-            collection::dispatch_action(shared_env, event_tx, action).await;
+    match next_action {
+        NextAction::Collection(next_action) => {
+            collection::dispatch_next_action(shared_env, event_tx, next_action).await;
         }
-        Action::MediaTracker(action) => {
-            media::tracker::dispatch_action(shared_env, event_tx, action).await;
+        NextAction::MediaTracker(action) => {
+            media::tracker::dispatch_next_action(shared_env, event_tx, action).await;
         }
-        Action::EmitDeferredEvent {
+        NextAction::EmitDeferredEvent {
             emit_not_before,
             event,
         } => {
             tokio::time::sleep_until(emit_not_before.into()).await;
             send_event(&event_tx, *event);
         }
-        Action::Terminate => unreachable!(),
+        NextAction::Terminate => unreachable!(),
     }
 }
 

@@ -93,7 +93,7 @@ impl State {
 }
 
 #[derive(Debug)]
-pub enum Action {
+pub enum NextAction {
     FetchStatus {
         collection_uid: EntityUid,
         root_url: Option<Url>,
@@ -206,14 +206,14 @@ impl From<Effect> for Event {
     }
 }
 
-pub fn apply_event(state: &mut State, event: Event) -> EventApplied<Action> {
+pub fn apply_event(state: &mut State, event: Event) -> EventApplied<NextAction> {
     match event {
         Event::Intent(intent) => match intent {
             Intent::FetchProgress => EventApplied::Accepted {
-                next_action: Some(Action::FetchProgress),
+                next_action: Some(NextAction::FetchProgress),
             },
             Intent::Abort => EventApplied::Accepted {
-                next_action: Some(Action::Abort),
+                next_action: Some(NextAction::Abort),
             },
             Intent::FetchStatus {
                 collection_uid,
@@ -227,7 +227,7 @@ pub fn apply_event(state: &mut State, event: Event) -> EventApplied<Action> {
                 state.remote.status.reset();
 
                 EventApplied::StateChanged {
-                    next_action: Some(Action::FetchStatus {
+                    next_action: Some(NextAction::FetchStatus {
                         collection_uid,
                         root_url,
                     }),
@@ -247,7 +247,7 @@ pub fn apply_event(state: &mut State, event: Event) -> EventApplied<Action> {
                 state.remote.last_scan_outcome.set_pending();
 
                 EventApplied::StateChanged {
-                    next_action: Some(Action::StartScan {
+                    next_action: Some(NextAction::StartScan {
                         collection_uid,
                         root_url,
                     }),
@@ -267,7 +267,7 @@ pub fn apply_event(state: &mut State, event: Event) -> EventApplied<Action> {
                 state.remote.last_import_outcome.set_pending();
 
                 EventApplied::StateChanged {
-                    next_action: Some(Action::StartImport {
+                    next_action: Some(NextAction::StartImport {
                         collection_uid,
                         root_url,
                     }),
@@ -287,7 +287,7 @@ pub fn apply_event(state: &mut State, event: Event) -> EventApplied<Action> {
                 state.remote.last_untrack_outcome.set_pending();
 
                 EventApplied::StateChanged {
-                    next_action: Some(Action::Untrack {
+                    next_action: Some(NextAction::Untrack {
                         collection_uid,
                         root_url,
                     }),
@@ -306,13 +306,13 @@ pub fn apply_event(state: &mut State, event: Event) -> EventApplied<Action> {
                     }
                 }
                 Err(err) => EventApplied::Accepted {
-                    next_action: Some(Action::PropagateError(err)),
+                    next_action: Some(NextAction::PropagateError(err)),
                 },
             },
             Effect::Aborted(res) => {
                 let next_action = match res {
-                    Ok(()) => Action::FetchProgress,
-                    Err(err) => Action::PropagateError(err),
+                    Ok(()) => NextAction::FetchProgress,
+                    Err(err) => NextAction::PropagateError(err),
                 };
                 EventApplied::Accepted {
                     next_action: Some(next_action),
@@ -331,7 +331,7 @@ pub fn apply_event(state: &mut State, event: Event) -> EventApplied<Action> {
                         }
                     }
                     Err(err) => EventApplied::Accepted {
-                        next_action: Some(Action::PropagateError(err)),
+                        next_action: Some(NextAction::PropagateError(err)),
                     },
                 }
             }
@@ -345,11 +345,11 @@ pub fn apply_event(state: &mut State, event: Event) -> EventApplied<Action> {
                 let next_action = match res {
                     Ok(outcome) => {
                         state.remote.last_scan_outcome = RemoteData::ready(outcome);
-                        Action::FetchProgress
+                        NextAction::FetchProgress
                     }
                     Err(err) => {
                         state.remote.last_scan_outcome.reset();
-                        Action::PropagateError(err)
+                        NextAction::PropagateError(err)
                     }
                 };
                 EventApplied::StateChanged {
@@ -366,11 +366,11 @@ pub fn apply_event(state: &mut State, event: Event) -> EventApplied<Action> {
                 let next_action = match res {
                     Ok(outcome) => {
                         state.remote.last_import_outcome = RemoteData::ready(outcome);
-                        Action::FetchProgress
+                        NextAction::FetchProgress
                     }
                     Err(err) => {
                         state.remote.last_import_outcome.reset();
-                        Action::PropagateError(err)
+                        NextAction::PropagateError(err)
                     }
                 };
                 EventApplied::StateChanged {
@@ -386,11 +386,11 @@ pub fn apply_event(state: &mut State, event: Event) -> EventApplied<Action> {
                 let next_action = match res {
                     Ok(outcome) => {
                         state.remote.last_untrack_outcome = RemoteData::ready(outcome);
-                        Action::FetchProgress
+                        NextAction::FetchProgress
                     }
                     Err(err) => {
                         state.remote.last_untrack_outcome.reset();
-                        Action::PropagateError(err)
+                        NextAction::PropagateError(err)
                     }
                 };
                 EventApplied::StateChanged {
@@ -398,19 +398,19 @@ pub fn apply_event(state: &mut State, event: Event) -> EventApplied<Action> {
                 }
             }
             Effect::ErrorOccurred(error) => EventApplied::Accepted {
-                next_action: Some(Action::PropagateError(error)),
+                next_action: Some(NextAction::PropagateError(error)),
             },
         },
     }
 }
 
-pub async fn dispatch_action<E: From<Event> + fmt::Debug>(
+pub async fn dispatch_next_action<E: From<Event> + fmt::Debug>(
     shared_env: Arc<Environment>,
     event_tx: EventSender<E>,
-    action: Action,
+    next_action: NextAction,
 ) {
-    match action {
-        Action::FetchStatus {
+    match next_action {
+        NextAction::FetchStatus {
             collection_uid,
             root_url,
         } => {
@@ -423,11 +423,11 @@ pub async fn dispatch_action<E: From<Event> + fmt::Debug>(
             .await;
             send_event(&event_tx, E::from(Effect::StatusFetched(res).into()));
         }
-        Action::FetchProgress => {
+        NextAction::FetchProgress => {
             let res = on_fetch_progress(&shared_env.client, &shared_env.api_url).await;
             send_event(&event_tx, E::from(Effect::ProgressFetched(res).into()));
         }
-        Action::StartScan {
+        NextAction::StartScan {
             collection_uid,
             root_url,
         } => {
@@ -440,7 +440,7 @@ pub async fn dispatch_action<E: From<Event> + fmt::Debug>(
             .await;
             send_event(&event_tx, E::from(Effect::ScanFinished(res).into()));
         }
-        Action::StartImport {
+        NextAction::StartImport {
             collection_uid,
             root_url,
         } => {
@@ -453,11 +453,11 @@ pub async fn dispatch_action<E: From<Event> + fmt::Debug>(
             .await;
             send_event(&event_tx, E::from(Effect::ImportFinished(res).into()));
         }
-        Action::Abort => {
+        NextAction::Abort => {
             let res = on_abort(&shared_env.client, &shared_env.api_url).await;
             send_event(&event_tx, E::from(Effect::Aborted(res).into()));
         }
-        Action::Untrack {
+        NextAction::Untrack {
             collection_uid,
             root_url,
         } => {
@@ -470,7 +470,7 @@ pub async fn dispatch_action<E: From<Event> + fmt::Debug>(
             .await;
             send_event(&event_tx, E::from(Effect::Untracked(res).into()));
         }
-        Action::PropagateError(error) => {
+        NextAction::PropagateError(error) => {
             send_event(&event_tx, E::from(Effect::ErrorOccurred(error).into()));
         }
     }

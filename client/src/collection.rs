@@ -102,7 +102,7 @@ impl State {
 }
 
 #[derive(Debug)]
-pub enum Action {
+pub enum NextAction {
     CreateNewCollection(Collection),
     FetchAvailableCollections,
     PropagateError(anyhow::Error),
@@ -152,16 +152,16 @@ impl From<Effect> for Event {
     }
 }
 
-pub fn apply_event(state: &mut State, event: Event) -> EventApplied<Action> {
+pub fn apply_event(state: &mut State, event: Event) -> EventApplied<NextAction> {
     match event {
         Event::Intent(intent) => match intent {
             Intent::CreateNewCollection(new_collection) => EventApplied::Accepted {
-                next_action: Some(Action::CreateNewCollection(new_collection)),
+                next_action: Some(NextAction::CreateNewCollection(new_collection)),
             },
             Intent::FetchAvailableCollections => {
                 state.remote.available_collections.set_pending();
                 EventApplied::Accepted {
-                    next_action: Some(Action::FetchAvailableCollections),
+                    next_action: Some(NextAction::FetchAvailableCollections),
                 }
             }
             Intent::ActivateCollection(new_active_collection_uid) => {
@@ -173,7 +173,7 @@ pub fn apply_event(state: &mut State, event: Event) -> EventApplied<Action> {
             Effect::NewCollectionCreated(res) => match res {
                 Ok(_) => EventApplied::Accepted { next_action: None },
                 Err(err) => EventApplied::Accepted {
-                    next_action: Some(Action::PropagateError(err)),
+                    next_action: Some(NextAction::PropagateError(err)),
                 },
             },
             Effect::AvailableCollectionsFetched(res) => match res {
@@ -182,36 +182,36 @@ pub fn apply_event(state: &mut State, event: Event) -> EventApplied<Action> {
                     EventApplied::StateChanged { next_action: None }
                 }
                 Err(err) => EventApplied::Accepted {
-                    next_action: Some(Action::PropagateError(err)),
+                    next_action: Some(NextAction::PropagateError(err)),
                 },
             },
             Effect::ErrorOccurred(error) => EventApplied::Accepted {
-                next_action: Some(Action::PropagateError(error)),
+                next_action: Some(NextAction::PropagateError(error)),
             },
         },
     }
 }
 
-pub async fn dispatch_action<E: From<Event> + fmt::Debug>(
+pub async fn dispatch_next_action<E: From<Event> + fmt::Debug>(
     shared_env: Arc<Environment>,
     event_tx: EventSender<E>,
-    action: Action,
+    next_action: NextAction,
 ) {
-    match action {
-        Action::CreateNewCollection(new_collection) => {
+    match next_action {
+        NextAction::CreateNewCollection(new_collection) => {
             let res =
                 on_create_new_collection(&shared_env.client, &shared_env.api_url, new_collection)
                     .await;
             send_event(&event_tx, E::from(Effect::NewCollectionCreated(res).into()));
         }
-        Action::FetchAvailableCollections => {
+        NextAction::FetchAvailableCollections => {
             let res = on_fetch_available_collections(&shared_env.client, &shared_env.api_url).await;
             send_event(
                 &event_tx,
                 E::from(Effect::AvailableCollectionsFetched(res).into()),
             );
         }
-        Action::PropagateError(error) => {
+        NextAction::PropagateError(error) => {
             send_event(&event_tx, E::from(Effect::ErrorOccurred(error).into()));
         }
     }
