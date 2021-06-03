@@ -227,7 +227,7 @@ async fn main() -> anyhow::Result<()> {
 
             // Only submit a single subcommand
             if subcommand_submitted {
-                let next_event = if state.media_tracker.is_idle() {
+                let next_intent = if state.media_tracker.is_idle() {
                     None
                 } else {
                     if last_media_tracker_progress.is_none() {
@@ -235,14 +235,14 @@ async fn main() -> anyhow::Result<()> {
                         Some(fetch_progress().into())
                     } else {
                         // Periodically refetch and report progress
-                        let intent = Intent::TimedEvent {
-                            emit_not_before: Instant::now() + PROGRESS_POLLING_PERIOD,
-                            event: Box::new(fetch_progress().into()),
+                        let intent = Intent::TimedIntent {
+                            not_before: Instant::now() + PROGRESS_POLLING_PERIOD,
+                            intent: Box::new(fetch_progress().into()),
                         };
-                        Some(intent.into())
+                        Some(intent)
                     }
                 };
-                return next_event;
+                return next_intent;
             }
 
             // Commands that don't require an active collection

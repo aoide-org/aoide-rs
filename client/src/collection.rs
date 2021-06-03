@@ -109,34 +109,22 @@ pub enum NextAction {
 }
 
 #[derive(Debug)]
-pub enum Event {
-    Intent(Intent),
-    Effect(Effect),
-}
-
-#[derive(Debug)]
 pub enum Intent {
     CreateNewCollection(Collection),
     FetchAvailableCollections,
     ActivateCollection(Option<EntityUid>),
 }
 
-pub fn create_new_collection(arg: Collection) -> Event {
-    Intent::CreateNewCollection(arg).into()
+pub fn create_new_collection(arg: Collection) -> Intent {
+    Intent::CreateNewCollection(arg)
 }
 
-pub fn fetch_available_collections() -> Event {
-    Intent::FetchAvailableCollections.into()
+pub fn fetch_available_collections() -> Intent {
+    Intent::FetchAvailableCollections
 }
 
-pub fn activate_collection(arg: Option<EntityUid>) -> Event {
-    Intent::ActivateCollection(arg).into()
-}
-
-impl From<Intent> for Event {
-    fn from(intent: Intent) -> Self {
-        Self::Intent(intent)
-    }
+pub fn activate_collection(arg: Option<EntityUid>) -> Intent {
+    Intent::ActivateCollection(arg)
 }
 
 #[derive(Debug)]
@@ -146,58 +134,53 @@ pub enum Effect {
     ErrorOccurred(anyhow::Error),
 }
 
-impl From<Effect> for Event {
-    fn from(effect: Effect) -> Self {
-        Self::Effect(effect)
+pub fn apply_intent(state: &mut State, intent: Intent) -> (StateMutation, Option<NextAction>) {
+    match intent {
+        Intent::CreateNewCollection(new_collection) => (
+            StateMutation::Unchanged,
+            Some(NextAction::CreateNewCollection(new_collection)),
+        ),
+        Intent::FetchAvailableCollections => {
+            state.remote.available_collections.set_pending();
+            (
+                StateMutation::MaybeChanged,
+                Some(NextAction::FetchAvailableCollections),
+            )
+        }
+        Intent::ActivateCollection(new_active_collection_uid) => {
+            state.set_active_collection_uid(new_active_collection_uid);
+            (StateMutation::MaybeChanged, None)
+        }
     }
 }
 
-pub fn apply_event(state: &mut State, event: Event) -> (StateMutation, Option<NextAction>) {
-    match event {
-        Event::Intent(intent) => match intent {
-            Intent::CreateNewCollection(new_collection) => (
+pub fn apply_effect(state: &mut State, effect: Effect) -> (StateMutation, Option<NextAction>) {
+    match effect {
+        Effect::NewCollectionCreated(res) => match res {
+            Ok(_) => (StateMutation::Unchanged, None),
+            Err(err) => (
                 StateMutation::Unchanged,
-                Some(NextAction::CreateNewCollection(new_collection)),
+                Some(NextAction::PropagateError(err)),
             ),
-            Intent::FetchAvailableCollections => {
-                state.remote.available_collections.set_pending();
-                (
-                    StateMutation::MaybeChanged,
-                    Some(NextAction::FetchAvailableCollections),
-                )
-            }
-            Intent::ActivateCollection(new_active_collection_uid) => {
-                state.set_active_collection_uid(new_active_collection_uid);
+        },
+        Effect::AvailableCollectionsFetched(res) => match res {
+            Ok(new_available_collections) => {
+                state.set_available_collections(new_available_collections);
                 (StateMutation::MaybeChanged, None)
             }
-        },
-        Event::Effect(effect) => match effect {
-            Effect::NewCollectionCreated(res) => match res {
-                Ok(_) => (StateMutation::Unchanged, None),
-                Err(err) => (
-                    StateMutation::Unchanged,
-                    Some(NextAction::PropagateError(err)),
-                ),
-            },
-            Effect::AvailableCollectionsFetched(res) => match res {
-                Ok(new_available_collections) => {
-                    state.set_available_collections(new_available_collections);
-                    (StateMutation::MaybeChanged, None)
-                }
-                Err(err) => (
-                    StateMutation::Unchanged,
-                    Some(NextAction::PropagateError(err)),
-                ),
-            },
-            Effect::ErrorOccurred(error) => (
+            Err(err) => (
                 StateMutation::Unchanged,
-                Some(NextAction::PropagateError(error)),
+                Some(NextAction::PropagateError(err)),
             ),
         },
+        Effect::ErrorOccurred(error) => (
+            StateMutation::Unchanged,
+            Some(NextAction::PropagateError(error)),
+        ),
     }
 }
 
-pub async fn dispatch_next_action<E: From<Event> + fmt::Debug>(
+pub async fn dispatch_next_action<E: From<Effect> + From<Intent> + fmt::Debug>(
     shared_env: Arc<Environment>,
     event_tx: EventSender<E>,
     next_action: NextAction,
@@ -207,17 +190,14 @@ pub async fn dispatch_next_action<E: From<Event> + fmt::Debug>(
             let res =
                 on_create_new_collection(&shared_env.client, &shared_env.api_url, new_collection)
                     .await;
-            emit_event(&event_tx, E::from(Effect::NewCollectionCreated(res).into()));
+            emit_event(&event_tx, Effect::NewCollectionCreated(res));
         }
         NextAction::FetchAvailableCollections => {
             let res = on_fetch_available_collections(&shared_env.client, &shared_env.api_url).await;
-            emit_event(
-                &event_tx,
-                E::from(Effect::AvailableCollectionsFetched(res).into()),
-            );
+            emit_event(&event_tx, Effect::AvailableCollectionsFetched(res));
         }
         NextAction::PropagateError(error) => {
-            emit_event(&event_tx, E::from(Effect::ErrorOccurred(error).into()));
+            emit_event(&event_tx, Effect::ErrorOccurred(error));
         }
     }
 }

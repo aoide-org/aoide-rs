@@ -42,13 +42,12 @@ impl State {
 
 #[derive(Debug)]
 pub enum NextAction {
+    TimedIntent {
+        not_before: Instant,
+        intent: Box<Intent>,
+    },
     Collection(collection::NextAction),
     MediaTracker(media::tracker::NextAction),
-    TimedEvent {
-        emit_not_before: Instant,
-        event: Box<Event>,
-    },
-    Terminate,
 }
 
 impl From<collection::NextAction> for NextAction {
@@ -67,17 +66,6 @@ impl From<media::tracker::NextAction> for NextAction {
 pub enum Event {
     Intent(Intent),
     Effect(Effect),
-    CollectionEvent(collection::Event),
-    MediaTrackerEvent(media::tracker::Event),
-}
-
-#[derive(Debug)]
-pub enum Intent {
-    TimedEvent {
-        emit_not_before: Instant,
-        event: Box<Event>,
-    },
-    RenderState,
 }
 
 impl From<Intent> for Event {
@@ -86,30 +74,79 @@ impl From<Intent> for Event {
     }
 }
 
-#[derive(Debug)]
-pub enum Effect {
-    ErrorOccurred(anyhow::Error),
-}
-
 impl From<Effect> for Event {
     fn from(effect: Effect) -> Self {
         Self::Effect(effect)
     }
 }
 
-impl From<collection::Event> for Event {
-    fn from(from: collection::Event) -> Self {
-        Self::CollectionEvent(from)
+impl From<collection::Intent> for Event {
+    fn from(intent: collection::Intent) -> Self {
+        Self::Intent(intent.into())
     }
 }
 
-impl From<media::tracker::Event> for Event {
-    fn from(from: media::tracker::Event) -> Self {
-        Self::MediaTrackerEvent(from)
+impl From<collection::Effect> for Event {
+    fn from(effect: collection::Effect) -> Self {
+        Self::Effect(effect.into())
     }
 }
 
-pub type RenderStateFn = dyn FnMut(&State) -> Option<Event> + Send;
+impl From<media::tracker::Intent> for Event {
+    fn from(intent: media::tracker::Intent) -> Self {
+        Self::Intent(intent.into())
+    }
+}
+
+impl From<media::tracker::Effect> for Event {
+    fn from(effect: media::tracker::Effect) -> Self {
+        Self::Effect(effect.into())
+    }
+}
+
+#[derive(Debug)]
+pub enum Intent {
+    RenderState,
+    TimedIntent {
+        not_before: Instant,
+        intent: Box<Intent>,
+    },
+    CollectionIntent(collection::Intent),
+    MediaTrackerIntent(media::tracker::Intent),
+}
+
+impl From<collection::Intent> for Intent {
+    fn from(intent: collection::Intent) -> Self {
+        Self::CollectionIntent(intent)
+    }
+}
+
+impl From<media::tracker::Intent> for Intent {
+    fn from(intent: media::tracker::Intent) -> Self {
+        Self::MediaTrackerIntent(intent)
+    }
+}
+
+#[derive(Debug)]
+pub enum Effect {
+    ErrorOccurred(anyhow::Error),
+    CollectionEffect(collection::Effect),
+    MediaTrackerEffect(media::tracker::Effect),
+}
+
+impl From<collection::Effect> for Effect {
+    fn from(effect: collection::Effect) -> Self {
+        Self::CollectionEffect(effect)
+    }
+}
+
+impl From<media::tracker::Effect> for Effect {
+    fn from(effect: media::tracker::Effect) -> Self {
+        Self::MediaTrackerEffect(effect)
+    }
+}
+
+pub type RenderStateFn = dyn FnMut(&State) -> Option<Intent> + Send;
 
 pub async fn handle_events(
     env: Environment,
@@ -129,9 +166,9 @@ pub async fn handle_events(
         let mut terminate = true;
         if state_mutation == StateMutation::MaybeChanged || next_action.is_none() {
             log::debug!("Rendering current state: {:?}", state);
-            if let Some(rendering_event) = render_state_fn(&state) {
-                log::debug!("Received rendering event: {:?}", rendering_event);
-                emit_event(&event_tx, rendering_event);
+            if let Some(rendering_intent) = render_state_fn(&state) {
+                log::debug!("Received intent from rendering: {:?}", rendering_intent);
+                emit_event(&event_tx, rendering_intent);
                 terminate = false;
             }
             state_rendered_after_last_event = true;
@@ -159,34 +196,34 @@ fn apply_event(
         state.last_errors.clear();
     }
     match event {
-        Event::Effect(Effect::ErrorOccurred(error))
-        | Event::CollectionEvent(collection::Event::Effect(collection::Effect::ErrorOccurred(
-            error,
-        )))
-        | Event::MediaTrackerEvent(media::tracker::Event::Effect(
-            media::tracker::Effect::ErrorOccurred(error),
-        )) => {
-            state.last_errors.push(error);
-            (StateMutation::MaybeChanged, None)
-        }
-        Event::CollectionEvent(event) => {
-            event_applied(collection::apply_event(&mut state.collection, event))
-        }
-        Event::MediaTrackerEvent(event) => {
-            event_applied(media::tracker::apply_event(&mut state.media_tracker, event))
-        }
         Event::Intent(intent) => match intent {
-            Intent::TimedEvent {
-                emit_not_before,
-                event,
-            } => (
-                StateMutation::Unchanged,
-                Some(NextAction::TimedEvent {
-                    emit_not_before,
-                    event,
-                }),
-            ),
             Intent::RenderState => (StateMutation::MaybeChanged, None),
+            Intent::TimedIntent { not_before, intent } => (
+                StateMutation::Unchanged,
+                Some(NextAction::TimedIntent { not_before, intent }),
+            ),
+            Intent::CollectionIntent(intent) => {
+                event_applied(collection::apply_intent(&mut state.collection, intent))
+            }
+            Intent::MediaTrackerIntent(intent) => event_applied(media::tracker::apply_intent(
+                &mut state.media_tracker,
+                intent,
+            )),
+        },
+        Event::Effect(effect) => match effect {
+            Effect::ErrorOccurred(error)
+            | Effect::CollectionEffect(collection::Effect::ErrorOccurred(error))
+            | Effect::MediaTrackerEffect(media::tracker::Effect::ErrorOccurred(error)) => {
+                state.last_errors.push(error);
+                (StateMutation::MaybeChanged, None)
+            }
+            Effect::CollectionEffect(effect) => {
+                event_applied(collection::apply_effect(&mut state.collection, effect))
+            }
+            Effect::MediaTrackerEffect(effect) => event_applied(media::tracker::apply_effect(
+                &mut state.media_tracker,
+                effect,
+            )),
         },
     }
 }
@@ -198,20 +235,16 @@ async fn dispatch_next_action(
 ) {
     log::debug!("Dispatching next action: {:?}", next_action);
     match next_action {
+        NextAction::TimedIntent { not_before, intent } => {
+            tokio::time::sleep_until(not_before.into()).await;
+            emit_event(&event_tx, *intent);
+        }
         NextAction::Collection(next_action) => {
             collection::dispatch_next_action(shared_env, event_tx, next_action).await;
         }
         NextAction::MediaTracker(action) => {
             media::tracker::dispatch_next_action(shared_env, event_tx, action).await;
         }
-        NextAction::TimedEvent {
-            emit_not_before,
-            event,
-        } => {
-            tokio::time::sleep_until(emit_not_before.into()).await;
-            emit_event(&event_tx, *event);
-        }
-        NextAction::Terminate => unreachable!(),
     }
 }
 
