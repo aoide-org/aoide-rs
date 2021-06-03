@@ -22,7 +22,7 @@ use aoide_client::{
     collection::{activate_collection, create_new_collection, fetch_available_collections},
     handle_events,
     media::tracker::{abort, fetch_progress, fetch_status, start_import, start_scan, untrack},
-    prelude::{event_channel, send_event, Environment},
+    prelude::{emit_event, event_channel, Environment},
     Intent,
 };
 use aoide_core::{
@@ -150,7 +150,7 @@ async fn main() -> anyhow::Result<()> {
         env,
         (event_tx.clone(), event_rx),
         Default::default(),
-        Box::new(move |state, event_emitter| {
+        Box::new(move |state| {
             if !state.last_errors().is_empty() {
                 for err in state.last_errors() {
                     log::error!("{}", err);
@@ -179,8 +179,7 @@ async fn main() -> anyhow::Result<()> {
                     log::info!("Media tracker status: {:?}", status);
                     if await_media_tracker_status {
                         await_media_tracker_status = false;
-                        event_emitter.emit_event(Intent::Terminate.into());
-                        return;
+                        return Some(Intent::Terminate.into());
                     }
                 }
             }
@@ -232,43 +231,40 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
 
-            if state.media_tracker.is_idle() {
+            let next_event = if state.media_tracker.is_idle() {
                 if subcommand_submitted
                     && !await_media_tracker_status
                     && last_media_tracker_progress == Some(Progress::Idle)
                 {
-                    event_emitter.emit_event(Intent::Terminate.into());
-                    return;
+                    return Some(Intent::Terminate.into());
                 }
+                None
             } else {
                 if last_media_tracker_progress.is_none() {
-                    event_emitter.emit_event(fetch_progress().into());
+                    Some(fetch_progress().into())
                 } else {
                     // Periodically refetch and report progress
                     let intent = Intent::EmitDeferredEvent {
                         emit_not_before: Instant::now() + PROGRESS_POLLING_PERIOD,
                         event: Box::new(fetch_progress().into()),
                     };
-                    event_emitter.emit_event(intent.into());
+                    Some(intent.into())
                 }
-            }
-
+            };
             // Only submit a single subcommand
             if subcommand_submitted {
-                return;
+                return next_event;
             }
 
             // Commands that don't require an active collection
             if let ("media-tracker", Some(media_tracker_matches)) = matches.subcommand() {
                 if matches!(media_tracker_matches.subcommand(), ("progress", _)) {
-                    event_emitter.emit_event(fetch_progress().into());
                     subcommand_submitted = true;
-                    return;
+                    return Some(fetch_progress().into());
                 }
                 if matches!(media_tracker_matches.subcommand(), ("abort", _)) {
-                    event_emitter.emit_event(abort().into());
                     subcommand_submitted = true;
-                    return;
+                    return Some(abort().into());
                 }
             }
             if let ("collections", Some(collections_matches)) = matches.subcommand() {
@@ -289,9 +285,8 @@ async fn main() -> anyhow::Result<()> {
                                 root_url: Some(root_url),
                             },
                         };
-                        event_emitter.emit_event(create_new_collection(new_collection).into());
                         subcommand_submitted = true;
-                        return;
+                        return Some(create_new_collection(new_collection).into());
                     }
                     (subcommand, _) => {
                         debug_assert!(subcommand.is_empty());
@@ -310,8 +305,7 @@ async fn main() -> anyhow::Result<()> {
                 if state.collection.active_collection_uid().is_none() {
                     if available_collections.is_empty() {
                         log::warn!("No collections available");
-                        event_emitter.emit_event(Intent::Terminate.into());
-                        return;
+                        return Some(Intent::Terminate.into());
                     }
                     if let Some(collection_uid) = &collection_uid {
                         if state
@@ -320,10 +314,9 @@ async fn main() -> anyhow::Result<()> {
                             .find_available_collections_by_uid(&collection_uid)
                             .is_some()
                         {
-                            event_emitter.emit_event(
+                            return Some(
                                 activate_collection(Some(collection_uid.to_owned())).into(),
                             );
-                            return;
                         } else {
                             log::warn!("Collection not available: {}", collection_uid);
                         }
@@ -342,8 +335,7 @@ async fn main() -> anyhow::Result<()> {
                                 .unwrap_or(""),
                         );
                     }
-                    event_emitter.emit_event(Intent::Terminate.into());
-                    return;
+                    return Some(Intent::Terminate.into());
                 }
             } else {
                 if state
@@ -352,8 +344,7 @@ async fn main() -> anyhow::Result<()> {
                     .available_collections()
                     .is_unknown()
                 {
-                    event_emitter.emit_event(fetch_available_collections().into());
-                    return;
+                    return Some(fetch_available_collections().into());
                 }
             }
 
@@ -362,8 +353,7 @@ async fn main() -> anyhow::Result<()> {
                 log::info!("Active collection: {}", collection.hdr.uid);
                 // Only allowed while idle
                 if !state.media_tracker.is_idle() {
-                    event_emitter.emit_event(fetch_progress().into());
-                    return;
+                    return Some(fetch_progress().into());
                 }
                 match matches.subcommand() {
                     ("media-tracker", Some(media_tracker_matches)) => {
@@ -376,12 +366,10 @@ async fn main() -> anyhow::Result<()> {
                                     .or_else(|| {
                                         collection.body.media_source_config.root_url.clone()
                                     });
-                                event_emitter
-                                    .emit_event(fetch_status(collection_uid, root_url).into());
                                 subcommand_submitted = true;
                                 last_media_tracker_status = None;
                                 await_media_tracker_status = true;
-                                return;
+                                return Some(fetch_status(collection_uid, root_url).into());
                             }
                             ("scan", scan_matches) => {
                                 let collection_uid = collection.hdr.uid.clone();
@@ -391,10 +379,8 @@ async fn main() -> anyhow::Result<()> {
                                     .or_else(|| {
                                         collection.body.media_source_config.root_url.clone()
                                     });
-                                event_emitter
-                                    .emit_event(start_scan(collection_uid, root_url).into());
                                 subcommand_submitted = true;
-                                return;
+                                return Some(start_scan(collection_uid, root_url).into());
                             }
                             ("import", import_matches) => {
                                 let collection_uid = collection.hdr.uid.clone();
@@ -404,10 +390,8 @@ async fn main() -> anyhow::Result<()> {
                                     .or_else(|| {
                                         collection.body.media_source_config.root_url.clone()
                                     });
-                                event_emitter
-                                    .emit_event(start_import(collection_uid, root_url).into());
                                 subcommand_submitted = true;
-                                return;
+                                return Some(start_import(collection_uid, root_url).into());
                             }
                             ("untrack", untrack_matches) => {
                                 let collection_uid = collection.hdr.uid.clone();
@@ -415,9 +399,8 @@ async fn main() -> anyhow::Result<()> {
                                     .and_then(|m| m.value_of("root-url"))
                                     .map(|s| s.parse().expect("URL"))
                                     .expect("required");
-                                event_emitter.emit_event(untrack(collection_uid, root_url).into());
                                 subcommand_submitted = true;
-                                return;
+                                return Some(untrack(collection_uid, root_url).into());
                             }
                             (subcommand, _) => {
                                 debug_assert!(subcommand.is_empty());
@@ -432,11 +415,11 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
             debug_assert!(state.media_tracker.is_idle());
-            event_emitter.emit_event(Intent::Terminate.into());
+            return Some(Intent::Terminate.into());
         }),
     ));
     // Kick off the loop by emitting an initial state changed event
-    send_event(&event_tx, Intent::RenderState);
+    emit_event(&event_tx, Intent::RenderState);
     event_loop.await?;
     Ok(())
 }

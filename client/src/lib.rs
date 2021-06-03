@@ -110,7 +110,7 @@ impl From<media::tracker::Event> for Event {
     }
 }
 
-pub type RenderStateFn = dyn FnMut(&State, &dyn EventEmitter<Event>) + Send;
+pub type RenderStateFn = dyn FnMut(&State) -> Option<Event> + Send;
 
 pub async fn handle_events(
     env: Environment,
@@ -121,9 +121,10 @@ pub async fn handle_events(
     let shared_env = Arc::new(env);
     let (event_tx, mut event_rx) = event_channel;
     let mut state = initial_state;
+    let mut state_rendered_after_last_event = false;
     while let Some(event) = event_rx.recv().await {
         log::debug!("Applying event: {:?}", event);
-        let event_applied = apply_event(&mut state, event);
+        let event_applied = apply_event(&mut state, state_rendered_after_last_event, event);
         let (render_state, next_action) = match event_applied {
             EventApplied::Rejected => {
                 log::warn!("Event rejected: {:?}", state);
@@ -143,14 +144,23 @@ pub async fn handle_events(
         }
         if render_state {
             log::debug!("Rendering current state: {:?}", state);
-            render_state_fn(&state, &event_tx);
-            // Consume errors only once, i.e. clear after rendering the state
-            state.last_errors.clear();
+            if let Some(event) = render_state_fn(&state) {
+                emit_event(&event_tx, event);
+            }
         }
+        state_rendered_after_last_event = render_state;
     }
 }
 
-fn apply_event(state: &mut State, event: Event) -> EventApplied<NextAction> {
+fn apply_event(
+    state: &mut State,
+    rendered_after_last_event: bool,
+    event: Event,
+) -> EventApplied<NextAction> {
+    if rendered_after_last_event {
+        // Consume errors only once, i.e. clear after rendering the state
+        state.last_errors.clear();
+    }
     match event {
         Event::Effect(Effect::ErrorOccurred(error))
         | Event::CollectionEvent(collection::Event::Effect(collection::Effect::ErrorOccurred(
@@ -208,7 +218,7 @@ async fn dispatch_next_action(
             event,
         } => {
             tokio::time::sleep_until(emit_not_before.into()).await;
-            send_event(&event_tx, *event);
+            emit_event(&event_tx, *event);
         }
         NextAction::Terminate => unreachable!(),
     }

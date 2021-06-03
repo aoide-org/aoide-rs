@@ -421,11 +421,11 @@ pub async fn dispatch_next_action<E: From<Event> + fmt::Debug>(
                 root_url.as_ref(),
             )
             .await;
-            send_event(&event_tx, E::from(Effect::StatusFetched(res).into()));
+            emit_event(&event_tx, E::from(Effect::StatusFetched(res).into()));
         }
         NextAction::FetchProgress => {
             let res = on_fetch_progress(&shared_env.client, &shared_env.api_url).await;
-            send_event(&event_tx, E::from(Effect::ProgressFetched(res).into()));
+            emit_event(&event_tx, E::from(Effect::ProgressFetched(res).into()));
         }
         NextAction::StartScan {
             collection_uid,
@@ -438,7 +438,7 @@ pub async fn dispatch_next_action<E: From<Event> + fmt::Debug>(
                 root_url.as_ref(),
             )
             .await;
-            send_event(&event_tx, E::from(Effect::ScanFinished(res).into()));
+            emit_event(&event_tx, E::from(Effect::ScanFinished(res).into()));
         }
         NextAction::StartImport {
             collection_uid,
@@ -451,11 +451,11 @@ pub async fn dispatch_next_action<E: From<Event> + fmt::Debug>(
                 root_url.as_ref(),
             )
             .await;
-            send_event(&event_tx, E::from(Effect::ImportFinished(res).into()));
+            emit_event(&event_tx, E::from(Effect::ImportFinished(res).into()));
         }
         NextAction::Abort => {
             let res = on_abort(&shared_env.client, &shared_env.api_url).await;
-            send_event(&event_tx, E::from(Effect::Aborted(res).into()));
+            emit_event(&event_tx, E::from(Effect::Aborted(res).into()));
         }
         NextAction::Untrack {
             collection_uid,
@@ -468,10 +468,10 @@ pub async fn dispatch_next_action<E: From<Event> + fmt::Debug>(
                 &root_url,
             )
             .await;
-            send_event(&event_tx, E::from(Effect::Untracked(res).into()));
+            emit_event(&event_tx, E::from(Effect::Untracked(res).into()));
         }
         NextAction::PropagateError(error) => {
-            send_event(&event_tx, E::from(Effect::ErrorOccurred(error).into()));
+            emit_event(&event_tx, E::from(Effect::ErrorOccurred(error).into()));
         }
     }
 }

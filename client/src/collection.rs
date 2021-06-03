@@ -202,17 +202,17 @@ pub async fn dispatch_next_action<E: From<Event> + fmt::Debug>(
             let res =
                 on_create_new_collection(&shared_env.client, &shared_env.api_url, new_collection)
                     .await;
-            send_event(&event_tx, E::from(Effect::NewCollectionCreated(res).into()));
+            emit_event(&event_tx, E::from(Effect::NewCollectionCreated(res).into()));
         }
         NextAction::FetchAvailableCollections => {
             let res = on_fetch_available_collections(&shared_env.client, &shared_env.api_url).await;
-            send_event(
+            emit_event(
                 &event_tx,
                 E::from(Effect::AvailableCollectionsFetched(res).into()),
             );
         }
         NextAction::PropagateError(error) => {
-            send_event(&event_tx, E::from(Effect::ErrorOccurred(error).into()));
+            emit_event(&event_tx, E::from(Effect::ErrorOccurred(error).into()));
         }
     }
 }

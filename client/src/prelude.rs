@@ -32,21 +32,7 @@ pub fn event_channel<T>() -> (EventSender<T>, EventReceiver<T>) {
     mpsc::unbounded_channel()
 }
 
-pub trait EventEmitter<T: fmt::Debug> {
-    fn emit_event(&self, event: T);
-}
-
-impl<T: fmt::Debug> EventEmitter<T> for EventSender<T> {
-    fn emit_event(&self, event: T) {
-        send_event(self, event);
-    }
-}
-
-pub fn emit_event<T: fmt::Debug>(emitter: impl EventEmitter<T>, event: impl Into<T>) {
-    emitter.emit_event(event.into());
-}
-
-pub fn send_event<T: fmt::Debug>(event_tx: &EventSender<T>, event: impl Into<T>) {
+pub fn emit_event<T: fmt::Debug>(event_tx: &EventSender<T>, event: impl Into<T>) {
     if let Err(event) = event_tx.send(event.into()) {
         // Channel is closed, i.e. receiver has been dropped
         log::debug!("Failed to emit event: {:?}", event.0);
