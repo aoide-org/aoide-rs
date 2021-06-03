@@ -78,7 +78,6 @@ pub enum Intent {
         event: Box<Event>,
     },
     RenderState,
-    Terminate,
 }
 
 impl From<Intent> for Event {
@@ -124,40 +123,38 @@ pub async fn handle_events(
     let mut state_rendered_after_last_event = false;
     while let Some(event) = event_rx.recv().await {
         log::debug!("Applying event: {:?}", event);
-        let event_applied = apply_event(&mut state, state_rendered_after_last_event, event);
-        let (render_state, next_action) = match event_applied {
-            EventApplied::Rejected => {
-                log::warn!("Event rejected: {:?}", state);
-                (false, None)
+        let (state_mutation, next_action) =
+            apply_event(&mut state, state_rendered_after_last_event, event);
+        state_rendered_after_last_event = false;
+        let mut terminate = true;
+        if state_mutation == StateMutation::MaybeChanged || next_action.is_none() {
+            log::debug!("Rendering current state: {:?}", state);
+            if let Some(rendering_event) = render_state_fn(&state) {
+                log::debug!("Received rendering event: {:?}", rendering_event);
+                emit_event(&event_tx, rendering_event);
+                terminate = false;
             }
-            EventApplied::Accepted { next_action } => (next_action.is_none(), next_action),
-            EventApplied::StateChanged { next_action } => (true, next_action),
-        };
+            state_rendered_after_last_event = true;
+        }
         if let Some(next_action) = next_action {
-            if matches!(next_action, NextAction::Terminate) {
-                break;
-            }
             let shared_env = shared_env.clone();
             let event_tx = event_tx.clone();
-            log::debug!("Dispatching next action: {:?}", next_action);
+            log::debug!("Scheduling next action dispatch: {:?}", next_action);
             tokio::spawn(dispatch_next_action(shared_env, event_tx, next_action));
+            terminate = false;
         }
-        if render_state {
-            log::debug!("Rendering current state: {:?}", state);
-            if let Some(event) = render_state_fn(&state) {
-                emit_event(&event_tx, event);
-            }
+        if terminate {
+            break;
         }
-        state_rendered_after_last_event = render_state;
     }
 }
 
 fn apply_event(
     state: &mut State,
-    rendered_after_last_event: bool,
+    state_rendered_after_last_event: bool,
     event: Event,
-) -> EventApplied<NextAction> {
-    if rendered_after_last_event {
+) -> (StateMutation, Option<NextAction>) {
+    if state_rendered_after_last_event {
         // Consume errors only once, i.e. clear after rendering the state
         state.last_errors.clear();
     }
@@ -170,7 +167,7 @@ fn apply_event(
             media::tracker::Effect::ErrorOccurred(error),
         )) => {
             state.last_errors.push(error);
-            EventApplied::StateChanged { next_action: None }
+            (StateMutation::MaybeChanged, None)
         }
         Event::CollectionEvent(event) => {
             event_applied(collection::apply_event(&mut state.collection, event))
@@ -182,21 +179,14 @@ fn apply_event(
             Intent::EmitDeferredEvent {
                 emit_not_before,
                 event,
-            } => EventApplied::Accepted {
-                next_action: Some(NextAction::EmitDeferredEvent {
+            } => (
+                StateMutation::Unchanged,
+                Some(NextAction::EmitDeferredEvent {
                     emit_not_before,
                     event,
                 }),
-            },
-            Intent::RenderState => EventApplied::StateChanged { next_action: None },
-            Intent::Terminate => {
-                if !state.media_tracker.is_idle() {
-                    return EventApplied::Rejected;
-                }
-                EventApplied::Accepted {
-                    next_action: Some(NextAction::Terminate),
-                }
-            }
+            ),
+            Intent::RenderState => (StateMutation::MaybeChanged, None),
         },
     }
 }
@@ -206,6 +196,7 @@ async fn dispatch_next_action(
     event_tx: EventSender<Event>,
     next_action: NextAction,
 ) {
+    log::debug!("Dispatching next action: {:?}", next_action);
     match next_action {
         NextAction::Collection(next_action) => {
             collection::dispatch_next_action(shared_env, event_tx, next_action).await;

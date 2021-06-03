@@ -152,42 +152,47 @@ impl From<Effect> for Event {
     }
 }
 
-pub fn apply_event(state: &mut State, event: Event) -> EventApplied<NextAction> {
+pub fn apply_event(state: &mut State, event: Event) -> (StateMutation, Option<NextAction>) {
     match event {
         Event::Intent(intent) => match intent {
-            Intent::CreateNewCollection(new_collection) => EventApplied::Accepted {
-                next_action: Some(NextAction::CreateNewCollection(new_collection)),
-            },
+            Intent::CreateNewCollection(new_collection) => (
+                StateMutation::Unchanged,
+                Some(NextAction::CreateNewCollection(new_collection)),
+            ),
             Intent::FetchAvailableCollections => {
                 state.remote.available_collections.set_pending();
-                EventApplied::Accepted {
-                    next_action: Some(NextAction::FetchAvailableCollections),
-                }
+                (
+                    StateMutation::MaybeChanged,
+                    Some(NextAction::FetchAvailableCollections),
+                )
             }
             Intent::ActivateCollection(new_active_collection_uid) => {
                 state.set_active_collection_uid(new_active_collection_uid);
-                EventApplied::StateChanged { next_action: None }
+                (StateMutation::MaybeChanged, None)
             }
         },
         Event::Effect(effect) => match effect {
             Effect::NewCollectionCreated(res) => match res {
-                Ok(_) => EventApplied::Accepted { next_action: None },
-                Err(err) => EventApplied::Accepted {
-                    next_action: Some(NextAction::PropagateError(err)),
-                },
+                Ok(_) => (StateMutation::Unchanged, None),
+                Err(err) => (
+                    StateMutation::Unchanged,
+                    Some(NextAction::PropagateError(err)),
+                ),
             },
             Effect::AvailableCollectionsFetched(res) => match res {
                 Ok(new_available_collections) => {
                     state.set_available_collections(new_available_collections);
-                    EventApplied::StateChanged { next_action: None }
+                    (StateMutation::MaybeChanged, None)
                 }
-                Err(err) => EventApplied::Accepted {
-                    next_action: Some(NextAction::PropagateError(err)),
-                },
+                Err(err) => (
+                    StateMutation::Unchanged,
+                    Some(NextAction::PropagateError(err)),
+                ),
             },
-            Effect::ErrorOccurred(error) => EventApplied::Accepted {
-                next_action: Some(NextAction::PropagateError(error)),
-            },
+            Effect::ErrorOccurred(error) => (
+                StateMutation::Unchanged,
+                Some(NextAction::PropagateError(error)),
+            ),
         },
     }
 }

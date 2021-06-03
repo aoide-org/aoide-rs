@@ -33,40 +33,27 @@ pub fn event_channel<T>() -> (EventSender<T>, EventReceiver<T>) {
 }
 
 pub fn emit_event<T: fmt::Debug>(event_tx: &EventSender<T>, event: impl Into<T>) {
-    if let Err(event) = event_tx.send(event.into()) {
+    let event = event.into();
+    log::debug!("Emitting event: {:?}", event);
+    if let Err(event) = event_tx.send(event) {
         // Channel is closed, i.e. receiver has been dropped
         log::debug!("Failed to emit event: {:?}", event.0);
     }
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum EventApplied<A> {
-    Rejected,
-
-    /// Accepted and the state didn't change
-    Accepted {
-        next_action: Option<A>,
-    },
-
-    /// Accepted and the state might have changed
-    StateChanged {
-        next_action: Option<A>,
-    },
+pub enum StateMutation {
+    Unchanged,
+    MaybeChanged,
 }
 
-pub fn event_applied<A, B>(from: EventApplied<A>) -> EventApplied<B>
+pub fn event_applied<A, B>(
+    (state_mutation, next_action): (StateMutation, Option<A>),
+) -> (StateMutation, Option<B>)
 where
     A: Into<B>,
 {
-    match from {
-        EventApplied::Rejected => EventApplied::Rejected,
-        EventApplied::Accepted { next_action } => EventApplied::Accepted {
-            next_action: next_action.map(Into::into),
-        },
-        EventApplied::StateChanged { next_action } => EventApplied::StateChanged {
-            next_action: next_action.map(Into::into),
-        },
-    }
+    (state_mutation, next_action.map(Into::into))
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]

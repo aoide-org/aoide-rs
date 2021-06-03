@@ -28,7 +28,6 @@ use aoide_client::{
 use aoide_core::{
     collection::{Collection, MediaSourceConfig},
     entity::EntityUid,
-    usecases::media::tracker::Progress,
 };
 use clap::{App, Arg};
 use reqwest::Client;
@@ -145,7 +144,6 @@ async fn main() -> anyhow::Result<()> {
     let mut last_media_tracker_import_outcome = None;
     let mut last_media_tracker_untrack_outcome = None;
     let mut subcommand_submitted = false;
-    let mut await_media_tracker_status = false;
     let event_loop = tokio::spawn(handle_events(
         env,
         (event_tx.clone(), event_rx),
@@ -177,10 +175,6 @@ async fn main() -> anyhow::Result<()> {
                     .map(ToOwned::to_owned);
                 if let Some(status) = last_media_tracker_status.as_ref() {
                     log::info!("Media tracker status: {:?}", status);
-                    if await_media_tracker_status {
-                        await_media_tracker_status = false;
-                        return Some(Intent::Terminate.into());
-                    }
                 }
             }
             if last_media_tracker_scan_outcome.as_ref()
@@ -231,42 +225,27 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
 
-            let next_event = if state.media_tracker.is_idle() {
-                if subcommand_submitted
-                    && !await_media_tracker_status
-                    && last_media_tracker_progress == Some(Progress::Idle)
-                {
-                    return Some(Intent::Terminate.into());
-                }
-                None
-            } else {
-                if last_media_tracker_progress.is_none() {
-                    Some(fetch_progress().into())
-                } else {
-                    // Periodically refetch and report progress
-                    let intent = Intent::EmitDeferredEvent {
-                        emit_not_before: Instant::now() + PROGRESS_POLLING_PERIOD,
-                        event: Box::new(fetch_progress().into()),
-                    };
-                    Some(intent.into())
-                }
-            };
             // Only submit a single subcommand
             if subcommand_submitted {
+                let next_event = if state.media_tracker.is_idle() {
+                    None
+                } else {
+                    if last_media_tracker_progress.is_none() {
+                        // Fetch immediately if unknown
+                        Some(fetch_progress().into())
+                    } else {
+                        // Periodically refetch and report progress
+                        let intent = Intent::EmitDeferredEvent {
+                            emit_not_before: Instant::now() + PROGRESS_POLLING_PERIOD,
+                            event: Box::new(fetch_progress().into()),
+                        };
+                        Some(intent.into())
+                    }
+                };
                 return next_event;
             }
 
             // Commands that don't require an active collection
-            if let ("media-tracker", Some(media_tracker_matches)) = matches.subcommand() {
-                if matches!(media_tracker_matches.subcommand(), ("progress", _)) {
-                    subcommand_submitted = true;
-                    return Some(fetch_progress().into());
-                }
-                if matches!(media_tracker_matches.subcommand(), ("abort", _)) {
-                    subcommand_submitted = true;
-                    return Some(abort().into());
-                }
-            }
             if let ("collections", Some(collections_matches)) = matches.subcommand() {
                 match collections_matches.subcommand() {
                     ("create-mixxx", Some(create_matches)) => {
@@ -294,6 +273,16 @@ async fn main() -> anyhow::Result<()> {
                     }
                 }
             }
+            if let ("media-tracker", Some(media_tracker_matches)) = matches.subcommand() {
+                if matches!(media_tracker_matches.subcommand(), ("progress", _)) {
+                    subcommand_submitted = true;
+                    return Some(fetch_progress().into());
+                }
+                if matches!(media_tracker_matches.subcommand(), ("abort", _)) {
+                    subcommand_submitted = true;
+                    return Some(abort().into());
+                }
+            }
 
             // Select an active collection
             if let Some(available_collections) = state
@@ -305,7 +294,7 @@ async fn main() -> anyhow::Result<()> {
                 if state.collection.active_collection_uid().is_none() {
                     if available_collections.is_empty() {
                         log::warn!("No collections available");
-                        return Some(Intent::Terminate.into());
+                        return None;
                     }
                     if let Some(collection_uid) = &collection_uid {
                         if state
@@ -335,7 +324,7 @@ async fn main() -> anyhow::Result<()> {
                                 .unwrap_or(""),
                         );
                     }
-                    return Some(Intent::Terminate.into());
+                    return None;
                 }
             } else {
                 if state
@@ -368,7 +357,6 @@ async fn main() -> anyhow::Result<()> {
                                     });
                                 subcommand_submitted = true;
                                 last_media_tracker_status = None;
-                                await_media_tracker_status = true;
                                 return Some(fetch_status(collection_uid, root_url).into());
                             }
                             ("scan", scan_matches) => {
@@ -415,10 +403,10 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
             debug_assert!(state.media_tracker.is_idle());
-            return Some(Intent::Terminate.into());
+            return None;
         }),
     ));
-    // Kick off the loop by emitting an initial state changed event
+    // Kick off the loop by emitting an initial event
     emit_event(&event_tx, Intent::RenderState);
     event_loop.await?;
     Ok(())

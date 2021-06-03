@@ -206,32 +206,28 @@ impl From<Effect> for Event {
     }
 }
 
-pub fn apply_event(state: &mut State, event: Event) -> EventApplied<NextAction> {
+pub fn apply_event(state: &mut State, event: Event) -> (StateMutation, Option<NextAction>) {
     match event {
         Event::Intent(intent) => match intent {
-            Intent::FetchProgress => EventApplied::Accepted {
-                next_action: Some(NextAction::FetchProgress),
-            },
-            Intent::Abort => EventApplied::Accepted {
-                next_action: Some(NextAction::Abort),
-            },
+            Intent::FetchProgress => (StateMutation::Unchanged, Some(NextAction::FetchProgress)),
+            Intent::Abort => (StateMutation::Unchanged, Some(NextAction::Abort)),
             Intent::FetchStatus {
                 collection_uid,
                 root_url,
             } => {
                 if !state.is_idle() {
                     log::warn!("Cannot fetch status while not idle");
-                    return EventApplied::Rejected;
+                    return (StateMutation::Unchanged, None);
                 }
                 state.control = ControlState::Busy;
                 state.remote.status.reset();
-
-                EventApplied::StateChanged {
-                    next_action: Some(NextAction::FetchStatus {
+                (
+                    StateMutation::MaybeChanged,
+                    Some(NextAction::FetchStatus {
                         collection_uid,
                         root_url,
                     }),
-                }
+                )
             }
             Intent::StartScan {
                 collection_uid,
@@ -239,19 +235,19 @@ pub fn apply_event(state: &mut State, event: Event) -> EventApplied<NextAction> 
             } => {
                 if !state.is_idle() {
                     log::warn!("Cannot start scan while not idle");
-                    return EventApplied::Rejected;
+                    return (StateMutation::Unchanged, None);
                 }
                 state.control = ControlState::Busy;
                 state.remote.progress.reset();
                 state.remote.status.set_pending();
                 state.remote.last_scan_outcome.set_pending();
-
-                EventApplied::StateChanged {
-                    next_action: Some(NextAction::StartScan {
+                (
+                    StateMutation::MaybeChanged,
+                    Some(NextAction::StartScan {
                         collection_uid,
                         root_url,
                     }),
-                }
+                )
             }
             Intent::StartImport {
                 collection_uid,
@@ -259,19 +255,19 @@ pub fn apply_event(state: &mut State, event: Event) -> EventApplied<NextAction> 
             } => {
                 if !state.is_idle() {
                     log::warn!("Cannot start import while not idle");
-                    return EventApplied::Rejected;
+                    return (StateMutation::Unchanged, None);
                 }
                 state.control = ControlState::Busy;
                 state.remote.progress.reset();
                 state.remote.status.set_pending();
                 state.remote.last_import_outcome.set_pending();
-
-                EventApplied::StateChanged {
-                    next_action: Some(NextAction::StartImport {
+                (
+                    StateMutation::MaybeChanged,
+                    Some(NextAction::StartImport {
                         collection_uid,
                         root_url,
                     }),
-                }
+                )
             }
             Intent::Untrack {
                 collection_uid,
@@ -279,19 +275,19 @@ pub fn apply_event(state: &mut State, event: Event) -> EventApplied<NextAction> 
             } => {
                 if !state.is_idle() {
                     log::warn!("Cannot untrack while not idle");
-                    return EventApplied::Rejected;
+                    return (StateMutation::Unchanged, None);
                 }
                 state.control = ControlState::Busy;
                 state.remote.progress.reset();
                 state.remote.status.set_pending();
                 state.remote.last_untrack_outcome.set_pending();
-
-                EventApplied::StateChanged {
-                    next_action: Some(NextAction::Untrack {
+                (
+                    StateMutation::MaybeChanged,
+                    Some(NextAction::Untrack {
                         collection_uid,
                         root_url,
                     }),
-                }
+                )
             }
         },
         Event::Effect(effect) => match effect {
@@ -300,23 +296,22 @@ pub fn apply_event(state: &mut State, event: Event) -> EventApplied<NextAction> 
                     let new_progress = RemoteData::ready(new_progress);
                     if state.remote.progress != new_progress {
                         state.remote.progress = new_progress;
-                        EventApplied::StateChanged { next_action: None }
+                        (StateMutation::MaybeChanged, None)
                     } else {
-                        EventApplied::Accepted { next_action: None }
+                        (StateMutation::Unchanged, None)
                     }
                 }
-                Err(err) => EventApplied::Accepted {
-                    next_action: Some(NextAction::PropagateError(err)),
-                },
+                Err(err) => (
+                    StateMutation::Unchanged,
+                    Some(NextAction::PropagateError(err)),
+                ),
             },
             Effect::Aborted(res) => {
                 let next_action = match res {
                     Ok(()) => NextAction::FetchProgress,
                     Err(err) => NextAction::PropagateError(err),
                 };
-                EventApplied::Accepted {
-                    next_action: Some(next_action),
-                }
+                (StateMutation::Unchanged, Some(next_action))
             }
             Effect::StatusFetched(res) => {
                 debug_assert_eq!(state.control, ControlState::Busy);
@@ -325,14 +320,15 @@ pub fn apply_event(state: &mut State, event: Event) -> EventApplied<NextAction> 
                     Ok(new_status) => {
                         let new_status = RemoteData::ready(new_status);
                         if state.remote.status != new_status {
-                            EventApplied::StateChanged { next_action: None }
+                            (StateMutation::MaybeChanged, None)
                         } else {
-                            EventApplied::Accepted { next_action: None }
+                            (StateMutation::Unchanged, None)
                         }
                     }
-                    Err(err) => EventApplied::Accepted {
-                        next_action: Some(NextAction::PropagateError(err)),
-                    },
+                    Err(err) => (
+                        StateMutation::Unchanged,
+                        Some(NextAction::PropagateError(err)),
+                    ),
                 }
             }
             Effect::ScanFinished(res) => {
@@ -352,9 +348,7 @@ pub fn apply_event(state: &mut State, event: Event) -> EventApplied<NextAction> 
                         NextAction::PropagateError(err)
                     }
                 };
-                EventApplied::StateChanged {
-                    next_action: Some(next_action),
-                }
+                (StateMutation::MaybeChanged, Some(next_action))
             }
             Effect::ImportFinished(res) => {
                 debug_assert_eq!(state.control, ControlState::Busy);
@@ -373,9 +367,7 @@ pub fn apply_event(state: &mut State, event: Event) -> EventApplied<NextAction> 
                         NextAction::PropagateError(err)
                     }
                 };
-                EventApplied::StateChanged {
-                    next_action: Some(next_action),
-                }
+                (StateMutation::MaybeChanged, Some(next_action))
             }
             Effect::Untracked(res) => {
                 debug_assert_eq!(state.control, ControlState::Busy);
@@ -393,13 +385,12 @@ pub fn apply_event(state: &mut State, event: Event) -> EventApplied<NextAction> 
                         NextAction::PropagateError(err)
                     }
                 };
-                EventApplied::StateChanged {
-                    next_action: Some(next_action),
-                }
+                (StateMutation::MaybeChanged, Some(next_action))
             }
-            Effect::ErrorOccurred(error) => EventApplied::Accepted {
-                next_action: Some(NextAction::PropagateError(error)),
-            },
+            Effect::ErrorOccurred(error) => (
+                StateMutation::Unchanged,
+                Some(NextAction::PropagateError(error)),
+            ),
         },
     }
 }
