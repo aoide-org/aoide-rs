@@ -131,7 +131,7 @@ async fn main() -> anyhow::Result<()> {
         .unwrap_or(&default_api_url)
         .parse()
         .expect("URL");
-    let collection_uid = matches
+    let mut collection_uid = matches
         .value_of("collection-uid")
         .map(|s| s.parse::<EntityUid>().expect("Collection UID"));
 
@@ -296,11 +296,22 @@ async fn main() -> anyhow::Result<()> {
                         log::warn!("No collections available");
                         return None;
                     }
+                    if collection_uid.is_none() && available_collections.len() == 1 {
+                        collection_uid = available_collections
+                            .iter()
+                            .next()
+                            .map(|e| e.hdr.uid.clone());
+                        debug_assert!(collection_uid.is_some());
+                        log::info!(
+                            "Activating single collection: {}",
+                            collection_uid.as_ref().unwrap()
+                        );
+                    }
                     if let Some(collection_uid) = &collection_uid {
                         if state
                             .collection
                             .remote()
-                            .find_available_collections_by_uid(&collection_uid)
+                            .find_available_collections_by_uid(collection_uid)
                             .is_some()
                         {
                             return Some(
