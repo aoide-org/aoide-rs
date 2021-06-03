@@ -235,7 +235,7 @@ async fn main() -> anyhow::Result<()> {
                         Some(fetch_progress().into())
                     } else {
                         // Periodically refetch and report progress
-                        let intent = Intent::EmitDeferredEvent {
+                        let intent = Intent::TimedEvent {
                             emit_not_before: Instant::now() + PROGRESS_POLLING_PERIOD,
                             event: Box::new(fetch_progress().into()),
                         };

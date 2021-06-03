@@ -44,7 +44,7 @@ impl State {
 pub enum NextAction {
     Collection(collection::NextAction),
     MediaTracker(media::tracker::NextAction),
-    EmitDeferredEvent {
+    TimedEvent {
         emit_not_before: Instant,
         event: Box<Event>,
     },
@@ -73,7 +73,7 @@ pub enum Event {
 
 #[derive(Debug)]
 pub enum Intent {
-    EmitDeferredEvent {
+    TimedEvent {
         emit_not_before: Instant,
         event: Box<Event>,
     },
@@ -176,12 +176,12 @@ fn apply_event(
             event_applied(media::tracker::apply_event(&mut state.media_tracker, event))
         }
         Event::Intent(intent) => match intent {
-            Intent::EmitDeferredEvent {
+            Intent::TimedEvent {
                 emit_not_before,
                 event,
             } => (
                 StateMutation::Unchanged,
-                Some(NextAction::EmitDeferredEvent {
+                Some(NextAction::TimedEvent {
                     emit_not_before,
                     event,
                 }),
@@ -204,7 +204,7 @@ async fn dispatch_next_action(
         NextAction::MediaTracker(action) => {
             media::tracker::dispatch_next_action(shared_env, event_tx, action).await;
         }
-        NextAction::EmitDeferredEvent {
+        NextAction::TimedEvent {
             emit_not_before,
             event,
         } => {
