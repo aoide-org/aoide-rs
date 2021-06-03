@@ -26,6 +26,9 @@ use prelude::*;
 use reqwest::Response;
 
 use std::{sync::Arc, time::Instant};
+use tokio::signal;
+
+use crate::media::tracker::abort;
 
 #[derive(Debug, Default)]
 pub struct State {
@@ -158,37 +161,50 @@ pub async fn handle_events(
     let (event_tx, mut event_rx) = event_channel;
     let mut state = initial_state;
     let mut state_rendered_after_last_event = false;
-    while let Some(event) = event_rx.recv().await {
-        let (state_mutation, next_action) =
-            apply_event(&mut state, state_rendered_after_last_event, event);
-        state_rendered_after_last_event = false;
-        let mut terminate = true;
-        if state_mutation == StateMutation::MaybeChanged || next_action.is_none() {
-            log::debug!("Rendering current state: {:?}", state);
-            if let Some(rendering_intent) = render_state_fn(&state) {
-                log::debug!(
-                    "Received intent after rendering state: {:?}",
-                    rendering_intent
-                );
-                emit_event(&event_tx, rendering_intent);
-                terminate = false;
-            }
-            state_rendered_after_last_event = true;
-        }
-        if let Some(next_action) = next_action {
-            let shared_env = shared_env.clone();
-            let event_tx = event_tx.clone();
-            log::debug!("Dispatching next action asynchronously: {:?}", next_action);
-            tokio::spawn(async move {
-                if let Some(event) = dispatch_next_action(shared_env, next_action).await {
-                    log::debug!("Received event after dispatching action: {:?}", event);
-                    emit_event(&event_tx, event);
+    loop {
+        tokio::select! {
+            Some(event) = event_rx.recv() => {
+                let (state_mutation, next_action) =
+                apply_event(&mut state, state_rendered_after_last_event, event);
+                state_rendered_after_last_event = false;
+                let mut terminate = true;
+                if state_mutation == StateMutation::MaybeChanged || next_action.is_none() {
+                    log::debug!("Rendering current state: {:?}", state);
+                    if let Some(rendering_intent) = render_state_fn(&state) {
+                        log::debug!(
+                            "Received intent after rendering state: {:?}",
+                            rendering_intent
+                        );
+                        emit_event(&event_tx, rendering_intent);
+                        terminate = false;
+                    }
+                    state_rendered_after_last_event = true;
                 }
-            });
-            terminate = false;
-        }
-        if terminate {
-            break;
+                if let Some(next_action) = next_action {
+                    let shared_env = shared_env.clone();
+                    let event_tx = event_tx.clone();
+                    log::debug!("Dispatching next action asynchronously: {:?}", next_action);
+                    tokio::spawn(async move {
+                        if let Some(event) = dispatch_next_action(shared_env, next_action).await {
+                            log::debug!("Received event after dispatching action: {:?}", event);
+                            emit_event(&event_tx, event);
+                        }
+                    });
+                    terminate = false;
+                }
+                if terminate {
+                    break;
+                }
+            }
+            _ = signal::ctrl_c() => {
+                log::info!("Aborting after receiving SIGINT...");
+                emit_event(&event_tx, abort());
+            }
+            else => {
+                // Exit the message loop in all other cases, i.e. if event_rx.recv()
+                // returned None after the channel has been closed
+                break;
+            }
         }
     }
 }

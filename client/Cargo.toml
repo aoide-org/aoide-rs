@@ -18,4 +18,4 @@ tokio = { version = "*", default-features = false }
 
 [dev-dependencies]
 clap = "*"
-tokio = { version = "*", default-features = false, features = ["macros", "rt-multi-thread"] }
+tokio = { version = "*", default-features = false, features = ["macros", "rt-multi-thread", "signal"] }
