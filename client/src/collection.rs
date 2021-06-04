@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::sync::Arc;
-
 use aoide_core::{
     collection::{Collection, Entity as CollectionEntity},
     entity::EntityUid,
@@ -102,10 +100,27 @@ impl State {
 }
 
 #[derive(Debug)]
-pub enum NextAction {
+pub enum Action {
+    ApplyEffect(Effect),
+    DispatchTask(Task),
+}
+
+impl From<Effect> for Action {
+    fn from(effect: Effect) -> Self {
+        Self::ApplyEffect(effect)
+    }
+}
+
+impl From<Task> for Action {
+    fn from(task: Task) -> Self {
+        Self::DispatchTask(task)
+    }
+}
+
+#[derive(Debug)]
+pub enum Task {
     CreateNewCollection(Collection),
     FetchAvailableCollections,
-    PropagateError(anyhow::Error),
 }
 
 #[derive(Debug)]
@@ -134,68 +149,71 @@ pub enum Effect {
     ErrorOccurred(anyhow::Error),
 }
 
-pub fn apply_intent(state: &mut State, intent: Intent) -> (StateMutation, Option<NextAction>) {
-    match intent {
-        Intent::CreateNewCollection(new_collection) => (
-            StateMutation::Unchanged,
-            Some(NextAction::CreateNewCollection(new_collection)),
-        ),
-        Intent::FetchAvailableCollections => {
-            state.remote.available_collections.set_pending();
-            (
-                StateMutation::MaybeChanged,
-                Some(NextAction::FetchAvailableCollections),
-            )
-        }
-        Intent::ActivateCollection(new_active_collection_uid) => {
-            state.set_active_collection_uid(new_active_collection_uid);
-            (StateMutation::MaybeChanged, None)
-        }
-    }
-}
-
-pub fn apply_effect(state: &mut State, effect: Effect) -> (StateMutation, Option<NextAction>) {
-    match effect {
-        Effect::NewCollectionCreated(res) => match res {
-            Ok(_) => (StateMutation::Unchanged, None),
-            Err(err) => (
+impl Intent {
+    pub fn apply_on(self, state: &mut State) -> (StateMutation, Option<Action>) {
+        log::trace!("Applying intent {:?} on {:?}", self, state);
+        match self {
+            Self::CreateNewCollection(new_collection) => (
                 StateMutation::Unchanged,
-                Some(NextAction::PropagateError(err)),
+                Some(Task::CreateNewCollection(new_collection).into()),
             ),
-        },
-        Effect::AvailableCollectionsFetched(res) => match res {
-            Ok(new_available_collections) => {
-                state.set_available_collections(new_available_collections);
+            Self::FetchAvailableCollections => {
+                state.remote.available_collections.set_pending();
+                (
+                    StateMutation::MaybeChanged,
+                    Some(Task::FetchAvailableCollections.into()),
+                )
+            }
+            Self::ActivateCollection(new_active_collection_uid) => {
+                state.set_active_collection_uid(new_active_collection_uid);
                 (StateMutation::MaybeChanged, None)
             }
-            Err(err) => (
-                StateMutation::Unchanged,
-                Some(NextAction::PropagateError(err)),
-            ),
-        },
-        Effect::ErrorOccurred(error) => (
-            StateMutation::Unchanged,
-            Some(NextAction::PropagateError(error)),
-        ),
+        }
     }
 }
 
-pub async fn dispatch_next_action(
-    shared_env: Arc<Environment>,
-    next_action: NextAction,
-) -> Option<Effect> {
-    match next_action {
-        NextAction::CreateNewCollection(new_collection) => {
-            let res =
-                on_create_new_collection(&shared_env.client, &shared_env.api_url, new_collection)
-                    .await;
-            Some(Effect::NewCollectionCreated(res))
+impl Effect {
+    pub fn apply_on(self, state: &mut State) -> (StateMutation, Option<Action>) {
+        log::trace!("Applying event {:?} on {:?}", self, state);
+        match self {
+            Self::NewCollectionCreated(res) => match res {
+                Ok(_) => (StateMutation::Unchanged, None),
+                Err(err) => (
+                    StateMutation::Unchanged,
+                    Some(Self::ErrorOccurred(err).into()),
+                ),
+            },
+            Self::AvailableCollectionsFetched(res) => match res {
+                Ok(new_available_collections) => {
+                    state.set_available_collections(new_available_collections);
+                    (StateMutation::MaybeChanged, None)
+                }
+                Err(err) => (
+                    StateMutation::Unchanged,
+                    Some(Self::ErrorOccurred(err).into()),
+                ),
+            },
+            Self::ErrorOccurred(error) => (
+                StateMutation::Unchanged,
+                Some(Self::ErrorOccurred(error).into()),
+            ),
         }
-        NextAction::FetchAvailableCollections => {
-            let res = on_fetch_available_collections(&shared_env.client, &shared_env.api_url).await;
-            Some(Effect::AvailableCollectionsFetched(res))
+    }
+}
+
+impl Task {
+    pub async fn execute_with(self, env: &Environment) -> Effect {
+        log::trace!("Executing task: {:?}", self);
+        match self {
+            Self::CreateNewCollection(new_collection) => {
+                let res = on_create_new_collection(&env.client, &env.api_url, new_collection).await;
+                Effect::NewCollectionCreated(res)
+            }
+            Self::FetchAvailableCollections => {
+                let res = on_fetch_available_collections(&env.client, &env.api_url).await;
+                Effect::AvailableCollectionsFetched(res)
+            }
         }
-        NextAction::PropagateError(error) => Some(Effect::ErrorOccurred(error)),
     }
 }
 

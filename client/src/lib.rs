@@ -25,7 +25,10 @@ use bytes::Bytes;
 use prelude::*;
 use reqwest::Response;
 
-use std::{sync::Arc, time::Instant};
+use std::{
+    sync::{atomic::AtomicUsize, Arc},
+    time::Instant,
+};
 use tokio::signal;
 
 use crate::media::tracker::abort;
@@ -44,24 +47,84 @@ impl State {
 }
 
 #[derive(Debug)]
-pub enum NextAction {
+pub enum Action {
+    ApplyEffect(Effect),
+    DispatchTask(Task),
+}
+
+impl From<Effect> for Action {
+    fn from(effect: Effect) -> Self {
+        Self::ApplyEffect(effect)
+    }
+}
+
+impl From<Task> for Action {
+    fn from(task: Task) -> Self {
+        Self::DispatchTask(task)
+    }
+}
+
+impl From<collection::Effect> for Action {
+    fn from(effect: collection::Effect) -> Self {
+        Self::ApplyEffect(effect.into())
+    }
+}
+
+impl From<collection::Task> for Action {
+    fn from(task: collection::Task) -> Self {
+        Self::DispatchTask(task.into())
+    }
+}
+
+impl From<media::tracker::Effect> for Action {
+    fn from(effect: media::tracker::Effect) -> Self {
+        Self::ApplyEffect(effect.into())
+    }
+}
+
+impl From<media::tracker::Task> for Action {
+    fn from(task: media::tracker::Task) -> Self {
+        Self::DispatchTask(task.into())
+    }
+}
+
+#[derive(Debug)]
+pub enum Task {
     TimedIntent {
         not_before: Instant,
         intent: Box<Intent>,
     },
-    Collection(collection::NextAction),
-    MediaTracker(media::tracker::NextAction),
+    Collection(collection::Task),
+    MediaTracker(media::tracker::Task),
 }
 
-impl From<collection::NextAction> for NextAction {
-    fn from(next_action: collection::NextAction) -> Self {
-        Self::Collection(next_action)
+impl From<collection::Task> for Task {
+    fn from(task: collection::Task) -> Self {
+        Self::Collection(task)
     }
 }
 
-impl From<media::tracker::NextAction> for NextAction {
-    fn from(next_action: media::tracker::NextAction) -> Self {
-        Self::MediaTracker(next_action)
+impl From<collection::Action> for Action {
+    fn from(action: collection::Action) -> Self {
+        match action {
+            collection::Action::ApplyEffect(effect) => effect.into(),
+            collection::Action::DispatchTask(task) => task.into(),
+        }
+    }
+}
+
+impl From<media::tracker::Task> for Task {
+    fn from(task: media::tracker::Task) -> Self {
+        Self::MediaTracker(task)
+    }
+}
+
+impl From<media::tracker::Action> for Action {
+    fn from(action: media::tracker::Action) -> Self {
+        match action {
+            media::tracker::Action::ApplyEffect(effect) => effect.into(),
+            media::tracker::Action::DispatchTask(task) => task.into(),
+        }
     }
 }
 
@@ -110,6 +173,7 @@ impl From<media::tracker::Effect> for Event {
 #[derive(Debug)]
 pub enum Intent {
     RenderState,
+    ClearFirstErrorsBeforeNextRenderState(usize),
     TimedIntent {
         not_before: Instant,
         intent: Box<Intent>,
@@ -133,6 +197,8 @@ impl From<media::tracker::Intent> for Intent {
 #[derive(Debug)]
 pub enum Effect {
     ErrorOccurred(anyhow::Error),
+    ClearFirstErrors(usize),
+    ApplyIntent(Intent),
     CollectionEffect(collection::Effect),
     MediaTrackerEffect(media::tracker::Effect),
 }
@@ -151,54 +217,42 @@ impl From<media::tracker::Effect> for Effect {
 
 pub type RenderStateFn = dyn FnMut(&State) -> Option<Intent> + Send;
 
+static PENDING_TASKS_COUNT: AtomicUsize = AtomicUsize::new(0);
+
 pub async fn handle_events(
     env: Environment,
-    event_channel: (EventSender<Event>, EventReceiver<Event>),
     initial_state: State,
+    initial_intent: Intent,
     mut render_state_fn: Box<RenderStateFn>,
 ) {
     let shared_env = Arc::new(env);
-    let (event_tx, mut event_rx) = event_channel;
     let mut state = initial_state;
-    let mut state_rendered_after_last_event = false;
+    let (event_tx, mut event_rx) = event_channel();
+    // Kick off the loop by emitting an initial event
+    emit_event(&event_tx, initial_intent);
+    let mut event_tx = Some(event_tx);
+    let mut terminating = false;
     loop {
         tokio::select! {
-            Some(event) = event_rx.recv() => {
-                let (state_mutation, next_action) =
-                apply_event(&mut state, state_rendered_after_last_event, event);
-                state_rendered_after_last_event = false;
-                let mut terminate = true;
-                if state_mutation == StateMutation::MaybeChanged || next_action.is_none() {
-                    log::debug!("Rendering current state: {:?}", state);
-                    if let Some(rendering_intent) = render_state_fn(&state) {
-                        log::debug!(
-                            "Received intent after rendering state: {:?}",
-                            rendering_intent
-                        );
-                        emit_event(&event_tx, rendering_intent);
-                        terminate = false;
-                    }
-                    state_rendered_after_last_event = true;
-                }
-                if let Some(next_action) = next_action {
-                    let shared_env = shared_env.clone();
-                    let event_tx = event_tx.clone();
-                    log::debug!("Dispatching next action asynchronously: {:?}", next_action);
-                    tokio::spawn(async move {
-                        if let Some(event) = dispatch_next_action(shared_env, next_action).await {
-                            log::debug!("Received event after dispatching action: {:?}", event);
-                            emit_event(&event_tx, event);
+            Some(next_event) = event_rx.recv() => {
+                match handle_next_event(&shared_env, event_tx.as_ref(), &mut state, &mut *render_state_fn, next_event) {
+                    EventLoopControl::Continue => (),
+                    EventLoopControl::Terminate => {
+                        if !terminating {
+                            log::debug!("Terminating...");
+                            terminating = true;
                         }
-                    });
-                    terminate = false;
+                    }
                 }
-                if terminate {
-                    break;
+                if terminating && event_tx.is_some() && PENDING_TASKS_COUNT.load(std::sync::atomic::Ordering::Acquire) == 0 {
+                    log::debug!("Closing event emitter after all pending tasks finished");
+                    event_tx = None;
                 }
             }
-            _ = signal::ctrl_c() => {
+            _ = signal::ctrl_c(), if !terminating => {
                 log::info!("Aborting after receiving SIGINT...");
-                emit_event(&event_tx, abort());
+                debug_assert!(event_tx.is_some());
+                emit_event(event_tx.as_ref().unwrap(), abort());
             }
             else => {
                 // Exit the message loop in all other cases, i.e. if event_rx.recv()
@@ -207,82 +261,155 @@ pub async fn handle_events(
             }
         }
     }
+    debug_assert!(terminating);
+    debug_assert!(event_tx.is_none());
 }
 
-fn apply_event(
+#[derive(Debug)]
+enum EventLoopControl {
+    Continue,
+    Terminate,
+}
+
+fn handle_next_event(
+    shared_env: &Arc<Environment>,
+    event_tx: Option<&EventSender<Event>>,
     state: &mut State,
-    state_rendered_after_last_event: bool,
-    event: Event,
-) -> (StateMutation, Option<NextAction>) {
-    log::debug!("Applying event: {:?}", event);
-    if state_rendered_after_last_event {
-        // Consume errors only once, i.e. clear after rendering the state
-        state.last_errors.clear();
+    render_state_fn: &mut RenderStateFn,
+    mut next_event: Event,
+) -> EventLoopControl {
+    let mut state_mutation = StateMutation::Unchanged;
+    let mut number_of_next_actions = 0;
+    let mut number_of_events_emitted = 0;
+    let mut number_of_tasks_dispatched = 0;
+    'apply_next_event: loop {
+        let (next_state_mutation, next_action) = next_event.apply_on(state);
+        state_mutation += next_state_mutation;
+        if let Some(next_action) = next_action {
+            number_of_next_actions += 1;
+            match next_action {
+                Action::ApplyEffect(effect) => {
+                    log::debug!("Applying effect immediately: {:?}", effect);
+                    next_event = Event::Effect(effect);
+                    continue 'apply_next_event;
+                }
+                Action::DispatchTask(task) => {
+                    if let Some(event_tx) = event_tx {
+                        let shared_env = shared_env.clone();
+                        let event_tx = event_tx.clone();
+                        log::debug!("Dispatching task asynchronously: {:?}", task);
+                        PENDING_TASKS_COUNT.fetch_add(1, std::sync::atomic::Ordering::Acquire);
+                        tokio::spawn(async move {
+                            let event = task.execute_with(&shared_env).await;
+                            log::debug!("Received event from task: {:?}", event);
+                            emit_event(&event_tx, event);
+                            PENDING_TASKS_COUNT.fetch_sub(1, std::sync::atomic::Ordering::Release);
+                        });
+                        number_of_tasks_dispatched += 1;
+                    } else {
+                        log::warn!(
+                            "Cannot dispatch new asynchronous task while terminating: {:?}",
+                            task
+                        );
+                    }
+                }
+            }
+        }
+        if state_mutation == StateMutation::MaybeChanged || number_of_next_actions > 0 {
+            log::debug!("Rendering current state: {:?}", state);
+            if let Some(rendering_intent) = render_state_fn(&state) {
+                if let Some(event_tx) = event_tx {
+                    log::debug!(
+                        "Received intent after rendering state: {:?}",
+                        rendering_intent
+                    );
+                    emit_event(&event_tx, rendering_intent);
+                    number_of_events_emitted += 1;
+                } else {
+                    // Cannot emit any new events when draining the event channel
+                    log::warn!(
+                        "Dropping intent received after rendering state: {:?}",
+                        rendering_intent
+                    );
+                }
+            }
+        }
+        break;
     }
-    match event {
-        Event::Intent(intent) => apply_intent(state, intent),
-        Event::Effect(effect) => apply_effect(state, effect),
+    log::debug!("number_of_next_actions = {}, number_of_events_emitted = {}, number_of_tasks_dispatched = {}", number_of_next_actions, number_of_events_emitted, number_of_tasks_dispatched);
+    if number_of_events_emitted + number_of_tasks_dispatched > 0 {
+        EventLoopControl::Continue
+    } else {
+        EventLoopControl::Terminate
     }
 }
 
-fn apply_intent(state: &mut State, intent: Intent) -> (StateMutation, Option<NextAction>) {
-    match intent {
-        Intent::RenderState => (StateMutation::MaybeChanged, None),
-        Intent::TimedIntent { not_before, intent } => (
-            StateMutation::Unchanged,
-            Some(NextAction::TimedIntent { not_before, intent }),
-        ),
-        Intent::CollectionIntent(intent) => {
-            event_applied(collection::apply_intent(&mut state.collection, intent))
+impl Event {
+    pub fn apply_on(self, state: &mut State) -> (StateMutation, Option<Action>) {
+        log::debug!("Applying event {:?} on {:?}", self, state);
+        match self {
+            Self::Intent(intent) => intent.apply_on(state),
+            Self::Effect(effect) => effect.apply_on(state),
         }
-        Intent::MediaTrackerIntent(intent) => event_applied(media::tracker::apply_intent(
-            &mut state.media_tracker,
-            intent,
-        )),
     }
 }
 
-fn apply_effect(state: &mut State, effect: Effect) -> (StateMutation, Option<NextAction>) {
-    match effect {
-        Effect::ErrorOccurred(error)
-        | Effect::CollectionEffect(collection::Effect::ErrorOccurred(error))
-        | Effect::MediaTrackerEffect(media::tracker::Effect::ErrorOccurred(error)) => {
-            state.last_errors.push(error);
-            (StateMutation::MaybeChanged, None)
+impl Intent {
+    pub fn apply_on(self, state: &mut State) -> (StateMutation, Option<Action>) {
+        log::debug!("Applying intent {:?} on {:?}", self, state);
+        match self {
+            Self::RenderState => (StateMutation::MaybeChanged, None),
+            Self::ClearFirstErrorsBeforeNextRenderState(head_len) => (
+                StateMutation::Unchanged,
+                Some(Effect::ClearFirstErrors(head_len).into()),
+            ),
+            Self::TimedIntent { not_before, intent } => (
+                StateMutation::Unchanged,
+                Some(Task::TimedIntent { not_before, intent }.into()),
+            ),
+            Self::CollectionIntent(intent) => event_applied(intent.apply_on(&mut state.collection)),
+            Self::MediaTrackerIntent(intent) => {
+                event_applied(intent.apply_on(&mut state.media_tracker))
+            }
         }
-        Effect::CollectionEffect(effect) => {
-            event_applied(collection::apply_effect(&mut state.collection, effect))
-        }
-        Effect::MediaTrackerEffect(effect) => event_applied(media::tracker::apply_effect(
-            &mut state.media_tracker,
-            effect,
-        )),
     }
 }
 
-async fn dispatch_next_action(
-    shared_env: Arc<Environment>,
-    next_action: NextAction,
-) -> Option<Event> {
-    log::debug!("Dispatching next action: {:?}", next_action);
-    match next_action {
-        NextAction::TimedIntent { not_before, intent } => {
-            tokio::time::sleep_until(not_before.into()).await;
-            let unboxed_intent = *intent;
-            // In this special case the action results in an intent and not an effect!
-            // TODO: How could this be resolved while preserving the partitioning into
-            // intents and effects?
-            Some(unboxed_intent.into())
+impl Effect {
+    pub fn apply_on(self, state: &mut State) -> (StateMutation, Option<Action>) {
+        log::debug!("Applying effect {:?} on {:?}", self, state);
+        match self {
+            Self::ErrorOccurred(error)
+            | Self::CollectionEffect(collection::Effect::ErrorOccurred(error))
+            | Self::MediaTrackerEffect(media::tracker::Effect::ErrorOccurred(error)) => {
+                state.last_errors.push(error);
+                (StateMutation::MaybeChanged, None)
+            }
+            Self::ClearFirstErrors(head_len) => {
+                debug_assert!(head_len <= state.last_errors.len());
+                state.last_errors = state.last_errors.drain(head_len..).collect();
+                (StateMutation::MaybeChanged, None)
+            }
+            Self::ApplyIntent(intent) => intent.apply_on(state),
+            Self::CollectionEffect(effect) => event_applied(effect.apply_on(&mut state.collection)),
+            Self::MediaTrackerEffect(effect) => {
+                event_applied(effect.apply_on(&mut state.media_tracker))
+            }
         }
-        NextAction::Collection(next_action) => {
-            collection::dispatch_next_action(shared_env, next_action)
-                .await
-                .map(Into::into)
-        }
-        NextAction::MediaTracker(action) => {
-            media::tracker::dispatch_next_action(shared_env, action)
-                .await
-                .map(Into::into)
+    }
+}
+
+impl Task {
+    pub async fn execute_with(self, env: &Environment) -> Effect {
+        log::debug!("Executing task: {:?}", self);
+        match self {
+            Self::TimedIntent { not_before, intent } => {
+                tokio::time::sleep_until(not_before.into()).await;
+                let unboxed_intent = *intent;
+                Effect::ApplyIntent(unboxed_intent.into())
+            }
+            Self::Collection(task) => task.execute_with(env).await.into(),
+            Self::MediaTracker(task) => task.execute_with(env).await.into(),
         }
     }
 }

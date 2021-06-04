@@ -13,7 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::fmt;
+use std::{
+    fmt,
+    ops::{Add, AddAssign},
+};
 
 use reqwest::{Client, Url};
 use tokio::sync::mpsc;
@@ -45,6 +48,24 @@ pub fn emit_event<T: fmt::Debug>(event_tx: &EventSender<T>, event: impl Into<T>)
 pub enum StateMutation {
     Unchanged,
     MaybeChanged,
+}
+
+impl Add<StateMutation> for StateMutation {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        if self == Self::Unchanged && rhs == Self::Unchanged {
+            Self::Unchanged
+        } else {
+            Self::MaybeChanged
+        }
+    }
+}
+
+impl AddAssign for StateMutation {
+    fn add_assign(&mut self, other: Self) {
+        *self = *self + other;
+    }
 }
 
 pub fn event_applied<A, B>(

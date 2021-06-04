@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::sync::Arc;
-
 use crate::{prelude::*, receive_response_body};
 
 use aoide_core::{
@@ -87,13 +85,31 @@ impl State {
 
     pub fn is_idle(&self) -> bool {
         self.control == ControlState::Idle
-            && (self.remote.progress.get_ready() == Some(&Progress::Idle)
+            && (self.remote.progress.get() == Some(&Progress::Idle)
                 || self.remote.progress.is_unknown())
     }
 }
 
 #[derive(Debug)]
-pub enum NextAction {
+pub enum Action {
+    ApplyEffect(Effect),
+    DispatchTask(Task),
+}
+
+impl From<Effect> for Action {
+    fn from(effect: Effect) -> Self {
+        Self::ApplyEffect(effect)
+    }
+}
+
+impl From<Task> for Action {
+    fn from(task: Task) -> Self {
+        Self::DispatchTask(task)
+    }
+}
+
+#[derive(Debug)]
+pub enum Task {
     FetchStatus {
         collection_uid: EntityUid,
         root_url: Option<Url>,
@@ -112,7 +128,6 @@ pub enum NextAction {
         collection_uid: EntityUid,
         root_url: Url,
     },
-    PropagateError(anyhow::Error),
 }
 
 #[derive(Debug)]
@@ -184,122 +199,118 @@ pub enum Effect {
     ErrorOccurred(anyhow::Error),
 }
 
-pub fn apply_intent(state: &mut State, intent: Intent) -> (StateMutation, Option<NextAction>) {
-    match intent {
-        Intent::FetchProgress => (StateMutation::Unchanged, Some(NextAction::FetchProgress)),
-        Intent::Abort => (StateMutation::Unchanged, Some(NextAction::Abort)),
-        Intent::FetchStatus {
-            collection_uid,
-            root_url,
-        } => {
-            if !state.is_idle() {
-                log::warn!("Cannot fetch status while not idle");
-                return (StateMutation::Unchanged, None);
+impl Intent {
+    pub fn apply_on(self, state: &mut State) -> (StateMutation, Option<Action>) {
+        log::trace!("Applying intent {:?} on {:?}", self, state);
+        match self {
+            Self::FetchProgress => {
+                state.remote.progress.set_pending();
+                (StateMutation::Unchanged, Some(Task::FetchProgress.into()))
             }
-            state.control = ControlState::Busy;
-            state.remote.status.reset();
-            (
-                StateMutation::MaybeChanged,
-                Some(NextAction::FetchStatus {
-                    collection_uid,
-                    root_url,
-                }),
-            )
-        }
-        Intent::StartScan {
-            collection_uid,
-            root_url,
-        } => {
-            if !state.is_idle() {
-                log::warn!("Cannot start scan while not idle");
-                return (StateMutation::Unchanged, None);
+            Self::Abort => (StateMutation::Unchanged, Some(Task::Abort.into())),
+            Self::FetchStatus {
+                collection_uid,
+                root_url,
+            } => {
+                if !state.is_idle() {
+                    log::warn!("Cannot fetch status while not idle");
+                    return (StateMutation::Unchanged, None);
+                }
+                state.control = ControlState::Busy;
+                state.remote.status.set_pending();
+                (
+                    StateMutation::MaybeChanged,
+                    Some(
+                        Task::FetchStatus {
+                            collection_uid,
+                            root_url,
+                        }
+                        .into(),
+                    ),
+                )
             }
-            state.control = ControlState::Busy;
-            state.remote.progress.reset();
-            state.remote.status.set_pending();
-            state.remote.last_scan_outcome.set_pending();
-            (
-                StateMutation::MaybeChanged,
-                Some(NextAction::StartScan {
-                    collection_uid,
-                    root_url,
-                }),
-            )
-        }
-        Intent::StartImport {
-            collection_uid,
-            root_url,
-        } => {
-            if !state.is_idle() {
-                log::warn!("Cannot start import while not idle");
-                return (StateMutation::Unchanged, None);
+            Self::StartScan {
+                collection_uid,
+                root_url,
+            } => {
+                if !state.is_idle() {
+                    log::warn!("Cannot start scan while not idle");
+                    return (StateMutation::Unchanged, None);
+                }
+                state.control = ControlState::Busy;
+                state.remote.progress.reset();
+                state.remote.status.set_pending();
+                state.remote.last_scan_outcome.set_pending();
+                (
+                    StateMutation::MaybeChanged,
+                    Some(
+                        Task::StartScan {
+                            collection_uid,
+                            root_url,
+                        }
+                        .into(),
+                    ),
+                )
             }
-            state.control = ControlState::Busy;
-            state.remote.progress.reset();
-            state.remote.status.set_pending();
-            state.remote.last_import_outcome.set_pending();
-            (
-                StateMutation::MaybeChanged,
-                Some(NextAction::StartImport {
-                    collection_uid,
-                    root_url,
-                }),
-            )
-        }
-        Intent::Untrack {
-            collection_uid,
-            root_url,
-        } => {
-            if !state.is_idle() {
-                log::warn!("Cannot untrack while not idle");
-                return (StateMutation::Unchanged, None);
+            Self::StartImport {
+                collection_uid,
+                root_url,
+            } => {
+                if !state.is_idle() {
+                    log::warn!("Cannot start import while not idle");
+                    return (StateMutation::Unchanged, None);
+                }
+                state.control = ControlState::Busy;
+                state.remote.progress.reset();
+                state.remote.status.set_pending();
+                state.remote.last_import_outcome.set_pending();
+                (
+                    StateMutation::MaybeChanged,
+                    Some(
+                        Task::StartImport {
+                            collection_uid,
+                            root_url,
+                        }
+                        .into(),
+                    ),
+                )
             }
-            state.control = ControlState::Busy;
-            state.remote.progress.reset();
-            state.remote.status.set_pending();
-            state.remote.last_untrack_outcome.set_pending();
-            (
-                StateMutation::MaybeChanged,
-                Some(NextAction::Untrack {
-                    collection_uid,
-                    root_url,
-                }),
-            )
+            Self::Untrack {
+                collection_uid,
+                root_url,
+            } => {
+                if !state.is_idle() {
+                    log::warn!("Cannot untrack while not idle");
+                    return (StateMutation::Unchanged, None);
+                }
+                state.control = ControlState::Busy;
+                state.remote.progress.reset();
+                state.remote.status.set_pending();
+                state.remote.last_untrack_outcome.set_pending();
+                (
+                    StateMutation::MaybeChanged,
+                    Some(
+                        Task::Untrack {
+                            collection_uid,
+                            root_url,
+                        }
+                        .into(),
+                    ),
+                )
+            }
         }
     }
 }
 
-pub fn apply_effect(state: &mut State, effect: Effect) -> (StateMutation, Option<NextAction>) {
-    match effect {
-        Effect::ProgressFetched(res) => match res {
-            Ok(new_progress) => {
-                let new_progress = RemoteData::ready(new_progress);
-                if state.remote.progress != new_progress {
-                    state.remote.progress = new_progress;
-                    (StateMutation::MaybeChanged, None)
-                } else {
-                    (StateMutation::Unchanged, None)
-                }
-            }
-            Err(err) => (
-                StateMutation::Unchanged,
-                Some(NextAction::PropagateError(err)),
-            ),
-        },
-        Effect::Aborted(res) => {
-            let next_action = match res {
-                Ok(()) => NextAction::FetchProgress,
-                Err(err) => NextAction::PropagateError(err),
-            };
-            (StateMutation::Unchanged, Some(next_action))
-        }
-        Effect::StatusFetched(res) => {
-            debug_assert_eq!(state.control, ControlState::Busy);
-            state.control = ControlState::Idle;
-            match res {
-                Ok(new_status) => {
-                    let new_status = RemoteData::ready(new_status);
-                    if state.remote.status != new_status {
+impl Effect {
+    pub fn apply_on(self, state: &mut State) -> (StateMutation, Option<Action>) {
+        log::trace!("Applying effect {:?} on {:?}", self, state);
+        match self {
+            Self::ProgressFetched(res) => match res {
+                Ok(new_progress) => {
+                    let new_progress = RemoteData::ready(new_progress);
+                    if state.remote.progress != new_progress {
+                        state.remote.progress = new_progress;
                         (StateMutation::MaybeChanged, None)
                     } else {
                         (StateMutation::Unchanged, None)
@@ -307,139 +318,157 @@ pub fn apply_effect(state: &mut State, effect: Effect) -> (StateMutation, Option
                 }
                 Err(err) => (
                     StateMutation::Unchanged,
-                    Some(NextAction::PropagateError(err)),
+                    Some(Self::ErrorOccurred(err).into()),
                 ),
+            },
+            Self::Aborted(res) => {
+                let next_action = match res {
+                    Ok(()) => Task::FetchProgress.into(),
+                    Err(err) => Self::ErrorOccurred(err).into(),
+                };
+                (StateMutation::Unchanged, Some(next_action))
             }
+            Self::StatusFetched(res) => {
+                debug_assert_eq!(state.control, ControlState::Busy);
+                state.control = ControlState::Idle;
+                match res {
+                    Ok(new_status) => {
+                        let new_status = RemoteData::ready(new_status);
+                        if state.remote.status != new_status {
+                            (StateMutation::MaybeChanged, None)
+                        } else {
+                            (StateMutation::Unchanged, None)
+                        }
+                    }
+                    Err(err) => (
+                        StateMutation::Unchanged,
+                        Some(Self::ErrorOccurred(err).into()),
+                    ),
+                }
+            }
+            Self::ScanFinished(res) => {
+                debug_assert_eq!(state.control, ControlState::Busy);
+                state.control = ControlState::Idle;
+                // Invalidate both progress and status to enforce refetching
+                state.remote.progress.reset();
+                state.remote.status.reset();
+                debug_assert!(state.remote.last_scan_outcome.is_pending());
+                let next_action = match res {
+                    Ok(outcome) => {
+                        state.remote.last_scan_outcome = RemoteData::ready(outcome);
+                        Task::FetchProgress.into()
+                    }
+                    Err(err) => {
+                        state.remote.last_scan_outcome.reset();
+                        Self::ErrorOccurred(err).into()
+                    }
+                };
+                (StateMutation::MaybeChanged, Some(next_action))
+            }
+            Self::ImportFinished(res) => {
+                debug_assert_eq!(state.control, ControlState::Busy);
+                state.control = ControlState::Idle;
+                // Invalidate both progress and status to enforce refetching
+                state.remote.progress.reset();
+                state.remote.status.reset();
+                debug_assert!(state.remote.last_import_outcome.is_pending());
+                let next_action = match res {
+                    Ok(outcome) => {
+                        state.remote.last_import_outcome = RemoteData::ready(outcome);
+                        Task::FetchProgress.into()
+                    }
+                    Err(err) => {
+                        state.remote.last_import_outcome.reset();
+                        Self::ErrorOccurred(err).into()
+                    }
+                };
+                (StateMutation::MaybeChanged, Some(next_action))
+            }
+            Self::Untracked(res) => {
+                debug_assert_eq!(state.control, ControlState::Busy);
+                state.control = ControlState::Idle;
+                state.remote.progress.reset();
+                state.remote.status.reset();
+                debug_assert!(state.remote.last_untrack_outcome.is_pending());
+                let next_action = match res {
+                    Ok(outcome) => {
+                        state.remote.last_untrack_outcome = RemoteData::ready(outcome);
+                        Task::FetchProgress.into()
+                    }
+                    Err(err) => {
+                        state.remote.last_untrack_outcome.reset();
+                        Self::ErrorOccurred(err).into()
+                    }
+                };
+                (StateMutation::MaybeChanged, Some(next_action))
+            }
+            Self::ErrorOccurred(err) => (
+                StateMutation::Unchanged,
+                Some(Self::ErrorOccurred(err).into()),
+            ),
         }
-        Effect::ScanFinished(res) => {
-            debug_assert_eq!(state.control, ControlState::Busy);
-            state.control = ControlState::Idle;
-            // Invalidate both progress and status to enforce refetching
-            state.remote.progress.reset();
-            state.remote.status.reset();
-            debug_assert!(state.remote.last_scan_outcome.is_pending());
-            let next_action = match res {
-                Ok(outcome) => {
-                    state.remote.last_scan_outcome = RemoteData::ready(outcome);
-                    NextAction::FetchProgress
-                }
-                Err(err) => {
-                    state.remote.last_scan_outcome.reset();
-                    NextAction::PropagateError(err)
-                }
-            };
-            (StateMutation::MaybeChanged, Some(next_action))
-        }
-        Effect::ImportFinished(res) => {
-            debug_assert_eq!(state.control, ControlState::Busy);
-            state.control = ControlState::Idle;
-            // Invalidate both progress and status to enforce refetching
-            state.remote.progress.reset();
-            state.remote.status.reset();
-            debug_assert!(state.remote.last_import_outcome.is_pending());
-            let next_action = match res {
-                Ok(outcome) => {
-                    state.remote.last_import_outcome = RemoteData::ready(outcome);
-                    NextAction::FetchProgress
-                }
-                Err(err) => {
-                    state.remote.last_import_outcome.reset();
-                    NextAction::PropagateError(err)
-                }
-            };
-            (StateMutation::MaybeChanged, Some(next_action))
-        }
-        Effect::Untracked(res) => {
-            debug_assert_eq!(state.control, ControlState::Busy);
-            state.control = ControlState::Idle;
-            state.remote.progress.reset();
-            state.remote.status.reset();
-            debug_assert!(state.remote.last_untrack_outcome.is_pending());
-            let next_action = match res {
-                Ok(outcome) => {
-                    state.remote.last_untrack_outcome = RemoteData::ready(outcome);
-                    NextAction::FetchProgress
-                }
-                Err(err) => {
-                    state.remote.last_untrack_outcome.reset();
-                    NextAction::PropagateError(err)
-                }
-            };
-            (StateMutation::MaybeChanged, Some(next_action))
-        }
-        Effect::ErrorOccurred(error) => (
-            StateMutation::Unchanged,
-            Some(NextAction::PropagateError(error)),
-        ),
     }
 }
 
-pub async fn dispatch_next_action(
-    shared_env: Arc<Environment>,
-    next_action: NextAction,
-) -> Option<Effect> {
-    match next_action {
-        NextAction::FetchStatus {
-            collection_uid,
-            root_url,
-        } => {
-            let res = on_fetch_status(
-                &shared_env.client,
-                &shared_env.api_url,
-                &collection_uid,
-                root_url.as_ref(),
-            )
-            .await;
-            Some(Effect::StatusFetched(res))
+impl Task {
+    pub async fn execute_with(self, env: &Environment) -> Effect {
+        log::debug!("Executing task: {:?}", self);
+        match self {
+            Task::FetchStatus {
+                collection_uid,
+                root_url,
+            } => {
+                let res = on_fetch_status(
+                    &env.client,
+                    &env.api_url,
+                    &collection_uid,
+                    root_url.as_ref(),
+                )
+                .await;
+                Effect::StatusFetched(res)
+            }
+            Task::FetchProgress => {
+                let res = on_fetch_progress(&env.client, &env.api_url).await;
+                Effect::ProgressFetched(res)
+            }
+            Task::StartScan {
+                collection_uid,
+                root_url,
+            } => {
+                let res = on_start_scan(
+                    &env.client,
+                    &env.api_url,
+                    &collection_uid,
+                    root_url.as_ref(),
+                )
+                .await;
+                Effect::ScanFinished(res)
+            }
+            Task::StartImport {
+                collection_uid,
+                root_url,
+            } => {
+                let res = on_start_import(
+                    &env.client,
+                    &env.api_url,
+                    &collection_uid,
+                    root_url.as_ref(),
+                )
+                .await;
+                Effect::ImportFinished(res)
+            }
+            Task::Abort => {
+                let res = on_abort(&env.client, &env.api_url).await;
+                Effect::Aborted(res)
+            }
+            Task::Untrack {
+                collection_uid,
+                root_url,
+            } => {
+                let res = on_untrack(&env.client, &env.api_url, &collection_uid, &root_url).await;
+                Effect::Untracked(res)
+            }
         }
-        NextAction::FetchProgress => {
-            let res = on_fetch_progress(&shared_env.client, &shared_env.api_url).await;
-            Some(Effect::ProgressFetched(res))
-        }
-        NextAction::StartScan {
-            collection_uid,
-            root_url,
-        } => {
-            let res = on_start_scan(
-                &shared_env.client,
-                &shared_env.api_url,
-                &collection_uid,
-                root_url.as_ref(),
-            )
-            .await;
-            Some(Effect::ScanFinished(res))
-        }
-        NextAction::StartImport {
-            collection_uid,
-            root_url,
-        } => {
-            let res = on_start_import(
-                &shared_env.client,
-                &shared_env.api_url,
-                &collection_uid,
-                root_url.as_ref(),
-            )
-            .await;
-            Some(Effect::ImportFinished(res))
-        }
-        NextAction::Abort => {
-            let res = on_abort(&shared_env.client, &shared_env.api_url).await;
-            Some(Effect::Aborted(res))
-        }
-        NextAction::Untrack {
-            collection_uid,
-            root_url,
-        } => {
-            let res = on_untrack(
-                &shared_env.client,
-                &shared_env.api_url,
-                &collection_uid,
-                &root_url,
-            )
-            .await;
-            Some(Effect::Untracked(res))
-        }
-        NextAction::PropagateError(error) => Some(Effect::ErrorOccurred(error)),
     }
 }
 

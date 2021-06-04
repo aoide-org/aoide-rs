@@ -22,7 +22,7 @@ use aoide_client::{
     collection::{activate_collection, create_new_collection, fetch_available_collections},
     handle_events,
     media::tracker::{abort, fetch_progress, fetch_status, start_import, start_scan, untrack},
-    prelude::{emit_event, event_channel, Environment},
+    prelude::Environment,
     Intent,
 };
 use aoide_core::{
@@ -138,7 +138,7 @@ async fn main() -> anyhow::Result<()> {
 
     let client = Client::new();
     let env = Environment { client, api_url };
-    let (event_tx, event_rx) = event_channel();
+    let mut last_media_tracker_progress_fetched = None;
     let mut last_media_tracker_status = None;
     let mut last_media_tracker_progress = None;
     let mut last_media_tracker_scan_outcome = None;
@@ -147,13 +147,16 @@ async fn main() -> anyhow::Result<()> {
     let mut subcommand_submitted = false;
     let event_loop = tokio::spawn(handle_events(
         env,
-        (event_tx.clone(), event_rx),
         Default::default(),
+        Intent::RenderState,
         Box::new(move |state| {
             if !state.last_errors().is_empty() {
                 for err in state.last_errors() {
                     log::error!("{}", err);
                 }
+                return Some(Intent::ClearFirstErrorsBeforeNextRenderState(
+                    state.last_errors().len(),
+                ));
             }
             if last_media_tracker_progress.as_ref() != state.media_tracker.remote().progress().get()
             {
@@ -163,7 +166,7 @@ async fn main() -> anyhow::Result<()> {
                     .progress()
                     .get()
                     .map(ToOwned::to_owned);
-                if let Some(progress) = last_media_tracker_progress.as_ref() {
+                if let Some(progress) = &last_media_tracker_progress {
                     log::info!("Media tracker progress: {:?}", progress);
                 }
             }
@@ -174,7 +177,7 @@ async fn main() -> anyhow::Result<()> {
                     .status()
                     .get()
                     .map(ToOwned::to_owned);
-                if let Some(status) = last_media_tracker_status.as_ref() {
+                if let Some(status) = &last_media_tracker_status {
                     log::info!("Media tracker status: {:?}", status);
                 }
             }
@@ -187,7 +190,7 @@ async fn main() -> anyhow::Result<()> {
                     .last_scan_outcome()
                     .get_ready()
                     .map(ToOwned::to_owned);
-                if let Some(outcome) = last_media_tracker_scan_outcome.as_ref() {
+                if let Some(outcome) = &last_media_tracker_scan_outcome {
                     log::info!("Scan finished: {:?}", outcome);
                 }
             }
@@ -204,7 +207,7 @@ async fn main() -> anyhow::Result<()> {
                     .last_import_outcome()
                     .get_ready()
                     .map(ToOwned::to_owned);
-                if let Some(outcome) = last_media_tracker_import_outcome.as_ref() {
+                if let Some(outcome) = &last_media_tracker_import_outcome {
                     log::info!("Import finished: {:?}", outcome);
                 }
             }
@@ -221,7 +224,7 @@ async fn main() -> anyhow::Result<()> {
                     .last_untrack_outcome()
                     .get_ready()
                     .map(ToOwned::to_owned);
-                if let Some(outcome) = last_media_tracker_untrack_outcome.as_ref() {
+                if let Some(outcome) = &last_media_tracker_untrack_outcome {
                     log::info!("Untrack finished: {:?}", outcome);
                 }
             }
@@ -229,18 +232,26 @@ async fn main() -> anyhow::Result<()> {
             // Only submit a single subcommand
             if subcommand_submitted {
                 let next_intent = if state.media_tracker.is_idle() {
+                    // Terminate when idle and no task is pending
                     None
                 } else {
-                    if last_media_tracker_progress.is_none() {
-                        // Fetch immediately if unknown
-                        Some(fetch_progress().into())
+                    // Periodically refetch and report progress while busy
+                    if let Some(last_fetched) = last_media_tracker_progress_fetched {
+                        let now = Instant::now();
+                        if now >= last_fetched {
+                            let not_before = now + PROGRESS_POLLING_PERIOD;
+                            last_media_tracker_progress_fetched = Some(not_before);
+                            let intent = Intent::TimedIntent {
+                                not_before,
+                                intent: Box::new(fetch_progress().into()),
+                            };
+                            Some(intent)
+                        } else {
+                            None
+                        }
                     } else {
-                        // Periodically refetch and report progress
-                        let intent = Intent::TimedIntent {
-                            not_before: Instant::now() + PROGRESS_POLLING_PERIOD,
-                            intent: Box::new(fetch_progress().into()),
-                        };
-                        Some(intent)
+                        last_media_tracker_progress_fetched = Some(Instant::now());
+                        Some(fetch_progress().into())
                     }
                 };
                 return next_intent;
@@ -277,6 +288,7 @@ async fn main() -> anyhow::Result<()> {
             if let ("media-tracker", Some(media_tracker_matches)) = matches.subcommand() {
                 if matches!(media_tracker_matches.subcommand(), ("progress", _)) {
                     subcommand_submitted = true;
+                    last_media_tracker_progress_fetched = Some(Instant::now());
                     return Some(fetch_progress().into());
                 }
                 if matches!(media_tracker_matches.subcommand(), ("abort", _)) {
@@ -349,11 +361,16 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
 
+            if subcommand_submitted {
+                return None;
+            }
+
             // Commands that require an active collection
             if let Some(collection) = state.collection.active_collection() {
                 log::info!("Active collection: {}", collection.hdr.uid);
                 // Only allowed while idle
                 if !state.media_tracker.is_idle() {
+                    last_media_tracker_progress_fetched = Some(Instant::now());
                     return Some(fetch_progress().into());
                 }
                 match matches.subcommand() {
@@ -414,12 +431,9 @@ async fn main() -> anyhow::Result<()> {
                     }
                 }
             }
-            debug_assert!(state.media_tracker.is_idle());
             return None;
         }),
     ));
-    // Kick off the loop by emitting an initial event
-    emit_event(&event_tx, Intent::RenderState);
     event_loop.await?;
     Ok(())
 }
