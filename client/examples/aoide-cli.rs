@@ -31,7 +31,6 @@ use aoide_core::{
 };
 
 use clap::{App, Arg};
-use reqwest::Client;
 
 const DEFAULT_LOG_FILTER: &str = "info";
 
@@ -136,8 +135,7 @@ async fn main() -> anyhow::Result<()> {
         .value_of("collection-uid")
         .map(|s| s.parse::<EntityUid>().expect("Collection UID"));
 
-    let client = Client::new();
-    let env = Environment { client, api_url };
+    let env = Environment::new(api_url);
     let mut last_media_tracker_progress_fetched = None;
     let mut last_media_tracker_status = None;
     let mut last_media_tracker_progress = None;

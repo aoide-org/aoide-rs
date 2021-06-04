@@ -17,7 +17,6 @@ use aoide_core::{
     collection::{Collection, Entity as CollectionEntity},
     entity::EntityUid,
 };
-use reqwest::{Client, Url};
 
 use crate::{prelude::*, receive_response_body};
 
@@ -206,11 +205,11 @@ impl Task {
         log::trace!("Executing task: {:?}", self);
         match self {
             Self::CreateNewCollection(new_collection) => {
-                let res = on_create_new_collection(&env.client, &env.api_url, new_collection).await;
+                let res = on_create_new_collection(&env, new_collection).await;
                 Effect::NewCollectionCreated(res)
             }
             Self::FetchAvailableCollections => {
-                let res = on_fetch_available_collections(&env.client, &env.api_url).await;
+                let res = on_fetch_available_collections(&env).await;
                 Effect::AvailableCollectionsFetched(res)
             }
         }
@@ -218,15 +217,14 @@ impl Task {
 }
 
 async fn on_create_new_collection(
-    client: &Client,
-    api_url: &Url,
+    env: &Environment,
     new_collection: Collection,
 ) -> anyhow::Result<CollectionEntity> {
-    let url = api_url.join("c")?;
+    let url = env.join_api_url("c")?;
     let body = serde_json::to_vec(&aoide_core_serde::collection::Collection::from(
         new_collection,
     ))?;
-    let request = client.post(url).body(body);
+    let request = env.client().post(url).body(body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
     let entity = serde_json::from_slice::<aoide_core_serde::collection::Entity>(&response_body)
@@ -236,11 +234,10 @@ async fn on_create_new_collection(
 }
 
 async fn on_fetch_available_collections(
-    client: &Client,
-    api_url: &Url,
+    env: &Environment,
 ) -> anyhow::Result<Vec<CollectionEntity>> {
-    let request_url = api_url.join("c")?;
-    let request = client.get(request_url);
+    let request_url = env.join_api_url("c")?;
+    let request = env.client().get(request_url);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
     let available_collections: Vec<_> = serde_json::from_slice::<

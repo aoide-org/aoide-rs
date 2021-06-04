@@ -16,6 +16,7 @@
 use std::{
     fmt,
     ops::{Add, AddAssign},
+    sync::atomic::AtomicUsize,
 };
 
 use reqwest::{Client, Url};
@@ -24,8 +25,43 @@ use tokio::sync::mpsc;
 /// Immutable environment
 #[derive(Debug)]
 pub struct Environment {
-    pub client: Client,
-    pub api_url: Url,
+    api_url: Url,
+    client: Client,
+    pending_tasks_count: AtomicUsize,
+}
+
+impl Environment {
+    pub fn new(api_url: Url) -> Self {
+        Self {
+            api_url,
+            client: Client::new(),
+            pending_tasks_count: AtomicUsize::new(0),
+        }
+    }
+
+    pub fn client(&self) -> &Client {
+        &self.client
+    }
+
+    pub fn join_api_url(&self, input: &str) -> anyhow::Result<Url> {
+        self.api_url.join(input).map_err(Into::into)
+    }
+
+    pub fn task_pending(&self) {
+        self.pending_tasks_count
+            .fetch_add(1, std::sync::atomic::Ordering::Acquire);
+    }
+
+    pub fn task_finished(&self) {
+        self.pending_tasks_count
+            .fetch_sub(1, std::sync::atomic::Ordering::Release);
+    }
+
+    pub fn all_tasks_finished(&self) -> bool {
+        self.pending_tasks_count
+            .load(std::sync::atomic::Ordering::Acquire)
+            == 0
+    }
 }
 
 pub type EventSender<T> = mpsc::UnboundedSender<T>;

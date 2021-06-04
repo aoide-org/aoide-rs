@@ -25,10 +25,7 @@ use bytes::Bytes;
 use prelude::*;
 use reqwest::Response;
 
-use std::{
-    sync::{atomic::AtomicUsize, Arc},
-    time::Instant,
-};
+use std::{sync::Arc, time::Instant};
 use tokio::signal;
 
 use crate::media::tracker::abort;
@@ -217,8 +214,6 @@ impl From<media::tracker::Effect> for Effect {
 
 pub type RenderStateFn = dyn FnMut(&State) -> Option<Intent> + Send;
 
-static PENDING_TASKS_COUNT: AtomicUsize = AtomicUsize::new(0);
-
 pub async fn handle_events(
     env: Environment,
     initial_state: State,
@@ -244,7 +239,7 @@ pub async fn handle_events(
                         }
                     }
                 }
-                if terminating && event_tx.is_some() && PENDING_TASKS_COUNT.load(std::sync::atomic::Ordering::Acquire) == 0 {
+                if terminating && event_tx.is_some() && shared_env.all_tasks_finished() {
                     log::debug!("Closing event emitter after all pending tasks finished");
                     event_tx = None;
                 }
@@ -298,12 +293,12 @@ fn handle_next_event(
                         let shared_env = shared_env.clone();
                         let event_tx = event_tx.clone();
                         log::debug!("Dispatching task asynchronously: {:?}", task);
-                        PENDING_TASKS_COUNT.fetch_add(1, std::sync::atomic::Ordering::Acquire);
+                        shared_env.task_pending();
                         tokio::spawn(async move {
                             let effect = task.execute_with(&shared_env).await;
                             log::debug!("Received effect from task: {:?}", effect);
                             emit_event(&event_tx, effect);
-                            PENDING_TASKS_COUNT.fetch_sub(1, std::sync::atomic::Ordering::Release);
+                            shared_env.task_finished();
                         });
                         number_of_tasks_dispatched += 1;
                     } else {

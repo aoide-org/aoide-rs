@@ -23,7 +23,7 @@ use aoide_core::{
     },
 };
 
-use reqwest::{Client, Url};
+use reqwest::Url;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ControlState {
@@ -418,54 +418,36 @@ impl Task {
                 collection_uid,
                 root_url,
             } => {
-                let res = on_fetch_status(
-                    &env.client,
-                    &env.api_url,
-                    &collection_uid,
-                    root_url.as_ref(),
-                )
-                .await;
+                let res = on_fetch_status(env, &collection_uid, root_url.as_ref()).await;
                 Effect::StatusFetched(res)
             }
             Task::FetchProgress => {
-                let res = on_fetch_progress(&env.client, &env.api_url).await;
+                let res = on_fetch_progress(env).await;
                 Effect::ProgressFetched(res)
             }
             Task::StartScan {
                 collection_uid,
                 root_url,
             } => {
-                let res = on_start_scan(
-                    &env.client,
-                    &env.api_url,
-                    &collection_uid,
-                    root_url.as_ref(),
-                )
-                .await;
+                let res = on_start_scan(env, &collection_uid, root_url.as_ref()).await;
                 Effect::ScanFinished(res)
             }
             Task::StartImport {
                 collection_uid,
                 root_url,
             } => {
-                let res = on_start_import(
-                    &env.client,
-                    &env.api_url,
-                    &collection_uid,
-                    root_url.as_ref(),
-                )
-                .await;
+                let res = on_start_import(env, &collection_uid, root_url.as_ref()).await;
                 Effect::ImportFinished(res)
             }
             Task::Abort => {
-                let res = on_abort(&env.client, &env.api_url).await;
+                let res = on_abort(env).await;
                 Effect::Aborted(res)
             }
             Task::Untrack {
                 collection_uid,
                 root_url,
             } => {
-                let res = on_untrack(&env.client, &env.api_url, &collection_uid, &root_url).await;
+                let res = on_untrack(env, &collection_uid, &root_url).await;
                 Effect::Untracked(res)
             }
         }
@@ -473,18 +455,18 @@ impl Task {
 }
 
 async fn on_fetch_status(
-    client: &Client,
-    api_url: &Url,
+    env: &Environment,
     collection_uid: &EntityUid,
     root_url: Option<&Url>,
 ) -> anyhow::Result<Status> {
-    let request_url = api_url.join(&format!("c/{}/media-tracker/query-status", collection_uid))?;
+    let request_url =
+        env.join_api_url(&format!("c/{}/media-tracker/query-status", collection_uid))?;
     let request_body = serde_json::to_vec(&root_url.map(|root_url| {
         serde_json::json!({
             "rootUrl": root_url.to_string(),
         })
     }))?;
-    let request = client.post(request_url).body(request_body);
+    let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
     let status = serde_json::from_slice::<aoide_core_serde::usecases::media::tracker::Status>(
@@ -495,9 +477,9 @@ async fn on_fetch_status(
     Ok(status)
 }
 
-async fn on_fetch_progress(client: &Client, root_url: &Url) -> anyhow::Result<Progress> {
-    let request_url = root_url.join("media-tracker/progress")?;
-    let request = client.get(request_url);
+async fn on_fetch_progress(env: &Environment) -> anyhow::Result<Progress> {
+    let request_url = env.join_api_url("media-tracker/progress")?;
+    let request = env.client().get(request_url);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
     let progress = serde_json::from_slice::<aoide_core_serde::usecases::media::tracker::Progress>(
@@ -509,18 +491,17 @@ async fn on_fetch_progress(client: &Client, root_url: &Url) -> anyhow::Result<Pr
 }
 
 async fn on_start_scan(
-    client: &Client,
-    api_url: &Url,
+    env: &Environment,
     collection_uid: &EntityUid,
     root_url: Option<&Url>,
 ) -> anyhow::Result<ScanOutcome> {
-    let request_url = api_url.join(&format!("c/{}/media-tracker/scan", collection_uid))?;
+    let request_url = env.join_api_url(&format!("c/{}/media-tracker/scan", collection_uid))?;
     let request_body = serde_json::to_vec(&root_url.map(|root_url| {
         serde_json::json!({
             "rootUrl": root_url.to_string(),
         })
     }))?;
-    let request = client.post(request_url).body(request_body);
+    let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
     let outcome =
@@ -533,18 +514,17 @@ async fn on_start_scan(
 }
 
 async fn on_start_import(
-    client: &Client,
-    api_url: &Url,
+    env: &Environment,
     collection_uid: &EntityUid,
     root_url: Option<&Url>,
 ) -> anyhow::Result<ImportOutcome> {
-    let request_url = api_url.join(&format!("c/{}/media-tracker/import", collection_uid))?;
+    let request_url = env.join_api_url(&format!("c/{}/media-tracker/import", collection_uid))?;
     let request_body = serde_json::to_vec(&root_url.map(|root_url| {
         serde_json::json!({
             "rootUrl": root_url.to_string(),
         })
     }))?;
-    let request = client.post(request_url).body(request_body);
+    let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
     let outcome = serde_json::from_slice::<
@@ -555,25 +535,24 @@ async fn on_start_import(
     Ok(outcome)
 }
 
-pub async fn on_abort(client: &Client, root_url: &Url) -> anyhow::Result<()> {
-    let request_url = root_url.join("media-tracker/abort")?;
-    let request = client.post(request_url);
+pub async fn on_abort(env: &Environment) -> anyhow::Result<()> {
+    let request_url = env.join_api_url("media-tracker/abort")?;
+    let request = env.client().post(request_url);
     let response = request.send().await?;
     let _ = receive_response_body(response).await?;
     Ok(())
 }
 
 async fn on_untrack(
-    client: &Client,
-    api_url: &Url,
+    env: &Environment,
     collection_uid: &EntityUid,
     root_url: &Url,
 ) -> anyhow::Result<UntrackOutcome> {
-    let request_url = api_url.join(&format!("c/{}/media-tracker/untrack", collection_uid))?;
+    let request_url = env.join_api_url(&format!("c/{}/media-tracker/untrack", collection_uid))?;
     let request_body = serde_json::to_vec(&serde_json::json!({
         "rootUrl": root_url.to_string(),
     }))?;
-    let request = client.post(request_url).body(request_body);
+    let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
     let outcome = serde_json::from_slice::<
