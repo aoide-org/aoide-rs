@@ -300,9 +300,9 @@ fn handle_next_event(
                         log::debug!("Dispatching task asynchronously: {:?}", task);
                         PENDING_TASKS_COUNT.fetch_add(1, std::sync::atomic::Ordering::Acquire);
                         tokio::spawn(async move {
-                            let event = task.execute_with(&shared_env).await;
-                            log::debug!("Received event from task: {:?}", event);
-                            emit_event(&event_tx, event);
+                            let effect = task.execute_with(&shared_env).await;
+                            log::debug!("Received effect from task: {:?}", effect);
+                            emit_event(&event_tx, effect);
                             PENDING_TASKS_COUNT.fetch_sub(1, std::sync::atomic::Ordering::Release);
                         });
                         number_of_tasks_dispatched += 1;
