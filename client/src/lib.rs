@@ -43,23 +43,7 @@ impl State {
     }
 }
 
-#[derive(Debug)]
-pub enum Action {
-    ApplyEffect(Effect),
-    DispatchTask(Task),
-}
-
-impl From<Effect> for Action {
-    fn from(effect: Effect) -> Self {
-        Self::ApplyEffect(effect)
-    }
-}
-
-impl From<Task> for Action {
-    fn from(task: Task) -> Self {
-        Self::DispatchTask(task)
-    }
-}
+pub type Action = crate::prelude::Action<Effect, Task>;
 
 impl From<collection::Effect> for Action {
     fn from(effect: collection::Effect) -> Self {
@@ -356,11 +340,14 @@ impl Intent {
             Self::RenderState => (StateMutation::MaybeChanged, None),
             Self::ClearFirstErrorsBeforeNextRenderState(head_len) => (
                 StateMutation::Unchanged,
-                Some(Effect::ClearFirstErrors(head_len).into()),
+                Some(Action::apply_effect(Effect::ClearFirstErrors(head_len))),
             ),
             Self::TimedIntent { not_before, intent } => (
                 StateMutation::Unchanged,
-                Some(Task::TimedIntent { not_before, intent }.into()),
+                Some(Action::dispatch_task(Task::TimedIntent {
+                    not_before,
+                    intent,
+                })),
             ),
             Self::CollectionIntent(intent) => event_applied(intent.apply_on(&mut state.collection)),
             Self::MediaTrackerIntent(intent) => {

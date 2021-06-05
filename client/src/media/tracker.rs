@@ -90,23 +90,7 @@ impl State {
     }
 }
 
-#[derive(Debug)]
-pub enum Action {
-    ApplyEffect(Effect),
-    DispatchTask(Task),
-}
-
-impl From<Effect> for Action {
-    fn from(effect: Effect) -> Self {
-        Self::ApplyEffect(effect)
-    }
-}
-
-impl From<Task> for Action {
-    fn from(task: Task) -> Self {
-        Self::DispatchTask(task)
-    }
-}
+pub type Action = crate::prelude::Action<Effect, Task>;
 
 #[derive(Debug)]
 pub enum Task {
@@ -205,9 +189,15 @@ impl Intent {
         match self {
             Self::FetchProgress => {
                 state.remote.progress.set_pending();
-                (StateMutation::Unchanged, Some(Task::FetchProgress.into()))
+                (
+                    StateMutation::Unchanged,
+                    Some(Action::dispatch_task(Task::FetchProgress)),
+                )
             }
-            Self::Abort => (StateMutation::Unchanged, Some(Task::Abort.into())),
+            Self::Abort => (
+                StateMutation::Unchanged,
+                Some(Action::dispatch_task(Task::Abort)),
+            ),
             Self::FetchStatus {
                 collection_uid,
                 root_url,
@@ -220,13 +210,10 @@ impl Intent {
                 state.remote.status.set_pending();
                 (
                     StateMutation::MaybeChanged,
-                    Some(
-                        Task::FetchStatus {
-                            collection_uid,
-                            root_url,
-                        }
-                        .into(),
-                    ),
+                    Some(Action::dispatch_task(Task::FetchStatus {
+                        collection_uid,
+                        root_url,
+                    })),
                 )
             }
             Self::StartScan {
@@ -243,13 +230,10 @@ impl Intent {
                 state.remote.last_scan_outcome.set_pending();
                 (
                     StateMutation::MaybeChanged,
-                    Some(
-                        Task::StartScan {
-                            collection_uid,
-                            root_url,
-                        }
-                        .into(),
-                    ),
+                    Some(Action::dispatch_task(Task::StartScan {
+                        collection_uid,
+                        root_url,
+                    })),
                 )
             }
             Self::StartImport {
@@ -266,13 +250,10 @@ impl Intent {
                 state.remote.last_import_outcome.set_pending();
                 (
                     StateMutation::MaybeChanged,
-                    Some(
-                        Task::StartImport {
-                            collection_uid,
-                            root_url,
-                        }
-                        .into(),
-                    ),
+                    Some(Action::dispatch_task(Task::StartImport {
+                        collection_uid,
+                        root_url,
+                    })),
                 )
             }
             Self::Untrack {
@@ -289,13 +270,10 @@ impl Intent {
                 state.remote.last_untrack_outcome.set_pending();
                 (
                     StateMutation::MaybeChanged,
-                    Some(
-                        Task::Untrack {
-                            collection_uid,
-                            root_url,
-                        }
-                        .into(),
-                    ),
+                    Some(Action::dispatch_task(Task::Untrack {
+                        collection_uid,
+                        root_url,
+                    })),
                 )
             }
         }
@@ -318,13 +296,13 @@ impl Effect {
                 }
                 Err(err) => (
                     StateMutation::Unchanged,
-                    Some(Self::ErrorOccurred(err).into()),
+                    Some(Action::apply_effect(Self::ErrorOccurred(err))),
                 ),
             },
             Self::Aborted(res) => {
                 let next_action = match res {
-                    Ok(()) => Task::FetchProgress.into(),
-                    Err(err) => Self::ErrorOccurred(err).into(),
+                    Ok(()) => Action::dispatch_task(Task::FetchProgress),
+                    Err(err) => Action::apply_effect(Self::ErrorOccurred(err)),
                 };
                 (StateMutation::Unchanged, Some(next_action))
             }
@@ -342,7 +320,7 @@ impl Effect {
                     }
                     Err(err) => (
                         StateMutation::Unchanged,
-                        Some(Self::ErrorOccurred(err).into()),
+                        Some(Action::apply_effect(Self::ErrorOccurred(err))),
                     ),
                 }
             }
@@ -356,11 +334,11 @@ impl Effect {
                 let next_action = match res {
                     Ok(outcome) => {
                         state.remote.last_scan_outcome = RemoteData::ready(outcome);
-                        Task::FetchProgress.into()
+                        Action::dispatch_task(Task::FetchProgress)
                     }
                     Err(err) => {
                         state.remote.last_scan_outcome.reset();
-                        Self::ErrorOccurred(err).into()
+                        Action::apply_effect(Self::ErrorOccurred(err))
                     }
                 };
                 (StateMutation::MaybeChanged, Some(next_action))
@@ -375,11 +353,11 @@ impl Effect {
                 let next_action = match res {
                     Ok(outcome) => {
                         state.remote.last_import_outcome = RemoteData::ready(outcome);
-                        Task::FetchProgress.into()
+                        Action::dispatch_task(Task::FetchProgress)
                     }
                     Err(err) => {
                         state.remote.last_import_outcome.reset();
-                        Self::ErrorOccurred(err).into()
+                        Action::apply_effect(Self::ErrorOccurred(err))
                     }
                 };
                 (StateMutation::MaybeChanged, Some(next_action))
@@ -393,18 +371,18 @@ impl Effect {
                 let next_action = match res {
                     Ok(outcome) => {
                         state.remote.last_untrack_outcome = RemoteData::ready(outcome);
-                        Task::FetchProgress.into()
+                        Action::dispatch_task(Task::FetchProgress)
                     }
                     Err(err) => {
                         state.remote.last_untrack_outcome.reset();
-                        Self::ErrorOccurred(err).into()
+                        Action::apply_effect(Self::ErrorOccurred(err))
                     }
                 };
                 (StateMutation::MaybeChanged, Some(next_action))
             }
             Self::ErrorOccurred(err) => (
                 StateMutation::Unchanged,
-                Some(Self::ErrorOccurred(err).into()),
+                Some(Action::apply_effect(Self::ErrorOccurred(err))),
             ),
         }
     }

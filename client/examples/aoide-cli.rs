@@ -19,8 +19,7 @@ use std::{
 };
 
 use aoide_client::{
-    collection::{activate_collection, create_new_collection, fetch_available_collections},
-    handle_events,
+    collection, handle_events,
     media::tracker::{abort, fetch_progress, fetch_status, start_import, start_scan, untrack},
     prelude::Environment,
     Intent,
@@ -275,7 +274,9 @@ async fn main() -> anyhow::Result<()> {
                             },
                         };
                         subcommand_submitted = true;
-                        return Some(create_new_collection(new_collection).into());
+                        return Some(
+                            collection::Intent::CreateNewCollection(new_collection).into(),
+                        );
                     }
                     (subcommand, _) => {
                         debug_assert!(subcommand.is_empty());
@@ -326,7 +327,10 @@ async fn main() -> anyhow::Result<()> {
                             .is_some()
                         {
                             return Some(
-                                activate_collection(Some(collection_uid.to_owned())).into(),
+                                collection::Intent::ActivateCollection(Some(
+                                    collection_uid.to_owned(),
+                                ))
+                                .into(),
                             );
                         } else {
                             log::warn!("Collection not available: {}", collection_uid);
@@ -355,7 +359,7 @@ async fn main() -> anyhow::Result<()> {
                     .available_collections()
                     .is_unknown()
                 {
-                    return Some(fetch_available_collections().into());
+                    return Some(collection::Intent::FetchAvailableCollections.into());
                 }
             }
 

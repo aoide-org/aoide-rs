@@ -185,3 +185,19 @@ impl<T> RemoteData<T> {
         *self = Self::Pending { stale_data }
     }
 }
+
+#[derive(Debug)]
+pub enum Action<E, T> {
+    ApplyEffect(E),
+    DispatchTask(T),
+}
+
+impl<E, T> Action<E, T> {
+    pub fn apply_effect(effect: impl Into<E>) -> Self {
+        Self::ApplyEffect(effect.into())
+    }
+
+    pub fn dispatch_task(task: impl Into<T>) -> Self {
+        Self::DispatchTask(task.into())
+    }
+}
