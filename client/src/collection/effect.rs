@@ -13,9 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::{Action, State};
-
 use crate::prelude::StateMutation;
+
+use super::{Action, State};
 
 use aoide_core::collection::Entity as CollectionEntity;
 

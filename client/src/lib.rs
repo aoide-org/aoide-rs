@@ -21,20 +21,18 @@ pub mod collection;
 pub mod media;
 pub mod prelude;
 
-use bytes::Bytes;
-use prelude::*;
-use reqwest::Response;
+use self::{media::tracker as media_tracker, prelude::*};
 
+use bytes::Bytes;
+use reqwest::Response;
 use std::{sync::Arc, time::Instant};
 use tokio::signal;
-
-use crate::media::tracker::abort;
 
 #[derive(Debug, Default)]
 pub struct State {
     last_errors: Vec<anyhow::Error>,
     pub collection: collection::State,
-    pub media_tracker: media::tracker::State,
+    pub media_tracker: media_tracker::State,
 }
 
 impl State {
@@ -57,14 +55,14 @@ impl From<collection::Task> for Action {
     }
 }
 
-impl From<media::tracker::Effect> for Action {
-    fn from(effect: media::tracker::Effect) -> Self {
+impl From<media_tracker::Effect> for Action {
+    fn from(effect: media_tracker::Effect) -> Self {
         Self::ApplyEffect(effect.into())
     }
 }
 
-impl From<media::tracker::Task> for Action {
-    fn from(task: media::tracker::Task) -> Self {
+impl From<media_tracker::Task> for Action {
+    fn from(task: media_tracker::Task) -> Self {
         Self::DispatchTask(task.into())
     }
 }
@@ -76,7 +74,7 @@ pub enum Task {
         intent: Box<Intent>,
     },
     Collection(collection::Task),
-    MediaTracker(media::tracker::Task),
+    MediaTracker(media_tracker::Task),
 }
 
 impl From<collection::Task> for Task {
@@ -94,17 +92,17 @@ impl From<collection::Action> for Action {
     }
 }
 
-impl From<media::tracker::Task> for Task {
-    fn from(task: media::tracker::Task) -> Self {
+impl From<media_tracker::Task> for Task {
+    fn from(task: media_tracker::Task) -> Self {
         Self::MediaTracker(task)
     }
 }
 
-impl From<media::tracker::Action> for Action {
-    fn from(action: media::tracker::Action) -> Self {
+impl From<media_tracker::Action> for Action {
+    fn from(action: media_tracker::Action) -> Self {
         match action {
-            media::tracker::Action::ApplyEffect(effect) => effect.into(),
-            media::tracker::Action::DispatchTask(task) => task.into(),
+            media_tracker::Action::ApplyEffect(effect) => effect.into(),
+            media_tracker::Action::DispatchTask(task) => task.into(),
         }
     }
 }
@@ -139,14 +137,14 @@ impl From<collection::Effect> for Event {
     }
 }
 
-impl From<media::tracker::Intent> for Event {
-    fn from(intent: media::tracker::Intent) -> Self {
+impl From<media_tracker::Intent> for Event {
+    fn from(intent: media_tracker::Intent) -> Self {
         Self::Intent(intent.into())
     }
 }
 
-impl From<media::tracker::Effect> for Event {
-    fn from(effect: media::tracker::Effect) -> Self {
+impl From<media_tracker::Effect> for Event {
+    fn from(effect: media_tracker::Effect) -> Self {
         Self::Effect(effect.into())
     }
 }
@@ -160,7 +158,7 @@ pub enum Intent {
         intent: Box<Intent>,
     },
     CollectionIntent(collection::Intent),
-    MediaTrackerIntent(media::tracker::Intent),
+    MediaTrackerIntent(media_tracker::Intent),
 }
 
 impl From<collection::Intent> for Intent {
@@ -169,8 +167,8 @@ impl From<collection::Intent> for Intent {
     }
 }
 
-impl From<media::tracker::Intent> for Intent {
-    fn from(intent: media::tracker::Intent) -> Self {
+impl From<media_tracker::Intent> for Intent {
+    fn from(intent: media_tracker::Intent) -> Self {
         Self::MediaTrackerIntent(intent)
     }
 }
@@ -181,7 +179,7 @@ pub enum Effect {
     ClearFirstErrors(usize),
     ApplyIntent(Intent),
     CollectionEffect(collection::Effect),
-    MediaTrackerEffect(media::tracker::Effect),
+    MediaTrackerEffect(media_tracker::Effect),
 }
 
 impl From<collection::Effect> for Effect {
@@ -190,8 +188,8 @@ impl From<collection::Effect> for Effect {
     }
 }
 
-impl From<media::tracker::Effect> for Effect {
-    fn from(effect: media::tracker::Effect) -> Self {
+impl From<media_tracker::Effect> for Effect {
+    fn from(effect: media_tracker::Effect) -> Self {
         Self::MediaTrackerEffect(effect)
     }
 }
@@ -231,7 +229,7 @@ pub async fn handle_events(
             _ = signal::ctrl_c(), if !terminating => {
                 log::info!("Aborting after receiving SIGINT...");
                 debug_assert!(event_tx.is_some());
-                emit_event(event_tx.as_ref().unwrap(), abort());
+                emit_event(event_tx.as_ref().unwrap(), media_tracker::Intent::Abort);
             }
             else => {
                 // Exit the message loop in all other cases, i.e. if event_rx.recv()
@@ -363,7 +361,7 @@ impl Effect {
         match self {
             Self::ErrorOccurred(error)
             | Self::CollectionEffect(collection::Effect::ErrorOccurred(error))
-            | Self::MediaTrackerEffect(media::tracker::Effect::ErrorOccurred(error)) => {
+            | Self::MediaTrackerEffect(media_tracker::Effect::ErrorOccurred(error)) => {
                 state.last_errors.push(error);
                 (StateMutation::MaybeChanged, None)
             }
@@ -387,8 +385,7 @@ impl Task {
         match self {
             Self::TimedIntent { not_before, intent } => {
                 tokio::time::sleep_until(not_before.into()).await;
-                let unboxed_intent = *intent;
-                Effect::ApplyIntent(unboxed_intent.into())
+                Effect::ApplyIntent(*intent)
             }
             Self::Collection(task) => task.execute_with(env).await.into(),
             Self::MediaTracker(task) => task.execute_with(env).await.into(),

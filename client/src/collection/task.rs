@@ -13,9 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::Effect;
-
 use crate::{prelude::Environment, receive_response_body};
+
+use super::Effect;
 
 use aoide_core::collection::{Collection, Entity as CollectionEntity};
 

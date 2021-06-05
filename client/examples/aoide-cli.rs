@@ -13,23 +13,20 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{
-    env,
-    time::{Duration, Instant},
+use aoide_client::{
+    collection, handle_events, media::tracker as media_tracker, prelude::Environment, Intent,
 };
 
-use aoide_client::{
-    collection, handle_events,
-    media::tracker::{abort, fetch_progress, fetch_status, start_import, start_scan, untrack},
-    prelude::Environment,
-    Intent,
-};
 use aoide_core::{
     collection::{Collection, MediaSourceConfig},
     entity::EntityUid,
 };
 
 use clap::{App, Arg};
+use std::{
+    env,
+    time::{Duration, Instant},
+};
 
 const DEFAULT_LOG_FILTER: &str = "info";
 
@@ -240,7 +237,7 @@ async fn main() -> anyhow::Result<()> {
                             last_media_tracker_progress_fetched = Some(not_before);
                             let intent = Intent::TimedIntent {
                                 not_before,
-                                intent: Box::new(fetch_progress().into()),
+                                intent: Box::new(media_tracker::Intent::FetchProgress.into()),
                             };
                             Some(intent)
                         } else {
@@ -248,7 +245,7 @@ async fn main() -> anyhow::Result<()> {
                         }
                     } else {
                         last_media_tracker_progress_fetched = Some(Instant::now());
-                        Some(fetch_progress().into())
+                        Some(media_tracker::Intent::FetchProgress.into())
                     }
                 };
                 return next_intent;
@@ -288,11 +285,11 @@ async fn main() -> anyhow::Result<()> {
                 if matches!(media_tracker_matches.subcommand(), ("progress", _)) {
                     subcommand_submitted = true;
                     last_media_tracker_progress_fetched = Some(Instant::now());
-                    return Some(fetch_progress().into());
+                    return Some(media_tracker::Intent::FetchProgress.into());
                 }
                 if matches!(media_tracker_matches.subcommand(), ("abort", _)) {
                     subcommand_submitted = true;
-                    return Some(abort().into());
+                    return Some(media_tracker::Intent::Abort.into());
                 }
             }
 
@@ -373,7 +370,7 @@ async fn main() -> anyhow::Result<()> {
                 // Only allowed while idle
                 if !state.media_tracker.is_idle() {
                     last_media_tracker_progress_fetched = Some(Instant::now());
-                    return Some(fetch_progress().into());
+                    return Some(media_tracker::Intent::FetchProgress.into());
                 }
                 match matches.subcommand() {
                     ("media-tracker", Some(media_tracker_matches)) => {
@@ -388,7 +385,13 @@ async fn main() -> anyhow::Result<()> {
                                     });
                                 subcommand_submitted = true;
                                 last_media_tracker_status = None;
-                                return Some(fetch_status(collection_uid, root_url).into());
+                                return Some(
+                                    media_tracker::Intent::FetchStatus {
+                                        collection_uid,
+                                        root_url,
+                                    }
+                                    .into(),
+                                );
                             }
                             ("scan", scan_matches) => {
                                 let collection_uid = collection.hdr.uid.clone();
@@ -399,7 +402,13 @@ async fn main() -> anyhow::Result<()> {
                                         collection.body.media_source_config.root_url.clone()
                                     });
                                 subcommand_submitted = true;
-                                return Some(start_scan(collection_uid, root_url).into());
+                                return Some(
+                                    media_tracker::Intent::StartScan {
+                                        collection_uid,
+                                        root_url,
+                                    }
+                                    .into(),
+                                );
                             }
                             ("import", import_matches) => {
                                 let collection_uid = collection.hdr.uid.clone();
@@ -410,7 +419,13 @@ async fn main() -> anyhow::Result<()> {
                                         collection.body.media_source_config.root_url.clone()
                                     });
                                 subcommand_submitted = true;
-                                return Some(start_import(collection_uid, root_url).into());
+                                return Some(
+                                    media_tracker::Intent::StartImport {
+                                        collection_uid,
+                                        root_url,
+                                    }
+                                    .into(),
+                                );
                             }
                             ("untrack", untrack_matches) => {
                                 let collection_uid = collection.hdr.uid.clone();
@@ -419,7 +434,13 @@ async fn main() -> anyhow::Result<()> {
                                     .map(|s| s.parse().expect("URL"))
                                     .expect("required");
                                 subcommand_submitted = true;
-                                return Some(untrack(collection_uid, root_url).into());
+                                return Some(
+                                    media_tracker::Intent::Untrack {
+                                        collection_uid,
+                                        root_url,
+                                    }
+                                    .into(),
+                                );
                             }
                             (subcommand, _) => {
                                 debug_assert!(subcommand.is_empty());
