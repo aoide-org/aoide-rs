@@ -152,11 +152,12 @@ impl From<media_tracker::Effect> for Event {
 #[derive(Debug)]
 pub enum Intent {
     RenderState,
-    ClearFirstErrorsBeforeNextRenderState(usize),
+    InjectEffect(Box<Effect>),
     TimedIntent {
         not_before: Instant,
         intent: Box<Intent>,
     },
+    ClearFirstErrorsBeforeNextRenderState(usize),
     CollectionIntent(collection::Intent),
     MediaTrackerIntent(media_tracker::Intent),
 }
@@ -197,12 +198,11 @@ impl From<media_tracker::Effect> for Effect {
 pub type RenderStateFn = dyn FnMut(&State) -> Option<Intent> + Send;
 
 pub async fn handle_events(
-    env: Environment,
+    shared_env: Arc<Environment>,
     initial_state: State,
     initial_intent: Intent,
     mut render_state_fn: Box<RenderStateFn>,
-) {
-    let shared_env = Arc::new(env);
+) -> State {
     let mut state = initial_state;
     let (event_tx, mut event_rx) = event_channel();
     // Kick off the loop by emitting an initial event
@@ -240,15 +240,16 @@ pub async fn handle_events(
     }
     debug_assert!(terminating);
     debug_assert!(event_tx.is_none());
+    state
 }
 
-#[derive(Debug)]
-enum EventLoopControl {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EventLoopControl {
     Continue,
     Terminate,
 }
 
-fn handle_next_event(
+pub fn handle_next_event(
     shared_env: &Arc<Environment>,
     event_tx: Option<&EventSender<Event>>,
     state: &mut State,
@@ -336,9 +337,9 @@ impl Intent {
         log::debug!("Applying intent {:?} on {:?}", self, state);
         match self {
             Self::RenderState => (StateMutation::MaybeChanged, None),
-            Self::ClearFirstErrorsBeforeNextRenderState(head_len) => (
+            Self::InjectEffect(effect) => (
                 StateMutation::Unchanged,
-                Some(Action::apply_effect(Effect::ClearFirstErrors(head_len))),
+                Some(Action::apply_effect(*effect)),
             ),
             Self::TimedIntent { not_before, intent } => (
                 StateMutation::Unchanged,
@@ -346,6 +347,10 @@ impl Intent {
                     not_before,
                     intent,
                 })),
+            ),
+            Self::ClearFirstErrorsBeforeNextRenderState(head_len) => (
+                StateMutation::Unchanged,
+                Some(Action::apply_effect(Effect::ClearFirstErrors(head_len))),
             ),
             Self::CollectionIntent(intent) => event_applied(intent.apply_on(&mut state.collection)),
             Self::MediaTrackerIntent(intent) => {
@@ -407,3 +412,10 @@ async fn receive_response_body(response: Response) -> anyhow::Result<Bytes> {
     }
     Ok(bytes)
 }
+
+///////////////////////////////////////////////////////////////////////
+// Tests
+///////////////////////////////////////////////////////////////////////
+
+#[cfg(test)]
+mod tests;

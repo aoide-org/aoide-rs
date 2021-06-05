@@ -25,6 +25,7 @@ use aoide_core::{
 use clap::{App, Arg};
 use std::{
     env,
+    sync::Arc,
     time::{Duration, Instant},
 };
 
@@ -131,7 +132,7 @@ async fn main() -> anyhow::Result<()> {
         .value_of("collection-uid")
         .map(|s| s.parse::<EntityUid>().expect("Collection UID"));
 
-    let env = Environment::new(api_url);
+    let shared_env = Arc::new(Environment::new(api_url));
     let mut last_media_tracker_progress_fetched = None;
     let mut last_media_tracker_status = None;
     let mut last_media_tracker_progress = None;
@@ -140,7 +141,7 @@ async fn main() -> anyhow::Result<()> {
     let mut last_media_tracker_untrack_outcome = None;
     let mut subcommand_submitted = false;
     let event_loop = tokio::spawn(handle_events(
-        env,
+        shared_env,
         Default::default(),
         Intent::RenderState,
         Box::new(move |state| {
