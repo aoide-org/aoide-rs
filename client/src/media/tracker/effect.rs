@@ -13,9 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::prelude::{RemoteData, StateMutation};
+use crate::prelude::RemoteData;
 
-use super::{Action, ControlState, State, Task};
+use super::{Action, ControlState, ModelUpdate, State, Task};
 
 use aoide_core::usecases::media::tracker::{
     import::Outcome as ImportOutcome, scan::Outcome as ScanOutcome,
@@ -34,7 +34,7 @@ pub enum Effect {
 }
 
 impl Effect {
-    pub fn apply_on(self, state: &mut State) -> (StateMutation, Option<Action>) {
+    pub fn apply_on(self, state: &mut State) -> ModelUpdate {
         log::trace!("Applying effect {:?} on {:?}", self, state);
         match self {
             Self::ProgressFetched(res) => match res {
@@ -42,22 +42,19 @@ impl Effect {
                     let new_progress = RemoteData::ready_now(new_progress);
                     if state.remote.progress != new_progress {
                         state.remote.progress = new_progress;
-                        (StateMutation::MaybeChanged, None)
+                        ModelUpdate::maybe_changed(None)
                     } else {
-                        (StateMutation::Unchanged, None)
+                        ModelUpdate::unchanged(None)
                     }
                 }
-                Err(err) => (
-                    StateMutation::Unchanged,
-                    Some(Action::apply_effect(Self::ErrorOccurred(err))),
-                ),
+                Err(err) => ModelUpdate::unchanged(Action::apply_effect(Self::ErrorOccurred(err))),
             },
             Self::Aborted(res) => {
                 let next_action = match res {
                     Ok(()) => Action::dispatch_task(Task::FetchProgress),
                     Err(err) => Action::apply_effect(Self::ErrorOccurred(err)),
                 };
-                (StateMutation::Unchanged, Some(next_action))
+                ModelUpdate::unchanged(next_action)
             }
             Self::StatusFetched(res) => {
                 debug_assert_eq!(state.control, ControlState::Busy);
@@ -66,15 +63,14 @@ impl Effect {
                     Ok(new_status) => {
                         let new_status = RemoteData::ready_now(new_status);
                         if state.remote.status != new_status {
-                            (StateMutation::MaybeChanged, None)
+                            ModelUpdate::maybe_changed(None)
                         } else {
-                            (StateMutation::Unchanged, None)
+                            ModelUpdate::unchanged(None)
                         }
                     }
-                    Err(err) => (
-                        StateMutation::Unchanged,
-                        Some(Action::apply_effect(Self::ErrorOccurred(err))),
-                    ),
+                    Err(err) => {
+                        ModelUpdate::unchanged(Action::apply_effect(Self::ErrorOccurred(err)))
+                    }
                 }
             }
             Self::ScanFinished(res) => {
@@ -94,7 +90,7 @@ impl Effect {
                         Action::apply_effect(Self::ErrorOccurred(err))
                     }
                 };
-                (StateMutation::MaybeChanged, Some(next_action))
+                ModelUpdate::maybe_changed(next_action)
             }
             Self::ImportFinished(res) => {
                 debug_assert_eq!(state.control, ControlState::Busy);
@@ -113,7 +109,7 @@ impl Effect {
                         Action::apply_effect(Self::ErrorOccurred(err))
                     }
                 };
-                (StateMutation::MaybeChanged, Some(next_action))
+                ModelUpdate::maybe_changed(next_action)
             }
             Self::Untracked(res) => {
                 debug_assert_eq!(state.control, ControlState::Busy);
@@ -131,12 +127,11 @@ impl Effect {
                         Action::apply_effect(Self::ErrorOccurred(err))
                     }
                 };
-                (StateMutation::MaybeChanged, Some(next_action))
+                ModelUpdate::maybe_changed(next_action)
             }
-            Self::ErrorOccurred(err) => (
-                StateMutation::Unchanged,
-                Some(Action::apply_effect(Self::ErrorOccurred(err))),
-            ),
+            Self::ErrorOccurred(err) => {
+                ModelUpdate::unchanged(Action::apply_effect(Self::ErrorOccurred(err)))
+            }
         }
     }
 }

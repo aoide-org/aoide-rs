@@ -115,13 +115,56 @@ impl AddAssign for StateMutation {
     }
 }
 
-pub fn message_applied<A, B>(
-    (state_mutation, next_action): (StateMutation, Option<A>),
-) -> (StateMutation, Option<B>)
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub struct ModelUpdate<E, T> {
+    pub state_mutation: StateMutation,
+    pub next_action: Option<Action<E, T>>,
+}
+
+impl<E, T> ModelUpdate<E, T> {
+    pub fn unchanged(next_action: impl Into<Option<Action<E, T>>>) -> Self {
+        Self {
+            state_mutation: StateMutation::Unchanged,
+            next_action: next_action.into(),
+        }
+    }
+
+    pub fn maybe_changed(next_action: impl Into<Option<Action<E, T>>>) -> Self {
+        Self {
+            state_mutation: StateMutation::MaybeChanged,
+            next_action: next_action.into(),
+        }
+    }
+}
+
+pub fn model_updated<E1, E2, T1, T2>(from: ModelUpdate<E1, T1>) -> ModelUpdate<E2, T2>
 where
-    A: Into<B>,
+    E1: Into<E2>,
+    T1: Into<T2>,
 {
-    (state_mutation, next_action.map(Into::into))
+    let ModelUpdate {
+        state_mutation,
+        next_action,
+    } = from;
+    let next_action = next_action.map(|action| match action {
+        Action::ApplyEffect(effect) => Action::apply_effect(effect),
+        Action::DispatchTask(task) => Action::dispatch_task(task),
+    });
+    ModelUpdate {
+        state_mutation,
+        next_action,
+    }
+}
+
+pub trait Model {
+    type Intent;
+    type Effect;
+    type Task;
+
+    fn update(
+        &mut self,
+        message: Message<Self::Intent, Self::Effect>,
+    ) -> ModelUpdate<Self::Effect, Self::Task>;
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -254,7 +297,13 @@ impl<T> RemoteData<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+pub enum Message<I, E> {
+    Intent(I),
+    Effect(E),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Action<E, T> {
     ApplyEffect(E),
     DispatchTask(T),

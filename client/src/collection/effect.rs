@@ -13,9 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::prelude::StateMutation;
-
-use super::{Action, State};
+use super::{Action, ModelUpdate, State};
 
 use aoide_core::collection::Entity as CollectionEntity;
 
@@ -27,30 +25,23 @@ pub enum Effect {
 }
 
 impl Effect {
-    pub fn apply_on(self, state: &mut State) -> (StateMutation, Option<Action>) {
+    pub fn apply_on(self, state: &mut State) -> ModelUpdate {
         log::trace!("Applying effect {:?} on {:?}", self, state);
         match self {
             Self::NewCollectionCreated(res) => match res {
-                Ok(_) => (StateMutation::Unchanged, None),
-                Err(err) => (
-                    StateMutation::Unchanged,
-                    Some(Action::apply_effect(Self::ErrorOccurred(err))),
-                ),
+                Ok(_) => ModelUpdate::unchanged(None),
+                Err(err) => ModelUpdate::unchanged(Action::apply_effect(Self::ErrorOccurred(err))),
             },
             Self::AvailableCollectionsFetched(res) => match res {
                 Ok(new_available_collections) => {
                     state.set_available_collections(new_available_collections);
-                    (StateMutation::MaybeChanged, None)
+                    ModelUpdate::maybe_changed(None)
                 }
-                Err(err) => (
-                    StateMutation::Unchanged,
-                    Some(Action::apply_effect(Self::ErrorOccurred(err))),
-                ),
+                Err(err) => ModelUpdate::unchanged(Action::apply_effect(Self::ErrorOccurred(err))),
             },
-            Self::ErrorOccurred(error) => (
-                StateMutation::Unchanged,
-                Some(Action::apply_effect(Self::ErrorOccurred(error))),
-            ),
+            Self::ErrorOccurred(error) => {
+                ModelUpdate::unchanged(Action::apply_effect(Self::ErrorOccurred(error)))
+            }
         }
     }
 }

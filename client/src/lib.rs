@@ -41,17 +41,23 @@ impl State {
     }
 }
 
-impl State {
-    pub fn update_from_message(&mut self, message: Message) -> (StateMutation, Option<Action>) {
-        log::debug!("Processing message {:?} in state {:?}", message, self);
+pub type Message = crate::prelude::Message<Intent, Effect>;
+pub type Action = crate::prelude::Action<Effect, Task>;
+pub type ModelUpdate = crate::prelude::ModelUpdate<Effect, Task>;
+
+impl Model for State {
+    type Intent = Intent;
+    type Effect = Effect;
+    type Task = Task;
+
+    fn update(&mut self, message: Message) -> ModelUpdate {
+        log::debug!("Updating state {:?} with message {:?}", self, message);
         match message {
             Message::Intent(intent) => intent.apply_on(self),
             Message::Effect(effect) => effect.apply_on(self),
         }
     }
 }
-
-pub type Action = crate::prelude::Action<Effect, Task>;
 
 impl From<collection::Effect> for Action {
     fn from(effect: collection::Effect) -> Self {
@@ -115,12 +121,6 @@ impl From<media_tracker::Action> for Action {
             media_tracker::Action::DispatchTask(task) => task.into(),
         }
     }
-}
-
-#[derive(Debug)]
-pub enum Message {
-    Intent(Intent),
-    Effect(Effect),
 }
 
 impl From<Intent> for Message {
@@ -271,7 +271,10 @@ pub fn handle_next_message(
     let mut number_of_messages_sent = 0;
     let mut number_of_tasks_dispatched = 0;
     'process_next_message: loop {
-        let (next_state_mutation, next_action) = state.update_from_message(next_message);
+        let ModelUpdate {
+            state_mutation: next_state_mutation,
+            next_action,
+        } = state.update(next_message);
         state_mutation += next_state_mutation;
         if let Some(next_action) = next_action {
             number_of_next_actions += 1;
@@ -332,56 +335,47 @@ pub fn handle_next_message(
 }
 
 impl Intent {
-    pub fn apply_on(self, state: &mut State) -> (StateMutation, Option<Action>) {
+    pub fn apply_on(self, state: &mut State) -> ModelUpdate {
         log::debug!("Applying intent {:?} on {:?}", self, state);
         match self {
-            Self::RenderState => (StateMutation::MaybeChanged, None),
-            Self::InjectEffect(effect) => (
-                StateMutation::Unchanged,
-                Some(Action::apply_effect(*effect)),
-            ),
-            Self::TimedIntent { not_before, intent } => (
-                StateMutation::Unchanged,
-                Some(Action::dispatch_task(Task::TimedIntent {
+            Self::RenderState => ModelUpdate::maybe_changed(None),
+            Self::InjectEffect(effect) => ModelUpdate::unchanged(Action::apply_effect(*effect)),
+            Self::TimedIntent { not_before, intent } => {
+                ModelUpdate::unchanged(Action::dispatch_task(Task::TimedIntent {
                     not_before,
                     intent,
-                })),
-            ),
-            Self::ClearFirstErrorsBeforeNextRenderState(head_len) => (
-                StateMutation::Unchanged,
-                Some(Action::apply_effect(Effect::ClearFirstErrors(head_len))),
-            ),
-            Self::CollectionIntent(intent) => {
-                message_applied(intent.apply_on(&mut state.collection))
+                }))
             }
+            Self::ClearFirstErrorsBeforeNextRenderState(head_len) => {
+                ModelUpdate::unchanged(Action::apply_effect(Effect::ClearFirstErrors(head_len)))
+            }
+            Self::CollectionIntent(intent) => model_updated(intent.apply_on(&mut state.collection)),
             Self::MediaTrackerIntent(intent) => {
-                message_applied(intent.apply_on(&mut state.media_tracker))
+                model_updated(intent.apply_on(&mut state.media_tracker))
             }
         }
     }
 }
 
 impl Effect {
-    pub fn apply_on(self, state: &mut State) -> (StateMutation, Option<Action>) {
+    pub fn apply_on(self, state: &mut State) -> ModelUpdate {
         log::debug!("Applying effect {:?} on {:?}", self, state);
         match self {
             Self::ErrorOccurred(error)
             | Self::CollectionEffect(collection::Effect::ErrorOccurred(error))
             | Self::MediaTrackerEffect(media_tracker::Effect::ErrorOccurred(error)) => {
                 state.last_errors.push(error);
-                (StateMutation::MaybeChanged, None)
+                ModelUpdate::maybe_changed(None)
             }
             Self::ClearFirstErrors(head_len) => {
                 debug_assert!(head_len <= state.last_errors.len());
                 state.last_errors = state.last_errors.drain(head_len..).collect();
-                (StateMutation::MaybeChanged, None)
+                ModelUpdate::maybe_changed(None)
             }
             Self::ApplyIntent(intent) => intent.apply_on(state),
-            Self::CollectionEffect(effect) => {
-                message_applied(effect.apply_on(&mut state.collection))
-            }
+            Self::CollectionEffect(effect) => model_updated(effect.apply_on(&mut state.collection)),
             Self::MediaTrackerEffect(effect) => {
-                message_applied(effect.apply_on(&mut state.media_tracker))
+                model_updated(effect.apply_on(&mut state.media_tracker))
             }
         }
     }

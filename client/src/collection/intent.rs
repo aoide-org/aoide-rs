@@ -13,9 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::prelude::*;
-
-use super::{Action, State, Task};
+use super::{Action, ModelUpdate, State, Task};
 
 use aoide_core::{collection::Collection, entity::EntityUid};
 
@@ -27,25 +25,19 @@ pub enum Intent {
 }
 
 impl Intent {
-    pub fn apply_on(self, state: &mut State) -> (StateMutation, Option<Action>) {
+    pub fn apply_on(self, state: &mut State) -> ModelUpdate {
         log::trace!("Applying intent {:?} on {:?}", self, state);
         match self {
-            Self::CreateNewCollection(new_collection) => (
-                StateMutation::Unchanged,
-                Some(Action::dispatch_task(Task::CreateNewCollection(
-                    new_collection,
-                ))),
+            Self::CreateNewCollection(new_collection) => ModelUpdate::unchanged(
+                Action::dispatch_task(Task::CreateNewCollection(new_collection)),
             ),
             Self::FetchAvailableCollections => {
                 state.remote.available_collections.set_pending_now();
-                (
-                    StateMutation::MaybeChanged,
-                    Some(Action::dispatch_task(Task::FetchAvailableCollections)),
-                )
+                ModelUpdate::maybe_changed(Action::dispatch_task(Task::FetchAvailableCollections))
             }
             Self::ActivateCollection(new_active_collection_uid) => {
                 state.set_active_collection_uid(new_active_collection_uid);
-                (StateMutation::MaybeChanged, None)
+                ModelUpdate::maybe_changed(None)
             }
         }
     }
