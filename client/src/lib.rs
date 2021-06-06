@@ -42,7 +42,7 @@ impl State {
 }
 
 impl State {
-    pub fn process_message(&mut self, message: Message) -> (StateMutation, Option<Action>) {
+    pub fn update_from_message(&mut self, message: Message) -> (StateMutation, Option<Action>) {
         log::debug!("Processing message {:?} in state {:?}", message, self);
         match message {
             Message::Intent(intent) => intent.apply_on(self),
@@ -271,7 +271,7 @@ pub fn handle_next_message(
     let mut number_of_messages_sent = 0;
     let mut number_of_tasks_dispatched = 0;
     'process_next_message: loop {
-        let (next_state_mutation, next_action) = state.process_message(next_message);
+        let (next_state_mutation, next_action) = state.update_from_message(next_message);
         state_mutation += next_state_mutation;
         if let Some(next_action) = next_action {
             number_of_next_actions += 1;
