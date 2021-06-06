@@ -283,16 +283,15 @@ pub fn handle_next_message(
                 }
                 Action::DispatchTask(task) => {
                     if let Some(message_tx) = message_tx {
-                        let shared_env = shared_env.clone();
-                        let message_tx = message_tx.clone();
                         log::debug!("Dispatching task asynchronously: {:?}", task);
-                        shared_env.task_pending();
-                        tokio::spawn(async move {
-                            let effect = task.execute_with(&shared_env).await;
-                            log::debug!("Received effect from task: {:?}", effect);
-                            send_message(&message_tx, effect);
-                            shared_env.task_finished();
-                        });
+                        // TODO: How to avoid duplicate clone() of shared_env? Currently
+                        // not possible without boxing the future, which would perform
+                        // even worse!
+                        Environment::dispatch_task(
+                            shared_env.clone(),
+                            message_tx.clone(),
+                            task.execute_with(shared_env.clone()),
+                        );
                         number_of_tasks_dispatched += 1;
                     } else {
                         log::warn!(
@@ -389,15 +388,15 @@ impl Effect {
 }
 
 impl Task {
-    pub async fn execute_with(self, env: &Environment) -> Effect {
+    pub async fn execute_with(self, shared_env: Arc<Environment>) -> Effect {
         log::debug!("Executing task: {:?}", self);
         match self {
             Self::TimedIntent { not_before, intent } => {
                 tokio::time::sleep_until(not_before.into()).await;
                 Effect::ApplyIntent(*intent)
             }
-            Self::Collection(task) => task.execute_with(env).await.into(),
-            Self::MediaTracker(task) => task.execute_with(env).await.into(),
+            Self::Collection(task) => task.execute_with(&shared_env).await.into(),
+            Self::MediaTracker(task) => task.execute_with(&shared_env).await.into(),
         }
     }
 }

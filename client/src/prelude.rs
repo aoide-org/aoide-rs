@@ -15,8 +15,9 @@
 
 use std::{
     fmt,
+    future::Future,
     ops::{Add, AddAssign},
-    sync::atomic::AtomicUsize,
+    sync::{atomic::AtomicUsize, Arc},
     time::Instant,
 };
 
@@ -48,20 +49,29 @@ impl Environment {
         self.api_url.join(input).map_err(Into::into)
     }
 
-    pub fn task_pending(&self) {
-        self.pending_tasks_count
-            .fetch_add(1, std::sync::atomic::Ordering::Acquire);
-    }
-
-    pub fn task_finished(&self) {
-        self.pending_tasks_count
-            .fetch_sub(1, std::sync::atomic::Ordering::Release);
-    }
-
     pub fn all_tasks_finished(&self) -> bool {
         self.pending_tasks_count
             .load(std::sync::atomic::Ordering::Acquire)
             == 0
+    }
+
+    pub fn dispatch_task<T, M>(shared_self: Arc<Self>, message_tx: MessageSender<M>, task: T)
+    where
+        T: Future + Send + 'static,
+        T::Output: fmt::Debug + Into<M>,
+        M: fmt::Debug + Send + 'static,
+    {
+        shared_self
+            .pending_tasks_count
+            .fetch_add(1, std::sync::atomic::Ordering::Acquire);
+        tokio::spawn(async move {
+            let effect = task.await;
+            log::debug!("Received effect from task: {:?}", effect);
+            send_message(&message_tx, effect);
+            shared_self
+                .pending_tasks_count
+                .fetch_sub(1, std::sync::atomic::Ordering::Release);
+        });
     }
 }
 
