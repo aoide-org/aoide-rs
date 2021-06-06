@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::{Action, ControlState, ModelUpdate, State, Task};
+use super::{Action, ControlState, MutableModelUpdated, State, Task};
 
 use aoide_core::entity::EntityUid;
 
@@ -42,25 +42,25 @@ pub enum Intent {
 }
 
 impl Intent {
-    pub fn apply_on(self, state: &mut State) -> ModelUpdate {
+    pub fn apply_on(self, state: &mut State) -> MutableModelUpdated {
         log::trace!("Applying intent {:?} on {:?}", self, state);
         match self {
             Self::FetchProgress => {
                 state.remote.progress.set_pending_now();
-                ModelUpdate::unchanged(Action::dispatch_task(Task::FetchProgress))
+                MutableModelUpdated::unchanged(Action::dispatch_task(Task::FetchProgress))
             }
-            Self::Abort => ModelUpdate::unchanged(Action::dispatch_task(Task::Abort)),
+            Self::Abort => MutableModelUpdated::unchanged(Action::dispatch_task(Task::Abort)),
             Self::FetchStatus {
                 collection_uid,
                 root_url,
             } => {
                 if !state.is_idle() {
                     log::warn!("Cannot fetch status while not idle");
-                    return ModelUpdate::unchanged(None);
+                    return MutableModelUpdated::unchanged(None);
                 }
                 state.control = ControlState::Busy;
                 state.remote.status.set_pending_now();
-                ModelUpdate::maybe_changed(Action::dispatch_task(Task::FetchStatus {
+                MutableModelUpdated::maybe_changed(Action::dispatch_task(Task::FetchStatus {
                     collection_uid,
                     root_url,
                 }))
@@ -71,13 +71,13 @@ impl Intent {
             } => {
                 if !state.is_idle() {
                     log::warn!("Cannot start scan while not idle");
-                    return ModelUpdate::unchanged(None);
+                    return MutableModelUpdated::unchanged(None);
                 }
                 state.control = ControlState::Busy;
                 state.remote.progress.reset();
                 state.remote.status.set_pending_now();
                 state.remote.last_scan_outcome.set_pending_now();
-                ModelUpdate::maybe_changed(Action::dispatch_task(Task::StartScan {
+                MutableModelUpdated::maybe_changed(Action::dispatch_task(Task::StartScan {
                     collection_uid,
                     root_url,
                 }))
@@ -88,13 +88,13 @@ impl Intent {
             } => {
                 if !state.is_idle() {
                     log::warn!("Cannot start import while not idle");
-                    return ModelUpdate::unchanged(None);
+                    return MutableModelUpdated::unchanged(None);
                 }
                 state.control = ControlState::Busy;
                 state.remote.progress.reset();
                 state.remote.status.set_pending_now();
                 state.remote.last_import_outcome.set_pending_now();
-                ModelUpdate::maybe_changed(Action::dispatch_task(Task::StartImport {
+                MutableModelUpdated::maybe_changed(Action::dispatch_task(Task::StartImport {
                     collection_uid,
                     root_url,
                 }))
@@ -105,13 +105,13 @@ impl Intent {
             } => {
                 if !state.is_idle() {
                     log::warn!("Cannot untrack while not idle");
-                    return ModelUpdate::unchanged(None);
+                    return MutableModelUpdated::unchanged(None);
                 }
                 state.control = ControlState::Busy;
                 state.remote.progress.reset();
                 state.remote.status.set_pending_now();
                 state.remote.last_untrack_outcome.set_pending_now();
-                ModelUpdate::maybe_changed(Action::dispatch_task(Task::Untrack {
+                MutableModelUpdated::maybe_changed(Action::dispatch_task(Task::Untrack {
                     collection_uid,
                     root_url,
                 }))

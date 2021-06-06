@@ -21,7 +21,7 @@ use reqwest::Url;
 
 use crate::{
     collection, handle_messages, handle_next_message, media::tracker as media_tracker, prelude::*,
-    Effect, Intent, Message, MessageLoopControl, State,
+    Effect, Intent, MessageLoopControl, State,
 };
 
 fn dummy_api_url() -> Url {
@@ -34,7 +34,7 @@ fn test_env() -> Environment {
 
 #[test]
 fn should_handle_error() {
-    let (message_tx, _) = message_channel::<Message>();
+    let (message_tx, _) = message_channel();
     let shared_env = Arc::new(test_env());
     let mut state = State::default();
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
@@ -67,7 +67,7 @@ async fn should_catch_error() {
 
 #[test]
 fn should_handle_collection_error() {
-    let (message_tx, _) = message_channel::<Message>();
+    let (message_tx, _) = message_channel();
     let shared_env = Arc::new(test_env());
     let mut state = State::default();
     let effect = collection::Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
@@ -100,7 +100,7 @@ async fn should_catch_collection_error() {
 
 #[test]
 fn should_handle_media_tracker_error() {
-    let (message_tx, _) = message_channel::<Message>();
+    let (message_tx, _) = message_channel();
     let shared_env = Arc::new(test_env());
     let mut state = State::default();
     let effect = media_tracker::Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));

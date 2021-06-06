@@ -21,6 +21,7 @@ use std::{
     time::Instant,
 };
 
+use async_trait::async_trait;
 use reqwest::{Client, Url};
 use tokio::sync::mpsc;
 
@@ -55,11 +56,14 @@ impl Environment {
             == 0
     }
 
-    pub fn dispatch_task<T, M>(shared_self: Arc<Self>, message_tx: MessageSender<M>, task: T)
-    where
+    pub fn dispatch_task<I, T>(
+        shared_self: Arc<Self>,
+        message_tx: MessageSender<I, T::Output>,
+        task: T,
+    ) where
         T: Future + Send + 'static,
-        T::Output: fmt::Debug + Into<M>,
-        M: fmt::Debug + Send + 'static,
+        T::Output: fmt::Debug + Send + 'static,
+        I: fmt::Debug + Send + 'static,
     {
         shared_self
             .pending_tasks_count
@@ -67,7 +71,7 @@ impl Environment {
         tokio::spawn(async move {
             let effect = task.await;
             log::debug!("Received effect from task: {:?}", effect);
-            send_message(&message_tx, effect);
+            send_message(&message_tx, Message::Effect(effect));
             shared_self
                 .pending_tasks_count
                 .fetch_sub(1, std::sync::atomic::Ordering::Release);
@@ -75,29 +79,37 @@ impl Environment {
     }
 }
 
-pub type MessageSender<T> = mpsc::UnboundedSender<T>;
-pub type MessageReceiver<T> = mpsc::UnboundedReceiver<T>;
+pub type MessageSender<I, E> = mpsc::UnboundedSender<Message<I, E>>;
+pub type MessageReceiver<I, E> = mpsc::UnboundedReceiver<Message<I, E>>;
 
-pub fn message_channel<T>() -> (MessageSender<T>, MessageReceiver<T>) {
+pub fn message_channel<I, E>() -> (MessageSender<I, E>, MessageReceiver<I, E>) {
     mpsc::unbounded_channel()
 }
 
-pub fn send_message<T: fmt::Debug>(message_tx: &MessageSender<T>, message: impl Into<T>) {
+pub fn send_message<I: fmt::Debug, E: fmt::Debug>(
+    message_tx: &MessageSender<I, E>,
+    message: impl Into<Message<I, E>>,
+) {
     let message = message.into();
-    log::debug!("Emitting message: {:?}", message);
+    log::debug!("Sending message: {:?}", message);
     if let Err(message) = message_tx.send(message) {
         // Channel is closed, i.e. receiver has been dropped
-        log::debug!("Failed to emit message: {:?}", message.0);
+        log::debug!("Failed to send message: {:?}", message.0);
     }
 }
 
+#[async_trait]
+pub trait AsyncTask<E> {
+    async fn execute(self, shared_env: Arc<Environment>) -> E;
+}
+
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum StateMutation {
+pub enum ModelMutation {
     Unchanged,
     MaybeChanged,
 }
 
-impl Add<StateMutation> for StateMutation {
+impl Add<ModelMutation> for ModelMutation {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -109,40 +121,42 @@ impl Add<StateMutation> for StateMutation {
     }
 }
 
-impl AddAssign for StateMutation {
+impl AddAssign for ModelMutation {
     fn add_assign(&mut self, other: Self) {
         *self = *self + other;
     }
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub struct ModelUpdate<E, T> {
-    pub state_mutation: StateMutation,
+pub struct MutableModelUpdated<E, T> {
+    pub state_mutation: ModelMutation,
     pub next_action: Option<Action<E, T>>,
 }
 
-impl<E, T> ModelUpdate<E, T> {
+impl<E, T> MutableModelUpdated<E, T> {
     pub fn unchanged(next_action: impl Into<Option<Action<E, T>>>) -> Self {
         Self {
-            state_mutation: StateMutation::Unchanged,
+            state_mutation: ModelMutation::Unchanged,
             next_action: next_action.into(),
         }
     }
 
     pub fn maybe_changed(next_action: impl Into<Option<Action<E, T>>>) -> Self {
         Self {
-            state_mutation: StateMutation::MaybeChanged,
+            state_mutation: ModelMutation::MaybeChanged,
             next_action: next_action.into(),
         }
     }
 }
 
-pub fn model_updated<E1, E2, T1, T2>(from: ModelUpdate<E1, T1>) -> ModelUpdate<E2, T2>
+pub fn mutable_model_updated<E1, E2, T1, T2>(
+    from: MutableModelUpdated<E1, T1>,
+) -> MutableModelUpdated<E2, T2>
 where
     E1: Into<E2>,
     T1: Into<T2>,
 {
-    let ModelUpdate {
+    let MutableModelUpdated {
         state_mutation,
         next_action,
     } = from;
@@ -150,13 +164,13 @@ where
         Action::ApplyEffect(effect) => Action::apply_effect(effect),
         Action::DispatchTask(task) => Action::dispatch_task(task),
     });
-    ModelUpdate {
+    MutableModelUpdated {
         state_mutation,
         next_action,
     }
 }
 
-pub trait Model {
+pub trait MutableModel {
     type Intent;
     type Effect;
     type Task;
@@ -164,7 +178,7 @@ pub trait Model {
     fn update(
         &mut self,
         message: Message<Self::Intent, Self::Effect>,
-    ) -> ModelUpdate<Self::Effect, Self::Task>;
+    ) -> MutableModelUpdated<Self::Effect, Self::Task>;
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -316,5 +330,91 @@ impl<E, T> Action<E, T> {
 
     pub fn dispatch_task(task: impl Into<T>) -> Self {
         Self::DispatchTask(task.into())
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MessageLoopControl {
+    Continue,
+    Terminate,
+}
+
+pub type RenderMutableModelFn<M, I> = dyn FnMut(&M) -> Option<I> + Send;
+
+pub fn handle_next_message<M>(
+    shared_env: &Arc<Environment>,
+    message_tx: Option<&MessageSender<M::Intent, M::Effect>>,
+    model: &mut M,
+    render_fn: &mut RenderMutableModelFn<M, M::Intent>,
+    mut next_message: Message<M::Intent, M::Effect>,
+) -> MessageLoopControl
+where
+    M: MutableModel + fmt::Debug,
+    M::Intent: fmt::Debug + Send + 'static,
+    M::Effect: fmt::Debug + Send + 'static,
+    M::Task: AsyncTask<M::Effect> + fmt::Debug + 'static,
+{
+    let mut state_mutation = ModelMutation::Unchanged;
+    let mut number_of_next_actions = 0;
+    let mut number_of_messages_sent = 0;
+    let mut number_of_tasks_dispatched = 0;
+    'process_next_message: loop {
+        let MutableModelUpdated {
+            state_mutation: next_state_mutation,
+            next_action,
+        } = model.update(next_message);
+        state_mutation += next_state_mutation;
+        if let Some(next_action) = next_action {
+            number_of_next_actions += 1;
+            match next_action {
+                Action::ApplyEffect(effect) => {
+                    log::debug!("Applying subsequent effect immediately: {:?}", effect);
+                    next_message = Message::Effect(effect);
+                    continue 'process_next_message;
+                }
+                Action::DispatchTask(task) => {
+                    if let Some(message_tx) = message_tx {
+                        log::debug!("Dispatching task asynchronously: {:?}", task);
+                        Environment::dispatch_task(
+                            shared_env.clone(),
+                            message_tx.clone(),
+                            task.execute(shared_env.clone()),
+                        );
+                        number_of_tasks_dispatched += 1;
+                    } else {
+                        log::warn!(
+                            "Cannot dispatch new asynchronous task while terminating: {:?}",
+                            task
+                        );
+                    }
+                }
+            }
+        }
+        if state_mutation == ModelMutation::MaybeChanged || number_of_next_actions > 0 {
+            log::debug!("Rendering current state: {:?}", model);
+            if let Some(rendering_intent) = render_fn(&model) {
+                if let Some(message_tx) = message_tx {
+                    log::debug!(
+                        "Received intent after rendering state: {:?}",
+                        rendering_intent
+                    );
+                    send_message(&message_tx, Message::Intent(rendering_intent));
+                    number_of_messages_sent += 1;
+                } else {
+                    // Cannot send any new messages when draining the message channel
+                    log::warn!(
+                        "Dropping intent received after rendering state: {:?}",
+                        rendering_intent
+                    );
+                }
+            }
+        }
+        break;
+    }
+    log::debug!("number_of_next_actions = {}, number_of_messages_sent = {}, number_of_tasks_dispatched = {}", number_of_next_actions, number_of_messages_sent, number_of_tasks_dispatched);
+    if number_of_messages_sent + number_of_tasks_dispatched > 0 {
+        MessageLoopControl::Continue
+    } else {
+        MessageLoopControl::Terminate
     }
 }

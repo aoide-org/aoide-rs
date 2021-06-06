@@ -23,6 +23,7 @@ pub mod prelude;
 
 use self::{media::tracker as media_tracker, prelude::*};
 
+use async_trait::async_trait;
 use bytes::Bytes;
 use reqwest::Response;
 use std::{sync::Arc, time::Instant};
@@ -43,14 +44,14 @@ impl State {
 
 pub type Message = crate::prelude::Message<Intent, Effect>;
 pub type Action = crate::prelude::Action<Effect, Task>;
-pub type ModelUpdate = crate::prelude::ModelUpdate<Effect, Task>;
+pub type MutableModelUpdated = crate::prelude::MutableModelUpdated<Effect, Task>;
 
-impl Model for State {
+impl MutableModel for State {
     type Intent = Intent;
     type Effect = Effect;
     type Task = Task;
 
-    fn update(&mut self, message: Message) -> ModelUpdate {
+    fn update(&mut self, message: Message) -> MutableModelUpdated {
         log::debug!("Updating state {:?} with message {:?}", self, message);
         match message {
             Message::Intent(intent) => intent.apply_on(self),
@@ -253,136 +254,64 @@ pub async fn handle_messages(
     state
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MessageLoopControl {
-    Continue,
-    Terminate,
-}
-
-pub fn handle_next_message(
-    shared_env: &Arc<Environment>,
-    message_tx: Option<&MessageSender<Message>>,
-    state: &mut State,
-    render_state_fn: &mut RenderStateFn,
-    mut next_message: Message,
-) -> MessageLoopControl {
-    let mut state_mutation = StateMutation::Unchanged;
-    let mut number_of_next_actions = 0;
-    let mut number_of_messages_sent = 0;
-    let mut number_of_tasks_dispatched = 0;
-    'process_next_message: loop {
-        let ModelUpdate {
-            state_mutation: next_state_mutation,
-            next_action,
-        } = state.update(next_message);
-        state_mutation += next_state_mutation;
-        if let Some(next_action) = next_action {
-            number_of_next_actions += 1;
-            match next_action {
-                Action::ApplyEffect(effect) => {
-                    log::debug!("Applying subsequent effect immediately: {:?}", effect);
-                    next_message = Message::Effect(effect);
-                    continue 'process_next_message;
-                }
-                Action::DispatchTask(task) => {
-                    if let Some(message_tx) = message_tx {
-                        log::debug!("Dispatching task asynchronously: {:?}", task);
-                        // TODO: How to avoid duplicate clone() of shared_env? Currently
-                        // not possible without boxing the future, which would perform
-                        // even worse!
-                        Environment::dispatch_task(
-                            shared_env.clone(),
-                            message_tx.clone(),
-                            task.execute_with(shared_env.clone()),
-                        );
-                        number_of_tasks_dispatched += 1;
-                    } else {
-                        log::warn!(
-                            "Cannot dispatch new asynchronous task while terminating: {:?}",
-                            task
-                        );
-                    }
-                }
-            }
-        }
-        if state_mutation == StateMutation::MaybeChanged || number_of_next_actions > 0 {
-            log::debug!("Rendering current state: {:?}", state);
-            if let Some(rendering_intent) = render_state_fn(&state) {
-                if let Some(message_tx) = message_tx {
-                    log::debug!(
-                        "Received intent after rendering state: {:?}",
-                        rendering_intent
-                    );
-                    send_message(&message_tx, rendering_intent);
-                    number_of_messages_sent += 1;
-                } else {
-                    // Cannot send any new messages when draining the message channel
-                    log::warn!(
-                        "Dropping intent received after rendering state: {:?}",
-                        rendering_intent
-                    );
-                }
-            }
-        }
-        break;
-    }
-    log::debug!("number_of_next_actions = {}, number_of_messages_sent = {}, number_of_tasks_dispatched = {}", number_of_next_actions, number_of_messages_sent, number_of_tasks_dispatched);
-    if number_of_messages_sent + number_of_tasks_dispatched > 0 {
-        MessageLoopControl::Continue
-    } else {
-        MessageLoopControl::Terminate
-    }
-}
-
 impl Intent {
-    pub fn apply_on(self, state: &mut State) -> ModelUpdate {
+    pub fn apply_on(self, state: &mut State) -> MutableModelUpdated {
         log::debug!("Applying intent {:?} on {:?}", self, state);
         match self {
-            Self::RenderState => ModelUpdate::maybe_changed(None),
-            Self::InjectEffect(effect) => ModelUpdate::unchanged(Action::apply_effect(*effect)),
+            Self::RenderState => MutableModelUpdated::maybe_changed(None),
+            Self::InjectEffect(effect) => {
+                MutableModelUpdated::unchanged(Action::apply_effect(*effect))
+            }
             Self::TimedIntent { not_before, intent } => {
-                ModelUpdate::unchanged(Action::dispatch_task(Task::TimedIntent {
+                MutableModelUpdated::unchanged(Action::dispatch_task(Task::TimedIntent {
                     not_before,
                     intent,
                 }))
             }
             Self::ClearFirstErrorsBeforeNextRenderState(head_len) => {
-                ModelUpdate::unchanged(Action::apply_effect(Effect::ClearFirstErrors(head_len)))
+                MutableModelUpdated::unchanged(Action::apply_effect(Effect::ClearFirstErrors(
+                    head_len,
+                )))
             }
-            Self::CollectionIntent(intent) => model_updated(intent.apply_on(&mut state.collection)),
+            Self::CollectionIntent(intent) => {
+                mutable_model_updated(intent.apply_on(&mut state.collection))
+            }
             Self::MediaTrackerIntent(intent) => {
-                model_updated(intent.apply_on(&mut state.media_tracker))
+                mutable_model_updated(intent.apply_on(&mut state.media_tracker))
             }
         }
     }
 }
 
 impl Effect {
-    pub fn apply_on(self, state: &mut State) -> ModelUpdate {
+    pub fn apply_on(self, state: &mut State) -> MutableModelUpdated {
         log::debug!("Applying effect {:?} on {:?}", self, state);
         match self {
             Self::ErrorOccurred(error)
             | Self::CollectionEffect(collection::Effect::ErrorOccurred(error))
             | Self::MediaTrackerEffect(media_tracker::Effect::ErrorOccurred(error)) => {
                 state.last_errors.push(error);
-                ModelUpdate::maybe_changed(None)
+                MutableModelUpdated::maybe_changed(None)
             }
             Self::ClearFirstErrors(head_len) => {
                 debug_assert!(head_len <= state.last_errors.len());
                 state.last_errors = state.last_errors.drain(head_len..).collect();
-                ModelUpdate::maybe_changed(None)
+                MutableModelUpdated::maybe_changed(None)
             }
             Self::ApplyIntent(intent) => intent.apply_on(state),
-            Self::CollectionEffect(effect) => model_updated(effect.apply_on(&mut state.collection)),
+            Self::CollectionEffect(effect) => {
+                mutable_model_updated(effect.apply_on(&mut state.collection))
+            }
             Self::MediaTrackerEffect(effect) => {
-                model_updated(effect.apply_on(&mut state.media_tracker))
+                mutable_model_updated(effect.apply_on(&mut state.media_tracker))
             }
         }
     }
 }
 
-impl Task {
-    pub async fn execute_with(self, shared_env: Arc<Environment>) -> Effect {
+#[async_trait]
+impl AsyncTask<Effect> for Task {
+    async fn execute(self, shared_env: Arc<Environment>) -> Effect {
         log::debug!("Executing task: {:?}", self);
         match self {
             Self::TimedIntent { not_before, intent } => {
