@@ -41,6 +41,16 @@ impl State {
     }
 }
 
+impl State {
+    pub fn process_message(&mut self, message: Message) -> (StateMutation, Option<Action>) {
+        log::debug!("Processing message {:?} in state {:?}", message, self);
+        match message {
+            Message::Intent(intent) => intent.apply_on(self),
+            Message::Effect(effect) => effect.apply_on(self),
+        }
+    }
+}
+
 pub type Action = crate::prelude::Action<Effect, Task>;
 
 impl From<collection::Effect> for Action {
@@ -108,42 +118,42 @@ impl From<media_tracker::Action> for Action {
 }
 
 #[derive(Debug)]
-pub enum Event {
+pub enum Message {
     Intent(Intent),
     Effect(Effect),
 }
 
-impl From<Intent> for Event {
+impl From<Intent> for Message {
     fn from(intent: Intent) -> Self {
         Self::Intent(intent)
     }
 }
 
-impl From<Effect> for Event {
+impl From<Effect> for Message {
     fn from(effect: Effect) -> Self {
         Self::Effect(effect)
     }
 }
 
-impl From<collection::Intent> for Event {
+impl From<collection::Intent> for Message {
     fn from(intent: collection::Intent) -> Self {
         Self::Intent(intent.into())
     }
 }
 
-impl From<collection::Effect> for Event {
+impl From<collection::Effect> for Message {
     fn from(effect: collection::Effect) -> Self {
         Self::Effect(effect.into())
     }
 }
 
-impl From<media_tracker::Intent> for Event {
+impl From<media_tracker::Intent> for Message {
     fn from(intent: media_tracker::Intent) -> Self {
         Self::Intent(intent.into())
     }
 }
 
-impl From<media_tracker::Effect> for Event {
+impl From<media_tracker::Effect> for Message {
     fn from(effect: media_tracker::Effect) -> Self {
         Self::Effect(effect.into())
     }
@@ -197,90 +207,90 @@ impl From<media_tracker::Effect> for Effect {
 
 pub type RenderStateFn = dyn FnMut(&State) -> Option<Intent> + Send;
 
-pub async fn handle_events(
+pub async fn handle_messages(
     shared_env: Arc<Environment>,
     initial_state: State,
     initial_intent: Intent,
     mut render_state_fn: Box<RenderStateFn>,
 ) -> State {
     let mut state = initial_state;
-    let (event_tx, mut event_rx) = event_channel();
-    // Kick off the loop by emitting an initial event
-    emit_event(&event_tx, initial_intent);
-    let mut event_tx = Some(event_tx);
+    let (message_tx, mut message_rx) = message_channel();
+    // Kick off the loop by sending an initial message
+    send_message(&message_tx, initial_intent);
+    let mut message_tx = Some(message_tx);
     let mut terminating = false;
     loop {
         tokio::select! {
-            Some(next_event) = event_rx.recv() => {
-                match handle_next_event(&shared_env, event_tx.as_ref(), &mut state, &mut *render_state_fn, next_event) {
-                    EventLoopControl::Continue => (),
-                    EventLoopControl::Terminate => {
+            Some(next_message) = message_rx.recv() => {
+                match handle_next_message(&shared_env, message_tx.as_ref(), &mut state, &mut *render_state_fn, next_message) {
+                    MessageLoopControl::Continue => (),
+                    MessageLoopControl::Terminate => {
                         if !terminating {
                             log::debug!("Terminating...");
                             terminating = true;
                         }
                     }
                 }
-                if terminating && event_tx.is_some() && shared_env.all_tasks_finished() {
-                    log::debug!("Closing event emitter after all pending tasks finished");
-                    event_tx = None;
+                if terminating && message_tx.is_some() && shared_env.all_tasks_finished() {
+                    log::debug!("Closing message sender after all pending tasks finished");
+                    message_tx = None;
                 }
             }
             _ = signal::ctrl_c(), if !terminating => {
                 log::info!("Aborting after receiving SIGINT...");
-                debug_assert!(event_tx.is_some());
-                emit_event(event_tx.as_ref().unwrap(), media_tracker::Intent::Abort);
+                debug_assert!(message_tx.is_some());
+                send_message(message_tx.as_ref().unwrap(), media_tracker::Intent::Abort);
             }
             else => {
-                // Exit the message loop in all other cases, i.e. if event_rx.recv()
+                // Exit the message loop in all other cases, i.e. if message_rx.recv()
                 // returned None after the channel has been closed
                 break;
             }
         }
     }
     debug_assert!(terminating);
-    debug_assert!(event_tx.is_none());
+    debug_assert!(message_tx.is_none());
     state
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum EventLoopControl {
+pub enum MessageLoopControl {
     Continue,
     Terminate,
 }
 
-pub fn handle_next_event(
+pub fn handle_next_message(
     shared_env: &Arc<Environment>,
-    event_tx: Option<&EventSender<Event>>,
+    message_tx: Option<&MessageSender<Message>>,
     state: &mut State,
     render_state_fn: &mut RenderStateFn,
-    mut next_event: Event,
-) -> EventLoopControl {
+    mut next_message: Message,
+) -> MessageLoopControl {
     let mut state_mutation = StateMutation::Unchanged;
     let mut number_of_next_actions = 0;
-    let mut number_of_events_emitted = 0;
+    let mut number_of_messages_sent = 0;
     let mut number_of_tasks_dispatched = 0;
-    'apply_next_event: loop {
-        let (next_state_mutation, next_action) = next_event.apply_on(state);
+    'process_next_message: loop {
+        let (next_state_mutation, next_action) = state.process_message(next_message);
         state_mutation += next_state_mutation;
         if let Some(next_action) = next_action {
             number_of_next_actions += 1;
             match next_action {
                 Action::ApplyEffect(effect) => {
-                    log::debug!("Applying effect immediately: {:?}", effect);
-                    next_event = Event::Effect(effect);
-                    continue 'apply_next_event;
+                    log::debug!("Applying subsequent effect immediately: {:?}", effect);
+                    next_message = Message::Effect(effect);
+                    continue 'process_next_message;
                 }
                 Action::DispatchTask(task) => {
-                    if let Some(event_tx) = event_tx {
+                    if let Some(message_tx) = message_tx {
                         let shared_env = shared_env.clone();
-                        let event_tx = event_tx.clone();
+                        let message_tx = message_tx.clone();
                         log::debug!("Dispatching task asynchronously: {:?}", task);
                         shared_env.task_pending();
                         tokio::spawn(async move {
                             let effect = task.execute_with(&shared_env).await;
                             log::debug!("Received effect from task: {:?}", effect);
-                            emit_event(&event_tx, effect);
+                            send_message(&message_tx, effect);
                             shared_env.task_finished();
                         });
                         number_of_tasks_dispatched += 1;
@@ -296,15 +306,15 @@ pub fn handle_next_event(
         if state_mutation == StateMutation::MaybeChanged || number_of_next_actions > 0 {
             log::debug!("Rendering current state: {:?}", state);
             if let Some(rendering_intent) = render_state_fn(&state) {
-                if let Some(event_tx) = event_tx {
+                if let Some(message_tx) = message_tx {
                     log::debug!(
                         "Received intent after rendering state: {:?}",
                         rendering_intent
                     );
-                    emit_event(&event_tx, rendering_intent);
-                    number_of_events_emitted += 1;
+                    send_message(&message_tx, rendering_intent);
+                    number_of_messages_sent += 1;
                 } else {
-                    // Cannot emit any new events when draining the event channel
+                    // Cannot send any new messages when draining the message channel
                     log::warn!(
                         "Dropping intent received after rendering state: {:?}",
                         rendering_intent
@@ -314,21 +324,11 @@ pub fn handle_next_event(
         }
         break;
     }
-    log::debug!("number_of_next_actions = {}, number_of_events_emitted = {}, number_of_tasks_dispatched = {}", number_of_next_actions, number_of_events_emitted, number_of_tasks_dispatched);
-    if number_of_events_emitted + number_of_tasks_dispatched > 0 {
-        EventLoopControl::Continue
+    log::debug!("number_of_next_actions = {}, number_of_messages_sent = {}, number_of_tasks_dispatched = {}", number_of_next_actions, number_of_messages_sent, number_of_tasks_dispatched);
+    if number_of_messages_sent + number_of_tasks_dispatched > 0 {
+        MessageLoopControl::Continue
     } else {
-        EventLoopControl::Terminate
-    }
-}
-
-impl Event {
-    pub fn apply_on(self, state: &mut State) -> (StateMutation, Option<Action>) {
-        log::debug!("Applying event {:?} on {:?}", self, state);
-        match self {
-            Self::Intent(intent) => intent.apply_on(state),
-            Self::Effect(effect) => effect.apply_on(state),
-        }
+        MessageLoopControl::Terminate
     }
 }
 
@@ -352,9 +352,11 @@ impl Intent {
                 StateMutation::Unchanged,
                 Some(Action::apply_effect(Effect::ClearFirstErrors(head_len))),
             ),
-            Self::CollectionIntent(intent) => event_applied(intent.apply_on(&mut state.collection)),
+            Self::CollectionIntent(intent) => {
+                message_applied(intent.apply_on(&mut state.collection))
+            }
             Self::MediaTrackerIntent(intent) => {
-                event_applied(intent.apply_on(&mut state.media_tracker))
+                message_applied(intent.apply_on(&mut state.media_tracker))
             }
         }
     }
@@ -376,9 +378,11 @@ impl Effect {
                 (StateMutation::MaybeChanged, None)
             }
             Self::ApplyIntent(intent) => intent.apply_on(state),
-            Self::CollectionEffect(effect) => event_applied(effect.apply_on(&mut state.collection)),
+            Self::CollectionEffect(effect) => {
+                message_applied(effect.apply_on(&mut state.collection))
+            }
             Self::MediaTrackerEffect(effect) => {
-                event_applied(effect.apply_on(&mut state.media_tracker))
+                message_applied(effect.apply_on(&mut state.media_tracker))
             }
         }
     }

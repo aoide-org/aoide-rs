@@ -28,7 +28,7 @@ pub enum Effect {
 
 impl Effect {
     pub fn apply_on(self, state: &mut State) -> (StateMutation, Option<Action>) {
-        log::trace!("Applying event {:?} on {:?}", self, state);
+        log::trace!("Applying effect {:?} on {:?}", self, state);
         match self {
             Self::NewCollectionCreated(res) => match res {
                 Ok(_) => (StateMutation::Unchanged, None),

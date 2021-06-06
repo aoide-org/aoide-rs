@@ -64,19 +64,19 @@ impl Environment {
     }
 }
 
-pub type EventSender<T> = mpsc::UnboundedSender<T>;
-pub type EventReceiver<T> = mpsc::UnboundedReceiver<T>;
+pub type MessageSender<T> = mpsc::UnboundedSender<T>;
+pub type MessageReceiver<T> = mpsc::UnboundedReceiver<T>;
 
-pub fn event_channel<T>() -> (EventSender<T>, EventReceiver<T>) {
+pub fn message_channel<T>() -> (MessageSender<T>, MessageReceiver<T>) {
     mpsc::unbounded_channel()
 }
 
-pub fn emit_event<T: fmt::Debug>(event_tx: &EventSender<T>, event: impl Into<T>) {
-    let event = event.into();
-    log::debug!("Emitting event: {:?}", event);
-    if let Err(event) = event_tx.send(event) {
+pub fn send_message<T: fmt::Debug>(message_tx: &MessageSender<T>, message: impl Into<T>) {
+    let message = message.into();
+    log::debug!("Emitting message: {:?}", message);
+    if let Err(message) = message_tx.send(message) {
         // Channel is closed, i.e. receiver has been dropped
-        log::debug!("Failed to emit event: {:?}", event.0);
+        log::debug!("Failed to emit message: {:?}", message.0);
     }
 }
 
@@ -104,7 +104,7 @@ impl AddAssign for StateMutation {
     }
 }
 
-pub fn event_applied<A, B>(
+pub fn message_applied<A, B>(
     (state_mutation, next_action): (StateMutation, Option<A>),
 ) -> (StateMutation, Option<B>)
 where

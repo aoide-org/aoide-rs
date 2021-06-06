@@ -20,8 +20,8 @@ use std::sync::Arc;
 use reqwest::Url;
 
 use crate::{
-    collection, handle_events, handle_next_event, media::tracker as media_tracker, prelude::*,
-    Effect, Event, EventLoopControl, Intent, State,
+    collection, handle_messages, handle_next_message, media::tracker as media_tracker, prelude::*,
+    Effect, Intent, Message, MessageLoopControl, State,
 };
 
 fn dummy_api_url() -> Url {
@@ -34,15 +34,15 @@ fn test_env() -> Environment {
 
 #[test]
 fn should_handle_error() {
-    let (event_tx, _) = event_channel::<Event>();
+    let (message_tx, _) = message_channel::<Message>();
     let shared_env = Arc::new(test_env());
     let mut state = State::default();
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     assert_eq!(
-        EventLoopControl::Terminate,
-        handle_next_event(
+        MessageLoopControl::Terminate,
+        handle_next_message(
             &shared_env,
-            Some(&event_tx),
+            Some(&message_tx),
             &mut state,
             &mut |_| { None },
             effect.into()
@@ -55,7 +55,7 @@ fn should_handle_error() {
 async fn should_catch_error() {
     let shared_env = Arc::new(test_env());
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
-    let state = handle_events(
+    let state = handle_messages(
         shared_env,
         Default::default(),
         Intent::InjectEffect(Box::new(effect)),
@@ -67,15 +67,15 @@ async fn should_catch_error() {
 
 #[test]
 fn should_handle_collection_error() {
-    let (event_tx, _) = event_channel::<Event>();
+    let (message_tx, _) = message_channel::<Message>();
     let shared_env = Arc::new(test_env());
     let mut state = State::default();
     let effect = collection::Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     assert_eq!(
-        EventLoopControl::Terminate,
-        handle_next_event(
+        MessageLoopControl::Terminate,
+        handle_next_message(
             &shared_env,
-            Some(&event_tx),
+            Some(&message_tx),
             &mut state,
             &mut |_| { None },
             effect.into()
@@ -88,7 +88,7 @@ fn should_handle_collection_error() {
 async fn should_catch_collection_error() {
     let shared_env = Arc::new(test_env());
     let effect = collection::Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
-    let state = handle_events(
+    let state = handle_messages(
         shared_env,
         Default::default(),
         Intent::InjectEffect(Box::new(effect.into())),
@@ -100,15 +100,15 @@ async fn should_catch_collection_error() {
 
 #[test]
 fn should_handle_media_tracker_error() {
-    let (event_tx, _) = event_channel::<Event>();
+    let (message_tx, _) = message_channel::<Message>();
     let shared_env = Arc::new(test_env());
     let mut state = State::default();
     let effect = media_tracker::Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     assert_eq!(
-        EventLoopControl::Terminate,
-        handle_next_event(
+        MessageLoopControl::Terminate,
+        handle_next_message(
             &shared_env,
-            Some(&event_tx),
+            Some(&message_tx),
             &mut state,
             &mut |_| { None },
             effect.into()
@@ -121,7 +121,7 @@ fn should_handle_media_tracker_error() {
 async fn should_catch_media_tracker_error() {
     let shared_env = Arc::new(test_env());
     let effect = media_tracker::Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
-    let state = handle_events(
+    let state = handle_messages(
         shared_env,
         Default::default(),
         Intent::InjectEffect(Box::new(effect.into())),
