@@ -37,7 +37,7 @@ impl Intent {
                 ))),
             ),
             Self::FetchAvailableCollections => {
-                state.remote.available_collections.set_pending();
+                state.remote.available_collections.set_pending_now();
                 (
                     StateMutation::MaybeChanged,
                     Some(Action::dispatch_task(Task::FetchAvailableCollections)),

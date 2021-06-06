@@ -30,7 +30,7 @@ impl RemoteState {
     fn count_available_collections_by_uid(&self, uid: &EntityUid) -> Option<usize> {
         self.available_collections
             .get()
-            .map(|v| v.iter().filter(|x| &x.hdr.uid == uid).count())
+            .map(|v| v.value.iter().filter(|x| &x.hdr.uid == uid).count())
     }
 
     pub fn find_available_collections_by_uid(&self, uid: &EntityUid) -> Option<&CollectionEntity> {
@@ -41,7 +41,7 @@ impl RemoteState {
         );
         self.available_collections
             .get()
-            .and_then(|v| v.iter().find(|x| &x.hdr.uid == uid))
+            .and_then(|v| v.value.iter().find(|x| &x.hdr.uid == uid))
     }
 }
 
@@ -66,6 +66,7 @@ impl State {
             &self.active_collection_uid,
         ) {
             available
+                .value
                 .iter()
                 .find(|x| &x.hdr.uid == active_collection_uid)
         } else {
@@ -77,7 +78,7 @@ impl State {
         &mut self,
         new_available_collections: Vec<CollectionEntity>,
     ) {
-        self.remote.available_collections = RemoteData::ready(new_available_collections);
+        self.remote.available_collections = RemoteData::ready_now(new_available_collections);
         let active_uid = self.active_collection_uid.take();
         self.set_active_collection_uid(active_uid);
     }
@@ -90,7 +91,7 @@ impl State {
             self.remote.available_collections.get(),
             new_active_uid.into(),
         ) {
-            if available.iter().any(|x| x.hdr.uid == new_active_uid) {
+            if available.value.iter().any(|x| x.hdr.uid == new_active_uid) {
                 Some(new_active_uid)
             } else {
                 None

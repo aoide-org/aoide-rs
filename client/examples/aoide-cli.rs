@@ -302,12 +302,13 @@ async fn main() -> anyhow::Result<()> {
                 .get_ready()
             {
                 if state.collection.active_collection_uid().is_none() {
-                    if available_collections.is_empty() {
+                    if available_collections.value.is_empty() {
                         log::warn!("No collections available");
                         return None;
                     }
-                    if collection_uid.is_none() && available_collections.len() == 1 {
+                    if collection_uid.is_none() && available_collections.value.len() == 1 {
                         collection_uid = available_collections
+                            .value
                             .iter()
                             .next()
                             .map(|e| e.hdr.uid.clone());
@@ -335,7 +336,7 @@ async fn main() -> anyhow::Result<()> {
                         }
                     }
                     println!("Available collections:");
-                    for available_collection in available_collections.iter() {
+                    for available_collection in available_collections.value.iter() {
                         println!(
                             "{}: {} | {}",
                             available_collection.hdr.uid,

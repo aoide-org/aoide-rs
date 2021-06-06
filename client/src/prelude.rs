@@ -17,6 +17,7 @@ use std::{
     fmt,
     ops::{Add, AddAssign},
     sync::atomic::AtomicUsize,
+    time::Instant,
 };
 
 use reqwest::{Client, Url};
@@ -114,10 +115,44 @@ where
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub struct DataSnapshot<T> {
+    pub since: Instant,
+    pub value: T,
+}
+
+impl<T> DataSnapshot<T> {
+    pub fn new(since: impl Into<Instant>, value: impl Into<T>) -> Self {
+        Self {
+            since: since.into(),
+            value: value.into(),
+        }
+    }
+
+    pub fn now(value: impl Into<T>) -> Self {
+        Self {
+            since: Instant::now(),
+            value: value.into(),
+        }
+    }
+
+    pub fn as_ref(&self) -> DataSnapshot<&T> {
+        let Self { since, value } = self;
+        DataSnapshot {
+            since: *since,
+            value: &value,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum RemoteData<T> {
     Unknown,
-    Pending { stale_data: Option<T> },
-    Ready { data: Option<T> },
+    Pending {
+        stale_snapshot: DataSnapshot<Option<DataSnapshot<T>>>,
+    },
+    Ready {
+        snapshot: Option<DataSnapshot<T>>,
+    },
 }
 
 impl<T> Default for RemoteData<T> {
@@ -127,29 +162,37 @@ impl<T> Default for RemoteData<T> {
 }
 
 impl<T> RemoteData<T> {
-    pub fn ready(data: T) -> Self {
-        Self::Ready { data: Some(data) }
+    pub fn ready_since(since: impl Into<Instant>, value: impl Into<T>) -> Self {
+        Self::Ready {
+            snapshot: Some(DataSnapshot::new(since, value)),
+        }
     }
 
-    pub fn get(&self) -> Option<&T> {
+    pub fn ready_now(value: impl Into<T>) -> Self {
+        Self::Ready {
+            snapshot: Some(DataSnapshot::now(value)),
+        }
+    }
+
+    pub fn get(&self) -> Option<&DataSnapshot<T>> {
         match self {
             Self::Unknown => None,
-            Self::Pending { stale_data } => stale_data.as_ref(),
-            Self::Ready { data } => data.as_ref(),
+            Self::Pending { stale_snapshot } => stale_snapshot.value.as_ref(),
+            Self::Ready { snapshot } => snapshot.as_ref(),
         }
     }
 
-    pub fn get_ready(&self) -> Option<&T> {
+    pub fn get_ready(&self) -> Option<&DataSnapshot<T>> {
         match self {
             Self::Unknown | Self::Pending { .. } => None,
-            Self::Ready { data } => data.as_ref(),
+            Self::Ready { snapshot } => snapshot.as_ref(),
         }
     }
 
-    pub fn get_mut(&mut self) -> Option<&mut T> {
+    pub fn get_mut(&mut self) -> Option<&mut DataSnapshot<T>> {
         match self {
             Self::Unknown | Self::Pending { .. } => None,
-            Self::Ready { data } => data.as_mut(),
+            Self::Ready { snapshot } => snapshot.as_mut(),
         }
     }
 
@@ -169,20 +212,35 @@ impl<T> RemoteData<T> {
         matches!(self, Self::Ready { .. })
     }
 
-    pub fn take_ready(&mut self) -> Option<T> {
-        if let Self::Ready { data } = self {
-            let data = data.take();
-            debug_assert!(data.is_some());
+    pub fn take_ready(&mut self) -> Option<DataSnapshot<T>> {
+        if let Self::Ready { snapshot } = self {
+            let snapshot = snapshot.take();
+            debug_assert!(snapshot.is_some());
             *self = Self::Unknown;
-            data
+            snapshot
         } else {
             None
         }
     }
 
-    pub fn set_pending(&mut self) {
-        let stale_data = self.take_ready();
-        *self = Self::Pending { stale_data }
+    pub fn set_pending_since(&mut self, since: impl Into<Instant>) {
+        let stale_snapshot = DataSnapshot {
+            since: since.into(),
+            value: self.take_ready(),
+        };
+        debug_assert!(
+            stale_snapshot.since
+                >= stale_snapshot
+                    .value
+                    .as_ref()
+                    .map(|x| x.since)
+                    .unwrap_or(stale_snapshot.since)
+        );
+        *self = Self::Pending { stale_snapshot };
+    }
+
+    pub fn set_pending_now(&mut self) {
+        self.set_pending_since(Instant::now());
     }
 }
 
