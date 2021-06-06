@@ -23,7 +23,7 @@ use std::{
 
 use async_trait::async_trait;
 use reqwest::{Client, Url};
-use tokio::sync::mpsc;
+use tokio::{signal, sync::mpsc};
 
 /// Immutable environment
 #[derive(Debug)]
@@ -315,6 +315,23 @@ impl<T> RemoteData<T> {
 pub enum Message<I, E> {
     Intent(I),
     Effect(E),
+
+    /// Special intent to initiate a graceful shutdown
+    IntentTerminate,
+
+    /// Special effect to signal that the message loop can now
+    /// be exited safely
+    EffectTerminated,
+}
+
+impl<I, E> Message<I, E> {
+    pub fn intent(intent: impl Into<I>) -> Self {
+        Self::Intent(intent.into())
+    }
+
+    pub fn effect(effect: impl Into<E>) -> Self {
+        Self::Effect(effect.into())
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -417,4 +434,66 @@ where
     } else {
         MessageLoopControl::Terminate
     }
+}
+
+pub async fn message_loop<M>(
+    shared_env: Arc<Environment>,
+    initial_model: M,
+    first_message: impl Into<Message<M::Intent, M::Effect>>,
+    mut render_fn: Box<RenderMutableModelFn<M, M::Intent>>,
+) -> M
+where
+    M: MutableModel + fmt::Debug,
+    M::Intent: fmt::Debug + Send + 'static,
+    M::Effect: fmt::Debug + Send + 'static,
+    M::Task: AsyncTask<M::Effect> + fmt::Debug + 'static,
+{
+    let mut model = initial_model;
+    // If needed the message channel could be allocated in the outer context
+    // to allow sending of messages from external sources. But then implicit
+    // termination after all message senders have been dropped depends on
+    // those outstanding, external references!
+    let (message_tx, mut message_rx) = message_channel();
+    // Kick off the loop by sending a first message
+    send_message(&message_tx, first_message);
+    let mut message_tx = Some(message_tx);
+    let mut terminating = false;
+    loop {
+        tokio::select! {
+            Some(next_message) = message_rx.recv() => {
+                if terminating && matches!(next_message, Message::EffectTerminated) {
+                    log::debug!("Exiting message loop after terminated received");
+                    break;
+                }
+                match handle_next_message(&shared_env, message_tx.as_ref(), &mut model, &mut *render_fn, next_message) {
+                    MessageLoopControl::Continue => (),
+                    MessageLoopControl::Terminate => {
+                        if !terminating {
+                            log::debug!("Terminating...");
+                            terminating = true;
+                        }
+                    }
+                }
+                if terminating && message_tx.is_some() && shared_env.all_tasks_finished() {
+                    log::debug!("Closing message sender after all pending tasks finished");
+                    message_tx = None;
+                }
+            }
+            _ = signal::ctrl_c(), if !terminating => {
+                log::info!("Terminating after receiving SIGINT...");
+                terminating = true;
+                debug_assert!(message_tx.is_some());
+                send_message(message_tx.as_ref().unwrap(), Message::IntentTerminate);
+            }
+            else => {
+                // Exit the message loop if message_rx.recv() returned None
+                debug_assert!(message_rx.recv().await.is_none());
+                log::debug!("Exiting message loop after all message senders have been dropped");
+                break;
+            }
+        }
+    }
+    debug_assert!(terminating);
+    debug_assert!(message_tx.is_none());
+    model
 }

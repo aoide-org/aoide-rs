@@ -27,11 +27,11 @@ use async_trait::async_trait;
 use bytes::Bytes;
 use reqwest::Response;
 use std::{sync::Arc, time::Instant};
-use tokio::signal;
 
 #[derive(Debug, Default)]
 pub struct State {
     last_errors: Vec<anyhow::Error>,
+    terminating: bool,
     pub collection: collection::State,
     pub media_tracker: media_tracker::State,
 }
@@ -56,6 +56,17 @@ impl MutableModel for State {
         match message {
             Message::Intent(intent) => intent.apply_on(self),
             Message::Effect(effect) => effect.apply_on(self),
+            Message::IntentTerminate => {
+                if self.terminating {
+                    return MutableModelUpdated::unchanged(None);
+                }
+                self.terminating = true;
+                let next_action = Intent::MediaTrackerIntent(media_tracker::Intent::Abort)
+                    .apply_on(self)
+                    .next_action;
+                MutableModelUpdated::maybe_changed(next_action)
+            }
+            Message::EffectTerminated => unreachable!(),
         }
     }
 }
@@ -204,54 +215,6 @@ impl From<media_tracker::Effect> for Effect {
     fn from(effect: media_tracker::Effect) -> Self {
         Self::MediaTrackerEffect(effect)
     }
-}
-
-pub type RenderStateFn = dyn FnMut(&State) -> Option<Intent> + Send;
-
-pub async fn handle_messages(
-    shared_env: Arc<Environment>,
-    initial_state: State,
-    initial_intent: Intent,
-    mut render_state_fn: Box<RenderStateFn>,
-) -> State {
-    let mut state = initial_state;
-    let (message_tx, mut message_rx) = message_channel();
-    // Kick off the loop by sending an initial message
-    send_message(&message_tx, initial_intent);
-    let mut message_tx = Some(message_tx);
-    let mut terminating = false;
-    loop {
-        tokio::select! {
-            Some(next_message) = message_rx.recv() => {
-                match handle_next_message(&shared_env, message_tx.as_ref(), &mut state, &mut *render_state_fn, next_message) {
-                    MessageLoopControl::Continue => (),
-                    MessageLoopControl::Terminate => {
-                        if !terminating {
-                            log::debug!("Terminating...");
-                            terminating = true;
-                        }
-                    }
-                }
-                if terminating && message_tx.is_some() && shared_env.all_tasks_finished() {
-                    log::debug!("Closing message sender after all pending tasks finished");
-                    message_tx = None;
-                }
-            }
-            _ = signal::ctrl_c(), if !terminating => {
-                log::info!("Aborting after receiving SIGINT...");
-                debug_assert!(message_tx.is_some());
-                send_message(message_tx.as_ref().unwrap(), media_tracker::Intent::Abort);
-            }
-            else => {
-                // Exit the message loop in all other cases, i.e. if message_rx.recv()
-                // returned None after the channel has been closed
-                break;
-            }
-        }
-    }
-    debug_assert!(terminating);
-    debug_assert!(message_tx.is_none());
-    state
 }
 
 impl Intent {

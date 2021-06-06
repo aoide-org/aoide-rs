@@ -14,7 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_client::{
-    collection, handle_messages, media::tracker as media_tracker, prelude::Environment, Intent,
+    collection,
+    media::tracker as media_tracker,
+    prelude::{message_loop, Environment},
+    Intent, State,
 };
 
 use aoide_core::{
@@ -140,11 +143,11 @@ async fn main() -> anyhow::Result<()> {
     let mut last_media_tracker_import_outcome = None;
     let mut last_media_tracker_untrack_outcome = None;
     let mut subcommand_submitted = false;
-    let message_loop = tokio::spawn(handle_messages(
+    let message_loop = tokio::spawn(message_loop(
         shared_env,
         Default::default(),
         Intent::RenderState,
-        Box::new(move |state| {
+        Box::new(move |state: &State| {
             if !state.last_errors().is_empty() {
                 for err in state.last_errors() {
                     log::error!("{}", err);

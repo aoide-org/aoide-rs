@@ -20,7 +20,7 @@ use std::sync::Arc;
 use reqwest::Url;
 
 use crate::{
-    collection, handle_messages, handle_next_message, media::tracker as media_tracker, prelude::*,
+    collection, handle_next_message, media::tracker as media_tracker, message_loop, prelude::*,
     Effect, Intent, MessageLoopControl, State,
 };
 
@@ -55,11 +55,11 @@ fn should_handle_error() {
 async fn should_catch_error() {
     let shared_env = Arc::new(test_env());
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
-    let state = handle_messages(
+    let state = message_loop(
         shared_env,
         Default::default(),
         Intent::InjectEffect(Box::new(effect)),
-        Box::new(|_| None),
+        Box::new(|_: &State| None),
     )
     .await;
     assert_eq!(1, state.last_errors().len());
@@ -88,11 +88,11 @@ fn should_handle_collection_error() {
 async fn should_catch_collection_error() {
     let shared_env = Arc::new(test_env());
     let effect = collection::Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
-    let state = handle_messages(
+    let state = message_loop(
         shared_env,
         Default::default(),
         Intent::InjectEffect(Box::new(effect.into())),
-        Box::new(|_| None),
+        Box::new(|_: &State| None),
     )
     .await;
     assert_eq!(1, state.last_errors().len());
@@ -121,11 +121,11 @@ fn should_handle_media_tracker_error() {
 async fn should_catch_media_tracker_error() {
     let shared_env = Arc::new(test_env());
     let effect = media_tracker::Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
-    let state = handle_messages(
+    let state = message_loop(
         shared_env,
         Default::default(),
         Intent::InjectEffect(Box::new(effect.into())),
-        Box::new(|_| None),
+        Box::new(|_: &State| None),
     )
     .await;
     assert_eq!(1, state.last_errors().len());
