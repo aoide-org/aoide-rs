@@ -18,12 +18,13 @@
 #![warn(clippy::all, rust_2018_idioms)]
 
 pub mod collection;
-pub mod media;
+pub mod media_tracker;
 pub mod prelude;
 
-use crate::prelude::mutable::{model_updated, Model as MutableModel};
-
-use self::{media::tracker as media_tracker, prelude::*};
+use crate::prelude::{
+    mutable::{model_updated, Model as MutableModel},
+    send_message,
+};
 
 use bytes::Bytes;
 use reqwest::{Client, Response, Url};

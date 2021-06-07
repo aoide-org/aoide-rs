@@ -14,8 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_client::{
-    collection,
-    media::tracker as media_tracker,
+    collection, media_tracker,
     prelude::{message_channel, mutable::message_loop, send_message},
     Environment, Intent, Model,
 };

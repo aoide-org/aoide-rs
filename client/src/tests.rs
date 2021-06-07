@@ -23,8 +23,7 @@ use std::{
 use reqwest::Url;
 
 use crate::{
-    collection,
-    media::tracker as media_tracker,
+    collection, media_tracker,
     prelude::{
         mutable::{handle_next_message, message_loop},
         Environment as _, *,
