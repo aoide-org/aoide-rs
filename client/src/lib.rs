@@ -21,6 +21,7 @@ pub mod prelude;
 
 pub mod collection;
 pub mod media_tracker;
+pub mod track_search;
 
 use crate::prelude::{
     mutable::{state_updated, State as MutableState},

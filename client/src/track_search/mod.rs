@@ -1,0 +1,54 @@
+// aoide.org - Copyright (C) 2018-2021 Uwe Klotz <uwedotklotzatgmaildotcom> et al.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+use std::num::NonZeroUsize;
+
+use aoide_core::track::Entity;
+
+pub mod effect;
+pub use self::effect::Effect;
+
+pub mod intent;
+pub use self::intent::Intent;
+
+pub mod state;
+pub use self::state::{ControlState, State};
+
+pub mod task;
+pub use self::task::Task;
+
+pub type Action = crate::prelude::Action<Effect, Task>;
+pub type StateUpdated = crate::prelude::mutable::StateUpdated<Effect, Task>;
+
+use aoide_core::usecases::tracks::search::SearchParams;
+
+#[derive(Debug, Clone)]
+pub struct Pagination {
+    pub offset: usize,
+    pub limit: NonZeroUsize,
+}
+
+#[derive(Debug, Clone)]
+pub struct FetchResultPageRequest {
+    pub search_params: SearchParams,
+    pub resolve_url_from_path: bool,
+    pub pagination: Pagination,
+}
+
+#[derive(Debug)]
+pub struct FetchResultPageResponse {
+    pub entities: Vec<Entity>,
+    pub pagination: Pagination,
+}
