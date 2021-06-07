@@ -46,12 +46,12 @@ impl RemoteView {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct Model {
+pub struct State {
     pub(super) remote_view: RemoteView,
     pub(super) active_collection_uid: Option<EntityUid>,
 }
 
-impl Model {
+impl State {
     pub const fn remote_view(&self) -> &RemoteView {
         &self.remote_view
     }

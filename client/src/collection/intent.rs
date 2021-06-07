@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::{Action, Model, ModelUpdate, Task};
+use super::{Action, State, StateUpdate, Task};
 
 use aoide_core::{collection::Collection, entity::EntityUid};
 
@@ -25,19 +25,19 @@ pub enum Intent {
 }
 
 impl Intent {
-    pub fn apply_on(self, model: &mut Model) -> ModelUpdate {
-        log::trace!("Applying intent {:?} on {:?}", self, model);
+    pub fn apply_on(self, state: &mut State) -> StateUpdate {
+        log::trace!("Applying intent {:?} on {:?}", self, state);
         match self {
-            Self::CreateNewCollection(new_collection) => ModelUpdate::unchanged(
+            Self::CreateNewCollection(new_collection) => StateUpdate::unchanged(
                 Action::dispatch_task(Task::CreateNewCollection(new_collection)),
             ),
             Self::FetchAvailableCollections => {
-                model.remote_view.available_collections.set_pending_now();
-                ModelUpdate::maybe_changed(Action::dispatch_task(Task::FetchAvailableCollections))
+                state.remote_view.available_collections.set_pending_now();
+                StateUpdate::maybe_changed(Action::dispatch_task(Task::FetchAvailableCollections))
             }
             Self::ActivateCollection(new_active_collection_uid) => {
-                model.set_active_collection_uid(new_active_collection_uid);
-                ModelUpdate::maybe_changed(None)
+                state.set_active_collection_uid(new_active_collection_uid);
+                StateUpdate::maybe_changed(None)
             }
         }
     }

@@ -16,7 +16,7 @@
 use crate::prelude::MessageHandled;
 
 use super::{
-    send_message, Action, Environment, Message, MessageChannel, MessageSender, RenderModelFn,
+    send_message, Action, Environment, Message, MessageChannel, MessageSender, ObserveStateFn,
 };
 
 use std::{
@@ -26,12 +26,12 @@ use std::{
 };
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum ModelMutation {
+pub enum StateMutation {
     Unchanged,
     MaybeChanged,
 }
 
-impl Add<ModelMutation> for ModelMutation {
+impl Add<StateMutation> for StateMutation {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -43,40 +43,40 @@ impl Add<ModelMutation> for ModelMutation {
     }
 }
 
-impl AddAssign for ModelMutation {
+impl AddAssign for StateMutation {
     fn add_assign(&mut self, other: Self) {
         *self = *self + other;
     }
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub struct ModelUpdated<E, T> {
-    pub state_mutation: ModelMutation,
+pub struct StateUpdated<E, T> {
+    pub state_mutation: StateMutation,
     pub next_action: Option<Action<E, T>>,
 }
 
-impl<E, T> ModelUpdated<E, T> {
+impl<E, T> StateUpdated<E, T> {
     pub fn unchanged(next_action: impl Into<Option<Action<E, T>>>) -> Self {
         Self {
-            state_mutation: ModelMutation::Unchanged,
+            state_mutation: StateMutation::Unchanged,
             next_action: next_action.into(),
         }
     }
 
     pub fn maybe_changed(next_action: impl Into<Option<Action<E, T>>>) -> Self {
         Self {
-            state_mutation: ModelMutation::MaybeChanged,
+            state_mutation: StateMutation::MaybeChanged,
             next_action: next_action.into(),
         }
     }
 }
 
-pub fn model_updated<E1, E2, T1, T2>(from: ModelUpdated<E1, T1>) -> ModelUpdated<E2, T2>
+pub fn state_updated<E1, E2, T1, T2>(from: StateUpdated<E1, T1>) -> StateUpdated<E2, T2>
 where
     E1: Into<E2>,
     T1: Into<T2>,
 {
-    let ModelUpdated {
+    let StateUpdated {
         state_mutation,
         next_action,
     } = from;
@@ -84,13 +84,13 @@ where
         Action::ApplyEffect(effect) => Action::apply_effect(effect),
         Action::DispatchTask(task) => Action::dispatch_task(task),
     });
-    ModelUpdated {
+    StateUpdated {
         state_mutation,
         next_action,
     }
 }
 
-pub trait Model {
+pub trait State {
     type Intent;
     type Effect;
     type Task;
@@ -98,32 +98,32 @@ pub trait Model {
     fn update(
         &mut self,
         message: Message<Self::Intent, Self::Effect>,
-    ) -> ModelUpdated<Self::Effect, Self::Task>;
+    ) -> StateUpdated<Self::Effect, Self::Task>;
 }
 
-pub fn handle_next_message<E, M>(
+pub fn handle_next_message<E, S>(
     shared_env: &Arc<E>,
-    model: &mut M,
-    message_tx: &MessageSender<M::Intent, M::Effect>,
-    mut next_message: Message<M::Intent, M::Effect>,
-    render_fn: &mut RenderModelFn<M, M::Intent>,
+    state: &mut S,
+    message_tx: &MessageSender<S::Intent, S::Effect>,
+    mut next_message: Message<S::Intent, S::Effect>,
+    observe_fn: &mut ObserveStateFn<S, S::Intent>,
 ) -> MessageHandled
 where
-    E: Environment<M::Intent, M::Effect, M::Task>,
-    M: Model + fmt::Debug,
-    M::Intent: fmt::Debug + Send + 'static,
-    M::Effect: fmt::Debug + Send + 'static,
-    M::Task: fmt::Debug + 'static,
+    E: Environment<S::Intent, S::Effect, S::Task>,
+    S: State + fmt::Debug,
+    S::Intent: fmt::Debug + Send + 'static,
+    S::Effect: fmt::Debug + Send + 'static,
+    S::Task: fmt::Debug + 'static,
 {
-    let mut state_mutation = ModelMutation::Unchanged;
+    let mut state_mutation = StateMutation::Unchanged;
     let mut number_of_next_actions = 0;
     let mut number_of_messages_sent = 0;
     let mut number_of_tasks_dispatched = 0;
     'process_next_message: loop {
-        let ModelUpdated {
+        let StateUpdated {
             state_mutation: next_state_mutation,
             next_action,
-        } = model.update(next_message);
+        } = state.update(next_message);
         state_mutation += next_state_mutation;
         if let Some(next_action) = next_action {
             number_of_next_actions += 1;
@@ -140,14 +140,14 @@ where
                 }
             }
         }
-        if state_mutation == ModelMutation::MaybeChanged || number_of_next_actions > 0 {
-            log::debug!("Rendering current state: {:?}", model);
-            if let Some(rendering_intent) = render_fn(&model) {
+        if state_mutation == StateMutation::MaybeChanged || number_of_next_actions > 0 {
+            log::debug!("Rendering current state: {:?}", state);
+            if let Some(observation_intent) = observe_fn(&state) {
                 log::debug!(
-                    "Received intent after rendering state: {:?}",
-                    rendering_intent
+                    "Received intent after observing state: {:?}",
+                    observation_intent
                 );
-                send_message(&message_tx, Message::Intent(rendering_intent));
+                send_message(&message_tx, Message::Intent(observation_intent));
                 number_of_messages_sent += 1;
             }
         }
@@ -161,26 +161,26 @@ where
     }
 }
 
-pub async fn message_loop<E, M>(
+pub async fn message_loop<E, S>(
     shared_env: Arc<E>,
-    (message_tx, mut message_rx): MessageChannel<M::Intent, M::Effect>,
-    mut model: M,
-    mut render_model_fn: Box<RenderModelFn<M, M::Intent>>,
-) -> M
+    (message_tx, mut message_rx): MessageChannel<S::Intent, S::Effect>,
+    mut state: S,
+    mut observe_state_fn: Box<ObserveStateFn<S, S::Intent>>,
+) -> S
 where
-    E: Environment<M::Intent, M::Effect, M::Task>,
-    M: Model + fmt::Debug,
-    M::Intent: fmt::Debug + Send + 'static,
-    M::Effect: fmt::Debug + Send + 'static,
-    M::Task: fmt::Debug + 'static,
+    E: Environment<S::Intent, S::Effect, S::Task>,
+    S: State + fmt::Debug,
+    S::Intent: fmt::Debug + Send + 'static,
+    S::Effect: fmt::Debug + Send + 'static,
+    S::Task: fmt::Debug + 'static,
 {
     while let Some(next_message) = message_rx.recv().await {
         match handle_next_message(
             &shared_env,
-            &mut model,
+            &mut state,
             &message_tx,
             next_message,
-            &mut *render_model_fn,
+            &mut *observe_state_fn,
         ) {
             MessageHandled::Progressing => (),
             MessageHandled::NoProgress => {
@@ -191,5 +191,5 @@ where
         }
     }
     log::debug!("Terminated message loop");
-    model
+    state
 }

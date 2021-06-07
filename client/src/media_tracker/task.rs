@@ -53,36 +53,36 @@ impl Task {
     pub async fn execute_with(self, env: &Environment) -> Effect {
         log::debug!("Executing task: {:?}", self);
         match self {
-            Task::FetchStatus {
+            Self::FetchStatus {
                 collection_uid,
                 root_url,
             } => {
                 let res = fetch_status(env, &collection_uid, root_url.as_ref()).await;
                 Effect::StatusFetched(res)
             }
-            Task::FetchProgress => {
+            Self::FetchProgress => {
                 let res = fetch_progress(env).await;
                 Effect::ProgressFetched(res)
             }
-            Task::StartScan {
+            Self::StartScan {
                 collection_uid,
                 root_url,
             } => {
                 let res = start_scan(env, &collection_uid, root_url.as_ref()).await;
                 Effect::ScanFinished(res)
             }
-            Task::StartImport {
+            Self::StartImport {
                 collection_uid,
                 root_url,
             } => {
                 let res = start_import(env, &collection_uid, root_url.as_ref()).await;
                 Effect::ImportFinished(res)
             }
-            Task::Abort => {
+            Self::Abort => {
                 let res = abort(env).await;
                 Effect::Aborted(res)
             }
-            Task::Untrack {
+            Self::Untrack {
                 collection_uid,
                 root_url,
             } => {

@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::{Action, ControlState, Model, ModelUpdated, Task};
+use super::{Action, ControlState, State, StateUpdated, Task};
 
 use aoide_core::entity::EntityUid;
 
@@ -43,34 +43,34 @@ pub enum Intent {
 }
 
 impl Intent {
-    pub fn apply_on(self, model: &mut Model) -> ModelUpdated {
-        log::trace!("Applying intent {:?} on {:?}", self, model);
+    pub fn apply_on(self, state: &mut State) -> StateUpdated {
+        log::trace!("Applying intent {:?} on {:?}", self, state);
         match self {
             Self::FetchProgress => {
-                model.remote_view.progress.set_pending_now();
-                ModelUpdated::unchanged(Action::dispatch_task(Task::FetchProgress))
+                state.remote_view.progress.set_pending_now();
+                StateUpdated::unchanged(Action::dispatch_task(Task::FetchProgress))
             }
-            Self::Abort => ModelUpdated::unchanged(Action::dispatch_task(Task::Abort)),
+            Self::Abort => StateUpdated::unchanged(Action::dispatch_task(Task::Abort)),
             Self::AbortOnTermination => {
-                if model.control_state != ControlState::Idle {
+                if state.control_state != ControlState::Idle {
                     // Only dispatch an abort task if a local task is pending
-                    ModelUpdated::unchanged(Action::dispatch_task(Task::Abort))
+                    StateUpdated::unchanged(Action::dispatch_task(Task::Abort))
                 } else {
                     // Nothing to do
-                    ModelUpdated::unchanged(None)
+                    StateUpdated::unchanged(None)
                 }
             }
             Self::FetchStatus {
                 collection_uid,
                 root_url,
             } => {
-                if !model.is_idle() {
+                if !state.is_idle() {
                     log::warn!("Cannot fetch status while not idle");
-                    return ModelUpdated::unchanged(None);
+                    return StateUpdated::unchanged(None);
                 }
-                model.control_state = ControlState::Busy;
-                model.remote_view.status.set_pending_now();
-                ModelUpdated::maybe_changed(Action::dispatch_task(Task::FetchStatus {
+                state.control_state = ControlState::Busy;
+                state.remote_view.status.set_pending_now();
+                StateUpdated::maybe_changed(Action::dispatch_task(Task::FetchStatus {
                     collection_uid,
                     root_url,
                 }))
@@ -79,15 +79,15 @@ impl Intent {
                 collection_uid,
                 root_url,
             } => {
-                if !model.is_idle() {
+                if !state.is_idle() {
                     log::warn!("Cannot start scan while not idle");
-                    return ModelUpdated::unchanged(None);
+                    return StateUpdated::unchanged(None);
                 }
-                model.control_state = ControlState::Busy;
-                model.remote_view.progress.reset();
-                model.remote_view.status.set_pending_now();
-                model.remote_view.last_scan_outcome.set_pending_now();
-                ModelUpdated::maybe_changed(Action::dispatch_task(Task::StartScan {
+                state.control_state = ControlState::Busy;
+                state.remote_view.progress.reset();
+                state.remote_view.status.set_pending_now();
+                state.remote_view.last_scan_outcome.set_pending_now();
+                StateUpdated::maybe_changed(Action::dispatch_task(Task::StartScan {
                     collection_uid,
                     root_url,
                 }))
@@ -96,15 +96,15 @@ impl Intent {
                 collection_uid,
                 root_url,
             } => {
-                if !model.is_idle() {
+                if !state.is_idle() {
                     log::warn!("Cannot start import while not idle");
-                    return ModelUpdated::unchanged(None);
+                    return StateUpdated::unchanged(None);
                 }
-                model.control_state = ControlState::Busy;
-                model.remote_view.progress.reset();
-                model.remote_view.status.set_pending_now();
-                model.remote_view.last_import_outcome.set_pending_now();
-                ModelUpdated::maybe_changed(Action::dispatch_task(Task::StartImport {
+                state.control_state = ControlState::Busy;
+                state.remote_view.progress.reset();
+                state.remote_view.status.set_pending_now();
+                state.remote_view.last_import_outcome.set_pending_now();
+                StateUpdated::maybe_changed(Action::dispatch_task(Task::StartImport {
                     collection_uid,
                     root_url,
                 }))
@@ -113,15 +113,15 @@ impl Intent {
                 collection_uid,
                 root_url,
             } => {
-                if !model.is_idle() {
+                if !state.is_idle() {
                     log::warn!("Cannot untrack while not idle");
-                    return ModelUpdated::unchanged(None);
+                    return StateUpdated::unchanged(None);
                 }
-                model.control_state = ControlState::Busy;
-                model.remote_view.progress.reset();
-                model.remote_view.status.set_pending_now();
-                model.remote_view.last_untrack_outcome.set_pending_now();
-                ModelUpdated::maybe_changed(Action::dispatch_task(Task::Untrack {
+                state.control_state = ControlState::Busy;
+                state.remote_view.progress.reset();
+                state.remote_view.status.set_pending_now();
+                state.remote_view.last_untrack_outcome.set_pending_now();
+                StateUpdated::maybe_changed(Action::dispatch_task(Task::Untrack {
                     collection_uid,
                     root_url,
                 }))

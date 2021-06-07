@@ -51,7 +51,7 @@ pub fn send_message<I: fmt::Debug, E: fmt::Debug>(
     }
 }
 
-pub type RenderModelFn<M, I> = dyn FnMut(&M) -> Option<I> + Send;
+pub type ObserveStateFn<M, I> = dyn FnMut(&M) -> Option<I> + Send;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Message<I, E> {

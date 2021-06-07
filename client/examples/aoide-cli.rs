@@ -16,7 +16,7 @@
 use aoide_client::{
     collection, media_tracker,
     prelude::{message_channel, mutable::message_loop, send_message},
-    Environment, Intent, Model,
+    Environment, Intent, State,
 };
 
 use aoide_core::{
@@ -149,18 +149,18 @@ async fn main() -> anyhow::Result<()> {
         shared_env,
         (message_tx.clone(), message_rx),
         Default::default(),
-        Box::new(move |model: &Model| {
-            if !model.last_errors().is_empty() {
-                for err in model.last_errors() {
+        Box::new(move |state: &State| {
+            if !state.last_errors().is_empty() {
+                for err in state.last_errors() {
                     log::error!("{}", err);
                 }
                 // Terminate after errors occurred
                 return Some(Intent::Terminate);
             }
             if last_media_tracker_progress.as_ref()
-                != model.media_tracker.remote_view().progress().get()
+                != state.media_tracker.remote_view().progress().get()
             {
-                last_media_tracker_progress = model
+                last_media_tracker_progress = state
                     .media_tracker
                     .remote_view()
                     .progress()
@@ -171,9 +171,9 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
             if last_media_tracker_status.as_ref()
-                != model.media_tracker.remote_view().status().get()
+                != state.media_tracker.remote_view().status().get()
             {
-                last_media_tracker_status = model
+                last_media_tracker_status = state
                     .media_tracker
                     .remote_view()
                     .status()
@@ -184,13 +184,13 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
             if last_media_tracker_scan_outcome.as_ref()
-                != model
+                != state
                     .media_tracker
                     .remote_view()
                     .last_scan_outcome()
                     .get_ready()
             {
-                last_media_tracker_scan_outcome = model
+                last_media_tracker_scan_outcome = state
                     .media_tracker
                     .remote_view()
                     .last_scan_outcome()
@@ -201,13 +201,13 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
             if last_media_tracker_import_outcome.as_ref()
-                != model
+                != state
                     .media_tracker
                     .remote_view()
                     .last_import_outcome()
                     .get_ready()
             {
-                last_media_tracker_import_outcome = model
+                last_media_tracker_import_outcome = state
                     .media_tracker
                     .remote_view()
                     .last_import_outcome()
@@ -218,13 +218,13 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
             if last_media_tracker_untrack_outcome.as_ref()
-                != model
+                != state
                     .media_tracker
                     .remote_view()
                     .last_untrack_outcome()
                     .get_ready()
             {
-                last_media_tracker_untrack_outcome = model
+                last_media_tracker_untrack_outcome = state
                     .media_tracker
                     .remote_view()
                     .last_untrack_outcome()
@@ -237,7 +237,7 @@ async fn main() -> anyhow::Result<()> {
 
             // Only submit a single subcommand
             if subcommand_submitted {
-                let next_intent = if model.media_tracker.is_idle() {
+                let next_intent = if state.media_tracker.is_idle() {
                     // Terminate when idle and no task is pending
                     None
                 } else {
@@ -306,13 +306,13 @@ async fn main() -> anyhow::Result<()> {
             }
 
             // Select an active collection
-            if let Some(available_collections) = model
+            if let Some(available_collections) = state
                 .collection
                 .remote_view()
                 .available_collections()
                 .get_ready()
             {
-                if model.collection.active_collection_uid().is_none() {
+                if state.collection.active_collection_uid().is_none() {
                     if available_collections.value.is_empty() {
                         log::warn!("No collections available");
                         return None;
@@ -330,7 +330,7 @@ async fn main() -> anyhow::Result<()> {
                         );
                     }
                     if let Some(collection_uid) = &collection_uid {
-                        if model
+                        if state
                             .collection
                             .remote_view()
                             .find_available_collections_by_uid(collection_uid)
@@ -363,7 +363,7 @@ async fn main() -> anyhow::Result<()> {
                     return None;
                 }
             } else {
-                if model
+                if state
                     .collection
                     .remote_view()
                     .available_collections()
@@ -378,10 +378,10 @@ async fn main() -> anyhow::Result<()> {
             }
 
             // Commands that require an active collection
-            if let Some(collection) = model.collection.active_collection() {
+            if let Some(collection) = state.collection.active_collection() {
                 log::info!("Active collection: {}", collection.hdr.uid);
                 // Only allowed while idle
-                if !model.media_tracker.is_idle() {
+                if !state.media_tracker.is_idle() {
                     last_media_tracker_progress_fetched = Some(Instant::now());
                     return Some(media_tracker::Intent::FetchProgress.into());
                 }

@@ -19,11 +19,11 @@ pub use self::effect::Effect;
 pub mod intent;
 pub use self::intent::Intent;
 
-pub mod model;
-pub use self::model::{ControlState, Model, RemoteView};
+pub mod state;
+pub use self::state::{ControlState, RemoteView, State};
 
 pub mod task;
 pub use self::task::Task;
 
 pub type Action = crate::prelude::Action<Effect, Task>;
-pub type ModelUpdated = crate::prelude::mutable::ModelUpdated<Effect, Task>;
+pub type StateUpdated = crate::prelude::mutable::StateUpdated<Effect, Task>;

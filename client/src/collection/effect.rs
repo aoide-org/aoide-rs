@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::{Action, Model, ModelUpdate};
+use super::{Action, State, StateUpdate};
 
 use aoide_core::collection::Entity as CollectionEntity;
 
@@ -25,22 +25,22 @@ pub enum Effect {
 }
 
 impl Effect {
-    pub fn apply_on(self, model: &mut Model) -> ModelUpdate {
-        log::trace!("Applying effect {:?} on {:?}", self, model);
+    pub fn apply_on(self, state: &mut State) -> StateUpdate {
+        log::trace!("Applying effect {:?} on {:?}", self, state);
         match self {
             Self::NewCollectionCreated(res) => match res {
-                Ok(_) => ModelUpdate::unchanged(None),
-                Err(err) => ModelUpdate::unchanged(Action::apply_effect(Self::ErrorOccurred(err))),
+                Ok(_) => StateUpdate::unchanged(None),
+                Err(err) => StateUpdate::unchanged(Action::apply_effect(Self::ErrorOccurred(err))),
             },
             Self::AvailableCollectionsFetched(res) => match res {
                 Ok(new_available_collections) => {
-                    model.set_available_collections(new_available_collections);
-                    ModelUpdate::maybe_changed(None)
+                    state.set_available_collections(new_available_collections);
+                    StateUpdate::maybe_changed(None)
                 }
-                Err(err) => ModelUpdate::unchanged(Action::apply_effect(Self::ErrorOccurred(err))),
+                Err(err) => StateUpdate::unchanged(Action::apply_effect(Self::ErrorOccurred(err))),
             },
             Self::ErrorOccurred(error) => {
-                ModelUpdate::unchanged(Action::apply_effect(Self::ErrorOccurred(error)))
+                StateUpdate::unchanged(Action::apply_effect(Self::ErrorOccurred(error)))
             }
         }
     }

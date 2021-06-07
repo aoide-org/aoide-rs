@@ -64,12 +64,12 @@ impl RemoteView {
 }
 
 #[derive(Debug, Default)]
-pub struct Model {
+pub struct State {
     pub(super) control_state: ControlState,
     pub(super) remote_view: RemoteView,
 }
 
-impl Model {
+impl State {
     pub fn control_state(&self) -> ControlState {
         self.control_state
     }
