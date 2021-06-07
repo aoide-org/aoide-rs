@@ -33,7 +33,7 @@ impl Default for ControlState {
 }
 
 #[derive(Debug, Default)]
-pub struct RemoteState {
+pub struct RemoteView {
     pub(super) status: RemoteData<Status>,
     pub(super) progress: RemoteData<Progress>,
     pub(super) last_scan_outcome: RemoteData<ScanOutcome>,
@@ -41,7 +41,7 @@ pub struct RemoteState {
     pub(super) last_untrack_outcome: RemoteData<UntrackOutcome>,
 }
 
-impl RemoteState {
+impl RemoteView {
     pub fn status(&self) -> &RemoteData<Status> {
         &self.status
     }
@@ -64,23 +64,23 @@ impl RemoteState {
 }
 
 #[derive(Debug, Default)]
-pub struct State {
-    pub(super) control: ControlState,
-    pub(super) remote: RemoteState,
+pub struct Model {
+    pub(super) control_state: ControlState,
+    pub(super) remote_view: RemoteView,
 }
 
-impl State {
-    pub fn control(&self) -> ControlState {
-        self.control
+impl Model {
+    pub fn control_state(&self) -> ControlState {
+        self.control_state
     }
 
-    pub fn remote(&self) -> &RemoteState {
-        &self.remote
+    pub fn remote_view(&self) -> &RemoteView {
+        &self.remote_view
     }
 
     pub fn is_idle(&self) -> bool {
-        self.control == ControlState::Idle
-            && (self.remote.progress.get().map(|x| &x.value) == Some(&Progress::Idle)
-                || self.remote.progress.is_unknown())
+        self.control_state == ControlState::Idle
+            && (self.remote_view.progress.get().map(|x| &x.value) == Some(&Progress::Idle)
+                || self.remote_view.progress.is_unknown())
     }
 }

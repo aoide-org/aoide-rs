@@ -19,8 +19,8 @@ pub use self::effect::Effect;
 pub mod intent;
 pub use self::intent::Intent;
 
-pub mod state;
-pub use self::state::{ControlState, RemoteState, State};
+pub mod model;
+pub use self::model::{ControlState, Model, RemoteView};
 
 pub mod task;
 pub use self::task::Task;

@@ -29,7 +29,7 @@ use crate::{
         mutable::{handle_next_message, message_loop},
         Environment as _, *,
     },
-    Effect, Environment, Intent, State,
+    Effect, Environment, Intent, Model,
 };
 
 fn dummy_api_url() -> Url {
@@ -44,19 +44,19 @@ fn test_env() -> Environment {
 fn should_handle_error_and_terminate() {
     let shared_env = Arc::new(test_env());
     let (message_tx, _) = message_channel();
-    let mut state = State::default();
+    let mut model = Model::default();
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     assert_eq!(
         MessageHandled::NoProgress,
         handle_next_message(
             &shared_env,
-            &mut state,
+            &mut model,
             &message_tx,
             effect.into(),
             &mut |_| { None },
         )
     );
-    assert_eq!(1, state.last_errors().len());
+    assert_eq!(1, model.last_errors().len());
 }
 
 #[tokio::test]
@@ -65,33 +65,33 @@ async fn should_catch_error_and_terminate() {
     let (message_tx, message_rx) = message_channel();
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     send_message(&message_tx, Intent::InjectEffect(Box::new(effect)));
-    let state = message_loop(
+    let model = message_loop(
         shared_env,
         (message_tx, message_rx),
         Default::default(),
-        Box::new(|_: &State| None),
+        Box::new(|_: &Model| None),
     )
     .await;
-    assert_eq!(1, state.last_errors().len());
+    assert_eq!(1, model.last_errors().len());
 }
 
 #[test]
 fn should_handle_collection_error_and_terminate() {
     let shared_env = Arc::new(test_env());
     let (message_tx, _) = message_channel();
-    let mut state = State::default();
+    let mut model = Model::default();
     let effect = collection::Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     assert_eq!(
         MessageHandled::NoProgress,
         handle_next_message(
             &shared_env,
-            &mut state,
+            &mut model,
             &message_tx,
             effect.into(),
             &mut |_| { None },
         )
     );
-    assert_eq!(1, state.last_errors().len());
+    assert_eq!(1, model.last_errors().len());
 }
 
 #[tokio::test]
@@ -100,33 +100,33 @@ async fn should_catch_collection_error_and_terminate() {
     let (message_tx, message_rx) = message_channel();
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     send_message(&message_tx, Intent::InjectEffect(Box::new(effect)));
-    let state = message_loop(
+    let model = message_loop(
         shared_env,
         (message_tx, message_rx),
         Default::default(),
-        Box::new(|_: &State| None),
+        Box::new(|_: &Model| None),
     )
     .await;
-    assert_eq!(1, state.last_errors().len());
+    assert_eq!(1, model.last_errors().len());
 }
 
 #[test]
 fn should_handle_media_tracker_error() {
     let shared_env = Arc::new(test_env());
     let (message_tx, _) = message_channel();
-    let mut state = State::default();
+    let mut model = Model::default();
     let effect = media_tracker::Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     assert_eq!(
         MessageHandled::NoProgress,
         handle_next_message(
             &shared_env,
-            &mut state,
+            &mut model,
             &message_tx,
             effect.into(),
             &mut |_| { None },
         )
     );
-    assert_eq!(1, state.last_errors().len());
+    assert_eq!(1, model.last_errors().len());
 }
 
 #[tokio::test]
@@ -135,14 +135,14 @@ async fn should_catch_media_tracker_error_and_terminate() {
     let (message_tx, message_rx) = message_channel();
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     send_message(&message_tx, Intent::InjectEffect(Box::new(effect)));
-    let state = message_loop(
+    let model = message_loop(
         shared_env,
         (message_tx, message_rx),
         Default::default(),
-        Box::new(|_: &State| None),
+        Box::new(|_: &Model| None),
     )
     .await;
-    assert_eq!(1, state.last_errors().len());
+    assert_eq!(1, model.last_errors().len());
 }
 
 #[tokio::test]
@@ -150,14 +150,14 @@ async fn should_terminate_on_intent_when_no_tasks_pending() {
     let shared_env = Arc::new(test_env());
     let (message_tx, message_rx) = message_channel();
     send_message(&message_tx, Intent::Terminate);
-    let state = message_loop(
+    let model = message_loop(
         shared_env,
         (message_tx, message_rx),
         Default::default(),
-        Box::new(|_: &State| None),
+        Box::new(|_: &Model| None),
     )
     .await;
-    assert!(state.last_errors().is_empty());
+    assert!(model.last_errors().is_empty());
 }
 
 #[tokio::test]
@@ -172,20 +172,20 @@ async fn should_terminate_on_intent_after_pending_tasks_finished() {
         },
     );
     send_message(&message_tx, Intent::Terminate);
-    let render_state_count = Arc::new(AtomicUsize::new(0));
-    let state = message_loop(
+    let render_model_count = Arc::new(AtomicUsize::new(0));
+    let model = message_loop(
         shared_env.clone(),
         (message_tx, message_rx),
         Default::default(),
         Box::new({
             let shared_env = shared_env.clone();
-            let render_state_count = render_state_count.clone();
-            move |_: &State| {
-                let last_render_state_count =
-                    render_state_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            let render_model_count = render_model_count.clone();
+            move |_: &Model| {
+                let last_render_model_count =
+                    render_model_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
                 // On the first invocation the task that executes the
                 // timed intent is pending
-                assert_eq!(last_render_state_count > 0, shared_env.all_tasks_finished());
+                assert_eq!(last_render_model_count > 0, shared_env.all_tasks_finished());
                 None
             }
         }),
@@ -193,7 +193,7 @@ async fn should_terminate_on_intent_after_pending_tasks_finished() {
     .await;
     assert_eq!(
         2,
-        render_state_count.load(std::sync::atomic::Ordering::SeqCst)
+        render_model_count.load(std::sync::atomic::Ordering::SeqCst)
     );
-    assert!(state.last_errors().is_empty());
+    assert!(model.last_errors().is_empty());
 }

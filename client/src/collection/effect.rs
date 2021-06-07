@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::{Action, ModelUpdate, State};
+use super::{Action, Model, ModelUpdate};
 
 use aoide_core::collection::Entity as CollectionEntity;
 
@@ -25,8 +25,8 @@ pub enum Effect {
 }
 
 impl Effect {
-    pub fn apply_on(self, state: &mut State) -> ModelUpdate {
-        log::trace!("Applying effect {:?} on {:?}", self, state);
+    pub fn apply_on(self, model: &mut Model) -> ModelUpdate {
+        log::trace!("Applying effect {:?} on {:?}", self, model);
         match self {
             Self::NewCollectionCreated(res) => match res {
                 Ok(_) => ModelUpdate::unchanged(None),
@@ -34,7 +34,7 @@ impl Effect {
             },
             Self::AvailableCollectionsFetched(res) => match res {
                 Ok(new_available_collections) => {
-                    state.set_available_collections(new_available_collections);
+                    model.set_available_collections(new_available_collections);
                     ModelUpdate::maybe_changed(None)
                 }
                 Err(err) => ModelUpdate::unchanged(Action::apply_effect(Self::ErrorOccurred(err))),

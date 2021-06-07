@@ -15,7 +15,7 @@
 
 use crate::prelude::remote::RemoteData;
 
-use super::{Action, ControlState, ModelUpdated, State, Task};
+use super::{Action, ControlState, Model, ModelUpdated, Task};
 
 use aoide_core::usecases::media::tracker::{
     import::Outcome as ImportOutcome, scan::Outcome as ScanOutcome,
@@ -34,14 +34,14 @@ pub enum Effect {
 }
 
 impl Effect {
-    pub fn apply_on(self, state: &mut State) -> ModelUpdated {
-        log::trace!("Applying effect {:?} on {:?}", self, state);
+    pub fn apply_on(self, model: &mut Model) -> ModelUpdated {
+        log::trace!("Applying effect {:?} on {:?}", self, model);
         match self {
             Self::ProgressFetched(res) => match res {
                 Ok(new_progress) => {
                     let new_progress = RemoteData::ready_now(new_progress);
-                    if state.remote.progress != new_progress {
-                        state.remote.progress = new_progress;
+                    if model.remote_view.progress != new_progress {
+                        model.remote_view.progress = new_progress;
                         ModelUpdated::maybe_changed(None)
                     } else {
                         ModelUpdated::unchanged(None)
@@ -57,12 +57,12 @@ impl Effect {
                 ModelUpdated::unchanged(next_action)
             }
             Self::StatusFetched(res) => {
-                debug_assert_eq!(state.control, ControlState::Busy);
-                state.control = ControlState::Idle;
+                debug_assert_eq!(model.control_state, ControlState::Busy);
+                model.control_state = ControlState::Idle;
                 match res {
                     Ok(new_status) => {
                         let new_status = RemoteData::ready_now(new_status);
-                        if state.remote.status != new_status {
+                        if model.remote_view.status != new_status {
                             ModelUpdated::maybe_changed(None)
                         } else {
                             ModelUpdated::unchanged(None)
@@ -74,56 +74,56 @@ impl Effect {
                 }
             }
             Self::ScanFinished(res) => {
-                debug_assert_eq!(state.control, ControlState::Busy);
-                state.control = ControlState::Idle;
+                debug_assert_eq!(model.control_state, ControlState::Busy);
+                model.control_state = ControlState::Idle;
                 // Invalidate both progress and status to enforce refetching
-                state.remote.progress.reset();
-                state.remote.status.reset();
-                debug_assert!(state.remote.last_scan_outcome.is_pending());
+                model.remote_view.progress.reset();
+                model.remote_view.status.reset();
+                debug_assert!(model.remote_view.last_scan_outcome.is_pending());
                 let next_action = match res {
                     Ok(outcome) => {
-                        state.remote.last_scan_outcome = RemoteData::ready_now(outcome);
+                        model.remote_view.last_scan_outcome = RemoteData::ready_now(outcome);
                         Action::dispatch_task(Task::FetchProgress)
                     }
                     Err(err) => {
-                        state.remote.last_scan_outcome.reset();
+                        model.remote_view.last_scan_outcome.reset();
                         Action::apply_effect(Self::ErrorOccurred(err))
                     }
                 };
                 ModelUpdated::maybe_changed(next_action)
             }
             Self::ImportFinished(res) => {
-                debug_assert_eq!(state.control, ControlState::Busy);
-                state.control = ControlState::Idle;
+                debug_assert_eq!(model.control_state, ControlState::Busy);
+                model.control_state = ControlState::Idle;
                 // Invalidate both progress and status to enforce refetching
-                state.remote.progress.reset();
-                state.remote.status.reset();
-                debug_assert!(state.remote.last_import_outcome.is_pending());
+                model.remote_view.progress.reset();
+                model.remote_view.status.reset();
+                debug_assert!(model.remote_view.last_import_outcome.is_pending());
                 let next_action = match res {
                     Ok(outcome) => {
-                        state.remote.last_import_outcome = RemoteData::ready_now(outcome);
+                        model.remote_view.last_import_outcome = RemoteData::ready_now(outcome);
                         Action::dispatch_task(Task::FetchProgress)
                     }
                     Err(err) => {
-                        state.remote.last_import_outcome.reset();
+                        model.remote_view.last_import_outcome.reset();
                         Action::apply_effect(Self::ErrorOccurred(err))
                     }
                 };
                 ModelUpdated::maybe_changed(next_action)
             }
             Self::Untracked(res) => {
-                debug_assert_eq!(state.control, ControlState::Busy);
-                state.control = ControlState::Idle;
-                state.remote.progress.reset();
-                state.remote.status.reset();
-                debug_assert!(state.remote.last_untrack_outcome.is_pending());
+                debug_assert_eq!(model.control_state, ControlState::Busy);
+                model.control_state = ControlState::Idle;
+                model.remote_view.progress.reset();
+                model.remote_view.status.reset();
+                debug_assert!(model.remote_view.last_untrack_outcome.is_pending());
                 let next_action = match res {
                     Ok(outcome) => {
-                        state.remote.last_untrack_outcome = RemoteData::ready_now(outcome);
+                        model.remote_view.last_untrack_outcome = RemoteData::ready_now(outcome);
                         Action::dispatch_task(Task::FetchProgress)
                     }
                     Err(err) => {
-                        state.remote.last_untrack_outcome.reset();
+                        model.remote_view.last_untrack_outcome.reset();
                         Action::apply_effect(Self::ErrorOccurred(err))
                     }
                 };

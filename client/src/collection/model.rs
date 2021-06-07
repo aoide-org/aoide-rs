@@ -18,11 +18,11 @@ use crate::prelude::remote::RemoteData;
 use aoide_core::{collection::Entity as CollectionEntity, entity::EntityUid};
 
 #[derive(Debug, Clone, Default)]
-pub struct RemoteState {
+pub struct RemoteView {
     pub(super) available_collections: RemoteData<Vec<CollectionEntity>>,
 }
 
-impl RemoteState {
+impl RemoteView {
     pub const fn available_collections(&self) -> &RemoteData<Vec<CollectionEntity>> {
         &self.available_collections
     }
@@ -46,14 +46,14 @@ impl RemoteState {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct State {
-    pub(super) remote: RemoteState,
+pub struct Model {
+    pub(super) remote_view: RemoteView,
     pub(super) active_collection_uid: Option<EntityUid>,
 }
 
-impl State {
-    pub const fn remote(&self) -> &RemoteState {
-        &self.remote
+impl Model {
+    pub const fn remote_view(&self) -> &RemoteView {
+        &self.remote_view
     }
 
     pub const fn active_collection_uid(&self) -> Option<&EntityUid> {
@@ -62,7 +62,7 @@ impl State {
 
     pub fn active_collection(&self) -> Option<&CollectionEntity> {
         if let (Some(available), Some(active_collection_uid)) = (
-            self.remote.available_collections.get(),
+            self.remote_view.available_collections.get(),
             &self.active_collection_uid,
         ) {
             available
@@ -78,7 +78,7 @@ impl State {
         &mut self,
         new_available_collections: Vec<CollectionEntity>,
     ) {
-        self.remote.available_collections = RemoteData::ready_now(new_available_collections);
+        self.remote_view.available_collections = RemoteData::ready_now(new_available_collections);
         let active_uid = self.active_collection_uid.take();
         self.set_active_collection_uid(active_uid);
     }
@@ -88,7 +88,7 @@ impl State {
         new_active_uid: impl Into<Option<EntityUid>>,
     ) {
         self.active_collection_uid = if let (Some(available), Some(new_active_uid)) = (
-            self.remote.available_collections.get(),
+            self.remote_view.available_collections.get(),
             new_active_uid.into(),
         ) {
             if available.value.iter().any(|x| x.hdr.uid == new_active_uid) {
