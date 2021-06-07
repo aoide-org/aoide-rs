@@ -19,15 +19,12 @@ use aoide_core::{
     audio::DurationMs,
     media::Content,
     track::{Entity as TrackEntity, Track},
+    usecases::tracks::search::*,
 };
 
 use aoide_repo::{
     collection::RecordId as CollectionId,
-    track::{
-        DateTimeField, DateTimeFieldFilter, EntityRepo as TrackRepo, NumericField,
-        NumericFieldFilter, PhraseFieldFilter, RecordHeader, RecordId as TrackId, SearchFilter,
-        SortField, SortOrder, StringField,
-    },
+    track::{EntityRepo as TrackRepo, RecordHeader, RecordId as TrackId},
 };
 
 use bitflags::bitflags;
@@ -151,9 +148,7 @@ where
         });
     }
     if search_flags.contains(SearchFlags::SOURCE_TRACKED) {
-        all_filters.push(SearchFilter::Condition(
-            aoide_repo::track::ConditionFilter::SourceTracked,
-        ));
+        all_filters.push(SearchFilter::Condition(ConditionFilter::SourceTracked));
     }
     // Only sources with similar audio duration
     let audio_duration_ms = match track.media_source.content {

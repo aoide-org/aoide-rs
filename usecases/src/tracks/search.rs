@@ -19,8 +19,10 @@ use crate::collection::load_virtual_file_path_resolver;
 
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
-    track::{EntityRepo, RecordHeader, SearchFilter, SortOrder},
+    track::{EntityRepo, RecordHeader},
 };
+
+use aoide_core::usecases::tracks::search::*;
 
 use std::time::Instant;
 use url::Url;

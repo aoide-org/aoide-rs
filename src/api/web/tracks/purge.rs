@@ -24,6 +24,7 @@ mod uc {
 pub use aoide_core_serde::{
     entity::EntityHeader,
     track::{Entity, Track},
+    usecases::filtering::StringPredicate,
 };
 
 ///////////////////////////////////////////////////////////////////////

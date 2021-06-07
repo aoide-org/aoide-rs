@@ -15,10 +15,9 @@
 
 use super::*;
 
-use aoide_repo::{
-    collection::EntityRepo as _,
-    track::{SearchFilter, SortOrder},
-};
+use aoide_repo::collection::EntityRepo as _;
+
+use aoide_core::usecases::tracks::search::{SearchFilter, SortOrder};
 
 mod uc {
     pub use aoide_usecases::{

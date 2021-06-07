@@ -21,14 +21,10 @@ use crate::{
     prelude::*,
 };
 
-use aoide_core::{entity::EntityUid, util::clock::YYYYMMDD};
-
-use aoide_repo::{
-    tag::Filter as TagFilter,
-    track::{
-        ConditionFilter, DateTimeField, DateTimeFieldFilter, NumericField, NumericFieldFilter,
-        PhraseFieldFilter, SearchFilter, SortField, SortOrder, StringField,
-    },
+use aoide_core::{
+    entity::EntityUid,
+    usecases::{tags::search::Filter as TagFilter, tracks::search::*},
+    util::clock::YYYYMMDD,
 };
 
 use diesel::{

@@ -13,8 +13,4 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod filtering;
-pub mod media;
-pub mod sorting;
-pub mod tags;
-pub mod tracks;
+pub mod search;

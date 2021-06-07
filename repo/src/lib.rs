@@ -37,8 +37,9 @@ pub struct RecordHeader<Id> {
 }
 
 pub mod prelude {
-    use aoide_core::util::clock::DateTime;
     use thiserror::Error;
+
+    pub use aoide_core::usecases::{filtering::*, sorting::*};
 
     pub trait RecordCollector {
         type Header;
@@ -123,141 +124,9 @@ pub mod prelude {
         }
     }
 
-    #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-    pub enum SortDirection {
-        Ascending,
-        Descending,
-    }
-
-    #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-    pub enum FilterModifier {
-        Complement,
-    }
-
-    #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-    pub enum StringCompare {
-        StartsWith, // head (case-insensitive)
-        EndsWith,   // tail (case-insensitive)
-        Contains,   // part (case-insensitive)
-        Matches,    // all (case-insensitive)
-        Prefix,     // head (case-sensitive)
-        Equals,     // all (case-sensitive)
-    }
-
-    /// Predicates for matching strings
-    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-    pub enum StringPredicateBorrowed<'s> {
-        // Case-sensitive comparison
-        StartsWith(&'s str),
-        StartsNotWith(&'s str),
-        EndsWith(&'s str),
-        EndsNotWith(&'s str),
-        Contains(&'s str),
-        ContainsNot(&'s str),
-        Matches(&'s str),
-        MatchesNot(&'s str),
-        // Case-sensitive comparison
-        Prefix(&'s str),
-        Equals(&'s str),
-        EqualsNot(&'s str),
-    }
-
-    /// Predicates for matching strings
-    #[derive(Clone, Debug, Eq, PartialEq)]
-    pub enum StringPredicate {
-        // Case-sensitive comparison
-        StartsWith(String),
-        StartsNotWith(String),
-        EndsWith(String),
-        EndsNotWith(String),
-        Contains(String),
-        ContainsNot(String),
-        Matches(String),
-        MatchesNot(String),
-        // Case-sensitive comparison
-        Prefix(String),
-        Equals(String),
-        EqualsNot(String),
-    }
-
-    impl StringPredicate {
-        pub fn borrow(&self) -> StringPredicateBorrowed<'_> {
-            match self {
-                Self::StartsWith(s) => StringPredicateBorrowed::StartsWith(s.as_str()),
-                Self::StartsNotWith(s) => StringPredicateBorrowed::StartsNotWith(s.as_str()),
-                Self::EndsWith(s) => StringPredicateBorrowed::EndsWith(s.as_str()),
-                Self::EndsNotWith(s) => StringPredicateBorrowed::EndsNotWith(s.as_str()),
-                Self::Contains(s) => StringPredicateBorrowed::Contains(s.as_str()),
-                Self::ContainsNot(s) => StringPredicateBorrowed::ContainsNot(s.as_str()),
-                Self::Matches(s) => StringPredicateBorrowed::Matches(s.as_str()),
-                Self::MatchesNot(s) => StringPredicateBorrowed::MatchesNot(s.as_str()),
-                Self::Prefix(s) => StringPredicateBorrowed::Prefix(s.as_str()),
-                Self::Equals(s) => StringPredicateBorrowed::Equals(s.as_str()),
-                Self::EqualsNot(s) => StringPredicateBorrowed::EqualsNot(s.as_str()),
-            }
-        }
-    }
-
-    impl<'s> From<StringPredicateBorrowed<'s>> for (StringCompare, &'s str, bool) {
-        fn from(from: StringPredicateBorrowed<'s>) -> (StringCompare, &'s str, bool) {
-            use StringPredicateBorrowed::*;
-            match from {
-                StartsWith(s) => (StringCompare::StartsWith, s, true),
-                StartsNotWith(s) => (StringCompare::StartsWith, s, false),
-                EndsWith(s) => (StringCompare::EndsWith, s, true),
-                EndsNotWith(s) => (StringCompare::EndsWith, s, false),
-                Contains(s) => (StringCompare::Contains, s, true),
-                ContainsNot(s) => (StringCompare::Contains, s, false),
-                Matches(s) => (StringCompare::Matches, s, true),
-                MatchesNot(s) => (StringCompare::Matches, s, false),
-                Prefix(s) => (StringCompare::Prefix, s, true),
-                Equals(s) => (StringCompare::Equals, s, true),
-                EqualsNot(s) => (StringCompare::Equals, s, false),
-            }
-        }
-    }
-
-    #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-    pub struct StringFilterBorrowed<'s> {
-        pub modifier: Option<FilterModifier>,
-        pub value: Option<StringPredicateBorrowed<'s>>,
-    }
-
-    #[derive(Clone, Debug, Default, Eq, PartialEq)]
-    pub struct StringFilter {
-        pub modifier: Option<FilterModifier>,
-        pub value: Option<StringPredicate>,
-    }
-
-    impl StringFilter {
-        pub fn borrow(&self) -> StringFilterBorrowed<'_> {
-            let Self { modifier, value } = self;
-            StringFilterBorrowed {
-                modifier: *modifier,
-                value: value.as_ref().map(StringPredicate::borrow),
-            }
-        }
-    }
-
     #[derive(Clone, Debug, Eq, PartialEq)]
     pub struct StringCount {
         pub value: Option<String>,
         pub total_count: usize,
     }
-
-    #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-    pub enum ScalarPredicate<V> {
-        LessThan(V),
-        LessOrEqual(V),
-        GreaterThan(V),
-        GreaterOrEqual(V),
-        Equal(Option<V>),    // nullable
-        NotEqual(Option<V>), // nullable
-    }
-
-    pub type NumericValue = f64;
-
-    pub type NumericPredicate = ScalarPredicate<NumericValue>;
-
-    pub type DateTimePredicate = ScalarPredicate<DateTime>;
 }

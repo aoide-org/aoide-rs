@@ -20,12 +20,13 @@ use crate::tracks::find_duplicate::{self, find_duplicate};
 use aoide_core::{
     media::Source as MediaSource,
     track::{Entity, Track},
+    usecases::tracks::search::{ConditionFilter, SearchFilter, SortField, SortOrder},
 };
 
 use aoide_repo::{
     collection::RecordId as CollectionId,
     media::{source::Repo as MediaSourceRepo, tracker::Repo as MediaTrackerRepo},
-    track::{EntityRepo as TrackRepo, SearchFilter, SortField, SortOrder},
+    track::EntityRepo as TrackRepo,
 };
 
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -149,8 +150,7 @@ pub fn relink_tracks_with_untracked_media_sources<Repo>(
 where
     Repo: TrackRepo + MediaSourceRepo + MediaTrackerRepo,
 {
-    let source_untracked_filter =
-        SearchFilter::Condition(aoide_repo::track::ConditionFilter::SourceUntracked);
+    let source_untracked_filter = SearchFilter::Condition(ConditionFilter::SourceUntracked);
     let ordering = vec![SortOrder {
         field: SortField::SourceCollectedAt,
         direction: SortDirection::Descending,

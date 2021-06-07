@@ -13,54 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::prelude::*;
-
-use aoide_core::tag::*;
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct Filter {
-    pub modifier: Option<FilterModifier>,
-
-    // Facets are always matched with equals. Use an empty vector
-    // for matching only tags without a facet.
-    pub facets: Option<Vec<String>>,
-
-    pub label: Option<StringPredicate>,
-
-    pub score: Option<NumericPredicate>,
-}
-
-impl Filter {
-    pub fn any_facet() -> Option<Vec<String>> {
-        None
-    }
-
-    pub fn no_facet() -> Option<Vec<String>> {
-        Some(Vec::default())
-    }
-
-    pub fn any_term() -> Option<StringPredicate> {
-        None
-    }
-
-    pub fn any_score() -> Option<NumericPredicate> {
-        None
-    }
-}
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum SortField {
-    Facet,
-    Label,
-    Score,
-    Count,
-}
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct SortOrder {
-    pub field: SortField,
-    pub direction: SortDirection,
-}
+use aoide_core::{tag::*, usecases::tags::search::*};
 
 fn dedup_facets(facets: &mut Vec<Facet>) {
     facets.sort_unstable();
