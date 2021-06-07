@@ -13,9 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::prelude::MessageHandled;
+
 use super::{
-    send_message, Action, Environment, Message, MessageChannel, MessageLoopControl,
-    MessageLoopState, MessageSender, RenderModelFn,
+    send_message, Action, Environment, Message, MessageChannel, MessageSender, RenderModelFn,
 };
 
 use std::{
@@ -100,14 +101,13 @@ pub trait Model {
     ) -> ModelUpdated<Self::Effect, Self::Task>;
 }
 
-pub(crate) fn handle_next_message<E, M>(
-    state: MessageLoopState,
+pub fn handle_next_message<E, M>(
     shared_env: &Arc<E>,
     model: &mut M,
     message_tx: &MessageSender<M::Intent, M::Effect>,
     mut next_message: Message<M::Intent, M::Effect>,
     render_fn: &mut RenderModelFn<M, M::Intent>,
-) -> MessageLoopControl
+) -> MessageHandled
 where
     E: Environment<M::Intent, M::Effect, M::Task>,
     M: Model + fmt::Debug,
@@ -133,19 +133,11 @@ where
                     next_message = Message::Effect(effect);
                     continue 'process_next_message;
                 }
-                Action::DispatchTask(task) => match state {
-                    MessageLoopState::Running => {
-                        log::debug!("Dispatching task asynchronously: {:?}", task);
-                        shared_env.dispatch_task(shared_env.clone(), message_tx.clone(), task);
-                        number_of_tasks_dispatched += 1;
-                    }
-                    MessageLoopState::Terminating => {
-                        log::warn!(
-                            "Cannot dispatch new asynchronous task while terminating: {:?}",
-                            task
-                        );
-                    }
-                },
+                Action::DispatchTask(task) => {
+                    log::debug!("Dispatching task asynchronously: {:?}", task);
+                    shared_env.dispatch_task(shared_env.clone(), message_tx.clone(), task);
+                    number_of_tasks_dispatched += 1;
+                }
             }
         }
         if state_mutation == ModelMutation::MaybeChanged || number_of_next_actions > 0 {
@@ -163,9 +155,9 @@ where
     }
     log::debug!("number_of_next_actions = {}, number_of_messages_sent = {}, number_of_tasks_dispatched = {}", number_of_next_actions, number_of_messages_sent, number_of_tasks_dispatched);
     if number_of_messages_sent + number_of_tasks_dispatched > 0 {
-        MessageLoopControl::Continue
+        MessageHandled::Progressing
     } else {
-        MessageLoopControl::Terminate
+        MessageHandled::NoProgress
     }
 }
 
@@ -182,31 +174,19 @@ where
     M::Effect: fmt::Debug + Send + 'static,
     M::Task: fmt::Debug + 'static,
 {
-    let mut state = MessageLoopState::Running;
     while let Some(next_message) = message_rx.recv().await {
         match handle_next_message(
-            state,
             &shared_env,
             &mut model,
             &message_tx,
             next_message,
             &mut *render_model_fn,
         ) {
-            MessageLoopControl::Continue => match state {
-                MessageLoopState::Running => (),
-                MessageLoopState::Terminating => {
-                    if shared_env.all_tasks_finished() {
-                        break;
-                    }
-                    log::debug!("Continuing message loop until all pending tasks have finished");
-                }
-            },
-            MessageLoopControl::Terminate => {
-                state = MessageLoopState::Terminating;
+            MessageHandled::Progressing => (),
+            MessageHandled::NoProgress => {
                 if shared_env.all_tasks_finished() {
                     break;
                 }
-                log::debug!("Continuing message loop until all pending tasks have finished");
             }
         }
     }

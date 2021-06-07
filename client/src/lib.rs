@@ -29,6 +29,7 @@ use bytes::Bytes;
 use prelude::mutable::Model;
 use reqwest::{Client, Response, Url};
 use std::{
+    num::NonZeroUsize,
     sync::{atomic::AtomicUsize, Arc},
     time::Instant,
 };
@@ -177,7 +178,7 @@ pub enum Intent {
     },
     InjectEffect(Box<Effect>),
     Terminate,
-    ClearFirstErrorsBeforeNextRenderState(usize),
+    DiscardFirstErrors(NonZeroUsize),
     CollectionIntent(collection::Intent),
     MediaTrackerIntent(media_tracker::Intent),
 }
@@ -197,7 +198,7 @@ impl From<media_tracker::Intent> for Intent {
 #[derive(Debug)]
 pub enum Effect {
     ErrorOccurred(anyhow::Error),
-    ClearFirstErrors(usize),
+    FirstErrorsDiscarded(NonZeroUsize),
     ApplyIntent(Intent),
     CollectionEffect(collection::Effect),
     MediaTrackerEffect(media_tracker::Effect),
@@ -221,6 +222,10 @@ impl Intent {
         match self {
             Self::RenderState => ModelUpdated::maybe_changed(None),
             Self::TimedIntent { not_before, intent } => {
+                if state.terminating {
+                    log::debug!("Discarding timed intent while terminating: {:?}", intent);
+                    return ModelUpdated::unchanged(None);
+                }
                 ModelUpdated::unchanged(Action::dispatch_task(Task::TimedIntent {
                     not_before,
                     intent,
@@ -230,8 +235,26 @@ impl Intent {
             Self::Terminate => model_updated(
                 media_tracker::Intent::AbortOnTermination.apply_on(&mut state.media_tracker),
             ),
-            Self::ClearFirstErrorsBeforeNextRenderState(head_len) => {
-                ModelUpdated::unchanged(Action::apply_effect(Effect::ClearFirstErrors(head_len)))
+            Self::DiscardFirstErrors(num_errors_requested) => {
+                let num_errors =
+                    NonZeroUsize::new(num_errors_requested.get().min(state.last_errors.len()));
+                let next_action = if let Some(num_errors) = num_errors {
+                    if num_errors < num_errors_requested {
+                        debug_assert!(num_errors_requested.get() > 1);
+                        log::debug!(
+                            "Discarding only {} instead of {} errors",
+                            num_errors,
+                            num_errors_requested
+                        );
+                    }
+                    Some(Action::apply_effect(Effect::FirstErrorsDiscarded(
+                        num_errors,
+                    )))
+                } else {
+                    log::debug!("No errors to discard");
+                    None
+                };
+                ModelUpdated::unchanged(next_action)
             }
             Self::CollectionIntent(intent) => model_updated(intent.apply_on(&mut state.collection)),
             Self::MediaTrackerIntent(intent) => {
@@ -251,9 +274,9 @@ impl Effect {
                 state.last_errors.push(error);
                 ModelUpdated::maybe_changed(None)
             }
-            Self::ClearFirstErrors(head_len) => {
-                debug_assert!(head_len <= state.last_errors.len());
-                state.last_errors = state.last_errors.drain(head_len..).collect();
+            Self::FirstErrorsDiscarded(num_errors) => {
+                debug_assert!(num_errors.get() <= state.last_errors.len());
+                state.last_errors = state.last_errors.drain(num_errors.get()..).collect();
                 ModelUpdated::maybe_changed(None)
             }
             Self::ApplyIntent(intent) => intent.apply_on(state),

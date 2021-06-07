@@ -29,7 +29,7 @@ use crate::{
         mutable::{handle_next_message, message_loop},
         Environment as _, *,
     },
-    Effect, Environment, Intent, MessageLoopControl, State,
+    Effect, Environment, Intent, State,
 };
 
 fn dummy_api_url() -> Url {
@@ -47,9 +47,8 @@ fn should_handle_error_and_terminate() {
     let mut state = State::default();
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     assert_eq!(
-        MessageLoopControl::Terminate,
+        MessageHandled::NoProgress,
         handle_next_message(
-            MessageLoopState::Running,
             &shared_env,
             &mut state,
             &message_tx,
@@ -83,9 +82,8 @@ fn should_handle_collection_error_and_terminate() {
     let mut state = State::default();
     let effect = collection::Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     assert_eq!(
-        MessageLoopControl::Terminate,
+        MessageHandled::NoProgress,
         handle_next_message(
-            MessageLoopState::Running,
             &shared_env,
             &mut state,
             &message_tx,
@@ -119,9 +117,8 @@ fn should_handle_media_tracker_error() {
     let mut state = State::default();
     let effect = media_tracker::Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     assert_eq!(
-        MessageLoopControl::Terminate,
+        MessageHandled::NoProgress,
         handle_next_message(
-            MessageLoopState::Running,
             &shared_env,
             &mut state,
             &message_tx,

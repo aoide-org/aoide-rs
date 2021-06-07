@@ -155,9 +155,8 @@ async fn main() -> anyhow::Result<()> {
                 for err in state.last_errors() {
                     log::error!("{}", err);
                 }
-                return Some(Intent::ClearFirstErrorsBeforeNextRenderState(
-                    state.last_errors().len(),
-                ));
+                // Terminate after errors occurred
+                return Some(Intent::Terminate);
             }
             if last_media_tracker_progress.as_ref() != state.media_tracker.remote().progress().get()
             {

@@ -53,7 +53,7 @@ pub fn send_message<I: fmt::Debug, E: fmt::Debug>(
 
 pub type RenderModelFn<M, I> = dyn FnMut(&M) -> Option<I> + Send;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Message<I, E> {
     Intent(I),
     Effect(E),
@@ -86,13 +86,7 @@ impl<E, T> Action<E, T> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum MessageLoopControl {
-    Continue,
-    Terminate,
-}
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum MessageLoopState {
-    Running,
-    Terminating,
+pub enum MessageHandled {
+    Progressing,
+    NoProgress,
 }
