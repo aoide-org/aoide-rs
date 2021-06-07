@@ -66,19 +66,19 @@ impl State {
         }
     }
 
-    pub(crate) fn reset(&mut self, search_params: impl Into<Option<SearchParams>>) {
+    pub(super) fn reset(&mut self, search_params: impl Into<Option<SearchParams>>) {
         debug_assert!(self.can_reset());
         self.control_state = ControlState::Idle;
         self.search_params = search_params.into();
         self.results.clear();
     }
 
-    pub(crate) fn set_fetching_results(&mut self) {
+    pub(super) fn set_fetching_results(&mut self) {
         debug_assert!(self.can_fetch_results());
         self.control_state = ControlState::FetchingResults;
     }
 
-    pub(crate) fn append_fetched_result_page(&mut self, response: FetchResultPageResponse) {
+    pub(super) fn append_fetched_result_page(&mut self, response: FetchResultPageResponse) {
         debug_assert!(self.search_params.is_some());
         debug_assert_eq!(self.control_state, ControlState::FetchingResults);
         let FetchResultPageResponse {

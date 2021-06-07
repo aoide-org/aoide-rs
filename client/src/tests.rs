@@ -23,7 +23,7 @@ use std::{
 use reqwest::Url;
 
 use crate::{
-    collection, media_tracker,
+    models::media_tracker,
     prelude::{
         mutable::{handle_next_message, message_loop},
         Environment as _, *,
@@ -79,7 +79,7 @@ fn should_handle_collection_error_and_terminate() {
     let shared_env = Arc::new(test_env());
     let (message_tx, _) = message_channel();
     let mut state = State::default();
-    let effect = collection::Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
+    let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     assert_eq!(
         MessageHandled::NoProgress,
         handle_next_message(

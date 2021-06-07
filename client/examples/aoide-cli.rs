@@ -14,9 +14,11 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_client::{
-    collection, media_tracker,
+    models::{
+        active_collection, media_tracker,
+        media_tracker_cli::{Environment, Intent, State},
+    },
     prelude::{message_channel, mutable::message_loop, send_message},
-    Environment, Intent, State,
 };
 
 use aoide_core::{
@@ -284,7 +286,7 @@ async fn main() -> anyhow::Result<()> {
                         };
                         subcommand_submitted = true;
                         return Some(
-                            collection::Intent::CreateNewCollection(new_collection).into(),
+                            active_collection::Intent::CreateNewCollection(new_collection).into(),
                         );
                     }
                     (subcommand, _) => {
@@ -307,12 +309,12 @@ async fn main() -> anyhow::Result<()> {
 
             // Select an active collection
             if let Some(available_collections) = state
-                .collection
+                .active_collection
                 .remote_view()
                 .available_collections()
                 .get_ready()
             {
-                if state.collection.active_collection_uid().is_none() {
+                if state.active_collection.active_collection_uid().is_none() {
                     if available_collections.value.is_empty() {
                         log::warn!("No collections available");
                         return None;
@@ -331,13 +333,13 @@ async fn main() -> anyhow::Result<()> {
                     }
                     if let Some(collection_uid) = &collection_uid {
                         if state
-                            .collection
+                            .active_collection
                             .remote_view()
                             .find_available_collections_by_uid(collection_uid)
                             .is_some()
                         {
                             return Some(
-                                collection::Intent::ActivateCollection(Some(
+                                active_collection::Intent::ActivateCollection(Some(
                                     collection_uid.to_owned(),
                                 ))
                                 .into(),
@@ -364,12 +366,12 @@ async fn main() -> anyhow::Result<()> {
                 }
             } else {
                 if state
-                    .collection
+                    .active_collection
                     .remote_view()
                     .available_collections()
                     .is_unknown()
                 {
-                    return Some(collection::Intent::FetchAvailableCollections.into());
+                    return Some(active_collection::Intent::FetchAvailableCollections.into());
                 }
             }
 
@@ -378,7 +380,7 @@ async fn main() -> anyhow::Result<()> {
             }
 
             // Commands that require an active collection
-            if let Some(collection) = state.collection.active_collection() {
+            if let Some(collection) = state.active_collection.active_collection() {
                 log::info!("Active collection: {}", collection.hdr.uid);
                 // Only allowed while idle
                 if !state.media_tracker.is_idle() {
