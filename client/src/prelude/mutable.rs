@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use super::{
-    send_message, Action, AsyncTask, Environment, Message, MessageChannel, MessageLoopControl,
+    send_message, Action, Environment, Message, MessageChannel, MessageLoopControl,
     MessageLoopState, MessageSender, RenderModelFn,
 };
 
@@ -100,19 +100,20 @@ pub trait Model {
     ) -> ModelUpdated<Self::Effect, Self::Task>;
 }
 
-pub(crate) fn handle_next_message<M>(
+pub(crate) fn handle_next_message<E, M>(
     state: MessageLoopState,
-    shared_env: &Arc<Environment>,
+    shared_env: &Arc<E>,
     model: &mut M,
     message_tx: &MessageSender<M::Intent, M::Effect>,
     mut next_message: Message<M::Intent, M::Effect>,
     render_fn: &mut RenderModelFn<M, M::Intent>,
 ) -> MessageLoopControl
 where
+    E: Environment<M::Intent, M::Effect, M::Task>,
     M: Model + fmt::Debug,
     M::Intent: fmt::Debug + Send + 'static,
     M::Effect: fmt::Debug + Send + 'static,
-    M::Task: AsyncTask<M::Effect> + fmt::Debug + 'static,
+    M::Task: fmt::Debug + 'static,
 {
     let mut state_mutation = ModelMutation::Unchanged;
     let mut number_of_next_actions = 0;
@@ -135,11 +136,7 @@ where
                 Action::DispatchTask(task) => match state {
                     MessageLoopState::Running => {
                         log::debug!("Dispatching task asynchronously: {:?}", task);
-                        Environment::dispatch_task(
-                            shared_env.clone(),
-                            message_tx.clone(),
-                            task.execute(shared_env.clone()),
-                        );
+                        shared_env.dispatch_task(shared_env.clone(), message_tx.clone(), task);
                         number_of_tasks_dispatched += 1;
                     }
                     MessageLoopState::Terminating => {
@@ -172,17 +169,18 @@ where
     }
 }
 
-pub async fn message_loop<M>(
-    shared_env: Arc<Environment>,
+pub async fn message_loop<E, M>(
+    shared_env: Arc<E>,
     (message_tx, mut message_rx): MessageChannel<M::Intent, M::Effect>,
     mut model: M,
     mut render_model_fn: Box<RenderModelFn<M, M::Intent>>,
 ) -> M
 where
+    E: Environment<M::Intent, M::Effect, M::Task>,
     M: Model + fmt::Debug,
     M::Intent: fmt::Debug + Send + 'static,
     M::Effect: fmt::Debug + Send + 'static,
-    M::Task: AsyncTask<M::Effect> + fmt::Debug + 'static,
+    M::Task: fmt::Debug + 'static,
 {
     let mut state = MessageLoopState::Running;
     while let Some(next_message) = message_rx.recv().await {

@@ -16,8 +16,8 @@
 use aoide_client::{
     collection,
     media::tracker as media_tracker,
-    prelude::{message_channel, mutable::message_loop, send_message, Environment},
-    Intent, State,
+    prelude::{message_channel, mutable::message_loop, send_message},
+    Environment, Intent, State,
 };
 
 use aoide_core::{

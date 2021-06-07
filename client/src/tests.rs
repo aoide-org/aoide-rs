@@ -27,9 +27,9 @@ use crate::{
     media::tracker as media_tracker,
     prelude::{
         mutable::{handle_next_message, message_loop},
-        *,
+        Environment as _, *,
     },
-    Effect, Intent, MessageLoopControl, State,
+    Effect, Environment, Intent, MessageLoopControl, State,
 };
 
 fn dummy_api_url() -> Url {

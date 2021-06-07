@@ -8,7 +8,6 @@ aoide-core = "*"
 aoide-core-serde = "*"
 
 anyhow = "*"
-async-trait = "*"
 bytes = "*"
 env_logger = "*"
 log = "*"

@@ -16,68 +16,18 @@
 pub mod mutable;
 pub mod remote;
 
-use std::{
-    fmt,
-    future::Future,
-    sync::{atomic::AtomicUsize, Arc},
-};
+use std::{fmt, sync::Arc};
 
-use async_trait::async_trait;
-use reqwest::{Client, Url};
 use tokio::sync::mpsc;
 
-/// Immutable environment
-#[derive(Debug)]
-pub struct Environment {
-    api_url: Url,
-    client: Client,
-    pending_tasks_count: AtomicUsize,
-}
-
-impl Environment {
-    pub fn new(api_url: Url) -> Self {
-        Self {
-            api_url,
-            client: Client::new(),
-            pending_tasks_count: AtomicUsize::new(0),
-        }
-    }
-
-    pub fn client(&self) -> &Client {
-        &self.client
-    }
-
-    pub fn join_api_url(&self, input: &str) -> anyhow::Result<Url> {
-        self.api_url.join(input).map_err(Into::into)
-    }
-
-    pub fn all_tasks_finished(&self) -> bool {
-        self.pending_tasks_count
-            .load(std::sync::atomic::Ordering::Acquire)
-            == 0
-    }
-
-    pub fn dispatch_task<I, T>(
+pub trait Environment<Intent, Effect, Task> {
+    fn all_tasks_finished(&self) -> bool;
+    fn dispatch_task(
+        &self,
         shared_self: Arc<Self>,
-        message_tx: MessageSender<I, T::Output>,
-        task: T,
-    ) where
-        T: Future + Send + 'static,
-        T::Output: fmt::Debug + Send + 'static,
-        I: fmt::Debug + Send + 'static,
-    {
-        shared_self
-            .pending_tasks_count
-            .fetch_add(1, std::sync::atomic::Ordering::Acquire);
-        tokio::spawn(async move {
-            let effect = task.await;
-            log::debug!("Received effect from task: {:?}", effect);
-            send_message(&message_tx, Message::Effect(effect));
-            shared_self
-                .pending_tasks_count
-                .fetch_sub(1, std::sync::atomic::Ordering::Release);
-        });
-    }
+        message_tx: MessageSender<Intent, Effect>,
+        task: Task,
+    );
 }
 
 pub type MessageSender<I, E> = mpsc::UnboundedSender<Message<I, E>>;
@@ -99,11 +49,6 @@ pub fn send_message<I: fmt::Debug, E: fmt::Debug>(
         // Channel is closed, i.e. receiver has been dropped
         log::debug!("Failed to send message: {:?}", message.0);
     }
-}
-
-#[async_trait]
-pub trait AsyncTask<E> {
-    async fn execute(self, shared_env: Arc<Environment>) -> E;
 }
 
 pub type RenderModelFn<M, I> = dyn FnMut(&M) -> Option<I> + Send;

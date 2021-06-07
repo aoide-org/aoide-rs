@@ -25,11 +25,20 @@ use crate::prelude::mutable::model_updated;
 
 use self::{media::tracker as media_tracker, prelude::*};
 
-use async_trait::async_trait;
 use bytes::Bytes;
 use prelude::mutable::Model;
-use reqwest::Response;
-use std::{sync::Arc, time::Instant};
+use reqwest::{Client, Response, Url};
+use std::{
+    sync::{atomic::AtomicUsize, Arc},
+    time::Instant,
+};
+
+pub type Action = crate::prelude::Action<Effect, Task>;
+pub type Message = crate::prelude::Message<Intent, Effect>;
+pub type MessageSender = crate::prelude::MessageSender<Intent, Effect>;
+pub type MessageReceiver = crate::prelude::MessageReceiver<Intent, Effect>;
+pub type MessageChannel = crate::prelude::MessageChannel<Intent, Effect>;
+pub type ModelUpdated = crate::prelude::mutable::ModelUpdated<Effect, Task>;
 
 #[derive(Debug, Default)]
 pub struct State {
@@ -44,10 +53,6 @@ impl State {
         &self.last_errors
     }
 }
-
-pub type Message = crate::prelude::Message<Intent, Effect>;
-pub type Action = crate::prelude::Action<Effect, Task>;
-pub type ModelUpdated = crate::prelude::mutable::ModelUpdated<Effect, Task>;
 
 impl Model for State {
     type Intent = Intent;
@@ -166,11 +171,11 @@ impl From<media_tracker::Effect> for Message {
 #[derive(Debug)]
 pub enum Intent {
     RenderState,
-    InjectEffect(Box<Effect>),
     TimedIntent {
         not_before: Instant,
         intent: Box<Intent>,
     },
+    InjectEffect(Box<Effect>),
     Terminate,
     ClearFirstErrorsBeforeNextRenderState(usize),
     CollectionIntent(collection::Intent),
@@ -215,13 +220,13 @@ impl Intent {
         log::debug!("Applying intent {:?} on {:?}", self, state);
         match self {
             Self::RenderState => ModelUpdated::maybe_changed(None),
-            Self::InjectEffect(effect) => ModelUpdated::unchanged(Action::apply_effect(*effect)),
             Self::TimedIntent { not_before, intent } => {
                 ModelUpdated::unchanged(Action::dispatch_task(Task::TimedIntent {
                     not_before,
                     intent,
                 }))
             }
+            Self::InjectEffect(effect) => ModelUpdated::unchanged(Action::apply_effect(*effect)),
             Self::Terminate => model_updated(
                 media_tracker::Intent::AbortOnTermination.apply_on(&mut state.media_tracker),
             ),
@@ -260,18 +265,59 @@ impl Effect {
     }
 }
 
-#[async_trait]
-impl AsyncTask<Effect> for Task {
-    async fn execute(self, shared_env: Arc<Environment>) -> Effect {
-        log::debug!("Executing task: {:?}", self);
-        match self {
-            Self::TimedIntent { not_before, intent } => {
-                tokio::time::sleep_until(not_before.into()).await;
-                Effect::ApplyIntent(*intent)
-            }
-            Self::Collection(task) => task.execute_with(&shared_env).await.into(),
-            Self::MediaTracker(task) => task.execute_with(&shared_env).await.into(),
+/// Immutable environment
+#[derive(Debug)]
+pub struct Environment {
+    api_url: Url,
+    client: Client,
+    pending_tasks_count: AtomicUsize,
+}
+
+impl Environment {
+    pub fn new(api_url: Url) -> Self {
+        Self {
+            api_url,
+            client: Client::new(),
+            pending_tasks_count: AtomicUsize::new(0),
         }
+    }
+
+    pub fn client(&self) -> &Client {
+        &self.client
+    }
+
+    pub fn join_api_url(&self, input: &str) -> anyhow::Result<Url> {
+        self.api_url.join(input).map_err(Into::into)
+    }
+}
+
+impl crate::prelude::Environment<Intent, Effect, Task> for Environment {
+    fn all_tasks_finished(&self) -> bool {
+        self.pending_tasks_count
+            .load(std::sync::atomic::Ordering::Acquire)
+            == 0
+    }
+
+    fn dispatch_task(&self, shared_self: Arc<Self>, message_tx: MessageSender, task: Task) {
+        shared_self
+            .pending_tasks_count
+            .fetch_add(1, std::sync::atomic::Ordering::Acquire);
+        tokio::spawn(async move {
+            log::debug!("Executing task: {:?}", task);
+            let effect = match task {
+                Task::TimedIntent { not_before, intent } => {
+                    tokio::time::sleep_until(not_before.into()).await;
+                    Effect::ApplyIntent(*intent)
+                }
+                Task::Collection(task) => task.execute_with(&shared_self).await.into(),
+                Task::MediaTracker(task) => task.execute_with(&shared_self).await.into(),
+            };
+            log::debug!("Received effect from task: {:?}", effect);
+            send_message(&message_tx, Message::Effect(effect));
+            shared_self
+                .pending_tasks_count
+                .fetch_sub(1, std::sync::atomic::Ordering::Release);
+        });
     }
 }
 
