@@ -16,7 +16,7 @@
 use aoide_client::{
     collection,
     media::tracker as media_tracker,
-    prelude::{message_loop, Environment},
+    prelude::{message_channel, mutable::message_loop, send_message, Environment},
     Intent, State,
 };
 
@@ -31,6 +31,7 @@ use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
+use tokio::signal;
 
 const DEFAULT_LOG_FILTER: &str = "info";
 
@@ -136,6 +137,8 @@ async fn main() -> anyhow::Result<()> {
         .map(|s| s.parse::<EntityUid>().expect("Collection UID"));
 
     let shared_env = Arc::new(Environment::new(api_url));
+    let (message_tx, message_rx) = message_channel();
+
     let mut last_media_tracker_progress_fetched = None;
     let mut last_media_tracker_status = None;
     let mut last_media_tracker_progress = None;
@@ -145,8 +148,8 @@ async fn main() -> anyhow::Result<()> {
     let mut subcommand_submitted = false;
     let message_loop = tokio::spawn(message_loop(
         shared_env,
+        (message_tx.clone(), message_rx),
         Default::default(),
-        Intent::RenderState,
         Box::new(move |state: &State| {
             if !state.last_errors().is_empty() {
                 for err in state.last_errors() {
@@ -462,6 +465,23 @@ async fn main() -> anyhow::Result<()> {
             return None;
         }),
     ));
+
+    // Handle Ctrl-C/SIGINT signals to abort processing
+    tokio::spawn({
+        let message_tx = message_tx.clone();
+        async move {
+            if let Err(err) = signal::ctrl_c().await {
+                log::error!("Failed to receive Ctrl+C/SIGINT signal: {}", err);
+            }
+            log::info!("Terminating after receiving Ctrl+C/SIGINT...");
+            send_message(&message_tx, Intent::Terminate);
+        }
+    });
+
+    // Kick off the loop by sending a first message
+    // before awaiting its termination
+    send_message(&message_tx, Intent::RenderState);
     message_loop.await?;
+
     Ok(())
 }

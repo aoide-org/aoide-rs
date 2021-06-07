@@ -15,12 +15,20 @@
 
 ///////////////////////////////////////////////////////////////////////
 
-use std::sync::Arc;
+use std::{
+    sync::{atomic::AtomicUsize, Arc},
+    time::{Duration, Instant},
+};
 
 use reqwest::Url;
 
 use crate::{
-    collection, handle_next_message, media::tracker as media_tracker, message_loop, prelude::*,
+    collection,
+    media::tracker as media_tracker,
+    prelude::{
+        mutable::{handle_next_message, message_loop},
+        *,
+    },
     Effect, Intent, MessageLoopControl, State,
 };
 
@@ -33,32 +41,35 @@ fn test_env() -> Environment {
 }
 
 #[test]
-fn should_handle_error() {
-    let (message_tx, _) = message_channel();
+fn should_handle_error_and_terminate() {
     let shared_env = Arc::new(test_env());
+    let (message_tx, _) = message_channel();
     let mut state = State::default();
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     assert_eq!(
         MessageLoopControl::Terminate,
         handle_next_message(
+            MessageLoopState::Running,
             &shared_env,
-            Some(&message_tx),
             &mut state,
+            &message_tx,
+            effect.into(),
             &mut |_| { None },
-            effect.into()
         )
     );
     assert_eq!(1, state.last_errors().len());
 }
 
 #[tokio::test]
-async fn should_catch_error() {
+async fn should_catch_error_and_terminate() {
     let shared_env = Arc::new(test_env());
+    let (message_tx, message_rx) = message_channel();
     let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
+    send_message(&message_tx, Intent::InjectEffect(Box::new(effect)));
     let state = message_loop(
         shared_env,
+        (message_tx, message_rx),
         Default::default(),
-        Intent::InjectEffect(Box::new(effect)),
         Box::new(|_: &State| None),
     )
     .await;
@@ -66,32 +77,35 @@ async fn should_catch_error() {
 }
 
 #[test]
-fn should_handle_collection_error() {
-    let (message_tx, _) = message_channel();
+fn should_handle_collection_error_and_terminate() {
     let shared_env = Arc::new(test_env());
+    let (message_tx, _) = message_channel();
     let mut state = State::default();
     let effect = collection::Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     assert_eq!(
         MessageLoopControl::Terminate,
         handle_next_message(
+            MessageLoopState::Running,
             &shared_env,
-            Some(&message_tx),
             &mut state,
+            &message_tx,
+            effect.into(),
             &mut |_| { None },
-            effect.into()
         )
     );
     assert_eq!(1, state.last_errors().len());
 }
 
 #[tokio::test]
-async fn should_catch_collection_error() {
+async fn should_catch_collection_error_and_terminate() {
     let shared_env = Arc::new(test_env());
-    let effect = collection::Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
+    let (message_tx, message_rx) = message_channel();
+    let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
+    send_message(&message_tx, Intent::InjectEffect(Box::new(effect)));
     let state = message_loop(
         shared_env,
+        (message_tx, message_rx),
         Default::default(),
-        Intent::InjectEffect(Box::new(effect.into())),
         Box::new(|_: &State| None),
     )
     .await;
@@ -100,33 +114,89 @@ async fn should_catch_collection_error() {
 
 #[test]
 fn should_handle_media_tracker_error() {
-    let (message_tx, _) = message_channel();
     let shared_env = Arc::new(test_env());
+    let (message_tx, _) = message_channel();
     let mut state = State::default();
     let effect = media_tracker::Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
     assert_eq!(
         MessageLoopControl::Terminate,
         handle_next_message(
+            MessageLoopState::Running,
             &shared_env,
-            Some(&message_tx),
             &mut state,
+            &message_tx,
+            effect.into(),
             &mut |_| { None },
-            effect.into()
         )
     );
     assert_eq!(1, state.last_errors().len());
 }
 
 #[tokio::test]
-async fn should_catch_media_tracker_error() {
+async fn should_catch_media_tracker_error_and_terminate() {
     let shared_env = Arc::new(test_env());
-    let effect = media_tracker::Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
+    let (message_tx, message_rx) = message_channel();
+    let effect = Effect::ErrorOccurred(anyhow::anyhow!("an error occurred"));
+    send_message(&message_tx, Intent::InjectEffect(Box::new(effect)));
     let state = message_loop(
         shared_env,
+        (message_tx, message_rx),
         Default::default(),
-        Intent::InjectEffect(Box::new(effect.into())),
         Box::new(|_: &State| None),
     )
     .await;
     assert_eq!(1, state.last_errors().len());
+}
+
+#[tokio::test]
+async fn should_terminate_on_intent_when_no_tasks_pending() {
+    let shared_env = Arc::new(test_env());
+    let (message_tx, message_rx) = message_channel();
+    send_message(&message_tx, Intent::Terminate);
+    let state = message_loop(
+        shared_env,
+        (message_tx, message_rx),
+        Default::default(),
+        Box::new(|_: &State| None),
+    )
+    .await;
+    assert!(state.last_errors().is_empty());
+}
+
+#[tokio::test]
+async fn should_terminate_on_intent_after_pending_tasks_finished() {
+    let shared_env = Arc::new(test_env());
+    let (message_tx, message_rx) = message_channel();
+    send_message(
+        &message_tx,
+        Intent::TimedIntent {
+            intent: Box::new(Intent::RenderState),
+            not_before: Instant::now() + Duration::from_millis(100),
+        },
+    );
+    send_message(&message_tx, Intent::Terminate);
+    let render_state_count = Arc::new(AtomicUsize::new(0));
+    let state = message_loop(
+        shared_env.clone(),
+        (message_tx, message_rx),
+        Default::default(),
+        Box::new({
+            let shared_env = shared_env.clone();
+            let render_state_count = render_state_count.clone();
+            move |_: &State| {
+                let last_render_state_count =
+                    render_state_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                // On the first invocation the task that executes the
+                // timed intent is pending
+                assert_eq!(last_render_state_count > 0, shared_env.all_tasks_finished());
+                None
+            }
+        }),
+    )
+    .await;
+    assert_eq!(
+        2,
+        render_state_count.load(std::sync::atomic::Ordering::SeqCst)
+    );
+    assert!(state.last_errors().is_empty());
 }

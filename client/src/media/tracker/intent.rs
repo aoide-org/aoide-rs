@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::{Action, ControlState, MutableModelUpdated, State, Task};
+use super::{Action, ControlState, ModelUpdated, State, Task};
 
 use aoide_core::entity::EntityUid;
 
@@ -35,6 +35,7 @@ pub enum Intent {
         root_url: Option<Url>,
     },
     Abort,
+    AbortOnTermination,
     Untrack {
         collection_uid: EntityUid,
         root_url: Url,
@@ -42,25 +43,34 @@ pub enum Intent {
 }
 
 impl Intent {
-    pub fn apply_on(self, state: &mut State) -> MutableModelUpdated {
+    pub fn apply_on(self, state: &mut State) -> ModelUpdated {
         log::trace!("Applying intent {:?} on {:?}", self, state);
         match self {
             Self::FetchProgress => {
                 state.remote.progress.set_pending_now();
-                MutableModelUpdated::unchanged(Action::dispatch_task(Task::FetchProgress))
+                ModelUpdated::unchanged(Action::dispatch_task(Task::FetchProgress))
             }
-            Self::Abort => MutableModelUpdated::unchanged(Action::dispatch_task(Task::Abort)),
+            Self::Abort => ModelUpdated::unchanged(Action::dispatch_task(Task::Abort)),
+            Self::AbortOnTermination => {
+                if state.control != ControlState::Idle {
+                    // Only dispatch an abort task if a local task is pending
+                    ModelUpdated::unchanged(Action::dispatch_task(Task::Abort))
+                } else {
+                    // Nothing to do
+                    ModelUpdated::unchanged(None)
+                }
+            }
             Self::FetchStatus {
                 collection_uid,
                 root_url,
             } => {
                 if !state.is_idle() {
                     log::warn!("Cannot fetch status while not idle");
-                    return MutableModelUpdated::unchanged(None);
+                    return ModelUpdated::unchanged(None);
                 }
                 state.control = ControlState::Busy;
                 state.remote.status.set_pending_now();
-                MutableModelUpdated::maybe_changed(Action::dispatch_task(Task::FetchStatus {
+                ModelUpdated::maybe_changed(Action::dispatch_task(Task::FetchStatus {
                     collection_uid,
                     root_url,
                 }))
@@ -71,13 +81,13 @@ impl Intent {
             } => {
                 if !state.is_idle() {
                     log::warn!("Cannot start scan while not idle");
-                    return MutableModelUpdated::unchanged(None);
+                    return ModelUpdated::unchanged(None);
                 }
                 state.control = ControlState::Busy;
                 state.remote.progress.reset();
                 state.remote.status.set_pending_now();
                 state.remote.last_scan_outcome.set_pending_now();
-                MutableModelUpdated::maybe_changed(Action::dispatch_task(Task::StartScan {
+                ModelUpdated::maybe_changed(Action::dispatch_task(Task::StartScan {
                     collection_uid,
                     root_url,
                 }))
@@ -88,13 +98,13 @@ impl Intent {
             } => {
                 if !state.is_idle() {
                     log::warn!("Cannot start import while not idle");
-                    return MutableModelUpdated::unchanged(None);
+                    return ModelUpdated::unchanged(None);
                 }
                 state.control = ControlState::Busy;
                 state.remote.progress.reset();
                 state.remote.status.set_pending_now();
                 state.remote.last_import_outcome.set_pending_now();
-                MutableModelUpdated::maybe_changed(Action::dispatch_task(Task::StartImport {
+                ModelUpdated::maybe_changed(Action::dispatch_task(Task::StartImport {
                     collection_uid,
                     root_url,
                 }))
@@ -105,13 +115,13 @@ impl Intent {
             } => {
                 if !state.is_idle() {
                     log::warn!("Cannot untrack while not idle");
-                    return MutableModelUpdated::unchanged(None);
+                    return ModelUpdated::unchanged(None);
                 }
                 state.control = ControlState::Busy;
                 state.remote.progress.reset();
                 state.remote.status.set_pending_now();
                 state.remote.last_untrack_outcome.set_pending_now();
-                MutableModelUpdated::maybe_changed(Action::dispatch_task(Task::Untrack {
+                ModelUpdated::maybe_changed(Action::dispatch_task(Task::Untrack {
                     collection_uid,
                     root_url,
                 }))

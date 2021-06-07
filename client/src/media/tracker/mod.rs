@@ -26,4 +26,4 @@ pub mod task;
 pub use self::task::Task;
 
 pub type Action = crate::prelude::Action<Effect, Task>;
-pub type MutableModelUpdated = crate::prelude::MutableModelUpdated<Effect, Task>;
+pub type ModelUpdated = crate::prelude::mutable::ModelUpdated<Effect, Task>;

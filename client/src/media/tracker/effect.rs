@@ -13,9 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::prelude::RemoteData;
+use crate::prelude::remote::RemoteData;
 
-use super::{Action, ControlState, MutableModelUpdated, State, Task};
+use super::{Action, ControlState, ModelUpdated, State, Task};
 
 use aoide_core::usecases::media::tracker::{
     import::Outcome as ImportOutcome, scan::Outcome as ScanOutcome,
@@ -34,7 +34,7 @@ pub enum Effect {
 }
 
 impl Effect {
-    pub fn apply_on(self, state: &mut State) -> MutableModelUpdated {
+    pub fn apply_on(self, state: &mut State) -> ModelUpdated {
         log::trace!("Applying effect {:?} on {:?}", self, state);
         match self {
             Self::ProgressFetched(res) => match res {
@@ -42,21 +42,19 @@ impl Effect {
                     let new_progress = RemoteData::ready_now(new_progress);
                     if state.remote.progress != new_progress {
                         state.remote.progress = new_progress;
-                        MutableModelUpdated::maybe_changed(None)
+                        ModelUpdated::maybe_changed(None)
                     } else {
-                        MutableModelUpdated::unchanged(None)
+                        ModelUpdated::unchanged(None)
                     }
                 }
-                Err(err) => {
-                    MutableModelUpdated::unchanged(Action::apply_effect(Self::ErrorOccurred(err)))
-                }
+                Err(err) => ModelUpdated::unchanged(Action::apply_effect(Self::ErrorOccurred(err))),
             },
             Self::Aborted(res) => {
                 let next_action = match res {
                     Ok(()) => Action::dispatch_task(Task::FetchProgress),
                     Err(err) => Action::apply_effect(Self::ErrorOccurred(err)),
                 };
-                MutableModelUpdated::unchanged(next_action)
+                ModelUpdated::unchanged(next_action)
             }
             Self::StatusFetched(res) => {
                 debug_assert_eq!(state.control, ControlState::Busy);
@@ -65,14 +63,14 @@ impl Effect {
                     Ok(new_status) => {
                         let new_status = RemoteData::ready_now(new_status);
                         if state.remote.status != new_status {
-                            MutableModelUpdated::maybe_changed(None)
+                            ModelUpdated::maybe_changed(None)
                         } else {
-                            MutableModelUpdated::unchanged(None)
+                            ModelUpdated::unchanged(None)
                         }
                     }
-                    Err(err) => MutableModelUpdated::unchanged(Action::apply_effect(
-                        Self::ErrorOccurred(err),
-                    )),
+                    Err(err) => {
+                        ModelUpdated::unchanged(Action::apply_effect(Self::ErrorOccurred(err)))
+                    }
                 }
             }
             Self::ScanFinished(res) => {
@@ -92,7 +90,7 @@ impl Effect {
                         Action::apply_effect(Self::ErrorOccurred(err))
                     }
                 };
-                MutableModelUpdated::maybe_changed(next_action)
+                ModelUpdated::maybe_changed(next_action)
             }
             Self::ImportFinished(res) => {
                 debug_assert_eq!(state.control, ControlState::Busy);
@@ -111,7 +109,7 @@ impl Effect {
                         Action::apply_effect(Self::ErrorOccurred(err))
                     }
                 };
-                MutableModelUpdated::maybe_changed(next_action)
+                ModelUpdated::maybe_changed(next_action)
             }
             Self::Untracked(res) => {
                 debug_assert_eq!(state.control, ControlState::Busy);
@@ -129,10 +127,10 @@ impl Effect {
                         Action::apply_effect(Self::ErrorOccurred(err))
                     }
                 };
-                MutableModelUpdated::maybe_changed(next_action)
+                ModelUpdated::maybe_changed(next_action)
             }
             Self::ErrorOccurred(err) => {
-                MutableModelUpdated::unchanged(Action::apply_effect(Self::ErrorOccurred(err)))
+                ModelUpdated::unchanged(Action::apply_effect(Self::ErrorOccurred(err)))
             }
         }
     }

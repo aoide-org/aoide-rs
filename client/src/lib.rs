@@ -21,10 +21,13 @@ pub mod collection;
 pub mod media;
 pub mod prelude;
 
+use crate::prelude::mutable::model_updated;
+
 use self::{media::tracker as media_tracker, prelude::*};
 
 use async_trait::async_trait;
 use bytes::Bytes;
+use prelude::mutable::Model;
 use reqwest::Response;
 use std::{sync::Arc, time::Instant};
 
@@ -44,29 +47,18 @@ impl State {
 
 pub type Message = crate::prelude::Message<Intent, Effect>;
 pub type Action = crate::prelude::Action<Effect, Task>;
-pub type MutableModelUpdated = crate::prelude::MutableModelUpdated<Effect, Task>;
+pub type ModelUpdated = crate::prelude::mutable::ModelUpdated<Effect, Task>;
 
-impl MutableModel for State {
+impl Model for State {
     type Intent = Intent;
     type Effect = Effect;
     type Task = Task;
 
-    fn update(&mut self, message: Message) -> MutableModelUpdated {
+    fn update(&mut self, message: Message) -> ModelUpdated {
         log::debug!("Updating state {:?} with message {:?}", self, message);
         match message {
             Message::Intent(intent) => intent.apply_on(self),
             Message::Effect(effect) => effect.apply_on(self),
-            Message::IntentTerminate => {
-                if self.terminating {
-                    return MutableModelUpdated::unchanged(None);
-                }
-                self.terminating = true;
-                let next_action = Intent::MediaTrackerIntent(media_tracker::Intent::Abort)
-                    .apply_on(self)
-                    .next_action;
-                MutableModelUpdated::maybe_changed(next_action)
-            }
-            Message::EffectTerminated => unreachable!(),
         }
     }
 }
@@ -179,6 +171,7 @@ pub enum Intent {
         not_before: Instant,
         intent: Box<Intent>,
     },
+    Terminate,
     ClearFirstErrorsBeforeNextRenderState(usize),
     CollectionIntent(collection::Intent),
     MediaTrackerIntent(media_tracker::Intent),
@@ -218,55 +211,50 @@ impl From<media_tracker::Effect> for Effect {
 }
 
 impl Intent {
-    pub fn apply_on(self, state: &mut State) -> MutableModelUpdated {
+    pub fn apply_on(self, state: &mut State) -> ModelUpdated {
         log::debug!("Applying intent {:?} on {:?}", self, state);
         match self {
-            Self::RenderState => MutableModelUpdated::maybe_changed(None),
-            Self::InjectEffect(effect) => {
-                MutableModelUpdated::unchanged(Action::apply_effect(*effect))
-            }
+            Self::RenderState => ModelUpdated::maybe_changed(None),
+            Self::InjectEffect(effect) => ModelUpdated::unchanged(Action::apply_effect(*effect)),
             Self::TimedIntent { not_before, intent } => {
-                MutableModelUpdated::unchanged(Action::dispatch_task(Task::TimedIntent {
+                ModelUpdated::unchanged(Action::dispatch_task(Task::TimedIntent {
                     not_before,
                     intent,
                 }))
             }
+            Self::Terminate => model_updated(
+                media_tracker::Intent::AbortOnTermination.apply_on(&mut state.media_tracker),
+            ),
             Self::ClearFirstErrorsBeforeNextRenderState(head_len) => {
-                MutableModelUpdated::unchanged(Action::apply_effect(Effect::ClearFirstErrors(
-                    head_len,
-                )))
+                ModelUpdated::unchanged(Action::apply_effect(Effect::ClearFirstErrors(head_len)))
             }
-            Self::CollectionIntent(intent) => {
-                mutable_model_updated(intent.apply_on(&mut state.collection))
-            }
+            Self::CollectionIntent(intent) => model_updated(intent.apply_on(&mut state.collection)),
             Self::MediaTrackerIntent(intent) => {
-                mutable_model_updated(intent.apply_on(&mut state.media_tracker))
+                model_updated(intent.apply_on(&mut state.media_tracker))
             }
         }
     }
 }
 
 impl Effect {
-    pub fn apply_on(self, state: &mut State) -> MutableModelUpdated {
+    pub fn apply_on(self, state: &mut State) -> ModelUpdated {
         log::debug!("Applying effect {:?} on {:?}", self, state);
         match self {
             Self::ErrorOccurred(error)
             | Self::CollectionEffect(collection::Effect::ErrorOccurred(error))
             | Self::MediaTrackerEffect(media_tracker::Effect::ErrorOccurred(error)) => {
                 state.last_errors.push(error);
-                MutableModelUpdated::maybe_changed(None)
+                ModelUpdated::maybe_changed(None)
             }
             Self::ClearFirstErrors(head_len) => {
                 debug_assert!(head_len <= state.last_errors.len());
                 state.last_errors = state.last_errors.drain(head_len..).collect();
-                MutableModelUpdated::maybe_changed(None)
+                ModelUpdated::maybe_changed(None)
             }
             Self::ApplyIntent(intent) => intent.apply_on(state),
-            Self::CollectionEffect(effect) => {
-                mutable_model_updated(effect.apply_on(&mut state.collection))
-            }
+            Self::CollectionEffect(effect) => model_updated(effect.apply_on(&mut state.collection)),
             Self::MediaTrackerEffect(effect) => {
-                mutable_model_updated(effect.apply_on(&mut state.media_tracker))
+                model_updated(effect.apply_on(&mut state.media_tracker))
             }
         }
     }
