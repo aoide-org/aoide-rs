@@ -335,7 +335,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added missing database indexes to improve serach performance
+- Added missing database indexes to improve search performance
 - Added support for marking custom positions (points/sections) in a track
 - Added filter for searching tracks by the labels of their position markers
 - Added beat markers
@@ -360,7 +360,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Splitted tags into `plain` and `faceted` tags
+- Split tags into `plain` and `faceted` tags
 - The `label` of a faceted tag is now optional and may be missing
 - Revised tag reporting for tracks by using `count` POST requests
 - Fixed various documentation issues

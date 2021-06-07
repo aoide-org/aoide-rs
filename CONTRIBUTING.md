@@ -103,7 +103,7 @@ Keep your change sets small per commit:
 * Use separate commits when moving or renaming files and when fixing formatting issues with `rustfmt`
 * Don't accidentilly check in any temporary files
 
-Make sure that the code compiles without errors. The only exeception is allowed for tests that might neither compile
+Make sure that the code compiles without errors. The only exception is allowed for tests that might neither compile
 nor succeed for an intermediate commit.
 
 Try *really* hard to follow [The seven rules of a great Git commit message]:
@@ -116,7 +116,7 @@ Try *really* hard to follow [The seven rules of a great Git commit message]:
 6. Wrap the body at 72 characters
 7. Use the body to explain what and why vs. how
 
-The [Atom editor] has built-in syntax highlighting for git commit messages. You 
+The [Atom editor] has built-in syntax highlighting for git commit messages. You
 may use it to help your commit messages comply with the rules above. Check out
 [how to configure Atom to be your Git commit editor].
 
