@@ -18,12 +18,16 @@
 #![warn(clippy::all, rust_2018_idioms)]
 
 use bytes::Bytes;
-use reqwest::Response;
+use reqwest::{Client, Response, Url};
 
 pub mod prelude;
 
 pub mod models;
-use self::models::media_tracker_cli::*;
+
+pub trait WebClientEnvironment {
+    fn client(&self) -> &Client;
+    fn join_api_url(&self, input: &str) -> anyhow::Result<Url>;
+}
 
 async fn receive_response_body(response: Response) -> anyhow::Result<Bytes> {
     let response_status = response.status();
@@ -39,10 +43,3 @@ async fn receive_response_body(response: Response) -> anyhow::Result<Bytes> {
     }
     Ok(bytes)
 }
-
-///////////////////////////////////////////////////////////////////////
-// Tests
-///////////////////////////////////////////////////////////////////////
-
-#[cfg(test)]
-mod tests;

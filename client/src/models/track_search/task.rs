@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{receive_response_body, Environment};
+use crate::{receive_response_body, WebClientEnvironment};
 
 use super::{Effect, FetchResultPageRequest, FetchResultPageResponse};
 
@@ -28,7 +28,7 @@ pub enum Task {
 }
 
 impl Task {
-    pub async fn execute_with(self, env: &Environment) -> Effect {
+    pub async fn execute<E: WebClientEnvironment>(self, env: &E) -> Effect {
         log::debug!("Executing task: {:?}", self);
         match self {
             Self::FetchResultPage {
@@ -42,8 +42,8 @@ impl Task {
     }
 }
 
-async fn fetch_result_page(
-    env: &Environment,
+async fn fetch_result_page<E: WebClientEnvironment>(
+    env: &E,
     collection_uid: &EntityUid,
     request: FetchResultPageRequest,
 ) -> anyhow::Result<FetchResultPageResponse> {

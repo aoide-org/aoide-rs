@@ -26,10 +26,11 @@ use crate::{
     models::media_tracker,
     prelude::{
         mutable::{handle_next_message, message_loop},
-        Environment as _, *,
+        *,
     },
-    Effect, Environment, Intent, State,
 };
+
+use super::*;
 
 fn dummy_api_url() -> Url {
     "http://[::1]:8080".parse().unwrap()

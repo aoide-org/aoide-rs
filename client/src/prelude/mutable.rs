@@ -16,7 +16,8 @@
 use crate::prelude::MessageHandled;
 
 use super::{
-    send_message, Action, Environment, Message, MessageChannel, MessageSender, ObserveStateFn,
+    send_message, Action, Message, MessageChannel, MessageSender, ObserveStateFn,
+    TaskDispatchEnvironment,
 };
 
 use std::{
@@ -50,20 +51,20 @@ impl AddAssign for StateMutation {
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub struct StateUpdated<E, T> {
+pub struct StateUpdated<Effect, Task> {
     pub state_mutation: StateMutation,
-    pub next_action: Option<Action<E, T>>,
+    pub next_action: Option<Action<Effect, Task>>,
 }
 
-impl<E, T> StateUpdated<E, T> {
-    pub fn unchanged(next_action: impl Into<Option<Action<E, T>>>) -> Self {
+impl<Effect, Task> StateUpdated<Effect, Task> {
+    pub fn unchanged(next_action: impl Into<Option<Action<Effect, Task>>>) -> Self {
         Self {
             state_mutation: StateMutation::Unchanged,
             next_action: next_action.into(),
         }
     }
 
-    pub fn maybe_changed(next_action: impl Into<Option<Action<E, T>>>) -> Self {
+    pub fn maybe_changed(next_action: impl Into<Option<Action<Effect, Task>>>) -> Self {
         Self {
             state_mutation: StateMutation::MaybeChanged,
             next_action: next_action.into(),
@@ -109,7 +110,7 @@ pub fn handle_next_message<E, S>(
     observe_fn: &mut ObserveStateFn<S, S::Intent>,
 ) -> MessageHandled
 where
-    E: Environment<S::Intent, S::Effect, S::Task>,
+    E: TaskDispatchEnvironment<S::Intent, S::Effect, S::Task>,
     S: State + fmt::Debug,
     S::Intent: fmt::Debug + Send + 'static,
     S::Effect: fmt::Debug + Send + 'static,
@@ -168,7 +169,7 @@ pub async fn message_loop<E, S>(
     mut observe_state_fn: Box<ObserveStateFn<S, S::Intent>>,
 ) -> S
 where
-    E: Environment<S::Intent, S::Effect, S::Task>,
+    E: TaskDispatchEnvironment<S::Intent, S::Effect, S::Task>,
     S: State + fmt::Debug,
     S::Intent: fmt::Debug + Send + 'static,
     S::Effect: fmt::Debug + Send + 'static,

@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{receive_response_body, Environment};
+use crate::{receive_response_body, WebClientEnvironment};
 
 use super::Effect;
 
@@ -26,23 +26,23 @@ pub enum Task {
 }
 
 impl Task {
-    pub async fn execute_with(self, env: &Environment) -> Effect {
+    pub async fn execute<E: WebClientEnvironment>(self, env: &E) -> Effect {
         log::trace!("Executing task: {:?}", self);
         match self {
             Self::CreateNewCollection(new_collection) => {
-                let res = create_new_collection(&env, new_collection).await;
+                let res = create_new_collection(env, new_collection).await;
                 Effect::NewCollectionCreated(res)
             }
             Self::FetchAvailableCollections => {
-                let res = fetch_available_collections(&env).await;
+                let res = fetch_available_collections(env).await;
                 Effect::AvailableCollectionsFetched(res)
             }
         }
     }
 }
 
-pub async fn create_new_collection(
-    env: &Environment,
+pub async fn create_new_collection<E: WebClientEnvironment>(
+    env: &E,
     new_collection: Collection,
 ) -> anyhow::Result<CollectionEntity> {
     let url = env.join_api_url("c")?;
@@ -58,8 +58,8 @@ pub async fn create_new_collection(
     Ok(entity)
 }
 
-pub async fn fetch_available_collections(
-    env: &Environment,
+pub async fn fetch_available_collections<E: WebClientEnvironment>(
+    env: &E,
 ) -> anyhow::Result<Vec<CollectionEntity>> {
     let request_url = env.join_api_url("c")?;
     let request = env.client().get(request_url);

@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{receive_response_body, Environment};
+use crate::{receive_response_body, WebClientEnvironment};
 
 use super::Effect;
 
@@ -50,7 +50,7 @@ pub enum Task {
 }
 
 impl Task {
-    pub async fn execute_with(self, env: &Environment) -> Effect {
+    pub async fn execute<E: WebClientEnvironment>(self, env: &E) -> Effect {
         log::debug!("Executing task: {:?}", self);
         match self {
             Self::FetchStatus {
@@ -93,8 +93,8 @@ impl Task {
     }
 }
 
-async fn fetch_status(
-    env: &Environment,
+async fn fetch_status<E: WebClientEnvironment>(
+    env: &E,
     collection_uid: &EntityUid,
     root_url: Option<&Url>,
 ) -> anyhow::Result<Status> {
@@ -116,7 +116,7 @@ async fn fetch_status(
     Ok(status)
 }
 
-async fn fetch_progress(env: &Environment) -> anyhow::Result<Progress> {
+async fn fetch_progress<E: WebClientEnvironment>(env: &E) -> anyhow::Result<Progress> {
     let request_url = env.join_api_url("media-tracker/progress")?;
     let request = env.client().get(request_url);
     let response = request.send().await?;
@@ -129,8 +129,8 @@ async fn fetch_progress(env: &Environment) -> anyhow::Result<Progress> {
     Ok(progress)
 }
 
-async fn start_scan(
-    env: &Environment,
+async fn start_scan<E: WebClientEnvironment>(
+    env: &E,
     collection_uid: &EntityUid,
     root_url: Option<&Url>,
 ) -> anyhow::Result<ScanOutcome> {
@@ -152,8 +152,8 @@ async fn start_scan(
     Ok(outcome)
 }
 
-async fn start_import(
-    env: &Environment,
+async fn start_import<E: WebClientEnvironment>(
+    env: &E,
     collection_uid: &EntityUid,
     root_url: Option<&Url>,
 ) -> anyhow::Result<ImportOutcome> {
@@ -174,7 +174,7 @@ async fn start_import(
     Ok(outcome)
 }
 
-pub async fn abort(env: &Environment) -> anyhow::Result<()> {
+pub async fn abort<E: WebClientEnvironment>(env: &E) -> anyhow::Result<()> {
     let request_url = env.join_api_url("media-tracker/abort")?;
     let request = env.client().post(request_url);
     let response = request.send().await?;
@@ -182,8 +182,8 @@ pub async fn abort(env: &Environment) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn untrack(
-    env: &Environment,
+async fn untrack<E: WebClientEnvironment>(
+    env: &E,
     collection_uid: &EntityUid,
     root_url: &Url,
 ) -> anyhow::Result<UntrackOutcome> {

@@ -14,9 +14,12 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use reqwest::{Client, Url};
-use std::sync::{atomic::AtomicUsize, Arc};
+use std::sync::Arc;
 
-use crate::prelude::send_message;
+use crate::{
+    prelude::{send_message, PendingTasksCounter, TaskDispatchEnvironment},
+    WebClientEnvironment,
+};
 
 use super::{Effect, Intent, Message, MessageSender, Task};
 
@@ -25,7 +28,7 @@ use super::{Effect, Intent, Message, MessageSender, Task};
 pub struct Environment {
     api_url: Url,
     client: Client,
-    pending_tasks_count: AtomicUsize,
+    pending_tasks_counter: PendingTasksCounter,
 }
 
 impl Environment {
@@ -33,30 +36,28 @@ impl Environment {
         Self {
             api_url,
             client: Client::new(),
-            pending_tasks_count: AtomicUsize::new(0),
+            pending_tasks_counter: PendingTasksCounter::new(),
         }
     }
+}
 
-    pub fn client(&self) -> &Client {
+impl WebClientEnvironment for Environment {
+    fn client(&self) -> &Client {
         &self.client
     }
 
-    pub fn join_api_url(&self, input: &str) -> anyhow::Result<Url> {
+    fn join_api_url(&self, input: &str) -> anyhow::Result<Url> {
         self.api_url.join(input).map_err(Into::into)
     }
 }
 
-impl crate::prelude::Environment<Intent, Effect, Task> for Environment {
+impl TaskDispatchEnvironment<Intent, Effect, Task> for Environment {
     fn all_tasks_finished(&self) -> bool {
-        self.pending_tasks_count
-            .load(std::sync::atomic::Ordering::Acquire)
-            == 0
+        self.pending_tasks_counter.all_pending_tasks_finished()
     }
 
     fn dispatch_task(&self, shared_self: Arc<Self>, message_tx: MessageSender, task: Task) {
-        shared_self
-            .pending_tasks_count
-            .fetch_add(1, std::sync::atomic::Ordering::Acquire);
+        shared_self.pending_tasks_counter.start_pending_task();
         tokio::spawn(async move {
             log::debug!("Executing task: {:?}", task);
             let effect = match task {
@@ -64,14 +65,12 @@ impl crate::prelude::Environment<Intent, Effect, Task> for Environment {
                     tokio::time::sleep_until(not_before.into()).await;
                     Effect::ApplyIntent(*intent)
                 }
-                Task::ActiveCollection(task) => task.execute_with(&shared_self).await.into(),
-                Task::MediaTracker(task) => task.execute_with(&shared_self).await.into(),
+                Task::ActiveCollection(task) => task.execute(&*shared_self).await.into(),
+                Task::MediaTracker(task) => task.execute(&*shared_self).await.into(),
             };
-            log::debug!("Received effect from task: {:?}", effect);
+            log::debug!("Task finished with effect: {:?}", effect);
             send_message(&message_tx, Message::Effect(effect));
-            shared_self
-                .pending_tasks_count
-                .fetch_sub(1, std::sync::atomic::Ordering::Release);
+            shared_self.pending_tasks_counter.finish_pending_task();
         });
     }
 }
