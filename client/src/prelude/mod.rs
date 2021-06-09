@@ -61,7 +61,7 @@ pub fn send_message<Intent: fmt::Debug, Effect: fmt::Debug>(
     }
 }
 
-pub type ObserveStateFn<State, Intent> = dyn FnMut(&State) -> Option<Intent> + Send;
+pub type RenderStateFn<State, Intent> = dyn FnMut(&State) -> Option<Intent> + Send;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Message<Intent, Effect> {

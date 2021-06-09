@@ -16,7 +16,7 @@
 use crate::prelude::MessageHandled;
 
 use super::{
-    send_message, Action, Message, MessageChannel, MessageSender, ObserveStateFn,
+    send_message, Action, Message, MessageChannel, MessageSender, RenderStateFn,
     TaskDispatchEnvironment,
 };
 
@@ -107,7 +107,7 @@ pub fn handle_next_message<E, S>(
     state: &mut S,
     message_tx: &MessageSender<S::Intent, S::Effect>,
     mut next_message: Message<S::Intent, S::Effect>,
-    observe_fn: &mut ObserveStateFn<S, S::Intent>,
+    render_fn: &mut RenderStateFn<S, S::Intent>,
 ) -> MessageHandled
 where
     E: TaskDispatchEnvironment<S::Intent, S::Effect, S::Task>,
@@ -143,7 +143,7 @@ where
         }
         if state_mutation == StateMutation::MaybeChanged || number_of_next_actions > 0 {
             log::debug!("Rendering current state: {:?}", state);
-            if let Some(observation_intent) = observe_fn(&state) {
+            if let Some(observation_intent) = render_fn(&state) {
                 log::debug!(
                     "Received intent after observing state: {:?}",
                     observation_intent
@@ -166,7 +166,7 @@ pub async fn message_loop<E, S>(
     shared_env: Arc<E>,
     (message_tx, mut message_rx): MessageChannel<S::Intent, S::Effect>,
     mut state: S,
-    mut observe_state_fn: Box<ObserveStateFn<S, S::Intent>>,
+    mut render_state_fn: Box<RenderStateFn<S, S::Intent>>,
 ) -> S
 where
     E: TaskDispatchEnvironment<S::Intent, S::Effect, S::Task>,
@@ -181,7 +181,7 @@ where
             &mut state,
             &message_tx,
             next_message,
-            &mut *observe_state_fn,
+            &mut *render_state_fn,
         ) {
             MessageHandled::Progressing => (),
             MessageHandled::NoProgress => {

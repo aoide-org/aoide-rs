@@ -172,23 +172,20 @@ async fn should_terminate_on_intent_after_pending_tasks_finished() {
         },
     );
     send_message(&message_tx, Intent::Terminate);
-    let observe_state_count = Arc::new(AtomicUsize::new(0));
+    let render_state_count = Arc::new(AtomicUsize::new(0));
     let state = message_loop(
         shared_env.clone(),
         (message_tx, message_rx),
         Default::default(),
         Box::new({
             let shared_env = shared_env.clone();
-            let observe_state_count = observe_state_count.clone();
+            let render_state_count = render_state_count.clone();
             move |_: &State| {
-                let last_observe_state_count =
-                    observe_state_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                let last_render_state_count =
+                    render_state_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
                 // On the first invocation the task that executes the
                 // timed intent is pending
-                assert_eq!(
-                    last_observe_state_count > 0,
-                    shared_env.all_tasks_finished()
-                );
+                assert_eq!(last_render_state_count > 0, shared_env.all_tasks_finished());
                 None
             }
         }),
@@ -196,7 +193,7 @@ async fn should_terminate_on_intent_after_pending_tasks_finished() {
     .await;
     assert_eq!(
         2,
-        observe_state_count.load(std::sync::atomic::Ordering::SeqCst)
+        render_state_count.load(std::sync::atomic::Ordering::SeqCst)
     );
     assert!(state.last_errors().is_empty());
 }
