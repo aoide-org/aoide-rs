@@ -11,8 +11,7 @@ aoide-repo = "*"
 anyhow = "*"
 bigdecimal = "*"
 diesel = { version = "*", features = ["sqlite", "64-column-tables", "numeric", "chrono"] }
-# Pin libsqlite3-sys to version 0.9 for diesel 1.4.x
-libsqlite3-sys = { version = "0.9", features = ["bundled"] }
+libsqlite3-sys = { version = "*", features = ["bundled"] }
 log = "*"
 num-bigint = "*"
 num-derive = "*"
