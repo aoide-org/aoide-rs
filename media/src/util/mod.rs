@@ -59,14 +59,9 @@ pub fn guess_mime_from_path(path: impl AsRef<Path>) -> Result<Mime> {
         return Err(Error::UnknownContentType);
     }
     mime_guess
-        .clone()
-        .into_iter()
+        .iter()
         .filter(|mime| mime.type_() == mime::AUDIO)
-        .chain(
-            mime_guess
-                .into_iter()
-                .filter(|mime| mime.type_() == mime::VIDEO),
-        )
+        .chain(mime_guess.iter().filter(|mime| mime.type_() == mime::VIDEO))
         .next()
         .ok_or(Error::UnknownContentType)
 }

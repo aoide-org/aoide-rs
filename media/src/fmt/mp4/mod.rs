@@ -116,7 +116,7 @@ impl import::ImportTrack for ImportTrack {
                 .map(|hz| SampleRateHz::from_inner(hz as SamplesPerSecond));
             let bitrate = mp4_tag.avg_bitrate().and_then(read_bitrate);
             let loudness = mp4_tag
-                .string(&FreeformIdent::new(
+                .strings_of(&FreeformIdent::new(
                     COM_APPLE_ITUNES_FREEFORM_MEAN,
                     "replaygain_track_gain",
                 ))
@@ -135,7 +135,7 @@ impl import::ImportTrack for ImportTrack {
         }
 
         let tempo_bpm = mp4_tag
-            .string(&FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "BPM"))
+            .strings_of(&FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "BPM"))
             .flat_map(parse_tempo_bpm)
             .next()
             .or_else(|| {
@@ -150,12 +150,12 @@ impl import::ImportTrack for ImportTrack {
         }
 
         let key_signature = mp4_tag
-            .string(&FreeformIdent::new(
+            .strings_of(&FreeformIdent::new(
                 COM_APPLE_ITUNES_FREEFORM_MEAN,
                 "initialkey",
             ))
             // alternative name (conforms to Rapid Evolution)
-            .chain(mp4_tag.string(&FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "KEY")))
+            .chain(mp4_tag.strings_of(&FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "KEY")))
             .flat_map(parse_key_signature)
             .next();
         if let Some(key_signature) = key_signature {
@@ -186,7 +186,7 @@ impl import::ImportTrack for ImportTrack {
             track_titles.push(title);
         }
         if let Some(name) = mp4_tag
-            .take_string(&FreeformIdent::new(
+            .take_strings_of(&FreeformIdent::new(
                 COM_APPLE_ITUNES_FREEFORM_MEAN,
                 "SUBTITLE",
             ))
@@ -211,19 +211,19 @@ impl import::ImportTrack for ImportTrack {
         for name in mp4_tag.take_composers() {
             push_next_actor_role_name(&mut track_actors, ActorRole::Composer, name);
         }
-        for name in mp4_tag.take_string(&FreeformIdent::new(
+        for name in mp4_tag.take_strings_of(&FreeformIdent::new(
             COM_APPLE_ITUNES_FREEFORM_MEAN,
             "REMIXER",
         )) {
             push_next_actor_role_name(&mut track_actors, ActorRole::Remixer, name);
         }
-        for name in mp4_tag.take_string(&FreeformIdent::new(
+        for name in mp4_tag.take_strings_of(&FreeformIdent::new(
             COM_APPLE_ITUNES_FREEFORM_MEAN,
             "LYRICIST",
         )) {
             push_next_actor_role_name(&mut track_actors, ActorRole::Lyricist, name);
         }
-        for name in mp4_tag.take_string(&FreeformIdent::new(
+        for name in mp4_tag.take_strings_of(&FreeformIdent::new(
             COM_APPLE_ITUNES_FREEFORM_MEAN,
             "CONDUCTOR",
         )) {
@@ -277,7 +277,7 @@ impl import::ImportTrack for ImportTrack {
             track.release.copyright = Some(copyright);
         }
         if let Some(label) = mp4_tag
-            .take_string(&FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "LABEL"))
+            .take_strings_of(&FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "LABEL"))
             .next()
         {
             track.release.released_by = Some(label);
@@ -288,7 +288,7 @@ impl import::ImportTrack for ImportTrack {
         // Mixxx CustomTags
         if flags.contains(ImportTrackFlags::MIXXX_CUSTOM_TAGS) {
             if let Some(data) = mp4_tag
-                .data(&FreeformIdent::new(
+                .data_of(&FreeformIdent::new(
                     ORG_MIXXX_DJ_FREEFORM_MEAN,
                     "CustomTags",
                 ))
@@ -363,11 +363,11 @@ impl import::ImportTrack for ImportTrack {
 
         // Mood tags
         let mood_ident = FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "MOOD");
-        if mp4_tag.string(&mood_ident).next().is_some() {
+        if mp4_tag.strings_of(&mood_ident).next().is_some() {
             tags_map.remove_faceted_tags(&FACET_MOOD);
             let tag_mapping_config = config.faceted_tag_mapping.get(FACET_MOOD.value());
             let mut next_score_value = TagScore::max_value();
-            for mood in mp4_tag.take_string(&mood_ident) {
+            for mood in mp4_tag.take_strings_of(&mood_ident) {
                 import_faceted_tags(
                     &mut tags_map,
                     &mut next_score_value,
@@ -424,7 +424,7 @@ impl import::ImportTrack for ImportTrack {
             } else {
                 Default::default()
             };
-            for image_data in mp4_tag.data(&Fourcc(*b"covr")) {
+            for image_data in mp4_tag.data_of(&Fourcc(*b"covr")) {
                 let (image_data, image_format) = match image_data {
                     Data::Jpeg(bytes) => (bytes, Some(ImageFormat::Jpeg)),
                     Data::Png(bytes) => (bytes, Some(ImageFormat::Png)),
@@ -448,7 +448,7 @@ impl import::ImportTrack for ImportTrack {
             let mut serato_tags = SeratoTagContainer::new();
 
             if let Some(data) = mp4_tag
-                .data(&FreeformIdent::new(
+                .data_of(&FreeformIdent::new(
                     SeratoMarkers::MP4_ATOM_FREEFORM_MEAN,
                     SeratoMarkers::MP4_ATOM_FREEFORM_NAME,
                 ))
@@ -470,7 +470,7 @@ impl import::ImportTrack for ImportTrack {
             }
 
             if let Some(data) = mp4_tag
-                .data(&FreeformIdent::new(
+                .data_of(&FreeformIdent::new(
                     SeratoMarkers2::MP4_ATOM_FREEFORM_MEAN,
                     SeratoMarkers2::MP4_ATOM_FREEFORM_NAME,
                 ))

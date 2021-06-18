@@ -35,7 +35,7 @@ lewton = { version = "*", optional = true }
 metaflac = { version = "*", optional = true }
 minimp3 = { version = "*", optional = true }
 mp3-duration = { version = "*", optional = true }
-mp4ameta = { version = ">=0.9.1", optional = true }
+mp4ameta = { version = ">=0.11", optional = true }
 
 [features]
 fmt-flac = [ "metaflac" ]
