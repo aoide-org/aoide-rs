@@ -84,6 +84,19 @@ pub fn import_track_from_local_file_path(
     let last_modified_at = file_metadata
         .modified()
         .map(DateTime::from)
+        .map(|last_modified_at| {
+            if last_modified_at.timestamp_millis() > 0 {
+                // Only consider time stamps strictly after the epoch origin
+                // meaningful and valid
+                last_modified_at
+            } else {
+                log::warn!(
+                    "Using current time instead of invalid last modification time {}",
+                    last_modified_at
+                );
+                DateTime::now_utc()
+            }
+        })
         .unwrap_or_else(|_| {
             log::error!("Using current time instead of inaccessible last modification time");
             DateTime::now_utc()
