@@ -44,7 +44,7 @@ chrono = { version = "*", default-features = false, features = ["clock", "serde"
 diesel = { version = "*", default-features = false, features = ["r2d2", "sqlite"] }
 diesel_migrations =  { version = "*", default-features = false, features = ["sqlite"] }
 dotenv = "*"
-env_logger = "*"
+env_logger = { version = ">=0.8" }
 anyhow = "*"
 log = "*"
 percent-encoding = "*"
