@@ -335,7 +335,7 @@ async fn main() -> anyhow::Result<()> {
                         if state
                             .active_collection
                             .remote_view()
-                            .find_available_collections_by_uid(collection_uid)
+                            .find_available_collection_by_uid(collection_uid)
                             .is_some()
                         {
                             return Some(

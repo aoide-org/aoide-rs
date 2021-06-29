@@ -33,7 +33,7 @@ impl RemoteView {
             .map(|v| v.value.iter().filter(|x| &x.hdr.uid == uid).count())
     }
 
-    pub fn find_available_collections_by_uid(&self, uid: &EntityUid) -> Option<&CollectionEntity> {
+    pub fn find_available_collection_by_uid(&self, uid: &EntityUid) -> Option<&CollectionEntity> {
         debug_assert!(
             self.count_available_collections_by_uid(uid)
                 .unwrap_or_default()
