@@ -75,7 +75,8 @@ impl Validate for DateOrDateTime {
 pub struct Release {
     pub released_at: Option<DateOrDateTime>,
 
-    pub released_by: Option<String>, // record label
+    /// The publisher, e.g. a record label
+    pub released_by: Option<String>,
 
     pub copyright: Option<String>,
 }

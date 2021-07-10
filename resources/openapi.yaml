@@ -1648,7 +1648,7 @@ components:
         - discTotal
         - musicTempoBpm
         - musicKeyCode
-        - releaseDate
+        - releasedAtDate
         - trackNumber
         - trackTotal
     NumericFieldFilter:
@@ -1920,9 +1920,10 @@ components:
       allOf:
         - $ref: '#/components/schemas/DateTime'
     PlaylistEntryCount:
-      type: integer
-      format: int64
-      minimum: 0
+      description: |
+        Total number of entries in a playlist.
+      allOf:
+        - $ref: '#/components/schemas/TotalCount'
     PlaylistEntryNotes:
       type: string
       description: |
@@ -2063,19 +2064,19 @@ components:
         releasedBy:
           type: string
           description: |
-            Record label or owner
+            The publisher, e.g. a record label
         copyright:
           description: Copyright
           type: string
     ReleasedAt:
       oneOf:
-        - $ref: '#/components/schemas/ReleaseDate'
-        - $ref: '#/components/schemas/ReleaseDateTime'
-    ReleaseDate:
+        - $ref: '#/components/schemas/ReleasedAtDate'
+        - $ref: '#/components/schemas/ReleasedAtDateTime'
+    ReleasedAtDate:
       oneOf:
         - $ref: '#/components/schemas/YYYY'
         - $ref: '#/components/schemas/YYYYMMDD'
-    ReleaseDateTime:
+    ReleasedAtDateTime:
       allOf:
         - $ref: '#/components/schemas/DateTime'
     MediaTrackerUntrackRequestBody:
@@ -2465,6 +2466,7 @@ components:
       enum:
         - albumArtist
         - albumTitle
+        - releasedBy
         - sourceType
         - sourcePath
         - trackArtist
@@ -2672,7 +2674,7 @@ components:
       minimum: 0
       example: 1746
       description: |
-        Total number of occurrences.
+        Total number of items or occurrences.
     TotalMediaSourceCount:
       description: |
         Total number of media sources.
@@ -2855,7 +2857,7 @@ components:
         - lastPlayedAt
         - musicTempoBpm
         - musicKeyCode
-        - releaseDate
+        - releasedAtDate
         - sourceCollectedAt
         - sourceSynchronizedAt
         - sourceType

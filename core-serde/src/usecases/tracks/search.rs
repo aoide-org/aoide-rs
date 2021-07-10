@@ -41,7 +41,8 @@ pub enum SortField {
     LastPlayedAt,
     MusicTempoBpm,
     MusicKeyCode,
-    ReleaseDate,
+    ReleasedAtDate,
+    ReleasedBy,
     SourceCollectedAt,
     SourceSynchronizedAt,
     SourceType,
@@ -71,7 +72,8 @@ impl From<SortField> for _core::SortField {
             LastPlayedAt => Self::LastPlayedAt,
             MusicTempoBpm => Self::MusicTempoBpm,
             MusicKeyCode => Self::MusicKeyCode,
-            ReleaseDate => Self::ReleaseDate,
+            ReleasedAtDate => Self::ReleasedAtDate,
+            ReleasedBy => Self::ReleasedBy,
             SourceCollectedAt => Self::SourceCollectedAt,
             SourceSynchronizedAt => Self::SourceSynchronizedAt,
             SourcePath => Self::SourcePath,
@@ -103,7 +105,8 @@ impl From<_core::SortField> for SortField {
             LastPlayedAt => Self::LastPlayedAt,
             MusicTempoBpm => Self::MusicTempoBpm,
             MusicKeyCode => Self::MusicKeyCode,
-            ReleaseDate => Self::ReleaseDate,
+            ReleasedAtDate => Self::ReleasedAtDate,
+            ReleasedBy => Self::ReleasedBy,
             SourceCollectedAt => Self::SourceCollectedAt,
             SourceSynchronizedAt => Self::SourceSynchronizedAt,
             SourcePath => Self::SourcePath,
@@ -148,6 +151,7 @@ pub enum StringField {
     TrackArtist,
     TrackComposer,
     TrackTitle,
+    ReleasedBy,
 }
 
 impl From<StringField> for _core::StringField {
@@ -161,6 +165,7 @@ impl From<StringField> for _core::StringField {
             TrackArtist => Self::TrackArtist,
             TrackComposer => Self::TrackComposer,
             TrackTitle => Self::TrackTitle,
+            ReleasedBy => Self::ReleasedBy,
         }
     }
 }
@@ -176,6 +181,7 @@ impl From<_core::StringField> for StringField {
             TrackArtist => Self::TrackArtist,
             TrackComposer => Self::TrackComposer,
             TrackTitle => Self::TrackTitle,
+            ReleasedBy => Self::ReleasedBy,
         }
     }
 }
@@ -190,7 +196,7 @@ pub enum NumericField {
     AudioLoudnessLufs,
     DiscNumber,
     DiscTotal,
-    ReleaseDate,
+    ReleasedAtDate,
     MusicTempoBpm,
     MusicKeyCode,
     TrackNumber,
@@ -210,7 +216,7 @@ impl From<NumericField> for _core::NumericField {
             TrackTotal => Self::TrackTotal,
             DiscNumber => Self::DiscNumber,
             DiscTotal => Self::DiscTotal,
-            ReleaseDate => Self::ReleaseDate,
+            ReleasedAtDate => Self::ReleasedAtDate,
             MusicTempoBpm => Self::MusicTempoBpm,
             MusicKeyCode => Self::MusicKeyCode,
         }
@@ -230,7 +236,7 @@ impl From<_core::NumericField> for NumericField {
             TrackTotal => Self::TrackTotal,
             DiscNumber => Self::DiscNumber,
             DiscTotal => Self::DiscTotal,
-            ReleaseDate => Self::ReleaseDate,
+            ReleasedAtDate => Self::ReleasedAtDate,
             MusicTempoBpm => Self::MusicTempoBpm,
             MusicKeyCode => Self::MusicKeyCode,
         }

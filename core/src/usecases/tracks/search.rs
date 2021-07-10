@@ -26,6 +26,7 @@ use semval::prelude::IsValid as _;
 pub enum StringField {
     AlbumArtist,
     AlbumTitle,
+    ReleasedBy,
     SourceType, // RFC 6838 media type
     SourcePath, // RFC 3986 percent-encoded URI
     TrackArtist,
@@ -44,7 +45,7 @@ pub enum NumericField {
     DiscTotal,
     MusicTempoBpm,
     MusicKeyCode,
-    ReleaseDate,
+    ReleasedAtDate,
     TrackNumber,
     TrackTotal,
 }
@@ -101,7 +102,8 @@ pub enum SortField {
     LastPlayedAt,
     MusicTempoBpm,
     MusicKeyCode,
-    ReleaseDate,
+    ReleasedAtDate,
+    ReleasedBy,
     SourceCollectedAt,
     SourceSynchronizedAt,
     SourceType,
@@ -142,7 +144,7 @@ impl SearchFilter {
                 predicate: DateTimePredicate::Equal(Some(released_at)),
             }),
             DateOrDateTime::Date(date) => Self::Numeric(NumericFieldFilter {
-                field: NumericField::ReleaseDate,
+                field: NumericField::ReleasedAtDate,
                 predicate: NumericPredicate::Equal(Some(date.to_inner().into())),
             }),
         }

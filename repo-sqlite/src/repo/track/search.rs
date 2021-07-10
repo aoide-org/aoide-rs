@@ -197,11 +197,15 @@ impl TrackSearchQueryTransform for SortOrder {
                 SortDirection::Ascending => query.then_order_by(track::music_key_code.asc()),
                 SortDirection::Descending => query.then_order_by(track::music_key_code.desc()),
             },
-            SortField::ReleaseDate => match direction {
+            SortField::ReleasedAtDate => match direction {
                 SortDirection::Ascending => query.then_order_by(track::released_at_yyyymmdd.asc()),
                 SortDirection::Descending => {
                     query.then_order_by(track::released_at_yyyymmdd.desc())
                 }
+            },
+            SortField::ReleasedBy => match direction {
+                SortDirection::Ascending => query.then_order_by(track::released_by.asc()),
+                SortDirection::Descending => query.then_order_by(track::released_by.desc()),
             },
             SortField::SourceCollectedAt => match direction {
                 SortDirection::Ascending => query.then_order_by(media_source::collected_ms.asc()),
@@ -400,7 +404,23 @@ fn build_phrase_field_filter_expression(
                     .or(track::aux_album_artist.eq(String::default())),
             )
         } else {
-            Box::new(or_expression.or(track::aux_album_artist.like(like_expr).escape('\\')))
+            Box::new(or_expression.or(track::aux_album_artist.like(like_expr.clone()).escape('\\')))
+        };
+    }
+    if filter.fields.is_empty()
+        || filter
+            .fields
+            .iter()
+            .any(|target| *target == StringField::ReleasedBy)
+    {
+        or_expression = if like_expr.is_empty() {
+            Box::new(
+                or_expression
+                    .or(track::released_by.is_null())
+                    .or(track::released_by.eq(String::default())),
+            )
+        } else {
+            Box::new(or_expression.or(track::released_by.like(like_expr).escape('\\')))
         };
     }
     or_expression
@@ -597,7 +617,7 @@ fn build_numeric_field_filter_expression(
                 }
             }
         },
-        ReleaseDate => match filter.predicate {
+        ReleasedAtDate => match filter.predicate {
             // TODO: Check and limit/clamp value range when converting from f64 to YYYYMMDD
             LessThan(value) => Box::new(track::released_at_yyyymmdd.lt(value as YYYYMMDD)),
             LessOrEqual(value) => Box::new(track::released_at_yyyymmdd.le(value as YYYYMMDD)),
