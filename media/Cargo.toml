@@ -38,8 +38,12 @@ mp3-duration = { version = "*", optional = true }
 mp4ameta = { version = ">=0.11", optional = true }
 
 [features]
+# TODO: Add support for AIFF files
+fmt-aiff = []
 fmt-flac = [ "metaflac" ]
 fmt-mp4 = [ "mp4ameta" ]
 fmt-mp3 = [ "id3", "minimp3", "mp3-duration" ]
 fmt-ogg = [ "lewton", "metaflac" ] # metaflac for decoding FLAC picture blocks
-default = [ "fmt-flac", "fmt-mp3", "fmt-mp4", "fmt-ogg" ]
+# TODO: Add support for WAV files
+fmt-wav = []
+default = [ "fmt-aiff", "fmt-flac", "fmt-mp3", "fmt-mp4", "fmt-ogg", "fmt-wav" ]
