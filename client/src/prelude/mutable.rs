@@ -143,12 +143,12 @@ where
         }
         if state_mutation == StateMutation::MaybeChanged || number_of_next_actions > 0 {
             log::debug!("Rendering current state: {:?}", state);
-            if let Some(observation_intent) = render_fn(&state) {
+            if let Some(observation_intent) = render_fn(state) {
                 log::debug!(
                     "Received intent after observing state: {:?}",
                     observation_intent
                 );
-                send_message(&message_tx, Message::Intent(observation_intent));
+                send_message(message_tx, Message::Intent(observation_intent));
                 number_of_messages_sent += 1;
             }
         }

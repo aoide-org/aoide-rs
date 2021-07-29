@@ -893,7 +893,7 @@ where
 }
 
 fn build_tag_filter_expression(filter: &TagFilter) -> TrackSearchBoxedExpression<'_> {
-    let (subselect, filter_modifier) = select_track_ids_matching_tag_filter(&filter);
+    let (subselect, filter_modifier) = select_track_ids_matching_tag_filter(filter);
     match filter_modifier {
         None => Box::new(track::row_id.eq_any(subselect)),
         Some(FilterModifier::Complement) => Box::new(track::row_id.ne_all(subselect)),

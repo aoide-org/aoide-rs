@@ -128,7 +128,7 @@ fn import_faceted_text_tags(
     tag: &id3::Tag,
     frame_id: &str,
 ) {
-    let removed_tags = tags_map.remove_faceted_tags(&facet);
+    let removed_tags = tags_map.remove_faceted_tags(facet);
     if removed_tags > 0 {
         log::debug!("Replacing {} custom '{}' tags", removed_tags, facet.value());
     }
@@ -138,7 +138,7 @@ fn import_faceted_text_tags(
         import_faceted_tags(
             tags_map,
             &mut next_score_value,
-            &facet,
+            facet,
             tag_mapping_config,
             label,
         );
@@ -167,12 +167,10 @@ pub fn import_track(
         .update(metadata_flags)
     {
         let loudness =
-            first_extended_text(&tag, "REPLAYGAIN_TRACK_GAIN").and_then(parse_replay_gain);
-        let encoder = concat_encoder_properties(
-            first_text_frame(&tag, "TENC"),
-            first_text_frame(&tag, "TSSE"),
-        )
-        .map(Cow::into_owned);
+            first_extended_text(tag, "REPLAYGAIN_TRACK_GAIN").and_then(parse_replay_gain);
+        let encoder =
+            concat_encoder_properties(first_text_frame(tag, "TENC"), first_text_frame(tag, "TSSE"))
+                .map(Cow::into_owned);
         audio_content = AudioContent {
             loudness,
             encoder,
@@ -181,18 +179,18 @@ pub fn import_track(
         track.media_source.content = Content::Audio(audio_content);
     }
 
-    if let Some(tempo_bpm) = first_extended_text(&tag, "BPM")
+    if let Some(tempo_bpm) = first_extended_text(tag, "BPM")
         .and_then(parse_tempo_bpm)
         // Alternative: Try "TEMPO" if "BPM" is missing or invalid
-        .or_else(|| first_extended_text(&tag, "TEMPO").and_then(parse_tempo_bpm))
+        .or_else(|| first_extended_text(tag, "TEMPO").and_then(parse_tempo_bpm))
         // Fallback: Parse integer BPM
-        .or_else(|| first_text_frame(&tag, "TBPM").and_then(parse_tempo_bpm))
+        .or_else(|| first_text_frame(tag, "TBPM").and_then(parse_tempo_bpm))
     {
         debug_assert!(tempo_bpm.is_valid());
         track.metrics.tempo_bpm = Some(tempo_bpm);
     }
 
-    if let Some(key_signature) = first_text_frame(&tag, "TKEY").and_then(parse_key_signature) {
+    if let Some(key_signature) = first_text_frame(tag, "TKEY").and_then(parse_key_signature) {
         track.metrics.key_signature = key_signature;
     }
 
@@ -205,14 +203,14 @@ pub fn import_track(
         };
         track_titles.push(title);
     }
-    if let Some(name) = first_text_frame(&tag, "TSST") {
+    if let Some(name) = first_text_frame(tag, "TSST") {
         let title = Title {
             name: name.to_owned(),
             kind: TitleKind::Sub,
         };
         track_titles.push(title);
     }
-    if let Some(name) = first_text_frame(&tag, "MVNM") {
+    if let Some(name) = first_text_frame(tag, "MVNM") {
         let title = Title {
             name: name.to_owned(),
             kind: TitleKind::Movement,
@@ -222,14 +220,14 @@ pub fn import_track(
     if flags.contains(ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK) {
         // Starting with iTunes 12.5.4 the "TIT1" text frame is used
         // for storing the work instead of the grouping.
-        if let Some(name) = first_text_frame(&tag, "TIT1") {
+        if let Some(name) = first_text_frame(tag, "TIT1") {
             let title = Title {
                 name: name.to_owned(),
                 kind: TitleKind::Work,
             };
             track_titles.push(title);
         }
-    } else if let Some(name) = first_extended_text(&tag, "WORK") {
+    } else if let Some(name) = first_extended_text(tag, "WORK") {
         let title = Title {
             name: name.to_owned(),
             kind: TitleKind::Work,
@@ -246,10 +244,10 @@ pub fn import_track(
     if let Some(name) = tag.artist() {
         push_next_actor_role_name(&mut track_actors, ActorRole::Artist, name.to_owned());
     }
-    for name in text_frames(&tag, "TCOM") {
+    for name in text_frames(tag, "TCOM") {
         push_next_actor_role_name(&mut track_actors, ActorRole::Composer, name.to_owned());
     }
-    for name in text_frames(&tag, "TPE3") {
+    for name in text_frames(tag, "TPE3") {
         push_next_actor_role_name(&mut track_actors, ActorRole::Conductor, name.to_owned());
     }
     let track_actors = track_actors.canonicalize_into();
@@ -284,7 +282,7 @@ pub fn import_track(
     }
 
     // Album properties
-    if first_text_frame(&tag, "TCMP")
+    if first_text_frame(tag, "TCMP")
         .and_then(|tcmp| tcmp.parse::<u8>().ok())
         .unwrap_or_default()
         == 1
@@ -304,10 +302,10 @@ pub fn import_track(
     {
         track.release.released_at = Some(released_at);
     }
-    if let Some(label) = first_text_frame(&tag, "TPUB") {
+    if let Some(label) = first_text_frame(tag, "TPUB") {
         track.release.released_by = Some(label.to_owned());
     }
-    if let Some(copyright) = first_text_frame(&tag, "TCOP") {
+    if let Some(copyright) = first_text_frame(tag, "TCOP") {
         track.release.copyright = Some(copyright.to_owned());
     }
 
@@ -376,7 +374,7 @@ pub fn import_track(
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_GENRE,
-        &tag,
+        tag,
         "TCON",
     );
 
@@ -385,7 +383,7 @@ pub fn import_track(
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_MOOD,
-        &tag,
+        tag,
         "TMOO",
     );
 
@@ -400,7 +398,7 @@ pub fn import_track(
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_CGROUP,
-            &tag,
+            tag,
             "GRP1",
         );
     } else {
@@ -408,7 +406,7 @@ pub fn import_track(
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_CGROUP,
-            &tag,
+            tag,
             "TIT1",
         );
     }
@@ -425,7 +423,7 @@ pub fn import_track(
         track.indexes.disc.number = tag.disc().map(|i| (i & 0xFFFF) as u16);
         track.indexes.disc.total = tag.total_discs().map(|i| (i & 0xFFFF) as u16);
     }
-    if let Some(movement) = first_text_frame(&tag, "MVIN").and_then(parse_index_numbers) {
+    if let Some(movement) = first_text_frame(tag, "MVIN").and_then(parse_index_numbers) {
         track.indexes.movement = movement;
     }
 

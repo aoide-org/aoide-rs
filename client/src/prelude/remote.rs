@@ -40,7 +40,7 @@ impl<T> DataSnapshot<T> {
         let Self { since, value } = self;
         DataSnapshot {
             since: *since,
-            value: &value,
+            value,
         }
     }
 }

@@ -53,7 +53,7 @@ pub fn import_faceted_text_tags<'a>(
     facet: &Facet,
     label_iter: impl Iterator<Item = &'a str>,
 ) {
-    let removed_tags = tags_map.remove_faceted_tags(&facet);
+    let removed_tags = tags_map.remove_faceted_tags(facet);
     if removed_tags > 0 {
         log::debug!("Replacing {} custom '{}' tags", removed_tags, facet.value());
     }
@@ -63,7 +63,7 @@ pub fn import_faceted_text_tags<'a>(
         import_faceted_tags(
             tags_map,
             &mut next_score_value,
-            &facet,
+            facet,
             tag_mapping_config,
             label,
         );
@@ -265,5 +265,5 @@ pub fn import_serato_markers2(
 
     reader
         .read_first_value(vorbis_comment)
-        .and_then(|data| serato_tags.parse_markers2(&data.as_bytes(), format).ok());
+        .and_then(|data| serato_tags.parse_markers2(data.as_bytes(), format).ok());
 }

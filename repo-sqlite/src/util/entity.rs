@@ -25,7 +25,7 @@ pub fn entity_revision_to_sql(rev: EntityRevision) -> i64 {
 
 pub fn entity_header_from_sql(uid: &[u8], rev: i64) -> EntityHeader {
     EntityHeader {
-        uid: EntityUid::from_slice(&uid),
+        uid: EntityUid::from_slice(uid),
         rev: entity_revision_from_sql(rev),
     }
 }

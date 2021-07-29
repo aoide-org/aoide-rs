@@ -74,7 +74,7 @@ impl DerefMut for SourcePath {
 
 impl fmt::Display for SourcePath {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self)
+        f.write_str(self)
     }
 }
 

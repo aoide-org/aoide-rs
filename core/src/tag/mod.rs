@@ -684,7 +684,7 @@ impl Canonicalize for Tags {
         plain_tags.canonicalize();
         facets.retain(|f| !f.tags.is_empty());
         facets.canonicalize();
-        debug_assert!(is_slice_sorted_by(&facets, |lhs, rhs| {
+        debug_assert!(is_slice_sorted_by(facets, |lhs, rhs| {
             lhs.facet.cmp(&rhs.facet)
         }));
     }

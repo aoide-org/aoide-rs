@@ -54,7 +54,7 @@ pub mod prelude {
 
     impl<'db> AsRef<SqliteConnection> for Connection<'db> {
         fn as_ref(&self) -> &SqliteConnection {
-            &self.0
+            self.0
         }
     }
 

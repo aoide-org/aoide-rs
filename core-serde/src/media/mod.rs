@@ -123,7 +123,7 @@ pub struct DigestRef<'a>(&'a str);
 
 impl<'a> AsRef<str> for DigestRef<'a> {
     fn as_ref(&self) -> &str {
-        let DigestRef(ref encoded) = self;
+        let DigestRef(encoded) = self;
         encoded
     }
 }
