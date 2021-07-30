@@ -18,6 +18,7 @@ pub mod entity;
 
 use crate::prelude::*;
 
+use diesel::expression::SqlLiteral;
 use num_traits::ToPrimitive as _;
 use std::i64;
 
@@ -89,4 +90,32 @@ pub fn escape_like_contains(arg: &str) -> String {
         escape_like_matches(arg),
         LIKE_WILDCARD_CHARACTER
     )
+}
+
+fn sql_column_substr_prefix<ST>(column: &str, prefix: &str, cmp: &str) -> SqlLiteral<ST> {
+    if prefix.contains('\'') {
+        diesel::dsl::sql(&format!(
+            "substr({},1,{}){}'{}'",
+            column,
+            prefix.len(),
+            cmp,
+            escape_single_quotes(prefix),
+        ))
+    } else {
+        diesel::dsl::sql(&format!(
+            "substr({},1,{}){}'{}'",
+            column,
+            prefix.len(),
+            cmp,
+            prefix,
+        ))
+    }
+}
+
+pub fn sql_column_substr_prefix_eq<ST>(column: &str, prefix: &str) -> SqlLiteral<ST> {
+    sql_column_substr_prefix(column, prefix, "=")
+}
+
+pub fn sql_column_substr_prefix_ne<ST>(column: &str, prefix: &str) -> SqlLiteral<ST> {
+    sql_column_substr_prefix(column, prefix, "<>")
 }

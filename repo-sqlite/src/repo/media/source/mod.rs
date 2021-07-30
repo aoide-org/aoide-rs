@@ -79,11 +79,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
     ) -> RepoResult<usize> {
         let target = media_source::table
             .filter(media_source::collection_id.eq(RowId::from(collection_id)))
-            .filter(diesel::dsl::sql(&format!(
-                "substr(path,1,{})='{}'",
-                old_path_prefix.len(),
-                escape_single_quotes(old_path_prefix),
-            )));
+            .filter(sql_column_substr_prefix_eq("path", old_path_prefix));
         diesel::update(target)
             .set((
                 media_source::row_updated_ms.eq(updated_at.timestamp_millis()),

@@ -71,22 +71,9 @@ where
         StringPredicateBorrowed::MatchesNot(path_fragment_nocase) => {
             statement.filter(media_source::path.not_like(escape_like_matches(path_fragment_nocase)))
         }
-        StringPredicateBorrowed::Prefix(path_prefix) => {
-            let sql_prefix_filter = if path_prefix.contains('\'') {
-                format!(
-                    "substr(media_source.path,1,{})='{}'",
-                    path_prefix.len(),
-                    escape_single_quotes(path_prefix)
-                )
-            } else {
-                format!(
-                    "substr(media_source.path,1,{})='{}'",
-                    path_prefix.len(),
-                    path_prefix
-                )
-            };
-            statement.filter(diesel::dsl::sql(&sql_prefix_filter))
-        }
+        StringPredicateBorrowed::Prefix(path_prefix) => statement.filter(
+            sql_column_substr_prefix_eq("media_source.path", path_prefix),
+        ),
         StringPredicateBorrowed::Equals(path) => statement.filter(media_source::path.eq(path)),
         StringPredicateBorrowed::EqualsNot(path) => statement.filter(media_source::path.ne(path)),
     }

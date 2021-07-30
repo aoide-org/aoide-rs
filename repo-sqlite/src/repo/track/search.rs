@@ -845,11 +845,11 @@ where
             }
             StringCmpOp::Prefix(prefix, len) => {
                 let sql_prefix_filter = if dir {
-                    format!("substr(track_tag.label,1,{})='{}'", len, prefix)
+                    sql_column_substr_prefix_eq("track_tag.label", &prefix[..len])
                 } else {
-                    format!("substr(track_tag.label,1,{})<>'{}'", len, prefix)
+                    sql_column_substr_prefix_ne("track_tag.label", &prefix[..len])
                 };
-                select.filter(diesel::dsl::sql(&sql_prefix_filter))
+                select.filter(sql_prefix_filter)
             }
             StringCmpOp::Like(like) => {
                 if dir {
@@ -949,11 +949,11 @@ where
             }
             StringCmpOp::Prefix(prefix, len) => {
                 let sql_prefix_filter = if dir {
-                    format!("substr(track_cue.label,1,{})='{}'", len, prefix)
+                    sql_column_substr_prefix_eq("track_cue.label", &prefix[..len])
                 } else {
-                    format!("substr(track_cue.label,1,{})<>'{}'", len, prefix)
+                    sql_column_substr_prefix_ne("track_cue.label", &prefix[..len])
                 };
-                select.filter(diesel::dsl::sql(&sql_prefix_filter))
+                select.filter(sql_prefix_filter)
             }
             StringCmpOp::Like(like) => {
                 if dir {

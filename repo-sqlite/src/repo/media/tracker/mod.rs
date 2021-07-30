@@ -50,11 +50,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
     ) -> RepoResult<usize> {
         let target = media_tracker_directory::table
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
-            .filter(diesel::dsl::sql(&format!(
-                "substr(path,1,{})='{}'",
-                path_prefix.len(),
-                escape_single_quotes(path_prefix),
-            )));
+            .filter(sql_column_substr_prefix_eq("path", path_prefix));
         let mut query = diesel::update(target)
             .set((
                 media_tracker_directory::row_updated_ms.eq(updated_at.timestamp_millis()),
@@ -77,11 +73,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
     ) -> RepoResult<usize> {
         let target = media_tracker_directory::table
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
-            .filter(diesel::dsl::sql(&format!(
-                "substr(path,1,{})='{}'",
-                path_prefix.len(),
-                escape_single_quotes(path_prefix),
-            )));
+            .filter(sql_column_substr_prefix_eq("path", path_prefix));
         let subselect = target.clone().select(media_tracker_directory::row_id);
         if let Some(status) = status {
             // Filter by status
@@ -244,11 +236,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         media_tracker_directory::table
             .select((media_tracker_directory::status, diesel::dsl::count_star))
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
-            .filter(diesel::dsl::sql(&format!(
-                "substr(path,1,{})='{}'",
-                path_prefix.len(),
-                escape_single_quotes(path_prefix),
-            )))
+            .filter(sql_column_substr_prefix_eq("path", path_prefix))
             // TODO: Replace with group_by() when available
             .filter(diesel::dsl::sql("TRUE GROUP BY status ORDER BY status"))
             .load::<(i16, usize)>(self.as_ref())
@@ -321,11 +309,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             .then_order_by(media_tracker_directory::path)
             .into_boxed();
         if !path_prefix.is_empty() {
-            query = query.filter(diesel::dsl::sql(&format!(
-                "substr(path,1,{})='{}'",
-                path_prefix.len(),
-                escape_single_quotes(path_prefix),
-            )))
+            query = query.filter(sql_column_substr_prefix_eq("path", path_prefix));
         }
         let query = apply_pagination(query, pagination);
         query
