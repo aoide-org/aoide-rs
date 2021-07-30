@@ -83,7 +83,7 @@ impl DurationMs {
     }
 
     pub const fn empty() -> Self {
-        Self(0f64)
+        Self(0_f64)
     }
 
     pub fn is_empty(self) -> bool {

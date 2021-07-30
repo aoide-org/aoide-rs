@@ -30,17 +30,17 @@ use std::io::{Read, Seek};
 #[rustfmt::skip]
 bitflags! {
     pub struct ImportTrackFlags: u16 {
-        const METADATA                            = 0b0000000000000001;
-        const ARTWORK                             = 0b0000000000000010;
-        const CONTENT_DIGEST                      = 0b0000000000000100;
-        const ARTWORK_DIGEST                      = 0b0000000000001010; // implies ARTWORK
-        const ARTWORK_DIGEST_SHA256               = 0b0000000000011010; // Use SHA-256 instead of BLAKE3 (e.g. for Mixxx)
+        const METADATA                            = 0b0000_0000_0000_0001;
+        const ARTWORK                             = 0b0000_0000_0000_0010;
+        const CONTENT_DIGEST                      = 0b0000_0000_0000_0100;
+        const ARTWORK_DIGEST                      = 0b0000_0000_0000_1010; // implies ARTWORK
+        const ARTWORK_DIGEST_SHA256               = 0b0000_0000_0001_1010; // Use SHA-256 instead of BLAKE3 (e.g. for Mixxx)
         // Custom application metadata
-        const ITUNES_ID3V2_GROUPING_MOVEMENT_WORK = 0b0000000100000000; // ID3v2 with iTunes v12.5.4 and newer
-        const MIXXX_CUSTOM_TAGS                   = 0b0000001000000001; // implies METADATA
-        const MIXXX_KEEP_CUSTOM_GENRE_TAGS        = 0b0000010000000000;
-        const MIXXX_KEEP_CUSTOM_MOOD_TAGS         = 0b0000100000000000;
-        const SERATO_TAGS                         = 0b0001000000000001; // implies METADATA
+        const ITUNES_ID3V2_GROUPING_MOVEMENT_WORK = 0b0000_0001_0000_0000; // ID3v2 with iTunes v12.5.4 and newer
+        const MIXXX_CUSTOM_TAGS                   = 0b0000_0010_0000_0001; // implies METADATA
+        const MIXXX_KEEP_CUSTOM_GENRE_TAGS        = 0b0000_0100_0000_0000;
+        const MIXXX_KEEP_CUSTOM_MOOD_TAGS         = 0b0000_1000_0000_0000;
+        const SERATO_TAGS                         = 0b0001_0000_0000_0001; // implies METADATA
     }
 }
 

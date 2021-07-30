@@ -105,22 +105,22 @@ bitflags! {
     pub struct ContentMetadataFlags: u8 {
         /// Use case: Parsed from file tags which are considered inaccurate
         /// and are often imprecise.
-        const UNRELIABLE = 0b00000000;
+        const UNRELIABLE = 0b0000_0000;
 
         /// Use case: Reported by a decoder when opening an audio/video
         /// stream for reading. Nevertheless different decoders may report
         /// slightly differing values.
-        const RELIABLE   = 0b00000001;
+        const RELIABLE   = 0b0000_0001;
 
         /// Locked metadata will not be updated automatically, neither when
         /// parsing file tags nor when decoding an audio/video stream.
         ///
         /// While locked the stale flag is never set.
-        const LOCKED     = 0b00000010;
+        const LOCKED     = 0b0000_0010;
 
         /// Stale metadata should be re-imported depending on the other
         /// flags.
-        const STALE      = 0b00000100;
+        const STALE      = 0b0000_0100;
     }
 }
 

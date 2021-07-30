@@ -61,7 +61,7 @@ use bitflags::bitflags;
 
 bitflags! {
     pub struct CueFlags: u8 {
-        const LOCKED = 0b00000001;
+        const LOCKED = 0b0000_0001;
     }
 }
 

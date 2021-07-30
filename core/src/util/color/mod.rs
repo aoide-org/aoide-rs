@@ -37,10 +37,9 @@ impl Validate for Color {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         let context = ValidationContext::new();
-        use Color::*;
         match self {
-            Rgb(rgb_color) => context.validate_with(rgb_color, ColorInvalidity::Rgb),
-            Index(_) => context,
+            Color::Rgb(rgb_color) => context.validate_with(rgb_color, ColorInvalidity::Rgb),
+            Color::Index(_) => context,
         }
         .into()
     }

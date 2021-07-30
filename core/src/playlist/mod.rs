@@ -52,10 +52,9 @@ impl Validate for Item {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         let context = ValidationContext::new();
-        use Item::*;
         match self {
-            Separator => context,
-            Track(ref track) => context.validate_with(track, Self::Invalidity::Track),
+            Item::Separator => context,
+            Item::Track(ref track) => context.validate_with(track, Self::Invalidity::Track),
         }
         .into()
     }
@@ -103,7 +102,7 @@ impl Validate for Entry {
 
 bitflags! {
     pub struct Flags: u8 {
-        const LOCKED = 0b00000001;
+        const LOCKED = 0b0000_0001;
     }
 }
 

@@ -44,10 +44,9 @@ pub enum Item {
 
 impl From<Item> for _core::Item {
     fn from(from: Item) -> Self {
-        use Item::*;
         match from {
-            Separator(SeparatorDummy {}) => Self::Separator,
-            Track(item) => Self::Track(item.into()),
+            Item::Separator(SeparatorDummy {}) => Self::Separator,
+            Item::Track(item) => Self::Track(item.into()),
         }
     }
 }

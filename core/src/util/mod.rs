@@ -25,13 +25,13 @@ pub trait IsInteger {
 
 impl IsInteger for f64 {
     fn is_integer(&self) -> bool {
-        (self.trunc() - self).abs() == 0f64
+        (self.trunc() - self).abs() == 0_f64
     }
 }
 
 impl IsInteger for f32 {
     fn is_integer(&self) -> bool {
-        (self.trunc() - self).abs() == 0f32
+        (self.trunc() - self).abs() == 0_f32
     }
 }
 

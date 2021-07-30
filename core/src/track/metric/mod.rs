@@ -25,9 +25,9 @@ use bitflags::bitflags;
 
 bitflags! {
     pub struct MetricsFlags: u8 {
-        const TEMPO_BPM_LOCKED      = 0b00000001;
-        const KEY_SIGNATURE_LOCKED  = 0b00000010;
-        const TIME_SIGNATURE_LOCKED = 0b00000100;
+        const TEMPO_BPM_LOCKED      = 0b0000_0001;
+        const KEY_SIGNATURE_LOCKED  = 0b0000_0010;
+        const TIME_SIGNATURE_LOCKED = 0b0000_0100;
     }
 }
 

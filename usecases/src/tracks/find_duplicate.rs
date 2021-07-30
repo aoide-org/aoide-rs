@@ -34,14 +34,14 @@ bitflags! {
     /// A bitmask for controlling how and if content metadata is
     /// re-imported from the source.
     pub struct SearchFlags: u8 {
-        const NONE           = 0b00000000; // least restrictive
-        const SOURCE_TRACKED = 0b00000001;
-        const ALBUM_ARTIST   = 0b00000010;
-        const ALBUM_TITLE    = 0b00000100;
-        const TRACK_ARTIST   = 0b00001000;
-        const TRACK_TITLE    = 0b00010000;
-        const RELEASED_AT    = 0b00100000;
-        const ALL            = 0b00111111; // most restrictive
+        const NONE           = 0b0000_0000; // least restrictive
+        const SOURCE_TRACKED = 0b0000_0001;
+        const ALBUM_ARTIST   = 0b0000_0010;
+        const ALBUM_TITLE    = 0b0000_0100;
+        const TRACK_ARTIST   = 0b0000_1000;
+        const TRACK_TITLE    = 0b0001_0000;
+        const RELEASED_AT    = 0b0010_0000;
+        const ALL            = 0b0011_1111; // most restrictive
     }
 }
 
