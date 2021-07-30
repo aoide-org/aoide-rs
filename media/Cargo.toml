@@ -33,7 +33,6 @@ walkdir = "*"
 id3 = { version = ">=0.6", optional = true }
 lewton = { version = "*", optional = true }
 metaflac = { version = "*", optional = true }
-minimp3 = { version = "*", optional = true }
 mp3-duration = { version = "*", optional = true }
 mp4ameta = { version = ">=0.11", optional = true }
 
@@ -42,7 +41,7 @@ mp4ameta = { version = ">=0.11", optional = true }
 fmt-aiff = []
 fmt-flac = [ "metaflac" ]
 fmt-mp4 = [ "mp4ameta" ]
-fmt-mp3 = [ "id3", "minimp3", "mp3-duration" ]
+fmt-mp3 = [ "id3", "mp3-duration" ]
 fmt-ogg = [ "lewton", "metaflac" ] # metaflac for decoding FLAC picture blocks
 # TODO: Add support for WAV files
 fmt-wav = []

@@ -15,16 +15,15 @@
 
 use std::io::SeekFrom;
 
-use minimp3::Decoder;
-
 use aoide_core::{
     audio::{
         channel::{ChannelCount, NumberOfChannels},
-        signal::SampleRateHz,
+        signal::{BitrateBps, BitsPerSecond, SampleRateHz, SamplesPerSecond},
         AudioContent,
     },
     track::Track,
 };
+use mp3_duration::{ParseMode, StreamInfo};
 
 use crate::{
     io::import::{self, *},
@@ -44,55 +43,25 @@ impl import::ImportTrack for ImportTrack {
         track: Track,
         reader: &mut Box<dyn Reader>,
     ) -> Result<Track> {
-        // Read number of channels and sample rate from the first decoded
-        // MP3 frame. Those properties are supposed to be constant for the
-        // whole MP3 file. Decoding the whole file would take too long.
-        let mut decoder = Decoder::new(reader);
-        let mut channels = None;
-        let mut sample_rate = None;
-        loop {
-            let decoded_frame = decoder.next_frame();
-            match decoded_frame {
-                Ok(frame) => {
-                    if frame.layer != 3
-                        || frame.channels < 1
-                        || frame.channels > 2
-                        || frame.sample_rate <= 0
-                        || frame.data.is_empty()
-                    {
-                        // Silently skip invalid or empty frames
-                        log::warn!("Invalid MP3 frame: {:?}", frame);
-                        continue;
-                    }
-                    channels = Some(ChannelCount(frame.channels as NumberOfChannels).into());
-                    sample_rate = Some(SampleRateHz::from_inner(frame.sample_rate as f64));
-                    // Stop decoding after receiving the first valid frame. Both the
-                    // number of channels and the sample rate are supposed to be uniform
-                    // for all frames!
-                    break;
-                }
-                Err(minimp3::Error::Eof) => break,
-                Err(minimp3::Error::Io(err)) => return Err(err.into()),
-                Err(err) => return Err(anyhow::Error::from(err).into()),
-            }
-        }
-        // Restore the reader
-        let reader = decoder.into_inner();
+        let StreamInfo {
+            max_channel_count,
+            avg_sampling_rate,
+            avg_bitrate,
+            duration,
+            ..
+        } = StreamInfo::read(reader, ParseMode::Exact).map_err(anyhow::Error::from)?;
 
-        // Restart the reader for importing the exact duration and average bitrate
+        // Restart the reader after importing the stream info
         let _start_pos = reader.seek(SeekFrom::Start(0))?;
         debug_assert_eq!(0, _start_pos);
-        let duration = mp3_duration::from_read(reader).map(Into::into).ok();
-        // TODO: Average bitrate needs to be calculated from all MP3 frames if
-        // not stored explicitly. The mp3-duration crate already reads the bitrate
-        // of each frame but does not calculate and return an average bitrate.
-        let bitrate = None;
 
         let audio_content = AudioContent {
-            duration,
-            channels,
-            sample_rate,
-            bitrate,
+            duration: Some(duration.into()),
+            channels: Some(ChannelCount(max_channel_count as NumberOfChannels).into()),
+            sample_rate: Some(SampleRateHz::from_inner(
+                avg_sampling_rate as SamplesPerSecond,
+            )),
+            bitrate: Some(BitrateBps::from_inner(avg_bitrate as BitsPerSecond)),
             ..Default::default()
         };
 

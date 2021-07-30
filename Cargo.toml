@@ -28,7 +28,7 @@ aoide-repo = { path = "./repo" }
 aoide-repo-sqlite = { path = "./repo-sqlite" }
 aoide-usecases = { path = "./usecases" }
 triseratops = { git = "https://github.com/Holzhaus/triseratops.git", branch = "main" }
-
+mp3-duration = { git = "https://github.com/uklotzde/mp3-duration.git", branch = "streaminfo" }
 #mp4ameta = { branch = "master", git = "https://github.com/Saecki/rust-mp4ameta.git" }
 #id3 = { branch = "master", git = "https://github.com/polyfloyd/rust-id3.git" }
 
