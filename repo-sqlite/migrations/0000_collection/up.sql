@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS collection (
     media_source_path_kind TINYINT NOT NULL,
     media_source_root_url  TEXT,
     --
-    UNIQUE (entity_uid) -- only the last revision is stored
+    UNIQUE (entity_uid), -- only the last revision is stored
+    UNIQUE (kind, title)
 );
 
 CREATE INDEX IF NOT EXISTS idx_collection_row_created_ms_desc ON collection (
@@ -42,11 +43,6 @@ CREATE INDEX IF NOT EXISTS idx_collection_row_created_ms_desc ON collection (
 CREATE INDEX IF NOT EXISTS idx_collection_row_updated_ms_desc ON collection (
     row_updated_ms DESC
 );
-
-CREATE INDEX IF NOT EXISTS idx_collection_kind_title ON collection (
-    kind,
-    title
-) WHERE kind IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_collection_title ON collection (
     title
