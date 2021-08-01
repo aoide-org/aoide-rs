@@ -1213,7 +1213,7 @@ dependencies = [
 [[package]]
 name = "mp3-duration"
 version = "0.1.10"
-source = "git+https://github.com/uklotzde/mp3-duration.git?branch=streaminfo#828f68be5620c5c9cca066891b65e5fc72e849b6"
+source = "git+https://github.com/uklotzde/mp3-duration.git?branch=streaminfo#2ddf739a33de9f029cb3e620d12bc230dec09f72"
 dependencies = [
  "thiserror",
 ]

@@ -53,6 +53,10 @@ use nom::{
 use semval::IsValid as _;
 use std::{convert::TryFrom as _, path::Path};
 
+fn trim_readable(input: &str) -> &str {
+    input.trim_matches(|c: char| c.is_whitespace() || c.is_control())
+}
+
 pub fn guess_mime_from_path(path: impl AsRef<Path>) -> Result<Mime> {
     let mime_guess = mime_guess::from_path(path);
     if mime_guess.first().is_none() {
@@ -116,7 +120,7 @@ fn parse_replay_gain_db(input: &str) -> IResult<&str, f64> {
 }
 
 pub fn parse_replay_gain(input: &str) -> Option<LoudnessLufs> {
-    let input = input.trim();
+    let input = trim_readable(input);
     if input.is_empty() {
         return None;
     }
@@ -157,7 +161,7 @@ pub fn parse_replay_gain(input: &str) -> Option<LoudnessLufs> {
 }
 
 pub fn parse_tempo_bpm(input: &str) -> Option<TempoBpm> {
-    let input = input.trim();
+    let input = trim_readable(input);
     if input.is_empty() {
         return None;
     }
@@ -183,7 +187,7 @@ pub fn parse_tempo_bpm(input: &str) -> Option<TempoBpm> {
 }
 
 pub fn parse_key_signature(input: &str) -> Option<KeySignature> {
-    let input = input.trim();
+    let input = trim_readable(input);
     if input.is_empty() {
         return None;
     }
@@ -211,7 +215,11 @@ pub fn parse_key_signature(input: &str) -> Option<KeySignature> {
     if key_code != KeyCode::Unknown {
         return Some(key_code.into());
     }
-    log::warn!("Failed to parse key signature from input '{}'", input);
+    log::warn!(
+        "Failed to parse musical key signature from input (bytes): '{}' ({:X?})",
+        input,
+        input.as_bytes()
+    );
     None
 }
 

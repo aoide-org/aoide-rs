@@ -83,3 +83,10 @@ fn parse_year_tag_valid() {
         parse_year_tag(" 2009-09-18T07:00:00 ").unwrap().to_string()
     );
 }
+
+#[test]
+fn trim_readable_should_ignore_whitespace_and_control_characters() {
+    assert!(trim_readable(" \t \n ").is_empty());
+    let input = String::from_utf8(vec![0x11, 0x00, 0x0A, 0x0D, 0x20, 0x09]).unwrap();
+    assert!(trim_readable(&input).is_empty());
+}
