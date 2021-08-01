@@ -49,7 +49,7 @@ impl import::ImportTrack for ImportTrack {
             avg_bitrate,
             duration,
             ..
-        } = StreamInfo::read(reader, ParseMode::Exact).map_err(anyhow::Error::from)?;
+        } = StreamInfo::read(reader, ParseMode::AllAudioFrames).map_err(anyhow::Error::from)?;
 
         // Restart the reader after importing the stream info
         let _start_pos = reader.seek(SeekFrom::Start(0))?;
