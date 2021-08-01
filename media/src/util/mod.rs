@@ -169,7 +169,11 @@ pub fn parse_tempo_bpm(input: &str) -> Option<TempoBpm> {
         Ok(bpm) => {
             let tempo_bpm = TempoBpm(bpm);
             if !tempo_bpm.is_valid() {
-                log::info!("Invalid tempo parsed from input '{}': {}", input, tempo_bpm);
+                // The value 0 is often used for an unknown bpm.
+                // Silently ignore this special value to prevent log spam.
+                if bpm != 0.0 {
+                    log::info!("Invalid tempo parsed from input '{}': {}", input, tempo_bpm);
+                }
                 return None;
             }
             log::debug!("Parsed tempo from input '{}': {}", input, tempo_bpm);
