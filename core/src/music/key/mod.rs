@@ -143,29 +143,37 @@ impl KeyCode {
         use KeyCode::*;
         match s {
             "C" => Cmaj,
-            "a" => Amin,
+            "a" | "Am" => Amin,
             "G" => Gmaj,
-            "e" => Emin,
+            "e" | "Em" => Emin,
             "D" => Dmaj,
-            "b" => Bmin,
+            "b" | "Bm" => Bmin,
             "A" => Amaj,
-            "g♭" | "f♯" | "g♭/f♯" => Gbmin,
+            "g♭" | "f♯" | "g♭/f♯" | "f♯/g♭" | "G♭m" | "F♯m" | "G♭m/F♯m" | "F♯m/G♭m" => {
+                Gbmin
+            }
             "E" => Emaj,
-            "d♭" | "c♯" | "d♭/c♯" => Dbmin,
+            "d♭" | "c♯" | "d♭/c♯" | "c♯/d♭" | "D♭m" | "C♯m" | "D♭m/C♯m" | "C♯m/D♭m" => {
+                Dbmin
+            }
             "B" => Bmaj,
-            "a♭♯" | "g♯" | "a♭/g♯" => Abmin,
-            "G♭" | "F♯" | "G♭/F♯" => Gbmaj,
-            "e♭" | "d♯" | "e♭/d♯" => Ebmin,
-            "D♭" | "C♯" | "D♭/C♯" => Dbmaj,
+            "a♭" | "g♯" | "a♭/g♯" | "g♯/a♭" | "A♭m" | "G♯m" | "A♭/G♯m" | "G♯m/A♭m" => {
+                Abmin
+            }
+            "G♭" | "F♯" | "G♭/F♯" | "F♯/G♭" => Gbmaj,
+            "e♭" | "d♯" | "e♭/d♯" | "d♯/e♭" | "E♭m" | "D♯m" | "E♭m/D♯m" | "D♯m/E♭m" => {
+                Ebmin
+            }
+            "D♭" | "C♯" | "D♭/C♯" | "C♯/D♭" => Dbmaj,
             "b♭" => Bbmin,
-            "A♭" | "G♯" | "A♭/G♯" => Abmaj,
-            "f" => Fmin,
-            "E♭" | "D♯" | "E♭/D♯" => Ebmaj,
-            "c" => Cmin,
+            "A♭" | "G♯" | "A♭/G♯" | "G♯/A♭" => Abmaj,
+            "f" | "Fm" => Fmin,
+            "E♭" | "D♯" | "E♭/D♯" | "D♯/E♭" => Ebmaj,
+            "c" | "Cm" => Cmin,
             "B♭" => Bbmaj,
-            "g" => Gmin,
+            "g" | "Gm" => Gmin,
             "F" => Fmaj,
-            "d" => Dmin,
+            "d" | "Dm" => Dmin,
             _ => Unknown,
         }
     }
