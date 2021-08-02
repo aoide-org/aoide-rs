@@ -178,6 +178,68 @@ impl KeyCode {
         }
     }
 
+    pub fn as_traditional_ascii_str(self) -> &'static str {
+        use KeyCode::*;
+        match self {
+            Unknown => "",
+            Cmaj => "C",
+            Amin => "Am",
+            Gmaj => "G",
+            Emin => "Em",
+            Dmaj => "D",
+            Bmin => "Bm",
+            Amaj => "A",
+            Gbmin => "Gbm/F#m",
+            Emaj => "E",
+            Dbmin => "Dbm/C#m",
+            Bmaj => "B",
+            Abmin => "Abm/G#m",
+            Gbmaj => "Gb/F#",
+            Ebmin => "Ebm/D#m",
+            Dbmaj => "Db/C#",
+            Bbmin => "Bbm",
+            Abmaj => "Ab/G#",
+            Fmin => "Fm",
+            Ebmaj => "Eb/D#",
+            Cmin => "Cm",
+            Bbmaj => "Bb",
+            Gmin => "Gm",
+            Fmaj => "F",
+            Dmin => "Dm",
+        }
+    }
+
+    pub fn from_traditional_ascii_str(s: &str) -> Self {
+        use KeyCode::*;
+        match s {
+            "C" => Cmaj,
+            "Am" | "a" => Amin,
+            "G" => Gmaj,
+            "Em" | "e" => Emin,
+            "D" => Dmaj,
+            "Bm" | "b" => Bmin,
+            "A" => Amaj,
+            "Gbm/F#m" | "Gbm" | "F#m" | "F#m/Gbm" | "gb/f#" | "gb" | "f#" | "f#/gb" => Gbmin,
+            "E" => Emaj,
+            "Dbm/C#m" | "Dbm" | "C#m" | "C#m/Dbm" | "db/c#" | "db" | "c#" | "c#/db" => Dbmin,
+            "B" => Bmaj,
+            "Ab/G#m" | "Abm" | "G#m" | "G#m/Abm" | "ab/g#" | "ab" | "g#" | "g#/ab" => Abmin,
+            "Gb/F#" | "Gb" | "F#" | "F#/Gb" => Gbmaj,
+            "Ebm/D#m" | "Ebm" | "D#m" | "D#m/Ebm" | "eb/d#" | "eb" | "d#" | "d#/eb" => Ebmin,
+            "Db/C#" | "Db" | "C#" | "C#/Db" => Dbmaj,
+            "Bbm" | "bb" => Bbmin,
+            "Ab/G#" | "Ab" | "G#" | "G#/Ab" => Abmaj,
+            "Fm" | "f" => Fmin,
+            "Eb/D#" | "Eb" | "D#" | "D#/Eb" => Ebmaj,
+            "Cm" | "c" => Cmin,
+            "B♭" => Bbmaj,
+            "Gm" | "g" => Gmin,
+            "F" => Fmaj,
+            "Dm" | "d" => Dmin,
+            _ => Unknown,
+        }
+    }
+
     pub fn as_openkey_str(self) -> &'static str {
         use KeyCode::*;
         match self {

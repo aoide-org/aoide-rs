@@ -210,6 +210,10 @@ pub fn parse_key_signature(input: &str) -> Option<KeySignature> {
             if key_code != KeyCode::Unknown {
                 return Some(key_code.into());
             }
+            let key_code = KeyCode::from_traditional_ascii_str(input);
+            if key_code != KeyCode::Unknown {
+                return Some(key_code.into());
+            }
             let key_code = KeyCode::from_serato_str(input);
             if key_code != KeyCode::Unknown {
                 return Some(key_code.into());
