@@ -195,32 +195,37 @@ pub fn parse_key_signature(input: &str) -> Option<KeySignature> {
     if input.is_empty() {
         return None;
     }
-    let key_code = KeyCode::from_lancelot_str(input);
-    if key_code != KeyCode::Unknown {
-        return Some(key_code.into());
-    }
-    let key_code = KeyCode::from_openkey_str(input);
-    if key_code != KeyCode::Unknown {
-        return Some(key_code.into());
-    }
-    let key_code = KeyCode::from_traditional_str(input);
-    if key_code != KeyCode::Unknown {
-        return Some(key_code.into());
-    }
-    let key_code = KeyCode::from_serato_str(input);
-    if key_code != KeyCode::Unknown {
-        return Some(key_code.into());
-    }
-    let key_code = KeyCode::from_beatport_str(input);
-    if key_code != KeyCode::Unknown {
-        return Some(key_code.into());
-    }
-    let key_code = KeyCode::from_traxsource_str(input);
-    if key_code != KeyCode::Unknown {
-        return Some(key_code.into());
+    if input.starts_with(|c: char| c.is_ascii_alphanumeric()) {
+        if input.starts_with(|c: char| c.is_ascii_digit()) {
+            let key_code = KeyCode::from_lancelot_str(input);
+            if key_code != KeyCode::Unknown {
+                return Some(key_code.into());
+            }
+            let key_code = KeyCode::from_openkey_str(input);
+            if key_code != KeyCode::Unknown {
+                return Some(key_code.into());
+            }
+        } else {
+            let key_code = KeyCode::from_traditional_str(input);
+            if key_code != KeyCode::Unknown {
+                return Some(key_code.into());
+            }
+            let key_code = KeyCode::from_serato_str(input);
+            if key_code != KeyCode::Unknown {
+                return Some(key_code.into());
+            }
+            let key_code = KeyCode::from_beatport_str(input);
+            if key_code != KeyCode::Unknown {
+                return Some(key_code.into());
+            }
+            let key_code = KeyCode::from_traxsource_str(input);
+            if key_code != KeyCode::Unknown {
+                return Some(key_code.into());
+            }
+        }
     }
     log::warn!(
-        "Failed to parse musical key signature from input (bytes): '{}' ({:X?})",
+        "Failed to parse musical key signature from input (UTF-8 bytes): '{}' ({:X?})",
         input,
         input.as_bytes()
     );
