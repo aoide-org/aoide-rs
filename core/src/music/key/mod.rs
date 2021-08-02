@@ -113,29 +113,29 @@ impl KeyCode {
         match self {
             Unknown => "",
             Cmaj => "C",
-            Amin => "a",
+            Amin => "Am",
             Gmaj => "G",
-            Emin => "e",
+            Emin => "Em",
             Dmaj => "D",
-            Bmin => "b",
+            Bmin => "Bm",
             Amaj => "A",
-            Gbmin => "g♭/f♯",
+            Gbmin => "G♭m/F♯m",
             Emaj => "E",
-            Dbmin => "d♭/c♯",
+            Dbmin => "D♭m/C♯m",
             Bmaj => "B",
-            Abmin => "a♭/g♯",
+            Abmin => "A♭m/G♯m",
             Gbmaj => "G♭/F♯",
-            Ebmin => "e♭/d♯",
+            Ebmin => "E♭m/D♯m",
             Dbmaj => "D♭/C♯",
-            Bbmin => "b♭",
+            Bbmin => "B♭m",
             Abmaj => "A♭/G♯",
-            Fmin => "f",
+            Fmin => "Fm",
             Ebmaj => "E♭/D♯",
-            Cmin => "c",
+            Cmin => "Cm",
             Bbmaj => "B♭",
-            Gmin => "g",
+            Gmin => "Gm",
             Fmaj => "F",
-            Dmin => "d",
+            Dmin => "Dm",
         }
     }
 
@@ -149,31 +149,31 @@ impl KeyCode {
             "D" => Dmaj,
             "b" | "Bm" => Bmin,
             "A" => Amaj,
-            "g♭" | "f♯" | "g♭/f♯" | "f♯/g♭" | "G♭m" | "F♯m" | "G♭m/F♯m" | "F♯m/G♭m" => {
+            "G♭m/F♯m" | "G♭m" | "F♯m" | "F♯m/G♭m" | "g♭/f♯" | "g♭" | "f♯" | "f♯/g♭" => {
                 Gbmin
             }
             "E" => Emaj,
-            "d♭" | "c♯" | "d♭/c♯" | "c♯/d♭" | "D♭m" | "C♯m" | "D♭m/C♯m" | "C♯m/D♭m" => {
+            "D♭m/C♯m" | "D♭m" | "C♯m" | "C♯m/D♭m" | "d♭/c♯" | "d♭" | "c♯" | "c♯/d♭" => {
                 Dbmin
             }
             "B" => Bmaj,
-            "a♭" | "g♯" | "a♭/g♯" | "g♯/a♭" | "A♭m" | "G♯m" | "A♭/G♯m" | "G♯m/A♭m" => {
+            "A♭/G♯m" | "A♭m" | "G♯m" | "G♯m/A♭m" | "a♭/g♯" | "a♭" | "g♯" | "g♯/a♭" => {
                 Abmin
             }
-            "G♭" | "F♯" | "G♭/F♯" | "F♯/G♭" => Gbmaj,
-            "e♭" | "d♯" | "e♭/d♯" | "d♯/e♭" | "E♭m" | "D♯m" | "E♭m/D♯m" | "D♯m/E♭m" => {
+            "G♭/F♯" | "G♭" | "F♯" | "F♯/G♭" => Gbmaj,
+            "E♭m/D♯m" | "E♭m" | "D♯m" | "D♯m/E♭m" | "e♭/d♯" | "e♭" | "d♯" | "d♯/e♭" => {
                 Ebmin
             }
-            "D♭" | "C♯" | "D♭/C♯" | "C♯/D♭" => Dbmaj,
-            "b♭" | "B♭m" => Bbmin,
-            "A♭" | "G♯" | "A♭/G♯" | "G♯/A♭" => Abmaj,
-            "f" | "Fm" => Fmin,
-            "E♭" | "D♯" | "E♭/D♯" | "D♯/E♭" => Ebmaj,
-            "c" | "Cm" => Cmin,
+            "D♭/C♯" | "D♭" | "C♯" | "C♯/D♭" => Dbmaj,
+            "B♭m" | "b♭" => Bbmin,
+            "A♭/G♯" | "A♭" | "G♯" | "G♯/A♭" => Abmaj,
+            "Fm" | "f" => Fmin,
+            "E♭/D♯" | "E♭" | "D♯" | "D♯/E♭" => Ebmaj,
+            "Cm" | "c" => Cmin,
             "B♭" => Bbmaj,
-            "g" | "Gm" => Gmin,
+            "Gm" | "g" => Gmin,
             "F" => Fmaj,
-            "d" | "Dm" => Dmin,
+            "Dm" | "d" => Dmin,
             _ => Unknown,
         }
     }
