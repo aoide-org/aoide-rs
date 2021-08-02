@@ -70,3 +70,5 @@ split-debuginfo = "unpacked"
 lto = true
 opt-level = 3
 codegen-units = 1
+# Keep debug symbols, e.g. for profiling -> results in huge binary!
+#debug = true
