@@ -308,6 +308,12 @@ impl Facet {
     }
 }
 
+impl CanonicalOrd for Facet {
+    fn canonical_cmp(&self, other: &Self) -> Ordering {
+        self.cmp(other)
+    }
+}
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum FacetInvalidity {
     Empty,
@@ -498,11 +504,11 @@ impl CanonicalOrd for PlainTag {
     fn canonical_cmp(&self, other: &Self) -> Ordering {
         let Self {
             label: lhs_label,
-            score: lhs_score,
+            score: _,
         } = self;
         let Self {
             label: rhs_label,
-            score: rhs_score,
+            score: _,
         } = other;
         match (lhs_label, rhs_label) {
             (Some(lhs_label), Some(rhs_label)) => lhs_label.cmp(rhs_label),
@@ -510,10 +516,16 @@ impl CanonicalOrd for PlainTag {
             (Some(_), None) => Ordering::Greater,
             (None, None) => Ordering::Equal,
         }
-        .then_with(|| {
-            debug_assert!(lhs_score.partial_cmp(rhs_score).is_some());
-            lhs_score.partial_cmp(rhs_score).unwrap_or(Ordering::Equal)
-        })
+    }
+
+    fn canonical_dedup_cmp(&self, other: &Self) -> Ordering {
+        debug_assert_eq!(Ordering::Equal, self.canonical_cmp(other));
+        // Reverse ordering by score, i.e. higher scores should precede lower scores
+        debug_assert!(other.score.partial_cmp(&self.score).is_some());
+        other
+            .score
+            .partial_cmp(&self.score)
+            .unwrap_or(Ordering::Equal)
     }
 }
 
@@ -585,18 +597,17 @@ pub struct FacetedTags {
 }
 
 impl CanonicalOrd for FacetedTags {
+    fn canonical_dedup_cmp(&self, other: &Self) -> Ordering {
+        debug_assert_eq!(Ordering::Equal, self.canonical_cmp(other));
+        // Conflicting tags should be resolved before, e.g. by concatenating
+        // all plain tags that share the same facet. Here we just select the
+        // faceted tag with more plain tag, i.e. reverse ordering of their
+        // length.
+        other.tags.len().cmp(&self.tags.len())
+    }
+
     fn canonical_cmp(&self, other: &Self) -> Ordering {
-        let Self {
-            facet: lhs_facet,
-            tags: lhs_tags,
-        } = self;
-        let Self {
-            facet: rhs_facet,
-            tags: rhs_tags,
-        } = other;
-        lhs_facet
-            .cmp(rhs_facet)
-            .then_with(|| lhs_tags.canonical_cmp(rhs_tags))
+        self.facet.canonical_cmp(&other.facet)
     }
 }
 
@@ -683,10 +694,24 @@ impl Canonicalize for Tags {
         } = self;
         plain_tags.canonicalize();
         facets.retain(|f| !f.tags.is_empty());
-        facets.canonicalize();
-        debug_assert!(is_slice_sorted_by(facets, |lhs, rhs| {
-            lhs.facet.cmp(&rhs.facet)
-        }));
+        facets.sort_unstable_by(|lhs, rhs| lhs.facet.canonical_cmp(&rhs.facet));
+        facets.dedup_by(|next, prev| {
+            if prev
+                .facet
+                .canonical_cmp(&next.facet)
+                .then_with(|| prev.facet.canonical_dedup_cmp(&next.facet))
+                != Ordering::Equal
+            {
+                return false;
+            }
+            // Join their tags
+            prev.tags.append(&mut next.tags);
+            true
+        });
+        for facet in facets.iter_mut() {
+            facet.canonicalize();
+        }
+        debug_assert!(facets.is_canonical());
     }
 }
 
@@ -746,12 +771,11 @@ impl Validate for Tags {
     type Invalidity = TagsInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        // Validation only works on canonicalized data
-        debug_assert!(self.is_canonical());
         let Self {
             plain: plain_tags,
             facets,
         } = self;
+        debug_assert!(self.is_canonical() || (plain_tags.is_empty() && facets.is_empty()));
         let mut context = ValidationContext::new()
             .validate_with(&plain_tags, Self::Invalidity::PlainTag)
             .merge_result(

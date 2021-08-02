@@ -101,7 +101,7 @@ where
         )
         .map_err(|err| {
             log::warn!(
-                "Failed to replace track by URI {}: {}",
+                "Failed to replace track by URI '{}': {}",
                 media_source_path,
                 err
             );

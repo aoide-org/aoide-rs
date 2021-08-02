@@ -95,22 +95,14 @@ where
 
 pub trait CanonicalOrd {
     fn canonical_cmp(&self, other: &Self) -> Ordering;
-}
 
-impl<T> CanonicalOrd for [T]
-where
-    T: CanonicalOrd,
-{
-    fn canonical_cmp(&self, other: &Self) -> Ordering {
-        if self.len() != other.len() {
-            return self.len().cmp(&other.len());
-        }
-        for (lhs, rhs) in self.iter().zip(other.iter()) {
-            let ord = lhs.canonical_cmp(rhs);
-            if ord != Ordering::Equal {
-                return ord;
-            }
-        }
+    /// Ordering fore deduplication.
+    ///
+    /// Only used for disambiguation, i.e. Will be chained with
+    /// canonical_cmp(). Should return `Ordering::Less` for items
+    /// that should take precedence during deduplication.
+    fn canonical_dedup_cmp(&self, other: &Self) -> Ordering {
+        debug_assert_eq!(Ordering::Equal, self.canonical_cmp(other));
         Ordering::Equal
     }
 }
@@ -203,7 +195,10 @@ where
         for elem in self.iter_mut() {
             elem.canonicalize();
         }
-        self.sort_unstable_by(|lhs, rhs| lhs.canonical_cmp(rhs));
+        self.sort_unstable_by(|lhs, rhs| {
+            lhs.canonical_cmp(rhs)
+                .then_with(|| lhs.canonical_dedup_cmp(rhs))
+        });
         self.dedup_by(|lhs, rhs| lhs.canonical_cmp(rhs) == Ordering::Equal);
         debug_assert!(self.is_canonical());
     }

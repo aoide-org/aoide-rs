@@ -165,15 +165,8 @@ fn duplicate_labels_differing_score() {
         ..Default::default()
     };
     assert!(!tags.is_canonical());
-    assert_eq!(
-        1,
-        tags.canonicalize_into()
-            .validate()
-            .err()
-            .unwrap()
-            .into_iter()
-            .count()
-    );
+    let tags = tags.canonicalize_into();
+    assert_eq!(2, tags.total_count());
 }
 
 #[test]
@@ -252,8 +245,8 @@ fn duplicate_facets() {
         ],
     };
     tags.canonicalize();
-    assert_eq!(1, tags.validate().err().unwrap().into_iter().count());
     assert_eq!(5, tags.total_count());
+    assert!(tags.validate().is_ok());
 }
 
 #[test]
@@ -293,8 +286,7 @@ fn duplicate_facets_and_labels() {
         ],
     };
     tags.canonicalize();
-    assert_eq!(1, tags.validate().err().unwrap().into_iter().count());
-    assert_eq!(5, tags.total_count());
+    assert_eq!(4, tags.total_count());
 
     let mut tags = Tags {
         plain: vec![
@@ -323,6 +315,14 @@ fn duplicate_facets_and_labels() {
                         label: Some(Label::new("label2".into())),
                         ..Default::default()
                     },
+                    PlainTag {
+                        label: Some(Label::new("label1".into())),
+                        ..Default::default()
+                    },
+                    PlainTag {
+                        label: Some(Label::new("label2".into())),
+                        ..Default::default()
+                    },
                 ],
             },
             FacetedTags {
@@ -330,15 +330,15 @@ fn duplicate_facets_and_labels() {
                 tags: vec![
                     PlainTag {
                         label: Some(Label::new("label2".into())),
-                        ..Default::default()
+                        score: 0.5.into(),
                     },
                     PlainTag {
                         label: Some(Label::new("label2".into())),
-                        ..Default::default()
+                        score: 0.75.into(),
                     },
                     PlainTag {
                         label: Some(Label::new("label2".into())),
-                        ..Default::default()
+                        score: 0.25.into(),
                     },
                 ],
             },
@@ -347,6 +347,13 @@ fn duplicate_facets_and_labels() {
     tags.canonicalize();
     assert!(tags.validate().is_ok());
     assert_eq!(5, tags.total_count());
+    assert!(tags.facets.contains(&FacetedTags {
+        facet: Facet::new("facet2".into()).into(),
+        tags: vec![PlainTag {
+            label: Some(Label::new("label2".into())),
+            score: Score(0.75),
+        },],
+    }));
 }
 
 #[test]
