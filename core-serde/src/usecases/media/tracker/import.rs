@@ -147,6 +147,12 @@ pub struct DirectorySummary {
     /// would occur again when retrying the import. Yet the import
     /// will be retried after restarting the import task.
     pub skipped: usize,
+
+    /// Untracked directories that have not been found.
+    ///
+    /// Directories that are not found during the import are
+    /// untracked implicitly.
+    pub untracked: usize,
 }
 
 impl From<DirectorySummary> for _core::DirectorySummary {
@@ -155,11 +161,13 @@ impl From<DirectorySummary> for _core::DirectorySummary {
             confirmed,
             rejected,
             skipped,
+            untracked,
         } = from;
         Self {
             confirmed,
             rejected,
             skipped,
+            untracked,
         }
     }
 }
@@ -170,11 +178,13 @@ impl From<_core::DirectorySummary> for DirectorySummary {
             confirmed,
             rejected,
             skipped,
+            untracked,
         } = from;
         Self {
             confirmed,
             rejected,
             skipped,
+            untracked,
         }
     }
 }

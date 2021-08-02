@@ -78,4 +78,5 @@ pub struct DirectorySummary {
     pub confirmed: usize,
     pub rejected: usize,
     pub skipped: usize,
+    pub untracked: usize,
 }

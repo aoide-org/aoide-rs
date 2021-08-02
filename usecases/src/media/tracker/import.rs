@@ -13,7 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use std::{
+    io,
+    sync::atomic::{AtomicBool, Ordering},
+};
 
 use aoide_core::{
     usecases::media::tracker::{
@@ -30,12 +33,12 @@ use aoide_repo::{
     track::{EntityRepo as TrackRepo, ReplaceMode},
 };
 
-use tracks::replace::{
+use crate::tracks::replace::{
     import_and_replace_by_local_file_path_from_directory, Completion as ReplaceCompletion,
     Outcome as ReplaceOutcome,
 };
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use super::*;
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -114,6 +117,19 @@ where
             ) {
                 Ok(outcome) => outcome,
                 Err(err) => {
+                    let err = if let Error::Io(io_err) = err {
+                        if io_err.kind() == io::ErrorKind::NotFound {
+                            log::info!("Untracking missing directory {}", dir_path);
+                            summary.directories.untracked +=
+                                repo.media_tracker_untrack(collection_id, &dir_path, None)?;
+                            continue;
+                        }
+                        // Restore error
+                        Error::Io(io_err)
+                    } else {
+                        // Pass-through error
+                        err
+                    };
                     log::warn!("Failed to import pending directory {}: {}", dir_path, err);
                     // Skip this directory and keep going
                     summary.directories.skipped += 1;
