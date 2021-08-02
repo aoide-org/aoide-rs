@@ -83,7 +83,17 @@ impl import::ImportTrack for ImportTrack {
         mut track: Track,
         reader: &mut Box<dyn Reader>,
     ) -> Result<Track> {
-        let ogg_reader = OggStreamReader::new(reader).map_err(anyhow::Error::from)?;
+        let ogg_reader = match OggStreamReader::new(reader) {
+            Ok(ogg_reader) => ogg_reader,
+            Err(err) => {
+                log::warn!(
+                    "Failed to parse metadata from media source '{}': {}",
+                    track.media_source.path,
+                    err
+                );
+                return Ok(track);
+            }
+        };
 
         let vorbis_comments = &ogg_reader.comment_hdr.comment_list;
 

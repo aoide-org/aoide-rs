@@ -59,7 +59,17 @@ impl import::ImportTrack for ImportTrack {
         mut track: Track,
         reader: &mut Box<dyn Reader>,
     ) -> Result<Track> {
-        let flac_tag = metaflac::Tag::read_from(reader).map_err(anyhow::Error::from)?;
+        let flac_tag = match metaflac::Tag::read_from(reader) {
+            Ok(flac_tag) => flac_tag,
+            Err(err) => {
+                log::warn!(
+                    "Failed to parse metadata from media source '{}': {}",
+                    track.media_source.path,
+                    err
+                );
+                return Ok(track);
+            }
+        };
 
         if track
             .media_source

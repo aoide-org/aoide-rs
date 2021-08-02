@@ -100,7 +100,17 @@ impl import::ImportTrack for ImportTrack {
         reader: &mut Box<dyn Reader>,
     ) -> Result<Track> {
         // Extract metadata with mp4ameta
-        let mut mp4_tag = Mp4Tag::read_from(reader).map_err(anyhow::Error::from)?;
+        let mut mp4_tag = match Mp4Tag::read_from(reader) {
+            Ok(mp4_tag) => mp4_tag,
+            Err(err) => {
+                log::warn!(
+                    "Failed to parse metadata from media source '{}': {}",
+                    track.media_source.path,
+                    err
+                );
+                return Ok(track);
+            }
+        };
 
         if track
             .media_source
