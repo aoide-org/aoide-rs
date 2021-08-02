@@ -165,7 +165,7 @@ impl KeyCode {
                 Ebmin
             }
             "D♭" | "C♯" | "D♭/C♯" | "C♯/D♭" => Dbmaj,
-            "b♭" => Bbmin,
+            "b♭" | "B♭m" => Bbmin,
             "A♭" | "G♯" | "A♭/G♯" | "G♯/A♭" => Abmaj,
             "f" | "Fm" => Fmin,
             "E♭" | "D♯" | "E♭/D♯" | "D♯/E♭" => Ebmaj,
