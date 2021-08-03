@@ -150,11 +150,20 @@ pub fn parse_replay_gain(input: &str) -> Option<LoudnessLufs> {
             Some(loudness_lufs)
         }
         Err(err) => {
-            log::warn!(
-                "Failed to parse replay gain (dB) from input '{}': {}",
-                input,
-                err
-            );
+            // Silently ignore any 0 values
+            if input.parse().ok() == Some(0.0) {
+                log::debug!(
+                    "Ignoring invalid replay gain (dB) from input '{}': {}",
+                    input,
+                    err
+                );
+            } else {
+                log::warn!(
+                    "Failed to parse replay gain (dB) from input '{}': {}",
+                    input,
+                    err
+                );
+            }
             None
         }
     }
