@@ -215,11 +215,23 @@ where
             // Nothing to do
         }
         Err(err) => {
-            log::warn!(
-                "Failed to import track from local file path {}: {}",
-                source_path_resolver.build_file_path(&source_path).display(),
-                err
-            );
+            match err {
+                Error::Media(MediaError::UnknownContentType)
+                | Error::Media(MediaError::UnsupportedContentType(_)) => {
+                    log::info!(
+                        "Skipped import of track from local file path {}: {}",
+                        source_path_resolver.build_file_path(&source_path).display(),
+                        err
+                    );
+                }
+                err => {
+                    log::warn!(
+                        "Failed to import track from local file path {}: {}",
+                        source_path_resolver.build_file_path(&source_path).display(),
+                        err
+                    );
+                }
+            }
             summary.not_imported.push(source_path);
         }
     };
