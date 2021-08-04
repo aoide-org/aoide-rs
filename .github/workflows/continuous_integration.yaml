@@ -18,9 +18,26 @@ jobs:
 
     steps:
       - name: Checkout code
+        id: checkout
         uses: actions/checkout@v2
 
+      - name: Cache Cargo build artifacts
+        id: cache-cargo-build
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ github.head_ref }}-${{ github.run_number }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ github.head_ref }}
+            ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+            ${{ runner.os }}-cargo
+
       - name: Install Rust toolchain
+        id: rust-toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -28,66 +45,77 @@ jobs:
           target: x86_64-unknown-linux-musl
 
       - name: Check code formatting
+        id: rustfmt
         uses: actions-rs/cargo@v1
         with:
           command: fmt
           args: --all -- --check
 
       - name: Check for linter warnings
+        id: clippy
         uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: -- -D warnings
 
       - name: Check sub-crate core
+        id: check-core
         uses: actions-rs/cargo@v1
         with:
           command: check
           args: --manifest-path core/Cargo.toml
 
       - name: Check sub-crate core-serde
+        id: check-core-serde
         uses: actions-rs/cargo@v1
         with:
           command: check
           args: --manifest-path core-serde/Cargo.toml
 
       - name: Check sub-crate repo
+        id: check-repo
         uses: actions-rs/cargo@v1
         with:
           command: check
           args: --manifest-path repo/Cargo.toml
 
       - name: Check sub-crate repo-sqlite
+        id: check-repo-sqlite
         uses: actions-rs/cargo@v1
         with:
           command: check
           args: --manifest-path repo-sqlite/Cargo.toml
 
       - name: Check sub-crate media
+        id: check-media
         uses: actions-rs/cargo@v1
         with:
           command: check
           args: --manifest-path media/Cargo.toml
 
       - name: Check sub-crate usecases
+        id: check-usecases
         uses: actions-rs/cargo@v1
         with:
           command: check
           args: --manifest-path usecases/Cargo.toml
 
       - name: Check sub-crate client
+        id: check-client
         uses: actions-rs/cargo@v1
         with:
           command: check
           args: --manifest-path client/Cargo.toml
 
       - name: Test project
+        id: test-all
         uses: actions-rs/cargo@v1
         with:
           command: test
           args: --all
 
       - name: Build project
+        id: build-all
         uses: actions-rs/cargo@v1
         with:
           command: build
