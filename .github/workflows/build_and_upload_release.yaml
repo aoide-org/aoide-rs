@@ -19,13 +19,11 @@ jobs:
         include:
           - os: macos-latest
             target: x86_64-apple-darwin
-            artifact_name: aoide
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            artifact_name: aoide
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact_name: aoide.exe
+            artifact_suffix: .exe
 
     steps:
       - name: Checkout code
@@ -49,13 +47,13 @@ jobs:
         if: ${{ github.ref }} == 'v[0-9]+.[0-9]+.[0-9]+'
         uses: actions/upload-artifact@v2
         with:
-          name: aoide_${{ matrix.target }}_latest
-          path: target/release/${{ matrix.artifact_name }}
+          name: aoide_${{ matrix.target }}_${{ github.ref }}${{ matrix.artifact_suffix }}
+          path: target/release/aoide${{ matrix.artifact_suffix }}
 
       - name: Upload latest version
         id: upload_latest_version
         if: ${{ github.ref }} == 'master'
         uses: actions/upload-artifact@v2
         with:
-          name: aoide_${{ matrix.target }}_latest
-          path: target/release/${{ matrix.artifact_name }}
+          name: aoide_${{ matrix.target }}_latest${{ matrix.artifact_suffix }}
+          path: target/release/aoide${{ matrix.artifact_suffix }}
