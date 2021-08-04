@@ -246,6 +246,7 @@ pub fn parse_key_signature(input: &str) -> Option<KeySignature> {
 }
 
 pub fn parse_year_tag(input: &str) -> Option<DateOrDateTime> {
+    let input = input.trim();
     let mut digits_parser = delimited(space0, digit1, space0);
     let digits_parsed: IResult<_, _> = digits_parser(input);
     if let Ok((remainder, digits_input)) = digits_parsed {
@@ -311,6 +312,11 @@ pub fn parse_year_tag(input: &str) -> Option<DateOrDateTime> {
         return Some(DateTime::from(datetime).into());
     }
     if let Ok(datetime) = input.parse::<NaiveDateTime>() {
+        // Assume UTC if time zone is missing
+        let datetime_utc: chrono::DateTime<Utc> = chrono::DateTime::from_utc(datetime, Utc);
+        return Some(DateTime::from(datetime_utc).into());
+    }
+    if let Ok(datetime) = NaiveDateTime::parse_from_str(input, "%Y-%m-%d %H:%M:%S") {
         // Assume UTC if time zone is missing
         let datetime_utc: chrono::DateTime<Utc> = chrono::DateTime::from_utc(datetime, Utc);
         return Some(DateTime::from(datetime_utc).into());
