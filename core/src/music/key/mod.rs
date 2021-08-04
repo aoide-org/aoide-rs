@@ -103,11 +103,73 @@ impl Default for KeyCode {
 
 impl fmt::Display for KeyCode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_traditional_str())
+        f.write_str(self.as_canonical_str())
     }
 }
 
 impl KeyCode {
+    pub fn as_canonical_str(self) -> &'static str {
+        use KeyCode::*;
+        match self {
+            Unknown => "",
+            Cmaj => "Cmaj",
+            Amin => "Amin",
+            Gmaj => "Gmaj",
+            Emin => "Emin",
+            Dmaj => "Dmaj",
+            Bmin => "Bmin",
+            Amaj => "Amaj",
+            Gbmin => "Gbmin",
+            Emaj => "Emaj",
+            Dbmin => "Dbmin",
+            Bmaj => "Bmaj",
+            Abmin => "Abmin",
+            Gbmaj => "Gbmaj",
+            Ebmin => "Ebmin",
+            Dbmaj => "Dbmaj",
+            Bbmin => "Bbmin",
+            Abmaj => "Abmaj",
+            Fmin => "Fmin",
+            Ebmaj => "Ebmaj",
+            Cmin => "Cmin",
+            Bbmaj => "Bbmaj",
+            Gmin => "Gmin",
+            Fmaj => "Fmaj",
+            Dmin => "Dmin",
+        }
+    }
+
+    pub fn from_canonical_str(s: &str) -> Self {
+        use KeyCode::*;
+        match s {
+            "Cmaj" => Cmaj,
+            "Amin" => Amin,
+            "Gmaj" => Gmaj,
+            "Emin" => Emin,
+            "Dmaj" => Dmaj,
+            "Bmin" => Bmin,
+            "Amaj" => Amaj,
+            "Gbmin" => Gbmin,
+            "Emaj" => Emaj,
+            "Dbmin" => Dbmin,
+            "Bmaj" => Bmaj,
+            "Abmin" => Abmin,
+            "Gbmaj" => Gbmaj,
+            "Ebmin" => Ebmin,
+            "Dbmaj" => Dbmaj,
+            "Bbmin" => Bbmin,
+            "Abmaj" => Abmaj,
+            "Fmin" => Fmin,
+            "Ebmaj" => Ebmaj,
+            "Cmin" => Cmin,
+            "Bbmaj" => Bbmaj,
+            "Gmin" => Gmin,
+            "Fmaj" => Fmaj,
+            "Dmin" => Dmin,
+            _ => Unknown,
+        }
+    }
+
     pub fn as_traditional_str(self) -> &'static str {
         use KeyCode::*;
         match self {
