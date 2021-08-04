@@ -3,11 +3,11 @@ name: Continuous integration
 on:
   push:
     branches:
-      - master
-      - development
+      - main
+      - dev
   pull_request:
     branches:
-      - development
+      - dev
 
 env:
   CARGO_TERM_COLOR: always

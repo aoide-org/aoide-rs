@@ -5,7 +5,7 @@ on:
     tags:
       - v[0-9]+.[0-9]+.[0-9]+
   workflow_dispatch:
-    ref: master
+    ref: main
 
 env:
   CARGO_TERM_COLOR: always
@@ -52,7 +52,7 @@ jobs:
 
       - name: Upload latest version
         id: upload_latest_version
-        if: ${{ github.ref }} == 'master'
+        if: ${{ github.ref }} == 'main'
         uses: actions/upload-artifact@v2
         with:
           name: aoide_${{ matrix.target }}_latest${{ matrix.artifact_suffix }}
