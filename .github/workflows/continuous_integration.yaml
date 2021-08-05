@@ -40,8 +40,6 @@ jobs:
         id: rust-toolchain
         uses: actions-rs/toolchain@v1
         with:
-          profile: minimal
-          components: rustfmt, clippy
           target: x86_64-unknown-linux-musl
 
       - name: Check code formatting
