@@ -39,8 +39,13 @@ jobs:
       - name: Install Rust toolchain
         id: rust-toolchain
         uses: actions-rs/toolchain@v1
+        # The inputs should match those in rust-toolchain.toml with the
+        # exception of specifying an explicit target for the CI build.
         with:
           target: x86_64-unknown-linux-musl
+          toolchain: stable
+          profile: minimal
+          components: rustfmt, clippy
 
       - name: Check code formatting
         id: rustfmt
