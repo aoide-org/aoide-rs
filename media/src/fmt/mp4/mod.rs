@@ -18,9 +18,9 @@
 use crate::{
     io::import::{self, *},
     util::{
-        digest::MediaDigest, parse_artwork_from_embedded_image, parse_key_signature,
-        parse_replay_gain, parse_tempo_bpm, parse_year_tag, push_next_actor_role_name, serato,
-        tag::import_faceted_tags,
+        digest::MediaDigest, parse_key_signature, parse_replay_gain, parse_tempo_bpm,
+        parse_year_tag, push_next_actor_role_name, serato, tag::import_faceted_tags,
+        try_load_artwork_from_embedded_image,
     },
     Result,
 };
@@ -444,9 +444,12 @@ impl import::ImportTrack for ImportTrack {
                         break;
                     }
                 };
-                if let Some(artwork) =
-                    parse_artwork_from_embedded_image(image_data, image_format, &mut image_digest)
-                {
+                if let Some(artwork) = try_load_artwork_from_embedded_image(
+                    &track.media_source.path,
+                    image_data,
+                    image_format,
+                    &mut image_digest,
+                ) {
                     track.media_source.artwork = artwork;
                     break;
                 }

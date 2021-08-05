@@ -17,9 +17,10 @@ use crate::{
     io::import::{ImportTrackConfig, ImportTrackFlags},
     util::{
         digest::MediaDigest,
-        parse_artwork_from_embedded_image, parse_index_numbers, parse_key_signature,
-        parse_replay_gain, parse_tempo_bpm, push_next_actor_role_name, serato,
+        parse_index_numbers, parse_key_signature, parse_replay_gain, parse_tempo_bpm,
+        push_next_actor_role_name, serato,
         tag::{import_faceted_tags, FacetedTagMappingConfig},
+        try_load_artwork_from_embedded_image,
     },
     Result,
 };
@@ -457,7 +458,14 @@ pub fn import_track(
             )
             // otherwise take the first picture that could be parsed
             .chain(tag.pictures())
-            .filter_map(|p| parse_artwork_from_embedded_image(&p.data, None, &mut image_digest))
+            .filter_map(|p| {
+                try_load_artwork_from_embedded_image(
+                    &track.media_source.path,
+                    &p.data,
+                    None,
+                    &mut image_digest,
+                )
+            })
             .next();
         if let Some(artwork) = artwork {
             track.media_source.artwork = artwork;

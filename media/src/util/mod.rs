@@ -15,17 +15,19 @@
 
 ///////////////////////////////////////////////////////////////////////
 
+use anyhow::Context as _;
+
+use crate::prelude::*;
+
 pub mod digest;
 pub mod serato;
 pub mod tag;
-
-use crate::prelude::*;
 
 use self::digest::MediaDigest;
 
 use aoide_core::{
     audio::signal::LoudnessLufs,
-    media::{Artwork, ImageDimension, ImageSize, Thumbnail4x4Rgb8},
+    media::{Artwork, ImageDimension, ImageSize, SourcePath, Thumbnail4x4Rgb8},
     music::{
         key::{KeyCode, KeySignature},
         time::TempoBpm,
@@ -40,7 +42,8 @@ use aoide_core::{
 
 use chrono::{NaiveDateTime, Utc};
 use image::{
-    guess_format, load_from_memory, load_from_memory_with_format, GenericImageView, ImageFormat,
+    guess_format, load_from_memory, load_from_memory_with_format, GenericImageView, ImageError,
+    ImageFormat,
 };
 use mime::{Mime, IMAGE_BMP, IMAGE_GIF, IMAGE_JPEG, IMAGE_PNG, IMAGE_STAR};
 use nom::{
@@ -349,11 +352,13 @@ pub fn parse_index_numbers(input: &str) -> Option<Index> {
     }
 }
 
-pub fn parse_artwork_from_embedded_image(
+pub type ArtworkResult = std::result::Result<Artwork, ImageError>;
+
+pub fn load_artwork_from_image_data(
     image_data: &[u8],
     image_format: Option<ImageFormat>,
     image_digest: &mut MediaDigest,
-) -> Option<Artwork> {
+) -> anyhow::Result<Artwork> {
     let image_format = image_format.or_else(|| guess_format(image_data).ok());
     let media_type = match image_format {
         Some(ImageFormat::Jpeg) => IMAGE_JPEG.to_string(),
@@ -377,18 +382,13 @@ pub fn parse_artwork_from_embedded_image(
     } else {
         load_from_memory(image_data)
     }
-    .map_err(|err| {
-        log::warn!("Failed to load image: {}", err);
-        err
-    })
-    .ok()
+    .with_context(|| "Failed to load image")
     .and_then(|image| {
         let (width, height) = image.dimensions();
         let clamped_with = width as ImageDimension;
         let clamped_height = height as ImageDimension;
         if width != clamped_with as u32 && height != clamped_height as u32 {
-            log::warn!("Unsupported image size: {}x{}", width, height);
-            return None;
+            anyhow::bail!("Unsupported image size: {}x{}", width, height);
         }
         let size = ImageSize {
             width: clamped_with,
@@ -398,7 +398,7 @@ pub fn parse_artwork_from_embedded_image(
         let image_4x4 = image.resize_exact(4, 4, image::imageops::FilterType::Lanczos3);
         let thumbnail = Thumbnail4x4Rgb8::try_from(image_4x4.to_rgb8().into_raw()).ok();
         debug_assert!(thumbnail.is_some());
-        Some(Artwork {
+        Ok(Artwork {
             size: Some(size),
             digest,
             thumbnail,
@@ -406,6 +406,24 @@ pub fn parse_artwork_from_embedded_image(
             uri: None, // embedded
         })
     })
+}
+
+pub fn try_load_artwork_from_embedded_image(
+    media_source_path: &SourcePath,
+    image_data: &[u8],
+    image_format: Option<ImageFormat>,
+    image_digest: &mut MediaDigest,
+) -> Option<Artwork> {
+    load_artwork_from_image_data(image_data, image_format, image_digest)
+        .map(Some)
+        .unwrap_or_else(|err| {
+            log::warn!(
+                "Failed to load artwork from image embedded in '{}': {}",
+                media_source_path,
+                err
+            );
+            None
+        })
 }
 
 ///////////////////////////////////////////////////////////////////////

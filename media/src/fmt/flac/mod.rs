@@ -18,7 +18,8 @@
 use crate::{
     io::import::{self, *},
     util::{
-        digest::MediaDigest, parse_artwork_from_embedded_image, push_next_actor_role_name, serato,
+        digest::MediaDigest, push_next_actor_role_name, serato,
+        try_load_artwork_from_embedded_image,
     },
     Result,
 };
@@ -293,7 +294,14 @@ impl import::ImportTrack for ImportTrack {
                 )
                 // otherwise take the first picture that could be parsed
                 .chain(flac_tag.pictures())
-                .filter_map(|p| parse_artwork_from_embedded_image(&p.data, None, &mut image_digest))
+                .filter_map(|p| {
+                    try_load_artwork_from_embedded_image(
+                        &track.media_source.path,
+                        &p.data,
+                        None,
+                        &mut image_digest,
+                    )
+                })
                 .next();
             if let Some(artwork) = artwork {
                 track.media_source.artwork = artwork;
