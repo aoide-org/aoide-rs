@@ -61,7 +61,7 @@ jobs:
           path: target/release/aoide${{ matrix.executable_suffix }}
 
       - name: Upload latest development version
-        id: upload_latest_version
+        id: upload_latest_dev_version
         if: github.ref == 'refs/heads/dev'
         uses: actions/upload-artifact@v2
         with:
