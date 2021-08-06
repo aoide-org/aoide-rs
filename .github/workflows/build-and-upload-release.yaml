@@ -36,6 +36,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           target: ${{ matrix.target }}
+          toolchain: stable
           profile: minimal
 
       - name: Build server executable
