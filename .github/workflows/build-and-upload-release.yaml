@@ -1,4 +1,4 @@
-name: Build and upload release
+name: Build and upload release artifacts
 
 on:
   push:
@@ -45,26 +45,18 @@ jobs:
           command: build
           args: --release
 
-      - name: Upload tagged version
-        id: upload_tagged_version
+      - name: Upload tagged artifact
         if: github.ref == 'v[0-9]+.[0-9]+.[0-9]+'
         uses: actions/upload-artifact@v2
         with:
-          name: aoide_${{ matrix.target }}_${{ github.ref }}
+          # Artifact is stored and downloaded as .zip archive
+          name: aoide_${{ matrix.target }}_${{ github.ref }}${{ matrix.executable_suffix }}
           path: target/release/aoide${{ matrix.executable_suffix }}
 
-      - name: Upload latest version
-        id: upload_latest_version
-        if: github.ref == 'refs/heads/main'
+      - name: Upload latest artifact
+        if: startsWith(${{ github.ref }}, 'refs/heads/')
         uses: actions/upload-artifact@v2
         with:
-          name: aoide_${{ matrix.target }}_latest
-          path: target/release/aoide${{ matrix.executable_suffix }}
-
-      - name: Upload latest development version
-        id: upload_latest_dev_version
-        if: github.ref == 'refs/heads/dev'
-        uses: actions/upload-artifact@v2
-        with:
-          name: aoide_dev_${{ matrix.target }}_latest
+          # Artifact is stored and downloaded as .zip archive
+          name: aoide_${{ matrix.target }}${{ matrix.executable_suffix }}
           path: target/release/aoide${{ matrix.executable_suffix }}
