@@ -1,32 +1,37 @@
 name: Continuous integration
 
 on:
+  pull_request:
   push:
     branches:
       - main
-      - dev
-  pull_request:
-    branches:
       - dev
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  continuous-integration:
+    name: Building project and running tests
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Check out repository
         id: checkout
         uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        id: rust-toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
 
       - name: Cache Cargo build artifacts
         id: cache-cargo-build
         uses: actions/cache@v2
         with:
           path: |
-            ~/.cargo/bin
             ~/.cargo/registry
             ~/.cargo/git
             target/
@@ -35,31 +40,6 @@ jobs:
             ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ github.head_ref }}
             ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
             ${{ runner.os }}-cargo
-
-      - name: Install Rust toolchain
-        id: rust-toolchain
-        uses: actions-rs/toolchain@v1
-        # The inputs should match those in rust-toolchain.toml with the
-        # exception of specifying an explicit target for the CI build.
-        with:
-          target: x86_64-unknown-linux-musl
-          toolchain: stable
-          profile: minimal
-          components: rustfmt, clippy
-
-      - name: Check code formatting
-        id: rustfmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
-
-      - name: Check for linter warnings
-        id: clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -D warnings
 
       - name: Check sub-crate core
         id: check-core
@@ -115,11 +95,11 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --all
+          args: --workspace --locked
 
       - name: Build project
         id: build-all
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release
+          args: --release --locked

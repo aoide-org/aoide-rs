@@ -11,7 +11,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  build-and-upload-release:
+    name: Building and uploading release artifacts
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -32,9 +33,8 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
-          profile: minimal
-          components: rustfmt, clippy
           target: ${{ matrix.target }}
+          profile: minimal
 
       - name: Build project
         uses: actions-rs/cargo@v1
