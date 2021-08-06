@@ -5,7 +5,9 @@ on:
     tags:
       - v[0-9]+.[0-9]+.[0-9]+
   workflow_dispatch:
-    ref: main
+    ref:
+      - main
+      - dev
 
 env:
   CARGO_TERM_COLOR: always
@@ -24,7 +26,7 @@ jobs:
             target: x86_64-unknown-linux-musl
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact_suffix: .exe
+            executable_suffix: .exe
 
     steps:
       - name: Checkout code
@@ -36,7 +38,7 @@ jobs:
           target: ${{ matrix.target }}
           profile: minimal
 
-      - name: Build project
+      - name: Build server executable
         uses: actions-rs/cargo@v1
         with:
           command: build
@@ -44,16 +46,24 @@ jobs:
 
       - name: Upload tagged version
         id: upload_tagged_version
-        if: ${{ github.ref }} == 'v[0-9]+.[0-9]+.[0-9]+'
+        if: github.ref == 'v[0-9]+.[0-9]+.[0-9]+'
         uses: actions/upload-artifact@v2
         with:
-          name: aoide_${{ matrix.target }}_${{ github.ref }}${{ matrix.artifact_suffix }}
-          path: target/release/aoide${{ matrix.artifact_suffix }}
+          name: aoide_${{ matrix.target }}_${{ github.ref }}
+          path: target/release/aoide${{ matrix.executable_suffix }}
 
       - name: Upload latest version
         id: upload_latest_version
-        if: ${{ github.ref }} == 'main'
+        if: github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v2
         with:
-          name: aoide_${{ matrix.target }}_latest${{ matrix.artifact_suffix }}
-          path: target/release/aoide${{ matrix.artifact_suffix }}
+          name: aoide_${{ matrix.target }}_latest
+          path: target/release/aoide${{ matrix.executable_suffix }}
+
+      - name: Upload latest development version
+        id: upload_latest_version
+        if: github.ref == 'refs/heads/dev'
+        uses: actions/upload-artifact@v2
+        with:
+          name: aoide_dev_${{ matrix.target }}_latest
+          path: target/release/aoide${{ matrix.executable_suffix }}
