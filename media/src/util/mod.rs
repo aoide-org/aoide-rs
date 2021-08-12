@@ -418,7 +418,7 @@ pub fn try_load_artwork_from_embedded_image(
         .map(Some)
         .unwrap_or_else(|err| {
             log::warn!(
-                "Failed to load artwork from image embedded in '{}': {}",
+                "Failed to load artwork from embedded image in '{}': {}",
                 media_source_path,
                 err
             );
