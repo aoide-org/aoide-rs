@@ -3,9 +3,6 @@ name: pre-commit
 on:
   pull_request:
   push:
-    branches:
-      - main
-      - dev
 
 env:
   CARGO_TERM_COLOR: always

@@ -17,18 +17,15 @@ jobs:
 
     steps:
       - name: Check out repository
-        id: checkout
         uses: actions/checkout@v2
 
       - name: Install Rust toolchain
-        id: rust-toolchain
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           profile: minimal
 
       - name: Cache Cargo build artifacts
-        id: cache-cargo-build
         uses: actions/cache@v2
         with:
           path: |
@@ -42,63 +39,54 @@ jobs:
             ${{ runner.os }}-cargo
 
       - name: Check sub-crate core
-        id: check-core
         uses: actions-rs/cargo@v1
         with:
           command: check
           args: --manifest-path core/Cargo.toml
 
       - name: Check sub-crate core-serde
-        id: check-core-serde
         uses: actions-rs/cargo@v1
         with:
           command: check
           args: --manifest-path core-serde/Cargo.toml
 
       - name: Check sub-crate repo
-        id: check-repo
         uses: actions-rs/cargo@v1
         with:
           command: check
           args: --manifest-path repo/Cargo.toml
 
       - name: Check sub-crate repo-sqlite
-        id: check-repo-sqlite
         uses: actions-rs/cargo@v1
         with:
           command: check
           args: --manifest-path repo-sqlite/Cargo.toml
 
       - name: Check sub-crate media
-        id: check-media
         uses: actions-rs/cargo@v1
         with:
           command: check
           args: --manifest-path media/Cargo.toml
 
       - name: Check sub-crate usecases
-        id: check-usecases
         uses: actions-rs/cargo@v1
         with:
           command: check
           args: --manifest-path usecases/Cargo.toml
 
       - name: Check sub-crate client
-        id: check-client
         uses: actions-rs/cargo@v1
         with:
           command: check
           args: --manifest-path client/Cargo.toml
 
-      - name: Test project
-        id: test-all
+      - name: Test project with all features enabled
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --workspace --locked
+          args: --workspace --all-features --locked
 
-      - name: Build project
-        id: build-all
+      - name: Build project with default features
         uses: actions-rs/cargo@v1
         with:
           command: build
