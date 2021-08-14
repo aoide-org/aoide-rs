@@ -16,6 +16,7 @@
 ///////////////////////////////////////////////////////////////////////
 
 #![deny(missing_debug_implementations)]
+#![deny(clippy::clone_on_ref_ptr)]
 #![warn(rust_2018_idioms)]
 
 pub mod prelude {
