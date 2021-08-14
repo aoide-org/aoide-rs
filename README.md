@@ -181,7 +181,7 @@ Logs messages are printed to _stderr_.
 Build and run the unit tests with the following command:
 
 ```bash
-cargo test --all --verbose -- --nocapture
+cargo test --workspace --verbose -- --nocapture
 ```
 
 ## Deploy
