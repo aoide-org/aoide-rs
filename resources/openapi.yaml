@@ -2365,13 +2365,13 @@ components:
     RelocateCollectedMediaSourcesRequestBody:
       type: object
       properties:
-        oldUriPrefix:
-          $ref: '#/components/schemas/PercentEncodedUri'
-        newUriPrefix:
-          $ref: '#/components/schemas/PercentEncodedUri'
+        oldPathPrefix:
+          $ref: '#/components/schemas/MediaSourceVirtualFilePath'
+        newPathPrefix:
+          $ref: '#/components/schemas/MediaSourceVirtualFilePath'
       required:
-        - oldUriPrefix
-        - newUriPrefix
+        - oldPathPrefix
+        - newPathPrefix
     RelocateCollectedMediaSourcesResponseBody:
       type: object
       properties:
