@@ -61,11 +61,15 @@ pub fn cleanse(connection: &SqliteConnection, vacuum: bool) -> Result<()> {
         }
         Ok(())
     })?;
-    log::info!("Analyzing and optimizing database statistics");
-    db.analyze_and_optimize_stats()?;
+
+    // According to Richard Hipp himself executing VACUUM before ANALYZE is the
+    // recommended order: https://sqlite.org/forum/forumpost/62fb63a29c5f7810?t=h
     if vacuum {
         log::info!("Rebuilding database storage");
         db.vacuum()?;
     }
+
+    log::info!("Analyzing and optimizing database statistics");
+    db.analyze_and_optimize_stats()?;
     Ok(())
 }
