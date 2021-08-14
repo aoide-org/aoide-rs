@@ -689,6 +689,11 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         query = apply_pagination(query, pagination);
 
         let timed = Instant::now();
+
+        log::trace!(
+            "Loading results of SQL search query: {}",
+            diesel::debug_query(&query)
+        );
         let records = query
             .load::<QueryableRecord>(self.as_ref())
             .map_err(repo_error)?;
