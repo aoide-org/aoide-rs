@@ -86,15 +86,15 @@ async fn main() -> anyhow::Result<()> {
             App::new("media-tracker")
                 .about("Controls the media tracker")
                 .subcommand(
-                    App::new("progress").about("Query progress of the running scan/import task"),
+                    App::new("progress").about("Query progress of a pending scan/import task"),
                 )
-                .subcommand(App::new("abort").about("Abort the running task"))
+                .subcommand(App::new("abort").about("Abort the pending task"))
                 .subcommand(
                     App::new("status")
                         .about("Queries the status of the media tracker")
                         .arg(
                             Arg::with_name("root-url")
-                                .help("The root URL to scan")
+                                .help("The root URL")
                                 .required(false),
                         ),
                 )
@@ -103,7 +103,7 @@ async fn main() -> anyhow::Result<()> {
                         .about("Scans directories on the file system for added/modified/removed media sources")
                         .arg(
                             Arg::with_name("root-url")
-                                .help("The root URL to scan")
+                                .help("The root URL")
                                 .required(false),
                         ),
                 )
@@ -112,8 +112,8 @@ async fn main() -> anyhow::Result<()> {
                         .about("Imports media sources on the file system from scanned directories")
                         .arg(
                             Arg::with_name("root-url")
-                                .help("The root URL to scan")
-                                .required(false),
+                            .help("Only consider media sources matching this root URL")
+                            .required(false),
                         ),
                 )
                 .subcommand(
@@ -121,7 +121,7 @@ async fn main() -> anyhow::Result<()> {
                         .about("Untracks directories on the file system")
                         .arg(
                             Arg::with_name("root-url")
-                                .help("The root URL to scan")
+                                .help("The root URL")
                                 .required(true),
                         ),
                 ),
@@ -429,10 +429,7 @@ async fn main() -> anyhow::Result<()> {
                                 let collection_uid = collection.hdr.uid.clone();
                                 let root_url = import_matches
                                     .and_then(|m| m.value_of("root-url"))
-                                    .map(|s| s.parse().expect("URL"))
-                                    .or_else(|| {
-                                        collection.body.media_source_config.root_url.clone()
-                                    });
+                                    .map(|s| s.parse().expect("URL"));
                                 subcommand_submitted = true;
                                 return Some(
                                     media_tracker::Intent::StartImport {
