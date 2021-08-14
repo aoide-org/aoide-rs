@@ -719,19 +719,22 @@ paths:
           $ref: '#/components/responses/500InternalServerError'
   /storage/cleanse:
     post:
-      summary: Cleanse the database(s)
+      summary: Cleanse the database
+      description: |
+        First check and repair inconsistencies, then analyze and optimize
+        statistics for the query planner.
+
+        Finally, the database could be compacted by rebuilding the database
+        file from scratch.
       tags:
         - Administration
-      responses:
-        '204':
-          $ref: '#/components/responses/204NoContent'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-  /storage/optimize:
-    post:
-      summary: Optimize the database(s)
-      tags:
-        - Administration
+      parameters:
+        - in: query
+          name: vacuum
+          schema:
+            type: boolean
+          description: |
+            Rebuild the database file from scratch.
       responses:
         '204':
           $ref: '#/components/responses/204NoContent'

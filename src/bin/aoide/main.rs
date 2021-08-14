@@ -155,10 +155,10 @@ pub async fn main() -> Result<(), Error> {
     // thread and has to be done in a spawned thread to prevent locking of
     // executor threads!
     let guarded_connection_pool = Arc::new(RwLock::new(connection_pool));
-    let guarded_connection_pool = warp::any().map(move || guarded_connection_pool.clone());
+    let guarded_connection_pool = warp::any().map(move || Arc::clone(&guarded_connection_pool));
 
     let media_tracker_progress = Arc::new(Mutex::new(MediaTrackerProgress::Idle));
-    let media_tracker_progress = warp::any().map(move || media_tracker_progress.clone());
+    let media_tracker_progress = warp::any().map(move || Arc::clone(&media_tracker_progress));
 
     log::info!("Creating service routes");
 
@@ -874,37 +874,30 @@ pub async fn main() -> Result<(), Error> {
         });
 
     // Storage
+    // TODO: Move into separate request handler
+    #[derive(serde::Deserialize)]
+    struct CleanseDatabaseQueryParams {
+        vacuum: bool,
+    }
     let storage_cleanse = warp::post()
         .and(storage_path)
         .and(warp::path("cleanse"))
         .and(warp::path::end())
+        .and(warp::query())
         .and(guarded_connection_pool.clone())
         .and_then(
-            |guarded_connection_pool: GuardedConnectionPool| async move {
-                spawn_blocking_database_write_task(guarded_connection_pool, |pooled_connection| {
-                    Ok(uc::database::cleanse(&pooled_connection)?)
-                })
+            |query_params, guarded_connection_pool: GuardedConnectionPool| async move {
+                let CleanseDatabaseQueryParams { vacuum } = query_params;
+                spawn_blocking_database_write_task(
+                    guarded_connection_pool,
+                    move |pooled_connection| Ok(uc::database::cleanse(&pooled_connection, vacuum)?),
+                )
                 .await
                 .map_err(reject_on_error)
                 .map(|()| StatusCode::NO_CONTENT)
             },
         );
-    let storage_optimize = warp::post()
-        .and(storage_path)
-        .and(warp::path("optimize"))
-        .and(warp::path::end())
-        .and(guarded_connection_pool.clone())
-        .and_then(
-            |guarded_connection_pool: GuardedConnectionPool| async move {
-                spawn_blocking_database_write_task(guarded_connection_pool, |pooled_connection| {
-                    Ok(uc::database::optimize(&pooled_connection)?)
-                })
-                .await
-                .map_err(reject_on_error)
-                .map(|()| StatusCode::NO_CONTENT)
-            },
-        );
-    let storage_filters = storage_cleanse.or(storage_optimize);
+    let storage_filters = storage_cleanse;
 
     // Static content
     let index_html = warp::path::end().map(|| warp::reply::html(INDEX_HTML));

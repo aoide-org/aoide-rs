@@ -47,7 +47,7 @@ pub fn migrate_schema(connection: &SqliteConnection) -> Result<()> {
     Ok(())
 }
 
-pub fn cleanse(connection: &SqliteConnection) -> Result<()> {
+pub fn cleanse(connection: &SqliteConnection, vacuum: bool) -> Result<()> {
     log::info!("Cleansing database");
     let db = RepoConnection::new(&*connection);
     db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
@@ -61,12 +61,11 @@ pub fn cleanse(connection: &SqliteConnection) -> Result<()> {
         }
         Ok(())
     })?;
-    sql_query("VACUUM;").execute(connection)?;
-    Ok(())
-}
-
-pub fn optimize(connection: &SqliteConnection) -> Result<()> {
-    log::info!("Optimizing database");
-    sql_query("PRAGMA optimize;").execute(connection)?;
+    log::info!("Analyzing and optimizing database statistics");
+    db.analyze_and_optimize_stats()?;
+    if vacuum {
+        log::info!("Rebuilding database storage");
+        db.vacuum()?;
+    }
     Ok(())
 }
