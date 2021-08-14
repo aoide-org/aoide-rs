@@ -43,6 +43,8 @@ blake3 = "*"
 chrono = { version = "*", default-features = false, features = ["clock", "serde"] }
 diesel = { version = "*", default-features = false, features = ["r2d2", "sqlite"] }
 diesel_migrations =  { version = "*", default-features = false, features = ["sqlite"] }
+# Enforce using the latest and greatest rusqlite/sqlite3 version
+rusqlite =  { version = ">=0.25.3", default-features = false }
 dotenv = "*"
 env_logger = { version = ">=0.8" }
 anyhow = "*"
