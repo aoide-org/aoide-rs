@@ -13,11 +13,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use aoide_core::util::url::BaseUrl;
 
 use aoide_repo::{
-    collection::RecordId as CollectionId, media::source::Repo as MediaSourceRepo, track::EntityRepo,
+    collection::RecordId as CollectionId,
+    media::{source::Repo as MediaSourceRepo, tracker::Repo as MediaTrackerRepo},
+    track::EntityRepo,
 };
+
+use crate::media::tracker::resolve_path_prefix_from_base_url;
+
+use super::*;
 
 pub fn purge_by_media_source_path_predicates<Repo>(
     repo: &Repo,
@@ -39,4 +45,23 @@ where
         total_purged_tracks += purged_tracks;
     }
     Ok(total_purged_tracks)
+}
+
+pub fn purge_by_untracked_media_sources<Repo>(
+    repo: &Repo,
+    collection_id: CollectionId,
+    source_path_resolver: &VirtualFilePathResolver,
+    root_url: Option<&BaseUrl>,
+) -> Result<usize>
+where
+    Repo: EntityRepo + MediaSourceRepo + MediaTrackerRepo,
+{
+    let root_path_prefix = root_url
+        .map(|url| resolve_path_prefix_from_base_url(source_path_resolver, url))
+        .transpose()?
+        .unwrap_or_default();
+    let untracked_media_sources =
+        repo.media_tracker_find_untracked_sources(collection_id, &root_path_prefix)?;
+    let count = repo.purge_tracks_by_media_sources(&untracked_media_sources)?;
+    Ok(count)
 }

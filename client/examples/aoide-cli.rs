@@ -124,6 +124,15 @@ async fn main() -> anyhow::Result<()> {
                                 .help("The root URL")
                                 .required(true),
                         ),
+                )
+                .subcommand(
+                    App::new("purge-untracked")
+                        .about("Purges all tracks with untracked media sources")
+                        .arg(
+                            Arg::with_name("root-url")
+                                .help("Only consider media sources matching this root URL")
+                                .required(false),
+                        ),
                 ),
         )
         .get_matches();
@@ -448,6 +457,20 @@ async fn main() -> anyhow::Result<()> {
                                 subcommand_submitted = true;
                                 return Some(
                                     media_tracker::Intent::Untrack {
+                                        collection_uid,
+                                        root_url,
+                                    }
+                                    .into(),
+                                );
+                            }
+                            ("purge-untracked", purge_untracked_matches) => {
+                                let collection_uid = collection.hdr.uid.clone();
+                                let root_url = purge_untracked_matches
+                                    .and_then(|m| m.value_of("root-url"))
+                                    .map(|s| s.parse().expect("URL"));
+                                subcommand_submitted = true;
+                                return Some(
+                                    media_tracker::Intent::PurgeUntracked {
                                         collection_uid,
                                         root_url,
                                     }

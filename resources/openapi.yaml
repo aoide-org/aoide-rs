@@ -286,6 +286,31 @@ paths:
             Batch operation succeeded.
         '500':
           $ref: '#/components/responses/500InternalServerError'
+  /c/{collectionUid}/t/purge-untracked:
+    post:
+      summary: Purge collected tracks with untracked media sources
+      description: |
+        Purge multiple, collected tracks with media sources that are
+        not tracked by the media tracker.
+
+        This is needed to get rid of missing tracks, e.g. after files
+        have permanently been deleted from the local file system.
+      tags:
+        - Tracks
+      parameters:
+        - $ref: '#/components/parameters/collectionUidPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurgeUntrackedTracksRequestBody'
+      responses:
+        '204':
+          description: |
+            Batch operation succeeded.
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
 
   /c/{collectionUid}/relocate-media-sources:
     post:
@@ -2059,6 +2084,11 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/PercentEncodedUri'
+    PurgeUntrackedTracksRequestBody:
+      type: object
+      properties:
+        rootUrl:
+          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
     Release:
       type: object
       properties:

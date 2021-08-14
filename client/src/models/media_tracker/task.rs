@@ -47,6 +47,10 @@ pub enum Task {
         collection_uid: EntityUid,
         root_url: Url,
     },
+    PurgeUntracked {
+        collection_uid: EntityUid,
+        root_url: Option<Url>,
+    },
 }
 
 impl Task {
@@ -88,6 +92,13 @@ impl Task {
             } => {
                 let res = untrack(env, &collection_uid, &root_url).await;
                 Effect::Untracked(res)
+            }
+            Self::PurgeUntracked {
+                collection_uid,
+                root_url,
+            } => {
+                let res = purge_untracked(env, &collection_uid, root_url.as_ref()).await;
+                Effect::PurgedUntracked(res)
             }
         }
     }
@@ -199,5 +210,22 @@ async fn untrack<E: WebClientEnvironment>(
     >(&response_body)
     .map(Into::into)?;
     log::debug!("Untrack finished: {:?}", outcome);
+    Ok(outcome)
+}
+
+async fn purge_untracked<E: WebClientEnvironment>(
+    env: &E,
+    collection_uid: &EntityUid,
+    root_url: Option<&Url>,
+) -> anyhow::Result<usize> {
+    let request_url = env.join_api_url(&format!("c/{}/t/purge-untracked", collection_uid))?;
+    let request_body = serde_json::to_vec(&serde_json::json!({
+        "rootUrl": root_url.map(ToString::to_string),
+    }))?;
+    let request = env.client().post(request_url).body(request_body);
+    let response = request.send().await?;
+    let response_body = receive_response_body(response).await?;
+    let outcome = serde_json::from_slice::<usize>(&response_body).map(Into::into)?;
+    log::debug!("Purge untracked finished: {:?}", outcome);
     Ok(outcome)
 }

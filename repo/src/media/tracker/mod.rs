@@ -209,4 +209,10 @@ pub trait Repo {
         collection_id: CollectionId,
         path_prefix: &SourcePath,
     ) -> RepoResult<DirectoriesStatus>;
+
+    fn media_tracker_find_untracked_sources(
+        &self,
+        collection_id: CollectionId,
+        path_prefix: &SourcePath,
+    ) -> RepoResult<Vec<MediaSourceId>>;
 }

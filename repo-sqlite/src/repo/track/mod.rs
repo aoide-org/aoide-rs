@@ -660,6 +660,27 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         Ok(total_count)
     }
 
+    fn purge_tracks_by_media_sources(
+        &self,
+        media_source_ids: &[MediaSourceId],
+    ) -> RepoResult<usize> {
+        // TODO: How to avoid this temporary allocation and transformation while preserving type safety?
+        let media_source_ids = media_source_ids
+            .iter()
+            .map(|id| id.to_inner())
+            .collect::<Vec<RowId>>();
+        let row_ids = track::table
+            .select(track::row_id)
+            .filter(track::media_source_id.eq_any(&media_source_ids))
+            .load::<RowId>(self.as_ref())
+            .map_err(repo_error)?;
+        let total_count = row_ids.len();
+        for row_id in row_ids {
+            self.delete_track_entity(row_id.into())?;
+        }
+        Ok(total_count)
+    }
+
     fn search_collected_tracks(
         &self,
         collection_id: CollectionId,

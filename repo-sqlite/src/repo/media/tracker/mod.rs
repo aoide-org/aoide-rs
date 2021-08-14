@@ -14,7 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    db::media_tracker::{models::*, schema::*},
+    db::{
+        media_source::schema::*,
+        media_tracker::{models::*, schema::*},
+    },
     prelude::*,
 };
 
@@ -324,7 +327,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         new_source_id: MediaSourceId,
     ) -> RepoResult<bool> {
         // Drop all references to old_source_id that are obsolete and
-        // could cause conflicts dpathng the following update
+        // could cause conflicts during the following update
         let _rows_deleted = diesel::delete(
             media_tracker_source::table
                 .filter(media_tracker_source::source_id.eq(RowId::from(old_source_id))),
@@ -340,6 +343,28 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
         Ok(rows_affected > 0)
+    }
+
+    fn media_tracker_find_untracked_sources(
+        &self,
+        collection_id: CollectionId,
+        path_prefix: &SourcePath,
+    ) -> RepoResult<Vec<MediaSourceId>> {
+        let untracked_sources_query = media_source::table
+            .select(media_source::row_id)
+            .filter(media_source::collection_id.eq(RowId::from(collection_id)))
+            .filter(sql_column_substr_prefix_eq(
+                "media_source.path",
+                path_prefix.as_str(),
+            ))
+            .filter(
+                media_source::row_id
+                    .ne_all(media_tracker_source::table.select(media_tracker_source::source_id)),
+            );
+        untracked_sources_query
+            .load::<RowId>(self.as_ref())
+            .map_err(repo_error)
+            .map(|v| v.into_iter().map(MediaSourceId::new).collect())
     }
 }
 

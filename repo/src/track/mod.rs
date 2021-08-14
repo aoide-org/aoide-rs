@@ -115,6 +115,11 @@ pub trait EntityRepo: MediaSourceRepo {
         media_source_path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize>;
 
+    fn purge_tracks_by_media_sources(
+        &self,
+        media_source_ids: &[MediaSourceId],
+    ) -> RepoResult<usize>;
+
     fn search_collected_tracks(
         &self,
         collection_id: CollectionId,

@@ -40,6 +40,10 @@ pub enum Intent {
         collection_uid: EntityUid,
         root_url: Url,
     },
+    PurgeUntracked {
+        collection_uid: EntityUid,
+        root_url: Option<Url>,
+    },
 }
 
 impl Intent {
@@ -122,6 +126,26 @@ impl Intent {
                 state.remote_view.status.set_pending_now();
                 state.remote_view.last_untrack_outcome.set_pending_now();
                 StateUpdated::maybe_changed(Action::dispatch_task(Task::Untrack {
+                    collection_uid,
+                    root_url,
+                }))
+            }
+            Self::PurgeUntracked {
+                collection_uid,
+                root_url,
+            } => {
+                if !state.is_idle() {
+                    log::warn!("Cannot purge untracked while not idle");
+                    return StateUpdated::unchanged(None);
+                }
+                state.control_state = ControlState::Busy;
+                state.remote_view.progress.reset();
+                state.remote_view.status.set_pending_now();
+                state
+                    .remote_view
+                    .last_purge_untracked_outcome
+                    .set_pending_now();
+                StateUpdated::maybe_changed(Action::dispatch_task(Task::PurgeUntracked {
                     collection_uid,
                     root_url,
                 }))
