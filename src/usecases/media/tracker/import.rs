@@ -45,7 +45,7 @@ pub fn import(
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {
     let db = RepoConnection::new(connection);
-    db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
+    let outcome = db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
         let (collection_id, source_path_resolver) =
             uc::resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
                 .map_err(DieselTransactionError::new)?;
@@ -61,6 +61,8 @@ pub fn import(
             abort_flag,
         )
         .map_err(DieselTransactionError::new)
-    })
-    .map_err(Into::into)
+    })?;
+    log::info!("Analyzing and optimizing database after import finished");
+    db.analyze_and_optimize_stats()?;
+    Ok(outcome)
 }
