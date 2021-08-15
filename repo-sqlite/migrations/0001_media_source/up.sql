@@ -39,8 +39,10 @@ CREATE TABLE IF NOT EXISTS media_source (
     audio_loudness_lufs    REAL,             -- LUFS (dB)
     audio_encoder          TEXT,             -- both name and settings, often referred to as encoded_by
     -- properties: artwork
+    artwork_source         TINYINT,          -- 0 = Missing, 1 = Embedded, 2 = Linked (URI)
     artwork_uri            TEXT,             -- RFC 3986, absolute or relative to the media_source URI
-    artwork_type           TEXT,             -- RFC 6838 media type
+    artwork_apic_type      TINYINT,          -- APIC picture type
+    artwork_media_type     TEXT,             -- RFC 6838 media type
     artwork_digest         BINARY,           -- cryptographic artwork content hash
     artwork_size_width     INTEGER,
     artwork_size_height    INTEGER,

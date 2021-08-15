@@ -13,9 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::{schema::*, *};
-
-use crate::prelude::*;
+use std::convert::TryInto as _;
 
 use aoide_core::{
     audio::{
@@ -23,13 +21,18 @@ use aoide_core::{
         signal::{BitrateBps, BitsPerSecond, LoudnessLufs, SampleRateHz},
         AudioContent, DurationMs,
     },
-    media::{Artwork, Content, ContentMetadataFlags, ImageDimension, ImageSize, Source},
+    media::{
+        ApicType, Artwork, ArtworkImage, Content, ContentMetadataFlags, EmbeddedArtwork,
+        ImageDimension, ImageSize, LinkedArtwork, Source,
+    },
     util::clock::*,
 };
 
 use aoide_repo::collection::RecordId as CollectionId;
 
-use std::convert::TryInto as _;
+use crate::prelude::*;
+
+use super::{schema::*, *};
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -54,8 +57,10 @@ pub struct QueryableRecord {
     pub audio_bitrate_bps: Option<f64>,
     pub audio_loudness_lufs: Option<f64>,
     pub audio_encoder: Option<String>,
+    pub artwork_source: Option<i16>,
     pub artwork_uri: Option<String>,
-    pub artwork_type: Option<String>,
+    pub artwork_apic_type: Option<i16>,
+    pub artwork_media_type: Option<String>,
     pub artwork_digest: Option<Vec<u8>>,
     pub artwork_size_width: Option<i16>,
     pub artwork_size_height: Option<i16>,
@@ -83,8 +88,10 @@ impl From<QueryableRecord> for (RecordHeader, Source) {
             audio_bitrate_bps,
             audio_loudness_lufs,
             audio_encoder,
+            artwork_source,
             artwork_uri,
-            artwork_type,
+            artwork_apic_type,
+            artwork_media_type,
             artwork_digest,
             artwork_size_width,
             artwork_size_height,
@@ -98,23 +105,54 @@ impl From<QueryableRecord> for (RecordHeader, Source) {
             loudness: audio_loudness_lufs.map(LoudnessLufs),
             encoder: audio_encoder,
         };
-        debug_assert!(artwork_size_width.is_some() == artwork_size_height.is_some());
-        let image_size =
-            if let (Some(width), Some(height)) = (artwork_size_width, artwork_size_height) {
-                Some(ImageSize {
-                    width: width as ImageDimension,
-                    height: height as ImageDimension,
-                })
-            } else {
-                None
-            };
-        let artwork = Artwork {
-            uri: artwork_uri,
-            media_type: artwork_type,
-            digest: artwork_digest.and_then(|bytes| bytes.try_into().ok()),
-            size: image_size,
-            thumbnail: artwork_thumbnail.and_then(|bytes| bytes.try_into().ok()),
+        let artwork = if let Some(source) = artwork_source.and_then(ArtworkSource::try_read) {
+            match source {
+                ArtworkSource::Missing => Some(Artwork::Missing),
+                ArtworkSource::Linked if artwork_uri.is_none() => {
+                    log::warn!("Missing URI for linked artwork");
+                    None
+                }
+                _ => {
+                    let apic_type = artwork_apic_type
+                        .and_then(|v| v.try_into().ok().and_then(ApicType::try_from_u8))
+                        .unwrap_or(ApicType::Other);
+                    let media_type = artwork_media_type.unwrap_or_default();
+                    let size = if let (Some(width), Some(height)) =
+                        (artwork_size_width, artwork_size_height)
+                    {
+                        Some(ImageSize {
+                            width: width as ImageDimension,
+                            height: height as ImageDimension,
+                        })
+                    } else {
+                        None
+                    };
+                    let digest = artwork_digest.and_then(|bytes| bytes.try_into().ok());
+                    let thumbnail = artwork_thumbnail.and_then(|bytes| bytes.try_into().ok());
+                    let image = ArtworkImage {
+                        apic_type,
+                        media_type,
+                        size,
+                        digest,
+                        thumbnail,
+                    };
+                    if source == ArtworkSource::Embedded {
+                        let embedded = EmbeddedArtwork { image };
+                        Some(Artwork::Embedded(embedded))
+                    } else {
+                        let linked = LinkedArtwork {
+                            uri: artwork_uri.unwrap(),
+                            image,
+                        };
+                        Some(Artwork::Linked(linked))
+                    }
+                }
+            }
+        } else {
+            None
         };
+        debug_assert!(artwork_size_width.is_some() == artwork_size_height.is_some());
+
         let header = RecordHeader {
             id: id.into(),
             created_at: DateTime::new_timestamp_millis(row_created_ms),
@@ -156,8 +194,10 @@ pub struct InsertableRecord<'a> {
     pub audio_bitrate_bps: Option<f64>,
     pub audio_loudness_lufs: Option<f64>,
     pub audio_encoder: Option<&'a str>,
+    pub artwork_source: Option<i16>,
     pub artwork_uri: Option<&'a str>,
-    pub artwork_type: Option<&'a str>,
+    pub artwork_apic_type: Option<i16>,
+    pub artwork_media_type: Option<&'a str>,
     pub artwork_digest: Option<&'a [u8]>,
     pub artwork_size_width: Option<i16>,
     pub artwork_size_height: Option<i16>,
@@ -185,13 +225,46 @@ impl<'a> InsertableRecord<'a> {
                 Content::Audio(ref audio_content) => Some(audio_content),
             }
         };
-        let Artwork {
-            uri: artwork_uri,
-            media_type: artwork_type,
-            digest: artwork_digest,
-            size: artwork_size,
-            thumbnail: artwork_thumbnail,
-        } = artwork;
+        let (artwork_source, artwork_uri, artwork_image) = artwork
+            .as_ref()
+            .map(|artwork| match artwork {
+                Artwork::Missing => (Some(ArtworkSource::Missing), None, None),
+                Artwork::Embedded(EmbeddedArtwork { image }) => {
+                    (Some(ArtworkSource::Embedded), None, Some(image))
+                }
+                Artwork::Linked(LinkedArtwork { uri, image }) => {
+                    (Some(ArtworkSource::Linked), Some(uri.as_str()), Some(image))
+                }
+            })
+            .unwrap_or((None, None, None));
+        let artwork_apic_type;
+        let artwork_media_type;
+        let artwork_size_width;
+        let artwork_size_height;
+        let artwork_digest;
+        let artwork_thumbnail;
+        if let Some(image) = artwork_image {
+            let ArtworkImage {
+                apic_type,
+                media_type,
+                size,
+                digest,
+                thumbnail,
+            } = image;
+            artwork_apic_type = Some(apic_type.to_u8() as i16);
+            artwork_media_type = Some(media_type.as_str());
+            artwork_size_width = size.map(|size| size.width as i16);
+            artwork_size_height = size.map(|size| size.height as i16);
+            artwork_digest = digest.as_ref().map(|x| &x[..]);
+            artwork_thumbnail = thumbnail.as_ref().map(|x| &x[..]);
+        } else {
+            artwork_apic_type = None;
+            artwork_media_type = None;
+            artwork_size_width = None;
+            artwork_size_height = None;
+            artwork_digest = None;
+            artwork_thumbnail = None;
+        }
         let row_created_updated_ms = created_at.timestamp_millis();
         Self {
             row_created_ms: row_created_updated_ms,
@@ -221,12 +294,14 @@ impl<'a> InsertableRecord<'a> {
                 .and_then(|audio| audio.loudness)
                 .map(|loudness| loudness.0),
             audio_encoder: audio_content.and_then(|audio| audio.encoder.as_deref()),
-            artwork_uri: artwork_uri.as_ref().map(String::as_str),
-            artwork_type: artwork_type.as_ref().map(String::as_str),
-            artwork_digest: artwork_digest.as_ref().map(|x| &x[..]),
-            artwork_size_width: artwork_size.map(|size| size.width as i16),
-            artwork_size_height: artwork_size.map(|size| size.height as i16),
-            artwork_thumbnail: artwork_thumbnail.as_ref().map(|x| &x[..]),
+            artwork_source: artwork_source.map(|v| v.write() as i16),
+            artwork_uri,
+            artwork_apic_type,
+            artwork_media_type,
+            artwork_size_width,
+            artwork_size_height,
+            artwork_digest,
+            artwork_thumbnail,
         }
     }
 }
@@ -250,8 +325,10 @@ pub struct UpdatableRecord<'a> {
     pub audio_bitrate_bps: Option<f64>,
     pub audio_loudness_lufs: Option<f64>,
     pub audio_encoder: Option<&'a str>,
+    pub artwork_source: Option<i16>,
     pub artwork_uri: Option<&'a str>,
-    pub artwork_type: Option<&'a str>,
+    pub artwork_apic_type: Option<i16>,
+    pub artwork_media_type: Option<&'a str>,
     pub artwork_digest: Option<&'a [u8]>,
     pub artwork_size_width: Option<i16>,
     pub artwork_size_height: Option<i16>,
@@ -275,13 +352,46 @@ impl<'a> UpdatableRecord<'a> {
                 Content::Audio(ref audio_content) => Some(audio_content),
             }
         };
-        let Artwork {
-            uri: artwork_uri,
-            media_type: artwork_type,
-            digest: artwork_digest,
-            size: artwork_size,
-            thumbnail: artwork_thumbnail,
-        } = artwork;
+        let (artwork_source, artwork_uri, artwork_image) = artwork
+            .as_ref()
+            .map(|artwork| match artwork {
+                Artwork::Missing => (Some(ArtworkSource::Missing), None, None),
+                Artwork::Embedded(EmbeddedArtwork { image }) => {
+                    (Some(ArtworkSource::Embedded), None, Some(image))
+                }
+                Artwork::Linked(LinkedArtwork { uri, image }) => {
+                    (Some(ArtworkSource::Linked), Some(uri.as_str()), Some(image))
+                }
+            })
+            .unwrap_or((None, None, None));
+        let artwork_apic_type;
+        let artwork_media_type;
+        let artwork_size_width;
+        let artwork_size_height;
+        let artwork_digest;
+        let artwork_thumbnail;
+        if let Some(image) = artwork_image {
+            let ArtworkImage {
+                apic_type,
+                media_type,
+                size,
+                digest,
+                thumbnail,
+            } = image;
+            artwork_apic_type = Some(apic_type.to_u8() as i16);
+            artwork_media_type = Some(media_type.as_str());
+            artwork_size_width = size.map(|size| size.width as i16);
+            artwork_size_height = size.map(|size| size.height as i16);
+            artwork_digest = digest.as_ref().map(|x| &x[..]);
+            artwork_thumbnail = thumbnail.as_ref().map(|x| &x[..]);
+        } else {
+            artwork_apic_type = None;
+            artwork_media_type = None;
+            artwork_size_width = None;
+            artwork_size_height = None;
+            artwork_digest = None;
+            artwork_thumbnail = None;
+        }
         Self {
             row_updated_ms: updated_at.timestamp_millis(),
             collected_at: collected_at.to_string(),
@@ -308,12 +418,14 @@ impl<'a> UpdatableRecord<'a> {
                 .and_then(|audio| audio.loudness)
                 .map(|loudness| loudness.0),
             audio_encoder: audio_content.and_then(|audio| audio.encoder.as_deref()),
-            artwork_uri: artwork_uri.as_ref().map(String::as_str),
-            artwork_type: artwork_type.as_ref().map(String::as_str),
-            artwork_digest: artwork_digest.as_ref().map(|x| &x[..]),
-            artwork_size_width: artwork_size.map(|size| size.width as i16),
-            artwork_size_height: artwork_size.map(|size| size.height as i16),
-            artwork_thumbnail: artwork_thumbnail.as_ref().map(|x| &x[..]),
+            artwork_source: artwork_source.map(|v| v.write() as i16),
+            artwork_uri,
+            artwork_apic_type,
+            artwork_media_type,
+            artwork_size_width,
+            artwork_size_height,
+            artwork_digest,
+            artwork_thumbnail,
         }
     }
 }

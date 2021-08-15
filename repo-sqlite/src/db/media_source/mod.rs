@@ -18,3 +18,27 @@ pub mod schema;
 pub mod subselect;
 
 use aoide_repo::media::source::RecordHeader;
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[repr(i16)]
+enum ArtworkSource {
+    Missing = 0,
+    Embedded = 1,
+    Linked = 2,
+}
+
+impl ArtworkSource {
+    pub fn try_read(value: i16) -> Option<Self> {
+        let read = match value {
+            0 => Self::Missing,
+            1 => Self::Embedded,
+            2 => Self::Linked,
+            _ => return None,
+        };
+        Some(read)
+    }
+
+    pub const fn write(self) -> i16 {
+        self as i16
+    }
+}

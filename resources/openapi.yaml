@@ -1026,31 +1026,52 @@ components:
             $ref: '#/components/schemas/Actor'
         kind:
           $ref: '#/components/schemas/AlbumKind'
+    ApicType:
+      type: integer
+      minimum: 0x00
+      maximum: 0x14
+      example: 0x03
+      description: |
+        The APIC picture type code as defined by ID3v2.
+
+        Used for artwork classification, not necessarily in conjunction with ID3v2 tags.
     Artwork:
       description: |
-        An image that is embedded in the media content or referenced as
-        an external resource by the optional URI. The URI may also select
-        one out of multiple embedded resources.
+        If both `uri` and `image` are undefined or null then the artwork
+        is considered as missing or not available.
 
-        The optional, embedded thumbnail image can be used to quickly
-        display a placeholder before the actual image has been loaded.
+        If the `uri` is defined then the `image` property is mandatory,
+        referencing an external, linked image resource, e.g. "file://cover%20art.jpg"
+        for a JPEG file named "cover art.jpg" located oin the same local directory
+        as the media source itself. Both absolute and relative URIs are supported.
+
+        If only the `image` property is defined then the image is embedded
+        in the media source. The `apic_type` identifies the corresponding
+        storage location inside the file if multiple images are available.
       type: object
       properties:
-        digest:
-          $ref: '#/components/schemas/ImageDigest'
+        uri:
+          $ref: '#/components/schemas/PercentEncodedUri'
+        image:
+          $ref: '#/components/schemas/ArtworkImage'
+    ArtworkImage:
+      description: |
+        Artwork image properties
+      type: object
+      properties:
+        apicType:
+          $ref: '#/components/schemas/ApicType'
         mediaType:
           $ref: '#/components/schemas/MediaType'
         size:
           $ref: '#/components/schemas/ImageSize'
+        digest:
+          $ref: '#/components/schemas/ImageDigest'
         thumbnail:
           $ref: '#/components/schemas/ImageThumbnail4x4Rgb8'
-        uri:
-          $ref: '#/components/schemas/PercentEncodedUri'
-    ArtworkColor:
-      description: |
-        A solid (background) color, e.g. the average color of the artwork image
-      allOf:
-        - $ref: '#/components/schemas/RgbColor'
+      required:
+        - apicType
+        - mediaType
     AudioContent:
       type: object
       properties:
@@ -2346,9 +2367,9 @@ components:
         - orphaned
         - skipped
     MediaSourceVirtualFilePath:
-        type: string
-        minLength: 1
-        example: "album artist/album title/01 the first track.mp3"
+      type: string
+      minLength: 1
+      example: 'album artist/album title/01 the first track.mp3'
     MediaSourcePathKind:
       type: integer
       enum: [0, 1, 2, 3]

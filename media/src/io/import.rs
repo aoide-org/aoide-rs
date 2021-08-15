@@ -31,7 +31,7 @@ use std::io::{Read, Seek};
 bitflags! {
     pub struct ImportTrackFlags: u16 {
         const METADATA                            = 0b0000_0000_0000_0001;
-        const ARTWORK                             = 0b0000_0000_0000_0010;
+        const EMBEDDED_ARTWORK                    = 0b0000_0000_0000_0010;
         const CONTENT_DIGEST                      = 0b0000_0000_0000_0100;
         const ARTWORK_DIGEST                      = 0b0000_0000_0000_1010; // implies ARTWORK
         const ARTWORK_DIGEST_SHA256               = 0b0000_0000_0001_1010; // Use SHA-256 instead of BLAKE3 (e.g. for Mixxx)

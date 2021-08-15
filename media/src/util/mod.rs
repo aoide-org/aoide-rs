@@ -27,7 +27,10 @@ use self::digest::MediaDigest;
 
 use aoide_core::{
     audio::signal::LoudnessLufs,
-    media::{Artwork, ImageDimension, ImageSize, SourcePath, Thumbnail4x4Rgb8},
+    media::{
+        ApicType, Artwork, ArtworkImage, EmbeddedArtwork, ImageDimension, ImageSize, SourcePath,
+        Thumbnail4x4Rgb8,
+    },
     music::{
         key::{KeyCode, KeySignature},
         time::TempoBpm,
@@ -354,11 +357,12 @@ pub fn parse_index_numbers(input: &str) -> Option<Index> {
 
 pub type ArtworkResult = std::result::Result<Artwork, ImageError>;
 
-pub fn load_artwork_from_image_data(
+pub fn load_artwork_image(
+    apic_type: ApicType,
     image_data: &[u8],
     image_format: Option<ImageFormat>,
     image_digest: &mut MediaDigest,
-) -> anyhow::Result<Artwork> {
+) -> anyhow::Result<ArtworkImage> {
     let image_format = image_format.or_else(|| guess_format(image_data).ok());
     let media_type = match image_format {
         Some(ImageFormat::Jpeg) => IMAGE_JPEG.to_string(),
@@ -398,23 +402,25 @@ pub fn load_artwork_from_image_data(
         let image_4x4 = image.resize_exact(4, 4, image::imageops::FilterType::Lanczos3);
         let thumbnail = Thumbnail4x4Rgb8::try_from(image_4x4.to_rgb8().into_raw()).ok();
         debug_assert!(thumbnail.is_some());
-        Ok(Artwork {
+        Ok(ArtworkImage {
+            media_type,
+            apic_type,
             size: Some(size),
             digest,
             thumbnail,
-            media_type: Some(media_type),
-            uri: None, // embedded
         })
     })
 }
 
-pub fn try_load_artwork_from_embedded_image(
+pub fn try_load_embedded_artwork(
     media_source_path: &SourcePath,
+    apic_type: ApicType,
     image_data: &[u8],
     image_format: Option<ImageFormat>,
     image_digest: &mut MediaDigest,
-) -> Option<Artwork> {
-    load_artwork_from_image_data(image_data, image_format, image_digest)
+) -> Option<EmbeddedArtwork> {
+    load_artwork_image(apic_type, image_data, image_format, image_digest)
+        .map(|image| EmbeddedArtwork { image })
         .map(Some)
         .unwrap_or_else(|err| {
             log::warn!(

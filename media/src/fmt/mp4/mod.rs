@@ -20,7 +20,7 @@ use crate::{
     util::{
         digest::MediaDigest, parse_key_signature, parse_replay_gain, parse_tempo_bpm,
         parse_year_tag, push_next_actor_role_name, serato, tag::import_faceted_tags,
-        try_load_artwork_from_embedded_image,
+        try_load_embedded_artwork,
     },
     Result,
 };
@@ -31,7 +31,7 @@ use aoide_core::{
         signal::{BitrateBps, BitsPerSecond, SampleRateHz, SamplesPerSecond},
         AudioContent,
     },
-    media::{Content, ContentMetadataFlags},
+    media::{ApicType, Artwork, Content, ContentMetadataFlags},
     music::time::{Beats, TempoBpm},
     tag::{Score as TagScore, Tags, TagsMap},
     track::{
@@ -422,7 +422,7 @@ impl import::ImportTrack for ImportTrack {
         }
 
         // Artwork
-        if flags.contains(ImportTrackFlags::ARTWORK) {
+        if flags.contains(ImportTrackFlags::EMBEDDED_ARTWORK) {
             let mut image_digest = if flags.contains(ImportTrackFlags::ARTWORK_DIGEST) {
                 if flags.contains(ImportTrackFlags::ARTWORK_DIGEST_SHA256) {
                     // Compatibility
@@ -434,22 +434,27 @@ impl import::ImportTrack for ImportTrack {
             } else {
                 Default::default()
             };
+            track.media_source.artwork = Some(Artwork::Missing);
             for image_data in mp4_tag.data_of(&Fourcc(*b"covr")) {
                 let (image_data, image_format) = match image_data {
                     Data::Jpeg(bytes) => (bytes, Some(ImageFormat::Jpeg)),
                     Data::Png(bytes) => (bytes, Some(ImageFormat::Png)),
+                    Data::Bmp(bytes) => (bytes, Some(ImageFormat::Bmp)),
                     Data::Reserved(bytes) => (bytes, None),
                     _ => {
                         log::warn!("Unexpected cover art data");
                         break;
                     }
                 };
-                if let Some(artwork) = try_load_artwork_from_embedded_image(
+                let artwork = try_load_embedded_artwork(
                     &track.media_source.path,
+                    ApicType::Other,
                     image_data,
                     image_format,
                     &mut image_digest,
-                ) {
+                )
+                .map(Artwork::Embedded);
+                if artwork.is_some() {
                     track.media_source.artwork = artwork;
                     break;
                 }

@@ -3,10 +3,13 @@ use super::*;
 use aoide_core::util::clock::DateTime;
 
 #[test]
-fn deserialize_artwork_default() {
-    let json = serde_json::json!({}).to_string();
-    let artwork: _core::Artwork = serde_json::from_str::<Artwork>(&json).unwrap().into();
-    assert_eq!(_core::Artwork::default(), artwork);
+fn deserialize_artwork_missing() {
+    let json = serde_json::json!({"source": "missing"}).to_string();
+    let artwork = serde_json::from_str::<Artwork>(&json)
+        .unwrap()
+        .import()
+        .unwrap();
+    assert_eq!(_core::Artwork::Missing, artwork);
 }
 
 #[test]
@@ -41,7 +44,7 @@ fn deserialize_audio_source() {
                 .ok(),
             content_metadata_flags: Default::default(),
             content: _core::Content::Audio(Default::default()),
-            artwork: Default::default(),
+            artwork: None,
         },
         source
     );

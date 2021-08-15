@@ -264,6 +264,67 @@ pub fn concat_encoder_properties<'a>(
 // Artwork
 ///////////////////////////////////////////////////////////////////////
 
+/// The APIC picture type code as defined by ID3v2.
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[repr(u8)]
+pub enum ApicType {
+    Other = 0x00,
+    Icon = 0x01,
+    OtherIcon = 0x02,
+    CoverFront = 0x03,
+    CoverBack = 0x04,
+    Leaflet = 0x05,
+    Media = 0x06,
+    LeadArtist = 0x07,
+    Artist = 0x08,
+    Conductor = 0x09,
+    Band = 0x0A,
+    Composer = 0x0B,
+    Lyricist = 0x0C,
+    RecordingLocation = 0x0D,
+    DuringRecording = 0x0E,
+    DuringPerformance = 0x0F,
+    ScreenCapture = 0x10,
+    BrightFish = 0x11,
+    Illustration = 0x12,
+    BandLogo = 0x13,
+    PublisherLogo = 0x14,
+}
+
+impl ApicType {
+    pub fn try_from_u8(val: u8) -> Option<Self> {
+        let some = match val {
+            0x00 => Self::Other,
+            0x01 => Self::Icon,
+            0x02 => Self::OtherIcon,
+            0x03 => Self::CoverFront,
+            0x04 => Self::CoverBack,
+            0x05 => Self::Leaflet,
+            0x06 => Self::Media,
+            0x07 => Self::LeadArtist,
+            0x08 => Self::Artist,
+            0x09 => Self::Conductor,
+            0x0A => Self::Band,
+            0x0B => Self::Composer,
+            0x0C => Self::Lyricist,
+            0x0D => Self::RecordingLocation,
+            0x0E => Self::DuringRecording,
+            0x0F => Self::DuringPerformance,
+            0x10 => Self::ScreenCapture,
+            0x11 => Self::BrightFish,
+            0x12 => Self::Illustration,
+            0x13 => Self::BandLogo,
+            0x14 => Self::PublisherLogo,
+            _ => return None,
+        };
+        Some(some)
+    }
+
+    pub const fn to_u8(self) -> u8 {
+        self as u8
+    }
+}
+
 pub type ImageDimension = u16;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -297,66 +358,92 @@ pub type Digest = [u8; 32];
 
 pub type Thumbnail4x4Rgb8 = [u8; 4 * 4 * 3];
 
-// All artwork properties are optional for maximum flexibility.
-// Properties could be missing or are yet unknown at some point
-// in time.
-#[derive(Clone, Default, Debug, PartialEq, Eq)]
-pub struct Artwork {
-    /// The URI of an external resource
-    pub uri: Option<String>,
+/// Artwork image properties
+///
+/// All properties are optional for maximum flexibility.
+/// Properties could be missing or are yet unknown at some point
+/// in time.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ArtworkImage {
+    /// The media type, e.g. "image/jpeg"
+    pub media_type: String,
 
-    /// The media type (if known), e.g. "image/jpeg"
-    pub media_type: Option<String>,
-
-    /// Identifies the actual content for cache lookup and to decide
-    /// about modifications, e.g. a base64-encoded SHA256 hash of the
-    /// raw image data.
-    pub digest: Option<Digest>,
+    pub apic_type: ApicType,
 
     /// The dimensions of the image (if known).
     pub size: Option<ImageSize>,
+
+    /// Identifies the actual content, e.g. for cache lookup or to detect
+    /// modifications.
+    pub digest: Option<Digest>,
 
     /// A 4x4 R8G8B8 thumbnail image.
     pub thumbnail: Option<Thumbnail4x4Rgb8>,
 }
 
-impl Artwork {
-    pub fn is_empty(&self) -> bool {
-        let Self {
-            uri,
-            media_type,
-            digest,
-            size,
-            thumbnail,
-        } = self;
-        uri.is_none()
-            && media_type.is_none()
-            && digest.is_none()
-            && size.is_none()
-            && thumbnail.is_none()
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum ArtworkImageInvalidity {
+    MediaTypeEmpty,
+    Size(ImageSizeInvalidity),
+}
+
+impl Validate for ArtworkImage {
+    type Invalidity = ArtworkImageInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        ValidationContext::new()
+            .invalidate_if(self.media_type.is_empty(), Self::Invalidity::MediaTypeEmpty)
+            .validate_with(&self.size, Self::Invalidity::Size)
+            .into()
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EmbeddedArtwork {
+    pub image: ArtworkImage,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LinkedArtwork {
+    /// Absolute or relative URI/URL that links to the image.
+    pub uri: String,
+
+    pub image: ArtworkImage,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Artwork {
+    /// Artwork has been looked up at least once but nothing has been found.
+    Missing,
+
+    /// The artwork is embedded in the media source.
+    Embedded(EmbeddedArtwork),
+
+    /// The artwork references an external image.
+    Linked(LinkedArtwork),
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ArtworkInvalidity {
-    MediaTypeEmpty,
-    ImageSize(ImageSizeInvalidity),
+    Image(ArtworkImageInvalidity),
 }
 
 impl Validate for Artwork {
     type Invalidity = ArtworkInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        ValidationContext::new()
-            .invalidate_if(
-                self.media_type
-                    .as_ref()
-                    .map(String::is_empty)
-                    .unwrap_or(false),
-                Self::Invalidity::MediaTypeEmpty,
-            )
-            .validate_with(&self.size, Self::Invalidity::ImageSize)
-            .into()
+        let mut context = ValidationContext::new();
+        match self {
+            Self::Missing => (),
+            Self::Embedded(embedded) => {
+                context = context.validate_with(&embedded.image, Self::Invalidity::Image);
+            }
+            Self::Linked(linked) => {
+                // TODO: Validate uri
+                context = context.validate_with(&linked.image, Self::Invalidity::Image);
+            }
+        }
+        context.into()
     }
 }
 
@@ -388,7 +475,7 @@ pub struct Source {
 
     pub content: Content,
 
-    pub artwork: Artwork,
+    pub artwork: Option<Artwork>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]

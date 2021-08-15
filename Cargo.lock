@@ -121,6 +121,7 @@ dependencies = [
 name = "aoide-core-serde"
 version = "0.0.0"
 dependencies = [
+ "anyhow",
  "aoide-core",
  "base64",
  "chrono",

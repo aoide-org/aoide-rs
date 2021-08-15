@@ -17,10 +17,7 @@
 
 use crate::{
     io::import::{self, *},
-    util::{
-        digest::MediaDigest, push_next_actor_role_name, serato,
-        try_load_artwork_from_embedded_image,
-    },
+    util::{digest::MediaDigest, push_next_actor_role_name, serato, try_load_embedded_artwork},
     Result,
 };
 
@@ -30,7 +27,7 @@ use aoide_core::{
         signal::{BitrateBps, SampleRateHz},
         AudioContent,
     },
-    media::{Content, ContentMetadataFlags},
+    media::{ApicType, Artwork, Content, ContentMetadataFlags},
     tag::TagsMap,
     track::{
         actor::ActorRole,
@@ -281,7 +278,7 @@ impl import::ImportTrack for ImportTrack {
             track.indexes.movement = index;
         }
 
-        if flags.contains(ImportTrackFlags::ARTWORK) {
+        if flags.contains(ImportTrackFlags::EMBEDDED_ARTWORK) {
             let mut image_digest = if flags.contains(ImportTrackFlags::ARTWORK_DIGEST) {
                 if flags.contains(ImportTrackFlags::ARTWORK_DIGEST_SHA256) {
                     // Compatibility
@@ -296,7 +293,7 @@ impl import::ImportTrack for ImportTrack {
             // https://wiki.xiph.org/index.php/VorbisComment#Cover_art
             // The unofficial COVERART field in a VorbisComment tag is deprecated:
             // https://wiki.xiph.org/VorbisComment#Unofficial_COVERART_field_.28deprecated.29
-            let picture_iter_by_type = |picture_type| {
+            let picture_iter_by_type = |picture_type: Option<PictureType>| {
                 filter_vorbis_comment_values(vorbis_comments, "METADATA_BLOCK_PICTURE")
                     .chain(filter_vorbis_comment_values(vorbis_comments, "COVERART"))
                     .filter_map(|base64_data| {
@@ -318,26 +315,38 @@ impl import::ImportTrack for ImportTrack {
                             })
                             .ok()
                     })
-                    .filter(move |picture| picture.picture_type == picture_type)
+                    .filter(move |picture| {
+                        if let Some(picture_type) = picture_type {
+                            picture.picture_type == picture_type
+                        } else {
+                            true
+                        }
+                    })
             };
             // Decoding and discarding the blocks multiple times is inefficient
             // but expected to occur only infrequently. Most files will include
             // just a front cover and nothing else.
-            if let Some(artwork) = picture_iter_by_type(PictureType::CoverFront)
-                .chain(picture_iter_by_type(PictureType::Media))
-                .chain(picture_iter_by_type(PictureType::Leaflet))
-                .chain(picture_iter_by_type(PictureType::Other))
+            let artwork = picture_iter_by_type(Some(PictureType::CoverFront))
+                .chain(picture_iter_by_type(Some(PictureType::Media)))
+                .chain(picture_iter_by_type(Some(PictureType::Leaflet)))
+                .chain(picture_iter_by_type(Some(PictureType::Other)))
+                // otherwise take the first picture that could be parsed
+                .chain(picture_iter_by_type(None))
                 .filter_map(|p| {
-                    try_load_artwork_from_embedded_image(
+                    try_load_embedded_artwork(
                         &track.media_source.path,
+                        ApicType::try_from_u8(p.picture_type as u8).unwrap_or(ApicType::Other),
                         &p.data,
                         None,
                         &mut image_digest,
                     )
                 })
-                .next()
-            {
+                .map(Artwork::Embedded)
+                .next();
+            if artwork.is_some() {
                 track.media_source.artwork = artwork;
+            } else {
+                track.media_source.artwork = Some(Artwork::Missing);
             }
         }
 

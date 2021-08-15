@@ -171,30 +171,28 @@ pub struct ImageSize(u16, u16);
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct Artwork {
-    #[serde(flatten, skip_serializing_if = "Option::is_none")]
-    uri: Option<String>,
+pub struct ArtworkImage {
+    media_type: String,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    media_type: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    digest: Option<Digest>,
+    apic_type: u8,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     size: Option<ImageSize>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    digest: Option<Digest>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     thumbnail: Option<Base64>,
 }
 
-impl From<_core::Artwork> for Artwork {
-    fn from(from: _core::Artwork) -> Self {
-        let _core::Artwork {
-            uri,
+impl From<_core::ArtworkImage> for ArtworkImage {
+    fn from(from: _core::ArtworkImage) -> Self {
+        let _core::ArtworkImage {
             media_type,
-            digest,
+            apic_type,
             size,
+            digest,
             thumbnail,
         } = from;
         let size = size.map(|size| {
@@ -202,44 +200,125 @@ impl From<_core::Artwork> for Artwork {
             ImageSize(width, height)
         });
         Self {
-            uri,
             media_type,
-            digest: digest.as_ref().map(Into::into),
+            apic_type: apic_type.to_u8(),
             size,
+            digest: digest.as_ref().map(Into::into),
             thumbnail: thumbnail.as_ref().map(Into::into),
         }
     }
 }
 
-impl From<Artwork> for _core::Artwork {
-    fn from(from: Artwork) -> Self {
-        let Artwork {
-            uri,
+impl From<ArtworkImage> for _core::ArtworkImage {
+    fn from(from: ArtworkImage) -> Self {
+        let ArtworkImage {
             media_type,
-            digest,
+            apic_type,
             size,
+            digest,
             thumbnail,
         } = from;
+        let apic_type = _core::ApicType::try_from_u8(apic_type).unwrap_or(_core::ApicType::Other);
         let size = size.map(|size| {
             let ImageSize(width, height) = size;
             _core::ImageSize { width, height }
         });
+        let digest = digest
+            .as_ref()
+            .map(Vec::try_from)
+            .and_then(Result::ok)
+            .map(_core::Digest::try_from)
+            .and_then(Result::ok);
+        let thumbnail = thumbnail
+            .as_ref()
+            .map(Vec::try_from)
+            .and_then(Result::ok)
+            .map(Thumbnail4x4Rgb8::try_from)
+            .and_then(Result::ok);
         Self {
-            uri,
             media_type,
-            digest: digest
-                .as_ref()
-                .map(Vec::try_from)
-                .and_then(Result::ok)
-                .map(_core::Digest::try_from)
-                .and_then(Result::ok),
+            apic_type,
             size,
-            thumbnail: thumbnail
-                .as_ref()
-                .map(Vec::try_from)
-                .and_then(Result::ok)
-                .map(Thumbnail4x4Rgb8::try_from)
-                .and_then(Result::ok),
+            digest,
+            thumbnail,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "kebab-case")]
+pub enum ArtworkSource {
+    Missing,
+    Embedded,
+    Linked,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Artwork {
+    source: ArtworkSource,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    uri: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    image: Option<ArtworkImage>,
+}
+
+impl Artwork {
+    pub fn import(self) -> anyhow::Result<_core::Artwork> {
+        let Artwork { source, uri, image } = self;
+        match source {
+            ArtworkSource::Missing => {
+                debug_assert!(uri.is_none());
+                debug_assert!(image.is_none());
+                Ok(_core::Artwork::Missing)
+            }
+            ArtworkSource::Embedded => {
+                debug_assert!(uri.is_none());
+                if let Some(image) = image {
+                    let embedded = _core::EmbeddedArtwork {
+                        image: image.into(),
+                    };
+                    Ok(_core::Artwork::Embedded(embedded))
+                } else {
+                    anyhow::bail!("missing image for embedded artwork");
+                }
+            }
+            ArtworkSource::Linked => {
+                if let (Some(uri), Some(image)) = (uri, image) {
+                    let linked = _core::LinkedArtwork {
+                        uri,
+                        image: image.into(),
+                    };
+                    Ok(_core::Artwork::Linked(linked))
+                } else {
+                    anyhow::bail!("missing URI or image for linked artwork");
+                }
+            }
+        }
+    }
+}
+
+impl From<_core::Artwork> for Artwork {
+    fn from(from: _core::Artwork) -> Self {
+        use _core::Artwork::*;
+        match from {
+            Missing => Self {
+                source: ArtworkSource::Missing,
+                uri: None,
+                image: None,
+            },
+            Embedded(embedded) => Self {
+                source: ArtworkSource::Embedded,
+                uri: None,
+                image: Some(embedded.image.into()),
+            },
+            Linked(linked) => Self {
+                source: ArtworkSource::Linked,
+                uri: Some(linked.uri),
+                image: Some(linked.image.into()),
+            },
         }
     }
 }
@@ -269,8 +348,8 @@ pub struct Source {
     #[serde(flatten)]
     content: Content,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
-    artwork: Artwork,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    artwork: Option<Artwork>,
 }
 
 impl From<_core::Source> for Source {
@@ -293,7 +372,7 @@ impl From<_core::Source> for Source {
             content_digest: content_digest.as_ref().map(Into::into),
             content_metadata_flags: content_metadata_flags.bits(),
             content: content.into(),
-            artwork: artwork.into(),
+            artwork: artwork.map(Into::into),
         }
     }
 }
@@ -323,7 +402,7 @@ impl From<Source> for _core::Source {
                 content_metadata_flags,
             ),
             content: content.into(),
-            artwork: artwork.into(),
+            artwork: artwork.and_then(|artwork| artwork.import().ok()),
         }
     }
 }

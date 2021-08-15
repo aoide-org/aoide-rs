@@ -17,16 +17,13 @@
 
 use crate::{
     io::import::{self, *},
-    util::{
-        digest::MediaDigest, push_next_actor_role_name, serato,
-        try_load_artwork_from_embedded_image,
-    },
+    util::{digest::MediaDigest, push_next_actor_role_name, serato, try_load_embedded_artwork},
     Result,
 };
 
 use aoide_core::{
     audio::{channel::ChannelCount, signal::SampleRateHz, AudioContent},
-    media::{Content, ContentMetadataFlags},
+    media::{ApicType, Artwork, Content, ContentMetadataFlags},
     tag::TagsMap,
     track::{
         actor::ActorRole,
@@ -262,7 +259,7 @@ impl import::ImportTrack for ImportTrack {
             track.indexes.movement = index;
         }
 
-        if flags.contains(ImportTrackFlags::ARTWORK) {
+        if flags.contains(ImportTrackFlags::EMBEDDED_ARTWORK) {
             let mut image_digest = if flags.contains(ImportTrackFlags::ARTWORK_DIGEST) {
                 if flags.contains(ImportTrackFlags::ARTWORK_DIGEST_SHA256) {
                     // Compatibility
@@ -276,35 +273,56 @@ impl import::ImportTrack for ImportTrack {
             };
             let artwork = flac_tag
                 .pictures()
-                .filter(|p| p.picture_type == PictureType::CoverFront)
-                .chain(
-                    flac_tag
-                        .pictures()
-                        .filter(|p| p.picture_type == PictureType::Media),
-                )
-                .chain(
-                    flac_tag
-                        .pictures()
-                        .filter(|p| p.picture_type == PictureType::Leaflet),
-                )
-                .chain(
-                    flac_tag
-                        .pictures()
-                        .filter(|p| p.picture_type == PictureType::Other),
-                )
-                // otherwise take the first picture that could be parsed
-                .chain(flac_tag.pictures())
                 .filter_map(|p| {
-                    try_load_artwork_from_embedded_image(
+                    if p.picture_type == PictureType::CoverFront {
+                        Some((ApicType::CoverFront, p))
+                    } else {
+                        None
+                    }
+                })
+                .chain(flac_tag.pictures().filter_map(|p| {
+                    if p.picture_type == PictureType::Media {
+                        Some((ApicType::Media, p))
+                    } else {
+                        None
+                    }
+                }))
+                .chain(flac_tag.pictures().filter_map(|p| {
+                    if p.picture_type == PictureType::Leaflet {
+                        Some((ApicType::Leaflet, p))
+                    } else {
+                        None
+                    }
+                }))
+                .chain(flac_tag.pictures().filter_map(|p| {
+                    if p.picture_type == PictureType::Other {
+                        Some((ApicType::Other, p))
+                    } else {
+                        None
+                    }
+                }))
+                // otherwise take the first picture that could be parsed
+                .chain(flac_tag.pictures().map(|p| {
+                    (
+                        ApicType::try_from_u8(p.picture_type as u8).unwrap_or(ApicType::Other),
+                        p,
+                    )
+                }))
+                .filter_map(|(t, p)| {
+                    try_load_embedded_artwork(
                         &track.media_source.path,
+                        t,
                         &p.data,
                         None,
                         &mut image_digest,
                     )
+                    .map(Artwork::Embedded)
                 })
                 .next();
-            if let Some(artwork) = artwork {
+            if artwork.is_some() {
                 track.media_source.artwork = artwork;
+            } else {
+                track.media_source.artwork = Some(Artwork::Missing);
             }
         }
 

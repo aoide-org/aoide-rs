@@ -22,7 +22,7 @@ use aoide_core::{
     audio::{AudioContent, DurationMs},
     collection::{Collection, Entity as CollectionEntity, MediaSourceConfig},
     entity::EntityHeader,
-    media::{self, SourcePath, SourcePathKind},
+    media::{self, ApicType, ArtworkImage, ImageSize, LinkedArtwork, SourcePath, SourcePathKind},
     util::clock::DateTime,
 };
 
@@ -80,12 +80,19 @@ fn insert_media_source() -> anyhow::Result<()> {
             ..Default::default()
         }
         .into(),
-        artwork: Artwork {
-            media_type: Some("image/jpeg".to_owned()),
-            digest: Some([128; 32]),
-            thumbnail: Some([127; 4 * 4 * 3]),
-            ..Default::default()
-        },
+        artwork: Some(Artwork::Linked(LinkedArtwork {
+            uri: "file://folder.jpg".to_owned(),
+            image: ArtworkImage {
+                apic_type: ApicType::CoverFront,
+                media_type: "image/jpeg".to_owned(),
+                size: Some(ImageSize {
+                    width: 500,
+                    height: 600,
+                }),
+                digest: Some([128; 32]),
+                thumbnail: Some([127; 4 * 4 * 3]),
+            },
+        })),
     };
     let created_at = DateTime::now_local();
 
