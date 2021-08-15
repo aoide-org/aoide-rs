@@ -16,9 +16,13 @@
 use super::*;
 
 use aoide_core::{
-    usecases::media::tracker::untrack::{Outcome, Summary},
+    usecases::media::tracker::{
+        untrack::{Outcome, Summary},
+        DirTrackingStatus,
+    },
     util::url::BaseUrl,
 };
+
 use aoide_repo::{collection::RecordId as CollectionId, media::tracker::Repo as MediaTrackerRepo};
 
 pub fn untrack<Repo>(

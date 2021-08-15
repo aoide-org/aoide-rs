@@ -18,8 +18,6 @@ use super::*;
 use aoide_core::util::url::BaseUrl;
 use aoide_media::resolver::SourcePathResolver;
 
-pub use aoide_repo::media::tracker::DirTrackingStatus;
-
 pub mod import;
 pub mod query_status;
 pub mod relink;

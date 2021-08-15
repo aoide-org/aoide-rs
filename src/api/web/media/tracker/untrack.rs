@@ -13,52 +13,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use aoide_core::{entity::EntityUid, util::url::BaseUrl};
+
+use aoide_core_serde::usecases::media::tracker::untrack::{Outcome, Params};
+
 use super::*;
 
 mod uc {
     pub use crate::usecases::media::tracker::untrack::*;
 }
 
-use aoide_core::{entity::EntityUid, util::url::BaseUrl};
-
-use aoide_core_serde::usecases::media::tracker::untrack::Outcome;
-use url::Url;
-
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub enum DirTrackingStatus {
-    Current,
-    Outdated,
-    Added,
-    Modified,
-    Orphaned,
-}
-
-impl From<DirTrackingStatus> for uc::DirTrackingStatus {
-    fn from(from: DirTrackingStatus) -> Self {
-        use DirTrackingStatus::*;
-        match from {
-            Current => Self::Current,
-            Outdated => Self::Outdated,
-            Added => Self::Added,
-            Modified => Self::Modified,
-            Orphaned => Self::Orphaned,
-        }
-    }
-}
-
-#[derive(Clone, Debug, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Params {
-    pub root_url: Url,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub status: Option<DirTrackingStatus>,
-}
-
 pub type RequestBody = Params;
+
 pub type ResponseBody = Outcome;
 
 pub fn handle_request(

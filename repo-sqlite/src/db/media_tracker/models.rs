@@ -15,7 +15,10 @@
 
 use super::{schema::*, *};
 
-use aoide_core::util::clock::{DateTime, TimestampMillis};
+use aoide_core::{
+    usecases::media::tracker::DirTrackingStatus,
+    util::clock::{DateTime, TimestampMillis},
+};
 
 use aoide_repo::{
     collection::RecordId as CollectionId,

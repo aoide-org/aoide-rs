@@ -227,3 +227,39 @@ impl From<DirectoriesStatus> for _core::DirectoriesStatus {
         }
     }
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub enum DirTrackingStatus {
+    Current,
+    Outdated,
+    Added,
+    Modified,
+    Orphaned,
+}
+
+impl From<DirTrackingStatus> for _core::DirTrackingStatus {
+    fn from(from: DirTrackingStatus) -> Self {
+        use DirTrackingStatus::*;
+        match from {
+            Current => Self::Current,
+            Outdated => Self::Outdated,
+            Added => Self::Added,
+            Modified => Self::Modified,
+            Orphaned => Self::Orphaned,
+        }
+    }
+}
+
+impl From<_core::DirTrackingStatus> for DirTrackingStatus {
+    fn from(from: _core::DirTrackingStatus) -> Self {
+        use _core::DirTrackingStatus::*;
+        match from {
+            Current => Self::Current,
+            Outdated => Self::Outdated,
+            Added => Self::Added,
+            Modified => Self::Modified,
+            Orphaned => Self::Orphaned,
+        }
+    }
+}

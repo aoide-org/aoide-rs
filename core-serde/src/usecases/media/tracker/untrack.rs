@@ -17,8 +17,19 @@ use url::Url;
 
 use crate::prelude::*;
 
+use super::DirTrackingStatus;
+
 mod _core {
-    pub use aoide_core::usecases::media::tracker::untrack::*;
+    pub use aoide_core::usecases::media::tracker::{untrack::*, DirTrackingStatus};
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct Params {
+    pub root_url: Url,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<DirTrackingStatus>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

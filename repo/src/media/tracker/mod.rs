@@ -19,45 +19,17 @@ use crate::{
     collection::RecordId as CollectionId, media::source::RecordId as MediaSourceId, prelude::*,
 };
 
-use aoide_core::{media::SourcePath, usecases::media::tracker::DirectoriesStatus, util::clock::*};
-
-use num_derive::{FromPrimitive, ToPrimitive};
+use aoide_core::{
+    media::SourcePath,
+    usecases::media::tracker::{DirTrackingStatus, DirectoriesStatus},
+    util::clock::*,
+};
 
 record_id_newtype!(RecordId);
 pub type RecordHeader = crate::RecordHeader<RecordId>;
 
 record_id_newtype!(DirCacheRecordId);
 pub type DirCacheRecordHeader = crate::RecordHeader<DirCacheRecordId>;
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, FromPrimitive, ToPrimitive)]
-pub enum DirTrackingStatus {
-    Current = 0,
-    Outdated = 1,
-    Added = 2,
-    Modified = 3,
-    Orphaned = 4,
-}
-
-impl DirTrackingStatus {
-    /// Determine if an entry is stale.
-    pub fn is_stale(self) -> bool {
-        match self {
-            Self::Outdated | Self::Added | Self::Modified => true,
-            Self::Current | Self::Orphaned => false,
-        }
-    }
-
-    /// Determine if an entry is stale and requires further processing.
-    pub fn is_pending(self) -> bool {
-        match self {
-            Self::Added | Self::Modified => {
-                debug_assert!(self.is_stale());
-                true
-            }
-            Self::Current | Self::Outdated | Self::Orphaned => false,
-        }
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TrackedDirectory {

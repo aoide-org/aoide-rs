@@ -22,7 +22,9 @@ use crate::{
 };
 
 use aoide_core::{
-    media::SourcePath, usecases::media::tracker::DirectoriesStatus, util::clock::DateTime,
+    media::SourcePath,
+    usecases::media::tracker::{DirTrackingStatus, DirectoriesStatus},
+    util::clock::DateTime,
 };
 
 use aoide_repo::{

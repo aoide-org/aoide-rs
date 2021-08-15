@@ -111,11 +111,14 @@ async fn fetch_status<E: WebClientEnvironment>(
 ) -> anyhow::Result<Status> {
     let request_url =
         env.join_api_url(&format!("c/{}/media-tracker/query-status", collection_uid))?;
-    let request_body = serde_json::to_vec(&root_url.map(|root_url| {
+    let request_params = if let Some(root_url) = root_url {
         serde_json::json!({
             "rootUrl": root_url.to_string(),
         })
-    }))?;
+    } else {
+        serde_json::json!({})
+    };
+    let request_body = serde_json::to_vec(&request_params)?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
@@ -146,11 +149,14 @@ async fn start_scan<E: WebClientEnvironment>(
     root_url: Option<&Url>,
 ) -> anyhow::Result<ScanOutcome> {
     let request_url = env.join_api_url(&format!("c/{}/media-tracker/scan", collection_uid))?;
-    let request_body = serde_json::to_vec(&root_url.map(|root_url| {
+    let request_params = if let Some(root_url) = root_url {
         serde_json::json!({
             "rootUrl": root_url.to_string(),
         })
-    }))?;
+    } else {
+        serde_json::json!({})
+    };
+    let request_body = serde_json::to_vec(&request_params)?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
@@ -169,11 +175,14 @@ async fn start_import<E: WebClientEnvironment>(
     root_url: Option<&Url>,
 ) -> anyhow::Result<ImportOutcome> {
     let request_url = env.join_api_url(&format!("c/{}/media-tracker/import", collection_uid))?;
-    let request_body = serde_json::to_vec(&root_url.map(|root_url| {
+    let request_params = if let Some(root_url) = root_url {
         serde_json::json!({
             "rootUrl": root_url.to_string(),
         })
-    }))?;
+    } else {
+        serde_json::json!({})
+    };
+    let request_body = serde_json::to_vec(&request_params)?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
@@ -219,9 +228,14 @@ async fn purge_untracked<E: WebClientEnvironment>(
     root_url: Option<&Url>,
 ) -> anyhow::Result<usize> {
     let request_url = env.join_api_url(&format!("c/{}/t/purge-untracked", collection_uid))?;
-    let request_body = serde_json::to_vec(&serde_json::json!({
-        "rootUrl": root_url.map(ToString::to_string),
-    }))?;
+    let request_params = if let Some(root_url) = root_url {
+        serde_json::json!({
+            "rootUrl": root_url.to_string(),
+        })
+    } else {
+        serde_json::json!({})
+    };
+    let request_body = serde_json::to_vec(&request_params)?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;

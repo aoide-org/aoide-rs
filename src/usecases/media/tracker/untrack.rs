@@ -16,10 +16,11 @@
 use super::*;
 
 use aoide_core::{
-    entity::EntityUid, usecases::media::tracker::untrack::Outcome, util::url::BaseUrl,
+    entity::EntityUid,
+    usecases::media::tracker::{untrack::Outcome, DirTrackingStatus},
+    util::url::BaseUrl,
 };
 
-pub use aoide_repo::media::tracker::DirTrackingStatus;
 mod uc {
     pub use aoide_usecases::{
         collection::resolve_collection_id_for_virtual_file_path, media::tracker::untrack::*, Error,

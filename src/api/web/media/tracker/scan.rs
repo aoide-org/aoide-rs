@@ -24,23 +24,12 @@ mod uc {
 
 use aoide_core::{entity::EntityUid, util::url::BaseUrl};
 
-use aoide_core_serde::usecases::media::tracker::scan::Outcome;
+use aoide_core_serde::usecases::media::tracker::scan::{Outcome, Params};
 
 use tokio::sync::watch;
-use url::Url;
-
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Debug, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Params {
-    pub root_url: Option<Url>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub max_depth: Option<usize>,
-}
 
 pub type RequestBody = Params;
+
 pub type ResponseBody = Outcome;
 
 pub fn handle_request(

@@ -21,6 +21,4 @@ pub mod relink;
 pub mod scan;
 pub mod untrack;
 
-pub use aoide_repo::media::tracker::DirTrackingStatus;
-
 pub use aoide_usecases::media::tracker::*;

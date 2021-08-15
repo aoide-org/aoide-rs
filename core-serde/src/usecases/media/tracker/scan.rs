@@ -23,6 +23,16 @@ mod _core {
     pub use aoide_core::usecases::media::tracker::scan::*;
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct Params {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub root_url: Option<Url>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_depth: Option<usize>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Summary {
