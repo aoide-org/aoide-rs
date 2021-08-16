@@ -47,7 +47,7 @@ pub enum Task {
         collection_uid: EntityUid,
         root_url: Url,
     },
-    PurgeUntracked {
+    PurgeOrphanedAndUntracked {
         collection_uid: EntityUid,
         root_url: Option<Url>,
     },
@@ -93,12 +93,13 @@ impl Task {
                 let res = untrack(env, &collection_uid, &root_url).await;
                 Effect::Untracked(res)
             }
-            Self::PurgeUntracked {
+            Self::PurgeOrphanedAndUntracked {
                 collection_uid,
                 root_url,
             } => {
-                let res = purge_untracked(env, &collection_uid, root_url.as_ref()).await;
-                Effect::PurgedUntracked(res)
+                let res =
+                    purge_orphaned_and_untracked(env, &collection_uid, root_url.as_ref()).await;
+                Effect::PurgeOrphanedAndUntracked(res)
             }
         }
     }
@@ -111,13 +112,9 @@ async fn fetch_status<E: WebClientEnvironment>(
 ) -> anyhow::Result<Status> {
     let request_url =
         env.join_api_url(&format!("c/{}/media-tracker/query-status", collection_uid))?;
-    let request_params = if let Some(root_url) = root_url {
-        serde_json::json!({
-            "rootUrl": root_url.to_string(),
-        })
-    } else {
-        serde_json::json!({})
-    };
+    let request_params = serde_json::json!({
+        "rootUrl": root_url.map(ToString::to_string),
+    });
     let request_body = serde_json::to_vec(&request_params)?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
@@ -149,13 +146,9 @@ async fn start_scan<E: WebClientEnvironment>(
     root_url: Option<&Url>,
 ) -> anyhow::Result<ScanOutcome> {
     let request_url = env.join_api_url(&format!("c/{}/media-tracker/scan", collection_uid))?;
-    let request_params = if let Some(root_url) = root_url {
-        serde_json::json!({
-            "rootUrl": root_url.to_string(),
-        })
-    } else {
-        serde_json::json!({})
-    };
+    let request_params = serde_json::json!({
+        "rootUrl": root_url.map(ToString::to_string),
+    });
     let request_body = serde_json::to_vec(&request_params)?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
@@ -175,13 +168,9 @@ async fn start_import<E: WebClientEnvironment>(
     root_url: Option<&Url>,
 ) -> anyhow::Result<ImportOutcome> {
     let request_url = env.join_api_url(&format!("c/{}/media-tracker/import", collection_uid))?;
-    let request_params = if let Some(root_url) = root_url {
-        serde_json::json!({
-            "rootUrl": root_url.to_string(),
-        })
-    } else {
-        serde_json::json!({})
-    };
+    let request_params = serde_json::json!({
+        "rootUrl": root_url.map(ToString::to_string),
+    });
     let request_body = serde_json::to_vec(&request_params)?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
@@ -208,9 +197,10 @@ async fn untrack<E: WebClientEnvironment>(
     root_url: &Url,
 ) -> anyhow::Result<UntrackOutcome> {
     let request_url = env.join_api_url(&format!("c/{}/media-tracker/untrack", collection_uid))?;
-    let request_body = serde_json::to_vec(&serde_json::json!({
+    let request_params = serde_json::json!({
         "rootUrl": root_url.to_string(),
-    }))?;
+    });
+    let request_body = serde_json::to_vec(&request_params)?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
@@ -222,24 +212,21 @@ async fn untrack<E: WebClientEnvironment>(
     Ok(outcome)
 }
 
-async fn purge_untracked<E: WebClientEnvironment>(
+async fn purge_orphaned_and_untracked<E: WebClientEnvironment>(
     env: &E,
     collection_uid: &EntityUid,
     root_url: Option<&Url>,
-) -> anyhow::Result<usize> {
+) -> anyhow::Result<()> {
     let request_url = env.join_api_url(&format!("c/{}/t/purge-untracked", collection_uid))?;
-    let request_params = if let Some(root_url) = root_url {
-        serde_json::json!({
-            "rootUrl": root_url.to_string(),
-        })
-    } else {
-        serde_json::json!({})
-    };
+    let request_params = serde_json::json!({
+        "rootUrl": root_url.map(ToString::to_string),
+        "untrackOrphanedDirectories": true,
+    });
     let request_body = serde_json::to_vec(&request_params)?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
-    let outcome = serde_json::from_slice::<usize>(&response_body).map(Into::into)?;
-    log::debug!("Purge untracked finished: {:?}", outcome);
-    Ok(outcome)
+    let outcome = serde_json::from_slice::<serde_json::Value>(&response_body)?;
+    log::debug!("Purge orphaned and untracked finished: {:?}", outcome);
+    Ok(())
 }

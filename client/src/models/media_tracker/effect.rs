@@ -30,7 +30,7 @@ pub enum Effect {
     ScanFinished(anyhow::Result<ScanOutcome>),
     ImportFinished(anyhow::Result<ImportOutcome>),
     Untracked(anyhow::Result<UntrackOutcome>),
-    PurgedUntracked(anyhow::Result<usize>),
+    PurgeOrphanedAndUntracked(anyhow::Result<()>),
     ErrorOccurred(anyhow::Error),
 }
 
@@ -130,20 +130,26 @@ impl Effect {
                 };
                 StateUpdated::maybe_changed(next_action)
             }
-            Self::PurgedUntracked(res) => {
+            Self::PurgeOrphanedAndUntracked(res) => {
                 debug_assert_eq!(state.control_state, ControlState::Busy);
                 state.control_state = ControlState::Idle;
                 state.remote_view.progress.reset();
                 state.remote_view.status.reset();
-                debug_assert!(state.remote_view.last_purge_untracked_outcome.is_pending());
+                debug_assert!(state
+                    .remote_view
+                    .last_purge_orphaned_and_untracked_outcome
+                    .is_pending());
                 let next_action = match res {
                     Ok(outcome) => {
-                        state.remote_view.last_purge_untracked_outcome =
+                        state.remote_view.last_purge_orphaned_and_untracked_outcome =
                             RemoteData::ready_now(outcome);
                         Action::dispatch_task(Task::FetchProgress)
                     }
                     Err(err) => {
-                        state.remote_view.last_purge_untracked_outcome.reset();
+                        state
+                            .remote_view
+                            .last_purge_orphaned_and_untracked_outcome
+                            .reset();
                         Action::apply_effect(Self::ErrorOccurred(err))
                     }
                 };

@@ -126,8 +126,8 @@ async fn main() -> anyhow::Result<()> {
                         ),
                 )
                 .subcommand(
-                    App::new("purge-untracked")
-                        .about("Purges all tracks with untracked media sources")
+                    App::new("purge-orphaned-and-untracked")
+                        .about("Purges all orphaned directories and tracks with untracked media sources")
                         .arg(
                             Arg::with_name("root-url")
                                 .help("Only consider media sources matching this root URL")
@@ -463,14 +463,17 @@ async fn main() -> anyhow::Result<()> {
                                     .into(),
                                 );
                             }
-                            ("purge-untracked", purge_untracked_matches) => {
+                            (
+                                "purge-orphaned-and-untracked",
+                                purge_orphaned_and_untracked_matches,
+                            ) => {
                                 let collection_uid = collection.hdr.uid.clone();
-                                let root_url = purge_untracked_matches
+                                let root_url = purge_orphaned_and_untracked_matches
                                     .and_then(|m| m.value_of("root-url"))
                                     .map(|s| s.parse().expect("URL"));
                                 subcommand_submitted = true;
                                 return Some(
-                                    media_tracker::Intent::PurgeUntracked {
+                                    media_tracker::Intent::PurgeOrphanedAndUntracked {
                                         collection_uid,
                                         root_url,
                                     }

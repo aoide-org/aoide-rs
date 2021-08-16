@@ -30,29 +30,56 @@ mod uc {
 
 use super::*;
 
-///////////////////////////////////////////////////////////////////////
-
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct RequestBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     root_url: Option<Url>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    untrack_orphaned_directories: Option<bool>,
 }
 
-pub type ResponseBody = u64;
+#[derive(Clone, Debug, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct ResponseBody {
+    untracked_directories: u64,
+    purged_tracks: u64,
+}
+
+impl From<uc::PurgeByUntrackedMediaSourcesSummary> for ResponseBody {
+    fn from(from: uc::PurgeByUntrackedMediaSourcesSummary) -> Self {
+        let uc::PurgeByUntrackedMediaSourcesSummary {
+            untracked_directories,
+            purged_tracks,
+        } = from;
+        Self {
+            untracked_directories: untracked_directories as u64,
+            purged_tracks: purged_tracks as u64,
+        }
+    }
+}
 
 pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
     collection_uid: &_core::EntityUid,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
-    let RequestBody { root_url } = request_body;
+    let RequestBody {
+        root_url,
+        untrack_orphaned_directories,
+    } = request_body;
     let root_url = root_url
         .map(BaseUrl::try_autocomplete_from)
         .transpose()
         .map_err(anyhow::Error::from)
         .map_err(Error::BadRequest)?;
-    uc::purge_by_untracked_media_sources(&pooled_connection, collection_uid, root_url.as_ref())
-        .map(|count| count as u64)
-        .map_err(Into::into)
+    uc::purge_by_untracked_media_sources(
+        &pooled_connection,
+        collection_uid,
+        root_url.as_ref(),
+        untrack_orphaned_directories.unwrap_or(false),
+    )
+    .map(Into::into)
+    .map_err(Into::into)
 }

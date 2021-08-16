@@ -40,7 +40,7 @@ pub enum Intent {
         collection_uid: EntityUid,
         root_url: Url,
     },
-    PurgeUntracked {
+    PurgeOrphanedAndUntracked {
         collection_uid: EntityUid,
         root_url: Option<Url>,
     },
@@ -130,7 +130,7 @@ impl Intent {
                     root_url,
                 }))
             }
-            Self::PurgeUntracked {
+            Self::PurgeOrphanedAndUntracked {
                 collection_uid,
                 root_url,
             } => {
@@ -143,12 +143,14 @@ impl Intent {
                 state.remote_view.status.set_pending_now();
                 state
                     .remote_view
-                    .last_purge_untracked_outcome
+                    .last_purge_orphaned_and_untracked_outcome
                     .set_pending_now();
-                StateUpdated::maybe_changed(Action::dispatch_task(Task::PurgeUntracked {
-                    collection_uid,
-                    root_url,
-                }))
+                StateUpdated::maybe_changed(Action::dispatch_task(
+                    Task::PurgeOrphanedAndUntracked {
+                        collection_uid,
+                        root_url,
+                    },
+                ))
             }
         }
     }

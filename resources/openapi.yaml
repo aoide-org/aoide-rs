@@ -293,8 +293,11 @@ paths:
         Purge multiple, collected tracks with media sources that are
         not tracked by the media tracker.
 
-        This is needed to get rid of missing tracks, e.g. after files
-        have permanently been deleted from the local file system.
+        Optionally all orphaned directories in the root directory
+        could be untracked first.
+
+        This is needed to get rid of missing tracks, e.g. after directories
+        and files have disappeared from the local file system.
       tags:
         - Tracks
       parameters:
@@ -306,9 +309,13 @@ paths:
             schema:
               $ref: '#/components/schemas/PurgeUntrackedTracksRequestBody'
       responses:
-        '204':
+        '200':
           description: |
             Batch operation succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurgeUntrackedTracksResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
@@ -2110,6 +2117,21 @@ components:
       properties:
         rootUrl:
           $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+        untrackOrphanedDirectories:
+          type: bool
+          default: false
+    PurgeUntrackedTracksResponseBody:
+      type: object
+      properties:
+        untrackedDirectories:
+          type: integer
+          format: int64
+        purgedTracks:
+          type: integer
+          format: int64
+      required:
+        - untrackedDirectories
+        - purgedTracks
     Release:
       type: object
       properties:

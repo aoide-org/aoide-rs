@@ -39,7 +39,7 @@ pub struct RemoteView {
     pub(super) last_scan_outcome: RemoteData<ScanOutcome>,
     pub(super) last_import_outcome: RemoteData<ImportOutcome>,
     pub(super) last_untrack_outcome: RemoteData<UntrackOutcome>,
-    pub(super) last_purge_untracked_outcome: RemoteData<usize>,
+    pub(super) last_purge_orphaned_and_untracked_outcome: RemoteData<()>,
 }
 
 impl RemoteView {

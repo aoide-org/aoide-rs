@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::util::url::BaseUrl;
+use aoide_core::{usecases::media::tracker::DirTrackingStatus, util::url::BaseUrl};
 
 use aoide_repo::{
     collection::RecordId as CollectionId,
@@ -47,12 +47,19 @@ where
     Ok(total_purged_tracks)
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct PurgeByUntrackedMediaSourcesSummary {
+    pub untracked_directories: usize,
+    pub purged_tracks: usize,
+}
+
 pub fn purge_by_untracked_media_sources<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
     source_path_resolver: &VirtualFilePathResolver,
     root_url: Option<&BaseUrl>,
-) -> Result<usize>
+    untrack_orphaned_directories: bool,
+) -> Result<PurgeByUntrackedMediaSourcesSummary>
 where
     Repo: EntityRepo + MediaSourceRepo + MediaTrackerRepo,
 {
@@ -60,8 +67,16 @@ where
         .map(|url| resolve_path_prefix_from_base_url(source_path_resolver, url))
         .transpose()?
         .unwrap_or_default();
+    let mut summary = PurgeByUntrackedMediaSourcesSummary::default();
+    if untrack_orphaned_directories {
+        summary.untracked_directories += repo.media_tracker_untrack(
+            collection_id,
+            &root_path_prefix,
+            Some(DirTrackingStatus::Orphaned),
+        )?;
+    };
     let untracked_media_sources =
         repo.media_tracker_find_untracked_sources(collection_id, &root_path_prefix)?;
-    let count = repo.purge_tracks_by_media_sources(&untracked_media_sources)?;
-    Ok(count)
+    summary.purged_tracks += repo.purge_tracks_by_media_sources(&untracked_media_sources)?;
+    Ok(summary)
 }

@@ -18,7 +18,6 @@ use aoide_core::util::url::BaseUrl;
 use aoide_repo::collection::EntityRepo as _;
 
 mod uc {
-    pub use aoide_core::usecases::media::tracker::import::*;
     pub use aoide_usecases::{
         collection::resolve_collection_id_for_virtual_file_path, tracks::purge::*, Error,
     };
@@ -40,19 +39,27 @@ pub fn purge_by_media_source_path_predicates(
     .map_err(Into::into)
 }
 
+pub use uc::PurgeByUntrackedMediaSourcesSummary;
+
 pub fn purge_by_untracked_media_sources(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
     root_url: Option<&BaseUrl>,
-) -> Result<usize> {
+    untrack_orphaned_directories: bool,
+) -> Result<uc::PurgeByUntrackedMediaSourcesSummary> {
     let db = RepoConnection::new(connection);
     db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
-        let (_, source_path_resolver) =
+        let (collection_id, source_path_resolver) =
             uc::resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
                 .map_err(DieselTransactionError::new)?;
-        let collection_id = db.resolve_collection_id(collection_uid)?;
-        uc::purge_by_untracked_media_sources(&db, collection_id, &source_path_resolver, root_url)
-            .map_err(DieselTransactionError::new)
+        uc::purge_by_untracked_media_sources(
+            &db,
+            collection_id,
+            &source_path_resolver,
+            root_url,
+            untrack_orphaned_directories,
+        )
+        .map_err(DieselTransactionError::new)
     })
     .map_err(Into::into)
 }
