@@ -25,9 +25,12 @@ use bitflags::bitflags;
 
 bitflags! {
     pub struct MetricsFlags: u8 {
-        const TEMPO_BPM_LOCKED      = 0b0000_0001;
-        const KEY_SIGNATURE_LOCKED  = 0b0000_0010;
-        const TIME_SIGNATURE_LOCKED = 0b0000_0100;
+        const TEMPO_BPM_LOCKED            = 0b0000_0001;
+        const KEY_SIGNATURE_LOCKED        = 0b0000_0010;
+        const TIME_SIGNATURE_LOCKED       = 0b0000_0100;
+
+        /// Some file tags only store imprecise integer values
+        const TEMPO_BPM_NON_FRACTIONAL    = 0b0001_0000;
     }
 }
 

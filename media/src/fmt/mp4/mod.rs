@@ -37,6 +37,7 @@ use aoide_core::{
     track::{
         actor::ActorRole,
         album::AlbumKind,
+        metric::MetricsFlags,
         tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE, FACET_MOOD},
         title::{Title, TitleKind},
         Track,
@@ -144,12 +145,14 @@ impl import::ImportTrack for ImportTrack {
             track.media_source.content = Content::Audio(audio_content);
         }
 
+        let mut tempo_bpm_non_fractional = false;
         let tempo_bpm = mp4_tag
             .strings_of(&FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "BPM"))
             .flat_map(parse_tempo_bpm)
             .next()
             .or_else(|| {
                 mp4_tag.bpm().and_then(|bpm| {
+                    tempo_bpm_non_fractional = true;
                     let bpm = TempoBpm(Beats::from(bpm));
                     bpm.is_valid().then(|| bpm)
                 })
@@ -157,6 +160,10 @@ impl import::ImportTrack for ImportTrack {
         if let Some(tempo_bpm) = tempo_bpm {
             debug_assert!(tempo_bpm.is_valid());
             track.metrics.tempo_bpm = Some(tempo_bpm);
+            track.metrics.flags.set(
+                MetricsFlags::TEMPO_BPM_NON_FRACTIONAL,
+                tempo_bpm_non_fractional,
+            );
         }
 
         let key_signature = mp4_tag

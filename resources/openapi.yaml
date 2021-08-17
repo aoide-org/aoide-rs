@@ -1619,16 +1619,18 @@ components:
     MetricsFlags:
       type: integer
       format: i32
-      minimum: 0
-      maximum: 7
-      example: 5
+      minimum: 0x01
+      maximum: 0xff
+      example: 0x05
       description: |
-        A bitmask for locking selected properties of the musical signature.
+        A bitmask for locking selected musical metrics properties and for
+        indicating special cases.
 
         Bits:
           - 0x01: Tempo/BPM is locked
           - 0x02: Key signature is locked
           - 0x04: Time signature is locked
+          - 0x10: Imprecise integer BPM value (non-fractional)
 
         Example: A value of 3 = 1 | 2 locks both the tempo and the key signature
     DateTimeField:

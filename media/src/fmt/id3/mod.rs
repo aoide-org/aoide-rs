@@ -32,6 +32,7 @@ use aoide_core::{
     track::{
         actor::ActorRole,
         album::AlbumKind,
+        metric::MetricsFlags,
         release::DateOrDateTime,
         tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE, FACET_MOOD},
         title::{Title, TitleKind},
@@ -180,15 +181,23 @@ pub fn import_track(
         track.media_source.content = Content::Audio(audio_content);
     }
 
+    let mut tempo_bpm_non_fractional = false;
     if let Some(tempo_bpm) = first_extended_text(tag, "BPM")
         .and_then(parse_tempo_bpm)
         // Alternative: Try "TEMPO" if "BPM" is missing or invalid
         .or_else(|| first_extended_text(tag, "TEMPO").and_then(parse_tempo_bpm))
         // Fallback: Parse integer BPM
-        .or_else(|| first_text_frame(tag, "TBPM").and_then(parse_tempo_bpm))
+        .or_else(|| {
+            tempo_bpm_non_fractional = true;
+            first_text_frame(tag, "TBPM").and_then(parse_tempo_bpm)
+        })
     {
         debug_assert!(tempo_bpm.is_valid());
         track.metrics.tempo_bpm = Some(tempo_bpm);
+        track.metrics.flags.set(
+            MetricsFlags::TEMPO_BPM_NON_FRACTIONAL,
+            tempo_bpm_non_fractional,
+        );
     }
 
     if let Some(key_signature) = first_text_frame(tag, "TKEY").and_then(parse_key_signature) {
