@@ -28,7 +28,8 @@ pub struct MediaSourceConfig {
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum MediaSourceConfigInvalidity {
-    RootUrl,
+    MissingRootUrl,
+    InvalidRootUrl,
 }
 
 impl Validate for MediaSourceConfig {
@@ -39,19 +40,20 @@ impl Validate for MediaSourceConfig {
             path_kind,
             root_url,
         } = self;
-        ValidationContext::new()
-            .invalidate_if(
-                !match path_kind {
-                    SourcePathKind::Uri | SourcePathKind::Url | SourcePathKind::FileUrl => {
-                        root_url.is_none()
-                    }
-                    SourcePathKind::VirtualFilePath => {
-                        root_url.as_ref().map(is_valid_base_url).unwrap_or(false)
-                    }
-                },
-                Self::Invalidity::RootUrl,
+        let mut context = ValidationContext::new();
+        context = if let Some(root_url) = root_url {
+            context.invalidate_if(
+                !is_valid_base_url(root_url),
+                Self::Invalidity::InvalidRootUrl,
             )
-            .into()
+        } else {
+            let root_url_mandatory = match *path_kind {
+                SourcePathKind::VirtualFilePath => true,
+                SourcePathKind::Uri | SourcePathKind::Url | SourcePathKind::FileUrl => false,
+            };
+            context.invalidate_if(root_url_mandatory, Self::Invalidity::MissingRootUrl)
+        };
+        context.into()
     }
 }
 

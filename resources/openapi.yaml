@@ -1207,8 +1207,8 @@ components:
       properties:
         pathKind:
           $ref: '#/components/schemas/MediaSourcePathKind'
-        baseUrl:
-          $ref: '#/components/schemas/PercentEncodedUrl'
+        rootUrl:
+          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
       required:
         - pathKind
     CollectionTitle:
@@ -2120,7 +2120,7 @@ components:
         rootUrl:
           $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
         untrackOrphanedDirectories:
-          type: bool
+          type: boolean
           default: false
     PurgeUntrackedTracksResponseBody:
       type: object
@@ -2398,11 +2398,16 @@ components:
       type: integer
       enum: [0, 1, 2, 3]
       description: |
-        Optional level that defaults to 0 = main if missing:
-          * 0 = percent-encoded URI
-          * 1 = percent-encoded URL
-          * 2 = percent-encoded "file" URL
-          * 3 = portable file path with '/' as path separator
+        Defines how to resolve the location of media sources from the path:
+
+          * 0 = Percent-encoded URI (case-sensitive)
+          * 1 = Percent-encoded URL (case-sensitive)
+          * 2 = Percent-encoded URL with the scheme "file" (case-sensitive)
+          * 3 = Virtual, relative file path with '/' as path separator
+
+        For collections of local files option 3 is the recommended choice.
+        The accompanying `file://` URL is stored as part of the media source
+        configuration in the collection.
     MediaSourcePath:
       oneOf:
         - $ref: '#/components/schemas/PercentEncodedUri'
@@ -2434,6 +2439,7 @@ components:
         on the local file system.
       allOf:
         - $ref: '#/components/schemas/PercentEncodedUrl'
+      example: file:///home/user/Music/
     PercentEncodedUrl:
       allOf:
         - $ref: '#/components/schemas/PercentEncodedUri'

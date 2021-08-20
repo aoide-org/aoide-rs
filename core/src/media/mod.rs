@@ -86,12 +86,13 @@ pub enum SourcePathKind {
     /// Percent-encoded URL (case-sensitive)
     Url = 1,
 
-    /// Percent-encoded URL with the scheme "file" (case-sensitive).
+    /// Percent-encoded URL with the scheme "file" (case-sensitive)
     FileUrl = 2,
 
-    /// Case-sensitive, portable file path with '/' as path separator.
+    /// Case-sensitive, relative file path with '/' as path separator
     ///
-    /// Either absolute or relative to some base "file" URL.
+    /// An accompanying root URL must be provided by the context to
+    /// reconstruct the complete `file://` URL.
     VirtualFilePath = 3,
 }
 
