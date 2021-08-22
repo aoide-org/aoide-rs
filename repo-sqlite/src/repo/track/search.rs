@@ -679,6 +679,27 @@ fn build_numeric_field_filter_expression(
                 }
             }
         },
+        TimesPlayed => match filter.predicate {
+            // TODO: Check and limit/clamp value range when converting from f64 to i64
+            LessThan(value) => Box::new(track::times_played.lt(value as i64)),
+            LessOrEqual(value) => Box::new(track::times_played.le(value as i64)),
+            GreaterThan(value) => Box::new(track::times_played.gt(value as i64)),
+            GreaterOrEqual(value) => Box::new(track::times_played.ge(value as i64)),
+            Equal(value) => {
+                if let Some(value) = value {
+                    Box::new(track::times_played.eq(value as i64))
+                } else {
+                    Box::new(track::times_played.is_null())
+                }
+            }
+            NotEqual(value) => {
+                if let Some(value) = value {
+                    Box::new(track::times_played.ne(value as i64))
+                } else {
+                    Box::new(track::times_played.is_not_null())
+                }
+            }
+        },
     }
 }
 

@@ -1707,6 +1707,7 @@ components:
         - musicTempoBpm
         - musicKeyCode
         - releasedAtDate
+        - timesPlayed
         - trackNumber
         - trackTotal
     NumericFieldFilter:

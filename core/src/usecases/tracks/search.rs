@@ -46,6 +46,7 @@ pub enum NumericField {
     MusicTempoBpm,
     MusicKeyCode,
     ReleasedAtDate,
+    TimesPlayed,
     TrackNumber,
     TrackTotal,
 }

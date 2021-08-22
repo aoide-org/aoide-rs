@@ -199,6 +199,7 @@ pub enum NumericField {
     ReleasedAtDate,
     MusicTempoBpm,
     MusicKeyCode,
+    TimesPlayed,
     TrackNumber,
     TrackTotal,
 }
@@ -212,13 +213,14 @@ impl From<NumericField> for _core::NumericField {
             AudioDurationMs => Self::AudioDurationMs,
             AudioSampleRateHz => Self::AudioSampleRateHz,
             AudioLoudnessLufs => Self::AudioLoudnessLufs,
-            TrackNumber => Self::TrackNumber,
-            TrackTotal => Self::TrackTotal,
             DiscNumber => Self::DiscNumber,
             DiscTotal => Self::DiscTotal,
-            ReleasedAtDate => Self::ReleasedAtDate,
             MusicTempoBpm => Self::MusicTempoBpm,
             MusicKeyCode => Self::MusicKeyCode,
+            ReleasedAtDate => Self::ReleasedAtDate,
+            TrackNumber => Self::TrackNumber,
+            TrackTotal => Self::TrackTotal,
+            TimesPlayed => Self::TimesPlayed,
         }
     }
 }
@@ -232,13 +234,14 @@ impl From<_core::NumericField> for NumericField {
             AudioDurationMs => Self::AudioDurationMs,
             AudioSampleRateHz => Self::AudioSampleRateHz,
             AudioLoudnessLufs => Self::AudioLoudnessLufs,
-            TrackNumber => Self::TrackNumber,
-            TrackTotal => Self::TrackTotal,
             DiscNumber => Self::DiscNumber,
             DiscTotal => Self::DiscTotal,
-            ReleasedAtDate => Self::ReleasedAtDate,
             MusicTempoBpm => Self::MusicTempoBpm,
             MusicKeyCode => Self::MusicKeyCode,
+            ReleasedAtDate => Self::ReleasedAtDate,
+            TimesPlayed => Self::TimesPlayed,
+            TrackNumber => Self::TrackNumber,
+            TrackTotal => Self::TrackTotal,
         }
     }
 }
