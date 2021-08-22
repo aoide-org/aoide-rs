@@ -53,7 +53,7 @@ fn resolve_url_from_local_file_path_roundtrip() -> Result<(), ResolveFromPathErr
             .unwrap()
     );
 
-    let root_url = Url::parse("file:///Test%20path/").unwrap();
+    let root_url = BaseUrl::parse_strict("file:///Test%20path/").unwrap();
     let resolver = VirtualFilePathResolver::with_root_url(root_url);
     let slash_path = SourcePath::from("next#*path/file.mp3".to_owned());
     let url = resolver.resolve_url_from_path(&slash_path)?;

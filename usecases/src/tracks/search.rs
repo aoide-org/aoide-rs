@@ -13,19 +13,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
-
-use crate::collection::load_virtual_file_path_resolver;
+use std::time::Instant;
 
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
     track::{EntityRepo, RecordHeader},
 };
 
-use aoide_core::usecases::tracks::search::*;
+use aoide_core::{usecases::tracks::search::*, util::url::BaseUrl};
 
-use std::time::Instant;
-use url::Url;
+use crate::collection::load_virtual_file_path_resolver;
+
+use super::*;
 
 pub fn search<Repo>(
     repo: &Repo,
@@ -52,7 +51,7 @@ where
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Params {
     pub resolve_url_from_path: bool,
-    pub override_root_url: Option<Url>,
+    pub override_root_url: Option<BaseUrl>,
 }
 
 pub fn search_with_params<Repo>(

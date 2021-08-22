@@ -13,11 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::convert::TryInto;
+
+use aoide_core::collection::{Collection, Entity as CollectionEntity};
+
 use crate::{receive_response_body, WebClientEnvironment};
 
 use super::Effect;
-
-use aoide_core::collection::{Collection, Entity as CollectionEntity};
 
 #[derive(Debug)]
 pub enum Task {
@@ -53,7 +55,8 @@ pub async fn create_new_collection<E: WebClientEnvironment>(
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
     let entity = serde_json::from_slice::<aoide_core_serde::collection::Entity>(&response_body)
-        .map(Into::into)?;
+        .map_err(anyhow::Error::from)
+        .and_then(TryInto::try_into)?;
     log::debug!("Created new collection entity: {:?}", entity);
     Ok(entity)
 }
@@ -65,15 +68,13 @@ pub async fn fetch_available_collections<E: WebClientEnvironment>(
     let request = env.client().get(request_url);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
-    let available_collections: Vec<_> = serde_json::from_slice::<
-        Vec<aoide_core_serde::collection::Entity>,
-    >(&response_body)
-    .map(|collections| {
-        collections
-            .into_iter()
-            .map(CollectionEntity::from)
-            .collect()
-    })?;
+    let fetched_collections: Vec<_> =
+        serde_json::from_slice::<Vec<aoide_core_serde::collection::Entity>>(&response_body)?;
+    let mut available_collections = Vec::with_capacity(fetched_collections.len());
+    for collection in fetched_collections {
+        let collection = collection.try_into()?;
+        available_collections.push(collection);
+    }
     log::debug!(
         "Fetched {} available collection(s)",
         available_collections.len(),

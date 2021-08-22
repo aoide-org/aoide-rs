@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use std::{
-    convert::TryFrom,
+    convert::{TryFrom, TryInto},
     fmt,
     ops::{Deref, DerefMut},
     str::FromStr,
@@ -97,6 +97,16 @@ impl BaseUrl {
 
     pub fn is_file(&self) -> bool {
         is_file_url(self)
+    }
+
+    pub fn parse_strict(s: &str) -> Result<Self, BaseUrlError> {
+        let url = Url::parse(s).map_err(anyhow::Error::from)?;
+        url.try_into()
+    }
+
+    pub fn parse_lazy(s: &str) -> Result<Self, BaseUrlError> {
+        let url = Url::parse(s).map_err(anyhow::Error::from)?;
+        Self::try_autocomplete_from(url)
     }
 }
 

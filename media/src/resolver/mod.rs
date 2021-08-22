@@ -13,12 +13,16 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::media::{SourcePath, SourcePathKind};
+use std::{convert::TryFrom as _, path::PathBuf};
 
 use path_slash::PathBufExt as _;
-use std::path::PathBuf;
 use thiserror::Error;
 use url::Url;
+
+use aoide_core::{
+    media::{SourcePath, SourcePathKind},
+    util::url::BaseUrl,
+};
 
 #[derive(Error, Debug)]
 pub enum ResolveFromPathError {
@@ -89,7 +93,7 @@ impl SourcePathResolver for FileUrlResolver {
 
 #[derive(Debug, Clone, Default)]
 pub struct VirtualFilePathResolver {
-    root_url: Option<Url>,
+    root_url: Option<BaseUrl>,
     root_file_path: Option<PathBuf>,
     root_slash_path: Option<String>,
 }
@@ -107,7 +111,7 @@ impl VirtualFilePathResolver {
         !root_url.cannot_be_a_base() && root_url.scheme() == FILE_URL_SCHEME
     }
 
-    pub fn with_root_url(root_url: Url) -> Self {
+    pub fn with_root_url(root_url: BaseUrl) -> Self {
         debug_assert!(Self::is_valid_root_url(&root_url));
         let root_file_path = root_url.to_file_path();
         let root_url = Some(root_url);
@@ -117,6 +121,7 @@ impl VirtualFilePathResolver {
                 .as_ref()
                 .ok()
                 .and_then(|path| Url::from_directory_path(path).ok())
+                .and_then(|url| BaseUrl::try_from(url).ok())
         );
         let root_slash_path = root_file_path.as_ref().ok().and_then(|p| p.to_slash());
         debug_assert_eq!(root_file_path.is_ok(), root_slash_path.is_some());

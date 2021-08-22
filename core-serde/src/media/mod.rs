@@ -13,18 +13,19 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-mod _core {
-    pub use aoide_core::media::*;
-}
+use std::convert::TryFrom;
+use url::Url;
 
 use aoide_core::{
     media::{ContentMetadataFlags, Thumbnail4x4Rgb8},
-    util::IsDefault,
+    util::{url::BaseUrl, IsDefault},
 };
 
 use crate::{audio::AudioContent, prelude::*, util::clock::DateTime};
 
-use std::convert::TryFrom;
+mod _core {
+    pub use aoide_core::media::*;
+}
 
 pub use _core::SourcePath;
 
@@ -57,6 +58,56 @@ impl From<SourcePathKind> for _core::SourcePathKind {
             Url => Self::Url,
             FileUrl => Self::FileUrl,
             VirtualFilePath => Self::VirtualFilePath,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(Eq, PartialEq))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SourcePathConfig {
+    pub path_kind: SourcePathKind,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub root_url: Option<Url>,
+}
+
+impl TryFrom<SourcePathConfig> for _core::SourcePathConfig {
+    type Error = anyhow::Error;
+
+    fn try_from(from: SourcePathConfig) -> anyhow::Result<Self> {
+        let SourcePathConfig {
+            path_kind,
+            root_url,
+        } = from;
+        let into = match path_kind {
+            SourcePathKind::Uri => Self::Uri,
+            SourcePathKind::Url => Self::Url,
+            SourcePathKind::FileUrl => Self::FileUrl,
+            SourcePathKind::VirtualFilePath => {
+                if let Some(root_url) = root_url {
+                    let root_url = match BaseUrl::try_from(root_url) {
+                        Ok(root_url) => root_url,
+                        Err(err) => {
+                            anyhow::bail!("Invalid root URL: {}", err);
+                        }
+                    };
+                    Self::VirtualFilePath { root_url }
+                } else {
+                    anyhow::bail!("Missing root URL");
+                }
+            }
+        };
+        Ok(into)
+    }
+}
+
+impl From<_core::SourcePathConfig> for SourcePathConfig {
+    fn from(from: _core::SourcePathConfig) -> Self {
+        let (path_kind, root_url) = from.into();
+        Self {
+            path_kind: path_kind.into(),
+            root_url: root_url.map(Into::into),
         }
     }
 }

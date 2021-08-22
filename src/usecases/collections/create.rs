@@ -13,23 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
-
-use aoide_core::util::{clock::DateTime, url::BaseUrl};
-
 use semval::Validate as _;
 
-///////////////////////////////////////////////////////////////////////
+use aoide_core::util::clock::DateTime;
 
-pub fn create(connection: &SqliteConnection, mut new_collection: Collection) -> Result<Entity> {
-    new_collection.media_source_config.root_url = new_collection
-        .media_source_config
-        .root_url
-        .map(BaseUrl::try_autocomplete_from)
-        .transpose()
-        .map_err(anyhow::Error::from)
-        .map_err(Error::Input)?
-        .map(Into::into);
+use super::*;
+
+pub fn create(connection: &SqliteConnection, new_collection: Collection) -> Result<Entity> {
     if let Err(err) = new_collection.validate() {
         return Err(Error::Input(anyhow::anyhow!(
             "Invalid collection: {:?}",

@@ -13,47 +13,31 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use ::url::Url;
-
-use crate::{media::SourcePathKind, prelude::*, util::url::is_valid_base_url};
+use crate::{
+    media::{SourcePathConfig, SourcePathConfigInvalidity},
+    prelude::*,
+};
 
 use std::fmt::Debug;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MediaSourceConfig {
-    pub path_kind: SourcePathKind,
-
-    pub root_url: Option<Url>,
+    pub source_path: SourcePathConfig,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum MediaSourceConfigInvalidity {
-    MissingRootUrl,
-    InvalidRootUrl,
+    SourcePath(SourcePathConfigInvalidity),
 }
 
 impl Validate for MediaSourceConfig {
     type Invalidity = MediaSourceConfigInvalidity;
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        let Self {
-            path_kind,
-            root_url,
-        } = self;
-        let mut context = ValidationContext::new();
-        context = if let Some(root_url) = root_url {
-            context.invalidate_if(
-                !is_valid_base_url(root_url),
-                Self::Invalidity::InvalidRootUrl,
-            )
-        } else {
-            let root_url_mandatory = match *path_kind {
-                SourcePathKind::VirtualFilePath => true,
-                SourcePathKind::Uri | SourcePathKind::Url | SourcePathKind::FileUrl => false,
-            };
-            context.invalidate_if(root_url_mandatory, Self::Invalidity::MissingRootUrl)
-        };
-        context.into()
+        let Self { source_path } = self;
+        ValidationContext::new()
+            .validate_with(source_path, Self::Invalidity::SourcePath)
+            .into()
     }
 }
 

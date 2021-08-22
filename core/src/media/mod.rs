@@ -15,13 +15,14 @@
 
 use crate::{
     audio::{AudioContent, AudioContentInvalidity},
-    prelude::*,
+    prelude::{url::BaseUrl, *},
 };
 
 use bitflags::bitflags;
 use num_derive::{FromPrimitive, ToPrimitive};
 use std::{
     borrow::Cow,
+    convert::TryFrom,
     fmt,
     ops::{Deref, DerefMut},
 };
@@ -94,6 +95,84 @@ pub enum SourcePathKind {
     /// An accompanying root URL must be provided by the context to
     /// reconstruct the complete `file://` URL.
     VirtualFilePath = 3,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum SourcePathConfig {
+    Uri,
+    Url,
+    FileUrl,
+    VirtualFilePath { root_url: BaseUrl },
+}
+
+impl SourcePathConfig {
+    pub fn kind(&self) -> SourcePathKind {
+        match self {
+            Self::Uri => SourcePathKind::Uri,
+            Self::Url => SourcePathKind::Url,
+            Self::FileUrl => SourcePathKind::FileUrl,
+            Self::VirtualFilePath { .. } => SourcePathKind::VirtualFilePath,
+        }
+    }
+
+    pub fn root_url(&self) -> Option<&BaseUrl> {
+        match self {
+            Self::VirtualFilePath { root_url } => Some(root_url),
+            Self::Uri | Self::Url | Self::FileUrl => None,
+        }
+    }
+}
+
+/// Composition
+impl TryFrom<(SourcePathKind, Option<BaseUrl>)> for SourcePathConfig {
+    type Error = anyhow::Error;
+
+    fn try_from((path_kind, root_url): (SourcePathKind, Option<BaseUrl>)) -> anyhow::Result<Self> {
+        use SourcePathKind::*;
+        let into = match path_kind {
+            Uri => Self::Uri,
+            Url => Self::Url,
+            FileUrl => Self::FileUrl,
+            VirtualFilePath => {
+                if let Some(root_url) = root_url {
+                    Self::VirtualFilePath { root_url }
+                } else {
+                    anyhow::bail!("Missing root URL");
+                }
+            }
+        };
+        Ok(into)
+    }
+}
+
+/// Decomposition
+impl From<SourcePathConfig> for (SourcePathKind, Option<BaseUrl>) {
+    fn from(from: SourcePathConfig) -> Self {
+        use SourcePathConfig::*;
+        match from {
+            Uri => (SourcePathKind::Uri, None),
+            Url => (SourcePathKind::Url, None),
+            FileUrl => (SourcePathKind::FileUrl, None),
+            VirtualFilePath { root_url } => (SourcePathKind::VirtualFilePath, Some(root_url)),
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum SourcePathConfigInvalidity {
+    RootUrl,
+}
+
+impl Validate for SourcePathConfig {
+    type Invalidity = SourcePathConfigInvalidity;
+
+    fn validate(&self) -> ValidationResult<Self::Invalidity> {
+        let mut context = ValidationContext::new();
+        if let Self::VirtualFilePath { root_url } = self {
+            context = context.invalidate_if(!root_url.is_file(), Self::Invalidity::RootUrl);
+        }
+        context.into()
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////

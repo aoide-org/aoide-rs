@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::convert::TryInto as _;
+
 use crate::{
     db::{
         collection::{models::*, schema::*},
@@ -128,7 +130,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             .filter(collection::row_id.eq(RowId::from(id)))
             .first::<QueryableRecord>(self.as_ref())
             .map_err(repo_error)
-            .map(Into::into)
+            .and_then(|record| record.try_into().map_err(Into::into))
     }
 
     fn load_collection_entities(
@@ -161,7 +163,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
 
         collector.reserve(records.len());
         for record in records {
-            let (record_header, entity) = record.into();
+            let (record_header, entity) = record.try_into()?;
             let summary = if with_summary {
                 Some(self.load_collection_summary(record_header.id)?)
             } else {

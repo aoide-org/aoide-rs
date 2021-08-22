@@ -13,9 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use std::convert::TryInto as _;
 
 use crate::usecases::collections::create as uc;
+
+use super::*;
 
 pub type RequestBody = Collection;
 
@@ -25,7 +27,7 @@ pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
-    uc::create(&pooled_connection, request_body.into())
+    uc::create(&pooled_connection, request_body.try_into()?)
         .map(Into::into)
         .map_err(Into::into)
 }

@@ -24,6 +24,7 @@ mod _core {
     pub use aoide_core::entity::EntityUid;
 }
 
+use aoide_core::util::url::BaseUrl;
 use aoide_core_serde::{track::Entity, usecases::tracks::search::SearchParams};
 
 use url::Url;
@@ -68,6 +69,11 @@ pub fn handle_request(
         limit,
         offset,
     } = query_params;
+    let override_root_url = override_root_url
+        .map(BaseUrl::try_autocomplete_from)
+        .transpose()
+        .map_err(anyhow::Error::from)
+        .map_err(Error::BadRequest)?;
     let pagination = PaginationQueryParams { limit, offset };
     let pagination = Option::from(pagination).unwrap_or(DEFAULT_PAGINATION);
     // Passing a base URL override implies resolving paths

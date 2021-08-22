@@ -18,7 +18,7 @@ use super::*;
 use crate::prelude::tests::*;
 use test_env_log::test;
 
-use aoide_core::{entity::EntityHeader, media};
+use aoide_core::{entity::EntityHeader, media, util::url::BaseUrl};
 
 struct Fixture {
     db: SqliteConnection,
@@ -50,8 +50,9 @@ fn insert_collection() -> TestResult<()> {
             kind: None,
             color: None,
             media_source_config: MediaSourceConfig {
-                path_kind: media::SourcePathKind::VirtualFilePath,
-                root_url: None,
+                source_path: media::SourcePathConfig::VirtualFilePath {
+                    root_url: BaseUrl::parse_strict("file:///").unwrap(),
+                },
             },
         },
     )
@@ -73,8 +74,9 @@ fn update_collection() -> TestResult<()> {
             kind: None,
             color: None,
             media_source_config: MediaSourceConfig {
-                path_kind: media::SourcePathKind::VirtualFilePath,
-                root_url: None,
+                source_path: media::SourcePathConfig::VirtualFilePath {
+                    root_url: BaseUrl::parse_strict("file:///").unwrap(),
+                },
             },
         },
     )?;
@@ -125,8 +127,9 @@ fn delete_collection() -> TestResult<()> {
             kind: None,
             color: None,
             media_source_config: MediaSourceConfig {
-                path_kind: media::SourcePathKind::VirtualFilePath,
-                root_url: None,
+                source_path: media::SourcePathConfig::VirtualFilePath {
+                    root_url: BaseUrl::parse_strict("file:///").unwrap(),
+                },
             },
         },
     )

@@ -21,8 +21,8 @@ use test_env_log::test;
 use aoide_core::{
     collection::{Collection, Entity as CollectionEntity, MediaSourceConfig},
     entity::EntityHeader,
-    media::SourcePathKind,
-    util::clock::DateTime,
+    media::SourcePathConfig,
+    util::{clock::DateTime, url::BaseUrl},
 };
 
 use aoide_repo::{
@@ -43,8 +43,9 @@ impl Fixture {
             kind: None,
             color: None,
             media_source_config: MediaSourceConfig {
-                path_kind: SourcePathKind::VirtualFilePath,
-                root_url: None,
+                source_path: SourcePathConfig::VirtualFilePath {
+                    root_url: BaseUrl::parse_strict("file:///").unwrap(),
+                },
             },
         };
         let db = establish_connection()?;

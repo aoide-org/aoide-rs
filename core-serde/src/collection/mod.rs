@@ -13,15 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::prelude::*;
+use std::convert::{TryFrom, TryInto as _};
 
-use crate::{media::SourcePathKind, util::color::Color};
+use crate::{media::SourcePathConfig, prelude::*, util::color::Color};
 
 mod _core {
     pub use aoide_core::{collection::*, entity::EntityHeader};
 }
-
-use url::Url;
 
 ///////////////////////////////////////////////////////////////////////
 // Collection
@@ -31,34 +29,26 @@ use url::Url;
 #[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct MediaSourceConfig {
-    pub path_kind: SourcePathKind,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub root_url: Option<Url>,
+    pub source_path: SourcePathConfig,
 }
 
-impl From<MediaSourceConfig> for _core::MediaSourceConfig {
-    fn from(from: MediaSourceConfig) -> Self {
-        let MediaSourceConfig {
-            path_kind,
-            root_url,
-        } = from;
-        Self {
-            path_kind: path_kind.into(),
-            root_url: root_url.map(Into::into),
-        }
+impl TryFrom<MediaSourceConfig> for _core::MediaSourceConfig {
+    type Error = anyhow::Error;
+
+    fn try_from(from: MediaSourceConfig) -> anyhow::Result<Self> {
+        let MediaSourceConfig { source_path } = from;
+        let into = Self {
+            source_path: source_path.try_into()?,
+        };
+        Ok(into)
     }
 }
 
 impl From<_core::MediaSourceConfig> for MediaSourceConfig {
     fn from(from: _core::MediaSourceConfig) -> Self {
-        let _core::MediaSourceConfig {
-            path_kind,
-            root_url,
-        } = from;
+        let _core::MediaSourceConfig { source_path } = from;
         Self {
-            path_kind: path_kind.into(),
-            root_url: root_url.map(Into::into),
+            source_path: source_path.into(),
         }
     }
 }
@@ -81,8 +71,10 @@ pub struct Collection {
     media_source_config: MediaSourceConfig,
 }
 
-impl From<Collection> for _core::Collection {
-    fn from(from: Collection) -> Self {
+impl TryFrom<Collection> for _core::Collection {
+    type Error = anyhow::Error;
+
+    fn try_from(from: Collection) -> anyhow::Result<Self> {
         let Collection {
             title,
             notes,
@@ -90,13 +82,14 @@ impl From<Collection> for _core::Collection {
             color,
             media_source_config,
         } = from;
-        Self {
+        let into = Self {
             title,
             notes,
             kind,
             color: color.map(Into::into),
-            media_source_config: media_source_config.into(),
-        }
+            media_source_config: media_source_config.try_into()?,
+        };
+        Ok(into)
     }
 }
 
@@ -125,9 +118,11 @@ impl From<_core::Collection> for Collection {
 
 pub type Entity = crate::entity::Entity<Collection>;
 
-impl From<Entity> for _core::Entity {
-    fn from(from: Entity) -> Self {
-        Self::new(from.0, from.1)
+impl TryFrom<Entity> for _core::Entity {
+    type Error = anyhow::Error;
+
+    fn try_from(from: Entity) -> anyhow::Result<Self> {
+        Self::try_new(from.0, from.1)
     }
 }
 

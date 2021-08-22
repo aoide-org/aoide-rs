@@ -13,17 +13,19 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::{schema::*, *};
+use std::convert::{TryFrom, TryInto as _};
+
+use num_traits::FromPrimitive as _;
+use url::Url;
 
 use aoide_core::{
     collection::*,
     entity::{EntityHeader, EntityRevision},
-    media::SourcePathKind,
-    util::{clock::*, color::*},
+    media::{SourcePathConfig, SourcePathKind},
+    util::{clock::*, color::*, url::BaseUrl},
 };
 
-use num_traits::FromPrimitive as _;
-use url::Url;
+use super::{schema::*, *};
 
 #[derive(Debug, Queryable, Identifiable)]
 #[table_name = "collection"]
@@ -42,8 +44,10 @@ pub struct QueryableRecord {
     pub media_source_root_url: Option<String>,
 }
 
-impl From<QueryableRecord> for (RecordHeader, Entity) {
-    fn from(from: QueryableRecord) -> Self {
+impl TryFrom<QueryableRecord> for (RecordHeader, Entity) {
+    type Error = anyhow::Error;
+
+    fn try_from(from: QueryableRecord) -> anyhow::Result<Self> {
         let QueryableRecord {
             id,
             row_created_ms,
@@ -63,29 +67,31 @@ impl From<QueryableRecord> for (RecordHeader, Entity) {
             created_at: DateTime::new_timestamp_millis(row_created_ms),
             updated_at: DateTime::new_timestamp_millis(row_updated_ms),
         };
-        let media_source_path_kind = SourcePathKind::from_i16(media_source_path_kind)
-            .unwrap_or_else(|| {
-                log::error!(
+        let media_source_path_kind = match SourcePathKind::from_i16(media_source_path_kind) {
+            Some(path_kind) => path_kind,
+            None => {
+                anyhow::bail!(
                     "Invalid media source path kind value: {}",
                     media_source_path_kind
                 );
-                SourcePathKind::Uri
-            });
+            }
+        };
         let media_source_root_url = media_source_root_url
             .as_deref()
-            .map(Url::parse)
+            .map(BaseUrl::parse_strict)
             .transpose()
             .unwrap_or_else(|err| {
                 log::error!(
-                    "Invalid media source base URL '{}': {}",
+                    "Invalid media source root URL '{}': {}",
                     media_source_root_url.unwrap_or_default(),
                     err,
                 );
                 None
             });
+        let media_source_path_config =
+            SourcePathConfig::try_from((media_source_path_kind, media_source_root_url))?;
         let media_source_config = MediaSourceConfig {
-            path_kind: media_source_path_kind,
-            root_url: media_source_root_url,
+            source_path: media_source_path_config,
         };
         let entity_hdr = entity_header_from_sql(&entity_uid, entity_rev);
         let entity_body = Collection {
@@ -102,14 +108,17 @@ impl From<QueryableRecord> for (RecordHeader, Entity) {
             },
             media_source_config,
         };
-        (header, Entity::new(entity_hdr, entity_body))
+        let entity = Entity::new(entity_hdr, entity_body);
+        Ok((header, entity))
     }
 }
 
-impl From<QueryableRecord> for Entity {
-    fn from(from: QueryableRecord) -> Self {
-        let (_, entity) = from.into();
-        entity
+impl TryFrom<QueryableRecord> for Entity {
+    type Error = anyhow::Error;
+
+    fn try_from(from: QueryableRecord) -> anyhow::Result<Self> {
+        let (_, entity) = from.try_into()?;
+        Ok(entity)
     }
 }
 
@@ -135,16 +144,14 @@ impl<'a> InsertableRecord<'a> {
         let (hdr, body) = entity.into();
         let EntityHeader { uid, rev } = hdr;
         let Collection {
-            media_source_config:
-                MediaSourceConfig {
-                    path_kind: media_source_path_kind,
-                    root_url: media_source_root_url,
-                },
+            media_source_config: MediaSourceConfig { source_path },
             title,
             kind,
             notes,
             color,
         } = body;
+        let media_source_path_kind = source_path.kind();
+        let media_source_root_url: Option<&Url> = source_path.root_url().map(Deref::deref);
         Self {
             row_created_ms: row_created_updated_ms,
             row_updated_ms: row_created_updated_ms,
@@ -163,8 +170,8 @@ impl<'a> InsertableRecord<'a> {
             } else {
                 None
             },
-            media_source_path_kind: *media_source_path_kind as i16,
-            media_source_root_url: media_source_root_url.as_ref().map(Url::as_str),
+            media_source_path_kind: media_source_path_kind as i16,
+            media_source_root_url: media_source_root_url.map(Url::as_str),
         }
     }
 }
@@ -210,16 +217,14 @@ impl<'a> UpdatableRecord<'a> {
     ) -> Self {
         let entity_rev = entity_revision_to_sql(next_rev);
         let Collection {
-            media_source_config:
-                MediaSourceConfig {
-                    path_kind: media_source_path_kind,
-                    root_url: media_source_root_url,
-                },
+            media_source_config: MediaSourceConfig { source_path },
             title,
             kind,
             notes,
             color,
         } = collection;
+        let media_source_path_kind = source_path.kind();
+        let media_source_root_url: Option<&Url> = source_path.root_url().map(Deref::deref);
         Self {
             row_updated_ms: updated_at.timestamp_millis(),
             entity_rev,
@@ -236,8 +241,8 @@ impl<'a> UpdatableRecord<'a> {
             } else {
                 None
             },
-            media_source_path_kind: *media_source_path_kind as i16,
-            media_source_root_url: media_source_root_url.as_ref().map(Url::as_str),
+            media_source_path_kind: media_source_path_kind as i16,
+            media_source_root_url: media_source_root_url.map(Url::as_str),
         }
     }
 }

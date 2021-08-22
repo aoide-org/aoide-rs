@@ -22,7 +22,7 @@ use aoide_core::{
     audio::{AudioContent, DurationMs},
     collection::{Collection, Entity as CollectionEntity, MediaSourceConfig},
     entity::EntityHeader,
-    media::{self, ApicType, ArtworkImage, ImageSize, LinkedArtwork, SourcePath, SourcePathKind},
+    media::{self, ApicType, ArtworkImage, ImageSize, LinkedArtwork, SourcePath, SourcePathConfig},
     util::clock::DateTime,
 };
 
@@ -43,8 +43,9 @@ impl Fixture {
             kind: None,
             color: None,
             media_source_config: MediaSourceConfig {
-                path_kind: SourcePathKind::VirtualFilePath,
-                root_url: None,
+                source_path: SourcePathConfig::VirtualFilePath {
+                    root_url: "file::///".parse().unwrap(),
+                },
             },
         };
         let db = establish_connection()?;

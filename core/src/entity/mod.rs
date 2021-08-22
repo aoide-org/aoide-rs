@@ -13,10 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::prelude::*;
-
 use rand::{thread_rng, RngCore};
-use std::{fmt, marker::PhantomData, mem, str};
+use std::{convert::TryInto, fmt, marker::PhantomData, mem, str};
+
+use crate::prelude::*;
 
 ///////////////////////////////////////////////////////////////////////
 // EntityUid
@@ -252,6 +252,20 @@ impl<T, B> Entity<T, B> {
             body: body.into(),
             _phantom: PhantomData,
         }
+    }
+
+    pub fn try_new<TryIntoB>(
+        hdr: impl Into<EntityHeader>,
+        body: TryIntoB,
+    ) -> Result<Self, TryIntoB::Error>
+    where
+        TryIntoB: TryInto<B>,
+    {
+        Ok(Entity {
+            hdr: hdr.into(),
+            body: body.try_into()?,
+            _phantom: PhantomData,
+        })
     }
 }
 

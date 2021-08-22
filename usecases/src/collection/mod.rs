@@ -13,42 +13,37 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use aoide_core::{entity::EntityUid, util::url::BaseUrl};
 
-use aoide_core::{entity::EntityUid, media::SourcePathKind};
 use aoide_media::resolver::VirtualFilePathResolver;
+
 use aoide_repo::collection::{EntityRepo, RecordId as CollectionId};
 
-use url::Url;
+use super::*;
 
 pub fn load_virtual_file_path_resolver<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
-    override_root_url: Option<Url>,
+    override_root_url: Option<BaseUrl>,
 ) -> Result<VirtualFilePathResolver>
 where
     Repo: EntityRepo,
 {
     let (_, entity) = repo.load_collection_entity(collection_id)?;
-    if entity.body.media_source_config.path_kind != SourcePathKind::VirtualFilePath {
-        return Err(anyhow::anyhow!(
-            "Unsupported media source path kind: {:?}",
-            entity.body.media_source_config.path_kind
-        )
-        .into());
-    }
-    let resolver = if let Some(root_url) = entity.body.media_source_config.root_url {
-        VirtualFilePathResolver::with_root_url(override_root_url.unwrap_or(root_url))
+    let (path_kind, root_url) = entity.body.media_source_config.source_path.into();
+    let root_url = if let Some(root_url) = root_url {
+        root_url
     } else {
-        VirtualFilePathResolver::new()
+        return Err(anyhow::anyhow!("Unsupported media source path kind: {:?}", path_kind).into());
     };
+    let resolver = VirtualFilePathResolver::with_root_url(override_root_url.unwrap_or(root_url));
     Ok(resolver)
 }
 
 pub fn resolve_collection_id_for_virtual_file_path<Repo>(
     repo: &Repo,
     collection_uid: &EntityUid,
-    override_root_url: Option<Url>,
+    override_root_url: Option<BaseUrl>,
 ) -> Result<(CollectionId, VirtualFilePathResolver)>
 where
     Repo: EntityRepo,

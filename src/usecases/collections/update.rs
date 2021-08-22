@@ -13,25 +13,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
-
-use aoide_core::util::{clock::DateTime, url::BaseUrl};
-
 use semval::Validate as _;
+
+use aoide_core::util::clock::DateTime;
+
+use super::*;
 
 pub fn update(
     connection: &SqliteConnection,
     updated_entity_with_current_rev: Entity,
 ) -> Result<Entity> {
-    let (hdr, mut body) = updated_entity_with_current_rev.into();
-    body.media_source_config.root_url = body
-        .media_source_config
-        .root_url
-        .map(BaseUrl::try_autocomplete_from)
-        .transpose()
-        .map_err(anyhow::Error::from)
-        .map_err(Error::Input)?
-        .map(Into::into);
+    let (hdr, body) = updated_entity_with_current_rev.into();
     if let Err(err) = body.validate() {
         return Err(Error::Input(anyhow::anyhow!(
             "Invalid collection: {:?}",

@@ -289,8 +289,9 @@ async fn main() -> anyhow::Result<()> {
                             notes: None,
                             color: None,
                             media_source_config: MediaSourceConfig {
-                                path_kind: aoide_core::media::SourcePathKind::VirtualFilePath,
-                                root_url: Some(root_url),
+                                source_path: aoide_core::media::SourcePathConfig::VirtualFilePath {
+                                    root_url,
+                                },
                             },
                         };
                         subcommand_submitted = true;
@@ -405,7 +406,13 @@ async fn main() -> anyhow::Result<()> {
                                     .and_then(|m| m.value_of("root-url"))
                                     .map(|s| s.parse().expect("URL"))
                                     .or_else(|| {
-                                        collection.body.media_source_config.root_url.clone()
+                                        collection
+                                            .body
+                                            .media_source_config
+                                            .source_path
+                                            .root_url()
+                                            .cloned()
+                                            .map(Into::into)
                                     });
                                 subcommand_submitted = true;
                                 last_media_tracker_status = None;
@@ -423,7 +430,13 @@ async fn main() -> anyhow::Result<()> {
                                     .and_then(|m| m.value_of("root-url"))
                                     .map(|s| s.parse().expect("URL"))
                                     .or_else(|| {
-                                        collection.body.media_source_config.root_url.clone()
+                                        collection
+                                            .body
+                                            .media_source_config
+                                            .source_path
+                                            .root_url()
+                                            .cloned()
+                                            .map(Into::into)
                                     });
                                 subcommand_submitted = true;
                                 return Some(
