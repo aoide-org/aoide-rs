@@ -166,6 +166,12 @@ impl import::ImportTrack for ImportTrack {
         for name in filter_vorbis_comment_values(vorbis_comments, "REMIXER") {
             push_next_actor_role_name(&mut track_actors, ActorRole::Remixer, name.to_owned());
         }
+        for name in filter_vorbis_comment_values(vorbis_comments, "MIXER") {
+            push_next_actor_role_name(&mut track_actors, ActorRole::Mixer, name.to_owned());
+        }
+        for name in filter_vorbis_comment_values(vorbis_comments, "ENGINEER") {
+            push_next_actor_role_name(&mut track_actors, ActorRole::Engineer, name.to_owned());
+        }
         let track_actors = track_actors.canonicalize_into();
         if !track_actors.is_empty() {
             track.actors = Canonical::tie(track_actors);

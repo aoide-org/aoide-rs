@@ -125,24 +125,34 @@ impl import::ImportTrack for ImportTrack {
                 push_next_actor_role_name(&mut track_actors, ActorRole::Artist, name.to_owned());
             }
         }
-        if let Some(artists) = flac_tag.get_vorbis("COMPOSER") {
-            for name in artists {
+        if let Some(compersers) = flac_tag.get_vorbis("COMPOSER") {
+            for name in compersers {
                 push_next_actor_role_name(&mut track_actors, ActorRole::Composer, name.to_owned());
             }
         }
-        if let Some(artists) = flac_tag.get_vorbis("CONDUCTOR") {
-            for name in artists {
+        if let Some(conductors) = flac_tag.get_vorbis("CONDUCTOR") {
+            for name in conductors {
                 push_next_actor_role_name(&mut track_actors, ActorRole::Conductor, name.to_owned());
             }
         }
-        if let Some(artists) = flac_tag.get_vorbis("PRODUCER") {
-            for name in artists {
+        if let Some(producers) = flac_tag.get_vorbis("PRODUCER") {
+            for name in producers {
                 push_next_actor_role_name(&mut track_actors, ActorRole::Producer, name.to_owned());
             }
         }
-        if let Some(artists) = flac_tag.get_vorbis("REMIXER") {
-            for name in artists {
+        if let Some(remixers) = flac_tag.get_vorbis("REMIXER") {
+            for name in remixers {
                 push_next_actor_role_name(&mut track_actors, ActorRole::Remixer, name.to_owned());
+            }
+        }
+        if let Some(mixers) = flac_tag.get_vorbis("MIXER") {
+            for name in mixers {
+                push_next_actor_role_name(&mut track_actors, ActorRole::Mixer, name.to_owned());
+            }
+        }
+        if let Some(engineers) = flac_tag.get_vorbis("ENGINEER") {
+            for name in engineers {
+                push_next_actor_role_name(&mut track_actors, ActorRole::Engineer, name.to_owned());
             }
         }
         let track_actors = track_actors.canonicalize_into();

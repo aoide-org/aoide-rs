@@ -110,6 +110,12 @@ const PRODUCER_IDENT: FreeformIdent<'static> =
 const REMIXER_IDENT: FreeformIdent<'static> =
     FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "REMIXER");
 
+const ENGINEER_IDENT: FreeformIdent<'static> =
+    FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "ENGINEER");
+
+const MIXER_IDENT: FreeformIdent<'static> =
+    FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "MIXER");
+
 const LABEL_IDENT: FreeformIdent<'static> =
     FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "LABEL");
 
@@ -272,6 +278,12 @@ impl import::ImportTrack for ImportTrack {
         }
         for name in mp4_tag.take_strings_of(&REMIXER_IDENT) {
             push_next_actor_role_name(&mut track_actors, ActorRole::Remixer, name);
+        }
+        for name in mp4_tag.take_strings_of(&MIXER_IDENT) {
+            push_next_actor_role_name(&mut track_actors, ActorRole::Mixer, name);
+        }
+        for name in mp4_tag.take_strings_of(&ENGINEER_IDENT) {
+            push_next_actor_role_name(&mut track_actors, ActorRole::Engineer, name);
         }
         for name in mp4_tag.take_lyricists() {
             push_next_actor_role_name(&mut track_actors, ActorRole::Lyricist, name);
