@@ -15,6 +15,8 @@
 
 use std::convert::TryInto as _;
 
+use num_traits::{FromPrimitive as _, ToPrimitive};
+
 use aoide_core::{
     audio::{
         channel::{ChannelCount, NumberOfChannels},
@@ -22,8 +24,8 @@ use aoide_core::{
         AudioContent, DurationMs,
     },
     media::{
-        ApicType, Artwork, ArtworkImage, Content, ContentMetadataFlags, EmbeddedArtwork,
-        ImageDimension, ImageSize, LinkedArtwork, Source,
+        AdvisoryRating, ApicType, Artwork, ArtworkImage, Content, ContentMetadataFlags,
+        EmbeddedArtwork, ImageDimension, ImageSize, LinkedArtwork, Source,
     },
     util::clock::*,
 };
@@ -49,6 +51,7 @@ pub struct QueryableRecord {
     pub synchronized_ms: Option<TimestampMillis>,
     pub path: String,
     pub content_type: String,
+    pub advisory_rating: Option<i16>,
     pub content_digest: Option<Vec<u8>>,
     pub content_metadata_flags: i16,
     pub audio_duration_ms: Option<f64>,
@@ -80,6 +83,7 @@ impl From<QueryableRecord> for (RecordHeader, Source) {
             synchronized_ms,
             path,
             content_type,
+            advisory_rating,
             content_digest,
             content_metadata_flags,
             audio_duration_ms,
@@ -114,7 +118,7 @@ impl From<QueryableRecord> for (RecordHeader, Source) {
                 }
                 _ => {
                     let apic_type = artwork_apic_type
-                        .and_then(|v| v.try_into().ok().and_then(ApicType::try_from_u8))
+                        .and_then(ApicType::from_i16)
                         .unwrap_or(ApicType::Other);
                     let media_type = artwork_media_type.unwrap_or_default();
                     let size = if let (Some(width), Some(height)) =
@@ -163,6 +167,7 @@ impl From<QueryableRecord> for (RecordHeader, Source) {
             synchronized_at: parse_datetime_opt(synchronized_at.as_deref(), synchronized_ms),
             path: path.into(),
             content_type,
+            advisory_rating: advisory_rating.and_then(AdvisoryRating::from_i16),
             content_digest,
             content_metadata_flags: ContentMetadataFlags::from_bits_truncate(
                 content_metadata_flags as u8,
@@ -186,6 +191,7 @@ pub struct InsertableRecord<'a> {
     pub synchronized_ms: Option<TimestampMillis>,
     pub path: &'a str,
     pub content_type: &'a str,
+    pub advisory_rating: Option<i16>,
     pub content_digest: Option<&'a [u8]>,
     pub content_metadata_flags: i16,
     pub audio_duration_ms: Option<f64>,
@@ -215,6 +221,7 @@ impl<'a> InsertableRecord<'a> {
             synchronized_at,
             path,
             content_type,
+            advisory_rating,
             content_digest,
             content_metadata_flags,
             content,
@@ -251,7 +258,7 @@ impl<'a> InsertableRecord<'a> {
                 digest,
                 thumbnail,
             } = image;
-            artwork_apic_type = Some(apic_type.to_u8() as i16);
+            artwork_apic_type = apic_type.to_i16();
             artwork_media_type = Some(media_type.as_str());
             artwork_size_width = size.map(|size| size.width as i16);
             artwork_size_height = size.map(|size| size.height as i16);
@@ -276,6 +283,7 @@ impl<'a> InsertableRecord<'a> {
             synchronized_ms: synchronized_at.map(DateTime::timestamp_millis),
             path: path.as_str(),
             content_type: content_type.as_str(),
+            advisory_rating: advisory_rating.as_ref().and_then(ToPrimitive::to_i16),
             content_digest: content_digest.as_ref().map(Vec::as_slice),
             content_metadata_flags: content_metadata_flags.bits() as i16,
             audio_duration_ms: audio_content
@@ -317,6 +325,7 @@ pub struct UpdatableRecord<'a> {
     pub synchronized_ms: Option<TimestampMillis>,
     pub path: &'a str,
     pub content_type: &'a str,
+    pub advisory_rating: Option<i16>,
     pub content_digest: Option<&'a [u8]>,
     pub content_metadata_flags: i16,
     pub audio_duration_ms: Option<f64>,
@@ -342,6 +351,7 @@ impl<'a> UpdatableRecord<'a> {
             synchronized_at,
             path,
             content_type,
+            advisory_rating,
             content_digest,
             content_metadata_flags,
             content,
@@ -378,7 +388,7 @@ impl<'a> UpdatableRecord<'a> {
                 digest,
                 thumbnail,
             } = image;
-            artwork_apic_type = Some(apic_type.to_u8() as i16);
+            artwork_apic_type = apic_type.to_i16();
             artwork_media_type = Some(media_type.as_str());
             artwork_size_width = size.map(|size| size.width as i16);
             artwork_size_height = size.map(|size| size.height as i16);
@@ -400,6 +410,7 @@ impl<'a> UpdatableRecord<'a> {
             synchronized_ms: synchronized_at.map(DateTime::timestamp_millis),
             path: path.as_str(),
             content_type: content_type.as_str(),
+            advisory_rating: advisory_rating.as_ref().and_then(ToPrimitive::to_i16),
             content_digest: content_digest.as_ref().map(Vec::as_slice),
             content_metadata_flags: content_metadata_flags.bits() as i16,
             audio_duration_ms: audio_content

@@ -13,16 +13,16 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{
-    io::import::{ImportTrackConfig, ImportTrackFlags},
-    util::{
-        digest::MediaDigest,
-        parse_index_numbers, parse_key_signature, parse_replay_gain, parse_tempo_bpm,
-        push_next_actor_role_name, serato,
-        tag::{import_faceted_tags, FacetedTagMappingConfig},
-        try_load_embedded_artwork,
-    },
-    Result,
+use std::{borrow::Cow, time::Duration};
+
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
+use id3::{self, frame::PictureType};
+use mime::Mime;
+use num_traits::FromPrimitive as _;
+use semval::IsValid as _;
+use triseratops::tag::{
+    format::id3::ID3Tag, Markers as SeratoMarkers, Markers2 as SeratoMarkers2,
+    TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat,
 };
 
 use aoide_core::{
@@ -46,14 +46,16 @@ use aoide_core::{
 
 use aoide_core_serde::tag::Tags as SerdeTags;
 
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
-use id3::{self, frame::PictureType};
-use mime::Mime;
-use semval::IsValid as _;
-use std::{borrow::Cow, time::Duration};
-use triseratops::tag::{
-    format::id3::ID3Tag, Markers as SeratoMarkers, Markers2 as SeratoMarkers2,
-    TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat,
+use crate::{
+    io::import::{ImportTrackConfig, ImportTrackFlags},
+    util::{
+        digest::MediaDigest,
+        parse_index_numbers, parse_key_signature, parse_replay_gain, parse_tempo_bpm,
+        push_next_actor_role_name, serato,
+        tag::{import_faceted_tags, FacetedTagMappingConfig},
+        try_load_embedded_artwork,
+    },
+    Result,
 };
 
 fn parse_timestamp(timestamp: id3::Timestamp) -> DateOrDateTime {
@@ -492,7 +494,7 @@ pub fn import_track(
             // otherwise take the first picture that could be parsed
             .chain(tag.pictures().map(|p| {
                 (
-                    ApicType::try_from_u8(p.picture_type.into()).unwrap_or(ApicType::Other),
+                    ApicType::from_u8(p.picture_type.into()).unwrap_or(ApicType::Other),
                     p,
                 )
             }))

@@ -78,6 +78,7 @@ impl NewTrackInput {
             synchronized_at: Some(synchronized_at),
             path,
             content_type: mime.to_string(),
+            advisory_rating: None,
             content_digest: None,
             content_metadata_flags: Default::default(),
             content: Content::Audio(Default::default()),

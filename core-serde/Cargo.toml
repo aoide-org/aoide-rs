@@ -11,6 +11,7 @@ aoide-core = "*"
 anyhow = "*"
 base64 = "*"
 chrono = { version = "*", features = ["serde"] }
+num-traits = "*"
 schemars = { version = "*", features = ["chrono"] }
 semval = "*"
 serde = { version = "*", features = ["derive"] }

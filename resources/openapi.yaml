@@ -1290,6 +1290,15 @@ components:
       properties:
         idx:
           $ref: '#/components/schemas/ColorIndex'
+    AdvisoryRatingCode:
+      type: integer
+      enum: [0, 1, 2]
+      description: |
+        Advisory rating for content(s):
+
+          * 0 = Inoffensive
+          * 1 = Explicit (offensive)
+          * 2 = Clean (inoffensive after edited)
     MediaDigest:
       description: |
         A crypographic 256-bit hash encoded as *base64url* (RFC 4648) without padding
@@ -1566,6 +1575,8 @@ components:
           $ref: '#/components/schemas/MediaSourcePath'
         contentType:
           $ref: '#/components/schemas/MediaType'
+        advisoryRating:
+          $ref: '#/components/schemas/AdvisoryRatingCode'
         contentDigest:
           $ref: '#/components/schemas/MediaDigest'
         ContentMetadataFlags:
@@ -1702,6 +1713,7 @@ components:
         - audioDurationMs
         - audioLoudnessLufs
         - audioSampleRateHz
+        - advisoryRating
         - discNumber
         - discTotal
         - musicTempoBpm

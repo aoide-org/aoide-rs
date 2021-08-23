@@ -13,16 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-///////////////////////////////////////////////////////////////////////
-
-use crate::{
-    io::import::{self, *},
-    util::{
-        digest::MediaDigest, parse_key_signature, parse_replay_gain, parse_tempo_bpm,
-        parse_year_tag, push_next_actor_role_name, serato, tag::import_faceted_tags,
-        try_load_embedded_artwork,
-    },
-    Result,
+use image::ImageFormat;
+use mp4ameta::{
+    AdvisoryRating as Mp4AdvisoryRating, ChannelConfig, Data, Fourcc, FreeformIdent,
+    SampleRate as Mp4SampleRate, Tag as Mp4Tag, STANDARD_GENRES,
+};
+use semval::IsValid as _;
+use triseratops::tag::{
+    format::mp4::MP4Tag, Markers as SeratoMarkers, Markers2 as SeratoMarkers2,
+    TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat,
 };
 
 use aoide_core::{
@@ -31,7 +30,7 @@ use aoide_core::{
         signal::{BitrateBps, BitsPerSecond, SampleRateHz, SamplesPerSecond},
         AudioContent,
     },
-    media::{ApicType, Artwork, Content, ContentMetadataFlags},
+    media::{AdvisoryRating, ApicType, Artwork, Content, ContentMetadataFlags},
     music::time::{Beats, TempoBpm},
     tag::{Score as TagScore, Tags, TagsMap},
     track::{
@@ -47,15 +46,14 @@ use aoide_core::{
 
 use aoide_core_serde::tag::Tags as SerdeTags;
 
-use image::ImageFormat;
-use mp4ameta::{
-    ChannelConfig, Data, Fourcc, FreeformIdent, SampleRate as Mp4SampleRate, Tag as Mp4Tag,
-    STANDARD_GENRES,
-};
-use semval::IsValid as _;
-use triseratops::tag::{
-    format::mp4::MP4Tag, Markers as SeratoMarkers, Markers2 as SeratoMarkers2,
-    TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat,
+use crate::{
+    io::import::{self, *},
+    util::{
+        digest::MediaDigest, parse_key_signature, parse_replay_gain, parse_tempo_bpm,
+        parse_year_tag, push_next_actor_role_name, serato, tag::import_faceted_tags,
+        try_load_embedded_artwork,
+    },
+    Result,
 };
 
 #[derive(Debug)]
@@ -143,6 +141,16 @@ impl import::ImportTrack for ImportTrack {
                 encoder,
             };
             track.media_source.content = Content::Audio(audio_content);
+        }
+
+        if let Some(advisory_rating) = mp4_tag.advisory_rating() {
+            let advisory_rating = match advisory_rating {
+                Mp4AdvisoryRating::Inoffensive => AdvisoryRating::Unrated,
+                Mp4AdvisoryRating::Clean => AdvisoryRating::Clean,
+                Mp4AdvisoryRating::Explicit => AdvisoryRating::Explicit,
+            };
+            debug_assert!(track.media_source.advisory_rating.is_none());
+            track.media_source.advisory_rating = Some(advisory_rating);
         }
 
         let mut tempo_bpm_non_fractional = false;

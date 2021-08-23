@@ -80,6 +80,7 @@ impl fmt::Display for SourcePath {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, FromPrimitive, ToPrimitive)]
+#[repr(u8)]
 pub enum SourcePathKind {
     /// Percent-encoded URI (case-sensitive)
     Uri = 0,
@@ -345,7 +346,7 @@ pub fn concat_encoder_properties<'a>(
 ///////////////////////////////////////////////////////////////////////
 
 /// The APIC picture type code as defined by ID3v2.
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, FromPrimitive, ToPrimitive)]
 #[repr(u8)]
 pub enum ApicType {
     Other = 0x00,
@@ -369,40 +370,6 @@ pub enum ApicType {
     Illustration = 0x12,
     BandLogo = 0x13,
     PublisherLogo = 0x14,
-}
-
-impl ApicType {
-    pub fn try_from_u8(val: u8) -> Option<Self> {
-        let some = match val {
-            0x00 => Self::Other,
-            0x01 => Self::Icon,
-            0x02 => Self::OtherIcon,
-            0x03 => Self::CoverFront,
-            0x04 => Self::CoverBack,
-            0x05 => Self::Leaflet,
-            0x06 => Self::Media,
-            0x07 => Self::LeadArtist,
-            0x08 => Self::Artist,
-            0x09 => Self::Conductor,
-            0x0A => Self::Band,
-            0x0B => Self::Composer,
-            0x0C => Self::Lyricist,
-            0x0D => Self::RecordingLocation,
-            0x0E => Self::DuringRecording,
-            0x0F => Self::DuringPerformance,
-            0x10 => Self::ScreenCapture,
-            0x11 => Self::BrightFish,
-            0x12 => Self::Illustration,
-            0x13 => Self::BandLogo,
-            0x14 => Self::PublisherLogo,
-            _ => return None,
-        };
-        Some(some)
-    }
-
-    pub const fn to_u8(self) -> u8 {
-        self as u8
-    }
 }
 
 pub type ImageDimension = u16;
@@ -531,6 +498,34 @@ impl Validate for Artwork {
 // Source
 ///////////////////////////////////////////////////////////////////////
 
+/// Advisory rating code for content(s)
+///
+/// Values match the "rtng" MP4 atom containing the advisory rating
+/// as written by iTunes.
+///
+/// Note: Previously Apple used the value 4 for explicit content that
+/// has now been replaced by 1.
+#[derive(Copy, Clone, Debug, Eq, PartialEq, FromPrimitive, ToPrimitive)]
+pub enum AdvisoryRating {
+    /// Inoffensive
+    Unrated = 0,
+
+    /// Offensive
+    Explicit = 1,
+
+    /// Inoffensive (Edited)
+    Clean = 2,
+}
+
+impl AdvisoryRating {
+    pub fn is_offensive(self) -> bool {
+        match self {
+            Self::Unrated | Self::Clean => false,
+            Self::Explicit => true,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Source {
     pub collected_at: DateTime,
@@ -540,6 +535,8 @@ pub struct Source {
     pub path: SourcePath,
 
     pub content_type: String,
+
+    pub advisory_rating: Option<AdvisoryRating>,
 
     /// Content digest for identifying sources independent of their
     /// URI, e.g. to detect moved files.
@@ -577,6 +574,7 @@ impl Validate for Source {
             content,
             content_digest: _,
             content_metadata_flags,
+            advisory_rating: _,
             content_type,
             path,
             synchronized_at: _,

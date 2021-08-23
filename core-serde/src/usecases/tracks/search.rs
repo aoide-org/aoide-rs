@@ -189,6 +189,7 @@ impl From<_core::StringField> for StringField {
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum NumericField {
+    AdvisoryRating,
     AudioBitrateBps,
     AudioChannelCount,
     AudioDurationMs,
@@ -213,6 +214,7 @@ impl From<NumericField> for _core::NumericField {
             AudioDurationMs => Self::AudioDurationMs,
             AudioSampleRateHz => Self::AudioSampleRateHz,
             AudioLoudnessLufs => Self::AudioLoudnessLufs,
+            AdvisoryRating => Self::AdvisoryRating,
             DiscNumber => Self::DiscNumber,
             DiscTotal => Self::DiscTotal,
             MusicTempoBpm => Self::MusicTempoBpm,
@@ -234,6 +236,7 @@ impl From<_core::NumericField> for NumericField {
             AudioDurationMs => Self::AudioDurationMs,
             AudioSampleRateHz => Self::AudioSampleRateHz,
             AudioLoudnessLufs => Self::AudioLoudnessLufs,
+            AdvisoryRating => Self::AdvisoryRating,
             DiscNumber => Self::DiscNumber,
             DiscTotal => Self::DiscTotal,
             MusicTempoBpm => Self::MusicTempoBpm,

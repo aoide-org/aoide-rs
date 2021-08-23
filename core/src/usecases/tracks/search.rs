@@ -41,6 +41,7 @@ pub enum NumericField {
     AudioDurationMs,
     AudioLoudnessLufs,
     AudioSampleRateHz,
+    AdvisoryRating,
     DiscNumber,
     DiscTotal,
     MusicTempoBpm,

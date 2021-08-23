@@ -74,6 +74,7 @@ fn insert_media_source() -> anyhow::Result<()> {
         synchronized_at: Some(DateTime::now_utc()),
         path: SourcePath::new("file:///home/test/file.mp3".to_owned()),
         content_type: "audio/mpeg".to_owned(),
+        advisory_rating: None,
         content_digest: None,
         content_metadata_flags: Default::default(),
         content: AudioContent {
@@ -121,6 +122,7 @@ fn filter_by_path_predicate() -> anyhow::Result<()> {
         synchronized_at: Some(DateTime::now_utc()),
         path: SourcePath::new("file:///home/file.mp3".to_owned()),
         content_type: "audio/mpeg".to_owned(),
+        advisory_rating: None,
         content_digest: None,
         content_metadata_flags: Default::default(),
         content: AudioContent {
@@ -138,6 +140,7 @@ fn filter_by_path_predicate() -> anyhow::Result<()> {
         synchronized_at: Some(DateTime::now_utc()),
         path: SourcePath::new("file:///Home/File.mp3".to_owned()),
         content_type: "audio/mpeg".to_owned(),
+        advisory_rating: None,
         content_digest: None,
         content_metadata_flags: ContentMetadataFlags::RELIABLE,
         content: AudioContent {
@@ -251,6 +254,7 @@ fn relocate_by_path() -> anyhow::Result<()> {
         synchronized_at: Some(DateTime::now_utc()),
         path: SourcePath::new("file:///ho''me/file.mp3".to_owned()),
         content_type: "audio/mpeg".to_owned(),
+        advisory_rating: None,
         content_digest: None,
         content_metadata_flags: Default::default(),
         content: AudioContent {
@@ -268,6 +272,7 @@ fn relocate_by_path() -> anyhow::Result<()> {
         synchronized_at: Some(DateTime::now_utc()),
         path: SourcePath::new("file:///Ho''me/File.mp3".to_owned()),
         content_type: "audio/mpeg".to_owned(),
+        advisory_rating: None,
         content_digest: None,
         content_metadata_flags: ContentMetadataFlags::RELIABLE,
         content: AudioContent {

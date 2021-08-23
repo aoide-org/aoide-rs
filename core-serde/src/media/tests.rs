@@ -27,6 +27,7 @@ fn deserialize_audio_source() {
         "collectedAt": now.to_string(),
         "synchronizedAt": now.to_string(),
         "path": "/home/test file.mp3",
+        "advisoryRating": 0,
         "contentType": "audio/mpeg",
         "contentDigest": "aGVsbG8gaW50ZXJuZXR-Cg",
         "audio": {}
@@ -39,6 +40,7 @@ fn deserialize_audio_source() {
             synchronized_at: Some(now),
             path: _core::SourcePath::new("/home/test file.mp3".to_owned()),
             content_type: "audio/mpeg".to_string(),
+            advisory_rating: Some(_core::AdvisoryRating::Unrated),
             content_digest: Digest::from_encoded("aGVsbG8gaW50ZXJuZXR-Cg")
                 .try_decode()
                 .ok(),

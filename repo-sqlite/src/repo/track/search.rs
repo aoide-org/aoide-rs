@@ -533,6 +533,27 @@ fn build_numeric_field_filter_expression(
                 }
             }
         },
+        AdvisoryRating => match filter.predicate {
+            // TODO: Check and limit/clamp value range when converting from f64 to i16
+            LessThan(value) => Box::new(media_source::advisory_rating.lt(value as i16)),
+            LessOrEqual(value) => Box::new(media_source::advisory_rating.le(value as i16)),
+            GreaterThan(value) => Box::new(media_source::advisory_rating.gt(value as i16)),
+            GreaterOrEqual(value) => Box::new(media_source::advisory_rating.ge(value as i16)),
+            Equal(value) => {
+                if let Some(value) = value {
+                    Box::new(media_source::advisory_rating.eq(value as i16))
+                } else {
+                    Box::new(media_source::advisory_rating.is_null())
+                }
+            }
+            NotEqual(value) => {
+                if let Some(value) = value {
+                    Box::new(media_source::advisory_rating.ne(value as i16))
+                } else {
+                    Box::new(media_source::advisory_rating.is_not_null())
+                }
+            }
+        },
         TrackNumber => match filter.predicate {
             // TODO: Check and limit/clamp value range when converting from f64 to i16
             LessThan(value) => Box::new(track::track_number.lt(value as i16)),

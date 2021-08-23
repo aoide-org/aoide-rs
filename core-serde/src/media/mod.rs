@@ -14,6 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use std::convert::TryFrom;
+
+use num_traits::{FromPrimitive as _, ToPrimitive as _};
 use url::Url;
 
 use aoide_core::{
@@ -32,10 +34,10 @@ pub use _core::SourcePath;
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize_repr, Deserialize_repr, JsonSchema)]
 #[repr(u8)]
 pub enum SourcePathKind {
-    Uri = 0,
-    Url = 1,
-    FileUrl = 2,
-    VirtualFilePath = 3,
+    Uri = _core::SourcePathKind::Uri as u8,
+    Url = _core::SourcePathKind::Url as u8,
+    FileUrl = _core::SourcePathKind::FileUrl as u8,
+    VirtualFilePath = _core::SourcePathKind::VirtualFilePath as u8,
 }
 
 impl From<_core::SourcePathKind> for SourcePathKind {
@@ -252,7 +254,7 @@ impl From<_core::ArtworkImage> for ArtworkImage {
         });
         Self {
             media_type,
-            apic_type: apic_type.to_u8(),
+            apic_type: apic_type.to_u8().expect("u8"),
             size,
             digest: digest.as_ref().map(Into::into),
             thumbnail: thumbnail.as_ref().map(Into::into),
@@ -269,7 +271,7 @@ impl From<ArtworkImage> for _core::ArtworkImage {
             digest,
             thumbnail,
         } = from;
-        let apic_type = _core::ApicType::try_from_u8(apic_type).unwrap_or(_core::ApicType::Other);
+        let apic_type = _core::ApicType::from_u8(apic_type).unwrap_or(_core::ApicType::Other);
         let size = size.map(|size| {
             let ImageSize(width, height) = size;
             _core::ImageSize { width, height }
@@ -378,6 +380,36 @@ impl From<_core::Artwork> for Artwork {
 // Source
 ///////////////////////////////////////////////////////////////////////
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize_repr, Deserialize_repr, JsonSchema)]
+#[repr(u8)]
+pub enum AdvisoryRating {
+    Unrated = _core::AdvisoryRating::Unrated as u8,
+    Explicit = _core::AdvisoryRating::Explicit as u8,
+    Clean = _core::AdvisoryRating::Clean as u8,
+}
+
+impl From<_core::AdvisoryRating> for AdvisoryRating {
+    fn from(from: _core::AdvisoryRating) -> Self {
+        use _core::AdvisoryRating::*;
+        match from {
+            Unrated => Self::Unrated,
+            Explicit => Self::Explicit,
+            Clean => Self::Clean,
+        }
+    }
+}
+
+impl From<AdvisoryRating> for _core::AdvisoryRating {
+    fn from(from: AdvisoryRating) -> Self {
+        use AdvisoryRating::*;
+        match from {
+            Unrated => Self::Unrated,
+            Explicit => Self::Explicit,
+            Clean => Self::Clean,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Source {
@@ -389,6 +421,9 @@ pub struct Source {
     path: String,
 
     content_type: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    advisory_rating: Option<AdvisoryRating>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     content_digest: Option<Digest>,
@@ -411,6 +446,7 @@ impl From<_core::Source> for Source {
             path,
             content_type,
             content_digest,
+            advisory_rating,
             content_metadata_flags,
             content,
             artwork,
@@ -420,7 +456,8 @@ impl From<_core::Source> for Source {
             synchronized_at: synchronized_at.map(Into::into),
             path: path.into(),
             content_type,
-            content_digest: content_digest.as_ref().map(Into::into),
+            advisory_rating: advisory_rating.map(Into::into),
+            content_digest: content_digest.map(Into::into),
             content_metadata_flags: content_metadata_flags.bits(),
             content: content.into(),
             artwork: artwork.map(Into::into),
@@ -436,6 +473,7 @@ impl From<Source> for _core::Source {
             path,
             content_type,
             content_digest,
+            advisory_rating,
             content_metadata_flags,
             content,
             artwork,
@@ -445,6 +483,7 @@ impl From<Source> for _core::Source {
             synchronized_at: synchronized_at.map(Into::into),
             path: path.into(),
             content_type,
+            advisory_rating: advisory_rating.map(Into::into),
             content_digest: content_digest
                 .as_ref()
                 .map(TryFrom::try_from)

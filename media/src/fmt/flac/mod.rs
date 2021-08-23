@@ -13,13 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-///////////////////////////////////////////////////////////////////////
+use std::time::Duration;
 
-use crate::{
-    io::import::{self, *},
-    util::{digest::MediaDigest, push_next_actor_role_name, serato, try_load_embedded_artwork},
-    Result,
-};
+use metaflac::block::PictureType;
+use num_traits::FromPrimitive as _;
 
 use aoide_core::{
     audio::{channel::ChannelCount, signal::SampleRateHz, AudioContent},
@@ -33,8 +30,11 @@ use aoide_core::{
     util::{Canonical, CanonicalizeInto as _},
 };
 
-use metaflac::block::PictureType;
-use std::time::Duration;
+use crate::{
+    io::import::{self, *},
+    util::{digest::MediaDigest, push_next_actor_role_name, serato, try_load_embedded_artwork},
+    Result,
+};
 
 use super::vorbis;
 
@@ -314,7 +314,7 @@ impl import::ImportTrack for ImportTrack {
                 // otherwise take the first picture that could be parsed
                 .chain(flac_tag.pictures().map(|p| {
                     (
-                        ApicType::try_from_u8(p.picture_type as u8).unwrap_or(ApicType::Other),
+                        ApicType::from_u8(p.picture_type as u8).unwrap_or(ApicType::Other),
                         p,
                     )
                 }))

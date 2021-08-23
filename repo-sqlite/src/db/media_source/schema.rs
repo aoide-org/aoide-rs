@@ -29,6 +29,7 @@ table! {
         synchronized_ms -> Nullable<BigInt>,
         path -> Text,
         content_type -> Text,
+        advisory_rating -> Nullable<SmallInt>,
         content_digest -> Nullable<Binary>,
         content_metadata_flags -> SmallInt,
         audio_duration_ms -> Nullable<Double>,

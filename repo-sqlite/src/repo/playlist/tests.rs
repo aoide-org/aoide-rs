@@ -71,6 +71,7 @@ impl Fixture {
                 synchronized_at: Some(DateTime::now_utc()),
                 path: SourcePath::new(format!("/home/test/file{}.mp3", i)),
                 content_type: "audio/mpeg".to_string(),
+                advisory_rating: None,
                 content_digest: None,
                 content_metadata_flags: Default::default(),
                 content: AudioContent {

@@ -13,13 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-///////////////////////////////////////////////////////////////////////
-
-use crate::{
-    io::import::{self, *},
-    util::{digest::MediaDigest, push_next_actor_role_name, serato, try_load_embedded_artwork},
-    Result,
-};
+use lewton::inside_ogg::OggStreamReader;
+use metaflac::block::PictureType;
+use num_traits::FromPrimitive as _;
+use semval::IsValid as _;
+use triseratops::tag::{TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat};
 
 use aoide_core::{
     audio::{
@@ -37,11 +35,11 @@ use aoide_core::{
     util::{Canonical, CanonicalizeInto as _},
 };
 
-use lewton::inside_ogg::OggStreamReader;
-use metaflac::block::PictureType;
-use semval::IsValid as _;
-
-use triseratops::tag::{TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat};
+use crate::{
+    io::import::{self, *},
+    util::{digest::MediaDigest, push_next_actor_role_name, serato, try_load_embedded_artwork},
+    Result,
+};
 
 use super::vorbis;
 
@@ -343,7 +341,7 @@ impl import::ImportTrack for ImportTrack {
                 .filter_map(|p| {
                     try_load_embedded_artwork(
                         &track.media_source.path,
-                        ApicType::try_from_u8(p.picture_type as u8).unwrap_or(ApicType::Other),
+                        ApicType::from_u8(p.picture_type as u8).unwrap_or(ApicType::Other),
                         &p.data,
                         None,
                         &mut image_digest,

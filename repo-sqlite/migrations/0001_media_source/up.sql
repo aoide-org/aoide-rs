@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS media_source (
     content_type           TEXT NOT NULL,    -- RFC 6838 media type
     content_digest         BINARY,           -- cryptographic (audio) content hash
     content_metadata_flags TINYINT NOT NULL, -- 0x01 = reliable, 0x02 = locked, 0x04 = stale
+    advisory_rating        TINYINT,          -- 0 = unrated, 1 = explicit, 2 = clean
     -- properties: audio content
     audio_duration_ms      REAL,             -- milliseconds
     audio_channel_count    INTEGER,          -- number of channels
