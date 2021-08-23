@@ -13,13 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::convert::TryFrom;
+use std::convert::{TryFrom, TryInto as _};
 
 use num_traits::{FromPrimitive as _, ToPrimitive as _};
 use url::Url;
 
 use aoide_core::{
-    media::{ContentMetadataFlags, Thumbnail4x4Rgb8},
+    media::ContentMetadataFlags,
     util::{url::BaseUrl, IsDefault},
 };
 
@@ -262,8 +262,10 @@ impl From<_core::ArtworkImage> for ArtworkImage {
     }
 }
 
-impl From<ArtworkImage> for _core::ArtworkImage {
-    fn from(from: ArtworkImage) -> Self {
+impl TryFrom<ArtworkImage> for _core::ArtworkImage {
+    type Error = anyhow::Error;
+
+    fn try_from(from: ArtworkImage) -> anyhow::Result<Self> {
         let ArtworkImage {
             media_type,
             apic_type,
@@ -271,30 +273,30 @@ impl From<ArtworkImage> for _core::ArtworkImage {
             digest,
             thumbnail,
         } = from;
-        let apic_type = _core::ApicType::from_u8(apic_type).unwrap_or(_core::ApicType::Other);
+        let apic_type = _core::ApicType::from_u8(apic_type)
+            .ok_or_else(|| anyhow::anyhow!("Invalid APIC type: {}", apic_type))?;
         let size = size.map(|size| {
             let ImageSize(width, height) = size;
             _core::ImageSize { width, height }
         });
-        let digest = digest
-            .as_ref()
-            .map(Vec::try_from)
-            .and_then(Result::ok)
-            .map(_core::Digest::try_from)
-            .and_then(Result::ok);
-        let thumbnail = thumbnail
-            .as_ref()
-            .map(Vec::try_from)
-            .and_then(Result::ok)
-            .map(Thumbnail4x4Rgb8::try_from)
-            .and_then(Result::ok);
-        Self {
+        let digest_data = digest.as_ref().map(Vec::try_from).transpose()?;
+        let digest = digest_data
+            .map(TryFrom::try_from)
+            .transpose()
+            .map_err(|_| anyhow::anyhow!("Failed to deserialize artwork digest"))?;
+        let thumbnail_data = thumbnail.as_ref().map(Vec::try_from).transpose()?;
+        let thumbnail = thumbnail_data
+            .map(TryFrom::try_from)
+            .transpose()
+            .map_err(|_| anyhow::anyhow!("Failed to deserialize artwork thumbnail"))?;
+        let into = Self {
             media_type,
             apic_type,
             size,
             digest,
             thumbnail,
-        }
+        };
+        Ok(into)
     }
 }
 
@@ -331,7 +333,7 @@ impl Artwork {
                 debug_assert!(uri.is_none());
                 if let Some(image) = image {
                     let embedded = _core::EmbeddedArtwork {
-                        image: image.into(),
+                        image: image.try_into()?,
                     };
                     Ok(_core::Artwork::Embedded(embedded))
                 } else {
@@ -342,7 +344,7 @@ impl Artwork {
                 if let (Some(uri), Some(image)) = (uri, image) {
                     let linked = _core::LinkedArtwork {
                         uri,
-                        image: image.into(),
+                        image: image.try_into()?,
                     };
                     Ok(_core::Artwork::Linked(linked))
                 } else {
