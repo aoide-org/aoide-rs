@@ -38,7 +38,7 @@ use aoide_core::{
         actor::ActorRole,
         album::AlbumKind,
         metric::MetricsFlags,
-        tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE, FACET_MOOD},
+        tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE, FACET_ISRC, FACET_MOOD},
         title::{Title, TitleKind},
         Track,
     },
@@ -234,10 +234,7 @@ impl import::ImportTrack for ImportTrack {
         )) {
             push_next_actor_role_name(&mut track_actors, ActorRole::Remixer, name);
         }
-        for name in mp4_tag.take_strings_of(&FreeformIdent::new(
-            COM_APPLE_ITUNES_FREEFORM_MEAN,
-            "LYRICIST",
-        )) {
+        for name in mp4_tag.take_lyricists() {
             push_next_actor_role_name(&mut track_actors, ActorRole::Lyricist, name);
         }
         for name in mp4_tag.take_strings_of(&FreeformIdent::new(
@@ -409,6 +406,19 @@ impl import::ImportTrack for ImportTrack {
                     grouping,
                 );
             }
+        }
+
+        // ISRC tag
+        if let Some(isrc) = mp4_tag.take_isrc() {
+            tags_map.remove_faceted_tags(&FACET_ISRC);
+            let mut next_score_value = TagScore::default_value();
+            import_faceted_tags(
+                &mut tags_map,
+                &mut next_score_value,
+                &FACET_ISRC,
+                None,
+                isrc,
+            );
         }
 
         debug_assert!(track.tags.is_empty());

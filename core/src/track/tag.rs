@@ -22,6 +22,9 @@ use lazy_static::lazy_static;
 // Some predefined facets that are commonly used and could serve as
 // a starting point for complex tagging schemes
 lazy_static! {
+    // ISRC
+    pub static ref FACET_ISRC: Facet = Facet::new("isrc".into());
+
     // The Content Group aka Grouping field
     pub static ref FACET_CGROUP: Facet = Facet::new("cgroup".into());
 

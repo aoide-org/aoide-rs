@@ -31,7 +31,7 @@ use aoide_core::{
     tag::TagsMap,
     track::{
         actor::ActorRole,
-        tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE, FACET_MOOD},
+        tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE, FACET_ISRC, FACET_MOOD},
         Track,
     },
     util::{Canonical, CanonicalizeInto as _},
@@ -266,6 +266,14 @@ impl import::ImportTrack for ImportTrack {
             &config.faceted_tag_mapping,
             &FACET_CGROUP,
             filter_vorbis_comment_values(vorbis_comments, "GROUPING"),
+        );
+
+        // ISRC tags
+        vorbis::import_faceted_text_tags(
+            &mut tags_map,
+            &config.faceted_tag_mapping,
+            &FACET_ISRC,
+            filter_vorbis_comment_values(vorbis_comments, "ISRC"),
         );
 
         if let Some(index) = vorbis::import_track_index(vorbis_comments) {

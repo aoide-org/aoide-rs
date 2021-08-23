@@ -34,7 +34,7 @@ use aoide_core::{
         album::AlbumKind,
         metric::MetricsFlags,
         release::DateOrDateTime,
-        tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE, FACET_MOOD},
+        tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE, FACET_ISRC, FACET_MOOD},
         title::{Title, TitleKind},
         Track,
     },
@@ -420,6 +420,15 @@ pub fn import_track(
             "TIT1",
         );
     }
+
+    // ISRC tag
+    import_faceted_text_tags(
+        &mut tags_map,
+        &config.faceted_tag_mapping,
+        &FACET_ISRC,
+        tag,
+        "TSRC",
+    );
 
     debug_assert!(track.tags.is_empty());
     track.tags = Canonical::tie(tags_map.into());

@@ -27,7 +27,7 @@ use aoide_core::{
     tag::TagsMap,
     track::{
         actor::ActorRole,
-        tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE, FACET_MOOD},
+        tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE, FACET_ISRC, FACET_MOOD},
         Track,
     },
     util::{Canonical, CanonicalizeInto as _},
@@ -246,6 +246,16 @@ impl import::ImportTrack for ImportTrack {
                 &config.faceted_tag_mapping,
                 &FACET_CGROUP,
                 groupings,
+            );
+        }
+
+        // ISRC tag
+        if let Some(isrc) = flac_tag.get_vorbis("ISRC") {
+            vorbis::import_faceted_text_tags(
+                &mut tags_map,
+                &config.faceted_tag_mapping,
+                &FACET_ISRC,
+                isrc,
             );
         }
 
