@@ -15,7 +15,7 @@
 
 use image::ImageFormat;
 use mp4ameta::{
-    AdvisoryRating as Mp4AdvisoryRating, ChannelConfig, Data, Fourcc, FreeformIdent,
+    AdvisoryRating as Mp4AdvisoryRating, ChannelConfig, Data, Fourcc, FreeformIdent, ImgFmt,
     SampleRate as Mp4SampleRate, Tag as Mp4Tag, STANDARD_GENRES,
 };
 use semval::IsValid as _;
@@ -37,7 +37,7 @@ use aoide_core::{
         actor::ActorRole,
         album::AlbumKind,
         metric::MetricsFlags,
-        tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE, FACET_ISRC, FACET_MOOD},
+        tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE, FACET_ISRC, FACET_MOOD, FACET_XID},
         title::{Title, TitleKind},
         Track,
     },
@@ -88,7 +88,47 @@ fn read_channels(channel_config: ChannelConfig) -> Channels {
 }
 
 const COM_APPLE_ITUNES_FREEFORM_MEAN: &str = "com.apple.iTunes";
+
+const BPM_IDENT: FreeformIdent<'static> = FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "BPM");
+
+const INITIAL_KEY_IDENT: FreeformIdent<'static> =
+    FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "initialkey");
+const KEY_IDENT: FreeformIdent<'static> = FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "KEY");
+
+const REPLAYGAIN_TRACK_GAIN_IDENT: FreeformIdent<'static> =
+    FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "replaygain_track_gain");
+
+const SUBTITLE_IDENT: FreeformIdent<'static> =
+    FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "SUBTITLE");
+
+const CONDUCTOR_IDENT: FreeformIdent<'static> =
+    FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "CONDUCTOR");
+
+const REMIXER_IDENT: FreeformIdent<'static> =
+    FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "REMIXER");
+
+const LABEL_IDENT: FreeformIdent<'static> =
+    FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "LABEL");
+
+const MOOD_IDENT: FreeformIdent<'static> =
+    FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "MOOD");
+
+const XID_IDENT: Fourcc = Fourcc(*b"xid ");
+
 const ORG_MIXXX_DJ_FREEFORM_MEAN: &str = "org.mixxx.dj";
+
+const MIXXX_CUSTOM_TAGS_IDENT: FreeformIdent<'static> =
+    FreeformIdent::new(ORG_MIXXX_DJ_FREEFORM_MEAN, "CustomTags");
+
+const SERATO_MARKERS_IDENT: FreeformIdent<'static> = FreeformIdent::new(
+    SeratoMarkers::MP4_ATOM_FREEFORM_MEAN,
+    SeratoMarkers::MP4_ATOM_FREEFORM_NAME,
+);
+
+const SERATO_MARKERS2_IDENT: FreeformIdent<'static> = FreeformIdent::new(
+    SeratoMarkers2::MP4_ATOM_FREEFORM_MEAN,
+    SeratoMarkers2::MP4_ATOM_FREEFORM_NAME,
+);
 
 impl import::ImportTrack for ImportTrack {
     fn import_track(
@@ -125,10 +165,7 @@ impl import::ImportTrack for ImportTrack {
                 .map(|hz| SampleRateHz::from_inner(hz as SamplesPerSecond));
             let bitrate = mp4_tag.avg_bitrate().and_then(read_bitrate);
             let loudness = mp4_tag
-                .strings_of(&FreeformIdent::new(
-                    COM_APPLE_ITUNES_FREEFORM_MEAN,
-                    "replaygain_track_gain",
-                ))
+                .strings_of(&REPLAYGAIN_TRACK_GAIN_IDENT)
                 .next()
                 .and_then(parse_replay_gain);
             let encoder = mp4_tag.take_encoder();
@@ -155,7 +192,7 @@ impl import::ImportTrack for ImportTrack {
 
         let mut tempo_bpm_non_fractional = false;
         let tempo_bpm = mp4_tag
-            .strings_of(&FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "BPM"))
+            .strings_of(&BPM_IDENT)
             .flat_map(parse_tempo_bpm)
             .next()
             .or_else(|| {
@@ -175,12 +212,9 @@ impl import::ImportTrack for ImportTrack {
         }
 
         let key_signature = mp4_tag
-            .strings_of(&FreeformIdent::new(
-                COM_APPLE_ITUNES_FREEFORM_MEAN,
-                "initialkey",
-            ))
+            .strings_of(&INITIAL_KEY_IDENT)
             // alternative name (conforms to Rapid Evolution)
-            .chain(mp4_tag.strings_of(&FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "KEY")))
+            .chain(mp4_tag.strings_of(&KEY_IDENT))
             .flat_map(parse_key_signature)
             .next();
         if let Some(key_signature) = key_signature {
@@ -210,13 +244,7 @@ impl import::ImportTrack for ImportTrack {
             };
             track_titles.push(title);
         }
-        if let Some(name) = mp4_tag
-            .take_strings_of(&FreeformIdent::new(
-                COM_APPLE_ITUNES_FREEFORM_MEAN,
-                "SUBTITLE",
-            ))
-            .next()
-        {
+        if let Some(name) = mp4_tag.take_strings_of(&SUBTITLE_IDENT).next() {
             let title = Title {
                 name,
                 kind: TitleKind::Sub,
@@ -236,19 +264,13 @@ impl import::ImportTrack for ImportTrack {
         for name in mp4_tag.take_composers() {
             push_next_actor_role_name(&mut track_actors, ActorRole::Composer, name);
         }
-        for name in mp4_tag.take_strings_of(&FreeformIdent::new(
-            COM_APPLE_ITUNES_FREEFORM_MEAN,
-            "REMIXER",
-        )) {
+        for name in mp4_tag.take_strings_of(&REMIXER_IDENT) {
             push_next_actor_role_name(&mut track_actors, ActorRole::Remixer, name);
         }
         for name in mp4_tag.take_lyricists() {
             push_next_actor_role_name(&mut track_actors, ActorRole::Lyricist, name);
         }
-        for name in mp4_tag.take_strings_of(&FreeformIdent::new(
-            COM_APPLE_ITUNES_FREEFORM_MEAN,
-            "CONDUCTOR",
-        )) {
+        for name in mp4_tag.take_strings_of(&CONDUCTOR_IDENT) {
             push_next_actor_role_name(&mut track_actors, ActorRole::Conductor, name);
         }
         let track_actors = track_actors.canonicalize_into();
@@ -298,10 +320,7 @@ impl import::ImportTrack for ImportTrack {
         if let Some(copyright) = mp4_tag.take_copyright() {
             track.release.copyright = Some(copyright);
         }
-        if let Some(label) = mp4_tag
-            .take_strings_of(&FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "LABEL"))
-            .next()
-        {
+        if let Some(label) = mp4_tag.take_strings_of(&LABEL_IDENT).next() {
             track.release.released_by = Some(label);
         }
 
@@ -309,13 +328,7 @@ impl import::ImportTrack for ImportTrack {
 
         // Mixxx CustomTags
         if flags.contains(ImportTrackFlags::MIXXX_CUSTOM_TAGS) {
-            if let Some(data) = mp4_tag
-                .data_of(&FreeformIdent::new(
-                    ORG_MIXXX_DJ_FREEFORM_MEAN,
-                    "CustomTags",
-                ))
-                .next()
-            {
+            if let Some(data) = mp4_tag.data_of(&MIXXX_CUSTOM_TAGS_IDENT).next() {
                 if let Some(custom_tags) = match data {
                     Data::Utf8(input) => serde_json::from_str::<SerdeTags>(input)
                         .map_err(|err| {
@@ -384,12 +397,11 @@ impl import::ImportTrack for ImportTrack {
         }
 
         // Mood tags
-        let mood_ident = FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "MOOD");
-        if mp4_tag.strings_of(&mood_ident).next().is_some() {
+        if mp4_tag.strings_of(&MOOD_IDENT).next().is_some() {
             tags_map.remove_faceted_tags(&FACET_MOOD);
             let tag_mapping_config = config.faceted_tag_mapping.get(FACET_MOOD.value());
             let mut next_score_value = TagScore::max_value();
-            for mood in mp4_tag.take_strings_of(&mood_ident) {
+            for mood in mp4_tag.take_strings_of(&MOOD_IDENT) {
                 import_faceted_tags(
                     &mut tags_map,
                     &mut next_score_value,
@@ -429,10 +441,27 @@ impl import::ImportTrack for ImportTrack {
             );
         }
 
+        // iTunes XID tags
+        if mp4_tag.strings_of(&XID_IDENT).next().is_some() {
+            tags_map.remove_faceted_tags(&FACET_XID);
+            let tag_mapping_config = config.faceted_tag_mapping.get(FACET_XID.value());
+            let mut next_score_value = TagScore::max_value();
+            for xid in mp4_tag.take_strings_of(&XID_IDENT) {
+                import_faceted_tags(
+                    &mut tags_map,
+                    &mut next_score_value,
+                    &FACET_XID,
+                    tag_mapping_config,
+                    xid,
+                );
+            }
+        }
+
         debug_assert!(track.tags.is_empty());
         track.tags = Canonical::tie(tags_map.into());
 
         // Indexes (in pairs)
+        // Import both values consistently if any of them is available!
         if mp4_tag.track_number().is_some() || mp4_tag.total_tracks().is_some() {
             track.indexes.track.number = mp4_tag.track_number();
             track.indexes.track.total = mp4_tag.total_tracks();
@@ -460,16 +489,11 @@ impl import::ImportTrack for ImportTrack {
                 Default::default()
             };
             track.media_source.artwork = Some(Artwork::Missing);
-            for image_data in mp4_tag.data_of(&Fourcc(*b"covr")) {
-                let (image_data, image_format) = match image_data {
-                    Data::Jpeg(bytes) => (bytes, Some(ImageFormat::Jpeg)),
-                    Data::Png(bytes) => (bytes, Some(ImageFormat::Png)),
-                    Data::Bmp(bytes) => (bytes, Some(ImageFormat::Bmp)),
-                    Data::Reserved(bytes) => (bytes, None),
-                    _ => {
-                        log::warn!("Unexpected cover art data");
-                        break;
-                    }
+            for image in mp4_tag.artworks() {
+                let (image_data, image_format) = match image.fmt {
+                    ImgFmt::Jpeg => (image.data, Some(ImageFormat::Jpeg)),
+                    ImgFmt::Png => (image.data, Some(ImageFormat::Png)),
+                    ImgFmt::Bmp => (image.data, Some(ImageFormat::Bmp)),
                 };
                 let artwork = try_load_embedded_artwork(
                     &track.media_source.path,
@@ -490,13 +514,7 @@ impl import::ImportTrack for ImportTrack {
         if flags.contains(ImportTrackFlags::SERATO_TAGS) {
             let mut serato_tags = SeratoTagContainer::new();
 
-            if let Some(data) = mp4_tag
-                .data_of(&FreeformIdent::new(
-                    SeratoMarkers::MP4_ATOM_FREEFORM_MEAN,
-                    SeratoMarkers::MP4_ATOM_FREEFORM_NAME,
-                ))
-                .next()
-            {
+            if let Some(data) = mp4_tag.data_of(&SERATO_MARKERS_IDENT).next() {
                 match data {
                     Data::Utf8(input) => {
                         serato_tags
@@ -512,13 +530,7 @@ impl import::ImportTrack for ImportTrack {
                 }
             }
 
-            if let Some(data) = mp4_tag
-                .data_of(&FreeformIdent::new(
-                    SeratoMarkers2::MP4_ATOM_FREEFORM_MEAN,
-                    SeratoMarkers2::MP4_ATOM_FREEFORM_NAME,
-                ))
-                .next()
-            {
+            if let Some(data) = mp4_tag.data_of(&SERATO_MARKERS2_IDENT).next() {
                 match data {
                     Data::Utf8(input) => {
                         serato_tags

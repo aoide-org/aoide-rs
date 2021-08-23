@@ -70,4 +70,11 @@ lazy_static! {
     pub static ref FACET_POPULARITY: Label = Label::new("popularity".into());
     pub static ref FACET_SPEECHINESS: Label = Label::new("speechiness".into());
     pub static ref FACET_VALENCE: Label = Label::new("valence".into()); // a measure for happiness
+
+    // Vendor-supplied, globally unique identifier(s) used by iTunes
+    // Format: prefix:scheme:identifier
+    // Supported schemes: upc, isrc, isan, grid, uuid, vendor_id
+    // Example: "SonyBMG:isrc:USRC10900295"
+    // See also: https://www.apple.com/au/itunes/lp-and-extras/docs/Development_Guide.pdf
+    pub static ref FACET_XID: Facet = Facet::new("xid".into());
 }
