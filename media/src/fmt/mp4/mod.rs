@@ -104,6 +104,9 @@ const SUBTITLE_IDENT: FreeformIdent<'static> =
 const CONDUCTOR_IDENT: FreeformIdent<'static> =
     FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "CONDUCTOR");
 
+const PRODUCER_IDENT: FreeformIdent<'static> =
+    FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "PRODUCER");
+
 const REMIXER_IDENT: FreeformIdent<'static> =
     FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "REMIXER");
 
@@ -263,6 +266,9 @@ impl import::ImportTrack for ImportTrack {
         }
         for name in mp4_tag.take_composers() {
             push_next_actor_role_name(&mut track_actors, ActorRole::Composer, name);
+        }
+        for name in mp4_tag.take_strings_of(&PRODUCER_IDENT) {
+            push_next_actor_role_name(&mut track_actors, ActorRole::Producer, name);
         }
         for name in mp4_tag.take_strings_of(&REMIXER_IDENT) {
             push_next_actor_role_name(&mut track_actors, ActorRole::Remixer, name);
