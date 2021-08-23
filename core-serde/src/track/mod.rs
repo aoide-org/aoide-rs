@@ -13,7 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{prelude::*, tag::*};
+use std::convert::{TryFrom, TryInto as _};
+
+use crate::{media::Source, prelude::*, tag::*};
 
 pub mod actor;
 pub mod album;
@@ -24,8 +26,6 @@ pub mod release;
 pub mod title;
 
 use self::{actor::*, album::*, cue::*, index::*, metric::*, release::*, title::*};
-
-use crate::media::Source;
 
 mod _core {
     pub use aoide_core::{tag::Tags, track::*};
@@ -108,8 +108,10 @@ impl From<_core::Track> for Track {
     }
 }
 
-impl From<Track> for _core::Track {
-    fn from(from: Track) -> Self {
+impl TryFrom<Track> for _core::Track {
+    type Error = anyhow::Error;
+
+    fn try_from(from: Track) -> anyhow::Result<Self> {
         let Track {
             media_source,
             release,
@@ -123,8 +125,9 @@ impl From<Track> for _core::Track {
             cues,
             play_counter,
         } = from;
-        Self {
-            media_source: media_source.into(),
+        let media_source = media_source.try_into()?;
+        let into = Self {
+            media_source,
             release: release.into(),
             album: album.into(),
             titles: Canonical::tie(
@@ -152,7 +155,8 @@ impl From<Track> for _core::Track {
                     .canonicalize_into(),
             ),
             play_counter: play_counter.into(),
-        }
+        };
+        Ok(into)
     }
 }
 
@@ -162,9 +166,11 @@ impl From<Track> for _core::Track {
 
 pub type Entity = crate::entity::Entity<Track>;
 
-impl From<Entity> for _core::Entity {
-    fn from(from: Entity) -> Self {
-        Self::new(from.0, from.1)
+impl TryFrom<Entity> for _core::Entity {
+    type Error = anyhow::Error;
+
+    fn try_from(from: Entity) -> anyhow::Result<Self> {
+        Self::try_new(from.0, from.1)
     }
 }
 

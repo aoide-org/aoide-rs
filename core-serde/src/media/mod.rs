@@ -320,9 +320,11 @@ pub struct Artwork {
     image: Option<ArtworkImage>,
 }
 
-impl Artwork {
-    pub fn import(self) -> anyhow::Result<_core::Artwork> {
-        let Artwork { source, uri, image } = self;
+impl TryFrom<Artwork> for _core::Artwork {
+    type Error = anyhow::Error;
+
+    fn try_from(from: Artwork) -> anyhow::Result<Self> {
+        let Artwork { source, uri, image } = from;
         match source {
             ArtworkSource::Missing => {
                 debug_assert!(uri.is_none());
@@ -467,8 +469,10 @@ impl From<_core::Source> for Source {
     }
 }
 
-impl From<Source> for _core::Source {
-    fn from(from: Source) -> Self {
+impl TryFrom<Source> for _core::Source {
+    type Error = anyhow::Error;
+
+    fn try_from(from: Source) -> anyhow::Result<Self> {
         let Source {
             collected_at,
             synchronized_at,
@@ -480,22 +484,22 @@ impl From<Source> for _core::Source {
             content,
             artwork,
         } = from;
-        Self {
+        let content_digest = content_digest.as_ref().map(TryFrom::try_from).transpose()?;
+        let artwork = artwork.map(TryFrom::try_from).transpose()?;
+        let into = Self {
             collected_at: collected_at.into(),
             synchronized_at: synchronized_at.map(Into::into),
             path: path.into(),
             content_type,
             advisory_rating: advisory_rating.map(Into::into),
-            content_digest: content_digest
-                .as_ref()
-                .map(TryFrom::try_from)
-                .and_then(Result::ok),
+            content_digest,
             content_metadata_flags: ContentMetadataFlags::from_bits_truncate(
                 content_metadata_flags,
             ),
             content: content.into(),
-            artwork: artwork.and_then(|artwork| artwork.import().ok()),
-        }
+            artwork,
+        };
+        Ok(into)
     }
 }
 

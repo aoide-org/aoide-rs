@@ -7,7 +7,7 @@ fn deserialize_artwork_missing() {
     let json = serde_json::json!({"source": "missing"}).to_string();
     let artwork = serde_json::from_str::<Artwork>(&json)
         .unwrap()
-        .import()
+        .try_into()
         .unwrap();
     assert_eq!(_core::Artwork::Missing, artwork);
 }
@@ -33,7 +33,10 @@ fn deserialize_audio_source() {
         "audio": {}
     })
     .to_string();
-    let source: _core::Source = serde_json::from_str::<Source>(&json).unwrap().into();
+    let source: _core::Source = serde_json::from_str::<Source>(&json)
+        .unwrap()
+        .try_into()
+        .unwrap();
     assert_eq!(
         _core::Source {
             collected_at: now,

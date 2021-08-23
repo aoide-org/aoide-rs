@@ -13,6 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::convert::TryInto as _;
+
+pub use aoide_core_serde::{
+    entity::EntityHeader,
+    track::{Entity, Track},
+};
+
 use super::*;
 
 mod uc {
@@ -22,13 +29,6 @@ mod uc {
 
     pub use aoide_usecases::tracks::replace::{Params, Summary};
 }
-
-pub use aoide_core_serde::{
-    entity::EntityHeader,
-    track::{Entity, Track},
-};
-
-///////////////////////////////////////////////////////////////////////
 
 #[derive(Copy, Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
@@ -110,12 +110,15 @@ pub fn handle_request(
         resolve_path_from_url,
         ..uc::Params::new(replace_mode.into())
     };
-    uc::replace_by_media_source_path(
-        &pooled_connection,
-        collection_uid,
-        &params,
-        request_body.into_iter().map(Into::into),
-    )
-    .map(Into::into)
-    .map_err(Into::into)
+    let (tracks, errors): (Vec<_>, _) = request_body
+        .into_iter()
+        .map(|t| t.try_into().map_err(Error::BadRequest))
+        .partition(Result::is_ok);
+    if let Some(err) = errors.into_iter().map(Result::unwrap_err).next() {
+        return Err(err);
+    }
+    let tracks = tracks.into_iter().map(Result::unwrap);
+    uc::replace_by_media_source_path(&pooled_connection, collection_uid, &params, tracks)
+        .map(Into::into)
+        .map_err(Into::into)
 }

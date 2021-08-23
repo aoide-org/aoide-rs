@@ -13,11 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::convert::TryFrom;
+
+use aoide_core::entity::EntityUid;
+
 use crate::{receive_response_body, WebClientEnvironment};
 
 use super::{Effect, FetchResultPageRequest, FetchResultPageResponse};
-
-use aoide_core::entity::EntityUid;
 
 #[derive(Debug)]
 pub enum Task {
@@ -69,11 +71,15 @@ async fn fetch_result_page<E: WebClientEnvironment>(
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
-    let entities: Vec<_> =
+    let (entities, errors): (Vec<_>, _) =
         serde_json::from_slice::<Vec<aoide_core_serde::track::Entity>>(&response_body)?
             .into_iter()
-            .map(Into::into)
-            .collect();
+            .map(TryFrom::try_from)
+            .partition(Result::is_ok);
+    if let Some(err) = errors.into_iter().map(Result::unwrap_err).next() {
+        return Err(err);
+    }
+    let entities: Vec<_> = entities.into_iter().map(Result::unwrap).collect();
     log::debug!(
         "Received {} entities with pagination {:?}",
         entities.len(),

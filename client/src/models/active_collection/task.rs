@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::convert::TryInto;
+use std::convert::{TryFrom, TryInto};
 
 use aoide_core::collection::{Collection, Entity as CollectionEntity};
 
@@ -68,16 +68,15 @@ pub async fn fetch_available_collections<E: WebClientEnvironment>(
     let request = env.client().get(request_url);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
-    let fetched_collections: Vec<_> =
-        serde_json::from_slice::<Vec<aoide_core_serde::collection::Entity>>(&response_body)?;
-    let mut available_collections = Vec::with_capacity(fetched_collections.len());
-    for collection in fetched_collections {
-        let collection = collection.try_into()?;
-        available_collections.push(collection);
+    let (entities, errors): (Vec<_>, _) =
+        serde_json::from_slice::<Vec<aoide_core_serde::collection::Entity>>(&response_body)?
+            .into_iter()
+            .map(TryFrom::try_from)
+            .partition(Result::is_ok);
+    if let Some(err) = errors.into_iter().map(Result::unwrap_err).next() {
+        return Err(err);
     }
-    log::debug!(
-        "Fetched {} available collection(s)",
-        available_collections.len(),
-    );
-    Ok(available_collections)
+    let entities: Vec<_> = entities.into_iter().map(Result::unwrap).collect();
+    log::debug!("Fetched {} available collection(s)", entities.len(),);
+    Ok(entities)
 }
