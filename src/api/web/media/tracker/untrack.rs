@@ -27,6 +27,15 @@ pub type RequestBody = Params;
 
 pub type ResponseBody = Outcome;
 
+#[tracing::instrument(
+    name = "Untracking media sources",
+    skip(
+        pooled_connection,
+    ),
+    fields(
+        request_id = %new_request_id(),
+    )
+)]
 pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
     collection_uid: &EntityUid,

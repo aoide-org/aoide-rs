@@ -30,6 +30,7 @@ use aoide_core_serde::entity::EntityRevision;
 use reject::{InvalidHeader, InvalidQuery, MethodNotAllowed};
 use serde::{Deserialize, Serialize};
 
+use uuid::Uuid;
 use warp::{
     body::BodyDeserializeError,
     http::StatusCode,
@@ -272,4 +273,8 @@ impl From<PaginationQueryParams> for Option<Pagination> {
             None
         }
     }
+}
+
+fn new_request_id() -> Uuid {
+    Uuid::new_v4()
 }

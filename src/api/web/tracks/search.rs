@@ -13,7 +13,16 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use url::Url;
+
+use aoide_core::util::url::BaseUrl;
+use aoide_core_serde::{track::Entity, usecases::tracks::search::SearchParams};
+
 use super::*;
+
+pub type RequestBody = SearchParams;
+
+pub type ResponseBody = Vec<Entity>;
 
 mod uc {
     pub use crate::usecases::tracks::search::search;
@@ -23,15 +32,6 @@ mod uc {
 mod _core {
     pub use aoide_core::entity::EntityUid;
 }
-
-use aoide_core::util::url::BaseUrl;
-use aoide_core_serde::{track::Entity, usecases::tracks::search::SearchParams};
-
-use url::Url;
-
-pub type RequestBody = SearchParams;
-
-pub type ResponseBody = Vec<Entity>;
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -57,6 +57,15 @@ const DEFAULT_PAGINATION: Pagination = Pagination {
     offset: None,
 };
 
+#[tracing::instrument(
+    name = "Searching tracks",
+    skip(
+        pooled_connection,
+    ),
+    fields(
+        request_id = %new_request_id(),
+    )
+)]
 pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
     collection_uid: &_core::EntityUid,

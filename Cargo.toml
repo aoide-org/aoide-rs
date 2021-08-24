@@ -58,6 +58,7 @@ tracing-bunyan-formatter = "*"
 tracing-log = "*"
 tracing-subscriber = { version = "*", features = ["registry", "env-filter"] }
 url = { version = "*", features = ["serde"] }
+uuid = { version = "*", features = ["v4"] }
 warp = { version = "*", default-features = false }
 
 # This is not needed as a direct, standalone dependency but should

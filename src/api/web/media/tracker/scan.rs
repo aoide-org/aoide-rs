@@ -32,6 +32,17 @@ pub type RequestBody = Params;
 
 pub type ResponseBody = Outcome;
 
+#[tracing::instrument(
+    name = "Scanning media sources",
+    skip(
+        pooled_connection,
+        progress_event_tx,
+        abort_flag,
+    ),
+    fields(
+        request_id = %new_request_id(),
+    )
+)]
 pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
     collection_uid: &EntityUid,

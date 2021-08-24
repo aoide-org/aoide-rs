@@ -125,6 +125,16 @@ pub type RequestBody = Vec<String>;
 
 pub type ResponseBody = Outcome;
 
+#[tracing::instrument(
+    name = "Importing and replacing tracks",
+    skip(
+        pooled_connection,
+        abort_flag,
+    ),
+    fields(
+        request_id = %new_request_id(),
+    )
+)]
 pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
     collection_uid: &_core::EntityUid,

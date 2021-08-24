@@ -60,6 +60,15 @@ impl From<uc::PurgeByUntrackedMediaSourcesSummary> for ResponseBody {
     }
 }
 
+#[tracing::instrument(
+    name = "Purging untracked tracks",
+    skip(
+        pooled_connection,
+    ),
+    fields(
+        request_id = %new_request_id(),
+    )
+)]
 pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
     collection_uid: &_core::EntityUid,

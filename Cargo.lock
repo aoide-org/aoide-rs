@@ -89,6 +89,7 @@ dependencies = [
  "tracing-log",
  "tracing-subscriber",
  "url",
+ "uuid",
  "warp",
 ]
 
