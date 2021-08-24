@@ -22,6 +22,7 @@ use anyhow::Error;
 use dotenv::dotenv;
 use tracing::{subscriber::set_global_default, Subscriber};
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
+use tracing_error::ErrorLayer;
 use tracing_log::LogTracer;
 use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
 
@@ -47,15 +48,18 @@ fn create_tracing_subscriber() -> anyhow::Result<impl Subscriber> {
         }
         EnvFilter::new(DEFAULT_TRACING_SUBSCRIBER_ENV_FILTER.to_owned())
     });
+    let storage_layer = JsonStorageLayer;
     let formatting_layer = BunyanFormattingLayer::new(
         env!("CARGO_PKG_NAME").to_owned(),
         // Output the formatted spans to stderr
         std::io::stderr,
     );
+    let error_layer = ErrorLayer::default();
     let subscriber = Registry::default()
         .with(env_filter)
-        .with(JsonStorageLayer)
-        .with(formatting_layer);
+        .with(storage_layer)
+        .with(formatting_layer)
+        .with(error_layer);
     Ok(subscriber)
 }
 
