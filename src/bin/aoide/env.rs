@@ -13,60 +13,50 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use anyhow::Error;
-use dotenv::dotenv;
-use log::LevelFilter as LogLevelFilter;
 use std::{
     env,
     net::{IpAddr, Ipv6Addr, SocketAddr},
 };
 
+use anyhow::Error;
+use dotenv::dotenv;
+use tracing::subscriber::set_global_default;
+use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
+use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
+
 pub fn init_environment() {
     if let Ok(path) = dotenv() {
         // Print to stderr because logging has not been initialized yet
-        eprintln!("Loaded environment from file {:?}", path);
+        eprintln!("Loaded environment from dotenv file {:?}", path);
     }
 }
 
-const LOG_LEVEL_ENV: &str = "LOG_LEVEL";
-const LOG_LEVEL_FILTER_DEFAULT: LogLevelFilter = LogLevelFilter::Info;
+const DEFAULT_TRACING_SUBSCRIBER_ENV_FILTER: &str = "info";
 
-fn parse_log_level_filter(log_level: &str) -> Option<LogLevelFilter> {
-    match log_level.to_lowercase().trim() {
-        "error" => Some(LogLevelFilter::Error),
-        "warn" => Some(LogLevelFilter::Warn),
-        "info" => Some(LogLevelFilter::Info),
-        "debug" => Some(LogLevelFilter::Debug),
-        "trace" => Some(LogLevelFilter::Trace),
-        _ => {
-            if !log_level.is_empty() {
-                eprintln!("Invalid log level: '{}'", log_level);
+pub fn init_tracing_subscriber() -> anyhow::Result<()> {
+    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|err| {
+        let rust_log_from_env = env::var("RUST_LOG").ok();
+        if let Some(rust_log_from_env) = rust_log_from_env {
+            if !rust_log_from_env.is_empty() {
+                eprintln!(
+                    "Failed to parse RUST_LOG environment variable '{}': {}",
+                    rust_log_from_env, err
+                );
             }
-            None
         }
-    }
-}
-
-pub fn init_logging() -> LogLevelFilter {
-    let mut builder = env_logger::Builder::from_default_env();
-    let log_level_filter = env::var(LOG_LEVEL_ENV)
-        .map_err(Error::from)
-        .map(|log_level| {
-            tracing::debug!("{} = {}", LOG_LEVEL_ENV, log_level);
-            parse_log_level_filter(&log_level)
-        })
-        .unwrap_or_default()
-        .unwrap_or(LOG_LEVEL_FILTER_DEFAULT);
-    builder.filter(None, log_level_filter);
-    builder.init();
-
-    let log_level = log::max_level();
-
-    // Print this message unconditionally to stderr to bypass the
-    // actual logger for diagnostic purposes
-    eprintln!("Log level: {}", log_level);
-
-    log_level
+        EnvFilter::new(DEFAULT_TRACING_SUBSCRIBER_ENV_FILTER.to_owned())
+    });
+    let formatting_layer = BunyanFormattingLayer::new(
+        env!("CARGO_PKG_NAME").to_owned(),
+        // Output the formatted spans to stderr
+        std::io::stderr,
+    );
+    let subscriber = Registry::default()
+        .with(env_filter)
+        .with(JsonStorageLayer)
+        .with(formatting_layer);
+    set_global_default(subscriber)?;
+    Ok(())
 }
 
 const ENDPOINT_IP_ENV: &str = "ENDPOINT_IP";

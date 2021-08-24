@@ -162,19 +162,19 @@ file [.env](.env) in the project folder for an example configuration.
 
 #### Configuration examples
 
-| Configuration                    | Description                                           |
-| -------------------------------- | ----------------------------------------------------- |
-| `LOG_LEVEL=debug`                | Log level DEBUG (trace/debug/info/warn/error)         |
-| `ENDPOINT_IP=::`                 | Listen on IPv6 loopback device                        |
-| `ENDPOINT_PORT=0`                | Bind to an ephemeral port for incoming HTTP requests  |
-| `ENDPOINT_PORT=8080`             | Bind to port 8080 for incoming HTTP requests          |
-| `DATABASE_URL=:memory:`          | Use an in-memory database for testing purposes        |
-| `DATABASE_URL=/tmp/aoide.sqlite` | Open or create the corresponding SQLite database file |
+| Configuration                    | Description                                             |
+| -------------------------------- | ------------------------------------------------------- |
+| `RUST_LOG=debug`                 | Log/tracing level `debug` (trace/debug/info/warn/error) |
+| `ENDPOINT_IP=::`                 | Listen on IPv6 loopback device                          |
+| `ENDPOINT_PORT=0`                | Bind to an ephemeral port for incoming HTTP requests    |
+| `ENDPOINT_PORT=8080`             | Bind to port 8080 for incoming HTTP requests            |
+| `DATABASE_URL=:memory:`          | Use an in-memory database for testing purposes          |
+| `DATABASE_URL=/tmp/aoide.sqlite` | Open or create the corresponding SQLite database file   |
 
 The actual socket address with the bound (ephemeral) port will be printed on the first line to _stdout_
 where the client can pick it up for connecting. You may also bind the service to some predefined port.
 
-Logs messages are printed to _stderr_.
+Log/tracing messages are formatted as JSON and printed to _stderr_.
 
 ### Tests
 
@@ -211,7 +211,7 @@ Example:
 
 ```sh
 docker run --rm \
-    -e LOG_LEVEL=info \
+    -e RUST_LOG=info \
     -e DATABASE_URL=aoide.sqlite \
     -p 7878:8080 \
     -v .:/data:Z \

@@ -126,7 +126,7 @@ pub async fn main() -> Result<(), Error> {
 
     env::init_environment();
 
-    let log_level = env::init_logging();
+    env::init_tracing_subscriber().expect("init tracising subscriber");
 
     if let Ok(exe_path) = current_exe() {
         tracing::info!("Executable: {}", exe_path.display());
@@ -197,9 +197,6 @@ pub async fn main() -> Result<(), Error> {
                         vars.insert(key, val);
                         vars}),
                     "currentWorkingDirectory": std::env::current_dir().unwrap_or_default(),
-                },
-                "logging": {
-                    "level": log_level.to_string().to_lowercase(),
                 },
                 "networking": {
                     "endpointAddress": endpoint_addr,
