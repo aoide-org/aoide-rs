@@ -55,6 +55,7 @@ thiserror = "*"
 tokio = { version = "*", default-features = false, features = ["macros", "rt-multi-thread", "signal"] }
 tracing = { version = "*", features = ["log"] }
 tracing-bunyan-formatter = "*"
+tracing-log = "*"
 tracing-subscriber = { version = "*", features = ["registry", "env-filter"] }
 url = { version = "*", features = ["serde"] }
 warp = { version = "*", default-features = false }

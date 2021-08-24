@@ -86,6 +86,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-bunyan-formatter",
+ "tracing-log",
  "tracing-subscriber",
  "url",
  "warp",
