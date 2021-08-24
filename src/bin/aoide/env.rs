@@ -20,7 +20,7 @@ use std::{
 
 use anyhow::Error;
 use dotenv::dotenv;
-use tracing::subscriber::set_global_default;
+use tracing::{subscriber::set_global_default, Subscriber};
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_log::LogTracer;
 use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
@@ -34,10 +34,7 @@ pub fn init_environment() {
 
 const DEFAULT_TRACING_SUBSCRIBER_ENV_FILTER: &str = "info";
 
-pub fn init_tracing_subscriber() -> anyhow::Result<()> {
-    // Capture and redirect all log messages as tracing events
-    LogTracer::init()?;
-
+fn create_tracing_subscriber() -> anyhow::Result<impl Subscriber> {
     let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|err| {
         let rust_log_from_env = env::var("RUST_LOG").ok();
         if let Some(rust_log_from_env) = rust_log_from_env {
@@ -59,7 +56,16 @@ pub fn init_tracing_subscriber() -> anyhow::Result<()> {
         .with(env_filter)
         .with(JsonStorageLayer)
         .with(formatting_layer);
+    Ok(subscriber)
+}
+
+pub fn init_tracing_subscriber() -> anyhow::Result<()> {
+    // Capture and redirect all log messages as tracing events
+    LogTracer::init()?;
+
+    let subscriber = create_tracing_subscriber()?;
     set_global_default(subscriber)?;
+
     Ok(())
 }
 
