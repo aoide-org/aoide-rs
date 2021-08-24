@@ -96,7 +96,7 @@ impl From<QueryableRecord> for (MediaSourceId, RecordHeader, EntityHeader) {
 pub fn load_repo_entity(
     preload: EntityPreload,
     queryable: QueryableRecord,
-) -> (RecordHeader, Entity) {
+) -> RepoResult<(RecordHeader, Entity)> {
     let EntityPreload {
         media_source,
         track_titles,
@@ -162,11 +162,10 @@ pub fn load_repo_entity(
         released_by,
         copyright,
     };
+    let album_kind = AlbumKind::from_i16(album_kind)
+        .ok_or_else(|| anyhow::anyhow!("Invalid album kind value: {}", album_kind))?;
     let album = Canonical::tie(Album {
-        kind: AlbumKind::from_i16(album_kind).unwrap_or_else(|| {
-            tracing::error!("Invalid album kind value: {}", album_kind);
-            AlbumKind::Unknown
-        }),
+        kind: album_kind,
         actors: album_actors,
         titles: album_titles,
     });
@@ -230,7 +229,7 @@ pub fn load_repo_entity(
         play_counter,
     };
     let entity = Entity::new(entity_hdr, track);
-    (header, entity)
+    Ok((header, entity))
 }
 
 #[derive(Debug, Insertable)]

@@ -13,13 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{
-    db::{
-        media_source::schema::*,
-        media_tracker::{models::*, schema::*},
-    },
-    prelude::*,
-};
+use std::convert::TryFrom;
+
+use num_traits::{FromPrimitive as _, ToPrimitive as _};
 
 use aoide_core::{
     media::SourcePath,
@@ -33,7 +29,13 @@ use aoide_repo::{
     media::{tracker::*, DigestBytes},
 };
 
-use num_traits::{FromPrimitive as _, ToPrimitive as _};
+use crate::{
+    db::{
+        media_source::schema::*,
+        media_tracker::{models::*, schema::*},
+    },
+    prelude::*,
+};
 
 #[derive(QueryableByName)]
 struct StatusCountRow {
@@ -317,10 +319,18 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             query = query.filter(sql_column_substr_prefix_eq("path", path_prefix));
         }
         let query = apply_pagination(query, pagination);
-        query
+        let records = query
             .load::<QueryableRecord>(self.as_ref())
-            .map_err(repo_error)
-            .map(|v| v.into_iter().map(Into::into).collect())
+            .map_err(repo_error)?;
+        let (valid, errors): (Vec<_>, _) = records
+            .into_iter()
+            .map(TryFrom::try_from)
+            .partition(Result::is_ok);
+        if let Some(err) = errors.into_iter().map(Result::unwrap_err).next() {
+            return Err(RepoError::Other(err));
+        }
+        let valid: Vec<_> = valid.into_iter().map(Result::unwrap).collect();
+        Ok(valid)
     }
 
     fn media_tracker_relink_source(

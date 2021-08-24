@@ -13,7 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::{schema::*, *};
+use std::convert::TryFrom;
+
+use num_traits::{FromPrimitive as _, ToPrimitive as _};
 
 use aoide_core::{
     usecases::media::tracker::DirTrackingStatus,
@@ -25,7 +27,7 @@ use aoide_repo::{
     media::{read_digest_from_slice, tracker::*, DigestBytes},
 };
 
-use num_traits::{FromPrimitive as _, ToPrimitive as _};
+use super::{schema::*, *};
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -41,8 +43,10 @@ pub struct QueryableRecord {
     pub digest: Vec<u8>,
 }
 
-impl From<QueryableRecord> for TrackedDirectory {
-    fn from(from: QueryableRecord) -> Self {
+impl TryFrom<QueryableRecord> for TrackedDirectory {
+    type Error = anyhow::Error;
+
+    fn try_from(from: QueryableRecord) -> anyhow::Result<Self> {
         let QueryableRecord {
             id: _,
             row_created_ms: _,
@@ -52,19 +56,16 @@ impl From<QueryableRecord> for TrackedDirectory {
             status,
             digest,
         } = from;
-        let status = DirTrackingStatus::from_i16(status).unwrap_or_else(|| {
-            tracing::error!("Invalid entry status value: {}", status);
-            DirTrackingStatus::Current
-        });
-        let digest = read_digest_from_slice(digest.as_slice()).unwrap_or_else(|| {
-            tracing::error!("Invalid digest: {:?}", digest.as_slice());
-            Default::default()
-        });
-        Self {
+        let status = DirTrackingStatus::from_i16(status)
+            .ok_or_else(|| anyhow::anyhow!("Invalid entry status value: {}", status))?;
+        let digest = read_digest_from_slice(digest.as_slice())
+            .ok_or_else(|| anyhow::anyhow!("Invalid digest: {:?}", digest.as_slice()))?;
+        let into = Self {
             path: path.into(),
             status,
             digest,
-        }
+        };
+        Ok(into)
     }
 }
 

@@ -13,12 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::{convert::TryInto as _, time::Instant};
+
+use diesel::dsl::count_star;
+
 mod search;
 
 use search::{TrackSearchBoxedExpressionBuilder as _, TrackSearchQueryTransform as _};
-
-use diesel::dsl::count_star;
-use std::time::Instant;
 
 use crate::{
     db::{
@@ -63,7 +64,7 @@ fn load_track_and_album_titles(
         Vec::with_capacity(queryables.len()),
     );
     for queryable in queryables {
-        let (_, record) = queryable.into();
+        let (_, record) = queryable.try_into()?;
         let Record {
             track_id: _,
             scope,
@@ -154,7 +155,7 @@ fn load_track_and_album_actors(
         Vec::with_capacity(queryables.len()),
     );
     for queryable in queryables {
-        let (_, record) = queryable.into();
+        let (_, record) = queryable.try_into()?;
         let Record {
             track_id: _,
             scope,
@@ -508,7 +509,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             .map_err(repo_error)?;
         let (_, media_source) = self.load_media_source(queryable.media_source_id.into())?;
         let preload = preload_entity(self, id, media_source)?;
-        Ok(load_repo_entity(preload, queryable))
+        load_repo_entity(preload, queryable)
     }
 
     fn load_track_entity_by_uid(&self, uid: &EntityUid) -> RepoResult<(RecordHeader, Entity)> {
@@ -518,7 +519,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             .map_err(repo_error)?;
         let (_, media_source) = self.load_media_source(queryable.media_source_id.into())?;
         let preload = preload_entity(self, queryable.id.into(), media_source)?;
-        Ok(load_repo_entity(preload, queryable))
+        load_repo_entity(preload, queryable)
     }
 
     fn load_track_entity_by_media_source_path(
@@ -537,7 +538,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         let media_source_id = queryable.media_source_id.into();
         let (_, media_source) = self.load_media_source(media_source_id)?;
         let preload = preload_entity(self, queryable.id.into(), media_source)?;
-        let (record_header, entity) = load_repo_entity(preload, queryable);
+        let (record_header, entity) = load_repo_entity(preload, queryable)?;
         Ok((media_source_id, record_header, entity))
     }
 
@@ -576,7 +577,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             let media_source_id = queryable.media_source_id.into();
             let (_, media_source) = self.load_media_source(media_source_id)?;
             let preload = preload_entity(self, queryable.id.into(), media_source)?;
-            loaded_repo_entities.push(load_repo_entity(preload, queryable));
+            loaded_repo_entities.push(load_repo_entity(preload, queryable)?);
         }
         Ok(loaded_repo_entities)
     }
@@ -731,7 +732,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             let media_source_id = record.media_source_id.into();
             let (_, media_source) = self.load_media_source(media_source_id)?;
             let preload = preload_entity(self, record.id.into(), media_source)?;
-            let (record_header, entity) = load_repo_entity(preload, record);
+            let (record_header, entity) = load_repo_entity(preload, record)?;
             collector.collect(record_header, entity);
         }
         tracing::debug!(

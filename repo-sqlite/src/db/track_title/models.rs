@@ -13,11 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::{schema::*, *};
-
 use num_traits::FromPrimitive as _;
 
-///////////////////////////////////////////////////////////////////////
+use std::convert::TryFrom;
+
+use super::{schema::*, *};
 
 #[derive(Debug, Queryable, Identifiable)]
 #[table_name = "track_title"]
@@ -29,8 +29,10 @@ pub struct QueryableRecord {
     pub name: String,
 }
 
-impl From<QueryableRecord> for (RecordId, Record) {
-    fn from(from: QueryableRecord) -> Self {
+impl TryFrom<QueryableRecord> for (RecordId, Record) {
+    type Error = anyhow::Error;
+
+    fn try_from(from: QueryableRecord) -> anyhow::Result<Self> {
         let QueryableRecord {
             id,
             track_id,
@@ -38,22 +40,16 @@ impl From<QueryableRecord> for (RecordId, Record) {
             kind,
             name,
         } = from;
-        let title = Title {
-            kind: TitleKind::from_i16(kind).unwrap_or_else(|| {
-                tracing::error!("Invalid title kind value: {}", kind);
-                Default::default()
-            }),
-            name,
-        };
+        let kind = TitleKind::from_i16(kind)
+            .ok_or_else(|| anyhow::anyhow!("Invalid title kind value: {}", kind))?;
+        let scope = Scope::from_i16(scope)
+            .ok_or_else(|| anyhow::anyhow!("Invalid scope value: {}", scope))?;
         let record = Record {
             track_id: track_id.into(),
-            scope: Scope::from_i16(scope).unwrap_or_else(|| {
-                tracing::error!("Invalid scope value: {}", scope);
-                Scope::Track
-            }),
-            title,
+            scope,
+            title: Title { kind, name },
         };
-        (id.into(), record)
+        Ok((id.into(), record))
     }
 }
 

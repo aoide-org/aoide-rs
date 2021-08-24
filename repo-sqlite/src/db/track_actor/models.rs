@@ -13,11 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::{schema::*, *};
+use std::convert::TryFrom;
 
 use num_traits::FromPrimitive as _;
 
-///////////////////////////////////////////////////////////////////////
+use super::{schema::*, *};
 
 #[derive(Debug, Queryable, Identifiable)]
 #[table_name = "track_actor"]
@@ -31,8 +31,10 @@ pub struct QueryableRecord {
     pub role_notes: Option<String>,
 }
 
-impl From<QueryableRecord> for (RecordId, Record) {
-    fn from(from: QueryableRecord) -> Self {
+impl TryFrom<QueryableRecord> for (RecordId, Record) {
+    type Error = anyhow::Error;
+
+    fn try_from(from: QueryableRecord) -> anyhow::Result<Self> {
         let QueryableRecord {
             id,
             track_id,
@@ -42,27 +44,23 @@ impl From<QueryableRecord> for (RecordId, Record) {
             role,
             role_notes,
         } = from;
-        let actor = Actor {
-            kind: ActorKind::from_i16(kind).unwrap_or_else(|| {
-                tracing::error!("Invalid actor kind value: {}", kind);
-                Default::default()
-            }),
-            name,
-            role: ActorRole::from_i16(role).unwrap_or_else(|| {
-                tracing::error!("Invalid actor role value: {}", role);
-                Default::default()
-            }),
-            role_notes,
-        };
+        let kind = ActorKind::from_i16(kind)
+            .ok_or_else(|| anyhow::anyhow!("Invalid actor kind value: {}", kind))?;
+        let role = ActorRole::from_i16(role)
+            .ok_or_else(|| anyhow::anyhow!("Invalid actor role value: {}", role))?;
+        let scope = Scope::from_i16(scope)
+            .ok_or_else(|| anyhow::anyhow!("Invalid scope value: {}", scope))?;
         let record = Record {
             track_id: track_id.into(),
-            scope: Scope::from_i16(scope).unwrap_or_else(|| {
-                tracing::error!("Invalid scope value: {}", scope);
-                Scope::Track
-            }),
-            actor,
+            scope,
+            actor: Actor {
+                kind,
+                name,
+                role,
+                role_notes,
+            },
         };
-        (id.into(), record)
+        Ok((id.into(), record))
     }
 }
 

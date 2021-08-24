@@ -79,15 +79,7 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Entity) {
         let media_source_root_url = media_source_root_url
             .as_deref()
             .map(BaseUrl::parse_strict)
-            .transpose()
-            .unwrap_or_else(|err| {
-                tracing::error!(
-                    "Invalid media source root URL '{}': {}",
-                    media_source_root_url.as_deref().unwrap_or_default(),
-                    err,
-                );
-                None
-            });
+            .transpose()?;
         let media_source_path_config =
             SourcePathConfig::try_from((media_source_path_kind, media_source_root_url))?;
         let media_source_config = MediaSourceConfig {
