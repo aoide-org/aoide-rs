@@ -1,10 +1,10 @@
+# aoide
+
 ![aoide banner](resources/aoide_banner_1280x340.png)
 
 [![GitLab CI](https://gitlab.com/uklotzde/aoide-rs/badges/development/pipeline.svg?style=flat)](https://gitlab.com/uklotzde/aoide-rs/pipelines?scope=branches)
 [![GitHub CI](https://github.com/aoide-org/aoide-rs/workflows/Continuous%20integration/badge.svg?branch=development&style=flat)](https://github.com/aoide-org/aoide-rs/actions?query=workflow%3A%22Continuous+integration%22)
 [![License](https://img.shields.io/badge/license-AGPLv3-blue.svg?style=flat)](https://gitlab.com/uklotzde/aoide-rs/blob/main/LICENSE.md)
-
-# aoide - All about music
 
 A local HTTP/REST service for managing and exploring music collections. Independent and portable. Written in Rust.
 

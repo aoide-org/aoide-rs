@@ -99,6 +99,7 @@ cargo +nightly clippy
 ### Committing Changes
 
 Keep your change sets small per commit:
+
 * Revert any unnecessary changes or changes to unrelated files
 * Use separate commits when moving or renaming files and when fixing formatting issues with `rustfmt`
 * Don't accidentilly check in any temporary files
