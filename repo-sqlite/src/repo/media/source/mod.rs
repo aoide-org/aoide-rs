@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::convert::TryInto as _;
+
 use crate::{
     db::{
         media_source::{models::*, schema::*, subselect},
@@ -160,7 +162,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             .filter(media_source::row_id.eq(RowId::from(id)))
             .first::<QueryableRecord>(self.as_ref())
             .map_err(repo_error)
-            .map(Into::into)
+            .and_then(|record| record.try_into().map_err(Into::into))
     }
 
     fn load_media_source_by_path(
@@ -173,7 +175,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             .filter(media_source::path.eq(path))
             .first::<QueryableRecord>(self.as_ref())
             .map_err(repo_error)
-            .map(Into::into)
+            .and_then(|record| record.try_into().map_err(Into::into))
     }
 
     fn purge_orphaned_media_sources_from_collection(

@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::convert::TryInto as _;
+use std::convert::{TryFrom, TryInto as _};
 
 use num_traits::{FromPrimitive as _, ToPrimitive};
 
@@ -70,8 +70,10 @@ pub struct QueryableRecord {
     pub artwork_thumbnail: Option<Vec<u8>>,
 }
 
-impl From<QueryableRecord> for (RecordHeader, Source) {
-    fn from(from: self::QueryableRecord) -> Self {
+impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
+    type Error = anyhow::Error;
+
+    fn try_from(from: self::QueryableRecord) -> anyhow::Result<Self> {
         let self::QueryableRecord {
             id,
             row_created_ms,
@@ -113,12 +115,15 @@ impl From<QueryableRecord> for (RecordHeader, Source) {
             match source {
                 ArtworkSource::Missing => Some(Artwork::Missing),
                 ArtworkSource::Linked if artwork_uri.is_none() => {
-                    tracing::warn!("Missing URI for linked artwork");
-                    None
+                    anyhow::bail!("Missing URI for linked artwork");
                 }
                 _ => {
                     let apic_type = artwork_apic_type
-                        .and_then(ApicType::from_i16)
+                        .map(|apic_type| {
+                            ApicType::from_i16(apic_type)
+                                .ok_or_else(|| anyhow::anyhow!("Invalid APIC type: {}", apic_type))
+                        })
+                        .transpose()?
                         .unwrap_or(ApicType::Other);
                     let media_type = artwork_media_type.unwrap_or_default();
                     let size = if let (Some(width), Some(height)) =
@@ -175,7 +180,7 @@ impl From<QueryableRecord> for (RecordHeader, Source) {
             content: Content::Audio(audio_content),
             artwork,
         };
-        (header, source)
+        Ok((header, source))
     }
 }
 
