@@ -130,21 +130,21 @@ where
             number_of_next_actions += 1;
             match next_action {
                 Action::ApplyEffect(effect) => {
-                    log::debug!("Applying subsequent effect immediately: {:?}", effect);
+                    tracing::debug!("Applying subsequent effect immediately: {:?}", effect);
                     next_message = Message::Effect(effect);
                     continue 'process_next_message;
                 }
                 Action::DispatchTask(task) => {
-                    log::debug!("Dispatching task asynchronously: {:?}", task);
+                    tracing::debug!("Dispatching task asynchronously: {:?}", task);
                     shared_env.dispatch_task(shared_env.clone(), message_tx.clone(), task);
                     number_of_tasks_dispatched += 1;
                 }
             }
         }
         if state_mutation == StateMutation::MaybeChanged || number_of_next_actions > 0 {
-            log::debug!("Rendering current state: {:?}", state);
+            tracing::debug!("Rendering current state: {:?}", state);
             if let Some(observation_intent) = render_fn(state) {
-                log::debug!(
+                tracing::debug!(
                     "Received intent after observing state: {:?}",
                     observation_intent
                 );
@@ -154,7 +154,7 @@ where
         }
         break;
     }
-    log::debug!("number_of_next_actions = {}, number_of_messages_sent = {}, number_of_tasks_dispatched = {}", number_of_next_actions, number_of_messages_sent, number_of_tasks_dispatched);
+    tracing::debug!("number_of_next_actions = {}, number_of_messages_sent = {}, number_of_tasks_dispatched = {}", number_of_next_actions, number_of_messages_sent, number_of_tasks_dispatched);
     if number_of_messages_sent + number_of_tasks_dispatched > 0 {
         MessageHandled::Progressing
     } else {
@@ -191,6 +191,6 @@ where
             }
         }
     }
-    log::debug!("Terminated message loop");
+    tracing::debug!("Terminated message loop");
     state
 }

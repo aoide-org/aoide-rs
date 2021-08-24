@@ -129,7 +129,7 @@ pub fn import_faceted_tags(
                         *next_score_value = tag_mapping_config.next_score_value(*next_score_value);
                     }
                     Err(plain_tag) => {
-                        log::warn!("Failed to import faceted '{}' tag: {:?}", facet, plain_tag,);
+                        tracing::warn!("Failed to import faceted '{}' tag: {:?}", facet, plain_tag,);
                     }
                 }
             }
@@ -145,7 +145,7 @@ pub fn import_faceted_tags(
                 }
             }
             Err(plain_tag) => {
-                log::warn!("Failed to import faceted '{}' tag: {:?}", facet, plain_tag,);
+                tracing::warn!("Failed to import faceted '{}' tag: {:?}", facet, plain_tag,);
             }
         }
     }

@@ -113,7 +113,7 @@ impl From<QueryableRecord> for (RecordHeader, Source) {
             match source {
                 ArtworkSource::Missing => Some(Artwork::Missing),
                 ArtworkSource::Linked if artwork_uri.is_none() => {
-                    log::warn!("Missing URI for linked artwork");
+                    tracing::warn!("Missing URI for linked artwork");
                     None
                 }
                 _ => {

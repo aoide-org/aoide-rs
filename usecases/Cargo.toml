@@ -13,8 +13,8 @@ anyhow = "*"
 blake3 = "*"
 digest = "*"
 bitflags = "*"
-log = "*"
 thiserror = "*"
+tracing = { version = "*", features = ["log"] }
 url = "*"
 
 [features]

@@ -105,7 +105,7 @@ pub fn handle_request(
         &mut |summary| {
             if let Some(progress_summary_tx) = progress_summary_tx {
                 if progress_summary_tx.send(summary.to_owned()).is_err() {
-                    log::error!("Failed to send progress summary");
+                    tracing::error!("Failed to send progress summary");
                 }
             }
         },

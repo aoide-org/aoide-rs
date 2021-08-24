@@ -134,7 +134,7 @@ fn import_faceted_text_tags(
 ) {
     let removed_tags = tags_map.remove_faceted_tags(facet);
     if removed_tags > 0 {
-        log::debug!("Replacing {} custom '{}' tags", removed_tags, facet.value());
+        tracing::debug!("Replacing {} custom '{}' tags", removed_tags, facet.value());
     }
     let tag_mapping_config = config.get(facet.value());
     let mut next_score_value = TagScore::max_value();
@@ -335,7 +335,7 @@ pub fn import_track(
                 .map(Mime::type_)
                 != Some(mime::APPLICATION_JSON.type_())
             {
-                log::warn!(
+                tracing::warn!(
                     "Unexpected MIME type for GEOB '{}': {}",
                     geob.description,
                     geob.mime_type
@@ -344,7 +344,7 @@ pub fn import_track(
             }
             if let Some(custom_tags) = serde_json::from_slice::<SerdeTags>(&geob.data)
                 .map_err(|err| {
-                    log::warn!("Failed to parse Mixxx custom tags: {}", err);
+                    tracing::warn!("Failed to parse Mixxx custom tags: {}", err);
                     err
                 })
                 .ok()
@@ -365,7 +365,7 @@ pub fn import_track(
     {
         let removed_comments = tags_map.remove_faceted_tags(&FACET_COMMENT);
         if removed_comments > 0 {
-            log::debug!(
+            tracing::debug!(
                 "Replacing {} custom '{}' tags",
                 removed_comments,
                 FACET_COMMENT.value()
@@ -526,7 +526,7 @@ pub fn import_track(
                     serato_tags
                         .parse_markers(&geob.data, SeratoTagFormat::ID3)
                         .map_err(|err| {
-                            log::warn!("Failed to parse Serato Markers: {}", err);
+                            tracing::warn!("Failed to parse Serato Markers: {}", err);
                         })
                         .ok();
                 }
@@ -534,7 +534,7 @@ pub fn import_track(
                     serato_tags
                         .parse_markers2(&geob.data, SeratoTagFormat::ID3)
                         .map_err(|err| {
-                            log::warn!("Failed to parse Serato Markers2: {}", err);
+                            tracing::warn!("Failed to parse Serato Markers2: {}", err);
                         })
                         .ok();
                 }

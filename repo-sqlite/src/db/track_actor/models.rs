@@ -44,12 +44,12 @@ impl From<QueryableRecord> for (RecordId, Record) {
         } = from;
         let actor = Actor {
             kind: ActorKind::from_i16(kind).unwrap_or_else(|| {
-                log::error!("Invalid actor kind value: {}", kind);
+                tracing::error!("Invalid actor kind value: {}", kind);
                 Default::default()
             }),
             name,
             role: ActorRole::from_i16(role).unwrap_or_else(|| {
-                log::error!("Invalid actor role value: {}", role);
+                tracing::error!("Invalid actor role value: {}", role);
                 Default::default()
             }),
             role_notes,
@@ -57,7 +57,7 @@ impl From<QueryableRecord> for (RecordId, Record) {
         let record = Record {
             track_id: track_id.into(),
             scope: Scope::from_i16(scope).unwrap_or_else(|| {
-                log::error!("Invalid scope value: {}", scope);
+                tracing::error!("Invalid scope value: {}", scope);
                 Scope::Track
             }),
             actor,

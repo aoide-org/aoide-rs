@@ -40,7 +40,7 @@ impl From<QueryableRecord> for (RecordId, Record) {
         } = from;
         let title = Title {
             kind: TitleKind::from_i16(kind).unwrap_or_else(|| {
-                log::error!("Invalid title kind value: {}", kind);
+                tracing::error!("Invalid title kind value: {}", kind);
                 Default::default()
             }),
             name,
@@ -48,7 +48,7 @@ impl From<QueryableRecord> for (RecordId, Record) {
         let record = Record {
             track_id: track_id.into(),
             scope: Scope::from_i16(scope).unwrap_or_else(|| {
-                log::error!("Invalid scope value: {}", scope);
+                tracing::error!("Invalid scope value: {}", scope);
                 Scope::Track
             }),
             title,

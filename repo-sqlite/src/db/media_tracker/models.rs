@@ -53,11 +53,11 @@ impl From<QueryableRecord> for TrackedDirectory {
             digest,
         } = from;
         let status = DirTrackingStatus::from_i16(status).unwrap_or_else(|| {
-            log::error!("Invalid entry status value: {}", status);
+            tracing::error!("Invalid entry status value: {}", status);
             DirTrackingStatus::Current
         });
         let digest = read_digest_from_slice(digest.as_slice()).unwrap_or_else(|| {
-            log::error!("Invalid digest: {:?}", digest.as_slice());
+            tracing::error!("Invalid digest: {:?}", digest.as_slice());
             Default::default()
         });
         Self {

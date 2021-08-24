@@ -39,7 +39,7 @@ pub fn load_many(
                     collector.collect(record_header, entity);
                 }
                 Err(RepoError::NotFound) => {
-                    log::debug!("Track with UID '{}' not found", uid);
+                    tracing::debug!("Track with UID '{}' not found", uid);
                     continue;
                 }
                 Err(err) => {

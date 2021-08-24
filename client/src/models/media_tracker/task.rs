@@ -55,7 +55,7 @@ pub enum Task {
 
 impl Task {
     pub async fn execute<E: WebClientEnvironment>(self, env: &E) -> Effect {
-        log::debug!("Executing task: {:?}", self);
+        tracing::debug!("Executing task: {:?}", self);
         match self {
             Self::FetchStatus {
                 collection_uid,
@@ -123,7 +123,7 @@ async fn fetch_status<E: WebClientEnvironment>(
         &response_body,
     )
     .map(Into::into)?;
-    log::debug!("Received status: {:?}", status);
+    tracing::debug!("Received status: {:?}", status);
     Ok(status)
 }
 
@@ -136,7 +136,7 @@ async fn fetch_progress<E: WebClientEnvironment>(env: &E) -> anyhow::Result<Prog
         &response_body,
     )
     .map(Into::into)?;
-    log::debug!("Received progress: {:?}", progress);
+    tracing::debug!("Received progress: {:?}", progress);
     Ok(progress)
 }
 
@@ -158,7 +158,7 @@ async fn start_scan<E: WebClientEnvironment>(
             &response_body,
         )
         .map(Into::into)?;
-    log::debug!("Scan finished: {:?}", outcome);
+    tracing::debug!("Scan finished: {:?}", outcome);
     Ok(outcome)
 }
 
@@ -179,7 +179,7 @@ async fn start_import<E: WebClientEnvironment>(
         aoide_core_serde::usecases::media::tracker::import::Outcome,
     >(&response_body)
     .map(Into::into)?;
-    log::debug!("Import finished: {:?}", outcome);
+    tracing::debug!("Import finished: {:?}", outcome);
     Ok(outcome)
 }
 
@@ -208,7 +208,7 @@ async fn untrack<E: WebClientEnvironment>(
         aoide_core_serde::usecases::media::tracker::untrack::Outcome,
     >(&response_body)
     .map(Into::into)?;
-    log::debug!("Untrack finished: {:?}", outcome);
+    tracing::debug!("Untrack finished: {:?}", outcome);
     Ok(outcome)
 }
 
@@ -227,6 +227,6 @@ async fn purge_orphaned_and_untracked<E: WebClientEnvironment>(
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
     let outcome = serde_json::from_slice::<serde_json::Value>(&response_body)?;
-    log::debug!("Purge orphaned and untracked finished: {:?}", outcome);
+    tracing::debug!("Purge orphaned and untracked finished: {:?}", outcome);
     Ok(())
 }

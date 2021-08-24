@@ -76,6 +76,7 @@ dependencies = [
  "serde_urlencoded",
  "thiserror",
  "tokio",
+ "tracing",
  "url",
  "warp",
 ]
@@ -90,11 +91,11 @@ dependencies = [
  "bytes",
  "clap",
  "env_logger",
- "log",
  "reqwest",
  "serde",
  "serde_json",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -150,7 +151,6 @@ dependencies = [
  "id3",
  "image",
  "lewton",
- "log",
  "metaflac",
  "mime",
  "mime_guess",
@@ -163,6 +163,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "thiserror",
+ "tracing",
  "triseratops",
  "url",
  "walkdir",
@@ -194,12 +195,12 @@ dependencies = [
  "diesel_migrations",
  "env_logger",
  "libsqlite3-sys",
- "log",
  "num-bigint 0.4.0",
  "num-derive",
  "num-traits",
  "semval",
  "test-env-log",
+ "tracing",
  "url",
 ]
 
@@ -214,8 +215,8 @@ dependencies = [
  "bitflags",
  "blake3",
  "digest",
- "log",
  "thiserror",
+ "tracing",
  "url",
 ]
 
@@ -1886,9 +1887,9 @@ checksum = "568a8e6258aa33c13358f81fd834adb854c6f7c9468520910a9b1e8fac068012"
 
 [[package]]
 name = "serde"
-version = "1.0.128"
+version = "1.0.129"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1056a0db1978e9dbf0f6e4fca677f6f9143dc1c19de346f22cac23e422196834"
+checksum = "d1f72836d2aa753853178eda473a3b9d8e4eefdaf20523b919677e6de489f8f1"
 dependencies = [
  "serde_derive",
 ]
@@ -1905,9 +1906,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.128"
+version = "1.0.129"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13af2fbb8b60a8950d6c72a56d2095c28870367cc8e10c55e9745bac4995a2c4"
+checksum = "e57ae87ad533d9a56427558b516d0adac283614e347abf85b0dc0cbbf0a249f3"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2233,7 +2234,19 @@ dependencies = [
  "cfg-if",
  "log",
  "pin-project-lite",
+ "tracing-attributes",
  "tracing-core",
+]
+
+[[package]]
+name = "tracing-attributes"
+version = "0.1.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c42e6fa53307c8a17e4ccd4dc81cf5ec38db9209f59b222210375b54ee40d1e2"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

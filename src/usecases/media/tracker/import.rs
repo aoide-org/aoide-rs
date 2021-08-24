@@ -62,7 +62,7 @@ pub fn import(
         )
         .map_err(DieselTransactionError::new)
     })?;
-    log::info!("Analyzing and optimizing database after import finished");
+    tracing::info!("Analyzing and optimizing database after import finished");
     db.analyze_and_optimize_stats()?;
     Ok(outcome)
 }

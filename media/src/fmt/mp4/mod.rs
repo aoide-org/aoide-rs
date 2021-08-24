@@ -151,7 +151,7 @@ impl import::ImportTrack for ImportTrack {
         let mut mp4_tag = match Mp4Tag::read_from(reader) {
             Ok(mp4_tag) => mp4_tag,
             Err(err) => {
-                log::warn!(
+                tracing::warn!(
                     "Failed to parse metadata from media source '{}': {}",
                     track.media_source.path,
                     err
@@ -350,12 +350,12 @@ impl import::ImportTrack for ImportTrack {
                 if let Some(custom_tags) = match data {
                     Data::Utf8(input) => serde_json::from_str::<SerdeTags>(input)
                         .map_err(|err| {
-                            log::warn!("Failed to parse Mixxx custom tags: {}", err);
+                            tracing::warn!("Failed to parse Mixxx custom tags: {}", err);
                             err
                         })
                         .ok(),
                     data => {
-                        log::warn!("Unexpected data for Mixxx custom tags: {:?}", data);
+                        tracing::warn!("Unexpected data for Mixxx custom tags: {:?}", data);
                         None
                     }
                 }
@@ -538,12 +538,12 @@ impl import::ImportTrack for ImportTrack {
                         serato_tags
                             .parse_markers(input.as_bytes(), SeratoTagFormat::MP4)
                             .map_err(|err| {
-                                log::warn!("Failed to parse Serato Markers: {}", err);
+                                tracing::warn!("Failed to parse Serato Markers: {}", err);
                             })
                             .ok();
                     }
                     data => {
-                        log::warn!("Unexpected data for Serato Markers: {:?}", data);
+                        tracing::warn!("Unexpected data for Serato Markers: {:?}", data);
                     }
                 }
             }
@@ -554,12 +554,12 @@ impl import::ImportTrack for ImportTrack {
                         serato_tags
                             .parse_markers2(input.as_bytes(), SeratoTagFormat::MP4)
                             .map_err(|err| {
-                                log::warn!("Failed to parse Serato Markers2: {}", err);
+                                tracing::warn!("Failed to parse Serato Markers2: {}", err);
                             })
                             .ok();
                     }
                     data => {
-                        log::warn!("Unexpected data for Serato Markers2: {:?}", data);
+                        tracing::warn!("Unexpected data for Serato Markers2: {:?}", data);
                     }
                 }
             }

@@ -29,7 +29,7 @@ pub enum Task {
 
 impl Task {
     pub async fn execute<E: WebClientEnvironment>(self, env: &E) -> Effect {
-        log::trace!("Executing task: {:?}", self);
+        tracing::trace!("Executing task: {:?}", self);
         match self {
             Self::CreateNewCollection(new_collection) => {
                 let res = create_new_collection(env, new_collection).await;
@@ -57,7 +57,7 @@ pub async fn create_new_collection<E: WebClientEnvironment>(
     let entity = serde_json::from_slice::<aoide_core_serde::collection::Entity>(&response_body)
         .map_err(anyhow::Error::from)
         .and_then(TryInto::try_into)?;
-    log::debug!("Created new collection entity: {:?}", entity);
+    tracing::debug!("Created new collection entity: {:?}", entity);
     Ok(entity)
 }
 
@@ -77,6 +77,6 @@ pub async fn fetch_available_collections<E: WebClientEnvironment>(
         return Err(err);
     }
     let entities: Vec<_> = entities.into_iter().map(Result::unwrap).collect();
-    log::debug!("Fetched {} available collection(s)", entities.len(),);
+    tracing::debug!("Fetched {} available collection(s)", entities.len(),);
     Ok(entities)
 }

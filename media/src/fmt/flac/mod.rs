@@ -60,7 +60,7 @@ impl import::ImportTrack for ImportTrack {
         let flac_tag = match metaflac::Tag::read_from(reader) {
             Ok(flac_tag) => flac_tag,
             Err(err) => {
-                log::warn!(
+                tracing::warn!(
                     "Failed to parse metadata from media source '{}': {}",
                     track.media_source.path,
                     err

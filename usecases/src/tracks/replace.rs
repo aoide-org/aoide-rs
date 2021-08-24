@@ -100,7 +100,7 @@ where
             track,
         )
         .map_err(|err| {
-            log::warn!(
+            tracing::warn!(
                 "Failed to replace track by URI '{}': {}",
                 media_source_path,
                 err
@@ -110,7 +110,7 @@ where
     let media_source_id = match outcome {
         ReplaceOutcome::Created(media_source_id, _, entity) => {
             debug_assert_ne!(ReplaceMode::UpdateOnly, replace_mode);
-            log::trace!(
+            tracing::trace!(
                 "Created {}: {:?}",
                 entity.body.media_source.path,
                 entity.hdr
@@ -120,7 +120,7 @@ where
         }
         ReplaceOutcome::Updated(media_source_id, _, entity) => {
             debug_assert_ne!(ReplaceMode::CreateOnly, replace_mode);
-            log::trace!(
+            tracing::trace!(
                 "Updated {}: {:?}",
                 entity.body.media_source.path,
                 entity.hdr
@@ -129,19 +129,19 @@ where
             media_source_id
         }
         ReplaceOutcome::Unchanged(media_source_id, _, entity) => {
-            log::trace!("Unchanged: {:?}", entity);
+            tracing::trace!("Unchanged: {:?}", entity);
             summary.unchanged.push(entity.body.media_source.path);
             media_source_id
         }
         ReplaceOutcome::NotCreated(track) => {
             debug_assert_eq!(ReplaceMode::UpdateOnly, replace_mode);
-            log::trace!("Not created: {:?}", track);
+            tracing::trace!("Not created: {:?}", track);
             summary.not_created.push(track);
             return Ok(None);
         }
         ReplaceOutcome::NotUpdated(media_source_id, _, track) => {
             debug_assert_eq!(ReplaceMode::CreateOnly, replace_mode);
-            log::trace!("Not updated: {:?}", track);
+            tracing::trace!("Not updated: {:?}", track);
             summary.not_updated.push(track);
             media_source_id
         }
@@ -218,14 +218,14 @@ where
             match err {
                 Error::Media(MediaError::UnknownContentType)
                 | Error::Media(MediaError::UnsupportedContentType(_)) => {
-                    log::info!(
+                    tracing::info!(
                         "Skipped import of track from local file path {}: {}",
                         source_path_resolver.build_file_path(&source_path).display(),
                         err
                     );
                 }
                 err => {
-                    log::warn!(
+                    tracing::warn!(
                         "Failed to import track from local file path {}: {}",
                         source_path_resolver.build_file_path(&source_path).display(),
                         err
@@ -285,7 +285,7 @@ where
         Vec::with_capacity(expected_source_path_count.unwrap_or(DEFAULT_MEDIA_SOURCE_COUNT));
     for source_path in source_path_iter {
         if abort_flag.load(Ordering::Relaxed) {
-            log::debug!("Aborting import of {}", source_path);
+            tracing::debug!("Aborting import of {}", source_path);
             return Ok(Outcome {
                 completion: Completion::Aborted,
                 summary,
@@ -331,7 +331,7 @@ where
     Repo: EntityRepo,
 {
     let dir_path = source_path_resolver.build_file_path(source_dir_path);
-    log::debug!("Importing files from directory: {}", dir_path.display());
+    tracing::debug!("Importing files from directory: {}", dir_path.display());
     let dir_entries = read_dir(dir_path)?;
     let mut summary = Summary::default();
     let mut media_source_ids = Vec::with_capacity(EXPECTED_NUMBER_OF_DIR_ENTRIES);
@@ -339,13 +339,13 @@ where
         let dir_entry = match dir_entry {
             Ok(dir_entry) => dir_entry,
             Err(err) => {
-                log::warn!("Failed to access directory entry: {}", err);
+                tracing::warn!("Failed to access directory entry: {}", err);
                 // Skip entry and keep going
                 continue;
             }
         };
         if abort_flag.load(Ordering::Relaxed) {
-            log::debug!(
+            tracing::debug!(
                 "Aborting import before visiting {}",
                 dir_entry.path().display()
             );
@@ -361,7 +361,7 @@ where
         {
             source_path.to_owned()
         } else {
-            log::warn!(
+            tracing::warn!(
                 "Skipping invalid/unsupported directory entry: {}",
                 dir_entry.path().display()
             );

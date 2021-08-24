@@ -232,7 +232,7 @@ pub async fn handle_rejection(reject: Rejection) -> StdResult<impl Reply, Infall
         code = StatusCode::METHOD_NOT_ALLOWED;
         message = err.to_string();
     } else {
-        log::error!("Unhandled rejection {:?}", reject);
+        tracing::error!("Unhandled rejection {:?}", reject);
         code = StatusCode::INTERNAL_SERVER_ERROR;
         message = format!("{:?}", reject);
     }
@@ -267,7 +267,7 @@ impl From<PaginationQueryParams> for Option<Pagination> {
             Some(Pagination { limit, offset })
         } else {
             if let Some(offset) = offset {
-                log::warn!("Ignoring pagination offset = {} without limit", offset);
+                tracing::warn!("Ignoring pagination offset = {} without limit", offset);
             }
             None
         }

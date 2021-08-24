@@ -80,7 +80,7 @@ where
             },
         )?;
         if pending_entries.is_empty() {
-            log::debug!("Finished import of pending directories: {:?}", summary);
+            tracing::debug!("Finished import of pending directories: {:?}", summary);
             let outcome = Outcome {
                 root_url,
                 completion: Completion::Finished,
@@ -90,7 +90,7 @@ where
         }
         for pending_entry in pending_entries {
             if abort_flag.load(Ordering::Relaxed) {
-                log::debug!("Aborting import of pending directories: {:?}", summary);
+                tracing::debug!("Aborting import of pending directories: {:?}", summary);
                 let outcome = Outcome {
                     root_url,
                     completion: Completion::Aborted,
@@ -119,7 +119,7 @@ where
                 Err(err) => {
                     let err = if let Error::Io(io_err) = err {
                         if io_err.kind() == io::ErrorKind::NotFound {
-                            log::info!("Untracking missing directory {}", dir_path);
+                            tracing::info!("Untracking missing directory {}", dir_path);
                             summary.directories.untracked +=
                                 repo.media_tracker_untrack(collection_id, &dir_path, None)?;
                             continue;
@@ -130,7 +130,7 @@ where
                         // Pass-through error
                         err
                     };
-                    log::warn!("Failed to import pending directory {}: {}", dir_path, err);
+                    tracing::warn!("Failed to import pending directory {}: {}", dir_path, err);
                     // Skip this directory and keep going
                     summary.directories.skipped += 1;
                     continue;
@@ -145,7 +145,7 @@ where
             match completion {
                 ReplaceCompletion::Finished => {}
                 ReplaceCompletion::Aborted => {
-                    log::debug!("Aborting import of pending directories: {:?}", summary);
+                    tracing::debug!("Aborting import of pending directories: {:?}", summary);
                     let outcome = Outcome {
                         root_url,
                         completion: Completion::Aborted,
@@ -162,12 +162,12 @@ where
                 &media_source_ids,
             ) {
                 Ok(true) => {
-                    log::debug!("Confirmed pending directory {}", dir_path);
+                    tracing::debug!("Confirmed pending directory {}", dir_path);
                     summary.directories.confirmed += 1;
                 }
                 Ok(false) => {
                     // Might be rejected if the digest has been updated meanwhile
-                    log::info!(
+                    tracing::info!(
                         "Confirmation of imported directory {} was rejected",
                         dir_path
                     );
@@ -176,7 +176,7 @@ where
                     continue;
                 }
                 Err(err) => {
-                    log::warn!("Failed to confirm pending directory {}: {}", dir_path, err);
+                    tracing::warn!("Failed to confirm pending directory {}: {}", dir_path, err);
                     // Skip this directory and keep going
                     summary.directories.skipped += 1;
                     continue;

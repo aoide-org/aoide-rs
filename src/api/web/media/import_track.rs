@@ -74,7 +74,7 @@ pub fn handle_request(query_params: QueryParams) -> Result<ResponseBody> {
                     return Err(Error::Other(err));
                 }
             };
-            log::warn!("Trying to import from {}", path);
+            tracing::warn!("Trying to import from {}", path);
             path
         }
         Err(ResolveFromUrlError::Other(err)) => {

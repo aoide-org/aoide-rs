@@ -164,7 +164,7 @@ pub fn load_repo_entity(
     };
     let album = Canonical::tie(Album {
         kind: AlbumKind::from_i16(album_kind).unwrap_or_else(|| {
-            log::error!("Invalid album kind value: {}", album_kind);
+            tracing::error!("Invalid album kind value: {}", album_kind);
             AlbumKind::Unknown
         }),
         actors: album_actors,

@@ -81,9 +81,9 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Entity) {
             .map(BaseUrl::parse_strict)
             .transpose()
             .unwrap_or_else(|err| {
-                log::error!(
+                tracing::error!(
                     "Invalid media source root URL '{}': {}",
-                    media_source_root_url.unwrap_or_default(),
+                    media_source_root_url.as_deref().unwrap_or_default(),
                     err,
                 );
                 None

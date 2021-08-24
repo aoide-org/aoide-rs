@@ -45,7 +45,7 @@ impl From<media_tracker::Effect> for Effect {
 
 impl Effect {
     pub fn apply_on(self, state: &mut State) -> StateUpdated {
-        log::debug!("Applying effect {:?} on {:?}", self, state);
+        tracing::debug!("Applying effect {:?} on {:?}", self, state);
         match self {
             Self::ErrorOccurred(error)
             | Self::ActiveCollection(active_collection::Effect::ErrorOccurred(error))

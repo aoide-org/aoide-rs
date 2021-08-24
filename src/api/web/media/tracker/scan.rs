@@ -57,7 +57,7 @@ pub fn handle_request(
         &mut |progress_event| {
             if let Some(progress_event_tx) = progress_event_tx {
                 if progress_event_tx.send(Some(progress_event)).is_err() {
-                    log::error!("Failed to send progress event");
+                    tracing::error!("Failed to send progress event");
                 }
             }
         },

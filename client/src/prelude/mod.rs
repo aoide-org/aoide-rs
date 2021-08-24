@@ -54,10 +54,10 @@ pub fn send_message<Intent: fmt::Debug, Effect: fmt::Debug>(
     message: impl Into<Message<Intent, Effect>>,
 ) {
     let message = message.into();
-    log::debug!("Sending message: {:?}", message);
+    tracing::debug!("Sending message: {:?}", message);
     if let Err(message) = message_tx.send(message) {
         // Channel is closed, i.e. receiver has been dropped
-        log::debug!("Failed to send message: {:?}", message.0);
+        tracing::debug!("Failed to send message: {:?}", message.0);
     }
 }
 

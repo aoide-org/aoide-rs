@@ -133,7 +133,7 @@ pub fn parse_replay_gain(input: &str) -> Option<LoudnessLufs> {
     match parse_replay_gain_db(input) {
         Ok((remainder, relative_gain_db)) => {
             if !remainder.is_empty() {
-                log::warn!(
+                tracing::warn!(
                     "Unexpected remainder '{}' after parsing replay gain input '{}'",
                     remainder,
                     input
@@ -141,14 +141,14 @@ pub fn parse_replay_gain(input: &str) -> Option<LoudnessLufs> {
             }
             let loudness_lufs = db2lufs(relative_gain_db);
             if !loudness_lufs.is_valid() {
-                log::warn!(
+                tracing::warn!(
                     "Invalid loudness parsed from replay gain input '{}': {}",
                     input,
                     loudness_lufs
                 );
                 return None;
             }
-            log::debug!(
+            tracing::debug!(
                 "Parsed loudness from replay gain input '{}': {}",
                 input,
                 loudness_lufs
@@ -158,13 +158,13 @@ pub fn parse_replay_gain(input: &str) -> Option<LoudnessLufs> {
         Err(err) => {
             // Silently ignore any 0 values
             if input.parse().ok() == Some(0.0) {
-                log::debug!(
+                tracing::debug!(
                     "Ignoring invalid replay gain (dB) from input '{}': {}",
                     input,
                     err
                 );
             } else {
-                log::warn!(
+                tracing::warn!(
                     "Failed to parse replay gain (dB) from input '{}': {}",
                     input,
                     err
@@ -187,15 +187,15 @@ pub fn parse_tempo_bpm(input: &str) -> Option<TempoBpm> {
                 // The value 0 is often used for an unknown bpm.
                 // Silently ignore this special value to prevent log spam.
                 if bpm != 0.0 {
-                    log::info!("Invalid tempo parsed from input '{}': {}", input, tempo_bpm);
+                    tracing::info!("Invalid tempo parsed from input '{}': {}", input, tempo_bpm);
                 }
                 return None;
             }
-            log::debug!("Parsed tempo from input '{}': {}", input, tempo_bpm);
+            tracing::debug!("Parsed tempo from input '{}': {}", input, tempo_bpm);
             Some(tempo_bpm)
         }
         Err(err) => {
-            log::warn!(
+            tracing::warn!(
                 "Failed to parse tempo (BPM) from input '{}': {}",
                 input,
                 err
@@ -247,7 +247,7 @@ pub fn parse_key_signature(input: &str) -> Option<KeySignature> {
             }
         }
     }
-    log::warn!(
+    tracing::warn!(
         "Failed to parse musical key signature from input (UTF-8 bytes): '{}' ({:X?})",
         input,
         input.as_bytes()
@@ -331,7 +331,7 @@ pub fn parse_year_tag(input: &str) -> Option<DateOrDateTime> {
         let datetime_utc: chrono::DateTime<Utc> = chrono::DateTime::from_utc(datetime, Utc);
         return Some(DateTime::from(datetime_utc).into());
     }
-    log::warn!("Year tag not recognized: {}", input);
+    tracing::warn!("Year tag not recognized: {}", input);
     None
 }
 
@@ -373,11 +373,11 @@ pub fn load_artwork_image(
         Some(ImageFormat::Tiff) => "image/tiff".to_string(),
         Some(ImageFormat::Tga) => "image/tga".to_string(),
         Some(format) => {
-            log::info!("Unusual image format {:?}", format);
+            tracing::info!("Unusual image format {:?}", format);
             IMAGE_STAR.to_string()
         }
         None => {
-            log::info!("Unknown image format");
+            tracing::info!("Unknown image format");
             IMAGE_STAR.to_string()
         }
     };
@@ -423,7 +423,7 @@ pub fn try_load_embedded_artwork(
         .map(|image| EmbeddedArtwork { image })
         .map(Some)
         .unwrap_or_else(|err| {
-            log::warn!(
+            tracing::warn!(
                 "Failed to load artwork from embedded image in '{}': {}",
                 media_source_path,
                 err

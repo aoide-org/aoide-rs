@@ -26,7 +26,7 @@ use diesel::sql_query;
 diesel_migrations::embed_migrations!("repo-sqlite/migrations");
 
 pub fn initialize(connection: &SqliteConnection) -> Result<()> {
-    log::info!("Initializing database");
+    tracing::info!("Initializing database");
     sql_query(r#"
 PRAGMA journal_mode = WAL;        -- better write-concurrency
 PRAGMA synchronous = NORMAL;      -- fsync only in critical moments, safe for journal_mode = WAL
@@ -42,19 +42,19 @@ PRAGMA encoding = 'UTF-8';
 }
 
 pub fn migrate_schema(connection: &SqliteConnection) -> Result<()> {
-    log::info!("Migrating database schema");
+    tracing::info!("Migrating database schema");
     embedded_migrations::run(connection)?;
     Ok(())
 }
 
 pub fn cleanse(connection: &SqliteConnection, vacuum: bool) -> Result<()> {
-    log::info!("Cleansing database");
+    tracing::info!("Cleansing database");
     let db = RepoConnection::new(&*connection);
     db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
         let deleted_playlist_entries =
             db.delete_playlist_entries_with_tracks_from_other_collections()?;
         if deleted_playlist_entries > 0 {
-            log::warn!(
+            tracing::warn!(
                 "Deleted {} playlist entries with tracks from other collections",
                 deleted_playlist_entries
             );
@@ -65,11 +65,11 @@ pub fn cleanse(connection: &SqliteConnection, vacuum: bool) -> Result<()> {
     // According to Richard Hipp himself executing VACUUM before ANALYZE is the
     // recommended order: https://sqlite.org/forum/forumpost/62fb63a29c5f7810?t=h
     if vacuum {
-        log::info!("Rebuilding database storage");
+        tracing::info!("Rebuilding database storage");
         db.vacuum()?;
     }
 
-    log::info!("Analyzing and optimizing database statistics");
+    tracing::info!("Analyzing and optimizing database statistics");
     db.analyze_and_optimize_stats()?;
     Ok(())
 }

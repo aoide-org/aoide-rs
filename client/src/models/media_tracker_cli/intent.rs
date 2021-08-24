@@ -50,12 +50,12 @@ impl From<media_tracker::Intent> for Intent {
 
 impl Intent {
     pub fn apply_on(self, state: &mut State) -> StateUpdated {
-        log::debug!("Applying intent {:?} on {:?}", self, state);
+        tracing::debug!("Applying intent {:?} on {:?}", self, state);
         match self {
             Self::RenderState => StateUpdated::maybe_changed(None),
             Self::TimedIntent { not_before, intent } => {
                 if state.terminating {
-                    log::debug!("Discarding timed intent while terminating: {:?}", intent);
+                    tracing::debug!("Discarding timed intent while terminating: {:?}", intent);
                     return StateUpdated::unchanged(None);
                 }
                 StateUpdated::unchanged(Action::dispatch_task(Task::TimedIntent {
@@ -73,7 +73,7 @@ impl Intent {
                 let next_action = if let Some(num_errors) = num_errors {
                     if num_errors < num_errors_requested {
                         debug_assert!(num_errors_requested.get() > 1);
-                        log::debug!(
+                        tracing::debug!(
                             "Discarding only {} instead of {} errors",
                             num_errors,
                             num_errors_requested
@@ -83,7 +83,7 @@ impl Intent {
                         num_errors,
                     )))
                 } else {
-                    log::debug!("No errors to discard");
+                    tracing::debug!("No errors to discard");
                     None
                 };
                 StateUpdated::unchanged(next_action)

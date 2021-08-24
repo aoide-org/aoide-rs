@@ -55,7 +55,7 @@ pub fn import_faceted_text_tags<'a>(
 ) {
     let removed_tags = tags_map.remove_faceted_tags(facet);
     if removed_tags > 0 {
-        log::debug!("Replacing {} custom '{}' tags", removed_tags, facet.value());
+        tracing::debug!("Replacing {} custom '{}' tags", removed_tags, facet.value());
     }
     let tag_mapping_config = config.get(facet.value());
     let mut next_score_value = TagScore::max_value();
@@ -242,7 +242,7 @@ pub fn import_mixxx_custom_tags(reader: &impl CommentReader) -> Option<Tags> {
         .and_then(|json| {
             serde_json::from_str::<SerdeTags>(json)
                 .map_err(|err| {
-                    log::warn!("Failed to parse Mixxx custom tags: {}", err);
+                    tracing::warn!("Failed to parse Mixxx custom tags: {}", err);
                     err
                 })
                 .ok()

@@ -48,7 +48,7 @@ where
                 self.collector.collect(header, record);
             }
             Err(err) => {
-                log::error!(
+                tracing::error!(
                     "Failed to convert media source path '{}' to URL: {}",
                     path,
                     err

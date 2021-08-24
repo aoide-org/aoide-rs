@@ -97,7 +97,7 @@ where
         collection_id,
         &root_path_prefix,
     )?;
-    log::debug!(
+    tracing::debug!(
         "Marked {} current cache entries as outdated",
         outdated_count
     );
@@ -127,22 +127,22 @@ where
                     summary.current += 1;
                 }
                 DirUpdateOutcome::Inserted => {
-                    log::debug!("Found added directory: {}", full_path.display());
+                    tracing::debug!("Found added directory: {}", full_path.display());
                     summary.added += 1;
                 }
                 DirUpdateOutcome::Updated => {
-                    log::debug!("Found modified directory: {}", full_path.display());
+                    tracing::debug!("Found modified directory: {}", full_path.display());
                     summary.modified += 1;
                 }
                 DirUpdateOutcome::Skipped => {
-                    log::debug!("Skipped directory: {}", full_path.display());
+                    tracing::debug!("Skipped directory: {}", full_path.display());
                     summary.skipped += 1;
                 }
             }
             Ok(digest::AfterDirFinished::Continue)
         },
         |progress_event| {
-            log::trace!("{:?}", progress_event);
+            tracing::trace!("{:?}", progress_event);
             progress_fn(progress_event.to_owned().into());
         },
     )

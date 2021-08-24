@@ -12,11 +12,11 @@ anyhow = "*"
 bigdecimal = "*"
 diesel = { version = "*", features = ["sqlite", "64-column-tables", "numeric", "chrono"] }
 libsqlite3-sys = { version = "*", features = ["bundled"] }
-log = "*"
 num-bigint = "*"
 num-derive = "*"
 num-traits = "*"
 semval = "*"
+tracing = { version = "*", features = ["log"] }
 url = "*"
 
 [features]

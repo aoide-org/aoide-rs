@@ -59,7 +59,7 @@ impl TaskDispatchEnvironment<Intent, Effect, Task> for Environment {
     fn dispatch_task(&self, shared_self: Arc<Self>, message_tx: MessageSender, task: Task) {
         shared_self.pending_tasks_counter.start_pending_task();
         tokio::spawn(async move {
-            log::debug!("Executing task: {:?}", task);
+            tracing::debug!("Executing task: {:?}", task);
             let effect = match task {
                 Task::TimedIntent { not_before, intent } => {
                     tokio::time::sleep_until(not_before.into()).await;
@@ -68,7 +68,7 @@ impl TaskDispatchEnvironment<Intent, Effect, Task> for Environment {
                 Task::ActiveCollection(task) => task.execute(&*shared_self).await.into(),
                 Task::MediaTracker(task) => task.execute(&*shared_self).await.into(),
             };
-            log::debug!("Task finished with effect: {:?}", effect);
+            tracing::debug!("Task finished with effect: {:?}", effect);
             send_message(&message_tx, Message::Effect(effect));
             shared_self.pending_tasks_counter.finish_pending_task();
         });

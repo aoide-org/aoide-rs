@@ -52,7 +52,7 @@ pub fn init_logging() -> LogLevelFilter {
     let log_level_filter = env::var(LOG_LEVEL_ENV)
         .map_err(Error::from)
         .map(|log_level| {
-            log::debug!("{} = {}", LOG_LEVEL_ENV, log_level);
+            tracing::debug!("{} = {}", LOG_LEVEL_ENV, log_level);
             parse_log_level_filter(&log_level)
         })
         .unwrap_or_default()
@@ -80,9 +80,9 @@ pub fn parse_endpoint_addr() -> SocketAddr {
     let endpoint_ip = env::var(ENDPOINT_IP_ENV)
         .map_err(Into::into)
         .and_then(|var| {
-            log::debug!("{} = {}", ENDPOINT_IP_ENV, var);
+            tracing::debug!("{} = {}", ENDPOINT_IP_ENV, var);
             var.parse().map_err(|err| {
-                log::warn!("Failed to parse {}: {}", ENDPOINT_IP_ENV, err);
+                tracing::warn!("Failed to parse {}: {}", ENDPOINT_IP_ENV, err);
                 Error::from(err)
             })
         })
@@ -90,12 +90,12 @@ pub fn parse_endpoint_addr() -> SocketAddr {
     let endpoint_port = env::var(ENDPOINT_PORT_ENV)
         .map_err(Into::into)
         .and_then(|var| {
-            log::debug!("{} = {}", ENDPOINT_PORT_ENV, var);
+            tracing::debug!("{} = {}", ENDPOINT_PORT_ENV, var);
             if var.trim().is_empty() {
                 Ok(DEFAULT_ENDPOINT_PORT)
             } else {
                 var.parse().map_err(|err| {
-                    log::warn!("Failed to parse {}: {}", ENDPOINT_PORT_ENV, err);
+                    tracing::warn!("Failed to parse {}: {}", ENDPOINT_PORT_ENV, err);
                     Error::from(err)
                 })
             }
@@ -111,7 +111,7 @@ pub fn parse_database_url() -> String {
     env::var(DATABASE_URL_ENV)
         .map_err(Error::from)
         .map(|database_url| {
-            log::debug!("{} = {}", DATABASE_URL_ENV, database_url);
+            tracing::debug!("{} = {}", DATABASE_URL_ENV, database_url);
             database_url
         })
         .unwrap_or_else(|_| DEFAULT_DATABASE_URL.into())
@@ -125,14 +125,14 @@ pub fn parse_database_connection_pool_size() -> u32 {
     env::var(DATABASE_CONNECTION_POOL_SIZE_ENV)
         .map_err(Into::into)
         .and_then(|var| {
-            log::debug!("{} = {}", DATABASE_CONNECTION_POOL_SIZE_ENV, var);
+            tracing::debug!("{} = {}", DATABASE_CONNECTION_POOL_SIZE_ENV, var);
             if var.trim().is_empty() {
                 Ok(MIN_DATABASE_CONNECTION_POOL_SIZE)
             } else {
                 var.parse()
                     .map(|val| {
                         if val < MIN_DATABASE_CONNECTION_POOL_SIZE {
-                            log::warn!(
+                            tracing::warn!(
                                 "Invalid {} = {} < {}",
                                 DATABASE_CONNECTION_POOL_SIZE_ENV,
                                 val,
@@ -144,7 +144,7 @@ pub fn parse_database_connection_pool_size() -> u32 {
                         }
                     })
                     .map_err(|err| {
-                        log::warn!(
+                        tracing::warn!(
                             "Failed to parse {}: {}",
                             DATABASE_CONNECTION_POOL_SIZE_ENV,
                             err

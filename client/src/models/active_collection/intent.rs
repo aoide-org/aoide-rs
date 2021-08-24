@@ -26,7 +26,7 @@ pub enum Intent {
 
 impl Intent {
     pub fn apply_on(self, state: &mut State) -> StateUpdate {
-        log::trace!("Applying intent {:?} on {:?}", self, state);
+        tracing::trace!("Applying intent {:?} on {:?}", self, state);
         match self {
             Self::CreateNewCollection(new_collection) => StateUpdate::unchanged(
                 Action::dispatch_task(Task::CreateNewCollection(new_collection)),

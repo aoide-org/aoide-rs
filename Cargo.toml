@@ -33,6 +33,7 @@ mp3-duration = { git = "https://github.com/aoide-org/mp3-duration.git", branch =
 #id3 = { branch = "master", git = "https://github.com/polyfloyd/rust-id3.git" }
 
 [dependencies]
+anyhow = "*"
 aoide-core = "*"
 aoide-core-serde = "*"
 aoide-media = "*"
@@ -43,11 +44,8 @@ blake3 = "*"
 chrono = { version = "*", default-features = false, features = ["clock", "serde"] }
 diesel = { version = "*", default-features = false, features = ["r2d2", "sqlite"] }
 diesel_migrations =  { version = "*", default-features = false, features = ["sqlite"] }
-# Enforce using the latest and greatest rusqlite/sqlite3 version
-rusqlite =  { version = ">=0.25.3", default-features = false }
 dotenv = "*"
 env_logger = { version = ">=0.8" }
-anyhow = "*"
 log = "*"
 percent-encoding = "*"
 r2d2 = "*"
@@ -56,8 +54,13 @@ serde = "*"
 serde_json = "*"
 thiserror = "*"
 tokio = { version = "*", default-features = false, features = ["macros", "rt-multi-thread", "signal"] }
+tracing = { version = "*", features = ["log"] }
 url = { version = "*", features = ["serde"] }
 warp = { version = "*", default-features = false }
+
+# This is not needed as a direct, standalone dependency but should
+# enforce to always use the latest and greatest rusqlite/sqlite3 version!
+rusqlite =  { version = ">=0.25.3", default-features = false }
 
 [features]
 default = []

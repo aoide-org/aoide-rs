@@ -201,7 +201,7 @@ pub fn hash_directories<
     mut dir_finished: DirFinished,
     mut report_progress: ReportProgress,
 ) -> Result<Outcome> {
-    log::info!("Digesting all directories in '{}'", root_path.display());
+    tracing::info!("Digesting all directories in '{}'", root_path.display());
 
     let started = Instant::now();
     let mut progress_event = ProgressEvent {
@@ -222,7 +222,7 @@ pub fn hash_directories<
             .filter_entry(|e| !is_hidden_dir_entry(e))
         {
             if abort_flag.load(Ordering::Relaxed) {
-                log::debug!("Aborting directory tree traversal");
+                tracing::debug!("Aborting directory tree traversal");
                 progress_event.abort();
                 report_progress(&progress_event);
                 return Ok(());
@@ -232,7 +232,7 @@ pub fn hash_directories<
                 Ok(dir_entry) => dir_entry,
                 Err(err) => {
                     if let Some(loop_ancestor) = err.loop_ancestor() {
-                        log::info!(
+                        tracing::info!(
                             "Cycle detected while visiting directory: {}",
                             loop_ancestor.display()
                         );
@@ -247,7 +247,7 @@ pub fn hash_directories<
                         // and should be logged here.
                         // TODO: Propagate the path with the I/O error instead of only
                         // logging it here
-                        log::warn!("Failed to visit directory: {}", path.display());
+                        tracing::warn!("Failed to visit directory: {}", path.display());
                     }
                     // Propagate I/O error
                     let io_error = err.into_io_error();
@@ -272,7 +272,7 @@ pub fn hash_directories<
                         parent_path
                     }
                     Err(_) => {
-                        log::warn!(
+                        tracing::warn!(
                             "Skipping entry with out-of-tree path: {}",
                             dir_entry.path().display()
                         );
@@ -283,7 +283,7 @@ pub fn hash_directories<
                 }
             } else {
                 // Should never happen
-                log::error!(
+                tracing::error!(
                     "Skipping entry with no parent directory: {}",
                     dir_entry.path().display()
                 );
@@ -305,14 +305,14 @@ pub fn hash_directories<
                 }
                 let (ancestor_path, ancestor_digest) = ancestors.pop().expect("last ancestor");
                 let ancestor_digest = ancestor_digest.finalize();
-                log::trace!("Finished parent directory: {}", ancestor_path.display());
+                tracing::trace!("Finished parent directory: {}", ancestor_path.display());
                 match dir_finished(&ancestor_path, ancestor_digest).map_err(Into::into)? {
                     AfterDirFinished::Continue => {
                         progress_event.progress.directories.finished += 1;
                     }
                     AfterDirFinished::Abort => {
                         progress_event.progress.directories.finished += 1;
-                        log::debug!(
+                        tracing::debug!(
                             "Aborting directory tree traversal after finishing '{}'",
                             ancestor_path.display()
                         );
@@ -323,7 +323,7 @@ pub fn hash_directories<
                 }
             }
             if push_ancestor {
-                log::trace!("Found parent directory: {}", parent_path.display());
+                tracing::trace!("Found parent directory: {}", parent_path.display());
                 let mut digest = new_digest();
                 digest_walkdir_entry_for_detecting_changes(&mut digest, &dir_entry)?;
                 progress_event.progress.entries.finished += 1;
@@ -333,7 +333,7 @@ pub fn hash_directories<
         // Unwind the stack of remaining ancestors
         while let Some((ancestor_path, ancestor_digest)) = ancestors.pop() {
             let ancestor_digest = ancestor_digest.finalize();
-            log::trace!("Finished parent directory: {}", ancestor_path.display());
+            tracing::trace!("Finished parent directory: {}", ancestor_path.display());
             match dir_finished(&ancestor_path, ancestor_digest).map_err(Into::into)? {
                 AfterDirFinished::Continue => {
                     progress_event.progress.directories.finished += 1;
@@ -352,7 +352,7 @@ pub fn hash_directories<
     match walker() {
         Ok(()) => {
             let elapsed = started.elapsed();
-            log::info!(
+            tracing::info!(
                 "Digesting {} directories in '{}' took {} s",
                 progress_event.progress.directories.finished,
                 root_path.display(),

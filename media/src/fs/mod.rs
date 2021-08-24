@@ -37,7 +37,7 @@ pub fn local_file_path_from_url(url: &Url) -> Result<PathBuf> {
         )));
     }
     url.to_file_path().map_err(|()| {
-        log::debug!(
+        tracing::debug!(
             "Failed to convert URL '{}', into a local, absolute file path",
             url
         );

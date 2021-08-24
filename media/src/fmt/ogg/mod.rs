@@ -82,7 +82,7 @@ impl import::ImportTrack for ImportTrack {
         let ogg_reader = match OggStreamReader::new(reader) {
             Ok(ogg_reader) => ogg_reader,
             Err(err) => {
-                log::warn!(
+                tracing::warn!(
                     "Failed to parse metadata from media source '{}': {}",
                     track.media_source.path,
                     err
@@ -103,21 +103,21 @@ impl import::ImportTrack for ImportTrack {
             let channels = if channel_count.is_valid() {
                 Some(channel_count.into())
             } else {
-                log::warn!("Invalid channel count: {}", channel_count.0);
+                tracing::warn!("Invalid channel count: {}", channel_count.0);
                 None
             };
             let bitrate = BitrateBps::from_inner(ident_hdr.bitrate_nominal.into());
             let bitrate = if bitrate.is_valid() {
                 Some(bitrate)
             } else {
-                log::warn!("Invalid bitrate: {}", bitrate);
+                tracing::warn!("Invalid bitrate: {}", bitrate);
                 None
             };
             let sample_rate = SampleRateHz::from_inner(ident_hdr.audio_sample_rate.into());
             let sample_rate = if sample_rate.is_valid() {
                 Some(sample_rate)
             } else {
-                log::warn!("Invalid sample rate: {}", sample_rate);
+                tracing::warn!("Invalid sample rate: {}", sample_rate);
                 None
             };
             let loudness = vorbis::import_loudness(vorbis_comments);
@@ -311,7 +311,7 @@ impl import::ImportTrack for ImportTrack {
                     .filter_map(|base64_data| {
                         base64::decode(base64_data)
                             .map_err(|err| {
-                                log::warn!(
+                                tracing::warn!(
                                     "Failed to decode base64 encoded picture block: {}",
                                     err
                                 );
@@ -322,7 +322,7 @@ impl import::ImportTrack for ImportTrack {
                     .filter_map(|decoded| {
                         metaflac::block::Picture::from_bytes(&decoded[..])
                             .map_err(|err| {
-                                log::warn!("Failed to decode FLAC picture block: {}", err);
+                                tracing::warn!("Failed to decode FLAC picture block: {}", err);
                                 err
                             })
                             .ok()

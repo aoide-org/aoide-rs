@@ -63,7 +63,7 @@ impl import::ImportTrack for ImportTrack {
                 }
             })
             .unwrap_or_else(|err| {
-                log::warn!(
+                tracing::warn!(
                     "Failed to parse audio properties from media source '{}': {}",
                     track.media_source.path,
                     err
@@ -81,7 +81,7 @@ impl import::ImportTrack for ImportTrack {
         let id3_tag = match id3::Tag::read_from(reader).map_err(anyhow::Error::from) {
             Ok(id3_tag) => id3_tag,
             Err(err) => {
-                log::warn!(
+                tracing::warn!(
                     "Failed to parse ID3 tag from media source '{}': {}",
                     track.media_source.path,
                     err

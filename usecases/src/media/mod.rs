@@ -76,7 +76,7 @@ pub fn import_track_from_local_file_path(
         if let Some((canonical_path, file)) = open_local_file_for_reading(&file_path)? {
             (canonical_path, file)
         } else {
-            log::debug!("{} is a directory", file_path.display());
+            tracing::debug!("{} is a directory", file_path.display());
             return Ok(ImportTrackFromFileOutcome::SkippedDirectory);
         };
     let file_metadata = file.metadata().map_err(MediaError::from)?;
@@ -90,7 +90,7 @@ pub fn import_track_from_local_file_path(
                 // meaningful and valid
                 last_modified_at
             } else {
-                log::warn!(
+                tracing::warn!(
                     "Using current time instead of invalid last modification time {}",
                     last_modified_at
                 );
@@ -98,7 +98,7 @@ pub fn import_track_from_local_file_path(
             }
         })
         .unwrap_or_else(|_| {
-            log::error!("Using current time instead of inaccessible last modification time");
+            tracing::error!("Using current time instead of inaccessible last modification time");
             DateTime::now_utc()
         });
     match mode {
@@ -106,7 +106,7 @@ pub fn import_track_from_local_file_path(
             synchronized_before,
         } => {
             if synchronized_before {
-                log::debug!(
+                tracing::debug!(
                     "Skipping reimport of file {} last modified at {}",
                     canonical_path.display(),
                     last_modified_at,
@@ -121,7 +121,7 @@ pub fn import_track_from_local_file_path(
         } => {
             if let Some(last_synchronized_at) = last_synchronized_at {
                 if last_modified_at <= last_synchronized_at {
-                    log::debug!(
+                    tracing::debug!(
                         "Skipping reimport of synchronized file {} modified at {} <= {}",
                         canonical_path.display(),
                         last_modified_at,
@@ -132,7 +132,7 @@ pub fn import_track_from_local_file_path(
                     ));
                 }
             } else {
-                log::debug!(
+                tracing::debug!(
                     "Last synchronization of file {} modified at {} is unknown",
                     canonical_path.display(),
                     last_modified_at

@@ -56,7 +56,7 @@ fn create_connection_pool(
     database_url: &str,
     max_size: u32,
 ) -> Result<SqliteConnectionPool, Error> {
-    log::info!("Creating SQLite connection pool");
+    tracing::info!("Creating SQLite connection pool");
     let manager = SqliteConnectionManager::new(database_url);
     let pool = SqliteConnectionPool::builder()
         .max_size(max_size)
@@ -129,15 +129,15 @@ pub async fn main() -> Result<(), Error> {
     let log_level = env::init_logging();
 
     if let Ok(exe_path) = current_exe() {
-        log::info!("Executable: {}", exe_path.display());
+        tracing::info!("Executable: {}", exe_path.display());
     }
-    log::info!("Version: {}", env!("CARGO_PKG_VERSION"));
+    tracing::info!("Version: {}", env!("CARGO_PKG_VERSION"));
 
     let endpoint_addr = env::parse_endpoint_addr();
-    log::info!("Endpoint address: {}", endpoint_addr);
+    tracing::info!("Endpoint address: {}", endpoint_addr);
 
     let database_url = env::parse_database_url();
-    log::info!("Database URL: {}", database_url);
+    tracing::info!("Database URL: {}", database_url);
 
     // The maximum size of the pool defines the maximum number of
     // allowed readers while writers require exclusive access.
@@ -160,7 +160,7 @@ pub async fn main() -> Result<(), Error> {
     let media_tracker_progress = Arc::new(Mutex::new(MediaTrackerProgress::Idle));
     let media_tracker_progress = warp::any().map(move || Arc::clone(&media_tracker_progress));
 
-    log::info!("Creating service routes");
+    tracing::info!("Creating service routes");
 
     // POST /shutdown
     let (server_shutdown_tx, mut server_shutdown_rx) = mpsc::unbounded_channel::<()>();
@@ -174,7 +174,7 @@ pub async fn main() -> Result<(), Error> {
                     .send(())
                     .map(|()| StatusCode::ACCEPTED)
                     .or_else(|_| {
-                        log::warn!("Failed to forward shutdown request");
+                        tracing::warn!("Failed to forward shutdown request");
                         Ok(StatusCode::BAD_GATEWAY)
                     })
             })
@@ -417,7 +417,7 @@ pub async fn main() -> Result<(), Error> {
                 let watcher = tokio::spawn(async move {
                     *media_tracker_progress.lock().await =
                         MediaTrackerProgress::Scanning(Default::default());
-                    log::debug!("Watching media tracker scanning");
+                    tracing::debug!("Watching media tracker scanning");
                     while progress_event_rx.changed().await.is_ok() {
                         let progress = progress_event_rx.borrow().as_ref().map(
                             |event: &aoide_usecases::media::tracker::scan::ProgressEvent| {
@@ -430,7 +430,7 @@ pub async fn main() -> Result<(), Error> {
                                 MediaTrackerProgress::Scanning(progress.into());
                         }
                     }
-                    log::debug!("Unwatching media tracker scanning");
+                    tracing::debug!("Unwatching media tracker scanning");
                     *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;
                 });
                 let response = spawn_blocking_database_write_task(
@@ -449,7 +449,7 @@ pub async fn main() -> Result<(), Error> {
                 .map_err(reject_on_error)
                 .map(|response_body| warp::reply::json(&response_body));
                 if let Err(err) = watcher.await {
-                    log::error!(
+                    tracing::error!(
                         "Failed to terminate media tracker scanning progress watcher: {}",
                         err
                     );
@@ -477,14 +477,14 @@ pub async fn main() -> Result<(), Error> {
                 let watcher = tokio::spawn(async move {
                     *media_tracker_progress.lock().await =
                         MediaTrackerProgress::Importing(Default::default());
-                    log::debug!("Watching media tracker importing");
+                    tracing::debug!("Watching media tracker importing");
                     while progress_summary_rx.changed().await.is_ok() {
                         let progress = progress_summary_rx.borrow().to_owned();
                         // Borrow has already been released at this point
                         *media_tracker_progress.lock().await =
                             MediaTrackerProgress::Importing(progress.into());
                     }
-                    log::debug!("Unwatching media tracker importing");
+                    tracing::debug!("Unwatching media tracker importing");
                     *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;
                 });
                 let response = spawn_blocking_database_write_task(
@@ -503,7 +503,7 @@ pub async fn main() -> Result<(), Error> {
                 .map_err(reject_on_error)
                 .map(|response_body| warp::reply::json(&response_body));
                 if let Err(err) = watcher.await {
-                    log::error!(
+                    tracing::error!(
                         "Failed to terminate media tracker importing progress watcher: {}",
                         err
                     );
@@ -936,7 +936,7 @@ pub async fn main() -> Result<(), Error> {
     });
     let static_filters = index_html.or(openapi_yaml);
 
-    log::info!("Initializing server");
+    tracing::info!("Initializing server");
 
     let server = warp::serve(
         collected_tracks_filters
@@ -955,7 +955,7 @@ pub async fn main() -> Result<(), Error> {
             .recover(handle_rejection),
     );
 
-    log::info!("Starting");
+    tracing::info!("Starting");
 
     let (socket_addr, server_listener) =
         server.bind_with_graceful_shutdown(endpoint_addr, async move {
@@ -963,7 +963,7 @@ pub async fn main() -> Result<(), Error> {
                 _ = server_shutdown_rx.recv() => {}
                 _ = signal::ctrl_c() => {}
             }
-            log::info!("Stopping");
+            tracing::info!("Stopping");
             MEDIA_TRACKER_ABORT_FLAG.store(true, Ordering::Relaxed);
         });
 
@@ -976,13 +976,13 @@ pub async fn main() -> Result<(), Error> {
         sleep(WEB_SERVER_LISTENING_DELAY).await;
 
         // -> stderr
-        log::info!("Listening on {}", socket_addr);
+        tracing::info!("Listening on {}", socket_addr);
         // -> stdout
         println!("{}", socket_addr);
     };
 
     join!(server_listener, server_listening);
-    log::info!("Stopped");
+    tracing::info!("Stopped");
 
     Ok(())
 }
