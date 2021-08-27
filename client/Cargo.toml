@@ -9,7 +9,7 @@ aoide-core-serde = "*"
 
 anyhow = "*"
 bytes = "*"
-env_logger = "*"
+env_logger = { version = ">=0.9" }
 reqwest = { version = "*", default-features = false, features = ["rustls-tls"] }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = "*"

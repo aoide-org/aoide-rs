@@ -15,7 +15,6 @@ repos:
   - id: fix-byte-order-marker
   - id: forbid-new-submodules
   - id: mixed-line-ending
-    args: [--fix, 'no']
   - id: no-commit-to-branch
     args: [--branch, main ]
   - id: trailing-whitespace

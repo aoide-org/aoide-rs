@@ -62,10 +62,6 @@ url = { version = "*", features = ["serde"] }
 uuid = { version = "*", features = ["v4"] }
 warp = { version = "*", default-features = false }
 
-# This is not needed as a direct, standalone dependency but should
-# enforce to always use the latest and greatest rusqlite/sqlite3 version!
-rusqlite =  { version = ">=0.25.3", default-features = false }
-
 [features]
 default = []
 
