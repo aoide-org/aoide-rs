@@ -274,6 +274,11 @@ pub type FacetValue = String;
 #[derive(Clone, Default, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Facet(FacetValue);
 
+/// The alphabet of facets
+///
+/// All valid characters ordered by their ASCII codes.
+pub const FACET_ALPHABET: &str = "+-./0123456789@[]_abcdefghijklmnopqrstuvwxyz";
+
 impl Facet {
     pub fn clamp_value(value: impl Into<FacetValue>) -> FacetValue {
         let mut value = value.into();
@@ -299,12 +304,19 @@ impl Facet {
         value
     }
 
-    fn is_invalid_char(c: char) -> bool {
-        !c.is_ascii() || c.is_ascii_whitespace() || c.is_ascii_uppercase()
+    fn is_valid_char(c: char) -> bool {
+        // TODO: Use regex?
+        if !c.is_ascii() || c.is_ascii_whitespace() || c.is_ascii_uppercase() {
+            return false;
+        }
+        if c.is_ascii_alphanumeric() {
+            return true;
+        }
+        "+-./@[]_".contains(c)
     }
 
-    fn is_valid_char(c: char) -> bool {
-        !Self::is_invalid_char(c)
+    fn is_invalid_char(c: char) -> bool {
+        !Self::is_valid_char(c)
     }
 }
 

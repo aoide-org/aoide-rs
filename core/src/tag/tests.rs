@@ -51,6 +51,19 @@ fn clamp_label_value() {
 }
 
 #[test]
+fn clamp_facet_value() {
+    assert_eq!(FACET_ALPHABET, &Facet::clamp_value(FACET_ALPHABET));
+    assert_eq!(
+        concat!("+-./", "0123456789", "@[]_", "abcdefghijklmnopqrstuvwxyz",),
+        &Facet::clamp_value(concat!(
+            "\t !\"#$%&'()*+,-./0123456789:;<=>?",
+            " @ ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_",
+            " `abcdefghijklmn opqrstuvwxyz{|}~\n"
+        ))
+    );
+}
+
+#[test]
 fn validate_label() {
     assert!(Label::new("A Term".into()).validate().is_ok());
     assert!(Label::new("\tA Term  ".into()).validate().is_err());
@@ -58,11 +71,7 @@ fn validate_label() {
 
 #[test]
 fn validate_facet() {
-    assert!(Facet::new(
-        "!\"#$%&'()*+,-./0123456789:;<=>?@[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~".into()
-    )
-    .validate()
-    .is_ok());
+    assert!(Facet::new(FACET_ALPHABET.to_owned()).validate().is_ok());
     assert!(Facet::new("Facet".into()).validate().is_err());
     assert!(Facet::new("a facet".into()).validate().is_err());
 }
