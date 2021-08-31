@@ -18,8 +18,8 @@ CREATE TABLE IF NOT EXISTS track_tag (
     -- relations (immutable)
     track_id      INTEGER NOT NULL,
     -- properties
-    facet         TEXT,
-    label         TEXT,
+    facet         TEXT,          -- symbolic identifier
+    label         TEXT,          -- arbitrary text without leading/trailing whitespace
     score         REAL NOT NULL, -- [0.0, 1.0]
     --
     FOREIGN KEY(track_id) REFERENCES track(row_id),

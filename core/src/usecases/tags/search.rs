@@ -19,8 +19,8 @@ use crate::usecases::{filtering::*, sorting::*};
 pub struct Filter {
     pub modifier: Option<FilterModifier>,
 
-    // Facets are always matched with equals. Use an empty vector
-    // for matching only tags without a facet.
+    // Facets identifiers are always matched with equals. Use an
+    // empty vector for matching only tags without a facet.
     pub facets: Option<Vec<String>>,
 
     pub label: Option<StringPredicate>,
@@ -48,7 +48,7 @@ impl Filter {
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum SortField {
-    Facet,
+    FacetId,
     Label,
     Score,
     Count,

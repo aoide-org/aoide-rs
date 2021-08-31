@@ -15,7 +15,7 @@
 
 ///////////////////////////////////////////////////////////////////////
 
-use crate::tag::{Facet, Label};
+use crate::tag::{FacetId, Label};
 
 use lazy_static::lazy_static;
 
@@ -23,34 +23,34 @@ use lazy_static::lazy_static;
 // a starting point for complex tagging schemes
 lazy_static! {
     // International Standard Recording Code (ISRC, ISO 3901)
-    pub static ref FACET_ISRC: Facet = Facet::new("isrc".into());
+    pub static ref FACET_ISRC: FacetId = FacetId::new("isrc".into());
 
     // The Content Group aka Grouping field
-    pub static ref FACET_CGROUP: Facet = Facet::new("cgroup".into());
+    pub static ref FACET_CGROUP: FacetId = FacetId::new("cgroup".into());
 
     // Description or comment
-    pub static ref FACET_COMMENT: Facet = Facet::new("comment".into());
+    pub static ref FACET_COMMENT: FacetId = FacetId::new("comment".into());
 
     // Keywords
-    pub static ref FACET_KEYWORD: Facet = Facet::new("keyword".into());
+    pub static ref FACET_KEYWORD: FacetId = FacetId::new("keyword".into());
 
     // Decades like "1980s", "2000s", ..., or other time-based properties
-    pub static ref FACET_DECADE: Facet = Facet::new("decade".into());
+    pub static ref FACET_DECADE: FacetId = FacetId::new("decade".into());
 
     // "Pop", "Dance", "Electronic", "R&B/Soul", "Hip Hop/Rap", ...
-    pub static ref FACET_GENRE: Facet = Facet::new("genre".into());
+    pub static ref FACET_GENRE: FacetId = FacetId::new("genre".into());
 
     // ISO 639-2 language codes: "eng", "fre"/"fra", "ita", "spa", "ger"/"deu", ...
-    pub static ref FACET_LANG: Facet = Facet::new("lang".into());
+    pub static ref FACET_LANG: FacetId = FacetId::new("lang".into());
 
     // Personal mental or emotional state, e.g. "happy", "sexy", "sad", "melancholic", "joyful", ...
-    pub static ref FACET_MOOD: Facet = Facet::new("mood".into());
+    pub static ref FACET_MOOD: FacetId = FacetId::new("mood".into());
 
     // Sub-genres or details like "East Coast", "West Coast", ...
-    pub static ref FACET_STYLE: Facet = Facet::new("style".into());
+    pub static ref FACET_STYLE: FacetId = FacetId::new("style".into());
 
     // Atmosphere of the situation, e.g. "bouncy", "driving", "dreamy", "poppy", "punchy", "spiritual", "tropical", "uplifting" ...
-    pub static ref FACET_VIBE: Facet = Facet::new("vibe".into());
+    pub static ref FACET_VIBE: FacetId = FacetId::new("vibe".into());
 
     // Predefined musical or audio feature scores (as of Spotify/EchoNest).
     // A label is optional and could be used for identifying the source of
@@ -76,5 +76,5 @@ lazy_static! {
     // Supported schemes: upc, isrc, isan, grid, uuid, vendor_id
     // Example: "SonyBMG:isrc:USRC10900295"
     // See also: https://www.apple.com/au/itunes/lp-and-extras/docs/Development_Guide.pdf
-    pub static ref FACET_XID: Facet = Facet::new("xid".into());
+    pub static ref FACET_XID: FacetId = FacetId::new("xid".into());
 }

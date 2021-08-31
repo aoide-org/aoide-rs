@@ -303,16 +303,16 @@ fn load_track_tags(db: &crate::Connection<'_>, track_id: RecordId) -> RepoResult
             let mut facets: Vec<FacetedTags> = vec![];
             for queryable in queryables {
                 let (_, record) = queryable.into();
-                let (facet, tag) = record.into();
-                if let Some(facet) = facet {
+                let (facet_id, tag) = record.into();
+                if let Some(facet_id) = facet_id {
                     if let Some(faceted_tags) = facets.last_mut() {
-                        if faceted_tags.facet == facet {
+                        if faceted_tags.facet_id == facet_id {
                             faceted_tags.tags.push(tag);
                             continue;
                         }
                     }
                     facets.push(FacetedTags {
-                        facet,
+                        facet_id,
                         tags: vec![tag],
                     });
                 } else {
@@ -352,9 +352,9 @@ fn insert_track_tags(
             .map_err(repo_error)?;
     }
     for faceted_tags in facets {
-        let FacetedTags { facet, tags } = faceted_tags;
+        let FacetedTags { facet_id, tags } = faceted_tags;
         for tag in tags {
-            let insertable = InsertableRecord::bind(track_id, Some(facet), tag);
+            let insertable = InsertableRecord::bind(track_id, Some(facet_id), tag);
             diesel::insert_into(track_tag::table)
                 .values(&insertable)
                 .execute(db.as_ref())

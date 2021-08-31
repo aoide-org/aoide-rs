@@ -28,7 +28,7 @@ use triseratops::tag::{
 use aoide_core::{
     audio::AudioContent,
     media::{concat_encoder_properties, ApicType, Artwork, Content, ContentMetadataFlags},
-    tag::{Facet, Score as TagScore, Tags, TagsMap},
+    tag::{FacetId, Score as TagScore, Tags, TagsMap},
     track::{
         actor::ActorRole,
         album::AlbumKind,
@@ -128,21 +128,25 @@ fn first_extended_text<'a>(tag: &'a id3::Tag, description: &'a str) -> Option<&'
 fn import_faceted_text_tags(
     tags_map: &mut TagsMap,
     config: &FacetedTagMappingConfig,
-    facet: &Facet,
+    facet_id: &FacetId,
     tag: &id3::Tag,
     frame_id: &str,
 ) {
-    let removed_tags = tags_map.remove_faceted_tags(facet);
+    let removed_tags = tags_map.remove_faceted_tags(facet_id);
     if removed_tags > 0 {
-        tracing::debug!("Replacing {} custom '{}' tags", removed_tags, facet.value());
+        tracing::debug!(
+            "Replacing {} custom '{}' tags",
+            removed_tags,
+            facet_id.value()
+        );
     }
-    let tag_mapping_config = config.get(facet.value());
+    let tag_mapping_config = config.get(facet_id.value());
     let mut next_score_value = TagScore::max_value();
     for label in text_frames(tag, frame_id) {
         import_faceted_tags(
             tags_map,
             &mut next_score_value,
-            facet,
+            facet_id,
             tag_mapping_config,
             label,
         );

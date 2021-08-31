@@ -26,7 +26,7 @@ pub struct Filter {
     pub modifier: Option<FilterModifier>,
 
     // Facets are always matched with equals. Use an empty vector
-    // for matching only tags without a facet.
+    // for matching only tags without a facet_id.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub facets: Option<Vec<String>>,
 

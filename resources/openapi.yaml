@@ -2658,13 +2658,17 @@ components:
         equals:
           type: string
       description: Exact mismatch (case-sensitive)
-    TagFacet:
+    TagFacetId:
       type: string
       minLength: 1
       example: genre
       description: |
-        Non-empty, lowercase, string that defines the facet of a tag.
-        Tag facets must not contain any whitespace characters.
+        Non-empty, lowercase ASCII string that identifies a tag facet.
+
+        Tag facets must not contain any whitespace characters and
+        are restricted to the following alphabet:
+
+        `+-./0123456789@[]_abcdefghijklmnopqrstuvwxyz`
     TagFilter:
       type: object
       properties:
@@ -2673,7 +2677,7 @@ components:
         facets:
           type: array
           items:
-            $ref: '#/components/schemas/TagFacet'
+            $ref: '#/components/schemas/TagFacetId'
           description: |
             A non-empty array will match any of the given facets.
             An empty array will only match unfaceted tags, i.e. tags

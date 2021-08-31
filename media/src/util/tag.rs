@@ -16,8 +16,8 @@
 ///////////////////////////////////////////////////////////////////////
 
 use aoide_core::tag::{
-    Facet as TagFacet, FacetValue, Label as TagLabel, LabelValue, PlainTag, Score as TagScore,
-    ScoreValue, TagsMap,
+    FacetId as TagFacetId, FacetIdValue, Label as TagLabel, LabelValue, PlainTag,
+    Score as TagScore, ScoreValue, TagsMap,
 };
 
 use semval::IsValid as _;
@@ -40,7 +40,7 @@ impl TagMappingConfig {
     }
 }
 
-pub type FacetedTagMappingConfigInner = HashMap<FacetValue, TagMappingConfig>;
+pub type FacetedTagMappingConfigInner = HashMap<FacetIdValue, TagMappingConfig>;
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct FacetedTagMappingConfig(FacetedTagMappingConfigInner);
@@ -100,7 +100,7 @@ pub fn try_import_plain_tag(
 pub fn import_faceted_tags(
     tags_map: &mut TagsMap,
     next_score_value: &mut ScoreValue,
-    facet: &TagFacet,
+    facet_id: &TagFacetId,
     tag_mapping_config: Option<&TagMappingConfig>,
     label_value: impl Into<LabelValue>,
 ) -> usize {
@@ -124,12 +124,16 @@ pub fn import_faceted_tags(
             {
                 match try_import_plain_tag(split_label_value, *next_score_value) {
                     Ok(plain_tag) => {
-                        tags_map.insert(facet.to_owned().into(), plain_tag);
+                        tags_map.insert(facet_id.to_owned().into(), plain_tag);
                         import_count += 1;
                         *next_score_value = tag_mapping_config.next_score_value(*next_score_value);
                     }
                     Err(plain_tag) => {
-                        tracing::warn!("Failed to import faceted '{}' tag: {:?}", facet, plain_tag,);
+                        tracing::warn!(
+                            "Failed to import faceted '{}' tag: {:?}",
+                            facet_id,
+                            plain_tag,
+                        );
                     }
                 }
             }
@@ -138,14 +142,18 @@ pub fn import_faceted_tags(
     if import_count == 0 {
         match try_import_plain_tag(label_value.trim(), *next_score_value) {
             Ok(plain_tag) => {
-                tags_map.insert(facet.to_owned().into(), plain_tag);
+                tags_map.insert(facet_id.to_owned().into(), plain_tag);
                 import_count += 1;
                 if let Some(tag_mapping_config) = tag_mapping_config {
                     *next_score_value = tag_mapping_config.next_score_value(*next_score_value);
                 }
             }
             Err(plain_tag) => {
-                tracing::warn!("Failed to import faceted '{}' tag: {:?}", facet, plain_tag,);
+                tracing::warn!(
+                    "Failed to import faceted '{}' tag: {:?}",
+                    facet_id,
+                    plain_tag,
+                );
             }
         }
     }

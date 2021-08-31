@@ -52,10 +52,10 @@ fn clamp_label_value() {
 
 #[test]
 fn clamp_facet_value() {
-    assert_eq!(FACET_ALPHABET, &Facet::clamp_value(FACET_ALPHABET));
+    assert_eq!(FACET_ID_ALPHABET, &FacetId::clamp_value(FACET_ID_ALPHABET));
     assert_eq!(
         concat!("+-./", "0123456789", "@[]_", "abcdefghijklmnopqrstuvwxyz",),
-        &Facet::clamp_value(concat!(
+        &FacetId::clamp_value(concat!(
             "\t !\"#$%&'()*+,-./0123456789:;<=>?",
             " @ ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_",
             " `abcdefghijklmn opqrstuvwxyz{|}~\n"
@@ -71,19 +71,21 @@ fn validate_label() {
 
 #[test]
 fn validate_facet() {
-    assert!(Facet::new(FACET_ALPHABET.to_owned()).validate().is_ok());
-    assert!(Facet::new("Facet".into()).validate().is_err());
-    assert!(Facet::new("a facet".into()).validate().is_err());
+    assert!(FacetId::new(FACET_ID_ALPHABET.to_owned())
+        .validate()
+        .is_ok());
+    assert!(FacetId::new("Facet".into()).validate().is_err());
+    assert!(FacetId::new("a facet".into()).validate().is_err());
 }
 
 #[test]
 fn default_facet_is_invalid() {
-    assert!(Facet::default().validate().is_err());
+    assert!(FacetId::default().validate().is_err());
 }
 
 #[test]
 fn empty_facet_is_invalid() {
-    assert!(Facet::new("".into()).validate().is_err());
+    assert!(FacetId::new("".into()).validate().is_err());
 }
 
 #[test]
@@ -193,14 +195,14 @@ fn canonical_faceted_tags() {
         ],
         facets: vec![
             FacetedTags {
-                facet: Facet::new("facet1".into()).into(),
+                facet_id: FacetId::new("facet1".into()).into(),
                 tags: vec![PlainTag {
                     label: Some(Label::new("label1".into())),
                     ..Default::default()
                 }],
             },
             FacetedTags {
-                facet: Facet::new("facet2".into()).into(),
+                facet_id: FacetId::new("facet2".into()).into(),
                 tags: vec![PlainTag {
                     label: Some(Label::new("label1".into())),
                     ..Default::default()
@@ -231,21 +233,21 @@ fn duplicate_facets() {
         ],
         facets: vec![
             FacetedTags {
-                facet: Facet::new("facet1".into()).into(),
+                facet_id: FacetId::new("facet1".into()).into(),
                 tags: vec![PlainTag {
                     label: Some(Label::new("label1".into())),
                     ..Default::default()
                 }],
             },
             FacetedTags {
-                facet: Facet::new("facet2".into()).into(),
+                facet_id: FacetId::new("facet2".into()).into(),
                 tags: vec![PlainTag {
                     label: Some(Label::new("label1".into())),
                     ..Default::default()
                 }],
             },
             FacetedTags {
-                facet: Facet::new("facet1".into()).into(),
+                facet_id: FacetId::new("facet1".into()).into(),
                 tags: vec![PlainTag {
                     label: Some(Label::new("label2".into())),
                     ..Default::default()
@@ -273,14 +275,14 @@ fn duplicate_facets_and_labels() {
         ],
         facets: vec![
             FacetedTags {
-                facet: Facet::new("facet1".into()).into(),
+                facet_id: FacetId::new("facet1".into()).into(),
                 tags: vec![PlainTag {
                     label: Some(Label::new("label1".into())),
                     ..Default::default()
                 }],
             },
             FacetedTags {
-                facet: Facet::new("facet2".into()).into(),
+                facet_id: FacetId::new("facet2".into()).into(),
                 tags: vec![
                     PlainTag {
                         label: Some(Label::new("label2".into())),
@@ -314,7 +316,7 @@ fn duplicate_facets_and_labels() {
         ],
         facets: vec![
             FacetedTags {
-                facet: Facet::new("facet1".into()).into(),
+                facet_id: FacetId::new("facet1".into()).into(),
                 tags: vec![
                     PlainTag {
                         label: Some(Label::new("label1".into())),
@@ -335,7 +337,7 @@ fn duplicate_facets_and_labels() {
                 ],
             },
             FacetedTags {
-                facet: Facet::new("facet2".into()).into(),
+                facet_id: FacetId::new("facet2".into()).into(),
                 tags: vec![
                     PlainTag {
                         label: Some(Label::new("label2".into())),
@@ -357,7 +359,7 @@ fn duplicate_facets_and_labels() {
     assert!(tags.validate().is_ok());
     assert_eq!(5, tags.total_count());
     assert!(tags.facets.contains(&FacetedTags {
-        facet: Facet::new("facet2".into()).into(),
+        facet_id: FacetId::new("facet2".into()).into(),
         tags: vec![PlainTag {
             label: Some(Label::new("label2".into())),
             score: Score(0.75),
@@ -371,7 +373,7 @@ fn canonicalize_should_remove_facets_without_tags() {
         plain: vec![],
         facets: vec![
             FacetedTags {
-                facet: Facet::new("facet1".into()).into(),
+                facet_id: FacetId::new("facet1".into()).into(),
                 tags: vec![
                     PlainTag {
                         label: Some(Label::new("label1".into())),
@@ -384,7 +386,7 @@ fn canonicalize_should_remove_facets_without_tags() {
                 ],
             },
             FacetedTags {
-                facet: Facet::new("facet3".into()).into(),
+                facet_id: FacetId::new("facet3".into()).into(),
                 tags: vec![PlainTag {
                     label: Some(Label::new("label1".into())),
                     ..Default::default()
@@ -398,21 +400,21 @@ fn canonicalize_should_remove_facets_without_tags() {
     actual_tags.facets.insert(
         1,
         FacetedTags {
-            facet: Facet::new("facet2".into()).into(),
+            facet_id: FacetId::new("facet2".into()).into(),
             tags: vec![],
         },
     );
     actual_tags.facets.insert(
         2,
         FacetedTags {
-            facet: Facet::new("facet3".into()).into(),
+            facet_id: FacetId::new("facet3".into()).into(),
             tags: vec![],
         },
     );
     actual_tags.facets.insert(
         3,
         FacetedTags {
-            facet: Facet::new("facet3".into()).into(),
+            facet_id: FacetId::new("facet3".into()).into(),
             tags: vec![PlainTag {
                 label: Some(Label::new("label1".into())),
                 ..Default::default()

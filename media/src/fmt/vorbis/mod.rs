@@ -24,7 +24,7 @@ use aoide_core::{
     audio::signal::LoudnessLufs,
     media::concat_encoder_properties,
     music::{key::KeySignature, time::TempoBpm},
-    tag::{Facet, Score as TagScore, Tags, TagsMap},
+    tag::{FacetId, Score as TagScore, Tags, TagsMap},
     track::{
         album::AlbumKind,
         index::Index,
@@ -50,20 +50,24 @@ pub trait CommentReader {
 pub fn import_faceted_text_tags<'a>(
     tags_map: &mut TagsMap,
     config: &FacetedTagMappingConfig,
-    facet: &Facet,
+    facet_id: &FacetId,
     label_iter: impl Iterator<Item = &'a str>,
 ) {
-    let removed_tags = tags_map.remove_faceted_tags(facet);
+    let removed_tags = tags_map.remove_faceted_tags(facet_id);
     if removed_tags > 0 {
-        tracing::debug!("Replacing {} custom '{}' tags", removed_tags, facet.value());
+        tracing::debug!(
+            "Replacing {} custom '{}' tags",
+            removed_tags,
+            facet_id.value()
+        );
     }
-    let tag_mapping_config = config.get(facet.value());
+    let tag_mapping_config = config.get(facet_id.value());
     let mut next_score_value = TagScore::max_value();
     for label in label_iter {
         import_faceted_tags(
             tags_map,
             &mut next_score_value,
-            facet,
+            facet_id,
             tag_mapping_config,
             label,
         );

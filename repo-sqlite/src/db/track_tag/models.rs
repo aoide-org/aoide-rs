@@ -38,7 +38,7 @@ impl From<QueryableRecord> for (RecordId, Record) {
         } = from;
         let record = Record {
             track_id: track_id.into(),
-            facet: facet.map(Into::into),
+            facet_id: facet.map(Into::into),
             label: label.map(Into::into),
             score: score.into(),
         };
@@ -56,11 +56,15 @@ pub struct InsertableRecord<'a> {
 }
 
 impl<'a> InsertableRecord<'a> {
-    pub fn bind(track_id: RecordId, facet: Option<&'a Facet>, plain_tag: &'a PlainTag) -> Self {
+    pub fn bind(
+        track_id: RecordId,
+        facet_id: Option<&'a FacetId>,
+        plain_tag: &'a PlainTag,
+    ) -> Self {
         let PlainTag { label, score } = plain_tag;
         Self {
             track_id: track_id.into(),
-            facet: facet.map(Facet::as_ref),
+            facet: facet_id.map(FacetId::as_ref),
             label: label.as_ref().map(Label::as_ref),
             score: score.value(),
         }

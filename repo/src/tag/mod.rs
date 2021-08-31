@@ -15,14 +15,14 @@
 
 use aoide_core::{tag::*, usecases::tags::search::*};
 
-fn dedup_facets(facets: &mut Vec<Facet>) {
+fn dedup_facets(facets: &mut Vec<FacetId>) {
     facets.sort_unstable();
     facets.dedup();
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct CountParams {
-    pub facets: Option<Vec<Facet>>,
+    pub facets: Option<Vec<FacetId>>,
     pub include_non_faceted_tags: Option<bool>,
     pub ordering: Vec<SortOrder>,
 }
@@ -41,7 +41,7 @@ impl CountParams {
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct FacetCountParams {
-    pub facets: Option<Vec<Facet>>,
+    pub facets: Option<Vec<FacetId>>,
     pub ordering: Vec<SortOrder>,
 }
 
@@ -55,13 +55,13 @@ impl FacetCountParams {
 
 #[derive(Clone, Default, Debug, Eq, PartialEq)]
 pub struct FacetCount {
-    pub facet: Facet,
+    pub facet_id: FacetId,
     pub total_count: usize,
 }
 
 #[derive(Clone, Default, Debug, PartialEq)]
 pub struct AvgScoreCount {
-    pub facet: Option<Facet>,
+    pub facet_id: Option<FacetId>,
     pub label: Option<Label>,
     pub avg_score: Score,
     pub total_count: usize,

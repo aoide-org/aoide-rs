@@ -18,7 +18,7 @@
 use crate::prelude::*;
 
 mod _core {
-    pub use aoide_core::tag::{Facet, FacetKey, Label, PlainTag, Score, Tags};
+    pub use aoide_core::tag::{FacetId, FacetKey, Label, PlainTag, Score, Tags};
 }
 
 use aoide_core::tag::FacetedTags;
@@ -325,10 +325,10 @@ impl From<_core::Tags> for Tags {
             );
         }
         for faceted_tags in facets.into_iter() {
-            let FacetedTags { facet, tags } = faceted_tags;
+            let FacetedTags { facet_id, tags } = faceted_tags;
             if !tags.is_empty() {
                 into.insert(
-                    _core::FacetKey::from(facet).into(),
+                    _core::FacetKey::from(facet_id).into(),
                     tags.into_iter().map(Into::into).collect(),
                 );
             }
@@ -345,8 +345,8 @@ impl From<Tags> for _core::Tags {
         for (key, tags) in from.into_iter() {
             let tags = tags.into_iter().map(Into::into).collect();
             let FacetKey(key) = key;
-            if let Some(facet) = key.into() {
-                facets.push(FacetedTags { facet, tags })
+            if let Some(facet_id) = key.into() {
+                facets.push(FacetedTags { facet_id, tags })
             } else {
                 debug_assert!(plain_tags.is_empty());
                 plain_tags = tags;
