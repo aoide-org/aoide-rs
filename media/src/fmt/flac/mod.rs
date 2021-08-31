@@ -24,7 +24,7 @@ use aoide_core::{
     tag::TagsMap,
     track::{
         actor::ActorRole,
-        tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE, FACET_ISRC, FACET_MOOD},
+        tag::{FACET_COMMENT, FACET_GENRE, FACET_GROUPING, FACET_ISRC, FACET_MOOD},
         Track,
     },
     util::{Canonical, CanonicalizeInto as _},
@@ -254,7 +254,7 @@ impl import::ImportTrack for ImportTrack {
             vorbis::import_faceted_text_tags(
                 &mut tags_map,
                 &config.faceted_tag_mapping,
-                &FACET_CGROUP,
+                &FACET_GROUPING,
                 groupings,
             );
         }

@@ -37,7 +37,7 @@ use aoide_core::{
         actor::ActorRole,
         album::AlbumKind,
         metric::MetricsFlags,
-        tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE, FACET_ISRC, FACET_MOOD, FACET_XID},
+        tag::{FACET_COMMENT, FACET_GENRE, FACET_GROUPING, FACET_ISRC, FACET_MOOD, FACET_XID},
         title::{Title, TitleKind},
         Track,
     },
@@ -432,14 +432,14 @@ impl import::ImportTrack for ImportTrack {
 
         // Grouping tags
         if mp4_tag.groupings().next().is_some() {
-            tags_map.remove_faceted_tags(&FACET_CGROUP);
-            let tag_mapping_config = config.faceted_tag_mapping.get(FACET_CGROUP.value());
+            tags_map.remove_faceted_tags(&FACET_GROUPING);
+            let tag_mapping_config = config.faceted_tag_mapping.get(FACET_GROUPING.value());
             let mut next_score_value = TagScore::max_value();
             for grouping in mp4_tag.take_groupings() {
                 import_faceted_tags(
                     &mut tags_map,
                     &mut next_score_value,
-                    &FACET_CGROUP,
+                    &FACET_GROUPING,
                     tag_mapping_config,
                     grouping,
                 );

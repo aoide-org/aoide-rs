@@ -34,7 +34,7 @@ use aoide_core::{
         album::AlbumKind,
         metric::MetricsFlags,
         release::DateOrDateTime,
-        tag::{FACET_CGROUP, FACET_COMMENT, FACET_GENRE, FACET_ISRC, FACET_MOOD},
+        tag::{FACET_COMMENT, FACET_GENRE, FACET_GROUPING, FACET_ISRC, FACET_MOOD},
         title::{Title, TitleKind},
         Track,
     },
@@ -413,7 +413,7 @@ pub fn import_track(
         import_faceted_text_tags(
             &mut tags_map,
             &config.faceted_tag_mapping,
-            &FACET_CGROUP,
+            &FACET_GROUPING,
             tag,
             "GRP1",
         );
@@ -421,7 +421,7 @@ pub fn import_track(
         import_faceted_text_tags(
             &mut tags_map,
             &config.faceted_tag_mapping,
-            &FACET_CGROUP,
+            &FACET_GROUPING,
             tag,
             "TIT1",
         );
