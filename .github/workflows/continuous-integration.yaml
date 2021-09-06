@@ -70,13 +70,19 @@ jobs:
           command: check
           args: --manifest-path client/Cargo.toml
 
-      - name: Test project with all features enabled
+      - name: Build tests with all features enabled
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --workspace --locked --all-features
+          args: --workspace --all-features --locked --no-run
 
-      - name: Build project with default features
+      - name: Run tests with all features enabled
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --workspace --all-features -- --nocapture --quiet
+
+      - name: Build release with default features
         uses: actions-rs/cargo@v1
         with:
           command: build
