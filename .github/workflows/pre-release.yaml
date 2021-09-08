@@ -46,6 +46,9 @@ jobs:
           toolchain: stable
           profile: minimal
 
+      - name: Cache Rust toolchain and build artifacts
+        uses: Swatinem/rust-cache@v1
+
       - name: Build artifact
         uses: actions-rs/cargo@v1
         with:
