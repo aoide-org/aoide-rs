@@ -28,7 +28,7 @@ use triseratops::tag::{
 use aoide_core::{
     audio::AudioContent,
     media::{concat_encoder_properties, ApicType, Artwork, Content, ContentMetadataFlags},
-    tag::{FacetId, Score as TagScore, Tags, TagsMap},
+    tag::{FacetId, Tags, TagsMap},
     track::{
         actor::ActorRole,
         album::AlbumKind,
@@ -52,7 +52,7 @@ use crate::{
         digest::MediaDigest,
         parse_index_numbers, parse_key_signature, parse_replay_gain, parse_tempo_bpm,
         push_next_actor_role_name, serato,
-        tag::{import_faceted_tags, FacetedTagMappingConfig},
+        tag::{import_faceted_tags_from_label_value_iter, FacetedTagMappingConfig},
         try_load_embedded_artwork,
     },
     Result,
@@ -125,32 +125,19 @@ fn first_extended_text<'a>(tag: &'a id3::Tag, description: &'a str) -> Option<&'
     extended_texts(tag, description).next()
 }
 
-fn import_faceted_text_tags(
+fn import_faceted_tags_from_text_frames(
     tags_map: &mut TagsMap,
-    config: &FacetedTagMappingConfig,
+    faceted_tag_mapping_config: &FacetedTagMappingConfig,
     facet_id: &FacetId,
     tag: &id3::Tag,
     frame_id: &str,
 ) {
-    let removed_tags = tags_map.remove_faceted_tags(facet_id);
-    if removed_tags > 0 {
-        tracing::debug!(
-            "Replacing {} custom '{}' tags",
-            removed_tags,
-            facet_id.value()
-        );
-    }
-    let tag_mapping_config = config.get(facet_id.value());
-    let mut next_score_value = TagScore::max_value();
-    for label in text_frames(tag, frame_id) {
-        import_faceted_tags(
-            tags_map,
-            &mut next_score_value,
-            facet_id,
-            tag_mapping_config,
-            label,
-        );
-    }
+    import_faceted_tags_from_label_value_iter(
+        tags_map,
+        faceted_tag_mapping_config,
+        facet_id,
+        text_frames(tag, frame_id).map(ToOwned::to_owned),
+    );
 }
 
 pub fn import_track(
@@ -362,31 +349,19 @@ pub fn import_track(
     }
 
     // Comment tag
-    for comment in tag
+    let comments = tag
         .comments()
         .filter(|comm| comm.description.is_empty())
-        .map(|comm| comm.text.as_str())
-    {
-        let removed_comments = tags_map.remove_faceted_tags(&FACET_COMMENT);
-        if removed_comments > 0 {
-            tracing::debug!(
-                "Replacing {} custom '{}' tags",
-                removed_comments,
-                FACET_COMMENT.value()
-            );
-        }
-        let mut next_score_value = TagScore::default_value();
-        import_faceted_tags(
-            &mut tags_map,
-            &mut next_score_value,
-            &FACET_COMMENT,
-            None,
-            comment.to_owned(),
-        );
-    }
+        .map(|comm| comm.text.to_owned());
+    import_faceted_tags_from_label_value_iter(
+        &mut tags_map,
+        &config.faceted_tag_mapping,
+        &FACET_COMMENT,
+        comments,
+    );
 
     // Genre tags
-    import_faceted_text_tags(
+    import_faceted_tags_from_text_frames(
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_GENRE,
@@ -395,7 +370,7 @@ pub fn import_track(
     );
 
     // Mood tags
-    import_faceted_text_tags(
+    import_faceted_tags_from_text_frames(
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_MOOD,
@@ -409,26 +384,22 @@ pub fn import_track(
     // frames.
     // https://discussions.apple.com/thread/7900430
     // http://blog.jthink.net/2016/11/the-reason-why-is-grouping-field-no.html
-    if flags.contains(ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK) {
-        import_faceted_text_tags(
-            &mut tags_map,
-            &config.faceted_tag_mapping,
-            &FACET_GROUPING,
-            tag,
-            "GRP1",
-        );
+    let grouping_frame_id = if flags.contains(ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK)
+    {
+        "GRP1"
     } else {
-        import_faceted_text_tags(
-            &mut tags_map,
-            &config.faceted_tag_mapping,
-            &FACET_GROUPING,
-            tag,
-            "TIT1",
-        );
-    }
+        "TIT1"
+    };
+    import_faceted_tags_from_text_frames(
+        &mut tags_map,
+        &config.faceted_tag_mapping,
+        &FACET_GROUPING,
+        tag,
+        grouping_frame_id,
+    );
 
     // ISRC tag
-    import_faceted_text_tags(
+    import_faceted_tags_from_text_frames(
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_ISRC,

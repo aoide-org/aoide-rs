@@ -49,8 +49,12 @@ use aoide_core_serde::tag::Tags as SerdeTags;
 use crate::{
     io::import::{self, *},
     util::{
-        digest::MediaDigest, parse_key_signature, parse_replay_gain, parse_tempo_bpm,
-        parse_year_tag, push_next_actor_role_name, serato, tag::import_faceted_tags,
+        digest::MediaDigest,
+        parse_key_signature, parse_replay_gain, parse_tempo_bpm, parse_year_tag,
+        push_next_actor_role_name, serato,
+        tag::{
+            import_faceted_tags_from_label_value_iter, import_plain_tags_from_joined_label_value,
+        },
         try_load_embedded_artwork,
     },
     Result,
@@ -367,113 +371,79 @@ impl import::ImportTrack for ImportTrack {
             }
         }
 
-        // Comment tag
-        if let Some(comment) = mp4_tag.take_comment() {
-            tags_map.remove_faceted_tags(&FACET_COMMENT);
-            let mut next_score_value = TagScore::default_value();
-            import_faceted_tags(
-                &mut tags_map,
-                &mut next_score_value,
-                &FACET_COMMENT,
-                None,
-                comment,
-            );
-        }
-
-        // Genre tags
-        let mut genre_count = 0;
-        if mp4_tag.custom_genres().next().is_some() {
-            tags_map.remove_faceted_tags(&FACET_GENRE);
+        // Genre tags (custom + standard)
+        {
+            // Prefer custom genre tags
             let tag_mapping_config = config.faceted_tag_mapping.get(FACET_GENRE.value());
-            let mut next_score_value = TagScore::max_value();
-            for genre in mp4_tag.take_custom_genres() {
-                genre_count += import_faceted_tags(
-                    &mut tags_map,
-                    &mut next_score_value,
-                    &FACET_GENRE,
-                    tag_mapping_config,
-                    genre,
-                );
-            }
-        }
-        if genre_count == 0 && mp4_tag.standard_genres().next().is_some() {
-            // Import legacy/standard genres instead
-            tags_map.remove_faceted_tags(&FACET_GENRE);
-            let mut next_score_value = TagScore::max_value();
-            for genre_id in mp4_tag.standard_genres() {
-                let genre_id = usize::from(genre_id);
-                if genre_id < STANDARD_GENRES.len() {
-                    genre_count += import_faceted_tags(
-                        &mut tags_map,
+            let mut next_score_value = TagScore::default_value();
+            let mut plain_tags = Vec::with_capacity(8);
+            if mp4_tag.custom_genres().next().is_some() {
+                for genre in mp4_tag.take_custom_genres() {
+                    import_plain_tags_from_joined_label_value(
+                        tag_mapping_config,
                         &mut next_score_value,
-                        &FACET_GENRE,
-                        None,
-                        STANDARD_GENRES[genre_id],
+                        &mut plain_tags,
+                        genre,
                     );
                 }
             }
+            if plain_tags.is_empty() {
+                // Import legacy/standard genres only as a fallback
+                for genre_id in mp4_tag.standard_genres() {
+                    let genre_id = usize::from(genre_id);
+                    if genre_id < STANDARD_GENRES.len() {
+                        let genre = STANDARD_GENRES[genre_id];
+                        import_plain_tags_from_joined_label_value(
+                            tag_mapping_config,
+                            &mut next_score_value,
+                            &mut plain_tags,
+                            genre,
+                        );
+                    }
+                }
+            }
+            tags_map.update_faceted_plain_tags_by_label_ordering(&FACET_GENRE, plain_tags);
         }
 
         // Mood tags
-        if mp4_tag.strings_of(&MOOD_IDENT).next().is_some() {
-            tags_map.remove_faceted_tags(&FACET_MOOD);
-            let tag_mapping_config = config.faceted_tag_mapping.get(FACET_MOOD.value());
-            let mut next_score_value = TagScore::max_value();
-            for mood in mp4_tag.take_strings_of(&MOOD_IDENT) {
-                import_faceted_tags(
-                    &mut tags_map,
-                    &mut next_score_value,
-                    &FACET_MOOD,
-                    tag_mapping_config,
-                    mood,
-                );
-            }
-        }
+        import_faceted_tags_from_label_value_iter(
+            &mut tags_map,
+            &config.faceted_tag_mapping,
+            &FACET_MOOD,
+            mp4_tag.take_strings_of(&MOOD_IDENT),
+        );
+
+        // Comment tag
+        import_faceted_tags_from_label_value_iter(
+            &mut tags_map,
+            &config.faceted_tag_mapping,
+            &FACET_COMMENT,
+            mp4_tag.take_comment().into_iter(),
+        );
 
         // Grouping tags
-        if mp4_tag.groupings().next().is_some() {
-            tags_map.remove_faceted_tags(&FACET_GROUPING);
-            let tag_mapping_config = config.faceted_tag_mapping.get(FACET_GROUPING.value());
-            let mut next_score_value = TagScore::max_value();
-            for grouping in mp4_tag.take_groupings() {
-                import_faceted_tags(
-                    &mut tags_map,
-                    &mut next_score_value,
-                    &FACET_GROUPING,
-                    tag_mapping_config,
-                    grouping,
-                );
-            }
-        }
+        import_faceted_tags_from_label_value_iter(
+            &mut tags_map,
+            &config.faceted_tag_mapping,
+            &FACET_GROUPING,
+            mp4_tag.take_groupings(),
+        );
 
         // ISRC tag
-        if let Some(isrc) = mp4_tag.take_isrc() {
-            tags_map.remove_faceted_tags(&FACET_ISRC);
-            let mut next_score_value = TagScore::default_value();
-            import_faceted_tags(
-                &mut tags_map,
-                &mut next_score_value,
-                &FACET_ISRC,
-                None,
-                isrc,
-            );
-        }
+        import_faceted_tags_from_label_value_iter(
+            &mut tags_map,
+            &config.faceted_tag_mapping,
+            &FACET_ISRC,
+            mp4_tag.take_isrc().into_iter(),
+        );
 
         // iTunes XID tags
-        if mp4_tag.strings_of(&XID_IDENT).next().is_some() {
-            tags_map.remove_faceted_tags(&FACET_XID);
-            let tag_mapping_config = config.faceted_tag_mapping.get(FACET_XID.value());
-            let mut next_score_value = TagScore::max_value();
-            for xid in mp4_tag.take_strings_of(&XID_IDENT) {
-                import_faceted_tags(
-                    &mut tags_map,
-                    &mut next_score_value,
-                    &FACET_XID,
-                    tag_mapping_config,
-                    xid,
-                );
-            }
-        }
+        import_faceted_tags_from_label_value_iter(
+            &mut tags_map,
+            &config.faceted_tag_mapping,
+            &FACET_XID,
+            mp4_tag.take_strings_of(&XID_IDENT),
+        );
 
         debug_assert!(track.tags.is_empty());
         track.tags = Canonical::tie(tags_map.into());

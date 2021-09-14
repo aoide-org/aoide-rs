@@ -20,7 +20,10 @@ use crate::{compat::is_slice_sorted_by, prelude::*};
 use std::{
     borrow::Borrow,
     cmp::Ordering,
-    collections::HashMap,
+    collections::{
+        hash_map::Entry::{Occupied, Vacant},
+        HashMap,
+    },
     fmt,
     hash::{Hash, Hasher},
     iter::once,
@@ -203,7 +206,7 @@ impl Validate for Label {
         ValidationContext::new()
             .invalidate_if(self.value().is_empty(), LabelInvalidity::Empty)
             .invalidate_if(
-                Self::clamp_str(self.as_ref()) != self.value().as_str(),
+                Self::clamp_str(self.as_ref()) != self.value(),
                 LabelInvalidity::Format,
             )
             .into()
@@ -893,9 +896,73 @@ impl AsRef<TagsMapInner> for TagsMap {
 }
 
 impl TagsMap {
+    pub fn get_plain_tags(&self) -> Option<&[PlainTag]> {
+        let Self(all_tags) = self;
+        all_tags.get(&FacetKey::new(None)).map(Vec::as_slice)
+    }
+
     fn take_plain_tags(&mut self) -> Vec<PlainTag> {
         let Self(all_tags) = self;
         all_tags.remove(&FacetKey::new(None)).unwrap_or_default()
+    }
+
+    pub fn get_faceted_plain_tags(&self, facet_id: &FacetId) -> Option<&[PlainTag]> {
+        let Self(all_tags) = self;
+        all_tags.get(facet_id.value().as_str()).map(Vec::as_slice)
+    }
+
+    pub fn replace_faceted_plain_tags(
+        &mut self,
+        facet_id: FacetId,
+        plain_tags: impl Into<Vec<PlainTag>>,
+    ) -> Option<Vec<PlainTag>> {
+        let Self(all_tags) = self;
+        match all_tags.entry(Some(facet_id).into()) {
+            Occupied(mut entry) => Some(entry.insert(plain_tags.into())),
+            Vacant(entry) => {
+                entry.insert(plain_tags.into());
+                None
+            }
+        }
+    }
+
+    /// Update faceted plain tags
+    ///
+    /// Update the plain tags only if the ordering of labels differs. Otherwise keep
+    /// the existing plain tags with their scores.
+    ///
+    /// This function is useful when importing tags from text fields where the
+    /// an artificial score is generated depending on the ordering. In this case
+    /// the original scores should be preserved.
+    ///
+    /// Returns `true` if the tags have been replaced and `false` if unmodified.
+    pub fn update_faceted_plain_tags_by_label_ordering(
+        &mut self,
+        facet_id: &FacetId,
+        plain_tags: impl Into<Vec<PlainTag>>,
+    ) -> bool {
+        let plain_tags = plain_tags.into();
+        if let Some(faceted_plain_tags) = self.get_faceted_plain_tags(facet_id) {
+            if faceted_plain_tags.len() == plain_tags.len() {
+                let mut unchanged = true;
+                for (old_tag, new_tag) in faceted_plain_tags.iter().zip(plain_tags.iter()) {
+                    if old_tag.label != new_tag.label {
+                        unchanged = false;
+                        break;
+                    }
+                }
+                if !unchanged {
+                    // No update desired if ordering of labels didn't change
+                    return false;
+                }
+            }
+        }
+        if plain_tags.is_empty() {
+            self.remove_faceted_tags(facet_id);
+        } else {
+            self.replace_faceted_plain_tags(facet_id.to_owned(), plain_tags);
+        }
+        true
     }
 
     pub fn take_faceted_tags(&mut self, facet_id: &FacetId) -> Option<FacetedTags> {
