@@ -71,9 +71,13 @@ fn validate_label() {
 
 #[test]
 fn validate_facet() {
+    // FACET_ID_ALPHABET Does not start with a lowercase ASCII letter
+    // but ends with one.
+    let reverse_alphabet: String = FACET_ID_ALPHABET.chars().rev().collect();
+    assert!(FacetId::new(reverse_alphabet).validate().is_ok());
     assert!(FacetId::new(FACET_ID_ALPHABET.to_owned())
         .validate()
-        .is_ok());
+        .is_err());
     assert!(FacetId::new("Facet".into()).validate().is_err());
     assert!(FacetId::new("a facet".into()).validate().is_err());
 }

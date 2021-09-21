@@ -358,6 +358,14 @@ impl Validate for FacetId {
         ValidationContext::new()
             .invalidate_if(self.value().is_empty(), FacetIdInvalidity::Empty)
             .invalidate_if(
+                self.value()
+                    .chars()
+                    .next()
+                    .map(|c| !c.is_ascii_lowercase())
+                    .unwrap_or(false),
+                FacetIdInvalidity::Format,
+            )
+            .invalidate_if(
                 self.value().chars().any(FacetId::is_invalid_char),
                 FacetIdInvalidity::Format,
             )
