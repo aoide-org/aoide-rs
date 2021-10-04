@@ -129,14 +129,6 @@ case, the membership is defined by a _selection criteria_. Their internal
 ordering (in case of playlists) is defined by a _sort criteria_. In aoide
 queries are used for this purpose.
 
-## Integrations
-
-### Mixxx (experimental)
-
-A proof-of-concept for integrating _aoide_ with [Mixxx](https://www.mixxx.org)
-is available in this [PR #2282](https://github.com/mixxxdj/mixxx/pull/2282)
-for testing.
-
 ## Build & run
 
 [build & run]: #build-and-run
