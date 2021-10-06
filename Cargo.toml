@@ -44,6 +44,9 @@ blake3 = "*"
 chrono = { version = "*", default-features = false, features = ["clock", "serde"] }
 diesel = { version = "*", default-features = false, features = ["r2d2", "sqlite"] }
 diesel_migrations =  { version = "*", default-features = false, features = ["sqlite"] }
+# Bundle SQLite code to prevent dynamic linking.
+# The pinned version must be compatible with diesel!
+libsqlite3-sys = { version = "0.22", features = ["bundled"] }
 dotenv = "*"
 log = "*"
 percent-encoding = "*"

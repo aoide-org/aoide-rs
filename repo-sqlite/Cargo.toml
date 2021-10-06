@@ -10,8 +10,10 @@ aoide-core = "*"
 aoide-repo = "*"
 anyhow = "*"
 bigdecimal = "*"
-diesel = { version = "*", features = ["sqlite", "64-column-tables", "numeric", "chrono"] }
-libsqlite3-sys = { version = "*", features = ["bundled"] }
+diesel = { version = "*", default-features = false, features = ["sqlite", "64-column-tables", "numeric"] }
+# Bundle SQLite code to prevent dynamic linking.
+# The pinned version must be compatible with diesel!
+libsqlite3-sys = { version = "0.22", features = ["bundled"] }
 num-bigint = "*"
 num-derive = "*"
 num-traits = "*"
