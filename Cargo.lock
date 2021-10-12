@@ -63,7 +63,6 @@ dependencies = [
  "diesel",
  "diesel_migrations",
  "dotenv",
- "libsqlite3-sys",
  "log",
  "percent-encoding",
  "r2d2",
