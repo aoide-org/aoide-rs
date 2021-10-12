@@ -19,7 +19,7 @@ pub type RecordHeader = crate::RecordHeader<RecordId>;
 
 use crate::prelude::*;
 
-use aoide_core::{collection::*, util::clock::DateTime};
+use aoide_core::{collection::*, usecases::collections::*, util::clock::DateTime};
 
 pub trait EntityRepo {
     entity_repo_trait_common_functions!(RecordId, Entity, Collection);
@@ -42,26 +42,4 @@ pub trait EntityRepo {
     ) -> RepoResult<()>;
 
     fn load_collection_summary(&self, id: RecordId) -> RepoResult<Summary>;
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct MediaSourceSummary {
-    pub total_count: u64,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct TrackSummary {
-    pub total_count: u64,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PlaylistSummary {
-    pub total_count: u64,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Default)]
-pub struct Summary {
-    pub media_sources: Option<MediaSourceSummary>,
-    pub tracks: Option<TrackSummary>,
-    pub playlists: Option<PlaylistSummary>,
 }

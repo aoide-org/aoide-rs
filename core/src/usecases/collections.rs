@@ -13,9 +13,24 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod collections;
-pub mod filtering;
-pub mod media;
-pub mod sorting;
-pub mod tags;
-pub mod tracks;
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MediaSourceSummary {
+    pub total_count: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TrackSummary {
+    pub total_count: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlaylistSummary {
+    pub total_count: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
+pub struct Summary {
+    pub media_sources: Option<MediaSourceSummary>,
+    pub tracks: Option<TrackSummary>,
+    pub playlists: Option<PlaylistSummary>,
+}

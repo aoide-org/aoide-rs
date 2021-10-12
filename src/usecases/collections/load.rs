@@ -15,7 +15,7 @@
 
 use super::*;
 
-use aoide_repo::collection::Summary;
+use aoide_core::usecases::collections::Summary;
 
 ///////////////////////////////////////////////////////////////////////
 

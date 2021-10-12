@@ -28,6 +28,7 @@ use crate::{
 use aoide_core::{
     collection::*,
     entity::{EntityHeader, EntityRevision, EntityUid},
+    usecases::collections::{MediaSourceSummary, PlaylistSummary, Summary, TrackSummary},
     util::clock::*,
 };
 
