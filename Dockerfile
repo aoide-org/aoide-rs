@@ -79,6 +79,10 @@ RUN mkdir -p "./src/bin/${BUILD_BIN}" && \
     mv ${PROJECT_NAME}-core core && \
     USER=root cargo new --lib ${PROJECT_NAME}-core-serde && \
     mv ${PROJECT_NAME}-core-serde core-serde && \
+    USER=root cargo new --lib ${PROJECT_NAME}-core-ext && \
+    mv ${PROJECT_NAME}-core-ext core-ext && \
+    USER=root cargo new --lib ${PROJECT_NAME}-core-ext-serde && \
+    mv ${PROJECT_NAME}-core-ext-serde core-ext-serde && \
     USER=root cargo new --lib ${PROJECT_NAME}-media && \
     mv ${PROJECT_NAME}-media media && \
     USER=root cargo new --lib ${PROJECT_NAME}-repo && \
@@ -104,6 +108,12 @@ COPY [ \
 COPY [ \
     "core-serde/Cargo.toml", \
     "./core-serde/" ]
+COPY [ \
+    "core-ext/Cargo.toml", \
+    "./core-ext/" ]
+COPY [ \
+    "core-ext-serde/Cargo.toml", \
+    "./core-ext-serde/" ]
 COPY [ \
     "media/Cargo.toml", \
     "./media/" ]
@@ -137,6 +147,10 @@ RUN tree && \
     rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-core-* && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_core_serde-* && \
     rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-core-serde-* && \
+    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_core_ext-* && \
+    rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-core-ext-* && \
+    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_core_ext_serde-* && \
+    rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-core-ext-serde-* && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_media-* && \
     rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-media-* && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_repo-* && \
@@ -164,6 +178,12 @@ COPY [ \
     "core-serde/src", \
     "./core-serde/src/" ]
 COPY [ \
+    "core-ext/src", \
+    "./core-ext/src/" ]
+COPY [ \
+    "core-ext-serde/src", \
+    "./core-ext-serde/src/" ]
+COPY [ \
     "media/src", \
     "./media/src/" ]
 COPY [ \
@@ -187,6 +207,8 @@ RUN tree && \
     cargo check -p aoide-client --manifest-path client/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
     cargo check -p aoide-core --manifest-path core/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
     cargo check -p aoide-core-serde --manifest-path core-serde/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
+    cargo check -p aoide-core-ext --manifest-path core-ext/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
+    cargo check -p aoide-core-ext-serde --manifest-path core-ext-serde/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
     cargo check -p aoide-media --manifest-path media/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
     cargo check -p aoide-repo --manifest-path repo/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
     cargo check -p aoide-repo-sqlite --manifest-path repo-sqlite/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
