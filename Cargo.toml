@@ -13,6 +13,8 @@ members = [
   "client",
   "core",
   "core-serde",
+  "core-ext",
+  "core-ext-serde",
   "media",
   "repo",
   "repo-sqlite",
@@ -22,8 +24,8 @@ members = [
 [patch.crates-io]
 aoide-client = { path = "./client" }
 aoide-core = { path = "./core" }
-aoide-core-ext = { path = "./core-ext" }
 aoide-core-serde = { path = "./core-serde" }
+aoide-core-ext = { path = "./core-ext" }
 aoide-core-ext-serde = { path = "./core-ext-serde" }
 aoide-media = { path = "./media" }
 aoide-repo = { path = "./repo" }
