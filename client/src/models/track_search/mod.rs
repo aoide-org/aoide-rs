@@ -32,7 +32,7 @@ pub use self::task::Task;
 pub type Action = crate::prelude::Action<Effect, Task>;
 pub type StateUpdated = crate::prelude::mutable::StateUpdated<Effect, Task>;
 
-use aoide_core::usecases::tracks::search::SearchParams;
+use aoide_core::usecases::track::search::SearchParams;
 
 #[derive(Debug, Clone)]
 pub struct Pagination {

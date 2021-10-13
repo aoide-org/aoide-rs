@@ -26,7 +26,7 @@ pub type RecordHeader = crate::RecordHeader<RecordId>;
 use aoide_core::{
     entity::{EntityHeader, EntityRevision, EntityUid},
     track::{Entity, Track},
-    usecases::tracks::search::*,
+    usecases::track::search::*,
     util::clock::DateTime,
 };
 

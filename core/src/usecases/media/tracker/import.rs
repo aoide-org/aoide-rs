@@ -17,7 +17,7 @@ use std::ops::AddAssign;
 
 use url::Url;
 
-use crate::usecases::tracks::replace::Summary as TrackReplaceSummary;
+use crate::usecases::track::replace::Summary as TrackReplaceSummary;
 
 use super::Completion;
 

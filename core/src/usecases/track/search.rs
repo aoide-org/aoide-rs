@@ -17,7 +17,7 @@ use crate::{
     audio::DurationMs,
     prelude::{DateTime, EntityUid},
     track::release::DateOrDateTime,
-    usecases::{filtering::*, sorting::*, tags},
+    usecases::{filtering::*, sorting::*, tag},
 };
 
 use semval::prelude::IsValid as _;
@@ -130,7 +130,7 @@ pub enum SearchFilter {
     Numeric(NumericFieldFilter),
     DateTime(DateTimeFieldFilter),
     Condition(ConditionFilter),
-    Tag(tags::search::Filter),
+    Tag(tag::search::Filter),
     CueLabel(StringFilter),
     PlaylistUid(EntityUid),
     All(Vec<SearchFilter>),

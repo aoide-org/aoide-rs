@@ -20,7 +20,7 @@ use aoide_repo::{
     track::{EntityRepo, RecordHeader},
 };
 
-use aoide_core::{usecases::tracks::search::*, util::url::BaseUrl};
+use aoide_core::{usecases::track::search::*, util::url::BaseUrl};
 
 use crate::collection::load_virtual_file_path_resolver;
 

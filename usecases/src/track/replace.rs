@@ -38,7 +38,7 @@ use std::{
 };
 use url::Url;
 
-pub use aoide_core::usecases::tracks::replace::Summary;
+pub use aoide_core::usecases::track::replace::Summary;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Params {

@@ -17,11 +17,11 @@ use super::*;
 
 use aoide_repo::collection::EntityRepo as _;
 
-use aoide_core::usecases::tracks::search::{SearchFilter, SortOrder};
+use aoide_core::usecases::track::search::{SearchFilter, SortOrder};
 
 mod uc {
     pub use aoide_usecases::{
-        collection::resolve_collection_id_for_virtual_file_path, tracks::search::*, Error,
+        collection::resolve_collection_id_for_virtual_file_path, track::search::*, Error,
     };
 }
 

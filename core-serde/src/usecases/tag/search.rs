@@ -16,7 +16,7 @@
 use crate::{prelude::*, usecases::filtering::*};
 
 mod _core {
-    pub use aoide_core::usecases::{filtering::*, sorting::*, tags::search::*};
+    pub use aoide_core::usecases::{filtering::*, sorting::*, tag::search::*};
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

@@ -33,7 +33,7 @@ use aoide_repo::{
     track::{EntityRepo as TrackRepo, ReplaceMode},
 };
 
-use crate::tracks::replace::{
+use crate::track::replace::{
     import_and_replace_by_local_file_path_from_directory, Completion as ReplaceCompletion,
     Outcome as ReplaceOutcome,
 };

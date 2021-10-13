@@ -19,7 +19,7 @@ use aoide_repo::collection::EntityRepo as _;
 
 mod uc {
     pub use aoide_usecases::{
-        collection::resolve_collection_id_for_virtual_file_path, tracks::purge::*, Error,
+        collection::resolve_collection_id_for_virtual_file_path, track::purge::*, Error,
     };
 }
 

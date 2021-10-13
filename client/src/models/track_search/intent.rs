@@ -15,7 +15,7 @@
 
 use super::{Action, FetchResultPageRequest, State, StateUpdated, Task};
 
-use aoide_core::{entity::EntityUid, usecases::tracks::search::SearchParams};
+use aoide_core::{entity::EntityUid, usecases::track::search::SearchParams};
 
 #[derive(Debug)]
 pub enum Intent {

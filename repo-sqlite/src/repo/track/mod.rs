@@ -34,7 +34,7 @@ use aoide_core::{
     media::Source,
     tag::*,
     track::{actor::Actor, cue::Cue, title::Title, *},
-    usecases::tracks::search::{SearchFilter, SortOrder},
+    usecases::track::search::{SearchFilter, SortOrder},
     util::{clock::*, Canonical},
 };
 

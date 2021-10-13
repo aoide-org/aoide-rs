@@ -66,7 +66,7 @@ async fn fetch_result_page<E: WebClientEnvironment>(
         pagination.limit
     ))?;
     let request_body = serde_json::to_vec(
-        &aoide_core_serde::usecases::tracks::search::SearchParams::from(search_params),
+        &aoide_core_serde::usecases::track::search::SearchParams::from(search_params),
     )?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;

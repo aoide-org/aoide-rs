@@ -23,7 +23,7 @@ use crate::{
 
 use aoide_core::{
     entity::EntityUid,
-    usecases::{tags::search::Filter as TagFilter, tracks::search::*},
+    usecases::{tag::search::Filter as TagFilter, track::search::*},
     util::clock::YYYYMMDD,
 };
 

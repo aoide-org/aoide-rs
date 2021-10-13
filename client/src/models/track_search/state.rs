@@ -15,7 +15,7 @@
 
 use super::FetchResultPageResponse;
 
-use aoide_core::{track::Entity, usecases::tracks::search::SearchParams};
+use aoide_core::{track::Entity, usecases::track::search::SearchParams};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ControlState {

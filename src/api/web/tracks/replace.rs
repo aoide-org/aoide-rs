@@ -27,7 +27,7 @@ mod uc {
 
     pub use aoide_repo::track::ReplaceMode;
 
-    pub use aoide_usecases::tracks::replace::{Params, Summary};
+    pub use aoide_usecases::track::replace::{Params, Summary};
 }
 
 #[derive(Copy, Clone, Debug, Deserialize)]

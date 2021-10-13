@@ -19,7 +19,7 @@ use aoide_core::{
     audio::DurationMs,
     media::Content,
     track::{Entity as TrackEntity, Track},
-    usecases::tracks::search::*,
+    usecases::track::search::*,
 };
 
 use aoide_repo::{

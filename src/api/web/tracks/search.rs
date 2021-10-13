@@ -16,7 +16,7 @@
 use url::Url;
 
 use aoide_core::util::url::BaseUrl;
-use aoide_core_serde::{track::Entity, usecases::tracks::search::SearchParams};
+use aoide_core_serde::{track::Entity, usecases::track::search::SearchParams};
 
 use super::*;
 
@@ -26,7 +26,7 @@ pub type ResponseBody = Vec<Entity>;
 
 mod uc {
     pub use crate::usecases::tracks::search::search;
-    pub use aoide_usecases::tracks::search::Params;
+    pub use aoide_usecases::track::search::Params;
 }
 
 mod _core {

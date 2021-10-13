@@ -15,12 +15,12 @@
 
 use super::*;
 
-use crate::tracks::find_duplicate::{self, find_duplicate};
+use crate::track::find_duplicate::{self, find_duplicate};
 
 use aoide_core::{
     media::Source as MediaSource,
     track::{Entity, Track},
-    usecases::tracks::search::{ConditionFilter, SearchFilter, SortField, SortOrder},
+    usecases::track::search::{ConditionFilter, SearchFilter, SortField, SortOrder},
 };
 
 use aoide_repo::{

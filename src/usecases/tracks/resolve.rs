@@ -17,7 +17,7 @@ use super::*;
 
 use aoide_repo::collection::EntityRepo as _;
 
-use aoide_usecases::tracks::resolve as uc;
+use aoide_usecases::track::resolve as uc;
 
 pub fn resolve_by_media_source_paths(
     connection: &SqliteConnection,

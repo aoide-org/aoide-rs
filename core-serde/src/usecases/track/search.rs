@@ -18,11 +18,11 @@ use aoide_core::usecases::filtering::NumericValue;
 use crate::{
     entity::EntityUid,
     prelude::*,
-    usecases::{filtering::*, sorting::*, tags::search::Filter as TagFilter},
+    usecases::{filtering::*, sorting::*, tag::search::Filter as TagFilter},
 };
 
 mod _core {
-    pub use aoide_core::usecases::{filtering::*, sorting::*, tracks::search::*};
+    pub use aoide_core::usecases::{filtering::*, sorting::*, track::search::*};
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]

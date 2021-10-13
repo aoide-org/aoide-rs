@@ -16,9 +16,7 @@
 use super::*;
 
 mod _core {
-    pub use aoide_core::{
-        collection::Entity, entity::EntityHeader, usecases::collections::Summary,
-    };
+    pub use aoide_core::{collection::Entity, entity::EntityHeader, usecases::collection::Summary};
 }
 
 use aoide_core::entity::EntityUid;
@@ -31,7 +29,7 @@ use aoide_repo::{
 use aoide_core_serde::{
     collection::{Collection, Entity},
     entity::Entity as GenericEntity,
-    usecases::collections::{CollectionWithSummary, EntityWithSummary, Summary},
+    usecases::collection::{CollectionWithSummary, EntityWithSummary, Summary},
 };
 
 ///////////////////////////////////////////////////////////////////////

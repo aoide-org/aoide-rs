@@ -25,7 +25,7 @@ use thiserror::Error;
 
 pub mod collection;
 pub mod media;
-pub mod tracks;
+pub mod track;
 
 #[derive(Error, Debug)]
 pub enum Error {

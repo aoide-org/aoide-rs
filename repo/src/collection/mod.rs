@@ -19,7 +19,7 @@ pub type RecordHeader = crate::RecordHeader<RecordId>;
 
 use crate::prelude::*;
 
-use aoide_core::{collection::*, usecases::collections::*, util::clock::DateTime};
+use aoide_core::{collection::*, usecases::collection::*, util::clock::DateTime};
 
 pub trait EntityRepo {
     entity_repo_trait_common_functions!(RecordId, Entity, Collection);

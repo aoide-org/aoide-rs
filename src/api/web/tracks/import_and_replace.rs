@@ -21,7 +21,7 @@ use crate::api::web::tracks::replace::ReplaceMode;
 
 mod uc {
     pub use crate::usecases::tracks::replace::*;
-    pub use aoide_usecases::tracks::replace::{Completion, Outcome, Summary};
+    pub use aoide_usecases::track::replace::{Completion, Outcome, Summary};
 }
 
 mod _core {

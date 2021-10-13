@@ -27,7 +27,7 @@ use std::sync::atomic::AtomicBool;
 
 mod uc {
     pub use aoide_usecases::{
-        collection::resolve_collection_id_for_virtual_file_path, tracks::replace::*, Error,
+        collection::resolve_collection_id_for_virtual_file_path, track::replace::*, Error,
     };
 }
 

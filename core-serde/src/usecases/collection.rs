@@ -16,7 +16,7 @@
 use crate::prelude::*;
 
 mod _core {
-    pub use aoide_core::usecases::collections::{
+    pub use aoide_core::usecases::collection::{
         MediaSourceSummary, PlaylistSummary, Summary, TrackSummary,
     };
 }
