@@ -38,5 +38,3 @@ pub mod playlist;
 pub mod tag;
 pub mod track;
 pub mod util;
-
-pub mod usecases;

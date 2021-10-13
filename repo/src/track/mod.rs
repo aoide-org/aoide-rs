@@ -13,6 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use aoide_core::{
+    entity::{EntityHeader, EntityRevision, EntityUid},
+    track::{Entity, Track},
+    util::clock::DateTime,
+};
+
+use aoide_core_ext::track::search::*;
+
 use crate::{
     collection::RecordId as CollectionId,
     media::source::{RecordId as MediaSourceId, Repo as MediaSourceRepo},
@@ -22,13 +30,6 @@ use crate::{
 record_id_newtype!(RecordId);
 
 pub type RecordHeader = crate::RecordHeader<RecordId>;
-
-use aoide_core::{
-    entity::{EntityHeader, EntityRevision, EntityUid},
-    track::{Entity, Track},
-    usecases::track::search::*,
-    util::clock::DateTime,
-};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct StringFieldCounts {

@@ -13,11 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use std::io::BufReader;
 
-use aoide_core::{
-    media::SourcePath, track::Track, usecases::media::ImportMode, util::clock::DateTime,
-};
+use aoide_core::{media::SourcePath, track::Track, util::clock::DateTime};
+
+use aoide_core_ext::media::ImportMode;
 
 use aoide_media::{
     fmt::{flac, mp3, mp4, ogg},
@@ -27,7 +27,7 @@ use aoide_media::{
     util::guess_mime_from_path,
 };
 
-use std::io::BufReader;
+use super::*;
 
 pub mod tracker;
 

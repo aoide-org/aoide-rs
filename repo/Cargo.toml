@@ -6,7 +6,6 @@ publish = false
 edition = "2018"
 
 [dependencies]
-aoide-core = "*"
 anyhow = "*"
 num-derive = "*"
 num-traits = "*"
@@ -14,6 +13,10 @@ paste = "*"
 rand = "*"
 semval = "*"
 thiserror = "*"
+
+# Workspace dependencies
+aoide-core = "*"
+aoide-core-ext = "*"
 
 [features]
 default = []

@@ -4,9 +4,6 @@ version = "0.0.0"
 edition = "2018"
 
 [dependencies]
-aoide-core = "*"
-aoide-core-serde = "*"
-
 anyhow = "*"
 bytes = "*"
 env_logger = { version = ">=0.9" }
@@ -15,6 +12,12 @@ serde = { version = "1", features = ["derive"], optional = true }
 serde_json = "*"
 tokio = { version = "*", default-features = false }
 tracing = { version = "*", features = ["log"] }
+
+# Workspace dependencies
+aoide-core = "*"
+aoide-core-serde = "*"
+aoide-core-ext = "*"
+aoide-core-ext-serde = "*"
 
 [dev-dependencies]
 clap = "*"

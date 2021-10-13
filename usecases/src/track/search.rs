@@ -15,12 +15,14 @@
 
 use std::time::Instant;
 
+use aoide_core::util::url::BaseUrl;
+
+use aoide_core_ext::track::search::*;
+
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
     track::{EntityRepo, RecordHeader},
 };
-
-use aoide_core::{usecases::track::search::*, util::url::BaseUrl};
 
 use crate::collection::load_virtual_file_path_resolver;
 

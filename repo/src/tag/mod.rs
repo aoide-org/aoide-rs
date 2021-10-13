@@ -13,7 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::{tag::*, usecases::tag::search::*};
+use aoide_core::tag::*;
+
+use aoide_core_ext::tag::search::*;
 
 fn dedup_facets(facets: &mut Vec<FacetId>) {
     facets.sort_unstable();

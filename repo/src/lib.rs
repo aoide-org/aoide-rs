@@ -40,7 +40,7 @@ pub struct RecordHeader<Id> {
 pub mod prelude {
     use thiserror::Error;
 
-    pub use aoide_core::usecases::{filtering::*, sorting::*};
+    pub use aoide_core_ext::{filtering::*, sorting::*};
 
     pub trait RecordCollector {
         type Header;

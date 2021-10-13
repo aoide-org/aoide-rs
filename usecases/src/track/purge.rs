@@ -13,7 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::{usecases::media::tracker::DirTrackingStatus, util::url::BaseUrl};
+use aoide_core::util::url::BaseUrl;
+
+use aoide_core_ext::media::tracker::DirTrackingStatus;
 
 use aoide_repo::{
     collection::RecordId as CollectionId,

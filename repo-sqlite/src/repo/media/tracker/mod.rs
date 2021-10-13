@@ -17,11 +17,9 @@ use std::convert::TryFrom;
 
 use num_traits::{FromPrimitive as _, ToPrimitive as _};
 
-use aoide_core::{
-    media::SourcePath,
-    usecases::media::tracker::{DirTrackingStatus, DirectoriesStatus},
-    util::clock::DateTime,
-};
+use aoide_core::{media::SourcePath, util::clock::DateTime};
+
+use aoide_core_ext::media::tracker::{DirTrackingStatus, DirectoriesStatus};
 
 use aoide_repo::{
     collection::RecordId as CollectionId,

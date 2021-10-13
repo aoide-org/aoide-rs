@@ -13,15 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
-
 use aoide_core::{entity::EntityUid, util::clock::DateTime};
 
 use aoide_repo::{collection::EntityRepo as _, media::source::Repo as _};
 
-pub mod tracker;
+use super::*;
 
-pub use aoide_usecases::media::*;
+pub mod tracker;
 
 pub fn relocate_collected_sources(
     connection: &SqliteConnection,

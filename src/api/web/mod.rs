@@ -13,23 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
-
-use crate::usecases as uc;
-
-mod _repo {
-    pub use aoide_repo::prelude::*;
-}
-
-use aoide_media::Error as MediaError;
-
-use aoide_repo::prelude::{Pagination, PaginationLimit, PaginationOffset, RepoError};
-
-use aoide_core_serde::entity::EntityRevision;
+use std::{convert::Infallible, error::Error as StdError, result::Result as StdResult};
 
 use reject::{InvalidHeader, InvalidQuery, MethodNotAllowed};
 use serde::{Deserialize, Serialize};
-
+use thiserror::Error;
 use uuid::Uuid;
 use warp::{
     body::BodyDeserializeError,
@@ -38,16 +26,24 @@ use warp::{
     Reply,
 };
 
-use std::{convert::Infallible, error::Error as StdError, result::Result as StdResult};
+use aoide_media::Error as MediaError;
 
-use thiserror::Error;
+use aoide_repo::prelude::{Pagination, PaginationLimit, PaginationOffset, RepoError};
 
-///////////////////////////////////////////////////////////////////////
+use aoide_core_serde::entity::EntityRevision;
 
-pub mod collections;
+use crate::usecases as uc;
+
+use super::*;
+
+mod _repo {
+    pub use aoide_repo::prelude::*;
+}
+
+pub mod collection;
 pub mod media;
-pub mod playlists;
-pub mod tracks;
+pub mod playlist;
+pub mod track;
 
 #[derive(Error, Debug)]
 pub enum Error {

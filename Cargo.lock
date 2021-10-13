@@ -53,6 +53,8 @@ version = "0.8.0"
 dependencies = [
  "anyhow",
  "aoide-core",
+ "aoide-core-ext",
+ "aoide-core-ext-serde",
  "aoide-core-serde",
  "aoide-media",
  "aoide-repo",
@@ -88,6 +90,8 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-core",
+ "aoide-core-ext",
+ "aoide-core-ext-serde",
  "aoide-core-serde",
  "bytes",
  "clap",
@@ -117,6 +121,28 @@ dependencies = [
  "thiserror",
  "url",
  "uuid",
+]
+
+[[package]]
+name = "aoide-core-ext"
+version = "0.0.0"
+dependencies = [
+ "aoide-core",
+ "num-derive",
+ "num-traits",
+ "semval",
+ "url",
+]
+
+[[package]]
+name = "aoide-core-ext-serde"
+version = "0.0.0"
+dependencies = [
+ "aoide-core",
+ "aoide-core-ext",
+ "aoide-core-serde",
+ "serde",
+ "url",
 ]
 
 [[package]]
@@ -176,6 +202,7 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-core",
+ "aoide-core-ext",
  "num-derive",
  "num-traits",
  "paste",
@@ -190,6 +217,7 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-core",
+ "aoide-core-ext",
  "aoide-repo",
  "bigdecimal 0.3.0",
  "diesel",
@@ -211,6 +239,7 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-core",
+ "aoide-core-ext",
  "aoide-media",
  "aoide-repo",
  "bitflags",

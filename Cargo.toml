@@ -22,7 +22,9 @@ members = [
 [patch.crates-io]
 aoide-client = { path = "./client" }
 aoide-core = { path = "./core" }
+aoide-core-ext = { path = "./core-ext" }
 aoide-core-serde = { path = "./core-serde" }
+aoide-core-ext-serde = { path = "./core-ext-serde" }
 aoide-media = { path = "./media" }
 aoide-repo = { path = "./repo" }
 aoide-repo-sqlite = { path = "./repo-sqlite" }
@@ -35,7 +37,9 @@ mp3-duration = { git = "https://github.com/aoide-org/mp3-duration.git", branch =
 [dependencies]
 anyhow = "*"
 aoide-core = "*"
+aoide-core-ext = "*"
 aoide-core-serde = "*"
+aoide-core-ext-serde = "*"
 aoide-media = "*"
 aoide-repo = "*"
 aoide-repo-sqlite = "*"

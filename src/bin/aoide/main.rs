@@ -19,13 +19,13 @@
 mod env;
 
 use aoide::{
-    api::web::{collections, handle_rejection, media, playlists, reject_on_error, tracks, Error},
+    api::web::{collection, handle_rejection, media, playlist, reject_on_error, track, Error},
     usecases as uc, *,
 };
 
 use aoide_core::entity::EntityUid;
 
-use aoide_core_serde::usecases::media::tracker::Progress as MediaTrackerProgress;
+use aoide_core_ext_serde::media::tracker::Progress as MediaTrackerProgress;
 
 use std::{
     collections::HashMap,
@@ -229,7 +229,7 @@ pub async fn main() -> Result<(), Error> {
                 spawn_blocking_database_write_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
-                        collections::create::handle_request(pooled_connection, request_body)
+                        collection::create::handle_request(pooled_connection, request_body)
                     },
                 )
                 .await
@@ -255,7 +255,7 @@ pub async fn main() -> Result<(), Error> {
                     spawn_blocking_database_write_task(
                         guarded_connection_pool,
                         move |pooled_connection| {
-                            collections::update::handle_request(
+                            collection::update::handle_request(
                                 pooled_connection,
                                 uid,
                                 query_params,
@@ -278,7 +278,7 @@ pub async fn main() -> Result<(), Error> {
                 spawn_blocking_database_write_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
-                        collections::delete::handle_request(pooled_connection, &uid)
+                        collection::delete::handle_request(pooled_connection, &uid)
                     },
                 )
                 .await
@@ -296,7 +296,7 @@ pub async fn main() -> Result<(), Error> {
                 spawn_blocking_database_read_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
-                        collections::load_all::handle_request(pooled_connection, query_params)
+                        collection::load_all::handle_request(pooled_connection, query_params)
                     },
                 )
                 .await
@@ -315,7 +315,7 @@ pub async fn main() -> Result<(), Error> {
                 spawn_blocking_database_read_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
-                        collections::load_one::handle_request(pooled_connection, &uid, query_params)
+                        collection::load_one::handle_request(pooled_connection, &uid, query_params)
                     },
                 )
                 .await
@@ -468,9 +468,8 @@ pub async fn main() -> Result<(), Error> {
              request_body,
              guarded_connection_pool: GuardedConnectionPool,
              media_tracker_progress: Arc<Mutex<MediaTrackerProgress>>| async move {
-                let (progress_summary_tx, mut progress_summary_rx) = watch::channel(
-                    aoide_core::usecases::media::tracker::import::Summary::default(),
-                );
+                let (progress_summary_tx, mut progress_summary_rx) =
+                    watch::channel(aoide_core_ext::media::tracker::import::Summary::default());
                 let watcher = tokio::spawn(async move {
                     *media_tracker_progress.lock().await =
                         MediaTrackerProgress::Importing(Default::default());
@@ -561,7 +560,7 @@ pub async fn main() -> Result<(), Error> {
                 spawn_blocking_database_read_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
-                        tracks::resolve::handle_request(pooled_connection, &uid, request_body)
+                        track::resolve::handle_request(pooled_connection, &uid, request_body)
                     },
                 )
                 .await
@@ -587,7 +586,7 @@ pub async fn main() -> Result<(), Error> {
                     spawn_blocking_database_read_task(
                         guarded_connection_pool,
                         move |pooled_connection| {
-                            tracks::search::handle_request(
+                            track::search::handle_request(
                                 pooled_connection,
                                 &uid,
                                 query_params,
@@ -618,7 +617,7 @@ pub async fn main() -> Result<(), Error> {
                     spawn_blocking_database_write_task(
                         guarded_connection_pool,
                         move |pooled_connection| {
-                            tracks::replace::handle_request(
+                            track::replace::handle_request(
                                 pooled_connection,
                                 &uid,
                                 query_params,
@@ -650,7 +649,7 @@ pub async fn main() -> Result<(), Error> {
                     spawn_blocking_database_write_task(
                         guarded_connection_pool,
                         move |pooled_connection| {
-                            tracks::import_and_replace::handle_request(
+                            track::import_and_replace::handle_request(
                                 pooled_connection,
                                 &uid,
                                 query_params,
@@ -677,7 +676,7 @@ pub async fn main() -> Result<(), Error> {
                 spawn_blocking_database_write_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
-                        tracks::purge::handle_request(pooled_connection, &uid, request_body)
+                        track::purge::handle_request(pooled_connection, &uid, request_body)
                     },
                 )
                 .await
@@ -698,7 +697,7 @@ pub async fn main() -> Result<(), Error> {
                 spawn_blocking_database_write_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
-                        tracks::purge_untracked::handle_request(
+                        track::purge_untracked::handle_request(
                             pooled_connection,
                             &uid,
                             request_body,
@@ -728,7 +727,7 @@ pub async fn main() -> Result<(), Error> {
                 spawn_blocking_database_read_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
-                        tracks::load_one::handle_request(pooled_connection, &uid)
+                        track::load_one::handle_request(pooled_connection, &uid)
                     },
                 )
                 .await
@@ -747,7 +746,7 @@ pub async fn main() -> Result<(), Error> {
                 spawn_blocking_database_read_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
-                        tracks::load_many::handle_request(pooled_connection, request_body)
+                        track::load_many::handle_request(pooled_connection, request_body)
                     },
                 )
                 .await
@@ -769,7 +768,7 @@ pub async fn main() -> Result<(), Error> {
                 spawn_blocking_database_write_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
-                        playlists::create_collected::handle_request(pooled_connection, &collection_uid, request_body)
+                        playlist::create_collected::handle_request(pooled_connection, &collection_uid, request_body)
                     },
                 )
                 .await
@@ -791,7 +790,7 @@ pub async fn main() -> Result<(), Error> {
                 spawn_blocking_database_read_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
-                        playlists::list_collected::handle_request(pooled_connection, &collection_uid,
+                        playlist::list_collected::handle_request(pooled_connection, &collection_uid,
                             query_params)
                     },
                 )
@@ -818,7 +817,7 @@ pub async fn main() -> Result<(), Error> {
                     spawn_blocking_database_write_task(
                         guarded_connection_pool,
                         move |pooled_connection| {
-                            playlists::update::handle_request(
+                            playlist::update::handle_request(
                                 pooled_connection,
                                 uid,
                                 query_params,
@@ -841,7 +840,7 @@ pub async fn main() -> Result<(), Error> {
                 spawn_blocking_database_write_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
-                        playlists::delete::handle_request(pooled_connection, &uid)
+                        playlist::delete::handle_request(pooled_connection, &uid)
                     },
                 )
                 .await
@@ -866,7 +865,7 @@ pub async fn main() -> Result<(), Error> {
                     spawn_blocking_database_write_task(
                         guarded_connection_pool,
                         move |pooled_connection| {
-                            playlists::patch_entries::handle_request(
+                            playlist::patch_entries::handle_request(
                                 pooled_connection,
                                 uid,
                                 query_params,

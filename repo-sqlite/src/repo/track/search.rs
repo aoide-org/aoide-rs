@@ -13,24 +13,22 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use diesel::{
+    query_source::joins as diesel_joins,
+    sql_types::{BigInt, Binary, Double, Integer, Nullable, SmallInt, Text},
+    BoolExpressionMethods, BoxableExpression, ExpressionMethods, TextExpressionMethods,
+};
+
+use aoide_core::{entity::EntityUid, util::clock::YYYYMMDD};
+
+use aoide_core_ext::{tag::search::Filter as TagFilter, track::search::*};
+
 use crate::{
     db::{
         media_source::schema::*, media_tracker::schema::*, playlist::schema::*,
         playlist_entry::schema::*, track::schema::*, track_cue::schema::*, track_tag::schema::*,
     },
     prelude::*,
-};
-
-use aoide_core::{
-    entity::EntityUid,
-    usecases::{tag::search::Filter as TagFilter, track::search::*},
-    util::clock::YYYYMMDD,
-};
-
-use diesel::{
-    query_source::joins as diesel_joins,
-    sql_types::{BigInt, Binary, Double, Integer, Nullable, SmallInt, Text},
-    BoolExpressionMethods, BoxableExpression, ExpressionMethods, TextExpressionMethods,
 };
 
 ///////////////////////////////////////////////////////////////////////

@@ -19,8 +19,6 @@
 #![deny(clippy::clone_on_ref_ptr)]
 #![deny(rust_2018_idioms)]
 
-///////////////////////////////////////////////////////////////////////
-
 // TODO: Move into `domain` submodule
 pub mod audio;
 pub mod collection;
@@ -31,8 +29,6 @@ pub mod playlist;
 pub mod tag;
 pub mod track;
 pub mod util;
-
-pub mod usecases;
 
 pub mod prelude {
 

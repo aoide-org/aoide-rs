@@ -13,9 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::FetchResultPageResponse;
+use aoide_core::track::Entity;
 
-use aoide_core::{track::Entity, usecases::track::search::SearchParams};
+use aoide_core_ext::track::search::SearchParams;
+
+use super::FetchResultPageResponse;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ControlState {

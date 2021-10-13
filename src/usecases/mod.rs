@@ -24,11 +24,11 @@ use thiserror::Error;
 
 ///////////////////////////////////////////////////////////////////////
 
-pub mod collections;
+pub mod collection;
 pub mod database;
 pub mod media;
-pub mod playlists;
-pub mod tracks;
+pub mod playlist;
+pub mod track;
 
 #[derive(Error, Debug)]
 pub enum Error {

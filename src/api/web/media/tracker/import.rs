@@ -13,42 +13,37 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use std::sync::atomic::AtomicBool;
+
+use tokio::sync::watch;
 
 use aoide_core::{
     track::tag::{FACET_GENRE, FACET_MOOD},
     util::url::BaseUrl,
 };
 
-use aoide_core_serde::usecases::media::{
-    tracker::import::{Outcome, Params},
-    ImportMode,
-};
 use aoide_media::{
     io::import::{ImportTrackConfig, ImportTrackFlags},
     util::tag::{FacetedTagMappingConfigInner, TagMappingConfig},
 };
 
-use std::sync::atomic::AtomicBool;
-use tokio::sync::watch;
+use aoide_core_ext_serde::media::{
+    tracker::import::{Outcome, Params},
+    ImportMode,
+};
 
-mod _core {
-    pub use aoide_core::{
-        entity::EntityUid,
-        usecases::media::tracker::import::{DirectorySummary, Summary},
-    };
+use super::*;
+
+mod _inner {
+    pub use aoide_core::entity::EntityUid;
+
+    pub use aoide_core_ext::media::tracker::import::{DirectorySummary, Summary};
 }
 
 mod uc {
     pub use crate::usecases::media::tracker::import::*;
-    pub use aoide_core::usecases::media::tracker::import::*;
+    pub use aoide_core_ext::media::tracker::import::*;
 }
-
-pub use aoide_core_serde::{
-    entity::EntityHeader,
-    track::{Entity, Track},
-    usecases::media::tracker::import::Summary,
-};
 
 pub type RequestBody = Params;
 
@@ -67,9 +62,9 @@ pub type ResponseBody = Outcome;
 )]
 pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
-    collection_uid: &_core::EntityUid,
+    collection_uid: &_inner::EntityUid,
     request_body: RequestBody,
-    progress_summary_tx: Option<&watch::Sender<_core::Summary>>,
+    progress_summary_tx: Option<&watch::Sender<_inner::Summary>>,
     abort_flag: &AtomicBool,
 ) -> Result<ResponseBody> {
     let RequestBody {

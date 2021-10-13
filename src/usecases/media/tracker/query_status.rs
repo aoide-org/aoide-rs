@@ -13,9 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
-
 use aoide_core::{entity::EntityUid, util::url::BaseUrl};
+
+use aoide_core_ext::media::tracker::Status;
+
+use super::*;
 
 mod uc {
     pub use aoide_usecases::{
@@ -27,8 +29,6 @@ mod uc {
         Error,
     };
 }
-
-pub use aoide_core::usecases::media::tracker::Status;
 
 pub fn query_status(
     connection: &SqliteConnection,

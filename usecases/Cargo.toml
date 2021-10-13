@@ -6,9 +6,6 @@ publish = false
 edition = "2018"
 
 [dependencies]
-aoide-core = "*"
-aoide-media = "*"
-aoide-repo = "*"
 anyhow = "*"
 blake3 = "*"
 digest = "*"
@@ -16,6 +13,12 @@ bitflags = "*"
 thiserror = "*"
 tracing = { version = "*", features = ["log"] }
 url = "*"
+
+# Workspace dependencies
+aoide-core = "*"
+aoide-core-ext = "*"
+aoide-media = "*"
+aoide-repo = "*"
 
 [features]
 default = []

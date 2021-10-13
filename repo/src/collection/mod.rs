@@ -13,13 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-record_id_newtype!(RecordId);
+use aoide_core::{collection::*, util::clock::DateTime};
 
-pub type RecordHeader = crate::RecordHeader<RecordId>;
+use aoide_core_ext::collection::*;
 
 use crate::prelude::*;
 
-use aoide_core::{collection::*, usecases::collection::*, util::clock::DateTime};
+record_id_newtype!(RecordId);
+
+pub type RecordHeader = crate::RecordHeader<RecordId>;
 
 pub trait EntityRepo {
     entity_repo_trait_common_functions!(RecordId, Entity, Collection);

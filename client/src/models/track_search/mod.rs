@@ -17,6 +17,8 @@ use std::num::NonZeroUsize;
 
 use aoide_core::track::Entity;
 
+use aoide_core_ext::track::search::SearchParams;
+
 pub mod effect;
 pub use self::effect::Effect;
 
@@ -31,8 +33,6 @@ pub use self::task::Task;
 
 pub type Action = crate::prelude::Action<Effect, Task>;
 pub type StateUpdated = crate::prelude::mutable::StateUpdated<Effect, Task>;
-
-use aoide_core::usecases::track::search::SearchParams;
 
 #[derive(Debug, Clone)]
 pub struct Pagination {

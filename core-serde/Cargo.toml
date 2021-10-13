@@ -6,8 +6,6 @@ publish = false
 edition = "2018"
 
 [dependencies]
-aoide-core = "*"
-
 anyhow = "*"
 base64 = "*"
 chrono = { version = "*", features = ["serde"] }
@@ -17,6 +15,9 @@ semval = "*"
 serde = { version = "*", features = ["derive"] }
 serde_repr = "*"
 url = { version = "*", features = ["serde"] }
+
+# Workspace dependencies
+aoide-core = "*"
 
 [features]
 default = []

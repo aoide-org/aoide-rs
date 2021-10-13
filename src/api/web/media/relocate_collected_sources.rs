@@ -13,15 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use aoide_core::entity::EntityUid;
+
 use super::*;
 
 mod uc {
     pub use crate::usecases::media::*;
 }
-
-use aoide_core::entity::EntityUid;
-
-///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]

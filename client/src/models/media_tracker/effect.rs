@@ -13,14 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::prelude::remote::RemoteData;
-
-use super::{Action, ControlState, State, StateUpdated, Task};
-
-use aoide_core::usecases::media::tracker::{
+use aoide_core_ext::media::tracker::{
     import::Outcome as ImportOutcome, scan::Outcome as ScanOutcome,
     untrack::Outcome as UntrackOutcome, Progress, Status,
 };
+
+use crate::prelude::remote::RemoteData;
+
+use super::{Action, ControlState, State, StateUpdated, Task};
 
 #[derive(Debug)]
 pub enum Effect {

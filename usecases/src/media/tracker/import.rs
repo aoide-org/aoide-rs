@@ -18,13 +18,14 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
-use aoide_core::{
-    usecases::media::tracker::{
-        import::{Outcome, Summary},
-        Completion,
-    },
-    util::url::BaseUrl,
+use aoide_core::util::url::BaseUrl;
+
+use aoide_core_ext::media::tracker::{
+    import::{Outcome, Summary},
+    Completion,
 };
+
+use aoide_media::io::import::{ImportTrackConfig, ImportTrackFlags};
 
 use aoide_repo::{
     collection::RecordId as CollectionId,
@@ -39,10 +40,6 @@ use crate::track::replace::{
 };
 
 use super::*;
-
-///////////////////////////////////////////////////////////////////////
-
-pub use aoide_media::io::import::{ImportTrackConfig, ImportTrackFlags};
 
 // TODO: Reduce number of arguments
 #[allow(clippy::too_many_arguments)]

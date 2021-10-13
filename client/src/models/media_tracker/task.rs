@@ -13,19 +13,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use reqwest::Url;
+
+use aoide_core::entity::EntityUid;
+
+use aoide_core_ext::media::tracker::{
+    import::Outcome as ImportOutcome, scan::Outcome as ScanOutcome,
+    untrack::Outcome as UntrackOutcome, Progress, Status,
+};
+
 use crate::{receive_response_body, WebClientEnvironment};
 
 use super::Effect;
-
-use aoide_core::{
-    entity::EntityUid,
-    usecases::media::tracker::{
-        import::Outcome as ImportOutcome, scan::Outcome as ScanOutcome,
-        untrack::Outcome as UntrackOutcome, Progress, Status,
-    },
-};
-
-use reqwest::Url;
 
 #[derive(Debug)]
 pub enum Task {
@@ -119,10 +118,9 @@ async fn fetch_status<E: WebClientEnvironment>(
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
-    let status = serde_json::from_slice::<aoide_core_serde::usecases::media::tracker::Status>(
-        &response_body,
-    )
-    .map(Into::into)?;
+    let status =
+        serde_json::from_slice::<aoide_core_ext_serde::media::tracker::Status>(&response_body)
+            .map(Into::into)?;
     tracing::debug!("Received status: {:?}", status);
     Ok(status)
 }
@@ -132,10 +130,9 @@ async fn fetch_progress<E: WebClientEnvironment>(env: &E) -> anyhow::Result<Prog
     let request = env.client().get(request_url);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
-    let progress = serde_json::from_slice::<aoide_core_serde::usecases::media::tracker::Progress>(
-        &response_body,
-    )
-    .map(Into::into)?;
+    let progress =
+        serde_json::from_slice::<aoide_core_ext_serde::media::tracker::Progress>(&response_body)
+            .map(Into::into)?;
     tracing::debug!("Received progress: {:?}", progress);
     Ok(progress)
 }
@@ -153,11 +150,10 @@ async fn start_scan<E: WebClientEnvironment>(
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
-    let outcome =
-        serde_json::from_slice::<aoide_core_serde::usecases::media::tracker::scan::Outcome>(
-            &response_body,
-        )
-        .map(Into::into)?;
+    let outcome = serde_json::from_slice::<aoide_core_ext_serde::media::tracker::scan::Outcome>(
+        &response_body,
+    )
+    .map(Into::into)?;
     tracing::debug!("Scan finished: {:?}", outcome);
     Ok(outcome)
 }
@@ -175,9 +171,9 @@ async fn start_import<E: WebClientEnvironment>(
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
-    let outcome = serde_json::from_slice::<
-        aoide_core_serde::usecases::media::tracker::import::Outcome,
-    >(&response_body)
+    let outcome = serde_json::from_slice::<aoide_core_ext_serde::media::tracker::import::Outcome>(
+        &response_body,
+    )
     .map(Into::into)?;
     tracing::debug!("Import finished: {:?}", outcome);
     Ok(outcome)
@@ -204,9 +200,9 @@ async fn untrack<E: WebClientEnvironment>(
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
-    let outcome = serde_json::from_slice::<
-        aoide_core_serde::usecases::media::tracker::untrack::Outcome,
-    >(&response_body)
+    let outcome = serde_json::from_slice::<aoide_core_ext_serde::media::tracker::untrack::Outcome>(
+        &response_body,
+    )
     .map(Into::into)?;
     tracing::debug!("Untrack finished: {:?}", outcome);
     Ok(outcome)

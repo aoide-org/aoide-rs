@@ -24,6 +24,6 @@ pub mod untrack;
 
 mod uc {
     pub use crate::usecases::media::tracker::*;
-    pub use aoide_core::usecases::media::tracker::*;
+    pub use aoide_core_ext::media::tracker::*;
     pub use aoide_usecases::media::tracker::*;
 }

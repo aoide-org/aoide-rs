@@ -13,22 +13,24 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use std::num::NonZeroUsize;
+
+use bitflags::bitflags;
 
 use aoide_core::{
     audio::DurationMs,
     media::Content,
     track::{Entity as TrackEntity, Track},
-    usecases::track::search::*,
 };
+
+use aoide_core_ext::track::search::*;
 
 use aoide_repo::{
     collection::RecordId as CollectionId,
     track::{EntityRepo as TrackRepo, RecordHeader, RecordId as TrackId},
 };
 
-use bitflags::bitflags;
-use std::num::NonZeroUsize;
+use super::*;
 
 bitflags! {
     /// A bitmask for controlling how and if content metadata is

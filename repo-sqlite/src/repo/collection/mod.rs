@@ -15,6 +15,18 @@
 
 use std::convert::TryInto as _;
 
+use diesel::dsl::count_star;
+
+use aoide_core::{
+    collection::*,
+    entity::{EntityHeader, EntityRevision, EntityUid},
+    util::clock::*,
+};
+
+use aoide_core_ext::collection::{MediaSourceSummary, PlaylistSummary, Summary, TrackSummary};
+
+use aoide_repo::collection::*;
+
 use crate::{
     db::{
         collection::{models::*, schema::*},
@@ -24,16 +36,6 @@ use crate::{
     },
     prelude::*,
 };
-
-use aoide_core::{
-    collection::*,
-    entity::{EntityHeader, EntityRevision, EntityUid},
-    usecases::collection::{MediaSourceSummary, PlaylistSummary, Summary, TrackSummary},
-    util::clock::*,
-};
-
-use aoide_repo::collection::*;
-use diesel::dsl::count_star;
 
 impl<'db> EntityRepo for crate::Connection<'db> {
     fn resolve_collection_entity_revision(

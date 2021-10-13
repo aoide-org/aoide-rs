@@ -13,11 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::{Action, ControlState, State, StateUpdated, Task};
+use reqwest::Url;
 
 use aoide_core::entity::EntityUid;
 
-use reqwest::Url;
+use super::{Action, ControlState, State, StateUpdated, Task};
 
 #[derive(Debug)]
 pub enum Intent {

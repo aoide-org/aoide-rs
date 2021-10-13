@@ -13,13 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use aoide_core::{entity::EntityUid, util::url::BaseUrl};
 
-use aoide_core::{
-    entity::EntityUid,
-    usecases::media::tracker::{untrack::Outcome, DirTrackingStatus},
-    util::url::BaseUrl,
-};
+use aoide_core_ext::media::tracker::{untrack::Outcome, DirTrackingStatus};
+
+use super::*;
 
 mod uc {
     pub use aoide_usecases::{

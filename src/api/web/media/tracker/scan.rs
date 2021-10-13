@@ -15,18 +15,18 @@
 
 use std::sync::atomic::AtomicBool;
 
+use tokio::sync::watch;
+
+use aoide_core::{entity::EntityUid, util::url::BaseUrl};
+
+use aoide_core_ext_serde::media::tracker::scan::{Outcome, Params};
+
 use super::*;
 
 mod uc {
     pub use crate::usecases::media::tracker::scan::*;
     pub use aoide_usecases::media::tracker::scan::ProgressEvent;
 }
-
-use aoide_core::{entity::EntityUid, util::url::BaseUrl};
-
-use aoide_core_serde::usecases::media::tracker::scan::{Outcome, Params};
-
-use tokio::sync::watch;
 
 pub type RequestBody = Params;
 

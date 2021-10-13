@@ -13,27 +13,27 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
-
-mod uc {
-    pub use crate::usecases::media::*;
-}
+use url::Url;
 
 use aoide_core::{
     track::tag::{FACET_GENRE, FACET_MOOD},
     util::clock::DateTime,
 };
+
 use aoide_media::{
     io::import::{ImportTrackConfig, ImportTrackFlags},
     resolver::{ResolveFromUrlError, SourcePathResolver, UrlResolver},
     util::tag::{FacetedTagMappingConfigInner, TagMappingConfig},
 };
 
-use url::Url;
+use aoide_core_serde::track::Track;
 
-///////////////////////////////////////////////////////////////////////
+use super::*;
 
-pub use aoide_core_serde::track::Track;
+mod uc {
+    pub use crate::usecases::media::*;
+    pub use aoide_usecases::media::*;
+}
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]

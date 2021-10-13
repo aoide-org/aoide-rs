@@ -13,15 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
-
-use crate::track::find_duplicate::{self, find_duplicate};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use aoide_core::{
     media::Source as MediaSource,
     track::{Entity, Track},
-    usecases::track::search::{ConditionFilter, SearchFilter, SortField, SortOrder},
 };
+
+use aoide_core_ext::track::search::{ConditionFilter, SearchFilter, SortField, SortOrder};
 
 use aoide_repo::{
     collection::RecordId as CollectionId,
@@ -29,7 +28,9 @@ use aoide_repo::{
     track::EntityRepo as TrackRepo,
 };
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use crate::track::find_duplicate::{self, find_duplicate};
+
+use super::*;
 
 pub type FindCandidateParams = find_duplicate::Params;
 

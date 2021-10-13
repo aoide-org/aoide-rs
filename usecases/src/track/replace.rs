@@ -13,13 +13,16 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
-
-use crate::media::{
-    import_track_from_local_file_path, ImportTrackFromFileOutcome, SynchronizedImportMode,
+use std::{
+    fs::read_dir,
+    sync::atomic::{AtomicBool, Ordering},
 };
 
-use aoide_core::{media::SourcePath, usecases::media::ImportMode, util::clock::DateTime};
+use url::Url;
+
+use aoide_core::{media::SourcePath, util::clock::DateTime};
+
+use aoide_core_ext::{media::ImportMode, track::replace::Summary};
 
 use aoide_media::{
     io::import::{ImportTrackConfig, ImportTrackFlags},
@@ -32,13 +35,11 @@ use aoide_repo::{
     track::{EntityRepo, ReplaceMode, ReplaceOutcome},
 };
 
-use std::{
-    fs::read_dir,
-    sync::atomic::{AtomicBool, Ordering},
+use crate::media::{
+    import_track_from_local_file_path, ImportTrackFromFileOutcome, SynchronizedImportMode,
 };
-use url::Url;
 
-pub use aoide_core::usecases::track::replace::Summary;
+use super::*;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Params {

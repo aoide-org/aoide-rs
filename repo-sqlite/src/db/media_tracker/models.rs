@@ -17,10 +17,9 @@ use std::convert::TryFrom;
 
 use num_traits::{FromPrimitive as _, ToPrimitive as _};
 
-use aoide_core::{
-    usecases::media::tracker::DirTrackingStatus,
-    util::clock::{DateTime, TimestampMillis},
-};
+use aoide_core::util::clock::{DateTime, TimestampMillis};
+
+use aoide_core_ext::media::tracker::DirTrackingStatus;
 
 use aoide_repo::{
     collection::RecordId as CollectionId,
@@ -28,8 +27,6 @@ use aoide_repo::{
 };
 
 use super::{schema::*, *};
-
-///////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Queryable, Identifiable)]
 #[table_name = "media_tracker_directory"]

@@ -13,17 +13,16 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use aoide_core::util::url::BaseUrl;
 
-use aoide_core::{
-    usecases::media::tracker::{
-        untrack::{Outcome, Summary},
-        DirTrackingStatus,
-    },
-    util::url::BaseUrl,
+use aoide_core_ext::media::tracker::{
+    untrack::{Outcome, Summary},
+    DirTrackingStatus,
 };
 
 use aoide_repo::{collection::RecordId as CollectionId, media::tracker::Repo as MediaTrackerRepo};
+
+use super::*;
 
 pub fn untrack<Repo>(
     repo: &Repo,

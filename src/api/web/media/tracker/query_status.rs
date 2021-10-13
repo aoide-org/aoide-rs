@@ -13,18 +13,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use url::Url;
+
+use aoide_core::{entity::EntityUid, util::url::BaseUrl};
+
+use aoide_core_ext_serde::media::tracker::Status;
+
 use super::*;
 
 mod uc {
     pub use crate::usecases::media::tracker::query_status::*;
 }
-
-use aoide_core::{entity::EntityUid, util::url::BaseUrl};
-use aoide_core_serde::usecases::media::tracker::Status;
-
-use url::Url;
-
-///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]

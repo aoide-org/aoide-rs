@@ -13,9 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::{Action, FetchResultPageRequest, State, StateUpdated, Task};
+use aoide_core::entity::EntityUid;
 
-use aoide_core::{entity::EntityUid, usecases::track::search::SearchParams};
+use aoide_core_ext::track::search::SearchParams;
+
+use super::{Action, FetchResultPageRequest, State, StateUpdated, Task};
 
 #[derive(Debug)]
 pub enum Intent {

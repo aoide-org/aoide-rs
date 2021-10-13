@@ -17,9 +17,21 @@ use std::{convert::TryInto as _, time::Instant};
 
 use diesel::dsl::count_star;
 
-mod search;
+use aoide_core::{
+    entity::{EntityHeader, EntityRevision, EntityUid},
+    media::Source,
+    tag::*,
+    track::{actor::Actor, cue::Cue, title::Title, *},
+    util::{clock::*, Canonical},
+};
 
-use search::{TrackSearchBoxedExpressionBuilder as _, TrackSearchQueryTransform as _};
+use aoide_core_ext::track::search::{SearchFilter, SortOrder};
+
+use aoide_repo::{
+    collection::RecordId as CollectionId,
+    media::source::{RecordId as MediaSourceId, Repo as _},
+    track::*,
+};
 
 use crate::{
     db::{
@@ -29,20 +41,8 @@ use crate::{
     prelude::*,
 };
 
-use aoide_core::{
-    entity::{EntityHeader, EntityRevision, EntityUid},
-    media::Source,
-    tag::*,
-    track::{actor::Actor, cue::Cue, title::Title, *},
-    usecases::track::search::{SearchFilter, SortOrder},
-    util::{clock::*, Canonical},
-};
-
-use aoide_repo::{
-    collection::RecordId as CollectionId,
-    media::source::{RecordId as MediaSourceId, Repo as _},
-    track::*,
-};
+mod search;
+use self::search::{TrackSearchBoxedExpressionBuilder as _, TrackSearchQueryTransform as _};
 
 // TODO: Define a dedicated return type
 #[allow(clippy::type_complexity)]

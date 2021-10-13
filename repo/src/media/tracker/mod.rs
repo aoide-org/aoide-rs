@@ -13,17 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use aoide_core::{media::SourcePath, util::clock::DateTime};
+
+use aoide_core_ext::media::tracker::{DirTrackingStatus, DirectoriesStatus};
 
 use crate::{
     collection::RecordId as CollectionId, media::source::RecordId as MediaSourceId, prelude::*,
 };
 
-use aoide_core::{
-    media::SourcePath,
-    usecases::media::tracker::{DirTrackingStatus, DirectoriesStatus},
-    util::clock::*,
-};
+use super::*;
 
 record_id_newtype!(RecordId);
 pub type RecordHeader = crate::RecordHeader<RecordId>;

@@ -13,14 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use std::sync::atomic::AtomicBool;
 
-use aoide_core::{
-    usecases::media::tracker::{
-        scan::{Outcome, Summary},
-        Completion, ScanningDirectoriesProgress, ScanningEntriesProgress, ScanningProgress,
-    },
-    util::{clock::DateTime, url::BaseUrl},
+use url::Url;
+
+use aoide_core::util::{clock::DateTime, url::BaseUrl};
+
+use aoide_core_ext::media::tracker::{
+    scan::{Outcome, Summary},
+    Completion, ScanningDirectoriesProgress, ScanningEntriesProgress, ScanningProgress,
 };
 
 use aoide_media::{fs::digest, resolver::SourcePathResolver};
@@ -30,8 +31,7 @@ use aoide_repo::{
     media::tracker::{DirUpdateOutcome, Repo as MediaTrackerRepo},
 };
 
-use std::sync::atomic::AtomicBool;
-use url::Url;
+use super::*;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct ProgressEvent {

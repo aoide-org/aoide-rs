@@ -13,22 +13,21 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
-
 use aoide_core::{entity::EntityUid, util::url::BaseUrl};
 
+use aoide_core_ext::media::tracker::scan::Outcome;
 use aoide_usecases::{
     collection::resolve_collection_id_for_virtual_file_path, media::tracker::scan::ProgressEvent,
 };
 
+use super::*;
+
 mod uc {
-    pub use aoide_core::usecases::media::tracker::scan::*;
+    pub use aoide_core_ext::media::tracker::scan::*;
     pub use aoide_usecases::{media::tracker::scan::*, Error};
 }
 
 use std::sync::atomic::AtomicBool;
-
-pub use uc::{Outcome, Summary};
 
 pub fn scan_directories_recursively(
     connection: &SqliteConnection,

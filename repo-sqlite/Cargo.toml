@@ -6,8 +6,6 @@ publish = false
 edition = "2018"
 
 [dependencies]
-aoide-core = "*"
-aoide-repo = "*"
 anyhow = "*"
 bigdecimal = "*"
 diesel = { version = "*", default-features = false, features = ["sqlite", "64-column-tables", "numeric"] }
@@ -20,6 +18,11 @@ num-traits = "*"
 semval = "*"
 tracing = { version = "*", features = ["log"] }
 url = "*"
+
+# Workspace dependencies
+aoide-core = "*"
+aoide-core-ext = "*"
+aoide-repo = "*"
 
 [features]
 default = []
