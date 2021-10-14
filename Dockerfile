@@ -48,10 +48,13 @@ ARG BUILD_BIN
 # Enable select features for the workspace build or leave empty
 # for using the default features
 # Example: "--features feature-foobar"
-ARG WORKSPACE_BUILD_FEATURES=""
+ARG WORKSPACE_BUILD_AND_TEST_ARGS="--all-features"
 
 # Enable all features and targets for the individual project checks
-ARG PROJECT_CHECK_FEATURES="--all-targets --all-features"
+ARG PROJECT_CHECK_ARGS="--all-targets --all-features"
+
+# Enable all features in the executable
+ARG BUILD_BIN_ARGS="--all-features"
 
 # Prepare for musl libc build target
 RUN apt update \
@@ -65,15 +68,13 @@ WORKDIR ${WORKDIR_ROOT}
 # external dependencies to avoid redownloading them on subsequent builds
 # if unchanged.
 
-# Create workspace with main project
+# Create workspace with an empty dummy library
 WORKDIR ${WORKDIR_ROOT}
-RUN USER=root cargo new --bin ${PROJECT_NAME}
+RUN USER=root cargo new --lib ${PROJECT_NAME}
 
-# Create all sub-projects in workspace
+# Create all sub-crates in workspace
 WORKDIR ${WORKDIR_ROOT}/${PROJECT_NAME}
-RUN mkdir -p "./src/bin/${BUILD_BIN}" && \
-    mv ./src/main.rs "./src/bin/${BUILD_BIN}" && \
-    USER=root cargo new --lib ${PROJECT_NAME}-client && \
+RUN USER=root cargo new --lib ${PROJECT_NAME}-client && \
     mv ${PROJECT_NAME}-client client && \
     USER=root cargo new --lib ${PROJECT_NAME}-core && \
     mv ${PROJECT_NAME}-core core && \
@@ -90,7 +91,9 @@ RUN mkdir -p "./src/bin/${BUILD_BIN}" && \
     USER=root cargo new --lib ${PROJECT_NAME}-repo-sqlite && \
     mv ${PROJECT_NAME}-repo-sqlite repo-sqlite && \
     USER=root cargo new --lib ${PROJECT_NAME}-usecases && \
-    mv ${PROJECT_NAME}-usecases usecases
+    mv ${PROJECT_NAME}-usecases usecases && \
+    USER=root cargo new --lib ${PROJECT_NAME}-websrv && \
+    mv ${PROJECT_NAME}-websrv websrv
 
 COPY [ \
     "Cargo.toml", \
@@ -126,6 +129,9 @@ COPY [ \
 COPY [ \
     "usecases/Cargo.toml", \
     "./usecases/" ]
+COPY [ \
+    "websrv/Cargo.toml", \
+    "./websrv/" ]
 
 # Build the dummy project, then delete all build artefacts that must not(!) be cached
 #
@@ -136,9 +142,8 @@ COPY [ \
 # - For each sub-project delete both the corresponding deps/ AND .fingerprint/
 #   directories!
 RUN tree && \
-    cargo build --${BUILD_MODE} --target ${BUILD_TARGET} --workspace && \
+    cargo build --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} --${BUILD_MODE} --target ${BUILD_TARGET} && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/${PROJECT_NAME}* && \
-    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/${PROJECT_NAME}-* && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/${PROJECT_NAME}-* && \
     rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/${PROJECT_NAME}-* && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_client-* && \
@@ -159,6 +164,8 @@ RUN tree && \
     rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-repo-sqlite-* && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_usecases-* && \
     rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-usecases-* && \
+    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_websrv-* && \
+    rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-websrv-* && \
     tree
 
 # Copy all project (re-)sources that are required for building
@@ -198,23 +205,27 @@ COPY [ \
 COPY [ \
     "usecases/src", \
     "./usecases/src/" ]
+COPY [ \
+    "websrv/src", \
+    "./websrv/src/" ]
 
 # 1. Check all sub-projects using their local manifest for an isolated, standalone build
 # 2. Build workspace and run all unit tests
 # 3. Build the target binary
 # 4. Strip debug infos from the executable
 RUN tree && \
-    cargo check -p aoide-client --manifest-path client/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
-    cargo check -p aoide-core --manifest-path core/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
-    cargo check -p aoide-core-serde --manifest-path core-serde/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
-    cargo check -p aoide-core-ext --manifest-path core-ext/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
-    cargo check -p aoide-core-ext-serde --manifest-path core-ext-serde/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
-    cargo check -p aoide-media --manifest-path media/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
-    cargo check -p aoide-repo --manifest-path repo/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
-    cargo check -p aoide-repo-sqlite --manifest-path repo-sqlite/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
-    cargo check -p aoide-usecases --manifest-path usecases/Cargo.toml --${BUILD_MODE} ${PROJECT_CHECK_FEATURES} && \
-    cargo test --workspace --${BUILD_MODE} --target ${BUILD_TARGET} ${WORKSPACE_BUILD_FEATURES} && \
-    cargo build --bin ${BUILD_BIN} --${BUILD_MODE} --target ${BUILD_TARGET} ${WORKSPACE_BUILD_FEATURES} && \
+    cargo check -p aoide-client --manifest-path client/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
+    cargo check -p aoide-core --manifest-path core/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
+    cargo check -p aoide-core-serde --manifest-path core-serde/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
+    cargo check -p aoide-core-ext --manifest-path core-ext/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
+    cargo check -p aoide-core-ext-serde --manifest-path core-ext-serde/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
+    cargo check -p aoide-media --manifest-path media/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
+    cargo check -p aoide-repo --manifest-path repo/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
+    cargo check -p aoide-repo-sqlite --manifest-path repo-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
+    cargo check -p aoide-usecases --manifest-path usecases/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
+    cargo check -p aoide-websrv --manifest-path websrv/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
+    cargo test --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} --${BUILD_MODE} --target ${BUILD_TARGET} && \
+    cargo build -p aoide-websrv --manifest-path websrv/Cargo.toml --bin ${BUILD_BIN} ${BUILD_BIN_ARGS} --${BUILD_MODE} --target ${BUILD_TARGET} && \
     strip ./target/${BUILD_TARGET}/${BUILD_MODE}/${BUILD_BIN}
 
 

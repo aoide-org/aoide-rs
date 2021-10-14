@@ -51,37 +51,8 @@ checksum = "61604a8f862e1d5c3229fdd78f8b02c68dcf73a4c4b05fd636d12240aaa242c1"
 name = "aoide"
 version = "0.8.0"
 dependencies = [
- "anyhow",
- "aoide-core",
- "aoide-core-ext",
- "aoide-core-ext-serde",
- "aoide-core-serde",
- "aoide-media",
- "aoide-repo",
- "aoide-repo-sqlite",
- "aoide-usecases",
- "blake3",
- "chrono",
- "diesel",
- "diesel_migrations",
- "dotenv",
- "log",
- "percent-encoding",
- "r2d2",
- "semval",
- "serde",
- "serde_json",
- "serde_urlencoded",
- "thiserror",
- "tokio",
- "tracing",
- "tracing-bunyan-formatter",
- "tracing-error",
- "tracing-log",
- "tracing-subscriber",
- "url",
- "uuid",
- "warp",
+ "aoide-client",
+ "aoide-websrv",
 ]
 
 [[package]]
@@ -248,6 +219,43 @@ dependencies = [
  "thiserror",
  "tracing",
  "url",
+]
+
+[[package]]
+name = "aoide-websrv"
+version = "0.8.0"
+dependencies = [
+ "anyhow",
+ "aoide-core",
+ "aoide-core-ext",
+ "aoide-core-ext-serde",
+ "aoide-core-serde",
+ "aoide-media",
+ "aoide-repo",
+ "aoide-repo-sqlite",
+ "aoide-usecases",
+ "blake3",
+ "chrono",
+ "diesel",
+ "diesel_migrations",
+ "dotenv",
+ "log",
+ "percent-encoding",
+ "r2d2",
+ "semval",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "tracing-bunyan-formatter",
+ "tracing-error",
+ "tracing-log",
+ "tracing-subscriber",
+ "url",
+ "uuid",
+ "warp",
 ]
 
 [[package]]
@@ -862,9 +870,9 @@ dependencies = [
 
 [[package]]
 name = "half"
-version = "1.7.1"
+version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62aca2aba2d62b4a7f5b33f3712cb1b0692779a56fb510499d5c0aa594daeaf3"
+checksum = "ac5956d4e63858efaec57e0d6c1c2f6a41e1487f830314a324ccd7e2223a7ca0"
 
 [[package]]
 name = "hashbrown"
@@ -1571,9 +1579,9 @@ dependencies = [
 
 [[package]]
 name = "ppv-lite86"
-version = "0.2.10"
+version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac74c624d6b2d21f425f752262f42188365d7b8ff1aff74c82e45136510a4857"
+checksum = "c3ca011bd0129ff4ae15cd04c4eef202cadf6c51c21e47aba319b4e0501db741"
 
 [[package]]
 name = "proc-macro-hack"

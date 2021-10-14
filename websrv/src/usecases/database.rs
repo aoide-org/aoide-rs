@@ -13,17 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use diesel::sql_query;
 
 use aoide_repo::playlist::EntryRepo as _;
 
 use aoide_repo_sqlite::prelude::*;
 
-use diesel::sql_query;
+use super::*;
 
-///////////////////////////////////////////////////////////////////////
-
-diesel_migrations::embed_migrations!("repo-sqlite/migrations");
+diesel_migrations::embed_migrations!("../repo-sqlite/migrations");
 
 pub fn initialize(connection: &SqliteConnection) -> Result<()> {
     tracing::info!("Initializing database");

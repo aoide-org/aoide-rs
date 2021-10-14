@@ -13,4 +13,23 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-// Empty placeholder
+#![deny(missing_debug_implementations)]
+#![deny(clippy::clone_on_ref_ptr)]
+#![warn(rust_2018_idioms)]
+
+pub mod api;
+pub mod usecases;
+
+use diesel::{
+    prelude::*,
+    r2d2::{ConnectionManager, Pool, PooledConnection},
+};
+
+#[macro_use]
+extern crate diesel_migrations;
+
+use aoide_repo_sqlite::prelude::{Connection as RepoConnection, *};
+
+pub type SqliteConnectionManager = ConnectionManager<SqliteConnection>;
+pub type SqliteConnectionPool = Pool<SqliteConnectionManager>;
+pub type SqlitePooledConnection = PooledConnection<SqliteConnectionManager>;

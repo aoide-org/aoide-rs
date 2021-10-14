@@ -38,6 +38,6 @@ repos:
   - id: fmt
     args: [--all, --]
   - id: cargo-check
-    args: [--workspace, --]
+    args: [--workspace, --all-features, --]
   - id: clippy
     args: [--all-targets, --all-features, --, -D, warnings]

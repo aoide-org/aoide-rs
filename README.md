@@ -138,7 +138,7 @@ queries are used for this purpose.
 The server executable is built with the following command:
 
 ```bash
-cargo build
+cargo build --all-features --package aoide-websrv
 ```
 
 > Use `cargo build --release ...` for an optimized release build instead of a debug build!
@@ -146,7 +146,7 @@ cargo build
 During development it is handy to build and run the executable in a single step:
 
 ```bash
-cargo run
+cargo run --all-features --package aoide-websrv
 ```
 
 The configuration is controlled by environment variables. Please refer to the
@@ -173,7 +173,7 @@ Log/tracing messages are formatted as JSON and printed to _stderr_.
 Build and run the unit tests with the following command:
 
 ```bash
-cargo test --workspace --verbose -- --nocapture
+cargo test --workspace --all-features --verbose -- --nocapture
 ```
 
 ## Deploy

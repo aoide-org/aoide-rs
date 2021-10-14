@@ -2,7 +2,7 @@
 name = "aoide"
 version = "0.8.0"
 license-file = "LICENSE.md"
-description = "A web service for managing and exploring music collections"
+description = "Manage and explore your music collections"
 keywords = ["music", "collection"]
 publish = false
 edition = "2018"
@@ -19,6 +19,7 @@ members = [
   "repo",
   "repo-sqlite",
   "usecases",
+  "websrv",
 ]
 
 [patch.crates-io]
@@ -31,48 +32,21 @@ aoide-media = { path = "./media" }
 aoide-repo = { path = "./repo" }
 aoide-repo-sqlite = { path = "./repo-sqlite" }
 aoide-usecases = { path = "./usecases" }
+aoide-websrv = { path = "./websrv" }
 triseratops = { git = "https://github.com/Holzhaus/triseratops.git", branch = "main" }
 mp3-duration = { git = "https://github.com/aoide-org/mp3-duration.git", branch = "streaminfo" }
 #mp4ameta = { branch = "master", git = "https://github.com/Saecki/rust-mp4ameta.git" }
 #id3 = { branch = "master", git = "https://github.com/polyfloyd/rust-id3.git" }
 
 [dependencies]
-anyhow = "*"
-aoide-core = "*"
-aoide-core-ext = "*"
-aoide-core-serde = "*"
-aoide-core-ext-serde = "*"
-aoide-media = "*"
-aoide-repo = "*"
-aoide-repo-sqlite = "*"
-aoide-usecases = "*"
-blake3 = "*"
-chrono = { version = "*", default-features = false, features = ["clock", "serde"] }
-diesel = { version = "*", default-features = false, features = ["r2d2", "sqlite"] }
-diesel_migrations =  { version = "*", default-features = false, features = ["sqlite"] }
-dotenv = "*"
-log = "*"
-percent-encoding = "*"
-r2d2 = "*"
-semval = { version = ">=0.1.7" }
-serde = "*"
-serde_json = "*"
-thiserror = "*"
-tokio = { version = "*", default-features = false, features = ["macros", "rt-multi-thread", "signal"] }
-tracing = { version = "*", features = ["log"] }
-tracing-bunyan-formatter = "*"
-tracing-error = "*"
-tracing-log = "*"
-tracing-subscriber = { version = "*", features = ["registry", "env-filter"] }
-url = { version = "*", features = ["serde"] }
-uuid = { version = "*", features = ["v4"] }
-warp = { version = "*", default-features = false }
+aoide-client = { version = "*", default_features = false, optional = true }
+aoide-websrv = { version = "*", default_features = false, optional = true }
 
 [features]
-default = []
-
-[dev-dependencies]
-serde_urlencoded = "*"
+default = ["with-client", "with-websrv", "with-webapp"]
+with-client = ["aoide-client"]
+with-websrv = ["aoide-websrv"]
+with-webapp = ["with-websrv", "aoide-websrv/with-webapp"]
 
 [profile.dev]
 split-debuginfo = "unpacked"

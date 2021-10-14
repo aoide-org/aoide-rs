@@ -1,0 +1,47 @@
+[package]
+name = "aoide-websrv"
+version = "0.8.0"
+license-file = "LICENSE.md"
+description = "A web service for managing and exploring music collections"
+keywords = ["music", "collection"]
+publish = false
+edition = "2018"
+
+[dependencies]
+anyhow = "*"
+aoide-core = "*"
+aoide-core-ext = "*"
+aoide-core-serde = "*"
+aoide-core-ext-serde = "*"
+aoide-media = "*"
+aoide-repo = "*"
+aoide-repo-sqlite = "*"
+aoide-usecases = "*"
+blake3 = "*"
+chrono = { version = "*", default-features = false, features = ["clock", "serde"] }
+diesel = { version = "*", default-features = false, features = ["r2d2", "sqlite"] }
+diesel_migrations =  { version = "*", default-features = false, features = ["sqlite"] }
+dotenv = "*"
+log = "*"
+percent-encoding = "*"
+r2d2 = "*"
+semval = { version = ">=0.1.7" }
+serde = "*"
+serde_json = "*"
+thiserror = "*"
+tokio = { version = "*", default-features = false, features = ["macros", "rt-multi-thread", "signal"] }
+tracing = { version = "*", features = ["log"] }
+tracing-bunyan-formatter = "*"
+tracing-error = "*"
+tracing-log = "*"
+tracing-subscriber = { version = "*", features = ["registry", "env-filter"] }
+url = { version = "*", features = ["serde"] }
+uuid = { version = "*", features = ["v4"] }
+warp = { version = "*", default-features = false }
+
+[features]
+default = []
+with-webapp = []
+
+[dev-dependencies]
+serde_urlencoded = "*"

@@ -18,7 +18,7 @@
 
 mod env;
 
-use aoide::{
+use aoide_websrv::{
     api::web::{collection, handle_rejection, media, playlist, reject_on_error, track, Error},
     usecases as uc, *,
 };
@@ -49,8 +49,8 @@ use warp::{http::StatusCode, Filter};
 
 const WEB_SERVER_LISTENING_DELAY: Duration = Duration::from_millis(250);
 
-static INDEX_HTML: &str = include_str!("../../../resources/index.html");
-static OPENAPI_YAML: &str = include_str!("../../../resources/openapi.yaml");
+static INDEX_HTML: &str = include_str!("../../../../resources/index.html");
+static OPENAPI_YAML: &str = include_str!("../../../../resources/openapi.yaml");
 
 fn create_connection_pool(
     database_url: &str,
