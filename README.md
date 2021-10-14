@@ -1,6 +1,6 @@
 # aoide
 
-![aoide banner](resources/aoide_banner_1280x340.png)
+![aoide banner](res/aoide_banner_1280x340.png)
 
 [![GitLab CI](https://gitlab.com/uklotzde/aoide-rs/badges/development/pipeline.svg?style=flat)](https://gitlab.com/uklotzde/aoide-rs/pipelines?scope=branches)
 [![GitHub CI](https://github.com/aoide-org/aoide-rs/workflows/Continuous%20integration/badge.svg?branch=development&style=flat)](https://github.com/aoide-org/aoide-rs/actions?query=workflow%3A%22Continuous+integration%22)

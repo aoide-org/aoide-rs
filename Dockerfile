@@ -173,8 +173,8 @@ COPY [ \
     "src", \
     "./src/" ]
 COPY [ \
-    "resources", \
-    "./resources/" ]
+    "res", \
+    "./res/" ]
 COPY [ \
     "client/src", \
     "./client/src/" ]
