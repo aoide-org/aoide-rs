@@ -6,14 +6,7 @@ publish = false
 edition = "2018"
 
 [dependencies]
-#anyhow = "*"
-#base64 = "*"
-#chrono = { version = "*", features = ["serde"] }
-#num-traits = "*"
-#schemars = { version = "*", features = ["chrono"] }
-#semval = "*"
 serde = { version = "*", features = ["derive"] }
-#serde_repr = "*"
 url = { version = "*", features = ["serde"] }
 
 # Workspace dependencies

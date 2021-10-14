@@ -17,15 +17,13 @@ aoide-media = "*"
 aoide-repo = "*"
 aoide-repo-sqlite = "*"
 aoide-usecases = "*"
-blake3 = "*"
-chrono = { version = "*", default-features = false, features = ["clock", "serde"] }
+chrono = { version = "*", default-features = false }
 diesel = { version = "*", default-features = false, features = ["r2d2", "sqlite"] }
 diesel_migrations =  { version = "*", default-features = false, features = ["sqlite"] }
 dotenv = "*"
 log = "*"
-percent-encoding = "*"
 r2d2 = "*"
-semval = { version = ">=0.1.7" }
+semval = "*"
 serde = "*"
 serde_json = "*"
 thiserror = "*"
@@ -35,13 +33,10 @@ tracing-bunyan-formatter = "*"
 tracing-error = "*"
 tracing-log = "*"
 tracing-subscriber = { version = "*", features = ["registry", "env-filter"] }
-url = { version = "*", features = ["serde"] }
+url = "*"
 uuid = { version = "*", features = ["v4"] }
 warp = { version = "*", default-features = false }
 
 [features]
 default = []
 with-webapp = []
-
-[dev-dependencies]
-serde_urlencoded = "*"
