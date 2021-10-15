@@ -58,11 +58,11 @@ ARG BUILD_BIN_ARGS="--all-features"
 
 # Prepare for musl libc build target
 RUN apt update \
-    && apt install --no-install-recommends -y musl-tools tree \
+    && apt install --no-install-recommends -y \
+        musl-tools \
+        tree \
     && rm -rf /var/lib/apt/lists/* \
     && rustup target add ${BUILD_TARGET}
-
-WORKDIR ${WORKDIR_ROOT}
 
 # Docker build cache: Create and build an empty dummy workspace with all
 # external dependencies to avoid redownloading them on subsequent builds
@@ -93,7 +93,8 @@ RUN USER=root cargo new --lib ${PROJECT_NAME}-client && \
     USER=root cargo new --lib ${PROJECT_NAME}-usecases && \
     mv ${PROJECT_NAME}-usecases usecases && \
     USER=root cargo new --lib ${PROJECT_NAME}-websrv && \
-    mv ${PROJECT_NAME}-websrv websrv
+    mv ${PROJECT_NAME}-websrv websrv && \
+    tree
 
 COPY [ \
     "Cargo.toml", \

@@ -9,7 +9,7 @@ edition = "2018"
 
 [workspace]
 members = [
-  "./",
+  ".",
   "client",
   "core",
   "core-serde",
