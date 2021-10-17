@@ -80,7 +80,6 @@ pub fn import_track_from_local_file_path(
             return Ok(ImportTrackFromFileOutcome::SkippedDirectory);
         };
     let file_metadata = file.metadata().map_err(MediaError::from)?;
-    let mime = guess_mime_from_path(&canonical_path)?;
     let last_modified_at = file_metadata
         .modified()
         .map(DateTime::from)
@@ -148,6 +147,7 @@ pub fn import_track_from_local_file_path(
         synchronized_at: last_modified_at,
     };
     let mut reader: Box<dyn Reader> = Box::new(BufReader::new(file));
+    let mime = guess_mime_from_path(&canonical_path)?;
     let new_track = input.into_new_track(source_path, &mime);
     let track = match mime.as_ref() {
         "audio/flac" => flac::ImportTrack.import_track(config, flags, new_track, &mut reader),
