@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::convert::{TryFrom, TryInto};
-
 use aoide_core::collection::{Collection, Entity as CollectionEntity};
 
 use crate::{receive_response_body, WebClientEnvironment};

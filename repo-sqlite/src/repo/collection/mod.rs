@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::convert::TryInto as _;
-
 use diesel::dsl::count_star;
 
 use aoide_core::{

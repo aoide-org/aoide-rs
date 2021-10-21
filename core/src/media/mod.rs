@@ -22,7 +22,6 @@ use bitflags::bitflags;
 use num_derive::{FromPrimitive, ToPrimitive};
 use std::{
     borrow::Cow,
-    convert::TryFrom,
     fmt,
     ops::{Deref, DerefMut},
 };

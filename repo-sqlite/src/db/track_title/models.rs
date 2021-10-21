@@ -15,8 +15,6 @@
 
 use num_traits::FromPrimitive as _;
 
-use std::convert::TryFrom;
-
 use super::{schema::*, *};
 
 #[derive(Debug, Queryable, Identifiable)]

@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use rand::{thread_rng, RngCore};
-use std::{convert::TryInto, fmt, marker::PhantomData, mem, str};
+use std::{fmt, marker::PhantomData, mem, str};
 
 use crate::prelude::*;
 

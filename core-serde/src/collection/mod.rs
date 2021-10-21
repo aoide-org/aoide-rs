@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::convert::{TryFrom, TryInto as _};
-
 use crate::{media::SourcePathConfig, prelude::*, util::color::Color};
 
 mod _core {

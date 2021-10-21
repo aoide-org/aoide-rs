@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{convert::TryFrom as _, path::PathBuf};
+use std::path::PathBuf;
 
 use path_slash::PathBufExt as _;
 use thiserror::Error;
