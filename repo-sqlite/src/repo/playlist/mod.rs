@@ -513,9 +513,9 @@ impl<'db> EntryRepo for crate::Connection<'db> {
             .first::<i64>(self.as_ref())
             .optional()
             .map_err(repo_error)?;
+        debug_assert!(new_entries.len() as i64 >= 0);
         let new_ordering_range = if let Some(next_ordering) = next_ordering {
             // TODO: Ordering range checks and adjustments when needed!
-            debug_assert!(new_entries.len() as i64 >= 0);
             let prev_ordering =
                 prev_ordering.unwrap_or((next_ordering - 1) - new_entries.len() as i64);
             let new_ordering_range =
@@ -540,7 +540,6 @@ impl<'db> EntryRepo for crate::Connection<'db> {
             new_ordering_range
         } else {
             // TODO: Ordering range checks and adjustments when needed!
-            debug_assert!(new_entries.len() as i64 >= 0);
             let prev_ordering = prev_ordering.unwrap_or(-1);
             let new_ordering_range =
                 (prev_ordering + 1)..((prev_ordering + 1) + new_entries.len() as i64);
