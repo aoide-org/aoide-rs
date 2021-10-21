@@ -1,7 +1,7 @@
 # Only add deviations from the default settings!
 
 # Use a single edition only (should match Cargo.toml)
-edition = "2018"
+edition = "2021"
 
 # Prevent carriage returns
 newline_style = "Unix"
