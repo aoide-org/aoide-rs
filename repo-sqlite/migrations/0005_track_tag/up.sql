@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS track_tag (
     label         TEXT,          -- arbitrary text without leading/trailing whitespace
     score         REAL NOT NULL, -- [0.0, 1.0]
     --
-    FOREIGN KEY(track_id) REFERENCES track(row_id),
+    FOREIGN KEY(track_id) REFERENCES track(row_id) ON DELETE CASCADE,
     UNIQUE (track_id, facet, label)
 );
 

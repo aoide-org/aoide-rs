@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS media_tracker_directory (
     status                 TINYINT NOT NULL, -- 0 = current, 1 = outdated, 3 = added, 3 = modified, 4 = orphaned
     digest                 BINARY,           -- cryptographic hash of the directory's contents (file metadata)
     --
-    FOREIGN KEY(collection_id) REFERENCES collection(row_id),
+    FOREIGN KEY(collection_id) REFERENCES collection(row_id) ON DELETE CASCADE,
     UNIQUE (collection_id, path)
 );
 
@@ -35,8 +35,8 @@ CREATE TABLE IF NOT EXISTS media_tracker_source (
     directory_id           INTEGER NOT NULL,
     source_id              INTEGER NOT NULL,
     --
-    FOREIGN KEY(directory_id) REFERENCES media_tracker_directory(row_id),
-    FOREIGN KEY(source_id) REFERENCES media_source(row_id),
+    FOREIGN KEY(directory_id) REFERENCES media_tracker_directory(row_id) ON DELETE CASCADE,
+    FOREIGN KEY(source_id) REFERENCES media_source(row_id) ON DELETE CASCADE,
     UNIQUE (source_id)
 );
 

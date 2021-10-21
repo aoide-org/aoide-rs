@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS track (
     aux_album_title          TEXT,    -- main album title (derived from entries in track_title)
     aux_album_artist         TEXT,    -- summary/default album artist (derived from track_actor)
     --
-    FOREIGN KEY(media_source_id) REFERENCES media_source(row_id),
+    FOREIGN KEY(media_source_id) REFERENCES media_source(row_id) ON DELETE CASCADE,
     UNIQUE (entity_uid) -- only the last revision is stored
 );
 

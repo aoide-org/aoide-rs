@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS track_actor (
     name                     TEXT NOT NULL,
     role_notes               TEXT,
     --
-    FOREIGN KEY(track_id) REFERENCES track(row_id)
+    FOREIGN KEY(track_id) REFERENCES track(row_id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_track_actor_track_id ON track_actor (

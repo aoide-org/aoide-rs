@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS track_title (
     kind                     TINYINT NOT NULL,
     name                     TEXT NOT NULL,
     --
-    FOREIGN KEY(track_id) REFERENCES track(row_id)
+    FOREIGN KEY(track_id) REFERENCES track(row_id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_track_title_track_id ON track_title (

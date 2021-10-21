@@ -34,6 +34,7 @@ PRAGMA secure_delete = 0;         -- avoid some disk I/O
 PRAGMA automatic_index = 1;       -- detect and log missing indexes
 PRAGMA foreign_keys = 1;          -- check foreign key constraints
 PRAGMA defer_foreign_keys = 1;    -- delay enforcement of foreign key constraints until commit
+PRAGMA recursive_triggers = 1;    -- for recursive ON CASCADE DELETE actions
 PRAGMA encoding = 'UTF-8';
 "#).execute(connection)?;
     Ok(())

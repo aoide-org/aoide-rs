@@ -34,6 +34,6 @@ CREATE TABLE IF NOT EXISTS track_cue (
     color_idx                INTEGER, -- palette index
     flags                    INTEGER NOT NULL, -- bitmask of flags, e.g. locking to prevent unintended modifications
     --
-    FOREIGN KEY(track_id) REFERENCES track(row_id),
+    FOREIGN KEY(track_id) REFERENCES track(row_id) ON DELETE CASCADE,
     UNIQUE (track_id, bank_idx, slot_idx)
 );

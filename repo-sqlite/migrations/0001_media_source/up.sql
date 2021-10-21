@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS media_source (
     artwork_size_height    INTEGER,
     artwork_thumbnail      BINARY,
     --
-    FOREIGN KEY(collection_id) REFERENCES collection(row_id),
+    FOREIGN KEY(collection_id) REFERENCES collection(row_id) ON DELETE CASCADE,
     UNIQUE (collection_id, path)
 );
 

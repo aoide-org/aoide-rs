@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS playlist (
     flags                    INTEGER NOT NULL, -- bitmask of flags, e.g. locking to prevent unintended modifications
     --
     UNIQUE (entity_uid), -- only the last revision is stored
-    FOREIGN KEY(collection_id) REFERENCES collection(row_id)
+    FOREIGN KEY(collection_id) REFERENCES collection(row_id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_playlist_row_created_ms_desc ON playlist (
