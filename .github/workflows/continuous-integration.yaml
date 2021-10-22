@@ -40,6 +40,18 @@ jobs:
           command: check
           args: --manifest-path core-serde/Cargo.toml
 
+      - name: Check sub-crate core-ext
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --manifest-path core-ext/Cargo.toml
+
+      - name: Check sub-crate core-ext-serde
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --manifest-path core-ext-serde/Cargo.toml
+
       - name: Check sub-crate repo
         uses: actions-rs/cargo@v1
         with:
