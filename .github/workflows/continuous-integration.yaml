@@ -8,6 +8,7 @@ on:
       - dev
 
 env:
+  CARGO_INCREMENTAL: 0
   CARGO_TERM_COLOR: always
 
 jobs:
@@ -28,74 +29,74 @@ jobs:
       - name: Cache Rust toolchain and build artifacts
         uses: Swatinem/rust-cache@v1
 
-      - name: Check sub-crate core
+      - name: Check aoide-core
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --manifest-path core/Cargo.toml
+          args: --locked --manifest-path core/Cargo.toml
 
-      - name: Check sub-crate core-serde
+      - name: Check aoide-core-serde
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --manifest-path core-serde/Cargo.toml
+          args: --locked --manifest-path core-serde/Cargo.toml
 
-      - name: Check sub-crate core-ext
+      - name: Check aoide-core-ext
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --manifest-path core-ext/Cargo.toml
+          args: --locked --manifest-path core-ext/Cargo.toml
 
-      - name: Check sub-crate core-ext-serde
+      - name: Check aoide-core-ext-serde
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --manifest-path core-ext-serde/Cargo.toml
+          args: --locked --manifest-path core-ext-serde/Cargo.toml
 
-      - name: Check sub-crate repo
+      - name: Check aoide-repo
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --manifest-path repo/Cargo.toml
+          args: --locked --manifest-path repo/Cargo.toml
 
-      - name: Check sub-crate repo-sqlite
+      - name: Check aoide-repo-sqlite
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --manifest-path repo-sqlite/Cargo.toml
+          args: --locked --manifest-path repo-sqlite/Cargo.toml
 
-      - name: Check sub-crate media
+      - name: Check aoide-media
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --manifest-path media/Cargo.toml
+          args: --locked --manifest-path media/Cargo.toml
 
-      - name: Check sub-crate usecases
+      - name: Check aoide-usecases
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --manifest-path usecases/Cargo.toml
+          args: --locked --manifest-path usecases/Cargo.toml
 
-      - name: Check sub-crate client
+      - name: Check aoide-client
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --manifest-path client/Cargo.toml
+          args: --locked --manifest-path client/Cargo.toml
 
       - name: Build tests with all features enabled
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --workspace --all-features --locked --no-run
+          args: --locked --workspace --all-features --no-run
 
       - name: Run tests with all features enabled
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --workspace --all-features -- --nocapture --quiet
+          args: --locked --workspace --all-features -- --nocapture --quiet
 
       - name: Build release with default features
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release --locked
+          args: --locked --release
