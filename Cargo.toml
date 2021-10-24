@@ -5,6 +5,7 @@ license-file = "LICENSE.md"
 description = "Manage and explore your music collections"
 keywords = ["music", "collection"]
 publish = false
+rust-version = "1.56"
 edition = "2021"
 
 [workspace]
@@ -43,12 +44,15 @@ aoide-client = { version = "*", default_features = false, optional = true }
 aoide-websrv = { version = "*", default_features = false, optional = true }
 
 [features]
-default = ["with-client", "with-websrv", "with-webapp"]
+default = []
 with-client = ["aoide-client"]
 with-websrv = ["aoide-websrv"]
 with-webapp = ["with-websrv", "aoide-websrv/with-webapp"]
 
 [profile.dev]
+split-debuginfo = "unpacked"
+
+[profile.test]
 split-debuginfo = "unpacked"
 
 [profile.release]

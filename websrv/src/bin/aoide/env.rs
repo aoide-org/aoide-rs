@@ -21,10 +21,8 @@ use std::{
 use anyhow::Error;
 use dotenv::dotenv;
 use tracing::{subscriber::set_global_default, Subscriber};
-use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
-use tracing_error::ErrorLayer;
 use tracing_log::LogTracer;
-use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
+use tracing_subscriber::EnvFilter;
 
 pub fn init_environment() {
     if let Ok(path) = dotenv() {
@@ -35,8 +33,8 @@ pub fn init_environment() {
 
 const DEFAULT_TRACING_SUBSCRIBER_ENV_FILTER: &str = "info";
 
-fn create_tracing_subscriber() -> anyhow::Result<impl Subscriber> {
-    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|err| {
+fn create_env_filter() -> EnvFilter {
+    EnvFilter::try_from_default_env().unwrap_or_else(|err| {
         let rust_log_from_env = env::var("RUST_LOG").ok();
         if let Some(rust_log_from_env) = rust_log_from_env {
             if !rust_log_from_env.is_empty() {
@@ -47,23 +45,18 @@ fn create_tracing_subscriber() -> anyhow::Result<impl Subscriber> {
             }
         }
         EnvFilter::new(DEFAULT_TRACING_SUBSCRIBER_ENV_FILTER.to_owned())
-    });
-    let storage_layer = JsonStorageLayer;
-    let formatting_layer = BunyanFormattingLayer::new(
-        env!("CARGO_PKG_NAME").to_owned(),
-        // Output the formatted spans to stderr
-        std::io::stderr,
-    );
-    let error_layer = ErrorLayer::default();
-    let subscriber = Registry::default()
-        .with(env_filter)
-        .with(storage_layer)
-        .with(formatting_layer)
-        .with(error_layer);
+    })
+}
+
+fn create_tracing_subscriber() -> anyhow::Result<impl Subscriber> {
+    let env_filter = create_env_filter();
+    let subscriber = tracing_subscriber::fmt()
+        .with_env_filter(env_filter)
+        .finish();
     Ok(subscriber)
 }
 
-pub fn init_tracing_subscriber() -> anyhow::Result<()> {
+pub fn init_tracing_and_logging() -> anyhow::Result<()> {
     // Capture and redirect all log messages as tracing events
     LogTracer::init()?;
 

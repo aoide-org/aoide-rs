@@ -29,10 +29,9 @@ serde_json = "*"
 thiserror = "*"
 tokio = { version = "*", default-features = false, features = ["macros", "rt-multi-thread", "signal"] }
 tracing = { version = "*", features = ["log"] }
-tracing-bunyan-formatter = "*"
 tracing-error = "*"
 tracing-log = "*"
-tracing-subscriber = { version = "*", features = ["registry", "env-filter"] }
+tracing-subscriber = { version = "*", features = ["env-filter"] }
 url = "*"
 uuid = { version = "*", features = ["v4"] }
 warp = { version = "*", default-features = false }

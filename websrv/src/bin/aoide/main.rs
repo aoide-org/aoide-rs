@@ -16,17 +16,6 @@
 #![deny(clippy::clone_on_ref_ptr)]
 #![warn(rust_2018_idioms)]
 
-mod env;
-
-use aoide_websrv::{
-    api::web::{collection, handle_rejection, media, playlist, reject_on_error, track, Error},
-    usecases as uc, *,
-};
-
-use aoide_core::entity::EntityUid;
-
-use aoide_core_ext_serde::media::tracker::Progress as MediaTrackerProgress;
-
 use std::{
     collections::HashMap,
     convert::Infallible,
@@ -37,6 +26,7 @@ use std::{
     },
     time::Duration,
 };
+
 use tokio::{
     join, signal,
     sync::RwLock,
@@ -45,7 +35,16 @@ use tokio::{
 };
 use warp::{http::StatusCode, Filter};
 
-///////////////////////////////////////////////////////////////////////
+use aoide_websrv::{
+    api::web::{collection, handle_rejection, media, playlist, reject_on_error, track, Error},
+    usecases as uc, *,
+};
+
+use aoide_core::entity::EntityUid;
+
+use aoide_core_ext_serde::media::tracker::Progress as MediaTrackerProgress;
+
+mod env;
 
 const WEB_SERVER_LISTENING_DELAY: Duration = Duration::from_millis(250);
 
@@ -126,7 +125,7 @@ pub async fn main() -> Result<(), Error> {
 
     env::init_environment();
 
-    env::init_tracing_subscriber().expect("init tracising subscriber");
+    env::init_tracing_and_logging()?;
 
     if let Ok(exe_path) = current_exe() {
         tracing::info!("Executable: {}", exe_path.display());
