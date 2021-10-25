@@ -14,7 +14,7 @@ base64 = "*"
 blake3 = { version = "*", features = ["traits-preview"] }
 bitflags = "*"
 bytes = "*"
-chrono = "*"
+chrono = { version = "*", default-features = false }
 digest = "*"
 image = "*"
 mime = "*"

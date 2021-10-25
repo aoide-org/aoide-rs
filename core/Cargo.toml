@@ -9,7 +9,7 @@ edition = "2021"
 anyhow = "*"
 bs58 = "^0.4"
 bitflags = "*"
-chrono = "*"
+chrono = { version = "*", default-features = false, features = ["clock"] }
 num-derive = "*"
 num-traits = "*"
 once_cell = "*"
