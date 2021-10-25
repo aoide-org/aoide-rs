@@ -52,6 +52,7 @@ fn create_tracing_subscriber() -> anyhow::Result<impl Subscriber> {
     let env_filter = create_env_filter();
     let subscriber = tracing_subscriber::fmt()
         .with_env_filter(env_filter)
+        .with_writer(std::io::stderr)
         .finish();
     Ok(subscriber)
 }
