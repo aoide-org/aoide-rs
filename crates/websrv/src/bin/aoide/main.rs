@@ -48,8 +48,8 @@ mod env;
 
 const WEB_SERVER_LISTENING_DELAY: Duration = Duration::from_millis(250);
 
-static INDEX_HTML: &str = include_str!("../../../../res/index.html");
-static OPENAPI_YAML: &str = include_str!("../../../../res/openapi.yaml");
+static INDEX_HTML: &str = include_str!("../../../res/index.html");
+static OPENAPI_YAML: &str = include_str!("../../../res/openapi.yaml");
 
 fn create_connection_pool(
     database_url: &str,

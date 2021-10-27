@@ -1,53 +1,37 @@
-[package]
-name = "aoide"
-version = "0.8.0"
-license-file = "LICENSE.md"
-description = "Manage and explore your music collections"
-keywords = ["music", "collection"]
-publish = false
-rust-version = "1.56"
-edition = "2021"
-
 [workspace]
 members = [
-  ".",
-  "client",
-  "core",
-  "core-serde",
-  "core-ext",
-  "core-ext-serde",
-  "media",
-  "repo",
-  "repo-sqlite",
-  "usecases",
-  "websrv",
+  "crates/client",
+  "crates/core",
+  "crates/core-serde",
+  "crates/core-ext",
+  "crates/core-ext-serde",
+  "crates/media",
+  "crates/repo",
+  "crates/repo-sqlite",
+  "crates/usecases",
+  "crates/websrv",
 ]
 
 [patch.crates-io]
-aoide-client = { path = "./client" }
-aoide-core = { path = "./core" }
-aoide-core-serde = { path = "./core-serde" }
-aoide-core-ext = { path = "./core-ext" }
-aoide-core-ext-serde = { path = "./core-ext-serde" }
-aoide-media = { path = "./media" }
-aoide-repo = { path = "./repo" }
-aoide-repo-sqlite = { path = "./repo-sqlite" }
-aoide-usecases = { path = "./usecases" }
-aoide-websrv = { path = "./websrv" }
+# Workspace crates
+aoide-client = { path = "crates/client" }
+aoide-core = { path = "crates/core" }
+aoide-core-serde = { path = "crates/core-serde" }
+aoide-core-ext = { path = "crates/core-ext" }
+aoide-core-ext-serde = { path = "crates/core-ext-serde" }
+aoide-media = { path = "crates/media" }
+aoide-repo = { path = "crates/repo" }
+aoide-repo-sqlite = { path = "crates/repo-sqlite" }
+aoide-usecases = { path = "crates/usecases" }
+aoide-websrv = { path = "crates/websrv" }
+
+# Unreleased crates
 triseratops = { git = "https://github.com/Holzhaus/triseratops.git", branch = "main" }
 mp3-duration = { git = "https://github.com/aoide-org/mp3-duration.git", branch = "streaminfo" }
+
+# Temporary patches
 #mp4ameta = { branch = "master", git = "https://github.com/Saecki/rust-mp4ameta.git" }
 #id3 = { branch = "master", git = "https://github.com/polyfloyd/rust-id3.git" }
-
-[dependencies]
-aoide-client = { version = "*", default_features = false, optional = true }
-aoide-websrv = { version = "*", default_features = false, optional = true }
-
-[features]
-default = []
-with-client = ["aoide-client"]
-with-websrv = ["aoide-websrv"]
-with-webapp = ["with-websrv", "aoide-websrv/with-webapp"]
 
 [profile.dev]
 split-debuginfo = "unpacked"

@@ -68,32 +68,32 @@ RUN apt update \
 # external dependencies to avoid redownloading them on subsequent builds
 # if unchanged.
 
-# Create workspace with an empty dummy library
-WORKDIR ${WORKDIR_ROOT}
-RUN USER=root cargo new --lib ${PROJECT_NAME}
+# Create workspace directory
+RUN mkdir -p ${WORKDIR_ROOT}/${PROJECT_NAME}
+WORKDIR ${WORKDIR_ROOT}/${PROJECT_NAME}
 
 # Create all sub-crates in workspace
-WORKDIR ${WORKDIR_ROOT}/${PROJECT_NAME}
-RUN USER=root cargo new --lib ${PROJECT_NAME}-client && \
-    mv ${PROJECT_NAME}-client client && \
+RUN mkdir -p crates && \
+    USER=root cargo new --lib ${PROJECT_NAME}-client && \
+    mv ${PROJECT_NAME}-client crates/client && \
     USER=root cargo new --lib ${PROJECT_NAME}-core && \
-    mv ${PROJECT_NAME}-core core && \
+    mv ${PROJECT_NAME}-core crates/core && \
     USER=root cargo new --lib ${PROJECT_NAME}-core-serde && \
-    mv ${PROJECT_NAME}-core-serde core-serde && \
+    mv ${PROJECT_NAME}-core-serde crates/core-serde && \
     USER=root cargo new --lib ${PROJECT_NAME}-core-ext && \
-    mv ${PROJECT_NAME}-core-ext core-ext && \
+    mv ${PROJECT_NAME}-core-ext crates/core-ext && \
     USER=root cargo new --lib ${PROJECT_NAME}-core-ext-serde && \
-    mv ${PROJECT_NAME}-core-ext-serde core-ext-serde && \
+    mv ${PROJECT_NAME}-core-ext-serde crates/core-ext-serde && \
     USER=root cargo new --lib ${PROJECT_NAME}-media && \
-    mv ${PROJECT_NAME}-media media && \
+    mv ${PROJECT_NAME}-media crates/media && \
     USER=root cargo new --lib ${PROJECT_NAME}-repo && \
-    mv ${PROJECT_NAME}-repo repo && \
+    mv ${PROJECT_NAME}-repo crates/repo && \
     USER=root cargo new --lib ${PROJECT_NAME}-repo-sqlite && \
-    mv ${PROJECT_NAME}-repo-sqlite repo-sqlite && \
+    mv ${PROJECT_NAME}-repo-sqlite crates/repo-sqlite && \
     USER=root cargo new --lib ${PROJECT_NAME}-usecases && \
-    mv ${PROJECT_NAME}-usecases usecases && \
+    mv ${PROJECT_NAME}-usecases crates/usecases && \
     USER=root cargo new --lib ${PROJECT_NAME}-websrv && \
-    mv ${PROJECT_NAME}-websrv websrv && \
+    mv ${PROJECT_NAME}-websrv crates/websrv && \
     tree
 
 COPY [ \
@@ -101,40 +101,40 @@ COPY [ \
     "Cargo.lock", \
     "./" ]
 COPY [ \
-    "client/Cargo.toml", \
-    "./client/" ]
+    "crates/client/Cargo.toml", \
+    "./crates/client/" ]
 COPY [ \
-    "core/Cargo.toml", \
-    "./core/" ]
+    "crates/core/Cargo.toml", \
+    "./crates/core/" ]
 COPY [ \
-    "core/benches", \
-    "./core/benches/" ]
+    "crates/core/benches", \
+    "./crates/core/benches/" ]
 COPY [ \
-    "core-serde/Cargo.toml", \
-    "./core-serde/" ]
+    "crates/core-serde/Cargo.toml", \
+    "./crates/core-serde/" ]
 COPY [ \
-    "core-ext/Cargo.toml", \
-    "./core-ext/" ]
+    "crates/core-ext/Cargo.toml", \
+    "./crates/core-ext/" ]
 COPY [ \
-    "core-ext-serde/Cargo.toml", \
-    "./core-ext-serde/" ]
+    "crates/core-ext-serde/Cargo.toml", \
+    "./crates/core-ext-serde/" ]
 COPY [ \
-    "media/Cargo.toml", \
-    "./media/" ]
+    "crates/media/Cargo.toml", \
+    "./crates/media/" ]
 COPY [ \
-    "repo/Cargo.toml", \
-    "./repo/" ]
+    "crates/repo/Cargo.toml", \
+    "./crates/repo/" ]
 COPY [ \
-    "repo-sqlite/Cargo.toml", \
-    "./repo-sqlite/" ]
+    "crates/repo-sqlite/Cargo.toml", \
+    "./crates/repo-sqlite/" ]
 COPY [ \
-    "usecases/Cargo.toml", \
-    "./usecases/" ]
+    "crates/usecases/Cargo.toml", \
+    "./crates/usecases/" ]
 COPY [ \
-    "websrv/Cargo.toml", \
-    "./websrv/" ]
+    "crates/websrv/Cargo.toml", \
+    "./crates/websrv/" ]
 
-# Build the dummy project, then delete all build artefacts that must not(!) be cached
+# Build the workspace, then delete all build artefacts that must not(!) be cached
 #
 # - Note the special naming convention for all artefacts in deps/ that are referring
 #   to the crate/project name: The character '-' must be substituted by '_',  i.e.
@@ -146,87 +146,65 @@ RUN tree && \
     cargo build --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} --${BUILD_MODE} --target ${BUILD_TARGET} && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/${PROJECT_NAME}* && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/${PROJECT_NAME}-* && \
+    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/${PROJECT_NAME}_* && \
     rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/${PROJECT_NAME}-* && \
-    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_client-* && \
-    rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-client-* && \
-    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_core-* && \
-    rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-core-* && \
-    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_core_serde-* && \
-    rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-core-serde-* && \
-    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_core_ext-* && \
-    rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-core-ext-* && \
-    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_core_ext_serde-* && \
-    rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-core-ext-serde-* && \
-    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_media-* && \
-    rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-media-* && \
-    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_repo-* && \
-    rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-repo-* && \
-    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_repo_sqlite-* && \
-    rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-repo-sqlite-* && \
-    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_usecases-* && \
-    rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-usecases-* && \
-    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/aoide_websrv-* && \
-    rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/aoide-websrv-* && \
     tree
 
 # Copy all project (re-)sources that are required for building
 COPY [ \
-    "src", \
-    "./src/" ]
+    "crates/client/src", \
+    "./crates/client/src/" ]
 COPY [ \
-    "res", \
-    "./res/" ]
+    "crates/core/src", \
+    "./crates/core/src/" ]
 COPY [ \
-    "client/src", \
-    "./client/src/" ]
+    "crates/core-serde/src", \
+    "./crates/core-serde/src/" ]
 COPY [ \
-    "core/src", \
-    "./core/src/" ]
+    "crates/core-ext/src", \
+    "./crates/core-ext/src/" ]
 COPY [ \
-    "core-serde/src", \
-    "./core-serde/src/" ]
+    "crates/core-ext-serde/src", \
+    "./crates/core-ext-serde/src/" ]
 COPY [ \
-    "core-ext/src", \
-    "./core-ext/src/" ]
+    "crates/media/src", \
+    "./crates/media/src/" ]
 COPY [ \
-    "core-ext-serde/src", \
-    "./core-ext-serde/src/" ]
+    "crates/repo/src", \
+    "./crates/repo/src/" ]
 COPY [ \
-    "media/src", \
-    "./media/src/" ]
+    "crates/repo-sqlite/src", \
+    "./crates/repo-sqlite/src/" ]
 COPY [ \
-    "repo/src", \
-    "./repo/src/" ]
+    "crates/repo-sqlite/migrations", \
+    "./crates/repo-sqlite/migrations/" ]
 COPY [ \
-    "repo-sqlite/src", \
-    "./repo-sqlite/src/" ]
+    "crates/usecases/src", \
+    "./crates/usecases/src/" ]
 COPY [ \
-    "repo-sqlite/migrations", \
-    "./repo-sqlite/migrations/" ]
+    "crates/websrv/res", \
+    "./crates/websrv/res/" ]
 COPY [ \
-    "usecases/src", \
-    "./usecases/src/" ]
-COPY [ \
-    "websrv/src", \
-    "./websrv/src/" ]
+    "crates/websrv/src", \
+    "./crates/websrv/src/" ]
 
 # 1. Check all sub-projects using their local manifest for an isolated, standalone build
 # 2. Build workspace and run all unit tests
 # 3. Build the target binary
 # 4. Strip debug infos from the executable
 RUN tree && \
-    cargo check -p aoide-client --manifest-path client/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
-    cargo check -p aoide-core --manifest-path core/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
-    cargo check -p aoide-core-serde --manifest-path core-serde/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
-    cargo check -p aoide-core-ext --manifest-path core-ext/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
-    cargo check -p aoide-core-ext-serde --manifest-path core-ext-serde/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
-    cargo check -p aoide-media --manifest-path media/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
-    cargo check -p aoide-repo --manifest-path repo/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
-    cargo check -p aoide-repo-sqlite --manifest-path repo-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
-    cargo check -p aoide-usecases --manifest-path usecases/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
-    cargo check -p aoide-websrv --manifest-path websrv/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
+    cargo check -p aoide-client --manifest-path crates/client/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
+    cargo check -p aoide-core --manifest-path crates/core/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
+    cargo check -p aoide-core-serde --manifest-path crates/core-serde/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
+    cargo check -p aoide-core-ext --manifest-path crates/core-ext/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
+    cargo check -p aoide-core-ext-serde --manifest-path crates/core-ext-serde/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
+    cargo check -p aoide-media --manifest-path crates/media/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
+    cargo check -p aoide-repo --manifest-path crates/repo/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
+    cargo check -p aoide-repo-sqlite --manifest-path crates/repo-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
+    cargo check -p aoide-usecases --manifest-path crates/usecases/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
+    cargo check -p aoide-websrv --manifest-path crates/websrv/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
     cargo test --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} --${BUILD_MODE} --target ${BUILD_TARGET} && \
-    cargo build -p aoide-websrv --manifest-path websrv/Cargo.toml --bin ${BUILD_BIN} ${BUILD_BIN_ARGS} --${BUILD_MODE} --target ${BUILD_TARGET} && \
+    cargo build -p aoide-websrv --manifest-path crates/websrv/Cargo.toml --bin ${BUILD_BIN} ${BUILD_BIN_ARGS} --${BUILD_MODE} --target ${BUILD_TARGET} && \
     strip ./target/${BUILD_TARGET}/${BUILD_MODE}/${BUILD_BIN}
 
 
