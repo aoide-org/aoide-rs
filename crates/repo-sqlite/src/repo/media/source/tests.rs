@@ -55,9 +55,9 @@ impl Fixture {
         Ok(Self { db, collection_id })
     }
 
-    fn resolve_record_ids_by_path_predicate<'s>(
+    fn resolve_record_ids_by_path_predicate(
         &self,
-        path_predicate: StringPredicateBorrowed<'s>,
+        path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<Vec<RecordId>> {
         crate::Connection::new(&self.db)
             .resolve_media_source_ids_by_path_predicate(self.collection_id, path_predicate)

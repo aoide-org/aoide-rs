@@ -45,7 +45,7 @@ async fn main() -> anyhow::Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(DEFAULT_LOG_FILTER))
         .init();
 
-    let default_api_url = env::var("API_URL").unwrap_or(DEFAULT_API_URL.to_owned());
+    let default_api_url = env::var("API_URL").unwrap_or_else(|_| DEFAULT_API_URL.to_owned());
 
     let matches = App::new("aoide-cli")
         .about("An experimental CLI for performing tasks on aoide")
@@ -332,8 +332,7 @@ async fn main() -> anyhow::Result<()> {
                     if collection_uid.is_none() && available_collections.value.len() == 1 {
                         collection_uid = available_collections
                             .value
-                            .iter()
-                            .next()
+                            .get(0)
                             .map(|e| e.hdr.uid.clone());
                         debug_assert!(collection_uid.is_some());
                         tracing::info!(
@@ -364,25 +363,18 @@ async fn main() -> anyhow::Result<()> {
                             "{}: {} | {}",
                             available_collection.hdr.uid,
                             available_collection.body.title,
-                            available_collection
-                                .body
-                                .notes
-                                .as_ref()
-                                .map(String::as_str)
-                                .unwrap_or(""),
+                            available_collection.body.notes.as_deref().unwrap_or(""),
                         );
                     }
                     return None;
                 }
-            } else {
-                if state
-                    .active_collection
-                    .remote_view()
-                    .available_collections()
-                    .is_unknown()
-                {
-                    return Some(active_collection::Intent::FetchAvailableCollections.into());
-                }
+            } else if state
+                .active_collection
+                .remote_view()
+                .available_collections()
+                .is_unknown()
+            {
+                return Some(active_collection::Intent::FetchAvailableCollections.into());
             }
 
             if subcommand_submitted {
@@ -505,7 +497,7 @@ async fn main() -> anyhow::Result<()> {
                     }
                 }
             }
-            return None;
+            None
         }),
     ));
 

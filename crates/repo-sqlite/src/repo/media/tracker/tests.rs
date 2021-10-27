@@ -238,7 +238,7 @@ fn reset_entry_status_to_current() -> anyhow::Result<()> {
     let path = SourcePath::new("file:///test".to_owned());
     let digest = DigestBytes::default();
 
-    let mut other_digest = digest.clone();
+    let mut other_digest = digest;
     other_digest[0] = !other_digest[0];
 
     // -> Added

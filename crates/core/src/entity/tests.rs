@@ -46,7 +46,7 @@ fn should_fail_to_decode_too_long_string() {
     assert!(EntityUid::decode_from_str(&encoded).is_ok());
 
     // Append one more character from the alphabet to the encoded string
-    encoded.push(char::from('a'));
+    encoded.push('a');
     assert!(EntityUid::decode_from_str(&encoded).is_err());
 }
 

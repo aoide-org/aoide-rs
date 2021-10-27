@@ -86,7 +86,7 @@ fn is_canonical_slice() {
             },
             Cue {
                 bank_index: 7,
-                ..default_cue.clone()
+                ..default_cue
             },
         ],
         cues

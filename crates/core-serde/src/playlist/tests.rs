@@ -53,8 +53,8 @@ fn deserialize_playlist() {
     };
     let playlist_json = serde_json::json!({
         "collectedAt": added_at1.to_string(),
-        "title": playlist.playlist.title.clone(),
-        "kind": playlist.playlist.kind.clone(),
+        "title": playlist.playlist.title,
+        "kind": playlist.playlist.kind,
         "entries": [
             {
                 "track": {
