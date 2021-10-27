@@ -48,9 +48,6 @@ pub enum Error {
     DatabaseMigration(#[from] diesel_migrations::RunMigrationsError),
 
     #[error(transparent)]
-    DatabaseConnection(#[from] r2d2::Error),
-
-    #[error(transparent)]
     Repository(#[from] RepoError),
 
     #[error(transparent)]

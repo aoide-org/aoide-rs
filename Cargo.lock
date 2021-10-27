@@ -126,6 +126,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "aoide-jsonapi-sqlite"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "aoide-core",
+ "aoide-core-ext",
+ "aoide-core-ext-serde",
+ "aoide-core-serde",
+ "aoide-media",
+ "aoide-repo",
+ "aoide-repo-sqlite",
+ "aoide-usecases",
+ "diesel",
+ "diesel_migrations",
+ "semval",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "url",
+ "uuid",
+]
+
+[[package]]
 name = "aoide-media"
 version = "0.0.0"
 dependencies = [
@@ -222,27 +247,21 @@ dependencies = [
  "aoide-core-ext",
  "aoide-core-ext-serde",
  "aoide-core-serde",
+ "aoide-jsonapi-sqlite",
  "aoide-media",
  "aoide-repo",
  "aoide-repo-sqlite",
  "aoide-usecases",
  "chrono",
- "diesel",
- "diesel_migrations",
  "dotenv",
- "log",
  "r2d2",
- "semval",
  "serde",
  "serde_json",
  "thiserror",
  "tokio",
  "tracing",
- "tracing-error",
  "tracing-log",
  "tracing-subscriber",
- "url",
- "uuid",
  "warp",
 ]
 
@@ -2251,16 +2270,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f4ed65637b8390770814083d20756f87bfa2c21bf2f110babdc5438351746e4"
 dependencies = [
  "lazy_static",
-]
-
-[[package]]
-name = "tracing-error"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d686ec1c0f384b1277f097b2f279a2ecc11afe8c133c1aabf036a27cb4cd206e"
-dependencies = [
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]

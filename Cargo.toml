@@ -5,6 +5,7 @@ members = [
   "crates/core-serde",
   "crates/core-ext",
   "crates/core-ext-serde",
+  "crates/jsonapi-sqlite",
   "crates/media",
   "crates/repo",
   "crates/repo-sqlite",
@@ -19,6 +20,7 @@ aoide-core = { path = "crates/core" }
 aoide-core-serde = { path = "crates/core-serde" }
 aoide-core-ext = { path = "crates/core-ext" }
 aoide-core-ext-serde = { path = "crates/core-ext-serde" }
+aoide-jsonapi-sqlite = { path = "crates/jsonapi-sqlite" }
 aoide-media = { path = "crates/media" }
 aoide-repo = { path = "crates/repo" }
 aoide-repo-sqlite = { path = "crates/repo-sqlite" }

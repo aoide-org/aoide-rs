@@ -36,8 +36,13 @@ use tokio::{
 use warp::{http::StatusCode, Filter};
 
 use aoide_websrv::{
-    api::web::{collection, handle_rejection, media, playlist, reject_on_error, track, Error},
-    usecases as uc, *,
+    api::{handle_rejection, reject_on_error, Error},
+    *,
+};
+
+use aoide_jsonapi_sqlite::{
+    ports::{collection, media, playlist, track, Error as JsonApiError},
+    usecases as uc,
 };
 
 use aoide_core::entity::EntityUid;
@@ -229,6 +234,7 @@ pub async fn main() -> Result<(), Error> {
                     guarded_connection_pool,
                     move |pooled_connection| {
                         collection::create::handle_request(pooled_connection, request_body)
+                            .map_err(Into::into)
                     },
                 )
                 .await
@@ -260,6 +266,7 @@ pub async fn main() -> Result<(), Error> {
                                 query_params,
                                 request_body,
                             )
+                            .map_err(Into::into)
                         },
                     )
                     .await
@@ -278,6 +285,7 @@ pub async fn main() -> Result<(), Error> {
                     guarded_connection_pool,
                     move |pooled_connection| {
                         collection::delete::handle_request(pooled_connection, &uid)
+                            .map_err(Into::into)
                     },
                 )
                 .await
@@ -296,6 +304,7 @@ pub async fn main() -> Result<(), Error> {
                     guarded_connection_pool,
                     move |pooled_connection| {
                         collection::load_all::handle_request(pooled_connection, query_params)
+                            .map_err(Into::into)
                     },
                 )
                 .await
@@ -315,6 +324,7 @@ pub async fn main() -> Result<(), Error> {
                     guarded_connection_pool,
                     move |pooled_connection| {
                         collection::load_one::handle_request(pooled_connection, &uid, query_params)
+                            .map_err(Into::into)
                     },
                 )
                 .await
@@ -345,6 +355,7 @@ pub async fn main() -> Result<(), Error> {
                             &uid,
                             request_body,
                         )
+                        .map_err(Into::into)
                     },
                 )
                 .await
@@ -388,6 +399,7 @@ pub async fn main() -> Result<(), Error> {
                             &uid,
                             request_body,
                         )
+                        .map_err(Into::into)
                     },
                 )
                 .await
@@ -439,6 +451,7 @@ pub async fn main() -> Result<(), Error> {
                             Some(&progress_event_tx),
                             &MEDIA_TRACKER_ABORT_FLAG,
                         )
+                        .map_err(Into::into)
                     },
                 )
                 .await
@@ -492,6 +505,7 @@ pub async fn main() -> Result<(), Error> {
                             Some(&progress_summary_tx),
                             &MEDIA_TRACKER_ABORT_FLAG,
                         )
+                        .map_err(Into::into)
                     },
                 )
                 .await
@@ -524,6 +538,7 @@ pub async fn main() -> Result<(), Error> {
                             &uid,
                             request_body,
                         )
+                        .map_err(Into::into)
                     },
                 )
                 .await
@@ -560,6 +575,7 @@ pub async fn main() -> Result<(), Error> {
                     guarded_connection_pool,
                     move |pooled_connection| {
                         track::resolve::handle_request(pooled_connection, &uid, request_body)
+                            .map_err(Into::into)
                     },
                 )
                 .await
@@ -591,6 +607,7 @@ pub async fn main() -> Result<(), Error> {
                                 query_params,
                                 request_body,
                             )
+                            .map_err(Into::into)
                         },
                     )
                     .await
@@ -622,6 +639,7 @@ pub async fn main() -> Result<(), Error> {
                                 query_params,
                                 request_body,
                             )
+                            .map_err(Into::into)
                         },
                     )
                     .await
@@ -655,6 +673,7 @@ pub async fn main() -> Result<(), Error> {
                                 request_body,
                                 &abort_flag,
                             )
+                            .map_err(Into::into)
                         },
                     )
                     .await
@@ -676,6 +695,7 @@ pub async fn main() -> Result<(), Error> {
                     guarded_connection_pool,
                     move |pooled_connection| {
                         track::purge::handle_request(pooled_connection, &uid, request_body)
+                            .map_err(Into::into)
                     },
                 )
                 .await
@@ -701,6 +721,7 @@ pub async fn main() -> Result<(), Error> {
                             &uid,
                             request_body,
                         )
+                        .map_err(Into::into)
                     },
                 )
                 .await
@@ -726,7 +747,7 @@ pub async fn main() -> Result<(), Error> {
                 spawn_blocking_database_read_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
-                        track::load_one::handle_request(pooled_connection, &uid)
+                        track::load_one::handle_request(pooled_connection, &uid).map_err(Into::into)
                     },
                 )
                 .await
@@ -746,6 +767,7 @@ pub async fn main() -> Result<(), Error> {
                     guarded_connection_pool,
                     move |pooled_connection| {
                         track::load_many::handle_request(pooled_connection, request_body)
+                            .map_err(Into::into)
                     },
                 )
                 .await
@@ -767,7 +789,7 @@ pub async fn main() -> Result<(), Error> {
                 spawn_blocking_database_write_task(
                     guarded_connection_pool,
                     move |pooled_connection| {
-                        playlist::create_collected::handle_request(pooled_connection, &collection_uid, request_body)
+                        playlist::create_collected::handle_request(pooled_connection, &collection_uid, request_body).map_err(Into::into)
                     },
                 )
                 .await
@@ -790,7 +812,7 @@ pub async fn main() -> Result<(), Error> {
                     guarded_connection_pool,
                     move |pooled_connection| {
                         playlist::list_collected::handle_request(pooled_connection, &collection_uid,
-                            query_params)
+                            query_params).map_err(Into::into)
                     },
                 )
                 .await
@@ -822,6 +844,7 @@ pub async fn main() -> Result<(), Error> {
                                 query_params,
                                 request_body,
                             )
+                            .map_err(Into::into)
                         },
                     )
                     .await
@@ -840,6 +863,7 @@ pub async fn main() -> Result<(), Error> {
                     guarded_connection_pool,
                     move |pooled_connection| {
                         playlist::delete::handle_request(pooled_connection, &uid)
+                            .map_err(Into::into)
                     },
                 )
                 .await
@@ -870,6 +894,7 @@ pub async fn main() -> Result<(), Error> {
                                 query_params,
                                 request_body,
                             )
+                            .map_err(Into::into)
                         },
                     )
                     .await
@@ -911,7 +936,10 @@ pub async fn main() -> Result<(), Error> {
                 let CleanseDatabaseQueryParams { vacuum } = query_params;
                 spawn_blocking_database_write_task(
                     guarded_connection_pool,
-                    move |pooled_connection| Ok(uc::database::cleanse(&pooled_connection, vacuum)?),
+                    move |pooled_connection| {
+                        Ok(uc::database::cleanse(&pooled_connection, vacuum)
+                            .map_err(JsonApiError::from)?)
+                    },
                 )
                 .await
                 .map_err(reject_on_error)

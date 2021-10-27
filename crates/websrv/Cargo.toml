@@ -9,32 +9,28 @@ edition = "2021"
 
 [dependencies]
 anyhow = "*"
-aoide-core = "*"
-aoide-core-ext = "*"
-aoide-core-serde = "*"
-aoide-core-ext-serde = "*"
-aoide-media = "*"
-aoide-repo = "*"
-aoide-repo-sqlite = "*"
-aoide-usecases = "*"
 chrono = { version = "*", default-features = false }
-diesel = { version = "*", default-features = false, features = ["r2d2", "sqlite"] }
-diesel_migrations =  { version = "*", default-features = false, features = ["sqlite"] }
 dotenv = "*"
-log = "*"
 r2d2 = "*"
-semval = "*"
 serde = "*"
 serde_json = "*"
 thiserror = "*"
 tokio = { version = "*", default-features = false, features = ["macros", "rt-multi-thread", "signal"] }
 tracing = { version = "*", features = ["log"] }
-tracing-error = "*"
 tracing-log = "*"
 tracing-subscriber = { version = "*", features = ["env-filter"] }
-url = "*"
-uuid = { version = "*", features = ["v4"] }
 warp = { version = "*", default-features = false }
+
+# Workspace dependencies
+aoide-core = "*"
+aoide-core-ext = "*"
+aoide-core-serde = "*"
+aoide-core-ext-serde = "*"
+aoide-jsonapi-sqlite = "*"
+aoide-media = "*"
+aoide-repo = "*"
+aoide-repo-sqlite = "*"
+aoide-usecases = "*"
 
 [features]
 default = []

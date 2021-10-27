@@ -1,0 +1,34 @@
+[package]
+name = "aoide-jsonapi-sqlite"
+version = "0.0.0"
+license = "AGPL-3.0-or-later"
+publish = false
+edition = "2021"
+
+[dependencies]
+anyhow = "*"
+diesel = { version = "*", default-features = false, features = ["r2d2", "sqlite"] }
+diesel_migrations =  { version = "*", default-features = false, features = ["sqlite"] }
+semval = "*"
+serde = "*"
+serde_json = "*"
+thiserror = "*"
+tracing = { version = "*", features = ["log"] }
+url = "*"
+uuid = { version = "*", features = ["v4"] }
+
+# FIXME: Remove dependency on tokio
+tokio = { version = "*", default-features = false, features = ["sync"] }
+
+# Workspace dependencies
+aoide-core = "*"
+aoide-core-ext = "*"
+aoide-core-serde = "*"
+aoide-core-ext-serde = "*"
+aoide-media = "*"
+aoide-repo = "*"
+aoide-repo-sqlite = "*"
+aoide-usecases = "*"
+
+[features]
+default = []

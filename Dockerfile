@@ -84,6 +84,8 @@ RUN mkdir -p crates && \
     mv ${PROJECT_NAME}-core-ext crates/core-ext && \
     USER=root cargo new --lib ${PROJECT_NAME}-core-ext-serde && \
     mv ${PROJECT_NAME}-core-ext-serde crates/core-ext-serde && \
+    USER=root cargo new --lib ${PROJECT_NAME}-jsonapi-sqlite && \
+    mv ${PROJECT_NAME}-jsonapi-sqlite crates/jsonapi-sqlite && \
     USER=root cargo new --lib ${PROJECT_NAME}-media && \
     mv ${PROJECT_NAME}-media crates/media && \
     USER=root cargo new --lib ${PROJECT_NAME}-repo && \
@@ -118,6 +120,9 @@ COPY [ \
 COPY [ \
     "crates/core-ext-serde/Cargo.toml", \
     "./crates/core-ext-serde/" ]
+COPY [ \
+    "crates/jsonapi-sqlite/Cargo.toml", \
+    "./crates/jsonapi-sqlite/" ]
 COPY [ \
     "crates/media/Cargo.toml", \
     "./crates/media/" ]
@@ -167,6 +172,9 @@ COPY [ \
     "crates/core-ext-serde/src", \
     "./crates/core-ext-serde/src/" ]
 COPY [ \
+    "crates/jsonapi-sqlite/src", \
+    "./crates/jsonapi-sqlite/src/" ]
+COPY [ \
     "crates/media/src", \
     "./crates/media/src/" ]
 COPY [ \
@@ -198,6 +206,7 @@ RUN tree && \
     cargo check -p aoide-core-serde --manifest-path crates/core-serde/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
     cargo check -p aoide-core-ext --manifest-path crates/core-ext/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
     cargo check -p aoide-core-ext-serde --manifest-path crates/core-ext-serde/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
+    cargo check -p aoide-jsonapi-sqlite --manifest-path crates/jsonapi-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
     cargo check -p aoide-media --manifest-path crates/media/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
     cargo check -p aoide-repo --manifest-path crates/repo/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
     cargo check -p aoide-repo-sqlite --manifest-path crates/repo-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \

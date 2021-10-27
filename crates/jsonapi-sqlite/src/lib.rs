@@ -17,8 +17,19 @@
 #![deny(clippy::clone_on_ref_ptr)]
 #![warn(rust_2018_idioms)]
 
-pub mod api;
+pub mod ports;
+pub mod usecases;
 
-pub use aoide_jsonapi_sqlite::SqliteConnectionManager;
-pub use aoide_jsonapi_sqlite::SqliteConnectionPool;
-pub use aoide_jsonapi_sqlite::SqlitePooledConnection;
+use diesel::{
+    prelude::*,
+    r2d2::{ConnectionManager, Pool, PooledConnection},
+};
+
+#[macro_use]
+extern crate diesel_migrations;
+
+use aoide_repo_sqlite::prelude::{Connection as RepoConnection, *};
+
+pub type SqliteConnectionManager = ConnectionManager<SqliteConnection>;
+pub type SqliteConnectionPool = Pool<SqliteConnectionManager>;
+pub type SqlitePooledConnection = PooledConnection<SqliteConnectionManager>;

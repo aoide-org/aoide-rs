@@ -26,9 +26,7 @@ use aoide_core_ext_serde::media::ImportMode;
 
 use aoide_core_serde::track::{Entity, Track};
 
-use crate::api::web::track::replace::ReplaceMode;
-
-use super::*;
+use super::{replace::ReplaceMode, *};
 
 mod uc {
     pub use crate::usecases::track::replace::*;
