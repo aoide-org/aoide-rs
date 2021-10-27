@@ -36,8 +36,22 @@ repos:
   rev: v1.0
   hooks:
   - id: fmt
-    args: [--all, --]
+    args: [
+      --all,
+      --,
+    ]
   - id: cargo-check
-    args: [--workspace, --all-features, --]
+    args: [
+      --workspace,
+      --all-features,
+      --all-targets,
+    ]
   - id: clippy
-    args: [--all-targets, --all-features, --, -D, warnings]
+    args: [
+      --workspace,
+      --all-features,
+      --all-targets,
+      --,
+      -D,
+      warnings,
+    ]
