@@ -42,12 +42,14 @@ repos:
     ]
   - id: cargo-check
     args: [
+      --locked,
       --workspace,
       --all-features,
       --all-targets,
     ]
   - id: clippy
     args: [
+      --locked,
       --workspace,
       --all-features,
       --all-targets,
