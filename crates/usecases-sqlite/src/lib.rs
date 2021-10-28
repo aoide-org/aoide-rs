@@ -86,6 +86,7 @@ impl From<uc::Error> for Error {
     fn from(err: uc::Error) -> Self {
         use uc::Error::*;
         match err {
+            Input(err) => Self::Input(err),
             Media(err) => Self::Media(err),
             Io(err) => Self::Io(err),
             Repository(err) => Self::Repository(err),

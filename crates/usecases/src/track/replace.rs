@@ -88,10 +88,11 @@ pub fn replace_collected_track_by_media_source_path<Repo>(
     replace_mode: ReplaceMode,
     preserve_collected_at: bool,
     track: Track,
-) -> RepoResult<Option<MediaSourceId>>
+) -> Result<Option<MediaSourceId>>
 where
     Repo: EntityRepo,
 {
+    validate_track_input(&track)?;
     let media_source_path = track.media_source.path.clone();
     let outcome = repo
         .replace_collected_track_by_media_source_path(
@@ -163,7 +164,7 @@ pub fn import_and_replace_by_local_file_path<Repo>(
     replace_mode: ReplaceMode,
     source_path_resolver: &VirtualFilePathResolver,
     source_path: SourcePath,
-) -> RepoResult<()>
+) -> Result<()>
 where
     Repo: EntityRepo,
 {
@@ -244,7 +245,7 @@ pub fn replace_by_media_source_path<Repo>(
     collection_id: CollectionId,
     replace_mode: ReplaceMode,
     tracks: impl Iterator<Item = Track>,
-) -> RepoResult<Summary>
+) -> Result<Summary>
 where
     Repo: EntityRepo,
 {
@@ -277,7 +278,7 @@ pub fn import_and_replace_by_local_file_path_iter<Repo>(
     source_path_iter: impl Iterator<Item = SourcePath>,
     expected_source_path_count: Option<usize>,
     abort_flag: &AtomicBool,
-) -> RepoResult<Outcome>
+) -> Result<Outcome>
 where
     Repo: EntityRepo,
 {

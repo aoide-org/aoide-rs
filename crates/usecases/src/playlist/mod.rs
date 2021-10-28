@@ -13,37 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#![deny(missing_debug_implementations)]
-#![deny(clippy::clone_on_ref_ptr)]
-#![warn(rust_2018_idioms)]
+use semval::Validate as _;
 
-use aoide_media::Error as MediaError;
-use aoide_repo::prelude::*;
+use aoide_core::playlist::Playlist;
 
-use std::result::Result as StdResult;
-use thiserror::Error;
+use super::*;
 
-pub mod collection;
-pub mod media;
-pub mod playlist;
-pub mod track;
-
-#[derive(Error, Debug)]
-pub enum Error {
-    #[error(transparent)]
-    Input(anyhow::Error),
-
-    #[error(transparent)]
-    Media(#[from] MediaError),
-
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
-
-    #[error(transparent)]
-    Repository(#[from] RepoError),
-
-    #[error(transparent)]
-    Other(#[from] anyhow::Error),
+pub fn validate_playlist_input(playlist: &Playlist) -> Result<()> {
+    if let Err(err) = playlist.validate() {
+        return Err(Error::Input(anyhow::anyhow!("Invalid playlist: {:?}", err)));
+    }
+    Ok(())
 }
-
-pub type Result<T> = StdResult<T, Error>;

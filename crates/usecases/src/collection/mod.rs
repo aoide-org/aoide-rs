@@ -13,7 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::{entity::EntityUid, util::url::BaseUrl};
+use semval::Validate as _;
+
+use aoide_core::{collection::Collection, entity::EntityUid, util::url::BaseUrl};
 
 use aoide_media::resolver::VirtualFilePathResolver;
 
@@ -51,4 +53,14 @@ where
     let collection_id = repo.resolve_collection_id(collection_uid)?;
     let resolver = load_virtual_file_path_resolver(repo, collection_id, override_root_url)?;
     Ok((collection_id, resolver))
+}
+
+pub fn validate_collection_input(collection: &Collection) -> Result<()> {
+    if let Err(err) = collection.validate() {
+        return Err(Error::Input(anyhow::anyhow!(
+            "Invalid collection: {:?}",
+            err
+        )));
+    }
+    Ok(())
 }

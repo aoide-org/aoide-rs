@@ -13,19 +13,20 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
-
 use aoide_core::util::clock::DateTime;
 
 use aoide_repo::collection::EntityRepo as _;
 
-///////////////////////////////////////////////////////////////////////
+use uc::playlist::validate_playlist_input;
+
+use super::*;
 
 pub fn create(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
     new_playlist: Playlist,
 ) -> Result<Entity> {
+    validate_playlist_input(&new_playlist)?;
     let hdr = EntityHeader::initial_random();
     let entity = Entity::new(hdr, new_playlist);
     let created_at = DateTime::now_utc();

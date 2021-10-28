@@ -7,9 +7,10 @@ edition = "2021"
 
 [dependencies]
 anyhow = "*"
+bitflags = "*"
 blake3 = "*"
 digest = "*"
-bitflags = "*"
+semval = "*"
 thiserror = "*"
 tracing = { version = "*", features = ["log"] }
 url = "*"

@@ -91,7 +91,8 @@ pub fn replace_by_media_source_path(
                 *replace_mode,
                 *preserve_collected_at,
                 track,
-            )?;
+            )
+            .map_err(DieselTransactionError::new)?;
         }
         Ok(summary)
     })
@@ -128,7 +129,7 @@ pub fn import_and_replace_by_local_file_path_iter(
             expected_source_path_count,
             abort_flag,
         )
-        .map_err(Into::into)
+        .map_err(DieselTransactionError::new)
     })
     .map_err(Into::into)
 }

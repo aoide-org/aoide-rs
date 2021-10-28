@@ -13,19 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use semval::Validate as _;
-
 use aoide_core::util::clock::DateTime;
+
+use uc::collection::validate_collection_input;
 
 use super::*;
 
 pub fn create(connection: &SqliteConnection, new_collection: Collection) -> Result<Entity> {
-    if let Err(err) = new_collection.validate() {
-        return Err(Error::Input(anyhow::anyhow!(
-            "Invalid collection: {:?}",
-            err
-        )));
-    }
+    validate_collection_input(&new_collection)?;
     let hdr = EntityHeader::initial_random();
     let entity = Entity::new(hdr, new_collection);
     let created_at = DateTime::now_utc();

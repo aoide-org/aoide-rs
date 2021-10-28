@@ -13,11 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use semval::Validate as _;
 
 use aoide_core::track::*;
 use aoide_media::resolver::{FileUrlResolver, SourcePathResolver as _, VirtualFilePathResolver};
 use aoide_repo::track::RecordHeader;
+
+use super::*;
 
 pub mod find_duplicate;
 pub mod purge;
@@ -65,4 +67,15 @@ where
     fn reserve(&mut self, additional: usize) {
         self.collector.reserve(additional);
     }
+}
+
+pub fn validate_track_input(track: &Track) -> Result<()> {
+    if let Err(err) = track.validate() {
+        // Many tracks are expected to be inconsistent and invalid
+        // to some extent and we simply cannot reject all of them.
+        // Only log a warning to investigate the common cases step.
+        // by step and then decide how to handle them.
+        tracing::warn!("Invalid track: {:?}", err);
+    }
+    Ok(())
 }
