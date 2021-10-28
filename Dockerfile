@@ -94,6 +94,8 @@ RUN mkdir -p crates && \
     mv ${PROJECT_NAME}-repo-sqlite crates/repo-sqlite && \
     USER=root cargo new --lib ${PROJECT_NAME}-usecases && \
     mv ${PROJECT_NAME}-usecases crates/usecases && \
+    USER=root cargo new --lib ${PROJECT_NAME}-usecases-sqlite && \
+    mv ${PROJECT_NAME}-usecases-sqlite crates/usecases-sqlite && \
     USER=root cargo new --lib ${PROJECT_NAME}-websrv && \
     mv ${PROJECT_NAME}-websrv crates/websrv && \
     tree
@@ -135,6 +137,9 @@ COPY [ \
 COPY [ \
     "crates/usecases/Cargo.toml", \
     "./crates/usecases/" ]
+COPY [ \
+    "crates/usecases-sqlite/Cargo.toml", \
+    "./crates/usecases-sqlite/" ]
 COPY [ \
     "crates/websrv/Cargo.toml", \
     "./crates/websrv/" ]
@@ -190,6 +195,9 @@ COPY [ \
     "crates/usecases/src", \
     "./crates/usecases/src/" ]
 COPY [ \
+    "crates/usecases-sqlite/src", \
+    "./crates/usecases-sqlite/src/" ]
+COPY [ \
     "crates/websrv/res", \
     "./crates/websrv/res/" ]
 COPY [ \
@@ -211,6 +219,7 @@ RUN tree && \
     cargo check -p aoide-repo --manifest-path crates/repo/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
     cargo check -p aoide-repo-sqlite --manifest-path crates/repo-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
     cargo check -p aoide-usecases --manifest-path crates/usecases/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
+    cargo check -p aoide-usecases-sqlite --manifest-path crates/usecases-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
     cargo check -p aoide-websrv --manifest-path crates/websrv/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
     cargo test --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} --${BUILD_MODE} --target ${BUILD_TARGET} && \
     cargo build -p aoide-websrv --manifest-path crates/websrv/Cargo.toml --bin ${BUILD_BIN} ${BUILD_BIN_ARGS} --${BUILD_MODE} --target ${BUILD_TARGET} && \

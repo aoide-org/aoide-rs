@@ -13,8 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#![deny(missing_debug_implementations)]
-#![deny(clippy::clone_on_ref_ptr)]
-#![warn(rust_2018_idioms)]
+use super::*;
 
-pub mod api;
+pub mod import;
+pub mod query_status;
+pub mod scan;
+pub mod untrack;
+
+mod uc {
+    pub use aoide_core_ext::media::tracker::*;
+    pub use aoide_usecases::media::tracker::*;
+    pub use aoide_usecases_sqlite::media::tracker::*;
+}

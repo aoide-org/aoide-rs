@@ -17,19 +17,78 @@
 #![deny(clippy::clone_on_ref_ptr)]
 #![warn(rust_2018_idioms)]
 
-pub mod ports;
-pub mod usecases;
+use std::result::Result as StdResult;
 
-use diesel::{
-    prelude::*,
-    r2d2::{ConnectionManager, Pool, PooledConnection},
-};
+use serde::{Deserialize, Serialize};
+use thiserror::Error;
+use uuid::Uuid;
 
-#[macro_use]
-extern crate diesel_migrations;
+use aoide_repo::prelude::{Pagination, PaginationLimit, PaginationOffset};
 
-use aoide_repo_sqlite::prelude::{Connection as RepoConnection, *};
+use aoide_core_serde::entity::EntityRevision;
 
-pub type SqliteConnectionManager = ConnectionManager<SqliteConnection>;
-pub type SqliteConnectionPool = Pool<SqliteConnectionManager>;
-pub type SqlitePooledConnection = PooledConnection<SqliteConnectionManager>;
+use aoide_usecases_sqlite as uc;
+
+pub mod collection;
+pub mod media;
+pub mod playlist;
+pub mod track;
+
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error(transparent)]
+    BadRequest(anyhow::Error),
+
+    #[error(transparent)]
+    UseCase(uc::Error),
+
+    #[error(transparent)]
+    Other(#[from] anyhow::Error),
+}
+
+impl From<uc::Error> for Error {
+    fn from(err: uc::Error) -> Self {
+        Self::UseCase(err)
+    }
+}
+
+impl From<aoide_usecases::Error> for Error {
+    fn from(err: aoide_usecases::Error) -> Self {
+        uc::Error::from(err).into()
+    }
+}
+
+pub type Result<T> = StdResult<T, Error>;
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EntityRevQueryParams {
+    pub rev: EntityRevision,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PaginationQueryParams {
+    pub limit: Option<PaginationLimit>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub offset: Option<PaginationOffset>,
+}
+
+impl From<PaginationQueryParams> for Option<Pagination> {
+    fn from(from: PaginationQueryParams) -> Self {
+        let PaginationQueryParams { limit, offset } = from;
+        if let Some(limit) = limit {
+            Some(Pagination { limit, offset })
+        } else {
+            if let Some(offset) = offset {
+                tracing::warn!("Ignoring pagination offset = {} without limit", offset);
+            }
+            None
+        }
+    }
+}
+
+fn new_request_id() -> Uuid {
+    Uuid::new_v4()
+}

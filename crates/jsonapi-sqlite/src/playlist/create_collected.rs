@@ -13,8 +13,20 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#![deny(missing_debug_implementations)]
-#![deny(clippy::clone_on_ref_ptr)]
-#![warn(rust_2018_idioms)]
+use aoide_usecases_sqlite::{playlist::create as uc, SqlitePooledConnection};
 
-pub mod api;
+use super::*;
+
+pub type RequestBody = Playlist;
+
+pub type ResponseBody = Entity;
+
+pub fn handle_request(
+    pooled_connection: SqlitePooledConnection,
+    collection_uid: &EntityUid,
+    request_body: RequestBody,
+) -> Result<ResponseBody> {
+    uc::create(&pooled_connection, collection_uid, request_body.into())
+        .map(Into::into)
+        .map_err(Into::into)
+}

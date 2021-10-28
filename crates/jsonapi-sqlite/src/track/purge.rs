@@ -13,8 +13,30 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#![deny(missing_debug_implementations)]
-#![deny(clippy::clone_on_ref_ptr)]
-#![warn(rust_2018_idioms)]
+use aoide_core_ext_serde::filtering::StringPredicate;
+use aoide_usecases_sqlite::SqlitePooledConnection;
 
-pub mod api;
+use super::*;
+
+mod uc {
+    pub use aoide_repo::prelude::StringPredicate;
+    pub use aoide_usecases_sqlite::track::purge::*;
+}
+
+pub type RequestBody = Vec<StringPredicate>;
+
+pub type ResponseBody = u64;
+
+pub fn handle_request(
+    pooled_connection: SqlitePooledConnection,
+    collection_uid: &_core::EntityUid,
+    request_body: RequestBody,
+) -> Result<ResponseBody> {
+    uc::purge_by_media_source_path_predicates(
+        &pooled_connection,
+        collection_uid,
+        request_body.into_iter().map(Into::into).collect(),
+    )
+    .map(|count| count as u64)
+    .map_err(Into::into)
+}

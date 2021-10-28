@@ -13,8 +13,24 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#![deny(missing_debug_implementations)]
-#![deny(clippy::clone_on_ref_ptr)]
-#![warn(rust_2018_idioms)]
+use aoide_core::entity::EntityUid;
 
-pub mod api;
+use aoide_core_serde::track::Entity;
+use aoide_usecases_sqlite::SqlitePooledConnection;
+
+use super::*;
+
+mod uc {
+    pub use aoide_usecases_sqlite::track::load::*;
+}
+
+pub type ResponseBody = Entity;
+
+pub fn handle_request(
+    pooled_connection: SqlitePooledConnection,
+    uid: &EntityUid,
+) -> Result<ResponseBody> {
+    uc::load_one(&pooled_connection, uid)
+        .map(Into::into)
+        .map_err(Into::into)
+}

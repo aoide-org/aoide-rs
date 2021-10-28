@@ -10,6 +10,7 @@ members = [
   "crates/repo",
   "crates/repo-sqlite",
   "crates/usecases",
+  "crates/usecases-sqlite",
   "crates/websrv",
 ]
 
@@ -25,6 +26,7 @@ aoide-media = { path = "crates/media" }
 aoide-repo = { path = "crates/repo" }
 aoide-repo-sqlite = { path = "crates/repo-sqlite" }
 aoide-usecases = { path = "crates/usecases" }
+aoide-usecases-sqlite = { path = "crates/usecases-sqlite" }
 aoide-websrv = { path = "crates/websrv" }
 
 # Unreleased crates

@@ -13,8 +13,29 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#![deny(missing_debug_implementations)]
-#![deny(clippy::clone_on_ref_ptr)]
-#![warn(rust_2018_idioms)]
+use aoide_usecases_sqlite::{collection::update as uc, SqlitePooledConnection};
 
-pub mod api;
+use super::*;
+
+pub type RequestBody = Collection;
+
+pub type ResponseBody = Entity;
+
+pub fn handle_request(
+    pooled_connection: SqlitePooledConnection,
+    uid: EntityUid,
+    query_params: EntityRevQueryParams,
+    request_body: RequestBody,
+) -> Result<ResponseBody> {
+    let EntityRevQueryParams { rev } = query_params;
+    let updated_entity_with_current_rev = _inner::Entity::try_new(
+        _inner::EntityHeader {
+            uid,
+            rev: rev.into(),
+        },
+        request_body,
+    )?;
+    uc::update(&pooled_connection, updated_entity_with_current_rev)
+        .map(Into::into)
+        .map_err(Into::into)
+}

@@ -13,8 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#![deny(missing_debug_implementations)]
-#![deny(clippy::clone_on_ref_ptr)]
-#![warn(rust_2018_idioms)]
+use aoide_usecases_sqlite::{collection::delete as uc, SqlitePooledConnection};
 
-pub mod api;
+use super::*;
+
+pub type ResponseBody = ();
+
+pub fn handle_request(
+    pooled_connection: SqlitePooledConnection,
+    uid: &EntityUid,
+) -> Result<ResponseBody> {
+    uc::delete(&pooled_connection, uid).map_err(Into::into)
+}

@@ -26,7 +26,9 @@ use warp::{
 
 use aoide_repo::prelude::RepoError;
 
-use aoide_jsonapi_sqlite::ports as api;
+use aoide_jsonapi_sqlite as api;
+
+use aoide_usecases_sqlite as uc;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -40,15 +42,18 @@ pub enum Error {
     TaskScheduling(#[from] tokio::task::JoinError),
 
     #[error(transparent)]
-    DatabaseConnection(#[from] r2d2::Error),
-
-    #[error(transparent)]
     Other(#[from] anyhow::Error),
 }
 
 impl From<api::Error> for Error {
     fn from(err: api::Error) -> Self {
         Self::Api(err)
+    }
+}
+
+impl From<uc::Error> for Error {
+    fn from(err: uc::Error) -> Self {
+        api::Error::from(err).into()
     }
 }
 
@@ -60,10 +65,6 @@ pub fn reject_on_error(err: impl Into<Error>) -> Rejection {
     reject::custom(err.into())
 }
 
-pub fn reject_from_anyhow(err: impl Into<anyhow::Error>) -> Rejection {
-    reject_on_error(err.into())
-}
-
 #[derive(Debug)]
 struct CustomReject {
     code: StatusCode,
@@ -71,10 +72,6 @@ struct CustomReject {
 }
 
 impl Reject for CustomReject {}
-
-pub fn reject_status_code_message(code: StatusCode, message: String) -> Rejection {
-    warp::reject::custom(CustomReject { code, message })
-}
 
 /// An API error serializable to JSON.
 #[derive(Debug, Serialize)]
@@ -129,49 +126,50 @@ pub async fn handle_rejection(reject: Rejection) -> StdResult<impl Reply, Infall
                     code = StatusCode::BAD_REQUEST;
                     message = err.to_string();
                 }
-                api::Error::UseCase(err) => {
-                    use aoide_jsonapi_sqlite::usecases as uc;
-                    match err {
-                        uc::Error::Input(err) => {
-                            code = StatusCode::BAD_REQUEST;
-                            message = err.to_string();
-                        }
-                        uc::Error::Media(err) => {
-                            code = StatusCode::INTERNAL_SERVER_ERROR;
-                            message = err.to_string();
-                        }
-                        uc::Error::Database(err) => {
-                            code = StatusCode::INTERNAL_SERVER_ERROR;
-                            message = err.to_string();
-                        }
-                        uc::Error::DatabaseMigration(err) => {
-                            code = StatusCode::INTERNAL_SERVER_ERROR;
-                            message = err.to_string();
-                        }
-                        uc::Error::Repository(err) => match err {
-                            RepoError::NotFound => {
-                                code = StatusCode::NOT_FOUND;
-                                message = status_code_to_string(code);
-                            }
-                            RepoError::Conflict => {
-                                code = StatusCode::CONFLICT;
-                                message = status_code_to_string(code);
-                            }
-                            err => {
-                                code = StatusCode::INTERNAL_SERVER_ERROR;
-                                message = err.to_string();
-                            }
-                        },
-                        uc::Error::Io(err) => {
-                            code = StatusCode::INTERNAL_SERVER_ERROR;
-                            message = err.to_string();
-                        }
-                        uc::Error::Other(err) => {
-                            code = StatusCode::INTERNAL_SERVER_ERROR;
-                            message = err.to_string();
-                        }
+                api::Error::UseCase(err) => match err {
+                    uc::Error::Input(err) => {
+                        code = StatusCode::BAD_REQUEST;
+                        message = err.to_string();
                     }
-                }
+                    uc::Error::Media(err) => {
+                        code = StatusCode::INTERNAL_SERVER_ERROR;
+                        message = err.to_string();
+                    }
+                    uc::Error::Database(err) => {
+                        code = StatusCode::INTERNAL_SERVER_ERROR;
+                        message = err.to_string();
+                    }
+                    uc::Error::DatabaseMigration(err) => {
+                        code = StatusCode::INTERNAL_SERVER_ERROR;
+                        message = err.to_string();
+                    }
+                    uc::Error::DatabaseConnection(err) => {
+                        code = StatusCode::INTERNAL_SERVER_ERROR;
+                        message = err.to_string();
+                    }
+                    uc::Error::Repository(err) => match err {
+                        RepoError::NotFound => {
+                            code = StatusCode::NOT_FOUND;
+                            message = status_code_to_string(code);
+                        }
+                        RepoError::Conflict => {
+                            code = StatusCode::CONFLICT;
+                            message = status_code_to_string(code);
+                        }
+                        err => {
+                            code = StatusCode::INTERNAL_SERVER_ERROR;
+                            message = err.to_string();
+                        }
+                    },
+                    uc::Error::Io(err) => {
+                        code = StatusCode::INTERNAL_SERVER_ERROR;
+                        message = err.to_string();
+                    }
+                    uc::Error::Other(err) => {
+                        code = StatusCode::INTERNAL_SERVER_ERROR;
+                        message = err.to_string();
+                    }
+                },
                 api::Error::Other(err) => {
                     code = StatusCode::INTERNAL_SERVER_ERROR;
                     message = err.to_string();
@@ -182,10 +180,6 @@ pub async fn handle_rejection(reject: Rejection) -> StdResult<impl Reply, Infall
                 message = err.to_string();
             }
             Error::TaskScheduling(err) => {
-                code = StatusCode::INTERNAL_SERVER_ERROR;
-                message = err.to_string();
-            }
-            Error::DatabaseConnection(err) => {
                 code = StatusCode::INTERNAL_SERVER_ERROR;
                 message = err.to_string();
             }

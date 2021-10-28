@@ -138,11 +138,8 @@ dependencies = [
  "aoide-repo",
  "aoide-repo-sqlite",
  "aoide-usecases",
- "diesel",
- "diesel_migrations",
- "semval",
+ "aoide-usecases-sqlite",
  "serde",
- "serde_json",
  "thiserror",
  "tokio",
  "tracing",
@@ -239,6 +236,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "aoide-usecases-sqlite"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "aoide-core",
+ "aoide-core-ext",
+ "aoide-media",
+ "aoide-repo",
+ "aoide-repo-sqlite",
+ "aoide-usecases",
+ "diesel",
+ "diesel_migrations",
+ "r2d2",
+ "semval",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
 name = "aoide-websrv"
 version = "0.8.0"
 dependencies = [
@@ -252,6 +268,7 @@ dependencies = [
  "aoide-repo",
  "aoide-repo-sqlite",
  "aoide-usecases",
+ "aoide-usecases-sqlite",
  "chrono",
  "dotenv",
  "r2d2",

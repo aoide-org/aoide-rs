@@ -13,8 +13,19 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#![deny(missing_debug_implementations)]
-#![deny(clippy::clone_on_ref_ptr)]
-#![warn(rust_2018_idioms)]
+use super::*;
 
-pub mod api;
+use aoide_core::{
+    collection::*,
+    entity::{EntityHeader, EntityUid},
+};
+
+use aoide_repo::{
+    collection::{EntityRepo as _, RecordHeader},
+    prelude::*,
+};
+
+pub mod create;
+pub mod delete;
+pub mod load;
+pub mod update;
