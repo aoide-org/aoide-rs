@@ -141,7 +141,6 @@ dependencies = [
  "aoide-usecases-sqlite",
  "serde",
  "thiserror",
- "tokio",
  "tracing",
  "url",
  "uuid",

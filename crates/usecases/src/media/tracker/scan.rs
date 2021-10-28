@@ -77,7 +77,7 @@ pub fn scan_directories_recursively<Repo>(
     root_url: Option<BaseUrl>,
     source_path_resolver: &VirtualFilePathResolver,
     max_depth: Option<usize>,
-    progress_fn: &mut impl FnMut(ProgressEvent),
+    progress_event_fn: &mut impl FnMut(ProgressEvent),
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
@@ -143,7 +143,7 @@ where
         },
         |progress_event| {
             tracing::trace!("{:?}", progress_event);
-            progress_fn(progress_event.to_owned().into());
+            progress_event_fn(progress_event.to_owned().into());
         },
     )
     .map_err(anyhow::Error::from)

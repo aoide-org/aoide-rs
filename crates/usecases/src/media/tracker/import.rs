@@ -51,7 +51,7 @@ pub fn import<Repo>(
     import_flags: ImportTrackFlags,
     source_path_resolver: &VirtualFilePathResolver,
     root_url: Option<BaseUrl>,
-    progress_fn: &mut impl FnMut(&Summary),
+    progress_summary_fn: &mut impl FnMut(&Summary),
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
@@ -67,7 +67,7 @@ where
         .map_err(anyhow::Error::from)?;
     let mut summary = Summary::default();
     let outcome = 'outcome: loop {
-        progress_fn(&summary);
+        progress_summary_fn(&summary);
         let pending_entries = repo.media_tracker_load_directories_requiring_confirmation(
             collection_id,
             &root_path_prefix,
@@ -181,6 +181,6 @@ where
             }
         }
     };
-    progress_fn(&outcome.summary);
+    progress_summary_fn(&outcome.summary);
     Ok(outcome)
 }

@@ -13,9 +13,6 @@ tracing = { version = "*", features = ["log"] }
 url = "*"
 uuid = { version = "*", features = ["v4"] }
 
-# FIXME: Remove dependency on tokio
-tokio = { version = "*", default-features = false, features = ["sync"] }
-
 # Workspace dependencies
 aoide-core = "*"
 aoide-core-ext = "*"

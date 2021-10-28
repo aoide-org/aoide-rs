@@ -15,8 +15,6 @@
 
 use std::sync::atomic::AtomicBool;
 
-use tokio::sync::watch;
-
 use aoide_usecases_sqlite::SqlitePooledConnection;
 
 use aoide_core::{
@@ -50,7 +48,7 @@ pub type ResponseBody = Outcome;
     name = "Importing media sources",
     skip(
         pooled_connection,
-        progress_summary_tx,
+        progress_summary_fn,
         abort_flag,
     ),
     fields(
@@ -61,7 +59,7 @@ pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
     collection_uid: &EntityUid,
     request_body: RequestBody,
-    progress_summary_tx: Option<&watch::Sender<uc::Summary>>,
+    progress_summary_fn: &mut impl FnMut(&uc::Summary),
     abort_flag: &AtomicBool,
 ) -> Result<ResponseBody> {
     let RequestBody {
@@ -105,13 +103,7 @@ pub fn handle_request(
         &import_config,
         import_flags,
         root_url,
-        &mut |summary| {
-            if let Some(progress_summary_tx) = progress_summary_tx {
-                if progress_summary_tx.send(summary.to_owned()).is_err() {
-                    tracing::error!("Failed to send progress summary");
-                }
-            }
-        },
+        progress_summary_fn,
         abort_flag,
     )
     .map(Into::into)

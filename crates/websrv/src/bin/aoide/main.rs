@@ -35,6 +35,10 @@ use tokio::{
 };
 use warp::{http::StatusCode, Filter};
 
+use aoide_usecases::media::tracker::scan::ProgressEvent as ScanProgressEvent;
+
+use aoide_core_ext::media::tracker::import::Summary as ImportProgressSummary;
+
 use aoide_websrv::api::{handle_rejection, reject_on_error, Error};
 
 use aoide_jsonapi_sqlite as api;
@@ -438,7 +442,14 @@ pub async fn main() -> Result<(), Error> {
                             pooled_connection,
                             &uid,
                             request_body,
-                            Some(&progress_event_tx),
+                            &mut |progress_event: ScanProgressEvent| {
+                                if let Err(err) = progress_event_tx.send(Some(progress_event)) {
+                                    tracing::error!(
+                                        "Failed to send scan progress event: {:?}",
+                                        err.0
+                                    );
+                                }
+                            },
                             &MEDIA_TRACKER_ABORT_FLAG,
                         )
                         .map_err(Into::into)
@@ -492,7 +503,16 @@ pub async fn main() -> Result<(), Error> {
                             pooled_connection,
                             &uid,
                             request_body,
-                            Some(&progress_summary_tx),
+                            &mut |progress_summary: &ImportProgressSummary| {
+                                if let Err(err) =
+                                    progress_summary_tx.send(progress_summary.to_owned())
+                                {
+                                    tracing::error!(
+                                        "Failed to send import progress summary: {:?}",
+                                        err.0
+                                    );
+                                }
+                            },
                             &MEDIA_TRACKER_ABORT_FLAG,
                         )
                         .map_err(Into::into)

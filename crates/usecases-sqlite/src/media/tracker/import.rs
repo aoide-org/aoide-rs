@@ -44,7 +44,7 @@ pub fn import(
     import_config: &ImportTrackConfig,
     import_flags: ImportTrackFlags,
     root_url: Option<BaseUrl>,
-    progress_fn: &mut impl FnMut(&uc::Summary),
+    progress_summary_fn: &mut impl FnMut(&uc::Summary),
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {
     let db = RepoConnection::new(connection);
@@ -60,7 +60,7 @@ pub fn import(
             import_flags,
             &source_path_resolver,
             root_url,
-            progress_fn,
+            progress_summary_fn,
             abort_flag,
         )
         .map_err(DieselTransactionError::new)

@@ -34,7 +34,7 @@ pub fn scan_directories_recursively(
     collection_uid: &EntityUid,
     root_url: Option<BaseUrl>,
     max_depth: Option<usize>,
-    progress_fn: &mut impl FnMut(ProgressEvent),
+    progress_event_fn: &mut impl FnMut(ProgressEvent),
     abort_flag: &AtomicBool,
 ) -> Result<Outcome> {
     let db = RepoConnection::new(connection);
@@ -48,7 +48,7 @@ pub fn scan_directories_recursively(
             root_url,
             &source_path_resolver,
             max_depth,
-            progress_fn,
+            progress_event_fn,
             abort_flag,
         )
         .map_err(DieselTransactionError::new)

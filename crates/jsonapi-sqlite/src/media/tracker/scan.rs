@@ -15,8 +15,6 @@
 
 use std::sync::atomic::AtomicBool;
 
-use tokio::sync::watch;
-
 use aoide_usecases_sqlite::SqlitePooledConnection;
 
 use aoide_core::{entity::EntityUid, util::url::BaseUrl};
@@ -38,7 +36,7 @@ pub type ResponseBody = Outcome;
     name = "Scanning media sources",
     skip(
         pooled_connection,
-        progress_event_tx,
+        progress_event_fn,
         abort_flag,
     ),
     fields(
@@ -49,7 +47,7 @@ pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
     collection_uid: &EntityUid,
     request_body: RequestBody,
-    progress_event_tx: Option<&watch::Sender<Option<uc::ProgressEvent>>>,
+    progress_event_fn: &mut impl FnMut(uc::ProgressEvent),
     abort_flag: &AtomicBool,
 ) -> Result<ResponseBody> {
     let RequestBody {
@@ -67,13 +65,7 @@ pub fn handle_request(
         collection_uid,
         root_url,
         max_depth,
-        &mut |progress_event| {
-            if let Some(progress_event_tx) = progress_event_tx {
-                if progress_event_tx.send(Some(progress_event)).is_err() {
-                    tracing::error!("Failed to send progress event");
-                }
-            }
-        },
+        progress_event_fn,
         abort_flag,
     )
     .map(Into::into)
