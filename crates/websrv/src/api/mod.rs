@@ -24,6 +24,8 @@ use warp::{
     Reply,
 };
 
+use aoide_media::Error as MediaError;
+
 use aoide_repo::prelude::RepoError;
 
 use aoide_jsonapi_sqlite as api;
@@ -33,7 +35,10 @@ use aoide_usecases_sqlite as uc;
 #[derive(Error, Debug)]
 pub enum Error {
     #[error(transparent)]
-    Api(api::Error),
+    BadRequest(anyhow::Error),
+
+    #[error(transparent)]
+    UseCase(#[from] uc::Error),
 
     #[error("timeout: {reason}")]
     Timeout { reason: String },
@@ -47,13 +52,11 @@ pub enum Error {
 
 impl From<api::Error> for Error {
     fn from(err: api::Error) -> Self {
-        Self::Api(err)
-    }
-}
-
-impl From<uc::Error> for Error {
-    fn from(err: uc::Error) -> Self {
-        api::Error::from(err).into()
+        match err {
+            api::Error::BadRequest(err) => Self::BadRequest(err),
+            api::Error::UseCase(err) => Self::UseCase(err),
+            api::Error::Other(err) => Self::Other(err),
+        }
     }
 }
 
@@ -121,63 +124,71 @@ pub async fn handle_rejection(reject: Rejection) -> StdResult<impl Reply, Infall
             .unwrap_or_else(|| err.to_string());
     } else if let Some(err) = reject.find::<Error>() {
         match err {
-            Error::Api(err) => match err {
-                api::Error::BadRequest(err) => {
+            Error::BadRequest(err) => {
+                code = StatusCode::BAD_REQUEST;
+                message = err.to_string();
+            }
+            Error::UseCase(err) => match err {
+                uc::Error::Input(err) => {
                     code = StatusCode::BAD_REQUEST;
                     message = err.to_string();
                 }
-                api::Error::UseCase(err) => match err {
-                    uc::Error::Input(err) => {
-                        code = StatusCode::BAD_REQUEST;
-                        message = err.to_string();
+                uc::Error::Media(err) => match err {
+                    MediaError::UnknownContentType => {
+                        code = StatusCode::UNSUPPORTED_MEDIA_TYPE;
+                        message = status_code_to_string(code);
                     }
-                    uc::Error::Media(err) => {
-                        code = StatusCode::INTERNAL_SERVER_ERROR;
-                        message = err.to_string();
+                    MediaError::UnsupportedContentType(mime) => {
+                        code = StatusCode::UNSUPPORTED_MEDIA_TYPE;
+                        message = mime.to_string();
                     }
-                    uc::Error::Database(err) => {
-                        code = StatusCode::INTERNAL_SERVER_ERROR;
-                        message = err.to_string();
-                    }
-                    uc::Error::DatabaseMigration(err) => {
-                        code = StatusCode::INTERNAL_SERVER_ERROR;
-                        message = err.to_string();
-                    }
-                    uc::Error::DatabaseConnection(err) => {
-                        code = StatusCode::INTERNAL_SERVER_ERROR;
-                        message = err.to_string();
-                    }
-                    uc::Error::Repository(err) => match err {
-                        RepoError::NotFound => {
-                            code = StatusCode::NOT_FOUND;
-                            message = status_code_to_string(code);
-                        }
-                        RepoError::Conflict => {
-                            code = StatusCode::CONFLICT;
-                            message = status_code_to_string(code);
-                        }
-                        err => {
-                            code = StatusCode::INTERNAL_SERVER_ERROR;
-                            message = err.to_string();
-                        }
-                    },
-                    uc::Error::Io(err) => {
-                        code = StatusCode::INTERNAL_SERVER_ERROR;
-                        message = err.to_string();
-                    }
-                    uc::Error::Other(err) => {
+                    err => {
                         code = StatusCode::INTERNAL_SERVER_ERROR;
                         message = err.to_string();
                     }
                 },
-                api::Error::Other(err) => {
+                uc::Error::Database(err) => {
+                    code = StatusCode::INTERNAL_SERVER_ERROR;
+                    message = err.to_string();
+                }
+                uc::Error::DatabaseMigration(err) => {
+                    code = StatusCode::INTERNAL_SERVER_ERROR;
+                    message = err.to_string();
+                }
+                uc::Error::DatabaseConnection(err) => {
+                    code = StatusCode::INTERNAL_SERVER_ERROR;
+                    message = err.to_string();
+                }
+                uc::Error::Repository(err) => match err {
+                    RepoError::NotFound => {
+                        code = StatusCode::NOT_FOUND;
+                        message = status_code_to_string(code);
+                    }
+                    RepoError::Conflict => {
+                        code = StatusCode::CONFLICT;
+                        message = status_code_to_string(code);
+                    }
+                    RepoError::Aborted => {
+                        code = StatusCode::SERVICE_UNAVAILABLE;
+                        message = status_code_to_string(code);
+                    }
+                    RepoError::Other(err) => {
+                        code = StatusCode::INTERNAL_SERVER_ERROR;
+                        message = err.to_string();
+                    }
+                },
+                uc::Error::Io(err) => {
+                    code = StatusCode::INTERNAL_SERVER_ERROR;
+                    message = err.to_string();
+                }
+                uc::Error::Other(err) => {
                     code = StatusCode::INTERNAL_SERVER_ERROR;
                     message = err.to_string();
                 }
             },
-            Error::Timeout { .. } => {
-                code = StatusCode::SERVICE_UNAVAILABLE;
-                message = err.to_string();
+            Error::Timeout { reason } => {
+                code = StatusCode::REQUEST_TIMEOUT;
+                message = reason.to_owned();
             }
             Error::TaskScheduling(err) => {
                 code = StatusCode::INTERNAL_SERVER_ERROR;
