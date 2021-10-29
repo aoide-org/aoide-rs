@@ -349,7 +349,7 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /api/c/{collectionUid}/api/media-tracker/scan:
+  /api/c/{collectionUid}/media-tracker/scan:
     post:
       summary: Scan a directory tree for changes
       description: |
@@ -384,7 +384,7 @@ paths:
                 $ref: '#/components/schemas/MediaTrackerScanResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /api/c/{collectionUid}/api/media-tracker/import:
+  /api/c/{collectionUid}/media-tracker/import:
     post:
       summary: Import sources from changed directories
       description: |
@@ -412,7 +412,7 @@ paths:
                 $ref: '#/components/schemas/MediaTrackerImportResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /api/c/{collectionUid}/api/media-tracker/untrack:
+  /api/c/{collectionUid}/media-tracker/untrack:
     post:
       summary: Discard tracked directories and their contents
       description: |
@@ -445,7 +445,7 @@ paths:
                 $ref: '#/components/schemas/MediaTrackerUntrackResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /api/c/{collectionUid}/api/media-tracker/query-status:
+  /api/c/{collectionUid}/media-tracker/query-status:
     post:
       summary: Query the aggregated status of tracked directories
       description: |
