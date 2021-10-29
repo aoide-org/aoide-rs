@@ -6,6 +6,8 @@
 
 # Build directories (or a symbolic link, i.e. without a trailing slash)
 /target
+/webapp/target
+/webapp/dist
 
 # Benchmark directories
 **/target/criterion/*
