@@ -36,16 +36,21 @@ use tokio::signal;
 
 const DEFAULT_LOG_FILTER: &str = "info";
 
-const DEFAULT_API_URL: &str = "http://[::1]:8080";
+const DEFAULT_SERVICE_URL: &str = "http://[::1]:8080";
 
 const PROGRESS_POLLING_PERIOD: Duration = Duration::from_millis(1_000);
+
+const COLLECTION_VFS_ROOT_URL_PARAM: &str = "vfs-root-url";
+
+const MEDIA_ROOT_URL_PARAM: &str = "media-root-url";
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(DEFAULT_LOG_FILTER))
         .init();
 
-    let default_api_url = env::var("API_URL").unwrap_or_else(|_| DEFAULT_API_URL.to_owned());
+    let default_service_url =
+        env::var("API_URL").unwrap_or_else(|_| DEFAULT_SERVICE_URL.to_owned());
 
     let matches = App::new("aoide-cli")
         .about("An experimental CLI for performing tasks on aoide")
@@ -57,12 +62,12 @@ async fn main() -> anyhow::Result<()> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("api-url")
-                .short("a")
-                .long("api-url")
+            Arg::with_name("service-url")
+                .short("s")
+                .long("service-url")
                 .takes_value(true)
                 .required(false)
-                .default_value(DEFAULT_API_URL),
+                .default_value(DEFAULT_SERVICE_URL),
         )
         .subcommand(
             App::new("collections")
@@ -76,7 +81,7 @@ async fn main() -> anyhow::Result<()> {
                                 .required(true),
                         )
                         .arg(
-                            Arg::with_name("root-url")
+                            Arg::with_name(COLLECTION_VFS_ROOT_URL_PARAM)
                                 .help("The file URL of the common root directory that contains all media sources")
                                 .required(true),
                         ),
@@ -93,8 +98,8 @@ async fn main() -> anyhow::Result<()> {
                     App::new("status")
                         .about("Queries the status of the media tracker")
                         .arg(
-                            Arg::with_name("root-url")
-                                .help("The root URL")
+                            Arg::with_name(MEDIA_ROOT_URL_PARAM)
+                                .help("The URL of the root directory containing tracked media files to be queried")
                                 .required(false),
                         ),
                 )
@@ -102,8 +107,8 @@ async fn main() -> anyhow::Result<()> {
                     App::new("scan")
                         .about("Scans directories on the file system for added/modified/removed media sources")
                         .arg(
-                            Arg::with_name("root-url")
-                                .help("The root URL")
+                            Arg::with_name(MEDIA_ROOT_URL_PARAM)
+                                .help("The URL of the root directory containing tracked media files to be scanned")
                                 .required(false),
                         ),
                 )
@@ -111,17 +116,17 @@ async fn main() -> anyhow::Result<()> {
                     App::new("import")
                         .about("Imports media sources on the file system from scanned directories")
                         .arg(
-                            Arg::with_name("root-url")
-                            .help("Only consider media sources matching this root URL")
-                            .required(false),
+                            Arg::with_name(MEDIA_ROOT_URL_PARAM)
+                                .help("The URL of the root directory containing tracked media files to be imported")
+                                .required(false),
                         ),
                 )
                 .subcommand(
                     App::new("untrack")
                         .about("Untracks directories on the file system")
                         .arg(
-                            Arg::with_name("root-url")
-                                .help("The root URL")
+                            Arg::with_name(MEDIA_ROOT_URL_PARAM)
+                                .help("The URL of the root directory containing tracked media files to be untracked")
                                 .required(true),
                         ),
                 )
@@ -129,8 +134,8 @@ async fn main() -> anyhow::Result<()> {
                     App::new("purge-orphaned-and-untracked")
                         .about("Purges all orphaned directories and tracks with untracked media sources")
                         .arg(
-                            Arg::with_name("root-url")
-                                .help("Only consider media sources matching this root URL")
+                            Arg::with_name(MEDIA_ROOT_URL_PARAM)
+                                .help("The URL of the root directory containing tracked media files to be cleaned up")
                                 .required(false),
                         ),
                 ),
@@ -139,7 +144,7 @@ async fn main() -> anyhow::Result<()> {
 
     let api_url = matches
         .value_of("api-url")
-        .unwrap_or(&default_api_url)
+        .unwrap_or(&default_service_url)
         .parse()
         .expect("URL");
     let mut collection_uid = matches
@@ -279,10 +284,10 @@ async fn main() -> anyhow::Result<()> {
                 match collections_matches.subcommand() {
                     ("create-mixxx", Some(create_matches)) => {
                         let title = create_matches.value_of("title").expect("title");
-                        let root_url = create_matches
-                            .value_of("root-url")
-                            .map(|s| s.parse().expect("root-url"))
-                            .expect("root-url");
+                        let vfs_root_url = create_matches
+                            .value_of(COLLECTION_VFS_ROOT_URL_PARAM)
+                            .map(|s| s.parse().expect(COLLECTION_VFS_ROOT_URL_PARAM))
+                            .expect(COLLECTION_VFS_ROOT_URL_PARAM);
                         let new_collection = Collection {
                             title: title.to_owned(),
                             kind: Some("mixxx.org".to_owned()),
@@ -290,7 +295,7 @@ async fn main() -> anyhow::Result<()> {
                             color: None,
                             media_source_config: MediaSourceConfig {
                                 source_path: aoide_core::media::SourcePathConfig::VirtualFilePath {
-                                    root_url,
+                                    root_url: vfs_root_url,
                                 },
                             },
                         };
@@ -394,8 +399,8 @@ async fn main() -> anyhow::Result<()> {
                         match media_tracker_matches.subcommand() {
                             ("status", status_matches) => {
                                 let collection_uid = collection.hdr.uid.clone();
-                                let root_url = status_matches
-                                    .and_then(|m| m.value_of("root-url"))
+                                let media_root_url = status_matches
+                                    .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
                                     .map(|s| s.parse().expect("URL"))
                                     .or_else(|| {
                                         collection
@@ -411,15 +416,15 @@ async fn main() -> anyhow::Result<()> {
                                 return Some(
                                     media_tracker::Intent::FetchStatus {
                                         collection_uid,
-                                        root_url,
+                                        root_url: media_root_url,
                                     }
                                     .into(),
                                 );
                             }
                             ("scan", scan_matches) => {
                                 let collection_uid = collection.hdr.uid.clone();
-                                let root_url = scan_matches
-                                    .and_then(|m| m.value_of("root-url"))
+                                let media_root_url = scan_matches
+                                    .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
                                     .map(|s| s.parse().expect("URL"))
                                     .or_else(|| {
                                         collection
@@ -434,36 +439,36 @@ async fn main() -> anyhow::Result<()> {
                                 return Some(
                                     media_tracker::Intent::StartScan {
                                         collection_uid,
-                                        root_url,
+                                        root_url: media_root_url,
                                     }
                                     .into(),
                                 );
                             }
                             ("import", import_matches) => {
                                 let collection_uid = collection.hdr.uid.clone();
-                                let root_url = import_matches
-                                    .and_then(|m| m.value_of("root-url"))
+                                let media_root_url = import_matches
+                                    .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
                                     .map(|s| s.parse().expect("URL"));
                                 subcommand_submitted = true;
                                 return Some(
                                     media_tracker::Intent::StartImport {
                                         collection_uid,
-                                        root_url,
+                                        root_url: media_root_url,
                                     }
                                     .into(),
                                 );
                             }
                             ("untrack", untrack_matches) => {
                                 let collection_uid = collection.hdr.uid.clone();
-                                let root_url = untrack_matches
-                                    .and_then(|m| m.value_of("root-url"))
+                                let media_root_url = untrack_matches
+                                    .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
                                     .map(|s| s.parse().expect("URL"))
                                     .expect("required");
                                 subcommand_submitted = true;
                                 return Some(
                                     media_tracker::Intent::Untrack {
                                         collection_uid,
-                                        root_url,
+                                        root_url: media_root_url,
                                     }
                                     .into(),
                                 );
@@ -473,14 +478,14 @@ async fn main() -> anyhow::Result<()> {
                                 purge_orphaned_and_untracked_matches,
                             ) => {
                                 let collection_uid = collection.hdr.uid.clone();
-                                let root_url = purge_orphaned_and_untracked_matches
-                                    .and_then(|m| m.value_of("root-url"))
+                                let media_root_url = purge_orphaned_and_untracked_matches
+                                    .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
                                     .map(|s| s.parse().expect("URL"));
                                 subcommand_submitted = true;
                                 return Some(
                                     media_tracker::Intent::PurgeOrphanedAndUntracked {
                                         collection_uid,
-                                        root_url,
+                                        root_url: media_root_url,
                                     }
                                     .into(),
                                 );
