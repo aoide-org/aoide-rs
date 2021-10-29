@@ -15,9 +15,10 @@ tags:
   - name: Media Tracker
   - name: Tracks
   - name: Playlists
+  - name: Storage
   - name: Administration
 paths:
-  /c:
+  /api/c:
     get:
       summary: List collections
       description: |
@@ -70,7 +71,7 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /c/{collectionUid}:
+  /api/c/{collectionUid}:
     get:
       summary: Load a collection
       description: |
@@ -142,7 +143,7 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /c/{collectionUid}/t/resolve:
+  /api/c/{collectionUid}/api/t/resolve:
     post:
       summary: Resolve the UIDs of tracks from a list of media source URIs
       description: |
@@ -181,7 +182,7 @@ paths:
                       - $ref: '#/components/schemas/EntityHeader'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /c/{collectionUid}/t/search:
+  /api/c/{collectionUid}/api/t/search:
     post:
       summary: Search collected tracks and their media sources
       description: |
@@ -210,7 +211,7 @@ paths:
                 $ref: '#/components/schemas/SearchCollectedTracksResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /c/{collectionUid}/t/replace:
+  /api/c/{collectionUid}/api/t/replace:
     post:
       summary: Replace collected tracks and media sources by URI
       description: |
@@ -238,7 +239,7 @@ paths:
                 $ref: '#/components/schemas/ReplaceCollectedTracksResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /c/{collectionUid}/t/import-and-replace:
+  /api/c/{collectionUid}/api/t/import-and-replace:
     post:
       summary: Import and replace collected tracks and media sources by URI
       description: |
@@ -264,7 +265,7 @@ paths:
                 $ref: '#/components/schemas/ImportAndReplaceCollectedTracksResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /c/{collectionUid}/t/purge:
+  /api/c/{collectionUid}/api/t/purge:
     post:
       summary: Purge collected tracks and media sources by URI
       description: |
@@ -286,7 +287,7 @@ paths:
             Batch operation succeeded.
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /c/{collectionUid}/t/purge-untracked:
+  /api/c/{collectionUid}/api/t/purge-untracked:
     post:
       summary: Purge collected tracks with untracked media sources
       description: |
@@ -319,7 +320,7 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /c/{collectionUid}/relocate-media-sources:
+  /api/c/{collectionUid}/relocate-media-sources:
     post:
       summary: Relocate collected media sources by URI prefix
       description: |
@@ -348,7 +349,7 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /c/{collectionUid}/media-tracker/scan:
+  /api/c/{collectionUid}/api/media-tracker/scan:
     post:
       summary: Scan a directory tree for changes
       description: |
@@ -383,7 +384,7 @@ paths:
                 $ref: '#/components/schemas/MediaTrackerScanResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /c/{collectionUid}/media-tracker/import:
+  /api/c/{collectionUid}/api/media-tracker/import:
     post:
       summary: Import sources from changed directories
       description: |
@@ -411,7 +412,7 @@ paths:
                 $ref: '#/components/schemas/MediaTrackerImportResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /c/{collectionUid}/media-tracker/untrack:
+  /api/c/{collectionUid}/api/media-tracker/untrack:
     post:
       summary: Discard tracked directories and their contents
       description: |
@@ -444,7 +445,7 @@ paths:
                 $ref: '#/components/schemas/MediaTrackerUntrackResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /c/{collectionUid}/media-tracker/query-status:
+  /api/c/{collectionUid}/api/media-tracker/query-status:
     post:
       summary: Query the aggregated status of tracked directories
       description: |
@@ -468,7 +469,7 @@ paths:
                 $ref: '#/components/schemas/MediaTrackerQueryStatusResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /media-tracker/progress:
+  /api/media-tracker/progress:
     get:
       summary: Report the current progress
       description: |
@@ -499,7 +500,7 @@ paths:
                         $ref: '#/components/schemas/MediaTrackerImportingProgress'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /media-tracker/abort:
+  /api/media-tracker/abort:
     post:
       summary: Abort any running tracker task
       description: |
@@ -519,7 +520,7 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /t/{trackUid}:
+  /api/t/{trackUid}:
     get:
       summary: Load a track
       description: |
@@ -540,7 +541,7 @@ paths:
           $ref: '#/components/responses/404NotFound'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /t/load:
+  /api/t/load:
     post:
       summary: Load multiple tracks
       description: |
@@ -572,7 +573,7 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /c/{collectionUid}/p:
+  /api/c/{collectionUid}/p:
     get:
       summary: List collected playlists
       description: |
@@ -628,7 +629,7 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /p/{playlistUid}:
+  /api/p/{playlistUid}:
     get:
       summary: Load a playlist
       description: |
@@ -699,7 +700,7 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /p/{playlistUid}/entries:
+  /api/p/{playlistUid}/entries:
     patch:
       summary: Patch playlist entries
       description: |
@@ -734,6 +735,30 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
+  /api/storage/cleanse:
+    post:
+      summary: Cleanse the database
+      description: |
+        First check and repair inconsistencies, then analyze and optimize
+        statistics for the query planner.
+
+        Finally, the database could be compacted by rebuilding the database
+        file from scratch.
+      tags:
+        - Storage
+      parameters:
+        - in: query
+          name: vacuum
+          schema:
+            type: boolean
+          description: |
+            Rebuild the database file from scratch.
+      responses:
+        '204':
+          $ref: '#/components/responses/204NoContent'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+
   /about:
     get:
       summary: Report service properties
@@ -749,29 +774,7 @@ paths:
                 type: object
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /storage/cleanse:
-    post:
-      summary: Cleanse the database
-      description: |
-        First check and repair inconsistencies, then analyze and optimize
-        statistics for the query planner.
 
-        Finally, the database could be compacted by rebuilding the database
-        file from scratch.
-      tags:
-        - Administration
-      parameters:
-        - in: query
-          name: vacuum
-          schema:
-            type: boolean
-          description: |
-            Rebuild the database file from scratch.
-      responses:
-        '204':
-          $ref: '#/components/responses/204NoContent'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
   /shutdown:
     post:
       summary: Shut down gracefully

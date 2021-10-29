@@ -47,7 +47,10 @@ impl WebClientEnvironment for Environment {
     }
 
     fn join_api_url(&self, input: &str) -> anyhow::Result<Url> {
-        self.api_url.join(input).map_err(Into::into)
+        self.api_url
+            .join("api")
+            .map_err(Into::into)
+            .and_then(|url| url.join(input).map_err(Into::into))
     }
 }
 
