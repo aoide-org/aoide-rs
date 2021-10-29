@@ -24,8 +24,6 @@ use warp::{
     Reply,
 };
 
-use aoide_media::Error as MediaError;
-
 use aoide_repo::prelude::RepoError;
 
 use aoide_jsonapi_sqlite as api;
@@ -133,20 +131,13 @@ pub async fn handle_rejection(reject: Rejection) -> StdResult<impl Reply, Infall
                     code = StatusCode::BAD_REQUEST;
                     message = err.to_string();
                 }
-                uc::Error::Media(err) => match err {
-                    MediaError::UnknownContentType => {
-                        code = StatusCode::UNSUPPORTED_MEDIA_TYPE;
-                        message = status_code_to_string(code);
-                    }
-                    MediaError::UnsupportedContentType(mime) => {
-                        code = StatusCode::UNSUPPORTED_MEDIA_TYPE;
-                        message = mime.to_string();
-                    }
-                    err => {
-                        code = StatusCode::INTERNAL_SERVER_ERROR;
-                        message = err.to_string();
-                    }
-                },
+                uc::Error::Media(err) => {
+                    // Using StatusCode::UNSUPPORTED_MEDIA_TYPE for some
+                    // of the error variants would be wrong, because they
+                    // don't affect the media type of the request!
+                    code = StatusCode::INTERNAL_SERVER_ERROR;
+                    message = err.to_string();
+                }
                 uc::Error::Database(err) => {
                     code = StatusCode::INTERNAL_SERVER_ERROR;
                     message = err.to_string();
