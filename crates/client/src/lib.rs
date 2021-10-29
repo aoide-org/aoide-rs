@@ -26,7 +26,7 @@ pub mod models;
 
 pub trait WebClientEnvironment {
     fn client(&self) -> &Client;
-    fn join_api_url(&self, input: &str) -> anyhow::Result<Url>;
+    fn join_api_url(&self, query_suffix: &str) -> anyhow::Result<Url>;
 }
 
 async fn receive_response_body(response: Response) -> anyhow::Result<Bytes> {

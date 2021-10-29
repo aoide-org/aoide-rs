@@ -26,15 +26,15 @@ use super::{Effect, Intent, Message, MessageSender, Task};
 /// Immutable environment
 #[derive(Debug)]
 pub struct Environment {
-    api_url: Url,
+    service_url: Url,
     client: Client,
     pending_tasks_counter: PendingTasksCounter,
 }
 
 impl Environment {
-    pub fn new(api_url: Url) -> Self {
+    pub fn new(service_url: Url) -> Self {
         Self {
-            api_url,
+            service_url,
             client: Client::new(),
             pending_tasks_counter: PendingTasksCounter::new(),
         }
@@ -46,11 +46,10 @@ impl WebClientEnvironment for Environment {
         &self.client
     }
 
-    fn join_api_url(&self, input: &str) -> anyhow::Result<Url> {
-        self.api_url
-            .join("api")
-            .map_err(Into::into)
-            .and_then(|url| url.join(input).map_err(Into::into))
+    fn join_api_url(&self, query_suffix: &str) -> anyhow::Result<Url> {
+        let api_url = self.service_url.join("api/")?.join(query_suffix)?;
+        tracing::debug!("API URL: {}", api_url);
+        Ok(api_url)
     }
 }
 
