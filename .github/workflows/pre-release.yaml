@@ -46,6 +46,13 @@ jobs:
           toolchain: stable
           profile: minimal
 
+      - name: Install Rust toolchain for webapp
+        uses: actions-rs/toolchain@v1
+        with:
+          target: wasm32-unknown-unknown
+          toolchain: stable
+          profile: minimal
+
       - name: Cache Rust toolchain and build artifacts
         uses: Swatinem/rust-cache@v1
 

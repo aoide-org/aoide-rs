@@ -1,0 +1,6 @@
+[build]
+release = true
+
+[[proxy]]
+backend = "http://localhost:8080/"
+rewrite = "/api"

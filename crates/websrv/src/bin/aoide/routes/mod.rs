@@ -14,3 +14,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 pub mod api;
+
+#[cfg(feature = "with-webapp")]
+pub mod app;

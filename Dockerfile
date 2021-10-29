@@ -62,7 +62,9 @@ RUN apt update \
         musl-tools \
         tree \
     && rm -rf /var/lib/apt/lists/* \
-    && rustup target add ${BUILD_TARGET}
+    && rustup target add ${BUILD_TARGET} \
+    && rustup target add wasm32-unknown-unknown \
+    && cargo install --locked trunk
 
 # Docker build cache: Create and build an empty dummy workspace with all
 # external dependencies to avoid redownloading them on subsequent builds
@@ -203,6 +205,9 @@ COPY [ \
 COPY [ \
     "crates/websrv/src", \
     "./crates/websrv/src/" ]
+COPY [ \
+    "webapp", \
+    "./webapp/" ]
 
 # 1. Check all sub-projects using their local manifest for an isolated, standalone build
 # 2. Build workspace and run all unit tests
@@ -220,6 +225,7 @@ RUN tree && \
     cargo check -p aoide-repo-sqlite --manifest-path crates/repo-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
     cargo check -p aoide-usecases --manifest-path crates/usecases/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
     cargo check -p aoide-usecases-sqlite --manifest-path crates/usecases-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
+    cd webapp && trunk build && cd - \
     cargo check -p aoide-websrv --manifest-path crates/websrv/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
     cargo test --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} --${BUILD_MODE} --target ${BUILD_TARGET} && \
     cargo build -p aoide-websrv --manifest-path crates/websrv/Cargo.toml --bin ${BUILD_BIN} ${BUILD_BIN_ARGS} --${BUILD_MODE} --target ${BUILD_TARGET} && \

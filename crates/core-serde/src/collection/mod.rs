@@ -55,18 +55,18 @@ impl From<_core::MediaSourceConfig> for MediaSourceConfig {
 #[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Collection {
-    title: String,
+    pub title: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    notes: Option<String>,
+    pub notes: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    kind: Option<String>,
+    pub kind: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    color: Option<Color>,
+    pub color: Option<Color>,
 
-    media_source_config: MediaSourceConfig,
+    pub media_source_config: MediaSourceConfig,
 }
 
 impl TryFrom<Collection> for _core::Collection {

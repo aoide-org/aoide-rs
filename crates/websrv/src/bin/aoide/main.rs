@@ -38,8 +38,10 @@ mod routes;
 
 const WEB_SERVER_LISTENING_DELAY: Duration = Duration::from_millis(250);
 
-static INDEX_HTML: &str = include_str!("../../../res/index.html");
 static OPENAPI_YAML: &str = include_str!("../../../res/openapi.yaml");
+
+#[cfg(not(feature = "with-webapp"))]
+static INDEX_HTML: &str = include_str!("../../../res/index.html");
 
 static MEDIA_TRACKER_ABORT_FLAG: AtomicBool = AtomicBool::new(false);
 
@@ -143,7 +145,6 @@ pub async fn main() -> Result<(), Error> {
     ));
 
     // Static content
-    let index_html = warp::path::end().map(|| warp::reply::html(INDEX_HTML));
     let openapi_yaml = warp::path("openapi.yaml").map(|| {
         warp::reply::with_header(
             OPENAPI_YAML,
@@ -151,15 +152,23 @@ pub async fn main() -> Result<(), Error> {
             "application/x-yaml;charset=utf-8",
         )
     });
-    let static_filters = index_html.or(openapi_yaml);
+    let static_filters = openapi_yaml;
+
+    #[cfg(not(feature = "with-webapp"))]
+    let static_filters = static_filters.or(INDEX_HTML);
+
+    let all_filters = api_filters
+        .or(static_filters)
+        .or(shutdown_filter)
+        .or(about_filter);
+
+    #[cfg(feature = "with-webapp")]
+    let all_filters = all_filters.or(routes::app::get_index().or(routes::app::get_assets()));
 
     tracing::info!("Initializing server");
 
     let server = warp::serve(
-        api_filters
-            .or(static_filters)
-            .or(shutdown_filter)
-            .or(about_filter)
+        all_filters
             .with(warp::cors().allow_any_origin())
             .recover(handle_rejection),
     );

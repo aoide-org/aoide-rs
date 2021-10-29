@@ -26,6 +26,17 @@ jobs:
           toolchain: stable
           profile: minimal
 
+      - name: Install Rust toolchain for webapp
+        uses: actions-rs/toolchain@v1
+        with:
+          target: wasm32-unknown-unknown
+          toolchain: stable
+          profile: minimal
+
+      - name: Install Trunk for building the webapp
+        run: |
+          cargo install --locked trunk
+
       - name: Cache Rust toolchain and build artifacts
         uses: Swatinem/rust-cache@v1
 
@@ -76,6 +87,12 @@ jobs:
         with:
           command: check
           args: --locked --manifest-path crates/usecases/Cargo.toml
+
+      - name: Build aoide-webapp artifacts
+        run: |
+          cd webapp
+          trunk build
+          cd -
 
       - name: Check aoide-websrv
         uses: actions-rs/cargo@v1

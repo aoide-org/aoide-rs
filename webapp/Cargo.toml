@@ -1,0 +1,21 @@
+[package]
+name = "aoide-webapp"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+anyhow = "*"
+seed = "*"
+serde = { version = "*", features = ["derive"] }
+thiserror = "*"
+
+# Workspace dependencies
+aoide-core-serde = "*"
+aoide-core-ext-serde = "*"
+
+[patch.crates-io]
+aoide-core = { path = "../crates/core" }
+aoide-core-serde = { path = "../crates/core-serde" }
+aoide-core-ext = { path = "../crates/core-ext" }
+aoide-core-ext-serde = { path = "../crates/core-ext-serde" }

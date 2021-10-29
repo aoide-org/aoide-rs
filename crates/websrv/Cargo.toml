@@ -21,6 +21,9 @@ tracing-log = "*"
 tracing-subscriber = { version = "*", features = ["env-filter"] }
 warp = { version = "*", default-features = false }
 
+mime_guess = { version = "*", optional = true }
+rust-embed = { version = "*", optional = true }
+
 # Workspace dependencies
 aoide-core = "*"
 aoide-core-ext = "*"
@@ -34,5 +37,5 @@ aoide-usecases = "*"
 aoide-usecases-sqlite = "*"
 
 [features]
-default = []
-with-webapp = []
+default = ["with-webapp"]
+with-webapp = ["mime_guess", "rust-embed"]

@@ -136,13 +136,18 @@ queries are used for this purpose.
 
 ### Executable
 
-The server executable is built with the following command:
+The server executable is built with the following commands:
 
 ```bash
+cd webapp && trunk build && cd -
 cargo build --all-features --package aoide-websrv
 ```
 
 > Use `cargo build --release ...` for an optimized release build instead of a debug build!
+
+The web application is enabled by default and its `/dist` files have to be built as a prerequisite.
+Use `cargo install trunk` once to install the required [Trunk](https://github.com/thedodd/trunk)
+web application builder/bundler beforehand. The *webapp* itself is **not** part of the workspace!
 
 During development it is handy to build and run the executable in a single step:
 
