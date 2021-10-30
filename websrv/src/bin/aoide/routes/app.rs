@@ -5,7 +5,7 @@ use warp::{
 };
 
 #[derive(RustEmbed)]
-#[folder = "../../webapp/dist/"]
+#[folder = "../webapp/dist/"]
 struct Asset;
 
 pub fn get_index() -> BoxedFilter<(impl Reply,)> {

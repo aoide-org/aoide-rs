@@ -74,8 +74,10 @@ RUN apt update \
 RUN mkdir -p ${WORKDIR_ROOT}/${PROJECT_NAME}
 WORKDIR ${WORKDIR_ROOT}/${PROJECT_NAME}
 
-# Create all sub-crates in workspace
-RUN mkdir -p crates && \
+# Create all projects and crates in workspace
+RUN USER=root cargo new --lib ${PROJECT_NAME}-websrv && \
+    mv ${PROJECT_NAME}-websrv websrv && \
+    mkdir -p crates && \
     USER=root cargo new --lib ${PROJECT_NAME}-client && \
     mv ${PROJECT_NAME}-client crates/client && \
     USER=root cargo new --lib ${PROJECT_NAME}-core && \
@@ -98,8 +100,6 @@ RUN mkdir -p crates && \
     mv ${PROJECT_NAME}-usecases crates/usecases && \
     USER=root cargo new --lib ${PROJECT_NAME}-usecases-sqlite && \
     mv ${PROJECT_NAME}-usecases-sqlite crates/usecases-sqlite && \
-    USER=root cargo new --lib ${PROJECT_NAME}-websrv && \
-    mv ${PROJECT_NAME}-websrv crates/websrv && \
     tree
 
 COPY [ \
@@ -143,8 +143,8 @@ COPY [ \
     "crates/usecases-sqlite/Cargo.toml", \
     "./crates/usecases-sqlite/" ]
 COPY [ \
-    "crates/websrv/Cargo.toml", \
-    "./crates/websrv/" ]
+    "websrv/Cargo.toml", \
+    "./websrv/" ]
 
 # Build the workspace, then delete all build artefacts that must not(!) be cached
 #
@@ -200,11 +200,11 @@ COPY [ \
     "crates/usecases-sqlite/src", \
     "./crates/usecases-sqlite/src/" ]
 COPY [ \
-    "crates/websrv/res", \
-    "./crates/websrv/res/" ]
+    "websrv/res", \
+    "./websrv/res/" ]
 COPY [ \
-    "crates/websrv/src", \
-    "./crates/websrv/src/" ]
+    "websrv/src", \
+    "./websrv/src/" ]
 COPY [ \
     "webapp", \
     "./webapp/" ]
@@ -226,9 +226,9 @@ RUN tree && \
     cargo check -p aoide-usecases --manifest-path crates/usecases/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
     cargo check -p aoide-usecases-sqlite --manifest-path crates/usecases-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
     cd webapp && trunk build && cd - \
-    cargo check -p aoide-websrv --manifest-path crates/websrv/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
+    cargo check -p aoide-websrv --manifest-path websrv/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
     cargo test --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} --${BUILD_MODE} --target ${BUILD_TARGET} && \
-    cargo build -p aoide-websrv --manifest-path crates/websrv/Cargo.toml --bin ${BUILD_BIN} ${BUILD_BIN_ARGS} --${BUILD_MODE} --target ${BUILD_TARGET} && \
+    cargo build -p aoide-websrv --manifest-path websrv/Cargo.toml --bin ${BUILD_BIN} ${BUILD_BIN_ARGS} --${BUILD_MODE} --target ${BUILD_TARGET} && \
     strip ./target/${BUILD_TARGET}/${BUILD_MODE}/${BUILD_BIN}
 
 

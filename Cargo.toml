@@ -11,7 +11,7 @@ members = [
   "crates/repo-sqlite",
   "crates/usecases",
   "crates/usecases-sqlite",
-  "crates/websrv",
+  "websrv",
 ]
 exclude = [ "webapp" ]
 
@@ -28,7 +28,6 @@ aoide-repo = { path = "crates/repo" }
 aoide-repo-sqlite = { path = "crates/repo-sqlite" }
 aoide-usecases = { path = "crates/usecases" }
 aoide-usecases-sqlite = { path = "crates/usecases-sqlite" }
-aoide-websrv = { path = "crates/websrv" }
 
 # Unreleased crates
 triseratops = { git = "https://github.com/Holzhaus/triseratops.git", branch = "main" }
