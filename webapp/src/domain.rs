@@ -1,13 +1,24 @@
-pub use aoide_core_ext_serde::collection::CollectionWithSummary;
-pub use aoide_core_serde::{
-    collection::{Collection, MediaSourceConfig},
+pub use aoide_core::{
+    collection::{Entity as CollectionEntity, MediaSourceConfig},
+    entity::EntityHeader,
     util::color::*,
 };
 
-pub type Collections = Vec<((String, u64), Collection)>;
-pub type CollectionId = String;
+pub use aoide_core_ext::collection::{Summary as CollectionSummary};
 
-pub enum CollectionData {
-    Overview(Collection),
-    WithSummary(CollectionWithSummary),
+#[derive(Debug, Clone)]
+pub struct CollectionItem {
+    pub entity: CollectionEntity,
+    pub summary: Option<CollectionSummary>,
 }
+
+impl CollectionItem {
+    pub const fn without_summary(entity: CollectionEntity) -> Self {
+        Self {
+            entity,
+            summary: None,
+        }
+    }
+}
+
+pub type CollectionItems = Vec<CollectionItem>;

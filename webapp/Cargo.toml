@@ -11,8 +11,10 @@ serde = { version = "*", features = ["derive"] }
 thiserror = "*"
 
 # Workspace dependencies
+aoide-core = "*"
+aoide-core-ext = "*"
 aoide-core-serde = "*"
-aoide-core-ext-serde = "*"
+aoide-core-ext-serde = { version = "*", features = ["frontend"] }
 
 [patch.crates-io]
 aoide-core = { path = "../crates/core" }

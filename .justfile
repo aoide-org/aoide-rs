@@ -28,3 +28,8 @@ update:
 # Run pre-commit hooks
 pre-commit:
     pre-commit run --all-files
+
+# Launch a debug build of the web service with the webapp enabled
+debug-webapp:
+    cd webapp && trunk build
+    RUST_LOG=debug cargo run --package aoide-websrv --all-features

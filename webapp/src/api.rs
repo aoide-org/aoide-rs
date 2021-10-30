@@ -1,23 +1,36 @@
-use crate::domain::*;
+use aoide_core_ext_serde::collection::{
+    import_entity_with_summary, EntityWithSummary as CollectionEntityWithSummary,
+};
 use seed::{prelude::*, *};
+
 use thiserror::Error;
+
+use aoide_core::entity::EntityUid;
+
+use crate::domain::*;
 
 const BASE_URL: &str = "/api";
 
 /// GET /c
-pub async fn get_all_collections() -> Result<Collections> {
+pub async fn fetch_all_collections() -> Result<CollectionItems> {
     let url = format!("{}/c", BASE_URL);
-    let res = fetch(url).await?;
-    let c: Collections = res.check_status()?.json().await?;
-    Ok(c)
+    let response = fetch(url).await?;
+    let content: Vec<aoide_core_serde::collection::Entity> =
+        response.check_status()?.json().await?;
+    let mut items = Vec::with_capacity(content.len());
+    for item in content {
+        let entity = item.try_into().map_err(Error::DataShape)?;
+        items.push(CollectionItem::without_summary(entity));
+    }
+    Ok(items)
 }
 
-/// GET /c/{ID}
-pub async fn get_collection(id: &str) -> Result<CollectionWithSummary> {
-    let url = format!("{}/c/{}", BASE_URL, id);
-    let res = fetch(url).await?;
-    let c: CollectionWithSummary = res.check_status()?.json().await?;
-    Ok(c)
+/// GET /c/{UID}
+pub async fn fetch_collection_with_summary(uid: EntityUid) -> Result<CollectionItem> {
+    let url = format!("{}/c/{}?summary=true", BASE_URL, &uid);
+    let response = fetch(url).await?;
+    let content: CollectionEntityWithSummary = response.check_status()?.json().await?;
+    content.try_into()
 }
 
 // ------ ------
@@ -29,7 +42,7 @@ pub enum Error {
     #[error("A network problem has occurred")]
     Network,
     #[error("The form of the data to be processed is insufficient")]
-    DataShape,
+    DataShape(anyhow::Error),
     #[error("Something went wrong in the browser: {0:?}")]
     Browser(Option<String>),
     #[error("The communication with the server failed ({code}): {msg}")]
@@ -40,7 +53,7 @@ impl From<FetchError> for Error {
     fn from(e: FetchError) -> Self {
         use FetchError as E;
         match e {
-            E::SerdeError(_) => Error::DataShape,
+            E::SerdeError(err) => Error::DataShape(err.into()),
             E::NetworkError(_) => Error::Network,
             E::DomException(exception) => Error::Browser(exception.as_string()),
             E::PromiseError(js_value) | E::RequestError(js_value) => {
@@ -55,3 +68,13 @@ impl From<FetchError> for Error {
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
+
+impl TryFrom<CollectionEntityWithSummary> for CollectionItem {
+    type Error = Error;
+
+    fn try_from(from: CollectionEntityWithSummary) -> Result<Self> {
+        import_entity_with_summary(from)
+            .map(|(entity, summary)| Self { entity, summary })
+            .map_err(Error::DataShape)
+    }
+}
