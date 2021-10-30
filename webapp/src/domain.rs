@@ -4,7 +4,7 @@ pub use aoide_core::{
     util::color::*,
 };
 
-pub use aoide_core_ext::collection::{Summary as CollectionSummary};
+pub use aoide_core_ext::collection::Summary as CollectionSummary;
 
 #[derive(Debug, Clone)]
 pub struct CollectionItem {

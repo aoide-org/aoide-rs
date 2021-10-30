@@ -6,22 +6,32 @@ set dotenv-load := false
 _default:
     @just --list
 
+# Format source code
+fmt:
+    cargo fmt --all
+    cd webapp && cargo fmt
+
 # Run clippy
 check:
     cargo clippy --locked --workspace --all-features -- -D warnings
+    cd webapp && cargo clippy --locked --all-features -- -D warnings
 
 # Run unit tests
 test:
     cargo test --locked --workspace --all-features
+    cd webapp && cargo test --locked --all-features
 
 # Fix lint warnings
 fix:
     cargo fix --workspace --all-features
     cargo clippy --workspace --all-features --fix
+    cd webapp && cargo fix --all-features
+    cd webapp && cargo clippy --all-features
 
 # Update depenencies and pre-commit hooks
 update:
     cargo update --aggressive
+    cd webapp && cargo update --aggressive
     pip install -U pre-commit
     pre-commit autoupdate
 
