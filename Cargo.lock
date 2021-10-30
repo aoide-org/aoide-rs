@@ -101,6 +101,7 @@ dependencies = [
 name = "aoide-core-ext-serde"
 version = "0.0.0"
 dependencies = [
+ "anyhow",
  "aoide-core",
  "aoide-core-ext",
  "aoide-core-serde",

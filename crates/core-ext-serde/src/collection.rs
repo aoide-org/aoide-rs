@@ -17,6 +17,10 @@ use aoide_core_serde::{collection::Collection, entity::Entity};
 
 use crate::prelude::*;
 
+mod _core {
+    pub use aoide_core::collection::{Collection, Entity};
+}
+
 mod _inner {
     pub use crate::_inner::collection::{
         MediaSourceSummary, PlaylistSummary, Summary, TrackSummary,
@@ -29,6 +33,15 @@ pub struct MediaSourceSummary {
     pub total_count: u64,
 }
 
+#[cfg(feature = "frontend")]
+impl From<MediaSourceSummary> for _inner::MediaSourceSummary {
+    fn from(from: MediaSourceSummary) -> Self {
+        let MediaSourceSummary { total_count } = from;
+        Self { total_count }
+    }
+}
+
+#[cfg(feature = "backend")]
 impl From<_inner::MediaSourceSummary> for MediaSourceSummary {
     fn from(from: _inner::MediaSourceSummary) -> Self {
         let _inner::MediaSourceSummary { total_count } = from;
@@ -42,6 +55,15 @@ pub struct PlaylistSummary {
     pub total_count: u64,
 }
 
+#[cfg(feature = "frontend")]
+impl From<PlaylistSummary> for _inner::PlaylistSummary {
+    fn from(from: PlaylistSummary) -> Self {
+        let PlaylistSummary { total_count } = from;
+        Self { total_count }
+    }
+}
+
+#[cfg(feature = "backend")]
 impl From<_inner::PlaylistSummary> for PlaylistSummary {
     fn from(from: _inner::PlaylistSummary) -> Self {
         let _inner::PlaylistSummary { total_count } = from;
@@ -55,6 +77,15 @@ pub struct TrackSummary {
     pub total_count: u64,
 }
 
+#[cfg(feature = "frontend")]
+impl From<TrackSummary> for _inner::TrackSummary {
+    fn from(from: TrackSummary) -> Self {
+        let TrackSummary { total_count } = from;
+        Self { total_count }
+    }
+}
+
+#[cfg(feature = "backend")]
 impl From<_inner::TrackSummary> for TrackSummary {
     fn from(from: _inner::TrackSummary) -> Self {
         let _inner::TrackSummary { total_count } = from;
@@ -62,35 +93,51 @@ impl From<_inner::TrackSummary> for TrackSummary {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "frontend", derive(Deserialize))]
+#[cfg_attr(feature = "backend", derive(Serialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Summary {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub media_sources: Option<MediaSourceSummary>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tracks: Option<TrackSummary>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub playlists: Option<PlaylistSummary>,
+    pub media_sources: MediaSourceSummary,
+    pub playlists: PlaylistSummary,
+    pub tracks: TrackSummary,
 }
 
-impl From<_inner::Summary> for Summary {
-    fn from(from: _inner::Summary) -> Self {
-        let _inner::Summary {
-            tracks,
-            playlists,
+#[cfg(feature = "frontend")]
+impl From<Summary> for _inner::Summary {
+    fn from(from: Summary) -> Self {
+        let Summary {
             media_sources,
+            playlists,
+            tracks,
         } = from;
         Self {
-            tracks: tracks.map(Into::into),
-            playlists: playlists.map(Into::into),
-            media_sources: media_sources.map(Into::into),
+            media_sources: media_sources.into(),
+            playlists: playlists.into(),
+            tracks: tracks.into(),
         }
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg(feature = "backend")]
+impl From<_inner::Summary> for Summary {
+    fn from(from: _inner::Summary) -> Self {
+        let _inner::Summary {
+            media_sources,
+            playlists,
+            tracks,
+        } = from;
+        Self {
+            media_sources: media_sources.into(),
+            playlists: playlists.into(),
+            tracks: tracks.into(),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "frontend", derive(Deserialize))]
+#[cfg_attr(feature = "backend", derive(Serialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct CollectionWithSummary {
     #[serde(flatten)]
@@ -101,3 +148,17 @@ pub struct CollectionWithSummary {
 }
 
 pub type EntityWithSummary = Entity<CollectionWithSummary>;
+
+#[cfg(feature = "frontend")]
+pub fn import_entity_with_summary(
+    entity_with_summary: EntityWithSummary,
+) -> anyhow::Result<(_core::Entity, Option<_inner::Summary>)> {
+    let Entity(hdr, body) = entity_with_summary;
+    let CollectionWithSummary {
+        collection,
+        summary,
+    } = body;
+    let collection: _core::Collection = collection.try_into()?;
+    let entity = _core::Entity::new(hdr, collection);
+    Ok((entity, summary.map(Into::into)))
+}

@@ -17,7 +17,7 @@ uuid = { version = "*", features = ["v4"] }
 aoide-core = "*"
 aoide-core-ext = "*"
 aoide-core-serde = "*"
-aoide-core-ext-serde = "*"
+aoide-core-ext-serde = { version = "*", features = ["backend"] }
 aoide-media = "*"
 aoide-repo = "*"
 aoide-repo-sqlite = "*"

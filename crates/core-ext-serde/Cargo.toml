@@ -6,6 +6,7 @@ publish = false
 edition = "2021"
 
 [dependencies]
+anyhow = "*"
 serde = { version = "*", features = ["derive"] }
 url = { version = "*", features = ["serde"] }
 
@@ -16,3 +17,5 @@ aoide-core-ext = "*"
 
 [features]
 default = []
+frontend = []
+backend = []

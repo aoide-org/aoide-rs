@@ -205,9 +205,9 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             total_count: playlist_count as u64,
         };
         Ok(Summary {
-            media_sources: Some(media_source_summary),
-            tracks: Some(track_summary),
-            playlists: Some(playlist_summary),
+            media_sources: media_source_summary,
+            tracks: track_summary,
+            playlists: playlist_summary,
         })
     }
 }

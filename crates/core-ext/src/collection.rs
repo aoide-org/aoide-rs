@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use aoide_core::collection::Collection;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MediaSourceSummary {
     pub total_count: u64,
@@ -28,9 +30,31 @@ pub struct PlaylistSummary {
     pub total_count: u64,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Default)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Summary {
-    pub media_sources: Option<MediaSourceSummary>,
-    pub tracks: Option<TrackSummary>,
-    pub playlists: Option<PlaylistSummary>,
+    pub media_sources: MediaSourceSummary,
+    pub playlists: PlaylistSummary,
+    pub tracks: TrackSummary,
+}
+
+/// Collection with an optional summary
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CollectionWithSummary {
+    pub collection: Collection,
+    pub summary: Option<Summary>,
+}
+
+impl CollectionWithSummary {
+    pub const fn without_summary(collection: Collection) -> Self {
+        Self {
+            collection,
+            summary: None,
+        }
+    }
+}
+
+impl From<Collection> for CollectionWithSummary {
+    fn from(from: Collection) -> Self {
+        Self::without_summary(from)
+    }
 }

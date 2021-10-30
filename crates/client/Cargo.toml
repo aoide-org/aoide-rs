@@ -17,7 +17,7 @@ tracing = { version = "*", features = ["log"] }
 aoide-core = "*"
 aoide-core-serde = "*"
 aoide-core-ext = "*"
-aoide-core-ext-serde = "*"
+aoide-core-ext-serde = { version = "*", features = ["frontend"] }
 
 [dev-dependencies]
 clap = "*"
