@@ -44,49 +44,61 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --locked --manifest-path crates/core/Cargo.toml
+          args: --locked --all-features --manifest-path crates/core/Cargo.toml
 
       - name: Check aoide-core-serde
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --locked --manifest-path crates/core-serde/Cargo.toml
+          args: --locked --all-features --manifest-path crates/core-serde/Cargo.toml
 
       - name: Check aoide-core-ext
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --locked --manifest-path crates/core-ext/Cargo.toml
+          args: --locked --all-features --manifest-path crates/core-ext/Cargo.toml
 
       - name: Check aoide-core-ext-serde
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --locked --manifest-path crates/core-ext-serde/Cargo.toml
+          args: --locked --all-features --manifest-path crates/core-ext-serde/Cargo.toml
 
       - name: Check aoide-media
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --locked --manifest-path crates/media/Cargo.toml
+          args: --locked --all-features --manifest-path crates/media/Cargo.toml
 
       - name: Check aoide-repo
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --locked --manifest-path crates/repo/Cargo.toml
+          args: --locked --all-features --manifest-path crates/repo/Cargo.toml
 
       - name: Check aoide-repo-sqlite
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --locked --manifest-path crates/repo-sqlite/Cargo.toml
+          args: --locked --all-features --manifest-path crates/repo-sqlite/Cargo.toml
 
       - name: Check aoide-usecases
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --locked --manifest-path crates/usecases/Cargo.toml
+          args: --locked --all-features --manifest-path crates/usecases/Cargo.toml
+
+      - name: Check aoide-client
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --locked --all-features --manifest-path crates/client/Cargo.toml
+
+      - name: Check aoide-cli
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --locked --all-features --manifest-path crates/client/Cargo.toml --example aoide-cli
 
       - name: Build aoide-webapp artifacts
         run: |
@@ -98,31 +110,19 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --locked --manifest-path crates/websrv/Cargo.toml
-
-      - name: Check aoide-client
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --locked --manifest-path crates/client/Cargo.toml
-
-      - name: Check aoide-cli
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --locked --manifest-path crates/client/Cargo.toml --example aoide-cli
+          args: --locked --all-features --manifest-path websrv/Cargo.toml
 
       - name: Build tests with all features enabled
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --locked --workspace --all-features --no-run
+          args: --locked --all-features --workspace --no-run
 
       - name: Run tests with all features enabled
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --locked --workspace --all-features -- --nocapture --quiet
+          args: --locked --all-features --workspace -- --nocapture --quiet
 
       - name: Build release with default features
         uses: actions-rs/cargo@v1
