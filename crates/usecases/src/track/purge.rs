@@ -47,11 +47,14 @@ where
             collection_id,
             path_predicate.borrow(),
         )?;
-        let purged_media_sources =
-            repo.purge_media_sources_by_path_predicate(collection_id, path_predicate.borrow())?;
-        // The database might contain orphaned media sources that are
-        // not associated with any track.
-        debug_assert!(purged_tracks <= purged_media_sources);
+        // Media sources of purged tracks have already been purged recursively
+        // by cascading FK relationships in the database!
+        // TODO: How to resolve this implicit dependency on the database schema?
+        let purged_media_sources = purged_tracks
+            + repo.purge_orphaned_media_sources_by_path_predicate(
+                collection_id,
+                path_predicate.borrow(),
+            )?;
         summary.purged_tracks += purged_tracks;
         summary.purged_media_sources += purged_media_sources;
     }
@@ -90,5 +93,12 @@ where
     let untracked_media_sources =
         repo.media_tracker_find_untracked_sources(collection_id, &root_path_prefix)?;
     summary.purged_tracks += repo.purge_tracks_by_media_sources(&untracked_media_sources)?;
+    summary.purged_media_sources += if let Some(root_url) = root_url {
+        let root_path_prefix = resolve_path_prefix_from_base_url(source_path_resolver, root_url)?;
+        let root_path_predicate = StringPredicateBorrowed::Prefix(&root_path_prefix);
+        repo.purge_orphaned_media_sources_by_path_predicate(collection_id, root_path_predicate)
+    } else {
+        repo.purge_orphaned_media_sources(collection_id)
+    }?;
     Ok(summary)
 }

@@ -286,26 +286,26 @@ fn relocate_by_path() -> anyhow::Result<()> {
         db.insert_media_source(DateTime::now_utc(), collection_id, &file_uppercase)?;
 
     let updated_at = DateTime::now_utc();
-    let old_path_prefix = "file:///ho''";
-    let new_path_prefix = "file:///h'o''";
+    let old_path_prefix = SourcePath::new("file:///ho''".to_owned());
+    let new_path_prefix = SourcePath::new("file:///h'o''".to_owned());
 
     assert_eq!(
         1,
         db.relocate_media_sources_by_path_prefix(
             updated_at,
             collection_id,
-            old_path_prefix,
-            new_path_prefix
+            &old_path_prefix,
+            &new_path_prefix
         )?
     );
 
     assert!(fixture
-        .resolve_record_ids_by_path_predicate(StringPredicateBorrowed::Prefix(old_path_prefix))?
+        .resolve_record_ids_by_path_predicate(StringPredicateBorrowed::Prefix(&old_path_prefix))?
         .is_empty());
     assert_eq!(
         vec![header_lowercase.id],
         fixture.resolve_record_ids_by_path_predicate(StringPredicateBorrowed::Prefix(
-            new_path_prefix
+            &new_path_prefix
         ))?
     );
     assert_eq!(

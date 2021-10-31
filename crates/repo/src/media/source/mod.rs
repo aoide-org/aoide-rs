@@ -19,7 +19,10 @@ pub type RecordHeader = crate::RecordHeader<RecordId>;
 
 use crate::{collection::RecordId as CollectionId, prelude::*};
 
-use aoide_core::{media::Source, util::clock::DateTime};
+use aoide_core::{
+    media::{Source, SourcePath},
+    util::clock::DateTime,
+};
 
 pub trait Repo {
     fn resolve_media_source_id_synchronized_at_by_path(
@@ -58,8 +61,8 @@ pub trait Repo {
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        old_path_prefix: &str,
-        new_path_prefix: &str,
+        old_path_prefix: &SourcePath,
+        new_path_prefix: &SourcePath,
     ) -> RepoResult<usize>;
 
     fn purge_media_sources_by_path_predicate(
@@ -68,10 +71,13 @@ pub trait Repo {
         path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize>;
 
-    fn purge_orphaned_media_sources_from_collection(
+    fn purge_orphaned_media_sources_by_path_predicate(
         &self,
         collection_id: CollectionId,
+        path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize>;
+
+    fn purge_orphaned_media_sources(&self, collection_id: CollectionId) -> RepoResult<usize>;
 
     fn purge_orphaned_media_sources_from_all_collections(&self) -> RepoResult<usize>;
 }

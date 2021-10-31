@@ -21,7 +21,10 @@ use crate::{
     prelude::*,
 };
 
-use aoide_core::{media::Source, util::clock::DateTime};
+use aoide_core::{
+    media::{Source, SourcePath},
+    util::clock::DateTime,
+};
 
 use aoide_repo::{collection::RecordId as CollectionId, media::source::*};
 
@@ -74,8 +77,8 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        old_path_prefix: &str,
-        new_path_prefix: &str,
+        old_path_prefix: &SourcePath,
+        new_path_prefix: &SourcePath,
     ) -> RepoResult<usize> {
         let target = media_source::table
             .filter(media_source::collection_id.eq(RowId::from(collection_id)))
@@ -104,6 +107,29 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         diesel::delete(media_source::table.filter(media_source::row_id.eq_any(
             subselect::filter_by_path_predicate(collection_id, path_predicate),
         )))
+        .execute(self.as_ref())
+        .map_err(repo_error)
+    }
+
+    fn purge_orphaned_media_sources_by_path_predicate(
+        &self,
+        collection_id: CollectionId,
+        path_predicate: StringPredicateBorrowed<'_>,
+    ) -> RepoResult<usize> {
+        // Reuse the tested subselect with reliable predicate filtering
+        // even if it might be slightly less efficient! The query optimizer
+        // should detect this.
+        diesel::delete(
+            media_source::table
+                .filter(
+                    media_source::row_id.eq_any(subselect::filter_by_path_predicate(
+                        collection_id,
+                        path_predicate,
+                    )),
+                )
+                // Restrict to orphaned media sources without a track
+                .filter(media_source::row_id.ne_all(track::table.select(track::media_source_id))),
+        )
         .execute(self.as_ref())
         .map_err(repo_error)
     }
@@ -176,10 +202,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             .and_then(|record| record.try_into().map_err(Into::into))
     }
 
-    fn purge_orphaned_media_sources_from_collection(
-        &self,
-        collection_id: CollectionId,
-    ) -> RepoResult<usize> {
+    fn purge_orphaned_media_sources(&self, collection_id: CollectionId) -> RepoResult<usize> {
         let target = media_source::table
             .filter(media_source::collection_id.eq(RowId::from(collection_id)))
             .filter(media_source::row_id.ne_all(track::table.select(track::media_source_id)));
