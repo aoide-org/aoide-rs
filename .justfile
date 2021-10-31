@@ -30,8 +30,9 @@ fix:
 
 # Update depenencies and pre-commit hooks
 update:
-    cargo update --aggressive
-    cd webapp && cargo update --aggressive
+    rustup self update
+    cargo update
+    cd webapp && cargo update
     pip install -U pre-commit
     pre-commit autoupdate
 

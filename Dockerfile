@@ -45,26 +45,33 @@ ARG BUILD_TARGET
 ARG BUILD_MODE
 ARG BUILD_BIN
 
+# Enable all features and targets for the individual project checks
+ARG PROJECT_CHECK_ARGS="--locked --all-features --target ${BUILD_TARGET} --${BUILD_MODE}"
+
 # Enable select features for the workspace build or leave empty
 # for using the default features
 # Example: "--features feature-foobar"
-ARG WORKSPACE_BUILD_AND_TEST_ARGS="--all-features"
-
-# Enable all features and targets for the individual project checks
-ARG PROJECT_CHECK_ARGS="--all-targets --all-features"
+ARG WORKSPACE_BUILD_AND_TEST_ARGS="--locked --all-features --target ${BUILD_TARGET} --${BUILD_MODE}"
 
 # Enable all features in the executable
-ARG BUILD_BIN_ARGS="--all-features"
+ARG BUILD_BIN_ARGS="--locked --all-features --target ${BUILD_TARGET} --${BUILD_MODE}"
 
 # Prepare for musl libc build target
+# git is required for pre-commit
 RUN apt update \
     && apt install --no-install-recommends -y \
+        git \
         musl-tools \
+        python3-pip \
         tree \
     && rm -rf /var/lib/apt/lists/* \
-    && rustup target add ${BUILD_TARGET} \
-    && rustup target add wasm32-unknown-unknown \
-    && cargo install --locked trunk
+    && rustup target add \
+        ${BUILD_TARGET} \
+        wasm32-unknown-unknown \
+    && rustup show \
+    && rustup component list --installed \
+    && cargo install --locked trunk \
+    && pip install pre-commit
 
 # Docker build cache: Create and build an empty dummy workspace with all
 # external dependencies to avoid redownloading them on subsequent builds
@@ -107,6 +114,9 @@ COPY [ \
     "Cargo.lock", \
     "./" ]
 COPY [ \
+    "websrv/Cargo.toml", \
+    "./websrv/" ]
+COPY [ \
     "crates/client/Cargo.toml", \
     "./crates/client/" ]
 COPY [ \
@@ -142,9 +152,6 @@ COPY [ \
 COPY [ \
     "crates/usecases-sqlite/Cargo.toml", \
     "./crates/usecases-sqlite/" ]
-COPY [ \
-    "websrv/Cargo.toml", \
-    "./websrv/" ]
 
 # Build the workspace, then delete all build artefacts that must not(!) be cached
 #
@@ -155,14 +162,31 @@ COPY [ \
 # - For each sub-project delete both the corresponding deps/ AND .fingerprint/
 #   directories!
 RUN tree && \
-    cargo build --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} --${BUILD_MODE} --target ${BUILD_TARGET} && \
+    CARGO_INCREMENTAL=0 cargo build --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/${PROJECT_NAME}* && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/${PROJECT_NAME}-* && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/${PROJECT_NAME}_* && \
     rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/${PROJECT_NAME}-* && \
     tree
 
-# Copy all project (re-)sources that are required for building
+# Copy all project (re-)sources that are required for pre-commit and building
+COPY [ \
+    ".codespellignore", \
+    ".gitignore", \
+    ".markdownlint-cli2.yaml", \
+    ".pre-commit-config.yaml", \
+    ".clippy.toml", \
+    ".rustfmt.toml", \
+    "./" ]
+COPY [ \
+    "webapp", \
+    "./webapp/" ]
+COPY [ \
+    "websrv/res", \
+    "./websrv/res/" ]
+COPY [ \
+    "websrv/src", \
+    "./websrv/src/" ]
 COPY [ \
     "crates/client/src", \
     "./crates/client/src/" ]
@@ -199,36 +223,31 @@ COPY [ \
 COPY [ \
     "crates/usecases-sqlite/src", \
     "./crates/usecases-sqlite/src/" ]
-COPY [ \
-    "websrv/res", \
-    "./websrv/res/" ]
-COPY [ \
-    "websrv/src", \
-    "./websrv/src/" ]
-COPY [ \
-    "webapp", \
-    "./webapp/" ]
 
-# 1. Check all sub-projects using their local manifest for an isolated, standalone build
-# 2. Build workspace and run all unit tests
-# 3. Build the target binary
-# 4. Strip debug infos from the executable
+# 1. Run pre-commit
+# 2. Check all sub-projects using their local manifest for an isolated, standalone build
+# 3. Build workspace and run all unit tests for the build target
+# 4. Build the target binary
+# 5. Strip debug infos from the executable
 RUN tree && \
-    cargo check -p aoide-client --manifest-path crates/client/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
-    cargo check -p aoide-core --manifest-path crates/core/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
-    cargo check -p aoide-core-serde --manifest-path crates/core-serde/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
-    cargo check -p aoide-core-ext --manifest-path crates/core-ext/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
-    cargo check -p aoide-core-ext-serde --manifest-path crates/core-ext-serde/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
-    cargo check -p aoide-jsonapi-sqlite --manifest-path crates/jsonapi-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
-    cargo check -p aoide-media --manifest-path crates/media/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
-    cargo check -p aoide-repo --manifest-path crates/repo/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
-    cargo check -p aoide-repo-sqlite --manifest-path crates/repo-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
-    cargo check -p aoide-usecases --manifest-path crates/usecases/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
-    cargo check -p aoide-usecases-sqlite --manifest-path crates/usecases-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
-    cd webapp && trunk build && cd - \
-    cargo check -p aoide-websrv --manifest-path websrv/Cargo.toml ${PROJECT_CHECK_ARGS} --${BUILD_MODE} && \
-    cargo test --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} --${BUILD_MODE} --target ${BUILD_TARGET} && \
-    cargo build -p aoide-websrv --manifest-path websrv/Cargo.toml --bin ${BUILD_BIN} ${BUILD_BIN_ARGS} --${BUILD_MODE} --target ${BUILD_TARGET} && \
+    export CARGO_INCREMENTAL=0 && \
+    git init && CARGO_BUILD_TARGET=${BUILD_TARGET} pre-commit run --all-files && rm -rf .git && \
+    cargo check -p aoide-client --manifest-path crates/client/Cargo.toml ${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-core --manifest-path crates/core/Cargo.toml ${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-core-serde --manifest-path crates/core-serde/Cargo.toml ${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-core-ext --manifest-path crates/core-ext/Cargo.toml ${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-core-ext-serde --manifest-path crates/core-ext-serde/Cargo.toml ${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-jsonapi-sqlite --manifest-path crates/jsonapi-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-media --manifest-path crates/media/Cargo.toml ${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-repo --manifest-path crates/repo/Cargo.toml ${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-repo-sqlite --manifest-path crates/repo-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-usecases --manifest-path crates/usecases/Cargo.toml ${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-usecases-sqlite --manifest-path crates/usecases-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
+    cd webapp && trunk build && cd - && \
+    cargo check -p aoide-websrv --manifest-path websrv/Cargo.toml ${PROJECT_CHECK_ARGS} && \
+    cargo test --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} --no-run && \
+    cargo test --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} -- --nocapture --quiet && \
+    cargo build -p aoide-websrv --manifest-path websrv/Cargo.toml --bin ${BUILD_BIN} ${BUILD_BIN_ARGS} && \
     strip ./target/${BUILD_TARGET}/${BUILD_MODE}/${BUILD_BIN}
 
 

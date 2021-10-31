@@ -13,6 +13,8 @@ members = [
   "crates/usecases-sqlite",
   "websrv",
 ]
+# The webapp needs to be excluded from the workspace, because it is built
+# for a different target and with a different build profile!
 exclude = [ "webapp" ]
 
 [patch.crates-io]
