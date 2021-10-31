@@ -45,8 +45,11 @@ fn should_fail_to_decode_too_long_string() {
     let mut encoded = uid.encode_to_string();
     assert!(EntityUid::decode_from_str(&encoded).is_ok());
 
-    // Append one more character from the alphabet to the encoded string
-    encoded.push('a');
+    // Append more characters from the alphabet to the encoded string.
+    // Note: Appending only a single character might result in a valid UID!
+    while encoded.len() <= EntityUid::MAX_STR_LEN {
+        encoded.push('a');
+    }
     assert!(EntityUid::decode_from_str(&encoded).is_err());
 }
 
