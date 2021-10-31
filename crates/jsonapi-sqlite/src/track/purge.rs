@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core_ext_serde::filtering::StringPredicate;
+use aoide_usecases::track::purge::PurgeByMediaSourcePathPredicatesSummary;
 use aoide_usecases_sqlite::SqlitePooledConnection;
 
 use super::*;
@@ -25,7 +26,25 @@ mod uc {
 
 pub type RequestBody = Vec<StringPredicate>;
 
-pub type ResponseBody = u64;
+#[derive(Clone, Debug, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct ResponseBody {
+    purged_media_sources: u64,
+    purged_tracks: u64,
+}
+
+impl From<PurgeByMediaSourcePathPredicatesSummary> for ResponseBody {
+    fn from(from: PurgeByMediaSourcePathPredicatesSummary) -> Self {
+        let PurgeByMediaSourcePathPredicatesSummary {
+            purged_media_sources,
+            purged_tracks,
+        } = from;
+        Self {
+            purged_media_sources: purged_media_sources as u64,
+            purged_tracks: purged_tracks as u64,
+        }
+    }
+}
 
 pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
@@ -37,6 +56,6 @@ pub fn handle_request(
         collection_uid,
         request_body.into_iter().map(Into::into).collect(),
     )
-    .map(|count| count as u64)
+    .map(Into::into)
     .map_err(Into::into)
 }

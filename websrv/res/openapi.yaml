@@ -282,9 +282,13 @@ paths:
             schema:
               $ref: '#/components/schemas/PurgeCollectedTracksRequestBody'
       responses:
-        '204':
+        '200':
           description: |
             Batch operation succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurgeCollectedTracksResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
   /api/c/{collectionUid}/api/t/purge-untracked:
@@ -2138,10 +2142,25 @@ components:
         untrackOrphanedDirectories:
           type: boolean
           default: false
+    PurgeCollectedTracksResponseBody:
+      type: object
+      properties:
+        purgedMediaSources:
+          type: integer
+          format: int64
+        purgedTracks:
+          type: integer
+          format: int64
+      required:
+        - purgedMediaSources
+        - purgedTracks
     PurgeUntrackedTracksResponseBody:
       type: object
       properties:
         untrackedDirectories:
+          type: integer
+          format: int64
+        purgedMediaSources:
           type: integer
           format: int64
         purgedTracks:
@@ -2149,6 +2168,7 @@ components:
           format: int64
       required:
         - untrackedDirectories
+        - purgedMediaSources
         - purgedTracks
     Release:
       type: object

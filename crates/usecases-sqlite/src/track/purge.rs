@@ -29,7 +29,7 @@ pub fn purge_by_media_source_path_predicates(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
     path_predicates: Vec<StringPredicate>,
-) -> Result<usize> {
+) -> Result<uc::PurgeByMediaSourcePathPredicatesSummary> {
     let db = RepoConnection::new(connection);
     db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
         let collection_id = db.resolve_collection_id(collection_uid)?;

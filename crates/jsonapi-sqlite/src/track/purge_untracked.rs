@@ -41,6 +41,7 @@ pub struct RequestBody {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ResponseBody {
     untracked_directories: u64,
+    purged_media_sources: u64,
     purged_tracks: u64,
 }
 
@@ -48,10 +49,12 @@ impl From<PurgeByUntrackedMediaSourcesSummary> for ResponseBody {
     fn from(from: PurgeByUntrackedMediaSourcesSummary) -> Self {
         let PurgeByUntrackedMediaSourcesSummary {
             untracked_directories,
+            purged_media_sources,
             purged_tracks,
         } = from;
         Self {
             untracked_directories: untracked_directories as u64,
+            purged_media_sources: purged_media_sources as u64,
             purged_tracks: purged_tracks as u64,
         }
     }

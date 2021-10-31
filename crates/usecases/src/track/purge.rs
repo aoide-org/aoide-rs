@@ -27,31 +27,41 @@ use crate::media::tracker::resolve_path_prefix_from_base_url;
 
 use super::*;
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct PurgeByMediaSourcePathPredicatesSummary {
+    pub purged_media_sources: usize,
+    pub purged_tracks: usize,
+}
+
 pub fn purge_by_media_source_path_predicates<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
     path_predicates: Vec<StringPredicate>,
-) -> RepoResult<usize>
+) -> RepoResult<PurgeByMediaSourcePathPredicatesSummary>
 where
     Repo: EntityRepo + MediaSourceRepo,
 {
-    let mut total_purged_tracks = 0;
+    let mut summary = PurgeByMediaSourcePathPredicatesSummary::default();
     for path_predicate in path_predicates {
         let purged_tracks = repo.purge_tracks_by_media_source_media_source_path_predicate(
             collection_id,
             path_predicate.borrow(),
         )?;
-        let _purged_media_sources =
+        let purged_media_sources =
             repo.purge_media_sources_by_path_predicate(collection_id, path_predicate.borrow())?;
-        debug_assert_eq!(purged_tracks, _purged_media_sources);
-        total_purged_tracks += purged_tracks;
+        // The database might contain orphaned media sources that are
+        // not associated with any track.
+        debug_assert!(purged_tracks <= purged_media_sources);
+        summary.purged_tracks += purged_tracks;
+        summary.purged_media_sources += purged_media_sources;
     }
-    Ok(total_purged_tracks)
+    Ok(summary)
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct PurgeByUntrackedMediaSourcesSummary {
     pub untracked_directories: usize,
+    pub purged_media_sources: usize,
     pub purged_tracks: usize,
 }
 
