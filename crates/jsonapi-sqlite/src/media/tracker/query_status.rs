@@ -17,16 +17,14 @@ use aoide_usecases_sqlite::SqlitePooledConnection;
 
 use aoide_core::{entity::EntityUid, util::url::BaseUrl};
 
-use aoide_core_ext_serde::media::tracker::{query_status::Params, Status};
-
 use super::*;
 
 mod uc {
     pub use aoide_usecases_sqlite::media::tracker::query_status::*;
 }
 
-pub type RequestBody = Params;
-pub type ResponseBody = Status;
+pub type RequestBody = aoide_core_ext_serde::media::tracker::query_status::Params;
+pub type ResponseBody = aoide_core_ext_serde::media::tracker::Status;
 
 pub fn handle_request(
     pooled_connection: SqlitePooledConnection,

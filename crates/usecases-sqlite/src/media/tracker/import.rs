@@ -51,11 +51,11 @@ pub fn import(
                 .map_err(DieselTransactionError::new)?;
         uc::import(
             &db,
+            &source_path_resolver,
             collection_id,
             params,
             import_config,
             import_flags,
-            &source_path_resolver,
             progress_summary_fn,
             abort_flag,
         )

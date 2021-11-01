@@ -45,11 +45,11 @@ use super::*;
 #[allow(clippy::too_many_arguments)]
 pub fn import<Repo>(
     repo: &Repo,
+    source_path_resolver: &VirtualFilePathResolver,
     collection_id: CollectionId,
     params: &Params,
     import_config: &ImportTrackConfig,
     import_flags: ImportTrackFlags,
-    source_path_resolver: &VirtualFilePathResolver,
     progress_summary_fn: &mut impl FnMut(&Summary),
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>

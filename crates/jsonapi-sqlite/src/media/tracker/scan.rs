@@ -19,8 +19,6 @@ use aoide_usecases_sqlite::SqlitePooledConnection;
 
 use aoide_core::{entity::EntityUid, util::url::BaseUrl};
 
-use aoide_core_ext_serde::media::tracker::scan::{Outcome, Params};
-
 use super::*;
 
 mod uc {
@@ -28,9 +26,9 @@ mod uc {
     pub use aoide_usecases_sqlite::media::tracker::scan::*;
 }
 
-pub type RequestBody = Params;
+pub type RequestBody = aoide_core_ext_serde::media::tracker::scan::Params;
 
-pub type ResponseBody = Outcome;
+pub type ResponseBody = aoide_core_ext_serde::media::tracker::scan::Outcome;
 
 #[tracing::instrument(
     name = "Scanning media sources",

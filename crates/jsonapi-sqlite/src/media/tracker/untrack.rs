@@ -15,7 +15,6 @@
 
 use aoide_core::{entity::EntityUid, util::url::BaseUrl};
 
-use aoide_core_ext_serde::media::tracker::untrack::{Outcome, Params};
 use aoide_usecases_sqlite::SqlitePooledConnection;
 
 use super::*;
@@ -24,9 +23,9 @@ mod uc {
     pub use aoide_usecases_sqlite::media::tracker::untrack::*;
 }
 
-pub type RequestBody = Params;
+pub type RequestBody = aoide_core_ext_serde::media::tracker::untrack::Params;
 
-pub type ResponseBody = Outcome;
+pub type ResponseBody = aoide_core_ext_serde::media::tracker::untrack::Outcome;
 
 #[tracing::instrument(
     name = "Untracking media sources",

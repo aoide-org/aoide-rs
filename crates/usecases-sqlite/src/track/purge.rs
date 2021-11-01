@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::util::url::BaseUrl;
+use aoide_core_ext::track::purge_untracked::{Outcome, Params};
 
 use aoide_repo::collection::EntityRepo as _;
 
@@ -42,22 +42,15 @@ pub fn purge_by_media_source_path_predicates(
 pub fn purge_by_untracked_media_sources(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    root_url: Option<&BaseUrl>,
-    untrack_orphaned_directories: bool,
-) -> Result<uc::PurgeByUntrackedMediaSourcesSummary> {
+    params: &Params,
+) -> Result<Outcome> {
     let db = RepoConnection::new(connection);
     db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
         let (collection_id, source_path_resolver) =
             uc::resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
                 .map_err(DieselTransactionError::new)?;
-        uc::purge_by_untracked_media_sources(
-            &db,
-            collection_id,
-            &source_path_resolver,
-            root_url,
-            untrack_orphaned_directories,
-        )
-        .map_err(DieselTransactionError::new)
+        uc::purge_by_untracked_media_sources(&db, &source_path_resolver, collection_id, params)
+            .map_err(DieselTransactionError::new)
     })
     .map_err(Into::into)
 }

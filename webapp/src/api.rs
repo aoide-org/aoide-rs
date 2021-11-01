@@ -5,10 +5,14 @@ use seed::{prelude::*, *};
 
 use aoide_core::entity::EntityUid;
 
-use aoide_core_ext::media::tracker::{
-    import::Outcome as ImportCollectionMediaOutcome, scan::Outcome as ScanCollectionMediaOutcome,
-    untrack::Outcome as UntrackCollectionMediaOutcome, Progress as MediaTrackerProgress,
-    Status as QueryCollectionMediaStatusOutcome,
+use aoide_core_ext::{
+    media::tracker::{
+        import::Outcome as ImportCollectionMediaOutcome,
+        scan::Outcome as ScanCollectionMediaOutcome,
+        untrack::Outcome as UntrackCollectionMediaOutcome, Progress as MediaTrackerProgress,
+        Status as QueryCollectionMediaStatusOutcome,
+    },
+    track::purge_untracked::Outcome as PurgeUntrackedFromCollectionOutcome,
 };
 
 use aoide_core_serde::{
@@ -32,6 +36,10 @@ use aoide_core_ext_serde::{
             Params as SerdeUntrackCollectionMediaParams,
         },
         Progress as SerdeMediaTrackerProgress, Status as SerdeQueryCollectionMediaStatusOutcome,
+    },
+    track::purge_untracked::{
+        Outcome as SerdePurgeUntrackedFromCollectionOutcome,
+        Params as SerdePurgeUntrackedFromCollectionParams,
     },
 };
 
@@ -152,6 +160,23 @@ pub async fn untrack_collection_media(
         .json(&params.into())?;
     let response = request.fetch().await?;
     let content: SerdeUntrackCollectionMediaOutcome = response.check_status()?.json().await?;
+    content
+        .try_into()
+        .map_err(anyhow::Error::from)
+        .map_err(Error::DataShape)
+}
+
+#[allow(dead_code)] // TODO: Remove allow attribute after function is used
+pub async fn purge_untracked_from_collection(
+    uid: EntityUid,
+    params: impl Into<SerdePurgeUntrackedFromCollectionParams>,
+) -> Result<PurgeUntrackedFromCollectionOutcome> {
+    let url = format!("{}/c/{}/t/purge-untracked", BASE_URL, uid);
+    let request = Request::new(url)
+        .method(Method::Post)
+        .json(&params.into())?;
+    let response = request.fetch().await?;
+    let content: SerdePurgeUntrackedFromCollectionOutcome = response.check_status()?.json().await?;
     content
         .try_into()
         .map_err(anyhow::Error::from)

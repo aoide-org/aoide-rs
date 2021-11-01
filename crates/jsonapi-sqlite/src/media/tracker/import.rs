@@ -28,8 +28,6 @@ use aoide_media::{
     util::tag::{FacetedTagMappingConfigInner, TagMappingConfig},
 };
 
-use aoide_core_ext_serde::media::tracker::import::{Outcome, Params};
-
 use super::*;
 
 mod uc {
@@ -37,9 +35,9 @@ mod uc {
     pub use aoide_usecases_sqlite::media::tracker::import::*;
 }
 
-pub type RequestBody = Params;
+pub type RequestBody = aoide_core_ext_serde::media::tracker::import::Params;
 
-pub type ResponseBody = Outcome;
+pub type ResponseBody = aoide_core_ext_serde::media::tracker::import::Outcome;
 
 #[tracing::instrument(
     name = "Importing media sources",

@@ -21,7 +21,7 @@ use crate::{media::ImportMode, track::replace::Summary as TrackReplaceSummary};
 
 use super::Completion;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Default, Eq, PartialEq)]
 pub struct Params {
     pub root_url: Option<BaseUrl>,
     pub import_mode: Option<ImportMode>,

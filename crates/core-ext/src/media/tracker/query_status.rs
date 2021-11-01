@@ -15,7 +15,7 @@
 
 use aoide_core::util::url::BaseUrl;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Default, Eq, PartialEq)]
 pub struct Params {
     pub root_url: Option<BaseUrl>,
 }

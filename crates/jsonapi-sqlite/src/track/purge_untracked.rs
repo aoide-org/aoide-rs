@@ -14,11 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_usecases_sqlite::SqlitePooledConnection;
-use url::Url;
 
 use aoide_core::util::url::BaseUrl;
-
-use aoide_usecases::track::purge::PurgeByUntrackedMediaSourcesSummary;
 
 use super::*;
 
@@ -27,38 +24,9 @@ mod uc {
     pub use aoide_usecases_sqlite::track::purge::*;
 }
 
-#[derive(Clone, Debug, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct RequestBody {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    root_url: Option<Url>,
+pub type RequestBody = aoide_core_ext_serde::track::purge_untracked::Params;
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    untrack_orphaned_directories: Option<bool>,
-}
-
-#[derive(Clone, Debug, Serialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct ResponseBody {
-    untracked_directories: u64,
-    purged_media_sources: u64,
-    purged_tracks: u64,
-}
-
-impl From<PurgeByUntrackedMediaSourcesSummary> for ResponseBody {
-    fn from(from: PurgeByUntrackedMediaSourcesSummary) -> Self {
-        let PurgeByUntrackedMediaSourcesSummary {
-            untracked_directories,
-            purged_media_sources,
-            purged_tracks,
-        } = from;
-        Self {
-            untracked_directories: untracked_directories as u64,
-            purged_media_sources: purged_media_sources as u64,
-            purged_tracks: purged_tracks as u64,
-        }
-    }
-}
+pub type ResponseBody = aoide_core_ext_serde::track::purge_untracked::Outcome;
 
 #[tracing::instrument(
     name = "Purging untracked tracks",
@@ -83,12 +51,11 @@ pub fn handle_request(
         .transpose()
         .map_err(anyhow::Error::from)
         .map_err(Error::BadRequest)?;
-    uc::purge_by_untracked_media_sources(
-        &pooled_connection,
-        collection_uid,
-        root_url.as_ref(),
-        untrack_orphaned_directories.unwrap_or(false),
-    )
-    .map(Into::into)
-    .map_err(Into::into)
+    let params = aoide_core_ext::track::purge_untracked::Params {
+        root_url,
+        untrack_orphaned_directories,
+    };
+    uc::purge_by_untracked_media_sources(&pooled_connection, collection_uid, &params)
+        .map(Into::into)
+        .map_err(Into::into)
 }

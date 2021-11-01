@@ -44,9 +44,9 @@ pub fn scan_directories_recursively(
                 .map_err(DieselTransactionError::new)?;
         uc::scan_directories_recursively(
             &db,
+            &source_path_resolver,
             collection_id,
             params,
-            &source_path_resolver,
             progress_event_fn,
             abort_flag,
         )

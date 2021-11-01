@@ -73,9 +73,9 @@ impl From<digest::ProgressEvent> for ProgressEvent {
 
 pub fn scan_directories_recursively<Repo>(
     repo: &Repo,
+    source_path_resolver: &VirtualFilePathResolver,
     collection_id: CollectionId,
     params: &Params,
-    source_path_resolver: &VirtualFilePathResolver,
     progress_event_fn: &mut impl FnMut(ProgressEvent),
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
