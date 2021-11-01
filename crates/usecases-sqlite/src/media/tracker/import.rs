@@ -15,9 +15,7 @@
 
 use std::sync::atomic::AtomicBool;
 
-use aoide_core::util::url::BaseUrl;
-
-use aoide_core_ext::media::ImportMode;
+use aoide_core_ext::media::tracker::import::Params;
 
 use aoide_media::io::import::{ImportTrackConfig, ImportTrackFlags};
 
@@ -40,10 +38,9 @@ mod uc {
 pub fn import(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    import_mode: ImportMode,
+    params: &Params,
     import_config: &ImportTrackConfig,
     import_flags: ImportTrackFlags,
-    root_url: Option<BaseUrl>,
     progress_summary_fn: &mut impl FnMut(&uc::Summary),
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {
@@ -55,11 +52,10 @@ pub fn import(
         uc::import(
             &db,
             collection_id,
-            import_mode,
+            params,
             import_config,
             import_flags,
             &source_path_resolver,
-            root_url,
             progress_summary_fn,
             abort_flag,
         )

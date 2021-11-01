@@ -143,7 +143,7 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /api/c/{collectionUid}/api/t/resolve:
+  /api/c/{collectionUid}/t/resolve:
     post:
       summary: Resolve the UIDs of tracks from a list of media source URIs
       description: |
@@ -182,7 +182,7 @@ paths:
                       - $ref: '#/components/schemas/EntityHeader'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /api/c/{collectionUid}/api/t/search:
+  /api/c/{collectionUid}/t/search:
     post:
       summary: Search collected tracks and their media sources
       description: |
@@ -211,7 +211,7 @@ paths:
                 $ref: '#/components/schemas/SearchCollectedTracksResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /api/c/{collectionUid}/api/t/replace:
+  /api/c/{collectionUid}/t/replace:
     post:
       summary: Replace collected tracks and media sources by URI
       description: |
@@ -239,7 +239,7 @@ paths:
                 $ref: '#/components/schemas/ReplaceCollectedTracksResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /api/c/{collectionUid}/api/t/import-and-replace:
+  /api/c/{collectionUid}/t/import-and-replace:
     post:
       summary: Import and replace collected tracks and media sources by URI
       description: |
@@ -265,7 +265,7 @@ paths:
                 $ref: '#/components/schemas/ImportAndReplaceCollectedTracksResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /api/c/{collectionUid}/api/t/purge:
+  /api/c/{collectionUid}/t/purge:
     post:
       summary: Purge collected tracks and media sources by URI
       description: |
@@ -291,7 +291,7 @@ paths:
                 $ref: '#/components/schemas/PurgeCollectedTracksResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /api/c/{collectionUid}/api/t/purge-untracked:
+  /api/c/{collectionUid}/t/purge-untracked:
     post:
       summary: Purge collected tracks with untracked media sources
       description: |
@@ -324,7 +324,7 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /api/c/{collectionUid}/relocate-media-sources:
+  /api/c/{collectionUid}/m/relocate:
     post:
       summary: Relocate collected media sources by URI prefix
       description: |
@@ -475,7 +475,7 @@ paths:
           $ref: '#/components/responses/500InternalServerError'
   /api/media-tracker/progress:
     get:
-      summary: Report the current progress
+      summary: Query the current progress
       description: |
         Show the currently running batch operation (either *scan* or *import*)
         and report the progress so far.
@@ -515,8 +515,6 @@ paths:
         Partial results will be saved in the database.
       tags:
         - Media Tracker
-      parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
       responses:
         '202':
           description: |

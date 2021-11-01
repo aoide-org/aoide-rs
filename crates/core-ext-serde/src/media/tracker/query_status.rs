@@ -13,44 +13,29 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use url::Url;
+
 use crate::prelude::*;
 
-pub mod tracker;
-
-mod _core {
-    pub use aoide_core_ext::media::*;
+mod _inner {
+    pub use aoide_core_ext::media::tracker::query_status::*;
 }
 
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
-#[serde(rename_all = "kebab-case")]
-pub enum ImportMode {
-    Once,
-    Modified,
-    Always,
-}
-
-#[cfg(feature = "backend")]
-impl From<ImportMode> for _core::ImportMode {
-    fn from(from: ImportMode) -> Self {
-        use ImportMode::*;
-        match from {
-            Once => Self::Once,
-            Modified => Self::Modified,
-            Always => Self::Always,
-        }
-    }
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct Params {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub root_url: Option<Url>,
 }
 
 #[cfg(feature = "frontend")]
-impl From<_core::ImportMode> for ImportMode {
-    fn from(from: _core::ImportMode) -> Self {
-        use _core::ImportMode::*;
-        match from {
-            Once => Self::Once,
-            Modified => Self::Modified,
-            Always => Self::Always,
+impl From<_inner::Params> for Params {
+    fn from(from: _inner::Params) -> Self {
+        let _inner::Params { root_url } = from;
+        Self {
+            root_url: root_url.map(Into::into),
         }
     }
 }

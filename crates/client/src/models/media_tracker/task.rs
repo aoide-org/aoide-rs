@@ -153,7 +153,8 @@ async fn start_scan<E: WebClientEnvironment>(
     let outcome = serde_json::from_slice::<aoide_core_ext_serde::media::tracker::scan::Outcome>(
         &response_body,
     )
-    .map(Into::into)?;
+    .map_err(anyhow::Error::from)
+    .and_then(|outcome| outcome.try_into().map_err(anyhow::Error::from))?;
     tracing::debug!("Scan finished: {:?}", outcome);
     Ok(outcome)
 }
@@ -174,7 +175,8 @@ async fn start_import<E: WebClientEnvironment>(
     let outcome = serde_json::from_slice::<aoide_core_ext_serde::media::tracker::import::Outcome>(
         &response_body,
     )
-    .map(Into::into)?;
+    .map_err(anyhow::Error::from)
+    .and_then(|outcome| outcome.try_into().map_err(anyhow::Error::from))?;
     tracing::debug!("Import finished: {:?}", outcome);
     Ok(outcome)
 }

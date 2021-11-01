@@ -20,10 +20,13 @@ mod _core {
 }
 
 pub mod import;
+pub mod query_status;
 pub mod scan;
 pub mod untrack;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(rename_all = "kebab-case")]
 pub enum Progress {
     Idle,
@@ -31,6 +34,7 @@ pub enum Progress {
     Importing(ImportingProgress),
 }
 
+#[cfg(feature = "frontend")]
 impl From<Progress> for _core::Progress {
     fn from(from: Progress) -> Self {
         use Progress::*;
@@ -42,6 +46,7 @@ impl From<Progress> for _core::Progress {
     }
 }
 
+#[cfg(feature = "backend")]
 impl From<_core::Progress> for Progress {
     fn from(from: _core::Progress) -> Self {
         use _core::Progress::*;
@@ -53,13 +58,16 @@ impl From<_core::Progress> for Progress {
     }
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
 pub struct ScanningProgress {
     pub entries: ScanningEntriesProgress,
     pub directories: ScanningDirectoriesProgress,
 }
 
+#[cfg(feature = "frontend")]
 impl From<ScanningProgress> for _core::ScanningProgress {
     fn from(from: ScanningProgress) -> Self {
         let ScanningProgress {
@@ -73,6 +81,7 @@ impl From<ScanningProgress> for _core::ScanningProgress {
     }
 }
 
+#[cfg(feature = "backend")]
 impl From<_core::ScanningProgress> for ScanningProgress {
     fn from(from: _core::ScanningProgress) -> Self {
         let _core::ScanningProgress {
@@ -86,13 +95,16 @@ impl From<_core::ScanningProgress> for ScanningProgress {
     }
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
 pub struct ScanningEntriesProgress {
     pub skipped: usize,
     pub finished: usize,
 }
 
+#[cfg(feature = "frontend")]
 impl From<ScanningEntriesProgress> for _core::ScanningEntriesProgress {
     fn from(from: ScanningEntriesProgress) -> Self {
         let ScanningEntriesProgress { skipped, finished } = from;
@@ -100,6 +112,7 @@ impl From<ScanningEntriesProgress> for _core::ScanningEntriesProgress {
     }
 }
 
+#[cfg(feature = "backend")]
 impl From<_core::ScanningEntriesProgress> for ScanningEntriesProgress {
     fn from(from: _core::ScanningEntriesProgress) -> Self {
         let _core::ScanningEntriesProgress { skipped, finished } = from;
@@ -107,12 +120,15 @@ impl From<_core::ScanningEntriesProgress> for ScanningEntriesProgress {
     }
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
 pub struct ScanningDirectoriesProgress {
     pub finished: usize,
 }
 
+#[cfg(feature = "frontend")]
 impl From<ScanningDirectoriesProgress> for _core::ScanningDirectoriesProgress {
     fn from(from: ScanningDirectoriesProgress) -> Self {
         let ScanningDirectoriesProgress { finished } = from;
@@ -120,6 +136,7 @@ impl From<ScanningDirectoriesProgress> for _core::ScanningDirectoriesProgress {
     }
 }
 
+#[cfg(feature = "backend")]
 impl From<_core::ScanningDirectoriesProgress> for ScanningDirectoriesProgress {
     fn from(from: _core::ScanningDirectoriesProgress) -> Self {
         let _core::ScanningDirectoriesProgress { finished } = from;
@@ -129,13 +146,16 @@ impl From<_core::ScanningDirectoriesProgress> for ScanningDirectoriesProgress {
 
 pub type ImportingProgress = import::Summary;
 
-#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
 pub enum Completion {
     Finished,
     Aborted,
 }
 
+#[cfg(feature = "frontend")]
 impl From<Completion> for _core::Completion {
     fn from(from: Completion) -> Self {
         use Completion::*;
@@ -146,6 +166,7 @@ impl From<Completion> for _core::Completion {
     }
 }
 
+#[cfg(feature = "backend")]
 impl From<_core::Completion> for Completion {
     fn from(from: _core::Completion) -> Self {
         use _core::Completion::*;
@@ -156,12 +177,15 @@ impl From<_core::Completion> for Completion {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Status {
     pub directories: DirectoriesStatus,
 }
 
+#[cfg(feature = "backend")]
 impl From<_core::Status> for Status {
     fn from(from: _core::Status) -> Self {
         let _core::Status { directories } = from;
@@ -171,6 +195,7 @@ impl From<_core::Status> for Status {
     }
 }
 
+#[cfg(feature = "frontend")]
 impl From<Status> for _core::Status {
     fn from(from: Status) -> Self {
         let Status { directories } = from;
@@ -180,7 +205,9 @@ impl From<Status> for _core::Status {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct DirectoriesStatus {
     pub current: usize,
@@ -190,6 +217,7 @@ pub struct DirectoriesStatus {
     pub orphaned: usize,
 }
 
+#[cfg(feature = "backend")]
 impl From<_core::DirectoriesStatus> for DirectoriesStatus {
     fn from(from: _core::DirectoriesStatus) -> Self {
         let _core::DirectoriesStatus {
@@ -209,6 +237,7 @@ impl From<_core::DirectoriesStatus> for DirectoriesStatus {
     }
 }
 
+#[cfg(feature = "frontend")]
 impl From<DirectoriesStatus> for _core::DirectoriesStatus {
     fn from(from: DirectoriesStatus) -> Self {
         let DirectoriesStatus {
@@ -228,7 +257,7 @@ impl From<DirectoriesStatus> for _core::DirectoriesStatus {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub enum DirTrackingStatus {
     Current,

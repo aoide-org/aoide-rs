@@ -5,13 +5,34 @@ use seed::{prelude::*, *};
 
 use aoide_core::entity::EntityUid;
 
+use aoide_core_ext::media::tracker::{
+    import::Outcome as ImportCollectionMediaOutcome, scan::Outcome as ScanCollectionMediaOutcome,
+    untrack::Outcome as UntrackCollectionMediaOutcome, Progress as MediaTrackerProgress,
+    Status as QueryCollectionMediaStatusOutcome,
+};
+
 use aoide_core_serde::{
     collection::{Collection as SerdeCollection, Entity as SerdeCollectionEntity},
     entity::{Entity as SerdeEntity, EntityHeader as SerdeEntityHeader},
 };
 
-use aoide_core_ext_serde::collection::{
-    import_entity_with_summary, EntityWithSummary as CollectionEntityWithSummary,
+use aoide_core_ext_serde::{
+    collection::{import_entity_with_summary, EntityWithSummary as CollectionEntityWithSummary},
+    media::tracker::{
+        import::{
+            Outcome as SerdeImportCollectionMediaOutcome,
+            Params as SerdeImportCollectionMediaParams,
+        },
+        query_status::Params as SerdeQueryCollectionMediaStatusParams,
+        scan::{
+            Outcome as SerdeScanCollectionMediaOutcome, Params as SerdeScanCollectionMediaParams,
+        },
+        untrack::{
+            Outcome as SerdeUntrackCollectionMediaOutcome,
+            Params as SerdeUntrackCollectionMediaParams,
+        },
+        Progress as SerdeMediaTrackerProgress, Status as SerdeQueryCollectionMediaStatusOutcome,
+    },
 };
 
 use crate::domain::*;
@@ -81,7 +102,91 @@ pub async fn delete_collection(entity_header: impl Into<SerdeEntityHeader>) -> R
         .method(Method::Delete)
         .json(&entity_header.into())?;
     let response = request.fetch().await?.check_status()?;
-    debug_assert_eq!(StatusCode::NO_CONTENT, response.status().code);
+    let _status_code = response.check_status()?.status().code;
+    debug_assert_eq!(StatusCode::NO_CONTENT, _status_code);
+    Ok(())
+}
+
+#[allow(dead_code)] // TODO: Remove allow attribute after function is used
+pub async fn scan_collection_media(
+    uid: EntityUid,
+    params: impl Into<SerdeScanCollectionMediaParams>,
+) -> Result<ScanCollectionMediaOutcome> {
+    let url = format!("{}/c/{}/media-tracker/scan", BASE_URL, uid);
+    let request = Request::new(url)
+        .method(Method::Post)
+        .json(&params.into())?;
+    let response = request.fetch().await?;
+    let content: SerdeScanCollectionMediaOutcome = response.check_status()?.json().await?;
+    content
+        .try_into()
+        .map_err(anyhow::Error::from)
+        .map_err(Error::DataShape)
+}
+
+#[allow(dead_code)] // TODO: Remove allow attribute after function is used
+pub async fn import_collection_media(
+    uid: EntityUid,
+    params: impl Into<SerdeImportCollectionMediaParams>,
+) -> Result<ImportCollectionMediaOutcome> {
+    let url = format!("{}/c/{}/media-tracker/import", BASE_URL, uid);
+    let request = Request::new(url)
+        .method(Method::Post)
+        .json(&params.into())?;
+    let response = request.fetch().await?;
+    let content: SerdeImportCollectionMediaOutcome = response.check_status()?.json().await?;
+    content
+        .try_into()
+        .map_err(anyhow::Error::from)
+        .map_err(Error::DataShape)
+}
+
+#[allow(dead_code)] // TODO: Remove allow attribute after function is used
+pub async fn untrack_collection_media(
+    uid: EntityUid,
+    params: impl Into<SerdeUntrackCollectionMediaParams>,
+) -> Result<UntrackCollectionMediaOutcome> {
+    let url = format!("{}/c/{}/media-tracker/untrack", BASE_URL, uid);
+    let request = Request::new(url)
+        .method(Method::Post)
+        .json(&params.into())?;
+    let response = request.fetch().await?;
+    let content: SerdeUntrackCollectionMediaOutcome = response.check_status()?.json().await?;
+    content
+        .try_into()
+        .map_err(anyhow::Error::from)
+        .map_err(Error::DataShape)
+}
+
+#[allow(dead_code)] // TODO: Remove allow attribute after function is used
+pub async fn query_collection_media_status(
+    uid: EntityUid,
+    params: impl Into<SerdeQueryCollectionMediaStatusParams>,
+) -> Result<QueryCollectionMediaStatusOutcome> {
+    let url = format!("{}/c/{}/media-tracker/query-status", BASE_URL, uid);
+    let request = Request::new(url)
+        .method(Method::Post)
+        .json(&params.into())?;
+    let response = request.fetch().await?;
+    let content: SerdeQueryCollectionMediaStatusOutcome = response.check_status()?.json().await?;
+    Ok(content.into())
+}
+
+#[allow(dead_code)] // TODO: Remove allow attribute after function is used
+pub async fn get_media_tracker_progress() -> Result<MediaTrackerProgress> {
+    let url = format!("{}/media-tracker/progress", BASE_URL);
+    let response = fetch(url).await?;
+    let content: SerdeMediaTrackerProgress = response.check_status()?.json().await?;
+    Ok(content.into())
+}
+
+#[allow(dead_code)] // TODO: Remove allow attribute after function is used
+pub async fn abort_media_tracker() -> Result<()> {
+    let url = format!("{}/media-tracker/abort", BASE_URL);
+    let request = Request::new(url).method(Method::Post);
+    let response = request.fetch().await?.check_status()?;
+    let _status_code = response.check_status()?.status().code;
+    debug_assert_eq!(StatusCode::ACCEPTED, _status_code);
     Ok(())
 }
 

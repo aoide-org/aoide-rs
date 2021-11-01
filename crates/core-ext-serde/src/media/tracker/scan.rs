@@ -23,7 +23,9 @@ mod _core {
     pub use aoide_core_ext::media::tracker::scan::*;
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "frontend", derive(Serialize))]
+#[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Params {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -33,7 +35,23 @@ pub struct Params {
     pub max_depth: Option<usize>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg(feature = "frontend")]
+impl From<_core::Params> for Params {
+    fn from(from: _core::Params) -> Self {
+        let _core::Params {
+            root_url,
+            max_depth,
+        } = from;
+        Self {
+            root_url: root_url.map(Into::into),
+            max_depth,
+        }
+    }
+}
+
+#[derive(Debug)]
+#[cfg_attr(feature = "frontend", derive(Deserialize))]
+#[cfg_attr(feature = "backend", derive(Serialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Summary {
     pub current: usize,
@@ -43,6 +61,7 @@ pub struct Summary {
     pub skipped: usize,
 }
 
+#[cfg(feature = "frontend")]
 impl From<Summary> for _core::Summary {
     fn from(from: Summary) -> Self {
         let Summary {
@@ -62,6 +81,7 @@ impl From<Summary> for _core::Summary {
     }
 }
 
+#[cfg(feature = "backend")]
 impl From<_core::Summary> for Summary {
     fn from(from: _core::Summary) -> Self {
         let _core::Summary {
@@ -81,7 +101,9 @@ impl From<_core::Summary> for Summary {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "frontend", derive(Deserialize))]
+#[cfg_attr(feature = "backend", derive(Serialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Outcome {
     pub root_url: Url,
@@ -89,21 +111,26 @@ pub struct Outcome {
     pub summary: Summary,
 }
 
-impl From<Outcome> for _core::Outcome {
-    fn from(from: Outcome) -> Self {
+#[cfg(feature = "frontend")]
+impl TryFrom<Outcome> for _core::Outcome {
+    type Error = aoide_core::util::url::BaseUrlError;
+
+    fn try_from(from: Outcome) -> Result<Self, Self::Error> {
         let Outcome {
             root_url,
             completion,
             summary,
         } = from;
-        Self {
+        let root_url = root_url.try_into()?;
+        Ok(Self {
             root_url,
             completion: completion.into(),
             summary: summary.into(),
-        }
+        })
     }
 }
 
+#[cfg(feature = "backend")]
 impl From<_core::Outcome> for Outcome {
     fn from(from: _core::Outcome) -> Self {
         let _core::Outcome {
@@ -112,7 +139,7 @@ impl From<_core::Outcome> for Outcome {
             summary,
         } = from;
         Self {
-            root_url,
+            root_url: root_url.into(),
             completion: completion.into(),
             summary: summary.into(),
         }

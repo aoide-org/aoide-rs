@@ -10,6 +10,7 @@ hyper = { version = "*", default-features = false }
 seed = "*"
 serde = { version = "*", features = ["derive"] }
 thiserror = "*"
+url = "*"
 
 # Workspace dependencies
 aoide-core = "*"

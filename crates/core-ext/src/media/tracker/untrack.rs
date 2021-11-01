@@ -15,6 +15,16 @@
 
 use url::Url;
 
+use aoide_core::util::url::BaseUrl;
+
+use super::DirTrackingStatus;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Params {
+    pub root_url: BaseUrl,
+    pub status: Option<DirTrackingStatus>,
+}
+
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Summary {
     pub untracked: usize,

@@ -14,23 +14,15 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_usecases_sqlite::SqlitePooledConnection;
-use url::Url;
 
 use aoide_core::{entity::EntityUid, util::url::BaseUrl};
 
-use aoide_core_ext_serde::media::tracker::Status;
+use aoide_core_ext_serde::media::tracker::{query_status::Params, Status};
 
 use super::*;
 
 mod uc {
     pub use aoide_usecases_sqlite::media::tracker::query_status::*;
-}
-
-#[derive(Clone, Debug, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Params {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub root_url: Option<Url>,
 }
 
 pub type RequestBody = Params;
@@ -47,7 +39,8 @@ pub fn handle_request(
         .transpose()
         .map_err(anyhow::Error::from)
         .map_err(Error::BadRequest)?;
-    uc::query_status(&pooled_connection, collection_uid, root_url.as_ref())
+    let params = aoide_core_ext::media::tracker::query_status::Params { root_url };
+    uc::query_status(&pooled_connection, collection_uid, &params)
         .map(Into::into)
         .map_err(Into::into)
 }

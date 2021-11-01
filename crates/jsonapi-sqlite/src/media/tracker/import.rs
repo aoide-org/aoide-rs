@@ -28,10 +28,7 @@ use aoide_media::{
     util::tag::{FacetedTagMappingConfigInner, TagMappingConfig},
 };
 
-use aoide_core_ext_serde::media::{
-    tracker::import::{Outcome, Params},
-    ImportMode,
-};
+use aoide_core_ext_serde::media::tracker::import::{Outcome, Params};
 
 use super::*;
 
@@ -71,7 +68,6 @@ pub fn handle_request(
         .transpose()
         .map_err(anyhow::Error::from)
         .map_err(Error::BadRequest)?;
-    let import_mode = import_mode.unwrap_or(ImportMode::Modified);
     // FIXME: Replace hard-coded tag mapping config
     let mut faceted_tag_mapping_config = FacetedTagMappingConfigInner::default();
     faceted_tag_mapping_config.insert(
@@ -96,13 +92,16 @@ pub fn handle_request(
         | ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK
         | ImportTrackFlags::MIXXX_CUSTOM_TAGS
         | ImportTrackFlags::SERATO_TAGS;
+    let params = aoide_core_ext::media::tracker::import::Params {
+        root_url,
+        import_mode: import_mode.map(Into::into),
+    };
     uc::import(
         &pooled_connection,
         collection_uid,
-        import_mode.into(),
+        &params,
         &import_config,
         import_flags,
-        root_url,
         progress_summary_fn,
         abort_flag,
     )

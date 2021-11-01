@@ -78,6 +78,7 @@ dependencies = [
  "seed",
  "serde",
  "thiserror",
+ "url",
 ]
 
 [[package]]

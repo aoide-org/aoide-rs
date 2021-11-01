@@ -60,11 +60,14 @@ pub fn handle_request(
         .map_err(anyhow::Error::from)
         .map_err(Error::BadRequest)?
         .map(Into::into);
+    let params = aoide_core_ext::media::tracker::scan::Params {
+        root_url,
+        max_depth,
+    };
     uc::scan_directories_recursively(
         &pooled_connection,
         collection_uid,
-        root_url,
-        max_depth,
+        &params,
         progress_event_fn,
         abort_flag,
     )

@@ -15,15 +15,21 @@
 
 use std::ops::AddAssign;
 
-use url::Url;
+use aoide_core::util::url::BaseUrl;
 
-use crate::track::replace::Summary as TrackReplaceSummary;
+use crate::{media::ImportMode, track::replace::Summary as TrackReplaceSummary};
 
 use super::Completion;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Params {
+    pub root_url: Option<BaseUrl>,
+    pub import_mode: Option<ImportMode>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Outcome {
-    pub root_url: Url,
+    pub root_url: BaseUrl,
     pub completion: Completion,
     pub summary: Summary,
 }

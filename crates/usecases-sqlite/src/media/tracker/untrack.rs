@@ -13,9 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::{entity::EntityUid, util::url::BaseUrl};
+use aoide_core::entity::EntityUid;
 
-use aoide_core_ext::media::tracker::{untrack::Outcome, DirTrackingStatus};
+use aoide_core_ext::media::tracker::untrack::{Outcome, Params};
 
 use super::*;
 
@@ -28,15 +28,14 @@ mod uc {
 pub fn untrack(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    root_url: BaseUrl,
-    status: Option<DirTrackingStatus>,
+    params: &Params,
 ) -> Result<Outcome> {
     let db = RepoConnection::new(connection);
     db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
         let (collection_id, source_path_resolver) =
             uc::resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
                 .map_err(DieselTransactionError::new)?;
-        uc::untrack(&db, collection_id, root_url, &source_path_resolver, status)
+        uc::untrack(&db, &source_path_resolver, collection_id, params)
             .map_err(DieselTransactionError::new)
     })
     .map_err(Into::into)

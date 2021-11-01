@@ -13,9 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::{entity::EntityUid, util::url::BaseUrl};
+use aoide_core::entity::EntityUid;
 
-use aoide_core_ext::media::tracker::scan::Outcome;
+use aoide_core_ext::media::tracker::scan::{Outcome, Params};
+
 use aoide_usecases::{
     collection::resolve_collection_id_for_virtual_file_path, media::tracker::scan::ProgressEvent,
 };
@@ -32,8 +33,7 @@ use std::sync::atomic::AtomicBool;
 pub fn scan_directories_recursively(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    root_url: Option<BaseUrl>,
-    max_depth: Option<usize>,
+    params: &Params,
     progress_event_fn: &mut impl FnMut(ProgressEvent),
     abort_flag: &AtomicBool,
 ) -> Result<Outcome> {
@@ -45,9 +45,8 @@ pub fn scan_directories_recursively(
         uc::scan_directories_recursively(
             &db,
             collection_id,
-            root_url,
+            params,
             &source_path_resolver,
-            max_depth,
             progress_event_fn,
             abort_flag,
         )

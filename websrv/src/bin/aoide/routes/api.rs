@@ -36,7 +36,7 @@ use aoide_usecases_sqlite as uc;
 
 use aoide_core::entity::EntityUid;
 
-use aoide_core_ext_serde::media::tracker::Progress as MediaTrackerProgress;
+use aoide_core_ext::media::tracker::Progress as MediaTrackerProgress;
 
 use crate::GuardedConnectionPool;
 
@@ -263,8 +263,10 @@ pub fn create_filters(
     async fn reply_media_tracker_progress(
         media_tracker_progress: Arc<Mutex<MediaTrackerProgress>>,
     ) -> Result<impl warp::Reply, Infallible> {
-        let state = media_tracker_progress.lock().await.clone();
-        Ok(warp::reply::json(&state))
+        let progress = media_tracker_progress.lock().await.clone();
+        Ok(warp::reply::json(
+            &aoide_core_ext_serde::media::tracker::Progress::from(progress),
+        ))
     }
 
     let media_tracker_get_state = warp::get()
@@ -332,7 +334,7 @@ pub fn create_filters(
                         // Borrow has already been released at this point
                         if let Some(progress) = progress {
                             *media_tracker_progress.lock().await =
-                                MediaTrackerProgress::Scanning(progress.into());
+                                MediaTrackerProgress::Scanning(progress);
                         }
                     }
                     tracing::debug!("Unwatching media tracker scanning");
@@ -395,7 +397,7 @@ pub fn create_filters(
                         let progress = progress_summary_rx.borrow().to_owned();
                         // Borrow has already been released at this point
                         *media_tracker_progress.lock().await =
-                            MediaTrackerProgress::Importing(progress.into());
+                            MediaTrackerProgress::Importing(progress);
                     }
                     tracing::debug!("Unwatching media tracker importing");
                     *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;

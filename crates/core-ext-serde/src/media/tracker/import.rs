@@ -23,7 +23,9 @@ mod _inner {
     pub use aoide_core_ext::media::tracker::import::*;
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "frontend", derive(Serialize))]
+#[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Params {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -33,7 +35,23 @@ pub struct Params {
     pub import_mode: Option<ImportMode>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg(feature = "frontend")]
+impl From<_inner::Params> for Params {
+    fn from(from: _inner::Params) -> Self {
+        let _inner::Params {
+            root_url,
+            import_mode,
+        } = from;
+        Self {
+            root_url: root_url.map(Into::into),
+            import_mode: import_mode.map(Into::into),
+        }
+    }
+}
+
+#[derive(Debug)]
+#[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Outcome {
     pub root_url: Url,
@@ -41,21 +59,26 @@ pub struct Outcome {
     pub summary: Summary,
 }
 
-impl From<Outcome> for _inner::Outcome {
-    fn from(from: Outcome) -> Self {
+#[cfg(feature = "frontend")]
+impl TryFrom<Outcome> for _inner::Outcome {
+    type Error = aoide_core::util::url::BaseUrlError;
+
+    fn try_from(from: Outcome) -> Result<Self, Self::Error> {
         let Outcome {
             root_url,
             completion,
             summary,
         } = from;
-        Self {
+        let root_url = root_url.try_into()?;
+        Ok(Self {
             root_url,
             completion: completion.into(),
             summary: summary.into(),
-        }
+        })
     }
 }
 
+#[cfg(feature = "backend")]
 impl From<_inner::Outcome> for Outcome {
     fn from(from: _inner::Outcome) -> Self {
         let _inner::Outcome {
@@ -64,14 +87,16 @@ impl From<_inner::Outcome> for Outcome {
             summary,
         } = from;
         Self {
-            root_url,
+            root_url: root_url.into(),
             completion: completion.into(),
             summary: summary.into(),
         }
     }
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TrackSummary {
     pub created: usize,
@@ -83,6 +108,7 @@ pub struct TrackSummary {
     pub not_updated: usize,
 }
 
+#[cfg(feature = "frontend")]
 impl From<TrackSummary> for _inner::TrackSummary {
     fn from(from: TrackSummary) -> Self {
         let TrackSummary {
@@ -106,6 +132,7 @@ impl From<TrackSummary> for _inner::TrackSummary {
     }
 }
 
+#[cfg(feature = "backend")]
 impl From<_inner::TrackSummary> for TrackSummary {
     fn from(from: _inner::TrackSummary) -> Self {
         let _inner::TrackSummary {
@@ -129,7 +156,10 @@ impl From<_inner::TrackSummary> for TrackSummary {
     }
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(feature = "frontend", derive(Deserialize))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct DirectorySummary {
     /// Successfully imported and marked as current.
     pub confirmed: usize,
@@ -155,6 +185,7 @@ pub struct DirectorySummary {
     pub untracked: usize,
 }
 
+#[cfg(feature = "frontend")]
 impl From<DirectorySummary> for _inner::DirectorySummary {
     fn from(from: DirectorySummary) -> Self {
         let DirectorySummary {
@@ -172,6 +203,7 @@ impl From<DirectorySummary> for _inner::DirectorySummary {
     }
 }
 
+#[cfg(feature = "backend")]
 impl From<_inner::DirectorySummary> for DirectorySummary {
     fn from(from: _inner::DirectorySummary) -> Self {
         let _inner::DirectorySummary {
@@ -189,12 +221,16 @@ impl From<_inner::DirectorySummary> for DirectorySummary {
     }
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(feature = "frontend", derive(Deserialize))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Summary {
     pub tracks: TrackSummary,
     pub directories: DirectorySummary,
 }
 
+#[cfg(feature = "frontend")]
 impl From<Summary> for _inner::Summary {
     fn from(from: Summary) -> Self {
         let Summary {
@@ -208,6 +244,7 @@ impl From<Summary> for _inner::Summary {
     }
 }
 
+#[cfg(feature = "backend")]
 impl From<_inner::Summary> for Summary {
     fn from(from: _inner::Summary) -> Self {
         let _inner::Summary {

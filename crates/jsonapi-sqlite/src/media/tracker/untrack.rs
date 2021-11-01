@@ -46,12 +46,11 @@ pub fn handle_request(
     let root_url = BaseUrl::try_autocomplete_from(root_url)
         .map_err(anyhow::Error::from)
         .map_err(Error::BadRequest)?;
-    uc::untrack(
-        &pooled_connection,
-        collection_uid,
+    let params = aoide_core_ext::media::tracker::untrack::Params {
         root_url,
-        status.map(Into::into),
-    )
-    .map(Into::into)
-    .map_err(Into::into)
+        status: status.map(Into::into),
+    };
+    uc::untrack(&pooled_connection, collection_uid, &params)
+        .map(Into::into)
+        .map_err(Into::into)
 }

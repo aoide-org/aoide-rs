@@ -13,12 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::util::url::BaseUrl;
-
-use aoide_core_ext::media::tracker::{
-    untrack::{Outcome, Summary},
-    DirTrackingStatus,
-};
+use aoide_core_ext::media::tracker::untrack::{Outcome, Params, Summary};
 
 use aoide_repo::{collection::RecordId as CollectionId, media::tracker::Repo as MediaTrackerRepo};
 
@@ -26,19 +21,19 @@ use super::*;
 
 pub fn untrack<Repo>(
     repo: &Repo,
-    collection_id: CollectionId,
-    root_url: BaseUrl,
     source_path_resolver: &impl SourcePathResolver,
-    status: Option<DirTrackingStatus>,
+    collection_id: CollectionId,
+    params: &Params,
 ) -> Result<Outcome>
 where
     Repo: MediaTrackerRepo,
 {
-    let root_path_prefix = resolve_path_prefix_from_base_url(source_path_resolver, &root_url)?;
+    let Params { root_url, status } = params;
+    let root_path_prefix = resolve_path_prefix_from_base_url(source_path_resolver, root_url)?;
     let root_url = source_path_resolver
         .resolve_url_from_path(&root_path_prefix)
         .map_err(anyhow::Error::from)?;
-    let untracked = repo.media_tracker_untrack(collection_id, &root_path_prefix, status)?;
+    let untracked = repo.media_tracker_untrack(collection_id, &root_path_prefix, *status)?;
     let summary = Summary { untracked };
     Ok(Outcome { root_url, summary })
 }

@@ -19,11 +19,13 @@ use crate::prelude::*;
 
 use super::DirTrackingStatus;
 
-mod _core {
+mod _inner {
     pub use aoide_core_ext::media::tracker::{untrack::*, DirTrackingStatus};
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "frontend", derive(Serialize))]
+#[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Params {
     pub root_url: Url,
@@ -32,34 +34,52 @@ pub struct Params {
     pub status: Option<DirTrackingStatus>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg(feature = "frontend")]
+impl From<_inner::Params> for Params {
+    fn from(from: _inner::Params) -> Self {
+        let _inner::Params { root_url, status } = from;
+        Self {
+            root_url: root_url.into(),
+            status: status.map(Into::into),
+        }
+    }
+}
+
+#[derive(Debug)]
+#[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Summary {
     pub untracked: usize,
 }
 
-impl From<Summary> for _core::Summary {
+#[cfg(feature = "frontend")]
+impl From<Summary> for _inner::Summary {
     fn from(from: Summary) -> Self {
         let Summary { untracked } = from;
         Self { untracked }
     }
 }
 
-impl From<_core::Summary> for Summary {
-    fn from(from: _core::Summary) -> Self {
-        let _core::Summary { untracked } = from;
+#[cfg(feature = "backend")]
+impl From<_inner::Summary> for Summary {
+    fn from(from: _inner::Summary) -> Self {
+        let _inner::Summary { untracked } = from;
         Self { untracked }
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Outcome {
     pub root_url: Url,
     pub summary: Summary,
 }
 
-impl From<Outcome> for _core::Outcome {
+#[cfg(feature = "frontend")]
+impl From<Outcome> for _inner::Outcome {
     fn from(from: Outcome) -> Self {
         let Outcome { root_url, summary } = from;
         Self {
@@ -69,9 +89,10 @@ impl From<Outcome> for _core::Outcome {
     }
 }
 
-impl From<_core::Outcome> for Outcome {
-    fn from(from: _core::Outcome) -> Self {
-        let _core::Outcome { root_url, summary } = from;
+#[cfg(feature = "backend")]
+impl From<_inner::Outcome> for Outcome {
+    fn from(from: _inner::Outcome) -> Self {
+        let _inner::Outcome { root_url, summary } = from;
         Self {
             root_url,
             summary: summary.into(),

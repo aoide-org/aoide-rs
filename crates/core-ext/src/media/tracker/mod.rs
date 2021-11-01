@@ -16,6 +16,7 @@
 use num_derive::{FromPrimitive, ToPrimitive};
 
 pub mod import;
+pub mod query_status;
 pub mod scan;
 pub mod untrack;
 
@@ -76,19 +77,19 @@ pub enum Progress {
     Importing(ImportingProgress),
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct ScanningProgress {
     pub entries: ScanningEntriesProgress,
     pub directories: ScanningDirectoriesProgress,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct ScanningEntriesProgress {
     pub skipped: usize,
     pub finished: usize,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct ScanningDirectoriesProgress {
     pub finished: usize,
 }

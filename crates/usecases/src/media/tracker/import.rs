@@ -21,7 +21,7 @@ use std::{
 use aoide_core::util::url::BaseUrl;
 
 use aoide_core_ext::media::tracker::{
-    import::{Outcome, Summary},
+    import::{Outcome, Params, Summary},
     Completion,
 };
 
@@ -46,17 +46,21 @@ use super::*;
 pub fn import<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
-    import_mode: ImportMode,
+    params: &Params,
     import_config: &ImportTrackConfig,
     import_flags: ImportTrackFlags,
     source_path_resolver: &VirtualFilePathResolver,
-    root_url: Option<BaseUrl>,
     progress_summary_fn: &mut impl FnMut(&Summary),
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
     Repo: MediaTrackerRepo + TrackRepo,
 {
+    let Params {
+        root_url,
+        import_mode,
+    } = params;
+    let import_mode = import_mode.unwrap_or(ImportMode::Modified);
     let root_path_prefix = root_url
         .as_ref()
         .map(|url| resolve_path_prefix_from_base_url(source_path_resolver, url))
@@ -65,6 +69,7 @@ where
     let root_url = source_path_resolver
         .resolve_url_from_path(&root_path_prefix)
         .map_err(anyhow::Error::from)?;
+    let root_url = BaseUrl::new(root_url);
     let mut summary = Summary::default();
     let outcome = 'outcome: loop {
         progress_summary_fn(&summary);

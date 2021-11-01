@@ -20,7 +20,7 @@ use url::Url;
 use aoide_core::util::{clock::DateTime, url::BaseUrl};
 
 use aoide_core_ext::media::tracker::{
-    scan::{Outcome, Summary},
+    scan::{Outcome, Params, Summary},
     Completion, ScanningDirectoriesProgress, ScanningEntriesProgress, ScanningProgress,
 };
 
@@ -74,15 +74,18 @@ impl From<digest::ProgressEvent> for ProgressEvent {
 pub fn scan_directories_recursively<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
-    root_url: Option<BaseUrl>,
+    params: &Params,
     source_path_resolver: &VirtualFilePathResolver,
-    max_depth: Option<usize>,
     progress_event_fn: &mut impl FnMut(ProgressEvent),
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
     Repo: MediaTrackerRepo,
 {
+    let Params {
+        root_url,
+        max_depth,
+    } = params;
     let root_path_prefix = root_url
         .as_ref()
         .map(|url| resolve_path_prefix_from_base_url(source_path_resolver, url))
@@ -91,6 +94,7 @@ where
     let root_url = source_path_resolver
         .resolve_url_from_path(&root_path_prefix)
         .map_err(anyhow::Error::from)?;
+    let root_url = BaseUrl::new(root_url);
     let root_path = source_path_resolver.build_file_path(&root_path_prefix);
     let outdated_count = repo.media_tracker_mark_current_directories_outdated(
         DateTime::now_utc(),
@@ -104,7 +108,7 @@ where
     let mut summary = Summary::default();
     let completion = digest::hash_directories::<_, anyhow::Error, _, _, _>(
         &root_path,
-        max_depth,
+        *max_depth,
         abort_flag,
         blake3::Hasher::new,
         |path, digest| {

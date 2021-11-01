@@ -69,6 +69,9 @@ RUN apt update \
         ${BUILD_TARGET} \
         wasm32-unknown-unknown \
     && rustup show \
+    && rustup component add \
+        rustfmt \
+        clippy \
     && rustup component list --installed \
     && cargo install --locked trunk \
     && pip install pre-commit
@@ -234,6 +237,9 @@ COPY [ \
 # 5. Strip debug infos from the executable
 RUN tree -a && \
     export CARGO_INCREMENTAL=0 && \
+    cd webapp && trunk build && cd - && \
+    git config --global user.email "pre-commit@example.com" && \
+    git config --global user.name "pre-commit" && \
     git init && git add . && git commit -m "pre-commit" && \
     CARGO_BUILD_TARGET=${BUILD_TARGET} pre-commit run --all-files && \
     rm -rf .git && \
@@ -248,7 +254,6 @@ RUN tree -a && \
     cargo check -p aoide-repo-sqlite --manifest-path crates/repo-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-usecases --manifest-path crates/usecases/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-usecases-sqlite --manifest-path crates/usecases-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cd webapp && trunk build && cd - && \
     cargo check -p aoide-websrv --manifest-path websrv/Cargo.toml --bins -${PROJECT_CHECK_ARGS} && \
     cargo test --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} --no-run && \
     cargo test --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} -- --nocapture --quiet && \
