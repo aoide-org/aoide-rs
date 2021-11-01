@@ -82,30 +82,30 @@ RUN mkdir -p ${WORKDIR_ROOT}/${PROJECT_NAME}
 WORKDIR ${WORKDIR_ROOT}/${PROJECT_NAME}
 
 # Create all projects and crates in workspace
-RUN USER=root cargo new --lib ${PROJECT_NAME}-websrv && \
+RUN USER=root cargo new --vcs none --lib ${PROJECT_NAME}-websrv && \
     mv ${PROJECT_NAME}-websrv websrv && \
     mkdir -p crates && \
-    USER=root cargo new --lib ${PROJECT_NAME}-client && \
+    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-client && \
     mv ${PROJECT_NAME}-client crates/client && \
-    USER=root cargo new --lib ${PROJECT_NAME}-core && \
+    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-core && \
     mv ${PROJECT_NAME}-core crates/core && \
-    USER=root cargo new --lib ${PROJECT_NAME}-core-serde && \
+    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-core-serde && \
     mv ${PROJECT_NAME}-core-serde crates/core-serde && \
-    USER=root cargo new --lib ${PROJECT_NAME}-core-ext && \
+    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-core-ext && \
     mv ${PROJECT_NAME}-core-ext crates/core-ext && \
-    USER=root cargo new --lib ${PROJECT_NAME}-core-ext-serde && \
+    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-core-ext-serde && \
     mv ${PROJECT_NAME}-core-ext-serde crates/core-ext-serde && \
-    USER=root cargo new --lib ${PROJECT_NAME}-jsonapi-sqlite && \
+    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-jsonapi-sqlite && \
     mv ${PROJECT_NAME}-jsonapi-sqlite crates/jsonapi-sqlite && \
-    USER=root cargo new --lib ${PROJECT_NAME}-media && \
+    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-media && \
     mv ${PROJECT_NAME}-media crates/media && \
-    USER=root cargo new --lib ${PROJECT_NAME}-repo && \
+    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-repo && \
     mv ${PROJECT_NAME}-repo crates/repo && \
-    USER=root cargo new --lib ${PROJECT_NAME}-repo-sqlite && \
+    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-repo-sqlite && \
     mv ${PROJECT_NAME}-repo-sqlite crates/repo-sqlite && \
-    USER=root cargo new --lib ${PROJECT_NAME}-usecases && \
+    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-usecases && \
     mv ${PROJECT_NAME}-usecases crates/usecases && \
-    USER=root cargo new --lib ${PROJECT_NAME}-usecases-sqlite && \
+    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-usecases-sqlite && \
     mv ${PROJECT_NAME}-usecases-sqlite crates/usecases-sqlite && \
     tree
 
@@ -161,7 +161,7 @@ COPY [ \
 #   (.rs) files!
 # - For each sub-project delete both the corresponding deps/ AND .fingerprint/
 #   directories!
-RUN tree && \
+RUN tree -a && \
     CARGO_INCREMENTAL=0 cargo build --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/${PROJECT_NAME}* && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/${PROJECT_NAME}-* && \
@@ -226,12 +226,14 @@ COPY [ \
 
 # 1. Run pre-commit
 # 2. Check all sub-projects using their local manifest for an isolated, standalone build
-# 3. Build workspace and run all unit tests for the build target
+# 3. Build workspace and run all unit tests
 # 4. Build the target binary
 # 5. Strip debug infos from the executable
-RUN tree && \
+RUN tree -a && \
     export CARGO_INCREMENTAL=0 && \
-    git init && CARGO_BUILD_TARGET=${BUILD_TARGET} pre-commit run --all-files && rm -rf .git && \
+    git init && git add . && git commit -m "pre-commit" && \
+    CARGO_BUILD_TARGET=${BUILD_TARGET} pre-commit run --all-files && \
+    rm -rf .git && \
     cargo check -p aoide-client --manifest-path crates/client/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-core --manifest-path crates/core/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-core-serde --manifest-path crates/core-serde/Cargo.toml ${PROJECT_CHECK_ARGS} && \
