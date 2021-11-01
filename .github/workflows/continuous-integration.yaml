@@ -92,13 +92,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --locked --all-features --manifest-path crates/client/Cargo.toml
-
-      - name: Check aoide-cli
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --locked --all-features --manifest-path crates/client/Cargo.toml --example aoide-cli
+          args: --locked --all-features --manifest-path crates/client/Cargo.toml --examples
 
       - name: Build aoide-webapp artifacts
         run: |
@@ -110,7 +104,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --locked --all-features --manifest-path websrv/Cargo.toml
+          args: --locked --all-features --manifest-path websrv/Cargo.toml --bins
 
       - name: Build tests with all features enabled
         uses: actions-rs/cargo@v1
