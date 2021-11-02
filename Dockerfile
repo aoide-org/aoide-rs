@@ -243,7 +243,7 @@ RUN tree -a && \
     git init && git add . && git commit -m "pre-commit" && \
     CARGO_BUILD_TARGET=${BUILD_TARGET} pre-commit run --all-files && \
     rm -rf .git && \
-    cargo check -p aoide-client --manifest-path crates/client/Cargo.toml --bins ${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-client --manifest-path crates/client/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-core --manifest-path crates/core/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-core-serde --manifest-path crates/core-serde/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-core-ext --manifest-path crates/core-ext/Cargo.toml ${PROJECT_CHECK_ARGS} && \
@@ -254,7 +254,7 @@ RUN tree -a && \
     cargo check -p aoide-repo-sqlite --manifest-path crates/repo-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-usecases --manifest-path crates/usecases/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-usecases-sqlite --manifest-path crates/usecases-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-websrv --manifest-path websrv/Cargo.toml --bins -${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-websrv --manifest-path websrv/Cargo.toml -${PROJECT_CHECK_ARGS} && \
     cargo test --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} --no-run && \
     cargo test --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} -- --nocapture --quiet && \
     cargo build -p aoide-websrv --manifest-path websrv/Cargo.toml --bin ${BUILD_BIN} ${BUILD_BIN_ARGS} && \
