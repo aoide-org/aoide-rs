@@ -92,7 +92,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --locked --all-features --bins --examples --manifest-path crates/client/Cargo.toml --examples
+          args: --locked --all-features --bins --examples --manifest-path crates/client/Cargo.toml
 
       - name: Build aoide-webapp artifacts
         run: |
