@@ -13,20 +13,20 @@ fmt:
 
 # Run clippy
 check:
-    cargo clippy --locked --workspace --all-features -- -D warnings
-    cd webapp && cargo clippy --locked --all-features -- -D warnings
+    cargo clippy --locked --workspace --all-features --bins --examples --tests -- -D warnings
+    cd webapp && cargo clippy --locked --all-features --bins --examples --tests -- -D warnings
+
+# Fix lint warnings
+fix:
+    cargo fix --workspace --all-features --bins --examples --tests
+    cargo clippy --workspace --all-features --bins --examples --tests --fix
+    cd webapp && cargo fix --all-features --examples --tests
+    cd webapp && cargo clippy --all-features --examples --tests
 
 # Run unit tests
 test:
     cargo test --locked --workspace --all-features
     cd webapp && cargo test --locked --all-features
-
-# Fix lint warnings
-fix:
-    cargo fix --workspace --all-features
-    cargo clippy --workspace --all-features --fix
-    cd webapp && cargo fix --all-features
-    cd webapp && cargo clippy --all-features
 
 # Update depenencies and pre-commit hooks
 update:

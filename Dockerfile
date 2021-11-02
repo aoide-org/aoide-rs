@@ -46,7 +46,7 @@ ARG BUILD_MODE
 ARG BUILD_BIN
 
 # Enable all features and targets for the individual project checks
-ARG PROJECT_CHECK_ARGS="--locked --all-features --target ${BUILD_TARGET} --${BUILD_MODE}"
+ARG PROJECT_CHECK_ARGS="--locked --all-features --bins --examples --target ${BUILD_TARGET} --${BUILD_MODE}"
 
 # Enable select features for the workspace build or leave empty
 # for using the default features
@@ -243,7 +243,7 @@ RUN tree -a && \
     git init && git add . && git commit -m "pre-commit" && \
     CARGO_BUILD_TARGET=${BUILD_TARGET} pre-commit run --all-files && \
     rm -rf .git && \
-    cargo check -p aoide-client --manifest-path crates/client/Cargo.toml --bins --examples ${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-client --manifest-path crates/client/Cargo.toml --bins ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-core --manifest-path crates/core/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-core-serde --manifest-path crates/core-serde/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-core-ext --manifest-path crates/core-ext/Cargo.toml ${PROJECT_CHECK_ARGS} && \
