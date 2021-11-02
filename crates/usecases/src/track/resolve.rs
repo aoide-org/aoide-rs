@@ -30,7 +30,10 @@ where
     let mut resolved = Vec::with_capacity(media_source_paths.len());
     for media_source_path in media_source_paths {
         let next_resolved = repo
-            .resolve_track_entity_header_by_media_source_path(collection_id, &media_source_path)
+            .resolve_collected_track_entity_header_by_media_source_path(
+                collection_id,
+                &media_source_path,
+            )
             .optional()?;
         if let Some(next_resolved) = next_resolved {
             let (_, _, entity_header) = next_resolved;

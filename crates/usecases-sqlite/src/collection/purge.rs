@@ -15,15 +15,11 @@
 
 use super::*;
 
-use aoide_core::entity::EntityUid;
-
-///////////////////////////////////////////////////////////////////////
-
-pub fn delete(connection: &SqliteConnection, uid: &EntityUid) -> Result<()> {
+pub fn purge(connection: &SqliteConnection, uid: &EntityUid) -> Result<()> {
     let db = RepoConnection::new(connection);
     db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-        let id = db.resolve_playlist_id(uid)?;
-        db.delete_playlist_entity(id).map_err(Into::into)
+        let id = db.resolve_collection_id(uid)?;
+        db.purge_collection_entity(id).map_err(Into::into)
     })
     .map_err(Into::into)
 }

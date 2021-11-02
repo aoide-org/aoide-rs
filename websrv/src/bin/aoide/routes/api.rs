@@ -173,7 +173,7 @@ pub fn create_filters(
                     guarded_connection_pool,
                     media_tracker_abort_flag,
                     move |pooled_connection| {
-                        api::collection::delete::handle_request(pooled_connection, &uid)
+                        api::collection::purge::handle_request(pooled_connection, &uid)
                             .map_err(Into::into)
                     },
                 )
@@ -269,7 +269,7 @@ pub fn create_filters(
         ))
     }
 
-    let media_tracker_get_state = warp::get()
+    let media_tracker_get_progress = warp::get()
         .and(media_tracker_path)
         .and(warp::path("progress"))
         .and(warp::path::end())
@@ -279,7 +279,15 @@ pub fn create_filters(
                 reply_media_tracker_progress(media_tracker_progress).await
             },
         );
-    let media_tracker_post_query_status = warp::post()
+    let media_tracker_post_abort = warp::post()
+        .and(media_tracker_path)
+        .and(warp::path("abort"))
+        .and(warp::path::end())
+        .map(|| {
+            media_tracker_abort_flag.store(true, Ordering::Relaxed);
+            StatusCode::ACCEPTED
+        });
+    let media_tracker_post_collection_query_status = warp::post()
         .and(collections_path)
         .and(path_param_uid)
         .and(media_tracker_path)
@@ -306,7 +314,7 @@ pub fn create_filters(
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
-    let media_tracker_post_scan = warp::post()
+    let media_tracker_post_collection_scan = warp::post()
         .and(collections_path)
         .and(path_param_uid)
         .and(media_tracker_path)
@@ -373,7 +381,7 @@ pub fn create_filters(
                 response
             },
         );
-    let media_tracker_post_import = warp::post()
+    let media_tracker_post_collection_import = warp::post()
         .and(collections_path)
         .and(path_param_uid)
         .and(media_tracker_path)
@@ -437,7 +445,7 @@ pub fn create_filters(
                 response
             },
         );
-    let media_tracker_post_untrack = warp::post()
+    let media_tracker_post_collection_untrack = warp::post()
         .and(collections_path)
         .and(path_param_uid)
         .and(media_tracker_path)
@@ -464,20 +472,40 @@ pub fn create_filters(
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
-    let media_tracker_post_abort = warp::post()
+    let media_tracker_post_collection_purge_untracked = warp::post()
+        .and(collections_path)
+        .and(path_param_uid)
         .and(media_tracker_path)
-        .and(warp::path("abort"))
+        .and(warp::path("purge-untracked"))
         .and(warp::path::end())
-        .map(|| {
-            media_tracker_abort_flag.store(true, Ordering::Relaxed);
-            StatusCode::ACCEPTED
-        });
-    let media_tracker_filters = media_tracker_get_state
-        .or(media_tracker_post_query_status)
-        .or(media_tracker_post_scan)
-        .or(media_tracker_post_import)
-        .or(media_tracker_post_untrack)
-        .or(media_tracker_post_abort);
+        .and(warp::body::json())
+        .and(guarded_connection_pool.clone())
+        .and_then(
+            move |uid, request_body, guarded_connection_pool: GuardedConnectionPool| async move {
+                spawn_blocking_database_write_task(
+                    guarded_connection_pool,
+                    media_tracker_abort_flag,
+                    move |pooled_connection| {
+                        api::track::purge_untracked_media::handle_request(
+                            pooled_connection,
+                            &uid,
+                            request_body,
+                        )
+                        .map_err(Into::into)
+                    },
+                )
+                .await
+                .map_err(reject_on_error)
+                .map(|response_body| warp::reply::json(&response_body))
+            },
+        );
+    let media_tracker_filters = media_tracker_get_progress
+        .or(media_tracker_post_abort)
+        .or(media_tracker_post_collection_scan)
+        .or(media_tracker_post_collection_import)
+        .or(media_tracker_post_collection_untrack)
+        .or(media_tracker_post_collection_purge_untracked)
+        .or(media_tracker_post_collection_query_status);
 
     let collected_tracks_resolve = warp::post()
         .and(collections_path)
@@ -614,30 +642,7 @@ pub fn create_filters(
                     guarded_connection_pool,
                     media_tracker_abort_flag,
                     move |pooled_connection| {
-                        api::track::purge::handle_request(pooled_connection, &uid, request_body)
-                            .map_err(Into::into)
-                    },
-                )
-                .await
-                .map_err(reject_on_error)
-                .map(|response_body| warp::reply::json(&response_body))
-            },
-        );
-    let collected_tracks_purge_untracked = warp::post()
-        .and(collections_path)
-        .and(path_param_uid)
-        .and(tracks_path)
-        .and(warp::path("purge-untracked"))
-        .and(warp::path::end())
-        .and(warp::body::json())
-        .and(guarded_connection_pool.clone())
-        .and_then(
-            move |uid, request_body, guarded_connection_pool: GuardedConnectionPool| async move {
-                spawn_blocking_database_write_task(
-                    guarded_connection_pool,
-                    media_tracker_abort_flag,
-                    move |pooled_connection| {
-                        api::track::purge_untracked::handle_request(
+                        api::track::purge_media::handle_request(
                             pooled_connection,
                             &uid,
                             request_body,
@@ -654,8 +659,7 @@ pub fn create_filters(
         .or(collected_tracks_search)
         .or(collected_tracks_replace)
         .or(collected_tracks_import_and_replace)
-        .or(collected_tracks_purge)
-        .or(collected_tracks_purge_untracked);
+        .or(collected_tracks_purge);
 
     // Tracks
     let tracks_load_one = warp::get()
@@ -807,7 +811,7 @@ pub fn create_filters(
                     guarded_connection_pool,
                     media_tracker_abort_flag,
                     move |pooled_connection| {
-                        api::playlist::delete::handle_request(pooled_connection, &uid)
+                        api::playlist::purge::handle_request(pooled_connection, &uid)
                             .map_err(Into::into)
                     },
                 )

@@ -115,17 +115,6 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         Ok(())
     }
 
-    fn delete_collection_entity(&self, id: RecordId) -> RepoResult<()> {
-        let target = collection::table.filter(collection::row_id.eq(RowId::from(id)));
-        let query = diesel::delete(target);
-        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
-        debug_assert!(rows_affected <= 1);
-        if rows_affected < 1 {
-            return Err(RepoError::NotFound);
-        }
-        Ok(())
-    }
-
     fn load_collection_entity(&self, id: RecordId) -> RepoResult<(RecordHeader, Entity)> {
         collection::table
             .filter(collection::row_id.eq(RowId::from(id)))
@@ -209,6 +198,17 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             tracks: track_summary,
             playlists: playlist_summary,
         })
+    }
+
+    fn purge_collection_entity(&self, id: RecordId) -> RepoResult<()> {
+        let target = collection::table.filter(collection::row_id.eq(RowId::from(id)));
+        let query = diesel::delete(target);
+        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
+        debug_assert!(rows_affected <= 1);
+        if rows_affected < 1 {
+            return Err(RepoError::NotFound);
+        }
+        Ok(())
     }
 }
 

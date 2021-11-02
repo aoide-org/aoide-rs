@@ -28,7 +28,7 @@ use aoide_repo::{
 ///////////////////////////////////////////////////////////////////////
 
 pub mod create;
-pub mod delete;
 pub mod entries;
 pub mod load;
+pub mod purge;
 pub mod update;

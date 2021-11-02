@@ -169,7 +169,7 @@ where
     Repo: EntityRepo,
 {
     let (media_source_id, last_synchronized_at, collected_track) = repo
-        .load_track_entity_by_media_source_path(collection_id, &source_path)
+        .load_collected_track_entity_by_media_source_path(collection_id, &source_path)
         .optional()?
         .map(|(media_source_id, _, entity)| {
             (

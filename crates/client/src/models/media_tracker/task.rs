@@ -215,7 +215,10 @@ async fn purge_orphaned_and_untracked<E: WebClientEnvironment>(
     collection_uid: &EntityUid,
     root_url: Option<&Url>,
 ) -> anyhow::Result<()> {
-    let request_url = env.join_api_url(&format!("c/{}/t/purge-untracked", collection_uid))?;
+    let request_url = env.join_api_url(&format!(
+        "c/{}/media-tracker/purge-untracked",
+        collection_uid
+    ))?;
     let request_params = serde_json::json!({
         "rootUrl": root_url.map(ToString::to_string),
         "untrackOrphanedDirectories": true,

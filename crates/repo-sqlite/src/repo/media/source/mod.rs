@@ -170,7 +170,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         Ok(())
     }
 
-    fn delete_media_source(&self, id: RecordId) -> RepoResult<()> {
+    fn purge_media_source(&self, id: RecordId) -> RepoResult<()> {
         let target = media_source::table.filter(media_source::row_id.eq(RowId::from(id)));
         let query = diesel::delete(target);
         let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
@@ -205,14 +205,6 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
     fn purge_orphaned_media_sources(&self, collection_id: CollectionId) -> RepoResult<usize> {
         let target = media_source::table
             .filter(media_source::collection_id.eq(RowId::from(collection_id)))
-            .filter(media_source::row_id.ne_all(track::table.select(track::media_source_id)));
-        let query = diesel::delete(target);
-        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
-        Ok(rows_affected)
-    }
-
-    fn purge_orphaned_media_sources_from_all_collections(&self) -> RepoResult<usize> {
-        let target = media_source::table
             .filter(media_source::row_id.ne_all(track::table.select(track::media_source_id)));
         let query = diesel::delete(target);
         let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;

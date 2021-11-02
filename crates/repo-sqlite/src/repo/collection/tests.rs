@@ -115,7 +115,7 @@ fn update_collection() -> TestResult<()> {
 }
 
 #[test]
-fn delete_collection() -> TestResult<()> {
+fn purge_collection() -> TestResult<()> {
     let fixture = Fixture::new()?;
     let db = crate::Connection::new(&fixture.db);
 
@@ -136,7 +136,7 @@ fn delete_collection() -> TestResult<()> {
     .unwrap();
     println!("Created entity: {:?}", entity);
     let id = db.resolve_collection_id(&entity.hdr.uid)?;
-    db.delete_collection_entity(id)?;
+    db.purge_collection_entity(id)?;
     println!("Removed entity: {}", entity.hdr.uid);
     Ok(())
 }

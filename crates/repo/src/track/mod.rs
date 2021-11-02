@@ -68,23 +68,6 @@ pub trait EntityRepo: MediaSourceRepo {
 
     fn load_track_entity_by_uid(&self, uid: &EntityUid) -> RepoResult<(RecordHeader, Entity)>;
 
-    fn load_track_entity_by_media_source_path(
-        &self,
-        collection_id: CollectionId,
-        media_source_path: &str,
-    ) -> RepoResult<(MediaSourceId, RecordHeader, Entity)>;
-
-    fn resolve_track_entity_header_by_media_source_path(
-        &self,
-        collection_id: CollectionId,
-        media_source_path: &str,
-    ) -> RepoResult<(MediaSourceId, RecordHeader, EntityHeader)>;
-
-    fn list_track_entities(
-        &self,
-        pagination: &Pagination,
-    ) -> RepoResult<Vec<(RecordHeader, Entity)>>;
-
     fn insert_track_entity(
         &self,
         created_at: DateTime,
@@ -100,7 +83,19 @@ pub trait EntityRepo: MediaSourceRepo {
         updated_entity: &Entity,
     ) -> RepoResult<()>;
 
-    fn delete_track_entity(&self, id: RecordId) -> RepoResult<()>;
+    fn purge_track_entity(&self, id: RecordId) -> RepoResult<()>;
+
+    fn load_collected_track_entity_by_media_source_path(
+        &self,
+        collection_id: CollectionId,
+        media_source_path: &str,
+    ) -> RepoResult<(MediaSourceId, RecordHeader, Entity)>;
+
+    fn resolve_collected_track_entity_header_by_media_source_path(
+        &self,
+        collection_id: CollectionId,
+        media_source_path: &str,
+    ) -> RepoResult<(MediaSourceId, RecordHeader, EntityHeader)>;
 
     fn replace_collected_track_by_media_source_path(
         &self,
@@ -109,17 +104,6 @@ pub trait EntityRepo: MediaSourceRepo {
         replace_mode: ReplaceMode,
         track: Track,
     ) -> RepoResult<ReplaceOutcome>;
-
-    fn purge_tracks_by_media_source_media_source_path_predicate(
-        &self,
-        collection_id: CollectionId,
-        media_source_path_predicate: StringPredicateBorrowed<'_>,
-    ) -> RepoResult<usize>;
-
-    fn purge_tracks_by_media_sources(
-        &self,
-        media_source_ids: &[MediaSourceId],
-    ) -> RepoResult<usize>;
 
     fn search_collected_tracks(
         &self,
@@ -131,4 +115,10 @@ pub trait EntityRepo: MediaSourceRepo {
     ) -> RepoResult<usize>;
 
     fn count_collected_tracks(&self, collection_id: CollectionId) -> RepoResult<u64>;
+
+    fn purge_collected_tracks_by_media_source_path_predicate(
+        &self,
+        collection_id: CollectionId,
+        media_source_path_predicate: StringPredicateBorrowed<'_>,
+    ) -> RepoResult<usize>;
 }

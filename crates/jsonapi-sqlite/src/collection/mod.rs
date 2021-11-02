@@ -35,9 +35,9 @@ mod _inner {
 }
 
 pub mod create;
-pub mod delete;
 pub mod load_all;
 pub mod load_one;
+pub mod purge;
 pub mod update;
 
 #[derive(Debug, Clone, Default)]

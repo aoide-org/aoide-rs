@@ -114,7 +114,16 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         Ok(())
     }
 
-    fn delete_playlist_entity(&self, id: RecordId) -> RepoResult<()> {
+    fn load_playlist_entity(&self, id: RecordId) -> RepoResult<(RecordHeader, Entity)> {
+        let record = playlist::table
+            .filter(playlist::row_id.eq(RowId::from(id)))
+            .first::<QueryableRecord>(self.as_ref())
+            .map_err(repo_error)?;
+        let (record_header, _, entity) = record.into();
+        Ok((record_header, entity))
+    }
+
+    fn purge_playlist_entity(&self, id: RecordId) -> RepoResult<()> {
         let target = playlist::table.filter(playlist::row_id.eq(RowId::from(id)));
         let query = diesel::delete(target);
         let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
@@ -123,15 +132,6 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             return Err(RepoError::NotFound);
         }
         Ok(())
-    }
-
-    fn load_playlist_entity(&self, id: RecordId) -> RepoResult<(RecordHeader, Entity)> {
-        let record = playlist::table
-            .filter(playlist::row_id.eq(RowId::from(id)))
-            .first::<QueryableRecord>(self.as_ref())
-            .map_err(repo_error)?;
-        let (record_header, _, entity) = record.into();
-        Ok((record_header, entity))
     }
 }
 

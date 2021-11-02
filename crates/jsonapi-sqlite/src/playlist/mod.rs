@@ -38,9 +38,9 @@ mod _core {
 }
 
 pub mod create_collected;
-pub mod delete;
 pub mod list_collected;
 pub mod patch_entries;
+pub mod purge;
 pub mod update;
 
 #[derive(Debug, Clone, Default)]

@@ -84,9 +84,16 @@ macro_rules! entity_repo_trait_common_functions {
                 updated_entity: &$entity_type,
             ) -> $crate::prelude::RepoResult<()>;
 
-            fn [<delete_ $entity_type_name:lower _entity>](&self, id: $record_id_type) -> $crate::prelude::RepoResult<()>;
-
             fn [<load_ $entity_type_name:lower _entity>](&self, id: $record_id_type) -> $crate::prelude::RepoResult<(crate::RecordHeader<$record_id_type>, $entity_type)>;
+
+            /// Purge the entity
+            ///
+            /// Purging is supposed to be recursive and affects all relationships,
+            /// i.e. all records that belong to this entity must be deleted. This
+            /// could either be implemented implicitly using ON DELETE CASCADE
+            /// constraints for foreign key (FK) relationships in an SQL database
+            /// or programmatically.
+            fn [<purge_ $entity_type_name:lower _entity>](&self, id: $record_id_type) -> $crate::prelude::RepoResult<()>;
         }
     }
 }

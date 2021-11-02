@@ -487,21 +487,6 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         Ok(())
     }
 
-    fn delete_track_entity(&self, id: RecordId) -> RepoResult<()> {
-        delete_track_and_album_titles(self, id)?;
-        delete_track_and_album_actors(self, id)?;
-        delete_track_cues(self, id)?;
-        delete_track_tags(self, id)?;
-        let target = track::table.filter(track::row_id.eq(RowId::from(id)));
-        let query = diesel::delete(target);
-        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
-        debug_assert!(rows_affected <= 1);
-        if rows_affected < 1 {
-            return Err(RepoError::NotFound);
-        }
-        Ok(())
-    }
-
     fn load_track_entity(&self, id: RecordId) -> RepoResult<(RecordHeader, Entity)> {
         let queryable = track::table
             .filter(track::row_id.eq(RowId::from(id)))
@@ -522,7 +507,18 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         load_repo_entity(preload, queryable)
     }
 
-    fn load_track_entity_by_media_source_path(
+    fn purge_track_entity(&self, id: RecordId) -> RepoResult<()> {
+        let target = track::table.filter(track::row_id.eq(RowId::from(id)));
+        let query = diesel::delete(target);
+        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
+        debug_assert!(rows_affected <= 1);
+        if rows_affected < 1 {
+            return Err(RepoError::NotFound);
+        }
+        Ok(())
+    }
+
+    fn load_collected_track_entity_by_media_source_path(
         &self,
         collection_id: CollectionId,
         media_source_path: &str,
@@ -542,7 +538,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         Ok((media_source_id, record_header, entity))
     }
 
-    fn resolve_track_entity_header_by_media_source_path(
+    fn resolve_collected_track_entity_header_by_media_source_path(
         &self,
         collection_id: CollectionId,
         media_source_path: &str,
@@ -558,30 +554,6 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         Ok(queryable.into())
     }
 
-    fn list_track_entities(
-        &self,
-        pagination: &Pagination,
-    ) -> RepoResult<Vec<(RecordHeader, Entity)>> {
-        let mut target = track::table
-            .order_by(track::row_updated_ms.desc())
-            .into_boxed();
-
-        // Pagination
-        target = apply_pagination(target, pagination);
-
-        let queryables = target
-            .load::<QueryableRecord>(self.as_ref())
-            .map_err(repo_error)?;
-        let mut loaded_repo_entities = Vec::with_capacity(queryables.len());
-        for queryable in queryables {
-            let media_source_id = queryable.media_source_id.into();
-            let (_, media_source) = self.load_media_source(media_source_id)?;
-            let preload = preload_entity(self, queryable.id.into(), media_source)?;
-            loaded_repo_entities.push(load_repo_entity(preload, queryable)?);
-        }
-        Ok(loaded_repo_entities)
-    }
-
     fn replace_collected_track_by_media_source_path(
         &self,
         collection_id: CollectionId,
@@ -590,7 +562,10 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         mut track: Track,
     ) -> RepoResult<ReplaceOutcome> {
         let loaded = self
-            .load_track_entity_by_media_source_path(collection_id, &track.media_source.path)
+            .load_collected_track_entity_by_media_source_path(
+                collection_id,
+                &track.media_source.path,
+            )
             .optional()?;
         if let Some((media_source_id, record_header, mut entity)) = loaded {
             // Update existing entry
@@ -638,48 +613,6 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             let id = self.insert_track_entity(created_at, media_source_id, &entity)?;
             Ok(ReplaceOutcome::Created(media_source_id, id, entity))
         }
-    }
-
-    fn purge_tracks_by_media_source_media_source_path_predicate(
-        &self,
-        collection_id: CollectionId,
-        media_source_path_predicate: StringPredicateBorrowed<'_>,
-    ) -> RepoResult<usize> {
-        let media_source_id_subselect = media_source_subselect::filter_by_path_predicate(
-            collection_id,
-            media_source_path_predicate,
-        );
-        let row_ids = track::table
-            .select(track::row_id)
-            .filter(track::media_source_id.eq_any(media_source_id_subselect))
-            .load::<RowId>(self.as_ref())
-            .map_err(repo_error)?;
-        let total_count = row_ids.len();
-        for row_id in row_ids {
-            self.delete_track_entity(row_id.into())?;
-        }
-        Ok(total_count)
-    }
-
-    fn purge_tracks_by_media_sources(
-        &self,
-        media_source_ids: &[MediaSourceId],
-    ) -> RepoResult<usize> {
-        // TODO: How to avoid this temporary allocation and transformation while preserving type safety?
-        let media_source_ids = media_source_ids
-            .iter()
-            .map(|id| id.to_inner())
-            .collect::<Vec<RowId>>();
-        let row_ids = track::table
-            .select(track::row_id)
-            .filter(track::media_source_id.eq_any(&media_source_ids))
-            .load::<RowId>(self.as_ref())
-            .map_err(repo_error)?;
-        let total_count = row_ids.len();
-        for row_id in row_ids {
-            self.delete_track_entity(row_id.into())?;
-        }
-        Ok(total_count)
     }
 
     fn search_collected_tracks(
@@ -758,5 +691,20 @@ impl<'db> EntityRepo for crate::Connection<'db> {
                 debug_assert!(count >= 0);
                 count as u64
             })
+    }
+
+    fn purge_collected_tracks_by_media_source_path_predicate(
+        &self,
+        collection_id: CollectionId,
+        media_source_path_predicate: StringPredicateBorrowed<'_>,
+    ) -> RepoResult<usize> {
+        let media_source_id_subselect = media_source_subselect::filter_by_path_predicate(
+            collection_id,
+            media_source_path_predicate,
+        );
+        let target = track::table.filter(track::media_source_id.eq_any(media_source_id_subselect));
+        let query = diesel::delete(target);
+        let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
+        Ok(rows_affected)
     }
 }

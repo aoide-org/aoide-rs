@@ -207,6 +207,6 @@ where
     Repo: TrackRepo,
 {
     let (_media_source_id, RecordHeader { id: track_id, .. }, entity) =
-        repo.load_track_entity_by_media_source_path(collection_id, media_source_path)?;
+        repo.load_collected_track_entity_by_media_source_path(collection_id, media_source_path)?;
     find_duplicate(repo, collection_id, track_id, entity.body, params)
 }

@@ -88,7 +88,6 @@ impl From<_inner::Outcome> for Outcome {
 pub struct Summary {
     untracked_directories: u64,
     purged_media_sources: u64,
-    purged_tracks: u64,
 }
 
 #[cfg(feature = "frontend")]
@@ -97,12 +96,10 @@ impl From<Summary> for _inner::Summary {
         let Summary {
             untracked_directories,
             purged_media_sources,
-            purged_tracks,
         } = from;
         Self {
             untracked_directories: untracked_directories as usize,
             purged_media_sources: purged_media_sources as usize,
-            purged_tracks: purged_tracks as usize,
         }
     }
 }
@@ -113,12 +110,10 @@ impl From<_inner::Summary> for Summary {
         let _inner::Summary {
             untracked_directories,
             purged_media_sources,
-            purged_tracks,
         } = from;
         Self {
             untracked_directories: untracked_directories as u64,
             purged_media_sources: purged_media_sources as u64,
-            purged_tracks: purged_tracks as u64,
         }
     }
 }

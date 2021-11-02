@@ -55,10 +55,10 @@ fn relink_moved_track_by_media_source_path<Repo>(
 where
     Repo: TrackRepo + MediaSourceRepo + MediaTrackerRepo,
 {
-    let (old_source_id, old_header, old_entity) =
-        repo.load_track_entity_by_media_source_path(collection_id, old_media_source_path)?;
-    let (new_source_id, new_header, new_entity) =
-        repo.load_track_entity_by_media_source_path(collection_id, new_media_source_path)?;
+    let (old_source_id, old_header, old_entity) = repo
+        .load_collected_track_entity_by_media_source_path(collection_id, old_media_source_path)?;
+    let (new_source_id, new_header, new_entity) = repo
+        .load_collected_track_entity_by_media_source_path(collection_id, new_media_source_path)?;
     let updated_track = Track {
         media_source: MediaSource {
             // Preserve the collected_at field from the old source
@@ -68,12 +68,13 @@ where
         ..new_entity.body
     };
     // Relink the sources in the media tracker
-    repo.media_tracker_relink_source(old_source_id, new_source_id)?;
-    // Delete the soon obsolete track and source records to prevent
-    // constraint violations during the update. This only works as
-    // long as the track is not referenced elsewhere, e.g. playlists!
-    repo.delete_track_entity(new_header.id)?;
-    repo.delete_media_source(new_source_id)?;
+    repo.purge_media_source(new_source_id)?;
+    // Purging the media source must also recursively purge
+    // the associated track!
+    debug_assert!(matches!(
+        repo.load_track_entity(new_header.id),
+        Err(RepoError::NotFound)
+    ));
     // Finish with updating the old track
     if updated_track != old_entity.body {
         let updated_at = DateTime::now_utc();
@@ -89,9 +90,12 @@ where
         repo.update_track_entity(old_header.id, updated_at, old_source_id, &updated_entity)?;
         debug_assert_eq!(
             updated_entity.body,
-            repo.load_track_entity_by_media_source_path(collection_id, new_media_source_path)?
-                .2
-                .body
+            repo.load_collected_track_entity_by_media_source_path(
+                collection_id,
+                new_media_source_path
+            )?
+            .2
+            .body
         );
     }
     Ok(())

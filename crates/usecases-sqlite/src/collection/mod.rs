@@ -26,6 +26,6 @@ use aoide_repo::{
 use super::*;
 
 pub mod create;
-pub mod delete;
 pub mod load;
+pub mod purge;
 pub mod update;

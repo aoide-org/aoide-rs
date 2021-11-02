@@ -13,15 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use aoide_core::entity::EntityUid;
+
 use super::*;
 
-///////////////////////////////////////////////////////////////////////
-
-pub fn delete(connection: &SqliteConnection, uid: &EntityUid) -> Result<()> {
+pub fn purge(connection: &SqliteConnection, uid: &EntityUid) -> Result<()> {
     let db = RepoConnection::new(connection);
     db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-        let id = db.resolve_collection_id(uid)?;
-        db.delete_collection_entity(id).map_err(Into::into)
+        let id = db.resolve_playlist_id(uid)?;
+        db.purge_playlist_entity(id).map_err(Into::into)
     })
     .map_err(Into::into)
 }

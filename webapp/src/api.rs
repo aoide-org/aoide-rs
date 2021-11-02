@@ -167,23 +167,6 @@ pub async fn untrack_collection_media(
 }
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
-pub async fn purge_untracked_from_collection(
-    uid: EntityUid,
-    params: impl Into<SerdePurgeUntrackedFromCollectionParams>,
-) -> Result<PurgeUntrackedFromCollectionOutcome> {
-    let url = format!("{}/c/{}/t/purge-untracked", BASE_URL, uid);
-    let request = Request::new(url)
-        .method(Method::Post)
-        .json(&params.into())?;
-    let response = request.fetch().await?;
-    let content: SerdePurgeUntrackedFromCollectionOutcome = response.check_status()?.json().await?;
-    content
-        .try_into()
-        .map_err(anyhow::Error::from)
-        .map_err(Error::DataShape)
-}
-
-#[allow(dead_code)] // TODO: Remove allow attribute after function is used
 pub async fn query_collection_media_status(
     uid: EntityUid,
     params: impl Into<SerdeQueryCollectionMediaStatusParams>,
@@ -195,6 +178,23 @@ pub async fn query_collection_media_status(
     let response = request.fetch().await?;
     let content: SerdeQueryCollectionMediaStatusOutcome = response.check_status()?.json().await?;
     Ok(content.into())
+}
+
+#[allow(dead_code)] // TODO: Remove allow attribute after function is used
+pub async fn purge_untracked_from_collection(
+    uid: EntityUid,
+    params: impl Into<SerdePurgeUntrackedFromCollectionParams>,
+) -> Result<PurgeUntrackedFromCollectionOutcome> {
+    let url = format!("{}/c/{}/media-tracker/purge-untracked", BASE_URL, uid);
+    let request = Request::new(url)
+        .method(Method::Post)
+        .json(&params.into())?;
+    let response = request.fetch().await?;
+    let content: SerdePurgeUntrackedFromCollectionOutcome = response.check_status()?.json().await?;
+    content
+        .try_into()
+        .map_err(anyhow::Error::from)
+        .map_err(Error::DataShape)
 }
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used

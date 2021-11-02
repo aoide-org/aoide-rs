@@ -48,9 +48,10 @@ pub trait Repo {
         updated_at: DateTime,
         updated_source: &Source,
     ) -> RepoResult<()>;
-    fn delete_media_source(&self, id: RecordId) -> RepoResult<()>;
+    fn purge_media_source(&self, id: RecordId) -> RepoResult<()>;
 
     fn load_media_source(&self, id: RecordId) -> RepoResult<(RecordHeader, Source)>;
+
     fn load_media_source_by_path(
         &self,
         collection_id: CollectionId,
@@ -77,7 +78,10 @@ pub trait Repo {
         path_predicate: StringPredicateBorrowed<'_>,
     ) -> RepoResult<usize>;
 
-    fn purge_orphaned_media_sources(&self, collection_id: CollectionId) -> RepoResult<usize>;
-
-    fn purge_orphaned_media_sources_from_all_collections(&self) -> RepoResult<usize>;
+    fn purge_orphaned_media_sources(&self, collection_id: CollectionId) -> RepoResult<usize> {
+        self.purge_orphaned_media_sources_by_path_predicate(
+            collection_id,
+            StringPredicateBorrowed::Prefix(""),
+        )
+    }
 }

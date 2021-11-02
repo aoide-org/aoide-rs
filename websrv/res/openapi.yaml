@@ -11,7 +11,10 @@ servers:
     description: Local development server
 tags:
   - name: Collections
-  - name: Media Sources
+  - name: 'Collections: Media Sources'
+  - name: 'Collections: Media Tracker'
+  - name: 'Collections: Playlists'
+  - name: 'Collections: Tracks'
   - name: Media Tracker
   - name: Tracks
   - name: Playlists
@@ -153,7 +156,7 @@ paths:
         The result list is unordered and contains only those tracks
         that have been found.
       tags:
-        - Tracks
+        - 'Collections: Tracks'
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
       requestBody:
@@ -189,7 +192,7 @@ paths:
         Search collected tracks and their media sources by evaluating
         filter conditions and sorting the results.
       tags:
-        - Tracks
+        - 'Collections: Tracks'
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
         - $ref: '#/components/parameters/resolveMediaSourceUrlFromPathQuery'
@@ -218,7 +221,7 @@ paths:
         Create or update multiple, collected tracks and their media sources by locating them
         through their (percent-encoded) URI.
       tags:
-        - Tracks
+        - 'Collections: Tracks'
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
         - $ref: '#/components/parameters/replaceCollectedTrackModeQuery'
@@ -245,7 +248,7 @@ paths:
       description: |
         TODO
       tags:
-        - Tracks
+        - 'Collections: Tracks'
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
         - $ref: '#/components/parameters/replaceCollectedTrackModeQuery'
@@ -272,7 +275,7 @@ paths:
         Purge multiple, collected tracks and their media sources by locating them
         through their (percent-encoded) URI.
       tags:
-        - Tracks
+        - 'Collections: Tracks'
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
       requestBody:
@@ -291,38 +294,6 @@ paths:
                 $ref: '#/components/schemas/PurgeCollectedTracksResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /api/c/{collectionUid}/t/purge-untracked:
-    post:
-      summary: Purge collected tracks with untracked media sources
-      description: |
-        Purge multiple, collected tracks with media sources that are
-        not tracked by the media tracker.
-
-        Optionally all orphaned directories in the root directory
-        could be untracked first.
-
-        This is needed to get rid of missing tracks, e.g. after directories
-        and files have disappeared from the local file system.
-      tags:
-        - Tracks
-      parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PurgeUntrackedTracksRequestBody'
-      responses:
-        '200':
-          description: |
-            Batch operation succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PurgeUntrackedTracksResponseBody'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
 
   /api/c/{collectionUid}/m/relocate:
     post:
@@ -333,7 +304,7 @@ paths:
 
         The URI comparison is case-sensitive.
       tags:
-        - Media Sources
+        - 'Collections: Media Sources'
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
       requestBody:
@@ -369,7 +340,7 @@ paths:
 
         This operation is blocking and locks the database while running.
       tags:
-        - Media Tracker
+        - 'Collections: Media Tracker'
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
       requestBody:
@@ -397,7 +368,7 @@ paths:
 
         This operation is blocking and locks the database while running.
       tags:
-        - Media Tracker
+        - 'Collections: Media Tracker'
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
       requestBody:
@@ -430,7 +401,7 @@ paths:
         This would also allow to recover from an inconsistent state
         i.e. if changes are expected but not detected by rescanning.
       tags:
-        - Media Tracker
+        - 'Collections: Media Tracker'
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
       requestBody:
@@ -454,7 +425,7 @@ paths:
       summary: Query the aggregated status of tracked directories
       description: |
       tags:
-        - Media Tracker
+        - 'Collections: Media Tracker'
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
       requestBody:
@@ -473,6 +444,40 @@ paths:
                 $ref: '#/components/schemas/MediaTrackerQueryStatusResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+  /api/c/{collectionUid}/media-tracker/purge-untracked:
+    post:
+      summary: Purge tracks with untracked media sources
+      description: |
+        Purge multiple, collected tracks with media sources that are
+        not tracked by the media tracker.
+
+        Optionally all orphaned directories in the root directory
+        could be untracked first to increase the number of potential
+        candidates for purging.
+
+        This is needed to get rid of missing tracks, e.g. after directories
+        and files have disappeared from the local file system.
+      tags:
+        - 'Collections: Media Tracker'
+      parameters:
+        - $ref: '#/components/parameters/collectionUidPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurgeUntrackedTracksRequestBody'
+      responses:
+        '200':
+          description: |
+            Batch operation succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurgeUntrackedTracksResponseBody'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+
   /api/media-tracker/progress:
     get:
       summary: Query the current progress
@@ -504,6 +509,7 @@ paths:
                         $ref: '#/components/schemas/MediaTrackerImportingProgress'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+
   /api/media-tracker/abort:
     post:
       summary: Abort any running tracker task
@@ -581,7 +587,7 @@ paths:
       description: |
         Load collected playlists that have recently been modified (created/updated).
       tags:
-        - Playlists
+        - 'Collections: Playlists'
       parameters:
         - $ref: '#/components/parameters/collectionUidPath'
         - $ref: '#/components/parameters/playlistKindQuery'
@@ -2161,13 +2167,9 @@ components:
         purgedMediaSources:
           type: integer
           format: int64
-        purgedTracks:
-          type: integer
-          format: int64
       required:
         - untrackedDirectories
         - purgedMediaSources
-        - purgedTracks
     Release:
       type: object
       properties:
