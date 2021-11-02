@@ -13,9 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use reqwest::Url;
-
-use aoide_core::entity::EntityUid;
+use aoide_core::{entity::EntityUid, util::url::BaseUrl};
 
 use aoide_core_ext::media::tracker::{
     import::Outcome as ImportOutcome, scan::Outcome as ScanOutcome,
@@ -30,25 +28,25 @@ use super::Effect;
 pub enum Task {
     FetchStatus {
         collection_uid: EntityUid,
-        root_url: Option<Url>,
+        root_url: Option<BaseUrl>,
     },
     FetchProgress,
     StartScan {
         collection_uid: EntityUid,
-        root_url: Option<Url>,
+        root_url: Option<BaseUrl>,
     },
     StartImport {
         collection_uid: EntityUid,
-        root_url: Option<Url>,
+        root_url: Option<BaseUrl>,
     },
     Abort,
     Untrack {
         collection_uid: EntityUid,
-        root_url: Url,
+        root_url: BaseUrl,
     },
     PurgeOrphanedAndUntracked {
         collection_uid: EntityUid,
-        root_url: Option<Url>,
+        root_url: Option<BaseUrl>,
     },
 }
 
@@ -60,7 +58,8 @@ impl Task {
                 collection_uid,
                 root_url,
             } => {
-                let res = fetch_status(env, &collection_uid, root_url.as_ref()).await;
+                let params = aoide_core_ext::media::tracker::query_status::Params { root_url };
+                let res = fetch_status(env, &collection_uid, params).await;
                 Effect::StatusFetched(res)
             }
             Self::FetchProgress => {
@@ -71,14 +70,22 @@ impl Task {
                 collection_uid,
                 root_url,
             } => {
-                let res = start_scan(env, &collection_uid, root_url.as_ref()).await;
+                let params = aoide_core_ext::media::tracker::scan::Params {
+                    root_url,
+                    ..Default::default()
+                };
+                let res = start_scan(env, &collection_uid, params).await;
                 Effect::ScanFinished(res)
             }
             Self::StartImport {
                 collection_uid,
                 root_url,
             } => {
-                let res = start_import(env, &collection_uid, root_url.as_ref()).await;
+                let params = aoide_core_ext::media::tracker::import::Params {
+                    root_url,
+                    ..Default::default()
+                };
+                let res = start_import(env, &collection_uid, params).await;
                 Effect::ImportFinished(res)
             }
             Self::Abort => {
@@ -89,15 +96,22 @@ impl Task {
                 collection_uid,
                 root_url,
             } => {
-                let res = untrack(env, &collection_uid, &root_url).await;
+                let params = aoide_core_ext::media::tracker::untrack::Params {
+                    root_url,
+                    status: None,
+                };
+                let res = untrack(env, &collection_uid, params).await;
                 Effect::Untracked(res)
             }
             Self::PurgeOrphanedAndUntracked {
                 collection_uid,
                 root_url,
             } => {
-                let res =
-                    purge_orphaned_and_untracked(env, &collection_uid, root_url.as_ref()).await;
+                let params = aoide_core_ext::track::purge_untracked::Params {
+                    root_url,
+                    untrack_orphaned_directories: Some(true),
+                };
+                let res = purge_untracked(env, &collection_uid, params).await;
                 Effect::PurgeOrphanedAndUntracked(res)
             }
         }
@@ -107,14 +121,11 @@ impl Task {
 async fn fetch_status<E: WebClientEnvironment>(
     env: &E,
     collection_uid: &EntityUid,
-    root_url: Option<&Url>,
+    params: impl Into<aoide_core_ext_serde::media::tracker::query_status::Params>,
 ) -> anyhow::Result<Status> {
     let request_url =
         env.join_api_url(&format!("c/{}/media-tracker/query-status", collection_uid))?;
-    let request_params = serde_json::json!({
-        "rootUrl": root_url.map(ToString::to_string),
-    });
-    let request_body = serde_json::to_vec(&request_params)?;
+    let request_body = serde_json::to_vec(&params.into())?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
@@ -140,13 +151,10 @@ async fn fetch_progress<E: WebClientEnvironment>(env: &E) -> anyhow::Result<Prog
 async fn start_scan<E: WebClientEnvironment>(
     env: &E,
     collection_uid: &EntityUid,
-    root_url: Option<&Url>,
+    params: impl Into<aoide_core_ext_serde::media::tracker::scan::Params>,
 ) -> anyhow::Result<ScanOutcome> {
     let request_url = env.join_api_url(&format!("c/{}/media-tracker/scan", collection_uid))?;
-    let request_params = serde_json::json!({
-        "rootUrl": root_url.map(ToString::to_string),
-    });
-    let request_body = serde_json::to_vec(&request_params)?;
+    let request_body = serde_json::to_vec(&params.into())?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
@@ -162,13 +170,10 @@ async fn start_scan<E: WebClientEnvironment>(
 async fn start_import<E: WebClientEnvironment>(
     env: &E,
     collection_uid: &EntityUid,
-    root_url: Option<&Url>,
+    params: impl Into<aoide_core_ext_serde::media::tracker::import::Params>,
 ) -> anyhow::Result<ImportOutcome> {
     let request_url = env.join_api_url(&format!("c/{}/media-tracker/import", collection_uid))?;
-    let request_params = serde_json::json!({
-        "rootUrl": root_url.map(ToString::to_string),
-    });
-    let request_body = serde_json::to_vec(&request_params)?;
+    let request_body = serde_json::to_vec(&params.into())?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
@@ -192,13 +197,10 @@ pub async fn abort<E: WebClientEnvironment>(env: &E) -> anyhow::Result<()> {
 async fn untrack<E: WebClientEnvironment>(
     env: &E,
     collection_uid: &EntityUid,
-    root_url: &Url,
+    params: impl Into<aoide_core_ext_serde::media::tracker::untrack::Params>,
 ) -> anyhow::Result<UntrackOutcome> {
     let request_url = env.join_api_url(&format!("c/{}/media-tracker/untrack", collection_uid))?;
-    let request_params = serde_json::json!({
-        "rootUrl": root_url.to_string(),
-    });
-    let request_body = serde_json::to_vec(&request_params)?;
+    let request_body = serde_json::to_vec(&params.into())?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
@@ -210,20 +212,16 @@ async fn untrack<E: WebClientEnvironment>(
     Ok(outcome)
 }
 
-async fn purge_orphaned_and_untracked<E: WebClientEnvironment>(
+async fn purge_untracked<E: WebClientEnvironment>(
     env: &E,
     collection_uid: &EntityUid,
-    root_url: Option<&Url>,
+    params: impl Into<aoide_core_ext_serde::track::purge_untracked::Params>,
 ) -> anyhow::Result<()> {
     let request_url = env.join_api_url(&format!(
         "c/{}/media-tracker/purge-untracked",
         collection_uid
     ))?;
-    let request_params = serde_json::json!({
-        "rootUrl": root_url.map(ToString::to_string),
-        "untrackOrphanedDirectories": true,
-    });
-    let request_body = serde_json::to_vec(&request_params)?;
+    let request_body = serde_json::to_vec(&params.into())?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;

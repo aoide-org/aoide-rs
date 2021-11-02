@@ -43,12 +43,10 @@ impl Task {
 
 pub async fn create_new_collection<E: WebClientEnvironment>(
     env: &E,
-    new_collection: Collection,
+    new_collection: impl Into<aoide_core_serde::collection::Collection>,
 ) -> anyhow::Result<CollectionEntity> {
     let url = env.join_api_url("c")?;
-    let body = serde_json::to_vec(&aoide_core_serde::collection::Collection::from(
-        new_collection,
-    ))?;
+    let body = serde_json::to_vec(&new_collection.into())?;
     let request = env.client().post(url).body(body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;

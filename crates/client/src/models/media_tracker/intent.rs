@@ -13,9 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use reqwest::Url;
-
-use aoide_core::entity::EntityUid;
+use aoide_core::{entity::EntityUid, util::url::BaseUrl};
 
 use super::{Action, ControlState, State, StateUpdated, Task};
 
@@ -23,26 +21,26 @@ use super::{Action, ControlState, State, StateUpdated, Task};
 pub enum Intent {
     FetchStatus {
         collection_uid: EntityUid,
-        root_url: Option<Url>,
+        root_url: Option<BaseUrl>,
     },
     FetchProgress,
     StartScan {
         collection_uid: EntityUid,
-        root_url: Option<Url>,
+        root_url: Option<BaseUrl>,
     },
     StartImport {
         collection_uid: EntityUid,
-        root_url: Option<Url>,
+        root_url: Option<BaseUrl>,
     },
     Abort,
     AbortOnTermination,
     Untrack {
         collection_uid: EntityUid,
-        root_url: Url,
+        root_url: BaseUrl,
     },
     PurgeOrphanedAndUntracked {
         collection_uid: EntityUid,
-        root_url: Option<Url>,
+        root_url: Option<BaseUrl>,
     },
 }
 
