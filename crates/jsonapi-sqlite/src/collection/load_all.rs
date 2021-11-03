@@ -51,7 +51,7 @@ pub fn handle_request(
         offset,
     } = query_params;
     let with_summary = summary.unwrap_or(false);
-    let pagination = PaginationQueryParams { limit, offset };
+    let pagination = Pagination { limit, offset };
     let pagination: Option<_> = pagination.into();
     let mut collector = EntityCollector::default();
     uc::load_all(

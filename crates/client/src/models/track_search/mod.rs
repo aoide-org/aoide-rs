@@ -13,11 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::num::NonZeroUsize;
-
 use aoide_core::track::Entity;
 
-use aoide_core_ext::track::search::SearchParams;
+use aoide_core_ext::track::search::Params;
+use aoide_core_ext::Pagination;
 
 pub mod effect;
 pub use self::effect::Effect;
@@ -35,15 +34,8 @@ pub type Action = crate::prelude::Action<Effect, Task>;
 pub type StateUpdated = crate::prelude::mutable::StateUpdated<Effect, Task>;
 
 #[derive(Debug, Clone)]
-pub struct Pagination {
-    pub offset: usize,
-    pub limit: NonZeroUsize,
-}
-
-#[derive(Debug, Clone)]
 pub struct FetchResultPageRequest {
-    pub search_params: SearchParams,
-    pub resolve_url_from_path: bool,
+    pub search_params: Params,
     pub pagination: Pagination,
 }
 

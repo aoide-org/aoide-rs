@@ -15,11 +15,10 @@
 
 use aoide_repo::collection::EntityRepo as _;
 
-use aoide_core_ext::track::search::{SearchFilter, SortOrder};
-
 use super::*;
 
 mod uc {
+    pub use aoide_core_ext::track::search::*;
     pub use aoide_usecases::{
         collection::resolve_collection_id_for_virtual_file_path, track::search::*, Error,
     };
@@ -28,25 +27,15 @@ mod uc {
 pub fn search(
     pooled_connection: SqlitePooledConnection,
     collection_uid: &EntityUid,
-    pagination: &Pagination,
-    filter: Option<SearchFilter>,
-    ordering: Vec<SortOrder>,
     params: uc::Params,
+    pagination: &Pagination,
     collector: &mut impl ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
 ) -> Result<usize> {
     let db = RepoConnection::new(&pooled_connection);
     db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
         let collection_id = db.resolve_collection_id(collection_uid)?;
-        uc::search_with_params(
-            &db,
-            collection_id,
-            pagination,
-            filter,
-            ordering,
-            params,
-            collector,
-        )
-        .map_err(DieselTransactionError::new)
+        uc::search_with_params(&db, collection_id, params, pagination, collector)
+            .map_err(DieselTransactionError::new)
     })
     .map_err(Into::into)
 }

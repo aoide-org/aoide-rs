@@ -17,12 +17,14 @@
 #![deny(clippy::clone_on_ref_ptr)]
 #![warn(rust_2018_idioms)]
 
-pub use aoide_core_ext as _inner;
-
 // Common imports
 mod prelude {
+    pub use self::_inner::{PaginationLimit, PaginationOffset};
+    pub(crate) use aoide_core_ext as _inner;
     pub use serde::{Deserialize, Serialize};
 }
+
+use crate::prelude::*;
 
 pub mod collection;
 pub mod filtering;
@@ -30,3 +32,31 @@ pub mod media;
 pub mod sorting;
 pub mod tag;
 pub mod track;
+
+#[derive(Debug)]
+#[cfg_attr(feature = "frontend", derive(Serialize))]
+#[cfg_attr(feature = "backend", derive(Deserialize))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct Pagination {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<PaginationLimit>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub offset: Option<PaginationOffset>,
+}
+
+#[cfg(feature = "frontend")]
+impl From<_inner::Pagination> for Pagination {
+    fn from(from: _inner::Pagination) -> Self {
+        let _inner::Pagination { limit, offset } = from;
+        Self { limit, offset }
+    }
+}
+
+#[cfg(feature = "backend")]
+impl From<Pagination> for _inner::Pagination {
+    fn from(from: Pagination) -> Self {
+        let Pagination { limit, offset } = from;
+        Self { limit, offset }
+    }
+}

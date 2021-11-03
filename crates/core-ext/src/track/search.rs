@@ -16,7 +16,10 @@
 use semval::prelude::IsValid as _;
 
 use aoide_core::{
-    audio::DurationMs, entity::EntityUid, track::release::DateOrDateTime, util::clock::DateTime,
+    audio::DurationMs,
+    entity::EntityUid,
+    track::release::DateOrDateTime,
+    util::{clock::DateTime, url::BaseUrl},
 };
 
 use crate::{filtering::*, sorting::*, tag};
@@ -178,8 +181,10 @@ impl SearchFilter {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SearchParams {
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Params {
+    pub override_root_url: Option<BaseUrl>,
     pub filter: Option<SearchFilter>,
     pub ordering: Vec<SortOrder>,
+    pub resolve_url_from_path: bool,
 }

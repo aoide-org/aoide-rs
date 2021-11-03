@@ -23,3 +23,41 @@ pub mod media;
 pub mod sorting;
 pub mod tag;
 pub mod track;
+
+pub type PaginationOffset = u64;
+
+pub type PaginationLimit = u64;
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct Pagination {
+    pub limit: Option<PaginationLimit>,
+    pub offset: Option<PaginationOffset>,
+}
+
+impl Pagination {
+    pub const fn has_offset(&self) -> bool {
+        self.offset.is_some()
+    }
+
+    pub const fn is_limited(&self) -> bool {
+        self.limit.is_some()
+    }
+
+    pub const fn is_paginated(&self) -> bool {
+        self.has_offset() || self.is_limited()
+    }
+
+    /// Mandatory offset
+    ///
+    /// Returns the offset if specified or 0 otherwise.
+    pub fn mandatory_offset(&self) -> PaginationOffset {
+        self.offset.unwrap_or(0)
+    }
+
+    /// Mandatory limit
+    ///
+    /// Returns the limit if specified or the maximum value otherwise.
+    pub fn mandatory_limit(&self) -> PaginationLimit {
+        self.limit.unwrap_or(PaginationLimit::MAX)
+    }
+}

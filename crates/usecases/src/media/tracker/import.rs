@@ -78,7 +78,7 @@ where
             &root_path_prefix,
             &Pagination {
                 offset: Some(summary.directories.skipped as PaginationOffset),
-                limit: 1,
+                limit: Some(1),
             },
         )?;
         if pending_entries.is_empty() {

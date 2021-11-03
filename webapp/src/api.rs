@@ -3,7 +3,7 @@ use thiserror::Error;
 
 use seed::{prelude::*, *};
 
-use aoide_core::entity::EntityUid;
+use aoide_core::{entity::EntityUid, track::Track};
 
 use aoide_core_ext::{
     media::tracker::{
@@ -12,12 +12,16 @@ use aoide_core_ext::{
         untrack::Outcome as UntrackCollectionMediaOutcome, Progress as MediaTrackerProgress,
         Status as QueryCollectionMediaStatusOutcome,
     },
-    track::purge_untracked::Outcome as PurgeUntrackedFromCollectionOutcome,
+    track::{
+        purge_untracked::Outcome as PurgeUntrackedFromCollectionOutcome,
+        search::Params as SearchParams,
+    },
 };
 
 use aoide_core_serde::{
     collection::{Collection as SerdeCollection, Entity as SerdeCollectionEntity},
     entity::{Entity as SerdeEntity, EntityHeader as SerdeEntityHeader},
+    track::Track as SerdeTrack,
 };
 
 use aoide_core_ext_serde::{
@@ -41,6 +45,7 @@ use aoide_core_ext_serde::{
         Outcome as SerdePurgeUntrackedFromCollectionOutcome,
         Params as SerdePurgeUntrackedFromCollectionParams,
     },
+    Pagination as SerdePagination,
 };
 
 use crate::domain::*;
@@ -61,12 +66,15 @@ pub async fn fetch_all_collections() -> Result<CollectionItems> {
     let url = format!("{}/c", BASE_URL);
     let response = fetch(url).await?;
     let content: Vec<SerdeCollectionEntity> = response.check_status()?.json().await?;
-    let mut items = Vec::with_capacity(content.len());
-    for item in content {
-        let entity = item.try_into().map_err(Error::DataShape)?;
-        items.push(CollectionItem::without_summary(entity));
-    }
-    Ok(items)
+    let capacity = content.len();
+    content
+        .into_iter()
+        .try_fold(Vec::with_capacity(capacity), |mut collected, item| {
+            collected.push(CollectionItem::without_summary(
+                item.try_into().map_err(Error::DataShape)?,
+            ));
+            Ok(collected)
+        })
 }
 
 pub async fn fetch_collection_with_summary(uid: EntityUid) -> Result<CollectionItem> {
@@ -117,10 +125,10 @@ pub async fn delete_collection(entity_header: impl Into<SerdeEntityHeader>) -> R
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
 pub async fn scan_collection_media(
-    uid: EntityUid,
+    collection_uid: EntityUid,
     params: impl Into<SerdeScanCollectionMediaParams>,
 ) -> Result<ScanCollectionMediaOutcome> {
-    let url = format!("{}/c/{}/media-tracker/scan", BASE_URL, uid);
+    let url = format!("{}/c/{}/media-tracker/scan", BASE_URL, collection_uid);
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
@@ -134,10 +142,10 @@ pub async fn scan_collection_media(
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
 pub async fn import_collection_media(
-    uid: EntityUid,
+    collection_uid: EntityUid,
     params: impl Into<SerdeImportCollectionMediaParams>,
 ) -> Result<ImportCollectionMediaOutcome> {
-    let url = format!("{}/c/{}/media-tracker/import", BASE_URL, uid);
+    let url = format!("{}/c/{}/media-tracker/import", BASE_URL, collection_uid);
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
@@ -151,10 +159,10 @@ pub async fn import_collection_media(
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
 pub async fn untrack_collection_media(
-    uid: EntityUid,
+    collection_uid: EntityUid,
     params: impl Into<SerdeUntrackCollectionMediaParams>,
 ) -> Result<UntrackCollectionMediaOutcome> {
-    let url = format!("{}/c/{}/media-tracker/untrack", BASE_URL, uid);
+    let url = format!("{}/c/{}/media-tracker/untrack", BASE_URL, collection_uid);
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
@@ -168,10 +176,13 @@ pub async fn untrack_collection_media(
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
 pub async fn query_collection_media_status(
-    uid: EntityUid,
+    collection_uid: EntityUid,
     params: impl Into<SerdeQueryCollectionMediaStatusParams>,
 ) -> Result<QueryCollectionMediaStatusOutcome> {
-    let url = format!("{}/c/{}/media-tracker/query-status", BASE_URL, uid);
+    let url = format!(
+        "{}/c/{}/media-tracker/query-status",
+        BASE_URL, collection_uid
+    );
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
@@ -182,10 +193,13 @@ pub async fn query_collection_media_status(
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
 pub async fn purge_untracked_from_collection(
-    uid: EntityUid,
+    collection_uid: EntityUid,
     params: impl Into<SerdePurgeUntrackedFromCollectionParams>,
 ) -> Result<PurgeUntrackedFromCollectionOutcome> {
-    let url = format!("{}/c/{}/media-tracker/purge-untracked", BASE_URL, uid);
+    let url = format!(
+        "{}/c/{}/media-tracker/purge-untracked",
+        BASE_URL, collection_uid
+    );
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
@@ -213,6 +227,36 @@ pub async fn abort_media_tracker() -> Result<()> {
     let _status_code = response.check_status()?.status().code;
     debug_assert_eq!(StatusCode::ACCEPTED, _status_code);
     Ok(())
+}
+
+#[allow(dead_code)] // TODO: Remove allow attribute after function is used
+pub async fn search_collection_tracks(
+    collection_uid: EntityUid,
+    params: SearchParams,
+    pagination: impl Into<SerdePagination>,
+) -> Result<Vec<Track>> {
+    let (query_params, search_params) =
+        aoide_core_ext_serde::track::search::client_request_params(params, pagination);
+    let url = format!(
+        "{}/c/{}/t/search?{}",
+        BASE_URL,
+        collection_uid,
+        serde_urlencoded::to_string(query_params)
+            .map_err(Into::into)
+            .map_err(Error::DataShape)?,
+    );
+    let request = Request::new(url)
+        .method(Method::Post)
+        .json(&search_params)?;
+    let response = request.fetch().await?;
+    let content: Vec<SerdeTrack> = response.check_status()?.json().await?;
+    let capacity = content.len();
+    content
+        .into_iter()
+        .try_fold(Vec::with_capacity(capacity), |mut collected, item| {
+            collected.push(item.try_into().map_err(Error::DataShape)?);
+            Ok(collected)
+        })
 }
 
 // ------ ------

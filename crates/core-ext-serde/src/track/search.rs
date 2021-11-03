@@ -15,19 +15,24 @@
 
 use aoide_core_serde::{entity::EntityUid, util::clock::DateTime};
 
+use url::Url;
+
 use crate::{
     _inner::filtering::NumericValue,
     filtering::{ScalarFieldFilter, StringFilter},
     prelude::*,
     sorting::SortDirection,
     tag::search::Filter as TagFilter,
+    Pagination,
 };
 
 mod _inner {
     pub use crate::_inner::{filtering::*, sorting::*, track::search::*};
 }
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "frontend", derive(Serialize))]
+#[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
 pub enum SortField {
     AlbumArtist,
@@ -57,6 +62,7 @@ pub enum SortField {
     UpdatedAt,
 }
 
+#[cfg(feature = "backend")]
 impl From<SortField> for _inner::SortField {
     fn from(from: SortField) -> Self {
         use SortField::*;
@@ -90,6 +96,7 @@ impl From<SortField> for _inner::SortField {
     }
 }
 
+#[cfg(feature = "frontend")]
 impl From<_inner::SortField> for SortField {
     fn from(from: _inner::SortField) -> Self {
         use _inner::SortField::*;
@@ -123,9 +130,13 @@ impl From<_inner::SortField> for SortField {
     }
 }
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "frontend", derive(Serialize))]
+#[cfg_attr(feature = "backend", derive(Deserialize))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SortOrder(SortField, SortDirection);
 
+#[cfg(feature = "backend")]
 impl From<SortOrder> for _inner::SortOrder {
     fn from(from: SortOrder) -> Self {
         let SortOrder(field, direction) = from;
@@ -136,6 +147,7 @@ impl From<SortOrder> for _inner::SortOrder {
     }
 }
 
+#[cfg(feature = "frontend")]
 impl From<_inner::SortOrder> for SortOrder {
     fn from(from: _inner::SortOrder) -> Self {
         let _inner::SortOrder { field, direction } = from;
@@ -143,7 +155,9 @@ impl From<_inner::SortOrder> for SortOrder {
     }
 }
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "frontend", derive(Serialize))]
+#[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
 pub enum StringField {
     AlbumArtist,
@@ -156,6 +170,7 @@ pub enum StringField {
     ReleasedBy,
 }
 
+#[cfg(feature = "backend")]
 impl From<StringField> for _inner::StringField {
     fn from(from: StringField) -> Self {
         use StringField::*;
@@ -172,6 +187,7 @@ impl From<StringField> for _inner::StringField {
     }
 }
 
+#[cfg(feature = "frontend")]
 impl From<_inner::StringField> for StringField {
     fn from(from: _inner::StringField) -> Self {
         use _inner::StringField::*;
@@ -188,7 +204,9 @@ impl From<_inner::StringField> for StringField {
     }
 }
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "frontend", derive(Serialize))]
+#[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
 pub enum NumericField {
     AdvisoryRating,
@@ -207,6 +225,7 @@ pub enum NumericField {
     TrackTotal,
 }
 
+#[cfg(feature = "backend")]
 impl From<NumericField> for _inner::NumericField {
     fn from(from: NumericField) -> Self {
         use NumericField::*;
@@ -229,6 +248,7 @@ impl From<NumericField> for _inner::NumericField {
     }
 }
 
+#[cfg(feature = "frontend")]
 impl From<_inner::NumericField> for NumericField {
     fn from(from: _inner::NumericField) -> Self {
         use _inner::NumericField::*;
@@ -251,7 +271,9 @@ impl From<_inner::NumericField> for NumericField {
     }
 }
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "frontend", derive(Serialize))]
+#[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
 pub enum DateTimeField {
     LastPlayedAt,
@@ -260,6 +282,7 @@ pub enum DateTimeField {
     SourceSynchronizedAt,
 }
 
+#[cfg(feature = "backend")]
 impl From<DateTimeField> for _inner::DateTimeField {
     fn from(from: DateTimeField) -> Self {
         use DateTimeField::*;
@@ -272,6 +295,7 @@ impl From<DateTimeField> for _inner::DateTimeField {
     }
 }
 
+#[cfg(feature = "frontend")]
 impl From<_inner::DateTimeField> for DateTimeField {
     fn from(from: _inner::DateTimeField) -> Self {
         use _inner::DateTimeField::*;
@@ -284,13 +308,16 @@ impl From<_inner::DateTimeField> for DateTimeField {
     }
 }
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "frontend", derive(Serialize))]
+#[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
 pub enum ConditionFilter {
     SourceTracked,
     SourceUntracked,
 }
 
+#[cfg(feature = "backend")]
 impl From<ConditionFilter> for _inner::ConditionFilter {
     fn from(from: ConditionFilter) -> Self {
         use ConditionFilter::*;
@@ -301,6 +328,7 @@ impl From<ConditionFilter> for _inner::ConditionFilter {
     }
 }
 
+#[cfg(feature = "frontend")]
 impl From<_inner::ConditionFilter> for ConditionFilter {
     fn from(from: _inner::ConditionFilter) -> Self {
         use _inner::ConditionFilter::*;
@@ -313,6 +341,7 @@ impl From<_inner::ConditionFilter> for ConditionFilter {
 
 pub type NumericFieldFilter = ScalarFieldFilter<NumericField, NumericValue>;
 
+#[cfg(feature = "backend")]
 impl From<NumericFieldFilter> for _inner::NumericFieldFilter {
     fn from(from: NumericFieldFilter) -> Self {
         let ScalarFieldFilter(field, predicate) = from;
@@ -323,6 +352,7 @@ impl From<NumericFieldFilter> for _inner::NumericFieldFilter {
     }
 }
 
+#[cfg(feature = "frontend")]
 impl From<_inner::NumericFieldFilter> for NumericFieldFilter {
     fn from(from: _inner::NumericFieldFilter) -> Self {
         let _inner::ScalarFieldFilter { field, predicate } = from;
@@ -332,6 +362,7 @@ impl From<_inner::NumericFieldFilter> for NumericFieldFilter {
 
 pub type DateTimeFieldFilter = ScalarFieldFilter<DateTimeField, DateTime>;
 
+#[cfg(feature = "backend")]
 impl From<DateTimeFieldFilter> for _inner::DateTimeFieldFilter {
     fn from(from: DateTimeFieldFilter) -> Self {
         let ScalarFieldFilter(field, predicate) = from;
@@ -342,6 +373,7 @@ impl From<DateTimeFieldFilter> for _inner::DateTimeFieldFilter {
     }
 }
 
+#[cfg(feature = "frontend")]
 impl From<_inner::DateTimeFieldFilter> for DateTimeFieldFilter {
     fn from(from: _inner::DateTimeFieldFilter) -> Self {
         let _inner::ScalarFieldFilter { field, predicate } = from;
@@ -349,9 +381,13 @@ impl From<_inner::DateTimeFieldFilter> for DateTimeFieldFilter {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "frontend", derive(Serialize))]
+#[cfg_attr(feature = "backend", derive(Deserialize))]
+#[serde(rename_all = "camelCase")]
 pub struct PhraseFieldFilter(Vec<StringField>, Vec<String>);
 
+#[cfg(feature = "backend")]
 impl From<PhraseFieldFilter> for _inner::PhraseFieldFilter {
     fn from(from: PhraseFieldFilter) -> Self {
         let PhraseFieldFilter(fields, terms) = from;
@@ -362,6 +398,7 @@ impl From<PhraseFieldFilter> for _inner::PhraseFieldFilter {
     }
 }
 
+#[cfg(feature = "frontend")]
 impl From<_inner::PhraseFieldFilter> for PhraseFieldFilter {
     fn from(from: _inner::PhraseFieldFilter) -> Self {
         let _inner::PhraseFieldFilter { fields, terms } = from;
@@ -369,7 +406,9 @@ impl From<_inner::PhraseFieldFilter> for PhraseFieldFilter {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "frontend", derive(Serialize))]
+#[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
 pub enum SearchFilter {
     Phrase(PhraseFieldFilter),
@@ -384,6 +423,7 @@ pub enum SearchFilter {
     Not(Box<SearchFilter>),
 }
 
+#[cfg(feature = "backend")]
 impl From<SearchFilter> for _inner::SearchFilter {
     fn from(from: SearchFilter) -> Self {
         use SearchFilter::*;
@@ -402,6 +442,7 @@ impl From<SearchFilter> for _inner::SearchFilter {
     }
 }
 
+#[cfg(feature = "frontend")]
 impl From<_inner::SearchFilter> for SearchFilter {
     fn from(from: _inner::SearchFilter) -> Self {
         use _inner::SearchFilter::*;
@@ -420,7 +461,32 @@ impl From<_inner::SearchFilter> for SearchFilter {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "frontend", derive(Serialize))]
+#[cfg_attr(feature = "backend", derive(Deserialize))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct QueryParams {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resolve_url_from_path: Option<bool>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub override_root_url: Option<Url>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<PaginationLimit>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub offset: Option<PaginationOffset>,
+    // TODO: Replace separate limit/offset properties with flattened
+    // pagination after serde issue has been fixed:
+    // https://github.com/serde-rs/serde/issues/1183
+    //#[serde(flatten)]
+    //pub pagination: Pagination,
+}
+
+#[derive(Debug)]
+#[cfg_attr(feature = "frontend", derive(Serialize))]
+#[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SearchParams {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -430,20 +496,27 @@ pub struct SearchParams {
     pub ordering: Vec<SortOrder>,
 }
 
-impl From<SearchParams> for _inner::SearchParams {
-    fn from(from: SearchParams) -> Self {
-        Self {
-            filter: from.filter.map(Into::into),
-            ordering: from.ordering.into_iter().map(Into::into).collect(),
-        }
-    }
-}
-
-impl From<_inner::SearchParams> for SearchParams {
-    fn from(from: _inner::SearchParams) -> Self {
-        Self {
-            filter: from.filter.map(Into::into),
-            ordering: from.ordering.into_iter().map(Into::into).collect(),
-        }
-    }
+#[cfg(feature = "frontend")]
+pub fn client_request_params(
+    params: _inner::Params,
+    pagination: impl Into<Pagination>,
+) -> (QueryParams, SearchParams) {
+    let _inner::Params {
+        override_root_url,
+        filter,
+        ordering,
+        resolve_url_from_path,
+    } = params;
+    let Pagination { limit, offset } = pagination.into();
+    let query_params = QueryParams {
+        limit,
+        offset,
+        resolve_url_from_path: Some(resolve_url_from_path),
+        override_root_url: override_root_url.map(Into::into),
+    };
+    let search_params = SearchParams {
+        filter: filter.map(Into::into),
+        ordering: ordering.into_iter().map(Into::into).collect(),
+    };
+    (query_params, search_params)
 }

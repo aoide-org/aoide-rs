@@ -15,8 +15,6 @@
 
 use std::time::Instant;
 
-use aoide_core::util::url::BaseUrl;
-
 use aoide_core_ext::track::search::*;
 
 use aoide_repo::{
@@ -50,19 +48,11 @@ where
     Ok(count)
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct Params {
-    pub resolve_url_from_path: bool,
-    pub override_root_url: Option<BaseUrl>,
-}
-
 pub fn search_with_params<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
-    pagination: &Pagination,
-    filter: Option<SearchFilter>,
-    ordering: Vec<SortOrder>,
     params: Params,
+    pagination: &Pagination,
     collector: &mut impl ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
 ) -> Result<usize>
 where
@@ -71,6 +61,8 @@ where
     let Params {
         override_root_url,
         resolve_url_from_path,
+        filter,
+        ordering,
     } = params;
     debug_assert!(resolve_url_from_path || override_root_url.is_none());
     if resolve_url_from_path {

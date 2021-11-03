@@ -66,29 +66,6 @@ pub struct EntityRevQueryParams {
     pub rev: EntityRevision,
 }
 
-#[derive(Debug, Default, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PaginationQueryParams {
-    pub limit: Option<PaginationLimit>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub offset: Option<PaginationOffset>,
-}
-
-impl From<PaginationQueryParams> for Option<Pagination> {
-    fn from(from: PaginationQueryParams) -> Self {
-        let PaginationQueryParams { limit, offset } = from;
-        if let Some(limit) = limit {
-            Some(Pagination { limit, offset })
-        } else {
-            if let Some(offset) = offset {
-                tracing::warn!("Ignoring pagination offset = {} without limit", offset);
-            }
-            None
-        }
-    }
-}
-
 fn new_request_id() -> Uuid {
     Uuid::new_v4()
 }

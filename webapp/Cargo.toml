@@ -9,6 +9,7 @@ anyhow = "*"
 hyper = { version = "*", default-features = false }
 seed = "*"
 serde = { version = "*", features = ["derive"] }
+serde_urlencoded = "*"
 thiserror = "*"
 url = "*"
 

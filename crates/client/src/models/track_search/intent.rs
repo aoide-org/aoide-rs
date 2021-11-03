@@ -15,13 +15,13 @@
 
 use aoide_core::entity::EntityUid;
 
-use aoide_core_ext::track::search::SearchParams;
+use aoide_core_ext::track::search::Params;
 
 use super::{Action, FetchResultPageRequest, State, StateUpdated, Task};
 
 #[derive(Debug)]
 pub enum Intent {
-    Reset(Option<SearchParams>),
+    Reset(Option<Params>),
     FetchResultPage {
         collection_uid: EntityUid,
         request: FetchResultPageRequest,

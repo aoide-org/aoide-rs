@@ -14,50 +14,31 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_usecases_sqlite::SqlitePooledConnection;
-use url::Url;
 
 use aoide_core::util::url::BaseUrl;
 
 use aoide_core_serde::track::Entity;
 
-use aoide_core_ext_serde::track::search::SearchParams;
+use aoide_core_ext_serde::track::search::{QueryParams, SearchParams};
 
 use super::*;
 
 mod uc {
-    pub use aoide_usecases::track::search::Params;
+    pub use aoide_core_ext::track::search::Params;
     pub use aoide_usecases_sqlite::track::search::search;
 }
 
 mod _inner {
     pub use aoide_core::entity::EntityUid;
+    pub use aoide_core_ext::Pagination;
 }
 
 pub type RequestBody = SearchParams;
 
 pub type ResponseBody = Vec<Entity>;
 
-#[derive(Debug, Default, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct QueryParams {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub resolve_url_from_path: Option<bool>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub override_root_url: Option<Url>,
-
-    pub limit: Option<PaginationLimit>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub offset: Option<PaginationOffset>,
-    // TODO: Replace limit/offset with pagination after serde issue
-    // has been fixed: https://github.com/serde-rs/serde/issues/1183
-    //#[serde(flatten)]
-    //pub pagination: PaginationQueryParams,
-}
-
-const DEFAULT_PAGINATION: Pagination = Pagination {
-    limit: 100,
+const DEFAULT_PAGINATION: _inner::Pagination = _inner::Pagination {
+    limit: Some(100),
     offset: None,
 };
 
@@ -87,24 +68,28 @@ pub fn handle_request(
         .transpose()
         .map_err(anyhow::Error::from)
         .map_err(Error::BadRequest)?;
-    let pagination = PaginationQueryParams { limit, offset };
-    let pagination = Option::from(pagination).unwrap_or(DEFAULT_PAGINATION);
+    let pagination = _inner::Pagination { limit, offset };
+    let pagination = if pagination.is_paginated() {
+        pagination
+    } else {
+        DEFAULT_PAGINATION
+    };
     // Passing a base URL override implies resolving paths
     let resolve_url_from_path = override_root_url.is_some()
         || resolve_url_from_path.unwrap_or(uc::Params::default().resolve_url_from_path);
+    let RequestBody { filter, ordering } = request_body;
     let params = uc::Params {
         resolve_url_from_path,
         override_root_url,
+        filter: filter.map(Into::into),
+        ordering: ordering.into_iter().map(Into::into).collect(),
     };
-    let RequestBody { filter, ordering } = request_body;
     let mut collector = EntityCollector::default();
     uc::search(
         pooled_connection,
         collection_uid,
-        &pagination,
-        filter.map(Into::into),
-        ordering.into_iter().map(Into::into).collect(),
         params,
+        &pagination,
         &mut collector,
     )?;
     Ok(collector.into())

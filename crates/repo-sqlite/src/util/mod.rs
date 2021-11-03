@@ -13,16 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod clock;
-pub mod entity;
-
-use crate::prelude::*;
+use std::i64;
 
 use diesel::expression::SqlLiteral;
 use num_traits::ToPrimitive as _;
-use std::i64;
 
-///////////////////////////////////////////////////////////////////////
+use crate::prelude::*;
+
+pub mod clock;
+pub mod entity;
 
 pub(crate) fn apply_pagination<'a, ST, QS, DB>(
     source: diesel::query_builder::BoxedSelectStatement<'a, ST, QS, DB>,
@@ -32,16 +31,20 @@ where
     QS: diesel::query_source::QuerySource,
     DB: diesel::backend::Backend + diesel::sql_types::HasSqlType<ST> + 'a,
 {
+    if !pagination.is_paginated() {
+        return source;
+    }
     let mut target = source;
-    let Pagination { limit, offset } = pagination;
-    let limit = limit.to_i64().unwrap_or(i64::MAX);
-    target = target.limit(limit);
-    if let Some(offset) = offset {
-        // TODO: Verify that this restriction still applies!
-        // SQLite: OFFSET can only be used in conjunction with LIMIT
+    // TODO: Verify that this restriction still applies!
+    // SQLite: OFFSET can only be used in conjunction with LIMIT
+    if pagination.has_offset() || pagination.is_limited() {
+        let limit = pagination.mandatory_limit().to_i64().unwrap_or(i64::MAX);
+        target = target.limit(limit);
+    }
+    if let Some(offset) = pagination.offset {
         let offset = offset.to_i64().unwrap_or(i64::MAX);
         target = target.offset(offset);
-    };
+    }
     target
 }
 

@@ -40,7 +40,9 @@ pub struct RecordHeader<Id> {
 pub mod prelude {
     use thiserror::Error;
 
-    pub use aoide_core_ext::{filtering::*, sorting::*};
+    pub use aoide_core_ext::{
+        filtering::*, sorting::*, Pagination, PaginationLimit, PaginationOffset,
+    };
 
     pub trait RecordCollector {
         type Header;
@@ -67,25 +69,6 @@ pub mod prelude {
     impl<H, R> ReservableRecordCollector for Vec<(H, R)> {
         fn reserve(&mut self, additional: usize) {
             Vec::reserve(self, additional);
-        }
-    }
-
-    pub type PaginationOffset = u64;
-
-    pub type PaginationLimit = u64;
-
-    #[derive(Clone, Debug, Eq, PartialEq)]
-    pub struct Pagination {
-        pub limit: PaginationLimit,
-        pub offset: Option<PaginationOffset>,
-    }
-
-    impl Default for Pagination {
-        fn default() -> Self {
-            Self {
-                limit: PaginationLimit::max_value(),
-                offset: None,
-            }
         }
     }
 

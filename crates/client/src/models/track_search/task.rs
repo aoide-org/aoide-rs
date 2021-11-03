@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core::entity::EntityUid;
+use aoide_core_ext_serde::track::search::client_request_params;
 
 use crate::{receive_response_body, WebClientEnvironment};
 
@@ -49,23 +50,15 @@ async fn fetch_result_page<E: WebClientEnvironment>(
 ) -> anyhow::Result<FetchResultPageResponse> {
     let FetchResultPageRequest {
         search_params,
-        resolve_url_from_path,
         pagination,
     } = request;
+    let (query_params, search_params) = client_request_params(search_params, pagination.clone());
     let request_url = env.join_api_url(&format!(
-        "c/{}/t/search?resolveUrlFromPath={}&offset={}&limit={}",
+        "c/{}/t/search?{}",
         collection_uid,
-        if resolve_url_from_path {
-            "true"
-        } else {
-            "false"
-        },
-        pagination.offset,
-        pagination.limit
+        serde_urlencoded::to_string(query_params)?
     ))?;
-    let request_body = serde_json::to_vec(
-        &aoide_core_ext_serde::track::search::SearchParams::from(search_params),
-    )?;
+    let request_body = serde_json::to_vec(&search_params)?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
