@@ -23,8 +23,10 @@ use crate::{
     prelude::*,
     sorting::SortDirection,
     tag::search::Filter as TagFilter,
-    Pagination,
 };
+
+#[cfg(feature = "frontend")]
+use crate::Pagination;
 
 mod _inner {
     pub use crate::_inner::{filtering::*, sorting::*, track::search::*};
