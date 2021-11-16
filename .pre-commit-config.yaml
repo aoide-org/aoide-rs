@@ -24,7 +24,7 @@ repos:
   - id: markdownlint-cli2
     exclude: ^LICENSE\.md$
 - repo: https://github.com/shellcheck-py/shellcheck-py
-  rev: v0.7.2.1
+  rev: v0.8.0.1
   hooks:
   - id: shellcheck
 - repo: https://github.com/codespell-project/codespell
