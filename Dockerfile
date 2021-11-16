@@ -57,7 +57,7 @@ ARG WORKSPACE_BUILD_AND_TEST_ARGS="--locked --all-features --target ${BUILD_TARG
 ARG BUILD_BIN_ARGS="--locked --all-features --target ${BUILD_TARGET} --${BUILD_MODE}"
 
 # Prepare for musl libc build target
-# git is required for pre-commit
+# git and python3-pip are required for pre-commit
 RUN apt update \
     && apt install --no-install-recommends -y \
         git \
@@ -110,7 +110,7 @@ RUN USER=root cargo new --vcs none --lib ${PROJECT_NAME}-websrv && \
     mv ${PROJECT_NAME}-usecases crates/usecases && \
     USER=root cargo new --vcs none --lib ${PROJECT_NAME}-usecases-sqlite && \
     mv ${PROJECT_NAME}-usecases-sqlite crates/usecases-sqlite && \
-    tree
+    tree -a
 
 COPY [ \
     "Cargo.toml", \
@@ -156,7 +156,7 @@ COPY [ \
     "crates/usecases-sqlite/Cargo.toml", \
     "./crates/usecases-sqlite/" ]
 
-# Build the workspace, then delete all build artefacts that must not(!) be cached
+# Build the workspace dependencies, then delete all build artefacts that must not(!) be cached
 #
 # - Note the special naming convention for all artefacts in deps/ that are referring
 #   to the crate/project name: The character '-' must be substituted by '_',  i.e.
@@ -170,15 +170,15 @@ RUN tree -a && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/${PROJECT_NAME}-* && \
     rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/${PROJECT_NAME}_* && \
     rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/${PROJECT_NAME}-* && \
-    tree
+    tree -a
 
 # Copy all project (re-)sources that are required for pre-commit and building
 COPY [ \
+    ".clippy.toml", \
     ".codespellignore", \
     ".gitignore", \
     ".markdownlint-cli2.yaml", \
     ".pre-commit-config.yaml", \
-    ".clippy.toml", \
     ".rustfmt.toml", \
     "./" ]
 COPY [ \
