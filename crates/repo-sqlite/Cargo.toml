@@ -30,4 +30,4 @@ default = []
 [dev-dependencies]
 diesel_migrations =  { version = "*", features = ["sqlite"] }
 env_logger = { version = ">=0.9" }
-test-env-log = "*"
+test-log = "*"

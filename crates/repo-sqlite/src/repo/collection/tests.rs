@@ -16,7 +16,8 @@
 use super::*;
 
 use crate::prelude::tests::*;
-use test_env_log::test;
+
+use test_log::test;
 
 use aoide_core::{entity::EntityHeader, media, util::url::BaseUrl};
 
