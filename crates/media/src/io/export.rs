@@ -13,5 +13,22 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod export;
-pub mod import;
+use crate::{util::tag::FacetedTagMappingConfig, Result};
+
+use aoide_core::track::Track;
+
+use std::fs::File;
+
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct ExportTrackConfig {
+    pub faceted_tag_mapping: FacetedTagMappingConfig,
+}
+
+pub trait ExportTrackToFile {
+    fn export_track_to_file(
+        &self,
+        config: &ExportTrackConfig,
+        track: &Track,
+        file: &mut File,
+    ) -> Result<bool>;
+}

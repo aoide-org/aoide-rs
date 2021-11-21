@@ -985,12 +985,11 @@ impl TagsMap {
             })
     }
 
-    pub fn remove_faceted_tags(&mut self, facet_id: &FacetId) -> usize {
+    pub fn remove_faceted_tags(&mut self, facet_id: &FacetId) -> Option<usize> {
         let Self(all_tags) = self;
         all_tags
             .remove(facet_id.value().as_str())
             .map(|tags| tags.len())
-            .unwrap_or(0)
     }
 }
 

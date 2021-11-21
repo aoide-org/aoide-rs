@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::{fs::File, iter::once};
+
 use image::ImageFormat;
 use mp4ameta::{
     AdvisoryRating as Mp4AdvisoryRating, ChannelConfig, Data, Fourcc, FreeformIdent, ImgFmt,
@@ -32,13 +34,13 @@ use aoide_core::{
     },
     media::{AdvisoryRating, ApicType, Artwork, Content, ContentMetadataFlags},
     music::time::{Beats, TempoBpm},
-    tag::{Score as TagScore, Tags, TagsMap},
+    tag::{FacetedTags, PlainTag, Score as TagScore, Tags, TagsMap},
     track::{
-        actor::ActorRole,
+        actor::{ActorKind, ActorRole, Actors},
         album::AlbumKind,
         metric::MetricsFlags,
         tag::{FACET_COMMENT, FACET_GENRE, FACET_GROUPING, FACET_ISRC, FACET_MOOD, FACET_XID},
-        title::{Title, TitleKind},
+        title::{Title, TitleKind, Titles},
         Track,
     },
     util::{Canonical, CanonicalizeInto as _},
@@ -47,7 +49,10 @@ use aoide_core::{
 use aoide_core_serde::tag::Tags as SerdeTags;
 
 use crate::{
-    io::import::{self, *},
+    io::{
+        export::{self, *},
+        import::{self, *},
+    },
     util::{
         digest::MediaDigest,
         parse_key_signature, parse_replay_gain, parse_tempo_bpm, parse_year_tag,
@@ -57,8 +62,16 @@ use crate::{
         },
         try_load_embedded_artwork,
     },
-    Result,
+    Error, Result,
 };
+
+fn map_err(err: mp4ameta::Error) -> Error {
+    let mp4ameta::Error { kind, description } = err;
+    match kind {
+        mp4ameta::ErrorKind::Io(err) => Error::Io(err),
+        kind => Error::Other(anyhow::Error::from(mp4ameta::Error { kind, description })),
+    }
+}
 
 #[derive(Debug)]
 pub struct ImportTrack;
@@ -543,5 +556,174 @@ impl import::ImportTrack for ImportTrack {
         }
 
         Ok(track)
+    }
+}
+
+struct ExportTrackToFile;
+
+impl export::ExportTrackToFile for ExportTrackToFile {
+    fn export_track_to_file(
+        &self,
+        config: &ExportTrackConfig,
+        track: &Track,
+        file: &mut File,
+    ) -> Result<bool> {
+        let mp4_tag_orig = Mp4Tag::read_from(file).map_err(map_err)?;
+
+        let mut mp4_tag = mp4_tag_orig.clone();
+
+        if let Some(title) = Titles::main_title(track.titles.iter()) {
+            mp4_tag.set_title(title.name.to_owned());
+        }
+        if let Some(summary_actor) =
+            Actors::filter_kind_role(track.actors.iter(), ActorKind::Summary, ActorRole::Artist)
+                .next()
+        {
+            mp4_tag.set_artists(once(summary_actor.name.to_owned()));
+        } else {
+            let primary_actors = Actors::filter_kind_role(
+                track.actors.iter(),
+                ActorKind::Primary,
+                ActorRole::Artist,
+            );
+            mp4_tag.set_artists(primary_actors.map(|actor| actor.name.to_owned()));
+        }
+
+        if let Some(summary_actor) =
+            Actors::filter_kind_role(track.actors.iter(), ActorKind::Summary, ActorRole::Composer)
+                .next()
+        {
+            mp4_tag.set_composers(once(summary_actor.name.to_owned()));
+        } else {
+            let primary_actors = Actors::filter_kind_role(
+                track.actors.iter(),
+                ActorKind::Primary,
+                ActorRole::Composer,
+            );
+            mp4_tag.set_composers(primary_actors.map(|actor| actor.name.to_owned()));
+        }
+
+        // Album
+        if let Some(title) = Titles::main_title(track.album.titles.iter()) {
+            mp4_tag.set_album(title.name.to_owned());
+        }
+        if let Some(summary_actor) = Actors::filter_kind_role(
+            track.album.actors.iter(),
+            ActorKind::Summary,
+            ActorRole::Artist,
+        )
+        .next()
+        {
+            mp4_tag.set_album_artists(once(summary_actor.name.to_owned()));
+        } else {
+            let primary_actors = Actors::filter_kind_role(
+                track.album.actors.iter(),
+                ActorKind::Primary,
+                ActorRole::Artist,
+            );
+            mp4_tag.set_album_artists(primary_actors.map(|actor| actor.name.to_owned()));
+        }
+        match track.album.kind {
+            AlbumKind::Compilation => {
+                mp4_tag.set_compilation();
+            }
+            _ => {
+                mp4_tag.remove_compilation();
+            }
+        }
+
+        // Release
+        if let Some(copyright) = track.release.copyright.as_ref() {
+            mp4_tag.set_copyright(copyright);
+        }
+        if let Some(released_by) = track.release.released_by.as_ref() {
+            mp4_tag.set_all_data(LABEL_IDENT, once(Data::Utf8(released_by.to_owned())));
+        }
+        if let Some(released_at) = track.release.released_at.as_ref() {
+            mp4_tag.set_year(released_at.to_string());
+        }
+
+        // Numbers
+        if let Some(track_number) = track.indexes.track.number {
+            mp4_tag.set_track_number(track_number);
+        }
+        if let Some(track_total) = track.indexes.track.total {
+            mp4_tag.set_total_tracks(track_total);
+        }
+        if let Some(disc_number) = track.indexes.disc.number {
+            mp4_tag.set_disc_number(disc_number);
+        }
+        if let Some(disc_total) = track.indexes.disc.total {
+            mp4_tag.set_total_discs(disc_total);
+        }
+        if let Some(movement_number) = track.indexes.movement.number {
+            mp4_tag.set_movement_index(movement_number);
+        }
+        if let Some(movement_total) = track.indexes.movement.total {
+            mp4_tag.set_movement_count(movement_total);
+        }
+
+        let mut tags_map = TagsMap::from(track.tags.clone().untie());
+
+        // Genre(s)
+        if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_GENRE) {
+            mp4_tag.remove_standard_genres();
+            if let Some(tag_mapping_config) = config.faceted_tag_mapping.get(facet_id.value()) {
+                let joined_tag = tag_mapping_config
+                    .join_labels_str_iter(tags.iter().filter_map(|PlainTag { label, score: _ }| {
+                        label.as_ref().map(AsRef::as_ref)
+                    }))
+                    .to_owned();
+                mp4_tag.set_custom_genres(joined_tag.map(Into::into));
+            } else {
+                mp4_tag.set_custom_genres(
+                    tags.into_iter()
+                        .filter_map(|PlainTag { label, score: _ }| label.map(Into::into)),
+                );
+            }
+        }
+
+        // Comment(s)
+        if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_COMMENT) {
+            if let Some(tag_mapping_config) = config.faceted_tag_mapping.get(facet_id.value()) {
+                let joined_tag = tag_mapping_config
+                    .join_labels_str_iter(tags.iter().filter_map(|PlainTag { label, score: _ }| {
+                        label.as_ref().map(AsRef::as_ref)
+                    }))
+                    .to_owned();
+                mp4_tag.set_comments(joined_tag.map(Into::into));
+            } else {
+                mp4_tag.set_comments(
+                    tags.into_iter()
+                        .filter_map(|PlainTag { label, score: _ }| label.map(Into::into)),
+                );
+            }
+        }
+
+        // Grouping(s)
+        if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_GROUPING) {
+            if let Some(tag_mapping_config) = config.faceted_tag_mapping.get(facet_id.value()) {
+                let joined_tag = tag_mapping_config
+                    .join_labels_str_iter(tags.iter().filter_map(|PlainTag { label, score: _ }| {
+                        label.as_ref().map(AsRef::as_ref)
+                    }))
+                    .to_owned();
+                mp4_tag.set_groupings(joined_tag.map(Into::into));
+            } else {
+                mp4_tag.set_groupings(
+                    tags.into_iter()
+                        .filter_map(|PlainTag { label, score: _ }| label.map(Into::into)),
+                );
+            }
+        }
+
+        if mp4_tag != mp4_tag_orig {
+            mp4_tag.write_to(file).map_err(map_err)?;
+            // Modified
+            return Ok(true);
+        }
+
+        // Unmodified
+        Ok(false)
     }
 }

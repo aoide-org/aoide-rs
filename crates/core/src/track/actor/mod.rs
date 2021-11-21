@@ -222,6 +222,20 @@ impl Actors {
         Self::filter_kind_role(actors, ActorKind::Primary, role).next()
     }
 
+    // The singular summary actor or if none exists then the singular primary actor
+    pub fn other_actors<'a, I>(actors: I, role: ActorRole) -> Option<&'a Actor>
+    where
+        I: Iterator<Item = &'a Actor> + Clone,
+    {
+        // Try `Summary` first
+        if let Some(actor) = Self::filter_kind_role(actors.clone(), ActorKind::Summary, role).next()
+        {
+            return Some(actor);
+        }
+        // Otherwise try `Primary` as a fallback
+        Self::filter_kind_role(actors, ActorKind::Primary, role).next()
+    }
+
     pub fn set_main_actor(
         actors: &mut Vec<Actor>,
         role: ActorRole,
