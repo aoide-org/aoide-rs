@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use lewton::inside_ogg::OggStreamReader;
+use lewton::{inside_ogg::OggStreamReader, OggReadError, VorbisError};
 use metaflac::block::PictureType;
 use num_traits::FromPrimitive as _;
 use semval::IsValid as _;
@@ -38,7 +38,7 @@ use aoide_core::{
 use crate::{
     io::import::{self, *},
     util::{digest::MediaDigest, push_next_actor_role_name, serato, try_load_embedded_artwork},
-    Result,
+    Error, Result,
 };
 
 use super::vorbis;
@@ -68,28 +68,32 @@ fn filter_vorbis_comment_values<'a>(
     })
 }
 
+fn map_vorbis_err(err: VorbisError) -> Error {
+    match err {
+        VorbisError::OggError(OggReadError::ReadError(err)) => Error::Io(err),
+        err => Error::Other(anyhow::Error::from(err)),
+    }
+}
+
 #[derive(Debug)]
 pub struct ImportTrack;
 
 impl import::ImportTrack for ImportTrack {
     fn import_track(
         &self,
+        reader: &mut Box<dyn Reader>,
         config: &ImportTrackConfig,
         flags: ImportTrackFlags,
-        mut track: Track,
-        reader: &mut Box<dyn Reader>,
-    ) -> Result<Track> {
-        let ogg_reader = match OggStreamReader::new(reader) {
-            Ok(ogg_reader) => ogg_reader,
-            Err(err) => {
-                tracing::warn!(
-                    "Failed to parse metadata from media source '{}': {}",
-                    track.media_source.path,
-                    err
-                );
-                return Ok(track);
-            }
-        };
+        track: &mut Track,
+    ) -> Result<()> {
+        let ogg_reader = OggStreamReader::new(reader).map_err(|err| {
+            tracing::warn!(
+                "Failed to parse metadata from media source '{}': {}",
+                track.media_source.path,
+                err
+            );
+            map_vorbis_err(err)
+        })?;
 
         let vorbis_comments = &ogg_reader.comment_hdr.comment_list;
 
@@ -177,7 +181,7 @@ impl import::ImportTrack for ImportTrack {
             track.actors = Canonical::tie(track_actors);
         }
 
-        let mut album = track.album.untie();
+        let mut album = track.album.untie_replace(Default::default());
 
         // Album titles
         let album_titles = vorbis::import_album_titles(vorbis_comments);
@@ -375,6 +379,6 @@ impl import::ImportTrack for ImportTrack {
             track.color = serato::read_track_color(&serato_tags);
         }
 
-        Ok(track)
+        Ok(())
     }
 }

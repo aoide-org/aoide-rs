@@ -178,11 +178,11 @@ const SERATO_MARKERS2_IDENT: FreeformIdent<'static> = FreeformIdent::new(
 impl import::ImportTrack for ImportTrack {
     fn import_track(
         &self,
+        reader: &mut Box<dyn Reader>,
         config: &ImportTrackConfig,
         flags: ImportTrackFlags,
-        mut track: Track,
-        reader: &mut Box<dyn Reader>,
-    ) -> Result<Track> {
+        track: &mut Track,
+    ) -> Result<()> {
         // Extract metadata with mp4ameta
         let mut mp4_tag = match Mp4Tag::read_from(reader) {
             Ok(mp4_tag) => mp4_tag,
@@ -192,7 +192,7 @@ impl import::ImportTrack for ImportTrack {
                     track.media_source.path,
                     err
                 );
-                return Ok(track);
+                return Err(map_err(err));
             }
         };
 
@@ -332,7 +332,7 @@ impl import::ImportTrack for ImportTrack {
             track.actors = Canonical::tie(track_actors);
         }
 
-        let mut album = track.album.untie();
+        let mut album = track.album.untie_replace(Default::default());
 
         // Album titles
         let mut album_titles = Vec::with_capacity(1);
@@ -574,7 +574,7 @@ impl import::ImportTrack for ImportTrack {
             track.color = serato::read_track_color(&serato_tags);
         }
 
-        Ok(track)
+        Ok(())
     }
 }
 

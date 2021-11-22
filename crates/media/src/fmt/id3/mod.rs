@@ -55,8 +55,24 @@ use crate::{
         tag::{import_faceted_tags_from_label_value_iter, FacetedTagMappingConfig},
         try_load_embedded_artwork,
     },
-    Result,
+    Error, Result,
 };
+
+pub(crate) fn map_err(err: id3::Error) -> Error {
+    let id3::Error {
+        kind,
+        description,
+        partial_tag,
+    } = err;
+    match kind {
+        id3::ErrorKind::Io(err) => Error::Io(err),
+        kind => Error::Other(anyhow::Error::from(id3::Error {
+            kind,
+            description,
+            partial_tag,
+        })),
+    }
+}
 
 fn parse_timestamp(timestamp: id3::Timestamp) -> DateOrDateTime {
     match (timestamp.month, timestamp.day) {
@@ -144,9 +160,9 @@ pub fn import_track(
     config: &ImportTrackConfig,
     flags: ImportTrackFlags,
     mut audio_content: AudioContent,
-    mut track: Track,
+    track: &mut Track,
     tag: &id3::Tag,
-) -> Result<Track> {
+) -> Result<()> {
     let metadata_flags = if audio_content.duration.is_some() {
         // Accurate duration
         ContentMetadataFlags::RELIABLE
@@ -258,7 +274,7 @@ pub fn import_track(
         track.actors = Canonical::tie(track_actors);
     }
 
-    let mut album = track.album.untie();
+    let mut album = track.album.untie_replace(Default::default());
 
     // Album titles
     let mut album_titles = Vec::with_capacity(1);
@@ -525,5 +541,5 @@ pub fn import_track(
         track.color = serato::read_track_color(&serato_tags);
     }
 
-    Ok(track)
+    Ok(())
 }

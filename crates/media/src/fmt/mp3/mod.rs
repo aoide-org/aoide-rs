@@ -27,10 +27,14 @@ use mp3_duration::{ParseMode, StreamInfo};
 
 use crate::{
     io::import::{self, *},
-    Result,
+    Error, Result,
 };
 
-use super::id3::import_track as import_track_from_id3_tag;
+use super::id3::{import_track as import_track_from_id3_tag, map_err as map_id3_err};
+
+fn map_mp3_duration_err(err: mp3_duration::MP3DurationError) -> Error {
+    anyhow::Error::from(err).into()
+}
 
 #[derive(Debug)]
 pub struct ImportTrack;
@@ -38,11 +42,11 @@ pub struct ImportTrack;
 impl import::ImportTrack for ImportTrack {
     fn import_track(
         &self,
+        reader: &mut Box<dyn Reader>,
         config: &ImportTrackConfig,
         flags: ImportTrackFlags,
-        track: Track,
-        reader: &mut Box<dyn Reader>,
-    ) -> Result<Track> {
+        track: &mut Track,
+    ) -> Result<()> {
         let audio_content = StreamInfo::read(reader, ParseMode::Exact)
             .map(|stream_info| {
                 let StreamInfo {
@@ -62,14 +66,14 @@ impl import::ImportTrack for ImportTrack {
                     ..Default::default()
                 }
             })
-            .unwrap_or_else(|err| {
+            .map_err(|err| {
                 tracing::warn!(
                     "Failed to parse audio properties from media source '{}': {}",
                     track.media_source.path,
                     err
                 );
-                Default::default()
-            });
+                map_mp3_duration_err(err)
+            })?;
 
         // Restart the reader after importing the stream info
         let _start_pos = reader.seek(SeekFrom::Start(0))?;
@@ -78,17 +82,14 @@ impl import::ImportTrack for ImportTrack {
         // Restart the reader for importing the ID3 tag
         let _start_pos = reader.seek(SeekFrom::Start(0))?;
         debug_assert_eq!(0, _start_pos);
-        let id3_tag = match id3::Tag::read_from(reader).map_err(anyhow::Error::from) {
-            Ok(id3_tag) => id3_tag,
-            Err(err) => {
-                tracing::warn!(
-                    "Failed to parse ID3 tag from media source '{}': {}",
-                    track.media_source.path,
-                    err
-                );
-                return Ok(track);
-            }
-        };
+        let id3_tag = id3::Tag::read_from(reader).map_err(|err| {
+            tracing::warn!(
+                "Failed to parse ID3 tag from media source '{}': {}",
+                track.media_source.path,
+                err
+            );
+            map_id3_err(err)
+        })?;
         import_track_from_id3_tag(config, flags, audio_content, track, &id3_tag)
     }
 }

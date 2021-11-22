@@ -33,7 +33,7 @@ use aoide_core::{
 use crate::{
     io::import::{self, *},
     util::{digest::MediaDigest, push_next_actor_role_name, serato, try_load_embedded_artwork},
-    Result,
+    Error, Result,
 };
 
 use super::vorbis;
@@ -46,17 +46,25 @@ impl vorbis::CommentReader for metaflac::Tag {
 
 use triseratops::tag::{TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat};
 
+fn map_err(err: metaflac::Error) -> Error {
+    let metaflac::Error { kind, description } = err;
+    match kind {
+        metaflac::ErrorKind::Io(err) => Error::Io(err),
+        kind => Error::Other(anyhow::Error::from(metaflac::Error { kind, description })),
+    }
+}
+
 #[derive(Debug)]
 pub struct ImportTrack;
 
 impl import::ImportTrack for ImportTrack {
     fn import_track(
         &self,
+        reader: &mut Box<dyn Reader>,
         config: &ImportTrackConfig,
         flags: ImportTrackFlags,
-        mut track: Track,
-        reader: &mut Box<dyn Reader>,
-    ) -> Result<Track> {
+        track: &mut Track,
+    ) -> Result<()> {
         let flac_tag = match metaflac::Tag::read_from(reader) {
             Ok(flac_tag) => flac_tag,
             Err(err) => {
@@ -65,7 +73,7 @@ impl import::ImportTrack for ImportTrack {
                     track.media_source.path,
                     err
                 );
-                return Ok(track);
+                return Err(map_err(err));
             }
         };
 
@@ -160,7 +168,7 @@ impl import::ImportTrack for ImportTrack {
             track.actors = Canonical::tie(track_actors);
         }
 
-        let mut album = track.album.untie();
+        let mut album = track.album.untie_replace(Default::default());
 
         // Album titles
         let album_titles = vorbis::import_album_titles(&flac_tag);
@@ -362,6 +370,6 @@ impl import::ImportTrack for ImportTrack {
             track.color = serato::read_track_color(&serato_tags);
         }
 
-        Ok(track)
+        Ok(())
     }
 }

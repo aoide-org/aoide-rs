@@ -149,14 +149,14 @@ pub fn import_track_from_local_file_path(
     };
     let mut reader: Box<dyn Reader> = Box::new(BufReader::new(file));
     let mime = guess_mime_from_path(&canonical_path)?;
-    let new_track = input.into_new_track(source_path, &mime);
-    let track = match mime.as_ref() {
-        "audio/flac" => flac::ImportTrack.import_track(config, flags, new_track, &mut reader),
-        "audio/mpeg" => mp3::ImportTrack.import_track(config, flags, new_track, &mut reader),
+    let mut track = input.into_new_track(source_path, &mime);
+    match mime.as_ref() {
+        "audio/flac" => flac::ImportTrack.import_track(&mut reader, config, flags, &mut track),
+        "audio/mpeg" => mp3::ImportTrack.import_track(&mut reader, config, flags, &mut track),
         "audio/m4a" | "video/mp4" => {
-            mp4::ImportTrack.import_track(config, flags, new_track, &mut reader)
+            mp4::ImportTrack.import_track(&mut reader, config, flags, &mut track)
         }
-        "audio/ogg" => ogg::ImportTrack.import_track(config, flags, new_track, &mut reader),
+        "audio/ogg" => ogg::ImportTrack.import_track(&mut reader, config, flags, &mut track),
         _ => Err(MediaError::UnsupportedContentType(mime)),
     }?;
     Ok(ImportTrackFromFileOutcome::Imported(track))

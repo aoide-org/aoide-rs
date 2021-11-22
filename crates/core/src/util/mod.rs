@@ -221,6 +221,12 @@ where
         let Canonical(canonical) = self;
         canonical
     }
+
+    pub fn untie_replace(&mut self, canonical_src: T) -> T {
+        debug_assert!(canonical_src.is_canonical());
+        let Self(canonical_dest) = self;
+        std::mem::replace(canonical_dest, canonical_src)
+    }
 }
 
 impl<T> Canonical<Vec<T>>
