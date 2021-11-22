@@ -578,10 +578,10 @@ impl import::ImportTrack for ImportTrack {
     }
 }
 
-fn export_filtered_actor_names<'a>(
+fn export_filtered_actor_names(
     mp4_tag: &mut Mp4Tag,
     ident: impl Ident + Into<DataIdent>,
-    actor_names: FilteredActorNames<'a>,
+    actor_names: FilteredActorNames<'_>,
 ) {
     match actor_names {
         FilteredActorNames::Summary(name) => {
@@ -596,7 +596,7 @@ fn export_filtered_actor_names<'a>(
     }
 }
 
-fn export_faceted_tags<'a>(
+fn export_faceted_tags(
     mp4_tag: &mut Mp4Tag,
     ident: impl Ident + Into<DataIdent>,
     config: Option<&TagMappingConfig>,

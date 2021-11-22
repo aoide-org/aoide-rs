@@ -15,11 +15,9 @@
 
 use crate::{util::tag::FacetedTagMappingConfig, Result};
 
-use aoide_core::{
-    track::{
-        actor::{Actor, ActorKind, ActorRole, Actors},
-        Track,
-    },
+use aoide_core::track::{
+    actor::{Actor, ActorKind, ActorRole, Actors},
+    Track,
 };
 
 use std::fs::File;
