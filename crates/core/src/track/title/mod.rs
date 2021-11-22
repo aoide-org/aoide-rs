@@ -100,7 +100,7 @@ pub enum TitlesInvalidity {
     MainTitleAmbiguous,
 }
 
-pub const ANY_LEVEL_FILTER: Option<TitleKind> = None;
+pub const ANY_KIND_FILTER: Option<TitleKind> = None;
 
 pub const ANY_LANGUAGE_FILTER: Option<Option<&'static str>> = None;
 
@@ -136,7 +136,7 @@ impl Titles {
         let kind = kind.into();
         titles
             .into_iter()
-            .filter(move |title| kind == ANY_LEVEL_FILTER || kind == Some(title.kind))
+            .filter(move |title| kind == ANY_KIND_FILTER || kind == Some(title.kind))
     }
 
     pub fn main_titles<'a, 'b, I>(titles: I) -> impl Iterator<Item = &'a Title>

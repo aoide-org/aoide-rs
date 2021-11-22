@@ -15,7 +15,12 @@
 
 use crate::{util::tag::FacetedTagMappingConfig, Result};
 
-use aoide_core::track::Track;
+use aoide_core::{
+    track::{
+        actor::{Actor, ActorKind, ActorRole, Actors},
+        Track,
+    },
+};
 
 use std::fs::File;
 
@@ -31,4 +36,42 @@ pub trait ExportTrackToFile {
         track: &Track,
         file: &mut File,
     ) -> Result<bool>;
+}
+
+#[derive(Debug, Clone)]
+pub enum FilteredActorNames<'a> {
+    Summary(&'a str),
+    Primary(Vec<&'a str>), // TODO: Replace with impl Iterator<Item = &'a str>! How?
+}
+
+impl<'a> FilteredActorNames<'a> {
+    pub fn new(actors: impl IntoIterator<Item = &'a Actor> + Clone, role: ActorRole) -> Self {
+        // At most a single summary actor
+        debug_assert!(
+            Actors::filter_kind_role(actors.clone(), ActorKind::Summary, role).count() <= 1
+        );
+        // Either a summary actor or primary actors but not both at the same time
+        debug_assert!(
+            Actors::filter_kind_role(actors.clone(), ActorKind::Summary, role)
+                .next()
+                .is_none()
+                || Actors::filter_kind_role(actors.clone(), ActorKind::Primary, role)
+                    .next()
+                    .is_none()
+        );
+        // Secondary actors are not supported yet
+        debug_assert!(
+            Actors::filter_kind_role(actors.clone(), ActorKind::Secondary, role)
+                .next()
+                .is_none()
+        );
+        if let Some(summary_actor) =
+            Actors::filter_kind_role(actors.clone(), ActorKind::Summary, role).next()
+        {
+            Self::Summary(summary_actor.name.as_str())
+        } else {
+            let primary_actors = Actors::filter_kind_role(actors, ActorKind::Primary, role);
+            Self::Primary(primary_actors.map(|actor| actor.name.as_str()).collect())
+        }
+    }
 }

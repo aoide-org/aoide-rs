@@ -115,6 +115,10 @@ fn db2lufs(relative_gain_db: f64) -> LoudnessLufs {
     LoudnessLufs(EBU_R128_REFERENCE_LUFS - relative_gain_db)
 }
 
+pub fn lufs2db(loudness: LoudnessLufs) -> f64 {
+    EBU_R128_REFERENCE_LUFS - loudness.0
+}
+
 fn parse_replay_gain_db(input: &str) -> IResult<&str, f64> {
     let mut parser = separated_pair(
         preceded(space0, double),

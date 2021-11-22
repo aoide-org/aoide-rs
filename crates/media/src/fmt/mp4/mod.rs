@@ -17,10 +17,10 @@ use std::{fs::File, iter::once};
 
 use image::ImageFormat;
 use mp4ameta::{
-    AdvisoryRating as Mp4AdvisoryRating, ChannelConfig, Data, Fourcc, FreeformIdent, ImgFmt,
-    SampleRate as Mp4SampleRate, Tag as Mp4Tag, STANDARD_GENRES,
+    AdvisoryRating as Mp4AdvisoryRating, ChannelConfig, Data, DataIdent, Fourcc, FreeformIdent,
+    Ident, ImgFmt, SampleRate as Mp4SampleRate, Tag as Mp4Tag, STANDARD_GENRES,
 };
-use semval::IsValid as _;
+use semval::{IsValid as _, ValidatedFrom as _};
 use triseratops::tag::{
     format::mp4::MP4Tag, Markers as SeratoMarkers, Markers2 as SeratoMarkers2,
     TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat,
@@ -29,14 +29,14 @@ use triseratops::tag::{
 use aoide_core::{
     audio::{
         channel::{ChannelCount, ChannelLayout, Channels},
-        signal::{BitrateBps, BitsPerSecond, SampleRateHz, SamplesPerSecond},
+        signal::{BitrateBps, BitsPerSecond, LoudnessLufs, SampleRateHz, SamplesPerSecond},
         AudioContent,
     },
     media::{AdvisoryRating, ApicType, Artwork, Content, ContentMetadataFlags},
     music::time::{Beats, TempoBpm},
     tag::{FacetedTags, PlainTag, Score as TagScore, Tags, TagsMap},
     track::{
-        actor::{ActorKind, ActorRole, Actors},
+        actor::ActorRole,
         album::AlbumKind,
         metric::MetricsFlags,
         tag::{FACET_COMMENT, FACET_GENRE, FACET_GROUPING, FACET_ISRC, FACET_MOOD, FACET_XID},
@@ -55,10 +55,11 @@ use crate::{
     },
     util::{
         digest::MediaDigest,
-        parse_key_signature, parse_replay_gain, parse_tempo_bpm, parse_year_tag,
+        lufs2db, parse_key_signature, parse_replay_gain, parse_tempo_bpm, parse_year_tag,
         push_next_actor_role_name, serato,
         tag::{
             import_faceted_tags_from_label_value_iter, import_plain_tags_from_joined_label_value,
+            TagMappingConfig,
         },
         try_load_embedded_artwork,
     },
@@ -106,40 +107,58 @@ fn read_channels(channel_config: ChannelConfig) -> Channels {
 
 const COM_APPLE_ITUNES_FREEFORM_MEAN: &str = "com.apple.iTunes";
 
-const BPM_IDENT: FreeformIdent<'static> = FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "BPM");
+const IDENT_ALBUM_ARTIST: Fourcc = Fourcc(*b"aART");
 
-const INITIAL_KEY_IDENT: FreeformIdent<'static> =
+const IDENT_ARTIST: Fourcc = Fourcc(*b"\xA9ART");
+
+const IDENT_COMMENT: Fourcc = Fourcc(*b"\xA9cmt");
+
+const IDENT_COMPOSER: Fourcc = Fourcc(*b"\xA9wrt");
+
+const IDENT_GENRE: Fourcc = Fourcc(*b"\xA9gen");
+
+const IDENT_GROUPING: Fourcc = Fourcc(*b"\xA9grp");
+
+const IDENT_XID: Fourcc = Fourcc(*b"xid ");
+
+const IDENT_BPM: FreeformIdent<'static> = FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "BPM");
+
+const IDENT_INITIAL_KEY: FreeformIdent<'static> =
     FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "initialkey");
 const KEY_IDENT: FreeformIdent<'static> = FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "KEY");
 
-const REPLAYGAIN_TRACK_GAIN_IDENT: FreeformIdent<'static> =
+const IDENT_REPLAYGAIN_TRACK_GAIN: FreeformIdent<'static> =
     FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "replaygain_track_gain");
 
-const SUBTITLE_IDENT: FreeformIdent<'static> =
+const IDENT_SUBTITLE: FreeformIdent<'static> =
     FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "SUBTITLE");
 
-const CONDUCTOR_IDENT: FreeformIdent<'static> =
+const IDENT_CONDUCTOR: FreeformIdent<'static> =
     FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "CONDUCTOR");
 
-const PRODUCER_IDENT: FreeformIdent<'static> =
-    FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "PRODUCER");
-
-const REMIXER_IDENT: FreeformIdent<'static> =
-    FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "REMIXER");
-
-const ENGINEER_IDENT: FreeformIdent<'static> =
+const IDENT_ENGINEER: FreeformIdent<'static> =
     FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "ENGINEER");
 
-const MIXER_IDENT: FreeformIdent<'static> =
+const IDENT_LYRICIST: FreeformIdent<'static> =
+    FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "LYRICIST");
+
+const IDENT_MIXER: FreeformIdent<'static> =
     FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "MIXER");
 
-const LABEL_IDENT: FreeformIdent<'static> =
+const IDENT_PRODUCER: FreeformIdent<'static> =
+    FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "PRODUCER");
+
+const IDENT_REMIXER: FreeformIdent<'static> =
+    FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "REMIXER");
+
+const IDENT_LABEL: FreeformIdent<'static> =
     FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "LABEL");
 
-const MOOD_IDENT: FreeformIdent<'static> =
+const IDENT_MOOD: FreeformIdent<'static> =
     FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "MOOD");
 
-const XID_IDENT: Fourcc = Fourcc(*b"xid ");
+const IDENT_ISRC: FreeformIdent<'static> =
+    FreeformIdent::new(COM_APPLE_ITUNES_FREEFORM_MEAN, "ISRC");
 
 const ORG_MIXXX_DJ_FREEFORM_MEAN: &str = "org.mixxx.dj";
 
@@ -191,7 +210,7 @@ impl import::ImportTrack for ImportTrack {
                 .map(|hz| SampleRateHz::from_inner(hz as SamplesPerSecond));
             let bitrate = mp4_tag.avg_bitrate().and_then(read_bitrate);
             let loudness = mp4_tag
-                .strings_of(&REPLAYGAIN_TRACK_GAIN_IDENT)
+                .strings_of(&IDENT_REPLAYGAIN_TRACK_GAIN)
                 .next()
                 .and_then(parse_replay_gain);
             let encoder = mp4_tag.take_encoder();
@@ -218,7 +237,7 @@ impl import::ImportTrack for ImportTrack {
 
         let mut tempo_bpm_non_fractional = false;
         let tempo_bpm = mp4_tag
-            .strings_of(&BPM_IDENT)
+            .strings_of(&IDENT_BPM)
             .flat_map(parse_tempo_bpm)
             .next()
             .or_else(|| {
@@ -238,7 +257,7 @@ impl import::ImportTrack for ImportTrack {
         }
 
         let key_signature = mp4_tag
-            .strings_of(&INITIAL_KEY_IDENT)
+            .strings_of(&IDENT_INITIAL_KEY)
             // alternative name (conforms to Rapid Evolution)
             .chain(mp4_tag.strings_of(&KEY_IDENT))
             .flat_map(parse_key_signature)
@@ -270,7 +289,7 @@ impl import::ImportTrack for ImportTrack {
             };
             track_titles.push(title);
         }
-        if let Some(name) = mp4_tag.take_strings_of(&SUBTITLE_IDENT).next() {
+        if let Some(name) = mp4_tag.take_strings_of(&IDENT_SUBTITLE).next() {
             let title = Title {
                 name,
                 kind: TitleKind::Sub,
@@ -290,22 +309,22 @@ impl import::ImportTrack for ImportTrack {
         for name in mp4_tag.take_composers() {
             push_next_actor_role_name(&mut track_actors, ActorRole::Composer, name);
         }
-        for name in mp4_tag.take_strings_of(&PRODUCER_IDENT) {
+        for name in mp4_tag.take_strings_of(&IDENT_PRODUCER) {
             push_next_actor_role_name(&mut track_actors, ActorRole::Producer, name);
         }
-        for name in mp4_tag.take_strings_of(&REMIXER_IDENT) {
+        for name in mp4_tag.take_strings_of(&IDENT_REMIXER) {
             push_next_actor_role_name(&mut track_actors, ActorRole::Remixer, name);
         }
-        for name in mp4_tag.take_strings_of(&MIXER_IDENT) {
+        for name in mp4_tag.take_strings_of(&IDENT_MIXER) {
             push_next_actor_role_name(&mut track_actors, ActorRole::Mixer, name);
         }
-        for name in mp4_tag.take_strings_of(&ENGINEER_IDENT) {
+        for name in mp4_tag.take_strings_of(&IDENT_ENGINEER) {
             push_next_actor_role_name(&mut track_actors, ActorRole::Engineer, name);
         }
         for name in mp4_tag.take_lyricists() {
             push_next_actor_role_name(&mut track_actors, ActorRole::Lyricist, name);
         }
-        for name in mp4_tag.take_strings_of(&CONDUCTOR_IDENT) {
+        for name in mp4_tag.take_strings_of(&IDENT_CONDUCTOR) {
             push_next_actor_role_name(&mut track_actors, ActorRole::Conductor, name);
         }
         let track_actors = track_actors.canonicalize_into();
@@ -355,7 +374,7 @@ impl import::ImportTrack for ImportTrack {
         if let Some(copyright) = mp4_tag.take_copyright() {
             track.release.copyright = Some(copyright);
         }
-        if let Some(label) = mp4_tag.take_strings_of(&LABEL_IDENT).next() {
+        if let Some(label) = mp4_tag.take_strings_of(&IDENT_LABEL).next() {
             track.release.released_by = Some(label);
         }
 
@@ -423,7 +442,7 @@ impl import::ImportTrack for ImportTrack {
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_MOOD,
-            mp4_tag.take_strings_of(&MOOD_IDENT),
+            mp4_tag.take_strings_of(&IDENT_MOOD),
         );
 
         // Comment tag
@@ -455,7 +474,7 @@ impl import::ImportTrack for ImportTrack {
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_XID,
-            mp4_tag.take_strings_of(&XID_IDENT),
+            mp4_tag.take_strings_of(&IDENT_XID),
         );
 
         debug_assert!(track.tags.is_empty());
@@ -559,6 +578,48 @@ impl import::ImportTrack for ImportTrack {
     }
 }
 
+fn export_filtered_actor_names<'a>(
+    mp4_tag: &mut Mp4Tag,
+    ident: impl Ident + Into<DataIdent>,
+    actor_names: FilteredActorNames<'a>,
+) {
+    match actor_names {
+        FilteredActorNames::Summary(name) => {
+            mp4_tag.set_all_data(ident, once(Data::Utf8(name.to_owned())));
+        }
+        FilteredActorNames::Primary(names) => {
+            mp4_tag.set_all_data(
+                ident,
+                names.into_iter().map(|name| Data::Utf8(name.to_owned())),
+            );
+        }
+    }
+}
+
+fn export_faceted_tags<'a>(
+    mp4_tag: &mut Mp4Tag,
+    ident: impl Ident + Into<DataIdent>,
+    config: Option<&TagMappingConfig>,
+    tags: Vec<PlainTag>,
+) {
+    if let Some(config) = config {
+        let joined_labels = config
+            .join_labels_str_iter(
+                tags.iter()
+                    .filter_map(|PlainTag { label, score: _ }| label.as_ref().map(AsRef::as_ref)),
+            )
+            .to_owned();
+        mp4_tag.set_all_data(ident, joined_labels.map(|s| Data::Utf8(s.into())));
+    } else {
+        mp4_tag.set_all_data(
+            ident,
+            tags.into_iter().filter_map(|PlainTag { label, score: _ }| {
+                label.map(|label| Data::Utf8(label.into()))
+            }),
+        );
+    }
+}
+
 struct ExportTrackToFile;
 
 impl export::ExportTrackToFile for ExportTrackToFile {
@@ -572,57 +633,148 @@ impl export::ExportTrackToFile for ExportTrackToFile {
 
         let mut mp4_tag = mp4_tag_orig.clone();
 
-        if let Some(title) = Titles::main_title(track.titles.iter()) {
-            mp4_tag.set_title(title.name.to_owned());
-        }
-        if let Some(summary_actor) =
-            Actors::filter_kind_role(track.actors.iter(), ActorKind::Summary, ActorRole::Artist)
-                .next()
-        {
-            mp4_tag.set_artists(once(summary_actor.name.to_owned()));
-        } else {
-            let primary_actors = Actors::filter_kind_role(
-                track.actors.iter(),
-                ActorKind::Primary,
-                ActorRole::Artist,
-            );
-            mp4_tag.set_artists(primary_actors.map(|actor| actor.name.to_owned()));
+        // Audio properties
+        mp4_tag.remove_data_of(&IDENT_REPLAYGAIN_TRACK_GAIN);
+        match &track.media_source.content {
+            Content::Audio(audio) => {
+                if let Some(loudness) = audio
+                    .loudness
+                    .map(LoudnessLufs::validated_from)
+                    .transpose()
+                    .ok()
+                    .flatten()
+                {
+                    let relative_gain_db = lufs2db(loudness);
+                    mp4_tag.set_all_data(
+                        IDENT_REPLAYGAIN_TRACK_GAIN,
+                        once(Data::Utf8(relative_gain_db.to_string())),
+                    );
+                }
+                if let Some(encoder) = &audio.encoder {
+                    mp4_tag.set_encoder(encoder);
+                }
+            }
         }
 
-        if let Some(summary_actor) =
-            Actors::filter_kind_role(track.actors.iter(), ActorKind::Summary, ActorRole::Composer)
-                .next()
+        // Music: Tempo/BPM
+        if let Some(tempo_bpm) = track
+            .metrics
+            .tempo_bpm
+            .map(TempoBpm::validated_from)
+            .transpose()
+            .ok()
+            .flatten()
         {
-            mp4_tag.set_composers(once(summary_actor.name.to_owned()));
+            mp4_tag.set_bpm(tempo_bpm.0.round().max(u16::MAX as Beats) as u16);
+            mp4_tag.set_all_data(IDENT_BPM, once(Data::Utf8(tempo_bpm.0.to_string())));
         } else {
-            let primary_actors = Actors::filter_kind_role(
-                track.actors.iter(),
-                ActorKind::Primary,
-                ActorRole::Composer,
-            );
-            mp4_tag.set_composers(primary_actors.map(|actor| actor.name.to_owned()));
+            mp4_tag.remove_bpm();
+            mp4_tag.remove_data_of(&IDENT_BPM);
         }
+
+        // Music: Key
+        if track.metrics.key_signature.is_unknown() {
+            mp4_tag.remove_data_of(&IDENT_INITIAL_KEY);
+            mp4_tag.remove_data_of(&KEY_IDENT);
+        } else {
+            // TODO: Write a custom key code string according to config
+            mp4_tag.set_all_data(
+                IDENT_INITIAL_KEY,
+                once(Data::Utf8(track.metrics.key_signature.to_string())),
+            );
+            if mp4_tag.data_of(&KEY_IDENT).next().is_some() {
+                // Write non-standard key atom only if already present
+                mp4_tag.set_all_data(
+                    KEY_IDENT,
+                    once(Data::Utf8(track.metrics.key_signature.to_string())),
+                );
+            }
+        }
+
+        // Track titles
+        if let Some(title) = Titles::main_title(track.titles.iter()) {
+            mp4_tag.set_title(title.name.to_owned());
+        } else {
+            mp4_tag.remove_title();
+        }
+        let track_subtitles = Titles::filter_kind(track.titles.iter(), TitleKind::Sub).peekable();
+        mp4_tag.set_all_data(
+            IDENT_SUBTITLE,
+            track_subtitles.map(|subtitle| Data::Utf8(subtitle.name.to_owned())),
+        );
+        let mut track_movements =
+            Titles::filter_kind(track.titles.iter(), TitleKind::Movement).peekable();
+        if track_movements.peek().is_some() {
+            let movement = track_movements.next().unwrap();
+            // Only a single movement is supported
+            debug_assert!(track_movements.peek().is_none());
+            mp4_tag.set_movement(movement.name.to_owned());
+        } else {
+            mp4_tag.remove_movement();
+        }
+        let mut track_works = Titles::filter_kind(track.titles.iter(), TitleKind::Work).peekable();
+        if track_works.peek().is_some() {
+            let work = track_works.next().unwrap();
+            // Only a single work is supported
+            debug_assert!(track_works.peek().is_none());
+            mp4_tag.set_work(work.name.to_owned());
+        } else {
+            mp4_tag.remove_work();
+        }
+
+        // Track actors
+        export_filtered_actor_names(
+            &mut mp4_tag,
+            IDENT_ARTIST,
+            FilteredActorNames::new(track.actors.iter(), ActorRole::Artist),
+        );
+        export_filtered_actor_names(
+            &mut mp4_tag,
+            IDENT_COMPOSER,
+            FilteredActorNames::new(track.actors.iter(), ActorRole::Composer),
+        );
+        export_filtered_actor_names(
+            &mut mp4_tag,
+            IDENT_LYRICIST,
+            FilteredActorNames::new(track.actors.iter(), ActorRole::Lyricist),
+        );
+        export_filtered_actor_names(
+            &mut mp4_tag,
+            IDENT_CONDUCTOR,
+            FilteredActorNames::new(track.actors.iter(), ActorRole::Conductor),
+        );
+        export_filtered_actor_names(
+            &mut mp4_tag,
+            IDENT_ENGINEER,
+            FilteredActorNames::new(track.actors.iter(), ActorRole::Engineer),
+        );
+        export_filtered_actor_names(
+            &mut mp4_tag,
+            IDENT_MIXER,
+            FilteredActorNames::new(track.actors.iter(), ActorRole::Mixer),
+        );
+        export_filtered_actor_names(
+            &mut mp4_tag,
+            IDENT_PRODUCER,
+            FilteredActorNames::new(track.actors.iter(), ActorRole::Producer),
+        );
+        export_filtered_actor_names(
+            &mut mp4_tag,
+            IDENT_REMIXER,
+            FilteredActorNames::new(track.actors.iter(), ActorRole::Remixer),
+        );
 
         // Album
         if let Some(title) = Titles::main_title(track.album.titles.iter()) {
             mp4_tag.set_album(title.name.to_owned());
-        }
-        if let Some(summary_actor) = Actors::filter_kind_role(
-            track.album.actors.iter(),
-            ActorKind::Summary,
-            ActorRole::Artist,
-        )
-        .next()
-        {
-            mp4_tag.set_album_artists(once(summary_actor.name.to_owned()));
         } else {
-            let primary_actors = Actors::filter_kind_role(
-                track.album.actors.iter(),
-                ActorKind::Primary,
-                ActorRole::Artist,
-            );
-            mp4_tag.set_album_artists(primary_actors.map(|actor| actor.name.to_owned()));
+            mp4_tag.remove_album();
         }
+        export_filtered_actor_names(
+            &mut mp4_tag,
+            IDENT_ALBUM_ARTIST,
+            FilteredActorNames::new(track.album.actors.iter(), ActorRole::Artist),
+        );
         match track.album.kind {
             AlbumKind::Compilation => {
                 mp4_tag.set_compilation();
@@ -633,88 +785,129 @@ impl export::ExportTrackToFile for ExportTrackToFile {
         }
 
         // Release
-        if let Some(copyright) = track.release.copyright.as_ref() {
+        if let Some(copyright) = &track.release.copyright {
             mp4_tag.set_copyright(copyright);
+        } else {
+            mp4_tag.remove_copyright();
         }
-        if let Some(released_by) = track.release.released_by.as_ref() {
-            mp4_tag.set_all_data(LABEL_IDENT, once(Data::Utf8(released_by.to_owned())));
+        if let Some(released_by) = &track.release.released_by {
+            mp4_tag.set_all_data(IDENT_LABEL, once(Data::Utf8(released_by.to_owned())));
+        } else {
+            mp4_tag.remove_data_of(&IDENT_LABEL);
         }
-        if let Some(released_at) = track.release.released_at.as_ref() {
+        if let Some(released_at) = &track.release.released_at {
             mp4_tag.set_year(released_at.to_string());
+        } else {
+            mp4_tag.remove_year();
         }
 
         // Numbers
         if let Some(track_number) = track.indexes.track.number {
             mp4_tag.set_track_number(track_number);
+        } else {
+            mp4_tag.remove_track_number();
         }
         if let Some(track_total) = track.indexes.track.total {
             mp4_tag.set_total_tracks(track_total);
+        } else {
+            mp4_tag.remove_total_tracks();
         }
         if let Some(disc_number) = track.indexes.disc.number {
             mp4_tag.set_disc_number(disc_number);
+        } else {
+            mp4_tag.remove_disc_number();
         }
         if let Some(disc_total) = track.indexes.disc.total {
             mp4_tag.set_total_discs(disc_total);
+        } else {
+            mp4_tag.remove_total_discs();
         }
         if let Some(movement_number) = track.indexes.movement.number {
             mp4_tag.set_movement_index(movement_number);
+        } else {
+            mp4_tag.remove_movement_index();
         }
         if let Some(movement_total) = track.indexes.movement.total {
             mp4_tag.set_movement_count(movement_total);
+        } else {
+            mp4_tag.remove_movement_count();
         }
 
         let mut tags_map = TagsMap::from(track.tags.clone().untie());
 
         // Genre(s)
         if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_GENRE) {
+            // Overwrite standard genres with custom genres
             mp4_tag.remove_standard_genres();
-            if let Some(tag_mapping_config) = config.faceted_tag_mapping.get(facet_id.value()) {
-                let joined_tag = tag_mapping_config
-                    .join_labels_str_iter(tags.iter().filter_map(|PlainTag { label, score: _ }| {
-                        label.as_ref().map(AsRef::as_ref)
-                    }))
-                    .to_owned();
-                mp4_tag.set_custom_genres(joined_tag.map(Into::into));
-            } else {
-                mp4_tag.set_custom_genres(
-                    tags.into_iter()
-                        .filter_map(|PlainTag { label, score: _ }| label.map(Into::into)),
-                );
-            }
+            export_faceted_tags(
+                &mut mp4_tag,
+                IDENT_GENRE,
+                config.faceted_tag_mapping.get(facet_id.value()),
+                tags,
+            );
+        } else {
+            // Preserve standard genres until overwritten by custom genres
+            mp4_tag.remove_data_of(&IDENT_GENRE);
         }
 
         // Comment(s)
         if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_COMMENT) {
-            if let Some(tag_mapping_config) = config.faceted_tag_mapping.get(facet_id.value()) {
-                let joined_tag = tag_mapping_config
-                    .join_labels_str_iter(tags.iter().filter_map(|PlainTag { label, score: _ }| {
-                        label.as_ref().map(AsRef::as_ref)
-                    }))
-                    .to_owned();
-                mp4_tag.set_comments(joined_tag.map(Into::into));
-            } else {
-                mp4_tag.set_comments(
-                    tags.into_iter()
-                        .filter_map(|PlainTag { label, score: _ }| label.map(Into::into)),
-                );
-            }
+            export_faceted_tags(
+                &mut mp4_tag,
+                IDENT_COMMENT,
+                config.faceted_tag_mapping.get(facet_id.value()),
+                tags,
+            );
+        } else {
+            mp4_tag.remove_data_of(&IDENT_COMMENT);
         }
 
         // Grouping(s)
         if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_GROUPING) {
-            if let Some(tag_mapping_config) = config.faceted_tag_mapping.get(facet_id.value()) {
-                let joined_tag = tag_mapping_config
-                    .join_labels_str_iter(tags.iter().filter_map(|PlainTag { label, score: _ }| {
-                        label.as_ref().map(AsRef::as_ref)
-                    }))
-                    .to_owned();
-                mp4_tag.set_groupings(joined_tag.map(Into::into));
-            } else {
-                mp4_tag.set_groupings(
-                    tags.into_iter()
-                        .filter_map(|PlainTag { label, score: _ }| label.map(Into::into)),
-                );
-            }
+            export_faceted_tags(
+                &mut mp4_tag,
+                IDENT_GROUPING,
+                config.faceted_tag_mapping.get(facet_id.value()),
+                tags,
+            );
+        } else {
+            mp4_tag.remove_data_of(&IDENT_GROUPING);
+        }
+
+        // Mood(s)
+        if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_MOOD) {
+            export_faceted_tags(
+                &mut mp4_tag,
+                IDENT_MOOD,
+                config.faceted_tag_mapping.get(facet_id.value()),
+                tags,
+            );
+        } else {
+            mp4_tag.remove_data_of(&IDENT_MOOD);
+        }
+
+        // ISRC(s)
+        if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ISRC) {
+            export_faceted_tags(
+                &mut mp4_tag,
+                IDENT_ISRC,
+                config.faceted_tag_mapping.get(facet_id.value()),
+                tags,
+            );
+        } else {
+            mp4_tag.remove_data_of(&IDENT_ISRC);
+        }
+
+        // XID(s)
+        if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_XID) {
+            export_faceted_tags(
+                &mut mp4_tag,
+                IDENT_XID,
+                config.faceted_tag_mapping.get(facet_id.value()),
+                tags,
+            );
+        } else {
+            mp4_tag.remove_data_of(&IDENT_XID);
         }
 
         if mp4_tag != mp4_tag_orig {
