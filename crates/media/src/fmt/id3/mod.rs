@@ -269,6 +269,21 @@ pub fn import_track(
     for name in text_frames(tag, "TPE3") {
         push_next_actor_role_name(&mut track_actors, ActorRole::Conductor, name.to_owned());
     }
+    for name in extended_text_values(tag, "DIRECTOR") {
+        push_next_actor_role_name(&mut track_actors, ActorRole::Director, name.to_owned());
+    }
+    for name in text_frames(tag, "TPE4") {
+        push_next_actor_role_name(&mut track_actors, ActorRole::Remixer, name.to_owned());
+    }
+    for name in text_frames(tag, "TEXT") {
+        push_next_actor_role_name(&mut track_actors, ActorRole::Lyricist, name.to_owned());
+    }
+    for name in extended_text_values(tag, "Writer") {
+        // "Writer", not "WRITER" in all caps
+        // See also: https://tickets.metabrainz.org/browse/PICARD-1101
+        push_next_actor_role_name(&mut track_actors, ActorRole::Writer, name.to_owned());
+    }
+    // TODO: Import TIPL frames
     let track_actors = track_actors.canonicalize_into();
     if !track_actors.is_empty() {
         track.actors = Canonical::tie(track_actors);

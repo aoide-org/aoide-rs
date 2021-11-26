@@ -115,6 +115,8 @@ const IDENT_COMMENT: Fourcc = Fourcc(*b"\xA9cmt");
 
 const IDENT_COMPOSER: Fourcc = Fourcc(*b"\xA9wrt");
 
+const IDENT_DIRECTOR: Fourcc = Fourcc(*b"\xA9dir");
+
 const IDENT_GENRE: Fourcc = Fourcc(*b"\xA9gen");
 
 const IDENT_GROUPING: Fourcc = Fourcc(*b"\xA9grp");
@@ -326,6 +328,9 @@ impl import::ImportTrack for ImportTrack {
         }
         for name in mp4_tag.take_strings_of(&IDENT_CONDUCTOR) {
             push_next_actor_role_name(&mut track_actors, ActorRole::Conductor, name);
+        }
+        for name in mp4_tag.take_strings_of(&IDENT_DIRECTOR) {
+            push_next_actor_role_name(&mut track_actors, ActorRole::Director, name);
         }
         let track_actors = track_actors.canonicalize_into();
         if !track_actors.is_empty() {

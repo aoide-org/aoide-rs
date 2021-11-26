@@ -1017,6 +1017,7 @@ components:
           * 10 = Publisher
           * 11 = Remixer
           * 12 = Writer
+          * 13 = Director
     AlbumKind:
       type: integer
       enum: [0, 1, 2, 3]

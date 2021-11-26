@@ -71,19 +71,20 @@ impl From<_core::ActorKind> for ActorKind {
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize_repr, Deserialize_repr, JsonSchema)]
 #[repr(u8)]
 pub enum ActorRole {
-    Artist = 0,
-    Arranger = 1,
-    Composer = 2,
-    Conductor = 3,
-    DjMixer = 4,
-    Engineer = 5,
-    Lyricist = 6,
-    Mixer = 7,
-    Performer = 8,
-    Producer = 9,
-    Publisher = 10,
-    Remixer = 11,
-    Writer = 12,
+    Artist = _core::ActorRole::Artist as u8,
+    Arranger = _core::ActorRole::Arranger as u8,
+    Composer = _core::ActorRole::Composer as u8,
+    Conductor = _core::ActorRole::Conductor as u8,
+    DjMixer = _core::ActorRole::DjMixer as u8,
+    Engineer = _core::ActorRole::Engineer as u8,
+    Lyricist = _core::ActorRole::Lyricist as u8,
+    Mixer = _core::ActorRole::Mixer as u8,
+    Performer = _core::ActorRole::Performer as u8,
+    Producer = _core::ActorRole::Producer as u8,
+    Publisher = _core::ActorRole::Publisher as u8,
+    Remixer = _core::ActorRole::Remixer as u8,
+    Writer = _core::ActorRole::Writer as u8,
+    Director = _core::ActorRole::Director as u8,
 }
 
 impl Default for ActorRole {
@@ -109,6 +110,7 @@ impl From<ActorRole> for _core::ActorRole {
             ActorRole::Publisher => Publisher,
             ActorRole::Remixer => Remixer,
             ActorRole::Writer => Writer,
+            ActorRole::Director => Director,
         }
     }
 }
@@ -130,6 +132,7 @@ impl From<_core::ActorRole> for ActorRole {
             Publisher => ActorRole::Publisher,
             Remixer => ActorRole::Remixer,
             Writer => ActorRole::Writer,
+            Director => ActorRole::Director,
         }
     }
 }
