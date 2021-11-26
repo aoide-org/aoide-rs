@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{fs::File, iter::once};
+use std::{iter::once, path::Path};
 
 use image::ImageFormat;
 use mp4ameta::{
@@ -55,8 +55,8 @@ use crate::{
     },
     util::{
         digest::MediaDigest,
-        lufs2db, parse_key_signature, parse_replay_gain, parse_tempo_bpm, parse_year_tag,
-        push_next_actor_role_name, serato,
+        format_parseable_value, format_replay_gain, parse_key_signature, parse_replay_gain,
+        parse_tempo_bpm, parse_year_tag, push_next_actor_role_name, serato,
         tag::{
             import_faceted_tags_from_label_value_iter, import_plain_tags_from_joined_label_value,
             TagMappingConfig,
@@ -182,7 +182,6 @@ impl import::ImportTrack for ImportTrack {
         &self,
         reader: &mut Box<dyn Reader>,
         config: &ImportTrackConfig,
-        flags: ImportTrackFlags,
         track: &mut Track,
     ) -> Result<()> {
         // Extract metadata with mp4ameta
@@ -386,7 +385,7 @@ impl import::ImportTrack for ImportTrack {
         let mut tags_map = TagsMap::default();
 
         // Mixxx CustomTags
-        if flags.contains(ImportTrackFlags::MIXXX_CUSTOM_TAGS) {
+        if config.flags.contains(ImportTrackFlags::MIXXX_CUSTOM_TAGS) {
             if let Some(data) = mp4_tag.data_of(&MIXXX_CUSTOM_TAGS_IDENT).next() {
                 if let Some(custom_tags) = match data {
                     Data::Utf8(input) => serde_json::from_str::<SerdeTags>(input)
@@ -501,9 +500,12 @@ impl import::ImportTrack for ImportTrack {
         }
 
         // Artwork
-        if flags.contains(ImportTrackFlags::EMBEDDED_ARTWORK) {
-            let mut image_digest = if flags.contains(ImportTrackFlags::ARTWORK_DIGEST) {
-                if flags.contains(ImportTrackFlags::ARTWORK_DIGEST_SHA256) {
+        if config.flags.contains(ImportTrackFlags::EMBEDDED_ARTWORK) {
+            let mut image_digest = if config.flags.contains(ImportTrackFlags::ARTWORK_DIGEST) {
+                if config
+                    .flags
+                    .contains(ImportTrackFlags::ARTWORK_DIGEST_SHA256)
+                {
                     // Compatibility
                     MediaDigest::sha256()
                 } else {
@@ -536,7 +538,7 @@ impl import::ImportTrack for ImportTrack {
         }
 
         // Serato Tags
-        if flags.contains(ImportTrackFlags::SERATO_TAGS) {
+        if config.flags.contains(ImportTrackFlags::SERATO_TAGS) {
             let mut serato_tags = SeratoTagContainer::new();
 
             if let Some(data) = mp4_tag.data_of(&SERATO_MARKERS_IDENT).next() {
@@ -625,21 +627,21 @@ fn export_faceted_tags(
     }
 }
 
-struct ExportTrackToFile;
+#[derive(Debug)]
+pub struct ExportTrack;
 
-impl export::ExportTrackToFile for ExportTrackToFile {
-    fn export_track_to_file(
+impl export::ExportTrack for ExportTrack {
+    fn export_track_to_path(
         &self,
         config: &ExportTrackConfig,
         track: &Track,
-        file: &mut File,
+        path: &Path,
     ) -> Result<bool> {
-        let mp4_tag_orig = Mp4Tag::read_from(file).map_err(map_err)?;
+        let mp4_tag_orig = Mp4Tag::read_from_path(path).map_err(map_err)?;
 
         let mut mp4_tag = mp4_tag_orig.clone();
 
         // Audio properties
-        mp4_tag.remove_data_of(&IDENT_REPLAYGAIN_TRACK_GAIN);
         match &track.media_source.content {
             Content::Audio(audio) => {
                 if let Some(loudness) = audio
@@ -649,11 +651,12 @@ impl export::ExportTrackToFile for ExportTrackToFile {
                     .ok()
                     .flatten()
                 {
-                    let relative_gain_db = lufs2db(loudness);
                     mp4_tag.set_all_data(
                         IDENT_REPLAYGAIN_TRACK_GAIN,
-                        once(Data::Utf8(relative_gain_db.to_string())),
+                        once(Data::Utf8(format_replay_gain(loudness))),
                     );
+                } else {
+                    mp4_tag.remove_data_of(&IDENT_REPLAYGAIN_TRACK_GAIN);
                 }
                 if let Some(encoder) = &audio.encoder {
                     mp4_tag.set_encoder(encoder);
@@ -670,8 +673,12 @@ impl export::ExportTrackToFile for ExportTrackToFile {
             .ok()
             .flatten()
         {
-            mp4_tag.set_bpm(tempo_bpm.0.round().max(u16::MAX as Beats) as u16);
-            mp4_tag.set_all_data(IDENT_BPM, once(Data::Utf8(tempo_bpm.0.to_string())));
+            let mut bpm_value = tempo_bpm.0;
+            mp4_tag.set_all_data(
+                IDENT_BPM,
+                once(Data::Utf8(format_parseable_value(&mut bpm_value))),
+            );
+            mp4_tag.set_bpm(bpm_value.round().max(u16::MAX as Beats) as u16);
         } else {
             mp4_tag.remove_bpm();
             mp4_tag.remove_data_of(&IDENT_BPM);
@@ -740,6 +747,11 @@ impl export::ExportTrackToFile for ExportTrackToFile {
         );
         export_filtered_actor_names(
             &mut mp4_tag,
+            IDENT_DIRECTOR,
+            FilteredActorNames::new(track.actors.iter(), ActorRole::Director),
+        );
+        export_filtered_actor_names(
+            &mut mp4_tag,
             IDENT_LYRICIST,
             FilteredActorNames::new(track.actors.iter(), ActorRole::Lyricist),
         );
@@ -781,10 +793,14 @@ impl export::ExportTrackToFile for ExportTrackToFile {
             FilteredActorNames::new(track.album.actors.iter(), ActorRole::Artist),
         );
         match track.album.kind {
+            AlbumKind::Unknown => {
+                mp4_tag.remove_compilation();
+            }
             AlbumKind::Compilation => {
                 mp4_tag.set_compilation();
             }
-            _ => {
+            AlbumKind::Album | AlbumKind::Single => {
+                // TODO: Set compilation flag to false!?
                 mp4_tag.remove_compilation();
             }
         }
@@ -915,13 +931,12 @@ impl export::ExportTrackToFile for ExportTrackToFile {
             mp4_tag.remove_data_of(&IDENT_XID);
         }
 
-        if mp4_tag != mp4_tag_orig {
-            mp4_tag.write_to(file).map_err(map_err)?;
-            // Modified
-            return Ok(true);
+        if mp4_tag == mp4_tag_orig {
+            // Unmodified
+            return Ok(false);
         }
-
-        // Unmodified
-        Ok(false)
+        mp4_tag.write_to_path(path).map_err(map_err)?;
+        // Modified
+        Ok(true)
     }
 }

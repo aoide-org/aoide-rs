@@ -82,14 +82,15 @@ pub fn handle_request(
             split_score_attenuation: 0.75,
         },
     );
-    let import_config = ImportTrackConfig {
-        faceted_tag_mapping: faceted_tag_mapping_config.into(),
-    };
     // FIXME: Replace hard-coded import flags
     let import_flags = ImportTrackFlags::ARTWORK_DIGEST
         | ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK
         | ImportTrackFlags::MIXXX_CUSTOM_TAGS
         | ImportTrackFlags::SERATO_TAGS;
+    let import_config = ImportTrackConfig {
+        faceted_tag_mapping: faceted_tag_mapping_config.into(),
+        flags: import_flags,
+    };
     let params = aoide_core_ext::media::tracker::import::Params {
         root_url,
         import_mode: import_mode.map(Into::into),
@@ -99,7 +100,6 @@ pub fn handle_request(
         collection_uid,
         &params,
         &import_config,
-        import_flags,
         progress_summary_fn,
         abort_flag,
     )

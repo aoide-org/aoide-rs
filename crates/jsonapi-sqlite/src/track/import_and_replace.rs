@@ -162,21 +162,21 @@ pub fn handle_request(
             split_score_attenuation: 0.75,
         },
     );
-    let import_config = ImportTrackConfig {
-        faceted_tag_mapping: faceted_tag_mapping_config.into(),
-    };
     // FIXME: Replace hard-coded import flags
     let import_flags = ImportTrackFlags::ARTWORK_DIGEST
         | ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK
         | ImportTrackFlags::MIXXX_CUSTOM_TAGS
         | ImportTrackFlags::SERATO_TAGS;
+    let import_config = ImportTrackConfig {
+        faceted_tag_mapping: faceted_tag_mapping_config.into(),
+        flags: import_flags,
+    };
     let expected_source_path_count = request_body.len();
     uc::import_and_replace_by_local_file_path_iter(
         &pooled_connection,
         collection_uid,
         import_mode.into(),
         &import_config,
-        import_flags,
         replace_mode.into(),
         request_body.into_iter().map(Into::into),
         Some(expected_source_path_count),

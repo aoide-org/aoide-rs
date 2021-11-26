@@ -19,10 +19,7 @@ use aoide_core::media::SourcePath;
 
 use aoide_core_ext::{media::ImportMode, track::replace::Summary};
 
-use aoide_media::{
-    io::import::{ImportTrackConfig, ImportTrackFlags},
-    resolver::SourcePathResolver as _,
-};
+use aoide_media::{io::import::ImportTrackConfig, resolver::SourcePathResolver as _};
 
 use aoide_repo::{collection::EntityRepo as _, track::ReplaceMode};
 
@@ -106,7 +103,6 @@ pub fn import_and_replace_by_local_file_path_iter(
     collection_uid: &EntityUid,
     import_mode: ImportMode,
     import_config: &ImportTrackConfig,
-    import_flags: ImportTrackFlags,
     replace_mode: ReplaceMode,
     source_path_iter: impl Iterator<Item = SourcePath>,
     expected_source_path_count: Option<usize>,
@@ -122,7 +118,6 @@ pub fn import_and_replace_by_local_file_path_iter(
             collection_id,
             import_mode,
             import_config,
-            import_flags,
             replace_mode,
             &source_path_resolver,
             source_path_iter,
@@ -141,7 +136,6 @@ pub fn import_and_replace_by_local_file_path_from_directory(
     collection_uid: &EntityUid,
     import_mode: ImportMode,
     import_config: &ImportTrackConfig,
-    import_flags: ImportTrackFlags,
     replace_mode: ReplaceMode,
     source_dir_path: &str,
     abort_flag: &AtomicBool,
@@ -156,7 +150,6 @@ pub fn import_and_replace_by_local_file_path_from_directory(
             collection_id,
             import_mode,
             import_config,
-            import_flags,
             replace_mode,
             &source_path_resolver,
             source_dir_path,

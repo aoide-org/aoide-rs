@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-///////////////////////////////////////////////////////////////////////
+use std::fmt;
 
 use anyhow::Context as _;
 
@@ -57,7 +57,7 @@ use nom::{
     IResult,
 };
 use semval::IsValid as _;
-use std::{convert::TryFrom as _, path::Path};
+use std::{convert::TryFrom as _, path::Path, str::FromStr};
 
 fn trim_readable(input: &str) -> &str {
     input.trim_matches(|c: char| c.is_whitespace() || c.is_control())
@@ -107,6 +107,25 @@ pub fn push_next_actor_role_name(actors: &mut Vec<Actor>, role: ActorRole, name:
     actors.push(actor);
 }
 
+pub fn format_parseable_value<T>(value: &mut T) -> String
+where
+    T: Copy + PartialEq + ToString + FromStr,
+    <T as FromStr>::Err: fmt::Debug,
+{
+    // Iron out rounding errors that occur due to string formatting
+    // by repeated formatting and parsing until the values converge.
+    let mut value_formatted;
+    loop {
+        value_formatted = value.to_string();
+        let value_parsed = value_formatted.parse().expect("valid value");
+        if value_parsed == *value {
+            break;
+        }
+        *value = value_parsed;
+    }
+    value_formatted
+}
+
 // Assumption: Gain has been calculated with the EBU R128 algorithm
 const EBU_R128_REFERENCE_LUFS: f64 = -18.0;
 
@@ -115,8 +134,15 @@ fn db2lufs(relative_gain_db: f64) -> LoudnessLufs {
     LoudnessLufs(EBU_R128_REFERENCE_LUFS - relative_gain_db)
 }
 
-pub fn lufs2db(loudness: LoudnessLufs) -> f64 {
+fn lufs2db(loudness: LoudnessLufs) -> f64 {
     EBU_R128_REFERENCE_LUFS - loudness.0
+}
+
+pub fn format_replay_gain(loudness: LoudnessLufs) -> String {
+    let mut replay_gain_db = lufs2db(loudness);
+    let formatted = format!("{}, dB", format_parseable_value(&mut replay_gain_db));
+    debug_assert_eq!(Some(db2lufs(replay_gain_db)), parse_replay_gain(&formatted));
+    formatted
 }
 
 fn parse_replay_gain_db(input: &str) -> IResult<&str, f64> {

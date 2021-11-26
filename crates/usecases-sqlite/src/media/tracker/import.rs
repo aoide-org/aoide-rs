@@ -17,7 +17,7 @@ use std::sync::atomic::AtomicBool;
 
 use aoide_core_ext::media::tracker::import::Params;
 
-use aoide_media::io::import::{ImportTrackConfig, ImportTrackFlags};
+use aoide_media::io::import::ImportTrackConfig;
 
 use super::*;
 
@@ -40,7 +40,6 @@ pub fn import(
     collection_uid: &EntityUid,
     params: &Params,
     import_config: &ImportTrackConfig,
-    import_flags: ImportTrackFlags,
     progress_summary_fn: &mut impl FnMut(&uc::Summary),
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {
@@ -55,7 +54,6 @@ pub fn import(
             collection_id,
             params,
             import_config,
-            import_flags,
             progress_summary_fn,
             abort_flag,
         )

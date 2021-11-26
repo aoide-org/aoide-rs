@@ -25,7 +25,7 @@ use aoide_core_ext::media::tracker::{
     Completion,
 };
 
-use aoide_media::io::import::{ImportTrackConfig, ImportTrackFlags};
+use aoide_media::io::import::ImportTrackConfig;
 
 use aoide_repo::{
     collection::RecordId as CollectionId,
@@ -49,7 +49,6 @@ pub fn import<Repo>(
     collection_id: CollectionId,
     params: &Params,
     import_config: &ImportTrackConfig,
-    import_flags: ImportTrackFlags,
     progress_summary_fn: &mut impl FnMut(&Summary),
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
@@ -111,7 +110,6 @@ where
                 collection_id,
                 import_mode,
                 import_config,
-                import_flags,
                 ReplaceMode::UpdateOrCreate,
                 source_path_resolver,
                 &dir_path,

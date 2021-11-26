@@ -25,7 +25,7 @@ use aoide_core::{media::SourcePath, util::clock::DateTime};
 use aoide_core_ext::{media::ImportMode, track::replace::Summary};
 
 use aoide_media::{
-    io::import::{ImportTrackConfig, ImportTrackFlags},
+    io::import::ImportTrackConfig,
     resolver::{SourcePathResolver, VirtualFilePathResolver},
 };
 
@@ -160,7 +160,6 @@ pub fn import_and_replace_by_local_file_path<Repo>(
     collection_id: CollectionId,
     import_mode: ImportMode,
     import_config: &ImportTrackConfig,
-    import_flags: ImportTrackFlags,
     replace_mode: ReplaceMode,
     source_path_resolver: &VirtualFilePathResolver,
     source_path: SourcePath,
@@ -184,7 +183,6 @@ where
         source_path.clone(),
         SynchronizedImportMode::new(import_mode, last_synchronized_at),
         import_config,
-        import_flags,
         DateTime::now_local(),
     ) {
         Ok(ImportTrackFromFileOutcome::Imported(imported_track)) => {
@@ -272,7 +270,6 @@ pub fn import_and_replace_by_local_file_path_iter<Repo>(
     collection_id: CollectionId,
     import_mode: ImportMode,
     import_config: &ImportTrackConfig,
-    import_flags: ImportTrackFlags,
     replace_mode: ReplaceMode,
     source_path_resolver: &VirtualFilePathResolver,
     source_path_iter: impl Iterator<Item = SourcePath>,
@@ -301,7 +298,6 @@ where
             collection_id,
             import_mode,
             import_config,
-            import_flags,
             replace_mode,
             source_path_resolver,
             source_path,
@@ -323,7 +319,6 @@ pub fn import_and_replace_by_local_file_path_from_directory<Repo>(
     collection_id: CollectionId,
     import_mode: ImportMode,
     import_config: &ImportTrackConfig,
-    import_flags: ImportTrackFlags,
     replace_mode: ReplaceMode,
     source_path_resolver: &VirtualFilePathResolver,
     source_dir_path: &str,
@@ -377,7 +372,6 @@ where
             collection_id,
             import_mode,
             import_config,
-            import_flags,
             replace_mode,
             source_path_resolver,
             source_path,

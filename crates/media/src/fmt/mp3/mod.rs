@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::io::SeekFrom;
+use std::{io::SeekFrom, path::Path};
 
 use aoide_core::{
     audio::{
@@ -26,11 +26,17 @@ use aoide_core::{
 use mp3_duration::{ParseMode, StreamInfo};
 
 use crate::{
-    io::import::{self, *},
+    io::{
+        export::{self, ExportTrackConfig},
+        import::{self, *},
+    },
     Error, Result,
 };
 
-use super::id3::{import_track as import_track_from_id3_tag, map_err as map_id3_err};
+use super::id3::{
+    export_track as export_track_into_id3_tag, import_track as import_track_from_id3_tag,
+    map_err as map_id3_err,
+};
 
 fn map_mp3_duration_err(err: mp3_duration::MP3DurationError) -> Error {
     anyhow::Error::from(err).into()
@@ -44,7 +50,6 @@ impl import::ImportTrack for ImportTrack {
         &self,
         reader: &mut Box<dyn Reader>,
         config: &ImportTrackConfig,
-        flags: ImportTrackFlags,
         track: &mut Track,
     ) -> Result<()> {
         let audio_content = StreamInfo::read(reader, ParseMode::Exact)
@@ -90,6 +95,33 @@ impl import::ImportTrack for ImportTrack {
             );
             map_id3_err(err)
         })?;
-        import_track_from_id3_tag(config, flags, audio_content, track, &id3_tag)
+        import_track_from_id3_tag(&id3_tag, audio_content, config, track)
+    }
+}
+
+#[derive(Debug)]
+pub struct ExportTrack;
+
+impl export::ExportTrack for ExportTrack {
+    fn export_track_to_path(
+        &self,
+        config: &ExportTrackConfig,
+        track: &Track,
+        path: &Path,
+    ) -> Result<bool> {
+        let id3_tag_orig = id3::Tag::read_from_path(path).map_err(map_id3_err)?;
+
+        let mut id3_tag = id3_tag_orig.clone();
+        export_track_into_id3_tag(config, track, &mut id3_tag);
+
+        if id3_tag == id3_tag_orig {
+            // Unmodified
+            return Ok(false);
+        }
+        id3_tag
+            .write_to_path(path, id3::Version::Id3v24)
+            .map_err(map_id3_err)?;
+        // Modified
+        Ok(true)
     }
 }

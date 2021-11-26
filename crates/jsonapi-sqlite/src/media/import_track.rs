@@ -63,6 +63,7 @@ pub fn handle_request(query_params: QueryParams) -> Result<ResponseBody> {
     );
     let config = ImportTrackConfig {
         faceted_tag_mapping: faceted_tag_mapping_config.into(),
+        flags: ImportTrackFlags::all(),
     };
     let source_path = match VirtualFilePathResolver::new().resolve_path_from_url(&url) {
         Ok(path) => path,
@@ -86,7 +87,6 @@ pub fn handle_request(query_params: QueryParams) -> Result<ResponseBody> {
         source_path,
         uc::SynchronizedImportMode::Always,
         &config,
-        ImportTrackFlags::all(),
         DateTime::now_local(),
     )? {
         uc::ImportTrackFromFileOutcome::Imported(track) => Some(track),

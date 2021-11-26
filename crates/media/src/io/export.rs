@@ -13,26 +13,37 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{util::tag::FacetedTagMappingConfig, Result};
+use std::path::Path;
+
+use bitflags::bitflags;
 
 use aoide_core::track::{
     actor::{Actor, ActorKind, ActorRole, Actors},
     Track,
 };
 
-use std::fs::File;
+use crate::{util::tag::FacetedTagMappingConfig, Result};
 
-#[derive(Debug, Clone, Default, PartialEq)]
-pub struct ExportTrackConfig {
-    pub faceted_tag_mapping: FacetedTagMappingConfig,
+#[rustfmt::skip]
+bitflags! {
+    pub struct ExportTrackFlags: u16 {
+        // See also: ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK
+        const ITUNES_ID3V2_GROUPING_MOVEMENT_WORK = 0b0000_0001_0000_0000; // ID3v2 with iTunes v12.5.4 and newer
+    }
 }
 
-pub trait ExportTrackToFile {
-    fn export_track_to_file(
+#[derive(Debug, Clone, PartialEq)]
+pub struct ExportTrackConfig {
+    pub faceted_tag_mapping: FacetedTagMappingConfig,
+    pub flags: ExportTrackFlags,
+}
+
+pub trait ExportTrack {
+    fn export_track_to_path(
         &self,
         config: &ExportTrackConfig,
         track: &Track,
-        file: &mut File,
+        path: &Path,
     ) -> Result<bool>;
 }
 

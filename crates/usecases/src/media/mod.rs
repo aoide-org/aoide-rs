@@ -69,7 +69,6 @@ pub fn import_track_from_local_file_path(
     source_path: SourcePath,
     mode: SynchronizedImportMode,
     config: &ImportTrackConfig,
-    flags: ImportTrackFlags,
     collected_at: DateTime,
 ) -> Result<ImportTrackFromFileOutcome> {
     let file_path = source_path_resolver.build_file_path(&source_path);
@@ -151,12 +150,10 @@ pub fn import_track_from_local_file_path(
     let mime = guess_mime_from_path(&canonical_path)?;
     let mut track = input.into_new_track(source_path, &mime);
     match mime.as_ref() {
-        "audio/flac" => flac::ImportTrack.import_track(&mut reader, config, flags, &mut track),
-        "audio/mpeg" => mp3::ImportTrack.import_track(&mut reader, config, flags, &mut track),
-        "audio/m4a" | "video/mp4" => {
-            mp4::ImportTrack.import_track(&mut reader, config, flags, &mut track)
-        }
-        "audio/ogg" => ogg::ImportTrack.import_track(&mut reader, config, flags, &mut track),
+        "audio/flac" => flac::ImportTrack.import_track(&mut reader, config, &mut track),
+        "audio/mpeg" => mp3::ImportTrack.import_track(&mut reader, config, &mut track),
+        "audio/m4a" | "video/mp4" => mp4::ImportTrack.import_track(&mut reader, config, &mut track),
+        "audio/ogg" => ogg::ImportTrack.import_track(&mut reader, config, &mut track),
         _ => Err(MediaError::UnsupportedContentType(mime)),
     }?;
     Ok(ImportTrackFromFileOutcome::Imported(track))

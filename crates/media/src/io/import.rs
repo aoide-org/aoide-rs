@@ -59,6 +59,7 @@ impl Default for ImportTrackFlags {
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct ImportTrackConfig {
     pub faceted_tag_mapping: FacetedTagMappingConfig,
+    pub flags: ImportTrackFlags,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -97,7 +98,6 @@ pub trait ImportTrack {
         &self,
         reader: &mut Box<dyn Reader>,
         config: &ImportTrackConfig,
-        flags: ImportTrackFlags,
         track: &mut Track,
     ) -> Result<()>;
 }

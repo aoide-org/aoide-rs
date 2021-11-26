@@ -15,19 +15,20 @@
 
 use std::{borrow::Cow, time::Duration};
 
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
+use chrono::{Datelike as _, NaiveDate, NaiveDateTime, NaiveTime, Timelike as _, Utc};
 use id3::{self, frame::PictureType};
 use mime::Mime;
 use num_traits::FromPrimitive as _;
-use semval::IsValid as _;
+use semval::{IsValid as _, ValidatedFrom};
 use triseratops::tag::{
     format::id3::ID3Tag, Markers as SeratoMarkers, Markers2 as SeratoMarkers2,
     TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat,
 };
 
 use aoide_core::{
-    audio::AudioContent,
+    audio::{signal::LoudnessLufs, AudioContent},
     media::{concat_encoder_properties, ApicType, Artwork, Content, ContentMetadataFlags},
+    music::time::TempoBpm,
     tag::{FacetId, Tags, TagsMap},
     track::{
         actor::ActorRole,
@@ -35,7 +36,7 @@ use aoide_core::{
         metric::MetricsFlags,
         release::DateOrDateTime,
         tag::{FACET_COMMENT, FACET_GENRE, FACET_GROUPING, FACET_ISRC, FACET_MOOD},
-        title::{Title, TitleKind},
+        title::{Title, TitleKind, Titles},
         Track,
     },
     util::{
@@ -47,11 +48,14 @@ use aoide_core::{
 use aoide_core_serde::tag::Tags as SerdeTags;
 
 use crate::{
-    io::import::{ImportTrackConfig, ImportTrackFlags},
+    io::{
+        export::{ExportTrackConfig, ExportTrackFlags, FilteredActorNames},
+        import::{ImportTrackConfig, ImportTrackFlags},
+    },
     util::{
         digest::MediaDigest,
-        parse_index_numbers, parse_key_signature, parse_replay_gain, parse_tempo_bpm,
-        push_next_actor_role_name, serato,
+        format_parseable_value, format_replay_gain, parse_index_numbers, parse_key_signature,
+        parse_replay_gain, parse_tempo_bpm, push_next_actor_role_name, serato,
         tag::{import_faceted_tags_from_label_value_iter, FacetedTagMappingConfig},
         try_load_embedded_artwork,
     },
@@ -124,6 +128,19 @@ fn text_frames<'a>(tag: &'a id3::Tag, frame_id: &'a str) -> impl Iterator<Item =
         .flat_map(|txt| txt.split('\0'))
 }
 
+fn extended_text_values<'a>(
+    id3_tag: &'a id3::Tag,
+    txxx_description: &'a str,
+) -> impl Iterator<Item = &'a str> + 'a {
+    id3_tag.extended_texts().filter_map(move |txxx| {
+        if txxx.description == txxx_description {
+            Some(txxx.value.as_str())
+        } else {
+            None
+        }
+    })
+}
+
 fn first_text_frame<'a>(tag: &'a id3::Tag, frame_id: &'a str) -> Option<&'a str> {
     text_frames(tag, frame_id).next()
 }
@@ -147,21 +164,20 @@ fn import_faceted_tags_from_text_frames(
     facet_id: &FacetId,
     tag: &id3::Tag,
     frame_id: &str,
-) {
+) -> usize {
     import_faceted_tags_from_label_value_iter(
         tags_map,
         faceted_tag_mapping_config,
         facet_id,
         text_frames(tag, frame_id).map(ToOwned::to_owned),
-    );
+    )
 }
 
 pub fn import_track(
-    config: &ImportTrackConfig,
-    flags: ImportTrackFlags,
-    mut audio_content: AudioContent,
-    track: &mut Track,
     tag: &id3::Tag,
+    mut audio_content: AudioContent,
+    config: &ImportTrackConfig,
+    track: &mut Track,
 ) -> Result<()> {
     let metadata_flags = if audio_content.duration.is_some() {
         // Accurate duration
@@ -236,17 +252,44 @@ pub fn import_track(
         };
         track_titles.push(title);
     }
-    if flags.contains(ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK) {
-        // Starting with iTunes 12.5.4 the "TIT1" text frame is used
-        // for storing the work instead of the grouping.
-        if let Some(name) = first_text_frame(tag, "TIT1") {
-            let title = Title {
-                name: name.to_owned(),
-                kind: TitleKind::Work,
-            };
-            track_titles.push(title);
+    let mut work_name = if let Some(name) = first_extended_text(tag, "WORK") {
+        if config
+            .flags
+            .contains(ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK)
+        {
+            if name.trim().is_empty() {
+                None
+            } else {
+                tracing::warn!(
+                    "Imported work title '{}' from legacy ID3 text frame TXXX:WORK",
+                    name
+                );
+                Some(name)
+            }
+        } else {
+            Some(name)
         }
-    } else if let Some(name) = first_extended_text(tag, "WORK") {
+    } else {
+        None
+    };
+    let mut imported_work_from_itunes_tit1 = false;
+    work_name = work_name.or_else(|| {
+        if config
+            .flags
+            .contains(ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK)
+        {
+            // Starting with iTunes 12.5.4 the "TIT1" text frame is used
+            // for storing the work instead of the grouping. It is only
+            // imported as a fallback if the legacy text frame WORK was empty
+            // to prevent inconsistencies and for performing the migration to
+            // iTunes tags.
+            imported_work_from_itunes_tit1 = true;
+            first_text_frame(tag, "TIT1")
+        } else {
+            None
+        }
+    });
+    if let Some(name) = work_name {
         let title = Title {
             name: name.to_owned(),
             kind: TitleKind::Work,
@@ -316,13 +359,19 @@ pub fn import_track(
     }
 
     // Album properties
-    if first_text_frame(tag, "TCMP")
-        .and_then(|tcmp| tcmp.parse::<u8>().ok())
-        .unwrap_or_default()
-        == 1
-    {
-        album.kind = AlbumKind::Compilation;
-    }
+    album.kind = first_text_frame(tag, "TCMP")
+        .map(|tcmp| tcmp.parse::<u8>())
+        .transpose()
+        .map_err(anyhow::Error::from)?
+        .map(|tcmp| match tcmp {
+            0 => AlbumKind::Unknown, // either album or single
+            1 => AlbumKind::Compilation,
+            _ => {
+                tracing::warn!("Unexpected iTunes compilation tag: TCMP = {}", tcmp);
+                AlbumKind::Unknown
+            }
+        })
+        .unwrap_or_default();
 
     track.album = Canonical::tie(album);
 
@@ -344,7 +393,7 @@ pub fn import_track(
     }
 
     let mut tags_map = TagsMap::default();
-    if flags.contains(ImportTrackFlags::MIXXX_CUSTOM_TAGS) {
+    if config.flags.contains(ImportTrackFlags::MIXXX_CUSTOM_TAGS) {
         for geob in tag
             .encapsulated_objects()
             .filter(|geob| geob.description == "Mixxx CustomTags")
@@ -415,19 +464,33 @@ pub fn import_track(
     // frames.
     // https://discussions.apple.com/thread/7900430
     // http://blog.jthink.net/2016/11/the-reason-why-is-grouping-field-no.html
-    let grouping_frame_id = if flags.contains(ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK)
-    {
-        "GRP1"
-    } else {
-        "TIT1"
-    };
-    import_faceted_tags_from_text_frames(
+    if import_faceted_tags_from_text_frames(
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_GROUPING,
         tag,
-        grouping_frame_id,
-    );
+        "GRP1",
+    ) > 0
+    {
+        if !imported_work_from_itunes_tit1 {
+            tracing::warn!("Imported grouping tag(s) from ID3 text frame GRP1 instead of TIT1");
+        }
+    } else {
+        // Use the legacy/classical text frame only as a fallback
+        if import_faceted_tags_from_text_frames(
+            &mut tags_map,
+            &config.faceted_tag_mapping,
+            &FACET_GROUPING,
+            tag,
+            "TIT1",
+        ) > 0
+            && config
+                .flags
+                .contains(ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK)
+        {
+            tracing::warn!("Imported grouping tag(s) from ID3 text frame TIT1 instead of GRP1");
+        }
+    }
 
     // ISRC tag
     import_faceted_tags_from_text_frames(
@@ -455,9 +518,12 @@ pub fn import_track(
     }
 
     // Artwork
-    if flags.contains(ImportTrackFlags::EMBEDDED_ARTWORK) {
-        let mut image_digest = if flags.contains(ImportTrackFlags::ARTWORK_DIGEST) {
-            if flags.contains(ImportTrackFlags::ARTWORK_DIGEST_SHA256) {
+    if config.flags.contains(ImportTrackFlags::EMBEDDED_ARTWORK) {
+        let mut image_digest = if config.flags.contains(ImportTrackFlags::ARTWORK_DIGEST) {
+            if config
+                .flags
+                .contains(ImportTrackFlags::ARTWORK_DIGEST_SHA256)
+            {
                 // Compatibility
                 MediaDigest::sha256()
             } else {
@@ -523,7 +589,7 @@ pub fn import_track(
     }
 
     // Serato Tags
-    if flags.contains(ImportTrackFlags::SERATO_TAGS) {
+    if config.flags.contains(ImportTrackFlags::SERATO_TAGS) {
         let mut serato_tags = SeratoTagContainer::new();
 
         for geob in tag.encapsulated_objects() {
@@ -557,4 +623,271 @@ pub fn import_track(
     }
 
     Ok(())
+}
+
+pub fn export_track(config: &ExportTrackConfig, track: &Track, id3_tag: &mut id3::Tag) {
+    // Audio properties
+    match &track.media_source.content {
+        Content::Audio(audio) => {
+            id3_tag.remove_extended_text(Some("REPLAYGAIN_TRACK_GAIN"), None);
+            if let Some(loudness) = audio
+                .loudness
+                .map(LoudnessLufs::validated_from)
+                .transpose()
+                .ok()
+                .flatten()
+            {
+                id3_tag.add_extended_text("REPLAYGAIN_TRACK_GAIN", format_replay_gain(loudness));
+            }
+            if let Some(encoder) = &audio.encoder {
+                id3_tag.set_text("TENC", encoder)
+            } else {
+                id3_tag.remove("TENC");
+            }
+            // TENC and TSSE have been joined during import
+            id3_tag.remove("TSSE");
+        }
+    }
+
+    // Music: Tempo/BPM
+    id3_tag.remove_extended_text(Some("BPM"), None);
+    id3_tag.remove_extended_text(Some("TEMPO"), None);
+    if let Some(tempo_bpm) = track
+        .metrics
+        .tempo_bpm
+        .map(TempoBpm::validated_from)
+        .transpose()
+        .ok()
+        .flatten()
+    {
+        let mut bpm_value = tempo_bpm.0;
+        id3_tag.add_extended_text("BPM", format_parseable_value(&mut bpm_value));
+        // The value might have been adjusted during formatting
+        id3_tag.set_text("TBPM", bpm_value.round().to_string());
+    } else {
+        id3_tag.remove("TBPM");
+    }
+
+    // Music: Key
+    if track.metrics.key_signature.is_unknown() {
+        id3_tag.remove("TKEY");
+    } else {
+        // TODO: Write a custom key code string according to config
+        id3_tag.set_text("TKEY", track.metrics.key_signature.to_string());
+    }
+
+    // Track titles
+    if let Some(title) = Titles::main_title(track.titles.iter()) {
+        id3_tag.set_title(title.name.to_owned());
+    } else {
+        id3_tag.remove_title();
+    }
+    id3_tag.set_text_values(
+        "TIT3",
+        Titles::filter_kind(track.titles.iter(), TitleKind::Sub).map(|title| &title.name),
+    );
+    id3_tag.set_text_values(
+        "MVNM",
+        Titles::filter_kind(track.titles.iter(), TitleKind::Movement).map(|title| &title.name),
+    );
+    id3_tag.remove_extended_text(Some("WORK"), None);
+    if config
+        .flags
+        .contains(ExportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK)
+    {
+        id3_tag.set_text_values(
+            "TIT1",
+            Titles::filter_kind(track.titles.iter(), TitleKind::Work).map(|title| &title.name),
+        );
+    } else {
+        for name in
+            Titles::filter_kind(track.titles.iter(), TitleKind::Work).map(|title| &title.name)
+        {
+            id3_tag.add_extended_text("WORK", name);
+        }
+    }
+
+    // Track actors
+    export_filtered_actor_names(
+        id3_tag,
+        "TPE1",
+        FilteredActorNames::new(track.actors.iter(), ActorRole::Artist),
+    );
+    export_filtered_actor_names(
+        id3_tag,
+        "TCOM",
+        FilteredActorNames::new(track.actors.iter(), ActorRole::Composer),
+    );
+    export_filtered_actor_names(
+        id3_tag,
+        "TPE3",
+        FilteredActorNames::new(track.actors.iter(), ActorRole::Conductor),
+    );
+    export_filtered_actor_names_txxx(
+        id3_tag,
+        "DIRECTOR",
+        FilteredActorNames::new(track.actors.iter(), ActorRole::Director),
+    );
+    export_filtered_actor_names(
+        id3_tag,
+        "TPE4",
+        FilteredActorNames::new(track.actors.iter(), ActorRole::Remixer),
+    );
+    export_filtered_actor_names(
+        id3_tag,
+        "TEXT",
+        FilteredActorNames::new(track.actors.iter(), ActorRole::Lyricist),
+    );
+    // "Writer", not "WRITER" in all caps
+    // See also: https://tickets.metabrainz.org/browse/PICARD-1101
+    export_filtered_actor_names_txxx(
+        id3_tag,
+        "Writer",
+        FilteredActorNames::new(track.actors.iter(), ActorRole::Writer),
+    );
+    // TODO: Export TIPL frames
+
+    // Album
+    if let Some(title) = Titles::main_title(track.album.titles.iter()) {
+        id3_tag.set_album(title.name.to_owned());
+    } else {
+        id3_tag.remove_album();
+    }
+    export_filtered_actor_names(
+        id3_tag,
+        "TPE2",
+        FilteredActorNames::new(track.album.actors.iter(), ActorRole::Artist),
+    );
+    match track.album.kind {
+        AlbumKind::Unknown => {
+            id3_tag.remove("TCMP");
+        }
+        AlbumKind::Compilation => {
+            id3_tag.set_text("TCMP", "1");
+        }
+        AlbumKind::Album | AlbumKind::Single => {
+            id3_tag.set_text("TCMP", "0");
+        }
+    }
+
+    // Release
+    if let Some(copyright) = &track.release.copyright {
+        id3_tag.set_text("TCOP", copyright);
+    } else {
+        id3_tag.remove("TCOP");
+    }
+    if let Some(released_by) = &track.release.released_by {
+        id3_tag.set_text("TPUB", released_by);
+    } else {
+        id3_tag.remove("TPUB");
+    }
+    if let Some(released_at) = &track.release.released_at {
+        let timestamp = export_date_or_date_time(*released_at);
+        id3_tag.set_date_released(timestamp);
+    } else {
+        id3_tag.remove_date_released();
+    }
+
+    // Numbers
+    if let Some(track_number) = track.indexes.track.number {
+        id3_tag.set_track(track_number.into());
+    } else {
+        id3_tag.remove_track();
+    }
+    if let Some(track_total) = track.indexes.track.total {
+        id3_tag.set_total_tracks(track_total.into());
+    } else {
+        id3_tag.remove_total_tracks();
+    }
+    if let Some(disc_number) = track.indexes.disc.number {
+        id3_tag.set_disc(disc_number.into());
+    } else {
+        id3_tag.remove_disc();
+    }
+    if let Some(disc_total) = track.indexes.disc.total {
+        id3_tag.set_total_discs(disc_total.into());
+    } else {
+        id3_tag.remove_total_discs();
+    }
+    if let Some(movement_number) = track.indexes.movement.number {
+        if let Some(movement_total) = track.indexes.movement.total {
+            id3_tag.set_text("MVIN", format!("{}/{}", movement_number, movement_total));
+        } else {
+            id3_tag.set_text("MVIN", movement_number.to_string());
+        }
+    } else if let Some(movement_total) = track.indexes.movement.total {
+        id3_tag.set_text("MVIN", format!("/{}", movement_total));
+    } else {
+        id3_tag.remove("MVIN");
+    }
+}
+
+fn export_date_or_date_time(dt: DateOrDateTime) -> id3::Timestamp {
+    match dt {
+        DateOrDateTime::Date(date) => {
+            if date.is_year() {
+                id3::Timestamp {
+                    year: date.year() as _,
+                    month: None,
+                    day: None,
+                    hour: None,
+                    minute: None,
+                    second: None,
+                }
+            } else {
+                id3::Timestamp {
+                    year: date.year() as _,
+                    month: Some(date.month() as _),
+                    day: Some(date.day_of_month() as _),
+                    hour: None,
+                    minute: None,
+                    second: None,
+                }
+            }
+        }
+        DateOrDateTime::DateTime(date_time) => {
+            let date_time = chrono::DateTime::<Utc>::from(date_time);
+            id3::Timestamp {
+                year: date_time.date().year(),
+                month: Some(date_time.date().month() as _),
+                day: Some(date_time.date().day() as _),
+                hour: Some(date_time.time().hour() as _),
+                minute: Some(date_time.time().minute() as _),
+                second: Some(date_time.time().second() as _),
+            }
+        }
+    }
+}
+
+fn export_filtered_actor_names(
+    id3_tag: &mut id3::Tag,
+    text_frame_id: impl AsRef<str>,
+    actor_names: FilteredActorNames<'_>,
+) {
+    match actor_names {
+        FilteredActorNames::Summary(name) => {
+            id3_tag.set_text(text_frame_id, name);
+        }
+        FilteredActorNames::Primary(names) => {
+            id3_tag.set_text_values(text_frame_id, names);
+        }
+    }
+}
+
+fn export_filtered_actor_names_txxx(
+    id3_tag: &mut id3::Tag,
+    txxx_description: impl AsRef<str>,
+    actor_names: FilteredActorNames<'_>,
+) {
+    id3_tag.remove_extended_text(Some(txxx_description.as_ref()), None);
+    match actor_names {
+        FilteredActorNames::Summary(name) => {
+            id3_tag.add_extended_text(txxx_description.as_ref().to_owned(), name);
+        }
+        FilteredActorNames::Primary(names) => {
+            for name in names {
+                id3_tag.add_extended_text(txxx_description.as_ref().to_owned(), name);
+            }
+        }
+    }
 }
