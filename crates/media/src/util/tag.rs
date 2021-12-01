@@ -51,18 +51,19 @@ impl TagMappingConfig {
         }
     }
 
-    pub fn join_labels_str_iter<'label>(
-        &self,
+    pub fn join_labels_str_iter_with_separator<'label>(
         labels: impl Iterator<Item = &'label str>,
+        separator: impl AsRef<str>,
     ) -> Option<Cow<'label, str>> {
-        debug_assert!(!self.label_separator.is_empty());
+        let separator = separator.as_ref();
+        debug_assert!(!separator.is_empty());
         labels.fold(None, |joined_labels, next_label| {
             if let Some(joined_labels) = joined_labels {
                 if next_label.is_empty() {
                     return Some(joined_labels);
                 }
                 let mut joined_labels: String = joined_labels.to_owned().into();
-                joined_labels.push_str(&self.label_separator);
+                joined_labels.push_str(separator);
                 joined_labels.push_str(next_label);
                 Some(joined_labels.into())
             } else {
@@ -72,6 +73,13 @@ impl TagMappingConfig {
                 Some(next_label.into())
             }
         })
+    }
+
+    pub fn join_labels_str_iter<'label>(
+        &self,
+        labels: impl Iterator<Item = &'label str>,
+    ) -> Option<Cow<'label, str>> {
+        Self::join_labels_str_iter_with_separator(labels, &self.label_separator)
     }
 }
 

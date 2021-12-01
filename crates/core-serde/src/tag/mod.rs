@@ -80,9 +80,9 @@ impl<'de> Visitor<'de> for FacetKeyVisitor {
     where
         E: serde::de::Error,
     {
-        v.parse::<_core::FacetKey>()
+        Ok(v.parse::<_core::FacetKey>()
             .map(Into::into)
-            .map_err(|()| serde::de::Error::custom("failed to parse tag facet key"))
+            .expect("infallible"))
     }
 }
 
@@ -148,9 +148,9 @@ impl<'de> Visitor<'de> for LabelVisitor {
     where
         E: serde::de::Error,
     {
-        v.parse::<_core::Label>()
+        Ok(v.parse::<_core::Label>()
             .map(Into::into)
-            .map_err(|()| serde::de::Error::custom("failed to parse tag label"))
+            .expect("infallible"))
     }
 }
 

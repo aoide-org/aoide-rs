@@ -112,7 +112,8 @@ impl export::ExportTrack for ExportTrack {
         let id3_tag_orig = id3::Tag::read_from_path(path).map_err(map_id3_err)?;
 
         let mut id3_tag = id3_tag_orig.clone();
-        export_track_into_id3_tag(config, track, &mut id3_tag);
+        export_track_into_id3_tag(config, track, &mut id3_tag)
+            .map_err(|err| Error::Other(anyhow::anyhow!("Failed to export ID3 tag: {:?}", err)))?;
 
         if id3_tag == id3_tag_orig {
             // Unmodified

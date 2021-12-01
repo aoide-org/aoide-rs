@@ -24,9 +24,11 @@ use std::{
         hash_map::Entry::{Occupied, Vacant},
         HashMap,
     },
+    convert::Infallible,
     fmt,
     hash::{Hash, Hasher},
     iter::once,
+    ops::Deref,
     str::FromStr,
 };
 
@@ -232,15 +234,22 @@ impl AsRef<LabelValue> for Label {
     }
 }
 
+impl Deref for Label {
+    type Target = LabelValue;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
+}
+
 impl AsRef<str> for Label {
     fn as_ref(&self) -> &str {
-        let Self(value) = self;
-        value
+        self.as_str()
     }
 }
 
 impl FromStr for Label {
-    type Err = ();
+    type Err = Infallible;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self::clamp_str(s).to_owned().into())
@@ -392,15 +401,22 @@ impl AsRef<FacetIdValue> for FacetId {
     }
 }
 
+impl Deref for FacetId {
+    type Target = FacetIdValue;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
+}
+
 impl AsRef<str> for FacetId {
     fn as_ref(&self) -> &str {
-        let Self(value) = self;
-        value
+        self.as_str()
     }
 }
 
 impl FromStr for FacetId {
-    type Err = ();
+    type Err = Infallible;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self::clamp_value(s).into())
@@ -479,7 +495,7 @@ impl Borrow<str> for FacetKey {
 }
 
 impl FromStr for FacetKey {
-    type Err = ();
+    type Err = Infallible;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let value = FacetId::clamp_value(s);
