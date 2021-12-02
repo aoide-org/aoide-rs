@@ -35,6 +35,7 @@ use num_traits::FromPrimitive as _;
 
 #[derive(Debug, Queryable, Identifiable)]
 #[table_name = "track"]
+#[allow(dead_code)] // aux_ members are required for Diesel but never read
 pub struct QueryableRecord {
     pub id: RowId,
     pub row_created_ms: TimestampMillis,
@@ -64,7 +65,7 @@ pub struct QueryableRecord {
     pub last_played_at: Option<String>,
     pub last_played_ms: Option<TimestampMillis>,
     pub times_played: Option<i64>,
-    // TODO: Remove these unused members
+    // TODO: Remove these unused members if no longer required by Diesel
     aux_track_title: Option<String>,
     aux_track_artist: Option<String>,
     aux_track_composer: Option<String>,

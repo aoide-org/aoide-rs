@@ -43,11 +43,17 @@ mp3-duration = { git = "https://github.com/aoide-org/mp3-duration.git", branch =
 split-debuginfo = "unpacked"
 
 [profile.test]
-split-debuginfo = "unpacked"
+inherits = "dev"
 
 [profile.release]
-lto = true
 opt-level = 3
-codegen-units = 1
+
+[profile.profiling]
+inherits = "release"
 # Keep debug symbols, e.g. for profiling -> results in huge binary!
-#debug = true
+debug = true
+
+[profile.production]
+inherits = "release"
+lto = true
+codegen-units = 1

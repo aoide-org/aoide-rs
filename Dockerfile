@@ -29,7 +29,7 @@ ARG PROJECT_NAME=aoide
 
 ARG BUILD_TARGET=x86_64-unknown-linux-musl
 
-ARG BUILD_MODE=release
+ARG BUILD_PROFILE=production
 
 ARG BUILD_BIN=aoide
 
@@ -42,19 +42,19 @@ FROM rust:slim AS build
 ARG WORKDIR_ROOT
 ARG PROJECT_NAME
 ARG BUILD_TARGET
-ARG BUILD_MODE
+ARG BUILD_PROFILE
 ARG BUILD_BIN
 
 # Enable all features and targets for the individual project checks
-ARG PROJECT_CHECK_ARGS="--locked --all-features --bins --examples --target ${BUILD_TARGET} --${BUILD_MODE}"
+ARG PROJECT_CHECK_ARGS="--locked --all-features --bins --examples --target ${BUILD_TARGET} --profile ${BUILD_PROFILE}"
 
 # Enable select features for the workspace build or leave empty
 # for using the default features
 # Example: "--features feature-foobar"
-ARG WORKSPACE_BUILD_AND_TEST_ARGS="--locked --all-features --target ${BUILD_TARGET} --${BUILD_MODE}"
+ARG WORKSPACE_BUILD_AND_TEST_ARGS="--locked --all-features --target ${BUILD_TARGET} --profile ${BUILD_PROFILE}"
 
 # Enable all features in the executable
-ARG BUILD_BIN_ARGS="--locked --all-features --target ${BUILD_TARGET} --${BUILD_MODE}"
+ARG BUILD_BIN_ARGS="--locked --all-features --target ${BUILD_TARGET} --profile ${BUILD_PROFILE}"
 
 # Prepare for musl libc build target
 # git and python3-pip are required for pre-commit
@@ -166,10 +166,10 @@ COPY [ \
 #   directories!
 RUN tree -a && \
     CARGO_INCREMENTAL=0 cargo build --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} && \
-    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/${PROJECT_NAME}* && \
-    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/${PROJECT_NAME}-* && \
-    rm -f ./target/${BUILD_TARGET}/${BUILD_MODE}/deps/${PROJECT_NAME}_* && \
-    rm -rf ./target/${BUILD_TARGET}/${BUILD_MODE}/.fingerprint/${PROJECT_NAME}-* && \
+    rm -f ./target/${BUILD_TARGET}/${BUILD_PROFILE}/${PROJECT_NAME}* && \
+    rm -f ./target/${BUILD_TARGET}/${BUILD_PROFILE}/deps/${PROJECT_NAME}-* && \
+    rm -f ./target/${BUILD_TARGET}/${BUILD_PROFILE}/deps/${PROJECT_NAME}_* && \
+    rm -rf ./target/${BUILD_TARGET}/${BUILD_PROFILE}/.fingerprint/${PROJECT_NAME}-* && \
     tree -a
 
 # Copy all project (re-)sources that are required for pre-commit and building
@@ -258,7 +258,7 @@ RUN tree -a && \
     cargo test --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} --no-run && \
     cargo test --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} -- --nocapture --quiet && \
     cargo build -p aoide-websrv --manifest-path websrv/Cargo.toml --bin ${BUILD_BIN} ${BUILD_BIN_ARGS} && \
-    strip ./target/${BUILD_TARGET}/${BUILD_MODE}/${BUILD_BIN}
+    strip ./target/${BUILD_TARGET}/${BUILD_PROFILE}/${BUILD_BIN}
 
 
 ###############################################################################
@@ -269,7 +269,7 @@ FROM scratch
 ARG WORKDIR_ROOT
 ARG PROJECT_NAME
 ARG BUILD_TARGET
-ARG BUILD_MODE
+ARG BUILD_PROFILE
 ARG BUILD_BIN
 
 ARG DATA_VOLUME="/data"
@@ -278,7 +278,7 @@ ARG EXPOSE_PORT=8080
 
 # Copy the statically-linked executable into the minimal scratch image
 COPY --from=build [ \
-    "${WORKDIR_ROOT}/${PROJECT_NAME}/target/${BUILD_TARGET}/${BUILD_MODE}/${BUILD_BIN}", \
+    "${WORKDIR_ROOT}/${PROJECT_NAME}/target/${BUILD_TARGET}/${BUILD_PROFILE}/${BUILD_BIN}", \
     "./entrypoint" ]
 
 VOLUME [ ${DATA_VOLUME} ]
