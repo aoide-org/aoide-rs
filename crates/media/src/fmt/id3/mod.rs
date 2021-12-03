@@ -857,6 +857,8 @@ pub fn export_track(
             config.faceted_tag_mapping.get(facet_id.value()),
             &tags,
         );
+    } else {
+        export_faceted_tags_comment(id3_tag, String::default(), None, &[]);
     }
 
     // Genre(s)
@@ -867,6 +869,8 @@ pub fn export_track(
             config.faceted_tag_mapping.get(facet_id.value()),
             &tags,
         );
+    } else {
+        export_faceted_tags(id3_tag, "TCON", None, &[]);
     }
 
     // Mood(s)
@@ -877,6 +881,8 @@ pub fn export_track(
             config.faceted_tag_mapping.get(facet_id.value()),
             &tags,
         );
+    } else {
+        export_faceted_tags(id3_tag, "TMOO", None, &[]);
     }
 
     // Grouping(s)
@@ -896,6 +902,8 @@ pub fn export_track(
             config.faceted_tag_mapping.get(facet_id.value()),
             &tags,
         );
+    } else {
+        export_faceted_tags(id3_tag, grouping_frame_id, None, &[]);
     }
 
     // ISRC(s)
@@ -906,6 +914,8 @@ pub fn export_track(
             config.faceted_tag_mapping.get(facet_id.value()),
             &tags,
         );
+    } else {
+        export_faceted_tags(id3_tag, "TSRC", None, &[]);
     }
 
     // Language(s)
@@ -916,6 +926,8 @@ pub fn export_track(
             config.faceted_tag_mapping.get(facet_id.value()),
             &tags,
         );
+    } else {
+        export_faceted_tags(id3_tag, "TLAN", None, &[]);
     }
 
     Ok(())
