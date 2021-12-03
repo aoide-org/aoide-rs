@@ -1014,10 +1014,9 @@ components:
           * 7 = Mixer
           * 8 = Performer
           * 9 = Producer
-          * 10 = Publisher
+          * 10 = Director
           * 11 = Remixer
           * 12 = Writer
-          * 13 = Director
     AlbumKind:
       type: integer
       enum: [0, 1, 2, 3]

@@ -34,10 +34,9 @@ pub enum ActorRole {
     Mixer = 7,
     Performer = 8,
     Producer = 9,
-    Publisher = 10,
+    Director = 10,
     Remixer = 11,
     Writer = 12,
-    Director = 13,
 }
 
 impl Default for ActorRole {

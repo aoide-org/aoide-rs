@@ -81,10 +81,9 @@ pub enum ActorRole {
     Mixer = _core::ActorRole::Mixer as u8,
     Performer = _core::ActorRole::Performer as u8,
     Producer = _core::ActorRole::Producer as u8,
-    Publisher = _core::ActorRole::Publisher as u8,
+    Director = _core::ActorRole::Director as u8,
     Remixer = _core::ActorRole::Remixer as u8,
     Writer = _core::ActorRole::Writer as u8,
-    Director = _core::ActorRole::Director as u8,
 }
 
 impl Default for ActorRole {
@@ -107,10 +106,9 @@ impl From<ActorRole> for _core::ActorRole {
             ActorRole::Mixer => Mixer,
             ActorRole::Performer => Performer,
             ActorRole::Producer => Producer,
-            ActorRole::Publisher => Publisher,
+            ActorRole::Director => Director,
             ActorRole::Remixer => Remixer,
             ActorRole::Writer => Writer,
-            ActorRole::Director => Director,
         }
     }
 }
@@ -129,10 +127,9 @@ impl From<_core::ActorRole> for ActorRole {
             Mixer => ActorRole::Mixer,
             Performer => ActorRole::Performer,
             Producer => ActorRole::Producer,
-            Publisher => ActorRole::Publisher,
+            Director => ActorRole::Director,
             Remixer => ActorRole::Remixer,
             Writer => ActorRole::Writer,
-            Director => ActorRole::Director,
         }
     }
 }
