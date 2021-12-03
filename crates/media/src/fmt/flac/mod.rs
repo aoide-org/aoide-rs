@@ -132,6 +132,11 @@ impl import::ImportTrack for ImportTrack {
                 push_next_actor_role_name(&mut track_actors, ActorRole::Artist, name.to_owned());
             }
         }
+        if let Some(artists) = flac_tag.get_vorbis("ARRANGER") {
+            for name in artists {
+                push_next_actor_role_name(&mut track_actors, ActorRole::Arranger, name.to_owned());
+            }
+        }
         if let Some(compersers) = flac_tag.get_vorbis("COMPOSER") {
             for name in compersers {
                 push_next_actor_role_name(&mut track_actors, ActorRole::Composer, name.to_owned());
@@ -157,9 +162,29 @@ impl import::ImportTrack for ImportTrack {
                 push_next_actor_role_name(&mut track_actors, ActorRole::Mixer, name.to_owned());
             }
         }
+        if let Some(mixers) = flac_tag.get_vorbis("DJMIXER") {
+            for name in mixers {
+                push_next_actor_role_name(&mut track_actors, ActorRole::DjMixer, name.to_owned());
+            }
+        }
         if let Some(engineers) = flac_tag.get_vorbis("ENGINEER") {
             for name in engineers {
                 push_next_actor_role_name(&mut track_actors, ActorRole::Engineer, name.to_owned());
+            }
+        }
+        if let Some(engineers) = flac_tag.get_vorbis("DIRECTOR") {
+            for name in engineers {
+                push_next_actor_role_name(&mut track_actors, ActorRole::Director, name.to_owned());
+            }
+        }
+        if let Some(engineers) = flac_tag.get_vorbis("LYRICIST") {
+            for name in engineers {
+                push_next_actor_role_name(&mut track_actors, ActorRole::Lyricist, name.to_owned());
+            }
+        }
+        if let Some(engineers) = flac_tag.get_vorbis("WRITER") {
+            for name in engineers {
+                push_next_actor_role_name(&mut track_actors, ActorRole::Writer, name.to_owned());
             }
         }
         let track_actors = track_actors.canonicalize_into();
@@ -221,8 +246,7 @@ impl import::ImportTrack for ImportTrack {
 
         // Comment tag
         // The original specification only defines a "DESCRIPTION" field,
-        // while MusicBrainz recommends to use "COMMENT". Mixxx follows
-        // MusicBrainz.
+        // while MusicBrainz recommends to use "COMMENT".
         // http://www.xiph.org/vorbis/doc/v-comment.html
         // https://picard.musicbrainz.org/docs/mappings
         vorbis::import_faceted_text_tags(

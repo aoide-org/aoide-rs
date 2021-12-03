@@ -157,6 +157,9 @@ impl import::ImportTrack for ImportTrack {
         for name in filter_vorbis_comment_values(vorbis_comments, "ARTIST") {
             push_next_actor_role_name(&mut track_actors, ActorRole::Artist, name.to_owned());
         }
+        for name in filter_vorbis_comment_values(vorbis_comments, "ARRANGER") {
+            push_next_actor_role_name(&mut track_actors, ActorRole::Arranger, name.to_owned());
+        }
         for name in filter_vorbis_comment_values(vorbis_comments, "COMPOSER") {
             push_next_actor_role_name(&mut track_actors, ActorRole::Composer, name.to_owned());
         }
@@ -172,8 +175,20 @@ impl import::ImportTrack for ImportTrack {
         for name in filter_vorbis_comment_values(vorbis_comments, "MIXER") {
             push_next_actor_role_name(&mut track_actors, ActorRole::Mixer, name.to_owned());
         }
+        for name in filter_vorbis_comment_values(vorbis_comments, "DJMIXER") {
+            push_next_actor_role_name(&mut track_actors, ActorRole::DjMixer, name.to_owned());
+        }
         for name in filter_vorbis_comment_values(vorbis_comments, "ENGINEER") {
             push_next_actor_role_name(&mut track_actors, ActorRole::Engineer, name.to_owned());
+        }
+        for name in filter_vorbis_comment_values(vorbis_comments, "DIRECTOR") {
+            push_next_actor_role_name(&mut track_actors, ActorRole::Director, name.to_owned());
+        }
+        for name in filter_vorbis_comment_values(vorbis_comments, "LYRICIST") {
+            push_next_actor_role_name(&mut track_actors, ActorRole::Lyricist, name.to_owned());
+        }
+        for name in filter_vorbis_comment_values(vorbis_comments, "WRITER") {
+            push_next_actor_role_name(&mut track_actors, ActorRole::Writer, name.to_owned());
         }
         let track_actors = track_actors.canonicalize_into();
         if !track_actors.is_empty() {
@@ -237,8 +252,7 @@ impl import::ImportTrack for ImportTrack {
 
         // Comment tag
         // The original specification only defines a "DESCRIPTION" field,
-        // while MusicBrainz recommends to use "COMMENT". Mixxx follows
-        // MusicBrainz.
+        // while MusicBrainz recommends to use "COMMENT".
         // http://www.xiph.org/vorbis/doc/v-comment.html
         // https://picard.musicbrainz.org/docs/mappings
         {
