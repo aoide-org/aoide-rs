@@ -22,16 +22,15 @@ use id3::{
 };
 use mime::Mime;
 use num_traits::FromPrimitive as _;
-use semval::{IsValid as _, ValidatedFrom};
+use semval::IsValid as _;
 use triseratops::tag::{
     format::id3::ID3Tag, Markers as SeratoMarkers, Markers2 as SeratoMarkers2,
     TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat,
 };
 
 use aoide_core::{
-    audio::{signal::LoudnessLufs, AudioContent},
+    audio::AudioContent,
     media::{concat_encoder_properties, ApicType, Artwork, Content, ContentMetadataFlags},
-    music::time::TempoBpm,
     tag::{FacetId, FacetedTags, PlainTag, Tags, TagsMap},
     track::{
         actor::ActorRole,
@@ -57,7 +56,7 @@ use crate::{
     },
     util::{
         digest::MediaDigest,
-        format_parseable_value, format_replay_gain, parse_index_numbers, parse_key_signature,
+        format_valid_replay_gain, format_valid_tempo_bpm, parse_index_numbers, parse_key_signature,
         parse_replay_gain, parse_tempo_bpm, push_next_actor_role_name, serato,
         tag::{
             import_faceted_tags_from_label_value_iter, FacetedTagMappingConfig, TagMappingConfig,
@@ -656,15 +655,12 @@ pub fn export_track(
     // Audio properties
     match &track.media_source.content {
         Content::Audio(audio) => {
-            id3_tag.remove_extended_text(Some("REPLAYGAIN_TRACK_GAIN"), None);
-            if let Some(loudness) = audio
-                .loudness
-                .map(LoudnessLufs::validated_from)
-                .transpose()
-                .ok()
-                .flatten()
+            if let Some(formatted_track_gain) =
+                audio.loudness.map(format_valid_replay_gain).flatten()
             {
-                id3_tag.add_extended_text("REPLAYGAIN_TRACK_GAIN", format_replay_gain(loudness));
+                id3_tag.add_extended_text("REPLAYGAIN_TRACK_GAIN", formatted_track_gain);
+            } else {
+                id3_tag.remove_extended_text(Some("REPLAYGAIN_TRACK_GAIN"), None);
             }
             if let Some(encoder) = &audio.encoder {
                 id3_tag.set_text("TENC", encoder)
@@ -677,21 +673,17 @@ pub fn export_track(
     }
 
     // Music: Tempo/BPM
-    id3_tag.remove_extended_text(Some("BPM"), None);
     id3_tag.remove_extended_text(Some("TEMPO"), None);
-    if let Some(tempo_bpm) = track
+    if let Some((formatted_bpm, bpm_value)) = track
         .metrics
         .tempo_bpm
-        .map(TempoBpm::validated_from)
-        .transpose()
-        .ok()
+        .map(format_valid_tempo_bpm)
         .flatten()
     {
-        let mut bpm_value = tempo_bpm.0;
-        id3_tag.add_extended_text("BPM", format_parseable_value(&mut bpm_value));
-        // The value might have been adjusted during formatting
+        id3_tag.add_extended_text("BPM", formatted_bpm);
         id3_tag.set_text("TBPM", bpm_value.round().to_string());
     } else {
+        id3_tag.remove_extended_text(Some("BPM"), None);
         id3_tag.remove("TBPM");
     }
 

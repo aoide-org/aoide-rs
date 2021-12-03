@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::time::Duration;
+use std::{path::Path, time::Duration};
 
 use metaflac::block::PictureType;
 use num_traits::FromPrimitive as _;
@@ -31,7 +31,10 @@ use aoide_core::{
 };
 
 use crate::{
-    io::import::{self, *},
+    io::{
+        export::{self, *},
+        import::{self, *},
+    },
     util::{digest::MediaDigest, push_next_actor_role_name, serato, try_load_embedded_artwork},
     Error, Result,
 };
@@ -41,6 +44,19 @@ use super::vorbis;
 impl vorbis::CommentReader for metaflac::Tag {
     fn read_first_value(&self, key: &str) -> Option<&str> {
         self.get_vorbis(key).and_then(|mut i| i.next())
+    }
+}
+
+impl vorbis::CommentWriter for metaflac::Tag {
+    fn write_multiple_values(&mut self, key: String, values: Vec<String>) {
+        if values.is_empty() {
+            self.remove_vorbis(&key);
+        } else {
+            self.set_vorbis(key, values);
+        }
+    }
+    fn remove_all_values(&mut self, key: &str) {
+        self.remove_vorbis(key);
     }
 }
 
@@ -397,5 +413,40 @@ impl import::ImportTrack for ImportTrack {
         }
 
         Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub struct ExportTrack;
+
+impl export::ExportTrack for ExportTrack {
+    fn export_track_to_path(
+        &self,
+        config: &ExportTrackConfig,
+        track: &Track,
+        path: &Path,
+    ) -> Result<bool> {
+        let mut flac_tag = match metaflac::Tag::read_from_path(path) {
+            Ok(flac_tag) => flac_tag,
+            Err(err) => {
+                tracing::warn!(
+                    "Failed to parse metadata from media source '{}': {}",
+                    track.media_source.path,
+                    err
+                );
+                return Err(map_err(err));
+            }
+        };
+
+        let vorbis_comments_orig = flac_tag.vorbis_comments().map(ToOwned::to_owned);
+        vorbis::export_track(config, track, &mut flac_tag);
+
+        if flac_tag.vorbis_comments() == vorbis_comments_orig.as_ref() {
+            // Unmodified
+            return Ok(false);
+        }
+        flac_tag.write_to_path(path).map_err(map_err)?;
+        // Modified
+        Ok(true)
     }
 }

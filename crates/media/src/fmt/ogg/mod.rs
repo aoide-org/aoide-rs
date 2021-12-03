@@ -55,6 +55,20 @@ impl vorbis::CommentReader for Vec<(String, String)> {
     }
 }
 
+impl vorbis::CommentWriter for Vec<(String, String)> {
+    fn write_multiple_values(&mut self, key: String, values: Vec<String>) {
+        // TODO: Optimize or use a different data structure for writing
+        self.remove_all_values(&key);
+        self.reserve(self.len() + values.len());
+        for value in values {
+            self.push((key.clone(), value));
+        }
+    }
+    fn remove_all_values(&mut self, key: &str) {
+        self.retain(|(cmp_key, _)| cmp_key != key)
+    }
+}
+
 fn filter_vorbis_comment_values<'a>(
     vorbis_comments: &'a [(String, String)],
     key: &'a str,

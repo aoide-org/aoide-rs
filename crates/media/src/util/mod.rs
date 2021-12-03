@@ -13,36 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::fmt;
+use std::{convert::TryFrom as _, fmt, path::Path, str::FromStr};
 
 use anyhow::Context as _;
-
-use crate::prelude::*;
-
-pub mod digest;
-pub mod serato;
-pub mod tag;
-
-use self::digest::MediaDigest;
-
-use aoide_core::{
-    audio::signal::LoudnessLufs,
-    media::{
-        ApicType, Artwork, ArtworkImage, EmbeddedArtwork, ImageDimension, ImageSize, SourcePath,
-        Thumbnail4x4Rgb8,
-    },
-    music::{
-        key::{KeyCode, KeySignature},
-        time::TempoBpm,
-    },
-    track::{
-        actor::{Actor, ActorKind, ActorRole},
-        index::Index,
-        release::DateOrDateTime,
-    },
-    util::clock::{DateTime, DateTimeInner, DateYYYYMMDD, YYYYMMDD},
-};
-
 use chrono::{NaiveDateTime, Utc};
 use image::{
     guess_format, load_from_memory, load_from_memory_with_format, GenericImageView, ImageError,
@@ -56,8 +29,33 @@ use nom::{
     sequence::{delimited, pair, preceded, separated_pair, terminated},
     IResult,
 };
-use semval::IsValid as _;
-use std::{convert::TryFrom as _, path::Path, str::FromStr};
+use semval::{IsValid as _, ValidatedFrom as _};
+
+use aoide_core::{
+    audio::signal::LoudnessLufs,
+    media::{
+        ApicType, Artwork, ArtworkImage, EmbeddedArtwork, ImageDimension, ImageSize, SourcePath,
+        Thumbnail4x4Rgb8,
+    },
+    music::{
+        key::{KeyCode, KeySignature},
+        time::{Beats, TempoBpm},
+    },
+    track::{
+        actor::{Actor, ActorKind, ActorRole},
+        index::Index,
+        release::DateOrDateTime,
+    },
+    util::clock::{DateTime, DateTimeInner, DateYYYYMMDD, YYYYMMDD},
+};
+
+use crate::prelude::*;
+
+use self::digest::MediaDigest;
+
+pub mod digest;
+pub mod serato;
+pub mod tag;
 
 fn trim_readable(input: &str) -> &str {
     input.trim_matches(|c: char| c.is_whitespace() || c.is_control())
@@ -138,11 +136,13 @@ fn lufs2db(loudness: LoudnessLufs) -> f64 {
     EBU_R128_REFERENCE_LUFS - loudness.0
 }
 
-pub fn format_replay_gain(loudness: LoudnessLufs) -> String {
-    let mut replay_gain_db = lufs2db(loudness);
-    let formatted = format!("{}, dB", format_parseable_value(&mut replay_gain_db));
-    debug_assert_eq!(Some(db2lufs(replay_gain_db)), parse_replay_gain(&formatted));
-    formatted
+pub fn format_valid_replay_gain(loudness: LoudnessLufs) -> Option<String> {
+    LoudnessLufs::validated_from(loudness).ok().map(|loudness| {
+        let mut replay_gain_db = lufs2db(loudness);
+        let formatted = format!("{}, dB", format_parseable_value(&mut replay_gain_db));
+        debug_assert_eq!(Some(db2lufs(replay_gain_db)), parse_replay_gain(&formatted));
+        formatted
+    })
 }
 
 fn parse_replay_gain_db(input: &str) -> IResult<&str, f64> {
@@ -233,6 +233,13 @@ pub fn parse_tempo_bpm(input: &str) -> Option<TempoBpm> {
             None
         }
     }
+}
+
+pub fn format_valid_tempo_bpm(tempo_bpm: TempoBpm) -> Option<(String, Beats)> {
+    TempoBpm::validated_from(tempo_bpm).ok().map(|tempo_bpm| {
+        let mut bpm_value = tempo_bpm.0;
+        (format_parseable_value(&mut bpm_value), bpm_value)
+    })
 }
 
 pub fn parse_key_signature(input: &str) -> Option<KeySignature> {

@@ -20,7 +20,7 @@ use mp4ameta::{
     AdvisoryRating as Mp4AdvisoryRating, ChannelConfig, Data, DataIdent, Fourcc, FreeformIdent,
     Ident, ImgFmt, SampleRate as Mp4SampleRate, Tag as Mp4Tag, STANDARD_GENRES,
 };
-use semval::{IsValid as _, ValidatedFrom as _};
+use semval::IsValid as _;
 use triseratops::tag::{
     format::mp4::MP4Tag, Markers as SeratoMarkers, Markers2 as SeratoMarkers2,
     TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat,
@@ -29,7 +29,7 @@ use triseratops::tag::{
 use aoide_core::{
     audio::{
         channel::{ChannelCount, ChannelLayout, Channels},
-        signal::{BitrateBps, BitsPerSecond, LoudnessLufs, SampleRateHz, SamplesPerSecond},
+        signal::{BitrateBps, BitsPerSecond, SampleRateHz, SamplesPerSecond},
         AudioContent,
     },
     media::{AdvisoryRating, ApicType, Artwork, Content, ContentMetadataFlags},
@@ -55,7 +55,7 @@ use crate::{
     },
     util::{
         digest::MediaDigest,
-        format_parseable_value, format_replay_gain, parse_key_signature, parse_replay_gain,
+        format_valid_replay_gain, format_valid_tempo_bpm, parse_key_signature, parse_replay_gain,
         parse_tempo_bpm, parse_year_tag, push_next_actor_role_name, serato,
         tag::{
             import_faceted_tags_from_label_value_iter, import_plain_tags_from_joined_label_value,
@@ -644,16 +644,12 @@ impl export::ExportTrack for ExportTrack {
         // Audio properties
         match &track.media_source.content {
             Content::Audio(audio) => {
-                if let Some(loudness) = audio
-                    .loudness
-                    .map(LoudnessLufs::validated_from)
-                    .transpose()
-                    .ok()
-                    .flatten()
+                if let Some(formatted_track_gain) =
+                    audio.loudness.map(format_valid_replay_gain).flatten()
                 {
                     mp4_tag.set_all_data(
                         IDENT_REPLAYGAIN_TRACK_GAIN,
-                        once(Data::Utf8(format_replay_gain(loudness))),
+                        once(Data::Utf8(formatted_track_gain)),
                     );
                 } else {
                     mp4_tag.remove_data_of(&IDENT_REPLAYGAIN_TRACK_GAIN);
@@ -665,19 +661,13 @@ impl export::ExportTrack for ExportTrack {
         }
 
         // Music: Tempo/BPM
-        if let Some(tempo_bpm) = track
+        if let Some((formatted_bpm, bpm_value)) = track
             .metrics
             .tempo_bpm
-            .map(TempoBpm::validated_from)
-            .transpose()
-            .ok()
+            .map(format_valid_tempo_bpm)
             .flatten()
         {
-            let mut bpm_value = tempo_bpm.0;
-            mp4_tag.set_all_data(
-                IDENT_BPM,
-                once(Data::Utf8(format_parseable_value(&mut bpm_value))),
-            );
+            mp4_tag.set_all_data(IDENT_BPM, once(Data::Utf8(formatted_bpm)));
             mp4_tag.set_bpm(bpm_value.round().max(u16::MAX as Beats) as u16);
         } else {
             mp4_tag.remove_bpm();
