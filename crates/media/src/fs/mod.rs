@@ -20,6 +20,7 @@ pub mod digest;
 use super::{Error, IoError, Result};
 
 use anyhow::anyhow;
+use aoide_core::util::clock::DateTime;
 use std::{
     fs::File,
     io::ErrorKind,
@@ -29,7 +30,7 @@ use url::Url;
 
 pub use mime::Mime;
 
-pub fn local_file_path_from_url(url: &Url) -> Result<PathBuf> {
+pub fn file_path_from_url(url: &Url) -> Result<PathBuf> {
     if url.scheme() != "file" {
         return Err(Error::Io(IoError::new(
             ErrorKind::Other,
@@ -48,11 +49,32 @@ pub fn local_file_path_from_url(url: &Url) -> Result<PathBuf> {
     })
 }
 
-pub fn open_local_file_for_reading(file_path: impl AsRef<Path>) -> Result<Option<(PathBuf, File)>> {
+pub fn open_file_for_reading(file_path: impl AsRef<Path>) -> Result<Option<(PathBuf, File)>> {
     let canonical_path = file_path.as_ref().canonicalize()?;
     if canonical_path.is_dir() {
         return Ok(None);
     }
     let file = File::open(std::path::Path::new(&canonical_path))?;
     Ok(Some((canonical_path, file)))
+}
+
+pub fn file_last_modified_at(file: &File) -> Result<DateTime> {
+    file.metadata()
+        .map_err(Error::from)?
+        .modified()
+        .map(DateTime::from)
+        .map_err(Error::from)
+        .map(|last_modified_at| {
+            if last_modified_at.timestamp_millis() > 0 {
+                // Only consider time stamps strictly after the epoch origin
+                // meaningful and valid
+                last_modified_at
+            } else {
+                tracing::warn!(
+                    "Using current time instead of invalid last modification time {}",
+                    last_modified_at
+                );
+                DateTime::now_utc()
+            }
+        })
 }

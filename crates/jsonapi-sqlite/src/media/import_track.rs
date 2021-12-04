@@ -15,15 +15,11 @@
 
 use url::Url;
 
-use aoide_core::{
-    track::tag::{FACET_GENRE, FACET_MOOD},
-    util::clock::DateTime,
-};
+use aoide_core::util::clock::DateTime;
 
 use aoide_media::{
     io::import::{ImportTrackConfig, ImportTrackFlags},
     resolver::{ResolveFromUrlError, SourcePathResolver, UrlResolver},
-    util::tag::{FacetedTagMappingConfigInner, TagMappingConfig},
 };
 
 use aoide_core_serde::track::Track;
@@ -45,27 +41,12 @@ pub type ResponseBody = Option<Track>;
 
 pub fn handle_request(query_params: QueryParams) -> Result<ResponseBody> {
     let QueryParams { url } = query_params;
-    // FIXME: Replace hard-coded tag mapping config
-    let mut faceted_tag_mapping_config = FacetedTagMappingConfigInner::default();
-    faceted_tag_mapping_config.insert(
-        FACET_GENRE.to_owned().into(),
-        TagMappingConfig {
-            label_separator: ";".into(),
-            split_score_attenuation: 0.75,
-        },
-    );
-    faceted_tag_mapping_config.insert(
-        FACET_MOOD.to_owned().into(),
-        TagMappingConfig {
-            label_separator: ";".into(),
-            split_score_attenuation: 0.75,
-        },
-    );
     let config = ImportTrackConfig {
-        faceted_tag_mapping: faceted_tag_mapping_config.into(),
+        faceted_tag_mapping: predefined_faceted_tag_mapping_config(),
         flags: ImportTrackFlags::all(),
     };
-    let source_path = match VirtualFilePathResolver::new().resolve_path_from_url(&url) {
+    let path_resolver = VirtualFilePathResolver::new();
+    let source_path = match path_resolver.resolve_path_from_url(&url) {
         Ok(path) => path,
         Err(ResolveFromUrlError::InvalidUrl) => {
             let path = match UrlResolver.resolve_path_from_url(&url) {
@@ -82,8 +63,8 @@ pub fn handle_request(query_params: QueryParams) -> Result<ResponseBody> {
             return Err(Error::Other(err));
         }
     };
-    let track = match uc::import_track_from_local_file_path(
-        &VirtualFilePathResolver::new(),
+    let track = match uc::import_track_from_file_path(
+        &path_resolver,
         source_path,
         uc::SynchronizedImportMode::Always,
         &config,

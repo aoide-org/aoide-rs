@@ -43,8 +43,8 @@ use aoide_core_serde::tag::Tags as SerdeTags;
 use crate::{
     io::export::{ExportTrackConfig, FilteredActorNames},
     util::{
-        format_valid_replay_gain, format_valid_tempo_bpm, parse_index_numbers, parse_key_signature,
-        parse_replay_gain, parse_tempo_bpm, parse_year_tag,
+        format_valid_replay_gain, format_validated_tempo_bpm, parse_index_numbers,
+        parse_key_signature, parse_replay_gain, parse_tempo_bpm, parse_year_tag,
         tag::{
             import_faceted_tags_from_label_value_iter, FacetedTagMappingConfig, TagMappingConfig,
         },
@@ -136,8 +136,8 @@ pub fn import_tempo_bpm(reader: &impl CommentReader) -> Option<TempoBpm> {
     }
 }
 
-fn export_tempo_bpm(writer: &mut impl CommentWriter, tempo_bpm: Option<TempoBpm>) {
-    if let Some((formatted_bpm, _bpm_value)) = tempo_bpm.map(format_valid_tempo_bpm).flatten() {
+fn export_tempo_bpm(writer: &mut impl CommentWriter, tempo_bpm: &mut Option<TempoBpm>) {
+    if let Some(formatted_bpm) = format_validated_tempo_bpm(tempo_bpm) {
         writer.write_single_value("BPM".to_owned(), formatted_bpm);
     } else {
         writer.remove_all_values("BPM");
@@ -325,7 +325,11 @@ pub fn import_serato_markers2(
         .and_then(|data| serato_tags.parse_markers2(data.as_bytes(), format).ok());
 }
 
-pub fn export_track(config: &ExportTrackConfig, track: &Track, writer: &mut impl CommentWriter) {
+pub fn export_track(
+    config: &ExportTrackConfig,
+    track: &mut Track,
+    writer: &mut impl CommentWriter,
+) {
     // Audio properties
     match &track.media_source.content {
         Content::Audio(audio) => {
@@ -334,7 +338,7 @@ pub fn export_track(config: &ExportTrackConfig, track: &Track, writer: &mut impl
         }
     }
 
-    export_tempo_bpm(writer, track.metrics.tempo_bpm);
+    export_tempo_bpm(writer, &mut track.metrics.tempo_bpm);
     export_key_signature(writer, track.metrics.key_signature);
 
     // Track titles

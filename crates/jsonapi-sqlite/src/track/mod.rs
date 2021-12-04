@@ -26,6 +26,7 @@ mod _core {
     pub use aoide_core::{entity::EntityUid, track::Entity};
 }
 
+pub mod export_metadata;
 pub mod import_and_replace;
 pub mod load_many;
 pub mod load_one;

@@ -56,8 +56,8 @@ use crate::{
     },
     util::{
         digest::MediaDigest,
-        format_valid_replay_gain, format_valid_tempo_bpm, parse_index_numbers, parse_key_signature,
-        parse_replay_gain, parse_tempo_bpm, push_next_actor_role_name, serato,
+        format_valid_replay_gain, format_validated_tempo_bpm, parse_index_numbers,
+        parse_key_signature, parse_replay_gain, parse_tempo_bpm, push_next_actor_role_name, serato,
         tag::{
             import_faceted_tags_from_label_value_iter, FacetedTagMappingConfig, TagMappingConfig,
         },
@@ -645,7 +645,7 @@ pub enum ExportError {
 
 pub fn export_track(
     config: &ExportTrackConfig,
-    track: &Track,
+    track: &mut Track,
     id3_tag: &mut id3::Tag,
 ) -> std::result::Result<(), ExportError> {
     if id3_tag.version() != id3::Version::Id3v24 {
@@ -674,14 +674,18 @@ pub fn export_track(
 
     // Music: Tempo/BPM
     id3_tag.remove_extended_text(Some("TEMPO"), None);
-    if let Some((formatted_bpm, bpm_value)) = track
-        .metrics
-        .tempo_bpm
-        .map(format_valid_tempo_bpm)
-        .flatten()
-    {
+    if let Some(formatted_bpm) = format_validated_tempo_bpm(&mut track.metrics.tempo_bpm) {
         id3_tag.add_extended_text("BPM", formatted_bpm);
-        id3_tag.set_text("TBPM", bpm_value.round().to_string());
+        id3_tag.set_text(
+            "TBPM",
+            track
+                .metrics
+                .tempo_bpm
+                .expect("valid bpm")
+                .0
+                .round()
+                .to_string(),
+        );
     } else {
         id3_tag.remove_extended_text(Some("BPM"), None);
         id3_tag.remove("TBPM");

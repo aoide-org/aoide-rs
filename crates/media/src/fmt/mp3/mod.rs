@@ -106,8 +106,8 @@ impl export::ExportTrack for ExportTrack {
     fn export_track_to_path(
         &self,
         config: &ExportTrackConfig,
-        track: &Track,
         path: &Path,
+        track: &mut Track,
     ) -> Result<bool> {
         let id3_tag_orig = id3::Tag::read_from_path(path).map_err(map_id3_err)?;
 

@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
-
 use aoide_core::{
     entity::{EntityHeader, EntityUid},
     track::*,
@@ -25,8 +23,9 @@ use aoide_repo::{
     track::{EntityRepo as _, RecordHeader},
 };
 
-///////////////////////////////////////////////////////////////////////
+use super::*;
 
+pub mod export_metadata;
 pub mod load;
 pub mod purge;
 pub mod replace;

@@ -42,8 +42,8 @@ pub trait ExportTrack {
     fn export_track_to_path(
         &self,
         config: &ExportTrackConfig,
-        track: &Track,
         path: &Path,
+        track: &mut Track,
     ) -> Result<bool>;
 }
 

@@ -36,7 +36,7 @@ use aoide_repo::{
 };
 
 use crate::media::{
-    import_track_from_local_file_path, ImportTrackFromFileOutcome, SynchronizedImportMode,
+    import_track_from_file_path, ImportTrackFromFileOutcome, SynchronizedImportMode,
 };
 
 use super::*;
@@ -178,7 +178,7 @@ where
             )
         })
         .unwrap_or((None, None, None));
-    match import_track_from_local_file_path(
+    match import_track_from_file_path(
         source_path_resolver,
         source_path.clone(),
         SynchronizedImportMode::new(import_mode, last_synchronized_at),

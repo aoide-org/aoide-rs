@@ -268,6 +268,27 @@ paths:
                 $ref: '#/components/schemas/ImportAndReplaceCollectedTracksResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+  /api/c/{collectionUid}/t/{trackUid}/export-metadata:
+    post:
+      summary: Export metadata of a single, collected track
+      description: |
+        TODO
+      tags:
+        - 'Collections: Tracks'
+      parameters:
+        - $ref: '#/components/parameters/collectionUidPath'
+        - $ref: '#/components/parameters/trackUidPath'
+        - $ref: '#/components/parameters/exportCollectedTrackMetadataMarkSynchronizedQuery'
+      responses:
+        '200':
+          description: |
+            Operation succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportCollectedTrackMetadataResponseBody'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
   /api/c/{collectionUid}/t/purge:
     post:
       summary: Purge collected tracks and media sources by URI
@@ -865,6 +886,13 @@ components:
         When this parameter is specified its value is evaluated and
         applied, i.e. a value of 0 will result in an empty set of
         returned items.
+    exportCollectedTrackMetadataMarkSynchronizedQuery:
+      name: markSynchronized
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: false
     replaceCollectedTrackModeQuery:
       name: mode
       in: query
@@ -2545,6 +2573,11 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/PercentEncodedUri'
+    ExportCollectedTrackMetadataResponseBody:
+      description:
+        The resulting synchronization time stamp of the media source.
+      allOf:
+        - $ref: '#/components/schemas/DateTime'
     RgbColor:
       type: string
       minLength: 7

@@ -39,7 +39,7 @@ use aoide_core::{
     },
     music::{
         key::{KeyCode, KeySignature},
-        time::{Beats, TempoBpm},
+        time::TempoBpm,
     },
     track::{
         actor::{Actor, ActorKind, ActorRole},
@@ -235,11 +235,19 @@ pub fn parse_tempo_bpm(input: &str) -> Option<TempoBpm> {
     }
 }
 
-pub fn format_valid_tempo_bpm(tempo_bpm: TempoBpm) -> Option<(String, Beats)> {
-    TempoBpm::validated_from(tempo_bpm).ok().map(|tempo_bpm| {
-        let mut bpm_value = tempo_bpm.0;
-        (format_parseable_value(&mut bpm_value), bpm_value)
-    })
+pub fn format_validated_tempo_bpm(tempo_bpm: &mut Option<TempoBpm>) -> Option<String> {
+    *tempo_bpm = tempo_bpm
+        .map(TempoBpm::validated_from)
+        .transpose()
+        .ok()
+        .flatten();
+    tempo_bpm.as_mut().map(format_tempo_bpm)
+}
+
+pub fn format_tempo_bpm(tempo_bpm: &mut TempoBpm) -> String {
+    let formatted_bpm = format_parseable_value(&mut tempo_bpm.0);
+    debug_assert_eq!(Some(*tempo_bpm), parse_tempo_bpm(&formatted_bpm));
+    formatted_bpm
 }
 
 pub fn parse_key_signature(input: &str) -> Option<KeySignature> {

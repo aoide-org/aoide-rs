@@ -98,3 +98,42 @@ fn trim_readable_should_ignore_whitespace_and_control_characters() {
     let input = String::from_utf8(vec![0x11, 0x00, 0x0A, 0x0D, 0x20, 0x09]).unwrap();
     assert!(trim_readable(&input).is_empty());
 }
+
+#[test]
+fn format_validated_tempo_bpm_none() {
+    let mut tempo_bpm = None;
+    assert_eq!(None, format_validated_tempo_bpm(&mut tempo_bpm));
+    assert_eq!(None, tempo_bpm);
+}
+
+#[test]
+fn format_validated_tempo_bpm_invalid() {
+    let mut tempo_bpm = Some(TempoBpm(TempoBpm::min().0 - 1.0));
+    assert_eq!(None, format_validated_tempo_bpm(&mut tempo_bpm));
+    assert_eq!(None, tempo_bpm);
+
+    let mut tempo_bpm = Some(TempoBpm(0.0));
+    assert_eq!(None, format_validated_tempo_bpm(&mut tempo_bpm));
+    assert_eq!(None, tempo_bpm);
+
+    let mut tempo_bpm = Some(TempoBpm(-0.0));
+    assert_eq!(None, format_validated_tempo_bpm(&mut tempo_bpm));
+    assert_eq!(None, tempo_bpm);
+}
+
+#[test]
+fn format_validated_tempo_bpm_min_max() {
+    let mut tempo_bpm = Some(TempoBpm(TempoBpm::min().0));
+    assert_eq!(
+        Some(TempoBpm::min().0.to_string()),
+        format_validated_tempo_bpm(&mut tempo_bpm)
+    );
+    assert_eq!(Some(TempoBpm::min()), tempo_bpm);
+
+    let mut tempo_bpm = Some(TempoBpm(TempoBpm::max().0));
+    assert_eq!(
+        Some(TempoBpm::max().0.to_string()),
+        format_validated_tempo_bpm(&mut tempo_bpm)
+    );
+    assert_eq!(Some(TempoBpm::max()), tempo_bpm);
+}

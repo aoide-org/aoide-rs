@@ -13,10 +13,39 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_media::resolver::VirtualFilePathResolver;
+use aoide_media::{
+    resolver::VirtualFilePathResolver,
+    util::tag::{FacetedTagMappingConfig, FacetedTagMappingConfigInner, TagMappingConfig},
+};
+
+use aoide_core::track::tag::{FACET_GENRE, FACET_MOOD};
 
 use super::*;
 
 pub mod import_track;
 pub mod relocate_collected_sources;
 pub mod tracker;
+
+const DEFAULT_LABEL_SEPARATOR: &str = ";";
+
+const DEFAULT_SCORE_ATTENUATION: f64 = 0.75;
+
+// FIXME: Replace hard-coded tag mapping config
+pub fn predefined_faceted_tag_mapping_config() -> FacetedTagMappingConfig {
+    let mut config = FacetedTagMappingConfigInner::default();
+    config.insert(
+        FACET_GENRE.to_owned().into(),
+        TagMappingConfig {
+            label_separator: DEFAULT_LABEL_SEPARATOR.to_owned(),
+            split_score_attenuation: DEFAULT_SCORE_ATTENUATION,
+        },
+    );
+    config.insert(
+        FACET_MOOD.to_owned().into(),
+        TagMappingConfig {
+            label_separator: DEFAULT_LABEL_SEPARATOR.to_owned(),
+            split_score_attenuation: DEFAULT_SCORE_ATTENUATION,
+        },
+    );
+    config.into()
+}

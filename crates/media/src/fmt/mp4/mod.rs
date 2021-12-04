@@ -55,8 +55,8 @@ use crate::{
     },
     util::{
         digest::MediaDigest,
-        format_valid_replay_gain, format_valid_tempo_bpm, parse_key_signature, parse_replay_gain,
-        parse_tempo_bpm, parse_year_tag, push_next_actor_role_name, serato,
+        format_valid_replay_gain, format_validated_tempo_bpm, parse_key_signature,
+        parse_replay_gain, parse_tempo_bpm, parse_year_tag, push_next_actor_role_name, serato,
         tag::{
             import_faceted_tags_from_label_value_iter, import_plain_tags_from_joined_label_value,
             TagMappingConfig,
@@ -634,8 +634,8 @@ impl export::ExportTrack for ExportTrack {
     fn export_track_to_path(
         &self,
         config: &ExportTrackConfig,
-        track: &Track,
         path: &Path,
+        track: &mut Track,
     ) -> Result<bool> {
         let mp4_tag_orig = Mp4Tag::read_from_path(path).map_err(map_err)?;
 
@@ -661,14 +661,17 @@ impl export::ExportTrack for ExportTrack {
         }
 
         // Music: Tempo/BPM
-        if let Some((formatted_bpm, bpm_value)) = track
-            .metrics
-            .tempo_bpm
-            .map(format_valid_tempo_bpm)
-            .flatten()
-        {
+        if let Some(formatted_bpm) = format_validated_tempo_bpm(&mut track.metrics.tempo_bpm) {
             mp4_tag.set_all_data(IDENT_BPM, once(Data::Utf8(formatted_bpm)));
-            mp4_tag.set_bpm(bpm_value.round().max(u16::MAX as Beats) as u16);
+            mp4_tag.set_bpm(
+                track
+                    .metrics
+                    .tempo_bpm
+                    .expect("valid bpm")
+                    .0
+                    .round()
+                    .max(u16::MAX as Beats) as u16,
+            );
         } else {
             mp4_tag.remove_bpm();
             mp4_tag.remove_data_of(&IDENT_BPM);

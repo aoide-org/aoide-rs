@@ -655,10 +655,43 @@ pub fn create_filters(
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
+    let collected_tracks_export_metadata = warp::post()
+        .and(collections_path)
+        .and(path_param_uid)
+        .and(tracks_path)
+        .and(path_param_uid)
+        .and(warp::path("export-metadata"))
+        .and(warp::path::end())
+        .and(warp::query())
+        .and(guarded_connection_pool.clone())
+        .and_then(
+            move |collection_uid,
+                  track_uid,
+                  query_params,
+                  guarded_connection_pool: GuardedConnectionPool| async move {
+                spawn_blocking_database_write_task(
+                    guarded_connection_pool,
+                    media_tracker_abort_flag,
+                    move |pooled_connection| {
+                        api::track::export_metadata::handle_request(
+                            pooled_connection,
+                            &collection_uid,
+                            &track_uid,
+                            query_params,
+                        )
+                        .map_err(Into::into)
+                    },
+                )
+                .await
+                .map_err(reject_on_error)
+                .map(|response_body| warp::reply::json(&response_body))
+            },
+        );
     let collected_tracks_filters = collected_tracks_resolve
         .or(collected_tracks_search)
         .or(collected_tracks_replace)
         .or(collected_tracks_import_and_replace)
+        .or(collected_tracks_export_metadata)
         .or(collected_tracks_purge);
 
     // Tracks
