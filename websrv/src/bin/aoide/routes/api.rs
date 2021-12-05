@@ -106,7 +106,7 @@ pub fn create_filters(
     let tracks_path = warp::path("t");
     let playlists_path = warp::path("p");
     let media_path = warp::path("m");
-    let media_tracker_path = warp::path("media-tracker");
+    let media_tracker_path = warp::path("mt");
     let storage_path = warp::path("storage");
 
     // Collections

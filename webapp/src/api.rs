@@ -128,7 +128,7 @@ pub async fn scan_collection_media(
     collection_uid: EntityUid,
     params: impl Into<SerdeScanCollectionMediaParams>,
 ) -> Result<ScanCollectionMediaOutcome> {
-    let url = format!("{}/c/{}/media-tracker/scan", BASE_URL, collection_uid);
+    let url = format!("{}/c/{}/mt/scan", BASE_URL, collection_uid);
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
@@ -145,7 +145,7 @@ pub async fn import_collection_media(
     collection_uid: EntityUid,
     params: impl Into<SerdeImportCollectionMediaParams>,
 ) -> Result<ImportCollectionMediaOutcome> {
-    let url = format!("{}/c/{}/media-tracker/import", BASE_URL, collection_uid);
+    let url = format!("{}/c/{}/mt/import", BASE_URL, collection_uid);
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
@@ -162,7 +162,7 @@ pub async fn untrack_collection_media(
     collection_uid: EntityUid,
     params: impl Into<SerdeUntrackCollectionMediaParams>,
 ) -> Result<UntrackCollectionMediaOutcome> {
-    let url = format!("{}/c/{}/media-tracker/untrack", BASE_URL, collection_uid);
+    let url = format!("{}/c/{}/mt/untrack", BASE_URL, collection_uid);
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
@@ -180,7 +180,7 @@ pub async fn query_collection_media_status(
     params: impl Into<SerdeQueryCollectionMediaStatusParams>,
 ) -> Result<QueryCollectionMediaStatusOutcome> {
     let url = format!(
-        "{}/c/{}/media-tracker/query-status",
+        "{}/c/{}/mt/query-status",
         BASE_URL, collection_uid
     );
     let request = Request::new(url)
@@ -197,7 +197,7 @@ pub async fn purge_untracked_from_collection(
     params: impl Into<SerdePurgeUntrackedFromCollectionParams>,
 ) -> Result<PurgeUntrackedFromCollectionOutcome> {
     let url = format!(
-        "{}/c/{}/media-tracker/purge-untracked",
+        "{}/c/{}/mt/purge-untracked",
         BASE_URL, collection_uid
     );
     let request = Request::new(url)
@@ -213,7 +213,7 @@ pub async fn purge_untracked_from_collection(
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
 pub async fn get_media_tracker_progress() -> Result<MediaTrackerProgress> {
-    let url = format!("{}/media-tracker/progress", BASE_URL);
+    let url = format!("{}/mt/progress", BASE_URL);
     let response = fetch(url).await?;
     let content: SerdeMediaTrackerProgress = response.check_status()?.json().await?;
     Ok(content.into())
@@ -221,7 +221,7 @@ pub async fn get_media_tracker_progress() -> Result<MediaTrackerProgress> {
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
 pub async fn abort_media_tracker() -> Result<()> {
-    let url = format!("{}/media-tracker/abort", BASE_URL);
+    let url = format!("{}/mt/abort", BASE_URL);
     let request = Request::new(url).method(Method::Post);
     let response = request.fetch().await?.check_status()?;
     let _status_code = response.check_status()?.status().code;

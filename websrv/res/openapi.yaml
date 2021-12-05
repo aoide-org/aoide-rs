@@ -345,7 +345,7 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /api/c/{collectionUid}/media-tracker/scan:
+  /api/c/{collectionUid}/mt/scan:
     post:
       summary: Scan a directory tree for changes
       description: |
@@ -380,7 +380,7 @@ paths:
                 $ref: '#/components/schemas/MediaTrackerScanResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /api/c/{collectionUid}/media-tracker/import:
+  /api/c/{collectionUid}/mt/import:
     post:
       summary: Import sources from changed directories
       description: |
@@ -408,7 +408,7 @@ paths:
                 $ref: '#/components/schemas/MediaTrackerImportResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /api/c/{collectionUid}/media-tracker/untrack:
+  /api/c/{collectionUid}/mt/untrack:
     post:
       summary: Discard tracked directories and their contents
       description: |
@@ -441,7 +441,7 @@ paths:
                 $ref: '#/components/schemas/MediaTrackerUntrackResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /api/c/{collectionUid}/media-tracker/query-status:
+  /api/c/{collectionUid}/mt/query-status:
     post:
       summary: Query the aggregated status of tracked directories
       description: |
@@ -465,7 +465,7 @@ paths:
                 $ref: '#/components/schemas/MediaTrackerQueryStatusResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /api/c/{collectionUid}/media-tracker/purge-untracked:
+  /api/c/{collectionUid}/mt/purge-untracked:
     post:
       summary: Purge tracks with untracked media sources
       description: |
@@ -499,7 +499,7 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /api/media-tracker/progress:
+  /api/mt/progress:
     get:
       summary: Query the current progress
       description: |
@@ -531,7 +531,7 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /api/media-tracker/abort:
+  /api/mt/abort:
     post:
       summary: Abort any running tracker task
       description: |

@@ -124,7 +124,7 @@ async fn fetch_status<E: WebClientEnvironment>(
     params: impl Into<aoide_core_ext_serde::media::tracker::query_status::Params>,
 ) -> anyhow::Result<Status> {
     let request_url =
-        env.join_api_url(&format!("c/{}/media-tracker/query-status", collection_uid))?;
+        env.join_api_url(&format!("c/{}/mt/query-status", collection_uid))?;
     let request_body = serde_json::to_vec(&params.into())?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
@@ -137,7 +137,7 @@ async fn fetch_status<E: WebClientEnvironment>(
 }
 
 async fn fetch_progress<E: WebClientEnvironment>(env: &E) -> anyhow::Result<Progress> {
-    let request_url = env.join_api_url("media-tracker/progress")?;
+    let request_url = env.join_api_url("mt/progress")?;
     let request = env.client().get(request_url);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
@@ -153,7 +153,7 @@ async fn start_scan<E: WebClientEnvironment>(
     collection_uid: &EntityUid,
     params: impl Into<aoide_core_ext_serde::media::tracker::scan::Params>,
 ) -> anyhow::Result<ScanOutcome> {
-    let request_url = env.join_api_url(&format!("c/{}/media-tracker/scan", collection_uid))?;
+    let request_url = env.join_api_url(&format!("c/{}/mt/scan", collection_uid))?;
     let request_body = serde_json::to_vec(&params.into())?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
@@ -172,7 +172,7 @@ async fn start_import<E: WebClientEnvironment>(
     collection_uid: &EntityUid,
     params: impl Into<aoide_core_ext_serde::media::tracker::import::Params>,
 ) -> anyhow::Result<ImportOutcome> {
-    let request_url = env.join_api_url(&format!("c/{}/media-tracker/import", collection_uid))?;
+    let request_url = env.join_api_url(&format!("c/{}/mt/import", collection_uid))?;
     let request_body = serde_json::to_vec(&params.into())?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
@@ -187,7 +187,7 @@ async fn start_import<E: WebClientEnvironment>(
 }
 
 pub async fn abort<E: WebClientEnvironment>(env: &E) -> anyhow::Result<()> {
-    let request_url = env.join_api_url("media-tracker/abort")?;
+    let request_url = env.join_api_url("mt/abort")?;
     let request = env.client().post(request_url);
     let response = request.send().await?;
     let _ = receive_response_body(response).await?;
@@ -199,7 +199,7 @@ async fn untrack<E: WebClientEnvironment>(
     collection_uid: &EntityUid,
     params: impl Into<aoide_core_ext_serde::media::tracker::untrack::Params>,
 ) -> anyhow::Result<UntrackOutcome> {
-    let request_url = env.join_api_url(&format!("c/{}/media-tracker/untrack", collection_uid))?;
+    let request_url = env.join_api_url(&format!("c/{}/mt/untrack", collection_uid))?;
     let request_body = serde_json::to_vec(&params.into())?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
@@ -218,7 +218,7 @@ async fn purge_untracked<E: WebClientEnvironment>(
     params: impl Into<aoide_core_ext_serde::track::purge_untracked::Params>,
 ) -> anyhow::Result<()> {
     let request_url = env.join_api_url(&format!(
-        "c/{}/media-tracker/purge-untracked",
+        "c/{}/mt/purge-untracked",
         collection_uid
     ))?;
     let request_body = serde_json::to_vec(&params.into())?;
