@@ -14,7 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core::{
-    entity::{EntityHeader, EntityRevision, EntityUid},
+    entity::{EntityHeader, EntityUid},
+    media::SourcePath,
     track::{Entity, Track},
     util::clock::DateTime,
 };
@@ -53,20 +54,21 @@ pub enum ReplaceOutcome {
     NotUpdated(MediaSourceId, RecordId, Track),
 }
 
-pub trait EntityRepo: MediaSourceRepo {
-    fn resolve_track_id(&self, uid: &EntityUid) -> RepoResult<RecordId> {
-        self.resolve_track_entity_revision(uid)
-            .map(|(hdr, _rev)| hdr.id)
-    }
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RecordTrail {
+    pub collection_id: CollectionId,
+    pub media_source_id: MediaSourceId,
+    pub media_source_path: SourcePath,
+}
 
-    fn resolve_track_entity_revision(
-        &self,
-        uid: &EntityUid,
-    ) -> RepoResult<(RecordHeader, EntityRevision)>;
+pub trait EntityRepo: MediaSourceRepo {
+    fn resolve_track_id(&self, uid: &EntityUid) -> RepoResult<RecordId>;
 
     fn load_track_entity(&self, id: RecordId) -> RepoResult<(RecordHeader, Entity)>;
 
     fn load_track_entity_by_uid(&self, uid: &EntityUid) -> RepoResult<(RecordHeader, Entity)>;
+
+    fn load_track_record_trail(&self, id: RecordId) -> RepoResult<RecordTrail>;
 
     fn insert_track_entity(
         &self,

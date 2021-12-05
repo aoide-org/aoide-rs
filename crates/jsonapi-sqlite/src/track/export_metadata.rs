@@ -43,7 +43,6 @@ pub type ResponseBody = Option<DateTime>;
 
 pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
-    collection_uid: &EntityUid,
     track_uid: &EntityUid,
     query_params: QueryParams,
 ) -> Result<ResponseBody> {
@@ -56,7 +55,6 @@ pub fn handle_request(
     let path_resolver = VirtualFilePathResolver::new();
     let media_source_synchronized_at = uc::export_metadata_into_file(
         &pooled_connection,
-        collection_uid,
         track_uid,
         &path_resolver,
         &config,

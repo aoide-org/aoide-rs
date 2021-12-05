@@ -50,7 +50,7 @@ opt-level = 3
 
 [profile.profiling]
 inherits = "release"
-# Keep debug symbols, e.g. for profiling -> results in huge binary!
+# Keep debug symbols for profiling -> results in huge binary!
 debug = true
 
 [profile.production]

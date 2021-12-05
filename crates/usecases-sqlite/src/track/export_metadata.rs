@@ -16,13 +16,12 @@
 use aoide_core::{entity::EntityUid, util::clock::DateTime};
 
 use aoide_media::{io::export::ExportTrackConfig, resolver::VirtualFilePathResolver};
-use aoide_repo::{collection::EntityRepo as _, media::source::Repo as _, track::EntityRepo as _};
+use aoide_repo::track::{EntityRepo as _, RecordTrail};
 
 use super::*;
 
 pub fn export_metadata_into_file(
     connection: &SqliteConnection,
-    collection_uid: &EntityUid,
     track_uid: &EntityUid,
     source_path_resolver: &VirtualFilePathResolver,
     config: &ExportTrackConfig,
@@ -30,12 +29,12 @@ pub fn export_metadata_into_file(
 ) -> Result<Option<DateTime>> {
     let db = RepoConnection::new(connection);
     db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
-        let collection_id = db.resolve_collection_id(collection_uid)?;
         let (record_header, mut track_entity) = db.load_track_entity_by_uid(track_uid)?;
-        let (media_source_id, _) = db.resolve_media_source_id_synchronized_at_by_path(
-            collection_id,
-            &track_entity.body.media_source.path,
-        )?;
+        let RecordTrail {
+            collection_id: _,
+            media_source_id,
+            media_source_path: _,
+        } = db.load_track_record_trail(record_header.id)?;
         let media_source_synchronized_at = track_entity.body.media_source.synchronized_at;
         uc::media::export_track_metadata_into_file(
             source_path_resolver,

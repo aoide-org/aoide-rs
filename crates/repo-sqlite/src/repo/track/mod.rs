@@ -18,7 +18,7 @@ use std::time::Instant;
 use diesel::dsl::count_star;
 
 use aoide_core::{
-    entity::{EntityHeader, EntityRevision, EntityUid},
+    entity::{EntityHeader, EntityUid},
     media::Source,
     tag::*,
     track::{actor::Actor, cue::Cue, title::Title, *},
@@ -35,6 +35,7 @@ use aoide_repo::{
 
 use crate::{
     db::{
+        collection::schema::*,
         media_source::{schema::*, subselect as media_source_subselect},
         track::{models::*, schema::*, *},
     },
@@ -398,28 +399,35 @@ fn preload_entity(
 }
 
 impl<'db> EntityRepo for crate::Connection<'db> {
-    fn resolve_track_entity_revision(
-        &self,
-        uid: &EntityUid,
-    ) -> RepoResult<(RecordHeader, EntityRevision)> {
+    fn resolve_track_id(&self, uid: &EntityUid) -> RepoResult<RecordId> {
         track::table
-            .select((
-                track::row_id,
-                track::row_created_ms,
-                track::row_updated_ms,
-                track::entity_rev,
-            ))
+            .select(track::row_id)
             .filter(track::entity_uid.eq(uid.as_ref()))
-            .first::<(RowId, TimestampMillis, TimestampMillis, i64)>(self.as_ref())
+            .first::<RowId>(self.as_ref())
             .map_err(repo_error)
-            .map(|(row_id, row_created_ms, row_updated_ms, entity_rev)| {
-                let header = RecordHeader {
-                    id: row_id.into(),
-                    created_at: DateTime::new_timestamp_millis(row_created_ms),
-                    updated_at: DateTime::new_timestamp_millis(row_updated_ms),
-                };
-                (header, entity_revision_from_sql(entity_rev))
-            })
+            .map(Into::into)
+    }
+
+    fn load_track_record_trail(&self, id: RecordId) -> RepoResult<RecordTrail> {
+        media_source::table
+            .inner_join(collection::table)
+            .select((media_source::row_id, media_source::path, collection::row_id))
+            .filter(
+                media_source::row_id.eq_any(
+                    track::table
+                        .select(track::media_source_id)
+                        .filter(track::row_id.eq(RowId::from(id))),
+                ),
+            )
+            .first::<(RowId, String, RowId)>(self.as_ref())
+            .map_err(repo_error)
+            .map(
+                |(media_source_id, media_source_path, collection_id)| RecordTrail {
+                    media_source_id: media_source_id.into(),
+                    media_source_path: media_source_path.into(),
+                    collection_id: collection_id.into(),
+                },
+            )
     }
 
     fn insert_track_entity(
