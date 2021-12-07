@@ -105,7 +105,7 @@ pub fn create_filters(
     let collections_path = warp::path("c");
     let tracks_path = warp::path("t");
     let playlists_path = warp::path("p");
-    let media_path = warp::path("m");
+    let media_source_path = warp::path("ms");
     let media_tracker_path = warp::path("mt");
     let storage_path = warp::path("storage");
 
@@ -887,7 +887,7 @@ pub fn create_filters(
         .or(playlists_entries_patch);
 
     let media_import_track = warp::post()
-        .and(media_path)
+        .and(media_source_path)
         .and(warp::path("import-track"))
         .and(warp::path::end())
         .and(warp::query())

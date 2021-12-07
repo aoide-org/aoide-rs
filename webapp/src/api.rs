@@ -179,10 +179,7 @@ pub async fn query_collection_media_status(
     collection_uid: EntityUid,
     params: impl Into<SerdeQueryCollectionMediaStatusParams>,
 ) -> Result<QueryCollectionMediaStatusOutcome> {
-    let url = format!(
-        "{}/c/{}/mt/query-status",
-        BASE_URL, collection_uid
-    );
+    let url = format!("{}/c/{}/mt/query-status", BASE_URL, collection_uid);
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
@@ -196,10 +193,7 @@ pub async fn purge_untracked_from_collection(
     collection_uid: EntityUid,
     params: impl Into<SerdePurgeUntrackedFromCollectionParams>,
 ) -> Result<PurgeUntrackedFromCollectionOutcome> {
-    let url = format!(
-        "{}/c/{}/mt/purge-untracked",
-        BASE_URL, collection_uid
-    );
+    let url = format!("{}/c/{}/mt/purge-untracked", BASE_URL, collection_uid);
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
