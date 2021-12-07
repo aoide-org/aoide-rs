@@ -16,7 +16,10 @@ repos:
   - id: forbid-new-submodules
   - id: mixed-line-ending
   - id: no-commit-to-branch
-    args: [--branch, main ]
+    args: [
+      --branch,
+      main,
+    ]
   - id: trailing-whitespace
 - repo: https://github.com/DavidAnson/markdownlint-cli2
   rev: v0.3.2
@@ -31,7 +34,9 @@ repos:
   rev: v2.1.0
   hooks:
   - id: codespell
-    args: [--ignore-words=.codespellignore]
+    args: [
+      --ignore-words=.codespellignore,
+    ]
 - repo: https://github.com/doublify/pre-commit-rust
   rev: v1.0
   hooks:

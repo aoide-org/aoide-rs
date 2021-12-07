@@ -18,8 +18,8 @@ use std::{convert::TryFrom as _, fmt, path::Path, str::FromStr};
 use anyhow::Context as _;
 use chrono::{NaiveDateTime, Utc};
 use image::{
-    guess_format, load_from_memory, load_from_memory_with_format, GenericImageView, ImageError,
-    ImageFormat,
+    guess_format, load_from_memory, load_from_memory_with_format, DynamicImage, GenericImageView,
+    ImageError, ImageFormat,
 };
 use mime::{Mime, IMAGE_BMP, IMAGE_GIF, IMAGE_JPEG, IMAGE_PNG, IMAGE_STAR};
 use nom::{
@@ -403,78 +403,108 @@ pub fn parse_index_numbers(input: &str) -> Option<Index> {
 pub type ArtworkResult = std::result::Result<Artwork, ImageError>;
 
 pub fn load_artwork_image(
-    apic_type: ApicType,
     image_data: &[u8],
-    image_format: Option<ImageFormat>,
-    image_digest: &mut MediaDigest,
-) -> anyhow::Result<ArtworkImage> {
-    let image_format = image_format.or_else(|| guess_format(image_data).ok());
-    let media_type = match image_format {
-        Some(ImageFormat::Jpeg) => IMAGE_JPEG.to_string(),
-        Some(ImageFormat::Png) => IMAGE_PNG.to_string(),
-        Some(ImageFormat::Gif) => IMAGE_GIF.to_string(),
-        Some(ImageFormat::Bmp) => IMAGE_BMP.to_string(),
-        Some(ImageFormat::WebP) => "image/webp".to_string(),
-        Some(ImageFormat::Tiff) => "image/tiff".to_string(),
-        Some(ImageFormat::Tga) => "image/tga".to_string(),
-        Some(format) => {
-            tracing::info!("Unusual image format {:?}", format);
-            IMAGE_STAR.to_string()
-        }
-        None => {
-            tracing::info!("Unknown image format");
-            IMAGE_STAR.to_string()
-        }
-    };
-    if let Some(format) = image_format {
-        load_from_memory_with_format(image_data, format)
+    image_format_hint: Option<ImageFormat>,
+    media_type_hint: Option<String>,
+) -> anyhow::Result<(String, DynamicImage)> {
+    let image_format = image_format_hint.or_else(|| guess_format(image_data).ok());
+    if let Some(image_format) = image_format {
+        load_from_memory_with_format(image_data, image_format)
     } else {
         load_from_memory(image_data)
     }
-    .with_context(|| "Failed to load image")
-    .and_then(|image| {
-        let (width, height) = image.dimensions();
-        let clamped_with = width as ImageDimension;
-        let clamped_height = height as ImageDimension;
-        if width != clamped_with as u32 && height != clamped_height as u32 {
-            anyhow::bail!("Unsupported image size: {}x{}", width, height);
-        }
-        let size = ImageSize {
-            width: clamped_with,
-            height: clamped_height,
-        };
-        let digest = image_digest.digest_content(image_data);
-        let image_4x4 = image.resize_exact(4, 4, image::imageops::FilterType::Lanczos3);
-        let thumbnail = Thumbnail4x4Rgb8::try_from(image_4x4.to_rgb8().into_raw()).ok();
-        debug_assert!(thumbnail.is_some());
-        Ok(ArtworkImage {
+    .with_context(|| "Failed to load embedded artwork image")
+    .map(|image| {
+        let media_type = media_type_hint
+            .or_else(|| {
+                image_format.map(|image_format| match image_format {
+                    ImageFormat::Jpeg => IMAGE_JPEG.to_string(),
+                    ImageFormat::Png => IMAGE_PNG.to_string(),
+                    ImageFormat::Gif => IMAGE_GIF.to_string(),
+                    ImageFormat::Bmp => IMAGE_BMP.to_string(),
+                    ImageFormat::WebP => "image/webp".to_owned(),
+                    ImageFormat::Tiff => "image/tiff".to_owned(),
+                    ImageFormat::Tga => "image/tga".to_owned(),
+                    unsupported_format => {
+                        tracing::info!("Unsupported image format {:?}", unsupported_format);
+                        IMAGE_STAR.to_string()
+                    }
+                })
+            })
+            .unwrap_or_else(|| {
+                tracing::info!("Unknown image format");
+                IMAGE_STAR.to_string()
+            });
+        (media_type, image)
+    })
+}
+
+pub fn ingest_artwork_image(
+    apic_type: ApicType,
+    image_data: &[u8],
+    image_format_hint: Option<ImageFormat>,
+    media_type_hint: Option<String>,
+    image_digest: &mut MediaDigest,
+) -> anyhow::Result<(ArtworkImage, DynamicImage)> {
+    let (media_type, image) = load_artwork_image(image_data, image_format_hint, media_type_hint)?;
+    let (width, height) = image.dimensions();
+    let clamped_with = width as ImageDimension;
+    let clamped_height = height as ImageDimension;
+    if width != clamped_with as u32 && height != clamped_height as u32 {
+        anyhow::bail!("Unsupported image size: {}x{}", width, height);
+    }
+    let size = ImageSize {
+        width: clamped_with,
+        height: clamped_height,
+    };
+    let digest = image_digest.digest_content(image_data);
+    let image_4x4 = image.resize_exact(4, 4, image::imageops::FilterType::Lanczos3);
+    let thumbnail = Thumbnail4x4Rgb8::try_from(image_4x4.to_rgb8().into_raw()).ok();
+    debug_assert!(thumbnail.is_some());
+    Ok((
+        ArtworkImage {
             media_type,
             apic_type,
             size: Some(size),
             digest,
             thumbnail,
-        })
-    })
+        },
+        image,
+    ))
 }
 
-pub fn try_load_embedded_artwork(
+pub fn try_ingest_embedded_artwork_image(
     media_source_path: &SourcePath,
     apic_type: ApicType,
     image_data: &[u8],
-    image_format: Option<ImageFormat>,
+    image_format_hint: Option<ImageFormat>,
+    media_type_hint: Option<String>,
     image_digest: &mut MediaDigest,
-) -> Option<EmbeddedArtwork> {
-    load_artwork_image(apic_type, image_data, image_format, image_digest)
-        .map(|image| EmbeddedArtwork { image })
-        .map(Some)
-        .unwrap_or_else(|err| {
-            tracing::warn!(
-                "Failed to load artwork from embedded image in '{}': {}",
-                media_source_path,
-                err
-            );
-            None
-        })
+) -> Option<(EmbeddedArtwork, DynamicImage)> {
+    ingest_artwork_image(
+        apic_type,
+        image_data,
+        image_format_hint,
+        media_type_hint,
+        image_digest,
+    )
+    .map(|(artwork_image, dynamic_image)| {
+        (
+            EmbeddedArtwork {
+                image: artwork_image,
+            },
+            dynamic_image,
+        )
+    })
+    .map(Some)
+    .unwrap_or_else(|err| {
+        tracing::warn!(
+            "Failed to ingest artwork from embedded image in '{}': {}",
+            media_source_path,
+            err
+        );
+        None
+    })
 }
 
 ///////////////////////////////////////////////////////////////////////

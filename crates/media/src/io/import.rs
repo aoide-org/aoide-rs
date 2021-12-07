@@ -15,7 +15,10 @@
 
 ///////////////////////////////////////////////////////////////////////
 
-use crate::{util::tag::FacetedTagMappingConfig, Result};
+use crate::{
+    util::{digest::MediaDigest, tag::FacetedTagMappingConfig},
+    Result,
+};
 
 use aoide_core::{
     media::{Content, Source, SourcePath},
@@ -47,6 +50,20 @@ bitflags! {
 impl ImportTrackFlags {
     pub fn is_valid(self) -> bool {
         Self::all().contains(self)
+    }
+
+    pub fn new_artwork_digest(self) -> MediaDigest {
+        if self.contains(Self::ARTWORK_DIGEST) {
+            if self.contains(Self::ARTWORK_DIGEST_SHA256) {
+                // Compatibility
+                MediaDigest::sha256()
+            } else {
+                // Default
+                MediaDigest::new()
+            }
+        } else {
+            Default::default()
+        }
     }
 }
 

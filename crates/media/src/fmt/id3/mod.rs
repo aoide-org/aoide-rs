@@ -55,13 +55,12 @@ use crate::{
         import::{ImportTrackConfig, ImportTrackFlags},
     },
     util::{
-        digest::MediaDigest,
         format_valid_replay_gain, format_validated_tempo_bpm, parse_index_numbers,
         parse_key_signature, parse_replay_gain, parse_tempo_bpm, push_next_actor_role_name, serato,
         tag::{
             import_faceted_tags_from_label_value_iter, FacetedTagMappingConfig, TagMappingConfig,
         },
-        try_load_embedded_artwork,
+        try_ingest_embedded_artwork_image,
     },
     Error, Result,
 };
@@ -175,6 +174,47 @@ fn import_faceted_tags_from_text_frames(
         facet_id,
         text_frames(tag, frame_id).map(ToOwned::to_owned),
     )
+}
+
+pub fn find_embedded_artwork_image(tag: &id3::Tag) -> Option<(ApicType, &str, &[u8])> {
+    tag.pictures()
+        .filter_map(|p| {
+            if p.picture_type == PictureType::CoverFront {
+                Some((ApicType::CoverFront, p))
+            } else {
+                None
+            }
+        })
+        .chain(tag.pictures().filter_map(|p| {
+            if p.picture_type == PictureType::Media {
+                Some((ApicType::Media, p))
+            } else {
+                None
+            }
+        }))
+        .chain(tag.pictures().filter_map(|p| {
+            if p.picture_type == PictureType::Leaflet {
+                Some((ApicType::Leaflet, p))
+            } else {
+                None
+            }
+        }))
+        .chain(tag.pictures().filter_map(|p| {
+            if p.picture_type == PictureType::Other {
+                Some((ApicType::Other, p))
+            } else {
+                None
+            }
+        }))
+        // otherwise take the first picture that could be parsed
+        .chain(tag.pictures().map(|p| {
+            (
+                ApicType::from_u8(p.picture_type.into()).unwrap_or(ApicType::Other),
+                p,
+            )
+        }))
+        .map(|(apic_type, p)| (apic_type, p.mime_type.as_str(), p.data.as_slice()))
+        .next()
 }
 
 pub fn import_track(
@@ -532,73 +572,19 @@ pub fn import_track(
 
     // Artwork
     if config.flags.contains(ImportTrackFlags::EMBEDDED_ARTWORK) {
-        let mut image_digest = if config.flags.contains(ImportTrackFlags::ARTWORK_DIGEST) {
-            if config
-                .flags
-                .contains(ImportTrackFlags::ARTWORK_DIGEST_SHA256)
-            {
-                // Compatibility
-                MediaDigest::sha256()
-            } else {
-                // Default
-                MediaDigest::new()
-            }
-        } else {
-            Default::default()
-        };
-        let artwork = tag
-            .pictures()
-            .filter_map(|p| {
-                if p.picture_type == PictureType::CoverFront {
-                    Some((ApicType::CoverFront, p))
-                } else {
-                    None
-                }
-            })
-            .chain(tag.pictures().filter_map(|p| {
-                if p.picture_type == PictureType::Media {
-                    Some((ApicType::Media, p))
-                } else {
-                    None
-                }
-            }))
-            .chain(tag.pictures().filter_map(|p| {
-                if p.picture_type == PictureType::Leaflet {
-                    Some((ApicType::Leaflet, p))
-                } else {
-                    None
-                }
-            }))
-            .chain(tag.pictures().filter_map(|p| {
-                if p.picture_type == PictureType::Other {
-                    Some((ApicType::Other, p))
-                } else {
-                    None
-                }
-            }))
-            // otherwise take the first picture that could be parsed
-            .chain(tag.pictures().map(|p| {
-                (
-                    ApicType::from_u8(p.picture_type.into()).unwrap_or(ApicType::Other),
-                    p,
-                )
-            }))
-            .filter_map(|(t, p)| {
-                try_load_embedded_artwork(
+        track.media_source.artwork = find_embedded_artwork_image(tag)
+            .and_then(|(apic_type, media_type, image_data)| {
+                try_ingest_embedded_artwork_image(
                     &track.media_source.path,
-                    t,
-                    &p.data,
+                    apic_type,
+                    image_data,
                     None,
-                    &mut image_digest,
+                    Some(media_type.to_owned()),
+                    &mut config.flags.new_artwork_digest(),
                 )
-                .map(Artwork::Embedded)
             })
-            .next();
-        if artwork.is_some() {
-            track.media_source.artwork = artwork;
-        } else {
-            track.media_source.artwork = Some(Artwork::Missing);
-        }
+            .map(|(embedded, _)| Artwork::Embedded(embedded))
+            .or(Some(Artwork::Missing));
     }
 
     // Serato Tags

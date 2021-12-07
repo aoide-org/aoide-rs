@@ -123,8 +123,7 @@ async fn fetch_status<E: WebClientEnvironment>(
     collection_uid: &EntityUid,
     params: impl Into<aoide_core_ext_serde::media::tracker::query_status::Params>,
 ) -> anyhow::Result<Status> {
-    let request_url =
-        env.join_api_url(&format!("c/{}/mt/query-status", collection_uid))?;
+    let request_url = env.join_api_url(&format!("c/{}/mt/query-status", collection_uid))?;
     let request_body = serde_json::to_vec(&params.into())?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
@@ -217,10 +216,7 @@ async fn purge_untracked<E: WebClientEnvironment>(
     collection_uid: &EntityUid,
     params: impl Into<aoide_core_ext_serde::track::purge_untracked::Params>,
 ) -> anyhow::Result<()> {
-    let request_url = env.join_api_url(&format!(
-        "c/{}/mt/purge-untracked",
-        collection_uid
-    ))?;
+    let request_url = env.join_api_url(&format!("c/{}/mt/purge-untracked", collection_uid))?;
     let request_body = serde_json::to_vec(&params.into())?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;

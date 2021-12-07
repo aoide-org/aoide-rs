@@ -37,7 +37,7 @@ use aoide_core::{
 
 use crate::{
     io::import::{self, *},
-    util::{digest::MediaDigest, push_next_actor_role_name, serato, try_load_embedded_artwork},
+    util::{push_next_actor_role_name, serato, try_ingest_embedded_artwork_image},
     Error, Result,
 };
 
@@ -87,6 +87,58 @@ fn map_vorbis_err(err: VorbisError) -> Error {
         VorbisError::OggError(OggReadError::ReadError(err)) => Error::Io(err),
         err => Error::Other(anyhow::Error::from(err)),
     }
+}
+
+pub fn find_embedded_artwork_image(
+    vorbis_comments: &[(String, String)],
+) -> Option<(ApicType, String, Vec<u8>)> {
+    // https://wiki.xiph.org/index.php/VorbisComment#Cover_art
+    // The unofficial COVERART field in a VorbisComment tag is deprecated:
+    // https://wiki.xiph.org/VorbisComment#Unofficial_COVERART_field_.28deprecated.29
+    let picture_iter_by_type = |picture_type: Option<PictureType>| {
+        filter_vorbis_comment_values(vorbis_comments, "METADATA_BLOCK_PICTURE")
+            .chain(filter_vorbis_comment_values(vorbis_comments, "COVERART"))
+            .filter_map(|base64_data| {
+                base64::decode(base64_data)
+                    .map_err(|err| {
+                        tracing::warn!("Failed to decode base64 encoded picture block: {}", err);
+                        err
+                    })
+                    .ok()
+            })
+            .filter_map(|decoded| {
+                metaflac::block::Picture::from_bytes(&decoded[..])
+                    .map_err(|err| {
+                        tracing::warn!("Failed to decode FLAC picture block: {}", err);
+                        err
+                    })
+                    .ok()
+            })
+            .filter(move |picture| {
+                if let Some(picture_type) = picture_type {
+                    picture.picture_type == picture_type
+                } else {
+                    true
+                }
+            })
+    };
+    // Decoding and discarding the blocks multiple times is inefficient
+    // but expected to occur only infrequently. Most files will include
+    // just a front cover and nothing else.
+    picture_iter_by_type(Some(PictureType::CoverFront))
+        .chain(picture_iter_by_type(Some(PictureType::Media)))
+        .chain(picture_iter_by_type(Some(PictureType::Leaflet)))
+        .chain(picture_iter_by_type(Some(PictureType::Other)))
+        // otherwise take the first picture that could be parsed
+        .chain(picture_iter_by_type(None))
+        .map(|p| {
+            (
+                ApicType::from_u8(p.picture_type as u8).unwrap_or(ApicType::Other),
+                p.mime_type,
+                p.data,
+            )
+        })
+        .next()
 }
 
 #[derive(Debug)]
@@ -322,78 +374,19 @@ impl import::ImportTrack for ImportTrack {
         }
 
         if config.flags.contains(ImportTrackFlags::EMBEDDED_ARTWORK) {
-            let mut image_digest = if config.flags.contains(ImportTrackFlags::ARTWORK_DIGEST) {
-                if config
-                    .flags
-                    .contains(ImportTrackFlags::ARTWORK_DIGEST_SHA256)
-                {
-                    // Compatibility
-                    MediaDigest::sha256()
-                } else {
-                    // Default
-                    MediaDigest::new()
-                }
-            } else {
-                Default::default()
-            };
-            // https://wiki.xiph.org/index.php/VorbisComment#Cover_art
-            // The unofficial COVERART field in a VorbisComment tag is deprecated:
-            // https://wiki.xiph.org/VorbisComment#Unofficial_COVERART_field_.28deprecated.29
-            let picture_iter_by_type = |picture_type: Option<PictureType>| {
-                filter_vorbis_comment_values(vorbis_comments, "METADATA_BLOCK_PICTURE")
-                    .chain(filter_vorbis_comment_values(vorbis_comments, "COVERART"))
-                    .filter_map(|base64_data| {
-                        base64::decode(base64_data)
-                            .map_err(|err| {
-                                tracing::warn!(
-                                    "Failed to decode base64 encoded picture block: {}",
-                                    err
-                                );
-                                err
-                            })
-                            .ok()
-                    })
-                    .filter_map(|decoded| {
-                        metaflac::block::Picture::from_bytes(&decoded[..])
-                            .map_err(|err| {
-                                tracing::warn!("Failed to decode FLAC picture block: {}", err);
-                                err
-                            })
-                            .ok()
-                    })
-                    .filter(move |picture| {
-                        if let Some(picture_type) = picture_type {
-                            picture.picture_type == picture_type
-                        } else {
-                            true
-                        }
-                    })
-            };
-            // Decoding and discarding the blocks multiple times is inefficient
-            // but expected to occur only infrequently. Most files will include
-            // just a front cover and nothing else.
-            let artwork = picture_iter_by_type(Some(PictureType::CoverFront))
-                .chain(picture_iter_by_type(Some(PictureType::Media)))
-                .chain(picture_iter_by_type(Some(PictureType::Leaflet)))
-                .chain(picture_iter_by_type(Some(PictureType::Other)))
-                // otherwise take the first picture that could be parsed
-                .chain(picture_iter_by_type(None))
-                .filter_map(|p| {
-                    try_load_embedded_artwork(
+            track.media_source.artwork = find_embedded_artwork_image(vorbis_comments)
+                .and_then(|(apic_type, media_type, image_data)| {
+                    try_ingest_embedded_artwork_image(
                         &track.media_source.path,
-                        ApicType::from_u8(p.picture_type as u8).unwrap_or(ApicType::Other),
-                        &p.data,
+                        apic_type,
+                        &image_data,
                         None,
-                        &mut image_digest,
+                        Some(media_type),
+                        &mut config.flags.new_artwork_digest(),
                     )
                 })
-                .map(Artwork::Embedded)
-                .next();
-            if artwork.is_some() {
-                track.media_source.artwork = artwork;
-            } else {
-                track.media_source.artwork = Some(Artwork::Missing);
-            }
+                .map(|(embedded, _)| Artwork::Embedded(embedded))
+                .or(Some(Artwork::Missing));
         }
 
         // Serato Tags

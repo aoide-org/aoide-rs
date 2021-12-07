@@ -35,7 +35,7 @@ use crate::{
         export::{self, *},
         import::{self, *},
     },
-    util::{digest::MediaDigest, push_next_actor_role_name, serato, try_load_embedded_artwork},
+    util::{push_next_actor_role_name, serato, try_ingest_embedded_artwork_image},
     Error, Result,
 };
 
@@ -68,6 +68,47 @@ fn map_err(err: metaflac::Error) -> Error {
         metaflac::ErrorKind::Io(err) => Error::Io(err),
         kind => Error::Other(anyhow::Error::from(metaflac::Error { kind, description })),
     }
+}
+
+pub fn find_embedded_artwork_image(tag: &metaflac::Tag) -> Option<(ApicType, &str, &[u8])> {
+    tag.pictures()
+        .filter_map(|p| {
+            if p.picture_type == PictureType::CoverFront {
+                Some((ApicType::CoverFront, p))
+            } else {
+                None
+            }
+        })
+        .chain(tag.pictures().filter_map(|p| {
+            if p.picture_type == PictureType::Media {
+                Some((ApicType::Media, p))
+            } else {
+                None
+            }
+        }))
+        .chain(tag.pictures().filter_map(|p| {
+            if p.picture_type == PictureType::Leaflet {
+                Some((ApicType::Leaflet, p))
+            } else {
+                None
+            }
+        }))
+        .chain(tag.pictures().filter_map(|p| {
+            if p.picture_type == PictureType::Other {
+                Some((ApicType::Other, p))
+            } else {
+                None
+            }
+        }))
+        // otherwise take the first picture that could be parsed
+        .chain(tag.pictures().map(|p| {
+            (
+                ApicType::from_u8(p.picture_type as u8).unwrap_or(ApicType::Other),
+                p,
+            )
+        }))
+        .map(|(apic_type, p)| (apic_type, p.mime_type.as_str(), p.data.as_slice()))
+        .next()
 }
 
 #[derive(Debug)]
@@ -327,73 +368,19 @@ impl import::ImportTrack for ImportTrack {
         }
 
         if config.flags.contains(ImportTrackFlags::EMBEDDED_ARTWORK) {
-            let mut image_digest = if config.flags.contains(ImportTrackFlags::ARTWORK_DIGEST) {
-                if config
-                    .flags
-                    .contains(ImportTrackFlags::ARTWORK_DIGEST_SHA256)
-                {
-                    // Compatibility
-                    MediaDigest::sha256()
-                } else {
-                    // Default
-                    MediaDigest::new()
-                }
-            } else {
-                Default::default()
-            };
-            let artwork = flac_tag
-                .pictures()
-                .filter_map(|p| {
-                    if p.picture_type == PictureType::CoverFront {
-                        Some((ApicType::CoverFront, p))
-                    } else {
-                        None
-                    }
-                })
-                .chain(flac_tag.pictures().filter_map(|p| {
-                    if p.picture_type == PictureType::Media {
-                        Some((ApicType::Media, p))
-                    } else {
-                        None
-                    }
-                }))
-                .chain(flac_tag.pictures().filter_map(|p| {
-                    if p.picture_type == PictureType::Leaflet {
-                        Some((ApicType::Leaflet, p))
-                    } else {
-                        None
-                    }
-                }))
-                .chain(flac_tag.pictures().filter_map(|p| {
-                    if p.picture_type == PictureType::Other {
-                        Some((ApicType::Other, p))
-                    } else {
-                        None
-                    }
-                }))
-                // otherwise take the first picture that could be parsed
-                .chain(flac_tag.pictures().map(|p| {
-                    (
-                        ApicType::from_u8(p.picture_type as u8).unwrap_or(ApicType::Other),
-                        p,
-                    )
-                }))
-                .filter_map(|(t, p)| {
-                    try_load_embedded_artwork(
+            track.media_source.artwork = find_embedded_artwork_image(&flac_tag)
+                .and_then(|(apic_type, media_type, image_data)| {
+                    try_ingest_embedded_artwork_image(
                         &track.media_source.path,
-                        t,
-                        &p.data,
+                        apic_type,
+                        image_data,
                         None,
-                        &mut image_digest,
+                        Some(media_type.to_owned()),
+                        &mut config.flags.new_artwork_digest(),
                     )
-                    .map(Artwork::Embedded)
                 })
-                .next();
-            if artwork.is_some() {
-                track.media_source.artwork = artwork;
-            } else {
-                track.media_source.artwork = Some(Artwork::Missing);
-            }
+                .map(|(embedded, _)| Artwork::Embedded(embedded))
+                .or(Some(Artwork::Missing));
         }
 
         debug_assert!(track.tags.is_empty());

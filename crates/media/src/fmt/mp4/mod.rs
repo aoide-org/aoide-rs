@@ -54,14 +54,13 @@ use crate::{
         import::{self, *},
     },
     util::{
-        digest::MediaDigest,
         format_valid_replay_gain, format_validated_tempo_bpm, parse_key_signature,
         parse_replay_gain, parse_tempo_bpm, parse_year_tag, push_next_actor_role_name, serato,
         tag::{
             import_faceted_tags_from_label_value_iter, import_plain_tags_from_joined_label_value,
             TagMappingConfig,
         },
-        try_load_embedded_artwork,
+        try_ingest_embedded_artwork_image,
     },
     Error, Result,
 };
@@ -176,6 +175,21 @@ const SERATO_MARKERS2_IDENT: FreeformIdent<'static> = FreeformIdent::new(
     SeratoMarkers2::MP4_ATOM_FREEFORM_MEAN,
     SeratoMarkers2::MP4_ATOM_FREEFORM_NAME,
 );
+
+pub fn find_embedded_artwork_image(tag: &Mp4Tag) -> Option<(ApicType, ImageFormat, &[u8])> {
+    tag.artworks()
+        .map(|img| {
+            let image_format = match img.fmt {
+                ImgFmt::Jpeg => ImageFormat::Jpeg,
+                ImgFmt::Png => ImageFormat::Png,
+                ImgFmt::Bmp => ImageFormat::Bmp,
+            };
+            // Unspecific APIC type
+            (ApicType::Other, image_format, img.data)
+        })
+        // Only consider the 1st embedded image as artwork
+        .next()
+}
 
 impl import::ImportTrack for ImportTrack {
     fn import_track(
@@ -501,40 +515,19 @@ impl import::ImportTrack for ImportTrack {
 
         // Artwork
         if config.flags.contains(ImportTrackFlags::EMBEDDED_ARTWORK) {
-            let mut image_digest = if config.flags.contains(ImportTrackFlags::ARTWORK_DIGEST) {
-                if config
-                    .flags
-                    .contains(ImportTrackFlags::ARTWORK_DIGEST_SHA256)
-                {
-                    // Compatibility
-                    MediaDigest::sha256()
-                } else {
-                    // Default
-                    MediaDigest::new()
-                }
-            } else {
-                Default::default()
-            };
-            track.media_source.artwork = Some(Artwork::Missing);
-            for image in mp4_tag.artworks() {
-                let (image_data, image_format) = match image.fmt {
-                    ImgFmt::Jpeg => (image.data, Some(ImageFormat::Jpeg)),
-                    ImgFmt::Png => (image.data, Some(ImageFormat::Png)),
-                    ImgFmt::Bmp => (image.data, Some(ImageFormat::Bmp)),
-                };
-                let artwork = try_load_embedded_artwork(
-                    &track.media_source.path,
-                    ApicType::Other,
-                    image_data,
-                    image_format,
-                    &mut image_digest,
-                )
-                .map(Artwork::Embedded);
-                if artwork.is_some() {
-                    track.media_source.artwork = artwork;
-                    break;
-                }
-            }
+            track.media_source.artwork = find_embedded_artwork_image(&mp4_tag)
+                .and_then(|(apic_type, image_format, image_data)| {
+                    try_ingest_embedded_artwork_image(
+                        &track.media_source.path,
+                        apic_type,
+                        image_data,
+                        Some(image_format),
+                        None,
+                        &mut config.flags.new_artwork_digest(),
+                    )
+                })
+                .map(|(embedded, _)| Artwork::Embedded(embedded))
+                .or(Some(Artwork::Missing));
         }
 
         // Serato Tags
