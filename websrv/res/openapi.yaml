@@ -1082,23 +1082,27 @@ components:
         Used for artwork classification, not necessarily in conjunction with ID3v2 tags.
     Artwork:
       description: |
-        If both `uri` and `image` are undefined or null then the artwork
-        is considered as missing or not available.
+        If both `uri` and `image` are undefined or null then the `source`
+        property can be either `missing`, `unsupported`, or `irregular`.
 
-        If the `uri` is defined then the `image` property is mandatory,
-        referencing an external, linked image resource, e.g. "file://cover%20art.jpg"
-        for a JPEG file named "cover art.jpg" located oin the same local directory
-        as the media source itself. Both absolute and relative URIs are supported.
+        If only the `image` property and no `uri` is defined then the `source`
+        must be set to `embedded`, i.e. the image is embedded in the media source.
 
-        If only the `image` property is defined then the image is embedded
-        in the media source. The `apic_type` identifies the corresponding
-        storage location inside the file if multiple images are available.
+        If both `image` and `uri` are defined then `source` must be set to `linked`.
+        The percent-encoded URI references an external, linked image resource,
+        e.g. "file://cover%20art.jpg" for a JPEG file named "cover art.jpg"
+        located in the same local directory as the media source itself.
+        Both absolute and relative URIs are supported.
       type: object
       properties:
-        uri:
-          $ref: '#/components/schemas/PercentEncodedUri'
+        source:
+          $ref: '#/components/schemas/ArtworkSource'
         image:
           $ref: '#/components/schemas/ArtworkImage'
+        uri:
+          $ref: '#/components/schemas/PercentEncodedUri'
+      required:
+        - source
     ArtworkImage:
       description: |
         Artwork image properties
@@ -1117,6 +1121,16 @@ components:
       required:
         - apicType
         - mediaType
+    ArtworkSource:
+      description: |
+        The source and state of the artwork.
+      type: string
+      enum:
+        - missing
+        - unsupported
+        - irregular
+        - embedded
+        - linked
     AudioContent:
       type: object
       properties:

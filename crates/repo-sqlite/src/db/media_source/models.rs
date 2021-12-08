@@ -239,6 +239,8 @@ impl<'a> InsertableRecord<'a> {
             .as_ref()
             .map(|artwork| match artwork {
                 Artwork::Missing => (Some(ArtworkSource::Missing), None, None),
+                Artwork::Unsupported => (Some(ArtworkSource::Unsupported), None, None),
+                Artwork::Irregular => (Some(ArtworkSource::Irregular), None, None),
                 Artwork::Embedded(EmbeddedArtwork { image }) => {
                     (Some(ArtworkSource::Embedded), None, Some(image))
                 }
@@ -369,6 +371,8 @@ impl<'a> UpdatableRecord<'a> {
             .as_ref()
             .map(|artwork| match artwork {
                 Artwork::Missing => (Some(ArtworkSource::Missing), None, None),
+                Artwork::Unsupported => (Some(ArtworkSource::Unsupported), None, None),
+                Artwork::Irregular => (Some(ArtworkSource::Irregular), None, None),
                 Artwork::Embedded(EmbeddedArtwork { image }) => {
                     (Some(ArtworkSource::Embedded), None, Some(image))
                 }

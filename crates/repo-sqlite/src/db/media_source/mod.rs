@@ -22,6 +22,8 @@ use aoide_repo::media::source::RecordHeader;
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[repr(i16)]
 enum ArtworkSource {
+    Irregular = -2,
+    Unsupported = -1,
     Missing = 0,
     Embedded = 1,
     Linked = 2,

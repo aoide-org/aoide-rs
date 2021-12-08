@@ -462,6 +462,12 @@ pub enum Artwork {
     /// Artwork has been looked up at least once but nothing has been found.
     Missing,
 
+    /// Artwork has been looked up at least once but the media type was not supported (yet).
+    Unsupported,
+
+    /// Artwork has been looked up at least once but the import failed unexpectedly.
+    Irregular,
+
     /// The artwork is embedded in the media source.
     Embedded(EmbeddedArtwork),
 
@@ -480,7 +486,7 @@ impl Validate for Artwork {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         let mut context = ValidationContext::new();
         match self {
-            Self::Missing => (),
+            Self::Missing | Self::Unsupported | Self::Irregular => (),
             Self::Embedded(embedded) => {
                 context = context.validate_with(&embedded.image, Self::Invalidity::Image);
             }

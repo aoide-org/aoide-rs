@@ -302,6 +302,8 @@ impl TryFrom<ArtworkImage> for _core::ArtworkImage {
 #[serde(rename_all = "kebab-case")]
 pub enum ArtworkSource {
     Missing,
+    Unsupported,
+    Irregular,
     Embedded,
     Linked,
 }
@@ -312,10 +314,10 @@ pub struct Artwork {
     source: ArtworkSource,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    uri: Option<String>,
+    image: Option<ArtworkImage>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    image: Option<ArtworkImage>,
+    uri: Option<String>,
 }
 
 impl TryFrom<Artwork> for _core::Artwork {
@@ -328,6 +330,16 @@ impl TryFrom<Artwork> for _core::Artwork {
                 debug_assert!(uri.is_none());
                 debug_assert!(image.is_none());
                 Ok(_core::Artwork::Missing)
+            }
+            ArtworkSource::Unsupported => {
+                debug_assert!(uri.is_none());
+                debug_assert!(image.is_none());
+                Ok(_core::Artwork::Unsupported)
+            }
+            ArtworkSource::Irregular => {
+                debug_assert!(uri.is_none());
+                debug_assert!(image.is_none());
+                Ok(_core::Artwork::Irregular)
             }
             ArtworkSource::Embedded => {
                 debug_assert!(uri.is_none());
@@ -361,6 +373,16 @@ impl From<_core::Artwork> for Artwork {
         match from {
             Missing => Self {
                 source: ArtworkSource::Missing,
+                uri: None,
+                image: None,
+            },
+            Unsupported => Self {
+                source: ArtworkSource::Unsupported,
+                uri: None,
+                image: None,
+            },
+            Irregular => Self {
+                source: ArtworkSource::Irregular,
                 uri: None,
                 image: None,
             },

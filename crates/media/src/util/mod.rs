@@ -402,11 +402,22 @@ pub fn parse_index_numbers(input: &str) -> Option<Index> {
 
 pub type ArtworkResult = std::result::Result<Artwork, ImageError>;
 
+#[derive(Debug, Error)]
+pub enum ArtworkImageError {
+    #[error("unsupported format {0:?}")]
+    UnsupportedFormat(ImageFormat),
+
+    #[error(transparent)]
+    Other(anyhow::Error),
+}
+
+pub type LoadArtworkImageResult = std::result::Result<(String, DynamicImage), ArtworkImageError>;
+
 pub fn load_artwork_image(
     image_data: &[u8],
     image_format_hint: Option<ImageFormat>,
     media_type_hint: Option<String>,
-) -> anyhow::Result<(String, DynamicImage)> {
+) -> LoadArtworkImageResult {
     let image_format = image_format_hint.or_else(|| guess_format(image_data).ok());
     if let Some(image_format) = image_format {
         load_from_memory_with_format(image_data, image_format)
@@ -414,30 +425,32 @@ pub fn load_artwork_image(
         load_from_memory(image_data)
     }
     .with_context(|| "Failed to load embedded artwork image")
-    .map(|image| {
-        let media_type = media_type_hint
-            .or_else(|| {
-                image_format.map(|image_format| match image_format {
-                    ImageFormat::Jpeg => IMAGE_JPEG.to_string(),
-                    ImageFormat::Png => IMAGE_PNG.to_string(),
-                    ImageFormat::Gif => IMAGE_GIF.to_string(),
-                    ImageFormat::Bmp => IMAGE_BMP.to_string(),
-                    ImageFormat::WebP => "image/webp".to_owned(),
-                    ImageFormat::Tiff => "image/tiff".to_owned(),
-                    ImageFormat::Tga => "image/tga".to_owned(),
-                    unsupported_format => {
-                        tracing::info!("Unsupported image format {:?}", unsupported_format);
-                        IMAGE_STAR.to_string()
-                    }
-                })
-            })
-            .unwrap_or_else(|| {
-                tracing::info!("Unknown image format");
-                IMAGE_STAR.to_string()
-            });
-        (media_type, image)
+    .map_err(ArtworkImageError::Other)
+    .and_then(|image| {
+        let media_type = if let Some(media_type_hint) = media_type_hint {
+            media_type_hint
+        } else if let Some(image_format) = image_format {
+            match image_format {
+                ImageFormat::Jpeg => IMAGE_JPEG.to_string(),
+                ImageFormat::Png => IMAGE_PNG.to_string(),
+                ImageFormat::Gif => IMAGE_GIF.to_string(),
+                ImageFormat::Bmp => IMAGE_BMP.to_string(),
+                ImageFormat::WebP => "image/webp".to_owned(),
+                ImageFormat::Tiff => "image/tiff".to_owned(),
+                ImageFormat::Tga => "image/tga".to_owned(),
+                unsupported_format => {
+                    return Err(ArtworkImageError::UnsupportedFormat(unsupported_format));
+                }
+            }
+        } else {
+            IMAGE_STAR.to_string()
+        };
+        Ok((media_type, image))
     })
 }
+
+pub type IngestArtworkImageResult =
+    std::result::Result<(ArtworkImage, DynamicImage), ArtworkImageError>;
 
 pub fn ingest_artwork_image(
     apic_type: ApicType,
@@ -445,13 +458,17 @@ pub fn ingest_artwork_image(
     image_format_hint: Option<ImageFormat>,
     media_type_hint: Option<String>,
     image_digest: &mut MediaDigest,
-) -> anyhow::Result<(ArtworkImage, DynamicImage)> {
+) -> IngestArtworkImageResult {
     let (media_type, image) = load_artwork_image(image_data, image_format_hint, media_type_hint)?;
     let (width, height) = image.dimensions();
     let clamped_with = width as ImageDimension;
     let clamped_height = height as ImageDimension;
     if width != clamped_with as u32 && height != clamped_height as u32 {
-        anyhow::bail!("Unsupported image size: {}x{}", width, height);
+        return Err(ArtworkImageError::Other(anyhow::anyhow!(
+            "Unsupported image size: {}x{}",
+            width,
+            height
+        )));
     }
     let size = ImageSize {
         width: clamped_with,
@@ -473,14 +490,16 @@ pub fn ingest_artwork_image(
     ))
 }
 
-pub fn try_ingest_embedded_artwork_image(
-    media_source_path: &SourcePath,
+pub type IngestEmbeddedArtworkImageResult =
+    std::result::Result<(EmbeddedArtwork, DynamicImage), ArtworkImageError>;
+
+pub fn ingest_embedded_artwork_image(
     apic_type: ApicType,
     image_data: &[u8],
     image_format_hint: Option<ImageFormat>,
     media_type_hint: Option<String>,
     image_digest: &mut MediaDigest,
-) -> Option<(EmbeddedArtwork, DynamicImage)> {
+) -> IngestEmbeddedArtworkImageResult {
     ingest_artwork_image(
         apic_type,
         image_data,
@@ -496,14 +515,41 @@ pub fn try_ingest_embedded_artwork_image(
             dynamic_image,
         )
     })
-    .map(Some)
-    .unwrap_or_else(|err| {
-        tracing::warn!(
-            "Failed to ingest artwork from embedded image in '{}': {}",
-            media_source_path,
-            err
-        );
-        None
+}
+
+pub fn try_ingest_embedded_artwork_image(
+    media_source_path: &SourcePath,
+    apic_type: ApicType,
+    image_data: &[u8],
+    image_format_hint: Option<ImageFormat>,
+    media_type_hint: Option<String>,
+    image_digest: &mut MediaDigest,
+) -> (Artwork, Option<DynamicImage>) {
+    ingest_embedded_artwork_image(
+        apic_type,
+        image_data,
+        image_format_hint,
+        media_type_hint,
+        image_digest,
+    )
+    .map(|(embedded, image)| (Artwork::Embedded(embedded), Some(image)))
+    .unwrap_or_else(|err| match err {
+        ArtworkImageError::UnsupportedFormat(unsupported_format) => {
+            tracing::info!(
+                "Unsupported image format in {}: {:?}",
+                media_source_path,
+                unsupported_format
+            );
+            (Artwork::Unsupported, None)
+        }
+        ArtworkImageError::Other(err) => {
+            tracing::warn!(
+                "Failed to load embedded artwork image from {}: {}",
+                media_source_path,
+                err
+            );
+            (Artwork::Irregular, None)
+        }
     })
 }
 

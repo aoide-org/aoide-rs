@@ -368,19 +368,22 @@ impl import::ImportTrack for ImportTrack {
         }
 
         if config.flags.contains(ImportTrackFlags::EMBEDDED_ARTWORK) {
-            track.media_source.artwork = find_embedded_artwork_image(&flac_tag)
-                .and_then(|(apic_type, media_type, image_data)| {
-                    try_ingest_embedded_artwork_image(
-                        &track.media_source.path,
-                        apic_type,
-                        image_data,
-                        None,
-                        Some(media_type.to_owned()),
-                        &mut config.flags.new_artwork_digest(),
-                    )
-                })
-                .map(|(embedded, _)| Artwork::Embedded(embedded))
-                .or(Some(Artwork::Missing));
+            let artwork = if let Some((apic_type, media_type, image_data)) =
+                find_embedded_artwork_image(&flac_tag)
+            {
+                try_ingest_embedded_artwork_image(
+                    &track.media_source.path,
+                    apic_type,
+                    image_data,
+                    None,
+                    Some(media_type.to_owned()),
+                    &mut config.flags.new_artwork_digest(),
+                )
+                .0
+            } else {
+                Artwork::Missing
+            };
+            track.media_source.artwork = Some(artwork);
         }
 
         debug_assert!(track.tags.is_empty());

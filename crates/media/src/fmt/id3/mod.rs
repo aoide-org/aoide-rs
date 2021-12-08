@@ -572,8 +572,8 @@ pub fn import_track(
 
     // Artwork
     if config.flags.contains(ImportTrackFlags::EMBEDDED_ARTWORK) {
-        track.media_source.artwork = find_embedded_artwork_image(tag)
-            .and_then(|(apic_type, media_type, image_data)| {
+        let artwork =
+            if let Some((apic_type, media_type, image_data)) = find_embedded_artwork_image(tag) {
                 try_ingest_embedded_artwork_image(
                     &track.media_source.path,
                     apic_type,
@@ -582,9 +582,11 @@ pub fn import_track(
                     Some(media_type.to_owned()),
                     &mut config.flags.new_artwork_digest(),
                 )
-            })
-            .map(|(embedded, _)| Artwork::Embedded(embedded))
-            .or(Some(Artwork::Missing));
+                .0
+            } else {
+                Artwork::Missing
+            };
+        track.media_source.artwork = Some(artwork);
     }
 
     // Serato Tags

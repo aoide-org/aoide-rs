@@ -515,19 +515,22 @@ impl import::ImportTrack for ImportTrack {
 
         // Artwork
         if config.flags.contains(ImportTrackFlags::EMBEDDED_ARTWORK) {
-            track.media_source.artwork = find_embedded_artwork_image(&mp4_tag)
-                .and_then(|(apic_type, image_format, image_data)| {
-                    try_ingest_embedded_artwork_image(
-                        &track.media_source.path,
-                        apic_type,
-                        image_data,
-                        Some(image_format),
-                        None,
-                        &mut config.flags.new_artwork_digest(),
-                    )
-                })
-                .map(|(embedded, _)| Artwork::Embedded(embedded))
-                .or(Some(Artwork::Missing));
+            let artwork = if let Some((apic_type, image_format, image_data)) =
+                find_embedded_artwork_image(&mp4_tag)
+            {
+                try_ingest_embedded_artwork_image(
+                    &track.media_source.path,
+                    apic_type,
+                    image_data,
+                    Some(image_format),
+                    None,
+                    &mut config.flags.new_artwork_digest(),
+                )
+                .0
+            } else {
+                Artwork::Missing
+            };
+            track.media_source.artwork = Some(artwork);
         }
 
         // Serato Tags
