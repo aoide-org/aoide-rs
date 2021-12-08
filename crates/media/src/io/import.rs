@@ -34,16 +34,13 @@ use std::io::{Read, Seek};
 bitflags! {
     pub struct ImportTrackFlags: u16 {
         const METADATA                            = 0b0000_0000_0000_0001;
-        const EMBEDDED_ARTWORK                    = 0b0000_0000_0000_0010;
-        const CONTENT_DIGEST                      = 0b0000_0000_0000_0100;
-        const ARTWORK_DIGEST                      = 0b0000_0000_0000_1010; // implies ARTWORK
-        const ARTWORK_DIGEST_SHA256               = 0b0000_0000_0001_1010; // Use SHA-256 instead of BLAKE3 (e.g. for Mixxx)
+        const EMBEDDED_ARTWORK                    = 0b0000_0000_0000_0011; // implies METADATA
+        const ARTWORK_DIGEST                      = 0b0000_0000_0000_0111; // Hash cover image, implies EMBEDDED_ARTWORK
+        const ARTWORK_DIGEST_SHA256               = 0b0000_0000_0000_1111; // Use SHA-256 instead of BLAKE3, implies ARTWORK_DIGEST
         // Custom application metadata
         const ITUNES_ID3V2_GROUPING_MOVEMENT_WORK = 0b0000_0001_0000_0000; // ID3v2 with iTunes v12.5.4 and newer
-        const MIXXX_CUSTOM_TAGS                   = 0b0000_0010_0000_0001; // implies METADATA
-        const MIXXX_KEEP_CUSTOM_GENRE_TAGS        = 0b0000_0100_0000_0000;
-        const MIXXX_KEEP_CUSTOM_MOOD_TAGS         = 0b0000_1000_0000_0000;
-        const SERATO_TAGS                         = 0b0001_0000_0000_0001; // implies METADATA
+        const AOIDE_TAGS                          = 0b0000_0010_0000_0001; // implies METADATA
+        const SERATO_MARKERS                      = 0b0000_0100_0000_0001; // implies METADATA
     }
 }
 

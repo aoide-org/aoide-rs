@@ -65,6 +65,10 @@ use crate::{
     Error, Result,
 };
 
+const MIXXX_CUSTOM_TAGS_GEOB_DESCRIPTION: &str = "Mixxx CustomTags";
+
+const AOIDE_TAGS_GEOB_DESCRIPTION: &str = "aoide Tags";
+
 pub(crate) fn map_err(err: id3::Error) -> Error {
     let id3::Error {
         kind,
@@ -437,10 +441,11 @@ pub fn import_track(
     }
 
     let mut tags_map = TagsMap::default();
-    if config.flags.contains(ImportTrackFlags::MIXXX_CUSTOM_TAGS) {
+    if config.flags.contains(ImportTrackFlags::AOIDE_TAGS) {
+        // Pre-populate tags
         for geob in tag
             .encapsulated_objects()
-            .filter(|geob| geob.description == "Mixxx CustomTags")
+            .filter(|geob| geob.description == AOIDE_TAGS_GEOB_DESCRIPTION)
         {
             if geob
                 .mime_type
@@ -459,13 +464,12 @@ pub fn import_track(
             }
             if let Some(custom_tags) = serde_json::from_slice::<SerdeTags>(&geob.data)
                 .map_err(|err| {
-                    tracing::warn!("Failed to parse Mixxx custom tags: {}", err);
+                    tracing::warn!("Failed to parse GEOB '{}': {}", geob.description, err);
                     err
                 })
                 .ok()
                 .map(Tags::from)
             {
-                // Initialize map with all existing custom tags as starting point
                 debug_assert_eq!(0, tags_map.total_count());
                 tags_map = custom_tags.into();
             }
@@ -590,7 +594,7 @@ pub fn import_track(
     }
 
     // Serato Tags
-    if config.flags.contains(ImportTrackFlags::SERATO_TAGS) {
+    if config.flags.contains(ImportTrackFlags::SERATO_MARKERS) {
         let mut serato_tags = SeratoTagContainer::new();
 
         for geob in tag.encapsulated_objects() {
@@ -831,6 +835,33 @@ pub fn export_track(
         id3_tag.remove("MVIN");
     }
 
+    // Export all tags
+    id3_tag.remove_encapsulated_object(Some(MIXXX_CUSTOM_TAGS_GEOB_DESCRIPTION), None, None, None); // legacy frame
+    if config.flags.contains(ExportTrackFlags::AOIDE_TAGS) && !track.tags.is_empty() {
+        match serde_json::to_vec(&aoide_core_serde::tag::Tags::from(
+            track.tags.clone().untie(),
+        )) {
+            Ok(value) => {
+                id3_tag.add_encapsulated_object(
+                    AOIDE_TAGS_GEOB_DESCRIPTION.to_owned(),
+                    mime::APPLICATION_JSON.type_().to_string(),
+                    String::default(),
+                    value,
+                );
+            }
+            Err(err) => {
+                tracing::warn!(
+                    "Failed to write GEOB '{}': {}",
+                    AOIDE_TAGS_GEOB_DESCRIPTION,
+                    err
+                );
+            }
+        }
+    } else {
+        id3_tag.remove_encapsulated_object(Some(AOIDE_TAGS_GEOB_DESCRIPTION), None, None, None);
+    }
+
+    // Export selected tags into dedicated fields
     let mut tags_map = TagsMap::from(track.tags.clone().untie());
 
     // Comment(s)

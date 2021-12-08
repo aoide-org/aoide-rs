@@ -166,6 +166,10 @@ const ORG_MIXXX_DJ_FREEFORM_MEAN: &str = "org.mixxx.dj";
 const MIXXX_CUSTOM_TAGS_IDENT: FreeformIdent<'static> =
     FreeformIdent::new(ORG_MIXXX_DJ_FREEFORM_MEAN, "CustomTags");
 
+const AOIDE_FREEFORM_MEAN: &str = "aoide";
+
+const AOIDE_TAGS_IDENT: FreeformIdent<'static> = FreeformIdent::new(AOIDE_FREEFORM_MEAN, "Tags");
+
 const SERATO_MARKERS_IDENT: FreeformIdent<'static> = FreeformIdent::new(
     SeratoMarkers::MP4_ATOM_FREEFORM_MEAN,
     SeratoMarkers::MP4_ATOM_FREEFORM_NAME,
@@ -397,26 +401,24 @@ impl import::ImportTrack for ImportTrack {
         }
 
         let mut tags_map = TagsMap::default();
-
-        // Mixxx CustomTags
-        if config.flags.contains(ImportTrackFlags::MIXXX_CUSTOM_TAGS) {
-            if let Some(data) = mp4_tag.data_of(&MIXXX_CUSTOM_TAGS_IDENT).next() {
-                if let Some(custom_tags) = match data {
+        if config.flags.contains(ImportTrackFlags::AOIDE_TAGS) {
+            // Pre-populate tags
+            if let Some(data) = mp4_tag.data_of(&AOIDE_TAGS_IDENT).next() {
+                if let Some(tags) = match data {
                     Data::Utf8(input) => serde_json::from_str::<SerdeTags>(input)
                         .map_err(|err| {
-                            tracing::warn!("Failed to parse Mixxx custom tags: {}", err);
+                            tracing::warn!("Failed to parse {}: {}", AOIDE_TAGS_IDENT, err);
                             err
                         })
                         .ok(),
                     data => {
-                        tracing::warn!("Unexpected data for Mixxx custom tags: {:?}", data);
+                        tracing::warn!("Unexpected data for {}: {:?}", AOIDE_TAGS_IDENT, data);
                         None
                     }
                 }
                 .map(Tags::from)
                 {
-                    // Initialize map with all existing custom tags as starting point
-                    tags_map = custom_tags.into();
+                    tags_map = tags.into();
                 }
             }
         }
@@ -534,7 +536,7 @@ impl import::ImportTrack for ImportTrack {
         }
 
         // Serato Tags
-        if config.flags.contains(ImportTrackFlags::SERATO_TAGS) {
+        if config.flags.contains(ImportTrackFlags::SERATO_MARKERS) {
             let mut serato_tags = SeratoTagContainer::new();
 
             if let Some(data) = mp4_tag.data_of(&SERATO_MARKERS_IDENT).next() {
@@ -843,6 +845,26 @@ impl export::ExportTrack for ExportTrack {
             mp4_tag.remove_movement_count();
         }
 
+        // Export all tags
+        mp4_tag.remove_data_of(&MIXXX_CUSTOM_TAGS_IDENT); // legacy atom
+        if config.flags.contains(ExportTrackFlags::AOIDE_TAGS) {
+            if track.tags.is_empty() {
+                mp4_tag.remove_data_of(&AOIDE_TAGS_IDENT);
+            } else {
+                match serde_json::to_string(&aoide_core_serde::tag::Tags::from(
+                    track.tags.clone().untie(),
+                )) {
+                    Ok(value) => {
+                        mp4_tag.set_data(AOIDE_TAGS_IDENT.to_owned(), Data::Utf8(value));
+                    }
+                    Err(err) => {
+                        tracing::warn!("Failed to write {}: {}", AOIDE_TAGS_IDENT, err);
+                    }
+                }
+            }
+        }
+
+        // Export selected tags into dedicated fields
         let mut tags_map = TagsMap::from(track.tags.clone().untie());
 
         // Genre(s)

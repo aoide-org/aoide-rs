@@ -24,11 +24,13 @@ use aoide_core::track::{
 
 use crate::{util::tag::FacetedTagMappingConfig, Result};
 
-#[rustfmt::skip]
+use super::import::ImportTrackFlags;
+
 bitflags! {
     pub struct ExportTrackFlags: u16 {
-        // See also: ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK
-        const ITUNES_ID3V2_GROUPING_MOVEMENT_WORK = 0b0000_0001_0000_0000; // ID3v2 with iTunes v12.5.4 and newer
+        const ITUNES_ID3V2_GROUPING_MOVEMENT_WORK = ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK.bits();
+        const AOIDE_TAGS = ImportTrackFlags::AOIDE_TAGS.bits();
+        const SERATO_MARKERS = ImportTrackFlags::SERATO_MARKERS.bits();
     }
 }
 

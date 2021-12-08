@@ -308,11 +308,11 @@ impl import::ImportTrack for ImportTrack {
         }
 
         let mut tags_map = TagsMap::default();
-        if config.flags.contains(ImportTrackFlags::MIXXX_CUSTOM_TAGS) {
-            if let Some(custom_tags) = vorbis::import_mixxx_custom_tags(vorbis_comments) {
-                // Initialize map with all existing custom tags as starting point
+        if config.flags.contains(ImportTrackFlags::AOIDE_TAGS) {
+            // Pre-populate tags
+            if let Some(tags) = vorbis::import_aoide_tags(vorbis_comments) {
                 debug_assert_eq!(0, tags_map.total_count());
-                tags_map = custom_tags.into();
+                tags_map = tags.into();
             }
         }
 
@@ -393,7 +393,7 @@ impl import::ImportTrack for ImportTrack {
         }
 
         // Serato Tags
-        if config.flags.contains(ImportTrackFlags::SERATO_TAGS) {
+        if config.flags.contains(ImportTrackFlags::SERATO_MARKERS) {
             let mut serato_tags = SeratoTagContainer::new();
             vorbis::import_serato_markers2(vorbis_comments, &mut serato_tags, SeratoTagFormat::Ogg);
 

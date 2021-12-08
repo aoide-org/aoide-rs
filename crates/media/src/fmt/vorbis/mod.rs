@@ -41,7 +41,7 @@ use aoide_core::{
 use aoide_core_serde::tag::Tags as SerdeTags;
 
 use crate::{
-    io::export::{ExportTrackConfig, FilteredActorNames},
+    io::export::{ExportTrackConfig, ExportTrackFlags, FilteredActorNames},
     util::{
         format_valid_replay_gain, format_validated_tempo_bpm, parse_index_numbers,
         parse_key_signature, parse_replay_gain, parse_tempo_bpm, parse_year_tag,
@@ -50,6 +50,10 @@ use crate::{
         },
     },
 };
+
+pub const MIXXX_CUSTOM_TAGS_KEY: &str = "MIXXX_CUSTOM_TAGS";
+
+pub const AOIDE_TAGS_KEY: &str = "AOIDE_TAGS";
 
 pub trait CommentReader {
     fn read_first_value(&self, key: &str) -> Option<&str>;
@@ -293,13 +297,13 @@ pub fn import_album_titles(reader: &impl CommentReader) -> Vec<Title> {
     album_titles.canonicalize_into()
 }
 
-pub fn import_mixxx_custom_tags(reader: &impl CommentReader) -> Option<Tags> {
+pub fn import_aoide_tags(reader: &impl CommentReader) -> Option<Tags> {
     reader
-        .read_first_value("MIXXX_CUSTOM_TAGS")
+        .read_first_value(AOIDE_TAGS_KEY)
         .and_then(|json| {
             serde_json::from_str::<SerdeTags>(json)
                 .map_err(|err| {
-                    tracing::warn!("Failed to parse Mixxx custom tags: {}", err);
+                    tracing::warn!("Failed to parse {}: {}", AOIDE_TAGS_KEY, err);
                     err
                 })
                 .ok()
@@ -499,6 +503,24 @@ pub fn export_track(
             .map(ToString::to_string),
     );
 
+    // Export all tags
+    writer.remove_all_values(MIXXX_CUSTOM_TAGS_KEY); // drop legacy key
+    if config.flags.contains(ExportTrackFlags::AOIDE_TAGS) && !track.tags.is_empty() {
+        match serde_json::to_string(&aoide_core_serde::tag::Tags::from(
+            track.tags.clone().untie(),
+        )) {
+            Ok(value) => {
+                writer.write_single_value(AOIDE_TAGS_KEY.to_owned(), value);
+            }
+            Err(err) => {
+                tracing::warn!("Failed to write {}: {}", AOIDE_TAGS_KEY, err);
+            }
+        }
+    } else {
+        writer.remove_all_values(AOIDE_TAGS_KEY);
+    }
+
+    // Export selected tags into dedicated fields
     let mut tags_map = TagsMap::from(track.tags.clone().untie());
 
     // Comment(s)
