@@ -17,14 +17,14 @@ use std::ops::AddAssign;
 
 use aoide_core::util::url::BaseUrl;
 
-use crate::{media::ImportMode, track::replace::Summary as TrackReplaceSummary};
+use crate::{media::SyncMode, track::replace::Summary as TrackReplaceSummary};
 
 use super::Completion;
 
 #[derive(Debug, Clone, Default, Eq, PartialEq)]
 pub struct Params {
     pub root_url: Option<BaseUrl>,
-    pub import_mode: Option<ImportMode>,
+    pub sync_mode: Option<SyncMode>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]

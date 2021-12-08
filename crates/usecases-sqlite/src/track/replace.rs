@@ -17,7 +17,7 @@ use std::sync::atomic::AtomicBool;
 
 use aoide_core::media::SourcePath;
 
-use aoide_core_ext::{media::ImportMode, track::replace::Summary};
+use aoide_core_ext::{media::SyncMode, track::replace::Summary};
 
 use aoide_media::{io::import::ImportTrackConfig, resolver::SourcePathResolver as _};
 
@@ -101,7 +101,7 @@ pub fn replace_by_media_source_path(
 pub fn import_and_replace_by_local_file_path_iter(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    import_mode: ImportMode,
+    sync_mode: SyncMode,
     import_config: &ImportTrackConfig,
     replace_mode: ReplaceMode,
     source_path_iter: impl Iterator<Item = SourcePath>,
@@ -116,7 +116,7 @@ pub fn import_and_replace_by_local_file_path_iter(
         uc::import_and_replace_by_local_file_path_iter(
             &db,
             collection_id,
-            import_mode,
+            sync_mode,
             import_config,
             replace_mode,
             &source_path_resolver,
@@ -134,7 +134,7 @@ pub fn import_and_replace_by_local_file_path_iter(
 pub fn import_and_replace_by_local_file_path_from_directory(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    import_mode: ImportMode,
+    sync_mode: SyncMode,
     import_config: &ImportTrackConfig,
     replace_mode: ReplaceMode,
     source_dir_path: &str,
@@ -148,7 +148,7 @@ pub fn import_and_replace_by_local_file_path_from_directory(
         uc::import_and_replace_by_local_file_path_from_directory(
             &db,
             collection_id,
-            import_mode,
+            sync_mode,
             import_config,
             replace_mode,
             &source_path_resolver,

@@ -17,7 +17,7 @@ use std::io::BufReader;
 
 use aoide_core::{media::SourcePath, track::Track, util::clock::DateTime};
 
-use aoide_core_ext::media::ImportMode;
+use aoide_core_ext::media::SyncMode;
 
 use aoide_media::{
     fmt::{flac, mp3, mp4, ogg},
@@ -36,7 +36,7 @@ pub mod source;
 pub mod tracker;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub enum SynchronizedImportMode {
+pub enum SyncStatus {
     Once {
         synchronized_before: bool,
     },
@@ -46,16 +46,16 @@ pub enum SynchronizedImportMode {
     Always,
 }
 
-impl SynchronizedImportMode {
-    pub const fn new(import_mode: ImportMode, last_synchronized_at: Option<DateTime>) -> Self {
-        match import_mode {
-            ImportMode::Once => Self::Once {
+impl SyncStatus {
+    pub const fn new(sync_mode: SyncMode, last_synchronized_at: Option<DateTime>) -> Self {
+        match sync_mode {
+            SyncMode::Once => Self::Once {
                 synchronized_before: last_synchronized_at.is_some(),
             },
-            ImportMode::Modified => Self::Modified {
+            SyncMode::Modified => Self::Modified {
                 last_synchronized_at,
             },
-            ImportMode::Always => Self::Always,
+            SyncMode::Always => Self::Always,
         }
     }
 }
@@ -71,7 +71,7 @@ pub enum ImportTrackFromFileOutcome {
 pub fn import_track_from_file_path(
     source_path_resolver: &VirtualFilePathResolver,
     source_path: SourcePath,
-    mode: SynchronizedImportMode,
+    sync_status: SyncStatus,
     config: &ImportTrackConfig,
     collected_at: DateTime,
 ) -> Result<ImportTrackFromFileOutcome> {
@@ -90,8 +90,8 @@ pub fn import_track_from_file_path(
         );
         DateTime::now_utc()
     });
-    match mode {
-        SynchronizedImportMode::Once {
+    match sync_status {
+        SyncStatus::Once {
             synchronized_before,
         } => {
             if synchronized_before {
@@ -105,7 +105,7 @@ pub fn import_track_from_file_path(
                 ));
             }
         }
-        SynchronizedImportMode::Modified {
+        SyncStatus::Modified {
             last_synchronized_at,
         } => {
             if let Some(last_synchronized_at) = last_synchronized_at {
@@ -128,7 +128,7 @@ pub fn import_track_from_file_path(
                 );
             }
         }
-        SynchronizedImportMode::Always => {
+        SyncStatus::Always => {
             // Continue regardless of last_modified_at
         }
     }

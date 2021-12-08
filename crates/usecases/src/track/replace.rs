@@ -22,7 +22,7 @@ use url::Url;
 
 use aoide_core::{media::SourcePath, util::clock::DateTime};
 
-use aoide_core_ext::{media::ImportMode, track::replace::Summary};
+use aoide_core_ext::{media::SyncMode, track::replace::Summary};
 
 use aoide_media::{
     io::import::ImportTrackConfig,
@@ -35,9 +35,7 @@ use aoide_repo::{
     track::{EntityRepo, ReplaceMode, ReplaceOutcome},
 };
 
-use crate::media::{
-    import_track_from_file_path, ImportTrackFromFileOutcome, SynchronizedImportMode,
-};
+use crate::media::{import_track_from_file_path, ImportTrackFromFileOutcome, SyncStatus};
 
 use super::*;
 
@@ -158,7 +156,7 @@ pub fn import_and_replace_by_local_file_path<Repo>(
     media_source_ids: &mut Vec<MediaSourceId>,
     repo: &Repo,
     collection_id: CollectionId,
-    import_mode: ImportMode,
+    sync_mode: SyncMode,
     import_config: &ImportTrackConfig,
     replace_mode: ReplaceMode,
     source_path_resolver: &VirtualFilePathResolver,
@@ -181,7 +179,7 @@ where
     match import_track_from_file_path(
         source_path_resolver,
         source_path.clone(),
-        SynchronizedImportMode::new(import_mode, last_synchronized_at),
+        SyncStatus::new(sync_mode, last_synchronized_at),
         import_config,
         DateTime::now_local(),
     ) {
@@ -268,7 +266,7 @@ const DEFAULT_MEDIA_SOURCE_COUNT: usize = 1024;
 pub fn import_and_replace_by_local_file_path_iter<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
-    import_mode: ImportMode,
+    sync_mode: SyncMode,
     import_config: &ImportTrackConfig,
     replace_mode: ReplaceMode,
     source_path_resolver: &VirtualFilePathResolver,
@@ -296,7 +294,7 @@ where
             &mut media_source_ids,
             repo,
             collection_id,
-            import_mode,
+            sync_mode,
             import_config,
             replace_mode,
             source_path_resolver,
@@ -317,7 +315,7 @@ const EXPECTED_NUMBER_OF_DIR_ENTRIES: usize = 1024;
 pub fn import_and_replace_by_local_file_path_from_directory<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
-    import_mode: ImportMode,
+    sync_mode: SyncMode,
     import_config: &ImportTrackConfig,
     replace_mode: ReplaceMode,
     source_path_resolver: &VirtualFilePathResolver,
@@ -370,7 +368,7 @@ where
             &mut media_source_ids,
             repo,
             collection_id,
-            import_mode,
+            sync_mode,
             import_config,
             replace_mode,
             source_path_resolver,

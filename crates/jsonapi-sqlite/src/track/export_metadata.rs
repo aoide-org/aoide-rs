@@ -48,9 +48,15 @@ pub fn handle_request(
 ) -> Result<ResponseBody> {
     let QueryParams { mark_synchronized } = query_params;
     let update_source_synchronized_at = mark_synchronized.unwrap_or(false);
+    // FIXME: Replace hard-coded tag mapping
+    let faceted_tag_mapping = predefined_faceted_tag_mapping_config();
+    // FIXME: Replace hard-coded export flags
+    let flags = ExportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK
+        | ExportTrackFlags::AOIDE_TAGS
+        | ExportTrackFlags::SERATO_MARKERS;
     let config = ExportTrackConfig {
-        faceted_tag_mapping: predefined_faceted_tag_mapping_config(),
-        flags: ExportTrackFlags::all(),
+        faceted_tag_mapping,
+        flags,
     };
     let path_resolver = VirtualFilePathResolver::new();
     let media_source_synchronized_at = uc::export_metadata_into_file(

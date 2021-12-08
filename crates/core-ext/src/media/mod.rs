@@ -16,7 +16,7 @@
 pub mod tracker;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum ImportMode {
+pub enum SyncMode {
     Once,
     Modified,
     Always,

@@ -66,7 +66,7 @@ pub fn handle_request(query_params: QueryParams) -> Result<ResponseBody> {
     let track = match uc::import_track_from_file_path(
         &path_resolver,
         source_path,
-        uc::SynchronizedImportMode::Always,
+        uc::SyncStatus::Always,
         &config,
         DateTime::now_local(),
     )? {

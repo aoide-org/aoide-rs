@@ -15,7 +15,7 @@
 
 use url::Url;
 
-use crate::{media::ImportMode, prelude::*};
+use crate::{media::SyncMode, prelude::*};
 
 use super::Completion;
 
@@ -32,7 +32,7 @@ pub struct Params {
     pub root_url: Option<Url>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub import_mode: Option<ImportMode>,
+    pub sync_mode: Option<SyncMode>,
 }
 
 #[cfg(feature = "frontend")]
@@ -40,11 +40,11 @@ impl From<_inner::Params> for Params {
     fn from(from: _inner::Params) -> Self {
         let _inner::Params {
             root_url,
-            import_mode,
+            sync_mode,
         } = from;
         Self {
             root_url: root_url.map(Into::into),
-            import_mode: import_mode.map(Into::into),
+            sync_mode: sync_mode.map(Into::into),
         }
     }
 }

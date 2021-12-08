@@ -48,7 +48,7 @@ pub fn import<Repo>(
     source_path_resolver: &VirtualFilePathResolver,
     collection_id: CollectionId,
     params: &Params,
-    import_config: &ImportTrackConfig,
+    config: &ImportTrackConfig,
     progress_summary_fn: &mut impl FnMut(&Summary),
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
@@ -57,9 +57,9 @@ where
 {
     let Params {
         root_url,
-        import_mode,
+        sync_mode,
     } = params;
-    let import_mode = import_mode.unwrap_or(ImportMode::Modified);
+    let sync_mode = sync_mode.unwrap_or(SyncMode::Modified);
     let root_path_prefix = root_url
         .as_ref()
         .map(|url| resolve_path_prefix_from_base_url(source_path_resolver, url))
@@ -108,8 +108,8 @@ where
             let outcome = match import_and_replace_by_local_file_path_from_directory(
                 repo,
                 collection_id,
-                import_mode,
-                import_config,
+                sync_mode,
+                config,
                 ReplaceMode::UpdateOrCreate,
                 source_path_resolver,
                 &dir_path,

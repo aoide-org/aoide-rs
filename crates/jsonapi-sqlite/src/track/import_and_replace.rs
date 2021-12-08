@@ -15,17 +15,14 @@
 
 use std::sync::atomic::AtomicBool;
 
-use aoide_core::track::tag::{FACET_GENRE, FACET_MOOD};
+use aoide_media::io::import::{ImportTrackConfig, ImportTrackFlags};
 
-use aoide_media::{
-    io::import::{ImportTrackConfig, ImportTrackFlags},
-    util::tag::{FacetedTagMappingConfigInner, TagMappingConfig},
-};
-
-use aoide_core_ext_serde::media::ImportMode;
+use aoide_core_ext_serde::media::SyncMode;
 
 use aoide_core_serde::track::{Entity, Track};
 use aoide_usecases_sqlite::SqlitePooledConnection;
+
+use crate::media::predefined_faceted_tag_mapping_config;
 
 use super::{replace::ReplaceMode, *};
 
@@ -113,7 +110,7 @@ impl From<uc::Outcome> for Outcome {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct QueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub import_mode: Option<ImportMode>,
+    pub sync_mode: Option<SyncMode>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub replace_mode: Option<ReplaceMode>,
@@ -141,41 +138,27 @@ pub fn handle_request(
     abort_flag: &AtomicBool,
 ) -> Result<ResponseBody> {
     let QueryParams {
-        import_mode,
+        sync_mode,
         replace_mode,
     } = query_params;
-    let import_mode = import_mode.unwrap_or(ImportMode::Modified);
+    let sync_mode = sync_mode.unwrap_or(SyncMode::Modified);
     let replace_mode = replace_mode.unwrap_or(ReplaceMode::UpdateOrCreate);
     // FIXME: Replace hard-coded tag mapping config
-    let mut faceted_tag_mapping_config = FacetedTagMappingConfigInner::default();
-    faceted_tag_mapping_config.insert(
-        FACET_GENRE.to_owned().into(),
-        TagMappingConfig {
-            label_separator: ";".into(),
-            split_score_attenuation: 0.75,
-        },
-    );
-    faceted_tag_mapping_config.insert(
-        FACET_MOOD.to_owned().into(),
-        TagMappingConfig {
-            label_separator: ";".into(),
-            split_score_attenuation: 0.75,
-        },
-    );
+    let faceted_tag_mapping_config = predefined_faceted_tag_mapping_config();
     // FIXME: Replace hard-coded import flags
     let import_flags = ImportTrackFlags::ARTWORK_DIGEST
         | ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK
         | ImportTrackFlags::AOIDE_TAGS
         | ImportTrackFlags::SERATO_MARKERS;
     let import_config = ImportTrackConfig {
-        faceted_tag_mapping: faceted_tag_mapping_config.into(),
+        faceted_tag_mapping: faceted_tag_mapping_config,
         flags: import_flags,
     };
     let expected_source_path_count = request_body.len();
     uc::import_and_replace_by_local_file_path_iter(
         &pooled_connection,
         collection_uid,
-        import_mode.into(),
+        sync_mode.into(),
         &import_config,
         replace_mode.into(),
         request_body.into_iter().map(Into::into),

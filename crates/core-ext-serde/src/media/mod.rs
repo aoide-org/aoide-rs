@@ -25,16 +25,16 @@ mod _core {
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(rename_all = "kebab-case")]
-pub enum ImportMode {
+pub enum SyncMode {
     Once,
     Modified,
     Always,
 }
 
 #[cfg(feature = "backend")]
-impl From<ImportMode> for _core::ImportMode {
-    fn from(from: ImportMode) -> Self {
-        use ImportMode::*;
+impl From<SyncMode> for _core::SyncMode {
+    fn from(from: SyncMode) -> Self {
+        use SyncMode::*;
         match from {
             Once => Self::Once,
             Modified => Self::Modified,
@@ -44,9 +44,9 @@ impl From<ImportMode> for _core::ImportMode {
 }
 
 #[cfg(feature = "frontend")]
-impl From<_core::ImportMode> for ImportMode {
-    fn from(from: _core::ImportMode) -> Self {
-        use _core::ImportMode::*;
+impl From<_core::SyncMode> for SyncMode {
+    fn from(from: _core::SyncMode) -> Self {
+        use _core::SyncMode::*;
         match from {
             Once => Self::Once,
             Modified => Self::Modified,

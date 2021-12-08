@@ -2316,9 +2316,9 @@ components:
       properties:
         rootUrl:
           $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
-        importMode:
-          $ref: '#/components/schemas/MediaImportMode'
-    MediaImportMode:
+        syncMode:
+          $ref: '#/components/schemas/MediaSyncMode'
+    MediaSyncMode:
       type: string
       enum:
         - once

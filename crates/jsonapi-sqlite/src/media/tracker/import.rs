@@ -59,7 +59,7 @@ pub fn handle_request(
 ) -> Result<ResponseBody> {
     let RequestBody {
         root_url,
-        import_mode,
+        sync_mode,
     } = request_body;
     let root_url = root_url
         .map(BaseUrl::try_autocomplete_from)
@@ -93,7 +93,7 @@ pub fn handle_request(
     };
     let params = aoide_core_ext::media::tracker::import::Params {
         root_url,
-        import_mode: import_mode.map(Into::into),
+        sync_mode: sync_mode.map(Into::into),
     };
     uc::import(
         &pooled_connection,
