@@ -36,7 +36,6 @@ bitflags! {
         const METADATA                            = 0b0000_0000_0000_0001;
         const EMBEDDED_ARTWORK                    = 0b0000_0000_0000_0011; // implies METADATA
         const ARTWORK_DIGEST                      = 0b0000_0000_0000_0111; // Hash cover image, implies EMBEDDED_ARTWORK
-        const ARTWORK_DIGEST_SHA256               = 0b0000_0000_0000_1111; // Use SHA-256 instead of BLAKE3, implies ARTWORK_DIGEST
         // Custom application metadata
         const ITUNES_ID3V2_GROUPING_MOVEMENT_WORK = 0b0000_0001_0000_0000; // ID3v2 with iTunes v12.5.4 and newer
         const AOIDE_TAGS                          = 0b0000_0010_0000_0001; // implies METADATA
@@ -51,15 +50,9 @@ impl ImportTrackFlags {
 
     pub fn new_artwork_digest(self) -> MediaDigest {
         if self.contains(Self::ARTWORK_DIGEST) {
-            if self.contains(Self::ARTWORK_DIGEST_SHA256) {
-                // Compatibility
-                MediaDigest::sha256()
-            } else {
-                // Default
-                MediaDigest::new()
-            }
+            MediaDigest::new()
         } else {
-            Default::default()
+            MediaDigest::dummy()
         }
     }
 }

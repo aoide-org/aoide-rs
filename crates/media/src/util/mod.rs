@@ -474,7 +474,7 @@ pub fn ingest_artwork_image(
         width: clamped_with,
         height: clamped_height,
     };
-    let digest = image_digest.digest_content(image_data);
+    let digest = image_digest.digest_content(image_data).finalize_reset();
     let image_4x4 = image.resize_exact(4, 4, image::imageops::FilterType::Lanczos3);
     let thumbnail = Thumbnail4x4Rgb8::try_from(image_4x4.to_rgb8().into_raw()).ok();
     debug_assert!(thumbnail.is_some());

@@ -17,7 +17,6 @@
 
 use bytes::BufMut as _;
 use digest::Digest;
-use sha2::Sha256;
 use std::{
     ffi::OsStr,
     path::Path,
@@ -63,10 +62,9 @@ pub fn digest_path<D: Digest>(digest: &mut D, path: &Path) {
     digest_os_str(digest, path.as_os_str());
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct MediaDigest {
-    default_blake3: Option<blake3::Hasher>,
-    legacy_sha256: Option<Sha256>,
+    hasher: Option<blake3::Hasher>,
 }
 
 impl MediaDigest {
@@ -74,35 +72,26 @@ impl MediaDigest {
         32
     }
 
+    pub const fn dummy() -> Self {
+        Self { hasher: None }
+    }
+
     pub fn new() -> Self {
         Self {
-            default_blake3: Some(blake3::Hasher::new()),
-            legacy_sha256: None,
+            hasher: Some(blake3::Hasher::new()),
         }
     }
 
-    pub fn sha256() -> Self {
-        Self {
-            default_blake3: Some(blake3::Hasher::new()),
-            legacy_sha256: Some(Sha256::new()),
-        }
+    pub fn digest_content(&mut self, content_data: &[u8]) -> &mut Self {
+        self.hasher
+            .as_mut()
+            .map(|hasher| hasher.update(content_data));
+        self
     }
 
-    pub fn digest_content(&mut self, content_data: &[u8]) -> Option<[u8; Self::digest_size()]> {
-        let Self {
-            default_blake3,
-            legacy_sha256,
-        } = self;
-        if let Some(digest) = default_blake3 {
-            // Default
-            digest.update(content_data);
-            Some(digest.finalize_reset().into())
-        } else {
-            // Legacy
-            legacy_sha256.as_mut().map(|digest| {
-                digest.update(content_data);
-                digest.finalize_reset().into()
-            })
-        }
+    pub fn finalize_reset(&mut self) -> Option<[u8; Self::digest_size()]> {
+        self.hasher
+            .as_mut()
+            .map(|hasher| hasher.finalize_reset().into())
     }
 }

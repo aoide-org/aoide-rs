@@ -24,7 +24,6 @@ num-traits = "*"
 path-slash = "*"
 semval = "*"
 serde_json = "*"
-sha2 = "*"
 thiserror = "*"
 tracing = { version = "*", features = ["log"] }
 triseratops = "*"
