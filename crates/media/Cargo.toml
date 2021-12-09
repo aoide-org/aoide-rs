@@ -15,7 +15,8 @@ blake3 = { version = "*", features = ["traits-preview"] }
 bitflags = "*"
 bytes = "*"
 chrono = { version = "*", default-features = false }
-digest = "*"
+# TODO: Unpin after upgraded in blake3
+digest = "0.9"
 image = "*"
 mime = "*"
 mime_guess = "*"
