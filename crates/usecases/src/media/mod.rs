@@ -20,10 +20,9 @@ use aoide_core::{media::SourcePath, track::Track, util::clock::DateTime};
 use aoide_core_ext::media::SyncMode;
 
 use aoide_media::{
-    fmt::{flac, mp3, mp4, ogg},
-    fs::{file_last_modified_at, open_file_for_reading, Mime},
+    fs::{file_last_modified_at, open_file_for_reading},
     io::{
-        export::{ExportTrack, ExportTrackConfig},
+        export::{export_track_to_path, ExportTrackConfig},
         import::*,
     },
     resolver::VirtualFilePathResolver,
@@ -139,13 +138,7 @@ pub fn import_track_from_file_path(
     let mut reader: Box<dyn Reader> = Box::new(BufReader::new(file));
     let mime = guess_mime_from_path(&canonical_path)?;
     let mut track = input.into_new_track(source_path, &mime);
-    match mime.as_ref() {
-        "audio/flac" => flac::ImportTrack.import_track(&mut reader, config, &mut track),
-        "audio/mpeg" => mp3::ImportTrack.import_track(&mut reader, config, &mut track),
-        "audio/m4a" | "video/mp4" => mp4::ImportTrack.import_track(&mut reader, config, &mut track),
-        "audio/ogg" => ogg::ImportTrack.import_track(&mut reader, config, &mut track),
-        _ => Err(MediaError::UnsupportedContentType(mime)),
-    }?;
+    import_track(mime, &mut reader, config, &mut track)?;
     Ok(ImportTrackFromFileOutcome::Imported(track))
 }
 
@@ -163,21 +156,11 @@ pub fn export_track_metadata_into_file(
     update_source_synchronized_at: bool,
 ) -> Result<()> {
     let file_path = source_path_resolver.build_file_path(&track.media_source.path);
-    let mime = track
-        .media_source
-        .content_type
-        .parse::<Mime>()
-        .map_err(|_| MediaError::UnknownContentType)?;
     let mut source_synchronized_at = DateTime::now_utc();
-    match mime.essence_str() {
-        "audio/flac" => flac::ExportTrack.export_track_to_path(config, &file_path, track),
-        "audio/mpeg" => mp3::ExportTrack.export_track_to_path(config, &file_path, track),
-        "audio/m4a" | "video/mp4" => {
-            mp4::ExportTrack.export_track_to_path(config, &file_path, track)
-        }
-        // TODO: Add support for audio/ogg
-        _ => Err(MediaError::UnsupportedContentType(mime)),
-    }?;
+    if !export_track_to_path(&file_path, config, track)? {
+        // Unmodified and not exported
+        return Ok(());
+    }
     if !update_source_synchronized_at {
         // Defer update of synchronization time stamp until next re-import
         return Ok(());

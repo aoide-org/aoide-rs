@@ -19,7 +19,7 @@ use anyhow::Context as _;
 use chrono::{NaiveDateTime, Utc};
 use image::{
     guess_format, load_from_memory, load_from_memory_with_format, DynamicImage, GenericImageView,
-    ImageError, ImageFormat,
+    ImageFormat,
 };
 use mime::{Mime, IMAGE_BMP, IMAGE_GIF, IMAGE_JPEG, IMAGE_PNG, IMAGE_STAR};
 use nom::{
@@ -400,8 +400,6 @@ pub fn parse_index_numbers(input: &str) -> Option<Index> {
     }
 }
 
-pub type ArtworkResult = std::result::Result<Artwork, ImageError>;
-
 #[derive(Debug, Error)]
 pub enum ArtworkImageError {
     #[error("unsupported format {0:?}")]
@@ -411,7 +409,37 @@ pub enum ArtworkImageError {
     Other(anyhow::Error),
 }
 
+impl From<ArtworkImageError> for Error {
+    fn from(err: ArtworkImageError) -> Error {
+        match err {
+            ArtworkImageError::UnsupportedFormat(image_format) => Self::Other(anyhow::anyhow!(
+                "Unsupported artwork image format: {:?}",
+                image_format
+            )),
+            ArtworkImageError::Other(err) => Self::Other(err),
+        }
+    }
+}
+
 pub type LoadArtworkImageResult = std::result::Result<(String, DynamicImage), ArtworkImageError>;
+
+pub fn media_type_from_image_format(
+    image_format: ImageFormat,
+) -> std::result::Result<String, ArtworkImageError> {
+    let media_type = match image_format {
+        ImageFormat::Jpeg => IMAGE_JPEG.to_string(),
+        ImageFormat::Png => IMAGE_PNG.to_string(),
+        ImageFormat::Gif => IMAGE_GIF.to_string(),
+        ImageFormat::Bmp => IMAGE_BMP.to_string(),
+        ImageFormat::WebP => "image/webp".to_owned(),
+        ImageFormat::Tiff => "image/tiff".to_owned(),
+        ImageFormat::Tga => "image/tga".to_owned(),
+        unsupported_format => {
+            return Err(ArtworkImageError::UnsupportedFormat(unsupported_format));
+        }
+    };
+    Ok(media_type)
+}
 
 pub fn load_artwork_image(
     image_data: &[u8],
@@ -430,18 +458,7 @@ pub fn load_artwork_image(
         let media_type = if let Some(media_type_hint) = media_type_hint {
             media_type_hint
         } else if let Some(image_format) = image_format {
-            match image_format {
-                ImageFormat::Jpeg => IMAGE_JPEG.to_string(),
-                ImageFormat::Png => IMAGE_PNG.to_string(),
-                ImageFormat::Gif => IMAGE_GIF.to_string(),
-                ImageFormat::Bmp => IMAGE_BMP.to_string(),
-                ImageFormat::WebP => "image/webp".to_owned(),
-                ImageFormat::Tiff => "image/tiff".to_owned(),
-                ImageFormat::Tga => "image/tga".to_owned(),
-                unsupported_format => {
-                    return Err(ArtworkImageError::UnsupportedFormat(unsupported_format));
-                }
-            }
+            media_type_from_image_format(image_format)?
         } else {
             IMAGE_STAR.to_string()
         };

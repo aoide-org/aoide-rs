@@ -21,8 +21,13 @@ use aoide_core::track::{
     actor::{Actor, ActorKind, ActorRole, Actors},
     Track,
 };
+use mime::Mime;
 
-use crate::{util::tag::FacetedTagMappingConfig, Result};
+use crate::{
+    fmt::{flac, mp3, mp4},
+    util::tag::FacetedTagMappingConfig,
+    Error, Result,
+};
 
 use super::import::ImportTrackFlags;
 
@@ -40,13 +45,23 @@ pub struct ExportTrackConfig {
     pub flags: ExportTrackFlags,
 }
 
-pub trait ExportTrack {
-    fn export_track_to_path(
-        &self,
-        config: &ExportTrackConfig,
-        path: &Path,
-        track: &mut Track,
-    ) -> Result<bool>;
+pub fn export_track_to_path(
+    path: &Path,
+    config: &ExportTrackConfig,
+    track: &mut Track,
+) -> Result<bool> {
+    let mime = track
+        .media_source
+        .content_type
+        .parse::<Mime>()
+        .map_err(|_| Error::UnknownContentType)?;
+    match mime.essence_str() {
+        "audio/flac" => flac::export_track_to_path(path, config, track),
+        "audio/mpeg" => mp3::export_track_to_path(path, config, track),
+        "audio/m4a" | "video/mp4" => mp4::export_track_to_path(path, config, track),
+        // TODO: Add support for audio/ogg
+        _ => Err(Error::UnsupportedContentType(mime)),
+    }
 }
 
 #[derive(Debug, Clone)]
