@@ -480,7 +480,7 @@ impl From<_core::Source> for Source {
             collected_at: collected_at.into(),
             synchronized_at: synchronized_at.map(Into::into),
             path: path.into(),
-            content_type,
+            content_type: content_type.to_string(),
             advisory_rating: advisory_rating.map(Into::into),
             content_digest: content_digest.map(Into::into),
             content_metadata_flags: content_metadata_flags.bits(),
@@ -505,6 +505,7 @@ impl TryFrom<Source> for _core::Source {
             content,
             artwork,
         } = from;
+        let content_type = content_type.parse()?;
         let content_digest = content_digest.as_ref().map(TryFrom::try_from).transpose()?;
         let artwork = artwork.map(TryFrom::try_from).transpose()?;
         let into = Self {

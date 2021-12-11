@@ -21,7 +21,6 @@ use aoide_core::track::{
     actor::{Actor, ActorKind, ActorRole, Actors},
     Track,
 };
-use mime::Mime;
 
 use crate::{
     fmt::{flac, mp3, mp4},
@@ -50,17 +49,14 @@ pub fn export_track_to_path(
     config: &ExportTrackConfig,
     track: &mut Track,
 ) -> Result<bool> {
-    let mime = track
-        .media_source
-        .content_type
-        .parse::<Mime>()
-        .map_err(|_| Error::UnknownContentType)?;
-    match mime.essence_str() {
+    match track.media_source.content_type.essence_str() {
         "audio/flac" => flac::export_track_to_path(path, config, track),
         "audio/mpeg" => mp3::export_track_to_path(path, config, track),
         "audio/m4a" | "video/mp4" => mp4::export_track_to_path(path, config, track),
         // TODO: Add support for audio/ogg
-        _ => Err(Error::UnsupportedContentType(mime)),
+        _ => Err(Error::UnsupportedContentType(
+            track.media_source.content_type.to_owned(),
+        )),
     }
 }
 

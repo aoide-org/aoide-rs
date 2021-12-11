@@ -543,7 +543,7 @@ pub struct Source {
 
     pub path: SourcePath,
 
-    pub content_type: String,
+    pub content_type: Mime,
 
     pub advisory_rating: Option<AdvisoryRating>,
 
@@ -591,7 +591,7 @@ impl Validate for Source {
         let context = ValidationContext::new()
             .invalidate_if(path.trim().is_empty(), Self::Invalidity::PathEmpty)
             .invalidate_if(
-                content_type.trim().is_empty(),
+                content_type.essence_str().is_empty(),
                 Self::Invalidity::ContentTypeEmpty,
             )
             .validate_with(

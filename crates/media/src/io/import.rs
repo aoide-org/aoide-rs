@@ -82,7 +82,7 @@ pub struct NewTrackInput {
 }
 
 impl NewTrackInput {
-    pub fn into_new_track(self, path: SourcePath, mime: &Mime) -> Track {
+    pub fn into_new_track(self, path: SourcePath, content_type: Mime) -> Track {
         let Self {
             collected_at,
             synchronized_at,
@@ -91,7 +91,7 @@ impl NewTrackInput {
             collected_at,
             synchronized_at: Some(synchronized_at),
             path,
-            content_type: mime.to_string(),
+            content_type,
             advisory_rating: None,
             content_digest: None,
             content_metadata_flags: Default::default(),
@@ -107,7 +107,7 @@ pub trait Reader: Read + Seek + 'static {}
 impl<T> Reader for T where T: Read + Seek + 'static {}
 
 pub fn import_into_track(
-    mime: Mime,
+    mime: &Mime,
     reader: &mut Box<dyn Reader>,
     config: &ImportTrackConfig,
     track: &mut Track,
@@ -121,7 +121,7 @@ pub fn import_into_track(
             .and_then(|metadata| metadata.import_into_track(config, track)),
         "audio/ogg" => ogg::Metadata::read_from(reader)
             .and_then(|metadata| metadata.import_into_track(config, track)),
-        _ => Err(Error::UnsupportedContentType(mime)),
+        _ => Err(Error::UnsupportedContentType(mime.to_owned())),
     }
     .map_err(|err| {
         tracing::warn!(

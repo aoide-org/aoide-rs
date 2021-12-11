@@ -168,6 +168,7 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
             created_at: DateTime::new_timestamp_millis(row_created_ms),
             updated_at: DateTime::new_timestamp_millis(row_updated_ms),
         };
+        let content_type = content_type.parse()?;
         let source = Source {
             collected_at: parse_datetime(&collected_at, collected_ms),
             synchronized_at: parse_datetime_opt(synchronized_at.as_deref(), synchronized_ms),
@@ -196,7 +197,7 @@ pub struct InsertableRecord<'a> {
     pub synchronized_at: Option<String>,
     pub synchronized_ms: Option<TimestampMillis>,
     pub path: &'a str,
-    pub content_type: &'a str,
+    pub content_type: String,
     pub advisory_rating: Option<i16>,
     pub content_digest: Option<&'a [u8]>,
     pub content_metadata_flags: i16,
@@ -290,7 +291,7 @@ impl<'a> InsertableRecord<'a> {
             synchronized_at: synchronized_at.as_ref().map(ToString::to_string),
             synchronized_ms: synchronized_at.map(DateTime::timestamp_millis),
             path: path.as_str(),
-            content_type: content_type.as_str(),
+            content_type: content_type.to_string(),
             advisory_rating: advisory_rating.as_ref().and_then(ToPrimitive::to_i16),
             content_digest: content_digest.as_ref().map(Vec::as_slice),
             content_metadata_flags: content_metadata_flags.bits() as i16,
@@ -332,7 +333,7 @@ pub struct UpdatableRecord<'a> {
     pub synchronized_at: Option<String>,
     pub synchronized_ms: Option<TimestampMillis>,
     pub path: &'a str,
-    pub content_type: &'a str,
+    pub content_type: String,
     pub advisory_rating: Option<i16>,
     pub content_digest: Option<&'a [u8]>,
     pub content_metadata_flags: i16,
@@ -419,7 +420,7 @@ impl<'a> UpdatableRecord<'a> {
             synchronized_at: synchronized_at.as_ref().map(ToString::to_string),
             synchronized_ms: synchronized_at.map(DateTime::timestamp_millis),
             path: path.as_str(),
-            content_type: content_type.as_str(),
+            content_type: content_type.to_string(),
             advisory_rating: advisory_rating.as_ref().and_then(ToPrimitive::to_i16),
             content_digest: content_digest.as_ref().map(Vec::as_slice),
             content_metadata_flags: content_metadata_flags.bits() as i16,

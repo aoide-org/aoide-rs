@@ -70,7 +70,7 @@ impl Fixture {
                 collected_at: created_at,
                 synchronized_at: Some(DateTime::now_utc()),
                 path: SourcePath::new(format!("/home/test/file{}.mp3", i)),
-                content_type: "audio/mpeg".to_string(),
+                content_type: "audio/mpeg".parse().unwrap(),
                 advisory_rating: None,
                 content_digest: None,
                 content_metadata_flags: Default::default(),

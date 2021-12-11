@@ -167,7 +167,7 @@ where
     // Only sources with equal content/file type
     all_filters.push(SearchFilter::Phrase(PhraseFieldFilter {
         fields: vec![StringField::SourceType],
-        terms: vec![track.media_source.content_type],
+        terms: vec![track.media_source.content_type.to_string()],
     }));
     let filter = SearchFilter::All(all_filters);
     // Prefer recently added sources, e.g. after scanning the file system

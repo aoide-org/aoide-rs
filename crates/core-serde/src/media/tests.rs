@@ -42,7 +42,7 @@ fn deserialize_audio_source() {
             collected_at: now,
             synchronized_at: Some(now),
             path: _core::SourcePath::new("/home/test file.mp3".to_owned()),
-            content_type: "audio/mpeg".to_string(),
+            content_type: "audio/mpeg".parse().unwrap(),
             advisory_rating: Some(_core::AdvisoryRating::Unrated),
             content_digest: Digest::from_encoded("aGVsbG8gaW50ZXJuZXR-Cg")
                 .try_decode()
