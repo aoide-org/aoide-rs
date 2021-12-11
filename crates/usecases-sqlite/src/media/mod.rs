@@ -19,6 +19,8 @@ use aoide_repo::{collection::EntityRepo as _, media::source::Repo as _};
 
 use super::*;
 
+pub mod source;
+
 pub mod tracker;
 
 pub fn relocate_collected_sources(

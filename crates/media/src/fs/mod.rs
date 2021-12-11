@@ -13,22 +13,20 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-///////////////////////////////////////////////////////////////////////
-
-pub mod digest;
-
-use super::{Error, IoError, Result};
-
-use anyhow::anyhow;
-use aoide_core::util::clock::DateTime;
 use std::{
     fs::File,
     io::ErrorKind,
     path::{Path, PathBuf},
 };
+
+use anyhow::anyhow;
 use url::Url;
 
-pub use mime::Mime;
+use aoide_core::util::clock::DateTime;
+
+use crate::{Error, IoError, Result};
+
+pub mod digest;
 
 pub fn file_path_from_url(url: &Url) -> Result<PathBuf> {
     if url.scheme() != "file" {

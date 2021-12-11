@@ -13,14 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-///////////////////////////////////////////////////////////////////////
-
-use crate::{
-    util::digest::*,
-    {Error, Result},
-};
-
-use digest::Digest;
 use std::{
     fs, io,
     path::{Path, PathBuf},
@@ -28,7 +20,14 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
     time::Instant,
 };
+
+use digest::Digest;
 use walkdir::{DirEntry, WalkDir};
+
+use crate::{
+    util::digest::*,
+    {Error, Result},
+};
 
 /// Fingerprint file metadata for detecting changes on the file.
 /// system.

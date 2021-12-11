@@ -134,9 +134,16 @@ pub fn import_into_track(
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct EmbeddedArtworkImageData {
-    pub apic_type: ApicType,
+pub struct LoadedArtworkImage {
+    /// The APIC type of an embedded image
+    ///
+    /// `Some` for embedded images and `None` for custom, external images.
+    pub apic_type: Option<ApicType>,
+
+    /// The MIME type of `image_data`
     pub media_type: Mime,
+
+    /// The actual image data
     pub image_data: Vec<u8>,
 }
 
@@ -147,9 +154,9 @@ fn parse_media_type(media_type: &str) -> Result<Mime> {
         .map_err(Into::into)
 }
 
-pub fn load_embedded_artwork_image_data_from_file_path(
+pub fn load_embedded_artwork_image_from_file_path(
     file_path: &Path,
-) -> Result<Option<EmbeddedArtworkImageData>> {
+) -> Result<Option<LoadedArtworkImage>> {
     let file = File::open(file_path)?;
     let mut reader: Box<dyn Reader> = Box::new(BufReader::new(file));
     let mime = guess_mime_from_path(&file_path)?;
@@ -158,8 +165,8 @@ pub fn load_embedded_artwork_image_data_from_file_path(
             metadata
                 .find_embedded_artwork_image()
                 .map(|(apic_type, media_type, image_data)| {
-                    Ok(EmbeddedArtworkImageData {
-                        apic_type,
+                    Ok(LoadedArtworkImage {
+                        apic_type: Some(apic_type),
                         media_type: parse_media_type(media_type)?,
                         image_data: image_data.to_owned(),
                     })
@@ -170,8 +177,8 @@ pub fn load_embedded_artwork_image_data_from_file_path(
             metadata
                 .find_embedded_artwork_image()
                 .map(|(apic_type, media_type, image_data)| {
-                    Ok(EmbeddedArtworkImageData {
-                        apic_type,
+                    Ok(LoadedArtworkImage {
+                        apic_type: Some(apic_type),
                         media_type: parse_media_type(media_type)?,
                         image_data: image_data.to_owned(),
                     })
@@ -182,8 +189,8 @@ pub fn load_embedded_artwork_image_data_from_file_path(
             metadata
                 .find_embedded_artwork_image()
                 .map(|(apic_type, image_format, image_data)| {
-                    Ok(EmbeddedArtworkImageData {
-                        apic_type,
+                    Ok(LoadedArtworkImage {
+                        apic_type: Some(apic_type),
                         media_type: media_type_from_image_format(image_format)?,
                         image_data: image_data.to_owned(),
                     })
@@ -194,8 +201,8 @@ pub fn load_embedded_artwork_image_data_from_file_path(
             metadata
                 .find_embedded_artwork_image()
                 .map(|(apic_type, media_type, image_data)| {
-                    Ok(EmbeddedArtworkImageData {
-                        apic_type,
+                    Ok(LoadedArtworkImage {
+                        apic_type: Some(apic_type),
                         media_type: parse_media_type(&media_type)?,
                         image_data,
                     })

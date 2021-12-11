@@ -510,7 +510,7 @@ pub fn ingest_artwork_image(
     ))
 }
 
-pub type IngestEmbeddedArtworkImageResult =
+pub type IngestLoadedArtworkImageResult =
     std::result::Result<(EmbeddedArtwork, DynamicImage), ArtworkImageError>;
 
 pub fn ingest_embedded_artwork_image(
@@ -519,7 +519,7 @@ pub fn ingest_embedded_artwork_image(
     image_format_hint: Option<ImageFormat>,
     media_type_hint: Option<String>,
     image_digest: &mut MediaDigest,
-) -> IngestEmbeddedArtworkImageResult {
+) -> IngestLoadedArtworkImageResult {
     ingest_artwork_image(
         apic_type,
         image_data,
