@@ -13,6 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use std::str::FromStr;
+
+use mime::Mime;
 use num_traits::{FromPrimitive as _, ToPrimitive};
 
 use aoide_core::{
@@ -123,7 +126,7 @@ impl TryFrom<QueryableRecord> for (RecordHeader, Source) {
                         })
                         .transpose()?
                         .unwrap_or(ApicType::Other);
-                    let media_type = artwork_media_type.unwrap_or_default();
+                    let media_type = Mime::from_str(&artwork_media_type.unwrap_or_default())?;
                     let size = if let (Some(width), Some(height)) =
                         (artwork_size_width, artwork_size_height)
                     {
@@ -206,7 +209,7 @@ pub struct InsertableRecord<'a> {
     pub artwork_source: Option<i16>,
     pub artwork_uri: Option<&'a str>,
     pub artwork_apic_type: Option<i16>,
-    pub artwork_media_type: Option<&'a str>,
+    pub artwork_media_type: Option<String>,
     pub artwork_digest: Option<&'a [u8]>,
     pub artwork_size_width: Option<i16>,
     pub artwork_size_height: Option<i16>,
@@ -264,7 +267,7 @@ impl<'a> InsertableRecord<'a> {
                 thumbnail,
             } = image;
             artwork_apic_type = apic_type.to_i16();
-            artwork_media_type = Some(media_type.as_str());
+            artwork_media_type = Some(media_type.to_string());
             artwork_size_width = size.map(|size| size.width as i16);
             artwork_size_height = size.map(|size| size.height as i16);
             artwork_digest = digest.as_ref().map(|x| &x[..]);
@@ -342,7 +345,7 @@ pub struct UpdatableRecord<'a> {
     pub artwork_source: Option<i16>,
     pub artwork_uri: Option<&'a str>,
     pub artwork_apic_type: Option<i16>,
-    pub artwork_media_type: Option<&'a str>,
+    pub artwork_media_type: Option<String>,
     pub artwork_digest: Option<&'a [u8]>,
     pub artwork_size_width: Option<i16>,
     pub artwork_size_height: Option<i16>,
@@ -396,7 +399,7 @@ impl<'a> UpdatableRecord<'a> {
                 thumbnail,
             } = image;
             artwork_apic_type = apic_type.to_i16();
-            artwork_media_type = Some(media_type.as_str());
+            artwork_media_type = Some(media_type.to_string());
             artwork_size_width = size.map(|size| size.width as i16);
             artwork_size_height = size.map(|size| size.height as i16);
             artwork_digest = digest.as_ref().map(|x| &x[..]);

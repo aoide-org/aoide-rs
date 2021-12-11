@@ -16,6 +16,7 @@
 use super::*;
 
 use crate::prelude::tests::*;
+use mime::IMAGE_JPEG;
 use test_log::test;
 
 use aoide_core::{
@@ -86,7 +87,7 @@ fn insert_media_source() -> anyhow::Result<()> {
             uri: "file://folder.jpg".to_owned(),
             image: ArtworkImage {
                 apic_type: ApicType::CoverFront,
-                media_type: "image/jpeg".to_owned(),
+                media_type: IMAGE_JPEG,
                 size: Some(ImageSize {
                     width: 500,
                     height: 600,

@@ -10,6 +10,7 @@ anyhow = "*"
 bs58 = "^0.4"
 bitflags = "*"
 chrono = { version = "*", default-features = false, features = ["clock"] }
+mime = "*"
 num-derive = "*"
 num-traits = "*"
 once_cell = "*"

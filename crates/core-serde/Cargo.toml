@@ -9,6 +9,7 @@ edition = "2021"
 anyhow = "*"
 base64 = "*"
 chrono = { version = "*", default-features = false, features = ["serde"] }
+mime = "*"
 num-traits = "*"
 schemars = { version = "*", features = ["chrono"] }
 semval = "*"

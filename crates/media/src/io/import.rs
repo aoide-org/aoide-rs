@@ -136,8 +136,15 @@ pub fn import_into_track(
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EmbeddedArtworkImageData {
     pub apic_type: ApicType,
-    pub media_type: String,
+    pub media_type: Mime,
     pub image_data: Vec<u8>,
+}
+
+fn parse_media_type(media_type: &str) -> Result<Mime> {
+    media_type
+        .parse()
+        .map_err(anyhow::Error::from)
+        .map_err(Into::into)
 }
 
 pub fn load_embedded_artwork_image_data_from_file_path(
@@ -147,27 +154,29 @@ pub fn load_embedded_artwork_image_data_from_file_path(
     let mut reader: Box<dyn Reader> = Box::new(BufReader::new(file));
     let mime = guess_mime_from_path(&file_path)?;
     match mime.as_ref() {
-        "audio/flac" => flac::Metadata::read_from(&mut reader).map(|metadata| {
+        "audio/flac" => flac::Metadata::read_from(&mut reader).and_then(|metadata| {
             metadata
                 .find_embedded_artwork_image()
-                .map(
-                    |(apic_type, media_type, image_data)| EmbeddedArtworkImageData {
+                .map(|(apic_type, media_type, image_data)| {
+                    Ok(EmbeddedArtworkImageData {
                         apic_type,
-                        media_type: media_type.to_owned(),
+                        media_type: parse_media_type(media_type)?,
                         image_data: image_data.to_owned(),
-                    },
-                )
+                    })
+                })
+                .transpose()
         }),
-        "audio/mpeg" => mp3::Metadata::read_from(&mut reader).map(|metadata| {
+        "audio/mpeg" => mp3::Metadata::read_from(&mut reader).and_then(|metadata| {
             metadata
                 .find_embedded_artwork_image()
-                .map(
-                    |(apic_type, media_type, image_data)| EmbeddedArtworkImageData {
+                .map(|(apic_type, media_type, image_data)| {
+                    Ok(EmbeddedArtworkImageData {
                         apic_type,
-                        media_type: media_type.to_owned(),
+                        media_type: parse_media_type(media_type)?,
                         image_data: image_data.to_owned(),
-                    },
-                )
+                    })
+                })
+                .transpose()
         }),
         "audio/m4a" | "video/mp4" => mp4::Metadata::read_from(&mut reader).and_then(|metadata| {
             metadata
@@ -181,16 +190,17 @@ pub fn load_embedded_artwork_image_data_from_file_path(
                 })
                 .transpose()
         }),
-        "audio/ogg" => ogg::Metadata::read_from(&mut reader).map(|metadata| {
+        "audio/ogg" => ogg::Metadata::read_from(&mut reader).and_then(|metadata| {
             metadata
                 .find_embedded_artwork_image()
-                .map(
-                    |(apic_type, media_type, image_data)| EmbeddedArtworkImageData {
+                .map(|(apic_type, media_type, image_data)| {
+                    Ok(EmbeddedArtworkImageData {
                         apic_type,
-                        media_type,
+                        media_type: parse_media_type(&media_type)?,
                         image_data,
-                    },
-                )
+                    })
+                })
+                .transpose()
         }),
         _ => Err(Error::UnsupportedContentType(mime)),
     }

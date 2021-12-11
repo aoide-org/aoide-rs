@@ -13,17 +13,19 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{
-    audio::{AudioContent, AudioContentInvalidity},
-    prelude::{url::BaseUrl, *},
-};
-
-use bitflags::bitflags;
-use num_derive::{FromPrimitive, ToPrimitive};
 use std::{
     borrow::Cow,
     fmt,
     ops::{Deref, DerefMut},
+};
+
+use bitflags::bitflags;
+use mime::Mime;
+use num_derive::{FromPrimitive, ToPrimitive};
+
+use crate::{
+    audio::{AudioContent, AudioContentInvalidity},
+    prelude::{url::BaseUrl, *},
 };
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
@@ -411,8 +413,7 @@ pub type Thumbnail4x4Rgb8 = [u8; 4 * 4 * 3];
 /// in time.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ArtworkImage {
-    /// The media type, e.g. "image/jpeg"
-    pub media_type: String,
+    pub media_type: Mime,
 
     pub apic_type: ApicType,
 
@@ -438,7 +439,10 @@ impl Validate for ArtworkImage {
 
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         ValidationContext::new()
-            .invalidate_if(self.media_type.is_empty(), Self::Invalidity::MediaTypeEmpty)
+            .invalidate_if(
+                self.media_type.essence_str().is_empty(),
+                Self::Invalidity::MediaTypeEmpty,
+            )
             .validate_with(&self.size, Self::Invalidity::Size)
             .into()
     }

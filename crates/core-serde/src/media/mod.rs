@@ -251,7 +251,7 @@ impl From<_core::ArtworkImage> for ArtworkImage {
             ImageSize(width, height)
         });
         Self {
-            media_type,
+            media_type: media_type.to_string(),
             apic_type: apic_type.to_u8().expect("u8"),
             size,
             digest: digest.as_ref().map(Into::into),
@@ -271,6 +271,7 @@ impl TryFrom<ArtworkImage> for _core::ArtworkImage {
             digest,
             thumbnail,
         } = from;
+        let media_type = media_type.parse()?;
         let apic_type = _core::ApicType::from_u8(apic_type)
             .ok_or_else(|| anyhow::anyhow!("Invalid APIC type: {}", apic_type))?;
         let size = size.map(|size| {

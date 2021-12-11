@@ -151,7 +151,7 @@ where
 
 // TODO: Reduce number of arguments
 #[allow(clippy::too_many_arguments)]
-pub fn import_and_replace_by_local_file_path<Repo>(
+pub fn import_and_replace_from_file_path<Repo>(
     summary: &mut Summary,
     media_source_ids: &mut Vec<MediaSourceId>,
     repo: &Repo,
@@ -289,7 +289,7 @@ where
                 media_source_ids,
             });
         }
-        import_and_replace_by_local_file_path(
+        import_and_replace_from_file_path(
             &mut summary,
             &mut media_source_ids,
             repo,
@@ -363,7 +363,7 @@ where
             // Skip entry and keep going
             continue;
         };
-        import_and_replace_by_local_file_path(
+        import_and_replace_from_file_path(
             &mut summary,
             &mut media_source_ids,
             repo,

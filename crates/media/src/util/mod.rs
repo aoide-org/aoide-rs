@@ -421,19 +421,19 @@ impl From<ArtworkImageError> for Error {
     }
 }
 
-pub type LoadArtworkImageResult = std::result::Result<(String, DynamicImage), ArtworkImageError>;
+pub type LoadArtworkImageResult = std::result::Result<(Mime, DynamicImage), ArtworkImageError>;
 
 pub fn media_type_from_image_format(
     image_format: ImageFormat,
-) -> std::result::Result<String, ArtworkImageError> {
+) -> std::result::Result<Mime, ArtworkImageError> {
     let media_type = match image_format {
-        ImageFormat::Jpeg => IMAGE_JPEG.to_string(),
-        ImageFormat::Png => IMAGE_PNG.to_string(),
-        ImageFormat::Gif => IMAGE_GIF.to_string(),
-        ImageFormat::Bmp => IMAGE_BMP.to_string(),
-        ImageFormat::WebP => "image/webp".to_owned(),
-        ImageFormat::Tiff => "image/tiff".to_owned(),
-        ImageFormat::Tga => "image/tga".to_owned(),
+        ImageFormat::Jpeg => IMAGE_JPEG,
+        ImageFormat::Png => IMAGE_PNG,
+        ImageFormat::Gif => IMAGE_GIF,
+        ImageFormat::Bmp => IMAGE_BMP,
+        ImageFormat::WebP => "image/webp".parse().unwrap(),
+        ImageFormat::Tiff => "image/tiff".parse().unwrap(),
+        ImageFormat::Tga => "image/tga".parse().unwrap(),
         unsupported_format => {
             return Err(ArtworkImageError::UnsupportedFormat(unsupported_format));
         }
@@ -457,10 +457,13 @@ pub fn load_artwork_image(
     .and_then(|image| {
         let media_type = if let Some(media_type_hint) = media_type_hint {
             media_type_hint
+                .parse()
+                .map_err(anyhow::Error::from)
+                .map_err(ArtworkImageError::Other)?
         } else if let Some(image_format) = image_format {
             media_type_from_image_format(image_format)?
         } else {
-            IMAGE_STAR.to_string()
+            IMAGE_STAR
         };
         Ok((media_type, image))
     })

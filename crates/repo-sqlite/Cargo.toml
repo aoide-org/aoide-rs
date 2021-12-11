@@ -12,6 +12,7 @@ diesel = { version = "*", default-features = false, features = ["sqlite", "64-co
 # Bundle SQLite code to prevent dynamic linking.
 # The pinned version must be compatible with diesel!
 libsqlite3-sys = { version = "0.22", features = ["bundled"] }
+mime = "*"
 num-bigint = "*"
 num-derive = "*"
 num-traits = "*"
