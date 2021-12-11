@@ -107,12 +107,11 @@ pub trait Reader: Read + Seek + 'static {}
 impl<T> Reader for T where T: Read + Seek + 'static {}
 
 pub fn import_into_track(
-    mime: &Mime,
     reader: &mut Box<dyn Reader>,
     config: &ImportTrackConfig,
     track: &mut Track,
 ) -> Result<()> {
-    match mime.essence_str() {
+    match track.media_source.content_type.essence_str() {
         "audio/flac" => flac::Metadata::read_from(reader)
             .and_then(|metadata| metadata.import_into_track(config, track)),
         "audio/mpeg" => mp3::MetadataExt::read_from(reader)
@@ -121,7 +120,9 @@ pub fn import_into_track(
             .and_then(|metadata| metadata.import_into_track(config, track)),
         "audio/ogg" => ogg::Metadata::read_from(reader)
             .and_then(|metadata| metadata.import_into_track(config, track)),
-        _ => Err(Error::UnsupportedContentType(mime.to_owned())),
+        _ => Err(Error::UnsupportedContentType(
+            track.media_source.content_type.to_owned(),
+        )),
     }
     .map_err(|err| {
         tracing::warn!(
