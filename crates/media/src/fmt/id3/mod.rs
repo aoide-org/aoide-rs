@@ -136,10 +136,10 @@ fn text_frames<'a>(tag: &'a id3::Tag, frame_id: &'a str) -> impl Iterator<Item =
 }
 
 fn extended_text_values<'a>(
-    id3_tag: &'a id3::Tag,
+    tag: &'a id3::Tag,
     txxx_description: &'a str,
 ) -> impl Iterator<Item = &'a str> + 'a {
-    id3_tag.extended_texts().filter_map(move |txxx| {
+    tag.extended_texts().filter_map(move |txxx| {
         if txxx.description == txxx_description {
             Some(txxx.value.as_str())
         } else {
@@ -221,9 +221,9 @@ pub fn find_embedded_artwork_image(tag: &id3::Tag) -> Option<(ApicType, &str, &[
         .next()
 }
 
-pub fn import_track(
-    tag: &id3::Tag,
+pub fn import_metadata_into_track(
     mut audio_content: AudioContent,
+    tag: &id3::Tag,
     config: &ImportTrackConfig,
     track: &mut Track,
 ) -> Result<()> {
@@ -638,10 +638,10 @@ pub enum ExportError {
 pub fn export_track(
     config: &ExportTrackConfig,
     track: &mut Track,
-    id3_tag: &mut id3::Tag,
+    tag: &mut id3::Tag,
 ) -> std::result::Result<(), ExportError> {
-    if id3_tag.version() != id3::Version::Id3v24 {
-        return Err(ExportError::UnsupportedLegacyVersion(id3_tag.version()));
+    if tag.version() != id3::Version::Id3v24 {
+        return Err(ExportError::UnsupportedLegacyVersion(tag.version()));
     }
 
     // Audio properties
@@ -650,25 +650,25 @@ pub fn export_track(
             if let Some(formatted_track_gain) =
                 audio.loudness.map(format_valid_replay_gain).flatten()
             {
-                id3_tag.add_extended_text("REPLAYGAIN_TRACK_GAIN", formatted_track_gain);
+                tag.add_extended_text("REPLAYGAIN_TRACK_GAIN", formatted_track_gain);
             } else {
-                id3_tag.remove_extended_text(Some("REPLAYGAIN_TRACK_GAIN"), None);
+                tag.remove_extended_text(Some("REPLAYGAIN_TRACK_GAIN"), None);
             }
             if let Some(encoder) = &audio.encoder {
-                id3_tag.set_text("TENC", encoder)
+                tag.set_text("TENC", encoder)
             } else {
-                id3_tag.remove("TENC");
+                tag.remove("TENC");
             }
             // TENC and TSSE have been joined during import
-            id3_tag.remove("TSSE");
+            tag.remove("TSSE");
         }
     }
 
     // Music: Tempo/BPM
-    id3_tag.remove_extended_text(Some("TEMPO"), None);
+    tag.remove_extended_text(Some("TEMPO"), None);
     if let Some(formatted_bpm) = format_validated_tempo_bpm(&mut track.metrics.tempo_bpm) {
-        id3_tag.add_extended_text("BPM", formatted_bpm);
-        id3_tag.set_text(
+        tag.add_extended_text("BPM", formatted_bpm);
+        tag.set_text(
             "TBPM",
             track
                 .metrics
@@ -679,38 +679,38 @@ pub fn export_track(
                 .to_string(),
         );
     } else {
-        id3_tag.remove_extended_text(Some("BPM"), None);
-        id3_tag.remove("TBPM");
+        tag.remove_extended_text(Some("BPM"), None);
+        tag.remove("TBPM");
     }
 
     // Music: Key
     if track.metrics.key_signature.is_unknown() {
-        id3_tag.remove("TKEY");
+        tag.remove("TKEY");
     } else {
         // TODO: Write a custom key code string according to config
-        id3_tag.set_text("TKEY", track.metrics.key_signature.to_string());
+        tag.set_text("TKEY", track.metrics.key_signature.to_string());
     }
 
     // Track titles
     if let Some(title) = Titles::main_title(track.titles.iter()) {
-        id3_tag.set_title(title.name.to_owned());
+        tag.set_title(title.name.to_owned());
     } else {
-        id3_tag.remove_title();
+        tag.remove_title();
     }
-    id3_tag.set_text_values(
+    tag.set_text_values(
         "TIT3",
         Titles::filter_kind(track.titles.iter(), TitleKind::Sub).map(|title| &title.name),
     );
-    id3_tag.set_text_values(
+    tag.set_text_values(
         "MVNM",
         Titles::filter_kind(track.titles.iter(), TitleKind::Movement).map(|title| &title.name),
     );
-    id3_tag.remove_extended_text(Some("WORK"), None);
+    tag.remove_extended_text(Some("WORK"), None);
     if config
         .flags
         .contains(ExportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK)
     {
-        id3_tag.set_text_values(
+        tag.set_text_values(
             "TIT1",
             Titles::filter_kind(track.titles.iter(), TitleKind::Work).map(|title| &title.name),
         );
@@ -718,44 +718,44 @@ pub fn export_track(
         Titles::filter_kind(track.titles.iter(), TitleKind::Work).map(|title| title.name.as_str()),
         ID3V24_MULTI_FIELD_SEPARATOR,
     ) {
-        id3_tag.add_extended_text("WORK", joined_titles.to_owned());
+        tag.add_extended_text("WORK", joined_titles.to_owned());
     }
 
     // Track actors
     export_filtered_actor_names(
-        id3_tag,
+        tag,
         "TPE1",
         FilteredActorNames::new(track.actors.iter(), ActorRole::Artist),
     );
     export_filtered_actor_names(
-        id3_tag,
+        tag,
         "TCOM",
         FilteredActorNames::new(track.actors.iter(), ActorRole::Composer),
     );
     export_filtered_actor_names(
-        id3_tag,
+        tag,
         "TPE3",
         FilteredActorNames::new(track.actors.iter(), ActorRole::Conductor),
     );
     export_filtered_actor_names_txxx(
-        id3_tag,
+        tag,
         "DIRECTOR",
         FilteredActorNames::new(track.actors.iter(), ActorRole::Director),
     );
     export_filtered_actor_names(
-        id3_tag,
+        tag,
         "TPE4",
         FilteredActorNames::new(track.actors.iter(), ActorRole::Remixer),
     );
     export_filtered_actor_names(
-        id3_tag,
+        tag,
         "TEXT",
         FilteredActorNames::new(track.actors.iter(), ActorRole::Lyricist),
     );
     // "Writer", not "WRITER" in all caps
     // See also: https://tickets.metabrainz.org/browse/PICARD-1101
     export_filtered_actor_names_txxx(
-        id3_tag,
+        tag,
         "Writer",
         FilteredActorNames::new(track.actors.iter(), ActorRole::Writer),
     );
@@ -763,86 +763,86 @@ pub fn export_track(
 
     // Album
     if let Some(title) = Titles::main_title(track.album.titles.iter()) {
-        id3_tag.set_album(title.name.to_owned());
+        tag.set_album(title.name.to_owned());
     } else {
-        id3_tag.remove_album();
+        tag.remove_album();
     }
     export_filtered_actor_names(
-        id3_tag,
+        tag,
         "TPE2",
         FilteredActorNames::new(track.album.actors.iter(), ActorRole::Artist),
     );
     match track.album.kind {
         AlbumKind::Unknown => {
-            id3_tag.remove("TCMP");
+            tag.remove("TCMP");
         }
         AlbumKind::Compilation => {
-            id3_tag.set_text("TCMP", "1");
+            tag.set_text("TCMP", "1");
         }
         AlbumKind::Album | AlbumKind::Single => {
-            id3_tag.set_text("TCMP", "0");
+            tag.set_text("TCMP", "0");
         }
     }
 
     // Release
     if let Some(copyright) = &track.release.copyright {
-        id3_tag.set_text("TCOP", copyright);
+        tag.set_text("TCOP", copyright);
     } else {
-        id3_tag.remove("TCOP");
+        tag.remove("TCOP");
     }
     if let Some(released_by) = &track.release.released_by {
-        id3_tag.set_text("TPUB", released_by);
+        tag.set_text("TPUB", released_by);
     } else {
-        id3_tag.remove("TPUB");
+        tag.remove("TPUB");
     }
     if let Some(released_at) = &track.release.released_at {
         let timestamp = export_date_or_date_time(*released_at);
-        id3_tag.set_date_released(timestamp);
+        tag.set_date_released(timestamp);
     } else {
-        id3_tag.remove_date_released();
+        tag.remove_date_released();
     }
 
     // Numbers
     if let Some(track_number) = track.indexes.track.number {
-        id3_tag.set_track(track_number.into());
+        tag.set_track(track_number.into());
     } else {
-        id3_tag.remove_track();
+        tag.remove_track();
     }
     if let Some(track_total) = track.indexes.track.total {
-        id3_tag.set_total_tracks(track_total.into());
+        tag.set_total_tracks(track_total.into());
     } else {
-        id3_tag.remove_total_tracks();
+        tag.remove_total_tracks();
     }
     if let Some(disc_number) = track.indexes.disc.number {
-        id3_tag.set_disc(disc_number.into());
+        tag.set_disc(disc_number.into());
     } else {
-        id3_tag.remove_disc();
+        tag.remove_disc();
     }
     if let Some(disc_total) = track.indexes.disc.total {
-        id3_tag.set_total_discs(disc_total.into());
+        tag.set_total_discs(disc_total.into());
     } else {
-        id3_tag.remove_total_discs();
+        tag.remove_total_discs();
     }
     if let Some(movement_number) = track.indexes.movement.number {
         if let Some(movement_total) = track.indexes.movement.total {
-            id3_tag.set_text("MVIN", format!("{}/{}", movement_number, movement_total));
+            tag.set_text("MVIN", format!("{}/{}", movement_number, movement_total));
         } else {
-            id3_tag.set_text("MVIN", movement_number.to_string());
+            tag.set_text("MVIN", movement_number.to_string());
         }
     } else if let Some(movement_total) = track.indexes.movement.total {
-        id3_tag.set_text("MVIN", format!("/{}", movement_total));
+        tag.set_text("MVIN", format!("/{}", movement_total));
     } else {
-        id3_tag.remove("MVIN");
+        tag.remove("MVIN");
     }
 
     // Export all tags
-    id3_tag.remove_encapsulated_object(Some(MIXXX_CUSTOM_TAGS_GEOB_DESCRIPTION), None, None, None); // legacy frame
+    tag.remove_encapsulated_object(Some(MIXXX_CUSTOM_TAGS_GEOB_DESCRIPTION), None, None, None); // legacy frame
     if config.flags.contains(ExportTrackFlags::AOIDE_TAGS) && !track.tags.is_empty() {
         match serde_json::to_vec(&aoide_core_serde::tag::Tags::from(
             track.tags.clone().untie(),
         )) {
             Ok(value) => {
-                id3_tag.add_encapsulated_object(
+                tag.add_encapsulated_object(
                     AOIDE_TAGS_GEOB_DESCRIPTION.to_owned(),
                     mime::APPLICATION_JSON.type_().to_string(),
                     String::default(),
@@ -858,7 +858,7 @@ pub fn export_track(
             }
         }
     } else {
-        id3_tag.remove_encapsulated_object(Some(AOIDE_TAGS_GEOB_DESCRIPTION), None, None, None);
+        tag.remove_encapsulated_object(Some(AOIDE_TAGS_GEOB_DESCRIPTION), None, None, None);
     }
 
     // Export selected tags into dedicated fields
@@ -867,37 +867,37 @@ pub fn export_track(
     // Comment(s)
     if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_COMMENT) {
         export_faceted_tags_comment(
-            id3_tag,
+            tag,
             String::default(),
             config.faceted_tag_mapping.get(facet_id.value()),
             &tags,
         );
     } else {
-        export_faceted_tags_comment(id3_tag, String::default(), None, &[]);
+        export_faceted_tags_comment(tag, String::default(), None, &[]);
     }
 
     // Genre(s)
     if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_GENRE) {
         export_faceted_tags(
-            id3_tag,
+            tag,
             "TCON",
             config.faceted_tag_mapping.get(facet_id.value()),
             &tags,
         );
     } else {
-        export_faceted_tags(id3_tag, "TCON", None, &[]);
+        export_faceted_tags(tag, "TCON", None, &[]);
     }
 
     // Mood(s)
     if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_MOOD) {
         export_faceted_tags(
-            id3_tag,
+            tag,
             "TMOO",
             config.faceted_tag_mapping.get(facet_id.value()),
             &tags,
         );
     } else {
-        export_faceted_tags(id3_tag, "TMOO", None, &[]);
+        export_faceted_tags(tag, "TMOO", None, &[]);
     }
 
     // Grouping(s)
@@ -907,42 +907,42 @@ pub fn export_track(
     {
         "GRP1"
     } else {
-        id3_tag.remove("GRP1");
+        tag.remove("GRP1");
         "TIT1"
     };
     if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_GROUPING) {
         export_faceted_tags(
-            id3_tag,
+            tag,
             grouping_frame_id,
             config.faceted_tag_mapping.get(facet_id.value()),
             &tags,
         );
     } else {
-        export_faceted_tags(id3_tag, grouping_frame_id, None, &[]);
+        export_faceted_tags(tag, grouping_frame_id, None, &[]);
     }
 
     // ISRC(s)
     if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_ISRC) {
         export_faceted_tags(
-            id3_tag,
+            tag,
             "TSRC",
             config.faceted_tag_mapping.get(facet_id.value()),
             &tags,
         );
     } else {
-        export_faceted_tags(id3_tag, "TSRC", None, &[]);
+        export_faceted_tags(tag, "TSRC", None, &[]);
     }
 
     // Language(s)
     if let Some(FacetedTags { facet_id, tags }) = tags_map.take_faceted_tags(&FACET_LANGUAGE) {
         export_faceted_tags(
-            id3_tag,
+            tag,
             "TLAN",
             config.faceted_tag_mapping.get(facet_id.value()),
             &tags,
         );
     } else {
-        export_faceted_tags(id3_tag, "TLAN", None, &[]);
+        export_faceted_tags(tag, "TLAN", None, &[]);
     }
 
     Ok(())
@@ -986,36 +986,36 @@ fn export_date_or_date_time(dt: DateOrDateTime) -> id3::Timestamp {
 }
 
 fn export_filtered_actor_names(
-    id3_tag: &mut id3::Tag,
+    tag: &mut id3::Tag,
     text_frame_id: impl AsRef<str>,
     actor_names: FilteredActorNames<'_>,
 ) {
     match actor_names {
         FilteredActorNames::Summary(name) => {
-            id3_tag.set_text(text_frame_id, name);
+            tag.set_text(text_frame_id, name);
         }
         FilteredActorNames::Primary(names) => {
-            id3_tag.set_text_values(text_frame_id, names);
+            tag.set_text_values(text_frame_id, names);
         }
     }
 }
 
 fn export_filtered_actor_names_txxx(
-    id3_tag: &mut id3::Tag,
+    tag: &mut id3::Tag,
     txxx_description: impl AsRef<str>,
     actor_names: FilteredActorNames<'_>,
 ) {
-    id3_tag.remove_extended_text(Some(txxx_description.as_ref()), None);
+    tag.remove_extended_text(Some(txxx_description.as_ref()), None);
     match actor_names {
         FilteredActorNames::Summary(name) => {
-            id3_tag.add_extended_text(txxx_description.as_ref().to_owned(), name);
+            tag.add_extended_text(txxx_description.as_ref().to_owned(), name);
         }
         FilteredActorNames::Primary(names) => {
             if let Some(joined_names) = TagMappingConfig::join_labels_str_iter_with_separator(
                 names.iter().copied(),
                 ID3V24_MULTI_FIELD_SEPARATOR,
             ) {
-                id3_tag.add_extended_text(
+                tag.add_extended_text(
                     txxx_description.as_ref().to_owned(),
                     joined_names.to_owned(),
                 );
@@ -1027,7 +1027,7 @@ fn export_filtered_actor_names_txxx(
 const ID3V24_MULTI_FIELD_SEPARATOR: &str = "\0";
 
 fn export_faceted_tags(
-    id3_tag: &mut id3::Tag,
+    tag: &mut id3::Tag,
     text_frame_id: impl AsRef<str>,
     config: Option<&TagMappingConfig>,
     tags: &[PlainTag],
@@ -1045,14 +1045,14 @@ fn export_faceted_tags(
         )
     };
     if let Some(joined_labels) = joined_labels {
-        id3_tag.set_text(text_frame_id, joined_labels);
+        tag.set_text(text_frame_id, joined_labels);
     } else {
-        id3_tag.remove(text_frame_id);
+        tag.remove(text_frame_id);
     }
 }
 
 fn export_faceted_tags_comment(
-    id3_tag: &mut id3::Tag,
+    tag: &mut id3::Tag,
     description: impl Into<String>,
     config: Option<&TagMappingConfig>,
     tags: &[PlainTag],
@@ -1075,8 +1075,8 @@ fn export_faceted_tags_comment(
             description: description.into(),
             text: joined_labels.into(),
         };
-        id3_tag.add_comment(comment);
+        tag.add_comment(comment);
     } else {
-        id3_tag.remove_comment(Some(&description.into()), None);
+        tag.remove_comment(Some(&description.into()), None);
     }
 }

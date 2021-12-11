@@ -111,296 +111,303 @@ pub fn find_embedded_artwork_image(tag: &metaflac::Tag) -> Option<(ApicType, &st
         .next()
 }
 
-pub type Tag = metaflac::Tag;
+#[derive(Clone)]
+#[allow(missing_debug_implementations)]
+pub struct Metadata(metaflac::Tag);
 
-pub fn read_tag_from(reader: &mut impl Reader) -> Result<Tag> {
-    metaflac::Tag::read_from(reader).map_err(map_err)
-}
+impl Metadata {
+    pub fn read_from(reader: &mut impl Reader) -> Result<Self> {
+        metaflac::Tag::read_from(reader).map(Self).map_err(map_err)
+    }
 
-pub fn import_track(
-    reader: &mut impl Reader,
-    config: &ImportTrackConfig,
-    track: &mut Track,
-) -> Result<()> {
-    let flac_tag = read_tag_from(reader).map_err(|err| {
-        tracing::warn!(
-            "Failed to parse metadata from media source '{}': {}",
-            track.media_source.path,
-            err
-        );
-        err
-    })?;
+    pub fn find_embedded_artwork_image(&self) -> Option<(ApicType, &str, &[u8])> {
+        let Self(metaflac_tag) = self;
+        self::find_embedded_artwork_image(metaflac_tag)
+    }
 
-    if track
-        .media_source
-        .content_metadata_flags
-        .update(ContentMetadataFlags::RELIABLE)
-    {
-        if let Some(streaminfo) = flac_tag.get_streaminfo() {
-            let channels = Some(ChannelCount(streaminfo.num_channels.into()).into());
-            let duration;
-            let sample_rate;
-            if streaminfo.sample_rate > 0 {
-                duration = Some(
-                    Duration::from_secs_f64(
-                        streaminfo.total_samples as f64 / streaminfo.sample_rate as f64,
-                    )
-                    .into(),
-                );
-                sample_rate = Some(SampleRateHz::from_inner(streaminfo.sample_rate.into()));
-            } else {
-                duration = None;
-                sample_rate = None;
-            };
-            let loudness = vorbis::import_loudness(&flac_tag);
-            let encoder = vorbis::import_encoder(&flac_tag).map(Into::into);
-            let audio_content = AudioContent {
-                duration,
-                channels,
-                sample_rate,
-                bitrate: None,
-                loudness,
-                encoder,
-            };
-            track.media_source.content = Content::Audio(audio_content);
+    pub fn import_into_track(&self, config: &ImportTrackConfig, track: &mut Track) -> Result<()> {
+        let Self(metaflac_tag) = self;
+        if track
+            .media_source
+            .content_metadata_flags
+            .update(ContentMetadataFlags::RELIABLE)
+        {
+            if let Some(streaminfo) = metaflac_tag.get_streaminfo() {
+                let channels = Some(ChannelCount(streaminfo.num_channels.into()).into());
+                let duration;
+                let sample_rate;
+                if streaminfo.sample_rate > 0 {
+                    duration = Some(
+                        Duration::from_secs_f64(
+                            streaminfo.total_samples as f64 / streaminfo.sample_rate as f64,
+                        )
+                        .into(),
+                    );
+                    sample_rate = Some(SampleRateHz::from_inner(streaminfo.sample_rate.into()));
+                } else {
+                    duration = None;
+                    sample_rate = None;
+                };
+                let loudness = vorbis::import_loudness(metaflac_tag);
+                let encoder = vorbis::import_encoder(metaflac_tag).map(Into::into);
+                let audio_content = AudioContent {
+                    duration,
+                    channels,
+                    sample_rate,
+                    bitrate: None,
+                    loudness,
+                    encoder,
+                };
+                track.media_source.content = Content::Audio(audio_content);
+            }
         }
-    }
 
-    if let Some(tempo_bpm) = vorbis::import_tempo_bpm(&flac_tag) {
-        track.metrics.tempo_bpm = Some(tempo_bpm);
-    }
+        if let Some(tempo_bpm) = vorbis::import_tempo_bpm(metaflac_tag) {
+            track.metrics.tempo_bpm = Some(tempo_bpm);
+        }
 
-    if let Some(key_signature) = vorbis::import_key_signature(&flac_tag) {
-        track.metrics.key_signature = key_signature;
-    }
+        if let Some(key_signature) = vorbis::import_key_signature(metaflac_tag) {
+            track.metrics.key_signature = key_signature;
+        }
 
-    // Track titles
-    let track_titles = vorbis::import_track_titles(&flac_tag);
-    if !track_titles.is_empty() {
-        track.titles = Canonical::tie(track_titles);
-    }
+        // Track titles
+        let track_titles = vorbis::import_track_titles(metaflac_tag);
+        if !track_titles.is_empty() {
+            track.titles = Canonical::tie(track_titles);
+        }
 
-    // Track actors
-    let mut track_actors = Vec::with_capacity(8);
-    if let Some(artists) = flac_tag.get_vorbis("ARTIST") {
-        for name in artists {
-            push_next_actor_role_name(&mut track_actors, ActorRole::Artist, name.to_owned());
+        // Track actors
+        let mut track_actors = Vec::with_capacity(8);
+        if let Some(artists) = metaflac_tag.get_vorbis("ARTIST") {
+            for name in artists {
+                push_next_actor_role_name(&mut track_actors, ActorRole::Artist, name.to_owned());
+            }
         }
-    }
-    if let Some(artists) = flac_tag.get_vorbis("ARRANGER") {
-        for name in artists {
-            push_next_actor_role_name(&mut track_actors, ActorRole::Arranger, name.to_owned());
+        if let Some(artists) = metaflac_tag.get_vorbis("ARRANGER") {
+            for name in artists {
+                push_next_actor_role_name(&mut track_actors, ActorRole::Arranger, name.to_owned());
+            }
         }
-    }
-    if let Some(compersers) = flac_tag.get_vorbis("COMPOSER") {
-        for name in compersers {
-            push_next_actor_role_name(&mut track_actors, ActorRole::Composer, name.to_owned());
+        if let Some(compersers) = metaflac_tag.get_vorbis("COMPOSER") {
+            for name in compersers {
+                push_next_actor_role_name(&mut track_actors, ActorRole::Composer, name.to_owned());
+            }
         }
-    }
-    if let Some(conductors) = flac_tag.get_vorbis("CONDUCTOR") {
-        for name in conductors {
-            push_next_actor_role_name(&mut track_actors, ActorRole::Conductor, name.to_owned());
+        if let Some(conductors) = metaflac_tag.get_vorbis("CONDUCTOR") {
+            for name in conductors {
+                push_next_actor_role_name(&mut track_actors, ActorRole::Conductor, name.to_owned());
+            }
         }
-    }
-    if let Some(producers) = flac_tag.get_vorbis("PRODUCER") {
-        for name in producers {
-            push_next_actor_role_name(&mut track_actors, ActorRole::Producer, name.to_owned());
+        if let Some(producers) = metaflac_tag.get_vorbis("PRODUCER") {
+            for name in producers {
+                push_next_actor_role_name(&mut track_actors, ActorRole::Producer, name.to_owned());
+            }
         }
-    }
-    if let Some(remixers) = flac_tag.get_vorbis("REMIXER") {
-        for name in remixers {
-            push_next_actor_role_name(&mut track_actors, ActorRole::Remixer, name.to_owned());
+        if let Some(remixers) = metaflac_tag.get_vorbis("REMIXER") {
+            for name in remixers {
+                push_next_actor_role_name(&mut track_actors, ActorRole::Remixer, name.to_owned());
+            }
         }
-    }
-    if let Some(mixers) = flac_tag.get_vorbis("MIXER") {
-        for name in mixers {
-            push_next_actor_role_name(&mut track_actors, ActorRole::Mixer, name.to_owned());
+        if let Some(mixers) = metaflac_tag.get_vorbis("MIXER") {
+            for name in mixers {
+                push_next_actor_role_name(&mut track_actors, ActorRole::Mixer, name.to_owned());
+            }
         }
-    }
-    if let Some(mixers) = flac_tag.get_vorbis("DJMIXER") {
-        for name in mixers {
-            push_next_actor_role_name(&mut track_actors, ActorRole::DjMixer, name.to_owned());
+        if let Some(mixers) = metaflac_tag.get_vorbis("DJMIXER") {
+            for name in mixers {
+                push_next_actor_role_name(&mut track_actors, ActorRole::DjMixer, name.to_owned());
+            }
         }
-    }
-    if let Some(engineers) = flac_tag.get_vorbis("ENGINEER") {
-        for name in engineers {
-            push_next_actor_role_name(&mut track_actors, ActorRole::Engineer, name.to_owned());
+        if let Some(engineers) = metaflac_tag.get_vorbis("ENGINEER") {
+            for name in engineers {
+                push_next_actor_role_name(&mut track_actors, ActorRole::Engineer, name.to_owned());
+            }
         }
-    }
-    if let Some(engineers) = flac_tag.get_vorbis("DIRECTOR") {
-        for name in engineers {
-            push_next_actor_role_name(&mut track_actors, ActorRole::Director, name.to_owned());
+        if let Some(engineers) = metaflac_tag.get_vorbis("DIRECTOR") {
+            for name in engineers {
+                push_next_actor_role_name(&mut track_actors, ActorRole::Director, name.to_owned());
+            }
         }
-    }
-    if let Some(engineers) = flac_tag.get_vorbis("LYRICIST") {
-        for name in engineers {
-            push_next_actor_role_name(&mut track_actors, ActorRole::Lyricist, name.to_owned());
+        if let Some(engineers) = metaflac_tag.get_vorbis("LYRICIST") {
+            for name in engineers {
+                push_next_actor_role_name(&mut track_actors, ActorRole::Lyricist, name.to_owned());
+            }
         }
-    }
-    if let Some(engineers) = flac_tag.get_vorbis("WRITER") {
-        for name in engineers {
-            push_next_actor_role_name(&mut track_actors, ActorRole::Writer, name.to_owned());
+        if let Some(engineers) = metaflac_tag.get_vorbis("WRITER") {
+            for name in engineers {
+                push_next_actor_role_name(&mut track_actors, ActorRole::Writer, name.to_owned());
+            }
         }
-    }
-    let track_actors = track_actors.canonicalize_into();
-    if !track_actors.is_empty() {
-        track.actors = Canonical::tie(track_actors);
-    }
+        let track_actors = track_actors.canonicalize_into();
+        if !track_actors.is_empty() {
+            track.actors = Canonical::tie(track_actors);
+        }
 
-    let mut album = track.album.untie_replace(Default::default());
+        let mut album = track.album.untie_replace(Default::default());
 
-    // Album titles
-    let album_titles = vorbis::import_album_titles(&flac_tag);
-    if !album_titles.is_empty() {
-        album.titles = Canonical::tie(album_titles);
-    }
-
-    // Album actors
-    let mut album_actors = Vec::with_capacity(4);
-    for name in flac_tag
-        .get_vorbis("ALBUMARTIST")
-        .into_iter()
-        .flatten()
-        .chain(flac_tag.get_vorbis("ALBUM_ARTIST").into_iter().flatten())
-        .chain(flac_tag.get_vorbis("ALBUM ARTIST").into_iter().flatten())
-        .chain(flac_tag.get_vorbis("ENSEMBLE").into_iter().flatten())
-    {
-        push_next_actor_role_name(&mut album_actors, ActorRole::Artist, name.to_owned());
-    }
-    let album_actors = album_actors.canonicalize_into();
-    if !album_actors.is_empty() {
-        album.actors = Canonical::tie(album_actors);
-    }
-
-    // Album properties
-    if let Some(album_kind) = vorbis::import_album_kind(&flac_tag) {
-        album.kind = album_kind;
-    }
-
-    track.album = Canonical::tie(album);
-
-    // Release properties
-    if let Some(released_at) = vorbis::import_released_at(&flac_tag) {
-        track.release.released_at = Some(released_at);
-    }
-    if let Some(released_by) = vorbis::import_released_by(&flac_tag) {
-        track.release.released_by = Some(released_by);
-    }
-    if let Some(copyright) = vorbis::import_release_copyright(&flac_tag) {
-        track.release.copyright = Some(copyright);
-    }
-
-    let mut tags_map = TagsMap::default();
-    if config.flags.contains(ImportTrackFlags::AOIDE_TAGS) {
-        // Pre-populate tags
-        if let Some(tags) = vorbis::import_aoide_tags(&flac_tag) {
-            debug_assert_eq!(0, tags_map.total_count());
-            tags_map = tags.into();
+        // Album titles
+        let album_titles = vorbis::import_album_titles(metaflac_tag);
+        if !album_titles.is_empty() {
+            album.titles = Canonical::tie(album_titles);
         }
-    }
 
-    // Comment tag
-    // The original specification only defines a "DESCRIPTION" field,
-    // while MusicBrainz recommends to use "COMMENT".
-    // http://www.xiph.org/vorbis/doc/v-comment.html
-    // https://picard.musicbrainz.org/docs/mappings
-    vorbis::import_faceted_text_tags(
-        &mut tags_map,
-        &config.faceted_tag_mapping,
-        &FACET_COMMENT,
-        flac_tag
-            .get_vorbis("COMMENT")
+        // Album actors
+        let mut album_actors = Vec::with_capacity(4);
+        for name in metaflac_tag
+            .get_vorbis("ALBUMARTIST")
             .into_iter()
             .flatten()
-            .chain(flac_tag.get_vorbis("DESCRIPTION").into_iter().flatten()),
-    );
-
-    // Genre tags
-    if let Some(genres) = flac_tag.get_vorbis("GENRE") {
-        vorbis::import_faceted_text_tags(
-            &mut tags_map,
-            &config.faceted_tag_mapping,
-            &FACET_GENRE,
-            genres,
-        );
-    }
-
-    // Mood tags
-    if let Some(moods) = flac_tag.get_vorbis("MOOD") {
-        vorbis::import_faceted_text_tags(
-            &mut tags_map,
-            &config.faceted_tag_mapping,
-            &FACET_MOOD,
-            moods,
-        );
-    }
-
-    // Grouping tags
-    if let Some(groupings) = flac_tag.get_vorbis("GROUPING") {
-        vorbis::import_faceted_text_tags(
-            &mut tags_map,
-            &config.faceted_tag_mapping,
-            &FACET_GROUPING,
-            groupings,
-        );
-    }
-
-    // ISRC tag
-    if let Some(isrc) = flac_tag.get_vorbis("ISRC") {
-        vorbis::import_faceted_text_tags(
-            &mut tags_map,
-            &config.faceted_tag_mapping,
-            &FACET_ISRC,
-            isrc,
-        );
-    }
-
-    if let Some(index) = vorbis::import_track_index(&flac_tag) {
-        track.indexes.track = index;
-    }
-    if let Some(index) = vorbis::import_disc_index(&flac_tag) {
-        track.indexes.disc = index;
-    }
-    if let Some(index) = vorbis::import_movement_index(&flac_tag) {
-        track.indexes.movement = index;
-    }
-
-    if config.flags.contains(ImportTrackFlags::EMBEDDED_ARTWORK) {
-        let artwork = if let Some((apic_type, media_type, image_data)) =
-            find_embedded_artwork_image(&flac_tag)
-        {
-            try_ingest_embedded_artwork_image(
-                &track.media_source.path,
-                apic_type,
-                image_data,
-                None,
-                Some(media_type.to_owned()),
-                &mut config.flags.new_artwork_digest(),
+            .chain(
+                metaflac_tag
+                    .get_vorbis("ALBUM_ARTIST")
+                    .into_iter()
+                    .flatten(),
             )
-            .0
-        } else {
-            Artwork::Missing
-        };
-        track.media_source.artwork = Some(artwork);
-    }
-
-    debug_assert!(track.tags.is_empty());
-    track.tags = Canonical::tie(tags_map.into());
-
-    // Serato Tags
-    if config.flags.contains(ImportTrackFlags::SERATO_MARKERS) {
-        let mut serato_tags = SeratoTagContainer::new();
-        vorbis::import_serato_markers2(&flac_tag, &mut serato_tags, SeratoTagFormat::FLAC);
-
-        let track_cues = serato::read_cues(&serato_tags)?;
-        if !track_cues.is_empty() {
-            track.cues = Canonical::tie(track_cues);
+            .chain(
+                metaflac_tag
+                    .get_vorbis("ALBUM ARTIST")
+                    .into_iter()
+                    .flatten(),
+            )
+            .chain(metaflac_tag.get_vorbis("ENSEMBLE").into_iter().flatten())
+        {
+            push_next_actor_role_name(&mut album_actors, ActorRole::Artist, name.to_owned());
+        }
+        let album_actors = album_actors.canonicalize_into();
+        if !album_actors.is_empty() {
+            album.actors = Canonical::tie(album_actors);
         }
 
-        track.color = serato::read_track_color(&serato_tags);
-    }
+        // Album properties
+        if let Some(album_kind) = vorbis::import_album_kind(metaflac_tag) {
+            album.kind = album_kind;
+        }
 
-    Ok(())
+        track.album = Canonical::tie(album);
+
+        // Release properties
+        if let Some(released_at) = vorbis::import_released_at(metaflac_tag) {
+            track.release.released_at = Some(released_at);
+        }
+        if let Some(released_by) = vorbis::import_released_by(metaflac_tag) {
+            track.release.released_by = Some(released_by);
+        }
+        if let Some(copyright) = vorbis::import_release_copyright(metaflac_tag) {
+            track.release.copyright = Some(copyright);
+        }
+
+        let mut tags_map = TagsMap::default();
+        if config.flags.contains(ImportTrackFlags::AOIDE_TAGS) {
+            // Pre-populate tags
+            if let Some(tags) = vorbis::import_aoide_tags(metaflac_tag) {
+                debug_assert_eq!(0, tags_map.total_count());
+                tags_map = tags.into();
+            }
+        }
+
+        // Comment tag
+        // The original specification only defines a "DESCRIPTION" field,
+        // while MusicBrainz recommends to use "COMMENT".
+        // http://www.xiph.org/vorbis/doc/v-comment.html
+        // https://picard.musicbrainz.org/docs/mappings
+        vorbis::import_faceted_text_tags(
+            &mut tags_map,
+            &config.faceted_tag_mapping,
+            &FACET_COMMENT,
+            metaflac_tag
+                .get_vorbis("COMMENT")
+                .into_iter()
+                .flatten()
+                .chain(metaflac_tag.get_vorbis("DESCRIPTION").into_iter().flatten()),
+        );
+
+        // Genre tags
+        if let Some(genres) = metaflac_tag.get_vorbis("GENRE") {
+            vorbis::import_faceted_text_tags(
+                &mut tags_map,
+                &config.faceted_tag_mapping,
+                &FACET_GENRE,
+                genres,
+            );
+        }
+
+        // Mood tags
+        if let Some(moods) = metaflac_tag.get_vorbis("MOOD") {
+            vorbis::import_faceted_text_tags(
+                &mut tags_map,
+                &config.faceted_tag_mapping,
+                &FACET_MOOD,
+                moods,
+            );
+        }
+
+        // Grouping tags
+        if let Some(groupings) = metaflac_tag.get_vorbis("GROUPING") {
+            vorbis::import_faceted_text_tags(
+                &mut tags_map,
+                &config.faceted_tag_mapping,
+                &FACET_GROUPING,
+                groupings,
+            );
+        }
+
+        // ISRC tag
+        if let Some(isrc) = metaflac_tag.get_vorbis("ISRC") {
+            vorbis::import_faceted_text_tags(
+                &mut tags_map,
+                &config.faceted_tag_mapping,
+                &FACET_ISRC,
+                isrc,
+            );
+        }
+
+        if let Some(index) = vorbis::import_track_index(metaflac_tag) {
+            track.indexes.track = index;
+        }
+        if let Some(index) = vorbis::import_disc_index(metaflac_tag) {
+            track.indexes.disc = index;
+        }
+        if let Some(index) = vorbis::import_movement_index(metaflac_tag) {
+            track.indexes.movement = index;
+        }
+
+        if config.flags.contains(ImportTrackFlags::EMBEDDED_ARTWORK) {
+            let artwork = if let Some((apic_type, media_type, image_data)) =
+                find_embedded_artwork_image(metaflac_tag)
+            {
+                try_ingest_embedded_artwork_image(
+                    &track.media_source.path,
+                    apic_type,
+                    image_data,
+                    None,
+                    Some(media_type.to_owned()),
+                    &mut config.flags.new_artwork_digest(),
+                )
+                .0
+            } else {
+                Artwork::Missing
+            };
+            track.media_source.artwork = Some(artwork);
+        }
+
+        debug_assert!(track.tags.is_empty());
+        track.tags = Canonical::tie(tags_map.into());
+
+        // Serato Tags
+        if config.flags.contains(ImportTrackFlags::SERATO_MARKERS) {
+            let mut serato_tags = SeratoTagContainer::new();
+            vorbis::import_serato_markers2(metaflac_tag, &mut serato_tags, SeratoTagFormat::FLAC);
+
+            let track_cues = serato::read_cues(&serato_tags)?;
+            if !track_cues.is_empty() {
+                track.cues = Canonical::tie(track_cues);
+            }
+
+            track.color = serato::read_track_color(&serato_tags);
+        }
+
+        Ok(())
+    }
 }
 
 pub fn export_track_to_path(
@@ -408,8 +415,8 @@ pub fn export_track_to_path(
     config: &ExportTrackConfig,
     track: &mut Track,
 ) -> Result<bool> {
-    let mut flac_tag = match metaflac::Tag::read_from_path(path) {
-        Ok(flac_tag) => flac_tag,
+    let mut metaflac_tag = match metaflac::Tag::read_from_path(path) {
+        Ok(metaflac_tag) => metaflac_tag,
         Err(err) => {
             tracing::warn!(
                 "Failed to parse metadata from media source '{}': {}",
@@ -420,14 +427,14 @@ pub fn export_track_to_path(
         }
     };
 
-    let vorbis_comments_orig = flac_tag.vorbis_comments().map(ToOwned::to_owned);
-    vorbis::export_track(config, track, &mut flac_tag);
+    let vorbis_comments_orig = metaflac_tag.vorbis_comments().map(ToOwned::to_owned);
+    vorbis::export_track(config, track, &mut metaflac_tag);
 
-    if flac_tag.vorbis_comments() == vorbis_comments_orig.as_ref() {
+    if metaflac_tag.vorbis_comments() == vorbis_comments_orig.as_ref() {
         // Unmodified
         return Ok(false);
     }
-    flac_tag.write_to_path(path).map_err(map_err)?;
+    metaflac_tag.write_to_path(path).map_err(map_err)?;
     // Modified
     Ok(true)
 }

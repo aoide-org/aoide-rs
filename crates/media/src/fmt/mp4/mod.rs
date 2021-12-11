@@ -177,7 +177,7 @@ const SERATO_MARKERS2_IDENT: FreeformIdent<'static> = FreeformIdent::new(
     SeratoMarkers2::MP4_ATOM_FREEFORM_NAME,
 );
 
-pub fn find_embedded_artwork_image(tag: &Mp4Tag) -> Option<(ApicType, ImageFormat, &[u8])> {
+fn find_embedded_artwork_image(tag: &Mp4Tag) -> Option<(ApicType, ImageFormat, &[u8])> {
     tag.artworks()
         .map(|img| {
             let image_format = match img.fmt {
@@ -192,257 +192,238 @@ pub fn find_embedded_artwork_image(tag: &Mp4Tag) -> Option<(ApicType, ImageForma
         .next()
 }
 
-pub type Tag = Mp4Tag;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Metadata(Mp4Tag);
 
-pub fn read_tag_from(reader: &mut impl Reader) -> Result<Tag> {
-    Mp4Tag::read_from(reader).map_err(map_err)
-}
-
-pub fn import_track(
-    reader: &mut Box<dyn Reader>,
-    config: &ImportTrackConfig,
-    track: &mut Track,
-) -> Result<()> {
-    // Extract metadata with mp4ameta
-    let mut mp4_tag = read_tag_from(reader).map_err(|err| {
-        tracing::warn!(
-            "Failed to parse metadata from media source '{}': {}",
-            track.media_source.path,
-            err
-        );
-        err
-    })?;
-
-    if track
-        .media_source
-        .content_metadata_flags
-        .update(ContentMetadataFlags::UNRELIABLE)
-    {
-        let duration = mp4_tag.duration().map(Into::into);
-        let channels = mp4_tag.channel_config().map(read_channels);
-        let sample_rate = mp4_tag
-            .sample_rate()
-            .as_ref()
-            .map(Mp4SampleRate::hz)
-            .map(|hz| SampleRateHz::from_inner(hz as SamplesPerSecond));
-        let bitrate = mp4_tag.avg_bitrate().and_then(read_bitrate);
-        let loudness = mp4_tag
-            .strings_of(&IDENT_REPLAYGAIN_TRACK_GAIN)
-            .next()
-            .and_then(parse_replay_gain);
-        let encoder = mp4_tag.take_encoder();
-        let audio_content = AudioContent {
-            duration,
-            channels,
-            sample_rate,
-            bitrate,
-            loudness,
-            encoder,
-        };
-        track.media_source.content = Content::Audio(audio_content);
+impl Metadata {
+    pub fn read_from(reader: &mut impl Reader) -> Result<Self> {
+        Mp4Tag::read_from(reader).map(Self).map_err(map_err)
     }
 
-    if let Some(advisory_rating) = mp4_tag.advisory_rating() {
-        let advisory_rating = match advisory_rating {
-            Mp4AdvisoryRating::Inoffensive => AdvisoryRating::Unrated,
-            Mp4AdvisoryRating::Clean => AdvisoryRating::Clean,
-            Mp4AdvisoryRating::Explicit => AdvisoryRating::Explicit,
-        };
-        debug_assert!(track.media_source.advisory_rating.is_none());
-        track.media_source.advisory_rating = Some(advisory_rating);
+    pub fn find_embedded_artwork_image(&self) -> Option<(ApicType, ImageFormat, &[u8])> {
+        let Self(mp4_tag) = self;
+        self::find_embedded_artwork_image(mp4_tag)
     }
 
-    let mut tempo_bpm_non_fractional = false;
-    let tempo_bpm = mp4_tag
-        .strings_of(&IDENT_BPM)
-        .flat_map(parse_tempo_bpm)
-        .next()
-        .or_else(|| {
-            mp4_tag.bpm().and_then(|bpm| {
-                tempo_bpm_non_fractional = true;
-                let bpm = TempoBpm(Beats::from(bpm));
-                bpm.is_valid().then(|| bpm)
-            })
-        });
-    if let Some(tempo_bpm) = tempo_bpm {
-        debug_assert!(tempo_bpm.is_valid());
-        track.metrics.tempo_bpm = Some(tempo_bpm);
-        track.metrics.flags.set(
-            MetricsFlags::TEMPO_BPM_NON_FRACTIONAL,
-            tempo_bpm_non_fractional,
-        );
-    }
+    pub fn import_into_track(self, config: &ImportTrackConfig, track: &mut Track) -> Result<()> {
+        let Self(mut mp4_tag) = self;
 
-    let key_signature = mp4_tag
-        .strings_of(&IDENT_INITIAL_KEY)
-        // alternative name (conforms to Rapid Evolution)
-        .chain(mp4_tag.strings_of(&KEY_IDENT))
-        .flat_map(parse_key_signature)
-        .next();
-    if let Some(key_signature) = key_signature {
-        track.metrics.key_signature = key_signature;
-    }
-
-    // Track titles
-    let mut track_titles = Vec::with_capacity(4);
-    if let Some(name) = mp4_tag.take_title() {
-        let title = Title {
-            name,
-            kind: TitleKind::Main,
-        };
-        track_titles.push(title);
-    }
-    if let Some(name) = mp4_tag.take_work() {
-        let title = Title {
-            name,
-            kind: TitleKind::Work,
-        };
-        track_titles.push(title);
-    }
-    if let Some(name) = mp4_tag.take_movement() {
-        let title = Title {
-            name,
-            kind: TitleKind::Movement,
-        };
-        track_titles.push(title);
-    }
-    if let Some(name) = mp4_tag.take_strings_of(&IDENT_SUBTITLE).next() {
-        let title = Title {
-            name,
-            kind: TitleKind::Sub,
-        };
-        track_titles.push(title);
-    }
-    let track_titles = track_titles.canonicalize_into();
-    if !track_titles.is_empty() {
-        track.titles = Canonical::tie(track_titles);
-    }
-
-    // Track actors
-    let mut track_actors = Vec::with_capacity(8);
-    for name in mp4_tag.take_artists() {
-        push_next_actor_role_name(&mut track_actors, ActorRole::Artist, name);
-    }
-    for name in mp4_tag.take_composers() {
-        push_next_actor_role_name(&mut track_actors, ActorRole::Composer, name);
-    }
-    for name in mp4_tag.take_strings_of(&IDENT_PRODUCER) {
-        push_next_actor_role_name(&mut track_actors, ActorRole::Producer, name);
-    }
-    for name in mp4_tag.take_strings_of(&IDENT_REMIXER) {
-        push_next_actor_role_name(&mut track_actors, ActorRole::Remixer, name);
-    }
-    for name in mp4_tag.take_strings_of(&IDENT_MIXER) {
-        push_next_actor_role_name(&mut track_actors, ActorRole::Mixer, name);
-    }
-    for name in mp4_tag.take_strings_of(&IDENT_ENGINEER) {
-        push_next_actor_role_name(&mut track_actors, ActorRole::Engineer, name);
-    }
-    for name in mp4_tag.take_lyricists() {
-        push_next_actor_role_name(&mut track_actors, ActorRole::Lyricist, name);
-    }
-    for name in mp4_tag.take_strings_of(&IDENT_CONDUCTOR) {
-        push_next_actor_role_name(&mut track_actors, ActorRole::Conductor, name);
-    }
-    for name in mp4_tag.take_strings_of(&IDENT_DIRECTOR) {
-        push_next_actor_role_name(&mut track_actors, ActorRole::Director, name);
-    }
-    let track_actors = track_actors.canonicalize_into();
-    if !track_actors.is_empty() {
-        track.actors = Canonical::tie(track_actors);
-    }
-
-    let mut album = track.album.untie_replace(Default::default());
-
-    // Album titles
-    let mut album_titles = Vec::with_capacity(1);
-    if let Some(name) = mp4_tag.take_album() {
-        let title = Title {
-            name,
-            kind: TitleKind::Main,
-        };
-        album_titles.push(title);
-    }
-    let album_titles = album_titles.canonicalize_into();
-    if !album_titles.is_empty() {
-        album.titles = Canonical::tie(album_titles);
-    }
-
-    // Album actors
-    let mut album_actors = Vec::with_capacity(4);
-    for name in mp4_tag.take_album_artists() {
-        push_next_actor_role_name(&mut album_actors, ActorRole::Artist, name);
-    }
-    let album_actors = album_actors.canonicalize_into();
-    if !album_actors.is_empty() {
-        album.actors = Canonical::tie(album_actors);
-    }
-
-    // Album properties
-    if mp4_tag.compilation() {
-        album.kind = AlbumKind::Compilation;
-    }
-
-    track.album = Canonical::tie(album);
-
-    // Release properties
-    if let Some(year) = mp4_tag.year() {
-        if let Some(released_at) = parse_year_tag(year) {
-            track.release.released_at = Some(released_at);
+        if track
+            .media_source
+            .content_metadata_flags
+            .update(ContentMetadataFlags::UNRELIABLE)
+        {
+            let duration = mp4_tag.duration().map(Into::into);
+            let channels = mp4_tag.channel_config().map(read_channels);
+            let sample_rate = mp4_tag
+                .sample_rate()
+                .as_ref()
+                .map(Mp4SampleRate::hz)
+                .map(|hz| SampleRateHz::from_inner(hz as SamplesPerSecond));
+            let bitrate = mp4_tag.avg_bitrate().and_then(read_bitrate);
+            let loudness = mp4_tag
+                .strings_of(&IDENT_REPLAYGAIN_TRACK_GAIN)
+                .next()
+                .and_then(parse_replay_gain);
+            let encoder = mp4_tag.take_encoder();
+            let audio_content = AudioContent {
+                duration,
+                channels,
+                sample_rate,
+                bitrate,
+                loudness,
+                encoder,
+            };
+            track.media_source.content = Content::Audio(audio_content);
         }
-    }
-    if let Some(copyright) = mp4_tag.take_copyright() {
-        track.release.copyright = Some(copyright);
-    }
-    if let Some(label) = mp4_tag.take_strings_of(&IDENT_LABEL).next() {
-        track.release.released_by = Some(label);
-    }
 
-    let mut tags_map = TagsMap::default();
-    if config.flags.contains(ImportTrackFlags::AOIDE_TAGS) {
-        // Pre-populate tags
-        if let Some(data) = mp4_tag.data_of(&AOIDE_TAGS_IDENT).next() {
-            if let Some(tags) = match data {
-                Data::Utf8(input) => serde_json::from_str::<SerdeTags>(input)
-                    .map_err(|err| {
-                        tracing::warn!("Failed to parse {}: {}", AOIDE_TAGS_IDENT, err);
-                        err
-                    })
-                    .ok(),
-                data => {
-                    tracing::warn!("Unexpected data for {}: {:?}", AOIDE_TAGS_IDENT, data);
-                    None
+        if let Some(advisory_rating) = mp4_tag.advisory_rating() {
+            let advisory_rating = match advisory_rating {
+                Mp4AdvisoryRating::Inoffensive => AdvisoryRating::Unrated,
+                Mp4AdvisoryRating::Clean => AdvisoryRating::Clean,
+                Mp4AdvisoryRating::Explicit => AdvisoryRating::Explicit,
+            };
+            debug_assert!(track.media_source.advisory_rating.is_none());
+            track.media_source.advisory_rating = Some(advisory_rating);
+        }
+
+        let mut tempo_bpm_non_fractional = false;
+        let tempo_bpm = mp4_tag
+            .strings_of(&IDENT_BPM)
+            .flat_map(parse_tempo_bpm)
+            .next()
+            .or_else(|| {
+                mp4_tag.bpm().and_then(|bpm| {
+                    tempo_bpm_non_fractional = true;
+                    let bpm = TempoBpm(Beats::from(bpm));
+                    bpm.is_valid().then(|| bpm)
+                })
+            });
+        if let Some(tempo_bpm) = tempo_bpm {
+            debug_assert!(tempo_bpm.is_valid());
+            track.metrics.tempo_bpm = Some(tempo_bpm);
+            track.metrics.flags.set(
+                MetricsFlags::TEMPO_BPM_NON_FRACTIONAL,
+                tempo_bpm_non_fractional,
+            );
+        }
+
+        let key_signature = mp4_tag
+            .strings_of(&IDENT_INITIAL_KEY)
+            // alternative name (conforms to Rapid Evolution)
+            .chain(mp4_tag.strings_of(&KEY_IDENT))
+            .flat_map(parse_key_signature)
+            .next();
+        if let Some(key_signature) = key_signature {
+            track.metrics.key_signature = key_signature;
+        }
+
+        // Track titles
+        let mut track_titles = Vec::with_capacity(4);
+        if let Some(name) = mp4_tag.take_title() {
+            let title = Title {
+                name,
+                kind: TitleKind::Main,
+            };
+            track_titles.push(title);
+        }
+        if let Some(name) = mp4_tag.take_work() {
+            let title = Title {
+                name,
+                kind: TitleKind::Work,
+            };
+            track_titles.push(title);
+        }
+        if let Some(name) = mp4_tag.take_movement() {
+            let title = Title {
+                name,
+                kind: TitleKind::Movement,
+            };
+            track_titles.push(title);
+        }
+        if let Some(name) = mp4_tag.take_strings_of(&IDENT_SUBTITLE).next() {
+            let title = Title {
+                name,
+                kind: TitleKind::Sub,
+            };
+            track_titles.push(title);
+        }
+        let track_titles = track_titles.canonicalize_into();
+        if !track_titles.is_empty() {
+            track.titles = Canonical::tie(track_titles);
+        }
+
+        // Track actors
+        let mut track_actors = Vec::with_capacity(8);
+        for name in mp4_tag.take_artists() {
+            push_next_actor_role_name(&mut track_actors, ActorRole::Artist, name);
+        }
+        for name in mp4_tag.take_composers() {
+            push_next_actor_role_name(&mut track_actors, ActorRole::Composer, name);
+        }
+        for name in mp4_tag.take_strings_of(&IDENT_PRODUCER) {
+            push_next_actor_role_name(&mut track_actors, ActorRole::Producer, name);
+        }
+        for name in mp4_tag.take_strings_of(&IDENT_REMIXER) {
+            push_next_actor_role_name(&mut track_actors, ActorRole::Remixer, name);
+        }
+        for name in mp4_tag.take_strings_of(&IDENT_MIXER) {
+            push_next_actor_role_name(&mut track_actors, ActorRole::Mixer, name);
+        }
+        for name in mp4_tag.take_strings_of(&IDENT_ENGINEER) {
+            push_next_actor_role_name(&mut track_actors, ActorRole::Engineer, name);
+        }
+        for name in mp4_tag.take_lyricists() {
+            push_next_actor_role_name(&mut track_actors, ActorRole::Lyricist, name);
+        }
+        for name in mp4_tag.take_strings_of(&IDENT_CONDUCTOR) {
+            push_next_actor_role_name(&mut track_actors, ActorRole::Conductor, name);
+        }
+        for name in mp4_tag.take_strings_of(&IDENT_DIRECTOR) {
+            push_next_actor_role_name(&mut track_actors, ActorRole::Director, name);
+        }
+        let track_actors = track_actors.canonicalize_into();
+        if !track_actors.is_empty() {
+            track.actors = Canonical::tie(track_actors);
+        }
+
+        let mut album = track.album.untie_replace(Default::default());
+
+        // Album titles
+        let mut album_titles = Vec::with_capacity(1);
+        if let Some(name) = mp4_tag.take_album() {
+            let title = Title {
+                name,
+                kind: TitleKind::Main,
+            };
+            album_titles.push(title);
+        }
+        let album_titles = album_titles.canonicalize_into();
+        if !album_titles.is_empty() {
+            album.titles = Canonical::tie(album_titles);
+        }
+
+        // Album actors
+        let mut album_actors = Vec::with_capacity(4);
+        for name in mp4_tag.take_album_artists() {
+            push_next_actor_role_name(&mut album_actors, ActorRole::Artist, name);
+        }
+        let album_actors = album_actors.canonicalize_into();
+        if !album_actors.is_empty() {
+            album.actors = Canonical::tie(album_actors);
+        }
+
+        // Album properties
+        if mp4_tag.compilation() {
+            album.kind = AlbumKind::Compilation;
+        }
+
+        track.album = Canonical::tie(album);
+
+        // Release properties
+        if let Some(year) = mp4_tag.year() {
+            if let Some(released_at) = parse_year_tag(year) {
+                track.release.released_at = Some(released_at);
+            }
+        }
+        if let Some(copyright) = mp4_tag.take_copyright() {
+            track.release.copyright = Some(copyright);
+        }
+        if let Some(label) = mp4_tag.take_strings_of(&IDENT_LABEL).next() {
+            track.release.released_by = Some(label);
+        }
+
+        let mut tags_map = TagsMap::default();
+        if config.flags.contains(ImportTrackFlags::AOIDE_TAGS) {
+            // Pre-populate tags
+            if let Some(data) = mp4_tag.data_of(&AOIDE_TAGS_IDENT).next() {
+                if let Some(tags) = match data {
+                    Data::Utf8(input) => serde_json::from_str::<SerdeTags>(input)
+                        .map_err(|err| {
+                            tracing::warn!("Failed to parse {}: {}", AOIDE_TAGS_IDENT, err);
+                            err
+                        })
+                        .ok(),
+                    data => {
+                        tracing::warn!("Unexpected data for {}: {:?}", AOIDE_TAGS_IDENT, data);
+                        None
+                    }
+                }
+                .map(Tags::from)
+                {
+                    tags_map = tags.into();
                 }
             }
-            .map(Tags::from)
-            {
-                tags_map = tags.into();
-            }
         }
-    }
 
-    // Genre tags (custom + standard)
-    {
-        // Prefer custom genre tags
-        let tag_mapping_config = config.faceted_tag_mapping.get(FACET_GENRE.value());
-        let mut next_score_value = TagScore::default_value();
-        let mut plain_tags = Vec::with_capacity(8);
-        if mp4_tag.custom_genres().next().is_some() {
-            for genre in mp4_tag.take_custom_genres() {
-                import_plain_tags_from_joined_label_value(
-                    tag_mapping_config,
-                    &mut next_score_value,
-                    &mut plain_tags,
-                    genre,
-                );
-            }
-        }
-        if plain_tags.is_empty() {
-            // Import legacy/standard genres only as a fallback
-            for genre_id in mp4_tag.standard_genres() {
-                let genre_id = usize::from(genre_id);
-                if genre_id < STANDARD_GENRES.len() {
-                    let genre = STANDARD_GENRES[genre_id];
+        // Genre tags (custom + standard)
+        {
+            // Prefer custom genre tags
+            let tag_mapping_config = config.faceted_tag_mapping.get(FACET_GENRE.value());
+            let mut next_score_value = TagScore::default_value();
+            let mut plain_tags = Vec::with_capacity(8);
+            if mp4_tag.custom_genres().next().is_some() {
+                for genre in mp4_tag.take_custom_genres() {
                     import_plain_tags_from_joined_label_value(
                         tag_mapping_config,
                         &mut next_score_value,
@@ -451,133 +432,148 @@ pub fn import_track(
                     );
                 }
             }
-        }
-        tags_map.update_faceted_plain_tags_by_label_ordering(&FACET_GENRE, plain_tags);
-    }
-
-    // Mood tags
-    import_faceted_tags_from_label_value_iter(
-        &mut tags_map,
-        &config.faceted_tag_mapping,
-        &FACET_MOOD,
-        mp4_tag.take_strings_of(&IDENT_MOOD),
-    );
-
-    // Comment tag
-    import_faceted_tags_from_label_value_iter(
-        &mut tags_map,
-        &config.faceted_tag_mapping,
-        &FACET_COMMENT,
-        mp4_tag.take_comment().into_iter(),
-    );
-
-    // Grouping tags
-    import_faceted_tags_from_label_value_iter(
-        &mut tags_map,
-        &config.faceted_tag_mapping,
-        &FACET_GROUPING,
-        mp4_tag.take_groupings(),
-    );
-
-    // ISRC tag
-    import_faceted_tags_from_label_value_iter(
-        &mut tags_map,
-        &config.faceted_tag_mapping,
-        &FACET_ISRC,
-        mp4_tag.take_isrc().into_iter(),
-    );
-
-    // iTunes XID tags
-    import_faceted_tags_from_label_value_iter(
-        &mut tags_map,
-        &config.faceted_tag_mapping,
-        &FACET_XID,
-        mp4_tag.take_strings_of(&IDENT_XID),
-    );
-
-    debug_assert!(track.tags.is_empty());
-    track.tags = Canonical::tie(tags_map.into());
-
-    // Indexes (in pairs)
-    // Import both values consistently if any of them is available!
-    if mp4_tag.track_number().is_some() || mp4_tag.total_tracks().is_some() {
-        track.indexes.track.number = mp4_tag.track_number();
-        track.indexes.track.total = mp4_tag.total_tracks();
-    }
-    if mp4_tag.disc_number().is_some() || mp4_tag.total_discs().is_some() {
-        track.indexes.disc.number = mp4_tag.disc_number();
-        track.indexes.disc.total = mp4_tag.total_discs();
-    }
-    if mp4_tag.movement_index().is_some() || mp4_tag.movement_count().is_some() {
-        track.indexes.movement.number = mp4_tag.movement_index();
-        track.indexes.movement.total = mp4_tag.movement_count();
-    }
-
-    // Artwork
-    if config.flags.contains(ImportTrackFlags::EMBEDDED_ARTWORK) {
-        let artwork = if let Some((apic_type, image_format, image_data)) =
-            find_embedded_artwork_image(&mp4_tag)
-        {
-            try_ingest_embedded_artwork_image(
-                &track.media_source.path,
-                apic_type,
-                image_data,
-                Some(image_format),
-                None,
-                &mut config.flags.new_artwork_digest(),
-            )
-            .0
-        } else {
-            Artwork::Missing
-        };
-        track.media_source.artwork = Some(artwork);
-    }
-
-    // Serato Tags
-    if config.flags.contains(ImportTrackFlags::SERATO_MARKERS) {
-        let mut serato_tags = SeratoTagContainer::new();
-
-        if let Some(data) = mp4_tag.data_of(&SERATO_MARKERS_IDENT).next() {
-            match data {
-                Data::Utf8(input) => {
-                    serato_tags
-                        .parse_markers(input.as_bytes(), SeratoTagFormat::MP4)
-                        .map_err(|err| {
-                            tracing::warn!("Failed to parse Serato Markers: {}", err);
-                        })
-                        .ok();
-                }
-                data => {
-                    tracing::warn!("Unexpected data for Serato Markers: {:?}", data);
+            if plain_tags.is_empty() {
+                // Import legacy/standard genres only as a fallback
+                for genre_id in mp4_tag.standard_genres() {
+                    let genre_id = usize::from(genre_id);
+                    if genre_id < STANDARD_GENRES.len() {
+                        let genre = STANDARD_GENRES[genre_id];
+                        import_plain_tags_from_joined_label_value(
+                            tag_mapping_config,
+                            &mut next_score_value,
+                            &mut plain_tags,
+                            genre,
+                        );
+                    }
                 }
             }
+            tags_map.update_faceted_plain_tags_by_label_ordering(&FACET_GENRE, plain_tags);
         }
 
-        if let Some(data) = mp4_tag.data_of(&SERATO_MARKERS2_IDENT).next() {
-            match data {
-                Data::Utf8(input) => {
-                    serato_tags
-                        .parse_markers2(input.as_bytes(), SeratoTagFormat::MP4)
-                        .map_err(|err| {
-                            tracing::warn!("Failed to parse Serato Markers2: {}", err);
-                        })
-                        .ok();
-                }
-                data => {
-                    tracing::warn!("Unexpected data for Serato Markers2: {:?}", data);
+        // Mood tags
+        import_faceted_tags_from_label_value_iter(
+            &mut tags_map,
+            &config.faceted_tag_mapping,
+            &FACET_MOOD,
+            mp4_tag.take_strings_of(&IDENT_MOOD),
+        );
+
+        // Comment tag
+        import_faceted_tags_from_label_value_iter(
+            &mut tags_map,
+            &config.faceted_tag_mapping,
+            &FACET_COMMENT,
+            mp4_tag.take_comment().into_iter(),
+        );
+
+        // Grouping tags
+        import_faceted_tags_from_label_value_iter(
+            &mut tags_map,
+            &config.faceted_tag_mapping,
+            &FACET_GROUPING,
+            mp4_tag.take_groupings(),
+        );
+
+        // ISRC tag
+        import_faceted_tags_from_label_value_iter(
+            &mut tags_map,
+            &config.faceted_tag_mapping,
+            &FACET_ISRC,
+            mp4_tag.take_isrc().into_iter(),
+        );
+
+        // iTunes XID tags
+        import_faceted_tags_from_label_value_iter(
+            &mut tags_map,
+            &config.faceted_tag_mapping,
+            &FACET_XID,
+            mp4_tag.take_strings_of(&IDENT_XID),
+        );
+
+        debug_assert!(track.tags.is_empty());
+        track.tags = Canonical::tie(tags_map.into());
+
+        // Indexes (in pairs)
+        // Import both values consistently if any of them is available!
+        if mp4_tag.track_number().is_some() || mp4_tag.total_tracks().is_some() {
+            track.indexes.track.number = mp4_tag.track_number();
+            track.indexes.track.total = mp4_tag.total_tracks();
+        }
+        if mp4_tag.disc_number().is_some() || mp4_tag.total_discs().is_some() {
+            track.indexes.disc.number = mp4_tag.disc_number();
+            track.indexes.disc.total = mp4_tag.total_discs();
+        }
+        if mp4_tag.movement_index().is_some() || mp4_tag.movement_count().is_some() {
+            track.indexes.movement.number = mp4_tag.movement_index();
+            track.indexes.movement.total = mp4_tag.movement_count();
+        }
+
+        // Artwork
+        if config.flags.contains(ImportTrackFlags::EMBEDDED_ARTWORK) {
+            let artwork = if let Some((apic_type, image_format, image_data)) =
+                find_embedded_artwork_image(&mp4_tag)
+            {
+                try_ingest_embedded_artwork_image(
+                    &track.media_source.path,
+                    apic_type,
+                    image_data,
+                    Some(image_format),
+                    None,
+                    &mut config.flags.new_artwork_digest(),
+                )
+                .0
+            } else {
+                Artwork::Missing
+            };
+            track.media_source.artwork = Some(artwork);
+        }
+
+        // Serato Tags
+        if config.flags.contains(ImportTrackFlags::SERATO_MARKERS) {
+            let mut serato_tags = SeratoTagContainer::new();
+
+            if let Some(data) = mp4_tag.data_of(&SERATO_MARKERS_IDENT).next() {
+                match data {
+                    Data::Utf8(input) => {
+                        serato_tags
+                            .parse_markers(input.as_bytes(), SeratoTagFormat::MP4)
+                            .map_err(|err| {
+                                tracing::warn!("Failed to parse Serato Markers: {}", err);
+                            })
+                            .ok();
+                    }
+                    data => {
+                        tracing::warn!("Unexpected data for Serato Markers: {:?}", data);
+                    }
                 }
             }
+
+            if let Some(data) = mp4_tag.data_of(&SERATO_MARKERS2_IDENT).next() {
+                match data {
+                    Data::Utf8(input) => {
+                        serato_tags
+                            .parse_markers2(input.as_bytes(), SeratoTagFormat::MP4)
+                            .map_err(|err| {
+                                tracing::warn!("Failed to parse Serato Markers2: {}", err);
+                            })
+                            .ok();
+                    }
+                    data => {
+                        tracing::warn!("Unexpected data for Serato Markers2: {:?}", data);
+                    }
+                }
+            }
+
+            let track_cues = serato::read_cues(&serato_tags)?;
+            if !track_cues.is_empty() {
+                track.cues = Canonical::tie(track_cues);
+            }
+
+            track.color = serato::read_track_color(&serato_tags);
         }
 
-        let track_cues = serato::read_cues(&serato_tags)?;
-        if !track_cues.is_empty() {
-            track.cues = Canonical::tie(track_cues);
-        }
-
-        track.color = serato::read_track_color(&serato_tags);
+        Ok(())
     }
-
-    Ok(())
 }
 
 fn export_filtered_actor_names(
