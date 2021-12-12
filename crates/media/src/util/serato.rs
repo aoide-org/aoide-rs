@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-///////////////////////////////////////////////////////////////////////
-use crate::Result;
 use aoide_core::{
     audio::PositionMs,
     track::cue::{Cue, CueFlags, OutMode},
@@ -23,7 +21,12 @@ use aoide_core::{
         CanonicalizeInto as _,
     },
 };
+
 use triseratops::tag::{color::Color as SeratoColor, TagContainer};
+
+use crate::Result;
+
+use super::import_trimmed_name;
 
 /// Return a canonical vector of cues found in the tag container.
 pub fn read_cues(serato_tags: &TagContainer) -> Result<Vec<Cue>> {
@@ -36,7 +39,7 @@ pub fn read_cues(serato_tags: &TagContainer) -> Result<Vec<Cue>> {
             in_position: Some(PositionMs(serato_cue.position_millis.into())),
             out_position: None,
             out_mode: None,
-            label: Some(serato_cue.label),
+            label: import_trimmed_name(serato_cue.label),
             color: Some(Color::Rgb(RgbColor(
                 serato_cue.color.into_pro_hotcue_color().into(),
             ))),
@@ -57,7 +60,7 @@ pub fn read_cues(serato_tags: &TagContainer) -> Result<Vec<Cue>> {
             in_position: Some(PositionMs(serato_loop.start_position_millis.into())),
             out_position: Some(PositionMs(serato_loop.end_position_millis.into())),
             out_mode: Some(OutMode::Loop),
-            label: Some(serato_loop.label),
+            label: import_trimmed_name(serato_loop.label),
             color: None,
             flags,
         };
