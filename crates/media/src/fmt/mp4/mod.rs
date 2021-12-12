@@ -40,7 +40,7 @@ use aoide_core::{
         album::AlbumKind,
         metric::MetricsFlags,
         tag::{FACET_COMMENT, FACET_GENRE, FACET_GROUPING, FACET_ISRC, FACET_MOOD, FACET_XID},
-        title::{Title, TitleKind, Titles},
+        title::{TitleKind, Titles},
         Track,
     },
     util::{Canonical, CanonicalizeInto as _},
@@ -54,8 +54,9 @@ use crate::{
         import::{ImportTrackConfig, ImportTrackFlags, Reader},
     },
     util::{
-        format_valid_replay_gain, format_validated_tempo_bpm, parse_key_signature,
-        parse_replay_gain, parse_tempo_bpm, parse_year_tag, push_next_actor_role_name, serato,
+        format_valid_replay_gain, format_validated_tempo_bpm, import_title, import_trimmed_name,
+        parse_key_signature, parse_replay_gain, parse_tempo_bpm, parse_year_tag,
+        push_next_actor_role_name, serato,
         tag::{
             import_faceted_tags_from_label_value_iter, import_plain_tags_from_joined_label_value,
             TagMappingConfig,
@@ -225,7 +226,7 @@ impl Metadata {
                 .strings_of(&IDENT_REPLAYGAIN_TRACK_GAIN)
                 .next()
                 .and_then(parse_replay_gain);
-            let encoder = mp4_tag.take_encoder();
+            let encoder = mp4_tag.take_encoder().and_then(import_trimmed_name);
             let audio_content = AudioContent {
                 duration,
                 channels,
@@ -280,32 +281,29 @@ impl Metadata {
 
         // Track titles
         let mut track_titles = Vec::with_capacity(4);
-        if let Some(name) = mp4_tag.take_title() {
-            let title = Title {
-                name,
-                kind: TitleKind::Main,
-            };
+        if let Some(title) = mp4_tag
+            .take_title()
+            .and_then(|name| import_title(name, TitleKind::Main))
+        {
             track_titles.push(title);
         }
-        if let Some(name) = mp4_tag.take_work() {
-            let title = Title {
-                name,
-                kind: TitleKind::Work,
-            };
+        if let Some(title) = mp4_tag
+            .take_strings_of(&IDENT_SUBTITLE)
+            .next()
+            .and_then(|name| import_title(name, TitleKind::Sub))
+        {
             track_titles.push(title);
         }
-        if let Some(name) = mp4_tag.take_movement() {
-            let title = Title {
-                name,
-                kind: TitleKind::Movement,
-            };
+        if let Some(title) = mp4_tag
+            .take_work()
+            .and_then(|name| import_title(name, TitleKind::Work))
+        {
             track_titles.push(title);
         }
-        if let Some(name) = mp4_tag.take_strings_of(&IDENT_SUBTITLE).next() {
-            let title = Title {
-                name,
-                kind: TitleKind::Sub,
-            };
+        if let Some(title) = mp4_tag
+            .take_movement()
+            .and_then(|name| import_title(name, TitleKind::Movement))
+        {
             track_titles.push(title);
         }
         let track_titles = track_titles.canonicalize_into();
@@ -351,11 +349,10 @@ impl Metadata {
 
         // Album titles
         let mut album_titles = Vec::with_capacity(1);
-        if let Some(name) = mp4_tag.take_album() {
-            let title = Title {
-                name,
-                kind: TitleKind::Main,
-            };
+        if let Some(title) = mp4_tag
+            .take_album()
+            .and_then(|name| import_title(name, TitleKind::Main))
+        {
             album_titles.push(title);
         }
         let album_titles = album_titles.canonicalize_into();
@@ -386,10 +383,14 @@ impl Metadata {
                 track.release.released_at = Some(released_at);
             }
         }
-        if let Some(copyright) = mp4_tag.take_copyright() {
+        if let Some(copyright) = mp4_tag.take_copyright().and_then(import_trimmed_name) {
             track.release.copyright = Some(copyright);
         }
-        if let Some(label) = mp4_tag.take_strings_of(&IDENT_LABEL).next() {
+        if let Some(label) = mp4_tag
+            .take_strings_of(&IDENT_LABEL)
+            .next()
+            .and_then(import_trimmed_name)
+        {
             track.release.released_by = Some(label);
         }
 

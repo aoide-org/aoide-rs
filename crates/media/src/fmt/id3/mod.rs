@@ -38,7 +38,7 @@ use aoide_core::{
         metric::MetricsFlags,
         release::DateOrDateTime,
         tag::{FACET_COMMENT, FACET_GENRE, FACET_GROUPING, FACET_ISRC, FACET_LANGUAGE, FACET_MOOD},
-        title::{Title, TitleKind, Titles},
+        title::{TitleKind, Titles},
         Track,
     },
     util::{
@@ -55,8 +55,9 @@ use crate::{
         import::{ImportTrackConfig, ImportTrackFlags},
     },
     util::{
-        format_valid_replay_gain, format_validated_tempo_bpm, parse_index_numbers,
-        parse_key_signature, parse_replay_gain, parse_tempo_bpm, push_next_actor_role_name, serato,
+        format_valid_replay_gain, format_validated_tempo_bpm, import_title, import_trimmed_name,
+        parse_index_numbers, parse_key_signature, parse_replay_gain, parse_tempo_bpm,
+        push_next_actor_role_name, serato,
         tag::{
             import_faceted_tags_from_label_value_iter, FacetedTagMappingConfig, TagMappingConfig,
         },
@@ -279,69 +280,52 @@ pub fn import_metadata_into_track(
 
     // Track titles
     let mut track_titles = Vec::with_capacity(4);
-    if let Some(name) = tag.title() {
-        let title = Title {
-            name: name.to_owned(),
-            kind: TitleKind::Main,
-        };
+    if let Some(title) = tag
+        .title()
+        .and_then(|name| import_title(name, TitleKind::Main))
+    {
         track_titles.push(title);
     }
-    if let Some(name) = first_text_frame(tag, "TSST") {
-        let title = Title {
-            name: name.to_owned(),
-            kind: TitleKind::Sub,
-        };
+    if let Some(title) =
+        first_text_frame(tag, "TSST").and_then(|name| import_title(name, TitleKind::Sub))
+    {
         track_titles.push(title);
     }
-    if let Some(name) = first_text_frame(tag, "MVNM") {
-        let title = Title {
-            name: name.to_owned(),
-            kind: TitleKind::Movement,
-        };
+    if let Some(title) =
+        first_text_frame(tag, "MVNM").and_then(|name| import_title(name, TitleKind::Movement))
+    {
         track_titles.push(title);
     }
-    let mut work_name = if let Some(name) = first_extended_text(tag, "WORK") {
-        if config
-            .flags
-            .contains(ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK)
-        {
-            if name.trim().is_empty() {
-                None
-            } else {
-                tracing::warn!(
-                    "Imported work title '{}' from legacy ID3 text frame TXXX:WORK",
-                    name
-                );
-                Some(name)
-            }
-        } else {
-            Some(name)
-        }
+    let itunes_work_title = if config
+        .flags
+        .contains(ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK)
+    {
+        // Starting with iTunes 12.5.4 the "TIT1" text frame is used
+        // for storing the work instead of the grouping. It is only
+        // imported as a fallback if the legacy text frame WORK was empty
+        // to prevent inconsistencies and for performing the migration to
+        // iTunes tags.
+        first_text_frame(tag, "TIT1").and_then(|name| import_title(name, TitleKind::Work))
     } else {
         None
     };
-    let mut imported_work_from_itunes_tit1 = false;
-    work_name = work_name.or_else(|| {
-        if config
-            .flags
-            .contains(ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK)
-        {
-            // Starting with iTunes 12.5.4 the "TIT1" text frame is used
-            // for storing the work instead of the grouping. It is only
-            // imported as a fallback if the legacy text frame WORK was empty
-            // to prevent inconsistencies and for performing the migration to
-            // iTunes tags.
-            imported_work_from_itunes_tit1 = true;
-            first_text_frame(tag, "TIT1")
-        } else {
-            None
-        }
-    });
-    if let Some(name) = work_name {
-        let title = Title {
-            name: name.to_owned(),
-            kind: TitleKind::Work,
-        };
+    let imported_work_from_itunes_tit1 = itunes_work_title.is_some();
+    if let Some(title) = itunes_work_title.or_else(|| {
+        first_extended_text(tag, "WORK")
+            .and_then(|name| import_title(name, TitleKind::Work))
+            .map(|title| {
+                if config
+                    .flags
+                    .contains(ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK)
+                {
+                    tracing::warn!(
+                        "Imported work title '{}' from legacy ID3 text frame TXXX:WORK",
+                        title.name
+                    );
+                }
+                title
+            })
+    }) {
         track_titles.push(title);
     }
     let track_titles = track_titles.canonicalize_into();
@@ -352,27 +336,27 @@ pub fn import_metadata_into_track(
     // Track actors
     let mut track_actors = Vec::with_capacity(8);
     if let Some(name) = tag.artist() {
-        push_next_actor_role_name(&mut track_actors, ActorRole::Artist, name.to_owned());
+        push_next_actor_role_name(&mut track_actors, ActorRole::Artist, name);
     }
     for name in text_frames(tag, "TCOM") {
-        push_next_actor_role_name(&mut track_actors, ActorRole::Composer, name.to_owned());
+        push_next_actor_role_name(&mut track_actors, ActorRole::Composer, name);
     }
     for name in text_frames(tag, "TPE3") {
-        push_next_actor_role_name(&mut track_actors, ActorRole::Conductor, name.to_owned());
+        push_next_actor_role_name(&mut track_actors, ActorRole::Conductor, name);
     }
     for name in extended_text_values(tag, "DIRECTOR") {
-        push_next_actor_role_name(&mut track_actors, ActorRole::Director, name.to_owned());
+        push_next_actor_role_name(&mut track_actors, ActorRole::Director, name);
     }
     for name in text_frames(tag, "TPE4") {
-        push_next_actor_role_name(&mut track_actors, ActorRole::Remixer, name.to_owned());
+        push_next_actor_role_name(&mut track_actors, ActorRole::Remixer, name);
     }
     for name in text_frames(tag, "TEXT") {
-        push_next_actor_role_name(&mut track_actors, ActorRole::Lyricist, name.to_owned());
+        push_next_actor_role_name(&mut track_actors, ActorRole::Lyricist, name);
     }
     for name in extended_text_values(tag, "Writer") {
         // "Writer", not "WRITER" in all caps
         // See also: https://tickets.metabrainz.org/browse/PICARD-1101
-        push_next_actor_role_name(&mut track_actors, ActorRole::Writer, name.to_owned());
+        push_next_actor_role_name(&mut track_actors, ActorRole::Writer, name);
     }
     // TODO: Import TIPL frames
     let track_actors = track_actors.canonicalize_into();
@@ -384,11 +368,10 @@ pub fn import_metadata_into_track(
 
     // Album titles
     let mut album_titles = Vec::with_capacity(1);
-    if let Some(name) = tag.album() {
-        let title = Title {
-            name: name.to_owned(),
-            kind: TitleKind::Main,
-        };
+    if let Some(title) = tag
+        .album()
+        .and_then(|name| import_title(name, TitleKind::Main))
+    {
         album_titles.push(title);
     }
     let album_titles = album_titles.canonicalize_into();
@@ -399,7 +382,7 @@ pub fn import_metadata_into_track(
     // Album actors
     let mut album_actors = Vec::with_capacity(4);
     if let Some(name) = tag.album_artist() {
-        push_next_actor_role_name(&mut album_actors, ActorRole::Artist, name.to_owned());
+        push_next_actor_role_name(&mut album_actors, ActorRole::Artist, name);
     }
     let album_actors = album_actors.canonicalize_into();
     if !album_actors.is_empty() {
@@ -433,11 +416,11 @@ pub fn import_metadata_into_track(
     {
         track.release.released_at = Some(released_at);
     }
-    if let Some(label) = first_text_frame(tag, "TPUB") {
-        track.release.released_by = Some(label.to_owned());
+    if let Some(label) = first_text_frame(tag, "TPUB").and_then(import_trimmed_name) {
+        track.release.released_by = Some(label);
     }
-    if let Some(copyright) = first_text_frame(tag, "TCOP") {
-        track.release.copyright = Some(copyright.to_owned());
+    if let Some(copyright) = first_text_frame(tag, "TCOP").and_then(import_trimmed_name) {
+        track.release.copyright = Some(copyright);
     }
 
     let mut tags_map = TagsMap::default();

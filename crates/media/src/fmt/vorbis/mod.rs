@@ -43,8 +43,9 @@ use aoide_core_serde::tag::Tags as SerdeTags;
 use crate::{
     io::export::{ExportTrackConfig, ExportTrackFlags, FilteredActorNames},
     util::{
-        format_valid_replay_gain, format_validated_tempo_bpm, parse_index_numbers,
-        parse_key_signature, parse_replay_gain, parse_tempo_bpm, parse_year_tag,
+        format_valid_replay_gain, format_validated_tempo_bpm, import_title, import_trimmed_name,
+        parse_index_numbers, parse_key_signature, parse_replay_gain, parse_tempo_bpm,
+        parse_year_tag,
         tag::{
             import_faceted_tags_from_label_value_iter, FacetedTagMappingConfig, TagMappingConfig,
         },
@@ -183,11 +184,15 @@ pub fn import_released_at(reader: &impl CommentReader) -> Option<DateOrDateTime>
 }
 
 pub fn import_released_by(reader: &impl CommentReader) -> Option<String> {
-    reader.read_first_value("LABEL").map(ToOwned::to_owned)
+    reader
+        .read_first_value("LABEL")
+        .and_then(import_trimmed_name)
 }
 
 pub fn import_release_copyright(reader: &impl CommentReader) -> Option<String> {
-    reader.read_first_value("COPYRIGHT").map(ToOwned::to_owned)
+    reader
+        .read_first_value("COPYRIGHT")
+        .and_then(import_trimmed_name)
 }
 
 pub fn import_track_index(reader: &impl CommentReader) -> Option<Index> {
@@ -254,32 +259,29 @@ pub fn import_movement_index(reader: &impl CommentReader) -> Option<Index> {
 
 pub fn import_track_titles(reader: &impl CommentReader) -> Vec<Title> {
     let mut track_titles = Vec::with_capacity(4);
-    if let Some(name) = reader.read_first_value("TITLE") {
-        let title = Title {
-            name: name.to_owned(),
-            kind: TitleKind::Main,
-        };
+    if let Some(title) = reader
+        .read_first_value("TITLE")
+        .and_then(|name| import_title(name, TitleKind::Main))
+    {
         track_titles.push(title);
     }
-    if let Some(name) = reader.read_first_value("SUBTITLE") {
-        let title = Title {
-            name: name.to_owned(),
-            kind: TitleKind::Sub,
-        };
+
+    if let Some(title) = reader
+        .read_first_value("SUBTITLE")
+        .and_then(|name| import_title(name, TitleKind::Sub))
+    {
         track_titles.push(title);
     }
-    if let Some(name) = reader.read_first_value("WORK") {
-        let title = Title {
-            name: name.to_owned(),
-            kind: TitleKind::Work,
-        };
+    if let Some(title) = reader
+        .read_first_value("WORK")
+        .and_then(|name| import_title(name, TitleKind::Work))
+    {
         track_titles.push(title);
     }
-    if let Some(name) = reader.read_first_value("MOVEMENTNAME") {
-        let title = Title {
-            name: name.to_owned(),
-            kind: TitleKind::Movement,
-        };
+    if let Some(title) = reader
+        .read_first_value("MOVEMENTNAME")
+        .and_then(|name| import_title(name, TitleKind::Movement))
+    {
         track_titles.push(title);
     }
     track_titles.canonicalize_into()
@@ -287,11 +289,10 @@ pub fn import_track_titles(reader: &impl CommentReader) -> Vec<Title> {
 
 pub fn import_album_titles(reader: &impl CommentReader) -> Vec<Title> {
     let mut album_titles = Vec::with_capacity(1);
-    if let Some(name) = reader.read_first_value("ALBUM") {
-        let title = Title {
-            name: name.to_owned(),
-            kind: TitleKind::Main,
-        };
+    if let Some(title) = reader
+        .read_first_value("ALBUM")
+        .and_then(|name| import_title(name, TitleKind::Main))
+    {
         album_titles.push(title);
     }
     album_titles.canonicalize_into()

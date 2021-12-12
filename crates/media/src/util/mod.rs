@@ -45,6 +45,7 @@ use aoide_core::{
         actor::{Actor, ActorKind, ActorRole},
         index::Index,
         release::DateOrDateTime,
+        title::{Title, TitleKind},
     },
     util::clock::{DateTime, DateTimeInner, DateYYYYMMDD, YYYYMMDD},
 };
@@ -94,15 +95,18 @@ fn adjust_last_actor_kind(actors: &mut [Actor], role: ActorRole) -> ActorKind {
     ActorKind::Summary
 }
 
-pub fn push_next_actor_role_name(actors: &mut Vec<Actor>, role: ActorRole, name: String) {
-    let kind = adjust_last_actor_kind(actors.as_mut_slice(), role);
-    let actor = Actor {
-        name,
-        kind,
-        role,
-        role_notes: None,
-    };
-    actors.push(actor);
+pub fn push_next_actor_role_name(
+    actors: &mut Vec<Actor>,
+    role: ActorRole,
+    name: impl AsRef<str> + Into<String>,
+) -> bool {
+    if let Some(mut actor) = import_actor(name, Default::default(), role) {
+        actor.kind = adjust_last_actor_kind(actors.as_mut_slice(), role);
+        actors.push(actor);
+        true
+    } else {
+        false
+    }
 }
 
 pub fn format_parseable_value<T>(value: &mut T) -> String
@@ -570,6 +574,36 @@ pub fn try_ingest_embedded_artwork_image(
             );
             (Artwork::Irregular, None)
         }
+    })
+}
+
+pub fn import_trimmed_name(name: impl AsRef<str> + Into<String>) -> Option<String> {
+    let trimmed_name = name.as_ref().trim();
+    if trimmed_name.is_empty() {
+        return None;
+    }
+    let name = if trimmed_name == name.as_ref() {
+        name.into()
+    } else {
+        trimmed_name.to_owned()
+    };
+    Some(name)
+}
+
+pub fn import_title(name: impl AsRef<str> + Into<String>, kind: TitleKind) -> Option<Title> {
+    import_trimmed_name(name).map(|name| Title { name, kind })
+}
+
+pub fn import_actor(
+    name: impl AsRef<str> + Into<String>,
+    kind: ActorKind,
+    role: ActorRole,
+) -> Option<Actor> {
+    import_trimmed_name(name).map(|name| Actor {
+        name,
+        kind,
+        role,
+        role_notes: None,
     })
 }
 
