@@ -36,7 +36,8 @@ pub struct TagMappingConfig {
 
 impl TagMappingConfig {
     pub fn next_score_value(&self, score: ScoreValue) -> ScoreValue {
-        debug_assert!(self.split_score_attenuation > TagScore::min().into());
+        debug_assert!(score > TagScore::min().value());
+        debug_assert!(self.split_score_attenuation > TagScore::min().value());
         score * self.split_score_attenuation
     }
 
@@ -204,7 +205,7 @@ pub fn import_faceted_tags_from_label_value_iter(
 ) -> usize {
     let tag_mapping_config = faceted_tag_mapping_config.get(facet_id.value());
     let mut plain_tags = Vec::with_capacity(8);
-    let mut next_score_value = ScoreValue::default();
+    let mut next_score_value = TagScore::default_value();
     for label_value in label_values {
         import_plain_tags_from_joined_label_value(
             tag_mapping_config,
