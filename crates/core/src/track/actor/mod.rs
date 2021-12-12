@@ -134,7 +134,7 @@ pub struct Actors;
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ActorsInvalidity {
     Actor(ActorInvalidity),
-    SummaryActorMissing,
+    SummaryArtistMissing,
     SummaryActorAmbiguous,
     SortingActorAmbiguous,
     MainActorMissing,
@@ -159,27 +159,35 @@ impl Actors {
             let mut roles: Vec<_> = actors.clone().map(|actor| actor.role).collect();
             roles.sort_unstable();
             roles.dedup();
-            let mut summary_missing = false;
+            // A summary entry is required for the default Artist role if multiple primary actors exist.
+            let summary_artist_missing =
+                Self::filter_kind_role(actors.clone(), ActorKind::Primary, ActorRole::Artist)
+                    .count()
+                    > 1
+                    && Self::filter_kind_role(
+                        actors.clone(),
+                        ActorKind::Summary,
+                        ActorRole::Artist,
+                    )
+                    .count()
+                        == 0;
             let mut summary_ambiguous = false;
             let mut sorting_ambiguous = false;
             for role in roles {
-                // A summary entry exists if more than one primary entry exists for disambiguation
-                if Self::filter_kind_role(actors.clone(), ActorKind::Primary, role).count() > 1
-                    && Self::filter_kind_role(actors.clone(), ActorKind::Summary, role).count() == 0
-                {
-                    summary_missing = true;
-                }
-                // At most one summary entry exists for each role
+                // At most one summary entry exists for each role.
                 if Self::filter_kind_role(actors.clone(), ActorKind::Summary, role).count() > 1 {
                     summary_ambiguous = true;
                 }
-                // At most one sorting entry exists for each role
+                // At most one sorting entry exists for each role.
                 if Self::filter_kind_role(actors.clone(), ActorKind::Sorting, role).count() > 1 {
                     sorting_ambiguous = true;
                 }
             }
             context = context
-                .invalidate_if(summary_missing, ActorsInvalidity::SummaryActorMissing)
+                .invalidate_if(
+                    summary_artist_missing,
+                    ActorsInvalidity::SummaryArtistMissing,
+                )
                 .invalidate_if(summary_ambiguous, ActorsInvalidity::SummaryActorAmbiguous)
                 .invalidate_if(sorting_ambiguous, ActorsInvalidity::SortingActorAmbiguous);
         }
