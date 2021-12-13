@@ -43,7 +43,7 @@ use aoide_core::{
         title::{TitleKind, Titles},
         Track,
     },
-    util::{Canonical, CanonicalizeInto as _},
+    util::{Canonical, CanonicalizeInto as _, IntoTrimmedNonEmptyString},
 };
 
 use aoide_core_serde::tag::Tags as SerdeTags;
@@ -54,9 +54,8 @@ use crate::{
         import::{ImportTrackConfig, ImportTrackFlags, Reader},
     },
     util::{
-        format_valid_replay_gain, format_validated_tempo_bpm, import_title, import_trimmed_name,
-        parse_key_signature, parse_replay_gain, parse_tempo_bpm, parse_year_tag,
-        push_next_actor_role_name, serato,
+        format_valid_replay_gain, format_validated_tempo_bpm, import_title, parse_key_signature,
+        parse_replay_gain, parse_tempo_bpm, parse_year_tag, push_next_actor_role_name, serato,
         tag::{
             import_faceted_tags_from_label_value_iter, import_plain_tags_from_joined_label_value,
             TagMappingConfig,
@@ -226,7 +225,9 @@ impl Metadata {
                 .strings_of(&IDENT_REPLAYGAIN_TRACK_GAIN)
                 .next()
                 .and_then(parse_replay_gain);
-            let encoder = mp4_tag.take_encoder().and_then(import_trimmed_name);
+            let encoder = mp4_tag
+                .take_encoder()
+                .and_then(IntoTrimmedNonEmptyString::into_trimmed_non_empty);
             let audio_content = AudioContent {
                 duration,
                 channels,
@@ -383,13 +384,16 @@ impl Metadata {
                 track.release.released_at = Some(released_at);
             }
         }
-        if let Some(copyright) = mp4_tag.take_copyright().and_then(import_trimmed_name) {
+        if let Some(copyright) = mp4_tag
+            .take_copyright()
+            .and_then(IntoTrimmedNonEmptyString::into_trimmed_non_empty)
+        {
             track.release.copyright = Some(copyright);
         }
         if let Some(label) = mp4_tag
             .take_strings_of(&IDENT_LABEL)
             .next()
-            .and_then(import_trimmed_name)
+            .and_then(IntoTrimmedNonEmptyString::into_trimmed_non_empty)
         {
             track.release.released_by = Some(label);
         }

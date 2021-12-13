@@ -46,7 +46,10 @@ use aoide_core::{
         release::DateOrDateTime,
         title::{Title, TitleKind},
     },
-    util::clock::{DateTime, DateTimeInner, DateYYYYMMDD, YYYYMMDD},
+    util::{
+        clock::{DateTime, DateTimeInner, DateYYYYMMDD, YYYYMMDD},
+        IntoTrimmedNonEmptyString as _,
+    },
 };
 
 use crate::prelude::*;
@@ -583,21 +586,8 @@ pub fn try_ingest_embedded_artwork_image(
     })
 }
 
-pub fn import_trimmed_name(name: impl AsRef<str> + Into<String>) -> Option<String> {
-    let trimmed_name = name.as_ref().trim();
-    if trimmed_name.is_empty() {
-        return None;
-    }
-    let name = if trimmed_name == name.as_ref() {
-        name.into()
-    } else {
-        trimmed_name.to_owned()
-    };
-    Some(name)
-}
-
 pub fn import_title(name: impl AsRef<str> + Into<String>, kind: TitleKind) -> Option<Title> {
-    import_trimmed_name(name).map(|name| Title { name, kind })
+    name.into_trimmed_non_empty().map(|name| Title { name, kind })
 }
 
 pub fn import_actor(
@@ -605,7 +595,7 @@ pub fn import_actor(
     kind: ActorKind,
     role: ActorRole,
 ) -> Option<Actor> {
-    import_trimmed_name(name).map(|name| Actor {
+    name.into_trimmed_non_empty().map(|name| Actor {
         name,
         kind,
         role,

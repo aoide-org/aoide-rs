@@ -76,13 +76,11 @@ impl<'de> Visitor<'de> for FacetKeyVisitor {
         formatter.write_str("FacetKey")
     }
 
-    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
     where
         E: serde::de::Error,
     {
-        Ok(v.parse::<_core::FacetKey>()
-            .map(Into::into)
-            .expect("infallible"))
+        Ok(FacetKey(_core::FacetId::clamp_from(s).into()))
     }
 }
 
@@ -144,13 +142,18 @@ impl<'de> Visitor<'de> for LabelVisitor {
         formatter.write_str("Label")
     }
 
-    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
     where
         E: serde::de::Error,
     {
-        Ok(v.parse::<_core::Label>()
-            .map(Into::into)
-            .expect("infallible"))
+        if let Some(label) = _core::Label::clamp_from(s) {
+            Ok(label.into())
+        } else {
+            Err(serde::de::Error::invalid_value(
+                serde::de::Unexpected::Str(s),
+                &self,
+            ))
+        }
     }
 }
 

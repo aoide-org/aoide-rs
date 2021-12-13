@@ -35,7 +35,7 @@ use aoide_core::{
         title::{Title, TitleKind, Titles},
         Track,
     },
-    util::CanonicalizeInto as _,
+    util::{CanonicalizeInto as _, IntoTrimmedNonEmptyString},
 };
 
 use aoide_core_serde::tag::Tags as SerdeTags;
@@ -43,9 +43,8 @@ use aoide_core_serde::tag::Tags as SerdeTags;
 use crate::{
     io::export::{ExportTrackConfig, ExportTrackFlags, FilteredActorNames},
     util::{
-        format_valid_replay_gain, format_validated_tempo_bpm, import_title, import_trimmed_name,
-        parse_index_numbers, parse_key_signature, parse_replay_gain, parse_tempo_bpm,
-        parse_year_tag,
+        format_valid_replay_gain, format_validated_tempo_bpm, import_title, parse_index_numbers,
+        parse_key_signature, parse_replay_gain, parse_tempo_bpm, parse_year_tag,
         tag::{
             import_faceted_tags_from_label_value_iter, FacetedTagMappingConfig, TagMappingConfig,
         },
@@ -186,13 +185,13 @@ pub fn import_released_at(reader: &impl CommentReader) -> Option<DateOrDateTime>
 pub fn import_released_by(reader: &impl CommentReader) -> Option<String> {
     reader
         .read_first_value("LABEL")
-        .and_then(import_trimmed_name)
+        .and_then(IntoTrimmedNonEmptyString::into_trimmed_non_empty)
 }
 
 pub fn import_release_copyright(reader: &impl CommentReader) -> Option<String> {
     reader
         .read_first_value("COPYRIGHT")
-        .and_then(import_trimmed_name)
+        .and_then(IntoTrimmedNonEmptyString::into_trimmed_non_empty)
 }
 
 pub fn import_track_index(reader: &impl CommentReader) -> Option<Index> {

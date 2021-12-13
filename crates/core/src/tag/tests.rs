@@ -42,20 +42,26 @@ fn score_display() {
 
 #[test]
 fn parse_label() {
-    assert_eq!(Ok(Label::new("A Label".into())), "A Label".parse::<Label>());
+    assert_eq!(
+        Some(Label::new("A Label".into())),
+        Label::clamp_from("A Label")
+    );
 }
 
 #[test]
 fn clamp_label_value() {
-    assert_eq!("A Label", &Label::clamp_value("\tA Label  "));
+    assert_eq!(Some("A Label".into()), Label::clamp_value("\tA Label  "));
 }
 
 #[test]
 fn clamp_facet_value() {
-    assert_eq!(FACET_ID_ALPHABET, &FacetId::clamp_value(FACET_ID_ALPHABET));
     assert_eq!(
-        concat!("+-./", "0123456789", "@[]_", "abcdefghijklmnopqrstuvwxyz",),
-        &FacetId::clamp_value(concat!(
+        Some(FACET_ID_ALPHABET.into()),
+        FacetId::clamp_value(FACET_ID_ALPHABET)
+    );
+    assert_eq!(
+        Some(concat!("+-./", "0123456789", "@[]_", "abcdefghijklmnopqrstuvwxyz",).into()),
+        FacetId::clamp_value(concat!(
             "\t !\"#$%&'()*+,-./0123456789:;<=>?",
             " @ ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_",
             " `abcdefghijklmn opqrstuvwxyz{|}~\n"
@@ -93,8 +99,8 @@ fn empty_facet_is_invalid() {
 }
 
 #[test]
-fn parse_empty_facet_key() {
-    assert_eq!(Ok(None.into()), "".parse::<FacetKey>());
+fn parse_empty_facet_id() {
+    assert!(FacetId::clamp_from("").is_none());
 }
 
 #[test]
@@ -103,9 +109,8 @@ fn default_label_is_invalid() {
 }
 
 #[test]
-fn empty_label_is_invalid() {
-    assert!(Label::new("".into()).validate().is_err());
-    assert!("".parse::<Label>().unwrap().validate().is_err());
+fn parse_empty_label() {
+    assert!(Label::clamp_from("").is_none());
 }
 
 #[test]

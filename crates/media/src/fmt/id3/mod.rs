@@ -43,7 +43,7 @@ use aoide_core::{
     },
     util::{
         clock::{DateTime, DateYYYYMMDD, MonthType, YearType},
-        Canonical, CanonicalizeInto as _,
+        Canonical, CanonicalizeInto as _, IntoTrimmedNonEmptyString,
     },
 };
 
@@ -55,9 +55,8 @@ use crate::{
         import::{ImportTrackConfig, ImportTrackFlags},
     },
     util::{
-        format_valid_replay_gain, format_validated_tempo_bpm, import_title, import_trimmed_name,
-        parse_index_numbers, parse_key_signature, parse_replay_gain, parse_tempo_bpm,
-        push_next_actor_role_name, serato,
+        format_valid_replay_gain, format_validated_tempo_bpm, import_title, parse_index_numbers,
+        parse_key_signature, parse_replay_gain, parse_tempo_bpm, push_next_actor_role_name, serato,
         tag::{
             import_faceted_tags_from_label_value_iter, FacetedTagMappingConfig, TagMappingConfig,
         },
@@ -416,10 +415,14 @@ pub fn import_metadata_into_track(
     {
         track.release.released_at = Some(released_at);
     }
-    if let Some(label) = first_text_frame(tag, "TPUB").and_then(import_trimmed_name) {
+    if let Some(label) =
+        first_text_frame(tag, "TPUB").and_then(IntoTrimmedNonEmptyString::into_trimmed_non_empty)
+    {
         track.release.released_by = Some(label);
     }
-    if let Some(copyright) = first_text_frame(tag, "TCOP").and_then(import_trimmed_name) {
+    if let Some(copyright) =
+        first_text_frame(tag, "TCOP").and_then(IntoTrimmedNonEmptyString::into_trimmed_non_empty)
+    {
         track.release.copyright = Some(copyright);
     }
 

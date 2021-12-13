@@ -13,10 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-///////////////////////////////////////////////////////////////////////
-
-use crate::{compat::is_slice_sorted_by, prelude::*};
-
 use std::{
     borrow::Borrow,
     cmp::Ordering,
@@ -24,13 +20,13 @@ use std::{
         hash_map::Entry::{Occupied, Vacant},
         HashMap,
     },
-    convert::Infallible,
     fmt,
     hash::{Hash, Hasher},
     iter::once,
     ops::Deref,
-    str::FromStr,
 };
+
+use crate::{compat::is_slice_sorted_by, prelude::*, util::IntoTrimmedNonEmptyString};
 
 ///////////////////////////////////////////////////////////////////////
 // Score
@@ -58,7 +54,7 @@ impl Score {
         value.into().clamp(Self::min_value(), Self::max_value())
     }
 
-    pub fn clamp_from(value: impl Into<ScoreValue>) -> Score {
+    pub fn clamp_from(value: impl Into<ScoreValue>) -> Self {
         Self::clamp_value(value).into()
     }
 
@@ -162,22 +158,12 @@ pub type LabelValue = String;
 pub struct Label(LabelValue);
 
 impl Label {
-    pub fn clamp_str(value: &str) -> &str {
-        value.trim()
+    pub fn clamp_value(value: impl AsRef<str> + Into<LabelValue>) -> Option<LabelValue> {
+        value.into_trimmed_non_empty()
     }
 
-    pub fn clamp_value(value: impl Into<LabelValue>) -> LabelValue {
-        let value = value.into();
-        let clamped = Self::clamp_str(&value);
-        if clamped == value {
-            value
-        } else {
-            clamped.into()
-        }
-    }
-
-    pub fn clamp_from(value: impl Into<LabelValue>) -> Label {
-        Self::clamp_value(value).into()
+    pub fn clamp_from(value: impl AsRef<str> + Into<LabelValue>) -> Option<Self> {
+        Self::clamp_value(value).map(Into::into)
     }
 
     pub const fn new(value: LabelValue) -> Self {
@@ -208,7 +194,7 @@ impl Validate for Label {
         ValidationContext::new()
             .invalidate_if(self.value().is_empty(), LabelInvalidity::Empty)
             .invalidate_if(
-                Self::clamp_str(self.as_ref()) != self.value(),
+                Self::clamp_value(self.value()).as_ref() != Some(self.value()),
                 LabelInvalidity::Format,
             )
             .into()
@@ -245,14 +231,6 @@ impl Deref for Label {
 impl AsRef<str> for Label {
     fn as_ref(&self) -> &str {
         self.as_str()
-    }
-}
-
-impl FromStr for Label {
-    type Err = Infallible;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self::clamp_str(s).to_owned().into())
     }
 }
 
@@ -308,14 +286,18 @@ pub struct FacetId(FacetIdValue);
 pub const FACET_ID_ALPHABET: &str = "+-./0123456789@[]_abcdefghijklmnopqrstuvwxyz";
 
 impl FacetId {
-    pub fn clamp_value(value: impl Into<FacetIdValue>) -> FacetIdValue {
+    pub fn clamp_value(value: impl Into<FacetIdValue>) -> Option<FacetIdValue> {
         let mut value = value.into();
         value.retain(Self::is_valid_char);
-        value
+        if value.is_empty() {
+            None
+        } else {
+            Some(value)
+        }
     }
 
-    pub fn clamp_from(value: impl Into<FacetIdValue>) -> Label {
-        Self::clamp_value(value).into()
+    pub fn clamp_from(value: impl Into<FacetIdValue>) -> Option<Self> {
+        Self::clamp_value(value).map(Into::into)
     }
 
     pub const fn new(value: FacetIdValue) -> Self {
@@ -415,14 +397,6 @@ impl AsRef<str> for FacetId {
     }
 }
 
-impl FromStr for FacetId {
-    type Err = Infallible;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self::clamp_value(s).into())
-    }
-}
-
 impl fmt::Display for FacetId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.value())
@@ -491,20 +465,6 @@ impl AsRef<str> for FacetKey {
 impl Borrow<str> for FacetKey {
     fn borrow(&self) -> &str {
         self.as_ref()
-    }
-}
-
-impl FromStr for FacetKey {
-    type Err = Infallible;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let value = FacetId::clamp_value(s);
-        let inner = if value.is_empty() {
-            None
-        } else {
-            Some(FacetId::new(value))
-        };
-        Ok(inner.into())
     }
 }
 

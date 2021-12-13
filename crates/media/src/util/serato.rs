@@ -18,15 +18,13 @@ use aoide_core::{
     track::cue::{Cue, CueFlags, OutMode},
     util::{
         color::{Color, RgbColor},
-        CanonicalizeInto as _,
+        CanonicalizeInto as _, IntoTrimmedNonEmptyString as _,
     },
 };
 
 use triseratops::tag::{color::Color as SeratoColor, TagContainer};
 
 use crate::Result;
-
-use super::import_trimmed_name;
 
 /// Return a canonical vector of cues found in the tag container.
 pub fn read_cues(serato_tags: &TagContainer) -> Result<Vec<Cue>> {
@@ -39,7 +37,7 @@ pub fn read_cues(serato_tags: &TagContainer) -> Result<Vec<Cue>> {
             in_position: Some(PositionMs(serato_cue.position_millis.into())),
             out_position: None,
             out_mode: None,
-            label: import_trimmed_name(serato_cue.label),
+            label: serato_cue.label.into_trimmed_non_empty(),
             color: Some(Color::Rgb(RgbColor(
                 serato_cue.color.into_pro_hotcue_color().into(),
             ))),
@@ -60,7 +58,7 @@ pub fn read_cues(serato_tags: &TagContainer) -> Result<Vec<Cue>> {
             in_position: Some(PositionMs(serato_loop.start_position_millis.into())),
             out_position: Some(PositionMs(serato_loop.end_position_millis.into())),
             out_mode: Some(OutMode::Loop),
-            label: import_trimmed_name(serato_loop.label),
+            label: serato_loop.label.into_trimmed_non_empty(),
             color: None,
             flags,
         };
