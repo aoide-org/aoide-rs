@@ -17,9 +17,9 @@ use aoide_core::{
     audio::PositionMs,
     track::cue::{Cue, CueFlags, OutMode},
     util::{
+        canonical::CanonicalizeInto as _,
         color::{Color, RgbColor},
         string::trimmed_non_empty,
-        CanonicalizeInto as _,
     },
 };
 

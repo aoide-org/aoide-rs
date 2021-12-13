@@ -13,6 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use aoide_core::{
+    track::PlayCount,
+    util::{
+        canonical::{Canonical, CanonicalizeInto as _},
+        IsDefault,
+    },
+};
+
 use crate::{media::Source, prelude::*, tag::*};
 
 pub mod actor;
@@ -28,11 +36,6 @@ use self::{actor::*, album::*, cue::*, index::*, metric::*, release::*, title::*
 mod _core {
     pub use aoide_core::{tag::Tags, track::*};
 }
-
-use aoide_core::{
-    track::PlayCount,
-    util::{Canonical, CanonicalizeInto as _, IsDefault},
-};
 
 ///////////////////////////////////////////////////////////////////////
 // Track

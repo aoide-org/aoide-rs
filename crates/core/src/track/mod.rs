@@ -26,7 +26,12 @@ pub mod title;
 
 use self::{actor::*, album::*, cue::*, index::*, metric::*, release::*, title::*};
 
-use crate::{media::*, prelude::*, tag::*};
+use crate::{
+    media::*,
+    prelude::*,
+    tag::*,
+    util::canonical::{Canonical, IsCanonical},
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Track {

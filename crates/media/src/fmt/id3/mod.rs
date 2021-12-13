@@ -42,9 +42,9 @@ use aoide_core::{
         Track,
     },
     util::{
+        canonical::{Canonical, CanonicalizeInto as _},
         clock::{DateTime, DateYYYYMMDD, MonthType, YearType},
         string::trimmed_non_empty_from,
-        Canonical, CanonicalizeInto as _,
     },
 };
 

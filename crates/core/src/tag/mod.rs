@@ -26,7 +26,14 @@ use std::{
     ops::Deref,
 };
 
-use crate::{compat::is_slice_sorted_by, prelude::*, util::string::trimmed_non_empty_from};
+use crate::{
+    compat::is_slice_sorted_by,
+    prelude::*,
+    util::{
+        canonical::{CanonicalOrd, Canonicalize, IsCanonical},
+        string::trimmed_non_empty_from,
+    },
+};
 
 ///////////////////////////////////////////////////////////////////////
 // Score

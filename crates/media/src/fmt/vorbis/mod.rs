@@ -35,7 +35,7 @@ use aoide_core::{
         title::{Title, TitleKind, Titles},
         Track,
     },
-    util::{string::trimmed_non_empty_from, CanonicalizeInto as _},
+    util::{canonical::CanonicalizeInto as _, string::trimmed_non_empty_from},
 };
 
 use aoide_core_serde::tag::Tags as SerdeTags;

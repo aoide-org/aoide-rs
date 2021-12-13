@@ -20,7 +20,7 @@ use aoide_core::{
     media::Source,
     tag::Tags,
     track::{actor::Actor, cue::Cue, title::Title},
-    util::Canonical,
+    util::canonical::Canonical,
 };
 
 use num_derive::{FromPrimitive, ToPrimitive};

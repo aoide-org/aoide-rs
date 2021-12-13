@@ -22,7 +22,7 @@ use aoide_core::{
     media::Source,
     tag::*,
     track::{actor::Actor, cue::Cue, title::Title, *},
-    util::{clock::*, Canonical},
+    util::{canonical::Canonical, clock::*},
 };
 
 use aoide_core_ext::track::search::{SearchFilter, SortOrder};

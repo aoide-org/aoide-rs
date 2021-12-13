@@ -13,10 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use rand::{thread_rng, RngCore};
 use std::{fmt, marker::PhantomData, mem, str};
 
-use crate::prelude::*;
+use rand::{thread_rng, RngCore};
+
+use crate::{
+    prelude::*,
+    util::canonical::{Canonicalize, IsCanonical},
+};
 
 ///////////////////////////////////////////////////////////////////////
 // EntityUid

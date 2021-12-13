@@ -32,7 +32,7 @@ use aoide_core::{
         tag::{FACET_COMMENT, FACET_GENRE, FACET_GROUPING, FACET_ISRC, FACET_MOOD},
         Track,
     },
-    util::{Canonical, CanonicalizeInto as _},
+    util::canonical::{Canonical, CanonicalizeInto as _},
 };
 
 use crate::{

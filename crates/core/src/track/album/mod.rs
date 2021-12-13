@@ -13,11 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::{actor::*, title::*};
-
-use crate::prelude::*;
-
 use num_derive::{FromPrimitive, ToPrimitive};
+
+use crate::{
+    prelude::*,
+    util::canonical::{Canonical, IsCanonical},
+};
+
+use super::{actor::*, title::*};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, FromPrimitive, ToPrimitive)]
 pub enum AlbumKind {

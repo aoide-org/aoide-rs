@@ -15,9 +15,13 @@
 
 use std::cmp::Ordering;
 
-use crate::{audio::PositionMs, prelude::*};
-
 use num_derive::{FromPrimitive, ToPrimitive};
+
+use crate::{
+    audio::PositionMs,
+    prelude::*,
+    util::canonical::{CanonicalOrd, Canonicalize, IsCanonical},
+};
 
 pub type BankIndex = i16;
 
