@@ -15,7 +15,6 @@
 
 use std::{convert::TryFrom as _, fmt, path::Path, str::FromStr};
 
-use anyhow::Context as _;
 use chrono::{NaiveDateTime, Utc};
 use image::{
     guess_format, load_from_memory, load_from_memory_with_format, DynamicImage, GenericImageView,
@@ -456,19 +455,26 @@ pub fn load_artwork_image(
     } else {
         load_from_memory(image_data)
     }
-    .with_context(|| "Failed to load embedded artwork image")
+    .map_err(Into::into)
     .map_err(ArtworkImageError::Other)
     .and_then(|image| {
-        let media_type = if let Some(media_type_hint) = media_type_hint {
-            media_type_hint
-                .parse()
-                .map_err(anyhow::Error::from)
-                .map_err(ArtworkImageError::Other)?
-        } else if let Some(image_format) = image_format {
-            media_type_from_image_format(image_format)?
-        } else {
-            IMAGE_STAR
-        };
+        let media_type = media_type_hint
+            .and_then(|media_type_hint| {
+                media_type_hint
+                    .parse::<Mime>()
+                    .map_err(|err| {
+                        tracing::warn!(
+                            "Discarding invalid media type hint of embedded artwork image: {}",
+                            err
+                        );
+                        err
+                    })
+                    .ok()
+            })
+            .map(Ok)
+            .or_else(|| image_format.map(media_type_from_image_format))
+            .transpose()?
+            .unwrap_or(IMAGE_STAR);
         Ok((media_type, image))
     })
 }
