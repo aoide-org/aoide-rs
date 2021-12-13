@@ -26,7 +26,7 @@ use std::{
     ops::Deref,
 };
 
-use crate::{compat::is_slice_sorted_by, prelude::*, util::IntoTrimmedNonEmptyString};
+use crate::{compat::is_slice_sorted_by, prelude::*, util::string::trimmed_non_empty_from};
 
 ///////////////////////////////////////////////////////////////////////
 // Score
@@ -159,7 +159,7 @@ pub struct Label(LabelValue);
 
 impl Label {
     pub fn clamp_value(value: impl AsRef<str> + Into<LabelValue>) -> Option<LabelValue> {
-        value.into_trimmed_non_empty()
+        trimmed_non_empty_from(value)
     }
 
     pub fn clamp_from(value: impl AsRef<str> + Into<LabelValue>) -> Option<Self> {

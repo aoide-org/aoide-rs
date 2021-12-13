@@ -48,7 +48,7 @@ use aoide_core::{
     },
     util::{
         clock::{DateTime, DateTimeInner, DateYYYYMMDD, YYYYMMDD},
-        IntoTrimmedNonEmptyString as _,
+        string::{trimmed_non_empty, trimmed_non_empty_from},
     },
 };
 
@@ -97,12 +97,22 @@ fn adjust_last_actor_kind(actors: &mut [Actor], role: ActorRole) -> ActorKind {
     ActorKind::Summary
 }
 
-pub fn push_next_actor_role_name(
+pub fn push_next_actor_role_name(actors: &mut Vec<Actor>, role: ActorRole, name: String) -> bool {
+    if let Some(mut actor) = ingest_actor(name, Default::default(), role) {
+        actor.kind = adjust_last_actor_kind(actors.as_mut_slice(), role);
+        actors.push(actor);
+        true
+    } else {
+        false
+    }
+}
+
+pub fn push_next_actor_role_name_from(
     actors: &mut Vec<Actor>,
     role: ActorRole,
     name: impl AsRef<str> + Into<String>,
 ) -> bool {
-    if let Some(mut actor) = import_actor(name, Default::default(), role) {
+    if let Some(mut actor) = ingest_actor_from(name, Default::default(), role) {
         actor.kind = adjust_last_actor_kind(actors.as_mut_slice(), role);
         actors.push(actor);
         true
@@ -639,16 +649,29 @@ pub fn try_ingest_embedded_artwork_image(
     })
 }
 
-pub fn import_title(name: impl AsRef<str> + Into<String>, kind: TitleKind) -> Option<Title> {
-    name.into_trimmed_non_empty().map(|name| Title { name, kind })
+pub fn ingest_title_from(name: impl AsRef<str> + Into<String>, kind: TitleKind) -> Option<Title> {
+    trimmed_non_empty_from(name).map(|name| Title { name, kind })
 }
 
-pub fn import_actor(
+pub fn ingest_title(name: String, kind: TitleKind) -> Option<Title> {
+    trimmed_non_empty(name).map(|name| Title { name, kind })
+}
+
+pub fn ingest_actor_from(
     name: impl AsRef<str> + Into<String>,
     kind: ActorKind,
     role: ActorRole,
 ) -> Option<Actor> {
-    name.into_trimmed_non_empty().map(|name| Actor {
+    trimmed_non_empty_from(name).map(|name| Actor {
+        name,
+        kind,
+        role,
+        role_notes: None,
+    })
+}
+
+pub fn ingest_actor(name: String, kind: ActorKind, role: ActorRole) -> Option<Actor> {
+    trimmed_non_empty(name).map(|name| Actor {
         name,
         kind,
         role,

@@ -17,6 +17,7 @@ use std::{borrow::Borrow, cmp::Ordering, ops::Deref};
 
 pub mod clock;
 pub mod color;
+pub mod string;
 pub mod url;
 
 pub trait IsInteger {
@@ -265,48 +266,6 @@ impl<T> Deref for Canonical<T> {
 impl<T> Borrow<T> for Canonical<T> {
     fn borrow(&self) -> &T {
         self.as_ref()
-    }
-}
-
-pub trait IntoTrimmedString {
-    fn into_trimmed(self) -> String;
-}
-
-impl<T> IntoTrimmedString for T
-where
-    T: AsRef<str> + Into<String>,
-{
-    fn into_trimmed(self) -> String {
-        let trimmed = self.as_ref().trim();
-        if trimmed.is_empty() {
-            return String::new();
-        }
-        if trimmed.as_bytes().first() == self.as_ref().as_bytes().first()
-            && trimmed.as_bytes().last() == self.as_ref().as_bytes().last()
-        {
-            debug_assert_eq!(trimmed, self.as_ref());
-            self.into()
-        } else {
-            trimmed.to_owned()
-        }
-    }
-}
-
-pub trait IntoTrimmedNonEmptyString: IntoTrimmedString {
-    fn into_trimmed_non_empty(self) -> Option<String>;
-}
-
-impl<T> IntoTrimmedNonEmptyString for T
-where
-    T: AsRef<str> + Into<String>,
-{
-    fn into_trimmed_non_empty(self) -> Option<String> {
-        let trimmed = self.into_trimmed();
-        if trimmed.is_empty() {
-            None
-        } else {
-            Some(trimmed)
-        }
     }
 }
 

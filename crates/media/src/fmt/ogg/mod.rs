@@ -37,7 +37,7 @@ use aoide_core::{
 
 use crate::{
     io::import::*,
-    util::{push_next_actor_role_name, serato, try_ingest_embedded_artwork_image},
+    util::{push_next_actor_role_name_from, serato, try_ingest_embedded_artwork_image},
     Error, Result,
 };
 
@@ -214,40 +214,40 @@ impl Metadata {
         // Track actors
         let mut track_actors = Vec::with_capacity(8);
         for name in filter_vorbis_comment_values(vorbis_comments, "ARTIST") {
-            push_next_actor_role_name(&mut track_actors, ActorRole::Artist, name);
+            push_next_actor_role_name_from(&mut track_actors, ActorRole::Artist, name);
         }
         for name in filter_vorbis_comment_values(vorbis_comments, "ARRANGER") {
-            push_next_actor_role_name(&mut track_actors, ActorRole::Arranger, name);
+            push_next_actor_role_name_from(&mut track_actors, ActorRole::Arranger, name);
         }
         for name in filter_vorbis_comment_values(vorbis_comments, "COMPOSER") {
-            push_next_actor_role_name(&mut track_actors, ActorRole::Composer, name);
+            push_next_actor_role_name_from(&mut track_actors, ActorRole::Composer, name);
         }
         for name in filter_vorbis_comment_values(vorbis_comments, "CONDUCTOR") {
-            push_next_actor_role_name(&mut track_actors, ActorRole::Conductor, name);
+            push_next_actor_role_name_from(&mut track_actors, ActorRole::Conductor, name);
         }
         for name in filter_vorbis_comment_values(vorbis_comments, "PRODUCER") {
-            push_next_actor_role_name(&mut track_actors, ActorRole::Producer, name);
+            push_next_actor_role_name_from(&mut track_actors, ActorRole::Producer, name);
         }
         for name in filter_vorbis_comment_values(vorbis_comments, "REMIXER") {
-            push_next_actor_role_name(&mut track_actors, ActorRole::Remixer, name);
+            push_next_actor_role_name_from(&mut track_actors, ActorRole::Remixer, name);
         }
         for name in filter_vorbis_comment_values(vorbis_comments, "MIXER") {
-            push_next_actor_role_name(&mut track_actors, ActorRole::Mixer, name);
+            push_next_actor_role_name_from(&mut track_actors, ActorRole::Mixer, name);
         }
         for name in filter_vorbis_comment_values(vorbis_comments, "DJMIXER") {
-            push_next_actor_role_name(&mut track_actors, ActorRole::DjMixer, name);
+            push_next_actor_role_name_from(&mut track_actors, ActorRole::DjMixer, name);
         }
         for name in filter_vorbis_comment_values(vorbis_comments, "ENGINEER") {
-            push_next_actor_role_name(&mut track_actors, ActorRole::Engineer, name);
+            push_next_actor_role_name_from(&mut track_actors, ActorRole::Engineer, name);
         }
         for name in filter_vorbis_comment_values(vorbis_comments, "DIRECTOR") {
-            push_next_actor_role_name(&mut track_actors, ActorRole::Director, name);
+            push_next_actor_role_name_from(&mut track_actors, ActorRole::Director, name);
         }
         for name in filter_vorbis_comment_values(vorbis_comments, "LYRICIST") {
-            push_next_actor_role_name(&mut track_actors, ActorRole::Lyricist, name);
+            push_next_actor_role_name_from(&mut track_actors, ActorRole::Lyricist, name);
         }
         for name in filter_vorbis_comment_values(vorbis_comments, "WRITER") {
-            push_next_actor_role_name(&mut track_actors, ActorRole::Writer, name);
+            push_next_actor_role_name_from(&mut track_actors, ActorRole::Writer, name);
         }
         let track_actors = track_actors.canonicalize_into();
         if !track_actors.is_empty() {
@@ -275,7 +275,7 @@ impl Metadata {
             ))
             .chain(filter_vorbis_comment_values(vorbis_comments, "ENSEMBLE"))
         {
-            push_next_actor_role_name(&mut album_actors, ActorRole::Artist, name);
+            push_next_actor_role_name_from(&mut album_actors, ActorRole::Artist, name);
         }
         let album_actors = album_actors.canonicalize_into();
         if !album_actors.is_empty() {

@@ -35,7 +35,7 @@ use crate::{
         export::ExportTrackConfig,
         import::{ImportTrackConfig, ImportTrackFlags, Reader},
     },
-    util::{push_next_actor_role_name, serato, try_ingest_embedded_artwork_image},
+    util::{push_next_actor_role_name_from, serato, try_ingest_embedded_artwork_image},
     Error, Result,
 };
 
@@ -180,62 +180,62 @@ impl Metadata {
         let mut track_actors = Vec::with_capacity(8);
         if let Some(artists) = metaflac_tag.get_vorbis("ARTIST") {
             for name in artists {
-                push_next_actor_role_name(&mut track_actors, ActorRole::Artist, name);
+                push_next_actor_role_name_from(&mut track_actors, ActorRole::Artist, name);
             }
         }
         if let Some(artists) = metaflac_tag.get_vorbis("ARRANGER") {
             for name in artists {
-                push_next_actor_role_name(&mut track_actors, ActorRole::Arranger, name);
+                push_next_actor_role_name_from(&mut track_actors, ActorRole::Arranger, name);
             }
         }
         if let Some(compersers) = metaflac_tag.get_vorbis("COMPOSER") {
             for name in compersers {
-                push_next_actor_role_name(&mut track_actors, ActorRole::Composer, name);
+                push_next_actor_role_name_from(&mut track_actors, ActorRole::Composer, name);
             }
         }
         if let Some(conductors) = metaflac_tag.get_vorbis("CONDUCTOR") {
             for name in conductors {
-                push_next_actor_role_name(&mut track_actors, ActorRole::Conductor, name);
+                push_next_actor_role_name_from(&mut track_actors, ActorRole::Conductor, name);
             }
         }
         if let Some(producers) = metaflac_tag.get_vorbis("PRODUCER") {
             for name in producers {
-                push_next_actor_role_name(&mut track_actors, ActorRole::Producer, name);
+                push_next_actor_role_name_from(&mut track_actors, ActorRole::Producer, name);
             }
         }
         if let Some(remixers) = metaflac_tag.get_vorbis("REMIXER") {
             for name in remixers {
-                push_next_actor_role_name(&mut track_actors, ActorRole::Remixer, name);
+                push_next_actor_role_name_from(&mut track_actors, ActorRole::Remixer, name);
             }
         }
         if let Some(mixers) = metaflac_tag.get_vorbis("MIXER") {
             for name in mixers {
-                push_next_actor_role_name(&mut track_actors, ActorRole::Mixer, name);
+                push_next_actor_role_name_from(&mut track_actors, ActorRole::Mixer, name);
             }
         }
         if let Some(mixers) = metaflac_tag.get_vorbis("DJMIXER") {
             for name in mixers {
-                push_next_actor_role_name(&mut track_actors, ActorRole::DjMixer, name);
+                push_next_actor_role_name_from(&mut track_actors, ActorRole::DjMixer, name);
             }
         }
         if let Some(engineers) = metaflac_tag.get_vorbis("ENGINEER") {
             for name in engineers {
-                push_next_actor_role_name(&mut track_actors, ActorRole::Engineer, name);
+                push_next_actor_role_name_from(&mut track_actors, ActorRole::Engineer, name);
             }
         }
         if let Some(engineers) = metaflac_tag.get_vorbis("DIRECTOR") {
             for name in engineers {
-                push_next_actor_role_name(&mut track_actors, ActorRole::Director, name);
+                push_next_actor_role_name_from(&mut track_actors, ActorRole::Director, name);
             }
         }
         if let Some(engineers) = metaflac_tag.get_vorbis("LYRICIST") {
             for name in engineers {
-                push_next_actor_role_name(&mut track_actors, ActorRole::Lyricist, name);
+                push_next_actor_role_name_from(&mut track_actors, ActorRole::Lyricist, name);
             }
         }
         if let Some(engineers) = metaflac_tag.get_vorbis("WRITER") {
             for name in engineers {
-                push_next_actor_role_name(&mut track_actors, ActorRole::Writer, name);
+                push_next_actor_role_name_from(&mut track_actors, ActorRole::Writer, name);
             }
         }
         let track_actors = track_actors.canonicalize_into();
@@ -271,7 +271,7 @@ impl Metadata {
             )
             .chain(metaflac_tag.get_vorbis("ENSEMBLE").into_iter().flatten())
         {
-            push_next_actor_role_name(&mut album_actors, ActorRole::Artist, name);
+            push_next_actor_role_name_from(&mut album_actors, ActorRole::Artist, name);
         }
         let album_actors = album_actors.canonicalize_into();
         if !album_actors.is_empty() {

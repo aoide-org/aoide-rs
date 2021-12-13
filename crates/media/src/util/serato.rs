@@ -18,7 +18,8 @@ use aoide_core::{
     track::cue::{Cue, CueFlags, OutMode},
     util::{
         color::{Color, RgbColor},
-        CanonicalizeInto as _, IntoTrimmedNonEmptyString as _,
+        string::trimmed_non_empty,
+        CanonicalizeInto as _,
     },
 };
 
@@ -37,7 +38,7 @@ pub fn read_cues(serato_tags: &TagContainer) -> Result<Vec<Cue>> {
             in_position: Some(PositionMs(serato_cue.position_millis.into())),
             out_position: None,
             out_mode: None,
-            label: serato_cue.label.into_trimmed_non_empty(),
+            label: trimmed_non_empty(serato_cue.label),
             color: Some(Color::Rgb(RgbColor(
                 serato_cue.color.into_pro_hotcue_color().into(),
             ))),
@@ -58,7 +59,7 @@ pub fn read_cues(serato_tags: &TagContainer) -> Result<Vec<Cue>> {
             in_position: Some(PositionMs(serato_loop.start_position_millis.into())),
             out_position: Some(PositionMs(serato_loop.end_position_millis.into())),
             out_mode: Some(OutMode::Loop),
-            label: serato_loop.label.into_trimmed_non_empty(),
+            label: trimmed_non_empty(serato_loop.label),
             color: None,
             flags,
         };
