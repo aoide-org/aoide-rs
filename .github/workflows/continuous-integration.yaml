@@ -122,4 +122,4 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --locked --workspace --release
+          args: --locked --workspace --profile release
