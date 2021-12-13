@@ -427,7 +427,14 @@ impl From<ArtworkImageError> for Error {
     }
 }
 
-pub type LoadArtworkImageResult = std::result::Result<(Mime, DynamicImage), ArtworkImageError>;
+#[derive(Debug)]
+pub struct LoadedArtworkPicture {
+    pub media_type: Mime,
+    pub picture: DynamicImage,
+    pub recoverable_errors: Vec<anyhow::Error>,
+}
+
+pub type LoadArtworkPictureResult = std::result::Result<LoadedArtworkPicture, ArtworkImageError>;
 
 pub fn media_type_from_image_format(
     image_format: ImageFormat,
@@ -447,12 +454,13 @@ pub fn media_type_from_image_format(
     Ok(media_type)
 }
 
-pub fn load_artwork_image(
+pub fn load_artwork_picture(
     image_data: &[u8],
     image_format_hint: Option<ImageFormat>,
     media_type_hint: Option<String>,
-) -> LoadArtworkImageResult {
+) -> LoadArtworkPictureResult {
     let image_format = image_format_hint.or_else(|| guess_format(image_data).ok());
+    let mut recoverable_errors = Vec::new();
     if let Some(image_format) = image_format {
         load_from_memory_with_format(image_data, image_format)
     } else {
@@ -460,30 +468,42 @@ pub fn load_artwork_image(
     }
     .map_err(Into::into)
     .map_err(ArtworkImageError::Other)
-    .and_then(|image| {
+    .and_then(|picture| {
         let media_type = media_type_hint
             .and_then(|media_type_hint| {
                 media_type_hint
                     .parse::<Mime>()
                     .map_err(|err| {
-                        tracing::warn!(
-                            "Discarding invalid media type hint of embedded artwork image: {}",
+                        recoverable_errors.push(anyhow::anyhow!(
+                            "Invalid media type hint '{}': {}",
+                            media_type_hint,
                             err
-                        );
+                        ));
                         err
                     })
+                    // Ignore and continue
                     .ok()
             })
             .map(Ok)
             .or_else(|| image_format.map(media_type_from_image_format))
             .transpose()?
             .unwrap_or(IMAGE_STAR);
-        Ok((media_type, image))
+        Ok(LoadedArtworkPicture {
+            media_type,
+            picture,
+            recoverable_errors,
+        })
     })
 }
 
-pub type IngestArtworkImageResult =
-    std::result::Result<(ArtworkImage, DynamicImage), ArtworkImageError>;
+#[derive(Debug)]
+pub struct IngestedArtworkImage {
+    pub artwork_image: ArtworkImage,
+    pub picture: DynamicImage,
+    pub recoverable_errors: Vec<anyhow::Error>,
+}
+
+pub type IngestArtworkImageResult = std::result::Result<IngestedArtworkImage, ArtworkImageError>;
 
 pub fn ingest_artwork_image(
     apic_type: ApicType,
@@ -492,8 +512,12 @@ pub fn ingest_artwork_image(
     media_type_hint: Option<String>,
     image_digest: &mut MediaDigest,
 ) -> IngestArtworkImageResult {
-    let (media_type, image) = load_artwork_image(image_data, image_format_hint, media_type_hint)?;
-    let (width, height) = image.dimensions();
+    let LoadedArtworkPicture {
+        media_type,
+        picture,
+        recoverable_errors,
+    } = load_artwork_picture(image_data, image_format_hint, media_type_hint)?;
+    let (width, height) = picture.dimensions();
     let clamped_with = width as ImageDimension;
     let clamped_height = height as ImageDimension;
     if width != clamped_with as u32 && height != clamped_height as u32 {
@@ -508,23 +532,32 @@ pub fn ingest_artwork_image(
         height: clamped_height,
     };
     let digest = image_digest.digest_content(image_data).finalize_reset();
-    let image_4x4 = image.resize_exact(4, 4, image::imageops::FilterType::Lanczos3);
-    let thumbnail = Thumbnail4x4Rgb8::try_from(image_4x4.to_rgb8().into_raw()).ok();
+    let picture_4x4 = picture.resize_exact(4, 4, image::imageops::FilterType::Lanczos3);
+    let thumbnail = Thumbnail4x4Rgb8::try_from(picture_4x4.to_rgb8().into_raw()).ok();
     debug_assert!(thumbnail.is_some());
-    Ok((
-        ArtworkImage {
-            media_type,
-            apic_type,
-            size: Some(size),
-            digest,
-            thumbnail,
-        },
-        image,
-    ))
+    let artwork_image = ArtworkImage {
+        media_type,
+        apic_type,
+        size: Some(size),
+        digest,
+        thumbnail,
+    };
+    Ok(IngestedArtworkImage {
+        artwork_image,
+        picture,
+        recoverable_errors,
+    })
 }
 
-pub type IngestLoadedArtworkImageResult =
-    std::result::Result<(EmbeddedArtwork, DynamicImage), ArtworkImageError>;
+#[derive(Debug)]
+pub struct IngestedEmbeddedArtworkImage {
+    pub embedded_artwork: EmbeddedArtwork,
+    pub picture: DynamicImage,
+    pub recoverable_errors: Vec<anyhow::Error>,
+}
+
+pub type IngestEmbeddedArtworkImageResult =
+    std::result::Result<IngestedEmbeddedArtworkImage, ArtworkImageError>;
 
 pub fn ingest_embedded_artwork_image(
     apic_type: ApicType,
@@ -532,21 +565,25 @@ pub fn ingest_embedded_artwork_image(
     image_format_hint: Option<ImageFormat>,
     media_type_hint: Option<String>,
     image_digest: &mut MediaDigest,
-) -> IngestLoadedArtworkImageResult {
-    ingest_artwork_image(
+) -> IngestEmbeddedArtworkImageResult {
+    let IngestedArtworkImage {
+        artwork_image,
+        picture,
+        recoverable_errors,
+    } = ingest_artwork_image(
         apic_type,
         image_data,
         image_format_hint,
         media_type_hint,
         image_digest,
-    )
-    .map(|(artwork_image, dynamic_image)| {
-        (
-            EmbeddedArtwork {
-                image: artwork_image,
-            },
-            dynamic_image,
-        )
+    )?;
+    let embedded_artwork = EmbeddedArtwork {
+        image: artwork_image,
+    };
+    Ok(IngestedEmbeddedArtworkImage {
+        embedded_artwork,
+        picture,
+        recoverable_errors,
     })
 }
 
@@ -565,7 +602,23 @@ pub fn try_ingest_embedded_artwork_image(
         media_type_hint,
         image_digest,
     )
-    .map(|(embedded, image)| (Artwork::Embedded(embedded), Some(image)))
+    .map(
+        |IngestedEmbeddedArtworkImage {
+             embedded_artwork,
+             picture,
+             recoverable_errors,
+         }| {
+            for err in recoverable_errors {
+                tracing::warn!(
+                    "Recoverable error while loading embedded {:?} artwork image from {}: {}",
+                    apic_type,
+                    media_source_path,
+                    err
+                );
+            }
+            (Artwork::Embedded(embedded_artwork), Some(picture))
+        },
+    )
     .unwrap_or_else(|err| match err {
         ArtworkImageError::UnsupportedFormat(unsupported_format) => {
             tracing::info!(
