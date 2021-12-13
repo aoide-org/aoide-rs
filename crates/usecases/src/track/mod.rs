@@ -71,11 +71,11 @@ where
 
 pub fn validate_track_input(track: &Track) -> Result<()> {
     if let Err(err) = track.validate() {
-        // Many tracks are expected to be inconsistent and invalid
-        // to some extent and we simply cannot reject all of them.
-        // Only log a warning to investigate the common cases step.
-        // by step and then decide how to handle them.
-        tracing::warn!("Invalid track: {:?}", err);
+        // Many tracks are expected to be inconsistent and invalid to some
+        // extent and we simply cannot reject all of them. Only log a warning
+        // to investigate issues that occur frequently and then decide how to
+        // handle them.
+        tracing::warn!("Invalid track '{}': {:?}", track.media_source.path, err);
     }
     Ok(())
 }
