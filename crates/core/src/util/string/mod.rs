@@ -19,7 +19,7 @@ pub fn trim_in_place(s: &mut String) {
     drop(s.drain(0..drain_start_len));
 }
 
-pub fn into_trimmed(s: impl AsRef<str> + Into<String>) -> String {
+pub fn trim_from(s: impl AsRef<str> + Into<String>) -> String {
     let trimmed = s.as_ref().trim();
     if trimmed.is_empty() {
         return String::new();
@@ -42,13 +42,17 @@ pub fn non_empty_from(s: impl AsRef<str> + Into<String>) -> Option<String> {
     }
 }
 
+pub fn non_empty(s: String) -> Option<String> {
+    non_empty_from(s)
+}
+
 pub fn trimmed_non_empty_from(s: impl AsRef<str> + Into<String>) -> Option<String> {
-    non_empty_from(into_trimmed(s))
+    non_empty(trim_from(s))
 }
 
 pub fn trimmed_non_empty(mut s: String) -> Option<String> {
     trim_in_place(&mut s);
-    non_empty_from(s)
+    non_empty(s)
 }
 
 ///////////////////////////////////////////////////////////////////////
