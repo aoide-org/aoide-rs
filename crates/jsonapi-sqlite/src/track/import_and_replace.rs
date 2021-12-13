@@ -45,6 +45,7 @@ pub struct Summary {
     pub not_imported: Vec<String>,
     pub not_created: Vec<Track>,
     pub not_updated: Vec<Track>,
+    pub import_failed: Vec<String>,
 }
 
 impl From<uc::Summary> for Summary {
@@ -56,6 +57,7 @@ impl From<uc::Summary> for Summary {
             not_imported,
             not_created,
             not_updated,
+            import_failed,
         } = from;
         Self {
             created: created.into_iter().map(Into::into).collect(),
@@ -64,6 +66,7 @@ impl From<uc::Summary> for Summary {
             not_imported: not_imported.into_iter().map(Into::into).collect(),
             not_created: not_created.into_iter().map(Into::into).collect(),
             not_updated: not_updated.into_iter().map(Into::into).collect(),
+            import_failed: import_failed.into_iter().map(Into::into).collect(),
         }
     }
 }

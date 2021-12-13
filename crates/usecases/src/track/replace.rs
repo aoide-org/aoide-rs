@@ -212,26 +212,25 @@ where
         Ok(ImportTrackFromFileOutcome::SkippedDirectory) => {
             // Nothing to do
         }
-        Err(err) => {
-            match err {
-                Error::Media(MediaError::UnknownContentType)
-                | Error::Media(MediaError::UnsupportedContentType(_)) => {
-                    tracing::info!(
-                        "Skipped import of track from local file path {}: {}",
-                        source_path_resolver.build_file_path(&source_path).display(),
-                        err
-                    );
-                }
-                err => {
-                    tracing::warn!(
-                        "Failed to import track from local file path {}: {}",
-                        source_path_resolver.build_file_path(&source_path).display(),
-                        err
-                    );
-                }
+        Err(err) => match err {
+            Error::Media(MediaError::UnknownContentType)
+            | Error::Media(MediaError::UnsupportedContentType(_)) => {
+                tracing::info!(
+                    "Skipped import of track from local file path {}: {}",
+                    source_path_resolver.build_file_path(&source_path).display(),
+                    err
+                );
+                summary.not_imported.push(source_path);
             }
-            summary.not_imported.push(source_path);
-        }
+            err => {
+                tracing::warn!(
+                    "Failed to import track from local file path {}: {}",
+                    source_path_resolver.build_file_path(&source_path).display(),
+                    err
+                );
+                summary.import_failed.push(source_path);
+            }
+        },
     };
     Ok(())
 }

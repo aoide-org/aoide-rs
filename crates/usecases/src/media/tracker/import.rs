@@ -119,7 +119,7 @@ where
                 Err(err) => {
                     let err = if let Error::Io(io_err) = err {
                         if io_err.kind() == io::ErrorKind::NotFound {
-                            tracing::info!("Untracking missing directory {}", dir_path);
+                            tracing::info!("Untracking missing directory '{}'", dir_path);
                             summary.directories.untracked +=
                                 repo.media_tracker_untrack(collection_id, &dir_path, None)?;
                             continue;
@@ -130,7 +130,7 @@ where
                         // Pass-through error
                         err
                     };
-                    tracing::warn!("Failed to import pending directory {}: {}", dir_path, err);
+                    tracing::warn!("Failed to import pending directory '{}': {}", dir_path, err);
                     // Skip this directory and keep going
                     summary.directories.skipped += 1;
                     continue;
@@ -154,33 +154,49 @@ where
                     break 'outcome outcome;
                 }
             }
-            match repo.media_tracker_confirm_directory(
-                DateTime::now_utc(),
-                collection_id,
-                &dir_path,
-                &digest,
-                &media_source_ids,
-            ) {
-                Ok(true) => {
-                    tracing::debug!("Confirmed pending directory {}", dir_path);
-                    summary.directories.confirmed += 1;
+            let updated_at = DateTime::now_utc();
+            if tracks_summary.import_failed.is_empty() {
+                match repo.media_tracker_confirm_directory(
+                    updated_at,
+                    collection_id,
+                    &dir_path,
+                    &digest,
+                    &media_source_ids,
+                ) {
+                    Ok(true) => {
+                        tracing::debug!("Confirmed pending directory '{}'", dir_path);
+                        summary.directories.confirmed += 1;
+                    }
+                    Ok(false) => {
+                        // Might be rejected if the digest has been updated meanwhile
+                        tracing::info!(
+                            "Confirmation of imported directory '{}' was rejected",
+                            dir_path
+                        );
+                        // Reject this directory and try again
+                        summary.directories.rejected += 1;
+                        continue;
+                    }
+                    Err(err) => {
+                        tracing::warn!(
+                            "Failed to confirm pending directory '{}': {}",
+                            dir_path,
+                            err
+                        );
+                        // Skip this directory and keep going
+                        summary.directories.skipped += 1;
+                        continue;
+                    }
                 }
-                Ok(false) => {
-                    // Might be rejected if the digest has been updated meanwhile
-                    tracing::info!(
-                        "Confirmation of imported directory {} was rejected",
-                        dir_path
-                    );
-                    summary.directories.rejected += 1;
-                    // Try again
-                    continue;
-                }
-                Err(err) => {
-                    tracing::warn!("Failed to confirm pending directory {}: {}", dir_path, err);
-                    // Skip this directory and keep going
-                    summary.directories.skipped += 1;
-                    continue;
-                }
+            } else {
+                tracing::warn!(
+                    "Postponing confirmation of pending directory '{}' after {} import failures",
+                    dir_path,
+                    tracks_summary.import_failed.len()
+                );
+                // Skip this directory (only partially imported) and keep going
+                summary.directories.skipped += 1;
+                continue;
             }
         }
     };

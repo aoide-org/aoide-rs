@@ -49,6 +49,7 @@ pub struct TrackSummary {
     pub not_imported: usize,
     pub not_created: usize,
     pub not_updated: usize,
+    pub import_failed: usize,
 }
 
 impl AddAssign<&TrackReplaceSummary> for TrackSummary {
@@ -61,6 +62,7 @@ impl AddAssign<&TrackReplaceSummary> for TrackSummary {
             not_imported,
             not_created,
             not_updated,
+            import_failed,
         } = self;
         let TrackReplaceSummary {
             created: rhs_created,
@@ -69,6 +71,7 @@ impl AddAssign<&TrackReplaceSummary> for TrackSummary {
             not_imported: rhs_not_imported,
             not_created: rhs_not_created,
             not_updated: rhs_not_updated,
+            import_failed: rhs_import_failed,
         } = rhs;
         *created += rhs_created.len();
         *updated += rhs_updated.len();
@@ -76,6 +79,7 @@ impl AddAssign<&TrackReplaceSummary> for TrackSummary {
         *not_imported += rhs_not_imported.len();
         *not_created += rhs_not_created.len();
         *not_updated += rhs_not_updated.len();
+        *import_failed += rhs_import_failed.len();
     }
 }
 

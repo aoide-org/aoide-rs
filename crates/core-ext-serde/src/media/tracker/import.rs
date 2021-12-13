@@ -106,6 +106,7 @@ pub struct TrackSummary {
     pub not_imported: usize,
     pub not_created: usize,
     pub not_updated: usize,
+    pub import_failed: usize,
 }
 
 #[cfg(feature = "frontend")]
@@ -119,6 +120,7 @@ impl From<TrackSummary> for _inner::TrackSummary {
             not_imported,
             not_created,
             not_updated,
+            import_failed,
         } = from;
         Self {
             created,
@@ -128,6 +130,7 @@ impl From<TrackSummary> for _inner::TrackSummary {
             not_imported,
             not_created,
             not_updated,
+            import_failed,
         }
     }
 }
@@ -143,6 +146,7 @@ impl From<_inner::TrackSummary> for TrackSummary {
             not_imported,
             not_created,
             not_updated,
+            import_failed,
         } = from;
         Self {
             created,
@@ -152,6 +156,7 @@ impl From<_inner::TrackSummary> for TrackSummary {
             not_imported,
             not_created,
             not_updated,
+            import_failed,
         }
     }
 }
