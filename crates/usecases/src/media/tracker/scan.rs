@@ -13,15 +13,16 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::sync::atomic::AtomicBool;
+use std::{sync::atomic::AtomicBool, time::Duration};
 
 use url::Url;
 
 use aoide_core::util::{clock::DateTime, url::BaseUrl};
 
 use aoide_core_ext::media::tracker::{
-    scan::{Outcome, Params, Summary},
-    Completion, ScanningDirectoriesProgress, ScanningEntriesProgress, ScanningProgress,
+    scan::{Outcome, Summary},
+    Completion, DirTraversalParams, ScanningDirectoriesProgress, ScanningEntriesProgress,
+    ScanningProgress,
 };
 
 use aoide_media::{
@@ -38,6 +39,7 @@ use super::*;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct ProgressEvent {
+    pub elapsed: Duration,
     pub status: visit::Status,
     pub progress: ScanningProgress,
 }
@@ -45,6 +47,7 @@ pub struct ProgressEvent {
 impl From<visit::ProgressEvent> for ProgressEvent {
     fn from(from: visit::ProgressEvent) -> Self {
         let visit::ProgressEvent {
+            started_at,
             status,
             progress:
                 visit::Progress {
@@ -60,6 +63,7 @@ impl From<visit::ProgressEvent> for ProgressEvent {
                 },
         } = from;
         Self {
+            elapsed: started_at.elapsed(),
             status,
             progress: ScanningProgress {
                 directories: ScanningDirectoriesProgress {
@@ -74,18 +78,18 @@ impl From<visit::ProgressEvent> for ProgressEvent {
     }
 }
 
-pub fn scan_directories_recursively<Repo>(
+pub fn visit_directories<Repo>(
     repo: &Repo,
     source_path_resolver: &VirtualFilePathResolver,
     collection_id: CollectionId,
-    params: &Params,
+    params: &DirTraversalParams,
     progress_event_fn: &mut impl FnMut(ProgressEvent),
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
     Repo: MediaTrackerRepo,
 {
-    let Params {
+    let DirTraversalParams {
         root_url,
         max_depth,
     } = params;

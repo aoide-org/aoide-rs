@@ -13,12 +13,19 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use aoide_core::util::url::BaseUrl;
 use num_derive::{FromPrimitive, ToPrimitive};
 
 pub mod import;
 pub mod query_status;
 pub mod scan;
 pub mod untrack;
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct DirTraversalParams {
+    pub root_url: Option<BaseUrl>,
+    pub max_depth: Option<usize>,
+}
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, FromPrimitive, ToPrimitive)]
 pub enum DirTrackingStatus {

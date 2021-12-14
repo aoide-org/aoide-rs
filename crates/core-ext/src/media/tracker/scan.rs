@@ -17,12 +17,6 @@ use aoide_core::util::url::BaseUrl;
 
 use super::Completion;
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct Params {
-    pub root_url: Option<BaseUrl>,
-    pub max_depth: Option<usize>,
-}
-
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Summary {
     pub current: usize,

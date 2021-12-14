@@ -13,9 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{
-    fs, io, path::Path, result::Result as StdResult, sync::atomic::AtomicBool, time::Instant,
-};
+use std::{fs, io, path::Path, result::Result as StdResult, sync::atomic::AtomicBool};
 
 use digest::Digest;
 
@@ -94,9 +92,9 @@ struct AncestorDigest<D> {
     digest: D,
 }
 
-impl<D: Digest> AncestorVisitor<digest::Output<D>> for AncestorDigest<D> {
-    fn visit_dir_entry(&mut self, dir_entry: &walkdir::DirEntry) -> io::Result<()> {
-        digest_walkdir_entry_for_detecting_changes(&mut self.digest, dir_entry)
+impl<D: Digest> AncestorVisitor<digest::Output<D>, Error> for AncestorDigest<D> {
+    fn visit_dir_entry(&mut self, dir_entry: &walkdir::DirEntry) -> Result<()> {
+        digest_walkdir_entry_for_detecting_changes(&mut self.digest, dir_entry).map_err(Into::into)
     }
     fn finalize(self) -> digest::Output<D> {
         self.digest.finalize()
@@ -118,7 +116,6 @@ pub fn hash_directories<
     report_progress: &mut ReportProgress,
 ) -> Result<Outcome> {
     tracing::info!("Digesting all directories in '{}'", root_path.display());
-    let started = Instant::now();
     let mut new_ancestor_visitor = |_: &_| AncestorDigest {
         digest: new_digest(),
     };
@@ -130,16 +127,18 @@ pub fn hash_directories<
         digest_finished,
         report_progress,
     ) {
-        Ok(progress_event) => {
-            let elapsed = started.elapsed();
+        Ok(mut progress_event) => {
+            progress_event.finish();
+            report_progress(&progress_event);
+            let elapsed = progress_event.elapsed_since_started();
+            let outcome = progress_event.finalize();
             tracing::info!(
                 "Digesting {} directories in '{}' took {} s",
-                progress_event.progress.directories.finished,
+                outcome.progress.directories.finished,
                 root_path.display(),
                 elapsed.as_millis() as f64 / 1000.0,
             );
-            report_progress(&progress_event);
-            Ok(progress_event.finalize())
+            Ok(outcome)
         }
         Err(err) => Err(err),
     }

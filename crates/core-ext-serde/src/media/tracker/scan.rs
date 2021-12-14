@@ -24,32 +24,6 @@ mod _core {
 }
 
 #[derive(Debug)]
-#[cfg_attr(feature = "frontend", derive(Serialize))]
-#[cfg_attr(feature = "backend", derive(Deserialize))]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Params {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub root_url: Option<Url>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub max_depth: Option<usize>,
-}
-
-#[cfg(feature = "frontend")]
-impl From<_core::Params> for Params {
-    fn from(from: _core::Params) -> Self {
-        let _core::Params {
-            root_url,
-            max_depth,
-        } = from;
-        Self {
-            root_url: root_url.map(Into::into),
-            max_depth,
-        }
-    }
-}
-
-#[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]

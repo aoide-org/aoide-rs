@@ -32,14 +32,13 @@ use aoide_core_ext_serde::{
             Params as SerdeImportCollectionMediaParams,
         },
         query_status::Params as SerdeQueryCollectionMediaStatusParams,
-        scan::{
-            Outcome as SerdeScanCollectionMediaOutcome, Params as SerdeScanCollectionMediaParams,
-        },
+        scan::Outcome as SerdeScanCollectionMediaOutcome,
         untrack::{
             Outcome as SerdeUntrackCollectionMediaOutcome,
             Params as SerdeUntrackCollectionMediaParams,
         },
-        Progress as SerdeMediaTrackerProgress, Status as SerdeQueryCollectionMediaStatusOutcome,
+        DirTraversalParams as SerdeDirTraversalParams, Progress as SerdeMediaTrackerProgress,
+        Status as SerdeQueryCollectionMediaStatusOutcome,
     },
     track::purge_untracked::{
         Outcome as SerdePurgeUntrackedFromCollectionOutcome,
@@ -126,7 +125,7 @@ pub async fn delete_collection(entity_header: impl Into<SerdeEntityHeader>) -> R
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
 pub async fn scan_collection_media(
     collection_uid: EntityUid,
-    params: impl Into<SerdeScanCollectionMediaParams>,
+    params: impl Into<SerdeDirTraversalParams>,
 ) -> Result<ScanCollectionMediaOutcome> {
     let url = format!("{}/c/{}/mt/scan", BASE_URL, collection_uid);
     let request = Request::new(url)

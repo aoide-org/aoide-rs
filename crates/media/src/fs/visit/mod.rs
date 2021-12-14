@@ -14,10 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use std::{
-    io,
     path::{Path, PathBuf},
     result::Result as StdResult,
     sync::atomic::{AtomicBool, Ordering},
+    time::{Duration, Instant},
 };
 
 use walkdir::{DirEntry, WalkDir};
@@ -79,13 +79,27 @@ pub struct Outcome {
     pub progress: Progress,
 }
 
+/// A state machine for tracking progress
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct ProgressEvent {
+    pub started_at: Instant,
     pub status: Status,
     pub progress: Progress,
 }
 
 impl ProgressEvent {
+    pub fn start() -> Self {
+        Self {
+            started_at: Instant::now(),
+            status: Status::InProgress,
+            progress: Default::default(),
+        }
+    }
+
+    pub fn elapsed_since_started(&self) -> Duration {
+        self.started_at.elapsed()
+    }
+
     pub fn finish(&mut self) {
         debug_assert_eq!(self.status, Status::InProgress);
         self.status = Status::Finished;
@@ -102,7 +116,11 @@ impl ProgressEvent {
     }
 
     pub fn finalize(self) -> Outcome {
-        let Self { status, progress } = self;
+        let Self {
+            started_at: _,
+            status,
+            progress,
+        } = self;
         let completion = match status {
             Status::InProgress => {
                 unreachable!("still in progress");
@@ -120,17 +138,24 @@ impl ProgressEvent {
     }
 }
 
-pub trait AncestorVisitor<T> {
-    fn visit_dir_entry(&mut self, dir_entry: &walkdir::DirEntry) -> io::Result<()>;
+pub trait AncestorVisitor<T, E> {
+    fn visit_dir_entry(&mut self, dir_entry: &walkdir::DirEntry) -> std::result::Result<(), E>;
     fn finalize(self) -> T;
 }
 
+/// Visit directories and their entries in depth-first order
+///
+/// Returns the unfinished progress event that could be finished and
+/// finalized by the caller for reporting, i.e. for sending a final
+/// update after invoking [`ProgressEvent::finish()`] and for obtaining
+/// execution statistics by invoking [`ProgressEvent::finalize()`].
 pub fn visit_directories<
     T,
-    V: AncestorVisitor<T>,
-    E: Into<Error>,
+    E1: Into<Error>,
+    E2: Into<Error>,
+    V: AncestorVisitor<T, E1>,
     NewAncestorVistor: FnMut(&walkdir::DirEntry) -> V,
-    AncestorFinished: FnMut(&Path, T) -> StdResult<AfterAncestorFinished, E>,
+    AncestorFinished: FnMut(&Path, T) -> StdResult<AfterAncestorFinished, E2>,
     ReportProgress: FnMut(&ProgressEvent),
 >(
     root_path: &Path,
@@ -140,10 +165,7 @@ pub fn visit_directories<
     ancestor_finished: &mut AncestorFinished,
     report_progress: &mut ReportProgress,
 ) -> Result<ProgressEvent> {
-    let mut progress_event = ProgressEvent {
-        status: Status::InProgress,
-        progress: Default::default(),
-    };
+    let mut progress_event = ProgressEvent::start();
     let mut ancestor_visitors: Vec<(PathBuf, V)> = Vec::with_capacity(64); // capacity <= max. expected depth
     let mut walkdir = WalkDir::new(root_path)
         .contents_first(false) // depth-first traversal to populate ancestors
@@ -232,7 +254,13 @@ pub fn visit_directories<
             if parent_path.starts_with(&ancestor_path) {
                 if parent_path == ancestor_path {
                     // Keep last ancestor on stack and stay in this line of ancestors
-                    ancestor_visitor.visit_dir_entry(&dir_entry)?;
+                    ancestor_visitor
+                        .visit_dir_entry(&dir_entry)
+                        .map_err(|err| {
+                            progress_event.fail();
+                            report_progress(&progress_event);
+                            err.into()
+                        })?;
                     progress_event.progress.entries.finished += 1;
                     push_ancestor = false;
                 }
@@ -242,7 +270,11 @@ pub fn visit_directories<
                 ancestor_visitors.pop().expect("last ancestor visitor");
             let ancestor_data = ancestor_visitor.finalize();
             tracing::trace!("Finished parent directory: {}", ancestor_path.display());
-            match ancestor_finished(&ancestor_path, ancestor_data).map_err(Into::into)? {
+            match ancestor_finished(&ancestor_path, ancestor_data).map_err(|err| {
+                progress_event.fail();
+                report_progress(&progress_event);
+                err.into()
+            })? {
                 AfterAncestorFinished::Continue => {
                     progress_event.progress.directories.finished += 1;
                 }
@@ -269,7 +301,13 @@ pub fn visit_directories<
     while let Some((ancestor_path, ancestor_visitor)) = ancestor_visitors.pop() {
         let ancestor_data = ancestor_visitor.finalize();
         tracing::trace!("Finished parent directory: {}", ancestor_path.display());
-        match ancestor_finished(&ancestor_path, ancestor_data).map_err(Into::into)? {
+        match ancestor_finished(&ancestor_path, ancestor_data)
+            .map_err(Into::into)
+            .map_err(|err| {
+                progress_event.fail();
+                report_progress(&progress_event);
+                err
+            })? {
             AfterAncestorFinished::Continue => {
                 progress_event.progress.directories.finished += 1;
             }
@@ -281,6 +319,5 @@ pub fn visit_directories<
             }
         }
     }
-    progress_event.finish();
     Ok(progress_event)
 }

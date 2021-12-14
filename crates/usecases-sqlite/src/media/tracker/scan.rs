@@ -15,7 +15,7 @@
 
 use aoide_core::entity::EntityUid;
 
-use aoide_core_ext::media::tracker::scan::{Outcome, Params};
+use aoide_core_ext::media::tracker::{scan::Outcome, DirTraversalParams};
 
 use aoide_usecases::{
     collection::resolve_collection_id_for_virtual_file_path, media::tracker::scan::ProgressEvent,
@@ -30,10 +30,10 @@ mod uc {
 
 use std::sync::atomic::AtomicBool;
 
-pub fn scan_directories_recursively(
+pub fn visit_directories(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    params: &Params,
+    params: &DirTraversalParams,
     progress_event_fn: &mut impl FnMut(ProgressEvent),
     abort_flag: &AtomicBool,
 ) -> Result<Outcome> {
@@ -42,7 +42,7 @@ pub fn scan_directories_recursively(
         let (collection_id, source_path_resolver) =
             resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
                 .map_err(DieselTransactionError::new)?;
-        uc::scan_directories_recursively(
+        uc::visit_directories(
             &db,
             &source_path_resolver,
             collection_id,
