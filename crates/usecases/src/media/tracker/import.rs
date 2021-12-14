@@ -173,8 +173,7 @@ where
                             "Confirmation of imported directory '{}' was rejected",
                             dir_path
                         );
-                        // Reject this directory and try again
-                        summary.directories.rejected += 1;
+                        // Try again
                         continue;
                     }
                     Err(err) => {

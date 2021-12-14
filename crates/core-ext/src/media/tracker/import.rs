@@ -86,7 +86,6 @@ impl AddAssign<&TrackReplaceSummary> for TrackSummary {
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct DirectorySummary {
     pub confirmed: usize,
-    pub rejected: usize,
     pub skipped: usize,
     pub untracked: usize,
 }

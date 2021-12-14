@@ -2349,10 +2349,6 @@ components:
               type: number
               format: int
               minimum: 0
-            rejected:
-              type: number
-              format: int
-              minimum: 0
             skipped:
               type: number
               format: int
@@ -2363,7 +2359,6 @@ components:
               minimum: 0
           required:
             - confirmed
-            - rejected
             - skipped
             - untracked
         tracks:

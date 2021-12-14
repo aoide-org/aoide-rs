@@ -169,13 +169,6 @@ pub struct DirectorySummary {
     /// Successfully imported and marked as current.
     pub confirmed: usize,
 
-    /// Rejected directories are retried repeatedly.
-    ///
-    /// This may only happen due to race condition if multiple
-    /// concurrent tasks are running. Currently this could never
-    /// happen due to an exclusive lock on the database.
-    pub rejected: usize,
-
     /// Skipped directories will not be retried.
     ///
     /// Directories are skipped on non-recoverable errors that
@@ -195,13 +188,11 @@ impl From<DirectorySummary> for _inner::DirectorySummary {
     fn from(from: DirectorySummary) -> Self {
         let DirectorySummary {
             confirmed,
-            rejected,
             skipped,
             untracked,
         } = from;
         Self {
             confirmed,
-            rejected,
             skipped,
             untracked,
         }
@@ -213,13 +204,11 @@ impl From<_inner::DirectorySummary> for DirectorySummary {
     fn from(from: _inner::DirectorySummary) -> Self {
         let _inner::DirectorySummary {
             confirmed,
-            rejected,
             skipped,
             untracked,
         } = from;
         Self {
             confirmed,
-            rejected,
             skipped,
             untracked,
         }
