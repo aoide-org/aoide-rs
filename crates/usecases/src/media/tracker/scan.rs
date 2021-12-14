@@ -24,7 +24,10 @@ use aoide_core_ext::media::tracker::{
     Completion, ScanningDirectoriesProgress, ScanningEntriesProgress, ScanningProgress,
 };
 
-use aoide_media::{fs::digest, resolver::SourcePathResolver};
+use aoide_media::{
+    fs::{digest, visit},
+    resolver::SourcePathResolver,
+};
 
 use aoide_repo::{
     collection::RecordId as CollectionId,
@@ -35,22 +38,22 @@ use super::*;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct ProgressEvent {
-    pub status: digest::Status,
+    pub status: visit::Status,
     pub progress: ScanningProgress,
 }
 
-impl From<digest::ProgressEvent> for ProgressEvent {
-    fn from(from: digest::ProgressEvent) -> Self {
-        let digest::ProgressEvent {
+impl From<visit::ProgressEvent> for ProgressEvent {
+    fn from(from: visit::ProgressEvent) -> Self {
+        let visit::ProgressEvent {
             status,
             progress:
-                digest::Progress {
+                visit::Progress {
                     directories:
-                        digest::DirectoriesProgress {
+                        visit::DirectoriesProgress {
                             finished: directories_finished,
                         },
                     entries:
-                        digest::EntriesProgress {
+                        visit::EntriesProgress {
                             skipped: entries_skipped,
                             finished: entries_finished,
                         },
@@ -110,8 +113,8 @@ where
         &root_path,
         *max_depth,
         abort_flag,
-        blake3::Hasher::new,
-        |path, digest| {
+        &mut blake3::Hasher::new,
+        &mut |path, digest| {
             debug_assert!(path.is_relative());
             let full_path = root_path.join(&path);
             debug_assert!(full_path.is_absolute());
@@ -143,9 +146,9 @@ where
                     summary.skipped += 1;
                 }
             }
-            Ok(digest::AfterDirFinished::Continue)
+            Ok(visit::AfterAncestorFinished::Continue)
         },
-        |progress_event| {
+        &mut |progress_event| {
             tracing::trace!("{:?}", progress_event);
             progress_event_fn(progress_event.to_owned().into());
         },
@@ -153,12 +156,12 @@ where
     .map_err(anyhow::Error::from)
     .map_err(RepoError::from)
     .and_then(|outcome| {
-        let digest::Outcome {
+        let visit::Outcome {
             completion,
             progress: _,
         } = outcome;
         match completion {
-            digest::Completion::Finished => {
+            visit::Completion::Finished => {
                 // Mark all remaining entries that are unreachable and
                 // have not been visited as orphaned.
                 summary.orphaned = repo.media_tracker_mark_outdated_directories_orphaned(
@@ -169,7 +172,7 @@ where
                 debug_assert!(summary.orphaned <= outdated_count);
                 Ok(Completion::Finished)
             }
-            digest::Completion::Aborted => {
+            visit::Completion::Aborted => {
                 // All partial results up to now can safely be committed.
                 Ok(Completion::Aborted)
             }

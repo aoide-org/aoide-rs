@@ -27,6 +27,7 @@ use aoide_core::util::clock::DateTime;
 use crate::{Error, IoError, Result};
 
 pub mod digest;
+pub mod visit;
 
 pub fn file_path_from_url(url: &Url) -> Result<PathBuf> {
     if url.scheme() != "file" {

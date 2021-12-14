@@ -14,19 +14,18 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use std::{
-    fs, io,
-    path::{Path, PathBuf},
-    result::Result as StdResult,
-    sync::atomic::{AtomicBool, Ordering},
-    time::Instant,
+    fs, io, path::Path, result::Result as StdResult, sync::atomic::AtomicBool, time::Instant,
 };
 
 use digest::Digest;
-use walkdir::{DirEntry, WalkDir};
 
 use crate::{
     util::digest::*,
     {Error, Result},
+};
+
+use super::visit::{
+    visit_directories, AfterAncestorFinished, AncestorVisitor, Outcome, ProgressEvent,
 };
 
 /// Fingerprint file metadata for detecting changes on the file.
@@ -91,98 +90,16 @@ pub fn digest_walkdir_entry_for_detecting_changes<D: Digest>(
     Ok(())
 }
 
-fn is_hidden_dir_entry(dir_entry: &DirEntry) -> bool {
-    if dir_entry.file_type().is_dir() {
-        return dir_entry
-            .file_name()
-            .to_str()
-            .map(|dir_name| dir_name == ".DS_Store")
-            .unwrap_or(false);
+struct AncestorDigest<D> {
+    digest: D,
+}
+
+impl<D: Digest> AncestorVisitor<digest::Output<D>> for AncestorDigest<D> {
+    fn visit_dir_entry(&mut self, dir_entry: &walkdir::DirEntry) -> io::Result<()> {
+        digest_walkdir_entry_for_detecting_changes(&mut self.digest, dir_entry)
     }
-    false
-}
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum AfterDirFinished {
-    Continue,
-    Abort,
-}
-
-#[derive(Debug, Default, Clone, Eq, PartialEq)]
-pub struct Progress {
-    pub entries: EntriesProgress,
-    pub directories: DirectoriesProgress,
-}
-
-#[derive(Debug, Default, Clone, Eq, PartialEq)]
-pub struct EntriesProgress {
-    pub skipped: usize,
-    pub finished: usize,
-}
-
-#[derive(Debug, Default, Clone, Eq, PartialEq)]
-pub struct DirectoriesProgress {
-    pub finished: usize,
-}
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum Status {
-    InProgress,
-    Finished,
-    Aborted,
-    Failed,
-}
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum Completion {
-    Finished,
-    Aborted,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Outcome {
-    pub completion: Completion,
-    pub progress: Progress,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct ProgressEvent {
-    pub status: Status,
-    pub progress: Progress,
-}
-
-impl ProgressEvent {
-    pub fn finish(&mut self) {
-        debug_assert_eq!(self.status, Status::InProgress);
-        self.status = Status::Finished;
-    }
-
-    pub fn abort(&mut self) {
-        debug_assert_eq!(self.status, Status::InProgress);
-        self.status = Status::Aborted;
-    }
-
-    pub fn fail(&mut self) {
-        debug_assert_eq!(self.status, Status::InProgress);
-        self.status = Status::Failed;
-    }
-
-    pub fn finalize(self) -> Outcome {
-        let Self { status, progress } = self;
-        let completion = match status {
-            Status::InProgress => {
-                unreachable!("still in progress");
-            }
-            Status::Failed => {
-                unreachable!("failed");
-            }
-            Status::Finished => Completion::Finished,
-            Status::Aborted => Completion::Aborted,
-        };
-        Outcome {
-            completion,
-            progress,
-        }
+    fn finalize(self) -> digest::Output<D> {
+        self.digest.finalize()
     }
 }
 
@@ -190,166 +107,30 @@ pub fn hash_directories<
     D: Digest,
     E: Into<Error>,
     NewDigest: FnMut() -> D,
-    DirFinished: FnMut(&PathBuf, digest::Output<D>) -> StdResult<AfterDirFinished, E>,
+    DigestFinished: FnMut(&Path, digest::Output<D>) -> StdResult<AfterAncestorFinished, E>,
     ReportProgress: FnMut(&ProgressEvent),
 >(
     root_path: &Path,
     max_depth: Option<usize>,
     abort_flag: &AtomicBool,
-    mut new_digest: NewDigest,
-    mut dir_finished: DirFinished,
-    mut report_progress: ReportProgress,
+    new_digest: &mut NewDigest,
+    digest_finished: &mut DigestFinished,
+    report_progress: &mut ReportProgress,
 ) -> Result<Outcome> {
     tracing::info!("Digesting all directories in '{}'", root_path.display());
-
     let started = Instant::now();
-    let mut progress_event = ProgressEvent {
-        status: Status::InProgress,
-        progress: Default::default(),
+    let mut new_ancestor_visitor = |_: &_| AncestorDigest {
+        digest: new_digest(),
     };
-    let mut walker = || {
-        let mut ancestors: Vec<(PathBuf, D)> = Vec::with_capacity(64); // capacity <= max. expected depth
-        let mut walkdir = WalkDir::new(root_path)
-            .contents_first(false) // depth-first traversal to populate ancestors
-            .follow_links(true) // digest metadata of actual files/directories, not symbolic links
-            .min_depth(0); // start with root directory (included)
-        if let Some(max_depth) = max_depth {
-            walkdir = walkdir.max_depth(max_depth);
-        }
-        for dir_entry in walkdir
-            .into_iter()
-            .filter_entry(|e| !is_hidden_dir_entry(e))
-        {
-            if abort_flag.load(Ordering::Relaxed) {
-                tracing::debug!("Aborting directory tree traversal");
-                progress_event.abort();
-                report_progress(&progress_event);
-                return Ok(());
-            }
-            report_progress(&progress_event);
-            let dir_entry = match dir_entry {
-                Ok(dir_entry) => dir_entry,
-                Err(err) => {
-                    if let Some(loop_ancestor) = err.loop_ancestor() {
-                        tracing::info!(
-                            "Cycle detected while visiting directory: {}",
-                            loop_ancestor.display()
-                        );
-                        // Skip and continue
-                        progress_event.progress.entries.skipped += 1;
-                        continue;
-                    }
-                    debug_assert!(err.io_error().is_some());
-                    debug_assert!(err.path().is_some());
-                    if let Some(path) = err.path() {
-                        // The actual path is probably not mentioned in the I/O error
-                        // and should be logged here.
-                        // TODO: Propagate the path with the I/O error instead of only
-                        // logging it here
-                        tracing::warn!("Failed to visit directory: {}", path.display());
-                    }
-                    // Propagate I/O error
-                    let io_error = err.into_io_error();
-                    debug_assert!(io_error.is_some());
-                    progress_event.fail();
-                    report_progress(&progress_event);
-                    return Err(Error::from(io_error.expect("I/O error")));
-                }
-            };
-
-            if dir_entry.depth() == 0 {
-                // Skip root directory that has no parent
-                progress_event.progress.entries.skipped += 1;
-                continue;
-            }
-
-            // Get the relative parent path
-            let parent_path = if let Some(parent_path) = dir_entry.path().parent() {
-                match parent_path.strip_prefix(root_path) {
-                    Ok(parent_path) => {
-                        debug_assert!(parent_path.is_relative());
-                        parent_path
-                    }
-                    Err(_) => {
-                        tracing::warn!(
-                            "Skipping entry with out-of-tree path: {}",
-                            dir_entry.path().display()
-                        );
-                        // Keep going
-                        progress_event.progress.entries.skipped += 1;
-                        continue;
-                    }
-                }
-            } else {
-                // Should never happen
-                tracing::error!(
-                    "Skipping entry with no parent directory: {}",
-                    dir_entry.path().display()
-                );
-                // Keep going
-                progress_event.progress.entries.skipped += 1;
-                continue;
-            };
-
-            let mut push_ancestor = true;
-            while let Some((ancestor_path, ancestor_digest)) = ancestors.last_mut() {
-                if parent_path.starts_with(&ancestor_path) {
-                    if parent_path == ancestor_path {
-                        // Keep last ancestor on stack and stay in this line of ancestors
-                        digest_walkdir_entry_for_detecting_changes(ancestor_digest, &dir_entry)?;
-                        progress_event.progress.entries.finished += 1;
-                        push_ancestor = false;
-                    }
-                    break;
-                }
-                let (ancestor_path, ancestor_digest) = ancestors.pop().expect("last ancestor");
-                let ancestor_digest = ancestor_digest.finalize();
-                tracing::trace!("Finished parent directory: {}", ancestor_path.display());
-                match dir_finished(&ancestor_path, ancestor_digest).map_err(Into::into)? {
-                    AfterDirFinished::Continue => {
-                        progress_event.progress.directories.finished += 1;
-                    }
-                    AfterDirFinished::Abort => {
-                        progress_event.progress.directories.finished += 1;
-                        tracing::debug!(
-                            "Aborting directory tree traversal after finishing '{}'",
-                            ancestor_path.display()
-                        );
-                        progress_event.abort();
-                        report_progress(&progress_event);
-                        return Ok(());
-                    }
-                }
-            }
-            if push_ancestor {
-                tracing::trace!("Found parent directory: {}", parent_path.display());
-                let mut digest = new_digest();
-                digest_walkdir_entry_for_detecting_changes(&mut digest, &dir_entry)?;
-                progress_event.progress.entries.finished += 1;
-                ancestors.push((parent_path.to_path_buf(), digest));
-            }
-        }
-        // Unwind the stack of remaining ancestors
-        while let Some((ancestor_path, ancestor_digest)) = ancestors.pop() {
-            let ancestor_digest = ancestor_digest.finalize();
-            tracing::trace!("Finished parent directory: {}", ancestor_path.display());
-            match dir_finished(&ancestor_path, ancestor_digest).map_err(Into::into)? {
-                AfterDirFinished::Continue => {
-                    progress_event.progress.directories.finished += 1;
-                }
-                AfterDirFinished::Abort => {
-                    progress_event.progress.directories.finished += 1;
-                    progress_event.abort();
-                    report_progress(&progress_event);
-                    return Ok(());
-                }
-            }
-        }
-        progress_event.finish();
-        Ok(())
-    };
-    match walker() {
-        Ok(()) => {
+    match visit_directories(
+        root_path,
+        max_depth,
+        abort_flag,
+        &mut new_ancestor_visitor,
+        digest_finished,
+        report_progress,
+    ) {
+        Ok(progress_event) => {
             let elapsed = started.elapsed();
             tracing::info!(
                 "Digesting {} directories in '{}' took {} s",
@@ -360,10 +141,6 @@ pub fn hash_directories<
             report_progress(&progress_event);
             Ok(progress_event.finalize())
         }
-        Err(err) => {
-            debug_assert_eq!(progress_event.status, Status::Failed);
-            // Already reported
-            Err(err)
-        }
+        Err(err) => Err(err),
     }
 }
