@@ -34,6 +34,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         collection_id: CollectionId,
         path: &str,
     ) -> RepoResult<(RecordId, Option<DateTime>)> {
+        debug_assert!(!path.ends_with('/'));
         media_source::table
             .select((
                 media_source::row_id,

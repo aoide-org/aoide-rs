@@ -165,7 +165,10 @@ impl Intent {
                 state.control_state = ControlState::Busy;
                 state.remote_view.progress.reset();
                 state.remote_view.status.set_pending_now();
-                state.remote_view.last_find_untracked_outcome.set_pending_now();
+                state
+                    .remote_view
+                    .last_find_untracked_outcome
+                    .set_pending_now();
                 StateUpdated::maybe_changed(Action::dispatch_task(Task::StartFindUntracked {
                     collection_uid,
                     root_url,

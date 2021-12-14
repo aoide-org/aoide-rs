@@ -111,6 +111,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         path: &SourcePath,
         digest: &DigestBytes,
     ) -> RepoResult<DirUpdateOutcome> {
+        debug_assert!(!path.is_terminal());
         // Try to mark outdated entry as current if digest is unchanged (most likely)
         let target = media_tracker_directory::table
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
@@ -180,6 +181,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         digest: &DigestBytes,
         media_source_ids: &[MediaSourceId],
     ) -> RepoResult<bool> {
+        debug_assert!(!path.is_terminal());
         let target = media_tracker_directory::table
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
             .filter(media_tracker_directory::path.eq(path.as_ref()))
@@ -220,6 +222,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         collection_id: CollectionId,
         path: &SourcePath,
     ) -> RepoResult<DirTrackingStatus> {
+        debug_assert!(!path.is_terminal());
         media_tracker_directory::table
             .select(media_tracker_directory::status)
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
@@ -380,6 +383,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         collection_id: CollectionId,
         path: &SourcePath,
     ) -> RepoResult<(MediaSourceId, Option<DateTime>)> {
+        debug_assert!(path.is_terminal());
         let tracked_source_query = media_source::table
             .select((
                 media_source::row_id,

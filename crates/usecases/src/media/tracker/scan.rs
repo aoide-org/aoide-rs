@@ -118,9 +118,9 @@ where
         *max_depth,
         abort_flag,
         &mut blake3::Hasher::new,
-        &mut |path, digest| {
-            debug_assert!(path.is_relative());
-            let full_path = root_path.join(&path);
+        &mut |dir_path, digest| {
+            debug_assert!(dir_path.is_relative());
+            let full_path = root_path.join(&dir_path);
             debug_assert!(full_path.is_absolute());
             let url = Url::from_directory_path(&full_path).expect("URL");
             debug_assert!(url.as_str().starts_with(root_url.as_str()));

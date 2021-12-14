@@ -22,10 +22,12 @@ use aoide_core_ext::media::tracker::{
     FsTraversalEntriesProgress, FsTraversalParams, FsTraversalProgress,
 };
 
-use aoide_media::{fs::visit, resolver::SourcePathResolver};
+use aoide_media::{
+    fs::visit::{self, url_from_walkdir_entry},
+    resolver::SourcePathResolver,
+};
 
 use aoide_repo::{collection::RecordId as CollectionId, media::tracker::Repo as MediaTrackerRepo};
-use url::Url;
 
 use super::*;
 
@@ -97,8 +99,12 @@ where
     Repo: MediaTrackerRepo,
 {
     fn visit_dir_entry(&mut self, dir_entry: &walkdir::DirEntry) -> anyhow::Result<()> {
-        let url = Url::from_directory_path(&dir_entry.path()).expect("URL");
+        let url = url_from_walkdir_entry(dir_entry)?;
         let source_path = self.source_path_resolver.resolve_path_from_url(&url)?;
+        if !source_path.is_terminal() {
+            // Skip non-terminal paths, i.e. directories
+            return Ok(());
+        }
         match self
             .repo
             .media_tracker_resolve_source_id_synchronized_at_by_path(

@@ -14,12 +14,14 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use std::{
+    fs::read_link,
     path::{Path, PathBuf},
     result::Result as StdResult,
     sync::atomic::{AtomicBool, Ordering},
     time::{Duration, Instant},
 };
 
+use url::Url;
 use walkdir::{DirEntry, WalkDir};
 
 use crate::{Error, Result};
@@ -136,6 +138,18 @@ impl ProgressEvent {
             progress,
         }
     }
+}
+
+pub fn url_from_walkdir_entry(dir_entry: &walkdir::DirEntry) -> anyhow::Result<Url> {
+    let url = if dir_entry.file_type().is_dir()
+        || dir_entry.path_is_symlink() && read_link(dir_entry.path())?.is_dir()
+    {
+        Url::from_directory_path(dir_entry.path())
+    } else {
+        Url::from_file_path(dir_entry.path())
+    }
+    .expect("URL");
+    Ok(url)
 }
 
 pub trait AncestorVisitor<T, E> {

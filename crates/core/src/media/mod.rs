@@ -40,6 +40,10 @@ impl SourcePath {
         let Self(inner) = self;
         inner
     }
+
+    pub fn is_terminal(&self) -> bool {
+        !(self.is_empty() || self.ends_with('/'))
+    }
 }
 
 impl From<String> for SourcePath {

@@ -189,7 +189,7 @@ where
                 }
             } else {
                 tracing::warn!(
-                    "Postponing confirmation of pending directory '{}' after {} import failures",
+                    "Postponing confirmation of pending directory '{}' after {} import failure(s)",
                     dir_path,
                     tracks_summary.failed.len()
                 );

@@ -21,7 +21,7 @@ use url::Url;
 
 use aoide_core::{
     media::{SourcePath, SourcePathKind},
-    util::url::BaseUrl,
+    util::url::{is_valid_base_url, BaseUrl},
 };
 
 #[derive(Error, Debug)]
@@ -133,14 +133,15 @@ impl VirtualFilePathResolver {
     }
 
     pub fn build_file_path(&self, slash_path: &str) -> PathBuf {
+        let path_suffix = PathBuf::from_slash(slash_path);
         if let Some(root_file_path) = &self.root_file_path {
             let mut path_buf =
                 PathBuf::with_capacity(root_file_path.as_os_str().len() + slash_path.len());
             path_buf.push(root_file_path);
-            path_buf.push(PathBuf::from_slash(slash_path));
+            path_buf.push(path_suffix);
             path_buf
         } else {
-            PathBuf::from_slash(slash_path)
+            path_suffix
         }
     }
 }
@@ -179,8 +180,19 @@ impl SourcePathResolver for VirtualFilePathResolver {
     }
 
     fn resolve_url_from_path(&self, slash_path: &str) -> Result<Url, ResolveFromPathError> {
-        Url::from_file_path(self.build_file_path(slash_path))
-            .map_err(|()| ResolveFromPathError::InvalidPath)
+        let file_path = self.build_file_path(slash_path);
+        let url = if slash_path.is_empty() || slash_path.ends_with('/') {
+            // Preserve the trailing slash
+            Url::from_directory_path(file_path)
+        } else {
+            Url::from_file_path(file_path)
+        }
+        .map_err(|()| ResolveFromPathError::InvalidPath)?;
+        debug_assert!(
+            slash_path.is_empty() || slash_path.ends_with('/') == url.as_str().ends_with('/')
+        );
+        debug_assert!(!slash_path.is_empty() || is_valid_base_url(&url));
+        Ok(url)
     }
 }
 
