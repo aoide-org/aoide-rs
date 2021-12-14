@@ -502,7 +502,7 @@ paths:
                   - type: object
                     properties:
                       scanning:
-                        $ref: '#/components/schemas/MediaTrackerScanningProgress'
+                        $ref: '#/components/schemas/MediaTrackerFsTraversalProgress'
                   - type: object
                     properties:
                       importing:
@@ -2408,7 +2408,7 @@ components:
     MediaTrackerImportingProgress:
       allOf:
         - $ref: '#/components/schemas/MediaTrackerImportSummary'
-    MediaTrackerScanningProgress:
+    MediaTrackerFsTraversalProgress:
       type: object
       properties:
         entries:

@@ -30,7 +30,7 @@ pub mod untrack;
 #[cfg_attr(feature = "frontend", derive(Serialize))]
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct DirTraversalParams {
+pub struct FsTraversalParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub root_url: Option<Url>,
 
@@ -39,9 +39,9 @@ pub struct DirTraversalParams {
 }
 
 #[cfg(feature = "frontend")]
-impl From<_core::DirTraversalParams> for DirTraversalParams {
-    fn from(from: _core::DirTraversalParams) -> Self {
-        let _core::DirTraversalParams {
+impl From<_core::FsTraversalParams> for FsTraversalParams {
+    fn from(from: _core::FsTraversalParams) -> Self {
+        let _core::FsTraversalParams {
             root_url,
             max_depth,
         } = from;
@@ -58,7 +58,7 @@ impl From<_core::DirTraversalParams> for DirTraversalParams {
 #[serde(rename_all = "kebab-case")]
 pub enum Progress {
     Idle,
-    Scanning(ScanningProgress),
+    Scanning(FsTraversalProgress),
     Importing(ImportingProgress),
 }
 
@@ -90,15 +90,15 @@ impl From<_core::Progress> for Progress {
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
-pub struct ScanningProgress {
-    pub entries: ScanningEntriesProgress,
-    pub directories: ScanningDirectoriesProgress,
+pub struct FsTraversalProgress {
+    pub entries: FsTraversalEntriesProgress,
+    pub directories: FsTraversalDirectoriesProgress,
 }
 
 #[cfg(feature = "frontend")]
-impl From<ScanningProgress> for _core::ScanningProgress {
-    fn from(from: ScanningProgress) -> Self {
-        let ScanningProgress {
+impl From<FsTraversalProgress> for _core::FsTraversalProgress {
+    fn from(from: FsTraversalProgress) -> Self {
+        let FsTraversalProgress {
             entries,
             directories,
         } = from;
@@ -110,9 +110,9 @@ impl From<ScanningProgress> for _core::ScanningProgress {
 }
 
 #[cfg(feature = "backend")]
-impl From<_core::ScanningProgress> for ScanningProgress {
-    fn from(from: _core::ScanningProgress) -> Self {
-        let _core::ScanningProgress {
+impl From<_core::FsTraversalProgress> for FsTraversalProgress {
+    fn from(from: _core::FsTraversalProgress) -> Self {
+        let _core::FsTraversalProgress {
             entries,
             directories,
         } = from;
@@ -127,23 +127,23 @@ impl From<_core::ScanningProgress> for ScanningProgress {
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
-pub struct ScanningEntriesProgress {
+pub struct FsTraversalEntriesProgress {
     pub skipped: usize,
     pub finished: usize,
 }
 
 #[cfg(feature = "frontend")]
-impl From<ScanningEntriesProgress> for _core::ScanningEntriesProgress {
-    fn from(from: ScanningEntriesProgress) -> Self {
-        let ScanningEntriesProgress { skipped, finished } = from;
+impl From<FsTraversalEntriesProgress> for _core::FsTraversalEntriesProgress {
+    fn from(from: FsTraversalEntriesProgress) -> Self {
+        let FsTraversalEntriesProgress { skipped, finished } = from;
         Self { skipped, finished }
     }
 }
 
 #[cfg(feature = "backend")]
-impl From<_core::ScanningEntriesProgress> for ScanningEntriesProgress {
-    fn from(from: _core::ScanningEntriesProgress) -> Self {
-        let _core::ScanningEntriesProgress { skipped, finished } = from;
+impl From<_core::FsTraversalEntriesProgress> for FsTraversalEntriesProgress {
+    fn from(from: _core::FsTraversalEntriesProgress) -> Self {
+        let _core::FsTraversalEntriesProgress { skipped, finished } = from;
         Self { skipped, finished }
     }
 }
@@ -152,22 +152,22 @@ impl From<_core::ScanningEntriesProgress> for ScanningEntriesProgress {
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
-pub struct ScanningDirectoriesProgress {
+pub struct FsTraversalDirectoriesProgress {
     pub finished: usize,
 }
 
 #[cfg(feature = "frontend")]
-impl From<ScanningDirectoriesProgress> for _core::ScanningDirectoriesProgress {
-    fn from(from: ScanningDirectoriesProgress) -> Self {
-        let ScanningDirectoriesProgress { finished } = from;
+impl From<FsTraversalDirectoriesProgress> for _core::FsTraversalDirectoriesProgress {
+    fn from(from: FsTraversalDirectoriesProgress) -> Self {
+        let FsTraversalDirectoriesProgress { finished } = from;
         Self { finished }
     }
 }
 
 #[cfg(feature = "backend")]
-impl From<_core::ScanningDirectoriesProgress> for ScanningDirectoriesProgress {
-    fn from(from: _core::ScanningDirectoriesProgress) -> Self {
-        let _core::ScanningDirectoriesProgress { finished } = from;
+impl From<_core::FsTraversalDirectoriesProgress> for FsTraversalDirectoriesProgress {
+    fn from(from: _core::FsTraversalDirectoriesProgress) -> Self {
+        let _core::FsTraversalDirectoriesProgress { finished } = from;
         Self { finished }
     }
 }

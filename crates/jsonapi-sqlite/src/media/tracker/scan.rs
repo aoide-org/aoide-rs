@@ -26,7 +26,7 @@ mod uc {
     pub use aoide_usecases_sqlite::media::tracker::scan::*;
 }
 
-pub type RequestBody = aoide_core_ext_serde::media::tracker::DirTraversalParams;
+pub type RequestBody = aoide_core_ext_serde::media::tracker::FsTraversalParams;
 
 pub type ResponseBody = aoide_core_ext_serde::media::tracker::scan::Outcome;
 
@@ -58,7 +58,7 @@ pub fn handle_request(
         .map_err(anyhow::Error::from)
         .map_err(Error::BadRequest)?
         .map(Into::into);
-    let params = aoide_core_ext::media::tracker::DirTraversalParams {
+    let params = aoide_core_ext::media::tracker::FsTraversalParams {
         root_url,
         max_depth,
     };

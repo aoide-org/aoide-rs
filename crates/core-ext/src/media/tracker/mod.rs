@@ -22,7 +22,7 @@ pub mod scan;
 pub mod untrack;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct DirTraversalParams {
+pub struct FsTraversalParams {
     pub root_url: Option<BaseUrl>,
     pub max_depth: Option<usize>,
 }
@@ -80,24 +80,24 @@ pub struct DirectoriesStatus {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Progress {
     Idle,
-    Scanning(ScanningProgress),
+    Scanning(FsTraversalProgress),
     Importing(ImportingProgress),
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct ScanningProgress {
-    pub entries: ScanningEntriesProgress,
-    pub directories: ScanningDirectoriesProgress,
+pub struct FsTraversalProgress {
+    pub entries: FsTraversalEntriesProgress,
+    pub directories: FsTraversalDirectoriesProgress,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct ScanningEntriesProgress {
+pub struct FsTraversalEntriesProgress {
     pub skipped: usize,
     pub finished: usize,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct ScanningDirectoriesProgress {
+pub struct FsTraversalDirectoriesProgress {
     pub finished: usize,
 }
 

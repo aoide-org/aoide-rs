@@ -15,7 +15,7 @@
 
 use aoide_core::entity::EntityUid;
 
-use aoide_core_ext::media::tracker::{scan::Outcome, DirTraversalParams};
+use aoide_core_ext::media::tracker::{scan::Outcome, FsTraversalParams};
 
 use aoide_usecases::{
     collection::resolve_collection_id_for_virtual_file_path, media::tracker::scan::ProgressEvent,
@@ -33,7 +33,7 @@ use std::sync::atomic::AtomicBool;
 pub fn visit_directories(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    params: &DirTraversalParams,
+    params: &FsTraversalParams,
     progress_event_fn: &mut impl FnMut(ProgressEvent),
     abort_flag: &AtomicBool,
 ) -> Result<Outcome> {

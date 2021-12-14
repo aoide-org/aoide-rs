@@ -21,8 +21,8 @@ use aoide_core::util::{clock::DateTime, url::BaseUrl};
 
 use aoide_core_ext::media::tracker::{
     scan::{Outcome, Summary},
-    Completion, DirTraversalParams, ScanningDirectoriesProgress, ScanningEntriesProgress,
-    ScanningProgress,
+    Completion, FsTraversalDirectoriesProgress, FsTraversalEntriesProgress, FsTraversalParams,
+    FsTraversalProgress,
 };
 
 use aoide_media::{
@@ -41,7 +41,7 @@ use super::*;
 pub struct ProgressEvent {
     pub elapsed: Duration,
     pub status: visit::Status,
-    pub progress: ScanningProgress,
+    pub progress: FsTraversalProgress,
 }
 
 impl From<visit::ProgressEvent> for ProgressEvent {
@@ -65,11 +65,11 @@ impl From<visit::ProgressEvent> for ProgressEvent {
         Self {
             elapsed: started_at.elapsed(),
             status,
-            progress: ScanningProgress {
-                directories: ScanningDirectoriesProgress {
+            progress: FsTraversalProgress {
+                directories: FsTraversalDirectoriesProgress {
                     finished: directories_finished,
                 },
-                entries: ScanningEntriesProgress {
+                entries: FsTraversalEntriesProgress {
                     skipped: entries_skipped,
                     finished: entries_finished,
                 },
@@ -82,14 +82,14 @@ pub fn visit_directories<Repo>(
     repo: &Repo,
     source_path_resolver: &VirtualFilePathResolver,
     collection_id: CollectionId,
-    params: &DirTraversalParams,
+    params: &FsTraversalParams,
     progress_event_fn: &mut impl FnMut(ProgressEvent),
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
     Repo: MediaTrackerRepo,
 {
-    let DirTraversalParams {
+    let FsTraversalParams {
         root_url,
         max_depth,
     } = params;

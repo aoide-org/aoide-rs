@@ -70,7 +70,7 @@ impl Task {
                 collection_uid,
                 root_url,
             } => {
-                let params = aoide_core_ext::media::tracker::DirTraversalParams {
+                let params = aoide_core_ext::media::tracker::FsTraversalParams {
                     root_url,
                     ..Default::default()
                 };
@@ -150,7 +150,7 @@ async fn fetch_progress<E: WebClientEnvironment>(env: &E) -> anyhow::Result<Prog
 async fn start_scan<E: WebClientEnvironment>(
     env: &E,
     collection_uid: &EntityUid,
-    params: impl Into<aoide_core_ext_serde::media::tracker::DirTraversalParams>,
+    params: impl Into<aoide_core_ext_serde::media::tracker::FsTraversalParams>,
 ) -> anyhow::Result<ScanOutcome> {
     let request_url = env.join_api_url(&format!("c/{}/mt/scan", collection_uid))?;
     let request_body = serde_json::to_vec(&params.into())?;
