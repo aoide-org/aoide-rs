@@ -30,6 +30,7 @@ pub trait Repo {
         collection_id: CollectionId,
         path: &str,
     ) -> RepoResult<(RecordId, Option<DateTime>)>;
+
     fn resolve_media_source_ids_by_path_predicate(
         &self,
         collection_id: CollectionId,
@@ -42,12 +43,14 @@ pub trait Repo {
         collection_id: CollectionId,
         created_source: &Source,
     ) -> RepoResult<RecordHeader>;
+
     fn update_media_source(
         &self,
         id: RecordId,
         updated_at: DateTime,
         updated_source: &Source,
     ) -> RepoResult<()>;
+
     fn purge_media_source(&self, id: RecordId) -> RepoResult<()>;
 
     fn load_media_source(&self, id: RecordId) -> RepoResult<(RecordHeader, Source)>;

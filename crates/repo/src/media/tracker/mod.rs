@@ -185,4 +185,10 @@ pub trait Repo {
         collection_id: CollectionId,
         path_prefix: &SourcePath,
     ) -> RepoResult<Vec<MediaSourceId>>;
+
+    fn media_tracker_resolve_source_id_synchronized_at_by_path(
+        &self,
+        collection_id: CollectionId,
+        path: &SourcePath,
+    ) -> RepoResult<(MediaSourceId, Option<DateTime>)>;
 }

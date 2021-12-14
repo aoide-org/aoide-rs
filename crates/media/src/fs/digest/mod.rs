@@ -119,27 +119,25 @@ pub fn hash_directories<
     let mut new_ancestor_visitor = |_: &_| AncestorDigest {
         digest: new_digest(),
     };
-    match visit_directories(
+    visit_directories(
         root_path,
         max_depth,
         abort_flag,
         &mut new_ancestor_visitor,
         digest_finished,
         report_progress,
-    ) {
-        Ok(mut progress_event) => {
-            progress_event.finish();
-            report_progress(&progress_event);
-            let elapsed = progress_event.elapsed_since_started();
-            let outcome = progress_event.finalize();
-            tracing::info!(
-                "Digesting {} directories in '{}' took {} s",
-                outcome.progress.directories.finished,
-                root_path.display(),
-                elapsed.as_millis() as f64 / 1000.0,
-            );
-            Ok(outcome)
-        }
-        Err(err) => Err(err),
-    }
+    )
+    .map(|mut progress_event| {
+        progress_event.finish();
+        report_progress(&progress_event);
+        let elapsed = progress_event.elapsed_since_started();
+        let outcome = progress_event.finalize();
+        tracing::info!(
+            "Digesting {} directories in '{}' took {} s",
+            outcome.progress.directories.finished,
+            root_path.display(),
+            elapsed.as_millis() as f64 / 1000.0,
+        );
+        outcome
+    })
 }

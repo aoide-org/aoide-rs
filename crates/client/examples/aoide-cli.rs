@@ -138,6 +138,15 @@ async fn main() -> anyhow::Result<()> {
                                 .help("The URL of the root directory containing tracked media files to be cleaned up")
                                 .required(false),
                         ),
+                )
+                .subcommand(
+                    App::new("find-untracked")
+                        .about("Scans directories on the file system for untracked entries")
+                        .arg(
+                            Arg::with_name(MEDIA_ROOT_URL_PARAM)
+                                .help("The URL of the root directory containing tracked media files to be scanned")
+                                .required(false),
+                        ),
                 ),
         )
         .get_matches();
@@ -160,6 +169,7 @@ async fn main() -> anyhow::Result<()> {
     let mut last_media_tracker_scan_outcome = None;
     let mut last_media_tracker_import_outcome = None;
     let mut last_media_tracker_untrack_outcome = None;
+    let mut last_media_tracker_find_untracked_outcome = None;
     let mut subcommand_submitted = false;
     let message_loop = tokio::spawn(message_loop(
         shared_env,
@@ -248,6 +258,36 @@ async fn main() -> anyhow::Result<()> {
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = &last_media_tracker_untrack_outcome {
                     tracing::info!("Untrack finished: {:?}", outcome);
+                }
+            }
+            if last_media_tracker_find_untracked_outcome.as_ref()
+                != state
+                    .media_tracker
+                    .remote_view()
+                    .last_find_untracked_outcome()
+                    .get_ready()
+            {
+                last_media_tracker_find_untracked_outcome = state
+                    .media_tracker
+                    .remote_view()
+                    .last_find_untracked_outcome()
+                    .get_ready()
+                    .map(ToOwned::to_owned);
+                if let Some(outcome) = &last_media_tracker_find_untracked_outcome {
+                    tracing::info!("Finding untracked entries finished: {:?}", outcome);
+                    if !outcome.value.source_paths.is_empty() {
+                        tracing::info!(
+                            "Found {} untracked entries on file system:\n{}",
+                            outcome.value.source_paths.len(),
+                            outcome
+                                .value
+                                .source_paths
+                                .iter()
+                                .map(|source_path| source_path.as_str())
+                                .collect::<Vec<_>>()
+                                .join("\n"),
+                        );
+                    }
                 }
             }
 
@@ -484,6 +524,29 @@ async fn main() -> anyhow::Result<()> {
                                 subcommand_submitted = true;
                                 return Some(
                                     media_tracker::Intent::PurgeOrphanedAndUntracked {
+                                        collection_uid,
+                                        root_url: media_root_url,
+                                    }
+                                    .into(),
+                                );
+                            }
+                            ("find-untracked", find_untracked_matches) => {
+                                let collection_uid = collection.hdr.uid.clone();
+                                let media_root_url = find_untracked_matches
+                                    .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
+                                    .map(|s| s.parse().expect("URL"))
+                                    .or_else(|| {
+                                        collection
+                                            .body
+                                            .media_source_config
+                                            .source_path
+                                            .root_url()
+                                            .cloned()
+                                            .map(Into::into)
+                                    });
+                                subcommand_submitted = true;
+                                return Some(
+                                    media_tracker::Intent::StartFindUntracked {
                                         collection_uid,
                                         root_url: media_root_url,
                                     }

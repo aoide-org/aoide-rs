@@ -16,16 +16,17 @@
 use std::sync::atomic::AtomicBool;
 
 use aoide_core::entity::EntityUid;
-use aoide_core_ext::media::tracker::{scan::Outcome, FsTraversalParams};
+use aoide_core_ext::media::tracker::{find_untracked::Outcome, FsTraversalParams};
 use aoide_usecases::{
-    collection::resolve_collection_id_for_virtual_file_path, media::tracker::scan::ProgressEvent,
+    collection::resolve_collection_id_for_virtual_file_path,
+    media::tracker::find_untracked::ProgressEvent,
 };
 
 use super::*;
 
 mod uc {
-    pub use aoide_core_ext::media::tracker::scan::*;
-    pub use aoide_usecases::{media::tracker::scan::*, Error};
+    pub use aoide_core_ext::media::tracker::find_untracked::*;
+    pub use aoide_usecases::{media::tracker::find_untracked::*, Error};
 }
 
 pub fn visit_directories(

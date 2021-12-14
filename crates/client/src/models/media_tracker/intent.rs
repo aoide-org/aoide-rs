@@ -42,6 +42,10 @@ pub enum Intent {
         collection_uid: EntityUid,
         root_url: Option<BaseUrl>,
     },
+    StartFindUntracked {
+        collection_uid: EntityUid,
+        root_url: Option<BaseUrl>,
+    },
 }
 
 impl Intent {
@@ -149,6 +153,23 @@ impl Intent {
                         root_url,
                     },
                 ))
+            }
+            Self::StartFindUntracked {
+                collection_uid,
+                root_url,
+            } => {
+                if !state.is_idle() {
+                    tracing::warn!("Cannot start finding untracked entries while not idle");
+                    return StateUpdated::unchanged(None);
+                }
+                state.control_state = ControlState::Busy;
+                state.remote_view.progress.reset();
+                state.remote_view.status.set_pending_now();
+                state.remote_view.last_find_untracked_outcome.set_pending_now();
+                StateUpdated::maybe_changed(Action::dispatch_task(Task::StartFindUntracked {
+                    collection_uid,
+                    root_url,
+                }))
             }
         }
     }

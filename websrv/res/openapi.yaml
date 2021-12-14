@@ -420,10 +420,13 @@ paths:
                 $ref: '#/components/schemas/MediaTrackerUntrackResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /api/c/{collectionUid}/mt/query-status:
+  /api/c/{collectionUid}/mt/find-untracked:
     post:
-      summary: Query the aggregated status of tracked directories
+      summary: Find untracked entries in directory tree
       description: |
+        Recursively scan a root directory for untracked entries.
+
+        This operation is blocking and locks the database while running.
       tags:
         - 'Collections: Media Tracker'
       parameters:
@@ -433,7 +436,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MediaTrackerQueryStatusRequestBody'
+              $ref: '#/components/schemas/MediaTrackerFindUntrackedRequestBody'
       responses:
         '200':
           description: |
@@ -441,7 +444,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MediaTrackerQueryStatusResponseBody'
+                $ref: '#/components/schemas/MediaTrackerFindUntrackedResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
   /api/c/{collectionUid}/mt/purge-untracked:
@@ -477,6 +480,30 @@ paths:
                 $ref: '#/components/schemas/PurgeUntrackedTracksResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+  /api/c/{collectionUid}/mt/query-status:
+    post:
+      summary: Query the aggregated status of tracked directories
+      description: |
+      tags:
+        - 'Collections: Media Tracker'
+      parameters:
+        - $ref: '#/components/parameters/collectionUidPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MediaTrackerQueryStatusRequestBody'
+      responses:
+        '200':
+          description: |
+            Operation succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaTrackerQueryStatusResponseBody'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
 
   /api/mt/progress:
     get:
@@ -507,6 +534,10 @@ paths:
                     properties:
                       importing:
                         $ref: '#/components/schemas/MediaTrackerImportingProgress'
+                  - type: object
+                    properties:
+                      findingUntracked:
+                        $ref: '#/components/schemas/MediaTrackerFsTraversalProgress'
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
@@ -2429,7 +2460,7 @@ components:
               type: number
               format: int
               minimum: 0
-    MediaTrackerScanRequestBody:
+    MediaTrackerDirTraversalRequestBody:
       type: object
       properties:
         rootUrl:
@@ -2438,6 +2469,12 @@ components:
           type: number
           format: int
           minimum: 1
+    MediaTrackerScanRequestBody:
+      allOf:
+        - $ref: '#/components/schemas/MediaTrackerDirTraversalRequestBody'
+    MediaTrackerFindUntrackedRequestBody:
+      allOf:
+        - $ref: '#/components/schemas/MediaTrackerDirTraversalRequestBody'
     MediaTrackerScanSummary:
       type: object
       properties:
@@ -2504,6 +2541,22 @@ components:
             - rootUrl
             - completion
             - summary
+    MediaTrackerFindUntrackedResponseBody:
+      oneOf:
+        - type: object
+          properties:
+            rootUrl:
+              $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+            completion:
+              $ref: '#/components/schemas/MediaTrackerCompletion'
+            sourcePaths:
+              type: array
+              items:
+                $ref: '#/components/schemas/MediaSourcePath'
+          required:
+            - rootUrl
+            - completion
+            - sourcePaths
     PercentEncodedUri:
       type: string
       minLength: 1

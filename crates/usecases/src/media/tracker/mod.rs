@@ -18,6 +18,7 @@ use super::*;
 use aoide_core::util::url::BaseUrl;
 use aoide_media::resolver::SourcePathResolver;
 
+pub mod find_untracked;
 pub mod import;
 pub mod query_status;
 pub mod relink;

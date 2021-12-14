@@ -14,8 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core_ext::media::tracker::{
-    import::Outcome as ImportOutcome, scan::Outcome as ScanOutcome,
-    untrack::Outcome as UntrackOutcome, Progress, Status,
+    find_untracked::Outcome as FindUntrackedOutcome, import::Outcome as ImportOutcome,
+    scan::Outcome as ScanOutcome, untrack::Outcome as UntrackOutcome, Progress, Status,
 };
 
 use crate::prelude::remote::RemoteData;
@@ -40,6 +40,7 @@ pub struct RemoteView {
     pub(super) last_import_outcome: RemoteData<ImportOutcome>,
     pub(super) last_untrack_outcome: RemoteData<UntrackOutcome>,
     pub(super) last_purge_orphaned_and_untracked_outcome: RemoteData<()>,
+    pub(super) last_find_untracked_outcome: RemoteData<FindUntrackedOutcome>,
 }
 
 impl RemoteView {
@@ -61,6 +62,10 @@ impl RemoteView {
 
     pub fn last_untrack_outcome(&self) -> &RemoteData<UntrackOutcome> {
         &self.last_untrack_outcome
+    }
+
+    pub fn last_find_untracked_outcome(&self) -> &RemoteData<FindUntrackedOutcome> {
+        &self.last_find_untracked_outcome
     }
 }
 

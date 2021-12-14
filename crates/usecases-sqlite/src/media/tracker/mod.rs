@@ -15,6 +15,7 @@
 
 use super::*;
 
+pub mod find_untracked;
 pub mod import;
 pub mod query_status;
 pub mod relink;

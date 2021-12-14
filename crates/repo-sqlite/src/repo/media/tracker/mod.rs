@@ -374,6 +374,34 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
             .map_err(repo_error)
             .map(|v| v.into_iter().map(MediaSourceId::new).collect())
     }
+
+    fn media_tracker_resolve_source_id_synchronized_at_by_path(
+        &self,
+        collection_id: CollectionId,
+        path: &SourcePath,
+    ) -> RepoResult<(MediaSourceId, Option<DateTime>)> {
+        let tracked_source_query = media_source::table
+            .select((
+                media_source::row_id,
+                media_source::synchronized_at,
+                media_source::synchronized_ms,
+            ))
+            .filter(media_source::collection_id.eq(RowId::from(collection_id)))
+            .filter(media_source::path.eq(path.as_ref()))
+            .filter(
+                media_source::row_id
+                    .eq_any(media_tracker_source::table.select(media_tracker_source::source_id)),
+            );
+        tracked_source_query
+            .first::<(RowId, Option<String>, Option<i64>)>(self.as_ref())
+            .map_err(repo_error)
+            .map(|(row_id, synchronized_at, synchronized_ms)| {
+                (
+                    row_id.into(),
+                    parse_datetime_opt(synchronized_at.as_deref(), synchronized_ms),
+                )
+            })
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////

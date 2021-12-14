@@ -13,16 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
+use aoide_core::{media::SourcePath, util::url::BaseUrl};
 
-pub mod find_untracked;
-pub mod import;
-pub mod query_status;
-pub mod scan;
-pub mod untrack;
+use super::Completion;
 
-mod uc {
-    pub use aoide_core_ext::media::tracker::*;
-    pub use aoide_usecases::media::tracker::*;
-    pub use aoide_usecases_sqlite::media::tracker::*;
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Outcome {
+    pub root_url: BaseUrl,
+    pub completion: Completion,
+    pub source_paths: Vec<SourcePath>,
 }

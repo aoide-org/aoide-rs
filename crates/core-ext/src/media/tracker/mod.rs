@@ -16,6 +16,7 @@
 use aoide_core::util::url::BaseUrl;
 use num_derive::{FromPrimitive, ToPrimitive};
 
+pub mod find_untracked;
 pub mod import;
 pub mod query_status;
 pub mod scan;
@@ -82,6 +83,7 @@ pub enum Progress {
     Idle,
     Scanning(FsTraversalProgress),
     Importing(ImportingProgress),
+    FindingUntracked(FsTraversalProgress),
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]

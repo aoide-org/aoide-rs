@@ -14,8 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core_ext::media::tracker::{
-    import::Outcome as ImportOutcome, scan::Outcome as ScanOutcome,
-    untrack::Outcome as UntrackOutcome, Progress, Status,
+    find_untracked::Outcome as FindUntrackedOutcome, import::Outcome as ImportOutcome,
+    scan::Outcome as ScanOutcome, untrack::Outcome as UntrackOutcome, Progress, Status,
 };
 
 use crate::prelude::remote::RemoteData;
@@ -31,6 +31,7 @@ pub enum Effect {
     ImportFinished(anyhow::Result<ImportOutcome>),
     Untracked(anyhow::Result<UntrackOutcome>),
     PurgeOrphanedAndUntracked(anyhow::Result<()>),
+    FindUntrackedFinished(anyhow::Result<FindUntrackedOutcome>),
     ErrorOccurred(anyhow::Error),
 }
 
@@ -150,6 +151,26 @@ impl Effect {
                             .remote_view
                             .last_purge_orphaned_and_untracked_outcome
                             .reset();
+                        Action::apply_effect(Self::ErrorOccurred(err))
+                    }
+                };
+                StateUpdated::maybe_changed(next_action)
+            }
+            Self::FindUntrackedFinished(res) => {
+                debug_assert_eq!(state.control_state, ControlState::Busy);
+                state.control_state = ControlState::Idle;
+                // Invalidate both progress and status to enforce refetching
+                state.remote_view.progress.reset();
+                state.remote_view.status.reset();
+                debug_assert!(state.remote_view.last_find_untracked_outcome.is_pending());
+                let next_action = match res {
+                    Ok(outcome) => {
+                        state.remote_view.last_find_untracked_outcome =
+                            RemoteData::ready_now(outcome);
+                        Action::dispatch_task(Task::FetchProgress)
+                    }
+                    Err(err) => {
+                        state.remote_view.last_find_untracked_outcome.reset();
                         Action::apply_effect(Self::ErrorOccurred(err))
                     }
                 };

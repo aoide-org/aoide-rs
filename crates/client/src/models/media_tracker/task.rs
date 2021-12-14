@@ -16,8 +16,8 @@
 use aoide_core::{entity::EntityUid, util::url::BaseUrl};
 
 use aoide_core_ext::media::tracker::{
-    import::Outcome as ImportOutcome, scan::Outcome as ScanOutcome,
-    untrack::Outcome as UntrackOutcome, Progress, Status,
+    find_untracked::Outcome as FindUntrackedOutcome, import::Outcome as ImportOutcome,
+    scan::Outcome as ScanOutcome, untrack::Outcome as UntrackOutcome, Progress, Status,
 };
 
 use crate::{receive_response_body, WebClientEnvironment};
@@ -45,6 +45,10 @@ pub enum Task {
         root_url: BaseUrl,
     },
     PurgeOrphanedAndUntracked {
+        collection_uid: EntityUid,
+        root_url: Option<BaseUrl>,
+    },
+    StartFindUntracked {
         collection_uid: EntityUid,
         root_url: Option<BaseUrl>,
     },
@@ -113,6 +117,17 @@ impl Task {
                 };
                 let res = purge_untracked(env, &collection_uid, params).await;
                 Effect::PurgeOrphanedAndUntracked(res)
+            }
+            Self::StartFindUntracked {
+                collection_uid,
+                root_url,
+            } => {
+                let params = aoide_core_ext::media::tracker::FsTraversalParams {
+                    root_url,
+                    ..Default::default()
+                };
+                let res = start_find_untracked(env, &collection_uid, params).await;
+                Effect::FindUntrackedFinished(res)
             }
         }
     }
@@ -224,4 +239,23 @@ async fn purge_untracked<E: WebClientEnvironment>(
     let outcome = serde_json::from_slice::<serde_json::Value>(&response_body)?;
     tracing::debug!("Purge orphaned and untracked finished: {:?}", outcome);
     Ok(())
+}
+
+async fn start_find_untracked<E: WebClientEnvironment>(
+    env: &E,
+    collection_uid: &EntityUid,
+    params: impl Into<aoide_core_ext_serde::media::tracker::FsTraversalParams>,
+) -> anyhow::Result<FindUntrackedOutcome> {
+    let request_url = env.join_api_url(&format!("c/{}/mt/find-untracked", collection_uid))?;
+    let request_body = serde_json::to_vec(&params.into())?;
+    let request = env.client().post(request_url).body(request_body);
+    let response = request.send().await?;
+    let response_body = receive_response_body(response).await?;
+    let outcome = serde_json::from_slice::<
+        aoide_core_ext_serde::media::tracker::find_untracked::Outcome,
+    >(&response_body)
+    .map_err(anyhow::Error::from)
+    .and_then(|outcome| outcome.try_into().map_err(anyhow::Error::from))?;
+    tracing::debug!("Finding untracked entries finished: {:?}", outcome);
+    Ok(outcome)
 }

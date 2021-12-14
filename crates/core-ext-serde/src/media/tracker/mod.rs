@@ -21,6 +21,7 @@ mod _core {
     pub use aoide_core_ext::media::tracker::*;
 }
 
+pub mod find_untracked;
 pub mod import;
 pub mod query_status;
 pub mod scan;
@@ -60,6 +61,7 @@ pub enum Progress {
     Idle,
     Scanning(FsTraversalProgress),
     Importing(ImportingProgress),
+    FindingUntracked(FsTraversalProgress),
 }
 
 #[cfg(feature = "frontend")]
@@ -70,6 +72,7 @@ impl From<Progress> for _core::Progress {
             Idle => Self::Idle,
             Scanning(progress) => Self::Scanning(progress.into()),
             Importing(progress) => Self::Importing(progress.into()),
+            FindingUntracked(progress) => Self::FindingUntracked(progress.into()),
         }
     }
 }
@@ -82,6 +85,7 @@ impl From<_core::Progress> for Progress {
             Idle => Self::Idle,
             Scanning(progress) => Self::Scanning(progress.into()),
             Importing(progress) => Self::Importing(progress.into()),
+            FindingUntracked(progress) => Self::FindingUntracked(progress.into()),
         }
     }
 }
