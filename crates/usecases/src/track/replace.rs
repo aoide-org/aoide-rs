@@ -220,7 +220,7 @@ where
                     source_path_resolver.build_file_path(&source_path).display(),
                     err
                 );
-                summary.not_imported.push(source_path);
+                summary.skipped.push(source_path);
             }
             err => {
                 tracing::warn!(
@@ -228,7 +228,7 @@ where
                     source_path_resolver.build_file_path(&source_path).display(),
                     err
                 );
-                summary.import_failed.push(source_path);
+                summary.failed.push(source_path);
             }
         },
     };

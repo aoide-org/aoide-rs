@@ -46,10 +46,10 @@ pub struct TrackSummary {
     pub updated: usize,
     pub missing: usize,
     pub unchanged: usize,
-    pub not_imported: usize,
+    pub skipped: usize,
+    pub failed: usize,
     pub not_created: usize,
     pub not_updated: usize,
-    pub import_failed: usize,
 }
 
 impl AddAssign<&TrackReplaceSummary> for TrackSummary {
@@ -58,28 +58,29 @@ impl AddAssign<&TrackReplaceSummary> for TrackSummary {
             created,
             updated,
             unchanged,
-            missing: _,
-            not_imported,
+            missing: _missing,
+            skipped,
+            failed,
             not_created,
             not_updated,
-            import_failed,
         } = self;
+        debug_assert_eq!(0, *_missing);
         let TrackReplaceSummary {
             created: rhs_created,
             updated: rhs_updated,
             unchanged: rhs_unchanged,
-            not_imported: rhs_not_imported,
+            skipped: rhs_skipped,
+            failed: rhs_failed,
             not_created: rhs_not_created,
             not_updated: rhs_not_updated,
-            import_failed: rhs_import_failed,
         } = rhs;
         *created += rhs_created.len();
         *updated += rhs_updated.len();
         *unchanged += rhs_unchanged.len();
-        *not_imported += rhs_not_imported.len();
+        *skipped += rhs_skipped.len();
+        *failed += rhs_failed.len();
         *not_created += rhs_not_created.len();
         *not_updated += rhs_not_updated.len();
-        *import_failed += rhs_import_failed.len();
     }
 }
 

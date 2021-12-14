@@ -23,8 +23,8 @@ pub struct Summary {
     pub created: Vec<Entity>,
     pub updated: Vec<Entity>,
     pub unchanged: Vec<SourcePath>,
-    pub not_imported: Vec<SourcePath>,
+    pub skipped: Vec<SourcePath>,
+    pub failed: Vec<SourcePath>,
     pub not_created: Vec<Track>,
     pub not_updated: Vec<Track>,
-    pub import_failed: Vec<SourcePath>,
 }

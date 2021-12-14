@@ -2380,7 +2380,7 @@ components:
               type: number
               format: int
               minimum: 0
-            notImported:
+            skipped:
               type: number
               format: int
               minimum: 0
@@ -2401,7 +2401,7 @@ components:
             - updated
             - missing
             - unchanged
-            - notImported
+            - skipped
             - notCreated
             - notUpdated
             - importedFailed
@@ -2582,11 +2582,11 @@ components:
         - $ref: '#/components/schemas/ReplaceCollectedTracksResponseBody'
         - type: object
           properties:
-            notImported:
+            skipped:
               type: array
               items:
                 $ref: '#/components/schemas/PercentEncodedUri'
-            importFailed:
+            failed:
               type: array
               items:
                 $ref: '#/components/schemas/MediaSourcePath'

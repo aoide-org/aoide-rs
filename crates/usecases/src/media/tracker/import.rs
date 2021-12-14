@@ -155,7 +155,7 @@ where
                 }
             }
             let updated_at = DateTime::now_utc();
-            if tracks_summary.import_failed.is_empty() {
+            if tracks_summary.failed.is_empty() {
                 match repo.media_tracker_confirm_directory(
                     updated_at,
                     collection_id,
@@ -191,7 +191,7 @@ where
                 tracing::warn!(
                     "Postponing confirmation of pending directory '{}' after {} import failures",
                     dir_path,
-                    tracks_summary.import_failed.len()
+                    tracks_summary.failed.len()
                 );
                 // Skip this directory (only partially imported) and keep going
                 summary.directories.skipped += 1;
