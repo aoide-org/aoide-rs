@@ -14,19 +14,19 @@ fmt:
 # Run clippy
 check:
     cargo clippy --locked --workspace --all-features --bins --examples --tests -- -D warnings
-    cd webapp && cargo clippy --locked --all-features --bins --examples --tests -- -D warnings
+    cd webapp && cargo clippy --target wasm32-unknown-unknown --locked --all-features --bins --examples --tests -- -D warnings
 
 # Fix lint warnings
 fix:
     cargo fix --workspace --all-features --bins --examples --tests
     cargo clippy --workspace --all-features --bins --examples --tests --fix
-    cd webapp && cargo fix --all-features --examples --tests
-    cd webapp && cargo clippy --all-features --examples --tests
+    cd webapp && cargo fix --target wasm32-unknown-unknown --all-features --examples --tests
+    cd webapp && cargo clippy --target wasm32-unknown-unknown --all-features --examples --tests
 
 # Run unit tests
 test:
     cargo test --locked --workspace --all-features -- --nocapture
-    cd webapp && cargo test --locked --all-features -- --nocapture
+    cd webapp && cargo test --target wasm32-unknown-unknown --locked --all-features -- --nocapture
 
 # Update depenencies and pre-commit hooks
 update:
