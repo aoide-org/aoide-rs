@@ -7,15 +7,12 @@ use aoide_core::{entity::EntityUid, track::Track};
 
 use aoide_core_ext::{
     media::tracker::{
-        import::Outcome as ImportCollectionMediaOutcome,
-        scan::Outcome as ScanCollectionMediaOutcome,
-        untrack::Outcome as UntrackCollectionMediaOutcome, Progress as MediaTrackerProgress,
-        Status as QueryCollectionMediaStatusOutcome,
+        import::Outcome as ImportMediaSourcesOutcome,
+        purge_untracked_sources::Outcome as PurgeUntrackedMediaSourcesOutcome,
+        scan::Outcome as ScanMediaSourcesOutcome, untrack::Outcome as UntrackMediaSourcesOutcome,
+        Progress as MediaTrackerProgress, Status as QueryMediaTrackerStatusOutcome,
     },
-    track::{
-        purge_untracked::Outcome as PurgeUntrackedFromCollectionOutcome,
-        search::Params as SearchParams,
-    },
+    track::search::Params as SearchParams,
 };
 
 use aoide_core_serde::{
@@ -28,21 +25,19 @@ use aoide_core_ext_serde::{
     collection::{import_entity_with_summary, EntityWithSummary as CollectionEntityWithSummary},
     media::tracker::{
         import::{
-            Outcome as SerdeImportCollectionMediaOutcome,
-            Params as SerdeImportCollectionMediaParams,
+            Outcome as SerdeImportMediaSourcesOutcome, Params as SerdeImportMediaSourcesParams,
         },
-        query_status::Params as SerdeQueryCollectionMediaStatusParams,
-        scan::Outcome as SerdeScanCollectionMediaOutcome,
+        purge_untracked_sources::{
+            Outcome as SerdePurgeUntrackedMediaSourcesOutcome,
+            Params as SerdePurgeUntrackedMediaSourcesParams,
+        },
+        query_status::Params as SerdeQueryMediaTrackerStatusParams,
+        scan::Outcome as SerdeScanMediaSourcesOutcome,
         untrack::{
-            Outcome as SerdeUntrackCollectionMediaOutcome,
-            Params as SerdeUntrackCollectionMediaParams,
+            Outcome as SerdeUntrackMediaSourcesOutcome, Params as SerdeUntrackMediaSourcesParams,
         },
         FsTraversalParams as SerdeFsTraversalParams, Progress as SerdeMediaTrackerProgress,
-        Status as SerdeQueryCollectionMediaStatusOutcome,
-    },
-    track::purge_untracked::{
-        Outcome as SerdePurgeUntrackedFromCollectionOutcome,
-        Params as SerdePurgeUntrackedFromCollectionParams,
+        Status as SerdeQueryMediaTrackerStatusOutcome,
     },
     Pagination as SerdePagination,
 };
@@ -123,16 +118,16 @@ pub async fn delete_collection(entity_header: impl Into<SerdeEntityHeader>) -> R
 }
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
-pub async fn scan_collection_media(
+pub async fn scan_media_sources(
     collection_uid: EntityUid,
     params: impl Into<SerdeFsTraversalParams>,
-) -> Result<ScanCollectionMediaOutcome> {
+) -> Result<ScanMediaSourcesOutcome> {
     let url = format!("{}/c/{}/mt/scan", BASE_URL, collection_uid);
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
     let response = request.fetch().await?;
-    let content: SerdeScanCollectionMediaOutcome = response.check_status()?.json().await?;
+    let content: SerdeScanMediaSourcesOutcome = response.check_status()?.json().await?;
     content
         .try_into()
         .map_err(anyhow::Error::from)
@@ -140,16 +135,16 @@ pub async fn scan_collection_media(
 }
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
-pub async fn import_collection_media(
+pub async fn import_media_sources(
     collection_uid: EntityUid,
-    params: impl Into<SerdeImportCollectionMediaParams>,
-) -> Result<ImportCollectionMediaOutcome> {
+    params: impl Into<SerdeImportMediaSourcesParams>,
+) -> Result<ImportMediaSourcesOutcome> {
     let url = format!("{}/c/{}/mt/import", BASE_URL, collection_uid);
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
     let response = request.fetch().await?;
-    let content: SerdeImportCollectionMediaOutcome = response.check_status()?.json().await?;
+    let content: SerdeImportMediaSourcesOutcome = response.check_status()?.json().await?;
     content
         .try_into()
         .map_err(anyhow::Error::from)
@@ -157,16 +152,16 @@ pub async fn import_collection_media(
 }
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
-pub async fn untrack_collection_media(
+pub async fn untrack_media_sources(
     collection_uid: EntityUid,
-    params: impl Into<SerdeUntrackCollectionMediaParams>,
-) -> Result<UntrackCollectionMediaOutcome> {
+    params: impl Into<SerdeUntrackMediaSourcesParams>,
+) -> Result<UntrackMediaSourcesOutcome> {
     let url = format!("{}/c/{}/mt/untrack", BASE_URL, collection_uid);
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
     let response = request.fetch().await?;
-    let content: SerdeUntrackCollectionMediaOutcome = response.check_status()?.json().await?;
+    let content: SerdeUntrackMediaSourcesOutcome = response.check_status()?.json().await?;
     content
         .try_into()
         .map_err(anyhow::Error::from)
@@ -174,34 +169,37 @@ pub async fn untrack_collection_media(
 }
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
-pub async fn query_collection_media_status(
+pub async fn purge_untracked_media_sources(
     collection_uid: EntityUid,
-    params: impl Into<SerdeQueryCollectionMediaStatusParams>,
-) -> Result<QueryCollectionMediaStatusOutcome> {
+    params: impl Into<SerdePurgeUntrackedMediaSourcesParams>,
+) -> Result<PurgeUntrackedMediaSourcesOutcome> {
+    let url = format!(
+        "{}/c/{}/mt/purge-untracked-sources",
+        BASE_URL, collection_uid
+    );
+    let request = Request::new(url)
+        .method(Method::Post)
+        .json(&params.into())?;
+    let response = request.fetch().await?;
+    let content: SerdePurgeUntrackedMediaSourcesOutcome = response.check_status()?.json().await?;
+    content
+        .try_into()
+        .map_err(anyhow::Error::from)
+        .map_err(Error::DataShape)
+}
+
+#[allow(dead_code)] // TODO: Remove allow attribute after function is used
+pub async fn query_media_tracker_status(
+    collection_uid: EntityUid,
+    params: impl Into<SerdeQueryMediaTrackerStatusParams>,
+) -> Result<QueryMediaTrackerStatusOutcome> {
     let url = format!("{}/c/{}/mt/query-status", BASE_URL, collection_uid);
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
     let response = request.fetch().await?;
-    let content: SerdeQueryCollectionMediaStatusOutcome = response.check_status()?.json().await?;
+    let content: SerdeQueryMediaTrackerStatusOutcome = response.check_status()?.json().await?;
     Ok(content.into())
-}
-
-#[allow(dead_code)] // TODO: Remove allow attribute after function is used
-pub async fn purge_untracked_from_collection(
-    collection_uid: EntityUid,
-    params: impl Into<SerdePurgeUntrackedFromCollectionParams>,
-) -> Result<PurgeUntrackedFromCollectionOutcome> {
-    let url = format!("{}/c/{}/mt/purge-untracked", BASE_URL, collection_uid);
-    let request = Request::new(url)
-        .method(Method::Post)
-        .json(&params.into())?;
-    let response = request.fetch().await?;
-    let content: SerdePurgeUntrackedFromCollectionOutcome = response.check_status()?.json().await?;
-    content
-        .try_into()
-        .map_err(anyhow::Error::from)
-        .map_err(Error::DataShape)
 }
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
@@ -223,7 +221,7 @@ pub async fn abort_media_tracker() -> Result<()> {
 }
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
-pub async fn search_collection_tracks(
+pub async fn search_tracks(
     collection_uid: EntityUid,
     params: SearchParams,
     pagination: impl Into<SerdePagination>,

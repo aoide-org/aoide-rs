@@ -31,7 +31,6 @@ pub mod import_and_replace;
 pub mod load_many;
 pub mod load_one;
 pub mod purge_media;
-pub mod purge_untracked_media;
 pub mod replace;
 pub mod resolve;
 pub mod search;

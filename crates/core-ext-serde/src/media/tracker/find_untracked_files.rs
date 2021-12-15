@@ -20,7 +20,7 @@ use crate::prelude::*;
 use super::Completion;
 
 mod _core {
-    pub use aoide_core_ext::media::tracker::find_untracked::*;
+    pub use aoide_core_ext::media::tracker::find_untracked_files::*;
 }
 
 #[derive(Debug)]

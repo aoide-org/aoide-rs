@@ -13,25 +13,28 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_usecases_sqlite::SqlitePooledConnection;
+use std::sync::atomic::AtomicBool;
 
-use aoide_core::util::url::BaseUrl;
+use aoide_core::{entity::EntityUid, util::url::BaseUrl};
+use aoide_usecases_sqlite::SqlitePooledConnection;
 
 use super::*;
 
 mod uc {
-    pub use aoide_repo::prelude::StringPredicate;
-    pub use aoide_usecases_sqlite::track::purge::*;
+    pub use aoide_usecases::media::tracker::find_untracked_files::ProgressEvent;
+    pub use aoide_usecases_sqlite::media::tracker::find_untracked_files::*;
 }
 
-pub type RequestBody = aoide_core_ext_serde::track::purge_untracked::Params;
+pub type RequestBody = aoide_core_ext_serde::media::tracker::FsTraversalParams;
 
-pub type ResponseBody = aoide_core_ext_serde::track::purge_untracked::Outcome;
+pub type ResponseBody = aoide_core_ext_serde::media::tracker::find_untracked_files::Outcome;
 
 #[tracing::instrument(
-    name = "Purging untracked tracks",
+    name = "Finding untracked media sources",
     skip(
         pooled_connection,
+        progress_event_fn,
+        abort_flag,
     ),
     fields(
         request_id = %new_request_id(),
@@ -39,23 +42,32 @@ pub type ResponseBody = aoide_core_ext_serde::track::purge_untracked::Outcome;
 )]
 pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
-    collection_uid: &_core::EntityUid,
+    collection_uid: &EntityUid,
     request_body: RequestBody,
+    progress_event_fn: &mut impl FnMut(uc::ProgressEvent),
+    abort_flag: &AtomicBool,
 ) -> Result<ResponseBody> {
     let RequestBody {
         root_url,
-        untrack_orphaned_directories,
+        max_depth,
     } = request_body;
     let root_url = root_url
         .map(BaseUrl::try_autocomplete_from)
         .transpose()
         .map_err(anyhow::Error::from)
-        .map_err(Error::BadRequest)?;
-    let params = aoide_core_ext::track::purge_untracked::Params {
+        .map_err(Error::BadRequest)?
+        .map(Into::into);
+    let params = aoide_core_ext::media::tracker::FsTraversalParams {
         root_url,
-        untrack_orphaned_directories,
+        max_depth,
     };
-    uc::purge_by_untracked_media_sources(&pooled_connection, collection_uid, &params)
-        .map(Into::into)
-        .map_err(Into::into)
+    uc::visit_directories(
+        &pooled_connection,
+        collection_uid,
+        &params,
+        progress_event_fn,
+        abort_flag,
+    )
+    .map(Into::into)
+    .map_err(Into::into)
 }

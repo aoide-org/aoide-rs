@@ -15,8 +15,9 @@
 
 use super::*;
 
-pub mod find_untracked;
+pub mod find_untracked_files;
 pub mod import;
+pub mod purge_untracked_sources;
 pub mod query_status;
 pub mod relink;
 pub mod scan;

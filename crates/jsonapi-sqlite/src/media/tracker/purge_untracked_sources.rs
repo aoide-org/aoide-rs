@@ -13,28 +13,24 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::sync::atomic::AtomicBool;
+use aoide_usecases_sqlite::SqlitePooledConnection;
 
 use aoide_core::{entity::EntityUid, util::url::BaseUrl};
-use aoide_usecases_sqlite::SqlitePooledConnection;
 
 use super::*;
 
 mod uc {
-    pub use aoide_usecases::media::tracker::find_untracked::ProgressEvent;
-    pub use aoide_usecases_sqlite::media::tracker::find_untracked::*;
+    pub use aoide_usecases_sqlite::media::tracker::purge_untracked_sources::*;
 }
 
-pub type RequestBody = aoide_core_ext_serde::media::tracker::FsTraversalParams;
+pub type RequestBody = aoide_core_ext_serde::media::tracker::purge_untracked_sources::Params;
 
-pub type ResponseBody = aoide_core_ext_serde::media::tracker::find_untracked::Outcome;
+pub type ResponseBody = aoide_core_ext_serde::media::tracker::purge_untracked_sources::Outcome;
 
 #[tracing::instrument(
-    name = "Finding untracked media sources",
+    name = "Purging untracked media sources and tracks",
     skip(
         pooled_connection,
-        progress_event_fn,
-        abort_flag,
     ),
     fields(
         request_id = %new_request_id(),
@@ -44,30 +40,21 @@ pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
     collection_uid: &EntityUid,
     request_body: RequestBody,
-    progress_event_fn: &mut impl FnMut(uc::ProgressEvent),
-    abort_flag: &AtomicBool,
 ) -> Result<ResponseBody> {
     let RequestBody {
         root_url,
-        max_depth,
+        untrack_orphaned_directories,
     } = request_body;
     let root_url = root_url
         .map(BaseUrl::try_autocomplete_from)
         .transpose()
         .map_err(anyhow::Error::from)
-        .map_err(Error::BadRequest)?
-        .map(Into::into);
-    let params = aoide_core_ext::media::tracker::FsTraversalParams {
+        .map_err(Error::BadRequest)?;
+    let params = aoide_core_ext::media::tracker::purge_untracked_sources::Params {
         root_url,
-        max_depth,
+        untrack_orphaned_directories,
     };
-    uc::visit_directories(
-        &pooled_connection,
-        collection_uid,
-        &params,
-        progress_event_fn,
-        abort_flag,
-    )
-    .map(Into::into)
-    .map_err(Into::into)
+    uc::purge_untracked_sources(&pooled_connection, collection_uid, &params)
+        .map(Into::into)
+        .map_err(Into::into)
 }

@@ -420,11 +420,11 @@ paths:
                 $ref: '#/components/schemas/MediaTrackerUntrackResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /api/c/{collectionUid}/mt/find-untracked:
+  /api/c/{collectionUid}/mt/find-untracked-files:
     post:
-      summary: Find untracked entries in directory tree
+      summary: Find untracked entries in the directory tree
       description: |
-        Recursively scan a root directory for untracked entries.
+        Recursively scan a root directory for untracked files.
 
         This operation is blocking and locks the database while running.
       tags:
@@ -447,9 +447,9 @@ paths:
                 $ref: '#/components/schemas/MediaTrackerFindUntrackedResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /api/c/{collectionUid}/mt/purge-untracked:
+  /api/c/{collectionUid}/mt/purge-untracked-sources:
     post:
-      summary: Purge tracks with untracked media sources
+      summary: Purge untracked media sources and the corresponding tracks
       description: |
         Purge multiple, collected tracks with media sources that are
         not tracked by the media tracker.

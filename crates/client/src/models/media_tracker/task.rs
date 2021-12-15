@@ -16,7 +16,7 @@
 use aoide_core::{entity::EntityUid, util::url::BaseUrl};
 
 use aoide_core_ext::media::tracker::{
-    find_untracked::Outcome as FindUntrackedOutcome, import::Outcome as ImportOutcome,
+    find_untracked_files::Outcome as FindUntrackedOutcome, import::Outcome as ImportOutcome,
     scan::Outcome as ScanOutcome, untrack::Outcome as UntrackOutcome, Progress, Status,
 };
 
@@ -44,7 +44,7 @@ pub enum Task {
         collection_uid: EntityUid,
         root_url: BaseUrl,
     },
-    PurgeOrphanedAndUntracked {
+    Purge {
         collection_uid: EntityUid,
         root_url: Option<BaseUrl>,
     },
@@ -107,16 +107,16 @@ impl Task {
                 let res = untrack(env, &collection_uid, params).await;
                 Effect::Untracked(res)
             }
-            Self::PurgeOrphanedAndUntracked {
+            Self::Purge {
                 collection_uid,
                 root_url,
             } => {
-                let params = aoide_core_ext::track::purge_untracked::Params {
+                let params = aoide_core_ext::media::tracker::purge_untracked_sources::Params {
                     root_url,
                     untrack_orphaned_directories: Some(true),
                 };
-                let res = purge_untracked(env, &collection_uid, params).await;
-                Effect::PurgeOrphanedAndUntracked(res)
+                let res = purge_untracked_media_sources(env, &collection_uid, params).await;
+                Effect::Purge(res)
             }
             Self::StartFindUntracked {
                 collection_uid,
@@ -126,7 +126,7 @@ impl Task {
                     root_url,
                     ..Default::default()
                 };
-                let res = start_find_untracked(env, &collection_uid, params).await;
+                let res = start_find_untracked_files(env, &collection_uid, params).await;
                 Effect::FindUntrackedFinished(res)
             }
         }
@@ -177,7 +177,7 @@ async fn start_scan<E: WebClientEnvironment>(
     )
     .map_err(anyhow::Error::from)
     .and_then(|outcome| outcome.try_into().map_err(anyhow::Error::from))?;
-    tracing::debug!("Scan finished: {:?}", outcome);
+    tracing::debug!("Scanning finished: {:?}", outcome);
     Ok(outcome)
 }
 
@@ -196,7 +196,7 @@ async fn start_import<E: WebClientEnvironment>(
     )
     .map_err(anyhow::Error::from)
     .and_then(|outcome| outcome.try_into().map_err(anyhow::Error::from))?;
-    tracing::debug!("Import finished: {:?}", outcome);
+    tracing::debug!("Importing finished: {:?}", outcome);
     Ok(outcome)
 }
 
@@ -222,37 +222,38 @@ async fn untrack<E: WebClientEnvironment>(
         &response_body,
     )
     .map(Into::into)?;
-    tracing::debug!("Untrack finished: {:?}", outcome);
+    tracing::debug!("Untracking finished: {:?}", outcome);
     Ok(outcome)
 }
 
-async fn purge_untracked<E: WebClientEnvironment>(
+async fn purge_untracked_media_sources<E: WebClientEnvironment>(
     env: &E,
     collection_uid: &EntityUid,
-    params: impl Into<aoide_core_ext_serde::track::purge_untracked::Params>,
+    params: impl Into<aoide_core_ext_serde::media::tracker::purge_untracked_sources::Params>,
 ) -> anyhow::Result<()> {
-    let request_url = env.join_api_url(&format!("c/{}/mt/purge-untracked", collection_uid))?;
+    let request_url =
+        env.join_api_url(&format!("c/{}/mt/purge-untracked-sources", collection_uid))?;
     let request_body = serde_json::to_vec(&params.into())?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
     let outcome = serde_json::from_slice::<serde_json::Value>(&response_body)?;
-    tracing::debug!("Purge orphaned and untracked finished: {:?}", outcome);
+    tracing::debug!("Purging untracked media sources finished: {:?}", outcome);
     Ok(())
 }
 
-async fn start_find_untracked<E: WebClientEnvironment>(
+async fn start_find_untracked_files<E: WebClientEnvironment>(
     env: &E,
     collection_uid: &EntityUid,
     params: impl Into<aoide_core_ext_serde::media::tracker::FsTraversalParams>,
 ) -> anyhow::Result<FindUntrackedOutcome> {
-    let request_url = env.join_api_url(&format!("c/{}/mt/find-untracked", collection_uid))?;
+    let request_url = env.join_api_url(&format!("c/{}/mt/find-untracked-files", collection_uid))?;
     let request_body = serde_json::to_vec(&params.into())?;
     let request = env.client().post(request_url).body(request_body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
     let outcome = serde_json::from_slice::<
-        aoide_core_ext_serde::media::tracker::find_untracked::Outcome,
+        aoide_core_ext_serde::media::tracker::find_untracked_files::Outcome,
     >(&response_body)
     .map_err(anyhow::Error::from)
     .and_then(|outcome| outcome.try_into().map_err(anyhow::Error::from))?;

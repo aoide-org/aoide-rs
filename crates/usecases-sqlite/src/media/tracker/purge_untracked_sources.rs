@@ -13,26 +13,29 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_repo::collection::EntityRepo as _;
+use aoide_core_ext::media::tracker::purge_untracked_sources::{Outcome, Params};
 
 use super::*;
 
 mod uc {
     pub use aoide_usecases::{
-        collection::resolve_collection_id_for_virtual_file_path, track::purge::*, Error,
+        collection::resolve_collection_id_for_virtual_file_path,
+        media::tracker::purge_untracked_sources::*, Error,
     };
 }
 
-pub fn purge_by_media_source_path_predicates(
+pub fn purge_untracked_sources(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    path_predicates: Vec<StringPredicate>,
-) -> Result<uc::PurgeByMediaSourcePathPredicatesSummary> {
+    params: &Params,
+) -> Result<Outcome> {
     let db = RepoConnection::new(connection);
-    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-        let collection_id = db.resolve_collection_id(collection_uid)?;
-        uc::purge_by_media_source_path_predicates(&db, collection_id, path_predicates)
-            .map_err(Into::into)
+    db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
+        let (collection_id, source_path_resolver) =
+            uc::resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
+                .map_err(DieselTransactionError::new)?;
+        uc::purge_untracked_sources(&db, &source_path_resolver, collection_id, params)
+            .map_err(DieselTransactionError::new)
     })
     .map_err(Into::into)
 }

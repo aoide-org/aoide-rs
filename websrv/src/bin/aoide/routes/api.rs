@@ -26,7 +26,7 @@ use warp::{filters::BoxedFilter, http::StatusCode, Filter, Reply};
 
 use aoide_usecases::media::tracker::scan::ProgressEvent as ScanProgressEvent;
 
-use aoide_usecases::media::tracker::find_untracked::ProgressEvent as FindUntrackedProgressEvent;
+use aoide_usecases::media::tracker::find_untracked_files::ProgressEvent as FindUntrackedProgressEvent;
 
 use aoide_core_ext::media::tracker::import::Summary as ImportProgressSummary;
 
@@ -474,11 +474,11 @@ pub fn create_filters(
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
-    let media_tracker_post_collection_find_untracked = warp::post()
+    let media_tracker_post_collection_find_untracked_files = warp::post()
         .and(collections_path)
         .and(path_param_uid)
         .and(media_tracker_path)
-        .and(warp::path("find-untracked"))
+        .and(warp::path("find-untracked-files"))
         .and(warp::path::end())
         .and(warp::body::json())
         .and(guarded_connection_pool.clone())
@@ -495,7 +495,7 @@ pub fn create_filters(
                     tracing::debug!("Watching media tracker finding untracked");
                     while progress_event_rx.changed().await.is_ok() {
                         let progress = progress_event_rx.borrow().as_ref().map(
-                            |event: &aoide_usecases::media::tracker::find_untracked::ProgressEvent| {
+                            |event: &aoide_usecases::media::tracker::find_untracked_files::ProgressEvent| {
                                 event.progress.to_owned()
                             },
                         );
@@ -512,7 +512,7 @@ pub fn create_filters(
                     guarded_connection_pool,
                     media_tracker_abort_flag,
                     move |pooled_connection| {
-                        api::media::tracker::find_untracked::handle_request(
+                        api::media::tracker::find_untracked_files::handle_request(
                             pooled_connection,
                             &uid,
                             request_body,
@@ -541,11 +541,11 @@ pub fn create_filters(
                 response
             },
         );
-    let media_tracker_post_collection_purge_untracked = warp::post()
+    let media_tracker_post_collection_purge_untracked_sources = warp::post()
         .and(collections_path)
         .and(path_param_uid)
         .and(media_tracker_path)
-        .and(warp::path("purge-untracked"))
+        .and(warp::path("purge-untracked-sources"))
         .and(warp::path::end())
         .and(warp::body::json())
         .and(guarded_connection_pool.clone())
@@ -555,7 +555,7 @@ pub fn create_filters(
                     guarded_connection_pool,
                     media_tracker_abort_flag,
                     move |pooled_connection| {
-                        api::track::purge_untracked_media::handle_request(
+                        api::media::tracker::purge_untracked_sources::handle_request(
                             pooled_connection,
                             &uid,
                             request_body,
@@ -573,8 +573,8 @@ pub fn create_filters(
         .or(media_tracker_post_collection_scan)
         .or(media_tracker_post_collection_import)
         .or(media_tracker_post_collection_untrack)
-        .or(media_tracker_post_collection_find_untracked)
-        .or(media_tracker_post_collection_purge_untracked)
+        .or(media_tracker_post_collection_find_untracked_files)
+        .or(media_tracker_post_collection_purge_untracked_sources)
         .or(media_tracker_post_collection_query_status);
 
     let collected_tracks_resolve = warp::post()

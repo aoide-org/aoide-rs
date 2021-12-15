@@ -18,7 +18,7 @@ use url::Url;
 use crate::prelude::*;
 
 mod _inner {
-    pub use aoide_core_ext::track::purge_untracked::*;
+    pub use aoide_core_ext::media::tracker::purge_untracked_sources::*;
 }
 
 #[derive(Debug)]

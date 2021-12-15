@@ -131,8 +131,8 @@ async fn main() -> anyhow::Result<()> {
                         ),
                 )
                 .subcommand(
-                    App::new("purge-orphaned-and-untracked")
-                        .about("Purges all orphaned directories and tracks with untracked media sources")
+                    App::new("purge")
+                        .about("Purges all orphaned directories and untracked media sources (and the corresponding tracks)")
                         .arg(
                             Arg::with_name(MEDIA_ROOT_URL_PARAM)
                                 .help("The URL of the root directory containing tracked media files to be cleaned up")
@@ -140,7 +140,7 @@ async fn main() -> anyhow::Result<()> {
                         ),
                 )
                 .subcommand(
-                    App::new("find-untracked")
+                    App::new("find-untracked-files")
                         .about("Scans directories on the file system for untracked entries")
                         .arg(
                             Arg::with_name(MEDIA_ROOT_URL_PARAM)
@@ -169,7 +169,7 @@ async fn main() -> anyhow::Result<()> {
     let mut last_media_tracker_scan_outcome = None;
     let mut last_media_tracker_import_outcome = None;
     let mut last_media_tracker_untrack_outcome = None;
-    let mut last_media_tracker_find_untracked_outcome = None;
+    let mut last_media_tracker_find_untracked_files_outcome = None;
     let mut subcommand_submitted = false;
     let message_loop = tokio::spawn(message_loop(
         shared_env,
@@ -260,20 +260,20 @@ async fn main() -> anyhow::Result<()> {
                     tracing::info!("Untrack finished: {:?}", outcome);
                 }
             }
-            if last_media_tracker_find_untracked_outcome.as_ref()
+            if last_media_tracker_find_untracked_files_outcome.as_ref()
                 != state
                     .media_tracker
                     .remote_view()
-                    .last_find_untracked_outcome()
+                    .last_find_untracked_files_outcome()
                     .get_ready()
             {
-                last_media_tracker_find_untracked_outcome = state
+                last_media_tracker_find_untracked_files_outcome = state
                     .media_tracker
                     .remote_view()
-                    .last_find_untracked_outcome()
+                    .last_find_untracked_files_outcome()
                     .get_ready()
                     .map(ToOwned::to_owned);
-                if let Some(outcome) = &last_media_tracker_find_untracked_outcome {
+                if let Some(outcome) = &last_media_tracker_find_untracked_files_outcome {
                     tracing::info!("Finding untracked entries finished: {:?}", outcome);
                     if !outcome.value.source_paths.is_empty() {
                         tracing::info!(
@@ -513,26 +513,23 @@ async fn main() -> anyhow::Result<()> {
                                     .into(),
                                 );
                             }
-                            (
-                                "purge-orphaned-and-untracked",
-                                purge_orphaned_and_untracked_matches,
-                            ) => {
+                            ("purge", purge_matches) => {
                                 let collection_uid = collection.hdr.uid.clone();
-                                let media_root_url = purge_orphaned_and_untracked_matches
+                                let media_root_url = purge_matches
                                     .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
                                     .map(|s| s.parse().expect("URL"));
                                 subcommand_submitted = true;
                                 return Some(
-                                    media_tracker::Intent::PurgeOrphanedAndUntracked {
+                                    media_tracker::Intent::Purge {
                                         collection_uid,
                                         root_url: media_root_url,
                                     }
                                     .into(),
                                 );
                             }
-                            ("find-untracked", find_untracked_matches) => {
+                            ("find-untracked-files", find_untracked_files_matches) => {
                                 let collection_uid = collection.hdr.uid.clone();
-                                let media_root_url = find_untracked_matches
+                                let media_root_url = find_untracked_files_matches
                                     .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
                                     .map(|s| s.parse().expect("URL"))
                                     .or_else(|| {

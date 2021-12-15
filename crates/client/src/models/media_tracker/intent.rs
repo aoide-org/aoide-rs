@@ -38,7 +38,7 @@ pub enum Intent {
         collection_uid: EntityUid,
         root_url: BaseUrl,
     },
-    PurgeOrphanedAndUntracked {
+    Purge {
         collection_uid: EntityUid,
         root_url: Option<BaseUrl>,
     },
@@ -132,7 +132,7 @@ impl Intent {
                     root_url,
                 }))
             }
-            Self::PurgeOrphanedAndUntracked {
+            Self::Purge {
                 collection_uid,
                 root_url,
             } => {
@@ -147,12 +147,10 @@ impl Intent {
                     .remote_view
                     .last_purge_orphaned_and_untracked_outcome
                     .set_pending_now();
-                StateUpdated::maybe_changed(Action::dispatch_task(
-                    Task::PurgeOrphanedAndUntracked {
-                        collection_uid,
-                        root_url,
-                    },
-                ))
+                StateUpdated::maybe_changed(Action::dispatch_task(Task::Purge {
+                    collection_uid,
+                    root_url,
+                }))
             }
             Self::StartFindUntracked {
                 collection_uid,
@@ -167,7 +165,7 @@ impl Intent {
                 state.remote_view.status.set_pending_now();
                 state
                     .remote_view
-                    .last_find_untracked_outcome
+                    .last_find_untracked_files_outcome
                     .set_pending_now();
                 StateUpdated::maybe_changed(Action::dispatch_task(Task::StartFindUntracked {
                     collection_uid,

@@ -18,7 +18,7 @@ use std::{sync::atomic::AtomicBool, time::Duration};
 use aoide_core::util::url::BaseUrl;
 
 use aoide_core_ext::media::tracker::{
-    find_untracked::Outcome, Completion, FsTraversalDirectoriesProgress,
+    find_untracked_files::Outcome, Completion, FsTraversalDirectoriesProgress,
     FsTraversalEntriesProgress, FsTraversalParams, FsTraversalProgress,
 };
 
