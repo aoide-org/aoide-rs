@@ -16,6 +16,7 @@
 use std::{
     env,
     net::{IpAddr, Ipv6Addr, SocketAddr},
+    str::ParseBoolError,
 };
 
 use anyhow::Error;
@@ -31,7 +32,7 @@ pub fn init_environment() {
     }
 }
 
-const DEFAULT_TRACING_SUBSCRIBER_ENV_FILTER: &str = "info";
+const TRACING_SUBSCRIBER_ENV_FILTER_DEFAULT: &str = "info";
 
 fn create_env_filter() -> EnvFilter {
     EnvFilter::try_from_default_env().unwrap_or_else(|err| {
@@ -44,7 +45,7 @@ fn create_env_filter() -> EnvFilter {
                 );
             }
         }
-        EnvFilter::new(DEFAULT_TRACING_SUBSCRIBER_ENV_FILTER.to_owned())
+        EnvFilter::new(TRACING_SUBSCRIBER_ENV_FILTER_DEFAULT.to_owned())
     })
 }
 
@@ -68,11 +69,11 @@ pub fn init_tracing_and_logging() -> anyhow::Result<()> {
 }
 
 const ENDPOINT_IP_ENV: &str = "ENDPOINT_IP";
-const DEFAULT_ENDPOINT_IP: IpAddr = IpAddr::V6(Ipv6Addr::UNSPECIFIED);
+const ENDPOINT_IP_DEFAULT: IpAddr = IpAddr::V6(Ipv6Addr::UNSPECIFIED);
 
 const ENDPOINT_PORT_ENV: &str = "ENDPOINT_PORT";
-const EPHEMERAL_PORT: u16 = 0;
-const DEFAULT_ENDPOINT_PORT: u16 = EPHEMERAL_PORT;
+const ENDPOINT_PORT_EPHEMERAL: u16 = 0;
+const ENDPOINT_PORT_DEFAULT: u16 = ENDPOINT_PORT_EPHEMERAL;
 
 pub fn parse_endpoint_addr() -> SocketAddr {
     let endpoint_ip = env::var(ENDPOINT_IP_ENV)
@@ -80,44 +81,78 @@ pub fn parse_endpoint_addr() -> SocketAddr {
         .and_then(|var| {
             tracing::debug!("{} = {}", ENDPOINT_IP_ENV, var);
             var.parse().map_err(|err| {
-                tracing::warn!("Failed to parse {}: {}", ENDPOINT_IP_ENV, err);
+                tracing::warn!("Failed to parse {} = {}: {}", ENDPOINT_IP_ENV, var, err);
                 Error::from(err)
             })
         })
-        .unwrap_or(DEFAULT_ENDPOINT_IP);
+        .unwrap_or(ENDPOINT_IP_DEFAULT);
     let endpoint_port = env::var(ENDPOINT_PORT_ENV)
         .map_err(Into::into)
         .and_then(|var| {
             tracing::debug!("{} = {}", ENDPOINT_PORT_ENV, var);
             if var.trim().is_empty() {
-                Ok(DEFAULT_ENDPOINT_PORT)
+                Ok(ENDPOINT_PORT_DEFAULT)
             } else {
                 var.parse().map_err(|err| {
-                    tracing::warn!("Failed to parse {}: {}", ENDPOINT_PORT_ENV, err);
+                    tracing::warn!("Failed to parse {} = {}: {}", ENDPOINT_PORT_ENV, var, err);
                     Error::from(err)
                 })
             }
         })
-        .unwrap_or(DEFAULT_ENDPOINT_PORT);
+        .unwrap_or(ENDPOINT_PORT_DEFAULT);
     (endpoint_ip, endpoint_port).into()
 }
 
 const DATABASE_URL_ENV: &str = "DATABASE_URL";
-const DEFAULT_DATABASE_URL: &str = ":memory:";
+const DATABASE_URL_DEFAULT: &str = ":memory:";
 
 pub fn parse_database_url() -> String {
     env::var(DATABASE_URL_ENV)
         .map_err(Error::from)
-        .map(|database_url| {
-            tracing::debug!("{} = {}", DATABASE_URL_ENV, database_url);
-            database_url
+        .map(|var| {
+            tracing::debug!("{} = {}", DATABASE_URL_ENV, var);
+            var
         })
-        .unwrap_or_else(|_| DEFAULT_DATABASE_URL.into())
+        .unwrap_or_else(|_| DATABASE_URL_DEFAULT.into())
+}
+
+const DATABASE_MIGRATE_SCHEMA_ON_STARTUP_ENV: &str = "DATABASE_MIGRATE_SCHEMA_ON_STARTUP";
+const DATABASE_MIGRATE_SCHEMA_ON_STARTUP_DEFAULT: bool = true;
+
+fn parse_bool_var(var: &str) -> Result<bool, ParseBoolError> {
+    var.to_lowercase().parse::<bool>().or_else(|err| {
+        if let Ok(val) = var.parse::<u8>() {
+            match val {
+                0 => return Ok(false),
+                1 => return Ok(true),
+                _ => (),
+            }
+        }
+        Err(err)
+    })
+}
+
+pub fn parse_database_migrate_schema_on_startup() -> bool {
+    env::var(DATABASE_MIGRATE_SCHEMA_ON_STARTUP_ENV)
+        .map_err(Into::into)
+        .and_then(|var| {
+            tracing::debug!("{} = {}", DATABASE_MIGRATE_SCHEMA_ON_STARTUP_ENV, var);
+            parse_bool_var(&var).map_err(|err| {
+                tracing::warn!(
+                    "Failed to parse {} = {}: {}",
+                    DATABASE_MIGRATE_SCHEMA_ON_STARTUP_ENV,
+                    var,
+                    err,
+                );
+                Error::from(err)
+            })
+        })
+        .unwrap_or(DATABASE_MIGRATE_SCHEMA_ON_STARTUP_DEFAULT)
 }
 
 const DATABASE_CONNECTION_POOL_SIZE_ENV: &str = "DATABASE_CONNECTION_POOL_SIZE";
-const MIN_DATABASE_CONNECTION_POOL_SIZE: u32 = 1;
-const DEFAULT_DATABASE_CONNECTION_POOL_SIZE: u32 = MIN_DATABASE_CONNECTION_POOL_SIZE;
+const DATABASE_CONNECTION_POOL_SIZE_MIN: u32 = 1;
+const DATABASE_CONNECTION_POOL_SIZE_DEFAULT: u32 = DATABASE_CONNECTION_POOL_SIZE_MIN;
 
 pub fn parse_database_connection_pool_size() -> u32 {
     env::var(DATABASE_CONNECTION_POOL_SIZE_ENV)
@@ -125,31 +160,32 @@ pub fn parse_database_connection_pool_size() -> u32 {
         .and_then(|var| {
             tracing::debug!("{} = {}", DATABASE_CONNECTION_POOL_SIZE_ENV, var);
             if var.trim().is_empty() {
-                Ok(MIN_DATABASE_CONNECTION_POOL_SIZE)
+                Ok(DATABASE_CONNECTION_POOL_SIZE_MIN)
             } else {
                 var.parse()
                     .map(|val| {
-                        if val < MIN_DATABASE_CONNECTION_POOL_SIZE {
+                        if val < DATABASE_CONNECTION_POOL_SIZE_MIN {
                             tracing::warn!(
                                 "Invalid {} = {} < {}",
                                 DATABASE_CONNECTION_POOL_SIZE_ENV,
                                 val,
-                                MIN_DATABASE_CONNECTION_POOL_SIZE
+                                DATABASE_CONNECTION_POOL_SIZE_MIN
                             );
-                            MIN_DATABASE_CONNECTION_POOL_SIZE
+                            DATABASE_CONNECTION_POOL_SIZE_MIN
                         } else {
                             val
                         }
                     })
                     .map_err(|err| {
                         tracing::warn!(
-                            "Failed to parse {}: {}",
+                            "Failed to parse {} = {}: {}",
                             DATABASE_CONNECTION_POOL_SIZE_ENV,
+                            var,
                             err
                         );
                         Error::from(err)
                     })
             }
         })
-        .unwrap_or(DEFAULT_DATABASE_CONNECTION_POOL_SIZE)
+        .unwrap_or(DATABASE_CONNECTION_POOL_SIZE_DEFAULT)
 }

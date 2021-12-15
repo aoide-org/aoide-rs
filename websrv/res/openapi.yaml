@@ -794,6 +794,18 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
+  /api/storage/migrate-schema:
+    post:
+      summary: Migrate the database schema
+      description: |
+        Migrate the database schema to the most recent version
+      tags:
+        - Storage
+      responses:
+        '204':
+          $ref: '#/components/responses/204NoContent'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
   /api/storage/cleanse:
     post:
       summary: Cleanse the database

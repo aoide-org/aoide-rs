@@ -977,6 +977,26 @@ pub fn create_filters(
     struct CleanseDatabaseQueryParams {
         vacuum: bool,
     }
+    let storage_migrate_schema = warp::post()
+        .and(storage_path)
+        .and(warp::path("migrate-schema"))
+        .and(warp::path::end())
+        .and(guarded_connection_pool.clone())
+        .and_then(
+            move |guarded_connection_pool: GuardedConnectionPool| async move {
+                spawn_blocking_database_write_task(
+                    guarded_connection_pool,
+                    media_tracker_abort_flag,
+                    move |pooled_connection| {
+                        Ok(uc::database::migrate_schema(&pooled_connection)
+                            .map_err(api::Error::from)?)
+                    },
+                )
+                .await
+                .map_err(reject_on_error)
+                .map(|()| StatusCode::NO_CONTENT)
+            },
+        );
     let storage_cleanse = warp::post()
         .and(storage_path)
         .and(warp::path("cleanse"))
@@ -999,7 +1019,7 @@ pub fn create_filters(
                 .map(|()| StatusCode::NO_CONTENT)
             },
         );
-    let storage_filters = storage_cleanse;
+    let storage_filters = storage_migrate_schema.or(storage_cleanse);
 
     collected_tracks_filters
         .or(collected_playlists_filters)

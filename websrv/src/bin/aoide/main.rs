@@ -80,8 +80,10 @@ pub async fn main() -> Result<(), Error> {
 
     uc::database::initialize(&*uc::database::get_pooled_connection(&connection_pool)?)
         .expect("Failed to initialize database");
-    uc::database::migrate_schema(&*uc::database::get_pooled_connection(&connection_pool)?)
-        .expect("Failed to migrate database schema");
+    if env::parse_database_migrate_schema_on_startup() {
+        uc::database::migrate_schema(&*uc::database::get_pooled_connection(&connection_pool)?)
+            .expect("Failed to migrate database schema");
+    }
 
     // Readers and writers are distinguished by an asynchronous RwLock
     // guard. This lock has to be acquired before requesting a connection
