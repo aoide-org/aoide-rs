@@ -180,11 +180,18 @@ pub fn visit_directories<
     report_progress: &mut ReportProgress,
 ) -> Result<ProgressEvent> {
     let mut progress_event = ProgressEvent::start();
-    let mut ancestor_visitors: Vec<(PathBuf, V)> = Vec::with_capacity(64); // capacity <= max. expected depth
+    // Capacity <= max. expected depth
+    let mut ancestor_visitors: Vec<(PathBuf, V)> = Vec::with_capacity(64);
+    // Depth-first traversal to populate ancestors from their child entries
+    let contents_first = false;
+    // Resolve and follow symlinks
+    let follow_links = true;
+    // Start with root path
+    let min_depth = 0;
     let mut walkdir = WalkDir::new(root_path)
-        .contents_first(false) // depth-first traversal to populate ancestors
-        .follow_links(true) // digest metadata of actual files/directories, not symbolic links
-        .min_depth(0); // start with root directory (included)
+        .contents_first(contents_first)
+        .follow_links(follow_links)
+        .min_depth(min_depth); // start with root directory (included)
     if let Some(max_depth) = max_depth {
         walkdir = walkdir.max_depth(max_depth);
     }
@@ -294,6 +301,8 @@ pub fn visit_directories<
                 }
             }
         }
+        // Checking for `is_dir()` is sufficient when following symlinks
+        debug_assert!(follow_links);
         if dir_entry.file_type().is_dir() {
             tracing::debug!("Adding parent directory: {}", relative_path.display());
             let ancestor_visitor = new_ancestor_visitor(&dir_entry);
