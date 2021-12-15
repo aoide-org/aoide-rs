@@ -39,7 +39,7 @@ pub struct RemoteView {
     pub(super) last_scan_outcome: RemoteData<ScanOutcome>,
     pub(super) last_import_outcome: RemoteData<ImportOutcome>,
     pub(super) last_untrack_outcome: RemoteData<UntrackOutcome>,
-    pub(super) last_purge_orphaned_and_untracked_outcome: RemoteData<()>,
+    pub(super) last_purge_outcome: RemoteData<()>,
     pub(super) last_find_untracked_files_outcome: RemoteData<FindUntrackedOutcome>,
 }
 

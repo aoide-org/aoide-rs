@@ -143,10 +143,7 @@ impl Intent {
                 state.control_state = ControlState::Busy;
                 state.remote_view.progress.reset();
                 state.remote_view.status.set_pending_now();
-                state
-                    .remote_view
-                    .last_purge_orphaned_and_untracked_outcome
-                    .set_pending_now();
+                state.remote_view.last_purge_outcome.set_pending_now();
                 StateUpdated::maybe_changed(Action::dispatch_task(Task::Purge {
                     collection_uid,
                     root_url,

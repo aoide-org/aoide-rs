@@ -136,21 +136,14 @@ impl Effect {
                 state.control_state = ControlState::Idle;
                 state.remote_view.progress.reset();
                 state.remote_view.status.reset();
-                debug_assert!(state
-                    .remote_view
-                    .last_purge_orphaned_and_untracked_outcome
-                    .is_pending());
+                debug_assert!(state.remote_view.last_purge_outcome.is_pending());
                 let next_action = match res {
                     Ok(outcome) => {
-                        state.remote_view.last_purge_orphaned_and_untracked_outcome =
-                            RemoteData::ready_now(outcome);
+                        state.remote_view.last_purge_outcome = RemoteData::ready_now(outcome);
                         Action::dispatch_task(Task::FetchProgress)
                     }
                     Err(err) => {
-                        state
-                            .remote_view
-                            .last_purge_orphaned_and_untracked_outcome
-                            .reset();
+                        state.remote_view.last_purge_outcome.reset();
                         Action::apply_effect(Self::ErrorOccurred(err))
                     }
                 };

@@ -76,9 +76,9 @@ paths:
 
   /api/c/{collectionUid}:
     get:
-      summary: Load a collection
+      summary: Load a single collection
       description: |
-        Load a collection entity referenced by its UID.
+        Load a single collection entity by UID.
       tags:
         - Collections
       parameters:
@@ -268,32 +268,6 @@ paths:
                 $ref: '#/components/schemas/ImportAndReplaceCollectedTracksResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /api/c/{collectionUid}/t/purge:
-    post:
-      summary: Purge collected tracks and media sources by URI
-      description: |
-        Purge multiple, collected tracks and their media sources by locating them
-        through their (percent-encoded) URI.
-      tags:
-        - 'Collections: Tracks'
-      parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PurgeCollectedTracksRequestBody'
-      responses:
-        '200':
-          description: |
-            Batch operation succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PurgeCollectedTracksResponseBody'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
 
   /api/c/{collectionUid}/ms/relocate:
     post:
@@ -469,7 +443,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PurgeUntrackedTracksRequestBody'
+              $ref: '#/components/schemas/PurgeUntrackedSourcesRequestBody'
       responses:
         '200':
           description: |
@@ -477,7 +451,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PurgeUntrackedTracksResponseBody'
+                $ref: '#/components/schemas/PurgeUntrackedSourcesResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
   /api/c/{collectionUid}/mt/query-status:
@@ -561,9 +535,9 @@ paths:
 
   /api/t/{trackUid}:
     get:
-      summary: Load a track
+      summary: Load a single track
       description: |
-        Load a single track entity including its media source.
+        Load a single track entity with its associated media source by UID.
       tags:
         - Tracks
       parameters:
@@ -690,9 +664,9 @@ paths:
 
   /api/p/{playlistUid}:
     get:
-      summary: Load a playlist
+      summary: Load a single playlist
       description: |
-        Load a playlist entity with all entries referenced by its UID.
+        Load a single playlist entity with all entries by UID.
       tags:
         - Playlists
       parameters:
@@ -2218,11 +2192,7 @@ components:
       example: 210387.576
       description: |
         The position in an audio stream in milliseconds
-    PurgeCollectedTracksRequestBody:
-      type: array
-      items:
-        $ref: '#/components/schemas/PercentEncodedUri'
-    PurgeUntrackedTracksRequestBody:
+    PurgeUntrackedSourcesRequestBody:
       type: object
       properties:
         rootUrl:
@@ -2230,19 +2200,7 @@ components:
         untrackOrphanedDirectories:
           type: boolean
           default: false
-    PurgeCollectedTracksResponseBody:
-      type: object
-      properties:
-        purgedMediaSources:
-          type: integer
-          format: int64
-        purgedTracks:
-          type: integer
-          format: int64
-      required:
-        - purgedMediaSources
-        - purgedTracks
-    PurgeUntrackedTracksResponseBody:
+    PurgeUntrackedSourcesResponseBody:
       type: object
       properties:
         untrackedDirectories:
