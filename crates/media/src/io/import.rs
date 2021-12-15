@@ -121,7 +121,7 @@ pub fn import_into_track(
         "audio/m4a" | "video/mp4" => crate::fmt::mp4::Metadata::read_from(reader)
             .and_then(|metadata| metadata.import_into_track(config, track)),
         #[cfg(feature = "fmt-ogg")]
-        "audio/ogg" => crate::fmt::ogg::Metadata::read_from(reader)
+        "audio/ogg" | "audio/vorbis" => crate::fmt::ogg::Metadata::read_from(reader)
             .and_then(|metadata| metadata.import_into_track(config, track)),
         #[cfg(feature = "fmt-opus")]
         "audio/opus" => crate::fmt::opus::Metadata::read_from(reader)
@@ -210,18 +210,20 @@ pub fn load_embedded_artwork_image_from_file_path(
             })
         }
         #[cfg(feature = "fmt-ogg")]
-        "audio/ogg" => crate::fmt::ogg::Metadata::read_from(&mut reader).and_then(|metadata| {
-            metadata
-                .find_embedded_artwork_image()
-                .map(|(apic_type, media_type, image_data)| {
-                    Ok(LoadedArtworkImage {
-                        apic_type: Some(apic_type),
-                        media_type: parse_media_type(&media_type)?,
-                        image_data,
+        "audio/ogg" | "audio/vorbis" => {
+            crate::fmt::ogg::Metadata::read_from(&mut reader).and_then(|metadata| {
+                metadata
+                    .find_embedded_artwork_image()
+                    .map(|(apic_type, media_type, image_data)| {
+                        Ok(LoadedArtworkImage {
+                            apic_type: Some(apic_type),
+                            media_type: parse_media_type(&media_type)?,
+                            image_data,
+                        })
                     })
-                })
-                .transpose()
-        }),
+                    .transpose()
+            })
+        }
         #[cfg(feature = "fmt-opus")]
         "audio/opus" => crate::fmt::opus::Metadata::read_from(&mut reader).and_then(|metadata| {
             metadata
