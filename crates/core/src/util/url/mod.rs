@@ -15,10 +15,14 @@
 
 use std::{
     fmt,
-    fs::{read_link, DirEntry},
     ops::{Deref, DerefMut},
-    path::Path,
     str::FromStr,
+};
+
+#[cfg(not(target_arch = "wasm32"))]
+use std::{
+    fs::{read_link, DirEntry},
+    path::Path,
 };
 
 use ::url::Url;
@@ -78,6 +82,7 @@ pub fn is_file_url(url: &Url) -> bool {
     url.scheme() == FILE_SCHEME
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 #[allow(clippy::result_unit_err)]
 pub fn url_from_path(path: &Path) -> Result<Url, ()> {
     if path.is_file() {
@@ -94,6 +99,7 @@ pub fn url_from_path(path: &Path) -> Result<Url, ()> {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn url_from_dir_entry(dir_entry: &DirEntry) -> std::io::Result<Url> {
     let file_type = dir_entry.file_type()?;
     let url =
