@@ -25,7 +25,7 @@ use triseratops::tag::{
 
 use aoide_core::{
     audio::signal::LoudnessLufs,
-    media::{concat_encoder_properties, ApicType, Content},
+    media::{concat_encoder_properties, ApicType, Artwork, Content},
     music::{key::KeySignature, time::TempoBpm},
     tag::{FacetId, FacetedTags, PlainTag, Tags, TagsMap},
     track::{
@@ -37,74 +37,104 @@ use aoide_core::{
         title::{Title, TitleKind, Titles},
         Track,
     },
-    util::{canonical::CanonicalizeInto as _, string::trimmed_non_empty_from},
+    util::{
+        canonical::{Canonical, CanonicalizeInto as _},
+        string::trimmed_non_empty_from,
+    },
 };
 
 use aoide_core_serde::tag::Tags as SerdeTags;
 
 use crate::{
-    io::export::{ExportTrackConfig, ExportTrackFlags, FilteredActorNames},
+    io::{
+        export::{ExportTrackConfig, ExportTrackFlags, FilteredActorNames},
+        import::{ImportTrackConfig, ImportTrackFlags},
+    },
     util::{
         format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from,
         parse_index_numbers, parse_key_signature, parse_replay_gain, parse_tempo_bpm,
-        parse_year_tag,
+        parse_year_tag, push_next_actor_role_name_from, serato,
         tag::{
             import_faceted_tags_from_label_value_iter, FacetedTagMappingConfig, TagMappingConfig,
         },
+        try_ingest_embedded_artwork_image,
     },
+    Result,
 };
 
 pub const MIXXX_CUSTOM_TAGS_KEY: &str = "MIXXX_CUSTOM_TAGS";
 
 pub const AOIDE_TAGS_KEY: &str = "AOIDE_TAGS";
 
-pub fn filter_comment_values<'s>(
-    comments: impl IntoIterator<Item = (&'s str, &'s str)>,
-    key: &'s str,
-) -> impl Iterator<Item = &'s str> {
-    comments.into_iter().filter_map(|(k, v)| {
-        if k.eq_ignore_ascii_case(key) {
-            Some(v)
-        } else {
-            None
-        }
-    })
+fn cmp_eq_comment_key(key1: &str, key2: &str) -> bool {
+    key1.eq_ignore_ascii_case(key2)
 }
 
-pub fn read_first_comment_value<'s>(
+pub fn filter_comment_values<'s, 'k>(
     comments: impl IntoIterator<Item = (&'s str, &'s str)>,
-    key: &'s str,
-) -> Option<&'s str> {
+    key: &'k str,
+) -> impl Iterator<Item = &'s str>
+where
+    'k: 's,
+{
+    comments
+        .into_iter()
+        .filter_map(|(k, v)| cmp_eq_comment_key(k, key).then(|| v))
+}
+
+pub fn read_first_comment_value<'s, 'k>(
+    comments: impl IntoIterator<Item = (&'s str, &'s str)>,
+    key: &'k str,
+) -> Option<&'s str>
+where
+    'k: 's,
+{
     filter_comment_values(comments, key).next()
 }
 
 pub trait CommentReader {
-    fn read_first_value(&self, key: &str) -> Option<&str>;
+    fn read_first_value(&self, key: &str) -> Option<&str> {
+        self.filter_values(key)
+            .unwrap_or_default()
+            .into_iter()
+            .next()
+    }
+
+    // TODO: Prevent allocation of temporary vector
+    fn filter_values(&self, key: &str) -> Option<Vec<&str>>;
 }
 
 impl CommentReader for Vec<(String, String)> {
     fn read_first_value(&self, key: &str) -> Option<&str> {
+        // TODO: Use read_first_comment_value()
+        self.iter()
+            .find_map(|(k, v)| cmp_eq_comment_key(k, key).then(|| v.as_str()))
+    }
+
+    fn filter_values(&self, key: &str) -> Option<Vec<&str>> {
         // TODO: Use filter_comment_values()
-        self.iter().find_map(|(k, v)| {
-            if k.eq_ignore_ascii_case(key) {
-                Some(v.as_str())
-            } else {
-                None
-            }
-        })
+        let values: Vec<_> = self
+            .iter()
+            .filter_map(|(k, v)| cmp_eq_comment_key(k, key).then(|| v.as_str()))
+            .collect();
+        (!values.is_empty()).then(|| values)
     }
 }
 
 impl CommentReader for HashMap<String, String> {
     fn read_first_value(&self, key: &str) -> Option<&str> {
+        // TODO: Use read_first_comment_value()
+        self.iter()
+            .find_map(|(k, v)| cmp_eq_comment_key(k, key).then(|| v.as_str()))
+    }
+
+    fn filter_values(&self, key: &str) -> Option<Vec<&str>> {
         // TODO: Use filter_comment_values()
-        self.iter().find_map(|(k, v)| {
-            if k.eq_ignore_ascii_case(key) {
-                Some(v.as_str())
-            } else {
-                None
-            }
-        })
+        let values: Vec<_> = self
+            .iter()
+            .filter_map(|(k, v)| cmp_eq_comment_key(k, key).then(|| v.as_str()))
+            .collect();
+        values.is_empty().then(|| values)
     }
 }
 
@@ -144,15 +174,23 @@ impl CommentWriter for Vec<(String, String)> {
     }
 }
 
-pub fn find_embedded_artwork_image<'s>(
-    comments: impl IntoIterator<Item = (&'s str, &'s str)> + Clone,
+pub fn find_embedded_artwork_image(
+    reader: &impl CommentReader,
 ) -> Option<(ApicType, String, Vec<u8>)> {
     // https://wiki.xiph.org/index.php/VorbisComment#Cover_art
     // The unofficial COVERART field in a VorbisComment tag is deprecated:
     // https://wiki.xiph.org/VorbisComment#Unofficial_COVERART_field_.28deprecated.29
     let picture_iter_by_type = |picture_type: Option<PictureType>| {
-        filter_comment_values(comments.clone(), "METADATA_BLOCK_PICTURE")
-            .chain(filter_comment_values(comments.clone(), "COVERART"))
+        reader
+            .filter_values("METADATA_BLOCK_PICTURE")
+            .unwrap_or_default()
+            .into_iter()
+            .chain(
+                reader
+                    .filter_values("COVERART")
+                    .unwrap_or_default()
+                    .into_iter(),
+            )
             .filter_map(|base64_data| {
                 base64::decode(base64_data)
                     .map_err(|err| {
@@ -442,6 +480,241 @@ pub fn import_serato_markers2(
     reader
         .read_first_value(vorbis_comment)
         .and_then(|data| serato_tags.parse_markers2(data.as_bytes(), format).ok());
+}
+
+pub fn import_into_track(
+    reader: &impl CommentReader,
+    config: &ImportTrackConfig,
+    track: &mut Track,
+) -> Result<()> {
+    if let Some(tempo_bpm) = import_tempo_bpm(reader) {
+        track.metrics.tempo_bpm = Some(tempo_bpm);
+    }
+
+    if let Some(key_signature) = import_key_signature(reader) {
+        track.metrics.key_signature = key_signature;
+    }
+
+    // Track titles
+    let track_titles = import_track_titles(reader);
+    if !track_titles.is_empty() {
+        track.titles = Canonical::tie(track_titles);
+    }
+
+    // Track actors
+    let mut track_actors = Vec::with_capacity(8);
+    for name in reader.filter_values("ARTIST").unwrap_or_default() {
+        push_next_actor_role_name_from(&mut track_actors, ActorRole::Artist, name);
+    }
+    for name in reader.filter_values("ARRANGER").unwrap_or_default() {
+        push_next_actor_role_name_from(&mut track_actors, ActorRole::Arranger, name);
+    }
+    for name in reader.filter_values("COMPOSER").unwrap_or_default() {
+        push_next_actor_role_name_from(&mut track_actors, ActorRole::Composer, name);
+    }
+    for name in reader.filter_values("CONDUCTOR").unwrap_or_default() {
+        push_next_actor_role_name_from(&mut track_actors, ActorRole::Conductor, name);
+    }
+    for name in reader.filter_values("PRODUCER").unwrap_or_default() {
+        push_next_actor_role_name_from(&mut track_actors, ActorRole::Producer, name);
+    }
+    for name in reader.filter_values("REMIXER").unwrap_or_default() {
+        push_next_actor_role_name_from(&mut track_actors, ActorRole::Remixer, name);
+    }
+    for name in reader.filter_values("MIXER").unwrap_or_default() {
+        push_next_actor_role_name_from(&mut track_actors, ActorRole::Mixer, name);
+    }
+    for name in reader.filter_values("DJMIXER").unwrap_or_default() {
+        push_next_actor_role_name_from(&mut track_actors, ActorRole::DjMixer, name);
+    }
+    for name in reader.filter_values("ENGINEER").unwrap_or_default() {
+        push_next_actor_role_name_from(&mut track_actors, ActorRole::Engineer, name);
+    }
+    for name in reader.filter_values("DIRECTOR").unwrap_or_default() {
+        push_next_actor_role_name_from(&mut track_actors, ActorRole::Director, name);
+    }
+    for name in reader.filter_values("LYRICIST").unwrap_or_default() {
+        push_next_actor_role_name_from(&mut track_actors, ActorRole::Lyricist, name);
+    }
+    for name in reader.filter_values("WRITER").unwrap_or_default() {
+        push_next_actor_role_name_from(&mut track_actors, ActorRole::Writer, name);
+    }
+    let track_actors = track_actors.canonicalize_into();
+    if !track_actors.is_empty() {
+        track.actors = Canonical::tie(track_actors);
+    }
+
+    let mut album = track.album.untie_replace(Default::default());
+
+    // Album titles
+    let album_titles = import_album_titles(reader);
+    if !album_titles.is_empty() {
+        album.titles = Canonical::tie(album_titles);
+    }
+
+    // Album actors
+    let mut album_actors = Vec::with_capacity(4);
+    for name in reader
+        .filter_values("ALBUMARTIST")
+        .unwrap_or_default()
+        .into_iter()
+        .chain(
+            reader
+                .filter_values("ALBUM_ARTIST")
+                .unwrap_or_default()
+                .into_iter(),
+        )
+        .chain(
+            reader
+                .filter_values("ALBUM ARTIST")
+                .unwrap_or_default()
+                .into_iter(),
+        )
+        .chain(
+            reader
+                .filter_values("ENSEMBLE")
+                .unwrap_or_default()
+                .into_iter(),
+        )
+    {
+        push_next_actor_role_name_from(&mut album_actors, ActorRole::Artist, name);
+    }
+    let album_actors = album_actors.canonicalize_into();
+    if !album_actors.is_empty() {
+        album.actors = Canonical::tie(album_actors);
+    }
+
+    // Album properties
+    if let Some(album_kind) = import_album_kind(reader) {
+        album.kind = album_kind;
+    }
+
+    track.album = Canonical::tie(album);
+
+    // Release properties
+    if let Some(released_at) = import_released_at(reader) {
+        track.release.released_at = Some(released_at);
+    }
+    if let Some(released_by) = import_released_by(reader) {
+        track.release.released_by = Some(released_by);
+    }
+    if let Some(copyright) = import_release_copyright(reader) {
+        track.release.copyright = Some(copyright);
+    }
+
+    let mut tags_map = TagsMap::default();
+    if config.flags.contains(ImportTrackFlags::AOIDE_TAGS) {
+        // Pre-populate tags
+        if let Some(tags) = import_aoide_tags(reader) {
+            debug_assert_eq!(0, tags_map.total_count());
+            tags_map = tags.into();
+        }
+    }
+
+    // Comment tag
+    // The original specification only defines a "DESCRIPTION" field,
+    // while MusicBrainz recommends to use "COMMENT".
+    // http://www.xiph.org/vorbis/doc/v-comment.html
+    // https://picard.musicbrainz.org/docs/mappings
+    {
+        import_faceted_text_tags(
+            &mut tags_map,
+            &config.faceted_tag_mapping,
+            &FACET_COMMENT,
+            reader
+                .filter_values("COMMENT")
+                .unwrap_or_default()
+                .into_iter()
+                .chain(
+                    reader
+                        .filter_values("DESCRIPTION")
+                        .unwrap_or_default()
+                        .into_iter(),
+                ),
+        );
+    }
+
+    // Genre tags
+    import_faceted_text_tags(
+        &mut tags_map,
+        &config.faceted_tag_mapping,
+        &FACET_GENRE,
+        reader
+            .filter_values("GENRE")
+            .unwrap_or_default()
+            .into_iter(),
+    );
+
+    // Mood tags
+    import_faceted_text_tags(
+        &mut tags_map,
+        &config.faceted_tag_mapping,
+        &FACET_MOOD,
+        reader.filter_values("MOOD").unwrap_or_default().into_iter(),
+    );
+
+    // Grouping tags
+    import_faceted_text_tags(
+        &mut tags_map,
+        &config.faceted_tag_mapping,
+        &FACET_GROUPING,
+        reader
+            .filter_values("GROUPING")
+            .unwrap_or_default()
+            .into_iter(),
+    );
+
+    // ISRC tags
+    import_faceted_text_tags(
+        &mut tags_map,
+        &config.faceted_tag_mapping,
+        &FACET_ISRC,
+        reader.filter_values("ISRC").unwrap_or_default().into_iter(),
+    );
+
+    if let Some(index) = import_track_index(reader) {
+        track.indexes.track = index;
+    }
+    if let Some(index) = import_disc_index(reader) {
+        track.indexes.disc = index;
+    }
+    if let Some(index) = import_movement_index(reader) {
+        track.indexes.movement = index;
+    }
+
+    if config.flags.contains(ImportTrackFlags::EMBEDDED_ARTWORK) {
+        let artwork = if let Some((apic_type, media_type, image_data)) =
+            find_embedded_artwork_image(reader)
+        {
+            try_ingest_embedded_artwork_image(
+                &track.media_source.path,
+                apic_type,
+                &image_data,
+                None,
+                Some(media_type),
+                &mut config.flags.new_artwork_digest(),
+            )
+            .0
+        } else {
+            Artwork::Missing
+        };
+        track.media_source.artwork = Some(artwork);
+    }
+
+    // Serato Tags
+    if config.flags.contains(ImportTrackFlags::SERATO_MARKERS) {
+        let mut serato_tags = SeratoTagContainer::new();
+        import_serato_markers2(reader, &mut serato_tags, SeratoTagFormat::Ogg);
+
+        let track_cues = serato::read_cues(&serato_tags)?;
+        if !track_cues.is_empty() {
+            track.cues = Canonical::tie(track_cues);
+        }
+
+        track.color = serato::read_track_color(&serato_tags);
+    }
+
+    Ok(())
 }
 
 pub fn export_track(

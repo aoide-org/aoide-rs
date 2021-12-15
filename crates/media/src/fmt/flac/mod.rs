@@ -45,6 +45,10 @@ impl vorbis::CommentReader for metaflac::Tag {
     fn read_first_value(&self, key: &str) -> Option<&str> {
         self.get_vorbis(key).and_then(|mut i| i.next())
     }
+
+    fn filter_values(&self, key: &str) -> Option<Vec<&str>> {
+        self.get_vorbis(key).map(|iter| iter.collect())
+    }
 }
 
 impl vorbis::CommentWriter for metaflac::Tag {
