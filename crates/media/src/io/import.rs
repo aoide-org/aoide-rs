@@ -14,7 +14,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use crate::{
-    fmt::{flac, mp3, mp4, ogg},
     util::{
         digest::MediaDigest, guess_mime_from_path, media_type_from_image_format,
         tag::FacetedTagMappingConfig,
@@ -112,13 +111,20 @@ pub fn import_into_track(
     track: &mut Track,
 ) -> Result<()> {
     match track.media_source.content_type.essence_str() {
-        "audio/flac" => flac::Metadata::read_from(reader)
+        #[cfg(feature = "fmt-flac")]
+        "audio/flac" => crate::fmt::flac::Metadata::read_from(reader)
             .and_then(|metadata| metadata.import_into_track(config, track)),
-        "audio/mpeg" => mp3::MetadataExt::read_from(reader)
+        #[cfg(feature = "fmt-mp3")]
+        "audio/mpeg" => crate::fmt::mp3::MetadataExt::read_from(reader)
             .and_then(|metadata_ext| metadata_ext.import_into_track(config, track)),
-        "audio/m4a" | "video/mp4" => mp4::Metadata::read_from(reader)
+        #[cfg(feature = "fmt-mp4")]
+        "audio/m4a" | "video/mp4" => crate::fmt::mp4::Metadata::read_from(reader)
             .and_then(|metadata| metadata.import_into_track(config, track)),
-        "audio/ogg" => ogg::Metadata::read_from(reader)
+        #[cfg(feature = "fmt-ogg")]
+        "audio/ogg" => crate::fmt::ogg::Metadata::read_from(reader)
+            .and_then(|metadata| metadata.import_into_track(config, track)),
+        #[cfg(feature = "fmt-opus")]
+        "audio/opus" => crate::fmt::opus::Metadata::read_from(reader)
             .and_then(|metadata| metadata.import_into_track(config, track)),
         _ => Err(Error::UnsupportedContentType(
             track.media_source.content_type.to_owned(),
@@ -162,7 +168,8 @@ pub fn load_embedded_artwork_image_from_file_path(
     let mut reader: Box<dyn Reader> = Box::new(BufReader::new(file));
     let mime = guess_mime_from_path(&file_path)?;
     match mime.as_ref() {
-        "audio/flac" => flac::Metadata::read_from(&mut reader).and_then(|metadata| {
+        #[cfg(feature = "fmt-flac")]
+        "audio/flac" => crate::fmt::flac::Metadata::read_from(&mut reader).and_then(|metadata| {
             metadata
                 .find_embedded_artwork_image()
                 .map(|(apic_type, media_type, image_data)| {
@@ -174,7 +181,8 @@ pub fn load_embedded_artwork_image_from_file_path(
                 })
                 .transpose()
         }),
-        "audio/mpeg" => mp3::Metadata::read_from(&mut reader).and_then(|metadata| {
+        #[cfg(feature = "fmt-mp3")]
+        "audio/mpeg" => crate::fmt::mp3::Metadata::read_from(&mut reader).and_then(|metadata| {
             metadata
                 .find_embedded_artwork_image()
                 .map(|(apic_type, media_type, image_data)| {
@@ -186,19 +194,36 @@ pub fn load_embedded_artwork_image_from_file_path(
                 })
                 .transpose()
         }),
-        "audio/m4a" | "video/mp4" => mp4::Metadata::read_from(&mut reader).and_then(|metadata| {
+        #[cfg(feature = "fmt-mp4")]
+        "audio/m4a" | "video/mp4" => {
+            crate::fmt::mp4::Metadata::read_from(&mut reader).and_then(|metadata| {
+                metadata
+                    .find_embedded_artwork_image()
+                    .map(|(apic_type, image_format, image_data)| {
+                        Ok(LoadedArtworkImage {
+                            apic_type: Some(apic_type),
+                            media_type: media_type_from_image_format(image_format)?,
+                            image_data: image_data.to_owned(),
+                        })
+                    })
+                    .transpose()
+            })
+        }
+        #[cfg(feature = "fmt-ogg")]
+        "audio/ogg" => crate::fmt::ogg::Metadata::read_from(&mut reader).and_then(|metadata| {
             metadata
                 .find_embedded_artwork_image()
-                .map(|(apic_type, image_format, image_data)| {
+                .map(|(apic_type, media_type, image_data)| {
                     Ok(LoadedArtworkImage {
                         apic_type: Some(apic_type),
-                        media_type: media_type_from_image_format(image_format)?,
-                        image_data: image_data.to_owned(),
+                        media_type: parse_media_type(&media_type)?,
+                        image_data,
                     })
                 })
                 .transpose()
         }),
-        "audio/ogg" => ogg::Metadata::read_from(&mut reader).and_then(|metadata| {
+        #[cfg(feature = "fmt-opus")]
+        "audio/opus" => crate::fmt::opus::Metadata::read_from(&mut reader).and_then(|metadata| {
             metadata
                 .find_embedded_artwork_image()
                 .map(|(apic_type, media_type, image_data)| {

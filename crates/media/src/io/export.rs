@@ -22,11 +22,7 @@ use aoide_core::track::{
     Track,
 };
 
-use crate::{
-    fmt::{flac, mp3, mp4},
-    util::tag::FacetedTagMappingConfig,
-    Error, Result,
-};
+use crate::{util::tag::FacetedTagMappingConfig, Error, Result};
 
 use super::import::ImportTrackFlags;
 
@@ -50,9 +46,12 @@ pub fn export_track_to_path(
     track: &mut Track,
 ) -> Result<bool> {
     match track.media_source.content_type.essence_str() {
-        "audio/flac" => flac::export_track_to_path(path, config, track),
-        "audio/mpeg" => mp3::export_track_to_path(path, config, track),
-        "audio/m4a" | "video/mp4" => mp4::export_track_to_path(path, config, track),
+        #[cfg(feature = "fmt-flac")]
+        "audio/flac" => crate::fmt::flac::export_track_to_path(path, config, track),
+        #[cfg(feature = "fmt-mp3")]
+        "audio/mpeg" => crate::fmt::mp3::export_track_to_path(path, config, track),
+        #[cfg(feature = "fmt-mp4")]
+        "audio/m4a" | "video/mp4" => crate::fmt::mp4::export_track_to_path(path, config, track),
         // TODO: Add support for audio/ogg
         _ => Err(Error::UnsupportedContentType(
             track.media_source.content_type.to_owned(),

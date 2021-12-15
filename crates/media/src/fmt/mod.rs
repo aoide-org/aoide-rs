@@ -30,11 +30,14 @@ pub mod mp4;
 #[cfg(feature = "fmt-ogg")]
 pub mod ogg;
 
+#[cfg(feature = "fmt-opus")]
+pub mod opus;
+
 #[cfg(feature = "fmt-wav")]
 pub mod wav;
 
 #[cfg(any(feature = "fmt-mp3", feature = "fmt-aiff", feature = "fmt-wav"))]
 pub mod id3;
 
-#[cfg(any(feature = "fmt-flac", feature = "fmt-ogg"))]
+#[cfg(any(feature = "fmt-flac", feature = "fmt-ogg", feature = "fmt-opus"))]
 pub mod vorbis;

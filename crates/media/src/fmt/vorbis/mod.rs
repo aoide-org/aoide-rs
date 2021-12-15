@@ -13,8 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::borrow::Cow;
+use std::{borrow::Cow, collections::HashMap};
 
+use metaflac::block::PictureType;
+use num_traits::FromPrimitive as _;
 use semval::IsValid as _;
 use triseratops::tag::{
     format::flac::FLACTag, format::ogg::OggTag, Markers2 as SeratoMarkers2,
@@ -23,7 +25,7 @@ use triseratops::tag::{
 
 use aoide_core::{
     audio::signal::LoudnessLufs,
-    media::{concat_encoder_properties, Content},
+    media::{concat_encoder_properties, ApicType, Content},
     music::{key::KeySignature, time::TempoBpm},
     tag::{FacetId, FacetedTags, PlainTag, Tags, TagsMap},
     track::{
@@ -56,8 +58,54 @@ pub const MIXXX_CUSTOM_TAGS_KEY: &str = "MIXXX_CUSTOM_TAGS";
 
 pub const AOIDE_TAGS_KEY: &str = "AOIDE_TAGS";
 
+pub fn filter_comment_values<'s>(
+    comments: impl IntoIterator<Item = (&'s str, &'s str)>,
+    key: &'s str,
+) -> impl Iterator<Item = &'s str> {
+    comments.into_iter().filter_map(|(k, v)| {
+        if k.eq_ignore_ascii_case(key) {
+            Some(v)
+        } else {
+            None
+        }
+    })
+}
+
+pub fn read_first_comment_value<'s>(
+    comments: impl IntoIterator<Item = (&'s str, &'s str)>,
+    key: &'s str,
+) -> Option<&'s str> {
+    filter_comment_values(comments, key).next()
+}
+
 pub trait CommentReader {
     fn read_first_value(&self, key: &str) -> Option<&str>;
+}
+
+impl CommentReader for Vec<(String, String)> {
+    fn read_first_value(&self, key: &str) -> Option<&str> {
+        // TODO: Use filter_comment_values()
+        self.iter().find_map(|(k, v)| {
+            if k.eq_ignore_ascii_case(key) {
+                Some(v.as_str())
+            } else {
+                None
+            }
+        })
+    }
+}
+
+impl CommentReader for HashMap<String, String> {
+    fn read_first_value(&self, key: &str) -> Option<&str> {
+        // TODO: Use filter_comment_values()
+        self.iter().find_map(|(k, v)| {
+            if k.eq_ignore_ascii_case(key) {
+                Some(v.as_str())
+            } else {
+                None
+            }
+        })
+    }
 }
 
 pub trait CommentWriter {
@@ -80,6 +128,72 @@ pub trait CommentWriter {
         }
     }
     fn remove_all_values(&mut self, key: &str);
+}
+
+impl CommentWriter for Vec<(String, String)> {
+    fn write_multiple_values(&mut self, key: String, values: Vec<String>) {
+        // TODO: Optimize or use a different data structure for writing
+        self.remove_all_values(&key);
+        self.reserve(self.len() + values.len());
+        for value in values {
+            self.push((key.clone(), value));
+        }
+    }
+    fn remove_all_values(&mut self, key: &str) {
+        self.retain(|(cmp_key, _)| cmp_key != key)
+    }
+}
+
+pub fn find_embedded_artwork_image<'s>(
+    comments: impl IntoIterator<Item = (&'s str, &'s str)> + Clone,
+) -> Option<(ApicType, String, Vec<u8>)> {
+    // https://wiki.xiph.org/index.php/VorbisComment#Cover_art
+    // The unofficial COVERART field in a VorbisComment tag is deprecated:
+    // https://wiki.xiph.org/VorbisComment#Unofficial_COVERART_field_.28deprecated.29
+    let picture_iter_by_type = |picture_type: Option<PictureType>| {
+        filter_comment_values(comments.clone(), "METADATA_BLOCK_PICTURE")
+            .chain(filter_comment_values(comments.clone(), "COVERART"))
+            .filter_map(|base64_data| {
+                base64::decode(base64_data)
+                    .map_err(|err| {
+                        tracing::warn!("Failed to decode base64 encoded picture block: {}", err);
+                        err
+                    })
+                    .ok()
+            })
+            .filter_map(|decoded| {
+                metaflac::block::Picture::from_bytes(&decoded[..])
+                    .map_err(|err| {
+                        tracing::warn!("Failed to decode FLAC picture block: {}", err);
+                        err
+                    })
+                    .ok()
+            })
+            .filter(move |picture| {
+                if let Some(picture_type) = picture_type {
+                    picture.picture_type == picture_type
+                } else {
+                    true
+                }
+            })
+    };
+    // Decoding and discarding the blocks multiple times is inefficient
+    // but expected to occur only infrequently. Most files will include
+    // just a front cover and nothing else.
+    picture_iter_by_type(Some(PictureType::CoverFront))
+        .chain(picture_iter_by_type(Some(PictureType::Media)))
+        .chain(picture_iter_by_type(Some(PictureType::Leaflet)))
+        .chain(picture_iter_by_type(Some(PictureType::Other)))
+        // otherwise take the first picture that could be parsed
+        .chain(picture_iter_by_type(None))
+        .map(|p| {
+            (
+                ApicType::from_u8(p.picture_type as u8).unwrap_or(ApicType::Other),
+                p.mime_type,
+                p.data,
+            )
+        })
+        .next()
 }
 
 pub fn import_faceted_text_tags<'a>(
