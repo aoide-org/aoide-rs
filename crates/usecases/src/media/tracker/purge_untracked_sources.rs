@@ -59,7 +59,7 @@ where
             Some(DirTrackingStatus::Orphaned),
         )?;
     };
-    repo.media_tracker_find_untracked_files_sources(collection_id, &root_path_prefix)?;
+    repo.media_tracker_find_untracked_sources(collection_id, &root_path_prefix)?;
     summary.purged_media_sources += if root_path_prefix.is_empty() {
         repo.purge_orphaned_media_sources(collection_id)
     } else {

@@ -180,7 +180,7 @@ pub trait Repo {
         path_prefix: &SourcePath,
     ) -> RepoResult<DirectoriesStatus>;
 
-    fn media_tracker_find_untracked_files_sources(
+    fn media_tracker_find_untracked_sources(
         &self,
         collection_id: CollectionId,
         path_prefix: &SourcePath,
