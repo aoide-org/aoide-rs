@@ -37,7 +37,7 @@ use crate::{
 
 use super::vorbis;
 
-fn map_err(err: OpusError) -> Error {
+fn map_opus_err(err: OpusError) -> Error {
     match err {
         OpusError::Io(err) => Error::Io(err),
         err => Error::Other(anyhow::Error::from(err)),
@@ -78,7 +78,7 @@ impl Metadata {
     pub fn read_from(reader: &mut impl Reader) -> Result<Self> {
         opus_headers::parse_from_read(reader)
             .map(Self)
-            .map_err(map_err)
+            .map_err(map_opus_err)
     }
 
     pub fn find_embedded_artwork_image(&self) -> Option<(ApicType, String, Vec<u8>)> {

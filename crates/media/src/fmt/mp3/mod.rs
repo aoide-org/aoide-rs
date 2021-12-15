@@ -35,7 +35,7 @@ use crate::{
 };
 
 use super::id3::{
-    export_track as export_track_into_id3_tag, import_metadata_into_track, map_err as map_id3_err,
+    export_track as export_track_into_id3_tag, import_metadata_into_track, map_id3_err,
 };
 
 fn map_mp3_duration_err(err: mp3_duration::MP3DurationError) -> Error {

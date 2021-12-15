@@ -62,7 +62,7 @@ impl vorbis::CommentWriter for metaflac::Tag {
 
 use triseratops::tag::{TagContainer as SeratoTagContainer, TagFormat as SeratoTagFormat};
 
-fn map_err(err: metaflac::Error) -> Error {
+fn map_metaflac_err(err: metaflac::Error) -> Error {
     let metaflac::Error { kind, description } = err;
     match kind {
         metaflac::ErrorKind::Io(err) => Error::Io(err),
@@ -117,7 +117,9 @@ pub struct Metadata(metaflac::Tag);
 
 impl Metadata {
     pub fn read_from(reader: &mut impl Reader) -> Result<Self> {
-        metaflac::Tag::read_from(reader).map(Self).map_err(map_err)
+        metaflac::Tag::read_from(reader)
+            .map(Self)
+            .map_err(map_metaflac_err)
     }
 
     pub fn find_embedded_artwork_image(&self) -> Option<(ApicType, &str, &[u8])> {
@@ -423,7 +425,7 @@ pub fn export_track_to_path(
                 track.media_source.path,
                 err
             );
-            return Err(map_err(err));
+            return Err(map_metaflac_err(err));
         }
     };
 
@@ -434,7 +436,7 @@ pub fn export_track_to_path(
         // Unmodified
         return Ok(false);
     }
-    metaflac_tag.write_to_path(path).map_err(map_err)?;
+    metaflac_tag.write_to_path(path).map_err(map_metaflac_err)?;
     // Modified
     Ok(true)
 }

@@ -71,7 +71,7 @@ const MIXXX_CUSTOM_TAGS_GEOB_DESCRIPTION: &str = "Mixxx CustomTags";
 
 const AOIDE_TAGS_GEOB_DESCRIPTION: &str = "aoide Tags";
 
-pub(crate) fn map_err(err: id3::Error) -> Error {
+pub(crate) fn map_id3_err(err: id3::Error) -> Error {
     let id3::Error {
         kind,
         description,

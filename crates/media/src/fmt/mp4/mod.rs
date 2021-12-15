@@ -68,7 +68,7 @@ use crate::{
     Error, Result,
 };
 
-fn map_err(err: mp4ameta::Error) -> Error {
+fn map_mp4ameta_err(err: mp4ameta::Error) -> Error {
     let mp4ameta::Error { kind, description } = err;
     match kind {
         mp4ameta::ErrorKind::Io(err) => Error::Io(err),
@@ -200,7 +200,9 @@ pub struct Metadata(Mp4Tag);
 
 impl Metadata {
     pub fn read_from(reader: &mut impl Reader) -> Result<Self> {
-        Mp4Tag::read_from(reader).map(Self).map_err(map_err)
+        Mp4Tag::read_from(reader)
+            .map(Self)
+            .map_err(map_mp4ameta_err)
     }
 
     pub fn find_embedded_artwork_image(&self) -> Option<(ApicType, ImageFormat, &[u8])> {
@@ -626,7 +628,7 @@ pub fn export_track_to_path(
     config: &ExportTrackConfig,
     track: &mut Track,
 ) -> Result<bool> {
-    let mp4_tag_orig = Mp4Tag::read_from_path(path).map_err(map_err)?;
+    let mp4_tag_orig = Mp4Tag::read_from_path(path).map_err(map_mp4ameta_err)?;
 
     let mut mp4_tag = mp4_tag_orig.clone();
 
@@ -937,7 +939,7 @@ pub fn export_track_to_path(
         // Unmodified
         return Ok(false);
     }
-    mp4_tag.write_to_path(path).map_err(map_err)?;
+    mp4_tag.write_to_path(path).map_err(map_mp4ameta_err)?;
     // Modified
     Ok(true)
 }
