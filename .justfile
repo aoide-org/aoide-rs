@@ -26,7 +26,7 @@ fix:
 # Run unit tests
 test:
     cargo test --locked --workspace --all-features -- --nocapture
-    cd webapp && cargo test --target wasm32-unknown-unknown --locked --all-features -- --nocapture
+    cd webapp && cargo test --locked --all-features -- --nocapture
 
 # Update depenencies and pre-commit hooks
 update:
