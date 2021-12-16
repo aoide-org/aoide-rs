@@ -51,50 +51,55 @@ impl Metadata {
         vorbis::find_embedded_artwork_image(&self.1)
     }
 
-    pub fn import_into_track(&self, config: &ImportTrackConfig, track: &mut Track) -> Result<()> {
-        let Self(ident_hdr, vorbis_comments) = &self;
+    pub fn import_audio_content(&self) -> Result<AudioContent> {
+        let Self(ident_header, vorbis_comments) = &self;
+        let channel_count = ChannelCount(ident_header.audio_channels.into());
+        let channels = if channel_count.is_valid() {
+            Some(channel_count.into())
+        } else {
+            tracing::warn!("Invalid channel count: {}", channel_count.0);
+            None
+        };
+        let bitrate = BitrateBps::from_inner(ident_header.bitrate_nominal.into());
+        let bitrate = if bitrate.is_valid() {
+            Some(bitrate)
+        } else {
+            tracing::warn!("Invalid bitrate: {}", bitrate);
+            None
+        };
+        let sample_rate = SampleRateHz::from_inner(ident_header.audio_sample_rate.into());
+        let sample_rate = if sample_rate.is_valid() {
+            Some(sample_rate)
+        } else {
+            tracing::warn!("Invalid sample rate: {}", sample_rate);
+            None
+        };
+        let loudness = vorbis::import_loudness(vorbis_comments);
+        let encoder = vorbis::import_encoder(vorbis_comments).map(Into::into);
+        // TODO: The duration is not available from any header!?
+        let duration = None;
+        let audio_content = AudioContent {
+            duration,
+            channels,
+            sample_rate,
+            bitrate,
+            loudness,
+            encoder,
+        };
+        Ok(audio_content)
+    }
 
+    pub fn import_into_track(&self, config: &ImportTrackConfig, track: &mut Track) -> Result<()> {
         if track
             .media_source
             .content_metadata_flags
             .update(ContentMetadataFlags::RELIABLE)
         {
-            let channel_count = ChannelCount(ident_hdr.audio_channels.into());
-            let channels = if channel_count.is_valid() {
-                Some(channel_count.into())
-            } else {
-                tracing::warn!("Invalid channel count: {}", channel_count.0);
-                None
-            };
-            let bitrate = BitrateBps::from_inner(ident_hdr.bitrate_nominal.into());
-            let bitrate = if bitrate.is_valid() {
-                Some(bitrate)
-            } else {
-                tracing::warn!("Invalid bitrate: {}", bitrate);
-                None
-            };
-            let sample_rate = SampleRateHz::from_inner(ident_hdr.audio_sample_rate.into());
-            let sample_rate = if sample_rate.is_valid() {
-                Some(sample_rate)
-            } else {
-                tracing::warn!("Invalid sample rate: {}", sample_rate);
-                None
-            };
-            let loudness = vorbis::import_loudness(vorbis_comments);
-            let encoder = vorbis::import_encoder(vorbis_comments).map(Into::into);
-            // TODO: The duration is not available from any header!?
-            let duration = None;
-            let audio_content = AudioContent {
-                duration,
-                channels,
-                sample_rate,
-                bitrate,
-                loudness,
-                encoder,
-            };
+            let audio_content = self.import_audio_content()?;
             track.media_source.content = Content::Audio(audio_content);
         }
 
-        vorbis::import_into_track(&self.1, config, track)
+        let Self(_, vorbis_comments) = &self;
+        vorbis::import_into_track(vorbis_comments, config, track)
     }
 }

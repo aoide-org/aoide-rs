@@ -131,42 +131,49 @@ impl Metadata {
         self::find_embedded_artwork_image(metaflac_tag)
     }
 
-    pub fn import_into_track(&self, config: &ImportTrackConfig, track: &mut Track) -> Result<()> {
+    pub fn import_audio_content(&self) -> Option<AudioContent> {
         let Self(metaflac_tag) = self;
+        metaflac_tag.get_streaminfo().map(|streaminfo| {
+            let channels = Some(ChannelCount(streaminfo.num_channels.into()).into());
+            let duration;
+            let sample_rate;
+            if streaminfo.sample_rate > 0 {
+                duration = Some(
+                    Duration::from_secs_f64(
+                        streaminfo.total_samples as f64 / streaminfo.sample_rate as f64,
+                    )
+                    .into(),
+                );
+                sample_rate = Some(SampleRateHz::from_inner(streaminfo.sample_rate.into()));
+            } else {
+                duration = None;
+                sample_rate = None;
+            };
+            let loudness = vorbis::import_loudness(metaflac_tag);
+            let encoder = vorbis::import_encoder(metaflac_tag).map(Into::into);
+            AudioContent {
+                duration,
+                channels,
+                sample_rate,
+                bitrate: None,
+                loudness,
+                encoder,
+            }
+        })
+    }
+
+    pub fn import_into_track(&self, config: &ImportTrackConfig, track: &mut Track) -> Result<()> {
         if track
             .media_source
             .content_metadata_flags
             .update(ContentMetadataFlags::RELIABLE)
         {
-            if let Some(streaminfo) = metaflac_tag.get_streaminfo() {
-                let channels = Some(ChannelCount(streaminfo.num_channels.into()).into());
-                let duration;
-                let sample_rate;
-                if streaminfo.sample_rate > 0 {
-                    duration = Some(
-                        Duration::from_secs_f64(
-                            streaminfo.total_samples as f64 / streaminfo.sample_rate as f64,
-                        )
-                        .into(),
-                    );
-                    sample_rate = Some(SampleRateHz::from_inner(streaminfo.sample_rate.into()));
-                } else {
-                    duration = None;
-                    sample_rate = None;
-                };
-                let loudness = vorbis::import_loudness(metaflac_tag);
-                let encoder = vorbis::import_encoder(metaflac_tag).map(Into::into);
-                let audio_content = AudioContent {
-                    duration,
-                    channels,
-                    sample_rate,
-                    bitrate: None,
-                    loudness,
-                    encoder,
-                };
+            if let Some(audio_content) = self.import_audio_content() {
                 track.media_source.content = Content::Audio(audio_content);
             }
         }
+
+        let Self(metaflac_tag) = self;
 
         if let Some(tempo_bpm) = vorbis::import_tempo_bpm(metaflac_tag) {
             track.metrics.tempo_bpm = Some(tempo_bpm);

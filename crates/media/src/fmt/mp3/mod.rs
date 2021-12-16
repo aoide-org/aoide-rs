@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{io::SeekFrom, ops::Deref, path::Path};
+use std::{borrow::Cow, io::SeekFrom, ops::Deref, path::Path, time::Duration};
 
 use aoide_core::{
     audio::{
@@ -21,7 +21,7 @@ use aoide_core::{
         signal::{BitrateBps, BitsPerSecond, SampleRateHz, SamplesPerSecond},
         AudioContent,
     },
-    media::ApicType,
+    media::{ApicType, Content, ContentMetadataFlags},
     track::Track,
 };
 use mp3_duration::{ParseMode, StreamInfo};
@@ -35,7 +35,8 @@ use crate::{
 };
 
 use super::id3::{
-    export_track as export_track_into_id3_tag, import_metadata_into_track, map_id3_err,
+    export_track as export_track_into_id3_tag, import_encoder, import_loudness,
+    import_metadata_into_track, map_id3_err,
 };
 
 fn map_mp3_duration_err(err: mp3_duration::MP3DurationError) -> Error {
@@ -85,10 +86,8 @@ impl MetadataExt {
         Ok(Self(stream_info, metadata))
     }
 
-    pub fn import_into_track(self, config: &ImportTrackConfig, track: &mut Track) -> Result<()> {
-        let Self(stream_info, metadata) = self;
-        let Metadata(id3_tag) = metadata;
-
+    pub fn import_audio_content(&self) -> AudioContent {
+        let Self(stream_info, Metadata(id3_tag)) = self;
         let StreamInfo {
             max_channel_count,
             avg_sampling_rate,
@@ -96,17 +95,46 @@ impl MetadataExt {
             duration,
             ..
         } = stream_info;
-        let audio_content = AudioContent {
-            duration: Some(duration.into()),
-            channels: Some(ChannelCount(max_channel_count as NumberOfChannels).into()),
+        let loudness = import_loudness(id3_tag);
+        let encoder = import_encoder(id3_tag).map(Cow::into_owned);
+        AudioContent {
+            duration: Some(duration.to_owned().into()),
+            channels: Some(ChannelCount(*max_channel_count as NumberOfChannels).into()),
             sample_rate: Some(SampleRateHz::from_inner(
-                avg_sampling_rate as SamplesPerSecond,
+                *avg_sampling_rate as SamplesPerSecond,
             )),
-            bitrate: Some(BitrateBps::from_inner(avg_bitrate as BitsPerSecond)),
-            ..Default::default()
-        };
+            bitrate: Some(BitrateBps::from_inner(*avg_bitrate as BitsPerSecond)),
+            loudness,
+            encoder,
+        }
+    }
 
-        import_metadata_into_track(audio_content, &id3_tag, config, track)
+    pub fn import_into_track(self, config: &ImportTrackConfig, track: &mut Track) -> Result<()> {
+        let mut audio_content = self.import_audio_content();
+        let Self(_, Metadata(id3_tag)) = self;
+        let update_metadata_flags = if audio_content.duration.is_some() {
+            // Accurate duration
+            ContentMetadataFlags::RELIABLE
+        } else {
+            audio_content.duration = id3_tag
+                .duration()
+                .map(|secs| Duration::from_secs(u64::from(secs)).into());
+            ContentMetadataFlags::UNRELIABLE
+        };
+        if track
+            .media_source
+            .content_metadata_flags
+            .update(update_metadata_flags)
+        {
+            track.media_source.content = Content::Audio(audio_content);
+        } else {
+            tracing::info!(
+                "Skipping import of audio content for {}",
+                track.media_source.path
+            );
+        }
+
+        import_metadata_into_track(&id3_tag, config, track)
     }
 }
 

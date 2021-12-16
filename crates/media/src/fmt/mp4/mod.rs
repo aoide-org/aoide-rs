@@ -210,38 +210,46 @@ impl Metadata {
         self::find_embedded_artwork_image(mp4_tag)
     }
 
-    pub fn import_into_track(self, config: &ImportTrackConfig, track: &mut Track) -> Result<()> {
-        let Self(mut mp4_tag) = self;
+    pub fn import_audio_content(&mut self) -> AudioContent {
+        let Self(mp4_tag) = self;
+        let duration = mp4_tag.duration().map(Into::into);
+        let channels = mp4_tag.channel_config().map(read_channels);
+        let sample_rate = mp4_tag
+            .sample_rate()
+            .as_ref()
+            .map(Mp4SampleRate::hz)
+            .map(|hz| SampleRateHz::from_inner(hz as SamplesPerSecond));
+        let bitrate = mp4_tag.avg_bitrate().and_then(read_bitrate);
+        let loudness = mp4_tag
+            .strings_of(&IDENT_REPLAYGAIN_TRACK_GAIN)
+            .next()
+            .and_then(parse_replay_gain);
+        let encoder = mp4_tag.take_encoder().and_then(trimmed_non_empty);
+        AudioContent {
+            duration,
+            channels,
+            sample_rate,
+            bitrate,
+            loudness,
+            encoder,
+        }
+    }
 
+    pub fn import_into_track(
+        mut self,
+        config: &ImportTrackConfig,
+        track: &mut Track,
+    ) -> Result<()> {
         if track
             .media_source
             .content_metadata_flags
             .update(ContentMetadataFlags::UNRELIABLE)
         {
-            let duration = mp4_tag.duration().map(Into::into);
-            let channels = mp4_tag.channel_config().map(read_channels);
-            let sample_rate = mp4_tag
-                .sample_rate()
-                .as_ref()
-                .map(Mp4SampleRate::hz)
-                .map(|hz| SampleRateHz::from_inner(hz as SamplesPerSecond));
-            let bitrate = mp4_tag.avg_bitrate().and_then(read_bitrate);
-            let loudness = mp4_tag
-                .strings_of(&IDENT_REPLAYGAIN_TRACK_GAIN)
-                .next()
-                .and_then(parse_replay_gain);
-            let encoder = mp4_tag.take_encoder().and_then(trimmed_non_empty);
-            let audio_content = AudioContent {
-                duration,
-                channels,
-                sample_rate,
-                bitrate,
-                loudness,
-                encoder,
-            };
+            let audio_content = self.import_audio_content();
             track.media_source.content = Content::Audio(audio_content);
         }
 
+        let Self(mut mp4_tag) = self;
         if let Some(advisory_rating) = mp4_tag.advisory_rating() {
             let advisory_rating = match advisory_rating {
                 Mp4AdvisoryRating::Inoffensive => AdvisoryRating::Unrated,

@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{borrow::Cow, time::Duration};
+use std::borrow::Cow;
 
 use chrono::{Datelike as _, NaiveDate, NaiveDateTime, NaiveTime, Timelike as _, Utc};
 use id3::{
@@ -29,8 +29,8 @@ use triseratops::tag::{
 };
 
 use aoide_core::{
-    audio::AudioContent,
-    media::{concat_encoder_properties, ApicType, Artwork, Content, ContentMetadataFlags},
+    audio::signal::LoudnessLufs,
+    media::{concat_encoder_properties, ApicType, Artwork, Content},
     tag::{FacetId, FacetedTags, PlainTag, Tags, TagsMap},
     track::{
         actor::ActorRole,
@@ -167,6 +167,14 @@ fn first_extended_text<'a>(tag: &'a id3::Tag, description: &'a str) -> Option<&'
     extended_texts(tag, description).next()
 }
 
+pub fn import_loudness(tag: &id3::Tag) -> Option<LoudnessLufs> {
+    first_extended_text(tag, "REPLAYGAIN_TRACK_GAIN").and_then(parse_replay_gain)
+}
+
+pub fn import_encoder(tag: &id3::Tag) -> Option<Cow<'_, str>> {
+    concat_encoder_properties(first_text_frame(tag, "TENC"), first_text_frame(tag, "TSSE"))
+}
+
 fn import_faceted_tags_from_text_frames(
     tags_map: &mut TagsMap,
     faceted_tag_mapping_config: &FacetedTagMappingConfig,
@@ -224,38 +232,10 @@ pub fn find_embedded_artwork_image(tag: &id3::Tag) -> Option<(ApicType, &str, &[
 }
 
 pub fn import_metadata_into_track(
-    mut audio_content: AudioContent,
     tag: &id3::Tag,
     config: &ImportTrackConfig,
     track: &mut Track,
 ) -> Result<()> {
-    let metadata_flags = if audio_content.duration.is_some() {
-        // Accurate duration
-        ContentMetadataFlags::RELIABLE
-    } else {
-        audio_content.duration = tag
-            .duration()
-            .map(|secs| Duration::from_secs(u64::from(secs)).into());
-        ContentMetadataFlags::UNRELIABLE
-    };
-    if track
-        .media_source
-        .content_metadata_flags
-        .update(metadata_flags)
-    {
-        let loudness =
-            first_extended_text(tag, "REPLAYGAIN_TRACK_GAIN").and_then(parse_replay_gain);
-        let encoder =
-            concat_encoder_properties(first_text_frame(tag, "TENC"), first_text_frame(tag, "TSSE"))
-                .map(Cow::into_owned);
-        audio_content = AudioContent {
-            loudness,
-            encoder,
-            ..audio_content
-        };
-        track.media_source.content = Content::Audio(audio_content);
-    }
-
     let mut tempo_bpm_non_fractional = false;
     if let Some(tempo_bpm) = first_extended_text(tag, "BPM")
         .and_then(parse_tempo_bpm)
