@@ -33,7 +33,7 @@ use aoide_core::{
         AudioContent,
     },
     media::{AdvisoryRating, ApicType, Artwork, Content, ContentMetadataFlags},
-    music::time::{Beats, TempoBpm},
+    music::tempo::TempoBpm,
     tag::{FacetedTags, PlainTag, Score as TagScore, Tags, TagsMap},
     track::{
         actor::ActorRole,
@@ -268,7 +268,7 @@ impl Metadata {
             .or_else(|| {
                 mp4_tag.bpm().and_then(|bpm| {
                     tempo_bpm_non_fractional = true;
-                    let bpm = TempoBpm(Beats::from(bpm));
+                    let bpm = TempoBpm::from_raw(bpm.into());
                     bpm.is_valid().then(|| bpm)
                 })
             });
@@ -667,9 +667,9 @@ pub fn export_track_to_path(
                 .metrics
                 .tempo_bpm
                 .expect("valid bpm")
-                .0
+                .to_raw()
                 .round()
-                .max(u16::MAX as Beats) as u16,
+                .max(TempoBpm::from_raw(u16::MAX.into()).to_raw()) as u16,
         );
     } else {
         mp4_tag.remove_bpm();

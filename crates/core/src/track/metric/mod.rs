@@ -15,8 +15,9 @@
 
 use crate::{
     music::{
+        beat::{TimeSignature, TimeSignatureInvalidity},
         key::KeySignature,
-        time::{TempoBpm, TempoBpmInvalidity, TimeSignature, TimeSignatureInvalidity},
+        tempo::{TempoBpm, TempoBpmInvalidity},
     },
     prelude::*,
 };

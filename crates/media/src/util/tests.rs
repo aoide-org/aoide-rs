@@ -108,31 +108,31 @@ fn format_validated_tempo_bpm_none() {
 
 #[test]
 fn format_validated_tempo_bpm_invalid() {
-    let mut tempo_bpm = Some(TempoBpm(TempoBpm::min().0 - 1.0));
+    let mut tempo_bpm = Some(TempoBpm::from_raw(TempoBpm::min().to_raw() - 1.0));
     assert_eq!(None, format_validated_tempo_bpm(&mut tempo_bpm));
     assert_eq!(None, tempo_bpm);
 
-    let mut tempo_bpm = Some(TempoBpm(0.0));
+    let mut tempo_bpm = Some(TempoBpm::from_raw(0.0));
     assert_eq!(None, format_validated_tempo_bpm(&mut tempo_bpm));
     assert_eq!(None, tempo_bpm);
 
-    let mut tempo_bpm = Some(TempoBpm(-0.0));
+    let mut tempo_bpm = Some(TempoBpm::from_raw(-0.0));
     assert_eq!(None, format_validated_tempo_bpm(&mut tempo_bpm));
     assert_eq!(None, tempo_bpm);
 }
 
 #[test]
 fn format_validated_tempo_bpm_min_max() {
-    let mut tempo_bpm = Some(TempoBpm(TempoBpm::min().0));
+    let mut tempo_bpm = Some(TempoBpm::from_raw(TempoBpm::min().to_raw()));
     assert_eq!(
-        Some(TempoBpm::min().0.to_string()),
+        Some(TempoBpm::min().to_raw().to_string()),
         format_validated_tempo_bpm(&mut tempo_bpm)
     );
     assert_eq!(Some(TempoBpm::min()), tempo_bpm);
 
-    let mut tempo_bpm = Some(TempoBpm(TempoBpm::max().0));
+    let mut tempo_bpm = Some(TempoBpm::from_raw(TempoBpm::max().to_raw()));
     assert_eq!(
-        Some(TempoBpm::max().0.to_string()),
+        Some(TempoBpm::max().to_raw().to_string()),
         format_validated_tempo_bpm(&mut tempo_bpm)
     );
     assert_eq!(Some(TempoBpm::max()), tempo_bpm);

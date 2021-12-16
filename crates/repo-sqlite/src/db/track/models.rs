@@ -20,8 +20,9 @@ use crate::prelude::*;
 use aoide_core::{
     entity::{EntityHeader, EntityRevision},
     music::{
+        beat::{BeatUnit, BeatsPerMeasure, TimeSignature},
         key::{KeyCode, KeyCodeValue, KeySignature},
-        time::{BeatUnit, Beats, BeatsPerMeasure, TempoBpm, TimeSignature},
+        tempo::{Bpm, TempoBpm},
     },
     track::{actor::*, album::*, index::*, metric::*, release::*, title::*, *},
     util::{clock::*, color::*},
@@ -55,7 +56,7 @@ pub struct QueryableRecord {
     pub disc_total: Option<i16>,
     pub movement_number: Option<i16>,
     pub movement_total: Option<i16>,
-    pub music_tempo_bpm: Option<Beats>,
+    pub music_tempo_bpm: Option<Bpm>,
     pub music_key_code: i16,
     pub music_beats_per_measure: Option<i16>,
     pub music_beat_unit: Option<i16>,
@@ -199,7 +200,7 @@ pub fn load_repo_entity(
         }
     };
     let metrics = Metrics {
-        tempo_bpm: music_tempo_bpm.map(TempoBpm),
+        tempo_bpm: music_tempo_bpm.map(TempoBpm::from_raw),
         key_signature: KeySignature::new(KeyCode::from_value(music_key_code as KeyCodeValue)),
         time_signature,
         flags: MetricsFlags::from_bits_truncate(music_flags as u8),
@@ -253,7 +254,7 @@ pub struct InsertableRecord<'a> {
     pub disc_total: Option<i16>,
     pub movement_number: Option<i16>,
     pub movement_total: Option<i16>,
-    pub music_tempo_bpm: Option<Beats>,
+    pub music_tempo_bpm: Option<Bpm>,
     pub music_key_code: i16,
     pub music_beats_per_measure: Option<i16>,
     pub music_beat_unit: Option<i16>,
@@ -336,7 +337,7 @@ impl<'a> InsertableRecord<'a> {
             disc_total: disc_index.total.map(|idx| idx as i16),
             movement_number: movement_index.number.map(|idx| idx as i16),
             movement_total: movement_index.total.map(|idx| idx as i16),
-            music_tempo_bpm: tempo_bpm.map(|bpm| bpm.0),
+            music_tempo_bpm: tempo_bpm.map(TempoBpm::to_raw),
             music_key_code: key_signature.code().to_value() as i16,
             music_beats_per_measure: time_signature
                 .map(|time_sig| time_sig.beats_per_measure as i16),
@@ -385,7 +386,7 @@ pub struct UpdatableRecord<'a> {
     pub disc_total: Option<i16>,
     pub movement_number: Option<i16>,
     pub movement_total: Option<i16>,
-    pub music_tempo_bpm: Option<Beats>,
+    pub music_tempo_bpm: Option<Bpm>,
     pub music_key_code: i16,
     pub music_beats_per_measure: Option<i16>,
     pub music_beat_unit: Option<i16>,
@@ -470,7 +471,7 @@ impl<'a> UpdatableRecord<'a> {
             disc_total: disc_index.total.map(|total| total as i16),
             movement_number: movement_index.number.map(|number| number as i16),
             movement_total: movement_index.total.map(|total| total as i16),
-            music_tempo_bpm: tempo_bpm.map(|bpm| bpm.0),
+            music_tempo_bpm: tempo_bpm.map(TempoBpm::to_raw),
             music_key_code: key_signature.code().to_value() as i16,
             music_beats_per_measure: time_signature
                 .map(|time_sig| time_sig.beats_per_measure as i16),

@@ -15,17 +15,11 @@
 
 use super::*;
 
-use crate::music::{
-    key::KeyCode,
-    time::{TempoBpm, TimeSignature},
-};
+use crate::music::{beat::TimeSignature, key::KeyCode, tempo::TempoBpm};
 
 mod _core {
     pub use aoide_core::{
-        music::{
-            key::KeyCode,
-            time::{TempoBpm, TimeSignature},
-        },
+        music::{beat::TimeSignature, key::KeyCode, tempo::TempoBpm},
         track::metric::Metrics,
     };
 }

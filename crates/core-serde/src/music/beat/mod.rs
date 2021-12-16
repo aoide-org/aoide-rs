@@ -16,26 +16,7 @@
 use crate::prelude::*;
 
 mod _core {
-    pub use aoide_core::music::time::*;
-}
-
-///////////////////////////////////////////////////////////////////////
-// Tempo
-///////////////////////////////////////////////////////////////////////
-
-#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
-pub struct TempoBpm(_core::Beats);
-
-impl From<_core::TempoBpm> for TempoBpm {
-    fn from(from: _core::TempoBpm) -> Self {
-        Self(from.0)
-    }
-}
-
-impl From<TempoBpm> for _core::TempoBpm {
-    fn from(from: TempoBpm) -> Self {
-        Self(from.0)
-    }
+    pub use aoide_core::music::beat::*;
 }
 
 ///////////////////////////////////////////////////////////////////////

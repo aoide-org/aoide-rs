@@ -26,7 +26,7 @@ use triseratops::tag::{
 use aoide_core::{
     audio::signal::LoudnessLufs,
     media::{concat_encoder_properties, ApicType, Artwork, Content},
-    music::{key::KeySignature, time::TempoBpm},
+    music::{key::KeySignature, tempo::TempoBpm},
     tag::{FacetId, FacetedTags, PlainTag, Tags, TagsMap},
     track::{
         actor::ActorRole,

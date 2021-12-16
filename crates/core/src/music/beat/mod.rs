@@ -18,53 +18,6 @@ use crate::prelude::*;
 use std::{f64, fmt};
 
 ///////////////////////////////////////////////////////////////////////
-// Tempo
-///////////////////////////////////////////////////////////////////////
-
-pub type Beats = f64;
-
-#[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
-pub struct TempoBpm(pub Beats);
-
-impl TempoBpm {
-    pub const fn unit_of_measure() -> &'static str {
-        "bpm"
-    }
-
-    pub const fn min() -> Self {
-        Self(f64::MIN_POSITIVE)
-    }
-
-    pub const fn max() -> Self {
-        Self(f64::MAX)
-    }
-}
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum TempoBpmInvalidity {
-    OutOfRange,
-}
-
-impl Validate for TempoBpm {
-    type Invalidity = TempoBpmInvalidity;
-
-    fn validate(&self) -> ValidationResult<Self::Invalidity> {
-        ValidationContext::new()
-            .invalidate_if(
-                !(*self >= Self::min() && *self <= Self::max()),
-                TempoBpmInvalidity::OutOfRange,
-            )
-            .into()
-    }
-}
-
-impl fmt::Display for TempoBpm {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.0, Self::unit_of_measure())
-    }
-}
-
-///////////////////////////////////////////////////////////////////////
 // TimeSignature
 ///////////////////////////////////////////////////////////////////////
 

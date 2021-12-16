@@ -13,6 +13,27 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod beat;
-pub mod key;
-pub mod tempo;
+use crate::prelude::*;
+
+mod _core {
+    pub use aoide_core::music::tempo::*;
+}
+
+///////////////////////////////////////////////////////////////////////
+// Tempo
+///////////////////////////////////////////////////////////////////////
+
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct TempoBpm(_core::Bpm);
+
+impl From<_core::TempoBpm> for TempoBpm {
+    fn from(from: _core::TempoBpm) -> Self {
+        Self(from.to_raw())
+    }
+}
+
+impl From<TempoBpm> for _core::TempoBpm {
+    fn from(from: TempoBpm) -> Self {
+        Self::from_raw(from.0)
+    }
+}

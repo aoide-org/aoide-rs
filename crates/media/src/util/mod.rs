@@ -38,7 +38,7 @@ use aoide_core::{
     },
     music::{
         key::{KeyCode, KeySignature},
-        time::TempoBpm,
+        tempo::TempoBpm,
     },
     track::{
         actor::{Actor, ActorKind, ActorRole},
@@ -228,7 +228,7 @@ pub fn parse_tempo_bpm(input: &str) -> Option<TempoBpm> {
     }
     match input.parse() {
         Ok(bpm) => {
-            let tempo_bpm = TempoBpm(bpm);
+            let tempo_bpm = TempoBpm::from_raw(bpm);
             if !tempo_bpm.is_valid() {
                 // The value 0 is often used for an unknown bpm.
                 // Silently ignore this special value to prevent log spam.
@@ -261,7 +261,7 @@ pub fn format_validated_tempo_bpm(tempo_bpm: &mut Option<TempoBpm>) -> Option<St
 }
 
 pub fn format_tempo_bpm(tempo_bpm: &mut TempoBpm) -> String {
-    let formatted_bpm = format_parseable_value(&mut tempo_bpm.0);
+    let formatted_bpm = format_parseable_value(&mut tempo_bpm.to_raw());
     debug_assert_eq!(Some(*tempo_bpm), parse_tempo_bpm(&formatted_bpm));
     formatted_bpm
 }
