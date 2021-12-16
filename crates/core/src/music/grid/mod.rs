@@ -13,7 +13,24 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pub mod beat;
-pub mod grid;
-pub mod key;
-pub mod tempo;
+use super::{
+    beat::{MeasurePosition, TimeSignature},
+    key::KeySignature,
+    tempo::TempoBpm,
+};
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct TempoAnchor {
+    pub tempo_bpm: TempoBpm,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KeyAnchor {
+    pub key_signature: KeySignature,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct BeatAnchor {
+    pub time_signature: TimeSignature,
+    pub measure_position: Option<MeasurePosition>,
+}
