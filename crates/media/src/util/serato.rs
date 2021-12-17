@@ -27,15 +27,18 @@ use triseratops::tag::{color::Color as SeratoColor, TagContainer};
 
 use crate::Result;
 
+const CUE_BANK_INDEX: i16 = 0;
+const LOOP_BANK_INDEX: i16 = 1;
+
 /// Return a canonical vector of cues found in the tag container.
 pub fn read_cues(serato_tags: &TagContainer) -> Result<Vec<Cue>> {
     let mut track_cues = vec![];
 
     for serato_cue in serato_tags.cues() {
         let cue = Cue {
-            bank_index: 0,
+            bank_index: CUE_BANK_INDEX,
             slot_index: Some(serato_cue.index.into()),
-            in_position: Some(PositionMs(serato_cue.position_millis.into())),
+            in_position: Some(PositionMs(serato_cue.position.millis.into())),
             out_position: None,
             out_mode: None,
             label: trimmed_non_empty(serato_cue.label),
@@ -54,10 +57,10 @@ pub fn read_cues(serato_tags: &TagContainer) -> Result<Vec<Cue>> {
             CueFlags::empty()
         };
         let cue = Cue {
-            bank_index: 1,
+            bank_index: LOOP_BANK_INDEX,
             slot_index: Some(serato_loop.index.into()),
-            in_position: Some(PositionMs(serato_loop.start_position_millis.into())),
-            out_position: Some(PositionMs(serato_loop.end_position_millis.into())),
+            in_position: Some(PositionMs(serato_loop.start_position.millis.into())),
+            out_position: Some(PositionMs(serato_loop.end_position.millis.into())),
             out_mode: Some(OutMode::Loop),
             label: trimmed_non_empty(serato_loop.label),
             color: None,
