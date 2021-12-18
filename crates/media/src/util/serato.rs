@@ -27,9 +27,9 @@ use triseratops::tag::{color::Color as SeratoColor, TagContainer};
 
 use crate::Result;
 
-const CUE_BANK_INDEX: i16 = 0;
-const LOOP_BANK_INDEX: i16 = 1;
 
+const CUE_BANK_INDEX: i16 = 1;
+const LOOP_BANK_INDEX: i16 = 2;
 /// Return a canonical vector of cues found in the tag container.
 pub fn read_cues(serato_tags: &TagContainer) -> Result<Vec<Cue>> {
     let mut track_cues = vec![];
