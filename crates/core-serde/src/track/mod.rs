@@ -71,7 +71,7 @@ pub struct Track {
     #[serde(skip_serializing_if = "IsDefault::is_default", default)]
     pub metrics: Metrics,
 
-    #[serde(skip_serializing_if = "IsDefault::is_default", default)]
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub cues: Vec<Cue>,
 
     #[serde(skip_serializing_if = "IsDefault::is_default", default)]

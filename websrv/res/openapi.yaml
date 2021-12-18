@@ -1599,6 +1599,22 @@ components:
 
         Bits:
           - 0x01: Locked
+    CueInMarker:
+      type: object
+      properties:
+        positionMs:
+          $ref: '#/components/schemas/PositionMs'
+      required:
+        - positionMs
+    CueOutMarker:
+      type: object
+      properties:
+        positionMs:
+          $ref: '#/components/schemas/PositionMs'
+        mode:
+          $ref: '#/components/schemas/CueOutMode'
+      required:
+        - positionMs
     CueOutMode:
       enum: [0, 1, 2, 3]
       description: |
@@ -2944,12 +2960,10 @@ components:
           $ref: '#/components/schemas/CueBankIndex'
         slotIndex:
           $ref: '#/components/schemas/CueSlotIndex'
-        inPositionMs:
-          $ref: '#/components/schemas/PositionMs'
-        outPositionMs:
-          $ref: '#/components/schemas/PositionMs'
-        outMode:
-          $ref: '#/components/schemas/CueOutMode'
+        inMarker:
+          $ref: '#/components/schemas/CueInMarker'
+        outMarker:
+          $ref: '#/components/schemas/CueOutMarker'
         label:
           $ref: '#/components/schemas/CueLabel'
         color:

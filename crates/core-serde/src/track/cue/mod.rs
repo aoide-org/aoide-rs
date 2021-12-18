@@ -18,12 +18,12 @@ use crate::{audio::PositionMs, prelude::*};
 mod _core {
     pub use aoide_core::{
         audio::{PositionInMilliseconds, PositionMs},
-        track::cue::{Cue, OutMode},
+        track::cue::{Cue, InMarker, OutMarker, OutMode},
     };
 }
 
 use aoide_core::{
-    track::cue::{BankIndex, CueFlags, InMarker, OutMarker, SlotIndex},
+    track::cue::{BankIndex, CueFlags, SlotIndex},
     util::IsDefault,
 };
 
@@ -31,7 +31,8 @@ use aoide_core::{
 // OutMode
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize_repr, Deserialize_repr, JsonSchema)]
+#[derive(Copy, Clone, Debug, Serialize_repr, Deserialize_repr, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[repr(u8)]
 pub enum OutMode {
     Cont = 0,
@@ -64,7 +65,63 @@ impl From<OutMode> for _core::OutMode {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct InMarker {
+    pub position_ms: PositionMs,
+}
+
+impl From<_core::InMarker> for InMarker {
+    fn from(from: _core::InMarker) -> Self {
+        let _core::InMarker { position } = from;
+        Self {
+            position_ms: position.into(),
+        }
+    }
+}
+
+impl From<InMarker> for _core::InMarker {
+    fn from(from: InMarker) -> Self {
+        let InMarker { position_ms } = from;
+        Self {
+            position: position_ms.into(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct OutMarker {
+    pub position_ms: PositionMs,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mode: Option<OutMode>,
+}
+
+impl From<_core::OutMarker> for OutMarker {
+    fn from(from: _core::OutMarker) -> Self {
+        let _core::OutMarker { position, mode } = from;
+        Self {
+            position_ms: position.into(),
+            mode: mode.map(Into::into),
+        }
+    }
+}
+
+impl From<OutMarker> for _core::OutMarker {
+    fn from(from: OutMarker) -> Self {
+        let OutMarker { position_ms, mode } = from;
+        Self {
+            position: position_ms.into(),
+            mode: mode.map(Into::into),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Cue {
     pub bank_index: BankIndex,
@@ -73,13 +130,10 @@ pub struct Cue {
     pub slot_index: Option<SlotIndex>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub in_position_ms: Option<PositionMs>,
+    pub in_marker: Option<InMarker>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub out_position_ms: Option<PositionMs>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub out_mode: Option<OutMode>,
+    pub out_marker: Option<OutMarker>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
@@ -102,16 +156,11 @@ impl From<_core::Cue> for Cue {
             color,
             flags,
         } = from;
-        let in_position = in_marker.map(|InMarker { position }| position);
-        let (out_position, out_mode) = out_marker
-            .map(|OutMarker { position, mode }| (Some(position), mode))
-            .unwrap_or((None, None));
         Self {
             bank_index,
             slot_index,
-            in_position_ms: in_position.map(Into::into),
-            out_position_ms: out_position.map(Into::into),
-            out_mode: out_mode.map(Into::into),
+            in_marker: in_marker.map(Into::into),
+            out_marker: out_marker.map(Into::into),
             label: label.map(Into::into),
             color: color.map(Into::into),
             flags: flags.bits(),
@@ -124,25 +173,17 @@ impl From<Cue> for _core::Cue {
         let Cue {
             bank_index,
             slot_index,
-            in_position_ms,
-            out_position_ms,
-            out_mode,
+            in_marker,
+            out_marker,
             label,
             color,
             flags,
         } = from;
-        let in_marker = in_position_ms.map(|position_ms| InMarker {
-            position: position_ms.into(),
-        });
-        let out_marker = out_position_ms.map(|position_ms| OutMarker {
-            position: position_ms.into(),
-            mode: out_mode.map(Into::into),
-        });
         Self {
             bank_index,
             slot_index,
-            in_marker,
-            out_marker,
+            in_marker: in_marker.map(Into::into),
+            out_marker: out_marker.map(Into::into),
             label: label.map(Into::into),
             color: color.map(Into::into),
             flags: CueFlags::from_bits_truncate(flags),
