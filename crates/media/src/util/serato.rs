@@ -23,57 +23,60 @@ use aoide_core::{
     },
 };
 
-use triseratops::tag::{color::Color as SeratoColor, TagContainer};
-
-use crate::Result;
-
+use triseratops::tag::{
+    color::Color as SeratoColor,
+    generic::{Cue as SeratoCue, Loop},
+    TagContainer,
+};
 
 const CUE_BANK_INDEX: i16 = 1;
 const LOOP_BANK_INDEX: i16 = 2;
-/// Return a canonical vector of cues found in the tag container.
-pub fn read_cues(serato_tags: &TagContainer) -> Result<Vec<Cue>> {
-    let mut track_cues = vec![];
 
-    for serato_cue in serato_tags.cues() {
-        let cue = Cue {
-            bank_index: CUE_BANK_INDEX,
-            slot_index: Some(serato_cue.index.into()),
-            in_position: Some(PositionMs(serato_cue.position.millis.into())),
-            out_position: None,
-            out_mode: None,
-            label: trimmed_non_empty(serato_cue.label),
-            color: Some(Color::Rgb(RgbColor(
-                serato_cue.color.into_pro_hotcue_color().into(),
-            ))),
-            flags: CueFlags::empty(),
-        };
-        track_cues.push(cue);
+fn import_cue(serato_cue: SeratoCue) -> Cue {
+    Cue {
+        bank_index: CUE_BANK_INDEX,
+        slot_index: Some(serato_cue.index.into()),
+        in_position: Some(PositionMs(serato_cue.position.millis.into())),
+        out_position: None,
+        out_mode: None,
+        label: trimmed_non_empty(serato_cue.label),
+        color: Some(Color::Rgb(RgbColor(
+            serato_cue.color.into_pro_hotcue_color().into(),
+        ))),
+        flags: CueFlags::empty(),
     }
-
-    for serato_loop in serato_tags.loops() {
-        let flags = if serato_loop.is_locked {
-            CueFlags::LOCKED
-        } else {
-            CueFlags::empty()
-        };
-        let cue = Cue {
-            bank_index: LOOP_BANK_INDEX,
-            slot_index: Some(serato_loop.index.into()),
-            in_position: Some(PositionMs(serato_loop.start_position.millis.into())),
-            out_position: Some(PositionMs(serato_loop.end_position.millis.into())),
-            out_mode: Some(OutMode::Loop),
-            label: trimmed_non_empty(serato_loop.label),
-            color: None,
-            flags,
-        };
-        track_cues.push(cue);
-    }
-
-    let track_cues = track_cues.canonicalize_into();
-    Ok(track_cues)
 }
 
-pub fn read_track_color(serato_tags: &TagContainer) -> Option<Color> {
+fn import_loop(serato_loop: Loop) -> Cue {
+    let flags = if serato_loop.is_locked {
+        CueFlags::LOCKED
+    } else {
+        CueFlags::empty()
+    };
+    Cue {
+        bank_index: LOOP_BANK_INDEX,
+        slot_index: Some(serato_loop.index.into()),
+        in_position: Some(PositionMs(serato_loop.start_position.millis.into())),
+        out_position: Some(PositionMs(serato_loop.end_position.millis.into())),
+        out_mode: Some(OutMode::Loop),
+        label: trimmed_non_empty(serato_loop.label),
+        color: None,
+        flags,
+    }
+}
+
+/// Return a canonical vector of cues found in the tag container.
+pub fn import_cues(serato_tags: &TagContainer) -> Vec<Cue> {
+    serato_tags
+        .cues()
+        .into_iter()
+        .map(import_cue)
+        .chain(serato_tags.loops().into_iter().map(import_loop))
+        .collect::<Vec<_>>()
+        .canonicalize_into()
+}
+
+pub fn import_track_color(serato_tags: &TagContainer) -> Option<Color> {
     serato_tags
         .track_color()
         .and_then(SeratoColor::into_displayed_track_color)

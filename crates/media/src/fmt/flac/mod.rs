@@ -411,12 +411,12 @@ impl Metadata {
             let mut serato_tags = SeratoTagContainer::new();
             vorbis::import_serato_markers2(metaflac_tag, &mut serato_tags, SeratoTagFormat::FLAC);
 
-            let track_cues = serato::read_cues(&serato_tags)?;
+            let track_cues = serato::import_cues(&serato_tags);
             if !track_cues.is_empty() {
                 track.cues = Canonical::tie(track_cues);
             }
 
-            track.color = serato::read_track_color(&serato_tags);
+            track.color = serato::import_track_color(&serato_tags);
         }
 
         Ok(())
