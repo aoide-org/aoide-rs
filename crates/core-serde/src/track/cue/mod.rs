@@ -23,7 +23,7 @@ mod _core {
 }
 
 use aoide_core::{
-    track::cue::{BankIndex, CueFlags, SlotIndex},
+    track::cue::{BankIndex, CueFlags, InMarker, OutMarker, SlotIndex},
     util::IsDefault,
 };
 
@@ -96,13 +96,16 @@ impl From<_core::Cue> for Cue {
         let _core::Cue {
             bank_index,
             slot_index,
-            in_position,
-            out_position,
-            out_mode,
+            in_marker,
+            out_marker,
             label,
             color,
             flags,
         } = from;
+        let in_position = in_marker.map(|InMarker { position }| position);
+        let (out_position, out_mode) = out_marker
+            .map(|OutMarker { position, mode }| (Some(position), mode))
+            .unwrap_or((None, None));
         Self {
             bank_index,
             slot_index,
@@ -128,12 +131,18 @@ impl From<Cue> for _core::Cue {
             color,
             flags,
         } = from;
+        let in_marker = in_position_ms.map(|position_ms| InMarker {
+            position: position_ms.into(),
+        });
+        let out_marker = out_position_ms.map(|position_ms| OutMarker {
+            position: position_ms.into(),
+            mode: out_mode.map(Into::into),
+        });
         Self {
             bank_index,
             slot_index,
-            in_position: in_position_ms.map(Into::into),
-            out_position: out_position_ms.map(Into::into),
-            out_mode: out_mode.map(Into::into),
+            in_marker,
+            out_marker,
             label: label.map(Into::into),
             color: color.map(Into::into),
             flags: CueFlags::from_bits_truncate(flags),

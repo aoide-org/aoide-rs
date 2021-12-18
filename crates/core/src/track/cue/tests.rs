@@ -20,9 +20,8 @@ fn is_canonical_slice() {
     let default_cue = Cue {
         bank_index: 0,
         slot_index: None,
-        in_position: None,
-        out_position: None,
-        out_mode: None,
+        in_marker: None,
+        out_marker: None,
         color: None,
         label: None,
         flags: Default::default(),

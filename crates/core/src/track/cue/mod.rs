@@ -95,22 +95,45 @@ impl Validate for CueFlags {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct InMarker {
+    pub position: PositionMs,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct OutMarker {
+    pub position: PositionMs,
+    pub mode: Option<OutMode>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct Cue {
     pub bank_index: BankIndex,
 
     pub slot_index: Option<SlotIndex>,
 
-    pub in_position: Option<PositionMs>,
+    pub in_marker: Option<InMarker>,
 
-    pub out_position: Option<PositionMs>,
-
-    pub out_mode: Option<OutMode>,
+    pub out_marker: Option<OutMarker>,
 
     pub label: Option<String>,
 
     pub color: Option<Color>,
 
     pub flags: CueFlags,
+}
+
+impl Cue {
+    pub fn is_reverse(&self) -> bool {
+        let Self {
+            in_marker,
+            out_marker,
+            ..
+        } = self;
+        match (in_marker, out_marker) {
+            (Some(in_marker), Some(out_marker)) => in_marker.position > out_marker.position,
+            _ => false,
+        }
+    }
 }
 
 impl CanonicalOrd for Cue {
@@ -145,7 +168,7 @@ impl Canonicalize for Cue {
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum CueInvalidity {
-    InOrOutPositionMissing,
+    InOrOutMarkerMissing,
     LabelEmpty,
     Flags(CueFlagsInvalidity),
 }
@@ -156,8 +179,8 @@ impl Validate for Cue {
     fn validate(&self) -> ValidationResult<Self::Invalidity> {
         let mut context = ValidationContext::new()
             .invalidate_if(
-                self.in_position.is_none() && self.out_position.is_none(),
-                CueInvalidity::InOrOutPositionMissing,
+                self.in_marker.is_none() && self.out_marker.is_none(),
+                CueInvalidity::InOrOutMarkerMissing,
             )
             .validate_with(&self.flags, CueInvalidity::Flags);
         if let Some(ref label) = self.label {

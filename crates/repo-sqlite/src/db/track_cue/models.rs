@@ -56,12 +56,18 @@ impl From<QueryableRecord> for (RecordId, Record) {
             color_idx,
             flags,
         } = from;
+        let in_marker = in_position_ms.map(|position_ms| InMarker {
+            position: PositionMs(position_ms),
+        });
+        let out_marker = out_position_ms.map(|position_ms| OutMarker {
+            position: PositionMs(position_ms),
+            mode: out_mode.and_then(FromPrimitive::from_i16),
+        });
         let cue = Cue {
             bank_index: bank_idx,
             slot_index: slot_idx,
-            in_position: in_position_ms.map(PositionMs),
-            out_position: out_position_ms.map(PositionMs),
-            out_mode: out_mode.and_then(FromPrimitive::from_i16),
+            in_marker,
+            out_marker,
             label,
             color: if let Some(color_rgb) = color_rgb {
                 debug_assert!(color_idx.is_none());
@@ -101,13 +107,17 @@ impl<'a> InsertableRecord<'a> {
         let Cue {
             bank_index,
             slot_index,
-            in_position,
-            out_position,
-            out_mode,
+            in_marker,
+            out_marker,
             label,
             color,
             flags,
         } = cue;
+        let in_position = in_marker.as_ref().map(|InMarker { position }| position);
+        let (out_position, out_mode) = out_marker
+            .to_owned()
+            .map(|OutMarker { position, mode }| (Some(position), mode))
+            .unwrap_or((None, None));
         Self {
             track_id: track_id.into(),
             bank_idx: *bank_index,

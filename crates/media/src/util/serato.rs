@@ -15,7 +15,7 @@
 
 use aoide_core::{
     audio::PositionMs,
-    track::cue::{Cue, CueFlags, OutMode},
+    track::cue::{Cue, CueFlags, InMarker, OutMarker, OutMode},
     util::{
         canonical::CanonicalizeInto as _,
         color::{Color, RgbColor},
@@ -36,9 +36,10 @@ fn import_cue(serato_cue: SeratoCue) -> Cue {
     Cue {
         bank_index: CUE_BANK_INDEX,
         slot_index: Some(serato_cue.index.into()),
-        in_position: Some(PositionMs(serato_cue.position.millis.into())),
-        out_position: None,
-        out_mode: None,
+        in_marker: Some(InMarker {
+            position: PositionMs(serato_cue.position.millis.into()),
+        }),
+        out_marker: None,
         label: trimmed_non_empty(serato_cue.label),
         color: Some(Color::Rgb(RgbColor(
             serato_cue.color.into_pro_hotcue_color().into(),
@@ -56,9 +57,13 @@ fn import_loop(serato_loop: Loop) -> Cue {
     Cue {
         bank_index: LOOP_BANK_INDEX,
         slot_index: Some(serato_loop.index.into()),
-        in_position: Some(PositionMs(serato_loop.start_position.millis.into())),
-        out_position: Some(PositionMs(serato_loop.end_position.millis.into())),
-        out_mode: Some(OutMode::Loop),
+        in_marker: Some(InMarker {
+            position: PositionMs(serato_loop.start_position.millis.into()),
+        }),
+        out_marker: Some(OutMarker {
+            position: PositionMs(serato_loop.end_position.millis.into()),
+            mode: Some(OutMode::Loop),
+        }),
         label: trimmed_non_empty(serato_loop.label),
         color: None,
         flags,
