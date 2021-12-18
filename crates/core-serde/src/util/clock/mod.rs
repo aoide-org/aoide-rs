@@ -33,7 +33,7 @@ use std::fmt;
 // DateTime
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct DateTime(_core::DateTime);
 
 impl From<_core::DateTime> for DateTime {

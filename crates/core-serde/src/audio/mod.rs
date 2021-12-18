@@ -29,7 +29,8 @@ use self::{channel::*, signal::*};
 // Position
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct PositionMs(_core::PositionInMilliseconds);
 
 impl From<_core::PositionMs> for PositionMs {
@@ -50,7 +51,8 @@ impl From<PositionMs> for _core::PositionMs {
 // Duration
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct DurationMs(_core::DurationInMilliseconds);
 
 impl From<_core::DurationMs> for DurationMs {
@@ -70,7 +72,8 @@ impl From<DurationMs> for _core::DurationMs {
 // AudioContent
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AudioContent {
     #[serde(skip_serializing_if = "Option::is_none")]

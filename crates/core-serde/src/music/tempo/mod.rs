@@ -23,7 +23,8 @@ mod _core {
 // Tempo
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct TempoBpm(_core::Bpm);
 
 impl From<_core::TempoBpm> for TempoBpm {

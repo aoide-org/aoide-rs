@@ -30,7 +30,8 @@ use aoide_core::{music::key::KeySignature, track::metric::MetricsFlags};
 // Metrics
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Metrics {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -44,6 +45,19 @@ pub struct Metrics {
 
     #[serde(skip_serializing_if = "IsDefault::is_default", default)]
     flags: u8,
+}
+
+#[cfg(not(test))]
+impl IsDefault for Metrics {
+    fn is_default(&self) -> bool {
+        let Self {
+            flags,
+            key_code,
+            tempo_bpm,
+            time_signature,
+        } = self;
+        flags.is_default() && key_code.is_none() && tempo_bpm.is_none() && time_signature.is_none()
+    }
 }
 
 impl From<_core::Metrics> for Metrics {

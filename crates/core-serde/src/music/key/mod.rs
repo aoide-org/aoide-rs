@@ -21,7 +21,8 @@ mod _core {
 
 use aoide_core::music::key::KeyCodeValue;
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct KeyCode(KeyCodeValue);
 
 impl From<_core::KeyCode> for KeyCode {

@@ -23,7 +23,8 @@ mod _core {
 // TimeSignature
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(untagged, deny_unknown_fields)]
 pub enum TimeSignature {
     Top(_core::BeatNumber),

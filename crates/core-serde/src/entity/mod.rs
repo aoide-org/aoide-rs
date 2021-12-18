@@ -31,7 +31,8 @@ use std::{fmt, str};
 // EntityUid
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct EntityUid(_core::EntityUid);
 
 impl JsonSchema for EntityUid {
@@ -109,7 +110,7 @@ impl From<_core::EntityUid> for EntityUid {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, JsonSchema)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct EntityRevision(_core::EntityRevisionNumber);
 
 impl From<EntityRevision> for _core::EntityRevision {
@@ -130,7 +131,7 @@ impl From<_core::EntityRevision> for EntityRevision {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct EntityHeader(EntityUid, EntityRevision);
 
 impl From<EntityHeader> for _core::EntityHeader {
@@ -155,5 +156,5 @@ impl From<_core::EntityHeader> for EntityHeader {
 ///////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct Entity<B>(pub EntityHeader, pub B);

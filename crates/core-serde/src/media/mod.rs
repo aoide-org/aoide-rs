@@ -29,7 +29,8 @@ mod _core {
 
 pub use _core::SourcePath;
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize_repr, Deserialize_repr, JsonSchema)]
+#[derive(Copy, Clone, Debug, Serialize_repr, Deserialize_repr, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[repr(u8)]
 pub enum SourcePathKind {
     Uri = _core::SourcePathKind::Uri as u8,
@@ -63,7 +64,7 @@ impl From<SourcePathKind> for _core::SourcePathKind {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(test, derive(Eq, PartialEq))]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SourcePathConfig {
     pub path_kind: SourcePathKind,
@@ -116,7 +117,8 @@ impl From<_core::SourcePathConfig> for SourcePathConfig {
 // Content
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct Base64(String);
 
 impl Base64 {
@@ -169,7 +171,8 @@ impl TryFrom<&Base64> for Vec<u8> {
 // https://github.com/signalapp/SecureValueRecovery/blob/master/service/kbupd_util/src/base64.rs
 pub type Digest = Base64;
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct DigestRef<'a>(&'a str);
 
 impl<'a> AsRef<str> for DigestRef<'a> {
@@ -188,7 +191,8 @@ impl<'a> TryFrom<DigestRef<'a>> for Vec<u8> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "kebab-case")]
 pub enum Content {
     Audio(AudioContent),
@@ -216,11 +220,13 @@ impl From<_core::Content> for Content {
 // Artwork
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(deny_unknown_fields)]
 pub struct ImageSize(u16, u16);
 
-#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ArtworkImage {
     media_type: String,
@@ -299,7 +305,8 @@ impl TryFrom<ArtworkImage> for _core::ArtworkImage {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(rename_all = "kebab-case")]
 pub enum ArtworkSource {
     Missing,
@@ -309,7 +316,8 @@ pub enum ArtworkSource {
     Linked,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Artwork {
     source: ArtworkSource,
@@ -405,7 +413,8 @@ impl From<_core::Artwork> for Artwork {
 // Source
 ///////////////////////////////////////////////////////////////////////
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize_repr, Deserialize_repr, JsonSchema)]
+#[derive(Copy, Clone, Debug, Serialize_repr, Deserialize_repr, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[repr(u8)]
 pub enum AdvisoryRating {
     Unrated = _core::AdvisoryRating::Unrated as u8,
@@ -435,7 +444,8 @@ impl From<AdvisoryRating> for _core::AdvisoryRating {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Source {
     collected_at: DateTime,
