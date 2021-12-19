@@ -211,8 +211,8 @@ pub async fn get_media_tracker_progress() -> Result<MediaTrackerProgress> {
 }
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
-pub async fn abort_media_tracker() -> Result<()> {
-    let url = format!("{}/mt/abort", BASE_URL);
+pub async fn storage_abort_current_task() -> Result<()> {
+    let url = format!("{}/storage/abort-current-task", BASE_URL);
     let request = Request::new(url).method(Method::Post);
     let response = request.fetch().await?.check_status()?;
     let _status_code = response.check_status()?.status().code;

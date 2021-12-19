@@ -16,20 +16,15 @@
 #![deny(clippy::clone_on_ref_ptr)]
 #![warn(rust_2018_idioms)]
 
-use std::{
-    collections::HashMap,
-    env::current_exe,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
-    time::Duration,
-};
+use std::{collections::HashMap, env::current_exe, sync::Arc, time::Duration};
 
-use tokio::{join, signal, sync::mpsc, sync::RwLock, time::sleep};
+use tokio::{join, signal, sync::mpsc, time::sleep};
 use warp::{http::StatusCode, Filter};
 
-use aoide_websrv::api::{handle_rejection, Error};
+use aoide_websrv::{
+    api::{handle_rejection, Error},
+    storage::{AsyncConnectionPool, AsyncConnectionPoolConfig},
+};
 
 use aoide_usecases_sqlite as uc;
 
@@ -43,14 +38,9 @@ static OPENAPI_YAML: &str = include_str!("../../../res/openapi.yaml");
 #[cfg(not(feature = "with-webapp"))]
 static INDEX_HTML: &str = include_str!("../../../res/index.html");
 
-static MEDIA_TRACKER_ABORT_FLAG: AtomicBool = AtomicBool::new(false);
+const DB_CONNECTION_ACQUIRE_READ_TIMEOUT: Duration = Duration::from_secs(10);
 
-// Let only a single writer at any time get access to the
-// connection pool to prevent both synchronous locking when
-// obtaining a connection and timeouts when concurrently
-// trying to execute write operations on the shared SQLite
-// database.
-type GuardedConnectionPool = Arc<RwLock<uc::SqliteConnectionPool>>;
+const DB_CONNECTION_ACQUIRE_WRITE_TIMEOUT: Duration = Duration::from_secs(30);
 
 #[tokio::main]
 pub async fn main() -> Result<(), Error> {
@@ -85,12 +75,13 @@ pub async fn main() -> Result<(), Error> {
             .expect("Failed to migrate database schema");
     }
 
-    // Readers and writers are distinguished by an asynchronous RwLock
-    // guard. This lock has to be acquired before requesting a connection
-    // from the pool. Requesting a pooled connection may block the current
-    // thread and has to be done in a spawned thread to prevent locking of
-    // executor threads!
-    let guarded_connection_pool = Arc::new(RwLock::new(connection_pool));
+    let shared_connection_pool = Arc::new(AsyncConnectionPool::new(
+        connection_pool,
+        AsyncConnectionPoolConfig {
+            acquire_read_timeout: DB_CONNECTION_ACQUIRE_READ_TIMEOUT,
+            acquire_write_timeout: DB_CONNECTION_ACQUIRE_WRITE_TIMEOUT,
+        },
+    ));
 
     tracing::info!("Creating service routes");
 
@@ -141,10 +132,9 @@ pub async fn main() -> Result<(), Error> {
             }))
         });
 
-    let api_filters = warp::path("api").and(self::routes::api::create_filters(
-        guarded_connection_pool,
-        &MEDIA_TRACKER_ABORT_FLAG,
-    ));
+    let api_filters = warp::path("api").and(self::routes::api::create_filters(Arc::clone(
+        &shared_connection_pool,
+    )));
 
     // Static content
     let openapi_yaml = warp::path("openapi.yaml").map(|| {
@@ -184,7 +174,7 @@ pub async fn main() -> Result<(), Error> {
                 _ = signal::ctrl_c() => {}
             }
             tracing::info!("Stopping");
-            MEDIA_TRACKER_ABORT_FLAG.store(true, Ordering::Relaxed);
+            shared_connection_pool.decommission();
         });
 
     let server_listening = async move {

@@ -200,8 +200,9 @@ async fn start_import<E: WebClientEnvironment>(
     Ok(outcome)
 }
 
+// TODO: Move into dedicated `storage` module
 pub async fn abort<E: WebClientEnvironment>(env: &E) -> anyhow::Result<()> {
-    let request_url = env.join_api_url("mt/abort")?;
+    let request_url = env.join_api_url("storage/abort-current-task")?;
     let request = env.client().post(request_url);
     let response = request.send().await?;
     let _ = receive_response_body(response).await?;

@@ -93,7 +93,7 @@ async fn main() -> anyhow::Result<()> {
                 .subcommand(
                     App::new("progress").about("Query progress of a pending scan/import task"),
                 )
-                .subcommand(App::new("abort").about("Abort the pending task"))
+                .subcommand(App::new("abort").about("Abort the current task"))
                 .subcommand(
                     App::new("status")
                         .about("Queries the status of the media tracker")

@@ -515,24 +515,6 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /api/mt/abort:
-    post:
-      summary: Abort any running tracker task
-      description: |
-        Aborts a running batch operation before completion.
-
-        This function will be invoked implicitly before shutting down the service.
-
-        Partial results will be saved in the database.
-      tags:
-        - Media Tracker
-      responses:
-        '202':
-          description: |
-            The operation has been accepted.
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-
   /api/t/{trackUid}:
     get:
       summary: Load a single track
@@ -768,6 +750,43 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
+  /api/storage/pending-tasks:
+    get:
+      summary: Get the number of pending tasks
+      description: |
+        Returns the number of pending read and write tasks.
+      tags:
+        - Storage
+      responses:
+        '200':
+          description: |
+            The number of pending storage tasks.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoragePendingTasksSummary'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /api/storage/abort-current-task:
+    post:
+      summary: Abort the current task
+      description: |
+        Aborts a running storage operation before completion.
+
+        Read tasks may block the database for writers. Write tasks are
+        exclusive and may block both pending readers and writers. In
+        some cases it might be desirable to abort a running task.
+
+        Not all operations support aborting. Batch operations will check
+        periodically if an abort has been requested.
+      tags:
+        - Storage
+      responses:
+        '202':
+          description: |
+            The operation has been accepted.
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
   /api/storage/migrate-schema:
     post:
       summary: Migrate the database schema
@@ -2675,6 +2694,20 @@ components:
         Direction for sorting results.
           * `asc` - ascending
           * `desc` - descending
+    StoragePendingTasksSummary:
+      type: object
+      properties:
+        read:
+          type: integer
+          format: int64
+          example: 3
+        write:
+          type: integer
+          format: int64
+          example: 1
+      required:
+        - read
+        - write
     StringField:
       type: string
       enum:
