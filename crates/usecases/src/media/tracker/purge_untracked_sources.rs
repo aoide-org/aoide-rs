@@ -13,38 +13,42 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::util::url::BaseUrl;
+use aoide_core::{entity::EntityUid, util::url::BaseUrl};
 use aoide_core_ext::media::tracker::{
     purge_untracked_sources::{Outcome, Params, Summary},
     DirTrackingStatus,
 };
 
 use aoide_repo::{
-    collection::RecordId as CollectionId,
+    collection::EntityRepo as CollectionRepo,
     media::{source::Repo as MediaSourceRepo, tracker::Repo as MediaTrackerRepo},
     track::EntityRepo,
 };
 
-use crate::media::tracker::resolve_path_prefix_from_base_url;
+use crate::{
+    collection::resolve_collection_id_for_virtual_file_path,
+    media::tracker::resolve_path_prefix_from_base_url,
+};
 
 use super::*;
 
 pub fn purge_untracked_sources<Repo>(
     repo: &Repo,
-    source_path_resolver: &VirtualFilePathResolver,
-    collection_id: CollectionId,
+    collection_uid: &EntityUid,
     params: &Params,
 ) -> Result<Outcome>
 where
-    Repo: EntityRepo + MediaSourceRepo + MediaTrackerRepo,
+    Repo: CollectionRepo + EntityRepo + MediaSourceRepo + MediaTrackerRepo,
 {
+    let (collection_id, source_path_resolver) =
+        resolve_collection_id_for_virtual_file_path(repo, collection_uid, None)?;
     let Params {
         root_url,
         untrack_orphaned_directories,
     } = params;
     let root_path_prefix = root_url
         .as_ref()
-        .map(|url| resolve_path_prefix_from_base_url(source_path_resolver, url))
+        .map(|url| resolve_path_prefix_from_base_url(&source_path_resolver, url))
         .transpose()?
         .unwrap_or_default();
     let root_url = source_path_resolver

@@ -63,15 +63,12 @@ macro_rules! entity_repo_trait_common_functions {
 
             fn [<update_ $entity_type_name:lower _entity_revision>](
                 &self,
-                current_revision: &aoide_core::entity::EntityRevision,
                 updated_at: aoide_core::util::clock::DateTime,
                 updated_entity: &$entity_type,
             ) -> $crate::prelude::RepoResult<()> {
-                debug_assert!(current_revision < &updated_entity.hdr.rev);
                 let (id, rev) =
                     self.[<resolve_ $entity_type_name:lower _entity_revision>](&updated_entity.hdr.uid).map(|(hdr, rev)| (hdr.id, rev))?;
-                debug_assert!(current_revision <= &rev);
-                if current_revision != &rev {
+                if updated_entity.hdr.rev.prev() != Some(rev) {
                     return Err($crate::prelude::RepoError::Conflict);
                 }
                 self.[<update_ $entity_type_name:lower _entity>](id, updated_at, updated_entity)

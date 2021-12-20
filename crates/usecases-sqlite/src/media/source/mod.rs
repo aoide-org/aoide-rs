@@ -31,7 +31,7 @@ pub fn resolve_file_path(
     source_path: &SourcePath,
 ) -> Result<(CollectionId, PathBuf)> {
     resolve_collection_id_for_virtual_file_path(db, collection_uid, None)
-        .map_err(DieselTransactionError::new)
+        .map_err(transaction_error)
         .map_err(Into::into)
         .map(|(collection_id, source_path_resolver)| {
             let file_path = source_path_resolver.build_file_path(source_path);

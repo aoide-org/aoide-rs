@@ -69,13 +69,20 @@ where
     }
 }
 
-pub fn validate_track_input(track: &Track) -> Result<()> {
+#[derive(Debug)]
+pub struct ValidatedInput(Track);
+
+pub fn validate_input(track: Track) -> InputResult<ValidatedInput> {
     if let Err(err) = track.validate() {
         // Many tracks are expected to be inconsistent and invalid to some
         // extent and we simply cannot reject all of them. Only log a warning
         // to investigate issues that occur frequently and then decide how to
         // handle them.
-        tracing::warn!("Invalid track '{}': {:?}", track.media_source.path, err);
+        tracing::warn!(
+            "Invalid track input '{}': {:?}",
+            track.media_source.path,
+            err
+        );
     }
-    Ok(())
+    Ok(ValidatedInput(track))
 }

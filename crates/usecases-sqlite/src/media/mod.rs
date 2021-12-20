@@ -30,7 +30,7 @@ pub fn relocate_collected_sources(
     new_path_prefix: &SourcePath,
 ) -> Result<usize> {
     let db = RepoConnection::new(connection);
-    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+    db.transaction::<_, RepoTransactionError, _>(|| {
         let collection_id = db.resolve_collection_id(collection_uid)?;
         let updated_at = DateTime::now_utc();
         Ok(db.relocate_media_sources_by_path_prefix(

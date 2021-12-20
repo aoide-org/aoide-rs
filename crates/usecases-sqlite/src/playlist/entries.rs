@@ -39,7 +39,7 @@ pub fn patch(
 ) -> Result<(RecordHeader, EntityHeader, PlaylistWithEntriesSummary)> {
     let updated_at = DateTime::now_utc();
     let db = RepoConnection::new(connection);
-    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+    db.transaction::<_, RepoTransactionError, _>(|| {
         let (record_header, _next_rev) =
             db.touch_playlist_entity_revision(entity_header, updated_at)?;
         for operation in operations.into_iter() {

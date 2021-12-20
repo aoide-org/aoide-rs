@@ -13,21 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::util::clock::DateTime;
-
-use uc::collection::validate_collection_input;
+use uc::collection::{create_entity, store_created_entity};
 
 use super::*;
 
-pub fn create(connection: &SqliteConnection, new_collection: Collection) -> Result<Entity> {
-    validate_collection_input(&new_collection)?;
-    let hdr = EntityHeader::initial_random();
-    let entity = Entity::new(hdr, new_collection);
-    let created_at = DateTime::now_utc();
+pub fn create(connection: &SqliteConnection, created_collection: Collection) -> Result<Entity> {
+    let new_entity = create_entity(created_collection)?;
     let db = RepoConnection::new(connection);
-    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-        db.insert_collection_entity(created_at, &entity)?;
-        Ok(entity)
-    })
-    .map_err(Into::into)
+    db.transaction::<_, TransactionError, _>(|| {
+        store_created_entity(&db, &new_entity).map_err(transaction_error)
+    })?;
+    Ok(new_entity)
 }

@@ -13,11 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::util::clock::DateTime;
-
-use aoide_repo::collection::EntityRepo as _;
-
-use uc::playlist::validate_playlist_input;
+use uc::playlist::{create_entity, store_created_entity};
 
 use super::*;
 
@@ -26,15 +22,10 @@ pub fn create(
     collection_uid: &EntityUid,
     new_playlist: Playlist,
 ) -> Result<Entity> {
-    validate_playlist_input(&new_playlist)?;
-    let hdr = EntityHeader::initial_random();
-    let entity = Entity::new(hdr, new_playlist);
-    let created_at = DateTime::now_utc();
+    let new_entity = create_entity(new_playlist)?;
     let db = RepoConnection::new(connection);
-    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-        let collection_id = db.resolve_collection_id(collection_uid)?;
-        db.insert_collected_playlist_entity(collection_id, created_at, &entity)?;
-        Ok(entity)
-    })
-    .map_err(Into::into)
+    db.transaction::<_, TransactionError, _>(|| {
+        store_created_entity(&db, collection_uid, &new_entity).map_err(transaction_error)
+    })?;
+    Ok(new_entity)
 }

@@ -142,12 +142,16 @@ impl EntityRevision {
         self == Self::initial()
     }
 
-    pub fn next(self) -> Self {
+    pub fn prev(self) -> Option<Self> {
+        debug_assert!(self.validate().is_ok());
+        let Self(next) = self;
+        next.checked_sub(1).map(Self::from_inner)
+    }
+
+    pub fn next(self) -> Option<Self> {
         debug_assert!(self.validate().is_ok());
         let Self(prev) = self;
-        // TODO: Return `Option<Self>`?
-        let next = prev.checked_add(1).unwrap();
-        Self(next)
+        prev.checked_add(1).map(Self::from_inner)
     }
 
     pub const fn from_inner(inner: EntityRevisionNumber) -> Self {
@@ -218,6 +222,16 @@ impl EntityHeader {
             uid: uid.into(),
             rev: initial_rev,
         }
+    }
+
+    pub fn next_rev(self) -> Option<Self> {
+        let Self { uid, rev } = self;
+        rev.next().map(|rev| Self { uid, rev })
+    }
+
+    pub fn prev_rev(self) -> Option<Self> {
+        let Self { uid, rev } = self;
+        rev.prev().map(|rev| Self { uid, rev })
     }
 }
 

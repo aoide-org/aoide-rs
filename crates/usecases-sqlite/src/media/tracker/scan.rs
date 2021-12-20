@@ -17,9 +17,7 @@ use std::sync::atomic::AtomicBool;
 
 use aoide_core::entity::EntityUid;
 use aoide_core_ext::media::tracker::{scan::Outcome, FsTraversalParams};
-use aoide_usecases::{
-    collection::resolve_collection_id_for_virtual_file_path, media::tracker::scan::ProgressEvent,
-};
+use aoide_usecases::media::tracker::scan::ProgressEvent;
 
 use super::*;
 
@@ -36,19 +34,9 @@ pub fn visit_directories(
     abort_flag: &AtomicBool,
 ) -> Result<Outcome> {
     let db = RepoConnection::new(connection);
-    db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
-        let (collection_id, source_path_resolver) =
-            resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
-                .map_err(DieselTransactionError::new)?;
-        uc::visit_directories(
-            &db,
-            &source_path_resolver,
-            collection_id,
-            params,
-            progress_event_fn,
-            abort_flag,
-        )
-        .map_err(DieselTransactionError::new)
+    db.transaction::<_, TransactionError, _>(|| {
+        uc::visit_directories(&db, collection_uid, params, progress_event_fn, abort_flag)
+            .map_err(transaction_error)
     })
     .map_err(Into::into)
 }

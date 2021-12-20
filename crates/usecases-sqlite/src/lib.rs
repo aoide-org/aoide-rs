@@ -86,13 +86,28 @@ impl From<uc::Error> for Error {
     fn from(err: uc::Error) -> Self {
         use uc::Error::*;
         match err {
-            Input(err) => Self::Input(err),
+            Input(uc::InputError(err)) => Self::Input(err),
             Media(err) => Self::Media(err),
             Io(err) => Self::Io(err),
             Repository(err) => Self::Repository(err),
             Other(err) => Self::Other(err),
         }
     }
+}
+
+pub type TransactionError = DieselTransactionError<Error>;
+
+impl From<Error> for TransactionError {
+    fn from(err: Error) -> Self {
+        Self::new(err)
+    }
+}
+
+fn transaction_error<E>(err: E) -> TransactionError
+where
+    E: Into<Error>,
+{
+    TransactionError::from(err.into())
 }
 
 pub type Result<T> = StdResult<T, Error>;

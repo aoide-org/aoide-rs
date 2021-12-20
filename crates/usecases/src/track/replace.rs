@@ -20,7 +20,7 @@ use std::{
 
 use url::Url;
 
-use aoide_core::{media::SourcePath, util::clock::DateTime};
+use aoide_core::{entity::EntityUid, media::SourcePath, util::clock::DateTime};
 
 use aoide_core_ext::{media::SyncMode, track::replace::Summary};
 
@@ -30,12 +30,15 @@ use aoide_media::{
 };
 
 use aoide_repo::{
-    collection::RecordId as CollectionId,
+    collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
     media::source::RecordId as MediaSourceId,
     track::{EntityRepo, ReplaceMode, ReplaceOutcome},
 };
 
-use crate::media::{import_track_from_file_path, ImportTrackFromFileOutcome, SyncStatus};
+use crate::{
+    collection::resolve_collection_id_for_virtual_file_path,
+    media::{import_track_from_file_path, ImportTrackFromFileOutcome, SyncStatus},
+};
 
 use super::*;
 
@@ -85,12 +88,12 @@ pub fn replace_collected_track_by_media_source_path<Repo>(
     collection_id: CollectionId,
     replace_mode: ReplaceMode,
     preserve_collected_at: bool,
-    track: Track,
+    track: ValidatedInput,
 ) -> Result<Option<MediaSourceId>>
 where
     Repo: EntityRepo,
 {
-    validate_track_input(&track)?;
+    let ValidatedInput(track) = track;
     let media_source_path = track.media_source.path.clone();
     let outcome = repo
         .replace_collected_track_by_media_source_path(
@@ -149,6 +152,67 @@ where
     Ok(Some(media_source_id))
 }
 
+pub fn replace_collected_tracks_by_media_source_path<Repo>(
+    repo: &Repo,
+    collection_uid: &EntityUid,
+    params: &Params,
+    tracks: impl Iterator<Item = ValidatedInput>,
+) -> Result<Summary>
+where
+    Repo: CollectionRepo + EntityRepo,
+{
+    let Params {
+        mode: replace_mode,
+        resolve_path_from_url,
+        preserve_collected_at,
+    } = params;
+    let (collection_id, virtual_file_path_resolver) = if *resolve_path_from_url {
+        let (collection_id, virtual_file_path_resolver) =
+            resolve_collection_id_for_virtual_file_path(repo, collection_uid, None)?;
+        (collection_id, Some(virtual_file_path_resolver))
+    } else {
+        let collection_id = repo.resolve_collection_id(collection_uid)?;
+        (collection_id, None)
+    };
+    let mut summary = Summary::default();
+    for track in tracks {
+        let ValidatedInput(mut track) = track;
+        if let Some(virtual_file_path_resolver) = virtual_file_path_resolver.as_ref() {
+            let url = track
+                .media_source
+                .path
+                .parse()
+                .map_err(|err| {
+                    anyhow::anyhow!(
+                        "Failed to parse URL from path '{}': {}",
+                        track.media_source.path,
+                        err
+                    )
+                })
+                .map_err(Error::from)?;
+            track.media_source.path = virtual_file_path_resolver
+                .resolve_path_from_url(&url)
+                .map_err(|err| {
+                    anyhow::anyhow!(
+                        "Failed to resolve local file path from URL '{}': {}",
+                        url,
+                        err
+                    )
+                })
+                .map_err(Error::from)?;
+        }
+        replace_collected_track_by_media_source_path(
+            &mut summary,
+            repo,
+            collection_id,
+            *replace_mode,
+            *preserve_collected_at,
+            ValidatedInput(track),
+        )?;
+    }
+    Ok(summary)
+}
+
 // TODO: Reduce number of arguments
 #[allow(clippy::too_many_arguments)]
 pub fn import_and_replace_from_file_path<Repo>(
@@ -156,10 +220,10 @@ pub fn import_and_replace_from_file_path<Repo>(
     media_source_ids: &mut Vec<MediaSourceId>,
     repo: &Repo,
     collection_id: CollectionId,
+    source_path_resolver: &VirtualFilePathResolver,
     sync_mode: SyncMode,
     import_config: &ImportTrackConfig,
     replace_mode: ReplaceMode,
-    source_path_resolver: &VirtualFilePathResolver,
     source_path: SourcePath,
 ) -> Result<()>
 where
@@ -191,6 +255,7 @@ where
             } else {
                 imported_track
             };
+            let track = validate_input(track)?;
             if let Some(media_source_id) = replace_collected_track_by_media_source_path(
                 summary,
                 repo,
@@ -235,15 +300,12 @@ where
     Ok(())
 }
 
-pub fn replace_by_media_source_path<Repo>(
-    repo: &Repo,
+pub fn replace_by_media_source_path(
+    repo: &impl EntityRepo,
     collection_id: CollectionId,
     replace_mode: ReplaceMode,
-    tracks: impl Iterator<Item = Track>,
-) -> Result<Summary>
-where
-    Repo: EntityRepo,
-{
+    tracks: impl Iterator<Item = ValidatedInput>,
+) -> Result<Summary> {
     let mut summary = Summary::default();
     for track in tracks {
         replace_collected_track_by_media_source_path(
@@ -264,18 +326,19 @@ const DEFAULT_MEDIA_SOURCE_COUNT: usize = 1024;
 #[allow(clippy::too_many_arguments)]
 pub fn import_and_replace_by_local_file_path_iter<Repo>(
     repo: &Repo,
-    collection_id: CollectionId,
+    collection_uid: &EntityUid,
     sync_mode: SyncMode,
     import_config: &ImportTrackConfig,
     replace_mode: ReplaceMode,
-    source_path_resolver: &VirtualFilePathResolver,
     source_path_iter: impl Iterator<Item = SourcePath>,
     expected_source_path_count: Option<usize>,
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
-    Repo: EntityRepo,
+    Repo: CollectionRepo + EntityRepo,
 {
+    let (collection_id, source_path_resolver) =
+        resolve_collection_id_for_virtual_file_path(repo, collection_uid, None)?;
     let mut summary = Summary::default();
     let mut media_source_ids =
         Vec::with_capacity(expected_source_path_count.unwrap_or(DEFAULT_MEDIA_SOURCE_COUNT));
@@ -293,10 +356,10 @@ where
             &mut media_source_ids,
             repo,
             collection_id,
+            &source_path_resolver,
             sync_mode,
             import_config,
             replace_mode,
-            source_path_resolver,
             source_path,
         )?;
     }
@@ -313,17 +376,42 @@ const EXPECTED_NUMBER_OF_DIR_ENTRIES: usize = 1024;
 #[allow(clippy::too_many_arguments)]
 pub fn import_and_replace_by_local_file_path_from_directory<Repo>(
     repo: &Repo,
-    collection_id: CollectionId,
+    collection_uid: &EntityUid,
     sync_mode: SyncMode,
     import_config: &ImportTrackConfig,
     replace_mode: ReplaceMode,
-    source_path_resolver: &VirtualFilePathResolver,
     source_dir_path: &str,
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
-    Repo: EntityRepo,
+    Repo: CollectionRepo + EntityRepo,
 {
+    let (collection_id, source_path_resolver) =
+        resolve_collection_id_for_virtual_file_path(repo, collection_uid, None)?;
+    import_and_replace_by_local_file_path_from_directory_with_source_path_resolver(
+        repo,
+        collection_id,
+        &source_path_resolver,
+        sync_mode,
+        import_config,
+        replace_mode,
+        source_dir_path,
+        abort_flag,
+    )
+}
+
+// TODO: Reduce number of arguments
+#[allow(clippy::too_many_arguments)]
+pub fn import_and_replace_by_local_file_path_from_directory_with_source_path_resolver(
+    repo: &impl EntityRepo,
+    collection_id: CollectionId,
+    source_path_resolver: &VirtualFilePathResolver,
+    sync_mode: SyncMode,
+    import_config: &ImportTrackConfig,
+    replace_mode: ReplaceMode,
+    source_dir_path: &str,
+    abort_flag: &AtomicBool,
+) -> Result<Outcome> {
     let dir_path = source_path_resolver.build_file_path(source_dir_path);
     tracing::debug!("Importing files from directory: {}", dir_path.display());
     let dir_entries = read_dir(dir_path)?;
@@ -367,10 +455,10 @@ where
             &mut media_source_ids,
             repo,
             collection_id,
+            source_path_resolver,
             sync_mode,
             import_config,
             replace_mode,
-            source_path_resolver,
             source_path,
         )?;
     }

@@ -18,10 +18,7 @@ use aoide_core_ext::media::tracker::purge_untracked_sources::{Outcome, Params};
 use super::*;
 
 mod uc {
-    pub use aoide_usecases::{
-        collection::resolve_collection_id_for_virtual_file_path,
-        media::tracker::purge_untracked_sources::*, Error,
-    };
+    pub use aoide_usecases::media::tracker::purge_untracked_sources::purge_untracked_sources;
 }
 
 pub fn purge_untracked_sources(
@@ -30,12 +27,8 @@ pub fn purge_untracked_sources(
     params: &Params,
 ) -> Result<Outcome> {
     let db = RepoConnection::new(connection);
-    db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
-        let (collection_id, source_path_resolver) =
-            uc::resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
-                .map_err(DieselTransactionError::new)?;
-        uc::purge_untracked_sources(&db, &source_path_resolver, collection_id, params)
-            .map_err(DieselTransactionError::new)
+    db.transaction::<_, TransactionError, _>(|| {
+        uc::purge_untracked_sources(&db, collection_uid, params).map_err(transaction_error)
     })
     .map_err(Into::into)
 }

@@ -29,9 +29,15 @@ pub mod playlist;
 pub mod track;
 
 #[derive(Error, Debug)]
+#[error(transparent)]
+pub struct InputError(#[from] pub anyhow::Error);
+
+pub type InputResult<T> = StdResult<T, InputError>;
+
+#[derive(Error, Debug)]
 pub enum Error {
     #[error(transparent)]
-    Input(anyhow::Error),
+    Input(#[from] InputError),
 
     #[error(transparent)]
     Media(#[from] MediaError),

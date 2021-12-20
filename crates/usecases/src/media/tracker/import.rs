@@ -18,7 +18,7 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
-use aoide_core::util::url::BaseUrl;
+use aoide_core::{entity::EntityUid, util::url::BaseUrl};
 
 use aoide_core_ext::media::tracker::{
     import::{Outcome, Params, Summary},
@@ -28,15 +28,18 @@ use aoide_core_ext::media::tracker::{
 use aoide_media::io::import::ImportTrackConfig;
 
 use aoide_repo::{
-    collection::RecordId as CollectionId,
+    collection::EntityRepo as CollectionRepo,
     media::tracker::{Repo as MediaTrackerRepo, TrackedDirectory},
     prelude::{Pagination, PaginationOffset},
     track::{EntityRepo as TrackRepo, ReplaceMode},
 };
 
-use crate::track::replace::{
-    import_and_replace_by_local_file_path_from_directory, Completion as ReplaceCompletion,
-    Outcome as ReplaceOutcome,
+use crate::{
+    collection::resolve_collection_id_for_virtual_file_path,
+    track::replace::{
+        import_and_replace_by_local_file_path_from_directory_with_source_path_resolver,
+        Completion as ReplaceCompletion, Outcome as ReplaceOutcome,
+    },
 };
 
 use super::*;
@@ -45,16 +48,17 @@ use super::*;
 #[allow(clippy::too_many_arguments)]
 pub fn import<Repo>(
     repo: &Repo,
-    source_path_resolver: &VirtualFilePathResolver,
-    collection_id: CollectionId,
+    collection_uid: &EntityUid,
     params: &Params,
     config: &ImportTrackConfig,
     progress_summary_fn: &mut impl FnMut(&Summary),
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
-    Repo: MediaTrackerRepo + TrackRepo,
+    Repo: CollectionRepo + MediaTrackerRepo + TrackRepo,
 {
+    let (collection_id, source_path_resolver) =
+        resolve_collection_id_for_virtual_file_path(repo, collection_uid, None)?;
     let Params {
         root_url,
         sync_mode,
@@ -62,7 +66,7 @@ where
     let sync_mode = sync_mode.unwrap_or(SyncMode::Modified);
     let root_path_prefix = root_url
         .as_ref()
-        .map(|url| resolve_path_prefix_from_base_url(source_path_resolver, url))
+        .map(|url| resolve_path_prefix_from_base_url(&source_path_resolver, url))
         .transpose()?
         .unwrap_or_default();
     let root_url = source_path_resolver
@@ -105,37 +109,42 @@ where
                 digest,
             } = pending_entry;
             debug_assert!(_status.is_pending());
-            let outcome = match import_and_replace_by_local_file_path_from_directory(
-                repo,
-                collection_id,
-                sync_mode,
-                config,
-                ReplaceMode::UpdateOrCreate,
-                source_path_resolver,
-                &dir_path,
-                abort_flag,
-            ) {
-                Ok(outcome) => outcome,
-                Err(err) => {
-                    let err = if let Error::Io(io_err) = err {
-                        if io_err.kind() == io::ErrorKind::NotFound {
-                            tracing::info!("Untracking missing directory '{}'", dir_path);
-                            summary.directories.untracked +=
-                                repo.media_tracker_untrack(collection_id, &dir_path, None)?;
-                            continue;
-                        }
-                        // Restore error
-                        Error::Io(io_err)
-                    } else {
-                        // Pass-through error
-                        err
-                    };
-                    tracing::warn!("Failed to import pending directory '{}': {}", dir_path, err);
-                    // Skip this directory and keep going
-                    summary.directories.skipped += 1;
-                    continue;
-                }
-            };
+            let outcome =
+                match import_and_replace_by_local_file_path_from_directory_with_source_path_resolver(
+                    repo,
+                    collection_id,
+                    &source_path_resolver,
+                    sync_mode,
+                    config,
+                    ReplaceMode::UpdateOrCreate,
+                    &dir_path,
+                    abort_flag,
+                ) {
+                    Ok(outcome) => outcome,
+                    Err(err) => {
+                        let err = if let Error::Io(io_err) = err {
+                            if io_err.kind() == io::ErrorKind::NotFound {
+                                tracing::info!("Untracking missing directory '{}'", dir_path);
+                                summary.directories.untracked +=
+                                    repo.media_tracker_untrack(collection_id, &dir_path, None)?;
+                                continue;
+                            }
+                            // Restore error
+                            Error::Io(io_err)
+                        } else {
+                            // Pass-through error
+                            err
+                        };
+                        tracing::warn!(
+                            "Failed to import pending directory '{}': {}",
+                            dir_path,
+                            err
+                        );
+                        // Skip this directory and keep going
+                        summary.directories.skipped += 1;
+                        continue;
+                    }
+                };
             let ReplaceOutcome {
                 completion,
                 summary: tracks_summary,

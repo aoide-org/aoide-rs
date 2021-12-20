@@ -19,7 +19,7 @@ use super::*;
 
 pub fn purge(connection: &SqliteConnection, uid: &EntityUid) -> Result<()> {
     let db = RepoConnection::new(connection);
-    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+    db.transaction::<_, RepoTransactionError, _>(|| {
         let id = db.resolve_playlist_id(uid)?;
         db.purge_playlist_entity(id).map_err(Into::into)
     })

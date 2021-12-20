@@ -17,7 +17,10 @@ use std::{sync::atomic::AtomicBool, time::Duration};
 
 use url::Url;
 
-use aoide_core::util::{clock::DateTime, url::BaseUrl};
+use aoide_core::{
+    entity::EntityUid,
+    util::{clock::DateTime, url::BaseUrl},
+};
 
 use aoide_core_ext::media::tracker::{
     scan::{Outcome, Summary},
@@ -31,9 +34,11 @@ use aoide_media::{
 };
 
 use aoide_repo::{
-    collection::RecordId as CollectionId,
+    collection::EntityRepo as CollectionRepo,
     media::tracker::{DirUpdateOutcome, Repo as MediaTrackerRepo},
 };
+
+use crate::collection::resolve_collection_id_for_virtual_file_path;
 
 use super::*;
 
@@ -80,22 +85,23 @@ impl From<visit::ProgressEvent> for ProgressEvent {
 
 pub fn visit_directories<Repo>(
     repo: &Repo,
-    source_path_resolver: &VirtualFilePathResolver,
-    collection_id: CollectionId,
+    collection_uid: &EntityUid,
     params: &FsTraversalParams,
     progress_event_fn: &mut impl FnMut(ProgressEvent),
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
-    Repo: MediaTrackerRepo,
+    Repo: CollectionRepo + MediaTrackerRepo,
 {
+    let (collection_id, source_path_resolver) =
+        resolve_collection_id_for_virtual_file_path(repo, collection_uid, None)?;
     let FsTraversalParams {
         root_url,
         max_depth,
     } = params;
     let root_path_prefix = root_url
         .as_ref()
-        .map(|url| resolve_path_prefix_from_base_url(source_path_resolver, url))
+        .map(|url| resolve_path_prefix_from_base_url(&source_path_resolver, url))
         .transpose()?
         .unwrap_or_default();
     let root_url = source_path_resolver

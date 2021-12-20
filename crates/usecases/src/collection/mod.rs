@@ -15,7 +15,11 @@
 
 use semval::Validate as _;
 
-use aoide_core::{collection::Collection, entity::EntityUid, util::url::BaseUrl};
+use aoide_core::{
+    collection::{Collection, Entity},
+    entity::{EntityHeader, EntityUid},
+    util::{clock::DateTime, url::BaseUrl},
+};
 
 use aoide_media::resolver::VirtualFilePathResolver;
 
@@ -55,12 +59,34 @@ where
     Ok((collection_id, resolver))
 }
 
-pub fn validate_collection_input(collection: &Collection) -> Result<()> {
+#[derive(Debug)]
+pub struct ValidatedInput(Collection);
+
+pub fn validate_input(collection: Collection) -> InputResult<ValidatedInput> {
     if let Err(err) = collection.validate() {
-        return Err(Error::Input(anyhow::anyhow!(
-            "Invalid collection: {:?}",
-            err
-        )));
+        return Err(anyhow::anyhow!("Invalid collection input: {:?}", err).into());
     }
+    Ok(ValidatedInput(collection))
+}
+
+pub fn create_entity(collection: Collection) -> Result<Entity> {
+    let ValidatedInput(collection) = validate_input(collection)?;
+    let header = EntityHeader::initial_random();
+    let entity = Entity::new(header, collection);
+    Ok(entity)
+}
+
+pub fn store_created_entity(repo: &impl EntityRepo, entity: &Entity) -> Result<()> {
+    let created_at = DateTime::now_utc();
+    repo.insert_collection_entity(created_at, entity)?;
     Ok(())
+}
+
+pub fn update_entity(hdr: EntityHeader, collection: Collection) -> Result<Entity> {
+    let ValidatedInput(collection) = validate_input(collection)?;
+    let next_hdr = hdr
+        .next_rev()
+        .ok_or_else(|| anyhow::anyhow!("no next revision"))?;
+    let updated_entity = Entity::new(next_hdr, collection);
+    Ok(updated_entity)
 }

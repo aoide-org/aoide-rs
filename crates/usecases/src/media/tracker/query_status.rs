@@ -21,8 +21,8 @@ use super::*;
 
 pub fn query_status<Repo>(
     repo: &Repo,
-    source_path_resolver: &VirtualFilePathResolver,
     collection_id: CollectionId,
+    source_path_resolver: &VirtualFilePathResolver,
     params: &Params,
 ) -> Result<Status>
 where

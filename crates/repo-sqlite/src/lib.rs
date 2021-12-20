@@ -132,6 +132,8 @@ pub mod prelude {
         }
     }
 
+    pub type RepoTransactionError = DieselTransactionError<RepoError>;
+
     pub(crate) use aoide_repo::RecordId as RowId;
 
     #[cfg(test)]

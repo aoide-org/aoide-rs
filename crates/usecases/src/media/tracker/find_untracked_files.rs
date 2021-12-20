@@ -15,7 +15,7 @@
 
 use std::{sync::atomic::AtomicBool, time::Duration};
 
-use aoide_core::util::url::BaseUrl;
+use aoide_core::{entity::EntityUid, util::url::BaseUrl};
 
 use aoide_core_ext::media::tracker::{
     find_untracked_files::Outcome, Completion, FsTraversalDirectoriesProgress,
@@ -27,7 +27,12 @@ use aoide_media::{
     resolver::SourcePathResolver,
 };
 
-use aoide_repo::{collection::RecordId as CollectionId, media::tracker::Repo as MediaTrackerRepo};
+use aoide_repo::{
+    collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
+    media::tracker::Repo as MediaTrackerRepo,
+};
+
+use crate::collection::resolve_collection_id_for_virtual_file_path;
 
 use super::*;
 
@@ -74,21 +79,21 @@ impl From<visit::ProgressEvent> for ProgressEvent {
 
 struct AncestorVisitor<'r, Repo> {
     repo: &'r Repo,
-    source_path_resolver: &'r VirtualFilePathResolver,
     collection_id: CollectionId,
+    source_path_resolver: &'r VirtualFilePathResolver,
     source_paths: Vec<SourcePath>,
 }
 
 impl<'r, Repo> AncestorVisitor<'r, Repo> {
     pub fn new(
         repo: &'r Repo,
-        source_path_resolver: &'r VirtualFilePathResolver,
         collection_id: CollectionId,
+        source_path_resolver: &'r VirtualFilePathResolver,
     ) -> Self {
         Self {
             repo,
-            source_path_resolver,
             collection_id,
+            source_path_resolver,
             source_paths: Vec::new(),
         }
     }
@@ -134,22 +139,23 @@ fn ancestor_finished(
 
 pub fn visit_directories<Repo>(
     repo: &Repo,
-    source_path_resolver: &VirtualFilePathResolver,
-    collection_id: CollectionId,
+    collection_uid: &EntityUid,
     params: &FsTraversalParams,
     report_progress: &mut impl FnMut(ProgressEvent),
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
 where
-    Repo: MediaTrackerRepo,
+    Repo: CollectionRepo + MediaTrackerRepo,
 {
+    let (collection_id, source_path_resolver) =
+        resolve_collection_id_for_virtual_file_path(repo, collection_uid, None)?;
     let FsTraversalParams {
         root_url,
         max_depth,
     } = params;
     let root_path_prefix = root_url
         .as_ref()
-        .map(|url| resolve_path_prefix_from_base_url(source_path_resolver, url))
+        .map(|url| resolve_path_prefix_from_base_url(&source_path_resolver, url))
         .transpose()?
         .unwrap_or_default();
     let root_url = source_path_resolver
@@ -162,7 +168,7 @@ where
         &root_path,
         *max_depth,
         abort_flag,
-        &mut |_| AncestorVisitor::new(repo, source_path_resolver, collection_id),
+        &mut |_| AncestorVisitor::new(repo, collection_id, &source_path_resolver),
         &mut |_path, untracked_source_paths| {
             ancestor_finished(&mut source_paths, untracked_source_paths)
         },

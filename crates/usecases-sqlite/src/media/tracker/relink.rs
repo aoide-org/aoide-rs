@@ -27,11 +27,10 @@ pub fn relink_tracks_with_untracked_media_sources(
     abort_flag: &AtomicBool,
 ) -> Result<Vec<uc::RelocatedMediaSource>> {
     let db = RepoConnection::new(connection);
-    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-        let collection_id = db.resolve_collection_id(collection_uid)?;
+    db.transaction::<_, RepoTransactionError, _>(|| {
         uc::relink_tracks_with_untracked_media_sources(
             &db,
-            collection_id,
+            collection_uid,
             find_candidate_params,
             progress_fn,
             abort_flag,

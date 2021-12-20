@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core_serde::track::{Entity, Track};
+use aoide_usecases::InputError;
 use aoide_usecases_sqlite::SqlitePooledConnection;
 
 use super::*;
@@ -21,7 +22,10 @@ use super::*;
 mod uc {
     pub use aoide_core_ext::track::replace::Summary;
     pub use aoide_repo::track::ReplaceMode;
-    pub use aoide_usecases::track::replace::Params;
+    pub use aoide_usecases::{
+        track::{replace::Params, validate_input},
+        Error,
+    };
     pub use aoide_usecases_sqlite::track::replace::*;
 }
 
@@ -110,6 +114,13 @@ pub fn handle_request(
     let (tracks, errors): (Vec<_>, _) = request_body
         .into_iter()
         .map(|t| t.try_into().map_err(Error::BadRequest))
+        .map(|res| {
+            res.and_then(|t| {
+                uc::validate_input(t)
+                    .map_err(|InputError(err)| err)
+                    .map_err(Error::BadRequest)
+            })
+        })
         .partition(Result::is_ok);
     if let Some(err) = errors.into_iter().map(Result::unwrap_err).next() {
         return Err(err);

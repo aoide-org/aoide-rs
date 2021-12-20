@@ -65,13 +65,16 @@ fn should_fail_to_decode_too_short_string() {
 fn rev_sequence() {
     let initial = EntityRevision::initial();
     assert!(initial.validate().is_ok());
+    let invalid = initial.prev().unwrap();
+    assert!(invalid.validate().is_err());
 
-    let next = initial.next();
+    let next = initial.next().unwrap();
     assert!(next.validate().is_ok());
     assert_ne!(EntityRevision::initial(), next);
+    assert_eq!(EntityRevision::initial(), next.prev().unwrap());
     assert!(initial < next);
 
-    let nextnext = next.next();
+    let nextnext = next.next().unwrap();
     assert!(nextnext.validate().is_ok());
     assert_ne!(EntityRevision::initial(), next);
     assert!(next < nextnext);

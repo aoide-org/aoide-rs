@@ -14,8 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core::util::clock::DateTime;
-
-use uc::playlist::validate_playlist_input;
+use uc::playlist::update_entity;
 
 use super::*;
 
@@ -24,23 +23,12 @@ pub fn update(
     updated_entity_with_current_rev: Entity,
 ) -> Result<Entity> {
     let (hdr, body) = updated_entity_with_current_rev.into();
-    validate_playlist_input(&body)?;
-    let EntityHeader {
-        uid,
-        rev: current_rev,
-    } = hdr;
-    let next_rev = current_rev.next();
-    let next_hdr = EntityHeader { uid, rev: next_rev };
-    let updated_entity_with_next_rev = Entity::new(next_hdr, body);
-    let updated_at = DateTime::now_utc();
+    let entity = update_entity(hdr, body)?;
     let db = RepoConnection::new(connection);
-    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
-        db.update_playlist_entity_revision(
-            &current_rev,
-            updated_at,
-            &updated_entity_with_next_rev,
-        )?;
-        Ok(updated_entity_with_next_rev)
+    db.transaction::<_, RepoTransactionError, _>(|| {
+        let updated_at = DateTime::now_utc();
+        db.update_playlist_entity_revision(updated_at, &entity)?;
+        Ok(entity)
     })
     .map_err(Into::into)
 }

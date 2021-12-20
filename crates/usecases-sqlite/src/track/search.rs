@@ -32,10 +32,10 @@ pub fn search(
     collector: &mut impl ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
 ) -> Result<usize> {
     let db = RepoConnection::new(&pooled_connection);
-    db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
+    db.transaction::<_, TransactionError, _>(|| {
         let collection_id = db.resolve_collection_id(collection_uid)?;
         uc::search_with_params(&db, collection_id, params, pagination, collector)
-            .map_err(DieselTransactionError::new)
+            .map_err(transaction_error)
     })
     .map_err(Into::into)
 }

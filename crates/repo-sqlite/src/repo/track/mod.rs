@@ -603,8 +603,10 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             if track.media_source != entity.body.media_source {
                 self.update_media_source(media_source_id, updated_at, &track.media_source)?;
             }
-            let current_rev = entity.hdr.rev;
-            entity.hdr.rev = current_rev.next();
+            entity.hdr = entity
+                .hdr
+                .next_rev()
+                .ok_or_else(|| anyhow::anyhow!("no next revision"))?;
             entity.body = track;
             self.update_track_entity(id, updated_at, media_source_id, &entity)?;
             Ok(ReplaceOutcome::Updated(media_source_id, id, entity))

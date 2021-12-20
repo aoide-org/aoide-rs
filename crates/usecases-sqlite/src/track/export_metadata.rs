@@ -28,7 +28,7 @@ pub fn export_metadata_into_file(
     update_source_synchronized_at: bool,
 ) -> Result<Option<DateTime>> {
     let db = RepoConnection::new(connection);
-    db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
+    db.transaction::<_, TransactionError, _>(|| {
         let (record_header, mut track_entity) = db.load_track_entity_by_uid(track_uid)?;
         let RecordTrail {
             collection_id: _,
@@ -42,7 +42,7 @@ pub fn export_metadata_into_file(
             &mut track_entity.body,
             update_source_synchronized_at,
         )
-        .map_err(DieselTransactionError::new)?;
+        .map_err(transaction_error)?;
         let updated_at = DateTime::now_utc();
         if let Err(err) =
             db.update_track_entity(record_header.id, updated_at, media_source_id, &track_entity)

@@ -16,6 +16,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use aoide_core::{
+    entity::EntityUid,
     media::Source as MediaSource,
     track::{Entity, Track},
 };
@@ -23,7 +24,7 @@ use aoide_core::{
 use aoide_core_ext::track::search::{ConditionFilter, SearchFilter, SortField, SortOrder};
 
 use aoide_repo::{
-    collection::RecordId as CollectionId,
+    collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},
     media::{source::Repo as MediaSourceRepo, tracker::Repo as MediaTrackerRepo},
     track::EntityRepo as TrackRepo,
 };
@@ -147,14 +148,15 @@ impl Progress {
 
 pub fn relink_tracks_with_untracked_media_sources<Repo>(
     repo: &Repo,
-    collection_id: CollectionId,
+    collection_uid: &EntityUid,
     mut find_candidate_params: FindCandidateParams,
     progress_fn: &mut impl FnMut(&Progress),
     abort_flag: &AtomicBool,
 ) -> RepoResult<Vec<RelocatedMediaSource>>
 where
-    Repo: TrackRepo + MediaSourceRepo + MediaTrackerRepo,
+    Repo: CollectionRepo + TrackRepo + MediaSourceRepo + MediaTrackerRepo,
 {
+    let collection_id = repo.resolve_collection_id(collection_uid)?;
     let source_untracked_filter = SearchFilter::Condition(ConditionFilter::SourceUntracked);
     let ordering = vec![SortOrder {
         field: SortField::SourceCollectedAt,

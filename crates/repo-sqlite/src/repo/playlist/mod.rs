@@ -76,15 +76,14 @@ impl<'db> EntityRepo for crate::Connection<'db> {
         entity_header: &EntityHeader,
         updated_at: DateTime,
     ) -> RepoResult<(RecordHeader, EntityRevision)> {
-        let EntityHeader {
-            uid,
-            rev: current_rev,
-        } = entity_header;
-        let next_rev = current_rev.next();
+        let EntityHeader { uid, rev } = entity_header;
+        let next_rev = rev
+            .next()
+            .ok_or_else(|| anyhow::anyhow!("no next revision"))?;
         let touchable = TouchableRecord::bind(updated_at, next_rev);
         let target = playlist::table
             .filter(playlist::entity_uid.eq(uid.as_ref()))
-            .filter(playlist::entity_rev.eq(entity_revision_to_sql(*current_rev)));
+            .filter(playlist::entity_rev.eq(entity_revision_to_sql(*rev)));
         let query = diesel::update(target).set(&touchable);
         let rows_affected: usize = query.execute(self.as_ref()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);

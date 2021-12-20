@@ -23,13 +23,9 @@ use super::*;
 
 mod uc {
     pub use aoide_core_ext::media::tracker::import::*;
-    pub use aoide_usecases::{
-        collection::resolve_collection_id_for_virtual_file_path,
-        media::{
-            tracker::{import::*, *},
-            *,
-        },
-        Error,
+    pub use aoide_usecases::media::{
+        tracker::{import::*, *},
+        *,
     };
 }
 
@@ -44,20 +40,16 @@ pub fn import(
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {
     let db = RepoConnection::new(connection);
-    let outcome = db.transaction::<_, DieselTransactionError<uc::Error>, _>(|| {
-        let (collection_id, source_path_resolver) =
-            uc::resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
-                .map_err(DieselTransactionError::new)?;
+    let outcome = db.transaction::<_, TransactionError, _>(|| {
         uc::import(
             &db,
-            &source_path_resolver,
-            collection_id,
+            collection_uid,
             params,
             import_config,
             progress_summary_fn,
             abort_flag,
         )
-        .map_err(DieselTransactionError::new)
+        .map_err(transaction_error)
     })?;
     tracing::info!("Analyzing and optimizing database after import finished");
     db.analyze_and_optimize_stats()?;

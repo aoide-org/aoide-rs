@@ -19,7 +19,7 @@ use super::*;
 
 pub fn load_one(connection: &SqliteConnection, uid: &EntityUid) -> Result<Entity> {
     let db = RepoConnection::new(connection);
-    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+    db.transaction::<_, RepoTransactionError, _>(|| {
         let (_, entity) = db.load_track_entity_by_uid(uid)?;
         Ok(entity)
     })
@@ -32,7 +32,7 @@ pub fn load_many(
     collector: &mut impl RecordCollector<Header = RecordHeader, Record = Entity>,
 ) -> Result<()> {
     let db = RepoConnection::new(connection);
-    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+    db.transaction::<_, RepoTransactionError, _>(|| {
         for uid in uid_iter.into_iter() {
             match db.load_track_entity_by_uid(&uid) {
                 Ok((record_header, entity)) => {

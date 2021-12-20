@@ -24,7 +24,7 @@ pub fn load_entity_with_entries(
     uid: &EntityUid,
 ) -> Result<EntityWithEntries> {
     let db = RepoConnection::new(connection);
-    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+    db.transaction::<_, RepoTransactionError, _>(|| {
         let id = db.resolve_playlist_id(uid)?;
         db.load_playlist_entity_with_entries(id).map_err(Into::into)
     })
@@ -43,7 +43,7 @@ pub fn load_entities_with_entries_summary(
 ) -> Result<()> {
     let db = RepoConnection::new(connection);
 
-    db.transaction::<_, DieselTransactionError<RepoError>, _>(|| {
+    db.transaction::<_, RepoTransactionError, _>(|| {
         let collection_id = db.resolve_collection_id(collection_uid)?;
         db.load_collected_playlist_entities_with_entries_summary(
             collection_id,
