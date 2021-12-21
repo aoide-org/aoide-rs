@@ -45,31 +45,6 @@ pub mod prelude {
         pub const fn new(inner: &'db SqliteConnection) -> Self {
             Self(inner)
         }
-
-        pub fn vacuum(&self) -> RepoResult<()> {
-            diesel::dsl::sql_query("VACUUM")
-                .execute(self.as_ref())
-                .map(|_count| {
-                    debug_assert_eq!(0, _count);
-                })
-                .map_err(repo_error)
-        }
-
-        /// Gather statistics about the schema and generate hints
-        /// for the query planner.
-        ///
-        /// See also: https://www.sqlite.org/lang_analyze.html
-        /// "Statistics gathered by ANALYZE are not automatically updated
-        /// as the content of the database changes. If the content of the
-        /// database changes significantly, or if the database schema changes,
-        /// then one should consider rerunning the ANALYZE command in order
-        /// to update the statistics.
-        pub fn analyze_and_optimize_stats(&self) -> RepoResult<()> {
-            diesel::dsl::sql_query("ANALYZE")
-                .execute(self.as_ref())
-                .map(|_| ())
-                .map_err(repo_error)
-        }
     }
 
     impl<'db> From<&'db SqliteConnection> for Connection<'db> {

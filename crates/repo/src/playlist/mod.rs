@@ -192,6 +192,4 @@ pub trait EntryRepo {
     fn load_all_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<Vec<Entry>>;
 
     fn load_playlist_entries_summary(&self, playlist_id: RecordId) -> RepoResult<EntriesSummary>;
-
-    fn delete_playlist_entries_with_tracks_from_other_collections(&self) -> RepoResult<usize>;
 }

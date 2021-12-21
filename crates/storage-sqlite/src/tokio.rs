@@ -23,12 +23,12 @@ use std::{
 
 use tokio::{sync::RwLock, task::spawn_blocking, time::sleep};
 
-use aoide_usecases_sqlite as uc;
-
-use crate::api::Error;
+use crate::{
+    get_pooled_database_connection, Error, Result, SqliteConnectionPool, SqlitePooledConnection,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AsyncConnectionPoolConfig {
+pub struct DatabaseConnectionGatekeeperConfig {
     pub acquire_read_timeout: Duration,
     pub acquire_write_timeout: Duration,
 }
@@ -41,9 +41,9 @@ pub struct AsyncConnectionPoolConfig {
 /// trying to execute write operations on a shared SQLite database
 /// instance.
 #[allow(missing_debug_implementations)]
-pub struct AsyncConnectionPool {
-    config: AsyncConnectionPoolConfig,
-    connection_pool: Arc<RwLock<uc::SqliteConnectionPool>>,
+pub struct DatabaseConnectionGatekeeper {
+    config: DatabaseConnectionGatekeeperConfig,
+    connection_pool: Arc<RwLock<SqliteConnectionPool>>,
     request_counter_state: Arc<RequestCounterState>,
     abort_current_task_flag: Arc<AtomicBool>,
     decommisioned: AtomicBool,
@@ -123,10 +123,10 @@ pub struct PendingTasks {
     pub write: usize,
 }
 
-impl AsyncConnectionPool {
+impl DatabaseConnectionGatekeeper {
     pub fn new(
-        connection_pool: uc::SqliteConnectionPool,
-        config: AsyncConnectionPoolConfig,
+        connection_pool: SqliteConnectionPool,
+        config: DatabaseConnectionGatekeeperConfig,
     ) -> Self {
         Self {
             config,
@@ -141,7 +141,7 @@ impl AsyncConnectionPool {
         self.decommisioned.store(true, Ordering::Release);
     }
 
-    fn check_not_decommissioned(&self) -> Result<(), Error> {
+    fn check_not_decommissioned(&self) -> Result<()> {
         if self.decommisioned.load(Ordering::Acquire) {
             return Err(Error::Timeout {
                 reason: "connection pool has been decommissioned".to_string(),
@@ -150,9 +150,9 @@ impl AsyncConnectionPool {
         Ok(())
     }
 
-    pub async fn spawn_blocking_read_task<H, R>(&self, connection_handler: H) -> Result<R, Error>
+    pub async fn spawn_blocking_read_task<H, R, E>(&self, connection_handler: H) -> Result<R>
     where
-        H: FnOnce(uc::SqlitePooledConnection, Arc<AtomicBool>) -> Result<R, Error> + Send + 'static,
+        H: FnOnce(SqlitePooledConnection, Arc<AtomicBool>) -> R + Send + 'static,
         R: Send + 'static,
     {
         self.check_not_decommissioned()?;
@@ -167,18 +167,19 @@ impl AsyncConnectionPool {
             _ = &mut timeout => Err(Error::Timeout {reason: "database is locked".to_string() }),
             guard = self.connection_pool.read() => {
                 self.check_not_decommissioned()?;
-                let connection = uc::database::get_pooled_connection(&*guard)?;
+                let connection = get_pooled_database_connection(&*guard)?;
                 self.check_not_decommissioned()?;
                 // Every tasks gets the chance to run when ready
                 abort_current_task_flag.store(false, Ordering::Release);
-                return spawn_blocking(move || connection_handler(connection, abort_current_task_flag)).await?
+                return spawn_blocking(move || connection_handler(connection, abort_current_task_flag)).await
+                    .map_err(Error::TaskScheduling)
             },
         }
     }
 
-    pub async fn spawn_blocking_write_task<H, R>(&self, connection_handler: H) -> Result<R, Error>
+    pub async fn spawn_blocking_write_task<H, R>(&self, connection_handler: H) -> Result<R>
     where
-        H: FnOnce(uc::SqlitePooledConnection, Arc<AtomicBool>) -> Result<R, Error> + Send + 'static,
+        H: FnOnce(SqlitePooledConnection, Arc<AtomicBool>) -> R + Send + 'static,
         R: Send + 'static,
     {
         self.check_not_decommissioned()?;
@@ -193,11 +194,12 @@ impl AsyncConnectionPool {
             _ = &mut timeout => Err(Error::Timeout {reason: "database is locked".to_string() }),
             guard = self.connection_pool.write() => {
                 self.check_not_decommissioned()?;
-                let connection = uc::database::get_pooled_connection(&*guard)?;
+                let connection = get_pooled_database_connection(&*guard)?;
                 self.check_not_decommissioned()?;
                 // Every tasks gets the chance to run when ready
                 abort_current_task_flag.store(false, Ordering::Release);
-                return spawn_blocking(move || connection_handler(connection, abort_current_task_flag)).await?
+                return spawn_blocking(move || connection_handler(connection, abort_current_task_flag)).await
+                .map_err(Error::TaskScheduling)
             },
         }
     }

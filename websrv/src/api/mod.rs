@@ -17,6 +17,7 @@ use std::{convert::Infallible, error::Error as StdError, result::Result as StdRe
 
 use serde::Serialize;
 use thiserror::Error;
+use tokio::task::JoinError;
 use warp::{
     body::BodyDeserializeError,
     http::StatusCode,
@@ -30,19 +31,24 @@ use aoide_jsonapi_sqlite as api;
 
 use aoide_usecases_sqlite as uc;
 
+use aoide_storage_sqlite as db;
+
 #[derive(Error, Debug)]
 pub enum Error {
     #[error(transparent)]
     BadRequest(anyhow::Error),
 
-    #[error(transparent)]
-    UseCase(#[from] uc::Error),
+    #[error("not found")]
+    NotFound,
+
+    #[error("conflict")]
+    Conflict,
+
+    #[error("service unavailable")]
+    ServiceUnavailable,
 
     #[error("timeout: {reason}")]
     Timeout { reason: String },
-
-    #[error(transparent)]
-    TaskScheduling(#[from] tokio::task::JoinError),
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),
@@ -50,11 +56,54 @@ pub enum Error {
 
 impl From<api::Error> for Error {
     fn from(err: api::Error) -> Self {
+        use api::Error::*;
         match err {
-            api::Error::BadRequest(err) => Self::BadRequest(err),
-            api::Error::UseCase(err) => Self::UseCase(err),
-            api::Error::Other(err) => Self::Other(err),
+            BadRequest(err) => Self::BadRequest(err),
+            UseCase(err) => err.into(),
+            Other(err) => Self::Other(err),
         }
+    }
+}
+
+impl From<uc::Error> for Error {
+    fn from(err: uc::Error) -> Self {
+        use uc::Error::*;
+        match err {
+            Input(err) => Self::BadRequest(err),
+            Io(err) => Self::Other(err.into()),
+            Media(err) => Self::Other(err.into()),
+            Database(err) => Self::Other(err.into()),
+            DatabaseMigration(err) => Self::Other(err.into()),
+            DatabaseConnection(err) => Self::Other(err.into()),
+            Repository(err) => match err {
+                RepoError::NotFound => Self::NotFound,
+                RepoError::Conflict => Self::Conflict,
+                RepoError::Aborted => Self::ServiceUnavailable,
+                RepoError::Other(err) => Self::Other(err),
+            },
+            TaskScheduling(err) => Self::Other(err.into()),
+            Timeout { reason } => Self::Timeout { reason },
+            Other(err) => Self::Other(err),
+        }
+    }
+}
+
+impl From<db::Error> for Error {
+    fn from(err: db::Error) -> Self {
+        use db::Error::*;
+        match err {
+            Database(err) => Self::Other(err.into()),
+            Connection(err) => Self::Other(err.into()),
+            TaskScheduling(err) => Self::Other(err.into()),
+            Timeout { reason } => Self::Timeout { reason },
+            Other(err) => Self::Other(err),
+        }
+    }
+}
+
+impl From<JoinError> for Error {
+    fn from(err: JoinError) -> Self {
+        Self::Other(err.into())
     }
 }
 
@@ -62,8 +111,19 @@ pub type Result<T> = StdResult<T, Error>;
 
 impl Reject for Error {}
 
-pub fn reject_on_error(err: impl Into<Error>) -> Rejection {
+fn reject_on_error(err: impl Into<Error>) -> Rejection {
     reject::custom(err.into())
+}
+
+pub fn after_blocking_task_finished<T, E1, E2>(
+    res: std::result::Result<std::result::Result<T, E1>, E2>,
+) -> std::result::Result<T, Rejection>
+where
+    E1: Into<Error>,
+    E2: Into<Error>,
+{
+    res.map_err(reject_on_error)
+        .and_then(|res| res.map_err(reject_on_error))
 }
 
 #[derive(Debug)]
@@ -126,64 +186,21 @@ pub async fn handle_rejection(reject: Rejection) -> StdResult<impl Reply, Infall
                 code = StatusCode::BAD_REQUEST;
                 message = err.to_string();
             }
-            Error::UseCase(err) => match err {
-                uc::Error::Input(err) => {
-                    code = StatusCode::BAD_REQUEST;
-                    message = err.to_string();
-                }
-                uc::Error::Media(err) => {
-                    // Using StatusCode::UNSUPPORTED_MEDIA_TYPE for some
-                    // of the error variants would be wrong, because they
-                    // don't affect the media type of the request!
-                    code = StatusCode::INTERNAL_SERVER_ERROR;
-                    message = err.to_string();
-                }
-                uc::Error::Database(err) => {
-                    code = StatusCode::INTERNAL_SERVER_ERROR;
-                    message = err.to_string();
-                }
-                uc::Error::DatabaseMigration(err) => {
-                    code = StatusCode::INTERNAL_SERVER_ERROR;
-                    message = err.to_string();
-                }
-                uc::Error::DatabaseConnection(err) => {
-                    code = StatusCode::INTERNAL_SERVER_ERROR;
-                    message = err.to_string();
-                }
-                uc::Error::Repository(err) => match err {
-                    RepoError::NotFound => {
-                        code = StatusCode::NOT_FOUND;
-                        message = status_code_to_string(code);
-                    }
-                    RepoError::Conflict => {
-                        code = StatusCode::CONFLICT;
-                        message = status_code_to_string(code);
-                    }
-                    RepoError::Aborted => {
-                        code = StatusCode::SERVICE_UNAVAILABLE;
-                        message = status_code_to_string(code);
-                    }
-                    RepoError::Other(err) => {
-                        code = StatusCode::INTERNAL_SERVER_ERROR;
-                        message = err.to_string();
-                    }
-                },
-                uc::Error::Io(err) => {
-                    code = StatusCode::INTERNAL_SERVER_ERROR;
-                    message = err.to_string();
-                }
-                uc::Error::Other(err) => {
-                    code = StatusCode::INTERNAL_SERVER_ERROR;
-                    message = err.to_string();
-                }
-            },
+            Error::NotFound => {
+                code = StatusCode::NOT_FOUND;
+                message = status_code_to_string(code);
+            }
+            Error::Conflict => {
+                code = StatusCode::CONFLICT;
+                message = status_code_to_string(code);
+            }
+            Error::ServiceUnavailable => {
+                code = StatusCode::SERVICE_UNAVAILABLE;
+                message = status_code_to_string(code);
+            }
             Error::Timeout { reason } => {
                 code = StatusCode::REQUEST_TIMEOUT;
                 message = reason.to_owned();
-            }
-            Error::TaskScheduling(err) => {
-                code = StatusCode::INTERNAL_SERVER_ERROR;
-                message = err.to_string();
             }
             Error::Other(err) => {
                 code = StatusCode::INTERNAL_SERVER_ERROR;

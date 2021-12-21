@@ -18,6 +18,7 @@ use std::sync::atomic::AtomicBool;
 use aoide_core_ext::media::tracker::import::Params;
 
 use aoide_media::io::import::ImportTrackConfig;
+use aoide_storage_sqlite::analyze_and_optimize_database_stats;
 
 use super::*;
 
@@ -52,6 +53,6 @@ pub fn import(
         .map_err(transaction_error)
     })?;
     tracing::info!("Analyzing and optimizing database after import finished");
-    db.analyze_and_optimize_stats()?;
+    analyze_and_optimize_database_stats(&db)?;
     Ok(outcome)
 }

@@ -24,10 +24,12 @@ use aoide_usecases::media::tracker::find_untracked_files::ProgressEvent as FindU
 
 use aoide_core_ext::media::tracker::import::Summary as ImportProgressSummary;
 
-use aoide_websrv::{
-    api::reject_on_error,
-    storage::{AsyncConnectionPool, PendingTasks},
+use aoide_storage_sqlite::{
+    cleanse_database,
+    tokio::{DatabaseConnectionGatekeeper, PendingTasks},
 };
+
+use aoide_websrv::api::after_blocking_task_finished;
 
 use aoide_jsonapi_sqlite as api;
 
@@ -38,9 +40,10 @@ use aoide_core::entity::EntityUid;
 use aoide_core_ext::media::tracker::Progress as MediaTrackerProgress;
 
 pub fn create_filters(
-    shared_connection_pool: Arc<AsyncConnectionPool>,
+    shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>,
 ) -> BoxedFilter<(impl Reply,)> {
-    let shared_connection_pool = warp::any().map(move || Arc::clone(&shared_connection_pool));
+    let shared_connection_gatekeeper =
+        warp::any().map(move || Arc::clone(&shared_connection_gatekeeper));
 
     let media_tracker_progress = Arc::new(Mutex::new(MediaTrackerProgress::Idle));
     let media_tracker_progress = warp::any().map(move || Arc::clone(&media_tracker_progress));
@@ -61,16 +64,14 @@ pub fn create_filters(
         .and(collections_path)
         .and(warp::path::end())
         .and(warp::body::json())
-        .and(shared_connection_pool.clone())
+        .and(shared_connection_gatekeeper.clone())
         .and_then(
-            move |request_body, shared_connection_pool: Arc<AsyncConnectionPool>| async move {
-                shared_connection_pool
+            move |request_body, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                after_blocking_task_finished(shared_connection_gatekeeper
                     .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
                         api::collection::create::handle_request(pooled_connection, request_body)
-                            .map_err(Into::into)
                     })
-                    .await
-                    .map_err(reject_on_error)
+                    .await)
                     .map(|response_body| {
                         warp::reply::with_status(
                             warp::reply::json(&response_body),
@@ -85,58 +86,56 @@ pub fn create_filters(
         .and(warp::path::end())
         .and(warp::query())
         .and(warp::body::json())
-        .and(shared_connection_pool.clone())
+        .and(shared_connection_gatekeeper.clone())
         .and_then(
             move |uid,
                   query_params,
                   request_body,
-                  shared_connection_pool: Arc<AsyncConnectionPool>| async move {
-                shared_connection_pool
-                    .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-                        api::collection::update::handle_request(
-                            pooled_connection,
-                            uid,
-                            query_params,
-                            request_body,
-                        )
-                        .map_err(Into::into)
-                    })
-                    .await
-                    .map_err(reject_on_error)
-                    .map(|response_body| warp::reply::json(&response_body))
+                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                after_blocking_task_finished(
+                    shared_connection_gatekeeper
+                        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
+                            api::collection::update::handle_request(
+                                pooled_connection,
+                                uid,
+                                query_params,
+                                request_body,
+                            )
+                        })
+                        .await,
+                )
+                .map(|response_body| warp::reply::json(&response_body))
             },
         );
     let collections_delete = warp::delete()
         .and(collections_path)
         .and(path_param_uid)
         .and(warp::path::end())
-        .and(shared_connection_pool.clone())
+        .and(shared_connection_gatekeeper.clone())
         .and_then(
-            move |uid, shared_connection_pool: Arc<AsyncConnectionPool>| async move {
-                shared_connection_pool
-                    .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-                        api::collection::purge::handle_request(pooled_connection, &uid)
-                            .map_err(Into::into)
-                    })
-                    .await
-                    .map_err(reject_on_error)
-                    .map(|()| StatusCode::NO_CONTENT)
+            move |uid, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                after_blocking_task_finished(
+                    shared_connection_gatekeeper
+                        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
+                            api::collection::purge::handle_request(pooled_connection, &uid)
+                        })
+                        .await,
+                )
+                .map(|()| StatusCode::NO_CONTENT)
             },
         );
     let collections_list = warp::get()
         .and(collections_path)
         .and(warp::path::end())
         .and(warp::query())
-        .and(shared_connection_pool.clone())
+        .and(shared_connection_gatekeeper.clone())
         .and_then(
-            move |query_params, shared_connection_pool: Arc<AsyncConnectionPool>| async move {
-                shared_connection_pool
-                    .spawn_blocking_read_task(move |pooled_connection, _abort_flag| {
+            move |query_params, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                after_blocking_task_finished(shared_connection_gatekeeper
+                    .spawn_blocking_read_task::<_, _, api::Error>(move |pooled_connection, _abort_flag| {
                         api::collection::load_all::handle_request(pooled_connection, query_params)
-                            .map_err(Into::into)
                     })
-                    .await
-                    .map_err(reject_on_error)
+                    .await)
                     .map(|response_body| warp::reply::json(&response_body))
             },
         );
@@ -145,21 +144,25 @@ pub fn create_filters(
         .and(path_param_uid)
         .and(warp::path::end())
         .and(warp::query())
-        .and(shared_connection_pool.clone())
+        .and(shared_connection_gatekeeper.clone())
         .and_then(
-            move |uid, query_params, shared_connection_pool: Arc<AsyncConnectionPool>| async move {
-                shared_connection_pool
-                    .spawn_blocking_read_task(move |pooled_connection, _abort_flag| {
-                        api::collection::load_one::handle_request(
-                            pooled_connection,
-                            &uid,
-                            query_params,
+            move |uid,
+                  query_params,
+                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                after_blocking_task_finished(
+                    shared_connection_gatekeeper
+                        .spawn_blocking_read_task::<_, _, api::Error>(
+                            move |pooled_connection, _abort_flag| {
+                                api::collection::load_one::handle_request(
+                                    pooled_connection,
+                                    &uid,
+                                    query_params,
+                                )
+                            },
                         )
-                        .map_err(Into::into)
-                    })
-                    .await
-                    .map_err(reject_on_error)
-                    .map(|response_body| warp::reply::json(&response_body))
+                        .await,
+                )
+                .map(|response_body| warp::reply::json(&response_body))
             },
         );
     let collections_filters = collections_list
@@ -174,21 +177,25 @@ pub fn create_filters(
         .and(warp::path("relocate-media-sources"))
         .and(warp::path::end())
         .and(warp::body::json())
-        .and(shared_connection_pool.clone())
+        .and(shared_connection_gatekeeper.clone())
         .and_then(
-            move |uid, request_body, shared_connection_pool: Arc<AsyncConnectionPool>| async move {
-                shared_connection_pool
-                    .spawn_blocking_read_task(move |pooled_connection, _abort_flag| {
-                        api::media::relocate_collected_sources::handle_request(
-                            pooled_connection,
-                            &uid,
-                            request_body,
+            move |uid,
+                  request_body,
+                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                after_blocking_task_finished(
+                    shared_connection_gatekeeper
+                        .spawn_blocking_read_task::<_, _, api::Error>(
+                            move |pooled_connection, _abort_flag| {
+                                api::media::relocate_collected_sources::handle_request(
+                                    pooled_connection,
+                                    &uid,
+                                    request_body,
+                                )
+                            },
                         )
-                        .map_err(Into::into)
-                    })
-                    .await
-                    .map_err(reject_on_error)
-                    .map(|response_body| warp::reply::json(&response_body))
+                        .await,
+                )
+                .map(|response_body| warp::reply::json(&response_body))
             },
         );
 
@@ -218,21 +225,25 @@ pub fn create_filters(
         .and(warp::path("query-status"))
         .and(warp::path::end())
         .and(warp::body::json())
-        .and(shared_connection_pool.clone())
+        .and(shared_connection_gatekeeper.clone())
         .and_then(
-            move |uid, request_body, shared_connection_pool: Arc<AsyncConnectionPool>| async move {
-                shared_connection_pool
-                    .spawn_blocking_read_task(move |pooled_connection, _abort_flag| {
-                        api::media::tracker::query_status::handle_request(
-                            pooled_connection,
-                            &uid,
-                            request_body,
+            move |uid,
+                  request_body,
+                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                after_blocking_task_finished(
+                    shared_connection_gatekeeper
+                        .spawn_blocking_read_task::<_, _, api::Error>(
+                            move |pooled_connection, _abort_flag| {
+                                api::media::tracker::query_status::handle_request(
+                                    pooled_connection,
+                                    &uid,
+                                    request_body,
+                                )
+                            },
                         )
-                        .map_err(Into::into)
-                    })
-                    .await
-                    .map_err(reject_on_error)
-                    .map(|response_body| warp::reply::json(&response_body))
+                        .await,
+                )
+                .map(|response_body| warp::reply::json(&response_body))
             },
         );
     let media_tracker_post_collection_scan = warp::post()
@@ -242,12 +253,12 @@ pub fn create_filters(
         .and(warp::path("scan"))
         .and(warp::path::end())
         .and(warp::body::json())
-        .and(shared_connection_pool.clone())
+        .and(shared_connection_gatekeeper.clone())
         .and(media_tracker_progress.clone())
         .and_then(
             move |uid,
                   request_body,
-                  shared_connection_pool: Arc<AsyncConnectionPool>,
+                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>,
                   media_tracker_progress: Arc<Mutex<MediaTrackerProgress>>| async move {
                 let (progress_event_tx, mut progress_event_rx) = watch::channel(None);
                 let watcher = tokio::spawn(async move {
@@ -269,34 +280,33 @@ pub fn create_filters(
                     tracing::debug!("Unwatching media tracker scanning");
                     *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;
                 });
-                let response = shared_connection_pool
-                    .spawn_blocking_write_task(move |pooled_connection, abort_flag| {
-                        api::media::tracker::scan::handle_request(
-                            pooled_connection,
-                            &uid,
-                            request_body,
-                            &mut |progress_event: ScanProgressEvent| {
-                                if let Err(err) = progress_event_tx.send(Some(progress_event)) {
-                                    tracing::error!(
-                                        "Failed to send scan progress event: {:?}",
-                                        err.0
-                                    );
-                                }
-                            },
-                            &abort_flag,
-                        )
-                        .map_err(Into::into)
-                    })
-                    .await
-                    .map_err(reject_on_error)
-                    .map(|response_body| warp::reply::json(&response_body));
+                let response = after_blocking_task_finished(
+                    shared_connection_gatekeeper
+                        .spawn_blocking_write_task(move |pooled_connection, abort_flag| {
+                            api::media::tracker::scan::handle_request(
+                                pooled_connection,
+                                &uid,
+                                request_body,
+                                &mut |progress_event: ScanProgressEvent| {
+                                    if let Err(err) = progress_event_tx.send(Some(progress_event)) {
+                                        tracing::error!(
+                                            "Failed to send scan progress event: {:?}",
+                                            err.0
+                                        );
+                                    }
+                                },
+                                &abort_flag,
+                            )
+                        })
+                        .await,
+                );
                 if let Err(err) = watcher.await {
                     tracing::error!(
                         "Failed to terminate media tracker scanning progress watcher: {}",
                         err
                     );
                 }
-                response
+                response.map(|response_body| warp::reply::json(&response_body))
             },
         );
     let media_tracker_post_collection_import = warp::post()
@@ -306,12 +316,12 @@ pub fn create_filters(
         .and(warp::path("import"))
         .and(warp::path::end())
         .and(warp::body::json())
-        .and(shared_connection_pool.clone())
+        .and(shared_connection_gatekeeper.clone())
         .and(media_tracker_progress.clone())
         .and_then(
             move |uid,
                   request_body,
-                  shared_connection_pool: Arc<AsyncConnectionPool>,
+                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>,
                   media_tracker_progress: Arc<Mutex<MediaTrackerProgress>>| async move {
                 let (progress_summary_tx, mut progress_summary_rx) =
                     watch::channel(aoide_core_ext::media::tracker::import::Summary::default());
@@ -328,36 +338,35 @@ pub fn create_filters(
                     tracing::debug!("Unwatching media tracker importing");
                     *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;
                 });
-                let response = shared_connection_pool
-                    .spawn_blocking_write_task(move |pooled_connection, abort_flag| {
-                        api::media::tracker::import::handle_request(
-                            pooled_connection,
-                            &uid,
-                            request_body,
-                            &mut |progress_summary: &ImportProgressSummary| {
-                                if let Err(err) =
-                                    progress_summary_tx.send(progress_summary.to_owned())
-                                {
-                                    tracing::error!(
-                                        "Failed to send import progress summary: {:?}",
-                                        err.0
-                                    );
-                                }
-                            },
-                            &abort_flag,
-                        )
-                        .map_err(Into::into)
-                    })
-                    .await
-                    .map_err(reject_on_error)
-                    .map(|response_body| warp::reply::json(&response_body));
+                let response = after_blocking_task_finished(
+                    shared_connection_gatekeeper
+                        .spawn_blocking_write_task(move |pooled_connection, abort_flag| {
+                            api::media::tracker::import::handle_request(
+                                pooled_connection,
+                                &uid,
+                                request_body,
+                                &mut |progress_summary: &ImportProgressSummary| {
+                                    if let Err(err) =
+                                        progress_summary_tx.send(progress_summary.to_owned())
+                                    {
+                                        tracing::error!(
+                                            "Failed to send import progress summary: {:?}",
+                                            err.0
+                                        );
+                                    }
+                                },
+                                &abort_flag,
+                            )
+                        })
+                        .await,
+                );
                 if let Err(err) = watcher.await {
                     tracing::error!(
                         "Failed to terminate media tracker importing progress watcher: {}",
                         err
                     );
                 }
-                response
+                response.map(|response_body| warp::reply::json(&response_body))
             },
         );
     let media_tracker_post_collection_untrack = warp::post()
@@ -367,21 +376,23 @@ pub fn create_filters(
         .and(warp::path("untrack"))
         .and(warp::path::end())
         .and(warp::body::json())
-        .and(shared_connection_pool.clone())
+        .and(shared_connection_gatekeeper.clone())
         .and_then(
-            move |uid, request_body, shared_connection_pool: Arc<AsyncConnectionPool>| async move {
-                shared_connection_pool
-                    .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-                        api::media::tracker::untrack::handle_request(
-                            pooled_connection,
-                            &uid,
-                            request_body,
-                        )
-                        .map_err(Into::into)
-                    })
-                    .await
-                    .map_err(reject_on_error)
-                    .map(|response_body| warp::reply::json(&response_body))
+            move |uid,
+                  request_body,
+                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                after_blocking_task_finished(
+                    shared_connection_gatekeeper
+                        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
+                            api::media::tracker::untrack::handle_request(
+                                pooled_connection,
+                                &uid,
+                                request_body,
+                            )
+                        })
+                        .await,
+                )
+                .map(|response_body| warp::reply::json(&response_body))
             },
         );
     let media_tracker_post_collection_find_untracked_files = warp::post()
@@ -391,12 +402,12 @@ pub fn create_filters(
         .and(warp::path("find-untracked-files"))
         .and(warp::path::end())
         .and(warp::body::json())
-        .and(shared_connection_pool.clone())
+        .and(shared_connection_gatekeeper.clone())
         .and(media_tracker_progress)
         .and_then(
             move |uid,
                   request_body,
-                  shared_connection_pool: Arc<AsyncConnectionPool>,
+                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>,
                   media_tracker_progress: Arc<Mutex<MediaTrackerProgress>>| async move {
                 let (progress_event_tx, mut progress_event_rx) = watch::channel(None);
                 let watcher = tokio::spawn(async move {
@@ -418,7 +429,7 @@ pub fn create_filters(
                     tracing::debug!("Unwatching media tracker finding untracked");
                     *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;
                 });
-                let response = shared_connection_pool.spawn_blocking_read_task(
+                let response = after_blocking_task_finished(shared_connection_gatekeeper.spawn_blocking_read_task::<_, _, api::Error>(
                     move |pooled_connection, abort_flag| {
                         api::media::tracker::find_untracked_files::handle_request(
                             pooled_connection,
@@ -434,19 +445,16 @@ pub fn create_filters(
                             },
                             &abort_flag,
                         )
-                        .map_err(Into::into)
                     },
                 )
-                .await
-                .map_err(reject_on_error)
-                .map(|response_body| warp::reply::json(&response_body));
+                .await);
                 if let Err(err) = watcher.await {
                     tracing::error!(
                         "Failed to terminate media tracker finding untracked progress watcher: {}",
                         err
                     );
                 }
-                response
+                response.map(|response_body| warp::reply::json(&response_body))
             },
         );
     let media_tracker_post_collection_purge_untracked_sources = warp::post()
@@ -456,21 +464,23 @@ pub fn create_filters(
         .and(warp::path("purge-untracked-sources"))
         .and(warp::path::end())
         .and(warp::body::json())
-        .and(shared_connection_pool.clone())
+        .and(shared_connection_gatekeeper.clone())
         .and_then(
-            move |uid, request_body, shared_connection_pool: Arc<AsyncConnectionPool>| async move {
-                shared_connection_pool
-                    .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-                        api::media::tracker::purge_untracked_sources::handle_request(
-                            pooled_connection,
-                            &uid,
-                            request_body,
-                        )
-                        .map_err(Into::into)
-                    })
-                    .await
-                    .map_err(reject_on_error)
-                    .map(|response_body| warp::reply::json(&response_body))
+            move |uid,
+                  request_body,
+                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                after_blocking_task_finished(
+                    shared_connection_gatekeeper
+                        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
+                            api::media::tracker::purge_untracked_sources::handle_request(
+                                pooled_connection,
+                                &uid,
+                                request_body,
+                            )
+                        })
+                        .await,
+                )
+                .map(|response_body| warp::reply::json(&response_body))
             },
         );
     let media_tracker_filters = media_tracker_get_progress
@@ -488,17 +498,25 @@ pub fn create_filters(
         .and(warp::path("resolve"))
         .and(warp::path::end())
         .and(warp::body::json())
-        .and(shared_connection_pool.clone())
+        .and(shared_connection_gatekeeper.clone())
         .and_then(
-            move |uid, request_body, shared_connection_pool: Arc<AsyncConnectionPool>| async move {
-                shared_connection_pool
-                    .spawn_blocking_read_task(move |pooled_connection, _abort_flag| {
-                        api::track::resolve::handle_request(pooled_connection, &uid, request_body)
-                            .map_err(Into::into)
-                    })
-                    .await
-                    .map_err(reject_on_error)
-                    .map(|response_body| warp::reply::json(&response_body))
+            move |uid,
+                  request_body,
+                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                after_blocking_task_finished(
+                    shared_connection_gatekeeper
+                        .spawn_blocking_read_task::<_, _, api::Error>(
+                            move |pooled_connection, _abort_flag| {
+                                api::track::resolve::handle_request(
+                                    pooled_connection,
+                                    &uid,
+                                    request_body,
+                                )
+                            },
+                        )
+                        .await,
+                )
+                .map(|response_body| warp::reply::json(&response_body))
             },
         );
     let collected_tracks_search = warp::post()
@@ -509,25 +527,27 @@ pub fn create_filters(
         .and(warp::path::end())
         .and(warp::query())
         .and(warp::body::json())
-        .and(shared_connection_pool.clone())
+        .and(shared_connection_gatekeeper.clone())
         .and_then(
             move |uid,
                   query_params,
                   request_body,
-                  shared_connection_pool: Arc<AsyncConnectionPool>| async move {
-                shared_connection_pool
-                    .spawn_blocking_read_task(move |pooled_connection, _abort_flag| {
-                        api::track::search::handle_request(
-                            pooled_connection,
-                            &uid,
-                            query_params,
-                            request_body,
+                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                after_blocking_task_finished(
+                    shared_connection_gatekeeper
+                        .spawn_blocking_read_task::<_, _, api::Error>(
+                            move |pooled_connection, _abort_flag| {
+                                api::track::search::handle_request(
+                                    pooled_connection,
+                                    &uid,
+                                    query_params,
+                                    request_body,
+                                )
+                            },
                         )
-                        .map_err(Into::into)
-                    })
-                    .await
-                    .map_err(reject_on_error)
-                    .map(|response_body| warp::reply::json(&response_body))
+                        .await,
+                )
+                .map(|response_body| warp::reply::json(&response_body))
             },
         );
     let collected_tracks_replace = warp::post()
@@ -538,25 +558,25 @@ pub fn create_filters(
         .and(warp::path::end())
         .and(warp::query())
         .and(warp::body::json())
-        .and(shared_connection_pool.clone())
+        .and(shared_connection_gatekeeper.clone())
         .and_then(
             move |uid,
                   query_params,
                   request_body,
-                  shared_connection_pool: Arc<AsyncConnectionPool>| async move {
-                shared_connection_pool
-                    .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-                        api::track::replace::handle_request(
-                            pooled_connection,
-                            &uid,
-                            query_params,
-                            request_body,
-                        )
-                        .map_err(Into::into)
-                    })
-                    .await
-                    .map_err(reject_on_error)
-                    .map(|response_body| warp::reply::json(&response_body))
+                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                after_blocking_task_finished(
+                    shared_connection_gatekeeper
+                        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
+                            api::track::replace::handle_request(
+                                pooled_connection,
+                                &uid,
+                                query_params,
+                                request_body,
+                            )
+                        })
+                        .await,
+                )
+                .map(|response_body| warp::reply::json(&response_body))
             },
         );
     let collected_tracks_import_and_replace = warp::post()
@@ -567,26 +587,26 @@ pub fn create_filters(
         .and(warp::path::end())
         .and(warp::query())
         .and(warp::body::json())
-        .and(shared_connection_pool.clone())
+        .and(shared_connection_gatekeeper.clone())
         .and_then(
             move |uid,
                   query_params,
                   request_body,
-                  shared_connection_pool: Arc<AsyncConnectionPool>| async move {
-                shared_connection_pool
-                    .spawn_blocking_write_task(move |pooled_connection, abort_flag| {
-                        api::track::import_and_replace::handle_request(
-                            pooled_connection,
-                            &uid,
-                            query_params,
-                            request_body,
-                            &abort_flag,
-                        )
-                        .map_err(Into::into)
-                    })
-                    .await
-                    .map_err(reject_on_error)
-                    .map(|response_body| warp::reply::json(&response_body))
+                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                after_blocking_task_finished(
+                    shared_connection_gatekeeper
+                        .spawn_blocking_write_task(move |pooled_connection, abort_flag| {
+                            api::track::import_and_replace::handle_request(
+                                pooled_connection,
+                                &uid,
+                                query_params,
+                                request_body,
+                                &abort_flag,
+                            )
+                        })
+                        .await,
+                )
+                .map(|response_body| warp::reply::json(&response_body))
             },
         );
     let collected_tracks_filters = collected_tracks_resolve
@@ -599,17 +619,19 @@ pub fn create_filters(
         .and(tracks_path)
         .and(path_param_uid)
         .and(warp::path::end())
-        .and(shared_connection_pool.clone())
+        .and(shared_connection_gatekeeper.clone())
         .and_then(
-            move |uid, shared_connection_pool: Arc<AsyncConnectionPool>| async move {
-                shared_connection_pool
-                    .spawn_blocking_read_task(move |pooled_connection, _abort_flag| {
-                        api::track::load_one::handle_request(pooled_connection, &uid)
-                            .map_err(Into::into)
-                    })
-                    .await
-                    .map_err(reject_on_error)
-                    .map(|response_body| warp::reply::json(&response_body))
+            move |uid, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                after_blocking_task_finished(
+                    shared_connection_gatekeeper
+                        .spawn_blocking_read_task::<_, _, api::Error>(
+                            move |pooled_connection, _abort_flag| {
+                                api::track::load_one::handle_request(pooled_connection, &uid)
+                            },
+                        )
+                        .await,
+                )
+                .map(|response_body| warp::reply::json(&response_body))
             },
         );
     let tracks_load_many = warp::post()
@@ -617,16 +639,14 @@ pub fn create_filters(
         .and(warp::path("load"))
         .and(warp::path::end())
         .and(warp::body::json())
-        .and(shared_connection_pool.clone())
+        .and(shared_connection_gatekeeper.clone())
         .and_then(
-            move |request_body, shared_connection_pool: Arc<AsyncConnectionPool>| async move {
-                shared_connection_pool
-                    .spawn_blocking_read_task(move |pooled_connection, _abort_flag| {
+            move |request_body, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                after_blocking_task_finished(shared_connection_gatekeeper
+                    .spawn_blocking_read_task::<_, _, api::Error>(move |pooled_connection, _abort_flag| {
                         api::track::load_many::handle_request(pooled_connection, request_body)
-                            .map_err(Into::into)
                     })
-                    .await
-                    .map_err(reject_on_error)
+                    .await)
                     .map(|response_body| warp::reply::json(&response_body))
             },
         );
@@ -636,21 +656,23 @@ pub fn create_filters(
         .and(warp::path("export-metadata"))
         .and(warp::path::end())
         .and(warp::query())
-        .and(shared_connection_pool.clone())
+        .and(shared_connection_gatekeeper.clone())
         .and_then(
-            move |track_uid, query_params, shared_connection_pool: Arc<AsyncConnectionPool>| async move {
-                shared_connection_pool
-                    .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-                        api::track::export_metadata::handle_request(
-                            pooled_connection,
-                            &track_uid,
-                            query_params,
-                        )
-                        .map_err(Into::into)
-                    })
-                    .await
-                    .map_err(reject_on_error)
-                    .map(|response_body| warp::reply::json(&response_body))
+            move |track_uid,
+                  query_params,
+                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                after_blocking_task_finished(
+                    shared_connection_gatekeeper
+                        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
+                            api::track::export_metadata::handle_request(
+                                pooled_connection,
+                                &track_uid,
+                                query_params,
+                            )
+                        })
+                        .await,
+                )
+                .map(|response_body| warp::reply::json(&response_body))
             },
         );
     let tracks_filters = tracks_load_many
@@ -663,28 +685,25 @@ pub fn create_filters(
         .and(playlists_path)
         .and(warp::path::end())
         .and(warp::body::json())
-        .and(shared_connection_pool.clone())
+        .and(shared_connection_gatekeeper.clone())
         .and_then(
             move |collection_uid,
                   request_body,
-                  shared_connection_pool: Arc<AsyncConnectionPool>| async move {
-                shared_connection_pool
-                    .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-                        api::playlist::create_collected::handle_request(
-                            pooled_connection,
-                            &collection_uid,
-                            request_body,
-                        )
-                        .map_err(Into::into)
-                    })
-                    .await
-                    .map_err(reject_on_error)
-                    .map(|response_body| {
-                        warp::reply::with_status(
-                            warp::reply::json(&response_body),
-                            StatusCode::CREATED,
-                        )
-                    })
+                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                after_blocking_task_finished(
+                    shared_connection_gatekeeper
+                        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
+                            api::playlist::create_collected::handle_request(
+                                pooled_connection,
+                                &collection_uid,
+                                request_body,
+                            )
+                        })
+                        .await,
+                )
+                .map(|response_body| {
+                    warp::reply::with_status(warp::reply::json(&response_body), StatusCode::CREATED)
+                })
             },
         );
     let collected_playlists_list = warp::get()
@@ -693,23 +712,25 @@ pub fn create_filters(
         .and(playlists_path)
         .and(warp::path::end())
         .and(warp::query())
-        .and(shared_connection_pool.clone())
+        .and(shared_connection_gatekeeper.clone())
         .and_then(
             move |collection_uid,
                   query_params,
-                  shared_connection_pool: Arc<AsyncConnectionPool>| async move {
-                shared_connection_pool
-                    .spawn_blocking_read_task(move |pooled_connection, _abort_flag| {
-                        api::playlist::list_collected::handle_request(
-                            pooled_connection,
-                            &collection_uid,
-                            query_params,
+                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                after_blocking_task_finished(
+                    shared_connection_gatekeeper
+                        .spawn_blocking_read_task::<_, _, api::Error>(
+                            move |pooled_connection, _abort_flag| {
+                                api::playlist::list_collected::handle_request(
+                                    pooled_connection,
+                                    &collection_uid,
+                                    query_params,
+                                )
+                            },
                         )
-                        .map_err(Into::into)
-                    })
-                    .await
-                    .map_err(reject_on_error)
-                    .map(|response_body| warp::reply::json(&response_body))
+                        .await,
+                )
+                .map(|response_body| warp::reply::json(&response_body))
             },
         );
     let collected_playlists_filters = collected_playlists_list.or(collected_playlists_create);
@@ -720,42 +741,42 @@ pub fn create_filters(
         .and(warp::path::end())
         .and(warp::query())
         .and(warp::body::json())
-        .and(shared_connection_pool.clone())
+        .and(shared_connection_gatekeeper.clone())
         .and_then(
             move |uid,
                   query_params,
                   request_body,
-                  shared_connection_pool: Arc<AsyncConnectionPool>| async move {
-                shared_connection_pool
-                    .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-                        api::playlist::update::handle_request(
-                            pooled_connection,
-                            uid,
-                            query_params,
-                            request_body,
-                        )
-                        .map_err(Into::into)
-                    })
-                    .await
-                    .map_err(reject_on_error)
-                    .map(|response_body| warp::reply::json(&response_body))
+                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                after_blocking_task_finished(
+                    shared_connection_gatekeeper
+                        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
+                            api::playlist::update::handle_request(
+                                pooled_connection,
+                                uid,
+                                query_params,
+                                request_body,
+                            )
+                        })
+                        .await,
+                )
+                .map(|response_body| warp::reply::json(&response_body))
             },
         );
     let playlists_delete = warp::delete()
         .and(playlists_path)
         .and(path_param_uid)
         .and(warp::path::end())
-        .and(shared_connection_pool.clone())
+        .and(shared_connection_gatekeeper.clone())
         .and_then(
-            move |uid, shared_connection_pool: Arc<AsyncConnectionPool>| async move {
-                shared_connection_pool
-                    .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-                        api::playlist::purge::handle_request(pooled_connection, &uid)
-                            .map_err(Into::into)
-                    })
-                    .await
-                    .map_err(reject_on_error)
-                    .map(|()| StatusCode::NO_CONTENT)
+            move |uid, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                after_blocking_task_finished(
+                    shared_connection_gatekeeper
+                        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
+                            api::playlist::purge::handle_request(pooled_connection, &uid)
+                        })
+                        .await,
+                )
+                .map(|()| StatusCode::NO_CONTENT)
             },
         );
     let playlists_entries_patch = warp::patch()
@@ -765,25 +786,25 @@ pub fn create_filters(
         .and(warp::path::end())
         .and(warp::query())
         .and(warp::body::json())
-        .and(shared_connection_pool.clone())
+        .and(shared_connection_gatekeeper.clone())
         .and_then(
             move |uid,
                   query_params,
                   request_body,
-                  shared_connection_pool: Arc<AsyncConnectionPool>| async move {
-                shared_connection_pool
-                    .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-                        api::playlist::patch_entries::handle_request(
-                            pooled_connection,
-                            uid,
-                            query_params,
-                            request_body,
-                        )
-                        .map_err(Into::into)
-                    })
-                    .await
-                    .map_err(reject_on_error)
-                    .map(|response_body| warp::reply::json(&response_body))
+                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                after_blocking_task_finished(
+                    shared_connection_gatekeeper
+                        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
+                            api::playlist::patch_entries::handle_request(
+                                pooled_connection,
+                                uid,
+                                query_params,
+                                request_body,
+                            )
+                        })
+                        .await,
+                )
+                .map(|response_body| warp::reply::json(&response_body))
             },
         );
     let playlists_filters = playlists_update
@@ -796,12 +817,12 @@ pub fn create_filters(
         .and(warp::path::end())
         .and(warp::query())
         .and_then(|query_params| async move {
-            tokio::task::spawn_blocking(move || {
-                api::media::import_track::handle_request(query_params)
-            })
-            .await
-            .map_err(reject_on_error)? // JoinError
-            .map_err(reject_on_error)
+            after_blocking_task_finished(
+                tokio::task::spawn_blocking(move || {
+                    api::media::import_track::handle_request(query_params)
+                })
+                .await,
+            )
             .map(|response_body| warp::reply::json(&response_body))
         });
 
@@ -810,38 +831,42 @@ pub fn create_filters(
         .and(storage_path)
         .and(warp::path("pending-tasks"))
         .and(warp::path::end())
-        .and(shared_connection_pool.clone())
-        .map(|shared_connection_pool: Arc<AsyncConnectionPool>| {
-            let PendingTasks { read, write } = shared_connection_pool.pending_tasks();
-            warp::reply::json(&serde_json::json!({
-                "read": read,
-                "write": write,
-            }))
-        });
+        .and(shared_connection_gatekeeper.clone())
+        .map(
+            |shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| {
+                let PendingTasks { read, write } = shared_connection_gatekeeper.pending_tasks();
+                warp::reply::json(&serde_json::json!({
+                    "read": read,
+                    "write": write,
+                }))
+            },
+        );
     let storage_post_abort_current_task = warp::post()
         .and(storage_path)
         .and(warp::path("abort-current-task"))
         .and(warp::path::end())
-        .and(shared_connection_pool.clone())
-        .map(|shared_connection_pool: Arc<AsyncConnectionPool>| {
-            shared_connection_pool.abort_current_task();
-            StatusCode::ACCEPTED
-        });
+        .and(shared_connection_gatekeeper.clone())
+        .map(
+            |shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| {
+                shared_connection_gatekeeper.abort_current_task();
+                StatusCode::ACCEPTED
+            },
+        );
     let storage_migrate_schema = warp::post()
         .and(storage_path)
         .and(warp::path("migrate-schema"))
         .and(warp::path::end())
-        .and(shared_connection_pool.clone())
+        .and(shared_connection_gatekeeper.clone())
         .and_then(
-            move |shared_connection_pool: Arc<AsyncConnectionPool>| async move {
-                shared_connection_pool
-                    .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-                        Ok(uc::database::migrate_schema(&pooled_connection)
-                            .map_err(api::Error::from)?)
-                    })
-                    .await
-                    .map_err(reject_on_error)
-                    .map(|()| StatusCode::NO_CONTENT)
+            move |shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                after_blocking_task_finished(
+                    shared_connection_gatekeeper
+                        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
+                            uc::database::migrate_schema(&pooled_connection)
+                        })
+                        .await,
+                )
+                .map(|()| StatusCode::NO_CONTENT)
             },
         );
     // TODO: Move into separate request handler
@@ -854,17 +879,15 @@ pub fn create_filters(
         .and(warp::path("cleanse"))
         .and(warp::path::end())
         .and(warp::query())
-        .and(shared_connection_pool)
+        .and(shared_connection_gatekeeper)
         .and_then(
-            move |query_params, shared_connection_pool: Arc<AsyncConnectionPool>| async move {
+            move |query_params, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
                 let CleanseDatabaseQueryParams { vacuum } = query_params;
-                shared_connection_pool
+                after_blocking_task_finished(shared_connection_gatekeeper
                     .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-                        Ok(uc::database::cleanse(&pooled_connection, vacuum)
-                            .map_err(api::Error::from)?)
+                        cleanse_database(&pooled_connection, vacuum)
                     })
-                    .await
-                    .map_err(reject_on_error)
+                    .await)
                     .map(|()| StatusCode::NO_CONTENT)
             },
         );

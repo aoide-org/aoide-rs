@@ -14,13 +14,17 @@ semval = "*"
 thiserror = "*"
 tracing = { version = "*", features = ["log"] }
 
+tokio = { version = "*", optional = true, default-features = false }
+
 # Workspace dependencies
 aoide-core = "*"
 aoide-core-ext = "*"
 aoide-media = "*"
 aoide-repo = "*"
 aoide-repo-sqlite = "*"
+aoide-storage-sqlite = "*"
 aoide-usecases = "*"
 
 [features]
 default = []
+with-tokio = ["tokio", "aoide-storage-sqlite/with-tokio"]

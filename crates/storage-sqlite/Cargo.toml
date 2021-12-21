@@ -1,0 +1,19 @@
+[package]
+name = "aoide-storage-sqlite"
+version = "0.0.0"
+license = "AGPL-3.0-or-later"
+publish = false
+edition = "2021"
+
+[dependencies]
+anyhow = "*"
+diesel = { version = "*", default-features = false, features = ["r2d2", "sqlite"] }
+r2d2 = "*"
+thiserror = "*"
+tracing = { version = "*", features = ["log"] }
+
+tokio = { version = "*", optional = true, default-features = false, features = ["macros", "rt"] }
+
+[features]
+default = []
+with-tokio = ["tokio"]

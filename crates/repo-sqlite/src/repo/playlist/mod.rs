@@ -585,21 +585,6 @@ impl<'db> EntryRepo for crate::Connection<'db> {
         }
         Ok(copied_count)
     }
-
-    fn delete_playlist_entries_with_tracks_from_other_collections(&self) -> RepoResult<usize> {
-        use crate::db::{media_source::schema::*, playlist_entry::schema::*, track::schema::*};
-        let delete_row_ids_subselect = playlist_entry::table
-            .inner_join(playlist::table)
-            .inner_join(track::table.inner_join(media_source::table))
-            .select(playlist_entry::row_id)
-            .filter(media_source::collection_id.ne(playlist::collection_id));
-        let delete_target =
-            playlist_entry::table.filter(playlist_entry::row_id.eq_any(delete_row_ids_subselect));
-        let rows_deleted: usize = diesel::delete(delete_target)
-            .execute(self.as_ref())
-            .map_err(repo_error)?;
-        Ok(rows_deleted)
-    }
 }
 
 impl<'db> Repo for crate::Connection<'db> {

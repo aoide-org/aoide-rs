@@ -33,6 +33,8 @@ use aoide_usecases as uc;
 
 use aoide_repo_sqlite::prelude::{Connection as RepoConnection, *};
 
+use aoide_storage_sqlite::Error as StorageError;
+
 #[macro_use]
 extern crate diesel_migrations;
 
@@ -71,6 +73,29 @@ pub enum Error {
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),
+
+    #[cfg(feature = "with-tokio")]
+    #[error("timeout: {reason}")]
+    Timeout { reason: String },
+
+    #[cfg(feature = "with-tokio")]
+    #[error(transparent)]
+    TaskScheduling(#[from] tokio::task::JoinError),
+}
+
+impl From<StorageError> for Error {
+    fn from(err: StorageError) -> Self {
+        use StorageError::*;
+        match err {
+            Database(err) => Self::Database(err),
+            Connection(err) => Self::DatabaseConnection(err),
+            Other(err) => Self::Other(err),
+            #[cfg(feature = "with-tokio")]
+            Timeout { reason } => Self::Timeout { reason },
+            #[cfg(feature = "with-tokio")]
+            TaskScheduling(err) => Self::TaskScheduling(err),
+        }
+    }
 }
 
 impl<E> From<DieselTransactionError<E>> for Error

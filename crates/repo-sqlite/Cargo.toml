@@ -24,6 +24,7 @@ url = "*"
 aoide-core = "*"
 aoide-core-ext = "*"
 aoide-repo = "*"
+aoide-storage-sqlite = "*"
 
 [features]
 default = []

@@ -82,11 +82,23 @@ jobs:
           command: check
           args: --locked --all-features --bins --examples --manifest-path crates/repo-sqlite/Cargo.toml
 
+      - name: Check aoide-storage-sqlite
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --locked --all-features --bins --examples --manifest-path crates/storage-sqlite/Cargo.toml
+
       - name: Check aoide-usecases
         uses: actions-rs/cargo@v1
         with:
           command: check
           args: --locked --all-features --bins --examples --manifest-path crates/usecases/Cargo.toml
+
+      - name: Check aoide-usecases-sqlite
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --locked --all-features --bins --examples --manifest-path crates/usecases-sqlite/Cargo.toml
 
       - name: Check aoide-client
         uses: actions-rs/cargo@v1

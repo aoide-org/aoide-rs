@@ -106,6 +106,8 @@ RUN USER=root cargo new --vcs none --lib ${PROJECT_NAME}-websrv && \
     mv ${PROJECT_NAME}-repo crates/repo && \
     USER=root cargo new --vcs none --lib ${PROJECT_NAME}-repo-sqlite && \
     mv ${PROJECT_NAME}-repo-sqlite crates/repo-sqlite && \
+    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-storage-sqlite && \
+    mv ${PROJECT_NAME}-storage-sqlite crates/storage-sqlite && \
     USER=root cargo new --vcs none --lib ${PROJECT_NAME}-usecases && \
     mv ${PROJECT_NAME}-usecases crates/usecases && \
     USER=root cargo new --vcs none --lib ${PROJECT_NAME}-usecases-sqlite && \
@@ -149,6 +151,9 @@ COPY [ \
 COPY [ \
     "crates/repo-sqlite/Cargo.toml", \
     "./crates/repo-sqlite/" ]
+COPY [ \
+    "crates/storage-sqlite/Cargo.toml", \
+    "./crates/storage-sqlite/" ]
 COPY [ \
     "crates/usecases/Cargo.toml", \
     "./crates/usecases/" ]
@@ -224,6 +229,9 @@ COPY [ \
     "crates/repo-sqlite/migrations", \
     "./crates/repo-sqlite/migrations/" ]
 COPY [ \
+    "crates/storage-sqlite/src", \
+    "./crates/storage-sqlite/src/" ]
+COPY [ \
     "crates/usecases/src", \
     "./crates/usecases/src/" ]
 COPY [ \
@@ -252,6 +260,7 @@ RUN tree -a && \
     cargo check -p aoide-media --manifest-path crates/media/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-repo --manifest-path crates/repo/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-repo-sqlite --manifest-path crates/repo-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-storage-sqlite --manifest-path crates/storage-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-usecases --manifest-path crates/usecases/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-usecases-sqlite --manifest-path crates/usecases-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-websrv --manifest-path websrv/Cargo.toml -${PROJECT_CHECK_ARGS} && \

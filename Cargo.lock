@@ -198,6 +198,7 @@ dependencies = [
  "aoide-core",
  "aoide-core-ext",
  "aoide-repo",
+ "aoide-storage-sqlite",
  "bigdecimal 0.3.0",
  "diesel",
  "diesel_migrations",
@@ -211,6 +212,18 @@ dependencies = [
  "test-log",
  "tracing",
  "url",
+]
+
+[[package]]
+name = "aoide-storage-sqlite"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "diesel",
+ "r2d2",
+ "thiserror",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -242,12 +255,14 @@ dependencies = [
  "aoide-media",
  "aoide-repo",
  "aoide-repo-sqlite",
+ "aoide-storage-sqlite",
  "aoide-usecases",
  "diesel",
  "diesel_migrations",
  "r2d2",
  "semval",
  "thiserror",
+ "tokio",
  "tracing",
 ]
 
@@ -264,12 +279,12 @@ dependencies = [
  "aoide-media",
  "aoide-repo",
  "aoide-repo-sqlite",
+ "aoide-storage-sqlite",
  "aoide-usecases",
  "aoide-usecases-sqlite",
  "chrono",
  "dotenv",
  "mime_guess",
- "r2d2",
  "rust-embed",
  "serde",
  "serde_json",

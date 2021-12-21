@@ -18,13 +18,14 @@
 
 use std::{collections::HashMap, env::current_exe, sync::Arc, time::Duration};
 
+use aoide_storage_sqlite::{
+    create_database_connection_pool, get_pooled_database_connection, initialize_database,
+    tokio::{DatabaseConnectionGatekeeper, DatabaseConnectionGatekeeperConfig},
+};
 use tokio::{join, signal, sync::mpsc, time::sleep};
 use warp::{http::StatusCode, Filter};
 
-use aoide_websrv::{
-    api::{handle_rejection, Error},
-    storage::{AsyncConnectionPool, AsyncConnectionPoolConfig},
-};
+use aoide_websrv::api::{handle_rejection, Error};
 
 use aoide_usecases_sqlite as uc;
 
@@ -65,19 +66,19 @@ pub async fn main() -> Result<(), Error> {
     // allowed readers while writers require exclusive access.
     let database_connection_pool_size = env::parse_database_connection_pool_size();
     let connection_pool =
-        uc::database::create_connection_pool(&database_url, database_connection_pool_size)
+        create_database_connection_pool(&database_url, database_connection_pool_size)
             .expect("Failed to create database connection pool");
 
-    uc::database::initialize(&*uc::database::get_pooled_connection(&connection_pool)?)
+    initialize_database(&*get_pooled_database_connection(&connection_pool)?)
         .expect("Failed to initialize database");
     if env::parse_database_migrate_schema_on_startup() {
-        uc::database::migrate_schema(&*uc::database::get_pooled_connection(&connection_pool)?)
+        uc::database::migrate_schema(&*get_pooled_database_connection(&connection_pool)?)
             .expect("Failed to migrate database schema");
     }
 
-    let shared_connection_pool = Arc::new(AsyncConnectionPool::new(
+    let shared_connection_pool = Arc::new(DatabaseConnectionGatekeeper::new(
         connection_pool,
-        AsyncConnectionPoolConfig {
+        DatabaseConnectionGatekeeperConfig {
             acquire_read_timeout: DB_CONNECTION_ACQUIRE_READ_TIMEOUT,
             acquire_write_timeout: DB_CONNECTION_ACQUIRE_WRITE_TIMEOUT,
         },

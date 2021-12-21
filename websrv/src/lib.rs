@@ -18,7 +18,3 @@
 #![warn(rust_2018_idioms)]
 
 pub mod api;
-
-// TODO: Move into a separate utility crate for asynchronous database access
-// that depends on both SQLite and Tokio.
-pub mod storage;
