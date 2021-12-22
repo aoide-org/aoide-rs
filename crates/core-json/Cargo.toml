@@ -1,0 +1,27 @@
+[package]
+name = "aoide-core-json"
+version = "0.0.0"
+license = "AGPL-3.0-or-later"
+publish = false
+edition = "2021"
+
+[dependencies]
+anyhow = "*"
+base64 = "*"
+chrono = { version = "*", default-features = false, features = ["serde"] }
+mime = "*"
+num-traits = "*"
+schemars = { version = "*", features = ["chrono"] }
+semval = "*"
+serde = { version = "*", features = ["derive"] }
+serde_repr = "*"
+url = { version = "*", features = ["serde"] }
+
+# Workspace dependencies
+aoide-core = "*"
+
+[features]
+default = []
+
+[dev-dependencies]
+serde_json = "*"

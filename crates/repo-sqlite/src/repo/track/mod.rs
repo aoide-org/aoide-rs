@@ -25,7 +25,7 @@ use aoide_core::{
     util::{canonical::Canonical, clock::*},
 };
 
-use aoide_core_ext::track::search::{SearchFilter, SortOrder};
+use aoide_core_api::track::search::{SearchFilter, SortOrder};
 
 use aoide_repo::{
     collection::RecordId as CollectionId,

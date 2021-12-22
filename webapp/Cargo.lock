@@ -28,7 +28,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "aoide-core-ext"
+name = "aoide-core-api"
 version = "0.0.0"
 dependencies = [
  "aoide-core",
@@ -39,19 +39,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "aoide-core-ext-serde"
+name = "aoide-core-api-json"
 version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-core",
- "aoide-core-ext",
- "aoide-core-serde",
+ "aoide-core-api",
+ "aoide-core-json",
  "serde",
  "url",
 ]
 
 [[package]]
-name = "aoide-core-serde"
+name = "aoide-core-json"
 version = "0.0.0"
 dependencies = [
  "anyhow",
@@ -73,9 +73,9 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-core",
- "aoide-core-ext",
- "aoide-core-ext-serde",
- "aoide-core-serde",
+ "aoide-core-api",
+ "aoide-core-api-json",
+ "aoide-core-json",
  "hyper",
  "seed",
  "serde",

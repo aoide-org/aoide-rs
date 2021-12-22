@@ -15,7 +15,7 @@
 
 use aoide_core::entity::EntityUid;
 
-use aoide_core_ext::track::search::Params;
+use aoide_core_api::track::search::Params;
 
 use super::{Action, FetchResultPageRequest, State, StateUpdated, Task};
 

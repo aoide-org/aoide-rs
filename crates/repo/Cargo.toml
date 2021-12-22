@@ -16,7 +16,7 @@ thiserror = "*"
 
 # Workspace dependencies
 aoide-core = "*"
-aoide-core-ext = "*"
+aoide-core-api = "*"
 
 [features]
 default = []

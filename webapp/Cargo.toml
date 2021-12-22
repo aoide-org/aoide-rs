@@ -15,12 +15,12 @@ url = "*"
 
 # Workspace dependencies
 aoide-core = "*"
-aoide-core-ext = "*"
-aoide-core-serde = "*"
-aoide-core-ext-serde = { version = "*", features = ["frontend"] }
+aoide-core-api = "*"
+aoide-core-json = "*"
+aoide-core-api-json = { version = "*", features = ["frontend"] }
 
 [patch.crates-io]
 aoide-core = { path = "../crates/core" }
-aoide-core-serde = { path = "../crates/core-serde" }
-aoide-core-ext = { path = "../crates/core-ext" }
-aoide-core-ext-serde = { path = "../crates/core-ext-serde" }
+aoide-core-json = { path = "../crates/core-json" }
+aoide-core-api = { path = "../crates/core-api" }
+aoide-core-api-json = { path = "../crates/core-api-json" }

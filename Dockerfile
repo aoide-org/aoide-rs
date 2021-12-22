@@ -92,14 +92,14 @@ RUN USER=root cargo new --vcs none --lib ${PROJECT_NAME}-websrv && \
     mv ${PROJECT_NAME}-client crates/client && \
     USER=root cargo new --vcs none --lib ${PROJECT_NAME}-core && \
     mv ${PROJECT_NAME}-core crates/core && \
-    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-core-serde && \
-    mv ${PROJECT_NAME}-core-serde crates/core-serde && \
-    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-core-ext && \
-    mv ${PROJECT_NAME}-core-ext crates/core-ext && \
-    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-core-ext-serde && \
-    mv ${PROJECT_NAME}-core-ext-serde crates/core-ext-serde && \
-    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-jsonapi-sqlite && \
-    mv ${PROJECT_NAME}-jsonapi-sqlite crates/jsonapi-sqlite && \
+    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-core-json && \
+    mv ${PROJECT_NAME}-core-json crates/core-json && \
+    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-core-api && \
+    mv ${PROJECT_NAME}-core-api crates/core-api && \
+    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-core-api-json && \
+    mv ${PROJECT_NAME}-core-api-json crates/core-api-json && \
+    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-usecases-sqlite-json && \
+    mv ${PROJECT_NAME}-usecases-sqlite-json crates/usecases-sqlite-json && \
     USER=root cargo new --vcs none --lib ${PROJECT_NAME}-media && \
     mv ${PROJECT_NAME}-media crates/media && \
     USER=root cargo new --vcs none --lib ${PROJECT_NAME}-repo && \
@@ -131,17 +131,17 @@ COPY [ \
     "crates/core/benches", \
     "./crates/core/benches/" ]
 COPY [ \
-    "crates/core-serde/Cargo.toml", \
-    "./crates/core-serde/" ]
+    "crates/core-json/Cargo.toml", \
+    "./crates/core-json/" ]
 COPY [ \
-    "crates/core-ext/Cargo.toml", \
-    "./crates/core-ext/" ]
+    "crates/core-api/Cargo.toml", \
+    "./crates/core-api/" ]
 COPY [ \
-    "crates/core-ext-serde/Cargo.toml", \
-    "./crates/core-ext-serde/" ]
+    "crates/core-api-json/Cargo.toml", \
+    "./crates/core-api-json/" ]
 COPY [ \
-    "crates/jsonapi-sqlite/Cargo.toml", \
-    "./crates/jsonapi-sqlite/" ]
+    "crates/usecases-sqlite-json/Cargo.toml", \
+    "./crates/usecases-sqlite-json/" ]
 COPY [ \
     "crates/media/Cargo.toml", \
     "./crates/media/" ]
@@ -205,17 +205,17 @@ COPY [ \
     "crates/core/src", \
     "./crates/core/src/" ]
 COPY [ \
-    "crates/core-serde/src", \
-    "./crates/core-serde/src/" ]
+    "crates/core-json/src", \
+    "./crates/core-json/src/" ]
 COPY [ \
-    "crates/core-ext/src", \
-    "./crates/core-ext/src/" ]
+    "crates/core-api/src", \
+    "./crates/core-api/src/" ]
 COPY [ \
-    "crates/core-ext-serde/src", \
-    "./crates/core-ext-serde/src/" ]
+    "crates/core-api-json/src", \
+    "./crates/core-api-json/src/" ]
 COPY [ \
-    "crates/jsonapi-sqlite/src", \
-    "./crates/jsonapi-sqlite/src/" ]
+    "crates/usecases-sqlite-json/src", \
+    "./crates/usecases-sqlite-json/src/" ]
 COPY [ \
     "crates/media/src", \
     "./crates/media/src/" ]
@@ -253,10 +253,10 @@ RUN tree -a && \
     rm -rf .git && \
     cargo check -p aoide-client --manifest-path crates/client/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-core --manifest-path crates/core/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-core-serde --manifest-path crates/core-serde/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-core-ext --manifest-path crates/core-ext/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-core-ext-serde --manifest-path crates/core-ext-serde/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-jsonapi-sqlite --manifest-path crates/jsonapi-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-core-json --manifest-path crates/core-json/Cargo.toml ${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-core-api --manifest-path crates/core-api/Cargo.toml ${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-core-api-json --manifest-path crates/core-api-json/Cargo.toml ${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-usecases-sqlite-json --manifest-path crates/usecases-sqlite-json/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-media --manifest-path crates/media/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-repo --manifest-path crates/repo/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-repo-sqlite --manifest-path crates/repo-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \

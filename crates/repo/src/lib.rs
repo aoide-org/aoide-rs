@@ -40,7 +40,7 @@ pub struct RecordHeader<Id> {
 pub mod prelude {
     use thiserror::Error;
 
-    pub use aoide_core_ext::{
+    pub use aoide_core_api::{
         filtering::*, sorting::*, Pagination, PaginationLimit, PaginationOffset,
     };
 

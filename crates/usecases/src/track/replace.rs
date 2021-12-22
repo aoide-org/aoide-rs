@@ -22,7 +22,7 @@ use url::Url;
 
 use aoide_core::{entity::EntityUid, media::SourcePath, util::clock::DateTime};
 
-use aoide_core_ext::{media::SyncMode, track::replace::Summary};
+use aoide_core_api::{media::SyncMode, track::replace::Summary};
 
 use aoide_media::{
     io::import::ImportTrackConfig,

@@ -16,9 +16,9 @@ tracing = { version = "*", features = ["log"] }
 
 # Workspace dependencies
 aoide-core = "*"
-aoide-core-serde = "*"
-aoide-core-ext = "*"
-aoide-core-ext-serde = { version = "*", features = ["frontend"] }
+aoide-core-json = "*"
+aoide-core-api = "*"
+aoide-core-api-json = { version = "*", features = ["frontend"] }
 
 [dev-dependencies]
 clap = "*"

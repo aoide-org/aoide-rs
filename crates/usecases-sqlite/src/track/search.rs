@@ -18,7 +18,7 @@ use aoide_repo::collection::EntityRepo as _;
 use super::*;
 
 mod uc {
-    pub use aoide_core_ext::track::search::*;
+    pub use aoide_core_api::track::search::*;
     pub use aoide_usecases::{
         collection::resolve_collection_id_for_virtual_file_path, track::search::*, Error,
     };

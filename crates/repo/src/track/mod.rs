@@ -20,7 +20,7 @@ use aoide_core::{
     util::clock::DateTime,
 };
 
-use aoide_core_ext::track::search::*;
+use aoide_core_api::track::search::*;
 
 use crate::{
     collection::RecordId as CollectionId,

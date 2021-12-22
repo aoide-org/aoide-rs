@@ -22,7 +22,7 @@ use aoide_core::{
     util::{clock::DateTime, url::BaseUrl},
 };
 
-use aoide_core_ext::media::tracker::{
+use aoide_core_api::media::tracker::{
     scan::{Outcome, Summary},
     Completion, FsTraversalDirectoriesProgress, FsTraversalEntriesProgress, FsTraversalParams,
     FsTraversalProgress,

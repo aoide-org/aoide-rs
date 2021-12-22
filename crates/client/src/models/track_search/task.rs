@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core::entity::EntityUid;
-use aoide_core_ext_serde::track::search::client_request_params;
+use aoide_core_api_json::track::search::client_request_params;
 
 use crate::{receive_response_body, WebClientEnvironment};
 
@@ -63,7 +63,7 @@ async fn fetch_result_page<E: WebClientEnvironment>(
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
     let (entities, errors): (Vec<_>, _) =
-        serde_json::from_slice::<Vec<aoide_core_serde::track::Entity>>(&response_body)?
+        serde_json::from_slice::<Vec<aoide_core_json::track::Entity>>(&response_body)?
             .into_iter()
             .map(TryFrom::try_from)
             .partition(Result::is_ok);

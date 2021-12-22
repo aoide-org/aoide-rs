@@ -15,7 +15,7 @@
 
 use aoide_core::entity::EntityUid;
 
-use aoide_core_ext::media::tracker::{query_status::Params, Status};
+use aoide_core_api::media::tracker::{query_status::Params, Status};
 
 use super::*;
 

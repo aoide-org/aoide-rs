@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core_ext::media::tracker::untrack::{Outcome, Params, Summary};
+use aoide_core_api::media::tracker::untrack::{Outcome, Params, Summary};
 
 use aoide_repo::{collection::RecordId as CollectionId, media::tracker::Repo as MediaTrackerRepo};
 

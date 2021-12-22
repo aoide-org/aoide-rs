@@ -21,7 +21,7 @@ use aoide_core::{
     util::clock::*,
 };
 
-use aoide_core_ext::collection::{MediaSourceSummary, PlaylistSummary, Summary, TrackSummary};
+use aoide_core_api::collection::{MediaSourceSummary, PlaylistSummary, Summary, TrackSummary};
 
 use aoide_repo::collection::*;
 

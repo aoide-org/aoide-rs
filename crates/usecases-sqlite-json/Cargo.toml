@@ -1,0 +1,28 @@
+[package]
+name = "aoide-usecases-sqlite-json"
+version = "0.0.0"
+license = "AGPL-3.0-or-later"
+publish = false
+edition = "2021"
+
+[dependencies]
+anyhow = "*"
+serde = "*"
+thiserror = "*"
+tracing = { version = "*", features = ["log"] }
+url = "*"
+uuid = { version = "*", features = ["v4"] }
+
+# Workspace dependencies
+aoide-core = "*"
+aoide-core-api = "*"
+aoide-core-json = "*"
+aoide-core-api-json = { version = "*", features = ["backend"] }
+aoide-media = "*"
+aoide-repo = "*"
+aoide-repo-sqlite = "*"
+aoide-usecases = "*"
+aoide-usecases-sqlite = "*"
+
+[features]
+default = []

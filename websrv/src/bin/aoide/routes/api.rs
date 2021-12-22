@@ -22,7 +22,7 @@ use aoide_usecases::media::tracker::scan::ProgressEvent as ScanProgressEvent;
 
 use aoide_usecases::media::tracker::find_untracked_files::ProgressEvent as FindUntrackedProgressEvent;
 
-use aoide_core_ext::media::tracker::import::Summary as ImportProgressSummary;
+use aoide_core_api::media::tracker::import::Summary as ImportProgressSummary;
 
 use aoide_storage_sqlite::{
     cleanse_database,
@@ -33,13 +33,13 @@ use aoide_websrv::api::{
     after_blocking_task_finished, spawn_blocking_read_task, spawn_blocking_write_task,
 };
 
-use aoide_jsonapi_sqlite as api;
+use aoide_usecases_sqlite_json as api;
 
 use aoide_usecases_sqlite as uc;
 
 use aoide_core::entity::EntityUid;
 
-use aoide_core_ext::media::tracker::Progress as MediaTrackerProgress;
+use aoide_core_api::media::tracker::Progress as MediaTrackerProgress;
 
 pub fn create_filters(
     shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>,
@@ -200,7 +200,7 @@ pub fn create_filters(
     ) -> Result<impl warp::Reply, Infallible> {
         let progress = media_tracker_progress.lock().await.clone();
         Ok(warp::reply::json(
-            &aoide_core_ext_serde::media::tracker::Progress::from(progress),
+            &aoide_core_api_json::media::tracker::Progress::from(progress),
         ))
     }
 
@@ -318,7 +318,7 @@ pub fn create_filters(
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>,
                   media_tracker_progress: Arc<Mutex<MediaTrackerProgress>>| async move {
                 let (progress_summary_tx, mut progress_summary_rx) =
-                    watch::channel(aoide_core_ext::media::tracker::import::Summary::default());
+                    watch::channel(aoide_core_api::media::tracker::import::Summary::default());
                 let watcher = tokio::spawn(async move {
                     *media_tracker_progress.lock().await =
                         MediaTrackerProgress::Importing(Default::default());

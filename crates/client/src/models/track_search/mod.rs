@@ -15,8 +15,8 @@
 
 use aoide_core::track::Entity;
 
-use aoide_core_ext::track::search::Params;
-use aoide_core_ext::Pagination;
+use aoide_core_api::track::search::Params;
+use aoide_core_api::Pagination;
 
 pub mod effect;
 pub use self::effect::Effect;

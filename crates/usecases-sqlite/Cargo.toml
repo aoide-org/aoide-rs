@@ -18,7 +18,7 @@ tokio = { version = "*", optional = true, default-features = false }
 
 # Workspace dependencies
 aoide-core = "*"
-aoide-core-ext = "*"
+aoide-core-api = "*"
 aoide-media = "*"
 aoide-repo = "*"
 aoide-repo-sqlite = "*"

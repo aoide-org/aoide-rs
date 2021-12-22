@@ -23,7 +23,7 @@ use aoide_core::{
     track::{Entity as TrackEntity, Track},
 };
 
-use aoide_core_ext::track::search::*;
+use aoide_core_api::track::search::*;
 
 use aoide_repo::{
     collection::RecordId as CollectionId,

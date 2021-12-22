@@ -15,7 +15,7 @@
 
 use aoide_core::{collection::*, util::clock::DateTime};
 
-use aoide_core_ext::collection::*;
+use aoide_core_api::collection::*;
 
 use crate::prelude::*;
 

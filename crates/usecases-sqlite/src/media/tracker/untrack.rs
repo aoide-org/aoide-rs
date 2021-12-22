@@ -15,7 +15,7 @@
 
 use aoide_core::entity::EntityUid;
 
-use aoide_core_ext::media::tracker::untrack::{Outcome, Params};
+use aoide_core_api::media::tracker::untrack::{Outcome, Params};
 
 use super::*;
 

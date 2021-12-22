@@ -1,0 +1,18 @@
+[package]
+name = "aoide-core-api"
+version = "0.0.0"
+license = "AGPL-3.0-or-later"
+publish = false
+edition = "2021"
+
+[dependencies]
+num-derive = "*"
+num-traits = "*"
+semval = "*"
+url = "*"
+
+# Workspace dependencies
+aoide-core = "*"
+
+[features]
+default = []

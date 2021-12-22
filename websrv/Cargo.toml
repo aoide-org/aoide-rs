@@ -25,10 +25,10 @@ rust-embed = { version = "*", optional = true }
 
 # Workspace dependencies
 aoide-core = "*"
-aoide-core-ext = "*"
-aoide-core-serde = "*"
-aoide-core-ext-serde = "*"
-aoide-jsonapi-sqlite = "*"
+aoide-core-api = "*"
+aoide-core-json = "*"
+aoide-core-api-json = "*"
+aoide-usecases-sqlite-json = "*"
 aoide-media = "*"
 aoide-repo = "*"
 aoide-repo-sqlite = "*"

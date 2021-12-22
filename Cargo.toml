@@ -2,10 +2,10 @@
 members = [
   "crates/client",
   "crates/core",
-  "crates/core-serde",
-  "crates/core-ext",
-  "crates/core-ext-serde",
-  "crates/jsonapi-sqlite",
+  "crates/core-json",
+  "crates/core-api",
+  "crates/core-api-json",
+  "crates/usecases-sqlite-json",
   "crates/media",
   "crates/repo",
   "crates/repo-sqlite",
@@ -22,10 +22,10 @@ exclude = [ "webapp" ]
 # Workspace crates
 aoide-client = { path = "crates/client" }
 aoide-core = { path = "crates/core" }
-aoide-core-serde = { path = "crates/core-serde" }
-aoide-core-ext = { path = "crates/core-ext" }
-aoide-core-ext-serde = { path = "crates/core-ext-serde" }
-aoide-jsonapi-sqlite = { path = "crates/jsonapi-sqlite" }
+aoide-core-json = { path = "crates/core-json" }
+aoide-core-api = { path = "crates/core-api" }
+aoide-core-api-json = { path = "crates/core-api-json" }
+aoide-usecases-sqlite-json = { path = "crates/usecases-sqlite-json" }
 aoide-media = { path = "crates/media" }
 aoide-repo = { path = "crates/repo" }
 aoide-repo-sqlite = { path = "crates/repo-sqlite" }

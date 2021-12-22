@@ -44,9 +44,9 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-core",
- "aoide-core-ext",
- "aoide-core-ext-serde",
- "aoide-core-serde",
+ "aoide-core-api",
+ "aoide-core-api-json",
+ "aoide-core-json",
  "bytes",
  "clap",
  "env_logger",
@@ -80,7 +80,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "aoide-core-ext"
+name = "aoide-core-api"
 version = "0.0.0"
 dependencies = [
  "aoide-core",
@@ -91,19 +91,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "aoide-core-ext-serde"
+name = "aoide-core-api-json"
 version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-core",
- "aoide-core-ext",
- "aoide-core-serde",
+ "aoide-core-api",
+ "aoide-core-json",
  "serde",
  "url",
 ]
 
 [[package]]
-name = "aoide-core-serde"
+name = "aoide-core-json"
 version = "0.0.0"
 dependencies = [
  "anyhow",
@@ -121,33 +121,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "aoide-jsonapi-sqlite"
-version = "0.0.0"
-dependencies = [
- "anyhow",
- "aoide-core",
- "aoide-core-ext",
- "aoide-core-ext-serde",
- "aoide-core-serde",
- "aoide-media",
- "aoide-repo",
- "aoide-repo-sqlite",
- "aoide-usecases",
- "aoide-usecases-sqlite",
- "serde",
- "thiserror",
- "tracing",
- "url",
- "uuid",
-]
-
-[[package]]
 name = "aoide-media"
 version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-core",
- "aoide-core-serde",
+ "aoide-core-json",
  "base64",
  "bitflags",
  "blake3",
@@ -181,7 +160,7 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-core",
- "aoide-core-ext",
+ "aoide-core-api",
  "num-derive",
  "num-traits",
  "paste",
@@ -196,7 +175,7 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-core",
- "aoide-core-ext",
+ "aoide-core-api",
  "aoide-repo",
  "aoide-storage-sqlite",
  "bigdecimal 0.3.0",
@@ -232,7 +211,7 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-core",
- "aoide-core-ext",
+ "aoide-core-api",
  "aoide-media",
  "aoide-repo",
  "bitflags",
@@ -251,7 +230,7 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "aoide-core",
- "aoide-core-ext",
+ "aoide-core-api",
  "aoide-media",
  "aoide-repo",
  "aoide-repo-sqlite",
@@ -267,21 +246,42 @@ dependencies = [
 ]
 
 [[package]]
+name = "aoide-usecases-sqlite-json"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "aoide-core",
+ "aoide-core-api",
+ "aoide-core-api-json",
+ "aoide-core-json",
+ "aoide-media",
+ "aoide-repo",
+ "aoide-repo-sqlite",
+ "aoide-usecases",
+ "aoide-usecases-sqlite",
+ "serde",
+ "thiserror",
+ "tracing",
+ "url",
+ "uuid",
+]
+
+[[package]]
 name = "aoide-websrv"
 version = "0.8.0"
 dependencies = [
  "anyhow",
  "aoide-core",
- "aoide-core-ext",
- "aoide-core-ext-serde",
- "aoide-core-serde",
- "aoide-jsonapi-sqlite",
+ "aoide-core-api",
+ "aoide-core-api-json",
+ "aoide-core-json",
  "aoide-media",
  "aoide-repo",
  "aoide-repo-sqlite",
  "aoide-storage-sqlite",
  "aoide-usecases",
  "aoide-usecases-sqlite",
+ "aoide-usecases-sqlite-json",
  "chrono",
  "dotenv",
  "mime_guess",

@@ -16,13 +16,13 @@
 use std::sync::atomic::AtomicBool;
 
 use aoide_core::entity::EntityUid;
-use aoide_core_ext::media::tracker::{scan::Outcome, FsTraversalParams};
+use aoide_core_api::media::tracker::{scan::Outcome, FsTraversalParams};
 use aoide_usecases::media::tracker::scan::ProgressEvent;
 
 use super::*;
 
 mod uc {
-    pub use aoide_core_ext::media::tracker::scan::*;
+    pub use aoide_core_api::media::tracker::scan::*;
     pub use aoide_usecases::{media::tracker::scan::*, Error};
 }
 

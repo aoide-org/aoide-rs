@@ -21,7 +21,7 @@ use aoide_core::{
     track::{Entity, Track},
 };
 
-use aoide_core_ext::track::search::{ConditionFilter, SearchFilter, SortField, SortOrder};
+use aoide_core_api::track::search::{ConditionFilter, SearchFilter, SortField, SortOrder};
 
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},

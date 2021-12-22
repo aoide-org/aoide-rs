@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core_ext::media::tracker::{
+use aoide_core_api::media::tracker::{
     find_untracked_files::Outcome as FindUntrackedOutcome, import::Outcome as ImportOutcome,
     scan::Outcome as ScanOutcome, untrack::Outcome as UntrackOutcome, Progress, Status,
 };

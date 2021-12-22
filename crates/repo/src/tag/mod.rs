@@ -15,7 +15,7 @@
 
 use aoide_core::tag::*;
 
-use aoide_core_ext::tag::search::*;
+use aoide_core_api::tag::search::*;
 
 fn dedup_facets(facets: &mut Vec<FacetId>) {
     facets.sort_unstable();

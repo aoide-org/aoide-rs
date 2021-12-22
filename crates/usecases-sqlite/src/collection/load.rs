@@ -15,7 +15,7 @@
 
 use super::*;
 
-use aoide_core_ext::collection::Summary;
+use aoide_core_api::collection::Summary;
 
 ///////////////////////////////////////////////////////////////////////
 

@@ -15,7 +15,7 @@
 
 use std::time::Instant;
 
-use aoide_core_ext::track::search::*;
+use aoide_core_api::track::search::*;
 
 use aoide_repo::{
     collection::{EntityRepo as CollectionRepo, RecordId as CollectionId},

@@ -17,7 +17,7 @@ use std::sync::atomic::AtomicBool;
 
 use aoide_core::media::SourcePath;
 
-use aoide_core_ext::{media::SyncMode, track::replace::Summary};
+use aoide_core_api::{media::SyncMode, track::replace::Summary};
 
 use aoide_media::io::import::ImportTrackConfig;
 

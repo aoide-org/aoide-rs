@@ -21,7 +21,7 @@ use diesel::{
 
 use aoide_core::{entity::EntityUid, util::clock::YYYYMMDD};
 
-use aoide_core_ext::{tag::search::Filter as TagFilter, track::search::*};
+use aoide_core_api::{tag::search::Filter as TagFilter, track::search::*};
 
 use crate::{
     db::{

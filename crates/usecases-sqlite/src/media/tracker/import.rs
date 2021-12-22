@@ -15,7 +15,7 @@
 
 use std::sync::atomic::AtomicBool;
 
-use aoide_core_ext::media::tracker::import::Params;
+use aoide_core_api::media::tracker::import::Params;
 
 use aoide_media::io::import::ImportTrackConfig;
 use aoide_storage_sqlite::analyze_and_optimize_database_stats;
@@ -23,7 +23,7 @@ use aoide_storage_sqlite::analyze_and_optimize_database_stats;
 use super::*;
 
 mod uc {
-    pub use aoide_core_ext::media::tracker::import::*;
+    pub use aoide_core_api::media::tracker::import::*;
     pub use aoide_usecases::media::{
         tracker::{import::*, *},
         *,

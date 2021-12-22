@@ -16,13 +16,13 @@
 use std::sync::atomic::AtomicBool;
 
 use aoide_core::entity::EntityUid;
-use aoide_core_ext::media::tracker::{find_untracked_files::Outcome, FsTraversalParams};
+use aoide_core_api::media::tracker::{find_untracked_files::Outcome, FsTraversalParams};
 use aoide_usecases::media::tracker::find_untracked_files::ProgressEvent;
 
 use super::*;
 
 mod uc {
-    pub use aoide_core_ext::media::tracker::find_untracked_files::*;
+    pub use aoide_core_api::media::tracker::find_untracked_files::*;
     pub use aoide_usecases::{media::tracker::find_untracked_files::*, Error};
 }
 

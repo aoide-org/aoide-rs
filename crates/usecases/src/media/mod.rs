@@ -17,7 +17,7 @@ use std::io::BufReader;
 
 use aoide_core::{media::SourcePath, track::Track, util::clock::DateTime};
 
-use aoide_core_ext::media::SyncMode;
+use aoide_core_api::media::SyncMode;
 
 use aoide_media::{
     fs::{file_last_modified_at, open_file_for_reading},

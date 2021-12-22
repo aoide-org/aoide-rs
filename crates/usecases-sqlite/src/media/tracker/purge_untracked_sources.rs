@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core_ext::media::tracker::purge_untracked_sources::{Outcome, Params};
+use aoide_core_api::media::tracker::purge_untracked_sources::{Outcome, Params};
 
 use super::*;
 

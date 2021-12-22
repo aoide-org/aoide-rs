@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 aoide-core = "*"
-aoide-core-serde = "*"
+aoide-core-json = "*"
 
 anyhow = "*"
 base64 = "*"

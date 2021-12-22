@@ -22,7 +22,7 @@ url = "*"
 
 # Workspace dependencies
 aoide-core = "*"
-aoide-core-ext = "*"
+aoide-core-api = "*"
 aoide-repo = "*"
 aoide-storage-sqlite = "*"
 

@@ -20,7 +20,7 @@ use std::{
 
 use aoide_core::{entity::EntityUid, util::url::BaseUrl};
 
-use aoide_core_ext::media::tracker::{
+use aoide_core_api::media::tracker::{
     import::{Outcome, Params, Summary},
     Completion,
 };

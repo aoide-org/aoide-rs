@@ -18,7 +18,7 @@ walkdir = "*"
 
 # Workspace dependencies
 aoide-core = "*"
-aoide-core-ext = "*"
+aoide-core-api = "*"
 aoide-media = "*"
 aoide-repo = "*"
 

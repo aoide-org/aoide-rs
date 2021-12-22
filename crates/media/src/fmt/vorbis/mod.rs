@@ -43,7 +43,7 @@ use aoide_core::{
     },
 };
 
-use aoide_core_serde::tag::Tags as SerdeTags;
+use aoide_core_json::tag::Tags as SerdeTags;
 
 use crate::{
     io::{
@@ -894,7 +894,7 @@ pub fn export_track(
     // Export all tags
     writer.remove_all_values(MIXXX_CUSTOM_TAGS_KEY); // drop legacy key
     if config.flags.contains(ExportTrackFlags::AOIDE_TAGS) && !track.tags.is_empty() {
-        match serde_json::to_string(&aoide_core_serde::tag::Tags::from(
+        match serde_json::to_string(&aoide_core_json::tag::Tags::from(
             track.tags.clone().untie(),
         )) {
             Ok(value) => {

@@ -43,14 +43,14 @@ impl Task {
 
 pub async fn create_new_collection<E: WebClientEnvironment>(
     env: &E,
-    new_collection: impl Into<aoide_core_serde::collection::Collection>,
+    new_collection: impl Into<aoide_core_json::collection::Collection>,
 ) -> anyhow::Result<CollectionEntity> {
     let url = env.join_api_url("c")?;
     let body = serde_json::to_vec(&new_collection.into())?;
     let request = env.client().post(url).body(body);
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
-    let entity = serde_json::from_slice::<aoide_core_serde::collection::Entity>(&response_body)
+    let entity = serde_json::from_slice::<aoide_core_json::collection::Entity>(&response_body)
         .map_err(anyhow::Error::from)
         .and_then(TryInto::try_into)?;
     tracing::debug!("Created new collection entity: {:?}", entity);
@@ -65,7 +65,7 @@ pub async fn fetch_available_collections<E: WebClientEnvironment>(
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
     let (entities, errors): (Vec<_>, _) =
-        serde_json::from_slice::<Vec<aoide_core_serde::collection::Entity>>(&response_body)?
+        serde_json::from_slice::<Vec<aoide_core_json::collection::Entity>>(&response_body)?
             .into_iter()
             .map(TryFrom::try_from)
             .partition(Result::is_ok);

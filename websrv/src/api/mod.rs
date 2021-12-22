@@ -33,7 +33,7 @@ use warp::{
 
 use aoide_repo::prelude::RepoError;
 
-use aoide_jsonapi_sqlite as api;
+use aoide_usecases_sqlite_json as api;
 
 use aoide_usecases_sqlite as uc;
 

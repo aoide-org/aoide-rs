@@ -15,7 +15,7 @@
 
 use aoide_core::{media::SourcePath, util::clock::DateTime};
 
-use aoide_core_ext::media::tracker::{DirTrackingStatus, DirectoriesStatus};
+use aoide_core_api::media::tracker::{DirTrackingStatus, DirectoriesStatus};
 
 use crate::{
     collection::RecordId as CollectionId, media::source::RecordId as MediaSourceId, prelude::*,

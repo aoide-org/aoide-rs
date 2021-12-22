@@ -46,23 +46,23 @@ jobs:
           command: check
           args: --locked --all-features --bins --examples --manifest-path crates/core/Cargo.toml
 
-      - name: Check aoide-core-serde
+      - name: Check aoide-core-json
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --locked --all-features --bins --examples --manifest-path crates/core-serde/Cargo.toml
+          args: --locked --all-features --bins --examples --manifest-path crates/core-json/Cargo.toml
 
-      - name: Check aoide-core-ext
+      - name: Check aoide-core-api
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --locked --all-features --bins --examples --manifest-path crates/core-ext/Cargo.toml
+          args: --locked --all-features --bins --examples --manifest-path crates/core-api/Cargo.toml
 
-      - name: Check aoide-core-ext-serde
+      - name: Check aoide-core-api-json
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --locked --all-features --bins --examples --manifest-path crates/core-ext-serde/Cargo.toml
+          args: --locked --all-features --bins --examples --manifest-path crates/core-api-json/Cargo.toml
 
       - name: Check aoide-media
         uses: actions-rs/cargo@v1

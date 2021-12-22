@@ -49,7 +49,7 @@ use aoide_core::{
     },
 };
 
-use aoide_core_serde::tag::Tags as SerdeTags;
+use aoide_core_json::tag::Tags as SerdeTags;
 
 use crate::{
     io::{
@@ -852,7 +852,7 @@ pub fn export_track_to_path(
         if track.tags.is_empty() {
             mp4_tag.remove_data_of(&AOIDE_TAGS_IDENT);
         } else {
-            match serde_json::to_string(&aoide_core_serde::tag::Tags::from(
+            match serde_json::to_string(&aoide_core_json::tag::Tags::from(
                 track.tags.clone().untie(),
             )) {
                 Ok(value) => {

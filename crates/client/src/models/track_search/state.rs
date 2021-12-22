@@ -15,7 +15,7 @@
 
 use aoide_core::track::Entity;
 
-use aoide_core_ext::track::search::Params;
+use aoide_core_api::track::search::Params;
 
 use super::FetchResultPageResponse;
 

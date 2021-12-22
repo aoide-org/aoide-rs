@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core::{entity::EntityUid, util::url::BaseUrl};
-use aoide_core_ext::media::tracker::{
+use aoide_core_api::media::tracker::{
     purge_untracked_sources::{Outcome, Params, Summary},
     DirTrackingStatus,
 };

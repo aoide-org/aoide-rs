@@ -5,7 +5,7 @@ use seed::{prelude::*, *};
 
 use aoide_core::{entity::EntityUid, track::Track};
 
-use aoide_core_ext::{
+use aoide_core_api::{
     media::tracker::{
         import::Outcome as ImportMediaSourcesOutcome,
         purge_untracked_sources::Outcome as PurgeUntrackedMediaSourcesOutcome,
@@ -15,13 +15,13 @@ use aoide_core_ext::{
     track::search::Params as SearchParams,
 };
 
-use aoide_core_serde::{
+use aoide_core_json::{
     collection::{Collection as SerdeCollection, Entity as SerdeCollectionEntity},
     entity::{Entity as SerdeEntity, EntityHeader as SerdeEntityHeader},
     track::Track as SerdeTrack,
 };
 
-use aoide_core_ext_serde::{
+use aoide_core_api_json::{
     collection::{import_entity_with_summary, EntityWithSummary as CollectionEntityWithSummary},
     media::tracker::{
         import::{
@@ -227,7 +227,7 @@ pub async fn search_tracks(
     pagination: impl Into<SerdePagination>,
 ) -> Result<Vec<Track>> {
     let (query_params, search_params) =
-        aoide_core_ext_serde::track::search::client_request_params(params, pagination);
+        aoide_core_api_json::track::search::client_request_params(params, pagination);
     let url = format!(
         "{}/c/{}/t/search?{}",
         BASE_URL,
