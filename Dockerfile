@@ -31,7 +31,7 @@ ARG BUILD_TARGET=x86_64-unknown-linux-musl
 
 ARG BUILD_PROFILE=production
 
-ARG BUILD_BIN=aoide
+ARG BUILD_BIN=aoide-websrv
 
 
 ###############################################################################
@@ -275,7 +275,7 @@ RUN tree -a && \
     cargo check -p aoide-websrv --manifest-path websrv/Cargo.toml -${PROJECT_CHECK_ARGS} && \
     cargo test --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} --no-run && \
     cargo test --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} -- --nocapture --quiet && \
-    cargo build -p aoide-websrv --manifest-path websrv/Cargo.toml --bin ${BUILD_BIN} ${BUILD_BIN_ARGS} && \
+    cargo build -p aoide-websrv --manifest-path websrv/Cargo.toml ${BUILD_BIN_ARGS} && \
     strip ./target/${BUILD_TARGET}/${BUILD_PROFILE}/${BUILD_BIN}
 
 
