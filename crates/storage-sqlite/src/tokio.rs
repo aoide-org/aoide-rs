@@ -150,7 +150,7 @@ impl DatabaseConnectionGatekeeper {
         Ok(())
     }
 
-    pub async fn spawn_blocking_read_task<H, R, E>(&self, connection_handler: H) -> Result<R>
+    pub async fn spawn_blocking_read_task<H, R>(&self, connection_handler: H) -> Result<R>
     where
         H: FnOnce(SqlitePooledConnection, Arc<AtomicBool>) -> R + Send + 'static,
         R: Send + 'static,
