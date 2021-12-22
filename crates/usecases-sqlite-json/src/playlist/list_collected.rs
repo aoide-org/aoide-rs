@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_usecases_sqlite::{playlist::load as uc, SqlitePooledConnection};
+use aoide_usecases_sqlite::playlist::load as uc;
 
 use super::*;
 
@@ -36,7 +36,7 @@ pub struct QueryParams {
 pub type ResponseBody = Vec<EntityWithEntriesSummary>;
 
 pub fn handle_request(
-    pooled_connection: SqlitePooledConnection,
+    connection: &SqliteConnection,
     collection_uid: &EntityUid,
     query_params: QueryParams,
 ) -> Result<ResponseBody> {
@@ -49,7 +49,7 @@ pub fn handle_request(
     let pagination: Option<_> = pagination.into();
     let mut collector = EntityWithEntriesSummaryCollector::default();
     uc::load_entities_with_entries_summary(
-        &pooled_connection,
+        connection,
         collection_uid,
         kind.as_deref(),
         pagination.as_ref(),

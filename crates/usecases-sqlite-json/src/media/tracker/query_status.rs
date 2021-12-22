@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_usecases_sqlite::SqlitePooledConnection;
-
 use aoide_core::{entity::EntityUid, util::url::BaseUrl};
 
 use super::*;
@@ -27,7 +25,7 @@ pub type RequestBody = aoide_core_api_json::media::tracker::query_status::Params
 pub type ResponseBody = aoide_core_api_json::media::tracker::Status;
 
 pub fn handle_request(
-    pooled_connection: SqlitePooledConnection,
+    connection: &SqliteConnection,
     collection_uid: &EntityUid,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
@@ -38,7 +36,7 @@ pub fn handle_request(
         .map_err(anyhow::Error::from)
         .map_err(Error::BadRequest)?;
     let params = aoide_core_api::media::tracker::query_status::Params { root_url };
-    uc::query_status(&pooled_connection, collection_uid, &params)
+    uc::query_status(connection, collection_uid, &params)
         .map(Into::into)
         .map_err(Into::into)
 }

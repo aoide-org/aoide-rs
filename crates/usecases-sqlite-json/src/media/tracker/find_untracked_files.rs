@@ -16,7 +16,6 @@
 use std::sync::atomic::AtomicBool;
 
 use aoide_core::{entity::EntityUid, util::url::BaseUrl};
-use aoide_usecases_sqlite::SqlitePooledConnection;
 
 use super::*;
 
@@ -32,7 +31,7 @@ pub type ResponseBody = aoide_core_api_json::media::tracker::find_untracked_file
 #[tracing::instrument(
     name = "Finding untracked media sources",
     skip(
-        pooled_connection,
+        connection,
         progress_event_fn,
         abort_flag,
     ),
@@ -41,7 +40,7 @@ pub type ResponseBody = aoide_core_api_json::media::tracker::find_untracked_file
     )
 )]
 pub fn handle_request(
-    pooled_connection: SqlitePooledConnection,
+    connection: &SqliteConnection,
     collection_uid: &EntityUid,
     request_body: RequestBody,
     progress_event_fn: &mut impl FnMut(uc::ProgressEvent),
@@ -62,7 +61,7 @@ pub fn handle_request(
         max_depth,
     };
     uc::visit_directories(
-        &pooled_connection,
+        connection,
         collection_uid,
         &params,
         progress_event_fn,

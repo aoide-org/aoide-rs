@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core::playlist::PlaylistWithEntriesSummary;
-use aoide_usecases_sqlite::{playlist::entries as uc, SqlitePooledConnection};
+use aoide_usecases_sqlite::playlist::entries as uc;
 
 use aoide_core_json::entity::EntityUid as SerdeEntityUid;
 
@@ -95,7 +95,7 @@ pub type RequestBody = Vec<PatchOperation>;
 pub type ResponseBody = EntityWithEntriesSummary;
 
 pub fn handle_request(
-    pooled_connection: SqlitePooledConnection,
+    connection: &SqliteConnection,
     uid: EntityUid,
     query_params: EntityRevQueryParams,
     request_body: RequestBody,
@@ -106,7 +106,7 @@ pub fn handle_request(
         rev: rev.into(),
     };
     uc::patch(
-        &pooled_connection,
+        connection,
         &entity_header,
         request_body.into_iter().map(Into::into),
     )

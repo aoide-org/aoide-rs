@@ -14,7 +14,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core_json::entity::EntityHeader;
-use aoide_usecases_sqlite::SqlitePooledConnection;
 
 use super::*;
 
@@ -28,12 +27,12 @@ pub type RequestBody = Vec<String>;
 pub type ResponseBody = Vec<(String, EntityHeader)>;
 
 pub fn handle_request(
-    pooled_connection: SqlitePooledConnection,
+    connection: &SqliteConnection,
     collection_uid: &_core::EntityUid,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
     uc::resolve_by_media_source_paths(
-        &pooled_connection,
+        connection,
         collection_uid,
         request_body.into_iter().map(Into::into).collect(),
     )

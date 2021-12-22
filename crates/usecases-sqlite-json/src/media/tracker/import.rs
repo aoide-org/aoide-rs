@@ -15,8 +15,6 @@
 
 use std::sync::atomic::AtomicBool;
 
-use aoide_usecases_sqlite::SqlitePooledConnection;
-
 use aoide_core::{
     entity::EntityUid,
     track::tag::{FACET_GENRE, FACET_MOOD},
@@ -42,7 +40,7 @@ pub type ResponseBody = aoide_core_api_json::media::tracker::import::Outcome;
 #[tracing::instrument(
     name = "Importing media sources",
     skip(
-        pooled_connection,
+        connection,
         progress_event_fn,
         abort_flag,
     ),
@@ -51,7 +49,7 @@ pub type ResponseBody = aoide_core_api_json::media::tracker::import::Outcome;
     )
 )]
 pub fn handle_request(
-    pooled_connection: SqlitePooledConnection,
+    connection: &SqliteConnection,
     collection_uid: &EntityUid,
     request_body: RequestBody,
     progress_event_fn: &mut impl FnMut(uc::ProgressEvent),
@@ -96,7 +94,7 @@ pub fn handle_request(
         sync_mode: sync_mode.map(Into::into),
     };
     uc::import(
-        &pooled_connection,
+        connection,
         collection_uid,
         &params,
         &import_config,

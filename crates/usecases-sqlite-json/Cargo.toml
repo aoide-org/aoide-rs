@@ -7,10 +7,13 @@ edition = "2021"
 
 [dependencies]
 anyhow = "*"
+diesel = { version = "*", default-features = false, features = ["sqlite"] }
 serde = "*"
 thiserror = "*"
-tracing = { version = "*", features = ["log"] }
 url = "*"
+
+# tracing
+tracing = { version = "*", features = ["log"] }
 uuid = { version = "*", features = ["v4"] }
 
 # Workspace dependencies
@@ -20,7 +23,6 @@ aoide-core-json = "*"
 aoide-core-api-json = { version = "*", features = ["backend"] }
 aoide-media = "*"
 aoide-repo = "*"
-aoide-repo-sqlite = "*"
 aoide-usecases = "*"
 aoide-usecases-sqlite = "*"
 

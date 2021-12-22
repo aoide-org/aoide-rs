@@ -15,7 +15,6 @@
 
 use aoide_core_json::track::{Entity, Track};
 use aoide_usecases::InputError;
-use aoide_usecases_sqlite::SqlitePooledConnection;
 
 use super::*;
 
@@ -96,7 +95,7 @@ pub type RequestBody = Vec<Track>;
 pub type ResponseBody = Summary;
 
 pub fn handle_request(
-    pooled_connection: SqlitePooledConnection,
+    connection: &SqliteConnection,
     collection_uid: &_core::EntityUid,
     query_params: QueryParams,
     request_body: RequestBody,
@@ -126,7 +125,7 @@ pub fn handle_request(
         return Err(err);
     }
     let tracks = tracks.into_iter().map(Result::unwrap);
-    uc::replace_by_media_source_path(&pooled_connection, collection_uid, &params, tracks)
+    uc::replace_by_media_source_path(connection, collection_uid, &params, tracks)
         .map(Into::into)
         .map_err(Into::into)
 }

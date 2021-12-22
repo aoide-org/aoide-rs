@@ -27,3 +27,5 @@ mod uc {
     pub use aoide_usecases::media::tracker::*;
     pub use aoide_usecases_sqlite::media::tracker::*;
 }
+
+pub use aoide_core_api_json::media::tracker::Progress;

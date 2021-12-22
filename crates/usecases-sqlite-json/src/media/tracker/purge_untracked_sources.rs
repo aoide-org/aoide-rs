@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_usecases_sqlite::SqlitePooledConnection;
-
 use aoide_core::{entity::EntityUid, util::url::BaseUrl};
 
 use super::*;
@@ -30,14 +28,14 @@ pub type ResponseBody = aoide_core_api_json::media::tracker::purge_untracked_sou
 #[tracing::instrument(
     name = "Purging untracked media sources and tracks",
     skip(
-        pooled_connection,
+        connection,
     ),
     fields(
         request_id = %new_request_id(),
     )
 )]
 pub fn handle_request(
-    pooled_connection: SqlitePooledConnection,
+    connection: &SqliteConnection,
     collection_uid: &EntityUid,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
@@ -54,7 +52,7 @@ pub fn handle_request(
         root_url,
         untrack_orphaned_directories,
     };
-    uc::purge_untracked_sources(&pooled_connection, collection_uid, &params)
+    uc::purge_untracked_sources(connection, collection_uid, &params)
         .map(Into::into)
         .map_err(Into::into)
 }

@@ -7,9 +7,8 @@ edition = "2021"
 
 [dependencies]
 anyhow = "*"
-diesel = { version = "*", default-features = false, features = ["r2d2", "sqlite"] }
+diesel = { version = "*", default-features = false, features = ["sqlite"] }
 diesel_migrations =  { version = "*", default-features = false, features = ["sqlite"] }
-r2d2 = "*"
 semval = "*"
 thiserror = "*"
 tracing = { version = "*", features = ["log"] }

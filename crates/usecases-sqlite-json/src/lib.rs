@@ -19,6 +19,7 @@
 
 use std::result::Result as StdResult;
 
+use diesel::prelude::SqliteConnection;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use uuid::Uuid;

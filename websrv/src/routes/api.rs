@@ -20,8 +20,6 @@ use warp::{filters::BoxedFilter, http::StatusCode, Filter, Reply};
 
 use aoide_core::entity::EntityUid;
 
-use aoide_core_api::media::tracker::Progress as MediaTrackerProgress;
-
 use aoide_storage_sqlite::{
     cleanse_database,
     tokio::{DatabaseConnectionGatekeeper, PendingTasks},
@@ -30,6 +28,7 @@ use aoide_storage_sqlite::{
 use aoide_usecases::media::tracker::{
     find_untracked_files::ProgressEvent as FindUntrackedProgressEvent,
     import::ProgressEvent as ImportProgressEvent, scan::ProgressEvent as ScanProgressEvent,
+    Progress as MediaTrackerProgress,
 };
 
 use aoide_websrv_api as webapi;
@@ -67,7 +66,7 @@ pub fn create_filters(
         .and_then(
             move |request_body, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
                 webapi::spawn_blocking_write_task(&shared_connection_gatekeeper, move |pooled_connection, _abort_flag| {
-                        uc_json::collection::create::handle_request(pooled_connection, request_body)
+                        uc_json::collection::create::handle_request(&*pooled_connection, request_body)
                     })
                     .await
                     .map(|response_body| {
@@ -94,7 +93,7 @@ pub fn create_filters(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         uc_json::collection::update::handle_request(
-                            pooled_connection,
+                            &*pooled_connection,
                             uid,
                             query_params,
                             request_body,
@@ -115,7 +114,7 @@ pub fn create_filters(
                 webapi::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
-                        uc_json::collection::purge::handle_request(pooled_connection, &uid)
+                        uc_json::collection::purge::handle_request(&*pooled_connection, &uid)
                     },
                 )
                 .await
@@ -130,7 +129,7 @@ pub fn create_filters(
         .and_then(
             move |query_params, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
                 webapi::spawn_blocking_read_task(&shared_connection_gatekeeper,move |pooled_connection, _abort_flag| {
-                        uc_json::collection::load_all::handle_request(pooled_connection, query_params)
+                        uc_json::collection::load_all::handle_request(&*pooled_connection, query_params)
                     })
                     .await
                     .map(|response_body| warp::reply::json(&response_body))
@@ -150,7 +149,7 @@ pub fn create_filters(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         uc_json::collection::load_one::handle_request(
-                            pooled_connection,
+                            &*pooled_connection,
                             &uid,
                             query_params,
                         )
@@ -181,7 +180,7 @@ pub fn create_filters(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         uc_json::media::relocate_collected_sources::handle_request(
-                            pooled_connection,
+                            &*pooled_connection,
                             &uid,
                             request_body,
                         )
@@ -196,9 +195,9 @@ pub fn create_filters(
         media_tracker_progress: Arc<Mutex<MediaTrackerProgress>>,
     ) -> Result<impl warp::Reply, Infallible> {
         let progress = media_tracker_progress.lock().await.clone();
-        Ok(warp::reply::json(
-            &aoide_core_api_json::media::tracker::Progress::from(progress),
-        ))
+        Ok(warp::reply::json(&uc_json::media::tracker::Progress::from(
+            progress,
+        )))
     }
 
     let media_tracker_get_progress = warp::get()
@@ -227,7 +226,7 @@ pub fn create_filters(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         uc_json::media::tracker::query_status::handle_request(
-                            pooled_connection,
+                            &*pooled_connection,
                             &uid,
                             request_body,
                         )
@@ -274,7 +273,7 @@ pub fn create_filters(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, abort_flag| {
                         uc_json::media::tracker::scan::handle_request(
-                            pooled_connection,
+                            &*pooled_connection,
                             &uid,
                             request_body,
                             &mut |progress_event: ScanProgressEvent| {
@@ -336,7 +335,7 @@ pub fn create_filters(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, abort_flag| {
                         uc_json::media::tracker::import::handle_request(
-                            pooled_connection,
+                            &*pooled_connection,
                             &uid,
                             request_body,
                             &mut |progress_event| {
@@ -377,7 +376,7 @@ pub fn create_filters(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         uc_json::media::tracker::untrack::handle_request(
-                            pooled_connection,
+                            &*pooled_connection,
                             &uid,
                             request_body,
                         )
@@ -424,7 +423,7 @@ pub fn create_filters(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, abort_flag| {
                         uc_json::media::tracker::find_untracked_files::handle_request(
-                            pooled_connection,
+                            &*pooled_connection,
                             &uid,
                             request_body,
                             &mut |progress_event: FindUntrackedProgressEvent| {
@@ -465,7 +464,7 @@ pub fn create_filters(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         uc_json::media::tracker::purge_untracked_sources::handle_request(
-                            pooled_connection,
+                            &*pooled_connection,
                             &uid,
                             request_body,
                         )
@@ -499,7 +498,7 @@ pub fn create_filters(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         uc_json::track::resolve::handle_request(
-                            pooled_connection,
+                            &*pooled_connection,
                             &uid,
                             request_body,
                         )
@@ -527,7 +526,7 @@ pub fn create_filters(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         uc_json::track::search::handle_request(
-                            pooled_connection,
+                            &*pooled_connection,
                             &uid,
                             query_params,
                             request_body,
@@ -556,7 +555,7 @@ pub fn create_filters(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         uc_json::track::replace::handle_request(
-                            pooled_connection,
+                            &*pooled_connection,
                             &uid,
                             query_params,
                             request_body,
@@ -585,7 +584,7 @@ pub fn create_filters(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, abort_flag| {
                         uc_json::track::import_and_replace::handle_request(
-                            pooled_connection,
+                            &*pooled_connection,
                             &uid,
                             query_params,
                             request_body,
@@ -613,7 +612,7 @@ pub fn create_filters(
                 webapi::spawn_blocking_read_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
-                        uc_json::track::load_one::handle_request(pooled_connection, &uid)
+                        uc_json::track::load_one::handle_request(&*pooled_connection, &uid)
                     },
                 )
                 .await
@@ -630,7 +629,7 @@ pub fn create_filters(
             move |request_body, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
                 webapi::spawn_blocking_read_task(
                     &shared_connection_gatekeeper,move |pooled_connection, _abort_flag| {
-                        uc_json::track::load_many::handle_request(pooled_connection, request_body)
+                        uc_json::track::load_many::handle_request(&*pooled_connection, request_body)
                     })
                     .await
                     .map(|response_body| warp::reply::json(&response_body))
@@ -651,7 +650,7 @@ pub fn create_filters(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         uc_json::track::export_metadata::handle_request(
-                            pooled_connection,
+                            &*pooled_connection,
                             &track_uid,
                             query_params,
                         )
@@ -680,7 +679,7 @@ pub fn create_filters(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         uc_json::playlist::create_collected::handle_request(
-                            pooled_connection,
+                            &*pooled_connection,
                             &collection_uid,
                             request_body,
                         )
@@ -707,7 +706,7 @@ pub fn create_filters(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         uc_json::playlist::list_collected::handle_request(
-                            pooled_connection,
+                            &*pooled_connection,
                             &collection_uid,
                             query_params,
                         )
@@ -735,7 +734,7 @@ pub fn create_filters(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         uc_json::playlist::update::handle_request(
-                            pooled_connection,
+                            &*pooled_connection,
                             uid,
                             query_params,
                             request_body,
@@ -756,7 +755,7 @@ pub fn create_filters(
                 webapi::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
-                        uc_json::playlist::purge::handle_request(pooled_connection, &uid)
+                        uc_json::playlist::purge::handle_request(&*pooled_connection, &uid)
                     },
                 )
                 .await
@@ -780,7 +779,7 @@ pub fn create_filters(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
                         uc_json::playlist::patch_entries::handle_request(
-                            pooled_connection,
+                            &*pooled_connection,
                             uid,
                             query_params,
                             request_body,
@@ -869,7 +868,7 @@ pub fn create_filters(
                 let CleanseDatabaseQueryParams { vacuum } = query_params;
                 webapi::spawn_blocking_write_task(&shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
-                        cleanse_database(&pooled_connection, vacuum)
+                        cleanse_database(&*pooled_connection, vacuum)
                     })
                     .await
                     .map(|()| StatusCode::NO_CONTENT)

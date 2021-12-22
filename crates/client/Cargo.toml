@@ -6,7 +6,6 @@ edition = "2021"
 [dependencies]
 anyhow = "*"
 bytes = "*"
-env_logger = { version = ">=0.9" }
 reqwest = { version = "*", default-features = false, features = ["rustls-tls"] }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = "*"
@@ -22,4 +21,5 @@ aoide-core-api-json = { version = "*", features = ["frontend"] }
 
 [dev-dependencies]
 clap = "*"
+env_logger = { version = ">=0.9" }
 tokio = { version = "*", default-features = false, features = ["macros", "rt-multi-thread", "signal"] }

@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_usecases_sqlite::{collection::load as uc, SqlitePooledConnection};
+use aoide_usecases_sqlite::collection::load as uc;
 
 use super::*;
 
@@ -27,13 +27,13 @@ pub struct QueryParams {
 pub type ResponseBody = EntityWithSummary;
 
 pub fn handle_request(
-    pooled_connection: SqlitePooledConnection,
+    connection: &SqliteConnection,
     uid: &EntityUid,
     query_params: QueryParams,
 ) -> Result<EntityWithSummary> {
     let QueryParams { summary } = query_params;
     let with_summary = summary.unwrap_or(false);
-    let (entity, summary) = uc::load_one(&pooled_connection, uid, with_summary)?;
+    let (entity, summary) = uc::load_one(connection, uid, with_summary)?;
     Ok(merge_entity_with_summary(
         entity.into(),
         summary.map(Into::into),

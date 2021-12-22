@@ -16,7 +16,6 @@
 use aoide_core::entity::EntityUid;
 
 use aoide_core_json::track::Entity;
-use aoide_usecases_sqlite::SqlitePooledConnection;
 
 use super::*;
 
@@ -26,11 +25,8 @@ mod uc {
 
 pub type ResponseBody = Entity;
 
-pub fn handle_request(
-    pooled_connection: SqlitePooledConnection,
-    uid: &EntityUid,
-) -> Result<ResponseBody> {
-    uc::load_one(&pooled_connection, uid)
+pub fn handle_request(connection: &SqliteConnection, uid: &EntityUid) -> Result<ResponseBody> {
+    uc::load_one(connection, uid)
         .map(Into::into)
         .map_err(Into::into)
 }

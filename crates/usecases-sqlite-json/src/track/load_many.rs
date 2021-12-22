@@ -14,7 +14,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core_json::{entity::EntityUid, track::Entity};
-use aoide_usecases_sqlite::SqlitePooledConnection;
 
 use super::*;
 
@@ -27,12 +26,12 @@ pub type RequestBody = Vec<EntityUid>;
 pub type ResponseBody = Vec<Entity>;
 
 pub fn handle_request(
-    pooled_connection: SqlitePooledConnection,
+    connection: &SqliteConnection,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
     let mut collector = EntityCollector::with_capacity(request_body.len());
     uc::load_many(
-        &pooled_connection,
+        connection,
         request_body.into_iter().map(Into::into),
         &mut collector,
     )?;

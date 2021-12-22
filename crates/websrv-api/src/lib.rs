@@ -82,17 +82,14 @@ impl From<uc::Error> for Error {
             Input(err) => Self::BadRequest(err),
             Io(err) => Self::Other(err.into()),
             Media(err) => Self::Other(err.into()),
-            Database(err) => Self::Other(err.into()),
+            Storage(err) => err.into(),
             DatabaseMigration(err) => Self::Other(err.into()),
-            DatabaseConnection(err) => Self::Other(err.into()),
             Repository(err) => match err {
                 RepoError::NotFound => Self::NotFound,
                 RepoError::Conflict => Self::Conflict,
                 RepoError::Aborted => Self::ServiceUnavailable,
                 RepoError::Other(err) => Self::Other(err),
             },
-            TaskScheduling(err) => Self::Other(err.into()),
-            Timeout { reason } => Self::Timeout { reason },
             Other(err) => Self::Other(err),
         }
     }

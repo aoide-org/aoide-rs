@@ -17,12 +17,7 @@
 #![deny(clippy::clone_on_ref_ptr)]
 #![warn(rust_2018_idioms)]
 
-use std::result::Result as StdResult;
-
-use diesel::{
-    prelude::*,
-    r2d2::{ConnectionManager, Pool, PooledConnection},
-};
+use diesel::prelude::*;
 use thiserror::Error;
 
 use aoide_media::Error as MediaError;
@@ -44,10 +39,6 @@ pub mod media;
 pub mod playlist;
 pub mod track;
 
-pub type SqliteConnectionManager = ConnectionManager<SqliteConnection>;
-pub type SqliteConnectionPool = Pool<SqliteConnectionManager>;
-pub type SqlitePooledConnection = PooledConnection<SqliteConnectionManager>;
-
 #[derive(Error, Debug)]
 pub enum Error {
     #[error(transparent)]
@@ -60,42 +51,16 @@ pub enum Error {
     Io(#[from] std::io::Error),
 
     #[error(transparent)]
-    Database(#[from] diesel::result::Error),
+    Storage(#[from] StorageError),
 
     #[error(transparent)]
     DatabaseMigration(#[from] diesel_migrations::RunMigrationsError),
-
-    #[error(transparent)]
-    DatabaseConnection(#[from] r2d2::Error),
 
     #[error(transparent)]
     Repository(#[from] RepoError),
 
     #[error(transparent)]
     Other(#[from] anyhow::Error),
-
-    #[cfg(feature = "with-tokio")]
-    #[error("timeout: {reason}")]
-    Timeout { reason: String },
-
-    #[cfg(feature = "with-tokio")]
-    #[error(transparent)]
-    TaskScheduling(#[from] tokio::task::JoinError),
-}
-
-impl From<StorageError> for Error {
-    fn from(err: StorageError) -> Self {
-        use StorageError::*;
-        match err {
-            Database(err) => Self::Database(err),
-            Connection(err) => Self::DatabaseConnection(err),
-            Other(err) => Self::Other(err),
-            #[cfg(feature = "with-tokio")]
-            Timeout { reason } => Self::Timeout { reason },
-            #[cfg(feature = "with-tokio")]
-            TaskScheduling(err) => Self::TaskScheduling(err),
-        }
-    }
 }
 
 impl<E> From<DieselTransactionError<E>> for Error
@@ -135,4 +100,4 @@ where
     TransactionError::from(err.into())
 }
 
-pub type Result<T> = StdResult<T, Error>;
+pub type Result<T> = std::result::Result<T, Error>;

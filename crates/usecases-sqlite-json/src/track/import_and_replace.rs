@@ -20,7 +20,6 @@ use aoide_media::io::import::{ImportTrackConfig, ImportTrackFlags};
 use aoide_core_api_json::media::SyncMode;
 
 use aoide_core_json::track::{Entity, Track};
-use aoide_usecases_sqlite::SqlitePooledConnection;
 
 use crate::media::predefined_faceted_tag_mapping_config;
 
@@ -126,7 +125,7 @@ pub type ResponseBody = Outcome;
 #[tracing::instrument(
     name = "Importing and replacing tracks",
     skip(
-        pooled_connection,
+        connection,
         abort_flag,
     ),
     fields(
@@ -134,7 +133,7 @@ pub type ResponseBody = Outcome;
     )
 )]
 pub fn handle_request(
-    pooled_connection: SqlitePooledConnection,
+    connection: &SqliteConnection,
     collection_uid: &_inner::EntityUid,
     query_params: QueryParams,
     request_body: RequestBody,
@@ -159,7 +158,7 @@ pub fn handle_request(
     };
     let expected_source_path_count = request_body.len();
     uc::import_and_replace_by_local_file_path_iter(
-        &pooled_connection,
+        connection,
         collection_uid,
         sync_mode.into(),
         &import_config,

@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_usecases_sqlite::SqlitePooledConnection;
-
 use aoide_core::entity::EntityUid;
 
 use aoide_media::{
@@ -42,7 +40,7 @@ pub struct QueryParams {
 pub type ResponseBody = Option<DateTime>;
 
 pub fn handle_request(
-    pooled_connection: SqlitePooledConnection,
+    connection: &SqliteConnection,
     track_uid: &EntityUid,
     query_params: QueryParams,
 ) -> Result<ResponseBody> {
@@ -60,7 +58,7 @@ pub fn handle_request(
     };
     let path_resolver = VirtualFilePathResolver::new();
     let media_source_synchronized_at = uc::export_metadata_into_file(
-        &pooled_connection,
+        connection,
         track_uid,
         &path_resolver,
         &config,

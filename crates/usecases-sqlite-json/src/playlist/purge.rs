@@ -13,15 +13,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_usecases_sqlite::{playlist::purge as uc, SqlitePooledConnection};
+use aoide_usecases_sqlite::playlist::purge as uc;
 
 use super::*;
 
 pub type ResponseBody = ();
 
-pub fn handle_request(
-    pooled_connection: SqlitePooledConnection,
-    uid: &EntityUid,
-) -> Result<ResponseBody> {
-    uc::purge(&pooled_connection, uid).map_err(Into::into)
+pub fn handle_request(connection: &SqliteConnection, uid: &EntityUid) -> Result<ResponseBody> {
+    uc::purge(connection, uid).map_err(Into::into)
 }

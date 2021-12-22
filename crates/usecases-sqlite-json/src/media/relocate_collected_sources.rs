@@ -14,7 +14,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core::{entity::EntityUid, media::SourcePath};
-use aoide_usecases_sqlite::SqlitePooledConnection;
 
 use super::*;
 
@@ -36,7 +35,7 @@ pub struct ResponseBody {
 }
 
 pub fn handle_request(
-    pooled_connection: SqlitePooledConnection,
+    connection: &SqliteConnection,
     collection_uid: &EntityUid,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
@@ -45,7 +44,7 @@ pub fn handle_request(
         new_path_prefix,
     } = request_body;
     uc::relocate_collected_sources(
-        &pooled_connection,
+        connection,
         collection_uid,
         &SourcePath::new(old_path_prefix),
         &SourcePath::new(new_path_prefix),

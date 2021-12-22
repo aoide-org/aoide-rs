@@ -15,7 +15,7 @@
 
 use aoide_core_api_json::collection::EntityWithSummary;
 
-use aoide_usecases_sqlite::{collection::load as uc, SqlitePooledConnection};
+use aoide_usecases_sqlite::collection::load as uc;
 
 use super::*;
 
@@ -41,7 +41,7 @@ pub struct QueryParams {
 pub type ResponseBody = Vec<EntityWithSummary>;
 
 pub fn handle_request(
-    pooled_connection: SqlitePooledConnection,
+    connection: &SqliteConnection,
     query_params: QueryParams,
 ) -> Result<ResponseBody> {
     let QueryParams {
@@ -55,7 +55,7 @@ pub fn handle_request(
     let pagination: Option<_> = pagination.into();
     let mut collector = EntityCollector::default();
     uc::load_all(
-        &pooled_connection,
+        connection,
         kind.as_deref(),
         with_summary,
         pagination.as_ref(),

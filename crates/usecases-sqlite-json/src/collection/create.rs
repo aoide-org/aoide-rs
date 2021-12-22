@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_usecases_sqlite::{collection::create as uc, SqlitePooledConnection};
+use aoide_usecases_sqlite::collection::create as uc;
 
 use super::*;
 
@@ -22,10 +22,10 @@ pub type RequestBody = Collection;
 pub type ResponseBody = Entity;
 
 pub fn handle_request(
-    pooled_connection: SqlitePooledConnection,
+    connection: &SqliteConnection,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
-    uc::create(&pooled_connection, request_body.try_into()?)
+    uc::create(connection, request_body.try_into()?)
         .map(Into::into)
         .map_err(Into::into)
 }

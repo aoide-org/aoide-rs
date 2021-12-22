@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_usecases_sqlite::SqlitePooledConnection;
-
 use aoide_core::util::url::BaseUrl;
 
 use aoide_core_json::track::Entity;
@@ -45,14 +43,14 @@ const DEFAULT_PAGINATION: _inner::Pagination = _inner::Pagination {
 #[tracing::instrument(
     name = "Searching tracks",
     skip(
-        pooled_connection,
+        connection,
     ),
     fields(
         request_id = %new_request_id(),
     )
 )]
 pub fn handle_request(
-    pooled_connection: SqlitePooledConnection,
+    connection: &SqliteConnection,
     collection_uid: &_inner::EntityUid,
     query_params: QueryParams,
     request_body: RequestBody,
@@ -86,7 +84,7 @@ pub fn handle_request(
     };
     let mut collector = EntityCollector::default();
     uc::search(
-        pooled_connection,
+        connection,
         collection_uid,
         params,
         &pagination,

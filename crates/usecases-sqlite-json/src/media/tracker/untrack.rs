@@ -15,8 +15,6 @@
 
 use aoide_core::{entity::EntityUid, util::url::BaseUrl};
 
-use aoide_usecases_sqlite::SqlitePooledConnection;
-
 use super::*;
 
 mod uc {
@@ -30,14 +28,14 @@ pub type ResponseBody = aoide_core_api_json::media::tracker::untrack::Outcome;
 #[tracing::instrument(
     name = "Untracking media sources",
     skip(
-        pooled_connection,
+        connection,
     ),
     fields(
         request_id = %new_request_id(),
     )
 )]
 pub fn handle_request(
-    pooled_connection: SqlitePooledConnection,
+    connection: &SqliteConnection,
     collection_uid: &EntityUid,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
@@ -49,7 +47,7 @@ pub fn handle_request(
         root_url,
         status: status.map(Into::into),
     };
-    uc::untrack(&pooled_connection, collection_uid, &params)
+    uc::untrack(connection, collection_uid, &params)
         .map(Into::into)
         .map_err(Into::into)
 }

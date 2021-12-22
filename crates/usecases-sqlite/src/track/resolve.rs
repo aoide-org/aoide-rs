@@ -13,11 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
-
 use aoide_repo::collection::EntityRepo as _;
 
 use aoide_usecases::track::resolve as uc;
+
+use super::*;
 
 pub fn resolve_by_media_source_paths(
     connection: &SqliteConnection,

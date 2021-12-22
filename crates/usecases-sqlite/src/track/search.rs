@@ -25,13 +25,13 @@ mod uc {
 }
 
 pub fn search(
-    pooled_connection: SqlitePooledConnection,
+    connection: &SqliteConnection,
     collection_uid: &EntityUid,
     params: uc::Params,
     pagination: &Pagination,
     collector: &mut impl ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
 ) -> Result<usize> {
-    let db = RepoConnection::new(&pooled_connection);
+    let db = RepoConnection::new(connection);
     db.transaction::<_, TransactionError, _>(|| {
         let collection_id = db.resolve_collection_id(collection_uid)?;
         uc::search_with_params(&db, collection_id, params, pagination, collector)

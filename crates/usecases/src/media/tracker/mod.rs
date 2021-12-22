@@ -26,6 +26,8 @@ pub mod relink;
 pub mod scan;
 pub mod untrack;
 
+pub use aoide_core_api::media::tracker::Progress;
+
 pub fn resolve_path_prefix_from_base_url(
     source_path_resolver: &impl SourcePathResolver,
     url_path_prefix: &BaseUrl,
