@@ -12,6 +12,7 @@ members = [
   "crates/storage-sqlite",
   "crates/usecases",
   "crates/usecases-sqlite",
+  "crates/websrv-api",
   "websrv",
 ]
 # The webapp needs to be excluded from the workspace, because it is built
@@ -32,6 +33,7 @@ aoide-repo-sqlite = { path = "crates/repo-sqlite" }
 aoide-storage-sqlite = { path = "crates/storage-sqlite" }
 aoide-usecases = { path = "crates/usecases" }
 aoide-usecases-sqlite = { path = "crates/usecases-sqlite" }
+aoide-websrv-api = { path = "crates/websrv-api" }
 
 # Unreleased crates
 triseratops = { git = "https://github.com/Holzhaus/triseratops.git", branch = "main" }

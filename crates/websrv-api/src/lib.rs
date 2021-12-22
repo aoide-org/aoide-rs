@@ -13,6 +13,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#![deny(missing_debug_implementations)]
+#![deny(clippy::clone_on_ref_ptr)]
+#![warn(rust_2018_idioms)]
+
 use std::{
     convert::Infallible,
     error::Error as StdError,
@@ -33,11 +37,11 @@ use warp::{
 
 use aoide_repo::prelude::RepoError;
 
-use aoide_usecases_sqlite_json as api;
+use aoide_storage_sqlite as db;
 
 use aoide_usecases_sqlite as uc;
 
-use aoide_storage_sqlite as db;
+use aoide_usecases_sqlite_json as uc_json;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -60,9 +64,9 @@ pub enum Error {
     Other(#[from] anyhow::Error),
 }
 
-impl From<api::Error> for Error {
-    fn from(err: api::Error) -> Self {
-        use api::Error::*;
+impl From<uc_json::Error> for Error {
+    fn from(err: uc_json::Error) -> Self {
+        use uc_json::Error::*;
         match err {
             BadRequest(err) => Self::BadRequest(err),
             UseCase(err) => err.into(),

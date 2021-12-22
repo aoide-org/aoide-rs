@@ -26,15 +26,12 @@ rust-embed = { version = "*", optional = true }
 # Workspace dependencies
 aoide-core = "*"
 aoide-core-api = "*"
-aoide-core-json = "*"
 aoide-core-api-json = "*"
-aoide-usecases-sqlite-json = "*"
-aoide-media = "*"
-aoide-repo = "*"
-aoide-repo-sqlite = "*"
 aoide-storage-sqlite = "*"
 aoide-usecases = "*"
-aoide-usecases-sqlite = { version = "*", features = ["with-tokio"] }
+aoide-usecases-sqlite = "*"
+aoide-usecases-sqlite-json = "*"
+aoide-websrv-api = "*"
 
 [features]
 default = ["with-webapp"]

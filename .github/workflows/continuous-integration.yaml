@@ -100,6 +100,18 @@ jobs:
           command: check
           args: --locked --all-features --bins --examples --manifest-path crates/usecases-sqlite/Cargo.toml
 
+      - name: Check aoide-usecases-sqlite-json
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --locked --all-features --bins --examples --manifest-path crates/usecases-sqlite-json/Cargo.toml
+
+      - name: Check aoide-websrv-api
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --locked --all-features --bins --examples --manifest-path crates/websrv-api/Cargo.toml
+
       - name: Check aoide-client
         uses: actions-rs/cargo@v1
         with:

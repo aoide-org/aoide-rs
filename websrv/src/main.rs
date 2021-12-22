@@ -18,26 +18,27 @@
 
 use std::{collections::HashMap, env::current_exe, sync::Arc, time::Duration};
 
+use tokio::{join, signal, sync::mpsc, time::sleep};
+use warp::{http::StatusCode, Filter};
+
 use aoide_storage_sqlite::{
     create_database_connection_pool, get_pooled_database_connection, initialize_database,
     tokio::{DatabaseConnectionGatekeeper, DatabaseConnectionGatekeeperConfig},
 };
-use tokio::{join, signal, sync::mpsc, time::sleep};
-use warp::{http::StatusCode, Filter};
-
-use aoide_websrv::api::{handle_rejection, Error};
 
 use aoide_usecases_sqlite as uc;
+
+use aoide_websrv_api::{handle_rejection, Error};
 
 mod env;
 mod routes;
 
 const WEB_SERVER_LISTENING_DELAY: Duration = Duration::from_millis(250);
 
-static OPENAPI_YAML: &str = include_str!("../../../res/openapi.yaml");
+static OPENAPI_YAML: &str = include_str!("../res/openapi.yaml");
 
 #[cfg(not(feature = "with-webapp"))]
-static INDEX_HTML: &str = include_str!("../../../res/index.html");
+static INDEX_HTML: &str = include_str!("../res/index.html");
 
 const DB_CONNECTION_ACQUIRE_READ_TIMEOUT: Duration = Duration::from_secs(10);
 

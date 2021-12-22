@@ -274,14 +274,11 @@ dependencies = [
  "aoide-core",
  "aoide-core-api",
  "aoide-core-api-json",
- "aoide-core-json",
- "aoide-media",
- "aoide-repo",
- "aoide-repo-sqlite",
  "aoide-storage-sqlite",
  "aoide-usecases",
  "aoide-usecases-sqlite",
  "aoide-usecases-sqlite-json",
+ "aoide-websrv-api",
  "chrono",
  "dotenv",
  "mime_guess",
@@ -293,6 +290,22 @@ dependencies = [
  "tracing",
  "tracing-log",
  "tracing-subscriber",
+ "warp",
+]
+
+[[package]]
+name = "aoide-websrv-api"
+version = "0.8.0"
+dependencies = [
+ "anyhow",
+ "aoide-repo",
+ "aoide-storage-sqlite",
+ "aoide-usecases-sqlite",
+ "aoide-usecases-sqlite-json",
+ "serde",
+ "thiserror",
+ "tokio",
+ "tracing",
  "warp",
 ]
 

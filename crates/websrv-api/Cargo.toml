@@ -1,0 +1,22 @@
+[package]
+name = "aoide-websrv-api"
+version = "0.8.0"
+license-file = "LICENSE.md"
+description = "A web service for managing and exploring music collections"
+keywords = ["music", "collection"]
+publish = false
+edition = "2021"
+
+[dependencies]
+anyhow = "*"
+serde = "*"
+thiserror = "*"
+tokio = "*"
+tracing = { version = "*", features = ["log"] }
+warp = { version = "*", default-features = false }
+
+# Workspace dependencies
+aoide-repo = "*"
+aoide-storage-sqlite = "*"
+aoide-usecases-sqlite = { version = "*", features = ["with-tokio"] }
+aoide-usecases-sqlite-json = "*"

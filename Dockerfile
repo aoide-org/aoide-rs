@@ -98,8 +98,6 @@ RUN USER=root cargo new --vcs none --lib ${PROJECT_NAME}-websrv && \
     mv ${PROJECT_NAME}-core-api crates/core-api && \
     USER=root cargo new --vcs none --lib ${PROJECT_NAME}-core-api-json && \
     mv ${PROJECT_NAME}-core-api-json crates/core-api-json && \
-    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-usecases-sqlite-json && \
-    mv ${PROJECT_NAME}-usecases-sqlite-json crates/usecases-sqlite-json && \
     USER=root cargo new --vcs none --lib ${PROJECT_NAME}-media && \
     mv ${PROJECT_NAME}-media crates/media && \
     USER=root cargo new --vcs none --lib ${PROJECT_NAME}-repo && \
@@ -112,6 +110,10 @@ RUN USER=root cargo new --vcs none --lib ${PROJECT_NAME}-websrv && \
     mv ${PROJECT_NAME}-usecases crates/usecases && \
     USER=root cargo new --vcs none --lib ${PROJECT_NAME}-usecases-sqlite && \
     mv ${PROJECT_NAME}-usecases-sqlite crates/usecases-sqlite && \
+    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-usecases-sqlite-json && \
+    mv ${PROJECT_NAME}-usecases-sqlite-json crates/usecases-sqlite-json && \
+    USER=root cargo new --vcs none --lib ${PROJECT_NAME}-websrv-api && \
+    mv ${PROJECT_NAME}-websrv-api crates/websrv-api && \
     tree -a
 
 COPY [ \
@@ -140,9 +142,6 @@ COPY [ \
     "crates/core-api-json/Cargo.toml", \
     "./crates/core-api-json/" ]
 COPY [ \
-    "crates/usecases-sqlite-json/Cargo.toml", \
-    "./crates/usecases-sqlite-json/" ]
-COPY [ \
     "crates/media/Cargo.toml", \
     "./crates/media/" ]
 COPY [ \
@@ -160,6 +159,12 @@ COPY [ \
 COPY [ \
     "crates/usecases-sqlite/Cargo.toml", \
     "./crates/usecases-sqlite/" ]
+COPY [ \
+    "crates/usecases-sqlite-json/Cargo.toml", \
+    "./crates/usecases-sqlite-json/" ]
+COPY [ \
+    "crates/websrv-api/Cargo.toml", \
+    "./crates/websrv-api/" ]
 
 # Build the workspace dependencies, then delete all build artefacts that must not(!) be cached
 #
@@ -214,9 +219,6 @@ COPY [ \
     "crates/core-api-json/src", \
     "./crates/core-api-json/src/" ]
 COPY [ \
-    "crates/usecases-sqlite-json/src", \
-    "./crates/usecases-sqlite-json/src/" ]
-COPY [ \
     "crates/media/src", \
     "./crates/media/src/" ]
 COPY [ \
@@ -237,6 +239,12 @@ COPY [ \
 COPY [ \
     "crates/usecases-sqlite/src", \
     "./crates/usecases-sqlite/src/" ]
+COPY [ \
+    "crates/usecases-sqlite-json/src", \
+    "./crates/usecases-sqlite-json/src/" ]
+COPY [ \
+    "crates/websrv-api/src", \
+    "./crates/websrv-api/src/" ]
 
 # 1. Run pre-commit
 # 2. Check all sub-projects using their local manifest for an isolated, standalone build
@@ -256,13 +264,14 @@ RUN tree -a && \
     cargo check -p aoide-core-json --manifest-path crates/core-json/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-core-api --manifest-path crates/core-api/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-core-api-json --manifest-path crates/core-api-json/Cargo.toml ${PROJECT_CHECK_ARGS} && \
-    cargo check -p aoide-usecases-sqlite-json --manifest-path crates/usecases-sqlite-json/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-media --manifest-path crates/media/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-repo --manifest-path crates/repo/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-repo-sqlite --manifest-path crates/repo-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-storage-sqlite --manifest-path crates/storage-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-usecases --manifest-path crates/usecases/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-usecases-sqlite --manifest-path crates/usecases-sqlite/Cargo.toml ${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-usecases-sqlite-json --manifest-path crates/usecases-sqlite-json/Cargo.toml ${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-websrv-api --manifest-path crates/websrv-api/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-websrv --manifest-path websrv/Cargo.toml -${PROJECT_CHECK_ARGS} && \
     cargo test --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} --no-run && \
     cargo test --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} -- --nocapture --quiet && \
