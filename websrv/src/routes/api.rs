@@ -20,9 +20,7 @@ use warp::{filters::BoxedFilter, http::StatusCode, Filter, Reply};
 
 use aoide_core::entity::EntityUid;
 
-use aoide_core_api::media::tracker::{
-    import::Summary as ImportProgressSummary, Progress as MediaTrackerProgress,
-};
+use aoide_core_api::media::tracker::Progress as MediaTrackerProgress;
 
 use aoide_storage_sqlite::{
     cleanse_database,
@@ -31,7 +29,7 @@ use aoide_storage_sqlite::{
 
 use aoide_usecases::media::tracker::{
     find_untracked_files::ProgressEvent as FindUntrackedProgressEvent,
-    scan::ProgressEvent as ScanProgressEvent,
+    import::ProgressEvent as ImportProgressEvent, scan::ProgressEvent as ScanProgressEvent,
 };
 
 use aoide_websrv_api as webapi;
@@ -259,11 +257,10 @@ pub fn create_filters(
                         MediaTrackerProgress::Scanning(Default::default());
                     tracing::debug!("Watching media tracker scanning");
                     while progress_event_rx.changed().await.is_ok() {
-                        let progress = progress_event_rx.borrow().as_ref().map(
-                            |event: &aoide_usecases::media::tracker::scan::ProgressEvent| {
-                                event.progress.to_owned()
-                            },
-                        );
+                        let progress = progress_event_rx
+                            .borrow()
+                            .as_ref()
+                            .map(|event: &ScanProgressEvent| event.progress.to_owned());
                         // Borrow has already been released at this point
                         if let Some(progress) = progress {
                             *media_tracker_progress.lock().await =
@@ -283,7 +280,7 @@ pub fn create_filters(
                             &mut |progress_event: ScanProgressEvent| {
                                 if let Err(err) = progress_event_tx.send(Some(progress_event)) {
                                     tracing::error!(
-                                        "Failed to send scan progress event: {:?}",
+                                        "Failed to send media tracker scanning progress event: {:?}",
                                         err.0
                                     );
                                 }
@@ -316,17 +313,21 @@ pub fn create_filters(
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>,
                   media_tracker_progress: Arc<Mutex<MediaTrackerProgress>>| async move {
-                let (progress_summary_tx, mut progress_summary_rx) =
-                    watch::channel(ImportProgressSummary::default());
+                let (progress_event_tx, mut progress_event_rx) = watch::channel(None);
                 let watcher = tokio::spawn(async move {
                     *media_tracker_progress.lock().await =
                         MediaTrackerProgress::Importing(Default::default());
                     tracing::debug!("Watching media tracker importing");
-                    while progress_summary_rx.changed().await.is_ok() {
-                        let progress = progress_summary_rx.borrow().to_owned();
+                    while progress_event_rx.changed().await.is_ok() {
+                        let progress = progress_event_rx
+                            .borrow()
+                            .as_ref()
+                            .map(|event: &ImportProgressEvent| event.summary.to_owned());
                         // Borrow has already been released at this point
-                        *media_tracker_progress.lock().await =
-                            MediaTrackerProgress::Importing(progress);
+                        if let Some(progress) = progress {
+                            *media_tracker_progress.lock().await =
+                                MediaTrackerProgress::Importing(progress);
+                        }
                     }
                     tracing::debug!("Unwatching media tracker importing");
                     *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;
@@ -338,12 +339,10 @@ pub fn create_filters(
                             pooled_connection,
                             &uid,
                             request_body,
-                            &mut |progress_summary: &ImportProgressSummary| {
-                                if let Err(err) =
-                                    progress_summary_tx.send(progress_summary.to_owned())
-                                {
+                            &mut |progress_event| {
+                                if let Err(err) = progress_event_tx.send(Some(progress_event)) {
                                     tracing::error!(
-                                        "Failed to send import progress summary: {:?}",
+                                        "Failed to send media tracker importing progress event: {:?}",
                                         err.0
                                     );
                                 }
@@ -408,11 +407,10 @@ pub fn create_filters(
                         MediaTrackerProgress::FindingUntracked(Default::default());
                     tracing::debug!("Watching media tracker finding untracked");
                     while progress_event_rx.changed().await.is_ok() {
-                        let progress = progress_event_rx.borrow().as_ref().map(
-                            |event: &aoide_usecases::media::tracker::find_untracked_files::ProgressEvent| {
-                                event.progress.to_owned()
-                            },
-                        );
+                        let progress = progress_event_rx
+                            .borrow()
+                            .as_ref()
+                            .map(|event: &FindUntrackedProgressEvent| event.progress.to_owned());
                         // Borrow has already been released at this point
                         if let Some(progress) = progress {
                             *media_tracker_progress.lock().await =
@@ -423,7 +421,8 @@ pub fn create_filters(
                     *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;
                 });
                 let response = webapi::spawn_blocking_read_task(
-                    &shared_connection_gatekeeper,move |pooled_connection, abort_flag| {
+                    &shared_connection_gatekeeper,
+                    move |pooled_connection, abort_flag| {
                         uc_json::media::tracker::find_untracked_files::handle_request(
                             pooled_connection,
                             &uid,
@@ -431,7 +430,7 @@ pub fn create_filters(
                             &mut |progress_event: FindUntrackedProgressEvent| {
                                 if let Err(err) = progress_event_tx.send(Some(progress_event)) {
                                     tracing::error!(
-                                        "Failed to send find untracked progress event: {:?}",
+                                        "Failed to send media tracker finding untracked progress event: {:?}",
                                         err.0
                                     );
                                 }

@@ -137,16 +137,16 @@ fn ancestor_finished(
     Ok(visit::AfterAncestorFinished::Continue)
 }
 
-pub fn visit_directories<Repo>(
+pub fn visit_directories<
+    Repo: CollectionRepo + MediaTrackerRepo,
+    ReportProgress: FnMut(ProgressEvent),
+>(
     repo: &Repo,
     collection_uid: &EntityUid,
     params: &FsTraversalParams,
-    report_progress: &mut impl FnMut(ProgressEvent),
+    report_progress: &mut ReportProgress,
     abort_flag: &AtomicBool,
-) -> Result<Outcome>
-where
-    Repo: CollectionRepo + MediaTrackerRepo,
-{
+) -> Result<Outcome> {
     let (collection_id, source_path_resolver) =
         resolve_collection_id_for_virtual_file_path(repo, collection_uid, None)?;
     let FsTraversalParams {

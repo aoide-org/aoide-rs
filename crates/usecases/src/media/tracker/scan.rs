@@ -83,16 +83,16 @@ impl From<visit::ProgressEvent> for ProgressEvent {
     }
 }
 
-pub fn visit_directories<Repo>(
+pub fn visit_directories<
+    Repo: CollectionRepo + MediaTrackerRepo,
+    ReportProgress: FnMut(ProgressEvent),
+>(
     repo: &Repo,
     collection_uid: &EntityUid,
     params: &FsTraversalParams,
-    progress_event_fn: &mut impl FnMut(ProgressEvent),
+    report_progress: &mut ReportProgress,
     abort_flag: &AtomicBool,
-) -> Result<Outcome>
-where
-    Repo: CollectionRepo + MediaTrackerRepo,
-{
+) -> Result<Outcome> {
     let (collection_id, source_path_resolver) =
         resolve_collection_id_for_virtual_file_path(repo, collection_uid, None)?;
     let FsTraversalParams {
@@ -160,7 +160,7 @@ where
         },
         &mut |progress_event| {
             tracing::trace!("{:?}", progress_event);
-            progress_event_fn(progress_event.to_owned().into());
+            report_progress(progress_event.to_owned().into());
         },
     )
     .map_err(anyhow::Error::from)

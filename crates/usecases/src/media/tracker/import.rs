@@ -16,6 +16,7 @@
 use std::{
     io,
     sync::atomic::{AtomicBool, Ordering},
+    time::{Duration, Instant},
 };
 
 use aoide_core::{entity::EntityUid, util::url::BaseUrl};
@@ -44,19 +45,25 @@ use crate::{
 
 use super::*;
 
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct ProgressEvent {
+    pub elapsed: Duration,
+    pub summary: Summary,
+}
+
 // TODO: Reduce number of arguments
 #[allow(clippy::too_many_arguments)]
-pub fn import<Repo>(
+pub fn import<
+    Repo: CollectionRepo + MediaTrackerRepo + TrackRepo,
+    ReportProgress: FnMut(ProgressEvent),
+>(
     repo: &Repo,
     collection_uid: &EntityUid,
     params: &Params,
     config: &ImportTrackConfig,
-    progress_summary_fn: &mut impl FnMut(&Summary),
+    report_progress: &mut ReportProgress,
     abort_flag: &AtomicBool,
-) -> Result<Outcome>
-where
-    Repo: CollectionRepo + MediaTrackerRepo + TrackRepo,
-{
+) -> Result<Outcome> {
     let (collection_id, source_path_resolver) =
         resolve_collection_id_for_virtual_file_path(repo, collection_uid, None)?;
     let Params {
@@ -73,9 +80,13 @@ where
         .resolve_url_from_path(&root_path_prefix)
         .map_err(anyhow::Error::from)?;
     let root_url = BaseUrl::new(root_url);
+    let started_at = Instant::now();
     let mut summary = Summary::default();
     let outcome = 'outcome: loop {
-        progress_summary_fn(&summary);
+        report_progress(ProgressEvent {
+            elapsed: started_at.elapsed(),
+            summary: summary.clone(),
+        });
         let pending_entries = repo.media_tracker_load_directories_requiring_confirmation(
             collection_id,
             &root_path_prefix,
@@ -208,6 +219,9 @@ where
             }
         }
     };
-    progress_summary_fn(&outcome.summary);
+    report_progress(ProgressEvent {
+        elapsed: started_at.elapsed(),
+        summary: outcome.summary.clone(),
+    });
     Ok(outcome)
 }

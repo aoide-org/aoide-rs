@@ -37,7 +37,7 @@ pub fn import(
     collection_uid: &EntityUid,
     params: &Params,
     import_config: &ImportTrackConfig,
-    progress_summary_fn: &mut impl FnMut(&uc::Summary),
+    progress_event_fn: &mut impl FnMut(uc::ProgressEvent),
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {
     let db = RepoConnection::new(connection);
@@ -47,7 +47,7 @@ pub fn import(
             collection_uid,
             params,
             import_config,
-            progress_summary_fn,
+            progress_event_fn,
             abort_flag,
         )
         .map_err(transaction_error)

@@ -31,7 +31,7 @@ use aoide_media::{
 use super::*;
 
 mod uc {
-    pub use aoide_core_api::media::tracker::import::*;
+    pub use aoide_usecases::media::tracker::import::ProgressEvent;
     pub use aoide_usecases_sqlite::media::tracker::import::*;
 }
 
@@ -43,7 +43,7 @@ pub type ResponseBody = aoide_core_api_json::media::tracker::import::Outcome;
     name = "Importing media sources",
     skip(
         pooled_connection,
-        progress_summary_fn,
+        progress_event_fn,
         abort_flag,
     ),
     fields(
@@ -54,7 +54,7 @@ pub fn handle_request(
     pooled_connection: SqlitePooledConnection,
     collection_uid: &EntityUid,
     request_body: RequestBody,
-    progress_summary_fn: &mut impl FnMut(&uc::Summary),
+    progress_event_fn: &mut impl FnMut(uc::ProgressEvent),
     abort_flag: &AtomicBool,
 ) -> Result<ResponseBody> {
     let RequestBody {
@@ -100,7 +100,7 @@ pub fn handle_request(
         collection_uid,
         &params,
         &import_config,
-        progress_summary_fn,
+        progress_event_fn,
         abort_flag,
     )
     .map(Into::into)
