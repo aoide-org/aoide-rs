@@ -48,8 +48,6 @@ dependencies = [
  "aoide-core-api-json",
  "aoide-core-json",
  "bytes",
- "clap",
- "env_logger",
  "reqwest",
  "serde",
  "serde_json",
@@ -262,6 +260,22 @@ dependencies = [
  "tracing",
  "url",
  "uuid",
+]
+
+[[package]]
+name = "aoide-webcli"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "aoide-client",
+ "aoide-core",
+ "aoide-core-api",
+ "aoide-core-api-json",
+ "aoide-core-json",
+ "clap",
+ "env_logger",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]

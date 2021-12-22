@@ -13,6 +13,7 @@ members = [
   "crates/usecases",
   "crates/usecases-sqlite",
   "crates/websrv-api",
+  "webcli",
   "websrv",
 ]
 # The webapp needs to be excluded from the workspace, because it is built
@@ -26,13 +27,13 @@ aoide-core = { path = "crates/core" }
 aoide-core-json = { path = "crates/core-json" }
 aoide-core-api = { path = "crates/core-api" }
 aoide-core-api-json = { path = "crates/core-api-json" }
-aoide-usecases-sqlite-json = { path = "crates/usecases-sqlite-json" }
 aoide-media = { path = "crates/media" }
 aoide-repo = { path = "crates/repo" }
 aoide-repo-sqlite = { path = "crates/repo-sqlite" }
 aoide-storage-sqlite = { path = "crates/storage-sqlite" }
 aoide-usecases = { path = "crates/usecases" }
 aoide-usecases-sqlite = { path = "crates/usecases-sqlite" }
+aoide-usecases-sqlite-json = { path = "crates/usecases-sqlite-json" }
 aoide-websrv-api = { path = "crates/websrv-api" }
 
 # Unreleased crates

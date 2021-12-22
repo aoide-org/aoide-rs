@@ -1,19 +1,17 @@
 [package]
-name = "aoide-client"
+name = "aoide-webcli"
 version = "0.0.0"
 edition = "2021"
 
 [dependencies]
 anyhow = "*"
-bytes = "*"
-reqwest = { version = "*", default-features = false, features = ["rustls-tls"] }
-serde = { version = "1", features = ["derive"], optional = true }
-serde_json = "*"
-serde_urlencoded = "*"
-tokio = { version = "*", default-features = false }
+clap = "*"
+env_logger = { version = ">=0.9" }
+tokio = { version = "*", default-features = false, features = ["macros", "rt-multi-thread", "signal"] }
 tracing = { version = "*", features = ["log"] }
 
 # Workspace dependencies
+aoide-client = "*"
 aoide-core = "*"
 aoide-core-json = "*"
 aoide-core-api = "*"

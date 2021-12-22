@@ -85,8 +85,10 @@ RUN mkdir -p ${WORKDIR_ROOT}/${PROJECT_NAME}
 WORKDIR ${WORKDIR_ROOT}/${PROJECT_NAME}
 
 # Create all projects and crates in workspace
-RUN USER=root cargo new --vcs none --lib ${PROJECT_NAME}-websrv && \
+RUN USER=root cargo new --vcs none --bin ${PROJECT_NAME}-websrv && \
     mv ${PROJECT_NAME}-websrv websrv && \
+    cargo new --vcs none --bin ${PROJECT_NAME}-webcli && \
+    mv ${PROJECT_NAME}-webcli webcli && \
     mkdir -p crates && \
     USER=root cargo new --vcs none --lib ${PROJECT_NAME}-client && \
     mv ${PROJECT_NAME}-client crates/client && \
@@ -120,9 +122,6 @@ COPY [ \
     "Cargo.toml", \
     "Cargo.lock", \
     "./" ]
-COPY [ \
-    "websrv/Cargo.toml", \
-    "./websrv/" ]
 COPY [ \
     "crates/client/Cargo.toml", \
     "./crates/client/" ]
@@ -165,6 +164,12 @@ COPY [ \
 COPY [ \
     "crates/websrv-api/Cargo.toml", \
     "./crates/websrv-api/" ]
+COPY [ \
+    "webcli/Cargo.toml", \
+    "./webcli/" ]
+COPY [ \
+    "websrv/Cargo.toml", \
+    "./websrv/" ]
 
 # Build the workspace dependencies, then delete all build artefacts that must not(!) be cached
 #
@@ -192,20 +197,8 @@ COPY [ \
     ".rustfmt.toml", \
     "./" ]
 COPY [ \
-    "webapp", \
-    "./webapp/" ]
-COPY [ \
-    "websrv/res", \
-    "./websrv/res/" ]
-COPY [ \
-    "websrv/src", \
-    "./websrv/src/" ]
-COPY [ \
     "crates/client/src", \
     "./crates/client/src/" ]
-COPY [ \
-    "crates/client/examples", \
-    "./crates/client/examples/" ]
 COPY [ \
     "crates/core/src", \
     "./crates/core/src/" ]
@@ -245,6 +238,18 @@ COPY [ \
 COPY [ \
     "crates/websrv-api/src", \
     "./crates/websrv-api/src/" ]
+COPY [ \
+    "webapp", \
+    "./webapp/" ]
+COPY [ \
+    "webcli/src", \
+    "./webcli/src/" ]
+COPY [ \
+    "websrv/res", \
+    "./websrv/res/" ]
+COPY [ \
+    "websrv/src", \
+    "./websrv/src/" ]
 
 # 1. Run pre-commit
 # 2. Check all sub-projects using their local manifest for an isolated, standalone build
@@ -273,6 +278,7 @@ RUN tree -a && \
     cargo check -p aoide-usecases-sqlite-json --manifest-path crates/usecases-sqlite-json/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-websrv-api --manifest-path crates/websrv-api/Cargo.toml ${PROJECT_CHECK_ARGS} && \
     cargo check -p aoide-websrv --manifest-path websrv/Cargo.toml -${PROJECT_CHECK_ARGS} && \
+    cargo check -p aoide-webcli --manifest-path webcli/Cargo.toml -${PROJECT_CHECK_ARGS} && \
     cargo test --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} --no-run && \
     cargo test --workspace ${WORKSPACE_BUILD_AND_TEST_ARGS} -- --nocapture --quiet && \
     cargo build -p aoide-websrv --manifest-path websrv/Cargo.toml ${BUILD_BIN_ARGS} && \
