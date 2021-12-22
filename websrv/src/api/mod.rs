@@ -13,8 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::{convert::Infallible, error::Error as StdError, result::Result as StdResult};
+use std::{
+    convert::Infallible,
+    error::Error as StdError,
+    result::Result as StdResult,
+    sync::{atomic::AtomicBool, Arc},
+};
 
+use db::{tokio::DatabaseConnectionGatekeeper, SqlitePooledConnection};
 use serde::Serialize;
 use thiserror::Error;
 use tokio::task::JoinError;
@@ -124,6 +130,34 @@ where
 {
     res.map_err(reject_on_error)
         .and_then(|res| res.map_err(reject_on_error))
+}
+
+pub async fn spawn_blocking_write_task<H, T, E>(
+    gatekeper: &DatabaseConnectionGatekeeper,
+    handler: H,
+) -> std::result::Result<T, Rejection>
+where
+    H: FnOnce(SqlitePooledConnection, Arc<AtomicBool>) -> std::result::Result<T, E>
+        + Send
+        + 'static,
+    T: Send + 'static,
+    E: Into<Error> + Send + 'static,
+{
+    after_blocking_task_finished(gatekeper.spawn_blocking_write_task(handler).await)
+}
+
+pub async fn spawn_blocking_read_task<H, T, E>(
+    gatekeper: &DatabaseConnectionGatekeeper,
+    handler: H,
+) -> std::result::Result<T, Rejection>
+where
+    H: FnOnce(SqlitePooledConnection, Arc<AtomicBool>) -> std::result::Result<T, E>
+        + Send
+        + 'static,
+    T: Send + 'static,
+    E: Into<Error> + Send + 'static,
+{
+    after_blocking_task_finished(gatekeper.spawn_blocking_read_task(handler).await)
 }
 
 #[derive(Debug)]

@@ -29,7 +29,9 @@ use aoide_storage_sqlite::{
     tokio::{DatabaseConnectionGatekeeper, PendingTasks},
 };
 
-use aoide_websrv::api::after_blocking_task_finished;
+use aoide_websrv::api::{
+    after_blocking_task_finished, spawn_blocking_read_task, spawn_blocking_write_task,
+};
 
 use aoide_jsonapi_sqlite as api;
 
@@ -67,11 +69,10 @@ pub fn create_filters(
         .and(shared_connection_gatekeeper.clone())
         .and_then(
             move |request_body, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                after_blocking_task_finished(shared_connection_gatekeeper
-                    .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
+                spawn_blocking_write_task(&shared_connection_gatekeeper, move |pooled_connection, _abort_flag| {
                         api::collection::create::handle_request(pooled_connection, request_body)
                     })
-                    .await)
+                    .await
                     .map(|response_body| {
                         warp::reply::with_status(
                             warp::reply::json(&response_body),
@@ -92,18 +93,18 @@ pub fn create_filters(
                   query_params,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                after_blocking_task_finished(
-                    shared_connection_gatekeeper
-                        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-                            api::collection::update::handle_request(
-                                pooled_connection,
-                                uid,
-                                query_params,
-                                request_body,
-                            )
-                        })
-                        .await,
+                spawn_blocking_write_task(
+                    &shared_connection_gatekeeper,
+                    move |pooled_connection, _abort_flag| {
+                        api::collection::update::handle_request(
+                            pooled_connection,
+                            uid,
+                            query_params,
+                            request_body,
+                        )
+                    },
                 )
+                .await
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
@@ -114,13 +115,13 @@ pub fn create_filters(
         .and(shared_connection_gatekeeper.clone())
         .and_then(
             move |uid, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                after_blocking_task_finished(
-                    shared_connection_gatekeeper
-                        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-                            api::collection::purge::handle_request(pooled_connection, &uid)
-                        })
-                        .await,
+                spawn_blocking_write_task(
+                    &shared_connection_gatekeeper,
+                    move |pooled_connection, _abort_flag| {
+                        api::collection::purge::handle_request(pooled_connection, &uid)
+                    },
                 )
+                .await
                 .map(|()| StatusCode::NO_CONTENT)
             },
         );
@@ -131,11 +132,10 @@ pub fn create_filters(
         .and(shared_connection_gatekeeper.clone())
         .and_then(
             move |query_params, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                after_blocking_task_finished(shared_connection_gatekeeper
-                    .spawn_blocking_read_task::<_, _, api::Error>(move |pooled_connection, _abort_flag| {
+                spawn_blocking_read_task(&shared_connection_gatekeeper,move |pooled_connection, _abort_flag| {
                         api::collection::load_all::handle_request(pooled_connection, query_params)
                     })
-                    .await)
+                    .await
                     .map(|response_body| warp::reply::json(&response_body))
             },
         );
@@ -149,19 +149,17 @@ pub fn create_filters(
             move |uid,
                   query_params,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                after_blocking_task_finished(
-                    shared_connection_gatekeeper
-                        .spawn_blocking_read_task::<_, _, api::Error>(
-                            move |pooled_connection, _abort_flag| {
-                                api::collection::load_one::handle_request(
-                                    pooled_connection,
-                                    &uid,
-                                    query_params,
-                                )
-                            },
+                spawn_blocking_read_task(
+                    &shared_connection_gatekeeper,
+                    move |pooled_connection, _abort_flag| {
+                        api::collection::load_one::handle_request(
+                            pooled_connection,
+                            &uid,
+                            query_params,
                         )
-                        .await,
+                    },
                 )
+                .await
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
@@ -182,19 +180,17 @@ pub fn create_filters(
             move |uid,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                after_blocking_task_finished(
-                    shared_connection_gatekeeper
-                        .spawn_blocking_read_task::<_, _, api::Error>(
-                            move |pooled_connection, _abort_flag| {
-                                api::media::relocate_collected_sources::handle_request(
-                                    pooled_connection,
-                                    &uid,
-                                    request_body,
-                                )
-                            },
+                spawn_blocking_read_task(
+                    &shared_connection_gatekeeper,
+                    move |pooled_connection, _abort_flag| {
+                        api::media::relocate_collected_sources::handle_request(
+                            pooled_connection,
+                            &uid,
+                            request_body,
                         )
-                        .await,
+                    },
                 )
+                .await
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
@@ -230,19 +226,17 @@ pub fn create_filters(
             move |uid,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                after_blocking_task_finished(
-                    shared_connection_gatekeeper
-                        .spawn_blocking_read_task::<_, _, api::Error>(
-                            move |pooled_connection, _abort_flag| {
-                                api::media::tracker::query_status::handle_request(
-                                    pooled_connection,
-                                    &uid,
-                                    request_body,
-                                )
-                            },
+                spawn_blocking_read_task(
+                    &shared_connection_gatekeeper,
+                    move |pooled_connection, _abort_flag| {
+                        api::media::tracker::query_status::handle_request(
+                            pooled_connection,
+                            &uid,
+                            request_body,
                         )
-                        .await,
+                    },
                 )
+                .await
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
@@ -280,26 +274,26 @@ pub fn create_filters(
                     tracing::debug!("Unwatching media tracker scanning");
                     *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;
                 });
-                let response = after_blocking_task_finished(
-                    shared_connection_gatekeeper
-                        .spawn_blocking_write_task(move |pooled_connection, abort_flag| {
-                            api::media::tracker::scan::handle_request(
-                                pooled_connection,
-                                &uid,
-                                request_body,
-                                &mut |progress_event: ScanProgressEvent| {
-                                    if let Err(err) = progress_event_tx.send(Some(progress_event)) {
-                                        tracing::error!(
-                                            "Failed to send scan progress event: {:?}",
-                                            err.0
-                                        );
-                                    }
-                                },
-                                &abort_flag,
-                            )
-                        })
-                        .await,
-                );
+                let response = spawn_blocking_write_task(
+                    &shared_connection_gatekeeper,
+                    move |pooled_connection, abort_flag| {
+                        api::media::tracker::scan::handle_request(
+                            pooled_connection,
+                            &uid,
+                            request_body,
+                            &mut |progress_event: ScanProgressEvent| {
+                                if let Err(err) = progress_event_tx.send(Some(progress_event)) {
+                                    tracing::error!(
+                                        "Failed to send scan progress event: {:?}",
+                                        err.0
+                                    );
+                                }
+                            },
+                            &abort_flag,
+                        )
+                    },
+                )
+                .await;
                 if let Err(err) = watcher.await {
                     tracing::error!(
                         "Failed to terminate media tracker scanning progress watcher: {}",
@@ -338,28 +332,28 @@ pub fn create_filters(
                     tracing::debug!("Unwatching media tracker importing");
                     *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;
                 });
-                let response = after_blocking_task_finished(
-                    shared_connection_gatekeeper
-                        .spawn_blocking_write_task(move |pooled_connection, abort_flag| {
-                            api::media::tracker::import::handle_request(
-                                pooled_connection,
-                                &uid,
-                                request_body,
-                                &mut |progress_summary: &ImportProgressSummary| {
-                                    if let Err(err) =
-                                        progress_summary_tx.send(progress_summary.to_owned())
-                                    {
-                                        tracing::error!(
-                                            "Failed to send import progress summary: {:?}",
-                                            err.0
-                                        );
-                                    }
-                                },
-                                &abort_flag,
-                            )
-                        })
-                        .await,
-                );
+                let response = spawn_blocking_write_task(
+                    &shared_connection_gatekeeper,
+                    move |pooled_connection, abort_flag| {
+                        api::media::tracker::import::handle_request(
+                            pooled_connection,
+                            &uid,
+                            request_body,
+                            &mut |progress_summary: &ImportProgressSummary| {
+                                if let Err(err) =
+                                    progress_summary_tx.send(progress_summary.to_owned())
+                                {
+                                    tracing::error!(
+                                        "Failed to send import progress summary: {:?}",
+                                        err.0
+                                    );
+                                }
+                            },
+                            &abort_flag,
+                        )
+                    },
+                )
+                .await;
                 if let Err(err) = watcher.await {
                     tracing::error!(
                         "Failed to terminate media tracker importing progress watcher: {}",
@@ -381,17 +375,17 @@ pub fn create_filters(
             move |uid,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                after_blocking_task_finished(
-                    shared_connection_gatekeeper
-                        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-                            api::media::tracker::untrack::handle_request(
-                                pooled_connection,
-                                &uid,
-                                request_body,
-                            )
-                        })
-                        .await,
+                spawn_blocking_write_task(
+                    &shared_connection_gatekeeper,
+                    move |pooled_connection, _abort_flag| {
+                        api::media::tracker::untrack::handle_request(
+                            pooled_connection,
+                            &uid,
+                            request_body,
+                        )
+                    },
                 )
+                .await
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
@@ -429,8 +423,8 @@ pub fn create_filters(
                     tracing::debug!("Unwatching media tracker finding untracked");
                     *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;
                 });
-                let response = after_blocking_task_finished(shared_connection_gatekeeper.spawn_blocking_read_task::<_, _, api::Error>(
-                    move |pooled_connection, abort_flag| {
+                let response = spawn_blocking_read_task(
+                    &shared_connection_gatekeeper,move |pooled_connection, abort_flag| {
                         api::media::tracker::find_untracked_files::handle_request(
                             pooled_connection,
                             &uid,
@@ -447,7 +441,7 @@ pub fn create_filters(
                         )
                     },
                 )
-                .await);
+                .await;
                 if let Err(err) = watcher.await {
                     tracing::error!(
                         "Failed to terminate media tracker finding untracked progress watcher: {}",
@@ -469,17 +463,17 @@ pub fn create_filters(
             move |uid,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                after_blocking_task_finished(
-                    shared_connection_gatekeeper
-                        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-                            api::media::tracker::purge_untracked_sources::handle_request(
-                                pooled_connection,
-                                &uid,
-                                request_body,
-                            )
-                        })
-                        .await,
+                spawn_blocking_write_task(
+                    &shared_connection_gatekeeper,
+                    move |pooled_connection, _abort_flag| {
+                        api::media::tracker::purge_untracked_sources::handle_request(
+                            pooled_connection,
+                            &uid,
+                            request_body,
+                        )
+                    },
                 )
+                .await
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
@@ -503,19 +497,13 @@ pub fn create_filters(
             move |uid,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                after_blocking_task_finished(
-                    shared_connection_gatekeeper
-                        .spawn_blocking_read_task::<_, _, api::Error>(
-                            move |pooled_connection, _abort_flag| {
-                                api::track::resolve::handle_request(
-                                    pooled_connection,
-                                    &uid,
-                                    request_body,
-                                )
-                            },
-                        )
-                        .await,
+                spawn_blocking_read_task(
+                    &shared_connection_gatekeeper,
+                    move |pooled_connection, _abort_flag| {
+                        api::track::resolve::handle_request(pooled_connection, &uid, request_body)
+                    },
                 )
+                .await
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
@@ -533,20 +521,18 @@ pub fn create_filters(
                   query_params,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                after_blocking_task_finished(
-                    shared_connection_gatekeeper
-                        .spawn_blocking_read_task::<_, _, api::Error>(
-                            move |pooled_connection, _abort_flag| {
-                                api::track::search::handle_request(
-                                    pooled_connection,
-                                    &uid,
-                                    query_params,
-                                    request_body,
-                                )
-                            },
+                spawn_blocking_read_task(
+                    &shared_connection_gatekeeper,
+                    move |pooled_connection, _abort_flag| {
+                        api::track::search::handle_request(
+                            pooled_connection,
+                            &uid,
+                            query_params,
+                            request_body,
                         )
-                        .await,
+                    },
                 )
+                .await
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
@@ -564,18 +550,18 @@ pub fn create_filters(
                   query_params,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                after_blocking_task_finished(
-                    shared_connection_gatekeeper
-                        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-                            api::track::replace::handle_request(
-                                pooled_connection,
-                                &uid,
-                                query_params,
-                                request_body,
-                            )
-                        })
-                        .await,
+                spawn_blocking_write_task(
+                    &shared_connection_gatekeeper,
+                    move |pooled_connection, _abort_flag| {
+                        api::track::replace::handle_request(
+                            pooled_connection,
+                            &uid,
+                            query_params,
+                            request_body,
+                        )
+                    },
                 )
+                .await
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
@@ -593,19 +579,19 @@ pub fn create_filters(
                   query_params,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                after_blocking_task_finished(
-                    shared_connection_gatekeeper
-                        .spawn_blocking_write_task(move |pooled_connection, abort_flag| {
-                            api::track::import_and_replace::handle_request(
-                                pooled_connection,
-                                &uid,
-                                query_params,
-                                request_body,
-                                &abort_flag,
-                            )
-                        })
-                        .await,
+                spawn_blocking_write_task(
+                    &shared_connection_gatekeeper,
+                    move |pooled_connection, abort_flag| {
+                        api::track::import_and_replace::handle_request(
+                            pooled_connection,
+                            &uid,
+                            query_params,
+                            request_body,
+                            &abort_flag,
+                        )
+                    },
                 )
+                .await
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
@@ -622,15 +608,13 @@ pub fn create_filters(
         .and(shared_connection_gatekeeper.clone())
         .and_then(
             move |uid, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                after_blocking_task_finished(
-                    shared_connection_gatekeeper
-                        .spawn_blocking_read_task::<_, _, api::Error>(
-                            move |pooled_connection, _abort_flag| {
-                                api::track::load_one::handle_request(pooled_connection, &uid)
-                            },
-                        )
-                        .await,
+                spawn_blocking_read_task(
+                    &shared_connection_gatekeeper,
+                    move |pooled_connection, _abort_flag| {
+                        api::track::load_one::handle_request(pooled_connection, &uid)
+                    },
                 )
+                .await
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
@@ -642,11 +626,11 @@ pub fn create_filters(
         .and(shared_connection_gatekeeper.clone())
         .and_then(
             move |request_body, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                after_blocking_task_finished(shared_connection_gatekeeper
-                    .spawn_blocking_read_task::<_, _, api::Error>(move |pooled_connection, _abort_flag| {
+                spawn_blocking_read_task(
+                    &shared_connection_gatekeeper,move |pooled_connection, _abort_flag| {
                         api::track::load_many::handle_request(pooled_connection, request_body)
                     })
-                    .await)
+                    .await
                     .map(|response_body| warp::reply::json(&response_body))
             },
         );
@@ -661,17 +645,17 @@ pub fn create_filters(
             move |track_uid,
                   query_params,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                after_blocking_task_finished(
-                    shared_connection_gatekeeper
-                        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-                            api::track::export_metadata::handle_request(
-                                pooled_connection,
-                                &track_uid,
-                                query_params,
-                            )
-                        })
-                        .await,
+                spawn_blocking_write_task(
+                    &shared_connection_gatekeeper,
+                    move |pooled_connection, _abort_flag| {
+                        api::track::export_metadata::handle_request(
+                            pooled_connection,
+                            &track_uid,
+                            query_params,
+                        )
+                    },
                 )
+                .await
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
@@ -690,17 +674,17 @@ pub fn create_filters(
             move |collection_uid,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                after_blocking_task_finished(
-                    shared_connection_gatekeeper
-                        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-                            api::playlist::create_collected::handle_request(
-                                pooled_connection,
-                                &collection_uid,
-                                request_body,
-                            )
-                        })
-                        .await,
+                spawn_blocking_write_task(
+                    &shared_connection_gatekeeper,
+                    move |pooled_connection, _abort_flag| {
+                        api::playlist::create_collected::handle_request(
+                            pooled_connection,
+                            &collection_uid,
+                            request_body,
+                        )
+                    },
                 )
+                .await
                 .map(|response_body| {
                     warp::reply::with_status(warp::reply::json(&response_body), StatusCode::CREATED)
                 })
@@ -717,19 +701,17 @@ pub fn create_filters(
             move |collection_uid,
                   query_params,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                after_blocking_task_finished(
-                    shared_connection_gatekeeper
-                        .spawn_blocking_read_task::<_, _, api::Error>(
-                            move |pooled_connection, _abort_flag| {
-                                api::playlist::list_collected::handle_request(
-                                    pooled_connection,
-                                    &collection_uid,
-                                    query_params,
-                                )
-                            },
+                spawn_blocking_read_task(
+                    &shared_connection_gatekeeper,
+                    move |pooled_connection, _abort_flag| {
+                        api::playlist::list_collected::handle_request(
+                            pooled_connection,
+                            &collection_uid,
+                            query_params,
                         )
-                        .await,
+                    },
                 )
+                .await
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
@@ -747,18 +729,18 @@ pub fn create_filters(
                   query_params,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                after_blocking_task_finished(
-                    shared_connection_gatekeeper
-                        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-                            api::playlist::update::handle_request(
-                                pooled_connection,
-                                uid,
-                                query_params,
-                                request_body,
-                            )
-                        })
-                        .await,
+                spawn_blocking_write_task(
+                    &shared_connection_gatekeeper,
+                    move |pooled_connection, _abort_flag| {
+                        api::playlist::update::handle_request(
+                            pooled_connection,
+                            uid,
+                            query_params,
+                            request_body,
+                        )
+                    },
                 )
+                .await
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
@@ -769,13 +751,13 @@ pub fn create_filters(
         .and(shared_connection_gatekeeper.clone())
         .and_then(
             move |uid, shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                after_blocking_task_finished(
-                    shared_connection_gatekeeper
-                        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-                            api::playlist::purge::handle_request(pooled_connection, &uid)
-                        })
-                        .await,
+                spawn_blocking_write_task(
+                    &shared_connection_gatekeeper,
+                    move |pooled_connection, _abort_flag| {
+                        api::playlist::purge::handle_request(pooled_connection, &uid)
+                    },
                 )
+                .await
                 .map(|()| StatusCode::NO_CONTENT)
             },
         );
@@ -792,18 +774,18 @@ pub fn create_filters(
                   query_params,
                   request_body,
                   shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                after_blocking_task_finished(
-                    shared_connection_gatekeeper
-                        .spawn_blocking_write_task(move |pooled_connection, _abort_flag| {
-                            api::playlist::patch_entries::handle_request(
-                                pooled_connection,
-                                uid,
-                                query_params,
-                                request_body,
-                            )
-                        })
-                        .await,
+                spawn_blocking_write_task(
+                    &shared_connection_gatekeeper,
+                    move |pooled_connection, _abort_flag| {
+                        api::playlist::patch_entries::handle_request(
+                            pooled_connection,
+                            uid,
+                            query_params,
+                            request_body,
+                        )
+                    },
                 )
+                .await
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
