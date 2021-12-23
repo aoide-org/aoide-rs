@@ -24,7 +24,7 @@ class Collection <<entity>> {
 }
 
 class MediaSource {
-    uri
+    path
 }
 MediaSource "0..*" -up-> "1" Collection
 
@@ -43,9 +43,12 @@ Playlist "0..*" -up-> "1" Collection
 @enduml
 ```
 
-_Media sources_ are the glue objects between _tracks_ and their _collection_. The URI of a _media source_ is unique within a collection.
-
 The top-level entities _collection_, _track_, and _playlist_ are identified by a _**u**nique **id**entifier_ or short _uid_. This identifier is generated and guaranteed to be globally unique. Modifications are tracked by a revision number _rev_.
+
+_Media sources_ are the glue objects between _tracks_ and their _collection_. They are identified
+by a (case-sensitive) _path_ that is unique within a collection. The path could contain either
+a URL/URI or a relative path. The collection defines the path scheme and how to locate media
+sources by their path, e.g. local files addressed by a relative path in a common root directory.
 
 ### Playlists
 
@@ -71,7 +74,7 @@ PlaylistEntry --> "0..1" Track
 @enduml
 ```
 
-Unordered crates are currently not supported.
+Unordered sets of tracks aka _crates_ are currently not supported.
 
 ### Tracks
 
@@ -134,6 +137,21 @@ queries are used for this purpose.
 
 [build & run]: #build-and-run
 
+### Prerequisites
+
+#### Trunk
+
+Use `cargo install trunk` once to install the
+[Trunk](https://github.com/thedodd/trunk)
+web application builder/bundler.
+
+The web application is embedded in the server and enabled by default.
+
+#### just (optional)
+
+Install [just](https://github.com/casey/just) to automate various development
+tasks. Prepared recipes can be found in [.justfile](.justfile).
+
 ### Executable
 
 The server executable is built with the following commands:
@@ -143,20 +161,20 @@ cd webapp && trunk build && cd -
 cargo build --all-features --package aoide-websrv
 ```
 
-> Use `cargo build --release ...` for an optimized release build instead of a debug build!
+The _webapp_ itself is **not** part of the workspace and needs to be built separately
+before building the server.
 
-The web application is enabled by default and its `/dist` files have to be built as a prerequisite.
-Use `cargo install trunk` once to install the required [Trunk](https://github.com/thedodd/trunk)
-web application builder/bundler beforehand. The *webapp* itself is **not** part of the workspace!
+> Use `cargo build --profile production ...` for a fully optimized release build instead
+of a debug build.
 
-During development it is handy to build and run the executable in a single step:
+During development it is handy to build and run the server in a single step:
 
 ```bash
 cargo run --all-features --package aoide-websrv
 ```
 
 The configuration is controlled by environment variables. Please refer to the
-file [.env](.env) in the project folder for an example configuration.
+[.env](.env) file in the project folder for an example configuration.
 
 #### Configuration examples
 
@@ -172,7 +190,7 @@ file [.env](.env) in the project folder for an example configuration.
 The actual socket address with the bound (ephemeral) port will be printed on the first line to _stdout_
 where the client can pick it up for connecting. You may also bind the service to some predefined port.
 
-Log/tracing messages are formatted as JSON and printed to _stderr_.
+Log/tracing messages are printed to _stderr_.
 
 ### Tests
 
