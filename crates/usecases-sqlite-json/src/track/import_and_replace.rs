@@ -157,7 +157,7 @@ pub fn handle_request(
         flags: import_flags,
     };
     let expected_source_path_count = request_body.len();
-    uc::import_and_replace_by_local_file_path_iter(
+    uc::import_and_replace_by_local_file_paths(
         connection,
         collection_uid,
         sync_mode.into(),

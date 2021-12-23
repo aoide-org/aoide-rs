@@ -45,10 +45,7 @@ mod compat {
 
     // TODO: Remove after https://github.com/rust-lang/rust/issues/53485
     // has been stabilized.
-    pub fn is_iter_sorted_by<'a, T, F>(
-        iterable: impl IntoIterator<Item = &'a T>,
-        mut cmp: F,
-    ) -> bool
+    pub fn is_sorted_by<'a, T, F>(iterable: impl IntoIterator<Item = &'a T>, mut cmp: F) -> bool
     where
         F: FnMut(&'a T, &'a T) -> Ordering,
         T: 'a,
@@ -64,14 +61,5 @@ mod compat {
             }
         }
         true
-    }
-
-    // TODO: Remove after https://github.com/rust-lang/rust/issues/53485
-    // has been stabilized.
-    pub fn is_slice_sorted_by<T, F>(slice: &[T], cmp: F) -> bool
-    where
-        F: FnMut(&T, &T) -> Ordering,
-    {
-        is_iter_sorted_by(slice.iter(), cmp)
     }
 }

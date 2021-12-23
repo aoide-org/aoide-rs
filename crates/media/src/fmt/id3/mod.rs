@@ -59,9 +59,7 @@ use crate::{
         format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from,
         parse_index_numbers, parse_key_signature, parse_replay_gain, parse_tempo_bpm,
         push_next_actor_role_name_from, serato,
-        tag::{
-            import_faceted_tags_from_label_value_iter, FacetedTagMappingConfig, TagMappingConfig,
-        },
+        tag::{import_faceted_tags_from_label_values, FacetedTagMappingConfig, TagMappingConfig},
         try_ingest_embedded_artwork_image,
     },
     Error, Result,
@@ -182,7 +180,7 @@ fn import_faceted_tags_from_text_frames(
     tag: &id3::Tag,
     frame_id: &str,
 ) -> usize {
-    import_faceted_tags_from_label_value_iter(
+    import_faceted_tags_from_label_values(
         tags_map,
         faceted_tag_mapping_config,
         facet_id,
@@ -445,7 +443,7 @@ pub fn import_metadata_into_track(
         .comments()
         .filter(|comm| comm.description.is_empty())
         .map(|comm| comm.text.to_owned());
-    import_faceted_tags_from_label_value_iter(
+    import_faceted_tags_from_label_values(
         &mut tags_map,
         &config.faceted_tag_mapping,
         &FACET_COMMENT,
@@ -678,7 +676,7 @@ pub fn export_track(
             "TIT1",
             Titles::filter_kind(track.titles.iter(), TitleKind::Work).map(|title| &title.name),
         );
-    } else if let Some(joined_titles) = TagMappingConfig::join_labels_str_iter_with_separator(
+    } else if let Some(joined_titles) = TagMappingConfig::join_labels_with_separator(
         Titles::filter_kind(track.titles.iter(), TitleKind::Work).map(|title| title.name.as_str()),
         ID3V24_MULTI_FIELD_SEPARATOR,
     ) {
@@ -975,7 +973,7 @@ fn export_filtered_actor_names_txxx(
             tag.add_extended_text(txxx_description.as_ref().to_owned(), name);
         }
         FilteredActorNames::Primary(names) => {
-            if let Some(joined_names) = TagMappingConfig::join_labels_str_iter_with_separator(
+            if let Some(joined_names) = TagMappingConfig::join_labels_with_separator(
                 names.iter().copied(),
                 ID3V24_MULTI_FIELD_SEPARATOR,
             ) {
@@ -997,12 +995,12 @@ fn export_faceted_tags(
     tags: &[PlainTag],
 ) {
     let joined_labels = if let Some(config) = config {
-        config.join_labels_str_iter(
+        config.join_labels(
             tags.iter()
                 .filter_map(|PlainTag { label, score: _ }| label.as_ref().map(AsRef::as_ref)),
         )
     } else {
-        TagMappingConfig::join_labels_str_iter_with_separator(
+        TagMappingConfig::join_labels_with_separator(
             tags.iter()
                 .filter_map(|PlainTag { label, score: _ }| label.as_ref().map(AsRef::as_ref)),
             ID3V24_MULTI_FIELD_SEPARATOR,
@@ -1022,12 +1020,12 @@ fn export_faceted_tags_comment(
     tags: &[PlainTag],
 ) {
     let joined_labels = if let Some(config) = config {
-        config.join_labels_str_iter(
+        config.join_labels(
             tags.iter()
                 .filter_map(|PlainTag { label, score: _ }| label.as_ref().map(AsRef::as_ref)),
         )
     } else {
-        TagMappingConfig::join_labels_str_iter_with_separator(
+        TagMappingConfig::join_labels_with_separator(
             tags.iter()
                 .filter_map(|PlainTag { label, score: _ }| label.as_ref().map(AsRef::as_ref)),
             ID3V24_MULTI_FIELD_SEPARATOR,

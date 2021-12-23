@@ -54,9 +54,7 @@ use crate::{
         format_valid_replay_gain, format_validated_tempo_bpm, ingest_title_from,
         parse_index_numbers, parse_key_signature, parse_replay_gain, parse_tempo_bpm,
         parse_year_tag, push_next_actor_role_name_from, serato,
-        tag::{
-            import_faceted_tags_from_label_value_iter, FacetedTagMappingConfig, TagMappingConfig,
-        },
+        tag::{import_faceted_tags_from_label_values, FacetedTagMappingConfig, TagMappingConfig},
         try_ingest_embedded_artwork_image,
     },
     Result,
@@ -240,7 +238,7 @@ pub fn import_faceted_text_tags<'a>(
     facet_id: &FacetId,
     label_values: impl IntoIterator<Item = &'a str>,
 ) {
-    import_faceted_tags_from_label_value_iter(
+    import_faceted_tags_from_label_values(
         tags_map,
         faceted_tag_mapping_config,
         facet_id,
@@ -999,7 +997,7 @@ fn export_faceted_tags(
     tags: Vec<PlainTag>,
 ) {
     if let Some(config) = config {
-        let joined_labels = config.join_labels_str_iter(
+        let joined_labels = config.join_labels(
             tags.iter()
                 .filter_map(|PlainTag { label, score: _ }| label.as_ref().map(AsRef::as_ref)),
         );

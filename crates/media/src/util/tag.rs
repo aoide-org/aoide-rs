@@ -41,18 +41,7 @@ impl TagMappingConfig {
         score * self.split_score_attenuation
     }
 
-    pub fn join_labels_str_slice<'label>(
-        &self,
-        labels: &[&'label str],
-    ) -> Option<Cow<'label, str>> {
-        debug_assert!(!self.label_separator.is_empty());
-        match labels {
-            &[] => None,
-            labels => Some(labels.join(&self.label_separator).into()),
-        }
-    }
-
-    pub fn join_labels_str_iter_with_separator<'label>(
+    pub fn join_labels_with_separator<'label>(
         labels: impl IntoIterator<Item = &'label str>,
         separator: impl AsRef<str>,
     ) -> Option<Cow<'label, str>> {
@@ -76,11 +65,11 @@ impl TagMappingConfig {
         })
     }
 
-    pub fn join_labels_str_iter<'label>(
+    pub fn join_labels<'label>(
         &self,
         labels: impl IntoIterator<Item = &'label str>,
     ) -> Option<Cow<'label, str>> {
-        Self::join_labels_str_iter_with_separator(labels, &self.label_separator)
+        Self::join_labels_with_separator(labels, &self.label_separator)
     }
 }
 
@@ -189,7 +178,7 @@ pub fn import_plain_tags_from_joined_label_value(
     }
 }
 
-pub fn import_faceted_tags_from_label_value_iter(
+pub fn import_faceted_tags_from_label_values(
     tags_map: &mut TagsMap,
     faceted_tag_mapping_config: &FacetedTagMappingConfig,
     facet_id: &TagFacetId,

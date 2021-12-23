@@ -27,7 +27,7 @@ use std::{
 };
 
 use crate::{
-    compat::is_slice_sorted_by,
+    compat::is_sorted_by,
     prelude::*,
     util::{
         canonical::{CanonicalOrd, Canonicalize, IsCanonical},
@@ -748,7 +748,7 @@ pub enum TagsInvalidity {
 fn check_for_duplicates_in_sorted_plain_tags_slice(
     plain_tags: &[PlainTag],
 ) -> Option<TagsInvalidity> {
-    debug_assert!(is_slice_sorted_by(plain_tags, |lhs, rhs| lhs
+    debug_assert!(is_sorted_by(plain_tags, |lhs, rhs| lhs
         .label
         .cmp(&rhs.label)));
     let mut iter = plain_tags.iter();
@@ -766,7 +766,7 @@ fn check_for_duplicates_in_sorted_plain_tags_slice(
 fn check_for_duplicates_in_sorted_faceted_tags_slice(
     faceted_tags: &[FacetedTags],
 ) -> Option<TagsInvalidity> {
-    debug_assert!(is_slice_sorted_by(faceted_tags, |lhs, rhs| lhs
+    debug_assert!(is_sorted_by(faceted_tags, |lhs, rhs| lhs
         .facet_id
         .cmp(&rhs.facet_id)));
     let mut iter = faceted_tags.iter();

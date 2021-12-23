@@ -29,7 +29,7 @@ use super::*;
 mod uc {
     pub use aoide_usecases::track::replace::{
         import_and_replace_by_local_file_path_from_directory,
-        import_and_replace_by_local_file_path_iter, replace_collected_tracks_by_media_source_path,
+        import_and_replace_by_local_file_paths, replace_collected_tracks_by_media_source_path,
         Outcome, Params,
     };
 }
@@ -50,7 +50,7 @@ pub fn replace_by_media_source_path(
 
 // TODO: Reduce number of arguments
 #[allow(clippy::too_many_arguments)]
-pub fn import_and_replace_by_local_file_path_iter(
+pub fn import_and_replace_by_local_file_paths(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
     sync_mode: SyncMode,
@@ -62,7 +62,7 @@ pub fn import_and_replace_by_local_file_path_iter(
 ) -> Result<uc::Outcome> {
     let db = RepoConnection::new(connection);
     db.transaction::<_, TransactionError, _>(|| {
-        uc::import_and_replace_by_local_file_path_iter(
+        uc::import_and_replace_by_local_file_paths(
             &db,
             collection_uid,
             sync_mode,

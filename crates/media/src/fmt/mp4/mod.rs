@@ -60,7 +60,7 @@ use crate::{
         format_valid_replay_gain, format_validated_tempo_bpm, ingest_title, parse_key_signature,
         parse_replay_gain, parse_tempo_bpm, parse_year_tag, push_next_actor_role_name, serato,
         tag::{
-            import_faceted_tags_from_label_value_iter, import_plain_tags_from_joined_label_value,
+            import_faceted_tags_from_label_values, import_plain_tags_from_joined_label_value,
             TagMappingConfig,
         },
         try_ingest_embedded_artwork_image,
@@ -464,7 +464,7 @@ impl Metadata {
         }
 
         // Mood tags
-        import_faceted_tags_from_label_value_iter(
+        import_faceted_tags_from_label_values(
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_MOOD,
@@ -472,7 +472,7 @@ impl Metadata {
         );
 
         // Comment tag
-        import_faceted_tags_from_label_value_iter(
+        import_faceted_tags_from_label_values(
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_COMMENT,
@@ -480,7 +480,7 @@ impl Metadata {
         );
 
         // Grouping tags
-        import_faceted_tags_from_label_value_iter(
+        import_faceted_tags_from_label_values(
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_GROUPING,
@@ -488,7 +488,7 @@ impl Metadata {
         );
 
         // ISRC tag
-        import_faceted_tags_from_label_value_iter(
+        import_faceted_tags_from_label_values(
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_ISRC,
@@ -496,7 +496,7 @@ impl Metadata {
         );
 
         // iTunes XID tags
-        import_faceted_tags_from_label_value_iter(
+        import_faceted_tags_from_label_values(
             &mut tags_map,
             &config.faceted_tag_mapping,
             &FACET_XID,
@@ -615,7 +615,7 @@ fn export_faceted_tags(
 ) {
     if let Some(config) = config {
         let joined_labels = config
-            .join_labels_str_iter(
+            .join_labels(
                 tags.iter()
                     .filter_map(|PlainTag { label, score: _ }| label.as_ref().map(AsRef::as_ref)),
             )

@@ -324,7 +324,7 @@ const DEFAULT_MEDIA_SOURCE_COUNT: usize = 1024;
 
 // TODO: Reduce number of arguments
 #[allow(clippy::too_many_arguments)]
-pub fn import_and_replace_by_local_file_path_iter<Repo>(
+pub fn import_and_replace_by_local_file_paths<Repo>(
     repo: &Repo,
     collection_uid: &EntityUid,
     sync_mode: SyncMode,

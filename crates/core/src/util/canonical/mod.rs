@@ -15,11 +15,8 @@
 
 use std::{borrow::Borrow, cmp::Ordering, ops::Deref};
 
-/// Check if a slice is sorted and does not contain duplicates
-fn is_iter_sorted_strictly_by<'a, T, F>(
-    iterable: impl IntoIterator<Item = &'a T>,
-    mut cmp: F,
-) -> bool
+/// Check if an iterable is sorted and does not contain duplicates
+fn is_sorted_strictly_by<'a, T, F>(iterable: impl IntoIterator<Item = &'a T>, mut cmp: F) -> bool
 where
     F: FnMut(&'a T, &'a T) -> Ordering,
     T: 'a,
@@ -35,14 +32,6 @@ where
         }
     }
     true
-}
-
-/// Check if a slice is sorted and does not contain duplicates
-fn is_slice_sorted_strictly_by<T, F>(slice: &[T], cmp: F) -> bool
-where
-    F: FnMut(&T, &T) -> Ordering,
-{
-    is_iter_sorted_strictly_by(slice.iter(), cmp)
 }
 
 pub trait CanonicalOrd {
@@ -78,7 +67,7 @@ where
 {
     fn is_canonical(&self) -> bool {
         self.iter().all(T::is_canonical)
-            && is_slice_sorted_strictly_by(self, |lhs, rhs| lhs.canonical_cmp(rhs))
+            && is_sorted_strictly_by(self, |lhs, rhs| lhs.canonical_cmp(rhs))
     }
 }
 
