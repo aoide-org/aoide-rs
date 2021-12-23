@@ -238,13 +238,13 @@ pub fn import_faceted_text_tags<'a>(
     tags_map: &mut TagsMap,
     faceted_tag_mapping_config: &FacetedTagMappingConfig,
     facet_id: &FacetId,
-    label_values: impl Iterator<Item = &'a str>,
+    label_values: impl IntoIterator<Item = &'a str>,
 ) {
     import_faceted_tags_from_label_value_iter(
         tags_map,
         faceted_tag_mapping_config,
         facet_id,
-        label_values.map(ToOwned::to_owned),
+        label_values.into_iter().map(ToOwned::to_owned),
     );
 }
 

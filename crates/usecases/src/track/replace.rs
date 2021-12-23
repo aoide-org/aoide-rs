@@ -156,7 +156,7 @@ pub fn replace_collected_tracks_by_media_source_path<Repo>(
     repo: &Repo,
     collection_uid: &EntityUid,
     params: &Params,
-    tracks: impl Iterator<Item = ValidatedInput>,
+    tracks: impl IntoIterator<Item = ValidatedInput>,
 ) -> Result<Summary>
 where
     Repo: CollectionRepo + EntityRepo,
@@ -304,7 +304,7 @@ pub fn replace_by_media_source_path(
     repo: &impl EntityRepo,
     collection_id: CollectionId,
     replace_mode: ReplaceMode,
-    tracks: impl Iterator<Item = ValidatedInput>,
+    tracks: impl IntoIterator<Item = ValidatedInput>,
 ) -> Result<Summary> {
     let mut summary = Summary::default();
     for track in tracks {
@@ -330,7 +330,7 @@ pub fn import_and_replace_by_local_file_path_iter<Repo>(
     sync_mode: SyncMode,
     import_config: &ImportTrackConfig,
     replace_mode: ReplaceMode,
-    source_path_iter: impl Iterator<Item = SourcePath>,
+    source_paths: impl IntoIterator<Item = SourcePath>,
     expected_source_path_count: Option<usize>,
     abort_flag: &AtomicBool,
 ) -> Result<Outcome>
@@ -342,7 +342,7 @@ where
     let mut summary = Summary::default();
     let mut media_source_ids =
         Vec::with_capacity(expected_source_path_count.unwrap_or(DEFAULT_MEDIA_SOURCE_COUNT));
-    for source_path in source_path_iter {
+    for source_path in source_paths {
         if abort_flag.load(Ordering::Relaxed) {
             tracing::debug!("Aborting import of {}", source_path);
             return Ok(Outcome {

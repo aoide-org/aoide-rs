@@ -42,7 +42,7 @@ pub fn patch(
     db.transaction::<_, RepoTransactionError, _>(|| {
         let (record_header, _next_rev) =
             db.touch_playlist_entity_revision(entity_header, updated_at)?;
-        for operation in operations.into_iter() {
+        for operation in operations {
             use PatchOperation::*;
             match operation {
                 Append { entries } => {

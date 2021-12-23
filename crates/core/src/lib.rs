@@ -45,11 +45,15 @@ mod compat {
 
     // TODO: Remove after https://github.com/rust-lang/rust/issues/53485
     // has been stabilized.
-    pub fn is_iter_sorted_by<'a, T, F>(mut iter: impl Iterator<Item = &'a T>, mut cmp: F) -> bool
+    pub fn is_iter_sorted_by<'a, T, F>(
+        iterable: impl IntoIterator<Item = &'a T>,
+        mut cmp: F,
+    ) -> bool
     where
         F: FnMut(&'a T, &'a T) -> Ordering,
         T: 'a,
     {
+        let mut iter = iterable.into_iter();
         if let Some(first) = iter.next() {
             let mut prev = first;
             for next in iter {

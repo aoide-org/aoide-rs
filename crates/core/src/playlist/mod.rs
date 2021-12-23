@@ -224,7 +224,7 @@ impl PlaylistWithEntries {
         range: impl RangeBounds<usize>,
         new_entries: impl IntoIterator<Item = Entry>,
     ) {
-        self.entries.splice(range, new_entries.into_iter());
+        self.entries.splice(range, new_entries);
     }
 
     pub fn remove_entries(&mut self, range: impl RangeBounds<usize>) {

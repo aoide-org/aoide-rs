@@ -53,12 +53,12 @@ impl TagMappingConfig {
     }
 
     pub fn join_labels_str_iter_with_separator<'label>(
-        labels: impl Iterator<Item = &'label str>,
+        labels: impl IntoIterator<Item = &'label str>,
         separator: impl AsRef<str>,
     ) -> Option<Cow<'label, str>> {
         let separator = separator.as_ref();
         debug_assert!(!separator.is_empty());
-        labels.fold(None, |joined_labels, next_label| {
+        labels.into_iter().fold(None, |joined_labels, next_label| {
             if let Some(joined_labels) = joined_labels {
                 if next_label.is_empty() {
                     return Some(joined_labels);
@@ -78,7 +78,7 @@ impl TagMappingConfig {
 
     pub fn join_labels_str_iter<'label>(
         &self,
-        labels: impl Iterator<Item = &'label str>,
+        labels: impl IntoIterator<Item = &'label str>,
     ) -> Option<Cow<'label, str>> {
         Self::join_labels_str_iter_with_separator(labels, &self.label_separator)
     }
@@ -193,7 +193,7 @@ pub fn import_faceted_tags_from_label_value_iter(
     tags_map: &mut TagsMap,
     faceted_tag_mapping_config: &FacetedTagMappingConfig,
     facet_id: &TagFacetId,
-    label_values: impl Iterator<Item = LabelValue>,
+    label_values: impl IntoIterator<Item = LabelValue>,
 ) -> usize {
     let tag_mapping_config = faceted_tag_mapping_config.get(facet_id.value());
     let mut plain_tags = Vec::with_capacity(8);

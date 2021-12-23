@@ -16,11 +16,15 @@
 use std::{borrow::Borrow, cmp::Ordering, ops::Deref};
 
 /// Check if a slice is sorted and does not contain duplicates
-fn is_iter_sorted_strictly_by<'a, T, F>(mut iter: impl Iterator<Item = &'a T>, mut cmp: F) -> bool
+fn is_iter_sorted_strictly_by<'a, T, F>(
+    iterable: impl IntoIterator<Item = &'a T>,
+    mut cmp: F,
+) -> bool
 where
     F: FnMut(&'a T, &'a T) -> Ordering,
     T: 'a,
 {
+    let mut iter = iterable.into_iter();
     if let Some(first) = iter.next() {
         let mut prev = first;
         for next in iter {

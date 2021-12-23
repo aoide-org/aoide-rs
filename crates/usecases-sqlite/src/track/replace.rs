@@ -38,7 +38,7 @@ pub fn replace_by_media_source_path(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
     params: &uc::Params,
-    tracks: impl Iterator<Item = ValidatedInput>,
+    tracks: impl IntoIterator<Item = ValidatedInput>,
 ) -> Result<Summary> {
     let db = RepoConnection::new(connection);
     db.transaction::<_, TransactionError, _>(|| {
@@ -56,7 +56,7 @@ pub fn import_and_replace_by_local_file_path_iter(
     sync_mode: SyncMode,
     import_config: &ImportTrackConfig,
     replace_mode: ReplaceMode,
-    source_path_iter: impl Iterator<Item = SourcePath>,
+    source_paths: impl IntoIterator<Item = SourcePath>,
     expected_source_path_count: Option<usize>,
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {
@@ -68,7 +68,7 @@ pub fn import_and_replace_by_local_file_path_iter(
             sync_mode,
             import_config,
             replace_mode,
-            source_path_iter,
+            source_paths,
             expected_source_path_count,
             abort_flag,
         )

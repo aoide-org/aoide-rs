@@ -28,12 +28,12 @@ pub fn load_one(connection: &SqliteConnection, uid: &EntityUid) -> Result<Entity
 
 pub fn load_many(
     connection: &SqliteConnection,
-    uid_iter: impl IntoIterator<Item = EntityUid>,
+    uids: impl IntoIterator<Item = EntityUid>,
     collector: &mut impl RecordCollector<Header = RecordHeader, Record = Entity>,
 ) -> Result<()> {
     let db = RepoConnection::new(connection);
     db.transaction::<_, RepoTransactionError, _>(|| {
-        for uid in uid_iter.into_iter() {
+        for uid in uids {
             match db.load_track_entity_by_uid(&uid) {
                 Ok((record_header, entity)) => {
                     collector.collect(record_header, entity);
