@@ -11,6 +11,8 @@ A local HTTP/REST service for managing and exploring music collections. Independ
 
 ## Fundamentals
 
+Pronounced /eɪˈiːdiː/ or _ay-ee-dee_ in English.
+
 ### Overview
 
 A music _collection_ is an aggregation of both _tracks_ (aka songs) and _playlists_:
