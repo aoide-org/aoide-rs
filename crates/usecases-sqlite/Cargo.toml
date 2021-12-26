@@ -9,9 +9,9 @@ edition = "2021"
 anyhow = "*"
 diesel = { version = "*", default-features = false, features = ["sqlite"] }
 diesel_migrations =  { version = "*", default-features = false, features = ["sqlite"] }
+log = "*"
 semval = "*"
 thiserror = "*"
-tracing = { version = "*", features = ["log"] }
 
 tokio = { version = "*", optional = true, default-features = false }
 

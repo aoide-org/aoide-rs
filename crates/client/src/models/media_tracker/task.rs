@@ -56,7 +56,7 @@ pub enum Task {
 
 impl Task {
     pub async fn execute<E: WebClientEnvironment>(self, env: &E) -> Effect {
-        tracing::debug!("Executing task: {:?}", self);
+        log::debug!("Executing task: {:?}", self);
         match self {
             Self::FetchStatus {
                 collection_uid,
@@ -146,7 +146,7 @@ async fn fetch_status<E: WebClientEnvironment>(
     let status =
         serde_json::from_slice::<aoide_core_api_json::media::tracker::Status>(&response_body)
             .map(Into::into)?;
-    tracing::debug!("Received status: {:?}", status);
+    log::debug!("Received status: {:?}", status);
     Ok(status)
 }
 
@@ -158,7 +158,7 @@ async fn fetch_progress<E: WebClientEnvironment>(env: &E) -> anyhow::Result<Prog
     let progress =
         serde_json::from_slice::<aoide_core_api_json::media::tracker::Progress>(&response_body)
             .map(Into::into)?;
-    tracing::debug!("Received progress: {:?}", progress);
+    log::debug!("Received progress: {:?}", progress);
     Ok(progress)
 }
 
@@ -177,7 +177,7 @@ async fn start_scan<E: WebClientEnvironment>(
     )
     .map_err(anyhow::Error::from)
     .and_then(|outcome| outcome.try_into().map_err(anyhow::Error::from))?;
-    tracing::debug!("Scanning finished: {:?}", outcome);
+    log::debug!("Scanning finished: {:?}", outcome);
     Ok(outcome)
 }
 
@@ -196,7 +196,7 @@ async fn start_import<E: WebClientEnvironment>(
     )
     .map_err(anyhow::Error::from)
     .and_then(|outcome| outcome.try_into().map_err(anyhow::Error::from))?;
-    tracing::debug!("Importing finished: {:?}", outcome);
+    log::debug!("Importing finished: {:?}", outcome);
     Ok(outcome)
 }
 
@@ -223,7 +223,7 @@ async fn untrack<E: WebClientEnvironment>(
         &response_body,
     )
     .map(Into::into)?;
-    tracing::debug!("Untracking finished: {:?}", outcome);
+    log::debug!("Untracking finished: {:?}", outcome);
     Ok(outcome)
 }
 
@@ -239,7 +239,7 @@ async fn purge_untracked_media_sources<E: WebClientEnvironment>(
     let response = request.send().await?;
     let response_body = receive_response_body(response).await?;
     let outcome = serde_json::from_slice::<serde_json::Value>(&response_body)?;
-    tracing::debug!("Purging untracked media sources finished: {:?}", outcome);
+    log::debug!("Purging untracked media sources finished: {:?}", outcome);
     Ok(())
 }
 
@@ -258,6 +258,6 @@ async fn start_find_untracked_files<E: WebClientEnvironment>(
     >(&response_body)
     .map_err(anyhow::Error::from)
     .and_then(|outcome| outcome.try_into().map_err(anyhow::Error::from))?;
-    tracing::debug!("Finding untracked entries finished: {:?}", outcome);
+    log::debug!("Finding untracked entries finished: {:?}", outcome);
     Ok(outcome)
 }

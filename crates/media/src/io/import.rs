@@ -131,7 +131,7 @@ pub fn import_into_track(
         )),
     }
     .map_err(|err| {
-        tracing::warn!(
+        log::warn!(
             "Failed to parse metadata from media source '{}': {}",
             track.media_source.path,
             err

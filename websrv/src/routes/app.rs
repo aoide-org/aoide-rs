@@ -36,7 +36,7 @@ fn serve_impl(path: &str) -> Result<impl Reply, Rejection> {
             res.headers_mut().insert(CONTENT_TYPE, mime);
         }
         Err(_) => {
-            tracing::warn!("Unexpected content type: {}", mime);
+            log::warn!("Unexpected content type: {}", mime);
         }
     }
     Ok(res)

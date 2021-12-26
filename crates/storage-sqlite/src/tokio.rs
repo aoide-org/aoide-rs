@@ -72,7 +72,7 @@ impl RequestCounterScope {
             RequestCounterMode::Read => {
                 let pending_read_requests_before =
                     shared_state.read_count.fetch_add(1, Ordering::Relaxed);
-                tracing::debug!(
+                log::debug!(
                     "Starting read request: {} pending read request(s)",
                     pending_read_requests_before + 1
                 );
@@ -80,7 +80,7 @@ impl RequestCounterScope {
             RequestCounterMode::Write => {
                 let pending_write_requests_before =
                     shared_state.write_count.fetch_add(1, Ordering::Relaxed);
-                tracing::debug!(
+                log::debug!(
                     "Starting write request: {} pending write request(s)",
                     pending_write_requests_before + 1
                 );
@@ -97,7 +97,7 @@ impl Drop for RequestCounterScope {
                 let pending_read_requests_before =
                     self.shared_state.read_count.fetch_sub(1, Ordering::Relaxed);
                 debug_assert!(pending_read_requests_before > 0);
-                tracing::debug!(
+                log::debug!(
                     "Finished read request: {} pending read request(s)",
                     pending_read_requests_before - 1
                 );
@@ -108,7 +108,7 @@ impl Drop for RequestCounterScope {
                     .write_count
                     .fetch_sub(1, Ordering::Relaxed);
                 debug_assert!(pending_write_requests_before > 0);
-                tracing::debug!(
+                log::debug!(
                     "Finished write request: {} pending write request(s)",
                     pending_write_requests_before - 1
                 );

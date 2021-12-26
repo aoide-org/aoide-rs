@@ -176,7 +176,7 @@ where
     let mut relinked_media_sources = Vec::with_capacity(lost_tracks.len());
     for (old_header, old_entity) in lost_tracks {
         if abort_flag.load(Ordering::Relaxed) {
-            tracing::info!("Aborting");
+            log::info!("Aborting");
             return Ok(relinked_media_sources);
         }
         progress_fn(&progress);
@@ -190,7 +190,7 @@ where
         )?;
         let new_media_source_path = match candidates.len() {
             0 => {
-                tracing::warn!("No successor found for {}", old_media_source_path);
+                log::warn!("No successor found for {}", old_media_source_path);
                 progress.skipped += 1;
                 continue;
             }
@@ -200,7 +200,7 @@ where
                 .next()
                 .expect("single URI"),
             _ => {
-                tracing::warn!(
+                log::warn!(
                     "Found {} potential successors for {}: {:?}",
                     candidates.len(),
                     old_media_source_path,
@@ -210,7 +210,7 @@ where
                 continue;
             }
         };
-        tracing::info!(
+        log::info!(
             "Found successor for {}: {}",
             old_media_source_path,
             new_media_source_path

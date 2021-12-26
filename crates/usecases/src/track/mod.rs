@@ -50,7 +50,7 @@ where
                 self.collector.collect(header, record);
             }
             Err(err) => {
-                tracing::error!(
+                log::error!(
                     "Failed to convert media source path '{}' to URL: {}",
                     path,
                     err
@@ -78,7 +78,7 @@ pub fn validate_input(track: Track) -> InputResult<ValidatedInput> {
         // extent and we simply cannot reject all of them. Only log a warning
         // to investigate issues that occur frequently and then decide how to
         // handle them.
-        tracing::warn!(
+        log::warn!(
             "Invalid track input '{}': {:?}",
             track.media_source.path,
             err

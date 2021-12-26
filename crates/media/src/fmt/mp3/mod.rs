@@ -128,7 +128,7 @@ impl MetadataExt {
         {
             track.media_source.content = Content::Audio(audio_content);
         } else {
-            tracing::info!(
+            log::info!(
                 "Skipping import of audio content for {}",
                 track.media_source.path
             );

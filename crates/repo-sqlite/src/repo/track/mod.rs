@@ -127,7 +127,7 @@ fn update_track_and_album_titles(
     if (old_track_titles.as_slice(), old_album_titles.as_slice())
         == (new_track_titles, new_album_titles)
     {
-        tracing::debug!("Keeping unmodified track/album titles");
+        log::debug!("Keeping unmodified track/album titles");
         return Ok(());
     }
     delete_track_and_album_titles(db, track_id)?;
@@ -218,7 +218,7 @@ fn update_track_and_album_actors(
     if (old_track_actors.as_slice(), old_album_actors.as_slice())
         == (new_track_actors, new_album_actors)
     {
-        tracing::debug!("Keeping unmodified track/album actors");
+        log::debug!("Keeping unmodified track/album actors");
         return Ok(());
     }
     delete_track_and_album_actors(db, track_id)?;
@@ -281,7 +281,7 @@ fn update_track_cues(
 ) -> RepoResult<()> {
     let old_cues = load_track_cues(db, track_id)?;
     if old_cues.as_slice() == new_cues {
-        tracing::debug!("Keeping unmodified track cues");
+        log::debug!("Keeping unmodified track cues");
         return Ok(());
     }
     delete_track_cues(db, track_id)?;
@@ -372,7 +372,7 @@ fn update_track_tags(
 ) -> RepoResult<()> {
     let old_tags = load_track_tags(db, track_id)?;
     if &old_tags == new_tags {
-        tracing::debug!("Keeping unmodified track tags");
+        log::debug!("Keeping unmodified track tags");
         return Ok(());
     }
     delete_track_tags(db, track_id)?;
@@ -587,7 +587,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             let updated_at = DateTime::now_utc();
             if preserve_collected_at {
                 if track.media_source.collected_at != entity.body.media_source.collected_at {
-                    tracing::debug!(
+                    log::debug!(
                         "Preserving collected_at = {preserved}, discarding {discarded}",
                         preserved = entity.body.media_source.collected_at,
                         discarded = track.media_source.collected_at
@@ -598,8 +598,8 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             if track == entity.body {
                 return Ok(ReplaceOutcome::Unchanged(media_source_id, id, entity));
             }
-            tracing::trace!("original = {:?}", entity.body);
-            tracing::trace!("updated = {:?}", track);
+            log::trace!("original = {:?}", entity.body);
+            log::trace!("updated = {:?}", track);
             if track.media_source != entity.body.media_source {
                 self.update_media_source(media_source_id, updated_at, &track.media_source)?;
             }
@@ -655,7 +655,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
 
         let timed = Instant::now();
 
-        tracing::trace!(
+        log::trace!(
             "Loading results of SQL search query: {}",
             diesel::debug_query(&query)
         );
@@ -663,7 +663,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             .load::<QueryableRecord>(self.as_ref())
             .map_err(repo_error)?;
         let count = records.len();
-        tracing::debug!(
+        log::debug!(
             "Executing search query returned {} records and took {} ms",
             count,
             (timed.elapsed().as_micros() / 1000) as f64,
@@ -678,7 +678,7 @@ impl<'db> EntityRepo for crate::Connection<'db> {
             let (record_header, entity) = load_repo_entity(preload, record)?;
             collector.collect(record_header, entity);
         }
-        tracing::debug!(
+        log::debug!(
             "Loading and collecting {} tracks from database took {} ms",
             count,
             (timed.elapsed().as_micros() / 1000) as f64,

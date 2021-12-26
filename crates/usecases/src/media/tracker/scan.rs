@@ -114,7 +114,7 @@ pub fn visit_directories<
         collection_id,
         &root_path_prefix,
     )?;
-    tracing::debug!(
+    log::debug!(
         "Marked {} current cache entries as outdated",
         outdated_count
     );
@@ -144,22 +144,22 @@ pub fn visit_directories<
                     summary.current += 1;
                 }
                 DirUpdateOutcome::Inserted => {
-                    tracing::debug!("Found added directory: {}", full_path.display());
+                    log::debug!("Found added directory: {}", full_path.display());
                     summary.added += 1;
                 }
                 DirUpdateOutcome::Updated => {
-                    tracing::debug!("Found modified directory: {}", full_path.display());
+                    log::debug!("Found modified directory: {}", full_path.display());
                     summary.modified += 1;
                 }
                 DirUpdateOutcome::Skipped => {
-                    tracing::debug!("Skipped directory: {}", full_path.display());
+                    log::debug!("Skipped directory: {}", full_path.display());
                     summary.skipped += 1;
                 }
             }
             Ok(visit::AfterAncestorFinished::Continue)
         },
         &mut |progress_event| {
-            tracing::trace!("{:?}", progress_event);
+            log::trace!("{:?}", progress_event);
             report_progress(progress_event.to_owned().into());
         },
     )

@@ -37,7 +37,7 @@ pub enum Effect {
 
 impl Effect {
     pub fn apply_on(self, state: &mut State) -> StateUpdated {
-        tracing::trace!("Applying effect {:?} on {:?}", self, state);
+        log::trace!("Applying effect {:?} on {:?}", self, state);
         match self {
             Self::ProgressFetched(res) => match res {
                 Ok(new_progress) => {

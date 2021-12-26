@@ -200,7 +200,7 @@ pub fn visit_directories<
         .filter_entry(|e| !is_hidden_dir_entry(e))
     {
         if abort_flag.load(Ordering::Relaxed) {
-            tracing::debug!("Aborting directory tree traversal");
+            log::debug!("Aborting directory tree traversal");
             progress_event.abort();
             report_progress(&progress_event);
             return Ok(progress_event);
@@ -210,7 +210,7 @@ pub fn visit_directories<
             Ok(dir_entry) => dir_entry,
             Err(err) => {
                 if let Some(loop_ancestor) = err.loop_ancestor() {
-                    tracing::info!(
+                    log::info!(
                         "Cycle detected while visiting directory: {}",
                         loop_ancestor.display()
                     );
@@ -225,7 +225,7 @@ pub fn visit_directories<
                     // and should be logged here.
                     // TODO: Propagate the path with the I/O error instead of only
                     // logging it here
-                    tracing::warn!("Failed to visit directory: {}", path.display());
+                    log::warn!("Failed to visit directory: {}", path.display());
                 }
                 // Propagate I/O error
                 let io_error = err.into_io_error();
@@ -249,7 +249,7 @@ pub fn visit_directories<
                 relative_path
             }
             Err(_) => {
-                tracing::warn!(
+                log::warn!(
                     "Skipping entry with out-of-tree path: {}",
                     dir_entry.path().display()
                 );
@@ -262,7 +262,7 @@ pub fn visit_directories<
         while let Some((ancestor_path, ancestor_visitor)) = ancestor_visitors.last_mut() {
             if relative_path.starts_with(&ancestor_path) {
                 // Visit child entry
-                tracing::debug!(
+                log::debug!(
                     "Visiting child entry of {}: {}",
                     ancestor_path.display(),
                     relative_path.display()
@@ -280,7 +280,7 @@ pub fn visit_directories<
             let (ancestor_path, ancestor_visitor) =
                 ancestor_visitors.pop().expect("last ancestor visitor");
             let ancestor_data = ancestor_visitor.finalize();
-            tracing::debug!("Finalized parent directory: {}", ancestor_path.display());
+            log::debug!("Finalized parent directory: {}", ancestor_path.display());
             match ancestor_finished(&ancestor_path, ancestor_data).map_err(|err| {
                 progress_event.fail();
                 report_progress(&progress_event);
@@ -291,7 +291,7 @@ pub fn visit_directories<
                 }
                 AfterAncestorFinished::Abort => {
                     progress_event.progress.directories.finished += 1;
-                    tracing::debug!(
+                    log::debug!(
                         "Aborting directory tree traversal after finishing parent directory: {}",
                         ancestor_path.display()
                     );
@@ -304,18 +304,18 @@ pub fn visit_directories<
         // Checking for `is_dir()` is sufficient when following symlinks
         debug_assert!(follow_links);
         if dir_entry.file_type().is_dir() {
-            tracing::debug!("Adding parent directory: {}", relative_path.display());
+            log::debug!("Adding parent directory: {}", relative_path.display());
             let ancestor_visitor = new_ancestor_visitor(&dir_entry);
             ancestor_visitors.push((relative_path.to_path_buf(), ancestor_visitor));
         } else {
-            tracing::debug!("Finished file entry: {}", relative_path.display());
+            log::debug!("Finished file entry: {}", relative_path.display());
             progress_event.progress.entries.finished += 1;
         }
     }
     // Stack unwinding of remaining ancestors
     while let Some((ancestor_path, ancestor_visitor)) = ancestor_visitors.pop() {
         let ancestor_data = ancestor_visitor.finalize();
-        tracing::debug!("Finalized parent directory: {}", ancestor_path.display());
+        log::debug!("Finalized parent directory: {}", ancestor_path.display());
         match ancestor_finished(&ancestor_path, ancestor_data)
             .map_err(Into::into)
             .map_err(|err| {
@@ -328,7 +328,7 @@ pub fn visit_directories<
             }
             AfterAncestorFinished::Abort => {
                 progress_event.progress.directories.finished += 1;
-                tracing::debug!(
+                log::debug!(
                     "Aborting directory tree traversal after finishing parent directory: {}",
                     ancestor_path.display()
                 );

@@ -18,7 +18,7 @@ use super::*;
 diesel_migrations::embed_migrations!("../repo-sqlite/migrations");
 
 pub fn migrate_schema(connection: &SqliteConnection) -> Result<()> {
-    tracing::info!("Migrating database schema");
+    log::info!("Migrating database schema");
     embedded_migrations::run(connection)?;
     Ok(())
 }

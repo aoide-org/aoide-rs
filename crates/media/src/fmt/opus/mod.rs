@@ -68,7 +68,7 @@ impl Metadata {
         let channels = if channel_count.is_valid() {
             Some(channel_count.into())
         } else {
-            tracing::warn!("Invalid channel count: {}", channel_count.0);
+            log::warn!("Invalid channel count: {}", channel_count.0);
             None
         };
         let bitrate = None;
@@ -76,7 +76,7 @@ impl Metadata {
         let sample_rate = if sample_rate.is_valid() {
             Some(sample_rate)
         } else {
-            tracing::warn!("Invalid sample rate: {}", sample_rate);
+            log::warn!("Invalid sample rate: {}", sample_rate);
             None
         };
         let loudness = vorbis::import_loudness(user_comments);

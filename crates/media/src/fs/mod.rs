@@ -37,7 +37,7 @@ pub fn file_path_from_url(url: &Url) -> Result<PathBuf> {
         )));
     }
     url.to_file_path().map_err(|()| {
-        tracing::debug!(
+        log::debug!(
             "Failed to convert URL '{}', into a local, absolute file path",
             url
         );
@@ -69,7 +69,7 @@ pub fn file_last_modified_at(file: &File) -> Result<DateTime> {
                 // meaningful and valid
                 last_modified_at
             } else {
-                tracing::warn!(
+                log::warn!(
                     "Using current time instead of invalid last modification time {}",
                     last_modified_at
                 );

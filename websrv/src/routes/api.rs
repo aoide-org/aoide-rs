@@ -46,7 +46,7 @@ pub fn create_filters(
     let media_tracker_progress = Arc::new(Mutex::new(MediaTrackerProgress::Idle));
     let media_tracker_progress = warp::any().map(move || Arc::clone(&media_tracker_progress));
 
-    tracing::info!("Creating API routes");
+    log::info!("Creating API routes");
 
     let path_param_uid = warp::path::param::<EntityUid>();
 
@@ -254,7 +254,7 @@ pub fn create_filters(
                 let watcher = tokio::spawn(async move {
                     *media_tracker_progress.lock().await =
                         MediaTrackerProgress::Scanning(Default::default());
-                    tracing::debug!("Watching media tracker scanning");
+                    log::debug!("Watching media tracker scanning");
                     while progress_event_rx.changed().await.is_ok() {
                         let progress = progress_event_rx
                             .borrow()
@@ -266,7 +266,7 @@ pub fn create_filters(
                                 MediaTrackerProgress::Scanning(progress);
                         }
                     }
-                    tracing::debug!("Unwatching media tracker scanning");
+                    log::debug!("Unwatching media tracker scanning");
                     *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;
                 });
                 let response = webapi::spawn_blocking_write_task(
@@ -278,7 +278,7 @@ pub fn create_filters(
                             request_body,
                             &mut |progress_event: ScanProgressEvent| {
                                 if let Err(err) = progress_event_tx.send(Some(progress_event)) {
-                                    tracing::error!(
+                                    log::error!(
                                         "Failed to send media tracker scanning progress event: {:?}",
                                         err.0
                                     );
@@ -290,7 +290,7 @@ pub fn create_filters(
                 )
                 .await;
                 if let Err(err) = watcher.await {
-                    tracing::error!(
+                    log::error!(
                         "Failed to terminate media tracker scanning progress watcher: {}",
                         err
                     );
@@ -316,7 +316,7 @@ pub fn create_filters(
                 let watcher = tokio::spawn(async move {
                     *media_tracker_progress.lock().await =
                         MediaTrackerProgress::Importing(Default::default());
-                    tracing::debug!("Watching media tracker importing");
+                    log::debug!("Watching media tracker importing");
                     while progress_event_rx.changed().await.is_ok() {
                         let progress = progress_event_rx
                             .borrow()
@@ -328,7 +328,7 @@ pub fn create_filters(
                                 MediaTrackerProgress::Importing(progress);
                         }
                     }
-                    tracing::debug!("Unwatching media tracker importing");
+                    log::debug!("Unwatching media tracker importing");
                     *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;
                 });
                 let response = webapi::spawn_blocking_write_task(
@@ -340,7 +340,7 @@ pub fn create_filters(
                             request_body,
                             &mut |progress_event| {
                                 if let Err(err) = progress_event_tx.send(Some(progress_event)) {
-                                    tracing::error!(
+                                    log::error!(
                                         "Failed to send media tracker importing progress event: {:?}",
                                         err.0
                                     );
@@ -352,7 +352,7 @@ pub fn create_filters(
                 )
                 .await;
                 if let Err(err) = watcher.await {
-                    tracing::error!(
+                    log::error!(
                         "Failed to terminate media tracker importing progress watcher: {}",
                         err
                     );
@@ -404,7 +404,7 @@ pub fn create_filters(
                 let watcher = tokio::spawn(async move {
                     *media_tracker_progress.lock().await =
                         MediaTrackerProgress::FindingUntracked(Default::default());
-                    tracing::debug!("Watching media tracker finding untracked");
+                    log::debug!("Watching media tracker finding untracked");
                     while progress_event_rx.changed().await.is_ok() {
                         let progress = progress_event_rx
                             .borrow()
@@ -416,7 +416,7 @@ pub fn create_filters(
                                 MediaTrackerProgress::FindingUntracked(progress);
                         }
                     }
-                    tracing::debug!("Unwatching media tracker finding untracked");
+                    log::debug!("Unwatching media tracker finding untracked");
                     *media_tracker_progress.lock().await = MediaTrackerProgress::Idle;
                 });
                 let response = webapi::spawn_blocking_read_task(
@@ -428,7 +428,7 @@ pub fn create_filters(
                             request_body,
                             &mut |progress_event: FindUntrackedProgressEvent| {
                                 if let Err(err) = progress_event_tx.send(Some(progress_event)) {
-                                    tracing::error!(
+                                    log::error!(
                                         "Failed to send media tracker finding untracked progress event: {:?}",
                                         err.0
                                     );
@@ -440,7 +440,7 @@ pub fn create_filters(
                 )
                 .await;
                 if let Err(err) = watcher.await {
-                    tracing::error!(
+                    log::error!(
                         "Failed to terminate media tracker finding untracked progress watcher: {}",
                         err
                     );

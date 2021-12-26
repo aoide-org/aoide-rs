@@ -50,7 +50,7 @@ pub enum Intent {
 
 impl Intent {
     pub fn apply_on(self, state: &mut State) -> StateUpdated {
-        tracing::trace!("Applying intent {:?} on {:?}", self, state);
+        log::trace!("Applying intent {:?} on {:?}", self, state);
         match self {
             Self::FetchProgress => {
                 state.remote_view.progress.set_pending_now();
@@ -71,7 +71,7 @@ impl Intent {
                 root_url,
             } => {
                 if !state.is_idle() {
-                    tracing::warn!("Cannot fetch status while not idle");
+                    log::warn!("Cannot fetch status while not idle");
                     return StateUpdated::unchanged(None);
                 }
                 state.control_state = ControlState::Busy;
@@ -86,7 +86,7 @@ impl Intent {
                 root_url,
             } => {
                 if !state.is_idle() {
-                    tracing::warn!("Cannot start scan while not idle");
+                    log::warn!("Cannot start scan while not idle");
                     return StateUpdated::unchanged(None);
                 }
                 state.control_state = ControlState::Busy;
@@ -103,7 +103,7 @@ impl Intent {
                 root_url,
             } => {
                 if !state.is_idle() {
-                    tracing::warn!("Cannot start import while not idle");
+                    log::warn!("Cannot start import while not idle");
                     return StateUpdated::unchanged(None);
                 }
                 state.control_state = ControlState::Busy;
@@ -120,7 +120,7 @@ impl Intent {
                 root_url,
             } => {
                 if !state.is_idle() {
-                    tracing::warn!("Cannot untrack while not idle");
+                    log::warn!("Cannot untrack while not idle");
                     return StateUpdated::unchanged(None);
                 }
                 state.control_state = ControlState::Busy;
@@ -137,7 +137,7 @@ impl Intent {
                 root_url,
             } => {
                 if !state.is_idle() {
-                    tracing::warn!("Cannot purge untracked while not idle");
+                    log::warn!("Cannot purge untracked while not idle");
                     return StateUpdated::unchanged(None);
                 }
                 state.control_state = ControlState::Busy;
@@ -154,7 +154,7 @@ impl Intent {
                 root_url,
             } => {
                 if !state.is_idle() {
-                    tracing::warn!("Cannot start finding untracked entries while not idle");
+                    log::warn!("Cannot start finding untracked entries while not idle");
                     return StateUpdated::unchanged(None);
                 }
                 state.control_state = ControlState::Busy;

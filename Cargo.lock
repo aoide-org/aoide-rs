@@ -48,12 +48,12 @@ dependencies = [
  "aoide-core-api-json",
  "aoide-core-json",
  "bytes",
+ "log",
  "reqwest",
  "serde",
  "serde_json",
  "serde_urlencoded",
  "tokio",
- "tracing",
 ]
 
 [[package]]
@@ -134,6 +134,7 @@ dependencies = [
  "id3",
  "image",
  "lewton",
+ "log",
  "metaflac",
  "mime",
  "mime_guess",
@@ -146,7 +147,6 @@ dependencies = [
  "semval",
  "serde_json",
  "thiserror",
- "tracing",
  "triseratops",
  "url",
  "walkdir",
@@ -180,13 +180,13 @@ dependencies = [
  "diesel_migrations",
  "env_logger",
  "libsqlite3-sys",
+ "log",
  "mime",
  "num-bigint 0.4.3",
  "num-derive",
  "num-traits",
  "semval",
  "test-log",
- "tracing",
  "url",
 ]
 
@@ -196,10 +196,10 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "diesel",
+ "log",
  "r2d2",
  "thiserror",
  "tokio",
- "tracing",
 ]
 
 [[package]]
@@ -214,9 +214,9 @@ dependencies = [
  "bitflags",
  "blake3",
  "digest 0.10.1",
+ "log",
  "semval",
  "thiserror",
- "tracing",
  "url",
  "walkdir",
 ]
@@ -235,10 +235,10 @@ dependencies = [
  "aoide-usecases",
  "diesel",
  "diesel_migrations",
+ "log",
  "semval",
  "thiserror",
  "tokio",
- "tracing",
 ]
 
 [[package]]
@@ -255,6 +255,7 @@ dependencies = [
  "aoide-usecases",
  "aoide-usecases-sqlite",
  "diesel",
+ "log",
  "serde",
  "thiserror",
  "tracing",
@@ -274,8 +275,8 @@ dependencies = [
  "aoide-core-json",
  "clap",
  "env_logger",
+ "log",
  "tokio",
- "tracing",
 ]
 
 [[package]]
@@ -291,6 +292,7 @@ dependencies = [
  "aoide-websrv-api",
  "chrono",
  "dotenv",
+ "log",
  "mime_guess",
  "rust-embed",
  "serde",
@@ -312,10 +314,10 @@ dependencies = [
  "aoide-storage-sqlite",
  "aoide-usecases-sqlite",
  "aoide-usecases-sqlite-json",
+ "log",
  "serde",
  "thiserror",
  "tokio",
- "tracing",
  "warp",
 ]
 
@@ -1502,18 +1504,18 @@ checksum = "d4fd5641d01c8f18a23da7b6fe29298ff4b55afcccdf78973b24cf3175fee32e"
 
 [[package]]
 name = "pin-project"
-version = "1.0.8"
+version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "576bc800220cc65dac09e99e97b08b358cfab6e17078de8dc5fee223bd2d0c08"
+checksum = "1622113ce508488160cff04e6abc60960e676d330e1ca0f77c0b8df17c81438f"
 dependencies = [
  "pin-project-internal",
 ]
 
 [[package]]
 name = "pin-project-internal"
-version = "1.0.8"
+version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e8fe8163d14ce7f0cdac2e040116f22eac817edabff0be91e8aff7e9accf389"
+checksum = "b95af56fee93df76d721d356ac1ca41fccf168bc448eb14049234df764ba3e76"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2082,9 +2084,9 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "syn"
-version = "1.0.83"
+version = "1.0.84"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23a1dfb999630e338648c83e91c59a4e9fb7620f520c3194b6b89e276f2f1959"
+checksum = "ecb2e6da8ee5eb9a61068762a32fa9619cc591ceb055b3687f4cd4051ec2e06b"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2302,9 +2304,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-subscriber"
-version = "0.3.3"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "245da694cc7fc4729f3f418b304cb57789f1bed2a78c575407ab8a23f53cb4d3"
+checksum = "d5e6136799e1079699e0d9784c883e03af55cf6a1bee48fe1d79ca552c1bc36f"
 dependencies = [
  "ansi_term",
  "lazy_static",
@@ -2336,9 +2338,9 @@ checksum = "59547bce71d9c38b83d9c0e92b6066c4253371f15005def0c30d9657f50c7642"
 
 [[package]]
 name = "typenum"
-version = "1.14.0"
+version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b63708a265f51345575b27fe43f9500ad611579e764c79edbc2037b1121959ec"
+checksum = "dcf81ac59edc17cc8697ff311e8f5ef2d99fcbd9817b34cec66f90b6c3dfd987"
 
 [[package]]
 name = "unicase"

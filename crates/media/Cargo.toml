@@ -6,9 +6,6 @@ publish = false
 edition = "2021"
 
 [dependencies]
-aoide-core = "*"
-aoide-core-json = "*"
-
 anyhow = "*"
 base64 = "*"
 blake3 = { version = "*", features = ["traits-preview"] }
@@ -18,6 +15,7 @@ chrono = { version = "*", default-features = false }
 # TODO: Unpin after upgraded in blake3
 digest = "0.9"
 image = "*"
+log = "*"
 mime = "*"
 mime_guess = "*"
 nom = "*"
@@ -26,11 +24,15 @@ path-slash = "*"
 semval = "*"
 serde_json = "*"
 thiserror = "*"
-tracing = { version = "*", features = ["log"] }
 triseratops = "*"
 url = "*"
 walkdir = "*"
 
+# Workspace dependencies
+aoide-core = "*"
+aoide-core-json = "*"
+
+# Optional dependencies
 id3 = { version = ">=0.6", optional = true }
 lewton = { version = "*", optional = true }
 metaflac = { version = "*", optional = true }

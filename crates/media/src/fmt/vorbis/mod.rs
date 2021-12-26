@@ -192,7 +192,7 @@ pub fn find_embedded_artwork_image(
             .filter_map(|base64_data| {
                 base64::decode(base64_data)
                     .map_err(|err| {
-                        tracing::warn!("Failed to decode base64 encoded picture block: {}", err);
+                        log::warn!("Failed to decode base64 encoded picture block: {}", err);
                         err
                     })
                     .ok()
@@ -200,7 +200,7 @@ pub fn find_embedded_artwork_image(
             .filter_map(|decoded| {
                 metaflac::block::Picture::from_bytes(&decoded[..])
                     .map_err(|err| {
-                        tracing::warn!("Failed to decode FLAC picture block: {}", err);
+                        log::warn!("Failed to decode FLAC picture block: {}", err);
                         err
                     })
                     .ok()
@@ -454,7 +454,7 @@ pub fn import_aoide_tags(reader: &impl CommentReader) -> Option<Tags> {
         .and_then(|json| {
             serde_json::from_str::<SerdeTags>(json)
                 .map_err(|err| {
-                    tracing::warn!("Failed to parse {}: {}", AOIDE_TAGS_KEY, err);
+                    log::warn!("Failed to parse {}: {}", AOIDE_TAGS_KEY, err);
                     err
                 })
                 .ok()
@@ -899,7 +899,7 @@ pub fn export_track(
                 writer.write_single_value(AOIDE_TAGS_KEY.to_owned(), value);
             }
             Err(err) => {
-                tracing::warn!("Failed to write {}: {}", AOIDE_TAGS_KEY, err);
+                log::warn!("Failed to write {}: {}", AOIDE_TAGS_KEY, err);
             }
         }
     } else {

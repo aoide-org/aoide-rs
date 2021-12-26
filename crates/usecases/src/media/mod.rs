@@ -78,11 +78,11 @@ pub fn import_track_from_file_path(
         if let Some((canonical_path, file)) = open_file_for_reading(&file_path)? {
             (canonical_path, file)
         } else {
-            tracing::debug!("{} is a directory", file_path.display());
+            log::debug!("{} is a directory", file_path.display());
             return Ok(ImportTrackFromFileOutcome::SkippedDirectory);
         };
     let last_modified_at = file_last_modified_at(&file).unwrap_or_else(|_| {
-        tracing::error!(
+        log::error!(
             "Using current time instead of inaccessible last modification time for file {:?}",
             file
         );
@@ -93,7 +93,7 @@ pub fn import_track_from_file_path(
             synchronized_before,
         } => {
             if synchronized_before {
-                tracing::debug!(
+                log::debug!(
                     "Skipping reimport of file {} last modified at {}",
                     canonical_path.display(),
                     last_modified_at,
@@ -108,7 +108,7 @@ pub fn import_track_from_file_path(
         } => {
             if let Some(last_synchronized_at) = last_synchronized_at {
                 if last_modified_at <= last_synchronized_at {
-                    tracing::debug!(
+                    log::debug!(
                         "Skipping reimport of synchronized file {} modified at {} <= {}",
                         canonical_path.display(),
                         last_modified_at,
@@ -119,7 +119,7 @@ pub fn import_track_from_file_path(
                     ));
                 }
             } else {
-                tracing::debug!(
+                log::debug!(
                     "Last synchronization of file {} modified at {} is unknown",
                     canonical_path.display(),
                     last_modified_at
@@ -171,14 +171,14 @@ pub fn export_track_metadata_into_file(
                 if source_synchronized_at <= last_modified_at {
                     source_synchronized_at = last_modified_at;
                 } else {
-                    tracing::warn!(
+                    log::warn!(
                         "Last modification time of file {:?} has not been updated while exporting track metadata",
                         file
                     );
                 }
             }
             Err(err) => {
-                tracing::error!(
+                log::error!(
                     "Failed to obtain last modification time for file {:?} after exporting track metadata: {}",
                     file,
                     err,
@@ -186,13 +186,13 @@ pub fn export_track_metadata_into_file(
             }
         },
         Ok(None) => {
-            tracing::error!(
+            log::error!(
                 "Invalid file path {:?} after exporting track metadata",
                 file_path.display(),
             );
         }
         Err(err) => {
-            tracing::error!(
+            log::error!(
                 "Failed to open file path {} for reading after exporting track metadata: {}",
                 file_path.display(),
                 err

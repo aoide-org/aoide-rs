@@ -179,7 +179,7 @@ pub fn parse_replay_gain(input: &str) -> Option<LoudnessLufs> {
     match parse_replay_gain_db(input) {
         Ok((remainder, relative_gain_db)) => {
             if !remainder.is_empty() {
-                tracing::warn!(
+                log::warn!(
                     "Unexpected remainder '{}' after parsing replay gain input '{}'",
                     remainder,
                     input
@@ -187,14 +187,14 @@ pub fn parse_replay_gain(input: &str) -> Option<LoudnessLufs> {
             }
             let loudness_lufs = db2lufs(relative_gain_db);
             if !loudness_lufs.is_valid() {
-                tracing::warn!(
+                log::warn!(
                     "Invalid loudness parsed from replay gain input '{}': {}",
                     input,
                     loudness_lufs
                 );
                 return None;
             }
-            tracing::debug!(
+            log::debug!(
                 "Parsed loudness from replay gain input '{}': {}",
                 input,
                 loudness_lufs
@@ -204,13 +204,13 @@ pub fn parse_replay_gain(input: &str) -> Option<LoudnessLufs> {
         Err(err) => {
             // Silently ignore any 0 values
             if input.parse().ok() == Some(0.0) {
-                tracing::debug!(
+                log::debug!(
                     "Ignoring invalid replay gain (dB) from input '{}': {}",
                     input,
                     err
                 );
             } else {
-                tracing::warn!(
+                log::warn!(
                     "Failed to parse replay gain (dB) from input '{}': {}",
                     input,
                     err
@@ -233,15 +233,15 @@ pub fn parse_tempo_bpm(input: &str) -> Option<TempoBpm> {
                 // The value 0 is often used for an unknown bpm.
                 // Silently ignore this special value to prevent log spam.
                 if bpm != 0.0 {
-                    tracing::info!("Invalid tempo parsed from input '{}': {}", input, tempo_bpm);
+                    log::info!("Invalid tempo parsed from input '{}': {}", input, tempo_bpm);
                 }
                 return None;
             }
-            tracing::debug!("Parsed tempo from input '{}': {}", input, tempo_bpm);
+            log::debug!("Parsed tempo from input '{}': {}", input, tempo_bpm);
             Some(tempo_bpm)
         }
         Err(err) => {
-            tracing::warn!(
+            log::warn!(
                 "Failed to parse tempo (BPM) from input '{}': {}",
                 input,
                 err
@@ -308,7 +308,7 @@ pub fn parse_key_signature(input: &str) -> Option<KeySignature> {
             }
         }
     }
-    tracing::warn!(
+    log::warn!(
         "Failed to parse musical key signature from input (UTF-8 bytes): '{}' ({:X?})",
         input,
         input.as_bytes()
@@ -392,7 +392,7 @@ pub fn parse_year_tag(input: &str) -> Option<DateOrDateTime> {
         let datetime_utc: chrono::DateTime<Utc> = chrono::DateTime::from_utc(datetime, Utc);
         return Some(DateTime::from(datetime_utc).into());
     }
-    tracing::warn!("Year tag not recognized: {}", input);
+    log::warn!("Year tag not recognized: {}", input);
     None
 }
 
@@ -619,7 +619,7 @@ pub fn try_ingest_embedded_artwork_image(
              recoverable_errors,
          }| {
             for err in recoverable_errors {
-                tracing::warn!(
+                log::warn!(
                     "Recoverable error while loading embedded {:?} artwork image from {}: {}",
                     apic_type,
                     media_source_path,
@@ -631,7 +631,7 @@ pub fn try_ingest_embedded_artwork_image(
     )
     .unwrap_or_else(|err| match err {
         ArtworkImageError::UnsupportedFormat(unsupported_format) => {
-            tracing::info!(
+            log::info!(
                 "Unsupported image format in {}: {:?}",
                 media_source_path,
                 unsupported_format
@@ -639,7 +639,7 @@ pub fn try_ingest_embedded_artwork_image(
             (Artwork::Unsupported, None)
         }
         ArtworkImageError::Other(err) => {
-            tracing::warn!(
+            log::warn!(
                 "Failed to load embedded artwork image from {}: {}",
                 media_source_path,
                 err

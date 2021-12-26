@@ -115,7 +115,7 @@ pub fn hash_directories<
     digest_finished: &mut DigestFinished,
     report_progress: &mut ReportProgress,
 ) -> Result<Outcome> {
-    tracing::info!("Digesting all directories in '{}'", root_path.display());
+    log::info!("Digesting all directories in '{}'", root_path.display());
     let mut new_ancestor_visitor = |_: &_| AncestorDigest {
         digest: new_digest(),
     };
@@ -132,7 +132,7 @@ pub fn hash_directories<
         report_progress(&progress_event);
         let elapsed = progress_event.elapsed_since_started();
         let outcome = progress_event.finalize();
-        tracing::info!(
+        log::info!(
             "Digesting {} directories in '{}' took {} s",
             outcome.progress.directories.finished,
             root_path.display(),

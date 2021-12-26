@@ -150,7 +150,7 @@ pub fn import_plain_tags_from_joined_label_value(
                                 tag_mapping_config.next_score_value(*next_score_value);
                         }
                         Err(plain_tag) => {
-                            tracing::warn!("Failed to import plain tag: {:?}", plain_tag,);
+                            log::warn!("Failed to import plain tag: {:?}", plain_tag,);
                         }
                     }
                 }
@@ -167,13 +167,13 @@ pub fn import_plain_tags_from_joined_label_value(
                     }
                 }
                 Err(plain_tag) => {
-                    tracing::warn!("Failed to import plain tag: {:?}", plain_tag,);
+                    log::warn!("Failed to import plain tag: {:?}", plain_tag,);
                 }
             }
         }
         import_count
     } else {
-        tracing::debug!("Skipping empty tag label");
+        log::debug!("Skipping empty tag label");
         0
     }
 }

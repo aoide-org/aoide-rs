@@ -57,21 +57,21 @@ impl Metadata {
         let channels = if channel_count.is_valid() {
             Some(channel_count.into())
         } else {
-            tracing::warn!("Invalid channel count: {}", channel_count.0);
+            log::warn!("Invalid channel count: {}", channel_count.0);
             None
         };
         let bitrate = BitrateBps::from_inner(ident_header.bitrate_nominal.into());
         let bitrate = if bitrate.is_valid() {
             Some(bitrate)
         } else {
-            tracing::warn!("Invalid bitrate: {}", bitrate);
+            log::warn!("Invalid bitrate: {}", bitrate);
             None
         };
         let sample_rate = SampleRateHz::from_inner(ident_header.audio_sample_rate.into());
         let sample_rate = if sample_rate.is_valid() {
             Some(sample_rate)
         } else {
-            tracing::warn!("Invalid sample rate: {}", sample_rate);
+            log::warn!("Invalid sample rate: {}", sample_rate);
             None
         };
         let loudness = vorbis::import_loudness(vorbis_comments);

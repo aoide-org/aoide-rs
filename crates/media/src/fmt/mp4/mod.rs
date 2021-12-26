@@ -413,12 +413,12 @@ impl Metadata {
                 if let Some(tags) = match data {
                     Data::Utf8(input) => serde_json::from_str::<SerdeTags>(input)
                         .map_err(|err| {
-                            tracing::warn!("Failed to parse {}: {}", AOIDE_TAGS_IDENT, err);
+                            log::warn!("Failed to parse {}: {}", AOIDE_TAGS_IDENT, err);
                             err
                         })
                         .ok(),
                     data => {
-                        tracing::warn!("Unexpected data for {}: {:?}", AOIDE_TAGS_IDENT, data);
+                        log::warn!("Unexpected data for {}: {:?}", AOIDE_TAGS_IDENT, data);
                         None
                     }
                 }
@@ -551,12 +551,12 @@ impl Metadata {
                         serato_tags
                             .parse_markers(input.as_bytes(), SeratoTagFormat::MP4)
                             .map_err(|err| {
-                                tracing::warn!("Failed to parse Serato Markers: {}", err);
+                                log::warn!("Failed to parse Serato Markers: {}", err);
                             })
                             .ok();
                     }
                     data => {
-                        tracing::warn!("Unexpected data for Serato Markers: {:?}", data);
+                        log::warn!("Unexpected data for Serato Markers: {:?}", data);
                     }
                 }
             }
@@ -567,12 +567,12 @@ impl Metadata {
                         serato_tags
                             .parse_markers2(input.as_bytes(), SeratoTagFormat::MP4)
                             .map_err(|err| {
-                                tracing::warn!("Failed to parse Serato Markers2: {}", err);
+                                log::warn!("Failed to parse Serato Markers2: {}", err);
                             })
                             .ok();
                     }
                     data => {
-                        tracing::warn!("Unexpected data for Serato Markers2: {:?}", data);
+                        log::warn!("Unexpected data for Serato Markers2: {:?}", data);
                     }
                 }
             }
@@ -859,7 +859,7 @@ pub fn export_track_to_path(
                     mp4_tag.set_data(AOIDE_TAGS_IDENT.to_owned(), Data::Utf8(value));
                 }
                 Err(err) => {
-                    tracing::warn!("Failed to write {}: {}", AOIDE_TAGS_IDENT, err);
+                    log::warn!("Failed to write {}: {}", AOIDE_TAGS_IDENT, err);
                 }
             }
         }

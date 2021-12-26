@@ -79,9 +79,9 @@ pub fn parse_endpoint_addr() -> SocketAddr {
     let endpoint_ip = env::var(ENDPOINT_IP_ENV)
         .map_err(Into::into)
         .and_then(|var| {
-            tracing::debug!("{} = {}", ENDPOINT_IP_ENV, var);
+            log::debug!("{} = {}", ENDPOINT_IP_ENV, var);
             var.parse().map_err(|err| {
-                tracing::warn!("Failed to parse {} = {}: {}", ENDPOINT_IP_ENV, var, err);
+                log::warn!("Failed to parse {} = {}: {}", ENDPOINT_IP_ENV, var, err);
                 Error::from(err)
             })
         })
@@ -89,12 +89,12 @@ pub fn parse_endpoint_addr() -> SocketAddr {
     let endpoint_port = env::var(ENDPOINT_PORT_ENV)
         .map_err(Into::into)
         .and_then(|var| {
-            tracing::debug!("{} = {}", ENDPOINT_PORT_ENV, var);
+            log::debug!("{} = {}", ENDPOINT_PORT_ENV, var);
             if var.trim().is_empty() {
                 Ok(ENDPOINT_PORT_DEFAULT)
             } else {
                 var.parse().map_err(|err| {
-                    tracing::warn!("Failed to parse {} = {}: {}", ENDPOINT_PORT_ENV, var, err);
+                    log::warn!("Failed to parse {} = {}: {}", ENDPOINT_PORT_ENV, var, err);
                     Error::from(err)
                 })
             }
@@ -110,7 +110,7 @@ pub fn parse_database_url() -> String {
     env::var(DATABASE_URL_ENV)
         .map_err(Error::from)
         .map(|var| {
-            tracing::debug!("{} = {}", DATABASE_URL_ENV, var);
+            log::debug!("{} = {}", DATABASE_URL_ENV, var);
             var
         })
         .unwrap_or_else(|_| DATABASE_URL_DEFAULT.into())
@@ -136,9 +136,9 @@ pub fn parse_database_migrate_schema_on_startup() -> bool {
     env::var(DATABASE_MIGRATE_SCHEMA_ON_STARTUP_ENV)
         .map_err(Into::into)
         .and_then(|var| {
-            tracing::debug!("{} = {}", DATABASE_MIGRATE_SCHEMA_ON_STARTUP_ENV, var);
+            log::debug!("{} = {}", DATABASE_MIGRATE_SCHEMA_ON_STARTUP_ENV, var);
             parse_bool_var(&var).map_err(|err| {
-                tracing::warn!(
+                log::warn!(
                     "Failed to parse {} = {}: {}",
                     DATABASE_MIGRATE_SCHEMA_ON_STARTUP_ENV,
                     var,
@@ -158,14 +158,14 @@ pub fn parse_database_connection_pool_size() -> u32 {
     env::var(DATABASE_CONNECTION_POOL_SIZE_ENV)
         .map_err(Into::into)
         .and_then(|var| {
-            tracing::debug!("{} = {}", DATABASE_CONNECTION_POOL_SIZE_ENV, var);
+            log::debug!("{} = {}", DATABASE_CONNECTION_POOL_SIZE_ENV, var);
             if var.trim().is_empty() {
                 Ok(DATABASE_CONNECTION_POOL_SIZE_MIN)
             } else {
                 var.parse()
                     .map(|val| {
                         if val < DATABASE_CONNECTION_POOL_SIZE_MIN {
-                            tracing::warn!(
+                            log::warn!(
                                 "Invalid {} = {} < {}",
                                 DATABASE_CONNECTION_POOL_SIZE_ENV,
                                 val,
@@ -177,7 +177,7 @@ pub fn parse_database_connection_pool_size() -> u32 {
                         }
                     })
                     .map_err(|err| {
-                        tracing::warn!(
+                        log::warn!(
                             "Failed to parse {} = {}: {}",
                             DATABASE_CONNECTION_POOL_SIZE_ENV,
                             var,

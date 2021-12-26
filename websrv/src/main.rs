@@ -53,15 +53,15 @@ pub async fn main() -> Result<(), Error> {
     env::init_tracing_and_logging()?;
 
     if let Ok(exe_path) = current_exe() {
-        tracing::info!("Executable: {}", exe_path.display());
+        log::info!("Executable: {}", exe_path.display());
     }
-    tracing::info!("Version: {}", env!("CARGO_PKG_VERSION"));
+    log::info!("Version: {}", env!("CARGO_PKG_VERSION"));
 
     let endpoint_addr = env::parse_endpoint_addr();
-    tracing::info!("Endpoint address: {}", endpoint_addr);
+    log::info!("Endpoint address: {}", endpoint_addr);
 
     let database_url = env::parse_database_url();
-    tracing::info!("Database URL: {}", database_url);
+    log::info!("Database URL: {}", database_url);
 
     // The maximum size of the pool defines the maximum number of
     // allowed readers while writers require exclusive access.
@@ -85,7 +85,7 @@ pub async fn main() -> Result<(), Error> {
         },
     ));
 
-    tracing::info!("Creating service routes");
+    log::info!("Creating service routes");
 
     // POST /shutdown
     let (server_shutdown_tx, mut server_shutdown_rx) = mpsc::unbounded_channel::<()>();
@@ -99,7 +99,7 @@ pub async fn main() -> Result<(), Error> {
                     .send(())
                     .map(|()| StatusCode::ACCEPTED)
                     .or_else(|_| {
-                        tracing::warn!("Failed to forward shutdown request");
+                        log::warn!("Failed to forward shutdown request");
                         Ok(StatusCode::BAD_GATEWAY)
                     })
             })
@@ -159,7 +159,7 @@ pub async fn main() -> Result<(), Error> {
     #[cfg(feature = "with-webapp")]
     let all_filters = all_filters.or(routes::app::get_index().or(routes::app::get_assets()));
 
-    tracing::info!("Initializing server");
+    log::info!("Initializing server");
 
     let server = warp::serve(
         all_filters
@@ -167,7 +167,7 @@ pub async fn main() -> Result<(), Error> {
             .recover(handle_rejection),
     );
 
-    tracing::info!("Starting");
+    log::info!("Starting");
 
     let (socket_addr, server_listener) =
         server.bind_with_graceful_shutdown(endpoint_addr, async move {
@@ -175,7 +175,7 @@ pub async fn main() -> Result<(), Error> {
                 _ = server_shutdown_rx.recv() => {}
                 _ = signal::ctrl_c() => {}
             }
-            tracing::info!("Stopping");
+            log::info!("Stopping");
             shared_connection_pool.decommission();
         });
 
@@ -188,13 +188,13 @@ pub async fn main() -> Result<(), Error> {
         sleep(WEB_SERVER_LISTENING_DELAY).await;
 
         // -> stderr
-        tracing::info!("Listening on {}", socket_addr);
+        log::info!("Listening on {}", socket_addr);
         // -> stdout
         println!("{}", socket_addr);
     };
 
     join!(server_listener, server_listening);
-    tracing::info!("Stopped");
+    log::info!("Stopped");
 
     Ok(())
 }

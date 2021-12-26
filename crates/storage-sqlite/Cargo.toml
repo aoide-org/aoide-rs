@@ -8,9 +8,9 @@ edition = "2021"
 [dependencies]
 anyhow = "*"
 diesel = { version = "*", default-features = false, features = ["r2d2", "sqlite"] }
+log = "*"
 r2d2 = "*"
 thiserror = "*"
-tracing = { version = "*", features = ["log"] }
 
 tokio = { version = "*", optional = true, default-features = false, features = ["macros", "rt"] }
 

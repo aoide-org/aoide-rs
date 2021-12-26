@@ -9,10 +9,10 @@ edition = "2021"
 
 [dependencies]
 anyhow = "*"
+log = "*"
 serde = "*"
 thiserror = "*"
 tokio = "*"
-tracing = { version = "*", features = ["log"] }
 warp = { version = "*", default-features = false }
 
 # Workspace dependencies

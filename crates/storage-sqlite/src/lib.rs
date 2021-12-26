@@ -53,7 +53,7 @@ pub enum Error {
 pub type Result<T> = std::result::Result<T, Error>;
 
 pub fn initialize_database(connection: &SqliteConnection) -> Result<()> {
-    tracing::info!("Initializing database");
+    log::info!("Initializing database");
     diesel::sql_query(r#"
 PRAGMA journal_mode = WAL;        -- better write-concurrency
 PRAGMA synchronous = NORMAL;      -- fsync only in critical moments, safe for journal_mode = WAL
@@ -98,11 +98,11 @@ pub fn cleanse_database(connection: &SqliteConnection, vacuum: bool) -> Result<(
     // According to Richard Hipp himself executing VACUUM before ANALYZE is the
     // recommended order: https://sqlite.org/forum/forumpost/62fb63a29c5f7810?t=h
     if vacuum {
-        tracing::info!("Rebuilding database storage");
+        log::info!("Rebuilding database storage");
         vacuum_database(connection)?;
     }
 
-    tracing::info!("Analyzing and optimizing database statistics");
+    log::info!("Analyzing and optimizing database statistics");
     analyze_and_optimize_database_stats(connection)?;
 
     Ok(())
@@ -112,7 +112,7 @@ pub fn create_database_connection_pool(
     database_url: &str,
     max_size: u32,
 ) -> Result<SqliteConnectionPool> {
-    tracing::info!("Creating SQLite connection pool");
+    log::info!("Creating SQLite connection pool");
     let manager = SqliteConnectionManager::new(database_url);
     let pool = SqliteConnectionPool::builder()
         .max_size(max_size)

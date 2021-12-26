@@ -30,7 +30,7 @@ pub enum Task {
 
 impl Task {
     pub async fn execute<E: WebClientEnvironment>(self, env: &E) -> Effect {
-        tracing::debug!("Executing task: {:?}", self);
+        log::debug!("Executing task: {:?}", self);
         match self {
             Self::FetchResultPage {
                 collection_uid,
@@ -71,7 +71,7 @@ async fn fetch_result_page<E: WebClientEnvironment>(
         return Err(err);
     }
     let entities: Vec<_> = entities.into_iter().map(Result::unwrap).collect();
-    tracing::debug!(
+    log::debug!(
         "Received {} entities with pagination {:?}",
         entities.len(),
         pagination

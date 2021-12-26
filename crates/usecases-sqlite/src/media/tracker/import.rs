@@ -52,7 +52,7 @@ pub fn import(
         )
         .map_err(transaction_error)
     })?;
-    tracing::info!("Analyzing and optimizing database after import finished");
+    log::info!("Analyzing and optimizing database after import finished");
     analyze_and_optimize_database_stats(&db)?;
     Ok(outcome)
 }

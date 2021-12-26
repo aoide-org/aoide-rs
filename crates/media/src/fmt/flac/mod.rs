@@ -431,7 +431,7 @@ pub fn export_track_to_path(
     let mut metaflac_tag = match metaflac::Tag::read_from_path(path) {
         Ok(metaflac_tag) => metaflac_tag,
         Err(err) => {
-            tracing::warn!(
+            log::warn!(
                 "Failed to parse metadata from media source '{}': {}",
                 track.media_source.path,
                 err

@@ -40,7 +40,7 @@ impl MutableState for State {
     type Task = Task;
 
     fn update(&mut self, message: Message) -> StateUpdated {
-        tracing::debug!("Updating state {:?} with message {:?}", self, message);
+        log::debug!("Updating state {:?} with message {:?}", self, message);
         match message {
             Message::Intent(intent) => intent.apply_on(self),
             Message::Effect(effect) => effect.apply_on(self),

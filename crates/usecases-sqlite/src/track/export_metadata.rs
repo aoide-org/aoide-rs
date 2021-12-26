@@ -49,7 +49,7 @@ pub fn export_metadata_into_file(
         {
             // Rolling back the transaction does not help after the metadata
             // has already been exported into the file and cannot be undone!
-            tracing::error!(
+            log::error!(
                 "Failed to update track in database after exporting metadata into file: {}",
                 err
             );

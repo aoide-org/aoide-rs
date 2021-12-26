@@ -471,7 +471,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
         if index_range.is_empty() || delta_index == 0 {
             return Ok(());
         }
-        tracing::warn!(
+        log::warn!(
             "TODO: Only adjust the internal ordering instead of loading, purging, and reinserting entries"
         );
         move_playlist_entries_default(self, id, index_range, delta_index)
@@ -529,7 +529,7 @@ impl<'db> EntryRepo for crate::Connection<'db> {
                     next_ordering,
                     delta_ordering,
                 )?;
-                tracing::debug!(
+                log::debug!(
                     "Reordered {} entries of playlist {} before inserting {} entries",
                     rows_updated,
                     RowId::from(playlist_id),

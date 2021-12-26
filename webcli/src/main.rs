@@ -178,7 +178,7 @@ async fn main() -> anyhow::Result<()> {
         Box::new(move |state: &State| {
             if !state.last_errors().is_empty() {
                 for err in state.last_errors() {
-                    tracing::error!("{}", err);
+                    log::error!("{}", err);
                 }
                 // Terminate after errors occurred
                 return Some(Intent::Terminate);
@@ -193,7 +193,7 @@ async fn main() -> anyhow::Result<()> {
                     .get()
                     .map(ToOwned::to_owned);
                 if let Some(progress) = &last_media_tracker_progress {
-                    tracing::info!("Media tracker progress: {:?}", progress);
+                    log::info!("Media tracker progress: {:?}", progress);
                 }
             }
             if last_media_tracker_status.as_ref()
@@ -206,7 +206,7 @@ async fn main() -> anyhow::Result<()> {
                     .get()
                     .map(ToOwned::to_owned);
                 if let Some(status) = &last_media_tracker_status {
-                    tracing::info!("Media tracker status: {:?}", status);
+                    log::info!("Media tracker status: {:?}", status);
                 }
             }
             if last_media_tracker_scan_outcome.as_ref()
@@ -223,7 +223,7 @@ async fn main() -> anyhow::Result<()> {
                     .get_ready()
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = &last_media_tracker_scan_outcome {
-                    tracing::info!("Scan finished: {:?}", outcome);
+                    log::info!("Scan finished: {:?}", outcome);
                 }
             }
             if last_media_tracker_import_outcome.as_ref()
@@ -240,7 +240,7 @@ async fn main() -> anyhow::Result<()> {
                     .get_ready()
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = &last_media_tracker_import_outcome {
-                    tracing::info!("Import finished: {:?}", outcome);
+                    log::info!("Import finished: {:?}", outcome);
                 }
             }
             if last_media_tracker_untrack_outcome.as_ref()
@@ -257,7 +257,7 @@ async fn main() -> anyhow::Result<()> {
                     .get_ready()
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = &last_media_tracker_untrack_outcome {
-                    tracing::info!("Untrack finished: {:?}", outcome);
+                    log::info!("Untrack finished: {:?}", outcome);
                 }
             }
             if last_media_tracker_find_untracked_files_outcome.as_ref()
@@ -274,9 +274,9 @@ async fn main() -> anyhow::Result<()> {
                     .get_ready()
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = &last_media_tracker_find_untracked_files_outcome {
-                    tracing::info!("Finding untracked entries finished: {:?}", outcome);
+                    log::info!("Finding untracked entries finished: {:?}", outcome);
                     if !outcome.value.source_paths.is_empty() {
-                        tracing::info!(
+                        log::info!(
                             "Found {} untracked entries on file system:\n{}",
                             outcome.value.source_paths.len(),
                             outcome
@@ -371,7 +371,7 @@ async fn main() -> anyhow::Result<()> {
             {
                 if state.active_collection.active_collection_uid().is_none() {
                     if available_collections.value.is_empty() {
-                        tracing::warn!("No collections available");
+                        log::warn!("No collections available");
                         return None;
                     }
                     if collection_uid.is_none() && available_collections.value.len() == 1 {
@@ -380,7 +380,7 @@ async fn main() -> anyhow::Result<()> {
                             .get(0)
                             .map(|e| e.hdr.uid.clone());
                         debug_assert!(collection_uid.is_some());
-                        tracing::info!(
+                        log::info!(
                             "Activating single collection: {}",
                             collection_uid.as_ref().unwrap()
                         );
@@ -399,7 +399,7 @@ async fn main() -> anyhow::Result<()> {
                                 .into(),
                             );
                         } else {
-                            tracing::warn!("Collection not available: {}", collection_uid);
+                            log::warn!("Collection not available: {}", collection_uid);
                         }
                     }
                     println!("Available collections:");
@@ -428,7 +428,7 @@ async fn main() -> anyhow::Result<()> {
 
             // Commands that require an active collection
             if let Some(collection) = state.active_collection.active_collection() {
-                tracing::info!("Active collection: {}", collection.hdr.uid);
+                log::info!("Active collection: {}", collection.hdr.uid);
                 // Only allowed while idle
                 if !state.media_tracker.is_idle() {
                     last_media_tracker_progress_fetched = Some(Instant::now());
@@ -571,9 +571,9 @@ async fn main() -> anyhow::Result<()> {
         let message_tx = message_tx.clone();
         async move {
             if let Err(err) = signal::ctrl_c().await {
-                tracing::error!("Failed to receive Ctrl+C/SIGINT signal: {}", err);
+                log::error!("Failed to receive Ctrl+C/SIGINT signal: {}", err);
             }
-            tracing::info!("Terminating after receiving Ctrl+C/SIGINT...");
+            log::info!("Terminating after receiving Ctrl+C/SIGINT...");
             send_message(&message_tx, Intent::Terminate);
         }
     });

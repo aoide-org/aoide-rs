@@ -173,7 +173,7 @@ pub fn visit_directories<
             ancestor_finished(&mut source_paths, untracked_source_paths)
         },
         &mut |progress_event| {
-            tracing::trace!("{:?}", progress_event);
+            log::trace!("{:?}", progress_event);
             report_progress(progress_event.to_owned().into());
         },
     )
@@ -183,7 +183,7 @@ pub fn visit_directories<
         report_progress(progress_event.clone().into());
         let elapsed = progress_event.elapsed_since_started();
         let outcome = progress_event.finalize();
-        tracing::info!(
+        log::info!(
             "Finding {} untracked directory entries in '{}' took {} s",
             source_paths.len(),
             root_path.display(),

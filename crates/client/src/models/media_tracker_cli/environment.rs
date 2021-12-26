@@ -48,7 +48,7 @@ impl WebClientEnvironment for Environment {
 
     fn join_api_url(&self, query_suffix: &str) -> anyhow::Result<Url> {
         let api_url = self.service_url.join("api/")?.join(query_suffix)?;
-        tracing::debug!("API URL: {}", api_url);
+        log::debug!("API URL: {}", api_url);
         Ok(api_url)
     }
 }
@@ -61,7 +61,7 @@ impl TaskDispatchEnvironment<Intent, Effect, Task> for Environment {
     fn dispatch_task(&self, shared_self: Arc<Self>, message_tx: MessageSender, task: Task) {
         shared_self.pending_tasks_counter.start_pending_task();
         tokio::spawn(async move {
-            tracing::debug!("Executing task: {:?}", task);
+            log::debug!("Executing task: {:?}", task);
             let effect = match task {
                 Task::TimedIntent { not_before, intent } => {
                     tokio::time::sleep_until(not_before.into()).await;
@@ -70,7 +70,7 @@ impl TaskDispatchEnvironment<Intent, Effect, Task> for Environment {
                 Task::ActiveCollection(task) => task.execute(&*shared_self).await.into(),
                 Task::MediaTracker(task) => task.execute(&*shared_self).await.into(),
             };
-            tracing::debug!("Task finished with effect: {:?}", effect);
+            log::debug!("Task finished with effect: {:?}", effect);
             send_message(&message_tx, Message::Effect(effect));
             shared_self.pending_tasks_counter.finish_pending_task();
         });

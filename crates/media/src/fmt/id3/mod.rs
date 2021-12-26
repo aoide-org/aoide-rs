@@ -297,7 +297,7 @@ pub fn import_metadata_into_track(
                     .flags
                     .contains(ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK)
                 {
-                    tracing::warn!(
+                    log::warn!(
                         "Imported work title '{}' from legacy ID3 text frame TXXX:WORK",
                         title.name
                     );
@@ -377,7 +377,7 @@ pub fn import_metadata_into_track(
             0 => AlbumKind::Unknown, // either album or single
             1 => AlbumKind::Compilation,
             _ => {
-                tracing::warn!("Unexpected iTunes compilation tag: TCMP = {}", tcmp);
+                log::warn!("Unexpected iTunes compilation tag: TCMP = {}", tcmp);
                 AlbumKind::Unknown
             }
         })
@@ -417,7 +417,7 @@ pub fn import_metadata_into_track(
                 .map(Mime::type_)
                 != Some(mime::APPLICATION_JSON.type_())
             {
-                tracing::warn!(
+                log::warn!(
                     "Unexpected MIME type for GEOB '{}': {}",
                     geob.description,
                     geob.mime_type
@@ -426,7 +426,7 @@ pub fn import_metadata_into_track(
             }
             if let Some(custom_tags) = serde_json::from_slice::<SerdeTags>(&geob.data)
                 .map_err(|err| {
-                    tracing::warn!("Failed to parse GEOB '{}': {}", geob.description, err);
+                    log::warn!("Failed to parse GEOB '{}': {}", geob.description, err);
                     err
                 })
                 .ok()
@@ -483,7 +483,7 @@ pub fn import_metadata_into_track(
     ) > 0
     {
         if !imported_work_from_itunes_tit1 {
-            tracing::warn!("Imported grouping tag(s) from ID3 text frame GRP1 instead of TIT1");
+            log::warn!("Imported grouping tag(s) from ID3 text frame GRP1 instead of TIT1");
         }
     } else {
         // Use the legacy/classical text frame only as a fallback
@@ -498,7 +498,7 @@ pub fn import_metadata_into_track(
                 .flags
                 .contains(ImportTrackFlags::ITUNES_ID3V2_GROUPING_MOVEMENT_WORK)
         {
-            tracing::warn!("Imported grouping tag(s) from ID3 text frame TIT1 instead of GRP1");
+            log::warn!("Imported grouping tag(s) from ID3 text frame TIT1 instead of GRP1");
         }
     }
 
@@ -565,7 +565,7 @@ pub fn import_metadata_into_track(
                     serato_tags
                         .parse_markers(&geob.data, SeratoTagFormat::ID3)
                         .map_err(|err| {
-                            tracing::warn!("Failed to parse Serato Markers: {}", err);
+                            log::warn!("Failed to parse Serato Markers: {}", err);
                         })
                         .ok();
                 }
@@ -573,7 +573,7 @@ pub fn import_metadata_into_track(
                     serato_tags
                         .parse_markers2(&geob.data, SeratoTagFormat::ID3)
                         .map_err(|err| {
-                            tracing::warn!("Failed to parse Serato Markers2: {}", err);
+                            log::warn!("Failed to parse Serato Markers2: {}", err);
                         })
                         .ok();
                 }
@@ -812,7 +812,7 @@ pub fn export_track(
                 );
             }
             Err(err) => {
-                tracing::warn!(
+                log::warn!(
                     "Failed to write GEOB '{}': {}",
                     AOIDE_TAGS_GEOB_DESCRIPTION,
                     err
