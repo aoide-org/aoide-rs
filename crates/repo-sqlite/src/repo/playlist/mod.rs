@@ -246,6 +246,8 @@ fn load_playlist_entry_records(
         .map_err(repo_error)
 }
 
+// TODO: Overwrite remaining default implementations of EntryRepo that are inefficient,
+// e.g. for moving and shuffling playlist entries.
 impl<'db> EntryRepo for crate::Connection<'db> {
     fn load_all_playlist_entries(&self, playlist_id: RecordId) -> RepoResult<Vec<Entry>> {
         let records = load_playlist_entry_records(self, playlist_id)?;
@@ -460,21 +462,6 @@ impl<'db> EntryRepo for crate::Connection<'db> {
                 0
             };
         Ok(rows_updated)
-    }
-
-    fn move_playlist_entries(
-        &self,
-        id: RecordId,
-        index_range: &Range<usize>,
-        delta_index: isize,
-    ) -> RepoResult<()> {
-        if index_range.is_empty() || delta_index == 0 {
-            return Ok(());
-        }
-        log::warn!(
-            "TODO: Only adjust the internal ordering instead of loading, purging, and reinserting entries"
-        );
-        move_playlist_entries_default(self, id, index_range, delta_index)
     }
 
     fn insert_playlist_entries(

@@ -60,7 +60,10 @@ pub trait EntityRepo {
     ) -> RepoResult<RecordId>;
 }
 
-pub fn prepend_playlist_entries_default<R: EntryRepo + ?Sized>(
+/// Prepend playlist entries by insertion
+///
+/// This default implementation works but is probably inefficient.
+fn prepend_playlist_entries_default<R: EntryRepo + ?Sized>(
     entry_repo: &R,
     playlist_id: RecordId,
     new_entries: &[Entry],
@@ -68,7 +71,10 @@ pub fn prepend_playlist_entries_default<R: EntryRepo + ?Sized>(
     entry_repo.insert_playlist_entries(playlist_id, 0, new_entries)
 }
 
-pub fn append_playlist_entries_default<R: EntryRepo + ?Sized>(
+/// Append playlist entries by insertion
+///
+/// This default implementation works but is probably inefficient.
+fn append_playlist_entries_default<R: EntryRepo + ?Sized>(
     entry_repo: &R,
     playlist_id: RecordId,
     new_entries: &[Entry],
@@ -80,7 +86,10 @@ pub fn append_playlist_entries_default<R: EntryRepo + ?Sized>(
     entry_repo.insert_playlist_entries(playlist_id, entries_count, new_entries)
 }
 
-pub fn move_playlist_entries_default<R: EntryRepo + ?Sized>(
+/// Move playlist entries by first removing and then reinserting the given range
+///
+/// This default implementation works but is probably inefficient.
+fn move_playlist_entries_default<R: EntryRepo + ?Sized>(
     entry_repo: &R,
     playlist_id: RecordId,
     index_range: &Range<usize>,
@@ -105,7 +114,10 @@ pub fn move_playlist_entries_default<R: EntryRepo + ?Sized>(
     entry_repo.insert_playlist_entries(playlist_id, insert_index, &moved_entries)
 }
 
-pub fn remove_all_playlist_entries_default<R: EntryRepo + ?Sized>(
+/// Remove all playlist entries one by one
+///
+/// This default implementation works but is probably inefficient.
+fn remove_all_playlist_entries_default<R: EntryRepo + ?Sized>(
     entry_repo: &R,
     playlist_id: RecordId,
 ) -> RepoResult<usize> {
@@ -116,7 +128,10 @@ pub fn remove_all_playlist_entries_default<R: EntryRepo + ?Sized>(
     entry_repo.remove_playlist_entries(playlist_id, &(0..entries_count))
 }
 
-pub fn shuffle_all_playlist_entries_default<R: EntryRepo + ?Sized>(
+/// Shuffle playlist by first removing and then reinserting all entries
+///
+/// This default implementation works but is probably inefficient.
+fn shuffle_all_playlist_entries_default<R: EntryRepo + ?Sized>(
     entry_repo: &R,
     playlist_id: RecordId,
 ) -> RepoResult<()> {
