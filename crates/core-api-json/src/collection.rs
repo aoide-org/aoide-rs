@@ -160,5 +160,6 @@ pub fn import_entity_with_summary(
     } = body;
     let collection: _core::Collection = collection.try_into()?;
     let entity = _core::Entity::new(hdr, collection);
-    Ok((entity, summary.map(Into::into)))
+    let summary = summary.map(Into::into);
+    Ok((entity, summary))
 }

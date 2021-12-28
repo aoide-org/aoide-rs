@@ -19,7 +19,9 @@ mod _inner {
     pub use crate::_inner::sorting::*;
 }
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "frontend", derive(Serialize))]
+#[cfg_attr(feature = "backend", derive(Deserialize))]
 pub enum SortDirection {
     #[serde(rename = "asc")]
     Ascending,
@@ -28,6 +30,7 @@ pub enum SortDirection {
     Descending,
 }
 
+#[cfg(feature = "backend")]
 impl From<SortDirection> for _inner::SortDirection {
     fn from(from: SortDirection) -> Self {
         use SortDirection::*;
@@ -38,6 +41,7 @@ impl From<SortDirection> for _inner::SortDirection {
     }
 }
 
+#[cfg(feature = "frontend")]
 impl From<_inner::SortDirection> for SortDirection {
     fn from(from: _inner::SortDirection) -> Self {
         use _inner::SortDirection::*;

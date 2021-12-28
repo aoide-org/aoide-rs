@@ -22,7 +22,9 @@ mod _inner {
     pub use crate::_inner::{filtering::*, sorting::*, tag::search::*};
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "frontend", derive(Serialize))]
+#[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Filter {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -40,6 +42,7 @@ pub struct Filter {
     pub score: Option<NumericPredicate>,
 }
 
+#[cfg(feature = "backend")]
 impl From<Filter> for _inner::Filter {
     fn from(from: Filter) -> Self {
         Self {
@@ -51,6 +54,7 @@ impl From<Filter> for _inner::Filter {
     }
 }
 
+#[cfg(feature = "frontend")]
 impl From<_inner::Filter> for Filter {
     fn from(from: _inner::Filter) -> Self {
         Self {

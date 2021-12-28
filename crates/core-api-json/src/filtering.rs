@@ -21,12 +21,15 @@ mod _inner {
     pub use crate::_inner::filtering::*;
 }
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "frontend", derive(Serialize))]
+#[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
 pub enum FilterModifier {
     Complement,
 }
 
+#[cfg(feature = "backend")]
 impl From<FilterModifier> for _inner::FilterModifier {
     fn from(from: FilterModifier) -> Self {
         use FilterModifier::*;
@@ -36,6 +39,7 @@ impl From<FilterModifier> for _inner::FilterModifier {
     }
 }
 
+#[cfg(feature = "frontend")]
 impl From<_inner::FilterModifier> for FilterModifier {
     fn from(from: _inner::FilterModifier) -> Self {
         use _inner::FilterModifier::*;
@@ -46,7 +50,9 @@ impl From<_inner::FilterModifier> for FilterModifier {
 }
 
 /// Predicates for matching strings
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "frontend", derive(Serialize))]
+#[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
 pub enum StringPredicate {
     StartsWith(String),
@@ -62,6 +68,7 @@ pub enum StringPredicate {
     EqualsNot(String),
 }
 
+#[cfg(feature = "backend")]
 impl From<StringPredicate> for _inner::StringPredicate {
     fn from(from: StringPredicate) -> Self {
         use StringPredicate::*;
@@ -81,6 +88,7 @@ impl From<StringPredicate> for _inner::StringPredicate {
     }
 }
 
+#[cfg(feature = "frontend")]
 impl From<_inner::StringPredicate> for StringPredicate {
     fn from(from: _inner::StringPredicate) -> Self {
         use _inner::StringPredicate::*;
@@ -100,7 +108,9 @@ impl From<_inner::StringPredicate> for StringPredicate {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "frontend", derive(Serialize))]
+#[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct WithTokensQueryParams {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -116,7 +126,9 @@ impl WithTokensQueryParams {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "frontend", derive(Serialize))]
+#[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct StringFilter {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -126,6 +138,7 @@ pub struct StringFilter {
     pub value: Option<StringPredicate>,
 }
 
+#[cfg(feature = "backend")]
 impl From<StringFilter> for _inner::StringFilter {
     fn from(from: StringFilter) -> Self {
         Self {
@@ -135,6 +148,7 @@ impl From<StringFilter> for _inner::StringFilter {
     }
 }
 
+#[cfg(feature = "frontend")]
 impl From<_inner::StringFilter> for StringFilter {
     fn from(from: _inner::StringFilter) -> Self {
         Self {
@@ -144,7 +158,9 @@ impl From<_inner::StringFilter> for StringFilter {
     }
 }
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "frontend", derive(Serialize))]
+#[cfg_attr(feature = "backend", derive(Deserialize))]
 pub enum ScalarPredicate<V> {
     #[serde(rename = "lt")]
     LessThan(V),
@@ -167,6 +183,7 @@ pub enum ScalarPredicate<V> {
 
 pub type NumericPredicate = ScalarPredicate<_inner::NumericValue>;
 
+#[cfg(feature = "backend")]
 impl From<NumericPredicate> for _inner::NumericPredicate {
     fn from(from: NumericPredicate) -> Self {
         use ScalarPredicate::*;
@@ -181,6 +198,7 @@ impl From<NumericPredicate> for _inner::NumericPredicate {
     }
 }
 
+#[cfg(feature = "frontend")]
 impl From<_inner::NumericPredicate> for NumericPredicate {
     fn from(from: _inner::NumericPredicate) -> Self {
         use _inner::ScalarPredicate::*;
@@ -197,6 +215,7 @@ impl From<_inner::NumericPredicate> for NumericPredicate {
 
 pub type DateTimePredicate = ScalarPredicate<DateTime>;
 
+#[cfg(feature = "backend")]
 impl From<DateTimePredicate> for _inner::DateTimePredicate {
     fn from(from: DateTimePredicate) -> Self {
         use ScalarPredicate::*;
@@ -211,6 +230,7 @@ impl From<DateTimePredicate> for _inner::DateTimePredicate {
     }
 }
 
+#[cfg(feature = "frontend")]
 impl From<_inner::DateTimePredicate> for DateTimePredicate {
     fn from(from: _inner::DateTimePredicate) -> Self {
         use _inner::ScalarPredicate::*;
@@ -225,5 +245,7 @@ impl From<_inner::DateTimePredicate> for DateTimePredicate {
     }
 }
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "frontend", derive(Serialize))]
+#[cfg_attr(feature = "backend", derive(Deserialize))]
 pub struct ScalarFieldFilter<F, V>(pub(crate) F, pub(crate) ScalarPredicate<V>);
