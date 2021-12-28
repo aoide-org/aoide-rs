@@ -37,7 +37,7 @@ async fn receive_response_body(response: Response) -> anyhow::Result<Bytes> {
         let err = if json.is_null() {
             anyhow::anyhow!("{}", response_status)
         } else {
-            anyhow::anyhow!("{} {}", response_status, json)
+            anyhow::anyhow!("{}", response_status).context(json)
         };
         return Err(err);
     }
