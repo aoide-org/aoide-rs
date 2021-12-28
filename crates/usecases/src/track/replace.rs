@@ -372,8 +372,6 @@ where
 
 const EXPECTED_NUMBER_OF_DIR_ENTRIES: usize = 1024;
 
-// TODO: Reduce number of arguments
-#[allow(clippy::too_many_arguments)]
 pub fn import_and_replace_by_local_file_path_from_directory<Repo>(
     repo: &Repo,
     collection_uid: &EntityUid,

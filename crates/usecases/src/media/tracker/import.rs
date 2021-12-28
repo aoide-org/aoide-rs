@@ -51,17 +51,15 @@ pub struct ProgressEvent {
     pub summary: Summary,
 }
 
-// TODO: Reduce number of arguments
-#[allow(clippy::too_many_arguments)]
 pub fn import<
     Repo: CollectionRepo + MediaTrackerRepo + TrackRepo,
-    ReportProgress: FnMut(ProgressEvent),
+    ReportProgressFn: FnMut(ProgressEvent),
 >(
     repo: &Repo,
     collection_uid: &EntityUid,
     params: &Params,
     config: &ImportTrackConfig,
-    report_progress: &mut ReportProgress,
+    report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,
 ) -> Result<Outcome> {
     let (collection_id, source_path_resolver) =
@@ -83,7 +81,7 @@ pub fn import<
     let started_at = Instant::now();
     let mut summary = Summary::default();
     let outcome = 'outcome: loop {
-        report_progress(ProgressEvent {
+        report_progress_fn(ProgressEvent {
             elapsed: started_at.elapsed(),
             summary: summary.clone(),
         });
@@ -215,7 +213,7 @@ pub fn import<
             }
         }
     };
-    report_progress(ProgressEvent {
+    report_progress_fn(ProgressEvent {
         elapsed: started_at.elapsed(),
         summary: outcome.summary.clone(),
     });

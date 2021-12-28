@@ -30,14 +30,12 @@ mod uc {
     };
 }
 
-// TODO: Reduce number of arguments
-#[allow(clippy::too_many_arguments)]
-pub fn import(
+pub fn import<ReportProgressFn: FnMut(uc::ProgressEvent)>(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
     params: &Params,
     import_config: &ImportTrackConfig,
-    progress_event_fn: &mut impl FnMut(uc::ProgressEvent),
+    report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,
 ) -> Result<uc::Outcome> {
     let db = RepoConnection::new(connection);
@@ -47,7 +45,7 @@ pub fn import(
             collection_uid,
             params,
             import_config,
-            progress_event_fn,
+            report_progress_fn,
             abort_flag,
         )
         .map_err(transaction_error)

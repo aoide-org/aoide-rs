@@ -41,18 +41,18 @@ pub type ResponseBody = aoide_core_api_json::media::tracker::import::Outcome;
     name = "Importing media sources",
     skip(
         connection,
-        progress_event_fn,
+        report_progress_fn,
         abort_flag,
     ),
     fields(
         request_id = %new_request_id(),
     )
 )]
-pub fn handle_request(
+pub fn handle_request<ReportProgressFn: FnMut(uc::ProgressEvent)>(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
     request_body: RequestBody,
-    progress_event_fn: &mut impl FnMut(uc::ProgressEvent),
+    report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,
 ) -> Result<ResponseBody> {
     let RequestBody {
@@ -98,7 +98,7 @@ pub fn handle_request(
         collection_uid,
         &params,
         &import_config,
-        progress_event_fn,
+        report_progress_fn,
         abort_flag,
     )
     .map(Into::into)

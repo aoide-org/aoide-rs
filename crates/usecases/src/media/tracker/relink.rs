@@ -146,11 +146,11 @@ impl Progress {
     }
 }
 
-pub fn relink_tracks_with_untracked_media_sources<Repo>(
+pub fn relink_tracks_with_untracked_media_sources<Repo, ReportProgressFn: FnMut(&Progress)>(
     repo: &Repo,
     collection_uid: &EntityUid,
     mut find_candidate_params: FindCandidateParams,
-    progress_fn: &mut impl FnMut(&Progress),
+    report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,
 ) -> RepoResult<Vec<RelocatedMediaSource>>
 where
@@ -179,7 +179,7 @@ where
             log::info!("Aborting");
             return Ok(relinked_media_sources);
         }
-        progress_fn(&progress);
+        report_progress_fn(&progress);
         let old_media_source_path = old_entity.body.media_source.path.clone();
         let candidates = find_duplicate(
             repo,

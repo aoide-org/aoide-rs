@@ -168,16 +168,16 @@ pub fn visit_directories<
     E1: Into<Error>,
     E2: Into<Error>,
     V: AncestorVisitor<T, E1>,
-    NewAncestorVistor: FnMut(&walkdir::DirEntry) -> V,
-    AncestorFinished: FnMut(&Path, T) -> StdResult<AfterAncestorFinished, E2>,
-    ReportProgress: FnMut(&ProgressEvent),
+    NewAncestorVistorFn: FnMut(&walkdir::DirEntry) -> V,
+    AncestorFinishedFn: FnMut(&Path, T) -> StdResult<AfterAncestorFinished, E2>,
+    ReportProgressFn: FnMut(&ProgressEvent),
 >(
     root_path: &Path,
     max_depth: Option<usize>,
     abort_flag: &AtomicBool,
-    new_ancestor_visitor: &mut NewAncestorVistor,
-    ancestor_finished: &mut AncestorFinished,
-    report_progress: &mut ReportProgress,
+    new_ancestor_visitor_fn: &mut NewAncestorVistorFn,
+    ancestor_finished_fn: &mut AncestorFinishedFn,
+    report_progress_fn: &mut ReportProgressFn,
 ) -> Result<ProgressEvent> {
     let mut progress_event = ProgressEvent::start();
     // Capacity <= max. expected depth
@@ -202,10 +202,10 @@ pub fn visit_directories<
         if abort_flag.load(Ordering::Relaxed) {
             log::debug!("Aborting directory tree traversal");
             progress_event.abort();
-            report_progress(&progress_event);
+            report_progress_fn(&progress_event);
             return Ok(progress_event);
         }
-        report_progress(&progress_event);
+        report_progress_fn(&progress_event);
         let dir_entry = match dir_entry {
             Ok(dir_entry) => dir_entry,
             Err(err) => {
@@ -231,7 +231,7 @@ pub fn visit_directories<
                 let io_error = err.into_io_error();
                 debug_assert!(io_error.is_some());
                 progress_event.fail();
-                report_progress(&progress_event);
+                report_progress_fn(&progress_event);
                 return Err(Error::from(io_error.expect("I/O error")));
             }
         };
@@ -271,7 +271,7 @@ pub fn visit_directories<
                     .visit_dir_entry(&dir_entry)
                     .map_err(|err| {
                         progress_event.fail();
-                        report_progress(&progress_event);
+                        report_progress_fn(&progress_event);
                         err.into()
                     })?;
                 break;
@@ -281,9 +281,9 @@ pub fn visit_directories<
                 ancestor_visitors.pop().expect("last ancestor visitor");
             let ancestor_data = ancestor_visitor.finalize();
             log::debug!("Finalized parent directory: {}", ancestor_path.display());
-            match ancestor_finished(&ancestor_path, ancestor_data).map_err(|err| {
+            match ancestor_finished_fn(&ancestor_path, ancestor_data).map_err(|err| {
                 progress_event.fail();
-                report_progress(&progress_event);
+                report_progress_fn(&progress_event);
                 err.into()
             })? {
                 AfterAncestorFinished::Continue => {
@@ -296,7 +296,7 @@ pub fn visit_directories<
                         ancestor_path.display()
                     );
                     progress_event.abort();
-                    report_progress(&progress_event);
+                    report_progress_fn(&progress_event);
                     return Ok(progress_event);
                 }
             }
@@ -305,7 +305,7 @@ pub fn visit_directories<
         debug_assert!(follow_links);
         if dir_entry.file_type().is_dir() {
             log::debug!("Adding parent directory: {}", relative_path.display());
-            let ancestor_visitor = new_ancestor_visitor(&dir_entry);
+            let ancestor_visitor = new_ancestor_visitor_fn(&dir_entry);
             ancestor_visitors.push((relative_path.to_path_buf(), ancestor_visitor));
         } else {
             log::debug!("Finished file entry: {}", relative_path.display());
@@ -316,11 +316,11 @@ pub fn visit_directories<
     while let Some((ancestor_path, ancestor_visitor)) = ancestor_visitors.pop() {
         let ancestor_data = ancestor_visitor.finalize();
         log::debug!("Finalized parent directory: {}", ancestor_path.display());
-        match ancestor_finished(&ancestor_path, ancestor_data)
+        match ancestor_finished_fn(&ancestor_path, ancestor_data)
             .map_err(Into::into)
             .map_err(|err| {
                 progress_event.fail();
-                report_progress(&progress_event);
+                report_progress_fn(&progress_event);
                 err
             })? {
             AfterAncestorFinished::Continue => {
@@ -333,7 +333,7 @@ pub fn visit_directories<
                     ancestor_path.display()
                 );
                 progress_event.abort();
-                report_progress(&progress_event);
+                report_progress_fn(&progress_event);
                 return Ok(progress_event);
             }
         }

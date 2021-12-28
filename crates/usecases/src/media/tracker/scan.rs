@@ -85,12 +85,12 @@ impl From<visit::ProgressEvent> for ProgressEvent {
 
 pub fn visit_directories<
     Repo: CollectionRepo + MediaTrackerRepo,
-    ReportProgress: FnMut(ProgressEvent),
+    ReportProgressFn: FnMut(ProgressEvent),
 >(
     repo: &Repo,
     collection_uid: &EntityUid,
     params: &FsTraversalParams,
-    report_progress: &mut ReportProgress,
+    report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,
 ) -> Result<Outcome> {
     let (collection_id, source_path_resolver) =
@@ -160,7 +160,7 @@ pub fn visit_directories<
         },
         &mut |progress_event| {
             log::trace!("{:?}", progress_event);
-            report_progress(progress_event.to_owned().into());
+            report_progress_fn(progress_event.to_owned().into());
         },
     )
     .map_err(anyhow::Error::from)

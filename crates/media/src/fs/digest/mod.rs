@@ -104,32 +104,32 @@ impl<D: Digest> AncestorVisitor<digest::Output<D>, Error> for AncestorDigest<D> 
 pub fn hash_directories<
     D: Digest,
     E: Into<Error>,
-    NewDigest: FnMut() -> D,
-    DigestFinished: FnMut(&Path, digest::Output<D>) -> StdResult<AfterAncestorFinished, E>,
-    ReportProgress: FnMut(&ProgressEvent),
+    NewDigestFn: FnMut() -> D,
+    DigestFinishedFn: FnMut(&Path, digest::Output<D>) -> StdResult<AfterAncestorFinished, E>,
+    ReportProgressFn: FnMut(&ProgressEvent),
 >(
     root_path: &Path,
     max_depth: Option<usize>,
     abort_flag: &AtomicBool,
-    new_digest: &mut NewDigest,
-    digest_finished: &mut DigestFinished,
-    report_progress: &mut ReportProgress,
+    new_digest_fn: &mut NewDigestFn,
+    digest_finished_fn: &mut DigestFinishedFn,
+    report_progress_fn: &mut ReportProgressFn,
 ) -> Result<Outcome> {
     log::info!("Digesting all directories in '{}'", root_path.display());
     let mut new_ancestor_visitor = |_: &_| AncestorDigest {
-        digest: new_digest(),
+        digest: new_digest_fn(),
     };
     visit_directories(
         root_path,
         max_depth,
         abort_flag,
         &mut new_ancestor_visitor,
-        digest_finished,
-        report_progress,
+        digest_finished_fn,
+        report_progress_fn,
     )
     .map(|mut progress_event| {
         progress_event.finish();
-        report_progress(&progress_event);
+        report_progress_fn(&progress_event);
         let elapsed = progress_event.elapsed_since_started();
         let outcome = progress_event.finalize();
         log::info!(

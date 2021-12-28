@@ -19,11 +19,11 @@ use aoide_usecases::media::tracker::relink as uc;
 
 use std::sync::atomic::AtomicBool;
 
-pub fn relink_tracks_with_untracked_media_sources(
+pub fn relink_tracks_with_untracked_media_sources<ReportProgressFn: FnMut(&uc::Progress)>(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
     find_candidate_params: uc::FindCandidateParams,
-    progress_fn: &mut impl FnMut(&uc::Progress),
+    report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,
 ) -> Result<Vec<uc::RelocatedMediaSource>> {
     let db = RepoConnection::new(connection);
@@ -32,7 +32,7 @@ pub fn relink_tracks_with_untracked_media_sources(
             &db,
             collection_uid,
             find_candidate_params,
-            progress_fn,
+            report_progress_fn,
             abort_flag,
         )
         .map_err(Into::into)

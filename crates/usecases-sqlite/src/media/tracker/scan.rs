@@ -17,7 +17,6 @@ use std::sync::atomic::AtomicBool;
 
 use aoide_core::entity::EntityUid;
 use aoide_core_api::media::tracker::{scan::Outcome, FsTraversalParams};
-use aoide_usecases::media::tracker::scan::ProgressEvent;
 
 use super::*;
 
@@ -26,16 +25,16 @@ mod uc {
     pub use aoide_usecases::{media::tracker::scan::*, Error};
 }
 
-pub fn visit_directories(
+pub fn visit_directories<ReportProgressFn: FnMut(uc::ProgressEvent)>(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
     params: &FsTraversalParams,
-    progress_event_fn: &mut impl FnMut(ProgressEvent),
+    report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,
 ) -> Result<Outcome> {
     let db = RepoConnection::new(connection);
     db.transaction::<_, TransactionError, _>(|| {
-        uc::visit_directories(&db, collection_uid, params, progress_event_fn, abort_flag)
+        uc::visit_directories(&db, collection_uid, params, report_progress_fn, abort_flag)
             .map_err(transaction_error)
     })
     .map_err(Into::into)

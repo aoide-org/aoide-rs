@@ -19,9 +19,10 @@
 
 // Common imports
 mod prelude {
-    pub use self::_inner::{PaginationLimit, PaginationOffset};
-    pub(crate) use aoide_core_api as _inner;
+    pub use aoide_core_api::{PaginationLimit, PaginationOffset};
     pub use serde::{Deserialize, Serialize};
+
+    pub(crate) use aoide_core_api as _inner;
 }
 
 use crate::prelude::*;

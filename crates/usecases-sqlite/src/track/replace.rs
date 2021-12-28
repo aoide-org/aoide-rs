@@ -77,8 +77,6 @@ pub fn import_and_replace_by_local_file_paths(
     .map_err(Into::into)
 }
 
-// TODO: Reduce number of arguments
-#[allow(clippy::too_many_arguments)]
 pub fn import_and_replace_by_local_file_path_from_directory(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
