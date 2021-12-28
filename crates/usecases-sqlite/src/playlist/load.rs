@@ -13,11 +13,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::*;
-
 use aoide_repo::collection::EntityRepo as _;
 
-///////////////////////////////////////////////////////////////////////
+use super::*;
 
 pub fn load_entity_with_entries(
     connection: &SqliteConnection,
@@ -42,7 +40,6 @@ pub fn load_entities_with_entries_summary(
     >,
 ) -> Result<()> {
     let db = RepoConnection::new(connection);
-
     db.transaction::<_, RepoTransactionError, _>(|| {
         let collection_id = db.resolve_collection_id(collection_uid)?;
         db.load_collected_playlist_entities_with_entries_summary(

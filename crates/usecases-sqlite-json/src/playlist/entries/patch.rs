@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core::playlist::PlaylistWithEntriesSummary;
+
 use aoide_usecases_sqlite::playlist::entries as uc;
 
 use aoide_core_json::entity::EntityUid as SerdeEntityUid;

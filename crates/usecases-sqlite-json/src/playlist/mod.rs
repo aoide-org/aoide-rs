@@ -37,9 +37,9 @@ mod _core {
     };
 }
 
-pub mod create_collected;
-pub mod list_collected;
-pub mod patch_entries;
+pub mod create;
+pub mod entries;
+pub mod load;
 pub mod purge;
 pub mod update;
 

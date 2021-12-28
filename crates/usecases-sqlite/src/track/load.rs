@@ -15,8 +15,6 @@
 
 use super::*;
 
-///////////////////////////////////////////////////////////////////////
-
 pub fn load_one(connection: &SqliteConnection, uid: &EntityUid) -> Result<Entity> {
     let db = RepoConnection::new(connection);
     db.transaction::<_, RepoTransactionError, _>(|| {

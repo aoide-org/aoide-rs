@@ -678,7 +678,7 @@ pub fn create_filters(
                 webapi::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
-                        uc_json::playlist::create_collected::handle_request(
+                        uc_json::playlist::create::handle_request(
                             &*pooled_connection,
                             &collection_uid,
                             request_body,
@@ -705,7 +705,7 @@ pub fn create_filters(
                 webapi::spawn_blocking_read_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
-                        uc_json::playlist::list_collected::handle_request(
+                        uc_json::playlist::load::handle_request(
                             &*pooled_connection,
                             &collection_uid,
                             query_params,
@@ -778,7 +778,7 @@ pub fn create_filters(
                 webapi::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
-                        uc_json::playlist::patch_entries::handle_request(
+                        uc_json::playlist::entries::patch::handle_request(
                             &*pooled_connection,
                             uid,
                             query_params,
