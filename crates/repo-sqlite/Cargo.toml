@@ -1,5 +1,6 @@
 [package]
 name = "aoide-repo-sqlite"
+description = "SQLite schema and implementations for aoide-repo"
 version = "0.0.0"
 license = "AGPL-3.0-or-later"
 publish = false

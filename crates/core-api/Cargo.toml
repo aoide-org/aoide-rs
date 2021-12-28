@@ -1,5 +1,6 @@
 [package]
 name = "aoide-core-api"
+description = "Boundary types for aoide-core APIs"
 version = "0.0.0"
 license = "AGPL-3.0-or-later"
 publish = false
