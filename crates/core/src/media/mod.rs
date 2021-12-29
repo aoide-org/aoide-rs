@@ -87,19 +87,22 @@ impl fmt::Display for SourcePath {
 #[derive(Copy, Clone, Debug, Eq, PartialEq, FromPrimitive, ToPrimitive)]
 #[repr(u8)]
 pub enum SourcePathKind {
-    /// Percent-encoded URI (case-sensitive)
+    /// Percent-encoded, canonical URI (case-sensitive)
     Uri = 0,
 
-    /// Percent-encoded URL (case-sensitive)
+    /// Percent-encoded, canonical URL (case-sensitive)
     Url = 1,
 
-    /// Percent-encoded URL with the scheme "file" (case-sensitive)
+    /// Percent-encoded, canonical URL with the scheme "file" (case-sensitive)
     FileUrl = 2,
 
-    /// Case-sensitive, relative file path with '/' as path separator
+    /// Relative file path with '/' as path separator (case-sensitive)
     ///
-    /// An accompanying root URL must be provided by the context to
-    /// reconstruct the complete `file://` URL.
+    /// An accompanying root or base URL must be provided by the outer context
+    /// to reconstruct the corresponding `file://` URL.
+    ///
+    /// Relative file paths are NOT percent-encoded, i.e. may contain reserved
+    /// characters like ' ', '#', or '?'.
     VirtualFilePath = 3,
 }
 
