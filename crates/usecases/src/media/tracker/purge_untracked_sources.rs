@@ -63,13 +63,22 @@ where
             Some(DirTrackingStatus::Orphaned),
         )?;
     };
-    repo.media_tracker_find_untracked_sources(collection_id, &root_path_prefix)?;
+    // Purge orphaned media sources that don't belong to any track
     summary.purged_media_sources += if root_path_prefix.is_empty() {
         repo.purge_orphaned_media_sources(collection_id)
     } else {
         let root_path_predicate = StringPredicateBorrowed::Prefix(&root_path_prefix);
         repo.purge_orphaned_media_sources_by_path_predicate(collection_id, root_path_predicate)
     }?;
+    // Find and purge the remaining untracked media sources
+    // TODO: Purging could be optimized with a combined, mutable
+    // database query that affects both repositories. But this would
+    // then require that either media sources know about the media tracker
+    // or that the media tracker mutates the storage of media sources.
+    for record_id in repo.media_tracker_find_untracked_sources(collection_id, &root_path_prefix)? {
+        repo.purge_media_source(record_id)?;
+        summary.purged_media_sources += 1;
+    }
     let outcome = Outcome { root_url, summary };
     Ok(outcome)
 }
