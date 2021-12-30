@@ -13,15 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_repo::collection::EntityRepo as _;
-
 use super::*;
 
 mod uc {
     pub use aoide_core_api::track::search::*;
-    pub use aoide_usecases::{
-        collection::resolve_collection_id_for_virtual_file_path, track::search::*, Error,
-    };
+    pub use aoide_usecases::{track::search::*, Error};
 }
 
 pub fn search(
@@ -33,8 +29,7 @@ pub fn search(
 ) -> Result<usize> {
     let db = RepoConnection::new(connection);
     db.transaction::<_, TransactionError, _>(|| {
-        let collection_id = db.resolve_collection_id(collection_uid)?;
-        uc::search_with_params(&db, collection_id, params, pagination, collector)
+        uc::search_with_params(&db, collection_uid, params, pagination, collector)
             .map_err(transaction_error)
     })
     .map_err(Into::into)

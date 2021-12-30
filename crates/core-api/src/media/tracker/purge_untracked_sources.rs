@@ -30,5 +30,5 @@ pub struct Outcome {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Summary {
     pub untracked_directories: usize,
-    pub purged_media_sources: usize,
+    pub purged_sources: usize,
 }

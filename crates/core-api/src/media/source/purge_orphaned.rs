@@ -13,24 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::entity::EntityUid;
+use aoide_core::util::url::BaseUrl;
 
-use aoide_core_api::media::tracker::untrack::{Outcome, Params};
-
-use super::*;
-
-mod uc {
-    pub use aoide_usecases::{media::tracker::untrack::*, Error};
+#[derive(Debug, Clone, Default, Eq, PartialEq)]
+pub struct Params {
+    pub root_url: Option<BaseUrl>,
 }
 
-pub fn untrack(
-    connection: &SqliteConnection,
-    collection_uid: &EntityUid,
-    params: &Params,
-) -> Result<Outcome> {
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, TransactionError, _>(|| {
-        uc::untrack(&db, collection_uid, params).map_err(transaction_error)
-    })
-    .map_err(Into::into)
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Outcome {
+    pub root_url: Option<BaseUrl>,
+    pub purged: usize,
 }

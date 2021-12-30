@@ -112,10 +112,14 @@ impl Task {
                 root_url,
             } => {
                 let params = aoide_core_api::media::tracker::purge_untracked_sources::Params {
-                    root_url,
+                    root_url: root_url.clone(),
                     untrack_orphaned_directories: Some(true),
                 };
-                let res = purge_untracked_media_sources(env, &collection_uid, params).await;
+                let mut res = purge_untracked_media_sources(env, &collection_uid, params).await;
+                if let Ok(()) = res {
+                    let params = aoide_core_api::media::source::purge_orphaned::Params { root_url };
+                    res = purge_orphaned_media_sources(env, &collection_uid, params).await;
+                }
                 Effect::Purge(res)
             }
             Self::StartFindUntracked {
@@ -222,7 +226,8 @@ async fn untrack<E: WebClientEnvironment>(
     let outcome = serde_json::from_slice::<aoide_core_api_json::media::tracker::untrack::Outcome>(
         &response_body,
     )
-    .map(Into::into)?;
+    .map_err(Into::into)
+    .and_then(TryInto::try_into)?;
     log::debug!("Untracking finished: {:?}", outcome);
     Ok(outcome)
 }
@@ -240,6 +245,21 @@ async fn purge_untracked_media_sources<E: WebClientEnvironment>(
     let response_body = receive_response_body(response).await?;
     let outcome = serde_json::from_slice::<serde_json::Value>(&response_body)?;
     log::debug!("Purging untracked media sources finished: {:?}", outcome);
+    Ok(())
+}
+
+async fn purge_orphaned_media_sources<E: WebClientEnvironment>(
+    env: &E,
+    collection_uid: &EntityUid,
+    params: impl Into<aoide_core_api_json::media::source::purge_orphaned::Params>,
+) -> anyhow::Result<()> {
+    let request_url = env.join_api_url(&format!("c/{}/ms/purge-orphaned", collection_uid))?;
+    let request_body = serde_json::to_vec(&params.into())?;
+    let request = env.client().post(request_url).body(request_body);
+    let response = request.send().await?;
+    let response_body = receive_response_body(response).await?;
+    let outcome = serde_json::from_slice::<serde_json::Value>(&response_body)?;
+    log::debug!("Purging orphaned media sources finished: {:?}", outcome);
     Ok(())
 }
 

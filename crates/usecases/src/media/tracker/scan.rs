@@ -17,10 +17,7 @@ use std::{sync::atomic::AtomicBool, time::Duration};
 
 use url::Url;
 
-use aoide_core::{
-    entity::EntityUid,
-    util::{clock::DateTime, url::BaseUrl},
-};
+use aoide_core::{entity::EntityUid, util::clock::DateTime};
 
 use aoide_core_api::media::tracker::{
     scan::{Outcome, Summary},
@@ -38,7 +35,7 @@ use aoide_repo::{
     media::tracker::{DirUpdateOutcome, Repo as MediaTrackerRepo},
 };
 
-use crate::collection::resolve_collection_id_for_virtual_file_path;
+use crate::collection::vfs::RepoContext;
 
 use super::*;
 
@@ -93,26 +90,22 @@ pub fn visit_directories<
     report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,
 ) -> Result<Outcome> {
-    let (collection_id, source_path_resolver) =
-        resolve_collection_id_for_virtual_file_path(repo, collection_uid, None)?;
     let FsTraversalParams {
         root_url,
         max_depth,
     } = params;
-    let root_path_prefix = root_url
-        .as_ref()
-        .map(|url| resolve_path_prefix_from_base_url(&source_path_resolver, url))
-        .transpose()?
-        .unwrap_or_default();
-    let root_url = source_path_resolver
-        .resolve_url_from_path(&root_path_prefix)
-        .map_err(anyhow::Error::from)?;
-    let root_url = BaseUrl::new(root_url);
-    let root_path = source_path_resolver.build_file_path(&root_path_prefix);
+    let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
+    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.vfs {
+        vfs_ctx
+    } else {
+        return Err(anyhow::anyhow!("Not supported by non-VFS collections").into());
+    };
+    let collection_id = collection_ctx.record_id;
+    let root_file_path = vfs_ctx.build_root_file_path();
     let outdated_count = repo.media_tracker_mark_current_directories_outdated(
         DateTime::now_utc(),
         collection_id,
-        &root_path_prefix,
+        &vfs_ctx.root_path,
     )?;
     log::debug!(
         "Marked {} current cache entries as outdated",
@@ -120,17 +113,17 @@ pub fn visit_directories<
     );
     let mut summary = Summary::default();
     let completion = digest::hash_directories::<_, anyhow::Error, _, _, _>(
-        &root_path,
+        &root_file_path,
         *max_depth,
         abort_flag,
         &mut blake3::Hasher::new,
         &mut |dir_path, digest| {
             debug_assert!(dir_path.is_relative());
-            let full_path = root_path.join(&dir_path);
+            let full_path = root_file_path.join(&dir_path);
             debug_assert!(full_path.is_absolute());
             let url = Url::from_directory_path(&full_path).expect("URL");
-            debug_assert!(url.as_str().starts_with(root_url.as_str()));
-            let path = source_path_resolver.resolve_path_from_url(&url)?;
+            debug_assert!(url.as_str().starts_with(vfs_ctx.root_url.as_str()));
+            let path = vfs_ctx.source_path_resolver.resolve_path_from_url(&url)?;
             match repo
                 .media_tracker_update_directory_digest(
                     DateTime::now_utc(),
@@ -177,7 +170,7 @@ pub fn visit_directories<
                 summary.orphaned = repo.media_tracker_mark_outdated_directories_orphaned(
                     DateTime::now_utc(),
                     collection_id,
-                    &root_path_prefix,
+                    &vfs_ctx.root_path,
                 )?;
                 debug_assert!(summary.orphaned <= outdated_count);
                 Ok(Completion::Finished)
@@ -188,6 +181,10 @@ pub fn visit_directories<
             }
         }
     })?;
+    let root_url = collection_ctx
+        .vfs
+        .map(|vfs_context| vfs_context.root_url)
+        .unwrap();
     Ok(Outcome {
         root_url,
         completion,

@@ -87,7 +87,7 @@ impl From<_inner::Outcome> for Outcome {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Summary {
     untracked_directories: u64,
-    purged_media_sources: u64,
+    purged_sources: u64,
 }
 
 #[cfg(feature = "frontend")]
@@ -95,11 +95,11 @@ impl From<Summary> for _inner::Summary {
     fn from(from: Summary) -> Self {
         let Summary {
             untracked_directories,
-            purged_media_sources,
+            purged_sources,
         } = from;
         Self {
             untracked_directories: untracked_directories as usize,
-            purged_media_sources: purged_media_sources as usize,
+            purged_sources: purged_sources as usize,
         }
     }
 }
@@ -109,11 +109,11 @@ impl From<_inner::Summary> for Summary {
     fn from(from: _inner::Summary) -> Self {
         let _inner::Summary {
             untracked_directories,
-            purged_media_sources,
+            purged_sources,
         } = from;
         Self {
             untracked_directories: untracked_directories as u64,
-            purged_media_sources: purged_media_sources as u64,
+            purged_sources: purged_sources as u64,
         }
     }
 }

@@ -36,7 +36,7 @@ use aoide_repo::{
 };
 
 use crate::{
-    collection::resolve_collection_id_for_virtual_file_path,
+    collection::vfs::RepoContext,
     media::{import_track_from_file_path, ImportTrackFromFileOutcome, SyncStatus},
 };
 
@@ -166,10 +166,9 @@ where
         resolve_path_from_url,
         preserve_collected_at,
     } = params;
-    let (collection_id, virtual_file_path_resolver) = if *resolve_path_from_url {
-        let (collection_id, virtual_file_path_resolver) =
-            resolve_collection_id_for_virtual_file_path(repo, collection_uid, None)?;
-        (collection_id, Some(virtual_file_path_resolver))
+    let (collection_id, source_path_resolver) = if *resolve_path_from_url {
+        let RepoContext { record_id, vfs } = RepoContext::resolve(repo, collection_uid, None)?;
+        (record_id, vfs.map(|vfs| vfs.source_path_resolver))
     } else {
         let collection_id = repo.resolve_collection_id(collection_uid)?;
         (collection_id, None)
@@ -177,7 +176,7 @@ where
     let mut summary = Summary::default();
     for track in tracks {
         let ValidatedInput(mut track) = track;
-        if let Some(virtual_file_path_resolver) = virtual_file_path_resolver.as_ref() {
+        if let Some(source_path_resolver) = source_path_resolver.as_ref() {
             let url = track
                 .media_source
                 .path
@@ -190,7 +189,7 @@ where
                     )
                 })
                 .map_err(Error::from)?;
-            track.media_source.path = virtual_file_path_resolver
+            track.media_source.path = source_path_resolver
                 .resolve_path_from_url(&url)
                 .map_err(|err| {
                     anyhow::anyhow!(
@@ -337,8 +336,13 @@ pub fn import_and_replace_by_local_file_paths<Repo>(
 where
     Repo: CollectionRepo + EntityRepo,
 {
-    let (collection_id, source_path_resolver) =
-        resolve_collection_id_for_virtual_file_path(repo, collection_uid, None)?;
+    let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
+    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.vfs {
+        vfs_ctx
+    } else {
+        return Err(anyhow::anyhow!("Not supported by non-VFS collections").into());
+    };
+    let collection_id = collection_ctx.record_id;
     let mut summary = Summary::default();
     let mut media_source_ids =
         Vec::with_capacity(expected_source_path_count.unwrap_or(DEFAULT_MEDIA_SOURCE_COUNT));
@@ -356,7 +360,7 @@ where
             &mut media_source_ids,
             repo,
             collection_id,
-            &source_path_resolver,
+            &vfs_ctx.source_path_resolver,
             sync_mode,
             import_config,
             replace_mode,
@@ -384,12 +388,17 @@ pub fn import_and_replace_by_local_file_path_from_directory<Repo>(
 where
     Repo: CollectionRepo + EntityRepo,
 {
-    let (collection_id, source_path_resolver) =
-        resolve_collection_id_for_virtual_file_path(repo, collection_uid, None)?;
+    let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
+    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.vfs {
+        vfs_ctx
+    } else {
+        return Err(anyhow::anyhow!("Not supported by non-VFS collections").into());
+    };
+    let collection_id = collection_ctx.record_id;
     import_and_replace_by_local_file_path_from_directory_with_source_path_resolver(
         repo,
         collection_id,
-        &source_path_resolver,
+        &vfs_ctx.source_path_resolver,
         sync_mode,
         import_config,
         replace_mode,

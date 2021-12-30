@@ -20,8 +20,7 @@ use aoide_media::io::import::{load_embedded_artwork_image_from_file_path, Loaded
 use aoide_repo::collection::RecordId as CollectionId;
 
 use aoide_core::{entity::EntityUid, media::SourcePath};
-
-use uc::collection::resolve_collection_id_for_virtual_file_path;
+use uc::collection::vfs::RepoContext;
 
 use super::*;
 
@@ -30,12 +29,14 @@ pub fn resolve_file_path(
     collection_uid: &EntityUid,
     source_path: &SourcePath,
 ) -> Result<(CollectionId, PathBuf)> {
-    resolve_collection_id_for_virtual_file_path(db, collection_uid, None)
-        .map_err(Into::into)
-        .map(|(collection_id, source_path_resolver)| {
-            let file_path = source_path_resolver.build_file_path(source_path);
-            (collection_id, file_path)
-        })
+    let collection_ctx = RepoContext::resolve(db, collection_uid, None)?;
+    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.vfs {
+        vfs_ctx
+    } else {
+        return Err(anyhow::anyhow!("Not supported by non-VFS collections").into());
+    };
+    let file_path = vfs_ctx.source_path_resolver.build_file_path(source_path);
+    Ok((collection_ctx.record_id, file_path))
 }
 
 pub fn load_embedded_artwork_image(

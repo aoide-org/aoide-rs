@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+pub mod source;
 pub mod tracker;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]

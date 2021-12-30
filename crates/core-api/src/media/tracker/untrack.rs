@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use url::Url;
-
 use aoide_core::util::url::BaseUrl;
 
 use super::DirTrackingStatus;
@@ -32,6 +30,6 @@ pub struct Summary {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Outcome {
-    pub root_url: Url,
+    pub root_url: BaseUrl,
     pub summary: Summary,
 }

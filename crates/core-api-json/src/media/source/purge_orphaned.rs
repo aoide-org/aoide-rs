@@ -17,10 +17,8 @@ use url::Url;
 
 use crate::prelude::*;
 
-use super::DirTrackingStatus;
-
 mod _inner {
-    pub use aoide_core_api::media::tracker::{untrack::*, DirTrackingStatus};
+    pub use aoide_core_api::media::source::purge_orphaned::*;
 }
 
 #[derive(Debug)]
@@ -28,65 +26,39 @@ mod _inner {
 #[cfg_attr(feature = "backend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Params {
-    pub root_url: Url,
-
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub status: Option<DirTrackingStatus>,
+    pub root_url: Option<Url>,
 }
 
 #[cfg(feature = "frontend")]
 impl From<_inner::Params> for Params {
     fn from(from: _inner::Params) -> Self {
-        let _inner::Params { root_url, status } = from;
+        let _inner::Params { root_url } = from;
         Self {
-            root_url: root_url.into(),
-            status: status.map(Into::into),
+            root_url: root_url.map(Into::into),
         }
     }
 }
 
 #[derive(Debug)]
-#[cfg_attr(feature = "backend", derive(Serialize))]
 #[cfg_attr(feature = "frontend", derive(Deserialize))]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Summary {
-    pub untracked: usize,
-}
-
-#[cfg(feature = "frontend")]
-impl From<Summary> for _inner::Summary {
-    fn from(from: Summary) -> Self {
-        let Summary { untracked } = from;
-        Self { untracked }
-    }
-}
-
-#[cfg(feature = "backend")]
-impl From<_inner::Summary> for Summary {
-    fn from(from: _inner::Summary) -> Self {
-        let _inner::Summary { untracked } = from;
-        Self { untracked }
-    }
-}
-
-#[derive(Debug)]
 #[cfg_attr(feature = "backend", derive(Serialize))]
-#[cfg_attr(feature = "frontend", derive(Deserialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Outcome {
-    pub root_url: Url,
-    pub summary: Summary,
+    pub root_url: Option<Url>,
+    pub purged: u64,
 }
 
 #[cfg(feature = "frontend")]
 impl TryFrom<Outcome> for _inner::Outcome {
-    type Error = anyhow::Error;
+    type Error = aoide_core::util::url::BaseUrlError;
 
-    fn try_from(from: Outcome) -> std::result::Result<Self, Self::Error> {
-        let Outcome { root_url, summary } = from;
+    fn try_from(from: Outcome) -> Result<Self, Self::Error> {
+        let Outcome { root_url, purged } = from;
+        let root_url = root_url.map(TryInto::try_into).transpose()?;
         Ok(Self {
-            root_url: root_url.try_into()?,
-            summary: summary.into(),
+            root_url,
+            purged: purged as usize,
         })
     }
 }
@@ -94,10 +66,10 @@ impl TryFrom<Outcome> for _inner::Outcome {
 #[cfg(feature = "backend")]
 impl From<_inner::Outcome> for Outcome {
     fn from(from: _inner::Outcome) -> Self {
-        let _inner::Outcome { root_url, summary } = from;
+        let _inner::Outcome { root_url, purged } = from;
         Self {
-            root_url: root_url.into(),
-            summary: summary.into(),
+            root_url: root_url.map(Into::into),
+            purged: purged as u64,
         }
     }
 }

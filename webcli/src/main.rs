@@ -132,7 +132,7 @@ async fn main() -> anyhow::Result<()> {
                 )
                 .subcommand(
                     App::new("purge")
-                        .about("Purges all orphaned directories and untracked media sources (and the corresponding tracks)")
+                        .about("Purges all orphaned directories and both untracked or orphaned media sources (including the corresponding tracks if not orphaned)")
                         .arg(
                             Arg::with_name(MEDIA_ROOT_URL_PARAM)
                                 .help("The URL of the root directory containing tracked media files to be cleaned up")

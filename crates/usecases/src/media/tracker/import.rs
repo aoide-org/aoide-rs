@@ -19,7 +19,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use aoide_core::{entity::EntityUid, util::url::BaseUrl};
+use aoide_core::entity::EntityUid;
 
 use aoide_core_api::media::tracker::{
     import::{Outcome, Params, Summary},
@@ -36,7 +36,7 @@ use aoide_repo::{
 };
 
 use crate::{
-    collection::resolve_collection_id_for_virtual_file_path,
+    collection::vfs::RepoContext,
     track::replace::{
         import_and_replace_by_local_file_path_from_directory_with_source_path_resolver,
         Completion as ReplaceCompletion, Outcome as ReplaceOutcome,
@@ -62,22 +62,18 @@ pub fn import<
     report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,
 ) -> Result<Outcome> {
-    let (collection_id, source_path_resolver) =
-        resolve_collection_id_for_virtual_file_path(repo, collection_uid, None)?;
     let Params {
         root_url,
         sync_mode,
     } = params;
     let sync_mode = sync_mode.unwrap_or(SyncMode::Modified);
-    let root_path_prefix = root_url
-        .as_ref()
-        .map(|url| resolve_path_prefix_from_base_url(&source_path_resolver, url))
-        .transpose()?
-        .unwrap_or_default();
-    let root_url = source_path_resolver
-        .resolve_url_from_path(&root_path_prefix)
-        .map_err(anyhow::Error::from)?;
-    let root_url = BaseUrl::new(root_url);
+    let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
+    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.vfs {
+        vfs_ctx
+    } else {
+        return Err(anyhow::anyhow!("Not supported by non-VFS collections").into());
+    };
+    let collection_id = collection_ctx.record_id;
     let started_at = Instant::now();
     let mut summary = Summary::default();
     let outcome = 'outcome: loop {
@@ -87,7 +83,7 @@ pub fn import<
         });
         let pending_entries = repo.media_tracker_load_directories_requiring_confirmation(
             collection_id,
-            &root_path_prefix,
+            &vfs_ctx.root_path,
             &Pagination {
                 offset: Some(summary.directories.skipped as PaginationOffset),
                 limit: Some(1),
@@ -96,7 +92,7 @@ pub fn import<
         if pending_entries.is_empty() {
             log::debug!("Finished import of pending directories: {:?}", summary);
             let outcome = Outcome {
-                root_url,
+                root_url: collection_ctx.vfs.unwrap().root_url,
                 completion: Completion::Finished,
                 summary,
             };
@@ -106,7 +102,7 @@ pub fn import<
             if abort_flag.load(Ordering::Relaxed) {
                 log::debug!("Aborting import of pending directories: {:?}", summary);
                 let outcome = Outcome {
-                    root_url,
+                    root_url: collection_ctx.vfs.unwrap().root_url,
                     completion: Completion::Aborted,
                     summary,
                 };
@@ -122,7 +118,7 @@ pub fn import<
                 match import_and_replace_by_local_file_path_from_directory_with_source_path_resolver(
                     repo,
                     collection_id,
-                    &source_path_resolver,
+                    &vfs_ctx.source_path_resolver,
                     sync_mode,
                     config,
                     ReplaceMode::UpdateOrCreate,
@@ -161,7 +157,7 @@ pub fn import<
                 ReplaceCompletion::Aborted => {
                     log::debug!("Aborting import of pending directories: {:?}", summary);
                     let outcome = Outcome {
-                        root_url,
+                        root_url: collection_ctx.vfs.unwrap().root_url,
                         completion: Completion::Aborted,
                         summary,
                     };

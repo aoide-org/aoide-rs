@@ -15,9 +15,6 @@
 
 use super::*;
 
-use aoide_core::util::url::BaseUrl;
-use aoide_media::resolver::SourcePathResolver;
-
 pub mod find_untracked_files;
 pub mod import;
 pub mod purge_untracked_sources;
@@ -27,12 +24,3 @@ pub mod scan;
 pub mod untrack;
 
 pub use aoide_core_api::media::tracker::Progress;
-
-pub fn resolve_path_prefix_from_base_url(
-    source_path_resolver: &impl SourcePathResolver,
-    url_path_prefix: &BaseUrl,
-) -> Result<SourcePath> {
-    source_path_resolver
-        .resolve_path_from_url(url_path_prefix)
-        .map_err(|err| Error::Media(anyhow::format_err!("Invalid URL path prefix: {}", err).into()))
-}

@@ -87,4 +87,17 @@ pub trait Repo {
             StringPredicateBorrowed::Prefix(""),
         )
     }
+
+    fn purge_untracked_media_sources_by_path_predicate(
+        &self,
+        collection_id: CollectionId,
+        path_predicate: StringPredicateBorrowed<'_>,
+    ) -> RepoResult<usize>;
+
+    fn purge_untracked_media_sources(&self, collection_id: CollectionId) -> RepoResult<usize> {
+        self.purge_untracked_media_sources_by_path_predicate(
+            collection_id,
+            StringPredicateBorrowed::Prefix(""),
+        )
+    }
 }

@@ -17,47 +17,15 @@ use semval::Validate as _;
 
 use aoide_core::{
     collection::{Collection, Entity},
-    entity::{EntityHeader, EntityUid},
-    util::{clock::DateTime, url::BaseUrl},
+    entity::EntityHeader,
+    util::clock::DateTime,
 };
 
-use aoide_media::resolver::VirtualFilePathResolver;
-
-use aoide_repo::collection::{EntityRepo, RecordId as CollectionId};
+use aoide_repo::collection::EntityRepo;
 
 use super::*;
 
-pub fn load_virtual_file_path_resolver<Repo>(
-    repo: &Repo,
-    collection_id: CollectionId,
-    override_root_url: Option<BaseUrl>,
-) -> Result<VirtualFilePathResolver>
-where
-    Repo: EntityRepo,
-{
-    let (_, entity) = repo.load_collection_entity(collection_id)?;
-    let (path_kind, root_url) = entity.body.media_source_config.source_path.into();
-    let root_url = if let Some(root_url) = root_url {
-        root_url
-    } else {
-        return Err(anyhow::anyhow!("Unsupported media source path kind: {:?}", path_kind).into());
-    };
-    let resolver = VirtualFilePathResolver::with_root_url(override_root_url.unwrap_or(root_url));
-    Ok(resolver)
-}
-
-pub fn resolve_collection_id_for_virtual_file_path<Repo>(
-    repo: &Repo,
-    collection_uid: &EntityUid,
-    override_root_url: Option<BaseUrl>,
-) -> Result<(CollectionId, VirtualFilePathResolver)>
-where
-    Repo: EntityRepo,
-{
-    let collection_id = repo.resolve_collection_id(collection_uid)?;
-    let resolver = load_virtual_file_path_resolver(repo, collection_id, override_root_url)?;
-    Ok((collection_id, resolver))
-}
+pub mod vfs;
 
 #[derive(Debug)]
 pub struct ValidatedInput(Collection);

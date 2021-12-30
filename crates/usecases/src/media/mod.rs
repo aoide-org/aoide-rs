@@ -31,6 +31,7 @@ use aoide_media::{
 
 use super::*;
 
+pub mod source;
 pub mod tracker;
 
 #[derive(Debug, Clone, Eq, PartialEq)]

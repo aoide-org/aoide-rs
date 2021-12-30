@@ -14,34 +14,38 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core::entity::EntityUid;
-use aoide_core_api::media::tracker::{query_status::Params, Status};
+
+use aoide_core_api::media::source::purge_orphaned::{Outcome, Params};
 
 use aoide_repo::{
-    collection::EntityRepo as CollectionRepo, media::tracker::Repo as MediaTrackerRepo,
+    collection::EntityRepo as CollectionRepo, media::source::Repo as MediaSourceRepo,
+    track::EntityRepo,
 };
 
 use crate::collection::vfs::RepoContext;
 
 use super::*;
 
-pub fn query_status<Repo>(
+/// Purge orphaned media sources that don't belong to any track
+pub fn purge_orphaned_sources<Repo>(
     repo: &Repo,
     collection_uid: &EntityUid,
     params: &Params,
-) -> Result<Status>
+) -> Result<Outcome>
 where
-    Repo: CollectionRepo + MediaTrackerRepo,
+    Repo: CollectionRepo + EntityRepo + MediaSourceRepo,
 {
     let Params { root_url } = params;
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
-    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.vfs {
-        vfs_ctx
-    } else {
-        return Err(anyhow::anyhow!("Not supported by non-VFS collections").into());
-    };
     let collection_id = collection_ctx.record_id;
-    let directories = repo
-        .media_tracker_aggregate_directories_tracking_status(collection_id, &vfs_ctx.root_path)?;
-    let status = Status { directories };
-    Ok(status)
+    let root_path_prefix = collection_ctx.root_path_prefix_str(root_url.as_ref());
+    let purged = if let Some(root_path_prefix) = root_path_prefix {
+        let root_path_predicate = StringPredicateBorrowed::Prefix(root_path_prefix);
+        repo.purge_orphaned_media_sources_by_path_predicate(collection_id, root_path_predicate)
+    } else {
+        repo.purge_orphaned_media_sources(collection_id)
+    }?;
+    let root_url = collection_ctx.vfs.map(|vfs_context| vfs_context.root_url);
+    let outcome = Outcome { root_url, purged };
+    Ok(outcome)
 }

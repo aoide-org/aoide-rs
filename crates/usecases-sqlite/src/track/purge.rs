@@ -18,9 +18,7 @@ use aoide_repo::collection::EntityRepo as _;
 use super::*;
 
 mod uc {
-    pub use aoide_usecases::{
-        collection::resolve_collection_id_for_virtual_file_path, track::purge::*, Error,
-    };
+    pub use aoide_usecases::{track::purge::*, Error};
 }
 
 pub fn purge_by_media_source_path_predicates(

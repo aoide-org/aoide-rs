@@ -15,6 +15,7 @@
 
 use std::time::Instant;
 
+use aoide_core::entity::EntityUid;
 use aoide_core_api::track::search::*;
 
 use aoide_repo::{
@@ -22,7 +23,7 @@ use aoide_repo::{
     track::{EntityRepo, RecordHeader},
 };
 
-use crate::collection::load_virtual_file_path_resolver;
+use crate::collection::vfs::RepoContext;
 
 use super::*;
 
@@ -50,7 +51,7 @@ where
 
 pub fn search_with_params<Repo>(
     repo: &Repo,
-    collection_id: CollectionId,
+    collection_uid: &EntityUid,
     params: Params,
     pagination: &Pagination,
     collector: &mut impl ReservableRecordCollector<Header = RecordHeader, Record = Entity>,
@@ -65,11 +66,17 @@ where
         ordering,
     } = params;
     debug_assert!(resolve_url_from_path || override_root_url.is_none());
+    let _override_root_url_is_none = override_root_url.is_none();
+    let collection_ctx = RepoContext::resolve_ext(repo, collection_uid, None, override_root_url)?;
+    let collection_id = collection_ctx.record_id;
     if resolve_url_from_path {
-        let source_path_resolver =
-            load_virtual_file_path_resolver(repo, collection_id, override_root_url)?;
+        let vfs_ctx = if let Some(vfs_ctx) = collection_ctx.vfs {
+            vfs_ctx
+        } else {
+            return Err(anyhow::anyhow!("Not supported by non-VFS collections").into());
+        };
         let mut collector = ResolveUrlFromVirtualFilePathCollector {
-            source_path_resolver,
+            source_path_resolver: vfs_ctx.source_path_resolver,
             collector,
         };
         search(
@@ -83,7 +90,7 @@ where
     } else {
         // Providing a base URL without using it to resolve virtual file paths
         // does no harm but doesn't make any sense and is probably unintended.
-        debug_assert!(override_root_url.is_none());
+        debug_assert!(_override_root_url_is_none);
         search(repo, collection_id, pagination, filter, ordering, collector)
     }
     .map_err(Into::into)

@@ -16,6 +16,7 @@
 use crate::{
     db::{
         media_source::{models::*, schema::*, subselect},
+        media_tracker::schema::*,
         track::schema::*,
     },
     prelude::*,
@@ -130,6 +131,33 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
                 )
                 // Restrict to orphaned media sources without a track
                 .filter(media_source::row_id.ne_all(track::table.select(track::media_source_id))),
+        )
+        .execute(self.as_ref())
+        .map_err(repo_error)
+    }
+
+    fn purge_untracked_media_sources_by_path_predicate(
+        &self,
+        collection_id: CollectionId,
+        path_predicate: StringPredicateBorrowed<'_>,
+    ) -> RepoResult<usize> {
+        // Reuse the tested subselect with reliable predicate filtering
+        // even if it might be slightly less efficient! The query optimizer
+        // should detect this.
+        diesel::delete(
+            media_source::table
+                .filter(
+                    media_source::row_id.eq_any(subselect::filter_by_path_predicate(
+                        collection_id,
+                        path_predicate,
+                    )),
+                )
+                // Restrict to untracked media sources
+                .filter(
+                    media_source::row_id.ne_all(
+                        media_tracker_source::table.select(media_tracker_source::source_id),
+                    ),
+                ),
         )
         .execute(self.as_ref())
         .map_err(repo_error)

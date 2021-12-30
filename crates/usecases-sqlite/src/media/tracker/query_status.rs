@@ -21,7 +21,6 @@ use super::*;
 
 mod uc {
     pub use aoide_usecases::{
-        collection::resolve_collection_id_for_virtual_file_path,
         media::{
             tracker::{query_status::*, *},
             *,
@@ -37,11 +36,7 @@ pub fn query_status(
 ) -> Result<Status> {
     let db = RepoConnection::new(connection);
     db.transaction::<_, TransactionError, _>(|| {
-        let (collection_id, source_path_resolver) =
-            uc::resolve_collection_id_for_virtual_file_path(&db, collection_uid, None)
-                .map_err(transaction_error)?;
-        uc::query_status(&db, collection_id, &source_path_resolver, params)
-            .map_err(transaction_error)
+        uc::query_status(&db, collection_uid, params).map_err(transaction_error)
     })
     .map_err(Into::into)
 }
