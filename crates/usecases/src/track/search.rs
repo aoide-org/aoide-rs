@@ -70,13 +70,17 @@ where
     let collection_ctx = RepoContext::resolve_ext(repo, collection_uid, None, override_root_url)?;
     let collection_id = collection_ctx.record_id;
     if resolve_url_from_path {
-        let vfs_ctx = if let Some(vfs_ctx) = collection_ctx.vfs {
+        let vfs_ctx = if let Some(vfs_ctx) = collection_ctx.source_path.vfs {
             vfs_ctx
         } else {
-            return Err(anyhow::anyhow!("Not supported by non-VFS collections").into());
+            return Err(anyhow::anyhow!(
+                "Unsupported path kind: {:?}",
+                collection_ctx.source_path.kind
+            )
+            .into());
         };
         let mut collector = ResolveUrlFromVirtualFilePathCollector {
-            source_path_resolver: vfs_ctx.source_path_resolver,
+            source_path_resolver: vfs_ctx.path_resolver,
             collector,
         };
         search(

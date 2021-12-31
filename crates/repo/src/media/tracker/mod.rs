@@ -79,7 +79,7 @@ pub trait Repo {
         digest: &DigestBytes,
     ) -> RepoResult<DirUpdateOutcome>;
 
-    fn media_tracker_untrack(
+    fn media_tracker_untrack_directories(
         &self,
         collection_id: CollectionId,
         path_prefix: &SourcePath,
@@ -100,7 +100,7 @@ pub trait Repo {
         collection_id: CollectionId,
         path_prefix: &SourcePath,
     ) -> RepoResult<usize> {
-        self.media_tracker_untrack(
+        self.media_tracker_untrack_directories(
             collection_id,
             path_prefix,
             Some(DirTrackingStatus::Orphaned),

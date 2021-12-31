@@ -16,27 +16,41 @@
 use std::sync::atomic::AtomicBool;
 
 use aoide_core::entity::EntityUid;
-use aoide_usecases::media::tracker::relink as uc;
+use aoide_core_api::media::tracker::import_files::Params;
+use aoide_media::io::import::ImportTrackConfig;
+use aoide_storage_sqlite::analyze_and_optimize_database_stats;
 
 use super::*;
 
-pub fn relink_tracks_with_untracked_media_sources<ReportProgressFn: FnMut(&uc::Progress)>(
+mod uc {
+    pub use aoide_core_api::media::tracker::import_files::*;
+    pub use aoide_usecases::media::{
+        tracker::{import_files::*, *},
+        *,
+    };
+}
+
+pub fn import_files<ReportProgressFn: FnMut(uc::ProgressEvent)>(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    find_candidate_params: uc::FindCandidateParams,
+    params: &Params,
+    import_config: &ImportTrackConfig,
     report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,
-) -> Result<Vec<uc::RelocatedMediaSource>> {
+) -> Result<uc::Outcome> {
     let db = RepoConnection::new(connection);
-    db.transaction::<_, RepoTransactionError, _>(|| {
-        uc::relink_tracks_with_untracked_media_sources(
+    let outcome = db.transaction::<_, TransactionError, _>(|| {
+        uc::import_files(
             &db,
             collection_uid,
-            find_candidate_params,
+            params,
+            import_config,
             report_progress_fn,
             abort_flag,
         )
-        .map_err(Into::into)
-    })
-    .map_err(Into::into)
+        .map_err(transaction_error)
+    })?;
+    log::info!("Analyzing and optimizing database after import finished");
+    analyze_and_optimize_database_stats(&db)?;
+    Ok(outcome)
 }

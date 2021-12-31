@@ -20,7 +20,7 @@ use crate::prelude::*;
 use super::Completion;
 
 mod _core {
-    pub use aoide_core_api::media::tracker::scan::*;
+    pub use aoide_core_api::media::tracker::scan_directories::*;
 }
 
 #[derive(Debug)]

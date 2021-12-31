@@ -13,30 +13,22 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::sync::atomic::AtomicBool;
-
-use aoide_core::entity::EntityUid;
-use aoide_usecases::media::tracker::relink as uc;
+use aoide_core_api::media::source::purge_orphaned::{Outcome, Params};
 
 use super::*;
 
-pub fn relink_tracks_with_untracked_media_sources<ReportProgressFn: FnMut(&uc::Progress)>(
+mod uc {
+    pub use aoide_usecases::media::source::purge_orphaned::purge_orphaned;
+}
+
+pub fn purge_orphaned(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    find_candidate_params: uc::FindCandidateParams,
-    report_progress_fn: &mut ReportProgressFn,
-    abort_flag: &AtomicBool,
-) -> Result<Vec<uc::RelocatedMediaSource>> {
+    params: &Params,
+) -> Result<Outcome> {
     let db = RepoConnection::new(connection);
-    db.transaction::<_, RepoTransactionError, _>(|| {
-        uc::relink_tracks_with_untracked_media_sources(
-            &db,
-            collection_uid,
-            find_candidate_params,
-            report_progress_fn,
-            abort_flag,
-        )
-        .map_err(Into::into)
+    db.transaction::<_, TransactionError, _>(|| {
+        uc::purge_orphaned(&db, collection_uid, params).map_err(transaction_error)
     })
     .map_err(Into::into)
 }

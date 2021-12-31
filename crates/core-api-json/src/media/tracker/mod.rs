@@ -15,6 +15,9 @@
 
 use url::Url;
 
+#[cfg(feature = "backend")]
+use aoide_core::util::url::{BaseUrl, BaseUrlError};
+
 use crate::prelude::*;
 
 mod _core {
@@ -22,11 +25,10 @@ mod _core {
 }
 
 pub mod find_untracked_files;
-pub mod import;
-pub mod purge_untracked_sources;
+pub mod import_files;
 pub mod query_status;
-pub mod scan;
-pub mod untrack;
+pub mod scan_directories;
+pub mod untrack_directories;
 
 #[derive(Debug)]
 #[cfg_attr(feature = "frontend", derive(Serialize))]
@@ -51,6 +53,23 @@ impl From<_core::FsTraversalParams> for FsTraversalParams {
             root_url: root_url.map(Into::into),
             max_depth,
         }
+    }
+}
+
+#[cfg(feature = "backend")]
+impl TryFrom<FsTraversalParams> for _core::FsTraversalParams {
+    type Error = BaseUrlError;
+
+    fn try_from(from: FsTraversalParams) -> Result<Self, Self::Error> {
+        let FsTraversalParams {
+            root_url,
+            max_depth,
+        } = from;
+        let root_url = root_url.map(BaseUrl::try_autocomplete_from).transpose()?;
+        Ok(Self {
+            root_url,
+            max_depth,
+        })
     }
 }
 
@@ -177,7 +196,7 @@ impl From<_core::FsTraversalDirectoriesProgress> for FsTraversalDirectoriesProgr
     }
 }
 
-pub type ImportingProgress = import::Summary;
+pub type ImportingProgress = import_files::Summary;
 
 #[derive(Debug)]
 #[cfg_attr(feature = "backend", derive(Serialize))]

@@ -22,7 +22,7 @@ use std::{
 use aoide_core::entity::EntityUid;
 
 use aoide_core_api::media::tracker::{
-    import::{Outcome, Params, Summary},
+    import_files::{Outcome, Params, Summary},
     Completion,
 };
 
@@ -51,7 +51,7 @@ pub struct ProgressEvent {
     pub summary: Summary,
 }
 
-pub fn import<
+pub fn import_files<
     Repo: CollectionRepo + MediaTrackerRepo + TrackRepo,
     ReportProgressFn: FnMut(ProgressEvent),
 >(
@@ -68,10 +68,14 @@ pub fn import<
     } = params;
     let sync_mode = sync_mode.unwrap_or(SyncMode::Modified);
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
-    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.vfs {
+    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.source_path.vfs {
         vfs_ctx
     } else {
-        return Err(anyhow::anyhow!("Not supported by non-VFS collections").into());
+        return Err(anyhow::anyhow!(
+            "Unsupported path kind: {:?}",
+            collection_ctx.source_path.kind
+        )
+        .into());
     };
     let collection_id = collection_ctx.record_id;
     let started_at = Instant::now();
@@ -92,7 +96,7 @@ pub fn import<
         if pending_entries.is_empty() {
             log::debug!("Finished import of pending directories: {:?}", summary);
             let outcome = Outcome {
-                root_url: collection_ctx.vfs.unwrap().root_url,
+                root_url: collection_ctx.source_path.vfs.unwrap().root_url,
                 completion: Completion::Finished,
                 summary,
             };
@@ -102,7 +106,7 @@ pub fn import<
             if abort_flag.load(Ordering::Relaxed) {
                 log::debug!("Aborting import of pending directories: {:?}", summary);
                 let outcome = Outcome {
-                    root_url: collection_ctx.vfs.unwrap().root_url,
+                    root_url: collection_ctx.source_path.vfs.unwrap().root_url,
                     completion: Completion::Aborted,
                     summary,
                 };
@@ -118,7 +122,7 @@ pub fn import<
                 match import_and_replace_by_local_file_path_from_directory_with_source_path_resolver(
                     repo,
                     collection_id,
-                    &vfs_ctx.source_path_resolver,
+                    &vfs_ctx.path_resolver,
                     sync_mode,
                     config,
                     ReplaceMode::UpdateOrCreate,
@@ -130,8 +134,12 @@ pub fn import<
                         let err = if let Error::Io(io_err) = err {
                             if io_err.kind() == io::ErrorKind::NotFound {
                                 log::info!("Untracking missing directory '{}'", dir_path);
-                                summary.directories.untracked +=
-                                    repo.media_tracker_untrack(collection_id, &dir_path, None)?;
+                                summary.directories.untracked += repo
+                                    .media_tracker_untrack_directories(
+                                        collection_id,
+                                        &dir_path,
+                                        None,
+                                    )?;
                                 continue;
                             }
                             // Restore error
@@ -157,7 +165,7 @@ pub fn import<
                 ReplaceCompletion::Aborted => {
                     log::debug!("Aborting import of pending directories: {:?}", summary);
                     let outcome = Outcome {
-                        root_url: collection_ctx.vfs.unwrap().root_url,
+                        root_url: collection_ctx.source_path.vfs.unwrap().root_url,
                         completion: Completion::Aborted,
                         summary,
                     };

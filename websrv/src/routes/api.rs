@@ -27,8 +27,8 @@ use aoide_storage_sqlite::{
 
 use aoide_usecases::media::tracker::{
     find_untracked_files::ProgressEvent as FindUntrackedProgressEvent,
-    import::ProgressEvent as ImportProgressEvent, scan::ProgressEvent as ScanProgressEvent,
-    Progress as MediaTrackerProgress,
+    import_files::ProgressEvent as ImportProgressEvent,
+    scan_directories::ProgressEvent as ScanProgressEvent, Progress as MediaTrackerProgress,
 };
 
 use aoide_websrv_api as webapi;
@@ -165,32 +165,6 @@ pub fn create_filters(
         .or(collections_update)
         .or(collections_delete);
 
-    let collected_media_sources_relocate = warp::post()
-        .and(collections_path)
-        .and(path_param_uid)
-        .and(warp::path("relocate-media-sources"))
-        .and(warp::path::end())
-        .and(warp::body::json())
-        .and(shared_connection_gatekeeper.clone())
-        .and_then(
-            move |uid,
-                  request_body,
-                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
-                webapi::spawn_blocking_read_task(
-                    &shared_connection_gatekeeper,
-                    move |pooled_connection, _abort_flag| {
-                        uc_json::media::relocate_collected_sources::handle_request(
-                            &*pooled_connection,
-                            &uid,
-                            request_body,
-                        )
-                    },
-                )
-                .await
-                .map(|response_body| warp::reply::json(&response_body))
-            },
-        );
-
     async fn reply_media_tracker_progress(
         media_tracker_progress: Arc<Mutex<MediaTrackerProgress>>,
     ) -> Result<impl warp::Reply, Infallible> {
@@ -240,7 +214,7 @@ pub fn create_filters(
         .and(collections_path)
         .and(path_param_uid)
         .and(media_tracker_path)
-        .and(warp::path("scan"))
+        .and(warp::path("scan-directories"))
         .and(warp::path::end())
         .and(warp::body::json())
         .and(shared_connection_gatekeeper.clone())
@@ -272,7 +246,7 @@ pub fn create_filters(
                 let response = webapi::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, abort_flag| {
-                        uc_json::media::tracker::scan::handle_request(
+                        uc_json::media::tracker::scan_directories::handle_request(
                             &*pooled_connection,
                             &uid,
                             request_body,
@@ -302,7 +276,7 @@ pub fn create_filters(
         .and(collections_path)
         .and(path_param_uid)
         .and(media_tracker_path)
-        .and(warp::path("import"))
+        .and(warp::path("import-files"))
         .and(warp::path::end())
         .and(warp::body::json())
         .and(shared_connection_gatekeeper.clone())
@@ -334,7 +308,7 @@ pub fn create_filters(
                 let response = webapi::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, abort_flag| {
-                        uc_json::media::tracker::import::handle_request(
+                        uc_json::media::tracker::import_files::handle_request(
                             &*pooled_connection,
                             &uid,
                             request_body,
@@ -364,7 +338,7 @@ pub fn create_filters(
         .and(collections_path)
         .and(path_param_uid)
         .and(media_tracker_path)
-        .and(warp::path("untrack"))
+        .and(warp::path("untrack-directories"))
         .and(warp::path::end())
         .and(warp::body::json())
         .and(shared_connection_gatekeeper.clone())
@@ -375,7 +349,7 @@ pub fn create_filters(
                 webapi::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
-                        uc_json::media::tracker::untrack::handle_request(
+                        uc_json::media::tracker::untrack_directories::handle_request(
                             &*pooled_connection,
                             &uid,
                             request_body,
@@ -448,11 +422,19 @@ pub fn create_filters(
                 response.map(|response_body| warp::reply::json(&response_body))
             },
         );
-    let media_tracker_post_collection_purge_untracked_sources = warp::post()
+    let media_tracker_filters = media_tracker_get_progress
+        .or(media_tracker_post_collection_scan)
+        .or(media_tracker_post_collection_import)
+        .or(media_tracker_post_collection_untrack)
+        .or(media_tracker_post_collection_find_untracked_files)
+        .or(media_tracker_post_collection_query_status);
+
+    // TODO: Add OpenAPI docs for all collected media source requests
+    let collected_media_sources_relocate = warp::post()
         .and(collections_path)
         .and(path_param_uid)
-        .and(media_tracker_path)
-        .and(warp::path("purge-untracked-sources"))
+        .and(media_source_path)
+        .and(warp::path("relocate"))
         .and(warp::path::end())
         .and(warp::body::json())
         .and(shared_connection_gatekeeper.clone())
@@ -463,7 +445,7 @@ pub fn create_filters(
                 webapi::spawn_blocking_write_task(
                     &shared_connection_gatekeeper,
                     move |pooled_connection, _abort_flag| {
-                        uc_json::media::tracker::purge_untracked_sources::handle_request(
+                        uc_json::media::source::relocate::handle_request(
                             &*pooled_connection,
                             &uid,
                             request_body,
@@ -474,13 +456,61 @@ pub fn create_filters(
                 .map(|response_body| warp::reply::json(&response_body))
             },
         );
-    let media_tracker_filters = media_tracker_get_progress
-        .or(media_tracker_post_collection_scan)
-        .or(media_tracker_post_collection_import)
-        .or(media_tracker_post_collection_untrack)
-        .or(media_tracker_post_collection_find_untracked_files)
-        .or(media_tracker_post_collection_purge_untracked_sources)
-        .or(media_tracker_post_collection_query_status);
+    let collected_media_sources_purge_orphaned = warp::post()
+        .and(collections_path)
+        .and(path_param_uid)
+        .and(media_source_path)
+        .and(warp::path("purge-orphaned"))
+        .and(warp::path::end())
+        .and(warp::body::json())
+        .and(shared_connection_gatekeeper.clone())
+        .and_then(
+            move |uid,
+                  request_body,
+                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                webapi::spawn_blocking_write_task(
+                    &shared_connection_gatekeeper,
+                    move |pooled_connection, _abort_flag| {
+                        uc_json::media::source::purge_orphaned::handle_request(
+                            &*pooled_connection,
+                            &uid,
+                            request_body,
+                        )
+                    },
+                )
+                .await
+                .map(|response_body| warp::reply::json(&response_body))
+            },
+        );
+    let collected_media_sources_purge_untracked = warp::post()
+        .and(collections_path)
+        .and(path_param_uid)
+        .and(media_source_path)
+        .and(warp::path("purge-untracked"))
+        .and(warp::path::end())
+        .and(warp::body::json())
+        .and(shared_connection_gatekeeper.clone())
+        .and_then(
+            move |uid,
+                  request_body,
+                  shared_connection_gatekeeper: Arc<DatabaseConnectionGatekeeper>| async move {
+                webapi::spawn_blocking_write_task(
+                    &shared_connection_gatekeeper,
+                    move |pooled_connection, _abort_flag| {
+                        uc_json::media::source::purge_untracked::handle_request(
+                            &*pooled_connection,
+                            &uid,
+                            request_body,
+                        )
+                    },
+                )
+                .await
+                .map(|response_body| warp::reply::json(&response_body))
+            },
+        );
+    let collected_media_sources_filters = collected_media_sources_relocate
+        .or(collected_media_sources_purge_orphaned)
+        .or(collected_media_sources_purge_untracked);
 
     let collected_tracks_resolve = warp::post()
         .and(collections_path)
@@ -794,21 +824,6 @@ pub fn create_filters(
         .or(playlists_delete)
         .or(playlists_entries_patch);
 
-    let media_import_track = warp::post()
-        .and(media_source_path)
-        .and(warp::path("import-track"))
-        .and(warp::path::end())
-        .and(warp::query())
-        .and_then(|query_params| async move {
-            webapi::after_blocking_task_finished(
-                tokio::task::spawn_blocking(move || {
-                    uc_json::media::import_track::handle_request(query_params)
-                })
-                .await,
-            )
-            .map(|response_body| warp::reply::json(&response_body))
-        });
-
     // Storage
     let storage_get_pending_tasks = warp::get()
         .and(storage_path)
@@ -881,11 +896,10 @@ pub fn create_filters(
 
     collected_tracks_filters
         .or(collected_playlists_filters)
+        .or(collected_media_sources_filters)
         .or(collections_filters)
         .or(tracks_filters)
         .or(playlists_filters)
-        .or(media_import_track)
-        .or(collected_media_sources_relocate)
         .or(media_tracker_filters)
         .or(storage_filters)
         .boxed()

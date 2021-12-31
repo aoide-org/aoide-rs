@@ -15,12 +15,15 @@
 
 use url::Url;
 
+#[cfg(feature = "backend")]
+use aoide_core::util::url::{BaseUrl, BaseUrlError};
+
 use crate::{media::SyncMode, prelude::*};
 
 use super::Completion;
 
 mod _inner {
-    pub use aoide_core_api::media::tracker::import::*;
+    pub use aoide_core_api::media::tracker::import_files::*;
 }
 
 #[derive(Debug)]
@@ -46,6 +49,23 @@ impl From<_inner::Params> for Params {
             root_url: root_url.map(Into::into),
             sync_mode: sync_mode.map(Into::into),
         }
+    }
+}
+
+#[cfg(feature = "backend")]
+impl TryFrom<Params> for _inner::Params {
+    type Error = BaseUrlError;
+
+    fn try_from(from: Params) -> Result<Self, Self::Error> {
+        let Params {
+            root_url,
+            sync_mode,
+        } = from;
+        let root_url = root_url.map(BaseUrl::try_autocomplete_from).transpose()?;
+        Ok(Self {
+            root_url,
+            sync_mode: sync_mode.map(Into::into),
+        })
     }
 }
 

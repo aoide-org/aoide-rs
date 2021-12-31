@@ -57,12 +57,13 @@ pub fn handle_request(
         flags,
     };
     let path_resolver = VirtualFilePathResolver::new();
-    let media_source_synchronized_at = uc::export_metadata_into_file(
+    uc::export_metadata_into_file(
         connection,
         track_uid,
         &path_resolver,
         &config,
         update_source_synchronized_at,
-    )?;
-    Ok(media_source_synchronized_at.map(Into::into))
+    )
+    .map(|ok| ok.map(Into::into))
+    .map_err(Into::into)
 }

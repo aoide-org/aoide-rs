@@ -16,11 +16,10 @@
 use super::*;
 
 pub mod find_untracked_files;
-pub mod import;
-pub mod purge_untracked_sources;
+pub mod import_files;
 pub mod query_status;
-pub mod scan;
-pub mod untrack;
+pub mod scan_directories;
+pub mod untrack_directories;
 
 mod uc {
     pub use aoide_core_api::media::tracker::*;

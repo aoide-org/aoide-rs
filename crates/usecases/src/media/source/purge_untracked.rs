@@ -15,10 +15,7 @@
 
 use aoide_core::entity::EntityUid;
 
-use aoide_core_api::media::tracker::{
-    purge_untracked_sources::{Outcome, Params, Summary},
-    DirTrackingStatus,
-};
+use aoide_core_api::media::source::purge_untracked::{Outcome, Params};
 
 use aoide_repo::{
     collection::EntityRepo as CollectionRepo,
@@ -30,7 +27,7 @@ use crate::collection::vfs::RepoContext;
 
 use super::*;
 
-pub fn purge_untracked_sources<Repo>(
+pub fn purge_untracked<Repo>(
     repo: &Repo,
     collection_uid: &EntityUid,
     params: &Params,
@@ -38,36 +35,30 @@ pub fn purge_untracked_sources<Repo>(
 where
     Repo: CollectionRepo + EntityRepo + MediaSourceRepo + MediaTrackerRepo,
 {
-    let Params {
-        root_url,
-        untrack_orphaned_directories,
-    } = params;
+    let Params { root_url } = params;
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
-    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.vfs {
+    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.source_path.vfs {
         vfs_ctx
     } else {
-        return Err(anyhow::anyhow!("Not supported by non-VFS collections").into());
+        return Err(anyhow::anyhow!(
+            "Unsupported path kind: {:?}",
+            collection_ctx.source_path.kind
+        )
+        .into());
     };
     let collection_id = collection_ctx.record_id;
-    let mut summary = Summary::default();
-    if untrack_orphaned_directories.unwrap_or(false) {
-        summary.untracked_directories += repo.media_tracker_untrack(
-            collection_id,
-            &vfs_ctx.root_path,
-            Some(DirTrackingStatus::Orphaned),
-        )?;
-    };
     // Purge orphaned media sources that don't belong to any track
-    summary.purged_sources += if vfs_ctx.root_path.is_empty() {
+    let purged = if vfs_ctx.root_path.is_empty() {
         repo.purge_untracked_media_sources(collection_id)
     } else {
         let root_path_predicate = StringPredicateBorrowed::Prefix(&vfs_ctx.root_path);
         repo.purge_untracked_media_sources_by_path_predicate(collection_id, root_path_predicate)
     }?;
     let root_url = collection_ctx
+        .source_path
         .vfs
         .map(|vfs_context| vfs_context.root_url)
         .unwrap();
-    let outcome = Outcome { root_url, summary };
+    let outcome = Outcome { root_url, purged };
     Ok(outcome)
 }

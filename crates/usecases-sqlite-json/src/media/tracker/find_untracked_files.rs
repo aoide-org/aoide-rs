@@ -15,7 +15,7 @@
 
 use std::sync::atomic::AtomicBool;
 
-use aoide_core::{entity::EntityUid, util::url::BaseUrl};
+use aoide_core::entity::EntityUid;
 
 use super::*;
 
@@ -46,20 +46,10 @@ pub fn handle_request<ReportProgressFn: FnMut(uc::ProgressEvent)>(
     report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,
 ) -> Result<ResponseBody> {
-    let RequestBody {
-        root_url,
-        max_depth,
-    } = request_body;
-    let root_url = root_url
-        .map(BaseUrl::try_autocomplete_from)
-        .transpose()
-        .map_err(anyhow::Error::from)
-        .map_err(Error::BadRequest)?
-        .map(Into::into);
-    let params = aoide_core_api::media::tracker::FsTraversalParams {
-        root_url,
-        max_depth,
-    };
+    let params = request_body
+        .try_into()
+        .map_err(Into::into)
+        .map_err(Error::BadRequest)?;
     uc::visit_directories(
         connection,
         collection_uid,

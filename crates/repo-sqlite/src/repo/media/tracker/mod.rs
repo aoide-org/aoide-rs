@@ -68,7 +68,7 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         query.execute(self.as_ref()).map_err(repo_error)
     }
 
-    fn media_tracker_untrack(
+    fn media_tracker_untrack_directories(
         &self,
         collection_id: CollectionId,
         path_prefix: &SourcePath,

@@ -14,8 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core_api::media::tracker::{
-    find_untracked_files::Outcome as FindUntrackedOutcome, import::Outcome as ImportOutcome,
-    scan::Outcome as ScanOutcome, untrack::Outcome as UntrackOutcome, Progress, Status,
+    find_untracked_files::Outcome as FindUntrackedFilesOutcome,
+    import_files::Outcome as ImportFilesOutcome,
+    scan_directories::Outcome as ScanDirectoriesOutcome,
+    untrack_directories::Outcome as UntrackDirectoriesOutcome, Progress, Status,
 };
 
 use crate::prelude::remote::RemoteData;
@@ -36,11 +38,11 @@ impl Default for ControlState {
 pub struct RemoteView {
     pub(super) status: RemoteData<Status>,
     pub(super) progress: RemoteData<Progress>,
-    pub(super) last_scan_outcome: RemoteData<ScanOutcome>,
-    pub(super) last_import_outcome: RemoteData<ImportOutcome>,
-    pub(super) last_untrack_outcome: RemoteData<UntrackOutcome>,
-    pub(super) last_purge_outcome: RemoteData<()>,
-    pub(super) last_find_untracked_files_outcome: RemoteData<FindUntrackedOutcome>,
+    pub(super) last_scan_directories_outcome: RemoteData<ScanDirectoriesOutcome>,
+    pub(super) last_untrack_directories_outcome: RemoteData<UntrackDirectoriesOutcome>,
+    pub(super) last_import_files_outcome: RemoteData<ImportFilesOutcome>,
+    pub(super) last_find_untracked_files_outcome: RemoteData<FindUntrackedFilesOutcome>,
+    pub(super) last_purge_orphaned_and_untracked_outcome: RemoteData<()>,
 }
 
 impl RemoteView {
@@ -52,20 +54,24 @@ impl RemoteView {
         &self.progress
     }
 
-    pub fn last_scan_outcome(&self) -> &RemoteData<ScanOutcome> {
-        &self.last_scan_outcome
+    pub fn last_scan_directories_outcome(&self) -> &RemoteData<ScanDirectoriesOutcome> {
+        &self.last_scan_directories_outcome
     }
 
-    pub fn last_import_outcome(&self) -> &RemoteData<ImportOutcome> {
-        &self.last_import_outcome
+    pub fn last_untrack_directories_outcome(&self) -> &RemoteData<UntrackDirectoriesOutcome> {
+        &self.last_untrack_directories_outcome
     }
 
-    pub fn last_untrack_outcome(&self) -> &RemoteData<UntrackOutcome> {
-        &self.last_untrack_outcome
+    pub fn last_import_files_outcome(&self) -> &RemoteData<ImportFilesOutcome> {
+        &self.last_import_files_outcome
     }
 
-    pub fn last_find_untracked_files_outcome(&self) -> &RemoteData<FindUntrackedOutcome> {
+    pub fn last_find_untracked_files_outcome(&self) -> &RemoteData<FindUntrackedFilesOutcome> {
         &self.last_find_untracked_files_outcome
+    }
+
+    pub fn last_purge_orphaned_and_untracked_outcome(&self) -> &RemoteData<()> {
+        &self.last_purge_orphaned_and_untracked_outcome
     }
 }
 

@@ -13,30 +13,28 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::sync::atomic::AtomicBool;
+use aoide_core::{entity::EntityUid, media::SourcePath, util::clock::DateTime};
 
-use aoide_core::entity::EntityUid;
-use aoide_usecases::media::tracker::relink as uc;
+use aoide_repo::{collection::EntityRepo as _, media::source::Repo as _};
 
 use super::*;
 
-pub fn relink_tracks_with_untracked_media_sources<ReportProgressFn: FnMut(&uc::Progress)>(
+pub fn relocate(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    find_candidate_params: uc::FindCandidateParams,
-    report_progress_fn: &mut ReportProgressFn,
-    abort_flag: &AtomicBool,
-) -> Result<Vec<uc::RelocatedMediaSource>> {
+    old_path_prefix: &SourcePath,
+    new_path_prefix: &SourcePath,
+) -> Result<usize> {
     let db = RepoConnection::new(connection);
     db.transaction::<_, RepoTransactionError, _>(|| {
-        uc::relink_tracks_with_untracked_media_sources(
-            &db,
-            collection_uid,
-            find_candidate_params,
-            report_progress_fn,
-            abort_flag,
-        )
-        .map_err(Into::into)
+        let collection_id = db.resolve_collection_id(collection_uid)?;
+        let updated_at = DateTime::now_utc();
+        Ok(db.relocate_media_sources_by_path_prefix(
+            updated_at,
+            collection_id,
+            old_path_prefix,
+            new_path_prefix,
+        )?)
     })
     .map_err(Into::into)
 }

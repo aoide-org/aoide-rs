@@ -15,42 +15,27 @@
 
 use std::sync::atomic::AtomicBool;
 
-use aoide_core_api::media::tracker::import::Params;
-
-use aoide_media::io::import::ImportTrackConfig;
-use aoide_storage_sqlite::analyze_and_optimize_database_stats;
+use aoide_core::entity::EntityUid;
+use aoide_core_api::media::tracker::{scan_directories::Outcome, FsTraversalParams};
 
 use super::*;
 
 mod uc {
-    pub use aoide_core_api::media::tracker::import::*;
-    pub use aoide_usecases::media::{
-        tracker::{import::*, *},
-        *,
-    };
+    pub use aoide_core_api::media::tracker::scan_directories::*;
+    pub use aoide_usecases::{media::tracker::scan_directories::*, Error};
 }
 
-pub fn import<ReportProgressFn: FnMut(uc::ProgressEvent)>(
+pub fn scan_directories<ReportProgressFn: FnMut(uc::ProgressEvent)>(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    params: &Params,
-    import_config: &ImportTrackConfig,
+    params: &FsTraversalParams,
     report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,
-) -> Result<uc::Outcome> {
+) -> Result<Outcome> {
     let db = RepoConnection::new(connection);
-    let outcome = db.transaction::<_, TransactionError, _>(|| {
-        uc::import(
-            &db,
-            collection_uid,
-            params,
-            import_config,
-            report_progress_fn,
-            abort_flag,
-        )
-        .map_err(transaction_error)
-    })?;
-    log::info!("Analyzing and optimizing database after import finished");
-    analyze_and_optimize_database_stats(&db)?;
-    Ok(outcome)
+    db.transaction::<_, TransactionError, _>(|| {
+        uc::scan_directories(&db, collection_uid, params, report_progress_fn, abort_flag)
+            .map_err(transaction_error)
+    })
+    .map_err(Into::into)
 }

@@ -15,6 +15,9 @@
 
 use url::Url;
 
+#[cfg(feature = "backend")]
+use aoide_core::util::url::{BaseUrl, BaseUrlError};
+
 use crate::prelude::*;
 
 mod _inner {
@@ -37,5 +40,16 @@ impl From<_inner::Params> for Params {
         Self {
             root_url: root_url.map(Into::into),
         }
+    }
+}
+
+#[cfg(feature = "backend")]
+impl TryFrom<Params> for _inner::Params {
+    type Error = BaseUrlError;
+
+    fn try_from(from: Params) -> Result<Self, Self::Error> {
+        let Params { root_url } = from;
+        let root_url = root_url.map(BaseUrl::try_autocomplete_from).transpose()?;
+        Ok(Self { root_url })
     }
 }

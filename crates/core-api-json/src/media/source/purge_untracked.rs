@@ -15,10 +15,13 @@
 
 use url::Url;
 
+#[cfg(feature = "backend")]
+use aoide_core::util::url::{BaseUrl, BaseUrlError};
+
 use crate::prelude::*;
 
 mod _inner {
-    pub use aoide_core_api::media::tracker::purge_untracked_sources::*;
+    pub use aoide_core_api::media::source::purge_untracked::*;
 }
 
 #[derive(Debug)]
@@ -28,22 +31,26 @@ mod _inner {
 pub struct Params {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub root_url: Option<Url>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub untrack_orphaned_directories: Option<bool>,
 }
 
 #[cfg(feature = "frontend")]
 impl From<_inner::Params> for Params {
     fn from(from: _inner::Params) -> Self {
-        let _inner::Params {
-            root_url,
-            untrack_orphaned_directories,
-        } = from;
+        let _inner::Params { root_url } = from;
         Self {
             root_url: root_url.map(Into::into),
-            untrack_orphaned_directories,
         }
+    }
+}
+
+#[cfg(feature = "backend")]
+impl TryFrom<Params> for _inner::Params {
+    type Error = BaseUrlError;
+
+    fn try_from(from: Params) -> Result<Self, Self::Error> {
+        let Params { root_url } = from;
+        let root_url = root_url.map(BaseUrl::try_autocomplete_from).transpose()?;
+        Ok(Self { root_url })
     }
 }
 
@@ -53,7 +60,7 @@ impl From<_inner::Params> for Params {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Outcome {
     pub root_url: Url,
-    pub summary: Summary,
+    pub purged: u64,
 }
 
 #[cfg(feature = "frontend")]
@@ -61,11 +68,11 @@ impl TryFrom<Outcome> for _inner::Outcome {
     type Error = aoide_core::util::url::BaseUrlError;
 
     fn try_from(from: Outcome) -> Result<Self, Self::Error> {
-        let Outcome { root_url, summary } = from;
+        let Outcome { root_url, purged } = from;
         let root_url = root_url.try_into()?;
         Ok(Self {
             root_url,
-            summary: summary.into(),
+            purged: purged as usize,
         })
     }
 }
@@ -73,47 +80,10 @@ impl TryFrom<Outcome> for _inner::Outcome {
 #[cfg(feature = "backend")]
 impl From<_inner::Outcome> for Outcome {
     fn from(from: _inner::Outcome) -> Self {
-        let _inner::Outcome { root_url, summary } = from;
+        let _inner::Outcome { root_url, purged } = from;
         Self {
             root_url: root_url.into(),
-            summary: summary.into(),
-        }
-    }
-}
-
-#[derive(Debug)]
-#[cfg_attr(feature = "backend", derive(Serialize))]
-#[cfg_attr(feature = "frontend", derive(Deserialize))]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct Summary {
-    untracked_directories: u64,
-    purged_sources: u64,
-}
-
-#[cfg(feature = "frontend")]
-impl From<Summary> for _inner::Summary {
-    fn from(from: Summary) -> Self {
-        let Summary {
-            untracked_directories,
-            purged_sources,
-        } = from;
-        Self {
-            untracked_directories: untracked_directories as usize,
-            purged_sources: purged_sources as usize,
-        }
-    }
-}
-
-#[cfg(feature = "backend")]
-impl From<_inner::Summary> for Summary {
-    fn from(from: _inner::Summary) -> Self {
-        let _inner::Summary {
-            untracked_directories,
-            purged_sources,
-        } = from;
-        Self {
-            untracked_directories: untracked_directories as u64,
-            purged_sources: purged_sources as u64,
+            purged: purged as u64,
         }
     }
 }

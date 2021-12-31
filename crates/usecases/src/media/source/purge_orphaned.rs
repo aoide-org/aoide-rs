@@ -27,7 +27,7 @@ use crate::collection::vfs::RepoContext;
 use super::*;
 
 /// Purge orphaned media sources that don't belong to any track
-pub fn purge_orphaned_sources<Repo>(
+pub fn purge_orphaned<Repo>(
     repo: &Repo,
     collection_uid: &EntityUid,
     params: &Params,
@@ -45,7 +45,7 @@ where
     } else {
         repo.purge_orphaned_media_sources(collection_id)
     }?;
-    let root_url = collection_ctx.vfs.map(|vfs_context| vfs_context.root_url);
+    let root_url = collection_ctx.source_path.vfs.map(|vfs| vfs.root_url);
     let outcome = Outcome { root_url, purged };
     Ok(outcome)
 }

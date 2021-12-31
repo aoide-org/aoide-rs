@@ -13,17 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_media::{
-    resolver::VirtualFilePathResolver,
-    util::tag::{FacetedTagMappingConfig, FacetedTagMappingConfigInner, TagMappingConfig},
+use aoide_media::util::tag::{
+    FacetedTagMappingConfig, FacetedTagMappingConfigInner, TagMappingConfig,
 };
 
 use aoide_core::track::tag::{FACET_GENRE, FACET_MOOD};
 
 use super::*;
 
-pub mod import_track;
-pub mod relocate_collected_sources;
+pub mod source;
 pub mod tracker;
 
 const DEFAULT_LABEL_SEPARATOR: &str = ";";

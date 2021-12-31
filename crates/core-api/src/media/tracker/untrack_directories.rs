@@ -13,27 +13,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::entity::EntityUid;
+use aoide_core::util::url::BaseUrl;
 
-use super::*;
+use super::DirTrackingStatus;
 
-mod uc {
-    pub use aoide_usecases_sqlite::media::tracker::query_status::*;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Params {
+    pub root_url: Option<BaseUrl>,
+    pub status: Option<DirTrackingStatus>,
 }
 
-pub type RequestBody = aoide_core_api_json::media::tracker::query_status::Params;
-pub type ResponseBody = aoide_core_api_json::media::tracker::Status;
-
-pub fn handle_request(
-    connection: &SqliteConnection,
-    collection_uid: &EntityUid,
-    request_body: RequestBody,
-) -> Result<ResponseBody> {
-    let params = request_body
-        .try_into()
-        .map_err(Into::into)
-        .map_err(Error::BadRequest)?;
-    uc::query_status(connection, collection_uid, &params)
-        .map(Into::into)
-        .map_err(Into::into)
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Outcome {
+    pub root_url: BaseUrl,
+    pub untracked: usize,
 }

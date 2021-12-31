@@ -15,18 +15,18 @@
 
 use std::sync::atomic::AtomicBool;
 
-use aoide_core::{entity::EntityUid, util::url::BaseUrl};
+use aoide_core::entity::EntityUid;
 
 use super::*;
 
 mod uc {
-    pub use aoide_usecases::media::tracker::scan::ProgressEvent;
-    pub use aoide_usecases_sqlite::media::tracker::scan::*;
+    pub use aoide_usecases::media::tracker::scan_directories::ProgressEvent;
+    pub use aoide_usecases_sqlite::media::tracker::scan_directories::*;
 }
 
 pub type RequestBody = aoide_core_api_json::media::tracker::FsTraversalParams;
 
-pub type ResponseBody = aoide_core_api_json::media::tracker::scan::Outcome;
+pub type ResponseBody = aoide_core_api_json::media::tracker::scan_directories::Outcome;
 
 #[tracing::instrument(
     name = "Scanning media sources",
@@ -46,21 +46,11 @@ pub fn handle_request<ReportProgressFn: FnMut(uc::ProgressEvent)>(
     report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,
 ) -> Result<ResponseBody> {
-    let RequestBody {
-        root_url,
-        max_depth,
-    } = request_body;
-    let root_url = root_url
-        .map(BaseUrl::try_autocomplete_from)
-        .transpose()
-        .map_err(anyhow::Error::from)
-        .map_err(Error::BadRequest)?
-        .map(Into::into);
-    let params = aoide_core_api::media::tracker::FsTraversalParams {
-        root_url,
-        max_depth,
-    };
-    uc::visit_directories(
+    let params = request_body
+        .try_into()
+        .map_err(Into::into)
+        .map_err(Error::BadRequest)?;
+    uc::scan_directories(
         connection,
         collection_uid,
         &params,

@@ -6,11 +6,17 @@ use seed::{prelude::*, *};
 use aoide_core::{entity::EntityUid, track::Track};
 
 use aoide_core_api::{
-    media::tracker::{
-        import::Outcome as ImportMediaSourcesOutcome,
-        purge_untracked_sources::Outcome as PurgeUntrackedMediaSourcesOutcome,
-        scan::Outcome as ScanMediaSourcesOutcome, untrack::Outcome as UntrackMediaSourcesOutcome,
-        Progress as MediaTrackerProgress, Status as QueryMediaTrackerStatusOutcome,
+    media::{
+        source::{
+            purge_orphaned::Outcome as PurgeOrphanedMediaSourcesOutcome,
+            purge_untracked::Outcome as PurgeUntrackedMediaSourcesOutcome,
+        },
+        tracker::{
+            import_files::Outcome as ImportMediaFileOutcome,
+            scan_directories::Outcome as ScanMediaDirectoriesOutcome,
+            untrack_directories::Outcome as UntrackMediaDirectoriesOutcome,
+            Progress as MediaTrackerProgress, Status as QueryMediaTrackerStatusOutcome,
+        },
     },
     track::search::Params as SearchParams,
 };
@@ -23,21 +29,30 @@ use aoide_core_json::{
 
 use aoide_core_api_json::{
     collection::{import_entity_with_summary, EntityWithSummary as CollectionEntityWithSummary},
-    media::tracker::{
-        import::{
-            Outcome as SerdeImportMediaSourcesOutcome, Params as SerdeImportMediaSourcesParams,
+    media::{
+        source::{
+            purge_orphaned::{
+                Outcome as SerdePurgeOrphanedMediaSourcesOutcome,
+                Params as SerdePurgeOrphanedMediaSourcesParams,
+            },
+            purge_untracked::{
+                Outcome as SerdePurgeUntrackedMediaSourcesOutcome,
+                Params as SerdePurgeUntrackedMediaSourcesParams,
+            },
         },
-        purge_untracked_sources::{
-            Outcome as SerdePurgeUntrackedMediaSourcesOutcome,
-            Params as SerdePurgeUntrackedMediaSourcesParams,
+        tracker::{
+            import_files::{
+                Outcome as SerdeImportMediaFileOutcome, Params as SerdeImportMediaFilesParams,
+            },
+            query_status::Params as SerdeQueryMediaTrackerStatusParams,
+            scan_directories::Outcome as SerdeScanMediaDirectoriesOutcome,
+            untrack_directories::{
+                Outcome as SerdeUntrackMediaDirectoriesOutcome,
+                Params as SerdeUntrackMediaDirectoriesParams,
+            },
+            FsTraversalParams as SerdeFsTraversalParams, Progress as SerdeMediaTrackerProgress,
+            Status as SerdeQueryMediaTrackerStatusOutcome,
         },
-        query_status::Params as SerdeQueryMediaTrackerStatusParams,
-        scan::Outcome as SerdeScanMediaSourcesOutcome,
-        untrack::{
-            Outcome as SerdeUntrackMediaSourcesOutcome, Params as SerdeUntrackMediaSourcesParams,
-        },
-        FsTraversalParams as SerdeFsTraversalParams, Progress as SerdeMediaTrackerProgress,
-        Status as SerdeQueryMediaTrackerStatusOutcome,
     },
     Pagination as SerdePagination,
 };
@@ -118,16 +133,16 @@ pub async fn delete_collection(entity_header: impl Into<SerdeEntityHeader>) -> R
 }
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
-pub async fn scan_media_sources(
+pub async fn scan_media_directories(
     collection_uid: EntityUid,
     params: impl Into<SerdeFsTraversalParams>,
-) -> Result<ScanMediaSourcesOutcome> {
-    let url = format!("{}/c/{}/mt/scan", BASE_URL, collection_uid);
+) -> Result<ScanMediaDirectoriesOutcome> {
+    let url = format!("{}/c/{}/mt/scan-directories", BASE_URL, collection_uid);
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
     let response = request.fetch().await?;
-    let content: SerdeScanMediaSourcesOutcome = response.check_status()?.json().await?;
+    let content: SerdeScanMediaDirectoriesOutcome = response.check_status()?.json().await?;
     content
         .try_into()
         .map_err(anyhow::Error::from)
@@ -135,16 +150,16 @@ pub async fn scan_media_sources(
 }
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
-pub async fn import_media_sources(
+pub async fn import_media_files(
     collection_uid: EntityUid,
-    params: impl Into<SerdeImportMediaSourcesParams>,
-) -> Result<ImportMediaSourcesOutcome> {
-    let url = format!("{}/c/{}/mt/import", BASE_URL, collection_uid);
+    params: impl Into<SerdeImportMediaFilesParams>,
+) -> Result<ImportMediaFileOutcome> {
+    let url = format!("{}/c/{}/mt/import-files", BASE_URL, collection_uid);
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
     let response = request.fetch().await?;
-    let content: SerdeImportMediaSourcesOutcome = response.check_status()?.json().await?;
+    let content: SerdeImportMediaFileOutcome = response.check_status()?.json().await?;
     content
         .try_into()
         .map_err(anyhow::Error::from)
@@ -152,16 +167,33 @@ pub async fn import_media_sources(
 }
 
 #[allow(dead_code)] // TODO: Remove allow attribute after function is used
-pub async fn untrack_media_sources(
+pub async fn untrack_media_directories(
     collection_uid: EntityUid,
-    params: impl Into<SerdeUntrackMediaSourcesParams>,
-) -> Result<UntrackMediaSourcesOutcome> {
-    let url = format!("{}/c/{}/mt/untrack", BASE_URL, collection_uid);
+    params: impl Into<SerdeUntrackMediaDirectoriesParams>,
+) -> Result<UntrackMediaDirectoriesOutcome> {
+    let url = format!("{}/c/{}/mt/untrack-directories", BASE_URL, collection_uid);
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;
     let response = request.fetch().await?;
-    let content: SerdeUntrackMediaSourcesOutcome = response.check_status()?.json().await?;
+    let content: SerdeUntrackMediaDirectoriesOutcome = response.check_status()?.json().await?;
+    content
+        .try_into()
+        .map_err(anyhow::Error::from)
+        .map_err(Error::DataShape)
+}
+
+#[allow(dead_code)] // TODO: Remove allow attribute after function is used
+pub async fn purge_orphaned_media_sources(
+    collection_uid: EntityUid,
+    params: impl Into<SerdePurgeOrphanedMediaSourcesParams>,
+) -> Result<PurgeOrphanedMediaSourcesOutcome> {
+    let url = format!("{}/c/{}/ms/purge-orphaned", BASE_URL, collection_uid);
+    let request = Request::new(url)
+        .method(Method::Post)
+        .json(&params.into())?;
+    let response = request.fetch().await?;
+    let content: SerdePurgeOrphanedMediaSourcesOutcome = response.check_status()?.json().await?;
     content
         .try_into()
         .map_err(anyhow::Error::from)
@@ -173,10 +205,7 @@ pub async fn purge_untracked_media_sources(
     collection_uid: EntityUid,
     params: impl Into<SerdePurgeUntrackedMediaSourcesParams>,
 ) -> Result<PurgeUntrackedMediaSourcesOutcome> {
-    let url = format!(
-        "{}/c/{}/mt/purge-untracked-sources",
-        BASE_URL, collection_uid
-    );
+    let url = format!("{}/c/{}/ms/purge-untracked", BASE_URL, collection_uid);
     let request = Request::new(url)
         .method(Method::Post)
         .json(&params.into())?;

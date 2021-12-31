@@ -20,7 +20,7 @@ use url::Url;
 use aoide_core::{entity::EntityUid, util::clock::DateTime};
 
 use aoide_core_api::media::tracker::{
-    scan::{Outcome, Summary},
+    scan_directories::{Outcome, Summary},
     Completion, FsTraversalDirectoriesProgress, FsTraversalEntriesProgress, FsTraversalParams,
     FsTraversalProgress,
 };
@@ -80,7 +80,7 @@ impl From<visit::ProgressEvent> for ProgressEvent {
     }
 }
 
-pub fn visit_directories<
+pub fn scan_directories<
     Repo: CollectionRepo + MediaTrackerRepo,
     ReportProgressFn: FnMut(ProgressEvent),
 >(
@@ -95,10 +95,14 @@ pub fn visit_directories<
         max_depth,
     } = params;
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
-    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.vfs {
+    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.source_path.vfs {
         vfs_ctx
     } else {
-        return Err(anyhow::anyhow!("Not supported by non-VFS collections").into());
+        return Err(anyhow::anyhow!(
+            "Unsupported path kind: {:?}",
+            collection_ctx.source_path.kind
+        )
+        .into());
     };
     let collection_id = collection_ctx.record_id;
     let root_file_path = vfs_ctx.build_root_file_path();
@@ -123,7 +127,7 @@ pub fn visit_directories<
             debug_assert!(full_path.is_absolute());
             let url = Url::from_directory_path(&full_path).expect("URL");
             debug_assert!(url.as_str().starts_with(vfs_ctx.root_url.as_str()));
-            let path = vfs_ctx.source_path_resolver.resolve_path_from_url(&url)?;
+            let path = vfs_ctx.path_resolver.resolve_path_from_url(&url)?;
             match repo
                 .media_tracker_update_directory_digest(
                     DateTime::now_utc(),
@@ -182,6 +186,7 @@ pub fn visit_directories<
         }
     })?;
     let root_url = collection_ctx
+        .source_path
         .vfs
         .map(|vfs_context| vfs_context.root_url)
         .unwrap();

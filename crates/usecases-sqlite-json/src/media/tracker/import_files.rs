@@ -18,7 +18,6 @@ use std::sync::atomic::AtomicBool;
 use aoide_core::{
     entity::EntityUid,
     track::tag::{FACET_GENRE, FACET_MOOD},
-    util::url::BaseUrl,
 };
 
 use aoide_media::{
@@ -29,13 +28,13 @@ use aoide_media::{
 use super::*;
 
 mod uc {
-    pub use aoide_usecases::media::tracker::import::ProgressEvent;
-    pub use aoide_usecases_sqlite::media::tracker::import::*;
+    pub use aoide_usecases::media::tracker::import_files::ProgressEvent;
+    pub use aoide_usecases_sqlite::media::tracker::import_files::*;
 }
 
-pub type RequestBody = aoide_core_api_json::media::tracker::import::Params;
+pub type RequestBody = aoide_core_api_json::media::tracker::import_files::Params;
 
-pub type ResponseBody = aoide_core_api_json::media::tracker::import::Outcome;
+pub type ResponseBody = aoide_core_api_json::media::tracker::import_files::Outcome;
 
 #[tracing::instrument(
     name = "Importing media sources",
@@ -55,16 +54,10 @@ pub fn handle_request<ReportProgressFn: FnMut(uc::ProgressEvent)>(
     report_progress_fn: &mut ReportProgressFn,
     abort_flag: &AtomicBool,
 ) -> Result<ResponseBody> {
-    let RequestBody {
-        root_url,
-        sync_mode,
-    } = request_body;
-    let root_url = root_url
-        .map(BaseUrl::try_autocomplete_from)
-        .transpose()
-        .map_err(anyhow::Error::from)
+    let params = request_body
+        .try_into()
+        .map_err(Into::into)
         .map_err(Error::BadRequest)?;
-    // FIXME: Replace hard-coded tag mapping config
     let mut faceted_tag_mapping_config = FacetedTagMappingConfigInner::default();
     faceted_tag_mapping_config.insert(
         FACET_GENRE.to_owned().into(),
@@ -89,11 +82,7 @@ pub fn handle_request<ReportProgressFn: FnMut(uc::ProgressEvent)>(
         faceted_tag_mapping: faceted_tag_mapping_config.into(),
         flags: import_flags,
     };
-    let params = aoide_core_api::media::tracker::import::Params {
-        root_url,
-        sync_mode: sync_mode.map(Into::into),
-    };
-    uc::import(
+    uc::import_files(
         connection,
         collection_uid,
         &params,

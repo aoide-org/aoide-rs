@@ -29,11 +29,11 @@ use aoide_repo::{
     track::EntityRepo as TrackRepo,
 };
 
-use crate::track::find_duplicate::{self, find_duplicate};
+use crate::track::find_duplicates::{self, find_duplicates};
 
 use super::*;
 
-pub type FindCandidateParams = find_duplicate::Params;
+pub type FindCandidateParams = find_duplicates::Params;
 
 /// Relink a moved track.
 ///
@@ -171,7 +171,7 @@ where
         &mut lost_tracks,
     )?;
     // Only consider tracks with a tracked media source
-    find_candidate_params.search_flags |= find_duplicate::SearchFlags::SOURCE_TRACKED;
+    find_candidate_params.search_flags |= find_duplicates::SearchFlags::SOURCE_TRACKED;
     let mut progress = Progress::new(lost_tracks.len());
     let mut relinked_media_sources = Vec::with_capacity(lost_tracks.len());
     for (old_header, old_entity) in lost_tracks {
@@ -181,7 +181,7 @@ where
         }
         report_progress_fn(&progress);
         let old_media_source_path = old_entity.body.media_source.path.clone();
-        let candidates = find_duplicate(
+        let candidates = find_duplicates(
             repo,
             collection_id,
             old_header.id,

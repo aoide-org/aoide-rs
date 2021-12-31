@@ -79,7 +79,7 @@ impl Default for Params {
     }
 }
 
-pub fn find_duplicate<Repo>(
+pub fn find_duplicates<Repo>(
     repo: &Repo,
     collection_id: CollectionId,
     track_id: TrackId,
@@ -208,5 +208,5 @@ where
 {
     let (_media_source_id, RecordHeader { id: track_id, .. }, entity) =
         repo.load_collected_track_entity_by_media_source_path(collection_id, media_source_path)?;
-    find_duplicate(repo, collection_id, track_id, entity.body, params)
+    find_duplicates(repo, collection_id, track_id, entity.body, params)
 }

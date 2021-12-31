@@ -34,10 +34,14 @@ where
 {
     let Params { root_url } = params;
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
-    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.vfs {
+    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.source_path.vfs {
         vfs_ctx
     } else {
-        return Err(anyhow::anyhow!("Not supported by non-VFS collections").into());
+        return Err(anyhow::anyhow!(
+            "Unsupported path kind: {:?}",
+            collection_ctx.source_path.kind
+        )
+        .into());
     };
     let collection_id = collection_ctx.record_id;
     let directories = repo

@@ -24,25 +24,25 @@ pub enum Intent {
         root_url: Option<BaseUrl>,
     },
     FetchProgress,
-    StartScan {
-        collection_uid: EntityUid,
-        root_url: Option<BaseUrl>,
-    },
-    StartImport {
-        collection_uid: EntityUid,
-        root_url: Option<BaseUrl>,
-    },
     Abort,
     AbortOnTermination,
-    Untrack {
+    StartScanDirectories {
+        collection_uid: EntityUid,
+        root_url: Option<BaseUrl>,
+    },
+    StartImportFiles {
+        collection_uid: EntityUid,
+        root_url: Option<BaseUrl>,
+    },
+    StartFindUntrackedFiles {
+        collection_uid: EntityUid,
+        root_url: Option<BaseUrl>,
+    },
+    UntrackDirectories {
         collection_uid: EntityUid,
         root_url: BaseUrl,
     },
-    Purge {
-        collection_uid: EntityUid,
-        root_url: Option<BaseUrl>,
-    },
-    StartFindUntracked {
+    PurgeOrphanedAndUntracked {
         collection_uid: EntityUid,
         root_url: Option<BaseUrl>,
     },
@@ -81,7 +81,7 @@ impl Intent {
                     root_url,
                 }))
             }
-            Self::StartScan {
+            Self::StartScanDirectories {
                 collection_uid,
                 root_url,
             } => {
@@ -92,13 +92,16 @@ impl Intent {
                 state.control_state = ControlState::Busy;
                 state.remote_view.progress.reset();
                 state.remote_view.status.set_pending_now();
-                state.remote_view.last_scan_outcome.set_pending_now();
-                StateUpdated::maybe_changed(Action::dispatch_task(Task::StartScan {
+                state
+                    .remote_view
+                    .last_scan_directories_outcome
+                    .set_pending_now();
+                StateUpdated::maybe_changed(Action::dispatch_task(Task::StartScanDirectories {
                     collection_uid,
                     root_url,
                 }))
             }
-            Self::StartImport {
+            Self::StartImportFiles {
                 collection_uid,
                 root_url,
             } => {
@@ -109,47 +112,16 @@ impl Intent {
                 state.control_state = ControlState::Busy;
                 state.remote_view.progress.reset();
                 state.remote_view.status.set_pending_now();
-                state.remote_view.last_import_outcome.set_pending_now();
-                StateUpdated::maybe_changed(Action::dispatch_task(Task::StartImport {
+                state
+                    .remote_view
+                    .last_import_files_outcome
+                    .set_pending_now();
+                StateUpdated::maybe_changed(Action::dispatch_task(Task::StartImportFiles {
                     collection_uid,
                     root_url,
                 }))
             }
-            Self::Untrack {
-                collection_uid,
-                root_url,
-            } => {
-                if !state.is_idle() {
-                    log::warn!("Cannot untrack while not idle");
-                    return StateUpdated::unchanged(None);
-                }
-                state.control_state = ControlState::Busy;
-                state.remote_view.progress.reset();
-                state.remote_view.status.set_pending_now();
-                state.remote_view.last_untrack_outcome.set_pending_now();
-                StateUpdated::maybe_changed(Action::dispatch_task(Task::Untrack {
-                    collection_uid,
-                    root_url,
-                }))
-            }
-            Self::Purge {
-                collection_uid,
-                root_url,
-            } => {
-                if !state.is_idle() {
-                    log::warn!("Cannot purge untracked while not idle");
-                    return StateUpdated::unchanged(None);
-                }
-                state.control_state = ControlState::Busy;
-                state.remote_view.progress.reset();
-                state.remote_view.status.set_pending_now();
-                state.remote_view.last_purge_outcome.set_pending_now();
-                StateUpdated::maybe_changed(Action::dispatch_task(Task::Purge {
-                    collection_uid,
-                    root_url,
-                }))
-            }
-            Self::StartFindUntracked {
+            Self::StartFindUntrackedFiles {
                 collection_uid,
                 root_url,
             } => {
@@ -164,7 +136,47 @@ impl Intent {
                     .remote_view
                     .last_find_untracked_files_outcome
                     .set_pending_now();
-                StateUpdated::maybe_changed(Action::dispatch_task(Task::StartFindUntracked {
+                StateUpdated::maybe_changed(Action::dispatch_task(Task::StartFindUntrackedFiles {
+                    collection_uid,
+                    root_url,
+                }))
+            }
+            Self::UntrackDirectories {
+                collection_uid,
+                root_url,
+            } => {
+                if !state.is_idle() {
+                    log::warn!("Cannot untrack while not idle");
+                    return StateUpdated::unchanged(None);
+                }
+                state.control_state = ControlState::Busy;
+                state.remote_view.progress.reset();
+                state.remote_view.status.set_pending_now();
+                state
+                    .remote_view
+                    .last_untrack_directories_outcome
+                    .set_pending_now();
+                StateUpdated::maybe_changed(Action::dispatch_task(Task::UntrackDirectories {
+                    collection_uid,
+                    root_url: Some(root_url),
+                }))
+            }
+            Self::PurgeOrphanedAndUntracked {
+                collection_uid,
+                root_url,
+            } => {
+                if !state.is_idle() {
+                    log::warn!("Cannot purge untracked while not idle");
+                    return StateUpdated::unchanged(None);
+                }
+                state.control_state = ControlState::Busy;
+                state.remote_view.progress.reset();
+                state.remote_view.status.set_pending_now();
+                state
+                    .remote_view
+                    .last_purge_orphaned_and_untracked_outcome
+                    .set_pending_now();
+                StateUpdated::maybe_changed(Action::dispatch_task(Task::Purge {
                     collection_uid,
                     root_url,
                 }))

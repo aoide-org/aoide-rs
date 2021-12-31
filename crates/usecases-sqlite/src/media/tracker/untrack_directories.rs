@@ -13,22 +13,24 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core_api::media::tracker::purge_untracked_sources::{Outcome, Params};
+use aoide_core::entity::EntityUid;
+
+use aoide_core_api::media::tracker::untrack_directories::{Outcome, Params};
 
 use super::*;
 
 mod uc {
-    pub use aoide_usecases::media::tracker::purge_untracked_sources::purge_untracked_sources;
+    pub use aoide_usecases::{media::tracker::untrack_directories::*, Error};
 }
 
-pub fn purge_untracked_sources(
+pub fn untrack_directories(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
     params: &Params,
 ) -> Result<Outcome> {
     let db = RepoConnection::new(connection);
     db.transaction::<_, TransactionError, _>(|| {
-        uc::purge_untracked_sources(&db, collection_uid, params).map_err(transaction_error)
+        uc::untrack_directories(&db, collection_uid, params).map_err(transaction_error)
     })
     .map_err(Into::into)
 }

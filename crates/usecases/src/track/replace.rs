@@ -36,7 +36,7 @@ use aoide_repo::{
 };
 
 use crate::{
-    collection::vfs::RepoContext,
+    collection::vfs::{RepoContext, SourcePathContext},
     media::{import_track_from_file_path, ImportTrackFromFileOutcome, SyncStatus},
 };
 
@@ -167,8 +167,11 @@ where
         preserve_collected_at,
     } = params;
     let (collection_id, source_path_resolver) = if *resolve_path_from_url {
-        let RepoContext { record_id, vfs } = RepoContext::resolve(repo, collection_uid, None)?;
-        (record_id, vfs.map(|vfs| vfs.source_path_resolver))
+        let RepoContext {
+            record_id,
+            source_path: SourcePathContext { kind: _, vfs },
+        } = RepoContext::resolve(repo, collection_uid, None)?;
+        (record_id, vfs.map(|vfs| vfs.path_resolver))
     } else {
         let collection_id = repo.resolve_collection_id(collection_uid)?;
         (collection_id, None)
@@ -337,10 +340,14 @@ where
     Repo: CollectionRepo + EntityRepo,
 {
     let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
-    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.vfs {
+    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.source_path.vfs {
         vfs_ctx
     } else {
-        return Err(anyhow::anyhow!("Not supported by non-VFS collections").into());
+        return Err(anyhow::anyhow!(
+            "Unsupported path kind: {:?}",
+            collection_ctx.source_path.kind
+        )
+        .into());
     };
     let collection_id = collection_ctx.record_id;
     let mut summary = Summary::default();
@@ -360,7 +367,7 @@ where
             &mut media_source_ids,
             repo,
             collection_id,
-            &vfs_ctx.source_path_resolver,
+            &vfs_ctx.path_resolver,
             sync_mode,
             import_config,
             replace_mode,
@@ -389,16 +396,20 @@ where
     Repo: CollectionRepo + EntityRepo,
 {
     let collection_ctx = RepoContext::resolve(repo, collection_uid, None)?;
-    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.vfs {
+    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.source_path.vfs {
         vfs_ctx
     } else {
-        return Err(anyhow::anyhow!("Not supported by non-VFS collections").into());
+        return Err(anyhow::anyhow!(
+            "Unsupported path kind: {:?}",
+            collection_ctx.source_path.kind
+        )
+        .into());
     };
     let collection_id = collection_ctx.record_id;
     import_and_replace_by_local_file_path_from_directory_with_source_path_resolver(
         repo,
         collection_id,
-        &vfs_ctx.source_path_resolver,
+        &vfs_ctx.path_resolver,
         sync_mode,
         import_config,
         replace_mode,

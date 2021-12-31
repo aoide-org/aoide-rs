@@ -269,6 +269,61 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
+  /api/c/{collectionUid}/ms/purge-orphaned:
+    post:
+      summary: Purge media sources without a corresponding track
+      description: |
+        Purge all media sources that are not associated with a track.
+      tags:
+        - 'Collections: Media Sources'
+      parameters:
+        - $ref: '#/components/parameters/collectionUidPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurgeOrphanedMediaSourcesRequestBody'
+      responses:
+        '200':
+          description: |
+            Operation succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurgeOrphanedMediaSourcesResponseBody'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /api/c/{collectionUid}/ms/purge-untracked:
+    post:
+      summary: Purge untracked media sources and the corresponding tracks
+      description: |
+        Purges all media sources that are not tracked by the media tracker. This
+        will also purge the corresponding tracks and all their transitive relations,
+        i.e. playlist entries.
+
+        Purging all orphaned directories from the media tracker before invoking
+        this operation might generate additional candidates,
+      tags:
+        - 'Collections: Media Sources'
+      parameters:
+        - $ref: '#/components/parameters/collectionUidPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurgeUntrackedMediaSourcesRequestBody'
+      responses:
+        '200':
+          description: |
+            Batch operation succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurgeUntrackedMediaSourcesResponseBody'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
   /api/c/{collectionUid}/ms/relocate:
     post:
       summary: Relocate collected media sources by URI prefix
@@ -298,7 +353,31 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /api/c/{collectionUid}/mt/scan:
+  /api/c/{collectionUid}/mt/query-status:
+    post:
+      summary: Query the aggregated status of tracked directories
+      description: |
+      tags:
+        - 'Collections: Media Tracker'
+      parameters:
+        - $ref: '#/components/parameters/collectionUidPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MediaTrackerQueryStatusRequestBody'
+      responses:
+        '200':
+          description: |
+            Operation succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaTrackerQueryStatusResponseBody'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /api/c/{collectionUid}/mt/scan-directories:
     post:
       summary: Scan a directory tree for changes
       description: |
@@ -333,35 +412,7 @@ paths:
                 $ref: '#/components/schemas/MediaTrackerScanResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
-  /api/c/{collectionUid}/mt/import:
-    post:
-      summary: Import sources from changed directories
-      description: |
-        Recursively import media sources located in directories
-        that have been marked as changed.
-
-        This operation is blocking and locks the database while running.
-      tags:
-        - 'Collections: Media Tracker'
-      parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MediaTrackerImportRequestBody'
-      responses:
-        '200':
-          description: |
-            Operation succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MediaTrackerImportResponseBody'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-  /api/c/{collectionUid}/mt/untrack:
+  /api/c/{collectionUid}/mt/untrack-directories:
     post:
       summary: Discard tracked directories and their contents
       description: |
@@ -383,7 +434,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MediaTrackerUntrackRequestBody'
+              $ref: '#/components/schemas/MediaTrackerUntrackDirectoriesRequestBody'
       responses:
         '200':
           description: |
@@ -391,7 +442,35 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MediaTrackerUntrackResponseBody'
+                $ref: '#/components/schemas/MediaTrackerUntrackDirectoriesResponseBody'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
+  /api/c/{collectionUid}/mt/import-files:
+    post:
+      summary: Import file contents from changed directories
+      description: |
+        Recursively import media sources from files located in directories
+        that have been marked as changed.
+
+        This operation is blocking and locks the database while running.
+      tags:
+        - 'Collections: Media Tracker'
+      parameters:
+        - $ref: '#/components/parameters/collectionUidPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MediaTrackerImportRequestBody'
+      responses:
+        '200':
+          description: |
+            Operation succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaTrackerImportResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
   /api/c/{collectionUid}/mt/find-untracked-files:
@@ -419,63 +498,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MediaTrackerFindUntrackedResponseBody'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-  /api/c/{collectionUid}/mt/purge-untracked-sources:
-    post:
-      summary: Purge untracked media sources and the corresponding tracks
-      description: |
-        Purge multiple, collected tracks with media sources that are
-        not tracked by the media tracker.
-
-        Optionally all orphaned directories in the root directory
-        could be untracked first to increase the number of potential
-        candidates for purging.
-
-        This is needed to get rid of missing tracks, e.g. after directories
-        and files have disappeared from the local file system.
-      tags:
-        - 'Collections: Media Tracker'
-      parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PurgeUntrackedSourcesRequestBody'
-      responses:
-        '200':
-          description: |
-            Batch operation succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PurgeUntrackedSourcesResponseBody'
-        '500':
-          $ref: '#/components/responses/500InternalServerError'
-  /api/c/{collectionUid}/mt/query-status:
-    post:
-      summary: Query the aggregated status of tracked directories
-      description: |
-      tags:
-        - 'Collections: Media Tracker'
-      parameters:
-        - $ref: '#/components/parameters/collectionUidPath'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MediaTrackerQueryStatusRequestBody'
-      responses:
-        '200':
-          description: |
-            Operation succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MediaTrackerQueryStatusResponseBody'
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
@@ -2227,7 +2249,7 @@ components:
       example: 210387.576
       description: |
         The position in an audio stream in milliseconds
-    PurgeUntrackedSourcesRequestBody:
+    PurgeOrphanedMediaSourcesRequestBody:
       type: object
       properties:
         rootUrl:
@@ -2235,18 +2257,36 @@ components:
         untrackOrphanedDirectories:
           type: boolean
           default: false
-    PurgeUntrackedSourcesResponseBody:
+    PurgeOrphanedMediaSourcesResponseBody:
       type: object
       properties:
-        untrackedDirectories:
-          type: integer
-          format: int64
-        purgedMediaSources:
+        rootUrl:
+          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+        purged:
           type: integer
           format: int64
       required:
-        - untrackedDirectories
-        - purgedMediaSources
+        - rootUrl
+        - purged
+    PurgeUntrackedMediaSourcesRequestBody:
+      type: object
+      properties:
+        rootUrl:
+          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+        untrackOrphanedDirectories:
+          type: boolean
+          default: false
+    PurgeUntrackedMediaSourcesResponseBody:
+      type: object
+      properties:
+        rootUrl:
+          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+        purged:
+          type: integer
+          format: int64
+      required:
+        - rootUrl
+        - purged
     Release:
       type: object
       properties:
@@ -2270,15 +2310,13 @@ components:
     ReleasedAtDateTime:
       allOf:
         - $ref: '#/components/schemas/DateTime'
-    MediaTrackerUntrackRequestBody:
+    MediaTrackerUntrackDirectoriesRequestBody:
       type: object
       properties:
         rootUrl:
           $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
         status:
           $ref: '#/components/schemas/MediaTrackerDirectoriesTrackingStatus'
-      required:
-        - rootUrl
     MediaTrackerDirectoriesTrackingStatus:
       type: string
       enum:
@@ -2287,23 +2325,16 @@ components:
         - added
         - modified
         - orphaned
-    MediaTrackerUntrackResponseBody:
+    MediaTrackerUntrackDirectoriesResponseBody:
       type: object
       properties:
         rootUrl:
           $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
-        summary:
-          $ref: '#/components/schemas/MediaTrackerUntrackSummary'
-      required:
-        - rootUrl
-        - summary
-    MediaTrackerUntrackSummary:
-      type: object
-      properties:
         untracked:
           type: integer
           minimum: 0
       required:
+        - rootUrl
         - untracked
     MediaTrackerQueryStatusRequestBody:
       type: object

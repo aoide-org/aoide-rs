@@ -24,18 +24,26 @@ use uc::collection::vfs::RepoContext;
 
 use super::*;
 
+pub mod purge_orphaned;
+pub mod purge_untracked;
+pub mod relocate;
+
 pub fn resolve_file_path(
     db: &RepoConnection<'_>,
     collection_uid: &EntityUid,
     source_path: &SourcePath,
 ) -> Result<(CollectionId, PathBuf)> {
     let collection_ctx = RepoContext::resolve(db, collection_uid, None)?;
-    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.vfs {
+    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.source_path.vfs {
         vfs_ctx
     } else {
-        return Err(anyhow::anyhow!("Not supported by non-VFS collections").into());
+        return Err(anyhow::anyhow!(
+            "Unsupported path kind: {:?}",
+            collection_ctx.source_path.kind
+        )
+        .into());
     };
-    let file_path = vfs_ctx.source_path_resolver.build_file_path(source_path);
+    let file_path = vfs_ctx.path_resolver.build_file_path(source_path);
     Ok((collection_ctx.record_id, file_path))
 }
 

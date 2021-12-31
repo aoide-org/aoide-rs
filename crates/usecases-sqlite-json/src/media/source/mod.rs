@@ -13,22 +13,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::util::url::BaseUrl;
+use super::*;
 
-#[derive(Debug, Clone, Default, Eq, PartialEq)]
-pub struct Params {
-    pub root_url: Option<BaseUrl>,
-    pub untrack_orphaned_directories: Option<bool>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Outcome {
-    pub root_url: BaseUrl,
-    pub summary: Summary,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct Summary {
-    pub untracked_directories: usize,
-    pub purged_sources: usize,
-}
+pub mod purge_orphaned;
+pub mod purge_untracked;
+pub mod relocate;

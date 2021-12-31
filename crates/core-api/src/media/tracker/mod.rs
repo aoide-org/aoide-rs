@@ -17,11 +17,10 @@ use aoide_core::util::url::BaseUrl;
 use num_derive::{FromPrimitive, ToPrimitive};
 
 pub mod find_untracked_files;
-pub mod import;
-pub mod purge_untracked_sources;
+pub mod import_files;
 pub mod query_status;
-pub mod scan;
-pub mod untrack;
+pub mod scan_directories;
+pub mod untrack_directories;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct FsTraversalParams {
@@ -104,4 +103,4 @@ pub struct FsTraversalDirectoriesProgress {
     pub finished: usize,
 }
 
-pub type ImportingProgress = import::Summary;
+pub type ImportingProgress = import_files::Summary;

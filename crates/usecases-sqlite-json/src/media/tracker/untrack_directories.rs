@@ -13,29 +13,37 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use std::sync::atomic::AtomicBool;
-
 use aoide_core::entity::EntityUid;
-use aoide_core_api::media::tracker::{scan::Outcome, FsTraversalParams};
 
 use super::*;
 
 mod uc {
-    pub use aoide_core_api::media::tracker::scan::*;
-    pub use aoide_usecases::{media::tracker::scan::*, Error};
+    pub use aoide_usecases_sqlite::media::tracker::untrack_directories::*;
 }
 
-pub fn visit_directories<ReportProgressFn: FnMut(uc::ProgressEvent)>(
+pub type RequestBody = aoide_core_api_json::media::tracker::untrack_directories::Params;
+
+pub type ResponseBody = aoide_core_api_json::media::tracker::untrack_directories::Outcome;
+
+#[tracing::instrument(
+    name = "Untracking media sources",
+    skip(
+        connection,
+    ),
+    fields(
+        request_id = %new_request_id(),
+    )
+)]
+pub fn handle_request(
     connection: &SqliteConnection,
     collection_uid: &EntityUid,
-    params: &FsTraversalParams,
-    report_progress_fn: &mut ReportProgressFn,
-    abort_flag: &AtomicBool,
-) -> Result<Outcome> {
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, TransactionError, _>(|| {
-        uc::visit_directories(&db, collection_uid, params, report_progress_fn, abort_flag)
-            .map_err(transaction_error)
-    })
-    .map_err(Into::into)
+    request_body: RequestBody,
+) -> Result<ResponseBody> {
+    let params = request_body
+        .try_into()
+        .map_err(Into::into)
+        .map_err(Error::BadRequest)?;
+    uc::untrack_directories(connection, collection_uid, &params)
+        .map(Into::into)
+        .map_err(Into::into)
 }

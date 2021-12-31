@@ -17,10 +17,6 @@ use aoide_core::{entity::EntityUid, media::SourcePath};
 
 use super::*;
 
-mod uc {
-    pub use aoide_usecases_sqlite::media::*;
-}
-
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct RequestBody {
@@ -43,7 +39,7 @@ pub fn handle_request(
         old_path_prefix,
         new_path_prefix,
     } = request_body;
-    uc::relocate_collected_sources(
+    aoide_usecases_sqlite::media::source::relocate::relocate(
         connection,
         collection_uid,
         &SourcePath::new(old_path_prefix),

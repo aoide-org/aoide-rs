@@ -152,10 +152,14 @@ pub fn visit_directories<
         max_depth,
     } = params;
     let collection_ctx = RepoContext::resolve(repo, collection_uid, root_url.as_ref())?;
-    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.vfs {
+    let vfs_ctx = if let Some(vfs_ctx) = &collection_ctx.source_path.vfs {
         vfs_ctx
     } else {
-        return Err(anyhow::anyhow!("Not supported by non-VFS collections").into());
+        return Err(anyhow::anyhow!(
+            "Unsupported path kind: {:?}",
+            collection_ctx.source_path.kind
+        )
+        .into());
     };
     let collection_id = collection_ctx.record_id;
     let root_file_path = vfs_ctx.build_root_file_path();
@@ -164,7 +168,7 @@ pub fn visit_directories<
         &root_file_path,
         *max_depth,
         abort_flag,
-        &mut |_| AncestorVisitor::new(repo, collection_id, &vfs_ctx.source_path_resolver),
+        &mut |_| AncestorVisitor::new(repo, collection_id, &vfs_ctx.path_resolver),
         &mut |_path, untracked_source_paths| {
             ancestor_finished(&mut source_paths, untracked_source_paths)
         },
@@ -198,6 +202,7 @@ pub fn visit_directories<
         }
     })?;
     let root_url = collection_ctx
+        .source_path
         .vfs
         .map(|vfs_context| vfs_context.root_url)
         .unwrap();

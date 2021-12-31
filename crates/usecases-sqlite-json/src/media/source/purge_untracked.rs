@@ -13,20 +13,16 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::{entity::EntityUid, util::url::BaseUrl};
+use aoide_core::entity::EntityUid;
 
 use super::*;
 
-mod uc {
-    pub use aoide_usecases_sqlite::media::tracker::untrack::*;
-}
+pub type RequestBody = aoide_core_api_json::media::source::purge_untracked::Params;
 
-pub type RequestBody = aoide_core_api_json::media::tracker::untrack::Params;
-
-pub type ResponseBody = aoide_core_api_json::media::tracker::untrack::Outcome;
+pub type ResponseBody = aoide_core_api_json::media::source::purge_untracked::Outcome;
 
 #[tracing::instrument(
-    name = "Untracking media sources",
+    name = "Purging untracked media source",
     skip(
         connection,
     ),
@@ -39,15 +35,15 @@ pub fn handle_request(
     collection_uid: &EntityUid,
     request_body: RequestBody,
 ) -> Result<ResponseBody> {
-    let RequestBody { root_url, status } = request_body;
-    let root_url = BaseUrl::try_autocomplete_from(root_url)
-        .map_err(anyhow::Error::from)
-        .map_err(Error::BadRequest)?;
-    let params = aoide_core_api::media::tracker::untrack::Params {
-        root_url,
-        status: status.map(Into::into),
-    };
-    uc::untrack(connection, collection_uid, &params)
-        .map(Into::into)
+    let params = request_body
+        .try_into()
         .map_err(Into::into)
+        .map_err(Error::BadRequest)?;
+    aoide_usecases_sqlite::media::source::purge_untracked::purge_untracked(
+        connection,
+        collection_uid,
+        &params,
+    )
+    .map(Into::into)
+    .map_err(Into::into)
 }

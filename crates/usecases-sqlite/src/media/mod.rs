@@ -13,32 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::{entity::EntityUid, media::SourcePath, util::clock::DateTime};
-
-use aoide_repo::{collection::EntityRepo as _, media::source::Repo as _};
-
 use super::*;
 
 pub mod source;
-
 pub mod tracker;
-
-pub fn relocate_collected_sources(
-    connection: &SqliteConnection,
-    collection_uid: &EntityUid,
-    old_path_prefix: &SourcePath,
-    new_path_prefix: &SourcePath,
-) -> Result<usize> {
-    let db = RepoConnection::new(connection);
-    db.transaction::<_, RepoTransactionError, _>(|| {
-        let collection_id = db.resolve_collection_id(collection_uid)?;
-        let updated_at = DateTime::now_utc();
-        Ok(db.relocate_media_sources_by_path_prefix(
-            updated_at,
-            collection_id,
-            old_path_prefix,
-            new_path_prefix,
-        )?)
-    })
-    .map_err(Into::into)
-}
