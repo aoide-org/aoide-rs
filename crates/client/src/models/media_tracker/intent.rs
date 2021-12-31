@@ -28,19 +28,19 @@ pub enum Intent {
     AbortOnTermination,
     StartScanDirectories {
         collection_uid: EntityUid,
-        root_url: Option<BaseUrl>,
+        params: aoide_core_api::media::tracker::scan_directories::Params,
     },
     StartImportFiles {
         collection_uid: EntityUid,
-        root_url: Option<BaseUrl>,
+        params: aoide_core_api::media::tracker::import_files::Params,
     },
     StartFindUntrackedFiles {
         collection_uid: EntityUid,
-        root_url: Option<BaseUrl>,
+        params: aoide_core_api::media::tracker::find_untracked_files::Params,
     },
     UntrackDirectories {
         collection_uid: EntityUid,
-        root_url: BaseUrl,
+        params: aoide_core_api::media::tracker::untrack_directories::Params,
     },
     PurgeOrphanedAndUntracked {
         collection_uid: EntityUid,
@@ -83,7 +83,7 @@ impl Intent {
             }
             Self::StartScanDirectories {
                 collection_uid,
-                root_url,
+                params,
             } => {
                 if !state.is_idle() {
                     log::warn!("Cannot start scan while not idle");
@@ -98,12 +98,12 @@ impl Intent {
                     .set_pending_now();
                 StateUpdated::maybe_changed(Action::dispatch_task(Task::StartScanDirectories {
                     collection_uid,
-                    root_url,
+                    params,
                 }))
             }
             Self::StartImportFiles {
                 collection_uid,
-                root_url,
+                params,
             } => {
                 if !state.is_idle() {
                     log::warn!("Cannot start import while not idle");
@@ -118,12 +118,12 @@ impl Intent {
                     .set_pending_now();
                 StateUpdated::maybe_changed(Action::dispatch_task(Task::StartImportFiles {
                     collection_uid,
-                    root_url,
+                    params,
                 }))
             }
             Self::StartFindUntrackedFiles {
                 collection_uid,
-                root_url,
+                params,
             } => {
                 if !state.is_idle() {
                     log::warn!("Cannot start finding untracked entries while not idle");
@@ -138,12 +138,12 @@ impl Intent {
                     .set_pending_now();
                 StateUpdated::maybe_changed(Action::dispatch_task(Task::StartFindUntrackedFiles {
                     collection_uid,
-                    root_url,
+                    params,
                 }))
             }
             Self::UntrackDirectories {
                 collection_uid,
-                root_url,
+                params,
             } => {
                 if !state.is_idle() {
                     log::warn!("Cannot untrack while not idle");
@@ -158,7 +158,7 @@ impl Intent {
                     .set_pending_now();
                 StateUpdated::maybe_changed(Action::dispatch_task(Task::UntrackDirectories {
                     collection_uid,
-                    root_url: Some(root_url),
+                    params,
                 }))
             }
             Self::PurgeOrphanedAndUntracked {

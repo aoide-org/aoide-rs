@@ -17,6 +17,8 @@ use aoide_core::{media::SourcePath, util::url::BaseUrl};
 
 use super::Completion;
 
+pub type Params = super::FsTraversalParams;
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Outcome {
     pub root_url: BaseUrl,

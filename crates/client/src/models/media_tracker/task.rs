@@ -14,13 +14,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core::{entity::EntityUid, util::url::BaseUrl};
+use aoide_core_api::media::tracker::DirTrackingStatus;
 
 use crate::{receive_response_body, WebClientEnvironment};
-use aoide_core_api::media::tracker::{
-    find_untracked_files::Outcome as FindUntrackedOutcome, import_files::Outcome as ImportOutcome,
-    scan_directories::Outcome as ScanOutcome, untrack_directories::Outcome as UntrackOutcome,
-    DirTrackingStatus, Progress, Status,
-};
 
 use super::Effect;
 
@@ -34,19 +30,19 @@ pub enum Task {
     Abort,
     StartScanDirectories {
         collection_uid: EntityUid,
-        root_url: Option<BaseUrl>,
+        params: aoide_core_api::media::tracker::scan_directories::Params,
     },
     StartImportFiles {
         collection_uid: EntityUid,
-        root_url: Option<BaseUrl>,
+        params: aoide_core_api::media::tracker::import_files::Params,
     },
     StartFindUntrackedFiles {
         collection_uid: EntityUid,
-        root_url: Option<BaseUrl>,
+        params: aoide_core_api::media::tracker::find_untracked_files::Params,
     },
     UntrackDirectories {
         collection_uid: EntityUid,
-        root_url: Option<BaseUrl>,
+        params: aoide_core_api::media::tracker::untrack_directories::Params,
     },
     Purge {
         collection_uid: EntityUid,
@@ -76,45 +72,29 @@ impl Task {
             }
             Self::StartScanDirectories {
                 collection_uid,
-                root_url,
+                params,
             } => {
-                let params = aoide_core_api::media::tracker::FsTraversalParams {
-                    root_url,
-                    ..Default::default()
-                };
                 let res = start_scan_directories(env, &collection_uid, params).await;
                 Effect::ScanDirectoriesFinished(res)
             }
             Self::StartImportFiles {
                 collection_uid,
-                root_url,
+                params,
             } => {
-                let params = aoide_core_api::media::tracker::import_files::Params {
-                    root_url,
-                    ..Default::default()
-                };
                 let res = start_import_files(env, &collection_uid, params).await;
                 Effect::ImportFilesFinished(res)
             }
             Self::StartFindUntrackedFiles {
                 collection_uid,
-                root_url,
+                params,
             } => {
-                let params = aoide_core_api::media::tracker::FsTraversalParams {
-                    root_url,
-                    ..Default::default()
-                };
                 let res = start_find_untracked_files(env, &collection_uid, params).await;
                 Effect::FindUntrackedFilesFinished(res)
             }
             Self::UntrackDirectories {
                 collection_uid,
-                root_url,
+                params,
             } => {
-                let params = aoide_core_api::media::tracker::untrack_directories::Params {
-                    root_url,
-                    status: None,
-                };
                 let res = untrack_directories(env, &collection_uid, params).await;
                 Effect::UntrackedDirectories(res)
             }
@@ -150,7 +130,7 @@ async fn fetch_status<E: WebClientEnvironment>(
     env: &E,
     collection_uid: &EntityUid,
     params: impl Into<aoide_core_api_json::media::tracker::query_status::Params>,
-) -> anyhow::Result<Status> {
+) -> anyhow::Result<aoide_core_api::media::tracker::Status> {
     let request_url = env.join_api_url(&format!("c/{}/mt/query-status", collection_uid))?;
     let request_body = serde_json::to_vec(&params.into())?;
     let request = env.client().post(request_url).body(request_body);
@@ -163,7 +143,9 @@ async fn fetch_status<E: WebClientEnvironment>(
     Ok(status)
 }
 
-async fn fetch_progress<E: WebClientEnvironment>(env: &E) -> anyhow::Result<Progress> {
+async fn fetch_progress<E: WebClientEnvironment>(
+    env: &E,
+) -> anyhow::Result<aoide_core_api::media::tracker::Progress> {
     let request_url = env.join_api_url("mt/progress")?;
     let request = env.client().get(request_url);
     let response = request.send().await?;
@@ -178,8 +160,8 @@ async fn fetch_progress<E: WebClientEnvironment>(env: &E) -> anyhow::Result<Prog
 async fn start_scan_directories<E: WebClientEnvironment>(
     env: &E,
     collection_uid: &EntityUid,
-    params: impl Into<aoide_core_api_json::media::tracker::FsTraversalParams>,
-) -> anyhow::Result<ScanOutcome> {
+    params: impl Into<aoide_core_api_json::media::tracker::scan_directories::Params>,
+) -> anyhow::Result<aoide_core_api::media::tracker::scan_directories::Outcome> {
     let request_url = env.join_api_url(&format!("c/{}/mt/scan-directories", collection_uid))?;
     let request_body = serde_json::to_vec(&params.into())?;
     let request = env.client().post(request_url).body(request_body);
@@ -198,7 +180,7 @@ async fn start_import_files<E: WebClientEnvironment>(
     env: &E,
     collection_uid: &EntityUid,
     params: impl Into<aoide_core_api_json::media::tracker::import_files::Params>,
-) -> anyhow::Result<ImportOutcome> {
+) -> anyhow::Result<aoide_core_api::media::tracker::import_files::Outcome> {
     let request_url = env.join_api_url(&format!("c/{}/mt/import", collection_uid))?;
     let request_body = serde_json::to_vec(&params.into())?;
     let request = env.client().post(request_url).body(request_body);
@@ -225,8 +207,8 @@ pub async fn abort<E: WebClientEnvironment>(env: &E) -> anyhow::Result<()> {
 async fn start_find_untracked_files<E: WebClientEnvironment>(
     env: &E,
     collection_uid: &EntityUid,
-    params: impl Into<aoide_core_api_json::media::tracker::FsTraversalParams>,
-) -> anyhow::Result<FindUntrackedOutcome> {
+    params: impl Into<aoide_core_api_json::media::tracker::find_untracked_files::Params>,
+) -> anyhow::Result<aoide_core_api::media::tracker::find_untracked_files::Outcome> {
     let request_url = env.join_api_url(&format!("c/{}/mt/find-untracked-files", collection_uid))?;
     let request_body = serde_json::to_vec(&params.into())?;
     let request = env.client().post(request_url).body(request_body);
@@ -245,7 +227,7 @@ async fn untrack_directories<E: WebClientEnvironment>(
     env: &E,
     collection_uid: &EntityUid,
     params: impl Into<aoide_core_api_json::media::tracker::untrack_directories::Params>,
-) -> anyhow::Result<UntrackOutcome> {
+) -> anyhow::Result<aoide_core_api::media::tracker::untrack_directories::Outcome> {
     let request_url = env.join_api_url(&format!("c/{}/mt/untrack-directories", collection_uid))?;
     let request_body = serde_json::to_vec(&params.into())?;
     let request = env.client().post(request_url).body(request_body);

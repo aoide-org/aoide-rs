@@ -478,7 +478,11 @@ async fn main() -> anyhow::Result<()> {
                             return Some(
                                 media_tracker::Intent::StartScanDirectories {
                                     collection_uid,
-                                    root_url: media_root_url,
+                                    params:
+                                        aoide_core_api::media::tracker::scan_directories::Params {
+                                            root_url: media_root_url,
+                                            ..Default::default()
+                                        },
                                 }
                                 .into(),
                             );
@@ -493,7 +497,10 @@ async fn main() -> anyhow::Result<()> {
                             return Some(
                                 media_tracker::Intent::UntrackDirectories {
                                     collection_uid,
-                                    root_url: media_root_url,
+                                    params: aoide_core_api::media::tracker::untrack_directories::Params {
+                                        root_url: Some(media_root_url),
+                                        status: None,
+                                    }
                                 }
                                 .into(),
                             );
@@ -507,7 +514,10 @@ async fn main() -> anyhow::Result<()> {
                             return Some(
                                 media_tracker::Intent::StartImportFiles {
                                     collection_uid,
-                                    root_url: media_root_url,
+                                    params: aoide_core_api::media::tracker::import_files::Params {
+                                        root_url: media_root_url,
+                                        ..Default::default()
+                                    },
                                 }
                                 .into(),
                             );
@@ -530,7 +540,10 @@ async fn main() -> anyhow::Result<()> {
                             return Some(
                                 media_tracker::Intent::StartFindUntrackedFiles {
                                     collection_uid,
-                                    root_url: media_root_url,
+                                    params: aoide_core_api::media::tracker::find_untracked_files::Params {
+                                        root_url: media_root_url,
+                                        ..Default::default()
+                                    }
                                 }
                                 .into(),
                             );

@@ -19,6 +19,8 @@ use crate::prelude::*;
 
 use super::Completion;
 
+pub type Params = super::FsTraversalParams;
+
 mod _core {
     pub use aoide_core_api::media::tracker::scan_directories::*;
 }
