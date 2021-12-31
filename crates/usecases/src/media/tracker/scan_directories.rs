@@ -185,13 +185,14 @@ pub fn scan_directories<
             }
         }
     })?;
-    let root_url = collection_ctx
+    let (root_url, root_path) = collection_ctx
         .source_path
         .vfs
-        .map(|vfs_context| vfs_context.root_url)
+        .map(|vfs_context| (vfs_context.root_url, vfs_context.root_path))
         .unwrap();
     Ok(Outcome {
         root_url,
+        root_path,
         completion,
         summary,
     })

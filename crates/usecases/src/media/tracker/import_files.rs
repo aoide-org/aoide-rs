@@ -95,8 +95,14 @@ pub fn import_files<
         )?;
         if pending_entries.is_empty() {
             log::debug!("Finished import of pending directories: {:?}", summary);
+            let (root_url, root_path) = collection_ctx
+                .source_path
+                .vfs
+                .map(|vfs| (vfs.root_url, vfs.root_path))
+                .unwrap();
             let outcome = Outcome {
-                root_url: collection_ctx.source_path.vfs.unwrap().root_url,
+                root_url,
+                root_path,
                 completion: Completion::Finished,
                 summary,
             };
@@ -105,8 +111,14 @@ pub fn import_files<
         for pending_entry in pending_entries {
             if abort_flag.load(Ordering::Relaxed) {
                 log::debug!("Aborting import of pending directories: {:?}", summary);
+                let (root_url, root_path) = collection_ctx
+                    .source_path
+                    .vfs
+                    .map(|vfs| (vfs.root_url, vfs.root_path))
+                    .unwrap();
                 let outcome = Outcome {
-                    root_url: collection_ctx.source_path.vfs.unwrap().root_url,
+                    root_url,
+                    root_path,
                     completion: Completion::Aborted,
                     summary,
                 };
@@ -164,8 +176,14 @@ pub fn import_files<
                 ReplaceCompletion::Finished => {}
                 ReplaceCompletion::Aborted => {
                     log::debug!("Aborting import of pending directories: {:?}", summary);
+                    let (root_url, root_path) = collection_ctx
+                        .source_path
+                        .vfs
+                        .map(|vfs| (vfs.root_url, vfs.root_path))
+                        .unwrap();
                     let outcome = Outcome {
-                        root_url: collection_ctx.source_path.vfs.unwrap().root_url,
+                        root_url,
+                        root_path,
                         completion: Completion::Aborted,
                         summary,
                     };

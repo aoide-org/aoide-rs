@@ -29,6 +29,7 @@ mod _core {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Outcome {
     pub root_url: Url,
+    pub root_path: String,
     pub completion: Completion,
     pub source_paths: Vec<String>,
 }
@@ -40,12 +41,13 @@ impl TryFrom<Outcome> for _core::Outcome {
     fn try_from(from: Outcome) -> Result<Self, Self::Error> {
         let Outcome {
             root_url,
+            root_path,
             completion,
             source_paths,
         } = from;
-        let root_url = root_url.try_into()?;
         Ok(Self {
-            root_url,
+            root_url: root_url.try_into()?,
+            root_path: root_path.into(),
             completion: completion.into(),
             source_paths: source_paths.into_iter().map(Into::into).collect(),
         })
@@ -57,11 +59,13 @@ impl From<_core::Outcome> for Outcome {
     fn from(from: _core::Outcome) -> Self {
         let _core::Outcome {
             root_url,
+            root_path,
             completion,
             source_paths,
         } = from;
         Self {
             root_url: root_url.into(),
+            root_path: root_path.into(),
             completion: completion.into(),
             source_paths: source_paths.into_iter().map(Into::into).collect(),
         }

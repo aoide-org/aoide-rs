@@ -20,6 +20,7 @@ use super::Completion;
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Outcome {
     pub root_url: BaseUrl,
+    pub root_path: SourcePath,
     pub completion: Completion,
     pub source_paths: Vec<SourcePath>,
 }

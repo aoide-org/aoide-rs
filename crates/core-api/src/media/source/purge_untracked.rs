@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core::util::url::BaseUrl;
+use aoide_core::{media::SourcePath, util::url::BaseUrl};
 
 #[derive(Debug, Clone, Default, Eq, PartialEq)]
 pub struct Params {
@@ -23,6 +23,7 @@ pub struct Params {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Outcome {
     pub root_url: BaseUrl,
+    pub root_path: SourcePath,
     pub summary: Summary,
 }
 

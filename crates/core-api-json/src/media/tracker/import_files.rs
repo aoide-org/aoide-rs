@@ -75,6 +75,7 @@ impl TryFrom<Params> for _inner::Params {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Outcome {
     pub root_url: Url,
+    pub root_path: String,
     pub completion: Completion,
     pub summary: Summary,
 }
@@ -86,12 +87,13 @@ impl TryFrom<Outcome> for _inner::Outcome {
     fn try_from(from: Outcome) -> Result<Self, Self::Error> {
         let Outcome {
             root_url,
+            root_path,
             completion,
             summary,
         } = from;
-        let root_url = root_url.try_into()?;
         Ok(Self {
-            root_url,
+            root_url: root_url.try_into()?,
+            root_path: root_path.into(),
             completion: completion.into(),
             summary: summary.into(),
         })
@@ -103,11 +105,13 @@ impl From<_inner::Outcome> for Outcome {
     fn from(from: _inner::Outcome) -> Self {
         let _inner::Outcome {
             root_url,
+            root_path,
             completion,
             summary,
         } = from;
         Self {
             root_url: root_url.into(),
+            root_path: root_path.into(),
             completion: completion.into(),
             summary: summary.into(),
         }

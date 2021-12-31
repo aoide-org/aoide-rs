@@ -2259,6 +2259,8 @@ components:
       properties:
         rootUrl:
           $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+        rootPath:
+          $ref: '#/components/schemas/MediaSourcePath'
         summary:
           $ref: '#/components/schemas/PurgeOrphanedMediaSourcessSummary'
       required:
@@ -2276,10 +2278,18 @@ components:
       properties:
         rootUrl:
           $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+    PurgeUntrackedMediaSourcesResponseBody:
+      type: object
+      properties:
+        rootUrl:
+          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+        rootPath:
+          $ref: '#/components/schemas/MediaSourcePath'
         summary:
           $ref: '#/components/schemas/PurgeUntrackeMediaSourcessSummary'
       required:
         - rootUrl
+        - rootPath
         - summary
     PurgeUntrackeMediaSourcessSummary:
       type: object
@@ -2332,10 +2342,13 @@ components:
       properties:
         rootUrl:
           $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+        rootPath:
+          $ref: '#/components/schemas/MediaSourcePath'
         summary:
           $ref: '#/components/schemas/MediaTrackerUntrackDirectoriesSummary'
       required:
         - rootUrl
+        - rootPath
         - summary
     MediaTrackerUntrackDirectoriesSummary:
       type: object
@@ -2402,19 +2415,21 @@ components:
         - always
       default: modified
     MediaTrackerImportResponseBody:
-      oneOf:
-        - type: object
-          properties:
-            rootUrl:
-              $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
-            completion:
-              $ref: '#/components/schemas/MediaTrackerCompletion'
-            summary:
-              $ref: '#/components/schemas/MediaTrackerImportSummary'
-          required:
-            - rootUrl
-            - completion
-            - summary
+      type: object
+      properties:
+        rootUrl:
+          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+        rootPath:
+          $ref: '#/components/schemas/MediaSourcePath'
+        completion:
+          $ref: '#/components/schemas/MediaTrackerCompletion'
+        summary:
+          $ref: '#/components/schemas/MediaTrackerImportSummary'
+      required:
+        - rootUrl
+        - rootPath
+        - completion
+        - summary
     MediaTrackerImportSummary:
       type: object
       properties:
@@ -2573,35 +2588,39 @@ components:
         - $ref: '#/components/schemas/PercentEncodedUrl'
         - $ref: '#/components/schemas/MediaSourceVirtualFilePath'
     MediaTrackerScanResponseBody:
-      oneOf:
-        - type: object
-          properties:
-            rootUrl:
-              $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
-            completion:
-              $ref: '#/components/schemas/MediaTrackerCompletion'
-            summary:
-              $ref: '#/components/schemas/MediaTrackerScanSummary'
-          required:
-            - rootUrl
-            - completion
-            - summary
+      type: object
+      properties:
+        rootUrl:
+          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+        rootPath:
+          $ref: '#/components/schemas/MediaSourcePath'
+        completion:
+          $ref: '#/components/schemas/MediaTrackerCompletion'
+        summary:
+          $ref: '#/components/schemas/MediaTrackerScanSummary'
+      required:
+        - rootUrl
+        - rootPath
+        - completion
+        - summary
     MediaTrackerFindUntrackedResponseBody:
-      oneOf:
-        - type: object
-          properties:
-            rootUrl:
-              $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
-            completion:
-              $ref: '#/components/schemas/MediaTrackerCompletion'
-            sourcePaths:
-              type: array
-              items:
-                $ref: '#/components/schemas/MediaSourcePath'
-          required:
-            - rootUrl
-            - completion
-            - sourcePaths
+      type: object
+      properties:
+        rootUrl:
+          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+        rootPath:
+          $ref: '#/components/schemas/MediaSourcePath'
+        completion:
+          $ref: '#/components/schemas/MediaTrackerCompletion'
+        sourcePaths:
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaSourcePath'
+      required:
+        - rootUrl
+        - rootPath
+        - completion
+        - sourcePaths
     PercentEncodedUri:
       type: string
       minLength: 1

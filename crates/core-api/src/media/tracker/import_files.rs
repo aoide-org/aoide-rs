@@ -15,7 +15,7 @@
 
 use std::ops::AddAssign;
 
-use aoide_core::util::url::BaseUrl;
+use aoide_core::{media::SourcePath, util::url::BaseUrl};
 
 use crate::{media::SyncMode, track::replace::Summary as TrackReplaceSummary};
 
@@ -30,6 +30,7 @@ pub struct Params {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Outcome {
     pub root_url: BaseUrl,
+    pub root_path: SourcePath,
     pub completion: Completion,
     pub summary: Summary,
 }

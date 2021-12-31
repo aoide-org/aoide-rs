@@ -45,8 +45,16 @@ where
     } else {
         repo.purge_orphaned_media_sources(collection_id)
     }?;
-    let root_url = collection_ctx.source_path.vfs.map(|vfs| vfs.root_url);
+    let (root_url, root_path) = collection_ctx
+        .source_path
+        .vfs
+        .map(|vfs| (Some(vfs.root_url), Some(vfs.root_path)))
+        .unwrap_or((None, None));
     let summary = Summary { purged };
-    let outcome = Outcome { root_url, summary };
+    let outcome = Outcome {
+        root_url,
+        root_path,
+        summary,
+    };
     Ok(outcome)
 }
