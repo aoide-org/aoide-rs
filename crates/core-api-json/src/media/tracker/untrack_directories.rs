@@ -68,7 +68,7 @@ impl TryFrom<Params> for _inner::Params {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Outcome {
     pub root_url: Url,
-    pub untracked: u64,
+    pub summary: Summary,
 }
 
 #[cfg(feature = "frontend")]
@@ -76,13 +76,10 @@ impl TryFrom<Outcome> for _inner::Outcome {
     type Error = anyhow::Error;
 
     fn try_from(from: Outcome) -> std::result::Result<Self, Self::Error> {
-        let Outcome {
-            root_url,
-            untracked,
-        } = from;
+        let Outcome { root_url, summary } = from;
         Ok(Self {
             root_url: root_url.try_into()?,
-            untracked: untracked as usize,
+            summary: summary.into(),
         })
     }
 }
@@ -90,12 +87,37 @@ impl TryFrom<Outcome> for _inner::Outcome {
 #[cfg(feature = "backend")]
 impl From<_inner::Outcome> for Outcome {
     fn from(from: _inner::Outcome) -> Self {
-        let _inner::Outcome {
-            root_url,
-            untracked,
-        } = from;
+        let _inner::Outcome { root_url, summary } = from;
         Self {
             root_url: root_url.into(),
+            summary: summary.into(),
+        }
+    }
+}
+
+#[derive(Debug)]
+#[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(feature = "frontend", derive(Deserialize))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct Summary {
+    pub untracked: u64,
+}
+
+#[cfg(feature = "frontend")]
+impl From<Summary> for _inner::Summary {
+    fn from(from: Summary) -> Self {
+        let Summary { untracked } = from;
+        Self {
+            untracked: untracked as usize,
+        }
+    }
+}
+
+#[cfg(feature = "backend")]
+impl From<_inner::Summary> for Summary {
+    fn from(from: _inner::Summary) -> Self {
+        let _inner::Summary { untracked } = from;
+        Self {
             untracked: untracked as u64,
         }
     }

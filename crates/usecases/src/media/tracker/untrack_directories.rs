@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_core::entity::EntityUid;
-use aoide_core_api::media::tracker::untrack_directories::{Outcome, Params};
+use aoide_core_api::media::tracker::untrack_directories::{Outcome, Params, Summary};
 
 use aoide_repo::{
     collection::EntityRepo as CollectionRepo, media::tracker::Repo as MediaTrackerRepo,
@@ -51,8 +51,6 @@ where
         .vfs
         .map(|vfs_context| vfs_context.root_url)
         .unwrap();
-    Ok(Outcome {
-        root_url,
-        untracked,
-    })
+    let summary = Summary { untracked };
+    Ok(Outcome { root_url, summary })
 }

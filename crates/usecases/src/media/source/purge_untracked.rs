@@ -15,7 +15,7 @@
 
 use aoide_core::entity::EntityUid;
 
-use aoide_core_api::media::source::purge_untracked::{Outcome, Params};
+use aoide_core_api::media::source::purge_untracked::{Outcome, Params, Summary};
 
 use aoide_repo::{
     collection::EntityRepo as CollectionRepo,
@@ -59,6 +59,7 @@ where
         .vfs
         .map(|vfs_context| vfs_context.root_url)
         .unwrap();
-    let outcome = Outcome { root_url, purged };
+    let summary = Summary { purged };
+    let outcome = Outcome { root_url, summary };
     Ok(outcome)
 }

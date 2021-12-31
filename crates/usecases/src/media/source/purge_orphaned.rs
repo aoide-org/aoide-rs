@@ -15,7 +15,7 @@
 
 use aoide_core::entity::EntityUid;
 
-use aoide_core_api::media::source::purge_orphaned::{Outcome, Params};
+use aoide_core_api::media::source::purge_orphaned::{Outcome, Params, Summary};
 
 use aoide_repo::{
     collection::EntityRepo as CollectionRepo, media::source::Repo as MediaSourceRepo,
@@ -46,6 +46,7 @@ where
         repo.purge_orphaned_media_sources(collection_id)
     }?;
     let root_url = collection_ctx.source_path.vfs.map(|vfs| vfs.root_url);
-    let outcome = Outcome { root_url, purged };
+    let summary = Summary { purged };
+    let outcome = Outcome { root_url, summary };
     Ok(outcome)
 }

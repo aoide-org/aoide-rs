@@ -59,8 +59,10 @@ impl TryFrom<Params> for _inner::Params {
 #[cfg_attr(feature = "backend", derive(Serialize))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Outcome {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub root_url: Option<Url>,
-    pub purged: u64,
+
+    pub summary: Summary,
 }
 
 #[cfg(feature = "frontend")]
@@ -68,11 +70,10 @@ impl TryFrom<Outcome> for _inner::Outcome {
     type Error = aoide_core::util::url::BaseUrlError;
 
     fn try_from(from: Outcome) -> Result<Self, Self::Error> {
-        let Outcome { root_url, purged } = from;
-        let root_url = root_url.map(TryInto::try_into).transpose()?;
+        let Outcome { root_url, summary } = from;
         Ok(Self {
-            root_url,
-            purged: purged as usize,
+            root_url: root_url.map(TryInto::try_into).transpose()?,
+            summary: summary.into(),
         })
     }
 }
@@ -80,9 +81,37 @@ impl TryFrom<Outcome> for _inner::Outcome {
 #[cfg(feature = "backend")]
 impl From<_inner::Outcome> for Outcome {
     fn from(from: _inner::Outcome) -> Self {
-        let _inner::Outcome { root_url, purged } = from;
+        let _inner::Outcome { root_url, summary } = from;
         Self {
             root_url: root_url.map(Into::into),
+            summary: summary.into(),
+        }
+    }
+}
+
+#[derive(Debug)]
+#[cfg_attr(feature = "backend", derive(Serialize))]
+#[cfg_attr(feature = "frontend", derive(Deserialize))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct Summary {
+    pub purged: u64,
+}
+
+#[cfg(feature = "frontend")]
+impl From<Summary> for _inner::Summary {
+    fn from(from: Summary) -> Self {
+        let Summary { purged } = from;
+        Self {
+            purged: purged as usize,
+        }
+    }
+}
+
+#[cfg(feature = "backend")]
+impl From<_inner::Summary> for Summary {
+    fn from(from: _inner::Summary) -> Self {
+        let _inner::Summary { purged } = from;
+        Self {
             purged: purged as u64,
         }
     }

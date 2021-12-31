@@ -2262,30 +2262,35 @@ components:
       properties:
         rootUrl:
           $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+        summary:
+          $ref: '#/components/schemas/PurgeOrphanedMediaSourcessSummary'
+      required:
+        - summary
+    PurgeOrphanedMediaSourcessSummary:
+      type: object
+      properties:
         purged:
           type: integer
-          format: int64
+          minimum: 0
       required:
-        - rootUrl
         - purged
     PurgeUntrackedMediaSourcesRequestBody:
       type: object
       properties:
         rootUrl:
           $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
-        untrackOrphanedDirectories:
-          type: boolean
-          default: false
-    PurgeUntrackedMediaSourcesResponseBody:
-      type: object
-      properties:
-        rootUrl:
-          $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
-        purged:
-          type: integer
-          format: int64
+        summary:
+          $ref: '#/components/schemas/PurgeUntrackeMediaSourcessSummary'
       required:
         - rootUrl
+        - summary
+    PurgeUntrackeMediaSourcessSummary:
+      type: object
+      properties:
+        purged:
+          type: integer
+          minimum: 0
+      required:
         - purged
     Release:
       type: object
@@ -2330,11 +2335,18 @@ components:
       properties:
         rootUrl:
           $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
+        summary:
+          $ref: '#/components/schemas/MediaTrackerUntrackDirectoriesSummary'
+      required:
+        - rootUrl
+        - summary
+    MediaTrackerUntrackDirectoriesSummary:
+      type: object
+      properties:
         untracked:
           type: integer
           minimum: 0
       required:
-        - rootUrl
         - untracked
     MediaTrackerQueryStatusRequestBody:
       type: object

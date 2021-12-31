@@ -23,8 +23,13 @@ pub struct Params {
     pub status: Option<DirTrackingStatus>,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Outcome {
     pub root_url: BaseUrl,
+    pub summary: Summary,
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct Summary {
     pub untracked: usize,
 }

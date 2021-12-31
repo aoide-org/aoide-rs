@@ -23,5 +23,10 @@ pub struct Params {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Outcome {
     pub root_url: BaseUrl,
+    pub summary: Summary,
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct Summary {
     pub purged: usize,
 }
