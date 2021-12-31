@@ -2254,9 +2254,6 @@ components:
       properties:
         rootUrl:
           $ref: '#/components/schemas/PercentEncodedDirectoryUrl'
-        untrackOrphanedDirectories:
-          type: boolean
-          default: false
     PurgeOrphanedMediaSourcesResponseBody:
       type: object
       properties:
