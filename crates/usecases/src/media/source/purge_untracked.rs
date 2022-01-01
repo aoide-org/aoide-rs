@@ -47,7 +47,6 @@ where
         .into());
     };
     let collection_id = collection_ctx.record_id;
-    // Purge orphaned media sources that don't belong to any track
     let purged = if vfs_ctx.root_path.is_empty() {
         repo.purge_untracked_media_sources(collection_id)
     } else {
