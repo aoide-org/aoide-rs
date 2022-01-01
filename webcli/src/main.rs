@@ -186,12 +186,14 @@ async fn main() -> anyhow::Result<()> {
     let shared_env = Arc::new(Environment::new(api_url));
     let (message_tx, message_rx) = message_channel();
 
+    let mut last_media_sources_purge_orphaned_outcome = None;
+    let mut last_media_sources_purge_untracked_outcome = None;
     let mut last_media_tracker_progress_fetched = None;
-    let mut last_media_tracker_status = None;
     let mut last_media_tracker_progress = None;
+    let mut last_media_tracker_status = None;
     let mut last_media_tracker_scan_directories_outcome = None;
-    let mut last_media_tracker_import_files_outcome = None;
     let mut last_media_tracker_untrack_directories_outcome = None;
+    let mut last_media_tracker_import_files_outcome = None;
     let mut last_media_tracker_find_untracked_files_outcome = None;
     let mut subcommand_submitted = false;
     let message_loop = tokio::spawn(message_loop(
@@ -205,6 +207,40 @@ async fn main() -> anyhow::Result<()> {
                 }
                 // Terminate after errors occurred
                 return Some(Intent::Terminate);
+            }
+            if last_media_sources_purge_orphaned_outcome.as_ref()
+                != state
+                    .media_sources
+                    .remote_view()
+                    .last_purge_orphaned_outcome
+                    .get_ready()
+            {
+                last_media_sources_purge_orphaned_outcome = state
+                    .media_sources
+                    .remote_view()
+                    .last_purge_orphaned_outcome
+                    .get_ready()
+                    .map(ToOwned::to_owned);
+                if let Some(outcome) = &last_media_sources_purge_orphaned_outcome {
+                    log::info!("Purging orphaned media sources succeeded: {:?}", outcome);
+                }
+            }
+            if last_media_sources_purge_untracked_outcome.as_ref()
+                != state
+                    .media_sources
+                    .remote_view()
+                    .last_purge_untracked_outcome
+                    .get_ready()
+            {
+                last_media_sources_purge_untracked_outcome = state
+                    .media_sources
+                    .remote_view()
+                    .last_purge_untracked_outcome
+                    .get_ready()
+                    .map(ToOwned::to_owned);
+                if let Some(outcome) = &last_media_sources_purge_untracked_outcome {
+                    log::info!("Purging untracked media sources succeeded: {:?}", outcome);
+                }
             }
             if last_media_tracker_progress.as_ref()
                 != state.media_tracker.remote_view().progress.get()
@@ -245,24 +281,7 @@ async fn main() -> anyhow::Result<()> {
                     .get_ready()
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = &last_media_tracker_scan_directories_outcome {
-                    log::info!("Scan finished: {:?}", outcome);
-                }
-            }
-            if last_media_tracker_import_files_outcome.as_ref()
-                != state
-                    .media_tracker
-                    .remote_view()
-                    .last_import_files_outcome
-                    .get_ready()
-            {
-                last_media_tracker_import_files_outcome = state
-                    .media_tracker
-                    .remote_view()
-                    .last_import_files_outcome
-                    .get_ready()
-                    .map(ToOwned::to_owned);
-                if let Some(outcome) = &last_media_tracker_import_files_outcome {
-                    log::info!("Import finished: {:?}", outcome);
+                    log::info!("Scanning media directories succeeded: {:?}", outcome);
                 }
             }
             if last_media_tracker_untrack_directories_outcome.as_ref()
@@ -279,7 +298,24 @@ async fn main() -> anyhow::Result<()> {
                     .get_ready()
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = &last_media_tracker_untrack_directories_outcome {
-                    log::info!("Untrack finished: {:?}", outcome);
+                    log::info!("Untracking media directories succeeded: {:?}", outcome);
+                }
+            }
+            if last_media_tracker_import_files_outcome.as_ref()
+                != state
+                    .media_tracker
+                    .remote_view()
+                    .last_import_files_outcome
+                    .get_ready()
+            {
+                last_media_tracker_import_files_outcome = state
+                    .media_tracker
+                    .remote_view()
+                    .last_import_files_outcome
+                    .get_ready()
+                    .map(ToOwned::to_owned);
+                if let Some(outcome) = &last_media_tracker_import_files_outcome {
+                    log::info!("Importing media files succeeded: {:?}", outcome);
                 }
             }
             if last_media_tracker_find_untracked_files_outcome.as_ref()
@@ -296,7 +332,7 @@ async fn main() -> anyhow::Result<()> {
                     .get_ready()
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = &last_media_tracker_find_untracked_files_outcome {
-                    log::info!("Finding untracked files finished: {:?}", outcome);
+                    log::info!("Finding untracked media files succeeded: {:?}", outcome);
                     if !outcome.value.source_paths.is_empty() {
                         log::info!(
                             "Found {} untracked entries on file system:\n{}",
