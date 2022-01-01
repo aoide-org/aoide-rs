@@ -115,16 +115,20 @@ impl PendingTasksCounter {
 }
 
 impl PendingTasksCounter {
-    pub fn start_pending_task(&self) {
-        self.number_of_pending_tasks
-            .fetch_add(1, std::sync::atomic::Ordering::Acquire);
+    pub fn start_pending_task(&self) -> usize {
+        let pending_tasks = self
+            .number_of_pending_tasks
+            .fetch_add(1, std::sync::atomic::Ordering::Acquire)
+            + 1;
         debug_assert!(!self.all_pending_tasks_finished());
+        pending_tasks
     }
 
-    pub fn finish_pending_task(&self) {
+    pub fn finish_pending_task(&self) -> usize {
         debug_assert!(!self.all_pending_tasks_finished());
         self.number_of_pending_tasks
-            .fetch_sub(1, std::sync::atomic::Ordering::Release);
+            .fetch_sub(1, std::sync::atomic::Ordering::Release)
+            - 1
     }
 
     pub fn all_pending_tasks_finished(&self) -> bool {

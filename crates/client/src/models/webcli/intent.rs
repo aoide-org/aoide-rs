@@ -115,20 +115,21 @@ impl Intent {
                 state_updated(intent.apply_on(&mut state.media_tracker))
             }
             Self::AbortPendingRequest => {
-                if state.is_pending() {
-                    StateUpdated::unchanged(Action::dispatch_task(Task::AbortPendingRequest))
-                } else {
-                    // Nothing to do
-                    StateUpdated::unchanged(None)
-                }
+                StateUpdated::unchanged(abort_pending_request_action(state))
             }
             Self::Terminate => {
                 if state.control_state == ControlState::Terminating {
                     return StateUpdated::unchanged(None);
                 }
                 state.control_state = ControlState::Terminating;
-                StateUpdated::maybe_changed(Action::dispatch_task(Task::AbortPendingRequest))
+                StateUpdated::maybe_changed(abort_pending_request_action(state))
             }
         }
     }
+}
+
+fn abort_pending_request_action(state: &State) -> Option<Action> {
+    state
+        .is_pending()
+        .then(|| Action::dispatch_task(Task::AbortPendingRequest))
 }

@@ -178,21 +178,29 @@ async fn should_terminate_on_intent_after_pending_tasks_finished() {
         (message_tx, message_rx),
         Default::default(),
         Box::new({
-            let shared_env = shared_env.clone();
-            let render_state_count = render_state_count.clone();
-            move |_: &State| {
+            let shared_env = Arc::clone(&shared_env);
+            let render_state_count = Arc::clone(&render_state_count);
+            move |state: &State| {
                 let last_render_state_count =
                     render_state_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                // On the first invocation the task that executes the
-                // timed intent is pending
-                assert_eq!(last_render_state_count > 0, shared_env.all_tasks_finished());
+                // On the 1st (initial) and 2nd (Intent::Terminate) invocation the task
+                // that executes the timed intent is still pending
+                assert_eq!(
+                    last_render_state_count == 0,
+                    state.control_state == state::ControlState::Running
+                );
+                assert_eq!(
+                    last_render_state_count > 0,
+                    state.control_state == state::ControlState::Terminating
+                );
+                assert_eq!(last_render_state_count > 1, shared_env.all_tasks_finished());
                 None
             }
         }),
     )
     .await;
     assert_eq!(
-        2,
+        3,
         render_state_count.load(std::sync::atomic::Ordering::SeqCst)
     );
     assert!(state.last_errors().is_empty());

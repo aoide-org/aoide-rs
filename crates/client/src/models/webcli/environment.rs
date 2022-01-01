@@ -59,13 +59,19 @@ impl TaskDispatchEnvironment<Intent, Effect, Task> for Environment {
     }
 
     fn dispatch_task(&self, shared_self: Arc<Self>, message_tx: MessageSender, task: Task) {
-        shared_self.pending_tasks_counter.start_pending_task();
+        let started_pending_task = shared_self.pending_tasks_counter.start_pending_task();
+        debug_assert!(started_pending_task > 0);
+        if started_pending_task == 1 {
+            log::debug!("Started first pending task");
+        }
         tokio::spawn(async move {
             log::debug!("Executing task: {:?}", task);
             let effect = task.execute(&*shared_self).await;
             log::debug!("Task finished with effect: {:?}", effect);
             send_message(&message_tx, Message::Effect(effect));
-            shared_self.pending_tasks_counter.finish_pending_task();
+            if shared_self.pending_tasks_counter.finish_pending_task() == 0 {
+                log::debug!("Finished last pending task");
+            }
         });
     }
 }
