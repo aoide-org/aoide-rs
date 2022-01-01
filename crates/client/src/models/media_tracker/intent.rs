@@ -91,7 +91,6 @@ impl Intent {
                     return StateUpdated::unchanged(None);
                 }
                 // Start batch task
-                state.remote_view.progress.reset();
                 StateUpdated::maybe_changed(Action::dispatch_task(Task::StartScanDirectories {
                     collection_uid,
                     params,
@@ -116,7 +115,6 @@ impl Intent {
                     return StateUpdated::unchanged(None);
                 }
                 // Start batch task
-                state.remote_view.progress.reset();
                 StateUpdated::maybe_changed(Action::dispatch_task(Task::StartImportFiles {
                     collection_uid,
                     params,
@@ -141,7 +139,6 @@ impl Intent {
                     return StateUpdated::unchanged(None);
                 }
                 // Start batch task
-                state.remote_view.progress.reset();
                 StateUpdated::maybe_changed(Action::dispatch_task(Task::StartFindUntrackedFiles {
                     collection_uid,
                     params,

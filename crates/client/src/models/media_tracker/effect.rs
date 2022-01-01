@@ -92,9 +92,6 @@ impl Effect {
                     );
                     return StateUpdated::unchanged(None);
                 }
-                // Invalidate both progress and status to enforce refetching
-                state.remote_view.progress.reset();
-                state.remote_view.status.reset();
                 let next_action = match res {
                     Ok(outcome) => {
                         state.remote_view.last_scan_directories_outcome =
@@ -120,9 +117,6 @@ impl Effect {
                     );
                     return StateUpdated::unchanged(None);
                 }
-                // Invalidate both progress and status to enforce refetching
-                state.remote_view.progress.reset();
-                state.remote_view.status.reset();
                 let next_action = match res {
                     Ok(outcome) => {
                         state.remote_view.last_untrack_directories_outcome =
@@ -144,9 +138,6 @@ impl Effect {
                     );
                     return StateUpdated::unchanged(None);
                 }
-                // Invalidate both progress and status to enforce refetching
-                state.remote_view.progress.reset();
-                state.remote_view.status.reset();
                 let next_action = match res {
                     Ok(outcome) => {
                         state.remote_view.last_import_files_outcome =
