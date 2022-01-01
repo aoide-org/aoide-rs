@@ -17,7 +17,7 @@ use super::{Action, FetchResultPageResponse, State, StateUpdated};
 
 #[derive(Debug)]
 pub enum Effect {
-    ResultPageFetched(anyhow::Result<FetchResultPageResponse>),
+    FetchResultPageFinished(anyhow::Result<FetchResultPageResponse>),
     ErrorOccurred(anyhow::Error),
 }
 
@@ -25,7 +25,7 @@ impl Effect {
     pub fn apply_on(self, state: &mut State) -> StateUpdated {
         log::trace!("Applying effect {:?} on {:?}", self, state);
         match self {
-            Self::ResultPageFetched(res) => match res {
+            Self::FetchResultPageFinished(res) => match res {
                 Ok(response) => {
                     state.append_fetched_result_page(response);
                     StateUpdated::maybe_changed(None)

@@ -37,7 +37,7 @@ impl Task {
                 request,
             } => {
                 let response = fetch_result_page(env, &collection_uid, request).await;
-                Effect::ResultPageFetched(response)
+                Effect::FetchResultPageFinished(response)
             }
         }
     }
