@@ -320,22 +320,26 @@ async fn main() -> anyhow::Result<()> {
                     Some(webcli::Intent::Terminate)
                 } else {
                     // Periodically refetch and report progress while busy
-                    if let Some(last_fetched) = last_media_tracker_progress_fetched {
-                        let now = Instant::now();
-                        if now >= last_fetched {
-                            let not_before = now + PROGRESS_POLLING_PERIOD;
-                            last_media_tracker_progress_fetched = Some(not_before);
-                            let intent = Intent::TimedIntent {
-                                not_before,
-                                intent: Box::new(media_tracker::Intent::FetchProgress.into()),
-                            };
-                            Some(intent)
+                    if state.media_tracker.remote_view().is_pending() {
+                        if let Some(last_fetched) = last_media_tracker_progress_fetched {
+                            let now = Instant::now();
+                            if now >= last_fetched {
+                                let not_before = now + PROGRESS_POLLING_PERIOD;
+                                last_media_tracker_progress_fetched = Some(not_before);
+                                let intent = Intent::TimedIntent {
+                                    not_before,
+                                    intent: Box::new(media_tracker::Intent::FetchProgress.into()),
+                                };
+                                Some(intent)
+                            } else {
+                                None
+                            }
                         } else {
-                            None
+                            last_media_tracker_progress_fetched = Some(Instant::now());
+                            Some(media_tracker::Intent::FetchProgress.into())
                         }
                     } else {
-                        last_media_tracker_progress_fetched = Some(Instant::now());
-                        Some(media_tracker::Intent::FetchProgress.into())
+                        None
                     }
                 };
                 return next_intent;
