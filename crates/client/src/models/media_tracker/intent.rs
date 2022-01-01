@@ -51,7 +51,7 @@ impl Intent {
                     log::warn!("Discarding intent while pending: {:?}", Self::FetchProgress);
                     return StateUpdated::unchanged(None);
                 }
-                StateUpdated::unchanged(Action::dispatch_task(Task::FetchProgress))
+                StateUpdated::maybe_changed(Action::dispatch_task(Task::FetchProgress))
             }
             Self::FetchStatus {
                 collection_uid,
