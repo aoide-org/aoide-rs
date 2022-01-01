@@ -197,7 +197,6 @@ pub fn import_files<
                     collection_id,
                     &dir_path,
                     &digest,
-                    &media_source_ids,
                 ) {
                     Ok(true) => {
                         log::debug!("Confirmed pending directory '{}'", dir_path);
@@ -220,7 +219,6 @@ pub fn import_files<
                         );
                         // Skip this directory and keep going
                         summary.directories.skipped += 1;
-                        continue;
                     }
                 }
             } else {
@@ -231,7 +229,17 @@ pub fn import_files<
                 );
                 // Skip this directory (only partially imported) and keep going
                 summary.directories.skipped += 1;
-                continue;
+            }
+            if let Err(err) = repo.media_tracker_replace_directory_sources(
+                collection_id,
+                &dir_path,
+                &media_source_ids,
+            ) {
+                log::warn!(
+                    "Failed replace imported sources in directory '{}': {}",
+                    dir_path,
+                    err
+                );
             }
         }
     };

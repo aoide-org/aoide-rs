@@ -257,7 +257,6 @@ fn reset_entry_status_to_current() -> anyhow::Result<()> {
         collection_id,
         &path,
         &other_digest,
-        &[],
     )?);
     assert_eq!(
         DirTrackingStatus::Added, // unchanged
@@ -265,7 +264,7 @@ fn reset_entry_status_to_current() -> anyhow::Result<()> {
     );
 
     // Added -> Current: Confirmed
-    assert!(db.media_tracker_confirm_directory(updated_at, collection_id, &path, &digest, &[],)?);
+    assert!(db.media_tracker_confirm_directory(updated_at, collection_id, &path, &digest)?);
     assert_eq!(
         DirTrackingStatus::Current,
         db.media_tracker_load_directory_tracking_status(collection_id, &path)?
@@ -293,7 +292,6 @@ fn reset_entry_status_to_current() -> anyhow::Result<()> {
         collection_id,
         &path,
         &other_digest,
-        &[],
     )?);
     assert_eq!(
         DirTrackingStatus::Modified,
@@ -301,7 +299,7 @@ fn reset_entry_status_to_current() -> anyhow::Result<()> {
     );
 
     // Modified -> Current: Confirmed
-    assert!(db.media_tracker_confirm_directory(updated_at, collection_id, &path, &digest, &[],)?);
+    assert!(db.media_tracker_confirm_directory(updated_at, collection_id, &path, &digest)?);
     assert_eq!(
         DirTrackingStatus::Current,
         db.media_tracker_load_directory_tracking_status(collection_id, &path)?

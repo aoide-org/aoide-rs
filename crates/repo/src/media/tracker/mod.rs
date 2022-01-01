@@ -152,6 +152,13 @@ pub trait Repo {
         pagination: &Pagination,
     ) -> RepoResult<Vec<TrackedDirectory>>;
 
+    fn media_tracker_replace_directory_sources(
+        &self,
+        collection_id: CollectionId,
+        path: &SourcePath,
+        media_source_ids: &[MediaSourceId],
+    ) -> RepoResult<(usize, usize)>;
+
     /// Confirm an entry as current.
     ///
     /// The digest may have changed in the meantime. If the given digest
@@ -163,15 +170,14 @@ pub trait Repo {
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        path: &SourcePath,
+        directory_path: &SourcePath,
         digest: &DigestBytes,
-        media_source_ids: &[MediaSourceId],
     ) -> RepoResult<bool>;
 
     fn media_tracker_load_directory_tracking_status(
         &self,
         collection_id: CollectionId,
-        path: &SourcePath,
+        directory_path: &SourcePath,
     ) -> RepoResult<DirTrackingStatus>;
 
     fn media_tracker_aggregate_directories_tracking_status(

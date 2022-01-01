@@ -173,18 +173,48 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         Ok(DirUpdateOutcome::Skipped)
     }
 
+    fn media_tracker_replace_directory_sources(
+        &self,
+        collection_id: CollectionId,
+        directory_path: &SourcePath,
+        media_source_ids: &[MediaSourceId],
+    ) -> RepoResult<(usize, usize)> {
+        let directory_id = media_tracker_directory::table
+            .select(media_tracker_directory::row_id)
+            .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
+            .filter(media_tracker_directory::path.eq(directory_path.as_ref()))
+            .first::<RowId>(self.as_ref())
+            .map_err(repo_error)?;
+        let target =
+            media_tracker_source::table.filter(media_tracker_source::directory_id.eq(directory_id));
+        let removed = diesel::delete(target)
+            .execute(self.as_ref())
+            .map_err(repo_error)?;
+        let mut added = 0;
+        for media_source_id in media_source_ids {
+            added += diesel::insert_into(media_tracker_source::table)
+                .values((
+                    media_tracker_source::directory_id.eq(directory_id),
+                    media_tracker_source::source_id.eq(RowId::from(*media_source_id)),
+                ))
+                .execute(self.as_ref())
+                .map_err(repo_error)?;
+        }
+        debug_assert_eq!(media_source_ids.len(), added);
+        Ok((removed, added))
+    }
+
     fn media_tracker_confirm_directory(
         &self,
         updated_at: DateTime,
         collection_id: CollectionId,
-        path: &SourcePath,
+        directory_path: &SourcePath,
         digest: &DigestBytes,
-        media_source_ids: &[MediaSourceId],
     ) -> RepoResult<bool> {
-        debug_assert!(!path.is_terminal());
+        debug_assert!(!directory_path.is_terminal());
         let target = media_tracker_directory::table
             .filter(media_tracker_directory::collection_id.eq(RowId::from(collection_id)))
-            .filter(media_tracker_directory::path.eq(path.as_ref()))
+            .filter(media_tracker_directory::path.eq(directory_path.as_ref()))
             .filter(media_tracker_directory::digest.eq(&digest[..]));
         let query = diesel::update(target).set((
             media_tracker_directory::row_updated_ms.eq(updated_at.timestamp_millis()),
@@ -193,27 +223,6 @@ impl<'db> Repo for crate::prelude::Connection<'db> {
         ));
         let rows_affected = query.execute(self.as_ref()).map_err(repo_error)?;
         debug_assert!(rows_affected <= 1);
-        if rows_affected > 0 {
-            let directory_id = media_tracker_directory::table
-                .select(media_tracker_directory::row_id)
-                .filter(media_tracker_directory::path.eq(path.as_ref()))
-                .first::<RowId>(self.as_ref())
-                .map_err(repo_error)?;
-            let target = media_tracker_source::table
-                .filter(media_tracker_source::directory_id.eq(directory_id));
-            let _rows_affected = diesel::delete(target)
-                .execute(self.as_ref())
-                .map_err(repo_error)?;
-            for media_source_id in media_source_ids {
-                diesel::insert_into(media_tracker_source::table)
-                    .values((
-                        media_tracker_source::directory_id.eq(directory_id),
-                        media_tracker_source::source_id.eq(RowId::from(*media_source_id)),
-                    ))
-                    .execute(self.as_ref())
-                    .map_err(repo_error)?;
-            }
-        }
         Ok(rows_affected > 0)
     }
 
