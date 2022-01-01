@@ -13,30 +13,30 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use super::Intent;
+use crate::prelude::remote::RemoteData;
 
-use crate::models::{active_collection, media_tracker};
-
-use std::time::Instant;
-
-#[derive(Debug)]
-pub enum Task {
-    TimedIntent {
-        not_before: Instant,
-        intent: Box<Intent>,
-    },
-    ActiveCollection(active_collection::Task),
-    MediaTracker(media_tracker::Task),
+#[derive(Debug, Default)]
+pub struct RemoteView {
+    pub last_purge_orphaned_outcome:
+        RemoteData<aoide_core_api::media::source::purge_orphaned::Outcome>,
+    pub last_purge_untracked_outcome:
+        RemoteData<aoide_core_api::media::source::purge_untracked::Outcome>,
 }
 
-impl From<active_collection::Task> for Task {
-    fn from(task: active_collection::Task) -> Self {
-        Self::ActiveCollection(task)
+impl RemoteView {
+    pub fn is_pending(&self) -> bool {
+        self.last_purge_orphaned_outcome.is_pending()
+            || self.last_purge_untracked_outcome.is_pending()
     }
 }
 
-impl From<media_tracker::Task> for Task {
-    fn from(task: media_tracker::Task) -> Self {
-        Self::MediaTracker(task)
+#[derive(Debug, Default)]
+pub struct State {
+    pub(super) remote_view: RemoteView,
+}
+
+impl State {
+    pub fn remote_view(&self) -> &RemoteView {
+        &self.remote_view
     }
 }

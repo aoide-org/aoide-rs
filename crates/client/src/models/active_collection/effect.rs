@@ -19,8 +19,8 @@ use aoide_core::collection::Entity as CollectionEntity;
 
 #[derive(Debug)]
 pub enum Effect {
-    NewCollectionCreated(anyhow::Result<CollectionEntity>),
-    AvailableCollectionsFetched(anyhow::Result<Vec<CollectionEntity>>),
+    CreateNewCollectionFinished(anyhow::Result<CollectionEntity>),
+    FetchAvailableCollectionsFinished(anyhow::Result<Vec<CollectionEntity>>),
     ErrorOccurred(anyhow::Error),
 }
 
@@ -28,11 +28,11 @@ impl Effect {
     pub fn apply_on(self, state: &mut State) -> StateUpdate {
         log::trace!("Applying effect {:?} on {:?}", self, state);
         match self {
-            Self::NewCollectionCreated(res) => match res {
+            Self::CreateNewCollectionFinished(res) => match res {
                 Ok(_) => StateUpdate::unchanged(None),
                 Err(err) => StateUpdate::unchanged(Action::apply_effect(Self::ErrorOccurred(err))),
             },
-            Self::AvailableCollectionsFetched(res) => match res {
+            Self::FetchAvailableCollectionsFinished(res) => match res {
                 Ok(new_available_collections) => {
                     state.set_available_collections(new_available_collections);
                     StateUpdate::maybe_changed(None)

@@ -15,8 +15,8 @@
 
 use aoide_client::{
     models::{
-        active_collection, media_tracker,
-        media_tracker_cli::{Environment, Intent, State},
+        active_collection, media_sources, media_tracker,
+        webcli::{self, Environment, Intent, State},
     },
     prelude::{message_channel, mutable::message_loop, send_message},
 };
@@ -26,6 +26,7 @@ use aoide_core::{
     entity::EntityUid,
 };
 
+use aoide_core_api::media::tracker::DirTrackingStatus;
 use clap::{App, Arg};
 use std::{
     env,
@@ -71,7 +72,7 @@ async fn main() -> anyhow::Result<()> {
         )
         .subcommand(
             App::new("collections")
-                .about("Manages collections")
+                .about("Tasks for managing collections")
                 .subcommand(
                     App::new("create-mixxx")
                         .about("Creates a new mixxx.org collection for Mixxx")
@@ -88,8 +89,30 @@ async fn main() -> anyhow::Result<()> {
                 )
         )
         .subcommand(
+            App::new("media-sources")
+                .about("Tasks for media sources")
+                .subcommand(
+                    App::new("purge-orphaned")
+                        .about("Purges orphaned media sources that are not referenced by any track")
+                        .arg(
+                            Arg::with_name(MEDIA_ROOT_URL_PARAM)
+                                .help("The common root URL or directory that should be considered")
+                                .required(false),
+                        ),
+                )
+                .subcommand(
+                    App::new("purge-untracked")
+                        .about("Purges untracked media sources including their tracks")
+                        .arg(
+                            Arg::with_name(MEDIA_ROOT_URL_PARAM)
+                                .help("The URL of the root directory containing tracked media files to be purged")
+                                .required(false),
+                        ),
+                )
+        )
+        .subcommand(
             App::new("media-tracker")
-                .about("Controls the media tracker")
+                .about("Tasks for the media tracker")
                 .subcommand(
                     App::new("progress").about("Query progress of a pending task"),
                 )
@@ -113,15 +136,6 @@ async fn main() -> anyhow::Result<()> {
                         ),
                 )
                 .subcommand(
-                    App::new("import-files")
-                        .about("Imports media sources on the file system from scanned directories")
-                        .arg(
-                            Arg::with_name(MEDIA_ROOT_URL_PARAM)
-                                .help("The URL of the root directory containing tracked media files to be imported")
-                                .required(false),
-                        ),
-                )
-                .subcommand(
                     App::new("untrack-directories")
                         .about("Untracks directories on the file system")
                         .arg(
@@ -131,12 +145,21 @@ async fn main() -> anyhow::Result<()> {
                         ),
                 )
                 .subcommand(
-                    App::new("purge-orphaned-and-untracked")
-                        .about("Purge orphaned and untracked media directories and sources")
+                    App::new("untrack-orphaned-directories")
+                        .about("Untracks orphaned directories that have disappeared from the file system (deleted)")
                         .arg(
                             Arg::with_name(MEDIA_ROOT_URL_PARAM)
                                 .help("The URL of the root directory containing tracked media files to be untracked")
-                                .required(true),
+                                .required(false),
+                        ),
+                )
+                .subcommand(
+                    App::new("import-files")
+                        .about("Imports media sources on the file system from scanned directories")
+                        .arg(
+                            Arg::with_name(MEDIA_ROOT_URL_PARAM)
+                                .help("The URL of the root directory containing tracked media files to be imported")
+                                .required(false),
                         ),
                 )
                 .subcommand(
@@ -184,25 +207,24 @@ async fn main() -> anyhow::Result<()> {
                 return Some(Intent::Terminate);
             }
             if last_media_tracker_progress.as_ref()
-                != state.media_tracker.remote_view().progress().get()
+                != state.media_tracker.remote_view().progress.get()
             {
                 last_media_tracker_progress = state
                     .media_tracker
                     .remote_view()
-                    .progress()
+                    .progress
                     .get()
                     .map(ToOwned::to_owned);
                 if let Some(progress) = &last_media_tracker_progress {
                     log::info!("Media tracker progress: {:?}", progress);
                 }
             }
-            if last_media_tracker_status.as_ref()
-                != state.media_tracker.remote_view().status().get()
+            if last_media_tracker_status.as_ref() != state.media_tracker.remote_view().status.get()
             {
                 last_media_tracker_status = state
                     .media_tracker
                     .remote_view()
-                    .status()
+                    .status
                     .get()
                     .map(ToOwned::to_owned);
                 if let Some(status) = &last_media_tracker_status {
@@ -213,13 +235,13 @@ async fn main() -> anyhow::Result<()> {
                 != state
                     .media_tracker
                     .remote_view()
-                    .last_scan_directories_outcome()
+                    .last_scan_directories_outcome
                     .get_ready()
             {
                 last_media_tracker_scan_directories_outcome = state
                     .media_tracker
                     .remote_view()
-                    .last_scan_directories_outcome()
+                    .last_scan_directories_outcome
                     .get_ready()
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = &last_media_tracker_scan_directories_outcome {
@@ -230,13 +252,13 @@ async fn main() -> anyhow::Result<()> {
                 != state
                     .media_tracker
                     .remote_view()
-                    .last_import_files_outcome()
+                    .last_import_files_outcome
                     .get_ready()
             {
                 last_media_tracker_import_files_outcome = state
                     .media_tracker
                     .remote_view()
-                    .last_import_files_outcome()
+                    .last_import_files_outcome
                     .get_ready()
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = &last_media_tracker_import_files_outcome {
@@ -247,13 +269,13 @@ async fn main() -> anyhow::Result<()> {
                 != state
                     .media_tracker
                     .remote_view()
-                    .last_untrack_directories_outcome()
+                    .last_untrack_directories_outcome
                     .get_ready()
             {
                 last_media_tracker_untrack_directories_outcome = state
                     .media_tracker
                     .remote_view()
-                    .last_untrack_directories_outcome()
+                    .last_untrack_directories_outcome
                     .get_ready()
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = &last_media_tracker_untrack_directories_outcome {
@@ -264,13 +286,13 @@ async fn main() -> anyhow::Result<()> {
                 != state
                     .media_tracker
                     .remote_view()
-                    .last_find_untracked_files_outcome()
+                    .last_find_untracked_files_outcome
                     .get_ready()
             {
                 last_media_tracker_find_untracked_files_outcome = state
                     .media_tracker
                     .remote_view()
-                    .last_find_untracked_files_outcome()
+                    .last_find_untracked_files_outcome
                     .get_ready()
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = &last_media_tracker_find_untracked_files_outcome {
@@ -293,9 +315,9 @@ async fn main() -> anyhow::Result<()> {
 
             // Only submit a single subcommand
             if subcommand_submitted {
-                let next_intent = if state.media_tracker.is_idle() {
+                let next_intent = if !state.is_terminating() && !state.is_pending() {
                     // Terminate when idle and no task is pending
-                    None
+                    Some(webcli::Intent::Terminate)
                 } else {
                     // Periodically refetch and report progress while busy
                     if let Some(last_fetched) = last_media_tracker_progress_fetched {
@@ -358,7 +380,7 @@ async fn main() -> anyhow::Result<()> {
                 }
                 if matches!(matches.subcommand(), ("abort", _)) {
                     subcommand_submitted = true;
-                    return Some(media_tracker::Intent::Abort.into());
+                    return Some(webcli::Intent::AbortPendingRequest);
                 }
             }
 
@@ -366,7 +388,7 @@ async fn main() -> anyhow::Result<()> {
             if let Some(available_collections) = state
                 .active_collection
                 .remote_view()
-                .available_collections()
+                .available_collections
                 .get_ready()
             {
                 if state.active_collection.active_collection_uid().is_none() {
@@ -416,7 +438,7 @@ async fn main() -> anyhow::Result<()> {
             } else if state
                 .active_collection
                 .remote_view()
-                .available_collections()
+                .available_collections
                 .is_unknown()
             {
                 return Some(active_collection::Intent::FetchAvailableCollections.into());
@@ -429,13 +451,51 @@ async fn main() -> anyhow::Result<()> {
             // Commands that require an active collection
             if let Some(collection) = state.active_collection.active_collection() {
                 log::info!("Active collection: {}", collection.hdr.uid);
-                // Only allowed while idle
-                if !state.media_tracker.is_idle() {
+                if state.is_pending() {
                     last_media_tracker_progress_fetched = Some(Instant::now());
                     return Some(media_tracker::Intent::FetchProgress.into());
                 }
                 match matches.subcommand() {
-                    ("media", Some(matches)) => match matches.subcommand() {
+                    ("media-sources", Some(matches)) => match matches.subcommand() {
+                        ("purge-orphaned", matches) => {
+                            let collection_uid = collection.hdr.uid.clone();
+                            let media_root_url = matches
+                                .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
+                                .map(|s| s.parse().expect("URL"));
+                            subcommand_submitted = true;
+                            return Some(
+                                media_sources::Intent::PurgeOrphaned {
+                                    collection_uid,
+                                    params: aoide_core_api::media::source::purge_orphaned::Params {
+                                        root_url: media_root_url,
+                                    },
+                                }
+                                .into(),
+                            );
+                        }
+                        ("purge-untracked", matches) => {
+                            let collection_uid = collection.hdr.uid.clone();
+                            let media_root_url = matches
+                                .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
+                                .map(|s| s.parse().expect("URL"));
+                            subcommand_submitted = true;
+                            return Some(
+                                media_sources::Intent::PurgeUntracked {
+                                    collection_uid,
+                                    params:
+                                        aoide_core_api::media::source::purge_untracked::Params {
+                                            root_url: media_root_url,
+                                        },
+                                }
+                                .into(),
+                            );
+                        }
+                        (subcommand, _) => {
+                            debug_assert!(subcommand.is_empty());
+                            println!("{}", matches.usage());
+                        }
+                    },
+                    ("media-tracker", Some(matches)) => match matches.subcommand() {
                         ("query-status", matches) => {
                             let collection_uid = collection.hdr.uid.clone();
                             let media_root_url = matches
@@ -505,6 +565,23 @@ async fn main() -> anyhow::Result<()> {
                                 .into(),
                             );
                         }
+                        ("untrack-orphaned-directories", matches) => {
+                            let collection_uid = collection.hdr.uid.clone();
+                            let media_root_url = matches
+                                .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
+                                .map(|s| s.parse().expect("URL"));
+                            subcommand_submitted = true;
+                            return Some(
+                                media_tracker::Intent::UntrackDirectories {
+                                    collection_uid,
+                                    params: aoide_core_api::media::tracker::untrack_directories::Params {
+                                        root_url: media_root_url,
+                                        status: Some(DirTrackingStatus::Orphaned),
+                                    }
+                                }
+                                .into(),
+                            );
+                        }
                         ("import-files", matches) => {
                             let collection_uid = collection.hdr.uid.clone();
                             let media_root_url = matches
@@ -544,20 +621,6 @@ async fn main() -> anyhow::Result<()> {
                                         root_url: media_root_url,
                                         ..Default::default()
                                     }
-                                }
-                                .into(),
-                            );
-                        }
-                        ("purge-orphaned-and-untracked", matches) => {
-                            let collection_uid = collection.hdr.uid.clone();
-                            let media_root_url = matches
-                                .and_then(|m| m.value_of(MEDIA_ROOT_URL_PARAM))
-                                .map(|s| s.parse().expect("URL"));
-                            subcommand_submitted = true;
-                            return Some(
-                                media_tracker::Intent::PurgeOrphanedAndUntracked {
-                                    collection_uid,
-                                    root_url: media_root_url,
                                 }
                                 .into(),
                             );

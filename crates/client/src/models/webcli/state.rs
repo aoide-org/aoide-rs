@@ -16,21 +16,50 @@
 use super::{Effect, Intent, Message, StateUpdated, Task};
 
 use crate::{
-    models::{active_collection, media_tracker},
+    models::{active_collection, media_sources, media_tracker},
     prelude::mutable::State as MutableState,
 };
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ControlState {
+    Running,
+    Terminating,
+}
+
+impl ControlState {
+    pub const fn default() -> Self {
+        Self::Running
+    }
+}
+
+impl Default for ControlState {
+    fn default() -> Self {
+        Self::default()
+    }
+}
 
 #[derive(Debug, Default)]
 pub struct State {
     pub(super) last_errors: Vec<anyhow::Error>,
-    pub(super) terminating: bool,
+    pub(super) control_state: ControlState,
     pub active_collection: active_collection::State,
+    pub media_sources: media_sources::State,
     pub media_tracker: media_tracker::State,
 }
 
 impl State {
     pub fn last_errors(&self) -> &[anyhow::Error] {
         &self.last_errors
+    }
+
+    pub fn is_pending(&self) -> bool {
+        self.active_collection.remote_view().is_pending()
+            || self.media_sources.remote_view().is_pending()
+            || self.media_tracker.remote_view().is_pending()
+    }
+
+    pub fn is_terminating(&self) -> bool {
+        self.control_state == ControlState::Terminating
     }
 }
 

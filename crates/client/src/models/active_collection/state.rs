@@ -19,12 +19,12 @@ use aoide_core::{collection::Entity as CollectionEntity, entity::EntityUid};
 
 #[derive(Debug, Clone, Default)]
 pub struct RemoteView {
-    pub(super) available_collections: RemoteData<Vec<CollectionEntity>>,
+    pub available_collections: RemoteData<Vec<CollectionEntity>>,
 }
 
 impl RemoteView {
-    pub const fn available_collections(&self) -> &RemoteData<Vec<CollectionEntity>> {
-        &self.available_collections
+    pub fn is_pending(&self) -> bool {
+        self.available_collections.is_pending()
     }
 
     fn count_available_collections_by_uid(&self, uid: &EntityUid) -> Option<usize> {

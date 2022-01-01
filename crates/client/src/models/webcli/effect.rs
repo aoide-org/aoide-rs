@@ -16,7 +16,10 @@
 use std::num::NonZeroUsize;
 
 use crate::{
-    models::{active_collection, media_tracker},
+    models::{
+        active_collection, media_sources, media_tracker,
+        webcli::{state::ControlState, Action, Task},
+    },
     prelude::mutable::state_updated,
 };
 
@@ -28,12 +31,20 @@ pub enum Effect {
     FirstErrorsDiscarded(NonZeroUsize),
     ApplyIntent(Intent),
     ActiveCollection(active_collection::Effect),
+    MediaSources(media_sources::Effect),
     MediaTracker(media_tracker::Effect),
+    AbortFinished(anyhow::Result<()>),
 }
 
 impl From<active_collection::Effect> for Effect {
     fn from(effect: active_collection::Effect) -> Self {
         Self::ActiveCollection(effect)
+    }
+}
+
+impl From<media_sources::Effect> for Effect {
+    fn from(effect: media_sources::Effect) -> Self {
+        Self::MediaSources(effect)
     }
 }
 
@@ -62,7 +73,22 @@ impl Effect {
             Self::ActiveCollection(effect) => {
                 state_updated(effect.apply_on(&mut state.active_collection))
             }
+            Self::MediaSources(effect) => state_updated(effect.apply_on(&mut state.media_sources)),
             Self::MediaTracker(effect) => state_updated(effect.apply_on(&mut state.media_tracker)),
+            Self::AbortFinished(res) => {
+                let next_action = match res {
+                    Ok(()) => {
+                        if state.control_state == ControlState::Terminating && state.is_pending() {
+                            // Abort next pending request until idle
+                            Some(Action::DispatchTask(Task::AbortPendingRequest))
+                        } else {
+                            None
+                        }
+                    }
+                    Err(err) => Some(Action::apply_effect(Self::ErrorOccurred(err))),
+                };
+                StateUpdated::unchanged(next_action)
+            }
         }
     }
 }

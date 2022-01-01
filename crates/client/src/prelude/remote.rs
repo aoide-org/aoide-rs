@@ -124,7 +124,10 @@ impl<T> RemoteData<T> {
         }
     }
 
-    pub fn set_pending_since(&mut self, since: impl Into<Instant>) {
+    pub fn try_set_pending_since(&mut self, since: impl Into<Instant>) -> bool {
+        if self.is_pending() {
+            return false;
+        }
         let stale_snapshot = DataSnapshot {
             since: since.into(),
             value: self.take_ready(),
@@ -138,9 +141,10 @@ impl<T> RemoteData<T> {
                     .unwrap_or(stale_snapshot.since)
         );
         *self = Self::Pending { stale_snapshot };
+        true
     }
 
-    pub fn set_pending_now(&mut self) {
-        self.set_pending_since(Instant::now());
+    pub fn try_set_pending_now(&mut self) -> bool {
+        self.try_set_pending_since(Instant::now())
     }
 }

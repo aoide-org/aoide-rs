@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 pub mod active_collection;
+pub mod media_sources;
 pub mod media_tracker;
-pub mod media_tracker_cli;
 pub mod track_search;
+pub mod webcli;

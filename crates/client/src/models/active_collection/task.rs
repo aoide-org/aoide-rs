@@ -31,11 +31,11 @@ impl Task {
         match self {
             Self::CreateNewCollection(new_collection) => {
                 let res = create_new_collection(env, new_collection).await;
-                Effect::NewCollectionCreated(res)
+                Effect::CreateNewCollectionFinished(res)
             }
             Self::FetchAvailableCollections => {
                 let res = fetch_available_collections(env).await;
-                Effect::AvailableCollectionsFetched(res)
+                Effect::FetchAvailableCollectionsFinished(res)
             }
         }
     }

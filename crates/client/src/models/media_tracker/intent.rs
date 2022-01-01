@@ -15,17 +15,15 @@
 
 use aoide_core::{entity::EntityUid, util::url::BaseUrl};
 
-use super::{Action, ControlState, State, StateUpdated, Task};
+use super::{Action, State, StateUpdated, Task};
 
 #[derive(Debug)]
 pub enum Intent {
+    FetchProgress,
     FetchStatus {
         collection_uid: EntityUid,
         root_url: Option<BaseUrl>,
     },
-    FetchProgress,
-    Abort,
-    AbortOnTermination,
     StartScanDirectories {
         collection_uid: EntityUid,
         params: aoide_core_api::media::tracker::scan_directories::Params,
@@ -42,10 +40,6 @@ pub enum Intent {
         collection_uid: EntityUid,
         params: aoide_core_api::media::tracker::untrack_directories::Params,
     },
-    PurgeOrphanedAndUntracked {
-        collection_uid: EntityUid,
-        root_url: Option<BaseUrl>,
-    },
 }
 
 impl Intent {
@@ -53,29 +47,26 @@ impl Intent {
         log::trace!("Applying intent {:?} on {:?}", self, state);
         match self {
             Self::FetchProgress => {
-                state.remote_view.progress.set_pending_now();
-                StateUpdated::unchanged(Action::dispatch_task(Task::FetchProgress))
-            }
-            Self::Abort => StateUpdated::unchanged(Action::dispatch_task(Task::Abort)),
-            Self::AbortOnTermination => {
-                if state.control_state != ControlState::Idle {
-                    // Only dispatch an abort task if a local task is pending
-                    StateUpdated::unchanged(Action::dispatch_task(Task::Abort))
-                } else {
-                    // Nothing to do
-                    StateUpdated::unchanged(None)
+                if !state.remote_view.progress.try_set_pending_now() {
+                    log::warn!("Discarding intent while pending: {:?}", Self::FetchProgress);
+                    return StateUpdated::unchanged(None);
                 }
+                StateUpdated::unchanged(Action::dispatch_task(Task::FetchProgress))
             }
             Self::FetchStatus {
                 collection_uid,
                 root_url,
             } => {
-                if !state.is_idle() {
-                    log::warn!("Cannot fetch status while not idle");
+                if !state.remote_view.status.try_set_pending_now() {
+                    log::warn!(
+                        "Discarding intent while pending: {:?}",
+                        Self::FetchStatus {
+                            collection_uid,
+                            root_url,
+                        }
+                    );
                     return StateUpdated::unchanged(None);
                 }
-                state.control_state = ControlState::Busy;
-                state.remote_view.status.set_pending_now();
                 StateUpdated::maybe_changed(Action::dispatch_task(Task::FetchStatus {
                     collection_uid,
                     root_url,
@@ -85,17 +76,22 @@ impl Intent {
                 collection_uid,
                 params,
             } => {
-                if !state.is_idle() {
-                    log::warn!("Cannot start scan while not idle");
-                    return StateUpdated::unchanged(None);
-                }
-                state.control_state = ControlState::Busy;
-                state.remote_view.progress.reset();
-                state.remote_view.status.set_pending_now();
-                state
+                if !state
                     .remote_view
                     .last_scan_directories_outcome
-                    .set_pending_now();
+                    .try_set_pending_now()
+                {
+                    log::warn!(
+                        "Discarding intent while pending: {:?}",
+                        Self::StartScanDirectories {
+                            collection_uid,
+                            params,
+                        }
+                    );
+                    return StateUpdated::unchanged(None);
+                }
+                // Start batch task
+                state.remote_view.progress.reset();
                 StateUpdated::maybe_changed(Action::dispatch_task(Task::StartScanDirectories {
                     collection_uid,
                     params,
@@ -105,17 +101,22 @@ impl Intent {
                 collection_uid,
                 params,
             } => {
-                if !state.is_idle() {
-                    log::warn!("Cannot start import while not idle");
-                    return StateUpdated::unchanged(None);
-                }
-                state.control_state = ControlState::Busy;
-                state.remote_view.progress.reset();
-                state.remote_view.status.set_pending_now();
-                state
+                if !state
                     .remote_view
                     .last_import_files_outcome
-                    .set_pending_now();
+                    .try_set_pending_now()
+                {
+                    log::warn!(
+                        "Discarding intent while pending: {:?}",
+                        Self::StartImportFiles {
+                            collection_uid,
+                            params,
+                        }
+                    );
+                    return StateUpdated::unchanged(None);
+                }
+                // Start batch task
+                state.remote_view.progress.reset();
                 StateUpdated::maybe_changed(Action::dispatch_task(Task::StartImportFiles {
                     collection_uid,
                     params,
@@ -125,17 +126,22 @@ impl Intent {
                 collection_uid,
                 params,
             } => {
-                if !state.is_idle() {
-                    log::warn!("Cannot start finding untracked entries while not idle");
-                    return StateUpdated::unchanged(None);
-                }
-                state.control_state = ControlState::Busy;
-                state.remote_view.progress.reset();
-                state.remote_view.status.set_pending_now();
-                state
+                if !state
                     .remote_view
                     .last_find_untracked_files_outcome
-                    .set_pending_now();
+                    .try_set_pending_now()
+                {
+                    log::warn!(
+                        "Discarding intent while pending: {:?}",
+                        Self::StartFindUntrackedFiles {
+                            collection_uid,
+                            params,
+                        }
+                    );
+                    return StateUpdated::unchanged(None);
+                }
+                // Start batch task
+                state.remote_view.progress.reset();
                 StateUpdated::maybe_changed(Action::dispatch_task(Task::StartFindUntrackedFiles {
                     collection_uid,
                     params,
@@ -145,40 +151,23 @@ impl Intent {
                 collection_uid,
                 params,
             } => {
-                if !state.is_idle() {
-                    log::warn!("Cannot untrack while not idle");
-                    return StateUpdated::unchanged(None);
-                }
-                state.control_state = ControlState::Busy;
-                state.remote_view.progress.reset();
-                state.remote_view.status.set_pending_now();
-                state
+                if !state
                     .remote_view
                     .last_untrack_directories_outcome
-                    .set_pending_now();
+                    .try_set_pending_now()
+                {
+                    log::warn!(
+                        "Discarding intent while pending: {:?}",
+                        Self::UntrackDirectories {
+                            collection_uid,
+                            params,
+                        }
+                    );
+                    return StateUpdated::unchanged(None);
+                }
                 StateUpdated::maybe_changed(Action::dispatch_task(Task::UntrackDirectories {
                     collection_uid,
                     params,
-                }))
-            }
-            Self::PurgeOrphanedAndUntracked {
-                collection_uid,
-                root_url,
-            } => {
-                if !state.is_idle() {
-                    log::warn!("Cannot purge untracked while not idle");
-                    return StateUpdated::unchanged(None);
-                }
-                state.control_state = ControlState::Busy;
-                state.remote_view.progress.reset();
-                state.remote_view.status.set_pending_now();
-                state
-                    .remote_view
-                    .last_purge_orphaned_and_untracked_outcome
-                    .set_pending_now();
-                StateUpdated::maybe_changed(Action::dispatch_task(Task::Purge {
-                    collection_uid,
-                    root_url,
                 }))
             }
         }
