@@ -15,13 +15,12 @@
 
 use std::num::NonZeroUsize;
 
-use crate::{
-    models::{
-        active_collection, media_sources, media_tracker,
-        webcli::{state::ControlState, Action, Task},
-    },
+use aoide_client::{
+    models::{active_collection, media_sources, media_tracker},
     prelude::mutable::state_updated,
 };
+
+use crate::model::{state::ControlState, Action, Task};
 
 use super::{Intent, State, StateUpdated};
 

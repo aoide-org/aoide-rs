@@ -15,17 +15,19 @@
 
 use std::{num::NonZeroUsize, time::Instant};
 
-use crate::{
-    models::{active_collection, media_sources, media_tracker, webcli::state::ControlState},
+use aoide_client::{
+    models::{active_collection, media_sources, media_tracker},
     prelude::mutable::state_updated,
 };
+
+use crate::model::state::ControlState;
 
 use super::{Action, Effect, State, StateUpdated, Task};
 
 #[derive(Debug)]
 pub enum Intent {
     RenderState,
-    TimedIntent {
+    Deferred {
         not_before: Instant,
         intent: Box<Intent>,
     },
@@ -61,14 +63,14 @@ impl Intent {
         log::debug!("Applying intent {:?} on {:?}", self, state);
         match self {
             Self::RenderState => StateUpdated::maybe_changed(None), // enfore re-rendering
-            Self::TimedIntent { not_before, intent } => {
+            Self::Deferred { not_before, intent } => {
                 let next_action = if state.control_state == ControlState::Running {
-                    Some(Action::dispatch_task(Task::TimedIntent {
+                    Some(Action::dispatch_task(Task::DeferredIntent {
                         not_before,
                         intent,
                     }))
                 } else {
-                    let self_reconstructed = Self::TimedIntent { not_before, intent };
+                    let self_reconstructed = Self::Deferred { not_before, intent };
                     log::debug!(
                         "Discarding intent while not running: {:?}",
                         self_reconstructed

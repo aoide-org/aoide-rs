@@ -16,7 +16,7 @@
 use reqwest::{Client, Url};
 use std::sync::Arc;
 
-use crate::{
+use aoide_client::{
     prelude::{send_message, PendingTasksCounter, TaskDispatchEnvironment},
     WebClientEnvironment,
 };

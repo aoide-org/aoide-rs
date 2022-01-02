@@ -15,7 +15,7 @@
 
 use super::{Effect, Intent};
 
-use crate::{
+use aoide_client::{
     models::{active_collection, media_sources, media_tracker},
     receive_response_body, WebClientEnvironment,
 };
@@ -24,7 +24,7 @@ use std::time::Instant;
 
 #[derive(Debug)]
 pub enum Task {
-    TimedIntent {
+    DeferredIntent {
         not_before: Instant,
         intent: Box<Intent>,
     },
@@ -56,7 +56,7 @@ impl Task {
     pub async fn execute<E: WebClientEnvironment>(self, env: &E) -> Effect {
         log::debug!("Executing task: {:?}", self);
         match self {
-            Self::TimedIntent { not_before, intent } => {
+            Self::DeferredIntent { not_before, intent } => {
                 tokio::time::sleep_until(not_before.into()).await;
                 Effect::ApplyIntent(*intent)
             }

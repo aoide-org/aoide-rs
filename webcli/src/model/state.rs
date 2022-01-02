@@ -15,7 +15,7 @@
 
 use super::{Effect, Intent, Message, StateUpdated, Task};
 
-use crate::{
+use aoide_client::{
     models::{active_collection, media_sources, media_tracker},
     prelude::mutable::State as MutableState,
 };

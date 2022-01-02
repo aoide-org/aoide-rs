@@ -17,4 +17,3 @@ pub mod active_collection;
 pub mod media_sources;
 pub mod media_tracker;
 pub mod track_search;
-pub mod webcli;

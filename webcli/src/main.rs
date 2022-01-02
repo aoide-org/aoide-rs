@@ -14,10 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use aoide_client::{
-    models::{
-        active_collection, media_sources, media_tracker,
-        webcli::{self, Environment, Intent, State},
-    },
+    models::{active_collection, media_sources, media_tracker},
     prelude::{message_channel, mutable::message_loop, send_message},
 };
 
@@ -34,6 +31,9 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::signal;
+
+mod model;
+use self::model::{Environment, Intent, State};
 
 const DEFAULT_LOG_FILTER: &str = "info";
 
@@ -362,7 +362,7 @@ async fn main() -> anyhow::Result<()> {
             if subcommand_submitted {
                 let next_intent = if !state.is_terminating() && !state.is_pending() {
                     // Terminate when idle and no task is pending
-                    Some(webcli::Intent::Terminate)
+                    Some(Intent::Terminate)
                 } else {
                     // Periodically refetch and report progress while busy
                     if state.media_tracker.remote_view().is_pending() {
@@ -371,7 +371,7 @@ async fn main() -> anyhow::Result<()> {
                             if now >= last_fetched {
                                 let not_before = now + PROGRESS_POLLING_PERIOD;
                                 last_media_tracker_progress_fetched = Some(not_before);
-                                let intent = Intent::TimedIntent {
+                                let intent = Intent::Deferred {
                                     not_before,
                                     intent: Box::new(media_tracker::Intent::FetchProgress.into()),
                                 };
@@ -429,7 +429,7 @@ async fn main() -> anyhow::Result<()> {
                 }
                 if matches!(matches.subcommand(), ("abort", _)) {
                     subcommand_submitted = true;
-                    let intent = webcli::Intent::AbortPendingRequest;
+                    let intent = Intent::AbortPendingRequest;
                     return Some(intent);
                 }
             }

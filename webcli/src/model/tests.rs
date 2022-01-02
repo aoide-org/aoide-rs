@@ -22,7 +22,7 @@ use std::{
 
 use reqwest::Url;
 
-use crate::{
+use aoide_client::{
     models::media_tracker,
     prelude::{
         mutable::{handle_next_message, message_loop},
@@ -122,7 +122,7 @@ fn should_handle_media_tracker_error() {
             &shared_env,
             &mut state,
             &message_tx,
-            effect.into(),
+            Effect::MediaTracker(effect).into(),
             &mut |_| { None },
         )
     );
@@ -166,9 +166,9 @@ async fn should_terminate_on_intent_after_pending_tasks_finished() {
     let (message_tx, message_rx) = message_channel();
     send_message(
         &message_tx,
-        Intent::TimedIntent {
-            intent: Box::new(Intent::RenderState),
+        Intent::Deferred {
             not_before: Instant::now() + Duration::from_millis(100),
+            intent: Box::new(Intent::RenderState),
         },
     );
     send_message(&message_tx, Intent::Terminate);
