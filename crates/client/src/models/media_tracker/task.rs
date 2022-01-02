@@ -147,7 +147,7 @@ async fn start_scan_directories<E: WebClientEnvironment>(
     >(&response_body)
     .map_err(anyhow::Error::from)
     .and_then(|outcome| outcome.try_into().map_err(anyhow::Error::from))?;
-    log::debug!("Scanning finished: {:?}", outcome);
+    log::debug!("Scanning directories succeeded: {:?}", outcome);
     Ok(outcome)
 }
 
@@ -166,7 +166,7 @@ async fn untrack_directories<E: WebClientEnvironment>(
     >(&response_body)
     .map_err(Into::into)
     .and_then(TryInto::try_into)?;
-    log::debug!("Untracking finished: {:?}", outcome);
+    log::debug!("Untracking directories succeeded: {:?}", outcome);
     Ok(outcome)
 }
 
@@ -185,7 +185,7 @@ async fn start_import_files<E: WebClientEnvironment>(
     >(&response_body)
     .map_err(anyhow::Error::from)
     .and_then(|outcome| outcome.try_into().map_err(anyhow::Error::from))?;
-    log::debug!("Importing finished: {:?}", outcome);
+    log::debug!("Importing files succeeded: {:?}", outcome);
     Ok(outcome)
 }
 
@@ -204,6 +204,6 @@ async fn start_find_untracked_files<E: WebClientEnvironment>(
     >(&response_body)
     .map_err(anyhow::Error::from)
     .and_then(|outcome| outcome.try_into().map_err(anyhow::Error::from))?;
-    log::debug!("Finding untracked entries finished: {:?}", outcome);
+    log::debug!("Finding untracked files succeeded: {:?}", outcome);
     Ok(outcome)
 }

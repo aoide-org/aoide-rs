@@ -56,7 +56,7 @@ pub async fn create_new_collection<E: WebClientEnvironment>(
     let entity = serde_json::from_slice::<aoide_core_json::collection::Entity>(&response_body)
         .map_err(anyhow::Error::from)
         .and_then(TryInto::try_into)?;
-    log::debug!("Created new collection entity: {:?}", entity);
+    log::debug!("Creating new collection entity succeeded: {:?}", entity);
     Ok(entity)
 }
 
