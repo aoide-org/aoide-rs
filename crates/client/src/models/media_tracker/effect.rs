@@ -13,13 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core_api::media::tracker::{
-    find_untracked_files::Outcome as FindUntrackedFilesOutcome,
-    import_files::Outcome as ImportFilesOutcome,
-    scan_directories::Outcome as ScanDirectoriesOutcome,
-    untrack_directories::Outcome as UntrackDirectoriesOutcome, Progress, Status,
-};
-
 use crate::prelude::round_counter::RoundCounter;
 
 use super::{Action, State, StateUpdated, Task};
@@ -28,16 +21,22 @@ use super::{Action, State, StateUpdated, Task};
 pub enum Effect {
     FetchProgressFinished {
         pending_counter: RoundCounter,
-        result: anyhow::Result<Progress>,
+        result: anyhow::Result<aoide_core_api::media::tracker::Progress>,
     },
     FetchStatusFinished {
         pending_counter: RoundCounter,
-        result: anyhow::Result<Status>,
+        result: anyhow::Result<aoide_core_api::media::tracker::Status>,
     },
-    ScanDirectoriesFinished(anyhow::Result<ScanDirectoriesOutcome>),
-    UntrackDirectoriesFinished(anyhow::Result<UntrackDirectoriesOutcome>),
-    ImportFilesFinished(anyhow::Result<ImportFilesOutcome>),
-    FindUntrackedFilesFinished(anyhow::Result<FindUntrackedFilesOutcome>),
+    ScanDirectoriesFinished(
+        anyhow::Result<aoide_core_api::media::tracker::scan_directories::Outcome>,
+    ),
+    UntrackDirectoriesFinished(
+        anyhow::Result<aoide_core_api::media::tracker::untrack_directories::Outcome>,
+    ),
+    ImportFilesFinished(anyhow::Result<aoide_core_api::media::tracker::import_files::Outcome>),
+    FindUntrackedFilesFinished(
+        anyhow::Result<aoide_core_api::media::tracker::find_untracked_files::Outcome>,
+    ),
     ErrorOccurred(anyhow::Error),
 }
 

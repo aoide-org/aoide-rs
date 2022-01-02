@@ -30,10 +30,10 @@ pub enum Effect {
     ErrorOccurred(anyhow::Error),
     FirstErrorsDiscarded(NonZeroUsize),
     ApplyIntent(Intent),
+    AbortFinished(anyhow::Result<()>),
     ActiveCollection(active_collection::Effect),
     MediaSources(media_sources::Effect),
     MediaTracker(media_tracker::Effect),
-    AbortFinished(anyhow::Result<()>),
 }
 
 impl From<active_collection::Effect> for Effect {
@@ -70,11 +70,6 @@ impl Effect {
                 StateUpdated::maybe_changed(None)
             }
             Self::ApplyIntent(intent) => intent.apply_on(state),
-            Self::ActiveCollection(effect) => {
-                state_updated(effect.apply_on(&mut state.active_collection))
-            }
-            Self::MediaSources(effect) => state_updated(effect.apply_on(&mut state.media_sources)),
-            Self::MediaTracker(effect) => state_updated(effect.apply_on(&mut state.media_tracker)),
             Self::AbortFinished(res) => {
                 let next_action = match res {
                     Ok(()) => {
@@ -89,6 +84,11 @@ impl Effect {
                 };
                 StateUpdated::unchanged(next_action)
             }
+            Self::ActiveCollection(effect) => {
+                state_updated(effect.apply_on(&mut state.active_collection))
+            }
+            Self::MediaSources(effect) => state_updated(effect.apply_on(&mut state.media_sources)),
+            Self::MediaTracker(effect) => state_updated(effect.apply_on(&mut state.media_tracker)),
         }
     }
 }

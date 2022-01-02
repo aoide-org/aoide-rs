@@ -13,23 +13,20 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use aoide_core_api::media::tracker::{
-    find_untracked_files::Outcome as FindUntrackedFilesOutcome,
-    import_files::Outcome as ImportFilesOutcome,
-    scan_directories::Outcome as ScanDirectoriesOutcome,
-    untrack_directories::Outcome as UntrackDirectoriesOutcome, Progress, Status,
-};
-
 use crate::prelude::remote::RemoteData;
 
 #[derive(Debug, Default)]
 pub struct RemoteView {
-    pub status: RemoteData<Status>,
-    pub progress: RemoteData<Progress>,
-    pub last_scan_directories_outcome: RemoteData<ScanDirectoriesOutcome>,
-    pub last_untrack_directories_outcome: RemoteData<UntrackDirectoriesOutcome>,
-    pub last_import_files_outcome: RemoteData<ImportFilesOutcome>,
-    pub last_find_untracked_files_outcome: RemoteData<FindUntrackedFilesOutcome>,
+    pub status: RemoteData<aoide_core_api::media::tracker::Status>,
+    pub progress: RemoteData<aoide_core_api::media::tracker::Progress>,
+    pub last_scan_directories_outcome:
+        RemoteData<aoide_core_api::media::tracker::scan_directories::Outcome>,
+    pub last_untrack_directories_outcome:
+        RemoteData<aoide_core_api::media::tracker::untrack_directories::Outcome>,
+    pub last_import_files_outcome:
+        RemoteData<aoide_core_api::media::tracker::import_files::Outcome>,
+    pub last_find_untracked_files_outcome:
+        RemoteData<aoide_core_api::media::tracker::find_untracked_files::Outcome>,
 }
 
 impl RemoteView {
