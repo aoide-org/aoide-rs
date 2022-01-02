@@ -37,10 +37,11 @@ impl Intent {
                 collection_uid,
                 params,
             } => {
-                if !state
+                if state
                     .remote_view
                     .last_purge_orphaned_outcome
                     .try_set_pending_now()
+                    .is_none()
                 {
                     log::warn!(
                         "Discarding intent while pending: {:?}",
@@ -60,10 +61,11 @@ impl Intent {
                 collection_uid,
                 params,
             } => {
-                if !state
+                if state
                     .remote_view
                     .last_purge_untracked_outcome
                     .try_set_pending_now()
+                    .is_none()
                 {
                     log::warn!(
                         "Discarding intent while pending: {:?}",

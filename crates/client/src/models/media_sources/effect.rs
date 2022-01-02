@@ -13,8 +13,6 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::prelude::remote::RemoteData;
-
 use super::{Action, State, StateUpdated};
 
 #[derive(Debug)]
@@ -38,8 +36,16 @@ impl Effect {
                 }
                 let next_action = match res {
                     Ok(outcome) => {
-                        state.remote_view.last_purge_orphaned_outcome =
-                            RemoteData::ready_now(outcome);
+                        state
+                            .remote_view
+                            .last_purge_orphaned_outcome
+                            .finish_pending_round_with_value_now(
+                                state
+                                    .remote_view
+                                    .last_purge_orphaned_outcome
+                                    .round_counter(),
+                                outcome,
+                            );
                         None
                     }
                     Err(err) => {
@@ -59,8 +65,16 @@ impl Effect {
                 }
                 let next_action = match res {
                     Ok(outcome) => {
-                        state.remote_view.last_purge_untracked_outcome =
-                            RemoteData::ready_now(outcome);
+                        state
+                            .remote_view
+                            .last_purge_untracked_outcome
+                            .finish_pending_round_with_value_now(
+                                state
+                                    .remote_view
+                                    .last_purge_untracked_outcome
+                                    .round_counter(),
+                                outcome,
+                            );
                         None
                     }
                     Err(err) => {

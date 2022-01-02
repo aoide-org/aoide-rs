@@ -11,6 +11,7 @@ reqwest = { version = "*", default-features = false, features = ["rustls-tls"] }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = "*"
 serde_urlencoded = "*"
+static_assertions = "*"
 tokio = { version = "*", default-features = false }
 
 # Workspace dependencies

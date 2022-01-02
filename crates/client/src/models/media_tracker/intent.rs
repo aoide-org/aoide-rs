@@ -47,7 +47,7 @@ impl Intent {
         log::trace!("Applying intent {:?} on {:?}", self, state);
         match self {
             Self::FetchProgress => {
-                if !state.remote_view.progress.try_set_pending_now() {
+                if state.remote_view.progress.try_set_pending_now().is_none() {
                     log::warn!("Discarding intent while pending: {:?}", Self::FetchProgress);
                     return StateUpdated::unchanged(None);
                 }
@@ -57,7 +57,7 @@ impl Intent {
                 collection_uid,
                 root_url,
             } => {
-                if !state.remote_view.status.try_set_pending_now() {
+                if state.remote_view.status.try_set_pending_now().is_none() {
                     log::warn!(
                         "Discarding intent while pending: {:?}",
                         Self::FetchStatus {
@@ -76,10 +76,11 @@ impl Intent {
                 collection_uid,
                 params,
             } => {
-                if !state
+                if state
                     .remote_view
                     .last_scan_directories_outcome
                     .try_set_pending_now()
+                    .is_none()
                 {
                     log::warn!(
                         "Discarding intent while pending: {:?}",
@@ -100,10 +101,11 @@ impl Intent {
                 collection_uid,
                 params,
             } => {
-                if !state
+                if state
                     .remote_view
                     .last_import_files_outcome
                     .try_set_pending_now()
+                    .is_none()
                 {
                     log::warn!(
                         "Discarding intent while pending: {:?}",
@@ -124,10 +126,11 @@ impl Intent {
                 collection_uid,
                 params,
             } => {
-                if !state
+                if state
                     .remote_view
                     .last_find_untracked_files_outcome
                     .try_set_pending_now()
+                    .is_none()
                 {
                     log::warn!(
                         "Discarding intent while pending: {:?}",
@@ -148,10 +151,11 @@ impl Intent {
                 collection_uid,
                 params,
             } => {
-                if !state
+                if state
                     .remote_view
                     .last_untrack_directories_outcome
                     .try_set_pending_now()
+                    .is_none()
                 {
                     log::warn!(
                         "Discarding intent while pending: {:?}",

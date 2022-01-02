@@ -15,24 +15,26 @@
 
 use std::time::Instant;
 
+use super::round_counter::RoundCounter;
+
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct DataSnapshot<T> {
-    pub since: Instant,
     pub value: T,
+    pub since: Instant,
 }
 
 impl<T> DataSnapshot<T> {
-    pub fn new(since: impl Into<Instant>, value: impl Into<T>) -> Self {
+    pub fn new_since(value: impl Into<T>, since: impl Into<Instant>) -> Self {
         Self {
-            since: since.into(),
             value: value.into(),
+            since: since.into(),
         }
     }
 
     pub fn now(value: impl Into<T>) -> Self {
         Self {
-            since: Instant::now(),
             value: value.into(),
+            since: Instant::now(),
         }
     }
 
@@ -45,106 +47,102 @@ impl<T> DataSnapshot<T> {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum RemoteData<T> {
-    Unknown,
-    Pending {
-        stale_snapshot: DataSnapshot<Option<DataSnapshot<T>>>,
-    },
-    Ready {
-        snapshot: Option<DataSnapshot<T>>,
-    },
+#[derive(Debug)]
+pub struct RemoteData<T> {
+    round_counter: RoundCounter,
+    pending_since: Option<Instant>,
+    last_data_snapshot: Option<DataSnapshot<T>>,
+}
+
+impl<T> RemoteData<T> {
+    pub const fn default() -> Self {
+        Self {
+            round_counter: RoundCounter::default(),
+            pending_since: None,
+            last_data_snapshot: None,
+        }
+    }
+
+    pub fn round_counter(&self) -> RoundCounter {
+        self.round_counter
+    }
+
+    pub fn last_data_snapshot(&self) -> Option<&DataSnapshot<T>> {
+        self.last_data_snapshot.as_ref()
+    }
+
+    pub fn last_value(&self) -> Option<&T> {
+        self.last_data_snapshot.as_ref().map(|x| &x.value)
+    }
+
+    pub fn reset(&mut self) -> Option<DataSnapshot<T>> {
+        self.round_counter.reset();
+        self.pending_since = None;
+        self.last_data_snapshot.take()
+    }
+
+    pub fn is_pending(&self) -> bool {
+        self.round_counter.is_pending()
+    }
+
+    /// Start the next round with a pending request
+    ///
+    /// Requests that are already pending will be discarded when finished.
+    pub fn set_pending_since(&mut self, since: impl Into<Instant>) -> RoundCounter {
+        self.round_counter.start_next_round();
+        self.pending_since = Some(since.into());
+        self.round_counter
+    }
+
+    /// Try to start the next round with a pending request
+    ///
+    /// Allows only a single pending request at a time.
+    pub fn try_set_pending_since(&mut self, since: impl Into<Instant>) -> Option<RoundCounter> {
+        (!self.is_pending()).then(|| self.set_pending_since(since))
+    }
+
+    /// Try to start the next round with a pending request
+    ///
+    /// Allows only a single pending request at a time.
+    pub fn try_set_pending_now(&mut self) -> Option<RoundCounter> {
+        (!self.is_pending()).then(|| self.set_pending_since(Instant::now()))
+    }
+
+    /// Finish a pending request
+    ///
+    /// Returns the last data snapshot if accepted or `None` if rejected.
+    pub fn finish_pending_round_with_value_since(
+        &mut self,
+        pending_round: RoundCounter,
+        value: impl Into<T>,
+        since: impl Into<Instant>,
+    ) -> Option<DataSnapshot<T>> {
+        if !self.round_counter.finish_pending_round(pending_round) {
+            return None;
+        }
+        self.pending_since = None;
+        self.last_data_snapshot
+            .replace(DataSnapshot::new_since(value, since))
+    }
+
+    /// Finish a pending request now
+    ///
+    /// Returns the last data snapshot if accepted or `None` if rejected.
+    pub fn finish_pending_round_with_value_now(
+        &mut self,
+        pending_round: RoundCounter,
+        value: impl Into<T>,
+    ) -> Option<DataSnapshot<T>> {
+        if !self.round_counter.finish_pending_round(pending_round) {
+            return None;
+        }
+        self.pending_since = None;
+        self.last_data_snapshot.replace(DataSnapshot::now(value))
+    }
 }
 
 impl<T> Default for RemoteData<T> {
     fn default() -> Self {
-        Self::Unknown
-    }
-}
-
-impl<T> RemoteData<T> {
-    pub fn ready_since(since: impl Into<Instant>, value: impl Into<T>) -> Self {
-        Self::Ready {
-            snapshot: Some(DataSnapshot::new(since, value)),
-        }
-    }
-
-    pub fn ready_now(value: impl Into<T>) -> Self {
-        Self::Ready {
-            snapshot: Some(DataSnapshot::now(value)),
-        }
-    }
-
-    pub fn get(&self) -> Option<&DataSnapshot<T>> {
-        match self {
-            Self::Unknown => None,
-            Self::Pending { stale_snapshot } => stale_snapshot.value.as_ref(),
-            Self::Ready { snapshot } => snapshot.as_ref(),
-        }
-    }
-
-    pub fn get_ready(&self) -> Option<&DataSnapshot<T>> {
-        match self {
-            Self::Unknown | Self::Pending { .. } => None,
-            Self::Ready { snapshot } => snapshot.as_ref(),
-        }
-    }
-
-    pub fn get_mut(&mut self) -> Option<&mut DataSnapshot<T>> {
-        match self {
-            Self::Unknown | Self::Pending { .. } => None,
-            Self::Ready { snapshot } => snapshot.as_mut(),
-        }
-    }
-
-    pub fn reset(&mut self) {
-        *self = Self::Unknown;
-    }
-
-    pub fn is_unknown(&self) -> bool {
-        matches!(self, Self::Unknown)
-    }
-
-    pub fn is_pending(&self) -> bool {
-        matches!(self, Self::Pending { .. })
-    }
-
-    pub fn is_ready(&self) -> bool {
-        matches!(self, Self::Ready { .. })
-    }
-
-    pub fn take_ready(&mut self) -> Option<DataSnapshot<T>> {
-        if let Self::Ready { snapshot } = self {
-            let snapshot = snapshot.take();
-            debug_assert!(snapshot.is_some());
-            *self = Self::Unknown;
-            snapshot
-        } else {
-            None
-        }
-    }
-
-    pub fn try_set_pending_since(&mut self, since: impl Into<Instant>) -> bool {
-        if self.is_pending() {
-            return false;
-        }
-        let stale_snapshot = DataSnapshot {
-            since: since.into(),
-            value: self.take_ready(),
-        };
-        debug_assert!(
-            stale_snapshot.since
-                >= stale_snapshot
-                    .value
-                    .as_ref()
-                    .map(|x| x.since)
-                    .unwrap_or(stale_snapshot.since)
-        );
-        *self = Self::Pending { stale_snapshot };
-        true
-    }
-
-    pub fn try_set_pending_now(&mut self) -> bool {
-        self.try_set_pending_since(Instant::now())
+        Self::default()
     }
 }

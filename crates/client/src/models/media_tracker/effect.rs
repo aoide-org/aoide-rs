@@ -20,8 +20,6 @@ use aoide_core_api::media::tracker::{
     untrack_directories::Outcome as UntrackDirectoriesOutcome, Progress, Status,
 };
 
-use crate::prelude::remote::RemoteData;
-
 use super::{Action, State, StateUpdated, Task};
 
 #[derive(Debug)]
@@ -49,9 +47,16 @@ impl Effect {
                 }
                 match res {
                     Ok(new_progress) => {
-                        let new_progress = RemoteData::ready_now(new_progress);
-                        if state.remote_view.progress != new_progress {
-                            state.remote_view.progress = new_progress;
+                        let state_changed =
+                            state.remote_view.progress.last_value() != Some(&new_progress);
+                        state
+                            .remote_view
+                            .progress
+                            .finish_pending_round_with_value_now(
+                                state.remote_view.progress.round_counter(),
+                                new_progress,
+                            );
+                        if state_changed {
                             StateUpdated::maybe_changed(None)
                         } else {
                             StateUpdated::unchanged(None)
@@ -72,8 +77,16 @@ impl Effect {
                 }
                 match res {
                     Ok(new_status) => {
-                        let new_status = RemoteData::ready_now(new_status);
-                        if state.remote_view.status != new_status {
+                        let state_changed =
+                            state.remote_view.status.last_value() != Some(&new_status);
+                        state
+                            .remote_view
+                            .status
+                            .finish_pending_round_with_value_now(
+                                state.remote_view.status.round_counter(),
+                                new_status,
+                            );
+                        if state_changed {
                             StateUpdated::maybe_changed(None)
                         } else {
                             StateUpdated::unchanged(None)
@@ -94,8 +107,16 @@ impl Effect {
                 }
                 let next_action = match res {
                     Ok(outcome) => {
-                        state.remote_view.last_scan_directories_outcome =
-                            RemoteData::ready_now(outcome);
+                        state
+                            .remote_view
+                            .last_scan_directories_outcome
+                            .finish_pending_round_with_value_now(
+                                state
+                                    .remote_view
+                                    .last_scan_directories_outcome
+                                    .round_counter(),
+                                outcome,
+                            );
                         Action::dispatch_task(Task::FetchProgress)
                     }
                     Err(err) => {
@@ -119,8 +140,16 @@ impl Effect {
                 }
                 let next_action = match res {
                     Ok(outcome) => {
-                        state.remote_view.last_untrack_directories_outcome =
-                            RemoteData::ready_now(outcome);
+                        state
+                            .remote_view
+                            .last_untrack_directories_outcome
+                            .finish_pending_round_with_value_now(
+                                state
+                                    .remote_view
+                                    .last_untrack_directories_outcome
+                                    .round_counter(),
+                                outcome,
+                            );
                         Action::dispatch_task(Task::FetchProgress)
                     }
                     Err(err) => {
@@ -140,8 +169,13 @@ impl Effect {
                 }
                 let next_action = match res {
                     Ok(outcome) => {
-                        state.remote_view.last_import_files_outcome =
-                            RemoteData::ready_now(outcome);
+                        state
+                            .remote_view
+                            .last_import_files_outcome
+                            .finish_pending_round_with_value_now(
+                                state.remote_view.last_import_files_outcome.round_counter(),
+                                outcome,
+                            );
                         Action::dispatch_task(Task::FetchProgress)
                     }
                     Err(err) => {
@@ -165,8 +199,16 @@ impl Effect {
                 }
                 let next_action = match res {
                     Ok(outcome) => {
-                        state.remote_view.last_find_untracked_files_outcome =
-                            RemoteData::ready_now(outcome);
+                        state
+                            .remote_view
+                            .last_find_untracked_files_outcome
+                            .finish_pending_round_with_value_now(
+                                state
+                                    .remote_view
+                                    .last_find_untracked_files_outcome
+                                    .round_counter(),
+                                outcome,
+                            );
                         Action::dispatch_task(Task::FetchProgress)
                     }
                     Err(err) => {

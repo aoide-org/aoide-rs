@@ -32,10 +32,11 @@ impl Intent {
                 Action::dispatch_task(Task::CreateNewCollection(new_collection)),
             ),
             Self::FetchAvailableCollections => {
-                if !state
+                if state
                     .remote_view
                     .available_collections
                     .try_set_pending_now()
+                    .is_none()
                 {
                     return StateUpdate::unchanged(None);
                 }

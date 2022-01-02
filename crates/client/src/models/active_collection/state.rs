@@ -17,7 +17,7 @@ use crate::prelude::remote::RemoteData;
 
 use aoide_core::{collection::Entity as CollectionEntity, entity::EntityUid};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct RemoteView {
     pub available_collections: RemoteData<Vec<CollectionEntity>>,
 }
@@ -29,8 +29,8 @@ impl RemoteView {
 
     fn count_available_collections_by_uid(&self, uid: &EntityUid) -> Option<usize> {
         self.available_collections
-            .get()
-            .map(|v| v.value.iter().filter(|x| &x.hdr.uid == uid).count())
+            .last_value()
+            .map(|v| v.iter().filter(|x| &x.hdr.uid == uid).count())
     }
 
     pub fn find_available_collection_by_uid(&self, uid: &EntityUid) -> Option<&CollectionEntity> {
@@ -40,12 +40,12 @@ impl RemoteView {
                 <= 1
         );
         self.available_collections
-            .get()
-            .and_then(|v| v.value.iter().find(|x| &x.hdr.uid == uid))
+            .last_value()
+            .and_then(|v| v.iter().find(|x| &x.hdr.uid == uid))
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct State {
     pub(super) remote_view: RemoteView,
     pub(super) active_collection_uid: Option<EntityUid>,
@@ -61,12 +61,11 @@ impl State {
     }
 
     pub fn active_collection(&self) -> Option<&CollectionEntity> {
-        if let (Some(available), Some(active_collection_uid)) = (
-            self.remote_view.available_collections.get(),
+        if let (Some(available_collections), Some(active_collection_uid)) = (
+            self.remote_view.available_collections.last_value(),
             &self.active_collection_uid,
         ) {
-            available
-                .value
+            available_collections
                 .iter()
                 .find(|x| &x.hdr.uid == active_collection_uid)
         } else {
@@ -78,7 +77,12 @@ impl State {
         &mut self,
         new_available_collections: Vec<CollectionEntity>,
     ) {
-        self.remote_view.available_collections = RemoteData::ready_now(new_available_collections);
+        self.remote_view
+            .available_collections
+            .finish_pending_round_with_value_now(
+                self.remote_view.available_collections.round_counter(),
+                new_available_collections,
+            );
         let active_uid = self.active_collection_uid.take();
         self.set_active_collection_uid(active_uid);
     }
@@ -87,11 +91,14 @@ impl State {
         &mut self,
         new_active_uid: impl Into<Option<EntityUid>>,
     ) {
-        self.active_collection_uid = if let (Some(available), Some(new_active_uid)) = (
-            self.remote_view.available_collections.get(),
+        self.active_collection_uid = if let (Some(available_collections), Some(new_active_uid)) = (
+            self.remote_view.available_collections.last_value(),
             new_active_uid.into(),
         ) {
-            if available.value.iter().any(|x| x.hdr.uid == new_active_uid) {
+            if available_collections
+                .iter()
+                .any(|x| x.hdr.uid == new_active_uid)
+            {
                 Some(new_active_uid)
             } else {
                 None

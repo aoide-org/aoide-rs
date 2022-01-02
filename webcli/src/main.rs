@@ -213,13 +213,13 @@ async fn main() -> anyhow::Result<()> {
                     .media_sources
                     .remote_view()
                     .last_purge_orphaned_outcome
-                    .get_ready()
+                    .last_data_snapshot()
             {
                 last_media_sources_purge_orphaned_outcome = state
                     .media_sources
                     .remote_view()
                     .last_purge_orphaned_outcome
-                    .get_ready()
+                    .last_data_snapshot()
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = &last_media_sources_purge_orphaned_outcome {
                     log::info!("Purging orphaned media sources succeeded: {:?}", outcome);
@@ -230,38 +230,47 @@ async fn main() -> anyhow::Result<()> {
                     .media_sources
                     .remote_view()
                     .last_purge_untracked_outcome
-                    .get_ready()
+                    .last_data_snapshot()
             {
                 last_media_sources_purge_untracked_outcome = state
                     .media_sources
                     .remote_view()
                     .last_purge_untracked_outcome
-                    .get_ready()
+                    .last_data_snapshot()
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = &last_media_sources_purge_untracked_outcome {
                     log::info!("Purging untracked media sources succeeded: {:?}", outcome);
                 }
             }
             if last_media_tracker_progress.as_ref()
-                != state.media_tracker.remote_view().progress.get()
+                != state
+                    .media_tracker
+                    .remote_view()
+                    .progress
+                    .last_data_snapshot()
             {
                 last_media_tracker_progress = state
                     .media_tracker
                     .remote_view()
                     .progress
-                    .get()
+                    .last_data_snapshot()
                     .map(ToOwned::to_owned);
                 if let Some(progress) = &last_media_tracker_progress {
                     log::info!("Media tracker progress: {:?}", progress);
                 }
             }
-            if last_media_tracker_status.as_ref() != state.media_tracker.remote_view().status.get()
+            if last_media_tracker_status.as_ref()
+                != state
+                    .media_tracker
+                    .remote_view()
+                    .status
+                    .last_data_snapshot()
             {
                 last_media_tracker_status = state
                     .media_tracker
                     .remote_view()
                     .status
-                    .get()
+                    .last_data_snapshot()
                     .map(ToOwned::to_owned);
                 if let Some(status) = &last_media_tracker_status {
                     log::info!("Media tracker status: {:?}", status);
@@ -272,13 +281,13 @@ async fn main() -> anyhow::Result<()> {
                     .media_tracker
                     .remote_view()
                     .last_scan_directories_outcome
-                    .get_ready()
+                    .last_data_snapshot()
             {
                 last_media_tracker_scan_directories_outcome = state
                     .media_tracker
                     .remote_view()
                     .last_scan_directories_outcome
-                    .get_ready()
+                    .last_data_snapshot()
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = &last_media_tracker_scan_directories_outcome {
                     log::info!("Scanning media directories succeeded: {:?}", outcome);
@@ -289,13 +298,13 @@ async fn main() -> anyhow::Result<()> {
                     .media_tracker
                     .remote_view()
                     .last_untrack_directories_outcome
-                    .get_ready()
+                    .last_data_snapshot()
             {
                 last_media_tracker_untrack_directories_outcome = state
                     .media_tracker
                     .remote_view()
                     .last_untrack_directories_outcome
-                    .get_ready()
+                    .last_data_snapshot()
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = &last_media_tracker_untrack_directories_outcome {
                     log::info!("Untracking media directories succeeded: {:?}", outcome);
@@ -306,13 +315,13 @@ async fn main() -> anyhow::Result<()> {
                     .media_tracker
                     .remote_view()
                     .last_import_files_outcome
-                    .get_ready()
+                    .last_data_snapshot()
             {
                 last_media_tracker_import_files_outcome = state
                     .media_tracker
                     .remote_view()
                     .last_import_files_outcome
-                    .get_ready()
+                    .last_data_snapshot()
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = &last_media_tracker_import_files_outcome {
                     log::info!("Importing media files succeeded: {:?}", outcome);
@@ -323,13 +332,13 @@ async fn main() -> anyhow::Result<()> {
                     .media_tracker
                     .remote_view()
                     .last_find_untracked_files_outcome
-                    .get_ready()
+                    .last_data_snapshot()
             {
                 last_media_tracker_find_untracked_files_outcome = state
                     .media_tracker
                     .remote_view()
                     .last_find_untracked_files_outcome
-                    .get_ready()
+                    .last_data_snapshot()
                     .map(ToOwned::to_owned);
                 if let Some(outcome) = &last_media_tracker_find_untracked_files_outcome {
                     log::info!("Finding untracked media files succeeded: {:?}", outcome);
@@ -429,7 +438,7 @@ async fn main() -> anyhow::Result<()> {
                 .active_collection
                 .remote_view()
                 .available_collections
-                .get_ready()
+                .last_data_snapshot()
             {
                 if state.active_collection.active_collection_uid().is_none() {
                     if available_collections.value.is_empty() {
@@ -475,11 +484,11 @@ async fn main() -> anyhow::Result<()> {
                     }
                     return None;
                 }
-            } else if state
+            } else if !state
                 .active_collection
                 .remote_view()
                 .available_collections
-                .is_unknown()
+                .is_pending()
             {
                 return Some(active_collection::Intent::FetchAvailableCollections.into());
             }
